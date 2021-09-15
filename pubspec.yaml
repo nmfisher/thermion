@@ -1,0 +1,27 @@
+name: mimetic_filament
+description: The 3D rendering layer for the Mimetic app.
+version: 0.0.1
+homepage:
+
+environment:
+  sdk: ">=2.12.0 <3.0.0"
+  flutter: ">=1.20.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^1.0.0
+
+flutter:
+  plugin:
+    platforms:
+      #android:
+        #package: com.thepipecat.flutter.filament
+        #pluginClass: FilamentPlugin
+      ios:
+        pluginClass: MimeticFilamentPlugin
