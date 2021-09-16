@@ -3,17 +3,13 @@
 #endif /* FilamentNativeViewFactory_h */
 
 #import <Flutter/Flutter.h>
-#import "FilamentViewer.hpp"
+#import "FilamentView.h"
 
-@interface FilamentMethodCallHandler : FlutterMethodChannel
-- (void)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:( FlutterResult _Nonnull)result;
-- (mimetic::FilamentViewer*) _viewer;
-@end
+#include "FilamentViewer.hpp"
+
 
 @interface FilamentNativeViewFactory : NSObject <FlutterPlatformViewFactory>
 - (instancetype)initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar;
-- (mimetic::ResourceBuffer)loadResource:(const char* const)path;
-- (void)freeResource:(void*)mem size:(size_t)size misc:(void*)misc;
 @end
 
 @interface FilamentNativeView : NSObject <FlutterPlatformView>

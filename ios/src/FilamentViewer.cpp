@@ -20,6 +20,7 @@
 #include <filament/Camera.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
+
 #include <filament/IndexBuffer.h>
 #include <filament/RenderableManager.h>
 #include <filament/Renderer.h>
@@ -28,6 +29,7 @@
 #include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/View.h>
+#include <filament/Viewport.h>
 
 #include <filament/IndirectLight.h>
 #include <filament/LightManager.h>
@@ -39,6 +41,7 @@
 #include <camutils/Manipulator.h>
 
 #include <utils/NameComponentManager.h>
+#include <utils/JobSystem.h>
 
 #include <math/vec3.h>
 #include <math/vec4.h>
@@ -46,6 +49,13 @@
 #include <math/norm.h>
 
 #include <image/KtxUtility.h>
+
+#include <gltfio/Animator.h>
+
+#include <chrono>
+#include <iostream>
+
+
 
 using namespace filament;
 using namespace filament::math;
@@ -97,7 +107,7 @@ FilamentViewer::FilamentViewer(
     _resourceLoader = new ResourceLoader(
             {.engine = _engine, .normalizeSkinningWeights = true, .recomputeBoundingBoxes = false});
         
-    _manipulator =
+    manipulator =
             Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.0f).targetPosition(0.0f, 0.0f, 0).build(Mode::ORBIT);
             //Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.0f).targetPosition(0.0f, 0.0f, 0).build(Mode::ORBIT);
     _asset = nullptr;
@@ -107,15 +117,15 @@ FilamentViewer::~FilamentViewer() {
 
 }
 
-void FilamentViewer::loadResources() {
+void FilamentViewer::loadResources(string relativeResourcePath) {
     const char* const* const resourceUris = _asset->getResourceUris();
     const size_t resourceUriCount = _asset->getResourceUriCount();
     for (size_t i = 0; i < resourceUriCount; i++) {
-        const char* const uri = resourceUris[i];
-        ResourceBuffer buf = _loadResource(uri);
+        string uri = relativeResourcePath + string(resourceUris[i]);
+        ResourceBuffer buf = _loadResource(uri.c_str());
         ResourceLoader::BufferDescriptor b(
                 buf.data, buf.size, (ResourceLoader::BufferDescriptor::Callback)&_freeResource, nullptr);
-        _resourceLoader->addResourceData(uri, std::move(b));
+        _resourceLoader->addResourceData(resourceUris[i], std::move(b));
     }
 
     _resourceLoader->loadResources(_asset);
@@ -133,7 +143,7 @@ void FilamentViewer::loadResources() {
     _scene->addEntities(_asset->getEntities(), _asset->getEntityCount());    
 };
 
-void FilamentViewer::loadGltf(const char* const uri) {
+void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath) {
     _resourceLoader->asyncCancelLoad();
     _resourceLoader->evictResourceData();
     if(_asset) {
@@ -150,7 +160,13 @@ void FilamentViewer::loadGltf(const char* const uri) {
         exit(1);
     }
 
-    loadResources();
+    loadResources(string(relativeResourcePath) + string("/"));
+
+    _freeResource((void*)rbuf.data, rbuf.size, nullptr);
+  
+    transformToUnitCube();
+
+    startTime = std::chrono::high_resolution_clock::now();
 }
 
     
@@ -163,6 +179,7 @@ void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const 
     _skyboxTexture = image::ktx::createTexture(_engine, skyboxBundle, false);
     _skybox = filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
     _scene->setSkybox(_skybox);
+    _freeResource((void*)skyboxBuffer.data, skyboxBuffer.size, nullptr);
 
     // Load IBL.
     ResourceBuffer iblBuffer = _loadResource(iblPath);
@@ -178,6 +195,8 @@ void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const 
                              .intensity(30000.0f)
                              .build(*_engine);
     _scene->setIndirectLight(_indirectLight);
+  
+    _freeResource((void*)iblBuffer.data, iblBuffer.size, nullptr);
 
     // Always add a direct light source since it is required for shadowing.
     _sun = EntityManager::get().create();
@@ -190,12 +209,68 @@ void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const 
     _scene->addEntity(_sun);
 }
 
+void FilamentViewer::transformToUnitCube() {
+      if (!_asset) {
+          return;
+      }
+      auto& tm = _engine->getTransformManager();
+      auto aabb = _asset->getBoundingBox();
+      auto center = aabb.center();
+      auto halfExtent = aabb.extent();
+      auto maxExtent = max(halfExtent) * 2;
+      auto scaleFactor = 2.0f / maxExtent;
+      auto transform = math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
+      tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
+}
+
 void FilamentViewer::cleanup() {
     _resourceLoader->asyncCancelLoad();
     _assetLoader->destroyAsset(_asset);
     _materialProvider->destroyMaterials();
     AssetLoader::destroy(&_assetLoader);
 };
+
+void FilamentViewer::render() {
+    if (!_view || !_mainCamera || !manipulator) {
+        return;
+    }
+  // Extract the camera basis from the helper and push it to the Filament camera.
+    math::float3 eye, target, upward;
+    manipulator->getLookAt(&eye, &target, &upward);
+    //std::cout << "eye " << eye[0] <<  "  " << eye[1] << " " << eye[2] << " " << target[0] << " " << target[1] << " " << target[2] << std::endl;
+    _mainCamera->lookAt(eye, target, upward);
+
+    if(_animator) {
+        //  typedef std::chrono::high_resolution_clock clock;
+        typedef std::chrono::duration<float, std::milli> duration;
+        duration dur = std::chrono::high_resolution_clock::now() - startTime;
+        if (_animator->getAnimationCount() > 0) {
+            _animator->applyAnimation(0, dur.count() / 1000);
+        }
+        _animator->updateBoneMatrices();
+    }
+
+    // Render the scene, unless the renderer wants to skip the frame.
+    if (_renderer->beginFrame(_swapChain)) {
+        _renderer->render(_view);
+        _renderer->endFrame();
+    }
+}
+
+void FilamentViewer::updateViewportAndCameraProjection(int width, int height, float contentScaleFactor) {
+    if (!_view || !_mainCamera || !manipulator) {
+        return;
+    }
+
+    manipulator->setViewport(width, height);
+
+    const uint32_t _width = width * contentScaleFactor;
+    const uint32_t _height = height * contentScaleFactor;
+    _view->setViewport({0, 0, _width, _height});
+
+    const double aspect = (double)width / height;
+    _mainCamera->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
+}
 
 
 }

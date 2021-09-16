@@ -5,6 +5,10 @@ abstract class FilamentController {
   Future initialize();
   Future loadSkybox(String skyboxPath, String lightingPath);
   Future loadGlb(String path);
+  Future loadGltf(String path, String relativeResourcePath);
+  Future panStart(double x, double y);
+  Future panUpdate(double x, double y);
+  Future panEnd();
 }
 
 class MimeticFilamentController extends FilamentController {
@@ -23,11 +27,27 @@ class MimeticFilamentController extends FilamentController {
   }
 
   @override
-  Future loadSkybox(String path) {
-    throw Exception();
+  Future loadSkybox(String skyboxPath, String lightingPath) async {
+    await _channel.invokeMethod("loadSkybox", [skyboxPath, lightingPath]);
   }
 
   Future loadGlb(String path) {
     throw Exception();
+  }
+
+  Future loadGltf(String path, String relativeResourcePath) async {
+    await _channel.invokeMethod("loadGltf", [path, relativeResourcePath]);
+  }
+
+  Future panStart(double x, double y) async {
+    await _channel.invokeMethod("panStart", [x.toInt(), y.toInt()]);
+  }
+
+  Future panUpdate(double x, double y) async {
+    await _channel.invokeMethod("panUpdate", [x.toInt(), y.toInt()]);
+  }
+
+  Future panEnd() async {
+    await _channel.invokeMethod("panEnd");
   }
 }

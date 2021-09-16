@@ -18,7 +18,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final FilamentController _filamentController = MimeticFilamentController();
-  String _platformVersion = 'Unknown';
 
   @override
   void initState() {
@@ -32,23 +31,44 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Stack(children: [
-          FilamentWidget(controller: _filamentController),
-          Column(children: [
-            ElevatedButton(
-                child: Text("initialize"),
-                onPressed: () {
-                  _filamentController.initialize();
-                }),
-            ElevatedButton(
-                child: Text("load asset"),
-                onPressed: () {
-                  _filamentController.loadSkybox(
-                      "assets/default_env/default_env_skybox.ktx",
-                      "assets/default_env/default_env_ibl.ktx");
-                }),
-          ]),
-        ]),
+        body: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanDown: (details) {
+              _filamentController.panStart(
+                  details.localPosition.dx, details.localPosition.dy);
+            },
+            onPanUpdate: (details) {
+              print(details.localPosition.dx);
+              _filamentController.panUpdate(
+                  details.localPosition.dx, details.localPosition.dy);
+            },
+            onPanEnd: (d) {
+              _filamentController.panEnd();
+            },
+            child: Stack(children: [
+              FilamentWidget(controller: _filamentController),
+              Column(children: [
+                ElevatedButton(
+                    child: Text("initialize"),
+                    onPressed: () {
+                      _filamentController.initialize();
+                    }),
+                ElevatedButton(
+                    child: Text("load skybox"),
+                    onPressed: () {
+                      _filamentController.loadSkybox(
+                          "assets/default_env/default_env_skybox.ktx",
+                          "assets/default_env/default_env_ibl.ktx");
+                    }),
+                ElevatedButton(
+                    child: Text("load gltf"),
+                    onPressed: () {
+                      _filamentController.loadGltf(
+                          "assets/BusterDrone/scene.gltf",
+                          "assets/BusterDrone");
+                    }),
+              ]),
+            ])),
       ),
     );
   }

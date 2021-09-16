@@ -16,20 +16,25 @@
 
 // These defines are set in the "Preprocessor Macros" build setting for each scheme.
 #include "FilamentView.h"
-
+#include "FilamentViewer.hpp"
 #import <Foundation/Foundation.h>
 
 using namespace std;
 
 @interface FilamentView ()
-
 - (void)initCommon;
-
+- (void)setViewer:(mimetic::FilamentViewer*)viewer;
 @end
 
 @implementation FilamentView {
-    
+    mimetic::FilamentViewer* _viewer;
 }
+
+- (void)setViewer:(mimetic::FilamentViewer*)viewer {
+    _viewer = viewer;
+    _viewer->updateViewportAndCameraProjection(self.bounds.size.width, self.bounds.size.height, self.contentScaleFactor);
+}
+
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
@@ -56,6 +61,20 @@ using namespace std;
 
 + (Class)layerClass {
     return [CAEAGLLayer class];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    if(_viewer) {
+        _viewer->updateViewportAndCameraProjection(self.bounds.size.width, self.bounds.size.height, self.contentScaleFactor);
+    }
+}
+
+- (void)setContentScaleFactor:(CGFloat)contentScaleFactor {
+    [super setContentScaleFactor:contentScaleFactor];
+    if(_viewer) {
+        _viewer->updateViewportAndCameraProjection(self.bounds.size.width, self.bounds.size.height, self.contentScaleFactor);
+    }
 }
 
 @end

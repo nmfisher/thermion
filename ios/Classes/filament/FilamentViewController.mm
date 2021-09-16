@@ -16,19 +16,28 @@
 
 #import "FilamentViewController.h"
 #import "FilamentView.h"
-
+#import "FilamentViewer.hpp"
 #import <Flutter/Flutter.h>
 
 @implementation FilamentViewController {
     CADisplayLink* _displayLink;
     NSObject<FlutterPluginRegistrar>* _registrar;
+    mimetic::FilamentViewer* _viewer;
+    FilamentView* _view;
 }
 
-- (instancetype)initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
+- (instancetype)initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar
+                        view:(FilamentView*)view {
     if (self = [super init]) {
       _registrar = registrar;
+      _view = view;
     }
+
     return self;
+}
+- (void)setViewer:(mimetic::FilamentViewer*)viewer {
+    _viewer = viewer;
+    [_view setViewer:_viewer];
 }
 #pragma mark UIViewController methods
 
@@ -58,8 +67,10 @@
     _displayLink = nil;
 }
 
-- (void)render {   
-    
+- (void)render {
+    if(_viewer) {
+        _viewer->render();
+    }
 }
 
 - (void)dealloc {

@@ -18,14 +18,15 @@
 
 #import "FilamentView.h"
 #import "Flutter/Flutter.h"
+#import "FilamentViewer.hpp"
 
 @interface FilamentViewController : UIViewController
 
 @property(weak, nonatomic) IBOutlet FilamentView* modelView;
-
+- (void)setViewer:(mimetic::FilamentViewer*)viewer;
 - (void)startDisplayLink;
 - (void)stopDisplayLink;
 
--initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar;
+-initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar view:(FilamentView*)view;
 
 @end

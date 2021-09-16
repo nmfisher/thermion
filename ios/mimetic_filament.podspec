@@ -20,11 +20,16 @@ A new flutter plugin project.
   s.static_framework = true
 
   # Flutter.framework does not contain a i386 slice.
+  s.xcconfig = {
+    'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES' => 'YES',
+    'ALWAYS_SEARCH_USER_PATHS' => 'YES',
+    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/src"',
+    
+  }
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES', 
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
-    'ALWAYS_SEARCH_USER_PATHS' => 'YES',
-    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/include"',
-    'OTHER_CFLAGS' => '-fmodules -fcxx-modules' }
+    'OTHER_CFLAGS' => '-fmodules -fcxx-modules'
+  }
   s.swift_version = '5.0'
 end

@@ -15,7 +15,7 @@
  */
 
 #import <UIKit/UIKit.h>
-
+#include "FilamentViewer.hpp"
 NS_ASSUME_NONNULL_BEGIN
 
 /**
@@ -24,8 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
  *
  */
 @interface FilamentView : UIView
-
-
+- (void)setViewer:(mimetic::FilamentViewer*)viewer;
 @end
 
 NS_ASSUME_NONNULL_END

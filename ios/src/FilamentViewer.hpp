@@ -1,3 +1,5 @@
+#pragma once
+
 #include <filament/Camera.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
@@ -26,6 +28,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <chrono>
 
 using namespace std;
 using namespace filament;
@@ -40,7 +43,7 @@ namespace mimetic {
     struct ResourceBuffer {
         ResourceBuffer(const void* data, const uint32_t size) : data(data), size(size) {};
         const void* data;
-        const uint32_t size;
+        const uint64_t size;
     };
 
     using LoadResource = std::function<ResourceBuffer(const char* uri)>;
@@ -50,14 +53,21 @@ namespace mimetic {
         public:
             FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
-            void loadGltf(const char* const uri);
+            void loadGltf(const char* const uri, const char* relativeResourcePath);
             void loadSkybox(const char* const skyboxUri, const char* const iblUri);
+            void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
+            void render();
+            Manipulator<float>* manipulator;
         private:
-            void loadResources();
+            void loadResources(std::string relativeResourcePath);
+            void transformToUnitCube();
             void cleanup();
             void* _layer;
+            
             LoadResource _loadResource;
             FreeResource _freeResource;
+
+            std::chrono::high_resolution_clock::time_point startTime;
             
             Scene* _scene;
             View* _view;  
@@ -68,8 +78,6 @@ namespace mimetic {
             SwapChain* _swapChain;
 
             Animator* _animator;
-
-            Manipulator<float>* _manipulator;
 
             AssetLoader* _assetLoader;
             FilamentAsset* _asset = nullptr;
