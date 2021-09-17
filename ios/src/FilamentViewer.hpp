@@ -30,6 +30,8 @@
 #include <string>
 #include <chrono>
 
+#include "GPUMorphHelper.h"
+
 using namespace std;
 using namespace filament;
 using namespace filament::math;
@@ -51,13 +53,16 @@ namespace mimetic {
 
     class FilamentViewer {
         public:
-            FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
+            FilamentViewer(void* layer, const char* shaderPath, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
-            void loadGltf(const char* const uri, const char* relativeResourcePath);
+            void loadGltf(const char* const uri, const char* relativeResourcePath, const char* materialInstanceName);
             void loadSkybox(const char* const skyboxUri, const char* const iblUri);
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
+            void createMorpher(const char* meshName, const char* entityName, const char* materialInstanceName);
             Manipulator<float>* manipulator;
+            GPUMorphHelper* morphHelper;
+
         private:
             void loadResources(std::string relativeResourcePath);
             void transformToUnitCube();
@@ -82,6 +87,7 @@ namespace mimetic {
             AssetLoader* _assetLoader;
             FilamentAsset* _asset = nullptr;
             NameComponentManager* _ncm;
+
 
             Entity _sun;
             Texture* _skyboxTexture;

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -19,6 +21,10 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final FilamentController _filamentController = MimeticFilamentController();
 
+  double _zoomValue = 0;
+  int _primitiveIndex = 0;
+  double _weight = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -38,7 +44,6 @@ class _MyAppState extends State<MyApp> {
                   details.localPosition.dx, details.localPosition.dy);
             },
             onPanUpdate: (details) {
-              print(details.localPosition.dx);
               _filamentController.panUpdate(
                   details.localPosition.dx, details.localPosition.dy);
             },
@@ -51,22 +56,78 @@ class _MyAppState extends State<MyApp> {
                 ElevatedButton(
                     child: Text("initialize"),
                     onPressed: () {
-                      _filamentController.initialize();
-                    }),
-                ElevatedButton(
-                    child: Text("load skybox"),
-                    onPressed: () {
+                      _filamentController.initialize(
+                          materialPath: "assets/compiled.mat");
                       _filamentController.loadSkybox(
                           "assets/default_env/default_env_skybox.ktx",
                           "assets/default_env/default_env_ibl.ktx");
-                    }),
-                ElevatedButton(
-                    child: Text("load gltf"),
-                    onPressed: () {
                       _filamentController.loadGltf(
-                          "assets/BusterDrone/scene.gltf",
-                          "assets/BusterDrone");
+                          "assets/guy.gltf", "assets", "Material");
+                      _filamentController.createMorpher(
+                          "CC_Base_Body.003", "CC_Base_Body.003",
+                          materialName: "Material");
                     }),
+                // ElevatedButton(
+                //     child: Text("load skybox"),
+                //     onPressed: () {
+                //       _filamentController.loadSkybox(
+                //           "assets/default_env/default_env_skybox.ktx",
+                //           "assets/default_env/default_env_ibl.ktx");
+                //     }),
+                // ElevatedButton(
+                //     child: Text("load gltf"),
+                //     onPressed: () {
+                //       _filamentController.loadGltf(
+                //           "assets/guy.gltf", "assets", "Material");
+                //     }),
+                // ElevatedButton(
+                //     child: Text("create morpher"),
+                //     onPressed: () {
+                //       _filamentController.createMorpher(
+                //           "CC_Base_Body.003", "CC_Base_Body.003",
+                //           materialName: "Material");
+                //     }),
+                Row(children: [
+                  Container(
+                      padding: EdgeInsets.all(10),
+                      color: Colors.white,
+                      child: Text(_primitiveIndex.toString())),
+                  ElevatedButton(
+                      child: Text("+"),
+                      onPressed: () {
+                        setState(() {
+                          _primitiveIndex = min(_primitiveIndex + 1, 5);
+                        });
+                      }),
+                  ElevatedButton(
+                      child: Text("-"),
+                      onPressed: () {
+                        setState(() {
+                          _primitiveIndex = max(_primitiveIndex - 1, 0);
+                        });
+                      }),
+                ]),
+                Slider(
+                    min: 0,
+                    max: 1,
+                    divisions: 10,
+                    value: _weight,
+                    onChanged: (v) {
+                      setState(() {
+                        _weight = v;
+                        _filamentController.applyWeights(
+                            List.filled(255, _weight), _primitiveIndex.toInt());
+                        print("Set $_primitiveIndex to $_weight");
+                      });
+                    }),
+                Row(children: [
+                  ElevatedButton(
+                      onPressed: () => _filamentController.zoom(1.0),
+                      child: Text("+")),
+                  ElevatedButton(
+                      onPressed: () => _filamentController.zoom(-1.0),
+                      child: Text("-"))
+                ])
               ]),
             ])),
       ),

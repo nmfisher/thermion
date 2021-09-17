@@ -42,7 +42,10 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
 
 - (void)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:(FlutterResult _Nonnull )result {
   if([@"initialize" isEqualToString:call.method]) {
-	    _viewer = new mimetic::FilamentViewer(_layer, loadResourceGlobal, freeResourceGlobal);
+      if(!call.arguments)
+        _viewer = new mimetic::FilamentViewer(_layer, nullptr, loadResourceGlobal, freeResourceGlobal);
+      else
+        _viewer = new mimetic::FilamentViewer(_layer, [call.arguments UTF8String], loadResourceGlobal, freeResourceGlobal);
       [_controller setViewer:_viewer];
       [_controller startDisplayLink];
       result(@"OK");
@@ -54,7 +57,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
   } else if([@"loadGltf" isEqualToString:call.method]) {
     if(!_viewer)
       return;
-    _viewer->loadGltf([call.arguments[0] UTF8String], [call.arguments[1] UTF8String]);
+    _viewer->loadGltf([call.arguments[0] UTF8String], [call.arguments[1] UTF8String], [call.arguments[2] UTF8String]);
     result(@"OK");
   } else if([@"panStart" isEqualToString:call.method]) {
     if(!_viewer)
@@ -68,6 +71,25 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabEnd();
+  } else if([@"createMorpher" isEqualToString:call.method]) {
+    _viewer->createMorpher([call.arguments[0] UTF8String], [call.arguments[1] UTF8String],[call.arguments[2] UTF8String]);
+  } else if([@"applyWeights" isEqualToString:call.method]) {
+    if(!_viewer)
+      return;
+    NSArray* nWeights = call.arguments[0];
+    NSNumber* nPrimitiveIndex = call.arguments[1];
+    int primitiveIndex = [nPrimitiveIndex intValue];
+    
+    int count = [nWeights count];
+    float weights[count];
+    for(int i=0; i < count; i++) {
+      weights[i] = [nWeights[i] floatValue];
+    }
+    _viewer->morphHelper->applyWeights(weights, count, primitiveIndex);
+  } else if([@"zoom" isEqualToString:call.method]) {
+    if(!_viewer)
+      return;
+    _viewer->manipulator->scroll(0.0f, 0.0f, [call.arguments floatValue]);
   } else {
     result(FlutterMethodNotImplemented);
   }
