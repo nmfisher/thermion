@@ -71,6 +71,18 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabEnd();
+  } else if([@"rotateStart" isEqualToString:call.method]) {
+    if(!_viewer)
+      return;
+    _viewer->manipulator->grabBegin([call.arguments[0] intValue], [call.arguments[1] intValue], false);
+  } else if([@"rotateUpdate" isEqualToString:call.method]) {
+    if(!_viewer)
+      return;
+    _viewer->manipulator->grabUpdate([call.arguments[0] intValue], [call.arguments[1] intValue]);
+  } else if([@"rotate	End" isEqualToString:call.method]) {
+    if(!_viewer)
+      return;
+    _viewer->manipulator->grabEnd();
   } else if([@"createMorpher" isEqualToString:call.method]) {
     _viewer->createMorpher([call.arguments[0] UTF8String], [call.arguments[1] UTF8String],[call.arguments[2] UTF8String]);
   } else if([@"applyWeights" isEqualToString:call.method]) {

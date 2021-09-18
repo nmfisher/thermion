@@ -21,7 +21,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final FilamentController _filamentController = MimeticFilamentController();
 
-  double _zoomValue = 0;
+  bool _rotate = false;
   int _primitiveIndex = 0;
   double _weight = 0.0;
 
@@ -40,19 +40,27 @@ class _MyAppState extends State<MyApp> {
         body: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanDown: (details) {
-              _filamentController.panStart(
-                  details.localPosition.dx, details.localPosition.dy);
+              _rotate
+                  ? _filamentController.rotateStart(
+                      details.localPosition.dx, details.localPosition.dy)
+                  : _filamentController.panStart(
+                      details.localPosition.dx, details.localPosition.dy);
             },
             onPanUpdate: (details) {
-              _filamentController.panUpdate(
-                  details.localPosition.dx, details.localPosition.dy);
+              _rotate
+                  ? _filamentController.rotateUpdate(
+                      details.localPosition.dx, details.localPosition.dy)
+                  : _filamentController.panUpdate(
+                      details.localPosition.dx, details.localPosition.dy);
             },
             onPanEnd: (d) {
-              _filamentController.panEnd();
+              _rotate
+                  ? _filamentController.rotateEnd()
+                  : _filamentController.panEnd();
             },
             child: Stack(children: [
               FilamentWidget(controller: _filamentController),
-              Column(children: [
+              Column(mainAxisSize: MainAxisSize.min, children: [
                 ElevatedButton(
                     child: Text("initialize"),
                     onPressed: () {
@@ -63,9 +71,9 @@ class _MyAppState extends State<MyApp> {
                           "assets/default_env/default_env_ibl.ktx");
                       _filamentController.loadGltf(
                           "assets/guy.gltf", "assets", "Material");
-                      _filamentController.createMorpher(
-                          "CC_Base_Body.003", "CC_Base_Body.003",
-                          materialName: "Material");
+                      // _filamentController.createMorpher(
+                      //     "CC_Base_Body.003", "CC_Base_Body.003",
+                      //     materialName: "Material");
                     }),
                 // ElevatedButton(
                 //     child: Text("load skybox"),
@@ -121,13 +129,20 @@ class _MyAppState extends State<MyApp> {
                       });
                     }),
                 Row(children: [
+                  Checkbox(
+                      value: _rotate,
+                      onChanged: (v) {
+                        setState(() {
+                          _rotate = v == true;
+                        });
+                      }),
                   ElevatedButton(
-                      onPressed: () => _filamentController.zoom(1.0),
+                      onPressed: () => _filamentController.zoom(100.0),
                       child: Text("+")),
                   ElevatedButton(
-                      onPressed: () => _filamentController.zoom(-1.0),
+                      onPressed: () => _filamentController.zoom(-100.0),
                       child: Text("-"))
-                ])
+                ]),
               ]),
             ])),
       ),

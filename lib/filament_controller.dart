@@ -10,6 +10,9 @@ abstract class FilamentController {
   Future panStart(double x, double y);
   Future panUpdate(double x, double y);
   Future panEnd();
+  Future rotateStart(double x, double y);
+  Future rotateUpdate(double x, double y);
+  Future rotateEnd();
   Future applyWeights(List<double> weights, int primitiveIndex);
   Future createMorpher(String meshName, String entityName,
       {String? materialName});
@@ -56,6 +59,18 @@ class MimeticFilamentController extends FilamentController {
 
   Future panEnd() async {
     await _channel.invokeMethod("panEnd");
+  }
+
+  Future rotateStart(double x, double y) async {
+    await _channel.invokeMethod("rotateStart", [x.toInt(), y.toInt()]);
+  }
+
+  Future rotateUpdate(double x, double y) async {
+    await _channel.invokeMethod("rotateUpdate", [x.toInt(), y.toInt()]);
+  }
+
+  Future rotateEnd() async {
+    await _channel.invokeMethod("rotateEnd");
   }
 
   Future applyWeights(List<double> weights, int primitiveIndex) async {
