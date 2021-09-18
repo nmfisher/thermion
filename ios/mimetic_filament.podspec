@@ -14,7 +14,7 @@ A new flutter plugin project.
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*', 'src/*.*', 'src/morph/*'
-  s.dependency 'Filament', '~> 1.12.3'
+  s.dependency 'Filament', '~> 1.12.4'
   s.dependency 'Flutter' 
   s.platform = :ios, '12.1'
   s.static_framework = true
