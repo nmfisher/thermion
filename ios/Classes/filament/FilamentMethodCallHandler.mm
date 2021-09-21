@@ -79,7 +79,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabUpdate([call.arguments[0] intValue], [call.arguments[1] intValue]);
-  } else if([@"rotate	End" isEqualToString:call.method]) {
+  } else if([@"rotateEnd" isEqualToString:call.method]) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabEnd();
