@@ -42,6 +42,12 @@ using namespace camutils;
 
 namespace mimetic {
 
+    struct StringList {
+      StringList(const char** strings, const int count) : strings(strings), count(count) {};
+      const char** strings;
+      const int count;
+    };
+
     struct ResourceBuffer {
         ResourceBuffer(const void* data, const uint32_t size) : data(data), size(size) {};
         const void* data;
@@ -55,11 +61,12 @@ namespace mimetic {
         public:
             FilamentViewer(void* layer, const char* shaderPath, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
-            void loadGltf(const char* const uri, const char* relativeResourcePath, const char* materialInstanceName);
+            void loadGltf(const char* const uri, const char* relativeResourcePath);
             void loadSkybox(const char* const skyboxUri, const char* const iblUri);
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
             void createMorpher(const char* meshName, const char* entityName, const char* materialInstanceName);
+            StringList getTargetNames(const char* meshName);
             Manipulator<float>* manipulator;
             GPUMorphHelper* morphHelper;
 
@@ -68,6 +75,7 @@ namespace mimetic {
             void transformToUnitCube();
             void cleanup();
             void* _layer;
+
             
             LoadResource _loadResource;
             FreeResource _freeResource;

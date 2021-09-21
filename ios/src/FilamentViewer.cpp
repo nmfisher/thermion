@@ -98,13 +98,13 @@ FilamentViewer::FilamentViewer(
 
     _swapChain = _engine->createSwapChain(_layer);
 
-    if(shaderPath) {
-        ResourceBuffer rb = _loadResource(shaderPath);
-        _materialProvider = createGPUMorphShaderLoader(rb.data, rb.size, _engine);
-//        _freeResource((void*)rb.data, rb.size, nullptr);
-    } else {
+   if(shaderPath) {
+       ResourceBuffer rb = _loadResource(shaderPath);
+       _materialProvider = createGPUMorphShaderLoader(rb.data, rb.size, _engine);
+        // _freeResource((void*)rb.data, rb.size, nullptr); <- TODO this is being freed too early, need to pass to callback?
+   } else {
         _materialProvider = createUbershaderLoader(_engine);
-    }
+   }
     EntityManager& em = EntityManager::get();
     _ncm = new NameComponentManager(em);
     _assetLoader = AssetLoader::create({_engine, _materialProvider, _ncm, &em});
@@ -113,7 +113,6 @@ FilamentViewer::FilamentViewer(
         
     manipulator =
             Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.0f).targetPosition(0.0f, 0.0f, 0).build(Mode::ORBIT);
-            //Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.0f).targetPosition(0.0f, 0.0f, 0).build(Mode::ORBIT);
     _asset = nullptr;
 
 }
@@ -143,12 +142,12 @@ void FilamentViewer::loadResources(string relativeResourcePath) {
     }
 
     _animator = _asset->getAnimator();
-//    _asset->releaseSourceData();
+//    _asset->releaseSourceData(); // we need to wait until the Morpher is created to release the source data
 
     _scene->addEntities(_asset->getEntities(), _asset->getEntityCount());    
 };
 
-void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath, const char* materialInstanceName) {
+void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath) {
     if(_asset) {
         _resourceLoader->evictResourceData();
         _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
@@ -162,7 +161,6 @@ void FilamentViewer::loadGltf(const char* const uri, const char* const relativeR
     // Parse the glTF file and create Filament entities.
     _asset = _assetLoader->createAssetFromJson((uint8_t*)rbuf.data, rbuf.size);
   
-   
     if (!_asset) {
         std::cerr << "Unable to parse asset" << std::endl;
         exit(1);
@@ -176,6 +174,22 @@ void FilamentViewer::loadGltf(const char* const uri, const char* const relativeR
 
     startTime = std::chrono::high_resolution_clock::now();
 
+}
+
+StringList FilamentViewer::getTargetNames(const char* meshName) {
+  FFilamentAsset* asset = (FFilamentAsset*)_asset;
+  NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
+                                            : asset->mNodeMap;
+
+  for (auto pair : sourceNodes) {
+      cgltf_node const *node = pair.first;
+      cgltf_mesh const *mesh = node->mesh;
+
+      if (mesh && strcmp(meshName, mesh->name) == 0) {
+        return StringList((const char**)mesh->target_names, (int) mesh->target_names_count);
+      }
+  }
+  return StringList(nullptr, 0);
 }
 
 void FilamentViewer::createMorpher(const char* meshName, const char* entityName, const char* materialInstanceName) {
@@ -250,16 +264,16 @@ void FilamentViewer::render() {
   // Extract the camera basis from the helper and push it to the Filament camera.
     math::float3 eye, target, upward;
     manipulator->getLookAt(&eye, &target, &upward);
-    //std::cout << "eye " << eye[0] <<  "  " << eye[1] << " " << eye[2] << " " << target[0] << " " << target[1] << " " << target[2] << std::endl;
+
     _mainCamera->lookAt(eye, target, upward);
 
     if(_animator) {
-        /*typedef std::chrono::duration<float, std::milli> duration;
+        typedef std::chrono::duration<float, std::milli> duration;
         duration dur = std::chrono::high_resolution_clock::now() - startTime;
-        if (_animator->getAnimationCount() > 0) {
-            _animator->applyAnimation(0, dur.count() / 1000);
-        }
-        _animator->updateBoneMatrices(); */
+        //if (_animator->getAnimationCount() > 0) {
+            ///_animator->applyAnimation(0, dur.count() / 1000);
+        //}
+        //_animator->updateBoneMatrices(); 
     }
 
     // Render the scene, unless the renderer wants to skip the frame.

@@ -57,7 +57,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
   } else if([@"loadGltf" isEqualToString:call.method]) {
     if(!_viewer)
       return;
-    _viewer->loadGltf([call.arguments[0] UTF8String], [call.arguments[1] UTF8String], [call.arguments[2] UTF8String]);
+    _viewer->loadGltf([call.arguments[0] UTF8String], [call.arguments[1] UTF8String]);
     result(@"OK");
   } else if([@"panStart" isEqualToString:call.method]) {
     if(!_viewer)
@@ -85,6 +85,13 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     _viewer->manipulator->grabEnd();
   } else if([@"createMorpher" isEqualToString:call.method]) {
     _viewer->createMorpher([call.arguments[0] UTF8String], [call.arguments[1] UTF8String],[call.arguments[2] UTF8String]);
+  } else if([@"getTargetNames" isEqualToString:call.method]) {
+    mimetic::StringList list = _viewer->getTargetNames([call.arguments UTF8String]);
+    NSMutableArray* asArray = [NSMutableArray arrayWithCapacity:list.count];
+    for(int i = 0; i < list.count; i++) {
+      asArray[i] = [NSString stringWithFormat:@"%s", list.strings[i]];
+    }
+    result(asArray);
   } else if([@"applyWeights" isEqualToString:call.method]) {
     if(!_viewer)
       return;
@@ -113,7 +120,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     NSString* nsPath = [[NSBundle mainBundle] pathForResource:key
                                                       ofType:nil];
     if (![[NSFileManager defaultManager] fileExistsAtPath:nsPath]) {
-        NSLog(@"Error: no file exists at %@", nsPath);
+        NSLog(@"Error: no file exists at %@", p);
         exit(-1);
     }
 
@@ -126,6 +133,10 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
 
 - (void)freeResource:(void*)mem size:(size_t)s misc:(void *)m {
     free(mem);
+}
+
+- (void)ready {
+  [_channel invokeMethod:@"ready" arguments:nil];
 }
 
 @end

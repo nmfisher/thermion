@@ -14,7 +14,7 @@ static const id VIEW_TYPE = @"mimetic.app/filament_view";
 - (mimetic::FilamentViewer*) _viewer;
 - (mimetic::ResourceBuffer)loadResource:(const char* const)path;
 - (void)freeResource:(void*)mem size:(size_t)size misc:(void*)misc;
-
+- (void)ready;
 - (instancetype)initWithController:(FilamentViewController*)controller
                     registrar:(NSObject<FlutterPluginRegistrar>*)registrar
                     viewId:(int64_t)viewId

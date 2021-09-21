@@ -20,21 +20,21 @@ A new flutter plugin project.
   s.static_framework = true
 
   # Flutter.framework does not contain a i386 slice.
-  s.xcconfig = {
+  s.user_target_xcconfig = {
     'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES' => 'YES',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
     'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/morph"',
-    'OTHER_CXXFLAGS' => '--std=c++17',
+    'OTHER_CXXFLAGS' => '--std=c++17 -fmodules -fcxx-modules',
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     #"CLANG_CXX_LIBRARY" => "libc++"
   }
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES', 
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
-    'OTHER_CFLAGS' => '-fmodules -fcxx-modules',
-    #'OTHER_CXXFLAGS' => '--std=c++17',
-    #"CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    #"CLANG_CXX_LIBRARY" => "libc++"
+    "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
+    'OTHER_CXXFLAGS' => '--std=c++17 -fmodules -fcxx-modules',
+    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/morph"',
+    'ALWAYS_SEARCH_USER_PATHS' => 'YES',
   }
   s.swift_version = '5.0'
 end

@@ -46,6 +46,7 @@
     [_controller viewDidLoad];
     _layer = (__bridge_retained void*)[_view layer];
     _handler = [[FilamentMethodCallHandler alloc] initWithController:_controller registrar:registrar viewId:viewId layer:_layer];
+    [_handler ready];
   }
   return self;
 }

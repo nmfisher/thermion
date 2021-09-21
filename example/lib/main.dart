@@ -24,6 +24,7 @@ class _MyAppState extends State<MyApp> {
   bool _rotate = false;
   int _primitiveIndex = 0;
   double _weight = 0.0;
+  List<String> _targets = [];
 
   @override
   void initState() {
@@ -60,90 +61,95 @@ class _MyAppState extends State<MyApp> {
             },
             child: Stack(children: [
               FilamentWidget(controller: _filamentController),
-              Column(mainAxisSize: MainAxisSize.min, children: [
-                ElevatedButton(
-                    child: Text("initialize"),
-                    onPressed: () {
-                      _filamentController.initialize(
-                          materialPath: "assets/compiled.mat");
-                      _filamentController.loadSkybox(
-                          "assets/default_env/default_env_skybox.ktx",
-                          "assets/default_env/default_env_ibl.ktx");
-                      _filamentController.loadGltf(
-                          "assets/guy.gltf", "assets", "Material");
-                      // _filamentController.createMorpher(
-                      //     "CC_Base_Body.003", "CC_Base_Body.003",
-                      //     materialName: "Material");
-                    }),
-                // ElevatedButton(
-                //     child: Text("load skybox"),
-                //     onPressed: () {
-                //       _filamentController.loadSkybox(
-                //           "assets/default_env/default_env_skybox.ktx",
-                //           "assets/default_env/default_env_ibl.ktx");
-                //     }),
-                // ElevatedButton(
-                //     child: Text("load gltf"),
-                //     onPressed: () {
-                //       _filamentController.loadGltf(
-                //           "assets/guy.gltf", "assets", "Material");
-                //     }),
-                // ElevatedButton(
-                //     child: Text("create morpher"),
-                //     onPressed: () {
-                //       _filamentController.createMorpher(
-                //           "CC_Base_Body.003", "CC_Base_Body.003",
-                //           materialName: "Material");
-                //     }),
-                Row(children: [
-                  Container(
-                      padding: EdgeInsets.all(10),
-                      color: Colors.white,
-                      child: Text(_primitiveIndex.toString())),
-                  ElevatedButton(
-                      child: Text("+"),
-                      onPressed: () {
-                        setState(() {
-                          _primitiveIndex = min(_primitiveIndex + 1, 5);
-                        });
-                      }),
-                  ElevatedButton(
-                      child: Text("-"),
-                      onPressed: () {
-                        setState(() {
-                          _primitiveIndex = max(_primitiveIndex - 1, 0);
-                        });
-                      }),
-                ]),
-                Slider(
-                    min: 0,
-                    max: 1,
-                    divisions: 10,
-                    value: _weight,
-                    onChanged: (v) {
-                      setState(() {
-                        _weight = v;
-                        _filamentController.applyWeights(
-                            List.filled(255, _weight), _primitiveIndex.toInt());
-                        print("Set $_primitiveIndex to $_weight");
-                      });
-                    }),
-                Row(children: [
-                  Checkbox(
-                      value: _rotate,
-                      onChanged: (v) {
-                        setState(() {
-                          _rotate = v == true;
-                        });
-                      }),
-                  ElevatedButton(
-                      onPressed: () => _filamentController.zoom(100.0),
-                      child: Text("+")),
-                  ElevatedButton(
-                      onPressed: () => _filamentController.zoom(-100.0),
-                      child: Text("-"))
-                ]),
-              ]),
+              Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                        ElevatedButton(
+                            child: Text("initialize"),
+                            onPressed: () async {
+                              await _filamentController.loadSkybox(
+                                  "assets/default_env/default_env_skybox.ktx",
+                                  "assets/default_env/default_env_ibl.ktx");
+                              await _filamentController.loadGltf(
+                                  "assets/guy.gltf", "assets");
+                              _targets = await _filamentController
+                                  .getTargetNames("CC_Base_Body.002");
+                              setState(() {});
+
+                              // _filamentController.createMorpher(
+                              //     "CC_Base_Body.003", "CC_Base_Body.003",
+                              //     materialName: "Material");
+                            }),
+                        // ElevatedButton(
+                        //     child: Text("load skybox"),
+                        //     onPressed: () {
+                        //       _filamentController.loadSkybox(
+                        //           "assets/default_env/default_env_skybox.ktx",
+                        //           "assets/default_env/default_env_ibl.ktx");
+                        //     }),
+                        // ElevatedButton(
+                        //     child: Text("load gltf"),
+                        //     onPressed: () {
+                        //       _filamentController.loadGltf(
+                        //           "assets/guy.gltf", "assets", "Material");
+                        //     }),
+                        // ElevatedButton(
+                        //     child: Text("create morpher"),
+                        //     onPressed: () {
+                        //       _filamentController.createMorpher(
+                        //           "CC_Base_Body.003", "CC_Base_Body.003",
+                        //           materialName: "Material");
+                        //     }),
+                        Row(children: [
+                          Container(
+                              padding: EdgeInsets.all(10),
+                              color: Colors.white,
+                              child: Text(_primitiveIndex.toString())),
+                          ElevatedButton(
+                              child: Text("+"),
+                              onPressed: () {
+                                setState(() {
+                                  _primitiveIndex = min(_primitiveIndex + 1, 5);
+                                });
+                              }),
+                          ElevatedButton(
+                              child: Text("-"),
+                              onPressed: () {
+                                setState(() {
+                                  _primitiveIndex = max(_primitiveIndex - 1, 0);
+                                });
+                              }),
+                        ]),
+                        Slider(
+                            min: 0,
+                            max: 1,
+                            divisions: 10,
+                            value: _weight,
+                            onChanged: (v) {
+                              setState(() {
+                                _weight = v;
+                                _filamentController.applyWeights(
+                                    List.filled(255, _weight),
+                                    _primitiveIndex.toInt());
+                              });
+                            }),
+                        Row(children: [
+                          Checkbox(
+                              value: _rotate,
+                              onChanged: (v) {
+                                setState(() {
+                                  _rotate = v == true;
+                                });
+                              }),
+                          ElevatedButton(
+                              onPressed: () => _filamentController.zoom(100.0),
+                              child: const Text("+")),
+                          ElevatedButton(
+                              onPressed: () => _filamentController.zoom(-100.0),
+                              child: const Text("-"))
+                        ]),
+                      ] +
+                      _targets.map((t) => Text(t)).toList()),
             ])),
       ),
     );

@@ -70,10 +70,8 @@ namespace gltfio {
                 }
             }
         }
-      
         createTextures();
-      
-      
+          
     }
 
     GPUMorphHelper::~GPUMorphHelper() {
