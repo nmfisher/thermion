@@ -83,8 +83,10 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabEnd();
+  } else if([@"releaseSourceAssets" isEqualToString:call.method]) {
+    _viewer->releaseSourceAssets();
   } else if([@"createMorpher" isEqualToString:call.method]) {
-    _viewer->createMorpher([call.arguments[0] UTF8String], [call.arguments[1] UTF8String],[call.arguments[2] UTF8String]);
+    _viewer->createMorpher([call.arguments[0] UTF8String], [call.arguments[1] intValue]);
   } else if([@"getTargetNames" isEqualToString:call.method]) {
     mimetic::StringList list = _viewer->getTargetNames([call.arguments UTF8String]);
     NSMutableArray* asArray = [NSMutableArray arrayWithCapacity:list.count];
@@ -96,15 +98,13 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     if(!_viewer)
       return;
     NSArray* nWeights = call.arguments[0];
-    NSNumber* nPrimitiveIndex = call.arguments[1];
-    int primitiveIndex = [nPrimitiveIndex intValue];
     
     int count = [nWeights count];
     float weights[count];
     for(int i=0; i < count; i++) {
       weights[i] = [nWeights[i] floatValue];
     }
-    _viewer->morphHelper->applyWeights(weights, count, primitiveIndex);
+    _viewer->morphHelper->applyWeights(weights, count);
   } else if([@"zoom" isEqualToString:call.method]) {
     if(!_viewer)
       return;

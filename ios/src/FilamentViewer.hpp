@@ -65,7 +65,8 @@ namespace mimetic {
             void loadSkybox(const char* const skyboxUri, const char* const iblUri);
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
-            void createMorpher(const char* meshName, const char* entityName, const char* materialInstanceName);
+            void createMorpher(const char* meshName, int primitiveIndex);
+            void releaseSourceAssets();
             StringList getTargetNames(const char* meshName);
             Manipulator<float>* manipulator;
             GPUMorphHelper* morphHelper;

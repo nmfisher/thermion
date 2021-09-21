@@ -42,13 +42,14 @@ namespace gltfio {
     public:
         using Entity = utils::Entity;
 
-        GPUMorphHelper(FFilamentAsset *asset, const char* meshName, const char* entityName, const char* materialInstanceName);
+        GPUMorphHelper(FFilamentAsset *asset, const char* meshName, int primitiveIndex);
 
         ~GPUMorphHelper();
 
-        void applyWeights(float const *weights, size_t count, int primitiveIndex) noexcept;
+        void applyWeights(float const *weights, size_t count) noexcept;
 
     private:
+        int mPrimitiveIndex;
         struct GltfTarget {
             const void *bufferObject;
             uint32_t bufferSize;
@@ -58,32 +59,25 @@ namespace gltfio {
 
         struct GltfPrimitive {
             filament::VertexBuffer *vertexBuffer;
-//            const std::unique_ptr<Texture> texture;
             Texture* texture;
             std::vector <GltfTarget> targets; // TODO: flatten this?
             const char* materialName;
             cgltf_size numTargets = 0;
             cgltf_size numVertices = 0;
-            //const std::unique_ptr<MaterialInstance> materialInstance;
             MaterialInstance* materialInstance;
-        };
-
-        struct TableEntry {
-            std::vector <GltfPrimitive> primitives; // TODO: flatten this?
         };
 
         int numAttributes = 2; // position & normal
 
         uint32_t* indicesBuffer = nullptr;
 
-        void addPrimitive(cgltf_mesh const *mesh, int primitiveIndex, TableEntry *entry);
+        void addPrimitive(cgltf_mesh const *mesh);
 
         void createTextures();
 
-
         cgltf_mesh const* targetMesh;
 
-        tsl::robin_map <Entity, TableEntry> mMorphTable;
         FFilamentAsset *mAsset;
+        std::unique_ptr<GltfPrimitive> animatedPrimitive;
     };
 }

@@ -142,10 +142,13 @@ void FilamentViewer::loadResources(string relativeResourcePath) {
     }
 
     _animator = _asset->getAnimator();
-//    _asset->releaseSourceData(); // we need to wait until the Morpher is created to release the source data
 
     _scene->addEntities(_asset->getEntities(), _asset->getEntityCount());    
 };
+
+void FilamentViewer::releaseSourceAssets() {
+  _asset->releaseSourceData(); 
+}
 
 void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath) {
     if(_asset) {
@@ -192,8 +195,8 @@ StringList FilamentViewer::getTargetNames(const char* meshName) {
   return StringList(nullptr, 0);
 }
 
-void FilamentViewer::createMorpher(const char* meshName, const char* entityName, const char* materialInstanceName) {
-  morphHelper = new gltfio::GPUMorphHelper((FFilamentAsset*)_asset, meshName, entityName, materialInstanceName);
+void FilamentViewer::createMorpher(const char* meshName, int primitiveIndex) {
+  morphHelper = new gltfio::GPUMorphHelper((FFilamentAsset*)_asset, meshName, primitiveIndex);
 }
 
     

@@ -19,8 +19,7 @@ abstract class FilamentController {
 
   void animate(
       List<List<double>> weights, int primitiveIndex, double frameRate);
-  Future createMorpher(String meshName, String entityName,
-      {String? materialName});
+  Future createMorpher(String meshName, int primitiveIndex);
   Future zoom(double z);
 }
 
@@ -47,7 +46,8 @@ class MimeticFilamentController extends FilamentController {
 
   @override
   Future _initialize() async {
-    print("Initializing");
+    final foo = await rootBundle.load(materialPath);
+    print("Initializing with material path of size ${foo.lengthInBytes}");
     await _channel.invokeMethod("initialize", materialPath);
   }
 
@@ -114,13 +114,15 @@ class MimeticFilamentController extends FilamentController {
     });
   }
 
+  Future releaseSourceAssets() async {
+    await _channel.invokeMethod("releaseSourceAssets");
+  }
+
   Future zoom(double z) async {
     await _channel.invokeMethod("zoom", z);
   }
 
-  Future createMorpher(String meshName, String entityName,
-      {String? materialName}) async {
-    await _channel
-        .invokeMethod("createMorpher", [meshName, entityName, materialName]);
+  Future createMorpher(String meshName, int primitiveIndex) async {
+    await _channel.invokeMethod("createMorpher", [meshName, primitiveIndex]);
   }
 }
