@@ -58,12 +58,14 @@ namespace gltfio {
 
         struct GltfPrimitive {
             filament::VertexBuffer *vertexBuffer;
+//            const std::unique_ptr<Texture> texture;
             Texture* texture;
             std::vector <GltfTarget> targets; // TODO: flatten this?
             const char* materialName;
             cgltf_size numTargets = 0;
             cgltf_size numVertices = 0;
-            MaterialInstance* materialInstance = nullptr;
+            //const std::unique_ptr<MaterialInstance> materialInstance;
+            MaterialInstance* materialInstance;
         };
 
         struct TableEntry {

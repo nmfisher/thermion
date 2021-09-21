@@ -49,7 +49,7 @@ namespace gltfio {
         free(mem);
     };
 
-    GPUMorphHelper::GPUMorphHelper(FFilamentAsset *asset, const char* meshName, const char* entityName, const char* materialInstanceName) : mAsset(asset) {
+    GPUMorphHelper::GPUMorphHelper(FFilamentAsset *asset, const char* meshName, const char* entityName, int primitiveIndex) : mAsset(asset) {
 
         cgltf_size num_primitives = 0;
         NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
@@ -70,6 +70,14 @@ namespace gltfio {
                 }
             }
         }
+        auto materialInstances = mAsset->getMaterialInstances();
+
+      std::cout << "Listing all material instances in asset" << std::endl;
+        for(int i = 0; i < mAsset->getMaterialInstanceCount(); i++) {
+          const char* name = materialInstances[i]->getName();
+          std::cout << "Material : " << name << std::endl;
+        }
+    
         createTextures();
           
     }
@@ -85,8 +93,13 @@ namespace gltfio {
         auto materialInstances = mAsset->getMaterialInstances();
         auto &engine = *(mAsset->mEngine);
 
-        for (auto &entry : mMorphTable) {
-            for (auto prim : entry.second.primitives) {
+        for (auto&& entry : mMorphTable) {
+            std::vector<GltfPrimitive>& prims = (std::vector<GltfPrimitive>&)entry.second.primitives;
+            for(int i = 0; i < prims.size(); i++) {
+//              prims.at(i).texture = nullptr;
+              auto& prim =               prims.at(i);
+//            }
+//            for (auto&& prim : entry.second.primitives) {
                 // for a single morph target, each vertex will be assigned 2 pixels, corresponding to a position vec3 and a normal vec3
                 // these two vectors will be laid out adjacent in memory
                 // the total texture "width" is the total number of these pixels
@@ -119,15 +132,17 @@ namespace gltfio {
                         offset += int(target.bufferSize / sizeof(float));
                     }
                 }
-                              
-                prim.texture = Texture::Builder()
-                        .width(textureWidth) //
-                        .height(1)
-                        .depth(prim.numTargets)
-                        .sampler(Texture::Sampler::SAMPLER_2D_ARRAY)
-                        .format(Texture::InternalFormat::RGB32F)
-                        .levels(0x01)
-                        .build(engine);
+              
+                Texture* texture = Texture::Builder()
+                      .width(textureWidth) //
+                      .height(1)
+                      .depth(prim.numTargets)
+                      .sampler(Texture::Sampler::SAMPLER_2D_ARRAY)
+                      .format(Texture::InternalFormat::RGB32F)
+                      .levels(0x01)
+                      .build(engine);
+                
+                prim.texture = texture; //std::unique_ptr<Texture>(texture);
 
                 Texture::PixelBufferDescriptor descriptor(
                         textureBuffer,
@@ -140,9 +155,10 @@ namespace gltfio {
               
                 for(int i = 0; i < mAsset->getMaterialInstanceCount(); i++) {
                     const char* name = materialInstances[i]->getName();
-                    std::cout << name << std::endl;
+
                     if(strcmp(name, prim.materialName) == 0) {
-                        prim.materialInstance = materialInstances[i];
+                        std::cout << "Found material instance for primitive under name : " << name << std::endl;
+                        prim.materialInstance = materialInstances[i]; //std::unique_ptr<MaterialInstance>(materialInstances[i]);
                         break;
                     }
                 }
@@ -162,9 +178,21 @@ namespace gltfio {
     }
 
     void GPUMorphHelper::applyWeights(float const *weights, size_t count, int primitiveIndex) noexcept {
-        auto materialInstance = mAsset->getMaterialInstances()[primitiveIndex];
-        materialInstance->setParameter("morphTargetWeights", weights, count);
-//        assert(count <= numTargets);
+      std::cout << "Applying " << count << " weights to primitive index " << primitiveIndex << std::endl;
+      for (auto &entry : mMorphTable) {
+          int i = 0 ;
+          for (auto &prim : entry.second.primitives) {
+            if(i == primitiveIndex) {
+              if(!prim.materialInstance) {
+                std::cout << "Error, couldn't find material instance for primitive under name " << prim.materialName << std::endl;
+              } else {
+                prim.materialInstance->setParameter("morphTargetWeights", weights, count);
+                break;
+              }
+            }
+            i++;
+          }
+      }
     }
 
     void
@@ -181,7 +209,7 @@ namespace gltfio {
         morphHelperPrim.materialName = prim.material->name;
         morphHelperPrim.numTargets = prim.targets_count;
         morphHelperPrim.numVertices = vertexBuffer->getVertexCount();
-      cgltf_size maxIndex = 0;
+        cgltf_size maxIndex = 0;
         for(int i = 0; i < prim.indices->count; i++) {
           maxIndex = std::max(cgltf_accessor_read_index(prim.indices, i), maxIndex);
         }
