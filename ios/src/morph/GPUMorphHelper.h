@@ -42,14 +42,14 @@ namespace gltfio {
     public:
         using Entity = utils::Entity;
 
-        GPUMorphHelper(FFilamentAsset *asset, const char* meshName, int primitiveIndex);
+        GPUMorphHelper(FFilamentAsset *asset, const char* meshName, int* primitives, int numPrimitives);
 
         ~GPUMorphHelper();
 
         void applyWeights(float const *weights, size_t count) noexcept;
 
     private:
-        int mPrimitiveIndex;
+
         struct GltfTarget {
             const void *bufferObject;
             uint32_t bufferSize;
@@ -67,17 +67,15 @@ namespace gltfio {
             MaterialInstance* materialInstance;
         };
 
-        int numAttributes = 2; // position & normal
+        int numAttributes = 1; // just position for now - normals not working with indexing inside shader? byte offset seems not calculated correctly
 
-        uint32_t* indicesBuffer = nullptr;
-
-        void addPrimitive(cgltf_mesh const *mesh);
+        void addPrimitive(cgltf_mesh const *mesh, int primitiveIndex);
 
         void createTextures();
 
         cgltf_mesh const* targetMesh;
 
         FFilamentAsset *mAsset;
-        std::unique_ptr<GltfPrimitive> animatedPrimitive;
+        std::vector<std::unique_ptr<GltfPrimitive>> animatablePrimitives;
     };
 }

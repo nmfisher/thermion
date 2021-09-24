@@ -50,9 +50,18 @@ namespace mimetic {
 
     struct ResourceBuffer {
         ResourceBuffer(const void* data, const uint32_t size) : data(data), size(size) {};
+
+        ResourceBuffer& operator=(ResourceBuffer other)
+        {
+          data = other.data;
+          size = other.size;
+          return *this;
+        }
         const void* data;
-        const uint64_t size;
+        uint64_t size;
     };
+
+    typedef std::chrono::duration<float, std::milli> duration;
 
     using LoadResource = std::function<ResourceBuffer(const char* uri)>;
     using FreeResource = std::function<void * (void *mem, size_t s, void *)>;
@@ -65,23 +74,31 @@ namespace mimetic {
             void loadSkybox(const char* const skyboxUri, const char* const iblUri);
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
-            void createMorpher(const char* meshName, int primitiveIndex);
+            void createMorpher(const char* meshName, int* primitives, int numPrimitives);
             void releaseSourceAssets();
             StringList getTargetNames(const char* meshName);
             Manipulator<float>* manipulator;
-            GPUMorphHelper* morphHelper;
+            void applyWeights(float* weights, int count);
+            void animateWeights(float* data, int numWeights, int length, float frameRate);
+            void animateBones();
+            void playAnimation(int index);
 
         private:
+      
             void loadResources(std::string relativeResourcePath);
             void transformToUnitCube();
             void cleanup();
+            void animateWeightsInternal(float* data, int numWeights, int length, float frameRate);
             void* _layer;
 
-            
             LoadResource _loadResource;
             FreeResource _freeResource;
+      
+            ResourceBuffer materialProviderResources;
 
             std::chrono::high_resolution_clock::time_point startTime;
+      
+            int _activeAnimation = -1;
             
             Scene* _scene;
             View* _view;  
@@ -112,6 +129,8 @@ namespace mimetic {
             bool _actualSize = false;     
             
             float _cameraFocalLength = 0.0f;
+
+            GPUMorphHelper* morphHelper;
 
 
     };

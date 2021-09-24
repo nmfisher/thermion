@@ -14,12 +14,14 @@ abstract class FilamentController {
   Future rotateStart(double x, double y);
   Future rotateUpdate(double x, double y);
   Future rotateEnd();
-  Future applyWeights(List<double> weights, int primitiveIndex);
+  Future applyWeights(List<double> weights);
   Future<List<String>> getTargetNames(String meshName);
+  Future releaseSourceAssets();
+  Future playAnimation(int index);
 
-  void animate(
-      List<List<double>> weights, int primitiveIndex, double frameRate);
-  Future createMorpher(String meshName, int primitiveIndex);
+  // Weights is expected to be a contiguous sequence of floats of size W*F, where W is the number of weights and F is the number of frames
+  void animate(List<double> weights, int numWeights, double frameRate);
+  Future createMorpher(String meshName, List<int> primitives);
   Future zoom(double z);
 }
 
@@ -90,8 +92,8 @@ class MimeticFilamentController extends FilamentController {
     await _channel.invokeMethod("rotateEnd");
   }
 
-  Future applyWeights(List<double> weights, int primitiveIndex) async {
-    await _channel.invokeMethod("applyWeights", [weights, primitiveIndex]);
+  Future applyWeights(List<double> weights) async {
+    await _channel.invokeMethod("applyWeights", weights);
   }
 
   Future<List<String>> getTargetNames(String meshName) async {
@@ -100,18 +102,8 @@ class MimeticFilamentController extends FilamentController {
     return result;
   }
 
-  void animate(
-      List<List<double>> weights, int primitiveIndex, double frameRate) async {
-    final msPerFrame = 1000 ~/ frameRate;
-    int i = 0;
-
-    Timer.periodic(Duration(milliseconds: msPerFrame), (t) async {
-      _channel.invokeMethod("applyWeights", [weights[i], primitiveIndex]);
-      i++;
-      if (i >= weights.length) {
-        t.cancel();
-      }
-    });
+  void animate(List<double> weights, int numWeights, double frameRate) async {
+    _channel.invokeMethod("animateWeights", [weights, numWeights, frameRate]);
   }
 
   Future releaseSourceAssets() async {
@@ -122,7 +114,11 @@ class MimeticFilamentController extends FilamentController {
     await _channel.invokeMethod("zoom", z);
   }
 
-  Future createMorpher(String meshName, int primitiveIndex) async {
-    await _channel.invokeMethod("createMorpher", [meshName, primitiveIndex]);
+  Future createMorpher(String meshName, List<int> primitives) async {
+    await _channel.invokeMethod("createMorpher", [meshName, primitives]);
+  }
+
+  Future playAnimation(int index) async {
+    await _channel.invokeMethod("playAnimation", index);
   }
 }

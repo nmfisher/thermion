@@ -43,10 +43,14 @@
 #include <utils/NameComponentManager.h>
 #include <utils/JobSystem.h>
 
+#include "math.h"
+#include "upcast.h"
+
+#include <math/mat4.h>
+#include <math/quat.h>
+#include <math/scalar.h>
 #include <math/vec3.h>
 #include <math/vec4.h>
-#include <math/mat3.h>
-#include <math/norm.h>
 
 #include <image/KtxUtility.h>
 
@@ -65,6 +69,8 @@ namespace filament {
 
 namespace gltfio {
     MaterialProvider* createGPUMorphShaderLoader(const void* data, uint64_t size, Engine* engine);
+    void decomposeMatrix(const filament::math::mat4f& mat, filament::math::float3* translation,
+                    filament::math::quatf* rotation, filament::math::float3* scale);
 }
 
 namespace mimetic {
@@ -76,13 +82,41 @@ const float kAperture = 16.0f;
 const float kShutterSpeed = 1.0f / 125.0f;
 const float kSensitivity = 100.0f;
 
+filament::math::mat4f composeMatrix(const filament::math::float3& translation,
+        const filament::math::quatf& rotation, const filament::math::float3& scale) {
+    float tx = translation[0];
+    float ty = translation[1];
+    float tz = translation[2];
+    float qx = rotation[0];
+    float qy = rotation[1];
+    float qz = rotation[2];
+    float qw = rotation[3];
+    float sx = scale[0];
+    float sy = scale[1];
+    float sz = scale[2];
+    return filament::math::mat4f(
+        (1 - 2 * qy*qy - 2 * qz*qz) * sx,
+        (2 * qx*qy + 2 * qz*qw) * sx,
+        (2 * qx*qz - 2 * qy*qw) * sx,
+        0.f,
+        (2 * qx*qy - 2 * qz*qw) * sy,
+        (1 - 2 * qx*qx - 2 * qz*qz) * sy,
+        (2 * qy*qz + 2 * qx*qw) * sy,
+        0.f,
+        (2 * qx*qz + 2 * qy*qw) * sz,
+        (2 * qy*qz - 2 * qx*qw) * sz,
+        (1 - 2 * qx*qx - 2 * qy*qy) * sz,
+        0.f, tx, ty, tz, 1.f);
+}
+
 FilamentViewer::FilamentViewer(
         void* layer, 
         const char* shaderPath,
         LoadResource loadResource, 
         FreeResource freeResource) : _layer(layer), 
-                                                      _loadResource(loadResource),
-                                                      _freeResource(freeResource) {
+                                    _loadResource(loadResource),
+                                    _freeResource(freeResource),
+                                    materialProviderResources(nullptr, 0) {
     _engine = Engine::create(Engine::Backend::OPENGL);
 
     _renderer = _engine->createRenderer();
@@ -99,9 +133,9 @@ FilamentViewer::FilamentViewer(
     _swapChain = _engine->createSwapChain(_layer);
 
    if(shaderPath) {
-       ResourceBuffer rb = _loadResource(shaderPath);
-       _materialProvider = createGPUMorphShaderLoader(rb.data, rb.size, _engine);
-        // _freeResource((void*)rb.data, rb.size, nullptr); <- TODO this is being freed too early, need to pass to callback?
+     materialProviderResources = _loadResource(shaderPath);
+     _materialProvider = createGPUMorphShaderLoader(materialProviderResources.data, materialProviderResources.size, _engine);
+      // _freeResource((void*)rb.data, rb.size, nullptr); <- TODO this is being freed too early, need to pass to callback?
    } else {
         _materialProvider = createUbershaderLoader(_engine);
    }
@@ -147,7 +181,52 @@ void FilamentViewer::loadResources(string relativeResourcePath) {
 };
 
 void FilamentViewer::releaseSourceAssets() {
-  _asset->releaseSourceData(); 
+  std::cout << "Releasing source data" << std::endl;
+  _asset->releaseSourceData();
+  _freeResource((void*)materialProviderResources.data, materialProviderResources.size, nullptr);
+}
+
+void FilamentViewer::animateWeightsInternal(float* data, int numWeights, int length, float frameRate) {
+  int frameIndex = 0;
+  int numFrames = length / numWeights;
+  float frameLength = 1000 / frameRate;
+
+  applyWeights(data, numWeights);
+  auto animationStartTime = std::chrono::high_resolution_clock::now();
+  while(frameIndex < numFrames) {
+    duration dur = std::chrono::high_resolution_clock::now() - animationStartTime;
+    int msElapsed = dur.count();
+    if(msElapsed > frameLength) {
+      std::cout << "frame" << frameIndex << std::endl;
+      frameIndex++;
+      applyWeights(data + (frameIndex * numWeights), numWeights);
+      animationStartTime = std::chrono::high_resolution_clock::now();
+    }
+  }
+}
+
+
+
+void FilamentViewer::animateWeights(float* data, int numWeights, int length, float frameRate) {
+  int numFrames = length / numWeights;
+  float frameLength = 1000 / frameRate;
+  
+  thread* t = new thread(
+[=](){
+    int frameIndex = 0;
+
+    applyWeights(data, numWeights);
+    auto animationStartTime = std::chrono::high_resolution_clock::now();
+    while(frameIndex < numFrames) {
+      duration dur = std::chrono::high_resolution_clock::now() - animationStartTime;
+      int msElapsed = dur.count();
+      if(msElapsed > frameLength) {
+        frameIndex++;
+        applyWeights(data + (frameIndex * numWeights), numWeights);
+        animationStartTime = std::chrono::high_resolution_clock::now();
+      }
+    }
+ });
 }
 
 void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath) {
@@ -195,8 +274,40 @@ StringList FilamentViewer::getTargetNames(const char* meshName) {
   return StringList(nullptr, 0);
 }
 
-void FilamentViewer::createMorpher(const char* meshName, int primitiveIndex) {
-  morphHelper = new gltfio::GPUMorphHelper((FFilamentAsset*)_asset, meshName, primitiveIndex);
+void FilamentViewer::createMorpher(const char* meshName, int* primitives, int numPrimitives) {
+  morphHelper = new gltfio::GPUMorphHelper((FFilamentAsset*)_asset, meshName, primitives, numPrimitives);
+//  morphHelper = new gltfio::CPUMorpher(((FFilamentAsset)*_asset, (FFilamentInstance*)_asset));
+}
+
+void FilamentViewer::applyWeights(float* weights, int count) {
+  morphHelper->applyWeights(weights, count);
+}
+
+void FilamentViewer::animateBones() {
+  Entity entity = _asset->getFirstEntityByName("CC_Base_JawRoot");
+  if(!entity) {
+    return;
+  }
+
+  TransformManager& transformManager = _engine->getTransformManager();
+
+  TransformManager::Instance node = transformManager.getInstance(  entity);
+
+  mat4f xform = transformManager.getTransform(node);
+  float3 scale;
+  quatf rotation;
+  float3 translation;
+  decomposeMatrix(xform, &translation, &rotation, &scale);
+
+//  const quatf srcQuat { weights[0] * 0.9238,0,weights[0] *  0.3826, 0 };
+//  float3 { scale[0] * (1.0f - weights[0]), scale[1] * (1.0f - weights[1]), scale[2] * (1.0f - weights[2]) }
+//  xform = composeMatrix(translation + float3 { weights[0], weights[1], weights[2] }, rotation, scale );
+  transformManager.setTransform(node, xform);
+
+}
+
+void FilamentViewer::playAnimation(int index) {
+  _activeAnimation = index;
 }
 
     
@@ -261,7 +372,7 @@ void FilamentViewer::cleanup() {
 };
 
 void FilamentViewer::render() {
-    if (!_view || !_mainCamera || !manipulator) {
+    if (!_view || !_mainCamera || !manipulator || !_animator) {
         return;
     }
   // Extract the camera basis from the helper and push it to the Filament camera.
@@ -271,12 +382,12 @@ void FilamentViewer::render() {
     _mainCamera->lookAt(eye, target, upward);
 
     if(_animator) {
-        typedef std::chrono::duration<float, std::milli> duration;
+
         duration dur = std::chrono::high_resolution_clock::now() - startTime;
-        //if (_animator->getAnimationCount() > 0) {
-            ///_animator->applyAnimation(0, dur.count() / 1000);
-        //}
-        //_animator->updateBoneMatrices(); 
+        if (_activeAnimation >= 0 && _animator->getAnimationCount() > 0) {
+            _animator->applyAnimation(_activeAnimation, dur.count() / 1000);
+            _animator->updateBoneMatrices();
+        }
     }
 
     // Render the scene, unless the renderer wants to skip the frame.

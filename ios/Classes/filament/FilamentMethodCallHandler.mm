@@ -63,30 +63,58 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabBegin([call.arguments[0] intValue], [call.arguments[1] intValue], true);
+    result(@"OK");
   } else if([@"panUpdate" isEqualToString:call.method]) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabUpdate([call.arguments[0] intValue], [call.arguments[1] intValue]);
+    result(@"OK");
   } else if([@"panEnd" isEqualToString:call.method]) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabEnd();
+    result(@"OK");
   } else if([@"rotateStart" isEqualToString:call.method]) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabBegin([call.arguments[0] intValue], [call.arguments[1] intValue], false);
+    result(@"OK");
   } else if([@"rotateUpdate" isEqualToString:call.method]) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabUpdate([call.arguments[0] intValue], [call.arguments[1] intValue]);
+    result(@"OK");
   } else if([@"rotateEnd" isEqualToString:call.method]) {
     if(!_viewer)
       return;
     _viewer->manipulator->grabEnd();
+    result(@"OK");
   } else if([@"releaseSourceAssets" isEqualToString:call.method]) {
     _viewer->releaseSourceAssets();
+    result(@"OK");
+  } else if([@"animateWeights" isEqualToString:call.method]) {
+    NSArray* frameData = call.arguments[0];
+    NSNumber* numWeights = call.arguments[1];
+    NSNumber* frameRate = call.arguments[2];
+
+    float* framesArr = (float*)malloc([frameData count] *sizeof(float));
+    for(int i =0 ; i < [frameData count]; i++) {
+      *(framesArr+i) = [[frameData objectAtIndex:i] floatValue];
+    }
+    _viewer->animateWeights((float*)framesArr, [numWeights intValue], [frameData count], [frameRate floatValue]);
   } else if([@"createMorpher" isEqualToString:call.method]) {
-    _viewer->createMorpher([call.arguments[0] UTF8String], [call.arguments[1] intValue]);
+    const char* meshName = [call.arguments[0] UTF8String];
+    NSArray* primitiveIndices = call.arguments[1];
+    int* primitiveIndicesArr = (int*)malloc([primitiveIndices count] *sizeof(int));
+    for(int i =0 ; i < [primitiveIndices count]; i++) {
+      primitiveIndicesArr[i] = [[primitiveIndices objectAtIndex:i] intValue];
+    }
+    _viewer->createMorpher(meshName, primitiveIndicesArr, [primitiveIndices count]);
+    free(primitiveIndicesArr);
+    result(@"OK");
+  } else if([@"playAnimation" isEqualToString:call.method]) {
+    _viewer->playAnimation([call.arguments intValue]);
+    result(@"OK");
   } else if([@"getTargetNames" isEqualToString:call.method]) {
     mimetic::StringList list = _viewer->getTargetNames([call.arguments UTF8String]);
     NSMutableArray* asArray = [NSMutableArray arrayWithCapacity:list.count];
@@ -97,19 +125,22 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
   } else if([@"applyWeights" isEqualToString:call.method]) {
     if(!_viewer)
       return;
-    NSArray* nWeights = call.arguments[0];
+    NSArray* nWeights = call.arguments;
     
     int count = [nWeights count];
     float weights[count];
     for(int i=0; i < count; i++) {
       weights[i] = [nWeights[i] floatValue];
     }
-    _viewer->morphHelper->applyWeights(weights, count);
+    _viewer->applyWeights(weights, count);
+    result(@"OK");
   } else if([@"zoom" isEqualToString:call.method]) {
     if(!_viewer)
       return;
     _viewer->manipulator->scroll(0.0f, 0.0f, [call.arguments floatValue]);
+    result(@"OK");
   } else {
+    
     result(FlutterMethodNotImplemented);
   }
 }
