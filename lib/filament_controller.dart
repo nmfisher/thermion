@@ -20,7 +20,7 @@ abstract class FilamentController {
   Future playAnimation(int index);
 
   // Weights is expected to be a contiguous sequence of floats of size W*F, where W is the number of weights and F is the number of frames
-  void animate(List<double> weights, int numWeights, double frameRate);
+  Future animate(List<double> weights, int numWeights, double frameRate);
   Future createMorpher(String meshName, List<int> primitives);
   Future zoom(double z);
 }
@@ -102,8 +102,9 @@ class MimeticFilamentController extends FilamentController {
     return result;
   }
 
-  void animate(List<double> weights, int numWeights, double frameRate) async {
-    _channel.invokeMethod("animateWeights", [weights, numWeights, frameRate]);
+  Future animate(List<double> weights, int numWeights, double frameRate) async {
+    await _channel
+        .invokeMethod("animateWeights", [weights, numWeights, frameRate]);
   }
 
   Future releaseSourceAssets() async {

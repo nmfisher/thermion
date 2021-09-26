@@ -61,6 +61,8 @@ using namespace filament;
 using namespace filament::math;
 using namespace gltfio;
 using namespace utils;
+using namespace std::chrono;
+
 
 namespace filament {
     class IndirectLight;
@@ -148,11 +150,17 @@ FilamentViewer::FilamentViewer(
     manipulator =
             Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.0f).targetPosition(0.0f, 0.0f, 0).build(Mode::ORBIT);
     _asset = nullptr;
-
+                                      
 }
 
 FilamentViewer::~FilamentViewer() {
 
+}
+
+void printWeights(float* weights, int numWeights) {
+  for(int i =0; i < numWeights; i++) {
+//    std::cout << weights[i];
+  }
 }
 
 void FilamentViewer::loadResources(string relativeResourcePath) {
@@ -186,47 +194,10 @@ void FilamentViewer::releaseSourceAssets() {
   _freeResource((void*)materialProviderResources.data, materialProviderResources.size, nullptr);
 }
 
-void FilamentViewer::animateWeightsInternal(float* data, int numWeights, int length, float frameRate) {
-  int frameIndex = 0;
-  int numFrames = length / numWeights;
-  float frameLength = 1000 / frameRate;
-
-  applyWeights(data, numWeights);
-  auto animationStartTime = std::chrono::high_resolution_clock::now();
-  while(frameIndex < numFrames) {
-    duration dur = std::chrono::high_resolution_clock::now() - animationStartTime;
-    int msElapsed = dur.count();
-    if(msElapsed > frameLength) {
-      std::cout << "frame" << frameIndex << std::endl;
-      frameIndex++;
-      applyWeights(data + (frameIndex * numWeights), numWeights);
-      animationStartTime = std::chrono::high_resolution_clock::now();
-    }
-  }
-}
-
-
 
 void FilamentViewer::animateWeights(float* data, int numWeights, int length, float frameRate) {
-  int numFrames = length / numWeights;
-  float frameLength = 1000 / frameRate;
-  
-  thread* t = new thread(
-[=](){
-    int frameIndex = 0;
-
-    applyWeights(data, numWeights);
-    auto animationStartTime = std::chrono::high_resolution_clock::now();
-    while(frameIndex < numFrames) {
-      duration dur = std::chrono::high_resolution_clock::now() - animationStartTime;
-      int msElapsed = dur.count();
-      if(msElapsed > frameLength) {
-        frameIndex++;
-        applyWeights(data + (frameIndex * numWeights), numWeights);
-        animationStartTime = std::chrono::high_resolution_clock::now();
-      }
-    }
- });
+  transformToUnitCube();
+  morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, length / numWeights, 1000 / frameRate );
 }
 
 void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath) {
@@ -253,8 +224,6 @@ void FilamentViewer::loadGltf(const char* const uri, const char* const relativeR
     _freeResource((void*)rbuf.data, rbuf.size, nullptr);
   
     transformToUnitCube();
-
-    startTime = std::chrono::high_resolution_clock::now();
 
 }
 
@@ -307,9 +276,8 @@ void FilamentViewer::animateBones() {
 }
 
 void FilamentViewer::playAnimation(int index) {
-  _activeAnimation = index;
+  embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index));
 }
-
     
 void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const iblPath) {
     ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
@@ -380,22 +348,105 @@ void FilamentViewer::render() {
     manipulator->getLookAt(&eye, &target, &upward);
 
     _mainCamera->lookAt(eye, target, upward);
-
-    if(_animator) {
-
-        duration dur = std::chrono::high_resolution_clock::now() - startTime;
-        if (_activeAnimation >= 0 && _animator->getAnimationCount() > 0) {
-            _animator->applyAnimation(_activeAnimation, dur.count() / 1000);
-            _animator->updateBoneMatrices();
-        }
+  
+    if(morphAnimationBuffer) {
+      updateMorphAnimation();
+    }
+    
+    if(embeddedAnimationBuffer) {
+      updateEmbeddedAnimation();
     }
 
     // Render the scene, unless the renderer wants to skip the frame.
     if (_renderer->beginFrame(_swapChain)) {
         _renderer->render(_view);
         _renderer->endFrame();
+    } else {
+      std::cout << "Skipping frame" << std::endl;
     }
 }
+
+//void FilamentViewer::updateAnimation(AnimationBuffer animation, std::function<void(int)> moo) {
+//  if(morphAnimationBuffer.frameIndex >= animation.numFrames) {
+//    this.animation = null;
+//    return;
+//  }
+//  
+//  if(animation.frameIndex == -1) {
+//    animation->frameIndex++;
+//    animation->lastTime = std::chrono::high_resolution_clock::now();
+//    callback(); //     applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
+//  } else {
+//    duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
+//    float msElapsed = dur.count();
+//    if(msElapsed > animation->frameLength) {
+//        animation->frameIndex++;
+//        animation->lastTime = std::chrono::high_resolution_clock::now();
+//        callback(); //             applyWeights(frameData + (frameIndex * numWeights), numWeights);
+//    }
+//  }
+//}
+
+void FilamentViewer::updateMorphAnimation() {
+  
+  if(morphAnimationBuffer->frameIndex >= morphAnimationBuffer->numFrames) {
+    morphAnimationBuffer = nullptr;
+    return;
+  }
+  
+  if(morphAnimationBuffer->frameIndex == -1) {
+    morphAnimationBuffer->frameIndex++;
+    morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+    applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
+  } else {
+    duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
+    float microsElapsed = dur.count();
+    if(microsElapsed > (morphAnimationBuffer->frameLength * 1000000)) {
+        morphAnimationBuffer->frameIndex++;
+        morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+        applyWeights(morphAnimationBuffer->frameData + (morphAnimationBuffer->frameIndex * morphAnimationBuffer->numWeights), morphAnimationBuffer->numWeights);
+    }
+  }
+  
+}
+
+void FilamentViewer::updateEmbeddedAnimation() {
+  duration<double> dur = duration_cast<duration<double>>(std::chrono::high_resolution_clock::now() - embeddedAnimationBuffer->lastTime);
+  float startTime = 0;
+  if(!embeddedAnimationBuffer->hasStarted) {
+    embeddedAnimationBuffer->hasStarted = true;
+    embeddedAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+  } else if(dur.count() >= embeddedAnimationBuffer->duration) {
+    embeddedAnimationBuffer = nullptr;
+    return;
+  } else {
+    startTime = dur.count();
+  }
+  
+
+  _animator->applyAnimation(embeddedAnimationBuffer->animationIndex, startTime);
+  _animator->updateBoneMatrices();
+  
+}
+//
+//if(morphAnimationBuffer.frameIndex >= morphAnimationBuffer.numFrames) {
+//  this.morphAnimationBuffer = null;
+//  return;
+//}
+//
+//if(morphAnimationBuffer.frameIndex == -1) {
+//  applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
+//  morphAnimationBuffer->frameIndex++;
+//  morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+//} else {
+//  duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
+//  float msElapsed = dur.count();
+//  if(msElapsed > morphAnimationBuffer->frameLength) {
+//      frameIndex++;
+//      applyWeights(frameData + (frameIndex * numWeights), numWeights);
+//      morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+//  }
+//}
 
 void FilamentViewer::updateViewportAndCameraProjection(int width, int height, float contentScaleFactor) {
     if (!_view || !_mainCamera || !manipulator) {

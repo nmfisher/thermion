@@ -42,6 +42,8 @@ using namespace camutils;
 
 namespace mimetic {
 
+    typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
+
     struct StringList {
       StringList(const char** strings, const int count) : strings(strings), count(count) {};
       const char** strings;
@@ -61,7 +63,31 @@ namespace mimetic {
         uint64_t size;
     };
 
-    typedef std::chrono::duration<float, std::milli> duration;
+    struct MorphAnimationBuffer {
+      
+      MorphAnimationBuffer(float* frameData,
+                           int numWeights,
+                           int numFrames,
+                           float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLength(frameLength) {
+      }
+      
+      int frameIndex = -1;
+      int numFrames;
+      float frameLength;
+      time_point_t lastTime;
+      
+      float* frameData;
+      int numWeights;
+    };
+
+    struct EmbeddedAnimationBuffer  {
+        
+      EmbeddedAnimationBuffer(int animationIndex, float duration) : animationIndex(animationIndex), duration(duration) {}
+      bool hasStarted = false;
+      int animationIndex;
+      float duration = 0;
+      time_point_t lastTime;
+    };
 
     using LoadResource = std::function<ResourceBuffer(const char* uri)>;
     using FreeResource = std::function<void * (void *mem, size_t s, void *)>;
@@ -88,7 +114,14 @@ namespace mimetic {
             void loadResources(std::string relativeResourcePath);
             void transformToUnitCube();
             void cleanup();
-            void animateWeightsInternal(float* data, int numWeights, int length, float frameRate);
+            void updateMorphAnimation();
+            void updateEmbeddedAnimation();
+            
+            // animation flags;
+            bool isAnimating;
+            unique_ptr<MorphAnimationBuffer> morphAnimationBuffer;
+            unique_ptr<EmbeddedAnimationBuffer> embeddedAnimationBuffer;
+            
             void* _layer;
 
             LoadResource _loadResource;
@@ -96,10 +129,6 @@ namespace mimetic {
       
             ResourceBuffer materialProviderResources;
 
-            std::chrono::high_resolution_clock::time_point startTime;
-      
-            int _activeAnimation = -1;
-            
             Scene* _scene;
             View* _view;  
             Engine* _engine;
@@ -113,7 +142,6 @@ namespace mimetic {
             AssetLoader* _assetLoader;
             FilamentAsset* _asset = nullptr;
             NameComponentManager* _ncm;
-
 
             Entity _sun;
             Texture* _skyboxTexture;
@@ -131,6 +159,7 @@ namespace mimetic {
             float _cameraFocalLength = 0.0f;
 
             GPUMorphHelper* morphHelper;
+    
 
 
     };

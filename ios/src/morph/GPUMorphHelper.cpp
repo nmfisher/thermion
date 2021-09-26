@@ -57,12 +57,14 @@ namespace gltfio {
             cgltf_mesh const *mesh = node->mesh;
 
             if (mesh) {
-                std::cout << "Mesh " << mesh->name << " with " << mesh->weights_count << " weights " <<  std::endl;
+                std::cout << "Mesh " << mesh->name << " with " << mesh->weights_count << " weights and " << mesh->primitives_count << " primitives." <<  std::endl;
                 if(strcmp(meshName, mesh->name) == 0) {
                   targetMesh = mesh;
-                  std::cout << "Adding primitive to mesh with " << mesh->primitives_count << " primitives." <<  std::endl;
-                  for(int i = 0; i < numPrimitives; i++)
-                    addPrimitive(mesh, primitiveIndices[i]);
+                  for(int i = 0; i < numPrimitives; i++) {
+                    int primitiveIndex = primitiveIndices[i];
+                    std::cout << "Adding primitive at index " << primitiveIndex << " to morpher "  <<  std::endl;
+                    addPrimitive(mesh, primitiveIndex);
+                  }
                 }
             }
         }

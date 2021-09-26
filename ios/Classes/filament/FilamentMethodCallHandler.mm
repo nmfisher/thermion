@@ -102,6 +102,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
       *(framesArr+i) = [[frameData objectAtIndex:i] floatValue];
     }
     _viewer->animateWeights((float*)framesArr, [numWeights intValue], [frameData count], [frameRate floatValue]);
+    result(@"OK");
   } else if([@"createMorpher" isEqualToString:call.method]) {
     const char* meshName = [call.arguments[0] UTF8String];
     NSArray* primitiveIndices = call.arguments[1];
