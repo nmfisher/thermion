@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const MethodChannel channel = MethodChannel('mimetic_filament');
+  const MethodChannel channel = MethodChannel('holovox_filament');
 
   TestWidgetsFlutterBinding.ensureInitialized();
 

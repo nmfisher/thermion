@@ -1,9 +1,9 @@
 #
 # To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint mimetic_filament.podspec` to validate before publishing.
+# Run `pod lib lint holovox_filament.podspec` to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'mimetic_filament'
+  s.name             = 'holovox_filament'
   s.version          = '0.0.1'
   s.summary          = 'A new flutter plugin project.'
   s.description      = <<-DESC
@@ -23,7 +23,7 @@ A new flutter plugin project.
   s.user_target_xcconfig = {
     'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES' => 'YES',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
-    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/morph"',
+    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/morph"',
     'OTHER_CXXFLAGS' => '--std=c++17 -fmodules -fcxx-modules',
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     #"CLANG_CXX_LIBRARY" => "libc++"
@@ -33,7 +33,7 @@ A new flutter plugin project.
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     'OTHER_CXXFLAGS' => '--std=c++17 -fmodules -fcxx-modules',
-    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/mimetic_filament/ios/morph"',
+    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/morph"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
   }
   s.swift_version = '5.0'

@@ -1,4 +1,4 @@
-package com.example.mimetic_filament
+package com.example.holovox_filament
 
 import androidx.annotation.NonNull
 
@@ -17,7 +17,7 @@ class MimeticFilamentPlugin: FlutterPlugin, MethodCallHandler {
   private lateinit var channel : MethodChannel
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "mimetic_filament")
+    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "holovox_filament")
     channel.setMethodCallHandler(this)
   }
 

@@ -1,4 +1,4 @@
-group 'com.example.mimetic_filament'
+group 'com.example.holovox_filament'
 version '1.0-SNAPSHOT'
 
 buildscript {

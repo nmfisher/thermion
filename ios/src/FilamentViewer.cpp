@@ -362,7 +362,7 @@ void FilamentViewer::render() {
         _renderer->render(_view);
         _renderer->endFrame();
     } else {
-      std::cout << "Skipping frame" << std::endl;
+     // std::cout << "Skipping frame" << std::endl;
     }
 }
 
@@ -396,14 +396,13 @@ void FilamentViewer::updateMorphAnimation() {
   
   if(morphAnimationBuffer->frameIndex == -1) {
     morphAnimationBuffer->frameIndex++;
-    morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+    morphAnimationBuffer->startTime = std::chrono::high_resolution_clock::now();
     applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
   } else {
-    duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
-    float microsElapsed = dur.count();
-    if(microsElapsed > (morphAnimationBuffer->frameLength * 1000000)) {
-        morphAnimationBuffer->frameIndex++;
-        morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->startTime;
+    int frameIndex = dur.count() / morphAnimationBuffer->frameLength;
+    if(frameIndex != morphAnimationBuffer->frameIndex) {
+        morphAnimationBuffer->frameIndex = frameIndex;
         applyWeights(morphAnimationBuffer->frameData + (morphAnimationBuffer->frameIndex * morphAnimationBuffer->numWeights), morphAnimationBuffer->numWeights);
     }
   }

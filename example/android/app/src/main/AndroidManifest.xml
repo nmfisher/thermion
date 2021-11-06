@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.mimetic_filament_example">
+    package="com.example.holovox_filament_example">
    <application
-        android:label="mimetic_filament_example"
+        android:label="holovox_filament_example"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

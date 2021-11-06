@@ -74,7 +74,7 @@ namespace mimetic {
       int frameIndex = -1;
       int numFrames;
       float frameLength;
-      time_point_t lastTime;
+      time_point_t startTime;
       
       float* frameData;
       int numWeights;

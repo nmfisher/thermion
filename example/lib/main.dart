@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:mimetic_filament/filament_controller.dart';
-import 'package:mimetic_filament/view/filament_widget.dart';
+import 'package:holovox_filament/filament_controller.dart';
+import 'package:holovox_filament/view/filament_widget.dart';
 
 void main() {
   runApp(const MyApp());

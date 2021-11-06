@@ -31,7 +31,7 @@ class MimeticFilamentController extends FilamentController {
   final String materialPath;
 
   MimeticFilamentController(
-      {this.materialPath = "packages/mimetic_filament/assets/compiled.mat"});
+      {this.materialPath = "packages/holovox_filament/assets/compiled.mat"});
 
   @override
   void onFilamentViewCreated(int id) async {
