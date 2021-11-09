@@ -30,7 +30,7 @@
 @implementation FilamentNativeView  {
    FilamentView* _view;
    FilamentViewController* _controller;
-   mimetic::FilamentViewer* _viewer;
+   holovox::FilamentViewer* _viewer;
    FilamentMethodCallHandler* _handler;
    void* _layer;
 }

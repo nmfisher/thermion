@@ -1,6 +1,6 @@
-# mimetic_filament_example
+# holovox_filament_example
 
-Demonstrates how to use the mimetic_filament plugin.
+Demonstrates how to use the holovox_filament plugin.
 
 ## Getting Started
 

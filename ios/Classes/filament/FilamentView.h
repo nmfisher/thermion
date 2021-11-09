@@ -24,7 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
  *
  */
 @interface FilamentView : UIView
-- (void)setViewer:(mimetic::FilamentViewer*)viewer;
+- (void)setViewer:(holovox::FilamentViewer*)viewer;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -8,7 +8,7 @@ import '../../filament_controller.dart';
 import 'filament_view_platform.dart';
 
 class FilamentView extends FilamentViewPlatform {
-  static const FILAMENT_VIEW_ID = 'mimetic.app/filament_view';
+  static const FILAMENT_VIEW_ID = 'holovox.app/filament_view';
 
   @override
   Widget buildView(

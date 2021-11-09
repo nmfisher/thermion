@@ -350,7 +350,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.mimeticAvatarExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.holovoxAvatarExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -489,7 +489,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.mimeticAvatarExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.holovoxAvatarExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -516,7 +516,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.mimeticAvatarExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.holovoxAvatarExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";

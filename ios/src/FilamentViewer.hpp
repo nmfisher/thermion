@@ -40,7 +40,7 @@ using namespace utils;
 using namespace camutils;
 
 
-namespace mimetic {
+namespace holovox {
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
 

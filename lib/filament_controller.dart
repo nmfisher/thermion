@@ -25,31 +25,32 @@ abstract class FilamentController {
   Future zoom(double z);
 }
 
-class MimeticFilamentController extends FilamentController {
+class HolovoxFilamentController extends FilamentController {
   late int _id;
   late MethodChannel _channel;
   final String materialPath;
+  final Function(int id)? onFilamentViewCreatedHandler;
 
-  MimeticFilamentController(
-      {this.materialPath = "packages/holovox_filament/assets/compiled.mat"});
+  HolovoxFilamentController(
+      {this.materialPath = "packages/holovox_filament/assets/compiled.mat",
+      this.onFilamentViewCreatedHandler});
 
   @override
   void onFilamentViewCreated(int id) async {
     _id = id;
-    _channel = MethodChannel("mimetic.app/filament_view_$id");
+    _channel = MethodChannel("holovox.app/filament_view_$id");
     _channel.setMethodCallHandler((call) async {
       await Future.delayed(Duration(
           seconds:
-              1)); // todo - need a better way to know when the GL context is actaully ready
+              1)); // todo - need a better way to know when the GL context is actually ready
       await _initialize();
+      onFilamentViewCreatedHandler?.call(_id);
       return Future.value(true);
     });
   }
 
   @override
   Future _initialize() async {
-    final foo = await rootBundle.load(materialPath);
-    print("Initializing with material path of size ${foo.lengthInBytes}");
     await _channel.invokeMethod("initialize", materialPath);
   }
 

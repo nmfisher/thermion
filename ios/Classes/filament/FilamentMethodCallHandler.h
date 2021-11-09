@@ -7,12 +7,12 @@
 
 #include "FilamentViewer.hpp"
 
-static const id VIEW_TYPE = @"mimetic.app/filament_view";
+static const id VIEW_TYPE = @"holovox.app/filament_view";
 
 @interface FilamentMethodCallHandler : FlutterMethodChannel
 - (void)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:( FlutterResult _Nonnull)result;
-- (mimetic::FilamentViewer*) _viewer;
-- (mimetic::ResourceBuffer)loadResource:(const char* const)path;
+- (holovox::FilamentViewer*) _viewer;
+- (holovox::ResourceBuffer)loadResource:(const char* const)path;
 - (void)freeResource:(void*)mem size:(size_t)size misc:(void*)misc;
 - (void)ready;
 - (instancetype)initWithController:(FilamentViewController*)controller

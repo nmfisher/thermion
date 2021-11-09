@@ -4,7 +4,7 @@
 
 static const FilamentMethodCallHandler* _handler;
 
-static mimetic::ResourceBuffer loadResourceGlobal(const char* name) {
+static holovox::ResourceBuffer loadResourceGlobal(const char* name) {
   return [_handler loadResource:name];
 }
 
@@ -16,7 +16,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
 @implementation FilamentMethodCallHandler {
   FilamentViewController *_controller;
   FlutterMethodChannel* _channel;
-  mimetic::FilamentViewer* _viewer;
+  holovox::FilamentViewer* _viewer;
   void* _layer;
   
   NSObject<FlutterPluginRegistrar>* _registrar;
@@ -43,9 +43,9 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
 - (void)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:(FlutterResult _Nonnull )result {
   if([@"initialize" isEqualToString:call.method]) {
       if(!call.arguments)
-        _viewer = new mimetic::FilamentViewer(_layer, nullptr, loadResourceGlobal, freeResourceGlobal);
+        _viewer = new holovox::FilamentViewer(_layer, nullptr, loadResourceGlobal, freeResourceGlobal);
       else
-        _viewer = new mimetic::FilamentViewer(_layer, [call.arguments UTF8String], loadResourceGlobal, freeResourceGlobal);
+        _viewer = new holovox::FilamentViewer(_layer, [call.arguments UTF8String], loadResourceGlobal, freeResourceGlobal);
       [_controller setViewer:_viewer];
       [_controller startDisplayLink];
       result(@"OK");
@@ -117,7 +117,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     _viewer->playAnimation([call.arguments intValue]);
     result(@"OK");
   } else if([@"getTargetNames" isEqualToString:call.method]) {
-    mimetic::StringList list = _viewer->getTargetNames([call.arguments UTF8String]);
+    holovox::StringList list = _viewer->getTargetNames([call.arguments UTF8String]);
     NSMutableArray* asArray = [NSMutableArray arrayWithCapacity:list.count];
     for(int i = 0; i < list.count; i++) {
       asArray[i] = [NSString stringWithFormat:@"%s", list.strings[i]];
@@ -146,7 +146,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
   }
 }
 
-- (mimetic::ResourceBuffer)loadResource:(const char* const)path {
+- (holovox::ResourceBuffer)loadResource:(const char* const)path {
     NSString* p = [NSString stringWithFormat:@"%s", path];
     NSString* key = [_registrar lookupKeyForAsset:p];
     NSString* nsPath = [[NSBundle mainBundle] pathForResource:key
@@ -159,7 +159,7 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     NSData* buffer = [NSData dataWithContentsOfFile:nsPath];
     void* cpy = malloc([buffer length]);
     memcpy(cpy, [buffer bytes],  [buffer length]); // can we avoid this copy somehow?
-    mimetic::ResourceBuffer rbuf(cpy, [buffer length]);
+    holovox::ResourceBuffer rbuf(cpy, [buffer length]);
     return rbuf;
 }
 

@@ -75,7 +75,7 @@ namespace gltfio {
                     filament::math::quatf* rotation, filament::math::float3* scale);
 }
 
-namespace mimetic {
+namespace holovox {
     
 const double kNearPlane = 0.05;   // 5 cm
 const double kFarPlane = 1000.0;  // 1 km

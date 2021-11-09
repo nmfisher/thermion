@@ -19,7 +19,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final FilamentController _filamentController = MimeticFilamentController();
+  final FilamentController _filamentController = HolovoxFilamentController();
 
   bool _rotate = false;
   int _primitiveIndex = 0;
