@@ -8,6 +8,7 @@
 #include <math/mat4.h>
 
 #include <utils/Log.h>
+#include <iostream>
 
 #include "gltfio/resources/gltfresources_lite.h"
 
@@ -22,7 +23,12 @@ namespace {
 
     class GPUMorphShaderLoader : public MaterialProvider {
     public:
-        GPUMorphShaderLoader(const void* mData, uint64_t size, filament::Engine* engine);
+        GPUMorphShaderLoader(
+            const void* opaqueMaterial, 
+            uint64_t opaqueMaterialSize, 
+            const void* fadeMaterial, 
+            uint64_t fadeMaterialSize, 
+            filament::Engine* engine);
         ~GPUMorphShaderLoader() {}
 
         MaterialInstance* createMaterialInstance(MaterialKey* config, UvMap* uvmap,
@@ -42,8 +48,10 @@ namespace {
                     return false;
             }
         }
-        const void* mData;
-        const size_t mSize;
+        const void* opaqueData;
+        const size_t opaqueDataSize;
+        const void* fadeData;
+        const size_t fadeDataSize;
 
         Material* getMaterial(const MaterialKey& config) const;
 
@@ -59,17 +67,40 @@ namespace {
         Engine* mEngine;
     };
 
-    GPUMorphShaderLoader::GPUMorphShaderLoader(const void* data, uint64_t size, Engine* engine) : mData(data), mSize(size), mEngine(engine) {
 
-        unsigned char texels[4] = {};
-        mDummyTexture = Texture::Builder()
-                .width(1).height(1)
-                .format(Texture::InternalFormat::RGBA8)
-                .build(*mEngine);
-        Texture::PixelBufferDescriptor pbd(texels, sizeof(texels), Texture::Format::RGBA,
-                                           Texture::Type::UBYTE);
-        mDummyTexture->setImage(*mEngine, 0, std::move(pbd));
+#define MATINDEX(shading, alpha, sheen, transmit, volume) (volume ? 11 : (transmit ? 10 : (sheen ? 9 : (int(shading) + 3 * int(alpha)))))
+
+
+    GPUMorphShaderLoader::GPUMorphShaderLoader(const void* opaqueData, 
+    uint64_t opaqueDataSize, 
+    const void* fadeData,
+    uint64_t fadeDataSize,  
+    Engine* engine) : opaqueData(opaqueData), opaqueDataSize(opaqueDataSize), fadeData(fadeData), fadeDataSize(fadeDataSize), mEngine(engine) {
+
+//        unsigned char texels[4] = {};
+//        mDummyTexture = Texture::Builder()
+//                .width(1)
+//                .height(1)
+//                .format(backend::TextureFormat::RGBA8)
+//                .sampler(backend::SamplerType::SAMPLER_2D_ARRAY)
+//                .build(*mEngine);
+//        Texture::PixelBufferDescriptor pbd(
+//            texels,
+//            sizeof(texels),
+//            backend::PixelDataFormat::RGBA,
+//            backend::PixelDataType::UBYTE,
+//            nullptr);
+//        mDummyTexture->setImage(*mEngine, 0,0,0,0,0,0,0,std::move(pbd));
+      unsigned char texels[4] = {};
+      mDummyTexture = Texture::Builder()
+              .width(1).height(1)
+              .format(Texture::InternalFormat::RGBA8)
+              .build(*mEngine);
+      Texture::PixelBufferDescriptor pbd(texels, sizeof(texels), Texture::Format::RGBA,
+              Texture::Type::UBYTE);
+      mDummyTexture->setImage(*mEngine, 0, std::move(pbd));
     }
+
 
     size_t GPUMorphShaderLoader::getMaterialsCount() const noexcept {
         return sizeof(mMaterials) / sizeof(mMaterials[0]);
@@ -90,13 +121,33 @@ namespace {
     Material* GPUMorphShaderLoader::getMaterial(const MaterialKey& config) const {
         const ShadingMode shading = config.unlit ? UNLIT :
                                     (config.useSpecularGlossiness ? SPECULAR_GLOSSINESS : LIT);
-        const int matindex = 0;
+        
+        const int matindex = MATINDEX(shading, config.alphaMode, config.hasSheen, config.hasTransmission, config.hasVolume);
         if (mMaterials[matindex] != nullptr) {
             return mMaterials[matindex];
         }
+        switch (matindex) {
+            case MATINDEX(LIT, AlphaMode::OPAQUE, false, false, false):
+          {
+                filamat::Package pkg = filamat::Package(opaqueData, opaqueDataSize);
+                mMaterials[matindex] = Material::Builder().package(pkg.getData(), pkg.getSize()).build(*mEngine);
+          }
+                break;
+            case MATINDEX(LIT, AlphaMode::BLEND, false, false, false):
+              {
+                filamat::Package pkg = filamat::Package(fadeData, fadeDataSize);
+                mMaterials[matindex] = Material::Builder().package(pkg.getData(), pkg.getSize()).build(*mEngine);
+              }
+                break;
+            default:
+          {
+                filamat::Package pkg = filamat::Package(fadeData, fadeDataSize);
+                mMaterials[matindex] = Material::Builder().package(pkg.getData(), pkg.getSize()).build(*mEngine);
+          }
+                break;
+        }
 
-        filamat::Package pkg = filamat::Package(mData, mSize);
-        return Material::Builder().package(pkg.getData(), pkg.getSize()).build(*mEngine);
+        return mMaterials[matindex];
     }
 
     MaterialInstance* GPUMorphShaderLoader::createMaterialInstance(MaterialKey* config, UvMap* uvmap,
@@ -145,7 +196,9 @@ namespace {
 
         mi->setDoubleSided(config->doubleSided);
         mi->setCullingMode(config->doubleSided ? CullingMode::NONE : CullingMode::BACK);
-
+        mi->setTransparencyMode(config->doubleSided ?
+            MaterialInstance::TransparencyMode::TWO_PASSES_TWO_SIDES :
+            MaterialInstance::TransparencyMode::DEFAULT);
         // Initially, assume that the clear coat texture can be honored.  This is changed to false when
         // running into a sampler count limitation. TODO: check if these constraints can now be relaxed.
         bool clearCoatNeedsTexture = true;
@@ -176,7 +229,6 @@ namespace {
                                  getUvIndex(config->sheenRoughnessUV, config->hasSheenRoughnessTexture));
                 mi->setParameter("sheenColorUvMatrix", identity);
                 mi->setParameter("sheenRoughnessUvMatrix", identity);
-
             }
             if (config->hasVolume) {
                 clearCoatNeedsTexture = false;
@@ -196,6 +248,8 @@ namespace {
         mi->setParameter("normalMap", mDummyTexture, sampler);
         mi->setParameter("baseColorMap", mDummyTexture, sampler);
         mi->setParameter("metallicRoughnessMap", mDummyTexture, sampler);
+//        mi->setParameter("roughnessFactor", mDummyTexture, sampler);
+
         mi->setParameter("occlusionMap", mDummyTexture, sampler);
         mi->setParameter("emissiveMap", mDummyTexture, sampler);
         if (clearCoatNeedsTexture) {
@@ -227,8 +281,18 @@ namespace {
 
 namespace gltfio {
 
-    MaterialProvider* createGPUMorphShaderLoader(const void* data, uint64_t size, filament::Engine* engine) {
-        return new GPUMorphShaderLoader(data, size,engine);
+    MaterialProvider* createGPUMorphShaderLoader(
+        const void* opaqueData, 
+        uint64_t opaqueDataSize, 
+        const void* fadeData, 
+        uint64_t fadeDataSize, 
+        filament::Engine* engine) {
+        return new GPUMorphShaderLoader(
+            opaqueData, 
+            opaqueDataSize, 
+            fadeData, 
+            fadeDataSize, 
+            engine);
     }
 
 } // namespace gltfio

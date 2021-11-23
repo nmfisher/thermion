@@ -94,8 +94,9 @@ namespace holovox {
 
     class FilamentViewer {
         public:
-            FilamentViewer(void* layer, const char* shaderPath, LoadResource loadResource, FreeResource freeResource);
+            FilamentViewer(void* layer, const char* opaqueShaderPath, const char* fadeShaderPath, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
+            void loadGlb(const char* const uri);
             void loadGltf(const char* const uri, const char* relativeResourcePath);
             void loadSkybox(const char* const skyboxUri, const char* const iblUri);
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
@@ -127,7 +128,8 @@ namespace holovox {
             LoadResource _loadResource;
             FreeResource _freeResource;
       
-            ResourceBuffer materialProviderResources;
+            ResourceBuffer opaqueShaderResources;
+            ResourceBuffer fadeShaderResources;
 
             Scene* _scene;
             View* _view;  

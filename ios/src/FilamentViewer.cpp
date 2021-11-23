@@ -63,6 +63,9 @@ using namespace gltfio;
 using namespace utils;
 using namespace std::chrono;
 
+namespace foo {
+  MaterialProvider* createUbershaderLoader(filament::Engine* engine);
+}
 
 namespace filament {
     class IndirectLight;
@@ -70,7 +73,12 @@ namespace filament {
 }
 
 namespace gltfio {
-    MaterialProvider* createGPUMorphShaderLoader(const void* data, uint64_t size, Engine* engine);
+    MaterialProvider* createGPUMorphShaderLoader(
+      const void* opaqueData, 
+      uint64_t opaqueDataSize, 
+      const void* fadeData, 
+      uint64_t fadeDataSize, 
+      Engine* engine);
     void decomposeMatrix(const filament::math::mat4f& mat, filament::math::float3* translation,
                     filament::math::quatf* rotation, filament::math::float3* scale);
 }
@@ -113,12 +121,14 @@ filament::math::mat4f composeMatrix(const filament::math::float3& translation,
 
 FilamentViewer::FilamentViewer(
         void* layer, 
-        const char* shaderPath,
+        const char* opaqueShaderPath,
+        const char* fadeShaderPath,
         LoadResource loadResource, 
         FreeResource freeResource) : _layer(layer), 
                                     _loadResource(loadResource),
                                     _freeResource(freeResource),
-                                    materialProviderResources(nullptr, 0) {
+                                    opaqueShaderResources(nullptr, 0),
+                                    fadeShaderResources(nullptr, 0) {
     _engine = Engine::create(Engine::Backend::OPENGL);
 
     _renderer = _engine->createRenderer();
@@ -134,13 +144,19 @@ FilamentViewer::FilamentViewer(
 
     _swapChain = _engine->createSwapChain(_layer);
 
-   if(shaderPath) {
-     materialProviderResources = _loadResource(shaderPath);
-     _materialProvider = createGPUMorphShaderLoader(materialProviderResources.data, materialProviderResources.size, _engine);
+  //  if(shaderPath) {
+       opaqueShaderResources = _loadResource(opaqueShaderPath);
+       fadeShaderResources = _loadResource(fadeShaderPath);
+       _materialProvider = createGPUMorphShaderLoader(
+         opaqueShaderResources.data,
+         opaqueShaderResources.size,
+         fadeShaderResources.data,
+         fadeShaderResources.size,
+         _engine);
       // _freeResource((void*)rb.data, rb.size, nullptr); <- TODO this is being freed too early, need to pass to callback?
-   } else {
-        _materialProvider = createUbershaderLoader(_engine);
-   }
+  //  } else {
+        //  _materialProvider = foo::createUbershaderLoader(_engine);
+  //   }
     EntityManager& em = EntityManager::get();
     _ncm = new NameComponentManager(em);
     _assetLoader = AssetLoader::create({_engine, _materialProvider, _ncm, &em});
@@ -191,13 +207,52 @@ void FilamentViewer::loadResources(string relativeResourcePath) {
 void FilamentViewer::releaseSourceAssets() {
   std::cout << "Releasing source data" << std::endl;
   _asset->releaseSourceData();
-  _freeResource((void*)materialProviderResources.data, materialProviderResources.size, nullptr);
+  _freeResource((void*)opaqueShaderResources.data, opaqueShaderResources.size, nullptr);
+  _freeResource((void*)fadeShaderResources.data, fadeShaderResources.size, nullptr);
 }
 
 
 void FilamentViewer::animateWeights(float* data, int numWeights, int length, float frameRate) {
   transformToUnitCube();
   morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, length / numWeights, 1000 / frameRate );
+}
+
+void FilamentViewer::loadGlb(const char* const uri) {
+  if(_asset) {
+        _resourceLoader->evictResourceData();
+        _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
+        _assetLoader->destroyAsset(_asset);
+    }
+    _asset = nullptr;
+    _animator = nullptr;
+
+    ResourceBuffer rbuf = _loadResource(uri);
+    
+    // Parse the glTF file and create Filament entities.
+    _asset = _assetLoader->createAssetFromJson((uint8_t*)rbuf.data, rbuf.size);
+  
+    if (!_asset) {
+        std::cerr << "Unable to parse asset" << std::endl;
+        exit(1);
+    }
+
+    _resourceLoader->loadResources(_asset);
+    const Entity* entities = _asset->getEntities();
+    RenderableManager& rm = _engine->getRenderableManager();
+    for(int i =0; i< _asset->getEntityCount(); i++) {
+        Entity e = entities[i];
+        auto inst = rm.getInstance(e);
+        rm.setCulling(inst, false);
+    }
+
+    _animator = _asset->getAnimator();
+
+    _scene->addEntities(_asset->getEntities(), _asset->getEntityCount());    
+
+
+    _freeResource((void*)rbuf.data, rbuf.size, nullptr);
+  
+    transformToUnitCube();
 }
 
 void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath) {
@@ -280,15 +335,22 @@ void FilamentViewer::playAnimation(int index) {
 }
     
 void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const iblPath) {
+     
+    std::cout << "Loading skybox from " << skyboxPath << std::endl;
+
     ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
+
+    std::cout << "Loaded skybox resource buffer of size  " << skyboxBuffer.size << std::endl;
     
     image::KtxBundle* skyboxBundle =
             new image::KtxBundle(static_cast<const uint8_t*>(skyboxBuffer.data),
                     static_cast<uint32_t>(skyboxBuffer.size));
-    _skyboxTexture = image::ktx::createTexture(_engine, skyboxBundle, false);
+    _skyboxTexture = image::ktx::createTexture(_engine, skyboxBundle, true);
     _skybox = filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
     _scene->setSkybox(_skybox);
     _freeResource((void*)skyboxBuffer.data, skyboxBuffer.size, nullptr);
+
+    std::cout << "Loading IBL from " << iblPath << std::endl;
 
     // Load IBL.
     ResourceBuffer iblBuffer = _loadResource(iblPath);

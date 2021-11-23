@@ -1,4 +1,4 @@
 #import <Flutter/Flutter.h>
 
-@interface MimeticFilamentPlugin : NSObject<FlutterPlugin>
+@interface HolovoxFilamentPlugin : NSObject<FlutterPlugin>
 @end

@@ -43,20 +43,26 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
 - (void)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:(FlutterResult _Nonnull )result {
   if([@"initialize" isEqualToString:call.method]) {
       if(!call.arguments)
-        _viewer = new holovox::FilamentViewer(_layer, nullptr, loadResourceGlobal, freeResourceGlobal);
+        _viewer = new holovox::FilamentViewer(_layer, nullptr, nullptr, loadResourceGlobal, freeResourceGlobal);
       else
-        _viewer = new holovox::FilamentViewer(_layer, [call.arguments UTF8String], loadResourceGlobal, freeResourceGlobal);
+        _viewer = new holovox::FilamentViewer(_layer, [call.arguments[0] UTF8String], [call.arguments[1] UTF8String], loadResourceGlobal, freeResourceGlobal);
       [_controller setViewer:_viewer];
       [_controller startDisplayLink];
       result(@"OK");
   } else if([@"loadSkybox" isEqualToString:call.method]) {
     if(!_viewer)
       return;
+
     _viewer->loadSkybox([call.arguments[0] UTF8String], [call.arguments[1] UTF8String]);
+    result(@"OK");
+  } else if([@"loadGlb" isEqualToString:call.method]) {
+    if(!_viewer)
+      return; // TODO should throw exception here
+    _viewer->loadGlb([call.arguments UTF8String]);
     result(@"OK");
   } else if([@"loadGltf" isEqualToString:call.method]) {
     if(!_viewer)
-      return;
+      return; // TODO should throw exception here
     _viewer->loadGltf([call.arguments[0] UTF8String], [call.arguments[1] UTF8String]);
     result(@"OK");
   } else if([@"panStart" isEqualToString:call.method]) {

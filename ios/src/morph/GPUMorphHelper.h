@@ -67,7 +67,7 @@ namespace gltfio {
             MaterialInstance* materialInstance;
         };
 
-        int numAttributes = 1; // just position for now - normals not working with indexing inside shader? byte offset seems not calculated correctly
+        int numAttributes = 2; 
 
         void addPrimitive(cgltf_mesh const *mesh, int primitiveIndex);
 

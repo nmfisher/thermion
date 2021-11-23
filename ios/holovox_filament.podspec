@@ -13,11 +13,12 @@ A new flutter plugin project.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*', 'src/*.*', 'src/morph/*'
-  s.dependency 'Filament', '~> 1.12.4'
+  s.source_files = 'Classes/**/*', 'src/*.*', 'src/morph/*.*', 'src/morph/UbershaderLoader.cpp'
+  #s.dependency 'Filament', '~> 1.12.8'
   s.dependency 'Flutter' 
   s.platform = :ios, '12.1'
   s.static_framework = true
+  s.vendored_libraries = "lib/*.a"
 
   # Flutter.framework does not contain a i386 slice.
   s.user_target_xcconfig = {
@@ -26,6 +27,7 @@ A new flutter plugin project.
     'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/morph"',
     'OTHER_CXXFLAGS' => '--std=c++17 -fmodules -fcxx-modules',
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
+    'LIBRARY_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/lib"',
     #"CLANG_CXX_LIBRARY" => "libc++"
   }
   s.pod_target_xcconfig = { 
@@ -33,8 +35,11 @@ A new flutter plugin project.
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     'OTHER_CXXFLAGS' => '--std=c++17 -fmodules -fcxx-modules',
+    "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lmathio -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_resources_lite -lgltfio_core -lfilament-iblprefilter -limage -lcamutils -lgltfio_resources -lmath -lfilaflat -ldracodec -libl',
     'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/morph"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
+    'LIBRARY_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/holovox_filament/ios/lib"',
   }
+      
   s.swift_version = '5.0'
 end

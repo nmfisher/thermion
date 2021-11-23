@@ -19,7 +19,12 @@ abstract class FilamentController {
   Future releaseSourceAssets();
   Future playAnimation(int index);
 
-  // Weights is expected to be a contiguous sequence of floats of size W*F, where W is the number of weights and F is the number of frames
+  ///
+  /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where [framerate] is the number of times per second the weights should be updated).
+  /// Accepts a list of doubles representing a sequence of "frames", stacked end-to-end.
+  /// Each frame is [numWeights] in length, where each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
+  /// In other words, weights is a contiguous sequence of floats of size W*F, where W is the number of weights and F is the number of frames
+  ///
   Future animate(List<double> weights, int numWeights, double frameRate);
   Future createMorpher(String meshName, List<int> primitives);
   Future zoom(double z);
@@ -28,12 +33,10 @@ abstract class FilamentController {
 class HolovoxFilamentController extends FilamentController {
   late int _id;
   late MethodChannel _channel;
-  final String materialPath;
+
   final Function(int id)? onFilamentViewCreatedHandler;
 
-  HolovoxFilamentController(
-      {this.materialPath = "packages/holovox_filament/assets/compiled.mat",
-      this.onFilamentViewCreatedHandler});
+  HolovoxFilamentController({this.onFilamentViewCreatedHandler});
 
   @override
   void onFilamentViewCreated(int id) async {
@@ -51,7 +54,10 @@ class HolovoxFilamentController extends FilamentController {
 
   @override
   Future _initialize() async {
-    await _channel.invokeMethod("initialize", materialPath);
+    await _channel.invokeMethod("initialize", [
+      "packages/holovox_filament/assets/lit_opaque.filamat",
+      "packages/holovox_filament/assets/lit_fade.filamat"
+    ]);
   }
 
   @override
@@ -59,8 +65,9 @@ class HolovoxFilamentController extends FilamentController {
     await _channel.invokeMethod("loadSkybox", [skyboxPath, lightingPath]);
   }
 
-  Future loadGlb(String path) {
-    throw Exception();
+  Future loadGlb(String path) async {
+    print("Loading GLB at $path ");
+    await _channel.invokeMethod("loadGlb", path);
   }
 
   Future loadGltf(String path, String relativeResourcePath) async {
