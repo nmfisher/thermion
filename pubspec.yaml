@@ -1,5 +1,5 @@
 name: holovox_filament
-description: The 3D rendering layer for the Mimetic app.
+description: The 3D rendering layer for the Holovox app.
 version: 0.0.1
 homepage:
 
@@ -19,13 +19,16 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^1.0.0
 
+
 flutter:
   assets:
     - assets/compiled.mat
+    - assets/lit_opaque.filamat
+    - assets/lit_fade.filamat
   plugin:
     platforms:
       #android:
         #package: com.thepipecat.flutter.filament
         #pluginClass: FilamentPlugin
       ios:
-        pluginClass: MimeticFilamentPlugin
+        pluginClass: HolovoxFilamentPlugin
