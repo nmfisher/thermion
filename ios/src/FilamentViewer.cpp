@@ -153,7 +153,6 @@ FilamentViewer::FilamentViewer(
          fadeShaderResources.data,
          fadeShaderResources.size,
          _engine);
-      // _freeResource((void*)rb.data, rb.size, nullptr); <- TODO this is being freed too early, need to pass to callback?
   //  } else {
         //  _materialProvider = foo::createUbershaderLoader(_engine);
   //   }
@@ -164,7 +163,7 @@ FilamentViewer::FilamentViewer(
             {.engine = _engine, .normalizeSkinningWeights = true, .recomputeBoundingBoxes = false});
         
     manipulator =
-            Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.0f).targetPosition(0.0f, 0.0f, 0).build(Mode::ORBIT);
+            Manipulator<float>::Builder().orbitHomePosition(0.0f, -1.4f, 1.0f).targetPosition(0.0f, -0.5f, 0.75f).build(Mode::ORBIT);
     _asset = nullptr;
                                       
 }
@@ -218,25 +217,31 @@ void FilamentViewer::animateWeights(float* data, int numWeights, int length, flo
 }
 
 void FilamentViewer::loadGlb(const char* const uri) {
+  
+  std::cerr << "Loading GLB at URI " << uri << std::endl;
+
   if(_asset) {
         _resourceLoader->evictResourceData();
         _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
         _assetLoader->destroyAsset(_asset);
-    }
-    _asset = nullptr;
-    _animator = nullptr;
+   }
+   _asset = nullptr;
+   _animator = nullptr;
 
-    ResourceBuffer rbuf = _loadResource(uri);
-    
-    // Parse the glTF file and create Filament entities.
-    _asset = _assetLoader->createAssetFromJson((uint8_t*)rbuf.data, rbuf.size);
+   ResourceBuffer rbuf = _loadResource(uri);
+
+   _asset = _assetLoader->createAssetFromBinary(
+            (const uint8_t*)rbuf.data, rbuf.size);
+
+   if (!_asset) {
+      std::cerr << "Unknown error loading GLB asset." << std::endl;
+      exit(1);
+   }
   
-    if (!_asset) {
-        std::cerr << "Unable to parse asset" << std::endl;
-        exit(1);
-    }
+   _scene->addEntities(_asset->getEntities(), _asset->getEntityCount());
+   _resourceLoader->loadResources(_asset);
+   _animator = _asset->getAnimator();
 
-    _resourceLoader->loadResources(_asset);
     const Entity* entities = _asset->getEntities();
     RenderableManager& rm = _engine->getRenderableManager();
     for(int i =0; i< _asset->getEntityCount(); i++) {
@@ -245,14 +250,11 @@ void FilamentViewer::loadGlb(const char* const uri) {
         rm.setCulling(inst, false);
     }
 
-    _animator = _asset->getAnimator();
-
-    _scene->addEntities(_asset->getEntities(), _asset->getEntityCount());    
-
-
     _freeResource((void*)rbuf.data, rbuf.size, nullptr);
   
     transformToUnitCube();
+  
+    std::cerr << "Successfully loaded GLB." << std::endl;
 }
 
 void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath) {
@@ -284,15 +286,22 @@ void FilamentViewer::loadGltf(const char* const uri, const char* const relativeR
 
 StringList FilamentViewer::getTargetNames(const char* meshName) {
   FFilamentAsset* asset = (FFilamentAsset*)_asset;
+
   NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
                                             : asset->mNodeMap;
-
+  FilamentInstance** instances = asset->getAssetInstances();
+  std::cout << "Fetching morph target names for mesh " << meshName;
   for (auto pair : sourceNodes) {
       cgltf_node const *node = pair.first;
       cgltf_mesh const *mesh = node->mesh;
-
-      if (mesh && strcmp(meshName, mesh->name) == 0) {
-        return StringList((const char**)mesh->target_names, (int) mesh->target_names_count);
+      
+      if (mesh) {
+        std::cout << "Mesh : " << mesh->name;
+        if(strcmp(meshName, mesh->name) == 0) {
+          return StringList((const char**)mesh->target_names, (int) mesh->target_names_count);
+        } 
+      } else {
+        std::cout << "No mesh attached to node";
       }
   }
   return StringList(nullptr, 0);
@@ -374,7 +383,7 @@ void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const 
     LightManager::Builder(LightManager::Type::DIRECTIONAL)
             .color(Color::cct(6500.0f))
             .intensity(100000.0f)
-            .direction(math::float3(0.0f, -1.0f, 0.0f))
+            .direction(math::float3(0.0f, 1.0f, 0.0f))
             .castShadows(true)
             .build(*_engine, _sun);
     _scene->addEntity(_sun);
