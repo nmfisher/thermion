@@ -30,13 +30,13 @@ abstract class FilamentController {
   Future zoom(double z);
 }
 
-class HolovoxFilamentController extends FilamentController {
+class PolyvoxFilamentController extends FilamentController {
   late int _id;
   late MethodChannel _channel;
 
   final Function(int id)? onFilamentViewCreatedHandler;
 
-  HolovoxFilamentController({this.onFilamentViewCreatedHandler});
+  PolyvoxFilamentController({this.onFilamentViewCreatedHandler});
 
   @override
   void onFilamentViewCreated(int id) async {
@@ -55,8 +55,8 @@ class HolovoxFilamentController extends FilamentController {
   @override
   Future _initialize() async {
     await _channel.invokeMethod("initialize", [
-      "packages/holovox_filament/assets/lit_opaque.filamat",
-      "packages/holovox_filament/assets/lit_fade.filamat"
+      "packages/polyvox_filament/assets/lit_opaque.filamat",
+      "packages/polyvox_filament/assets/lit_fade.filamat"
     ]);
   }
 

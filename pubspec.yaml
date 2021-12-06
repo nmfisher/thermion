@@ -1,5 +1,5 @@
-name: holovox_filament
-description: The 3D rendering layer for the Holovox app.
+name: polyvox_filament
+description: The 3D rendering layer for the Polyvox app.
 version: 0.0.1
 homepage:
 
@@ -31,4 +31,4 @@ flutter:
         #package: com.thepipecat.flutter.filament
         #pluginClass: FilamentPlugin
       ios:
-        pluginClass: HolovoxFilamentPlugin
+        pluginClass: PolyvoxFilamentPlugin

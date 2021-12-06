@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:holovox_filament/view/filament_view.dart';
+import 'package:polyvox_filament/view/filament_view.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 typedef void FilamentViewCreatedCallback(int id);

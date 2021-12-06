@@ -1,9 +1,9 @@
-#import "HolovoxFilamentPlugin.h"
-#import "filament/FilamentNativeViewFactory.h"
+#import "PolyvoxFilamentPlugin.h"
+#import "FilamentNativeViewFactory.h"
 
 FilamentNativeViewFactory* factory;
 
-@implementation HolovoxFilamentPlugin
+@implementation PolyvoxFilamentPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
   factory =
       [[FilamentNativeViewFactory alloc] initWithRegistrar:registrar];
