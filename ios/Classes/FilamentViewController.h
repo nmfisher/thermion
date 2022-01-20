@@ -23,7 +23,7 @@
 @interface FilamentViewController : UIViewController
 
 @property(weak, nonatomic) IBOutlet FilamentView* modelView;
-- (void)setViewer:(holovox::FilamentViewer*)viewer;
+- (void)setViewer:(polyvox::FilamentViewer*)viewer;
 - (void)startDisplayLink;
 - (void)stopDisplayLink;
 

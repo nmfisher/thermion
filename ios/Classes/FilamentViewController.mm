@@ -22,7 +22,7 @@
 @implementation FilamentViewController {
     CADisplayLink* _displayLink;
     NSObject<FlutterPluginRegistrar>* _registrar;
-    holovox::FilamentViewer* _viewer;
+    polyvox::FilamentViewer* _viewer;
     FilamentView* _view;
 }
 
@@ -35,7 +35,7 @@
 
     return self;
 }
-- (void)setViewer:(holovox::FilamentViewer*)viewer {
+- (void)setViewer:(polyvox::FilamentViewer*)viewer {
     _viewer = viewer;
     [_view setViewer:_viewer];
 }

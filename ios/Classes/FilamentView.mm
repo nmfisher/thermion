@@ -23,14 +23,14 @@ using namespace std;
 
 @interface FilamentView ()
 - (void)initCommon;
-- (void)setViewer:(holovox::FilamentViewer*)viewer;
+- (void)setViewer:(polyvox::FilamentViewer*)viewer;
 @end
 
 @implementation FilamentView {
-    holovox::FilamentViewer* _viewer;
+    polyvox::FilamentViewer* _viewer;
 }
 
-- (void)setViewer:(holovox::FilamentViewer*)viewer {
+- (void)setViewer:(polyvox::FilamentViewer*)viewer {
     _viewer = viewer;
     _viewer->updateViewportAndCameraProjection(self.bounds.size.width, self.bounds.size.height, self.contentScaleFactor);
 }

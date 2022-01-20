@@ -11,8 +11,8 @@ static const id VIEW_TYPE = @"holovox.app/filament_view";
 
 @interface FilamentMethodCallHandler : FlutterMethodChannel
 - (void)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:( FlutterResult _Nonnull)result;
-- (holovox::FilamentViewer*) _viewer;
-- (holovox::ResourceBuffer)loadResource:(const char* const)path;
+- (polyvox::FilamentViewer*) _viewer;
+- (polyvox::ResourceBuffer)loadResource:(const char* const)path;
 - (void)freeResource:(void*)mem size:(size_t)size misc:(void*)misc;
 - (void)ready;
 - (instancetype)initWithController:(FilamentViewController*)controller

@@ -63,6 +63,7 @@ namespace gltfio {
                                                   : asset->mNodeMap;
 
         for (auto pair : sourceNodes) {
+
             cgltf_node const *node = pair.first;
             cgltf_mesh const *mesh = node->mesh;
 

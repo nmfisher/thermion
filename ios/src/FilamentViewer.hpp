@@ -40,7 +40,7 @@ using namespace utils;
 using namespace camutils;
 
 
-namespace holovox {
+namespace polyvox {
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
 
@@ -117,6 +117,7 @@ namespace holovox {
             void cleanup();
             void updateMorphAnimation();
             void updateEmbeddedAnimation();
+            void setCamera(const char* cameraName);
             
             // animation flags;
             bool isAnimating;

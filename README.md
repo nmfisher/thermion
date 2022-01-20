@@ -1,3 +1,3 @@
-# holovox_filament
+# polyvox_filament
 
-3D rendering utilities for the Holovox app.
+3D rendering utilities for the Polyvox app.

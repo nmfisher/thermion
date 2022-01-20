@@ -83,7 +83,7 @@ namespace gltfio {
                     filament::math::quatf* rotation, filament::math::float3* scale);
 }
 
-namespace holovox {
+namespace polyvox {
     
 const double kNearPlane = 0.05;   // 5 cm
 const double kFarPlane = 1000.0;  // 1 km
@@ -212,7 +212,7 @@ void FilamentViewer::releaseSourceAssets() {
 
 
 void FilamentViewer::animateWeights(float* data, int numWeights, int length, float frameRate) {
-  transformToUnitCube();
+//  transformToUnitCube();
   morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, length / numWeights, 1000 / frameRate );
 }
 
@@ -237,8 +237,12 @@ void FilamentViewer::loadGlb(const char* const uri) {
       std::cerr << "Unknown error loading GLB asset." << std::endl;
       exit(1);
    }
+   
+   int entityCount = _asset->getEntityCount();
   
-   _scene->addEntities(_asset->getEntities(), _asset->getEntityCount());
+   _scene->addEntities(_asset->getEntities(), entityCount);
+
+   std::cerr << "Added " << entityCount << " entities to scene" << std::endl;
    _resourceLoader->loadResources(_asset);
    _animator = _asset->getAnimator();
 
@@ -252,7 +256,10 @@ void FilamentViewer::loadGlb(const char* const uri) {
 
     _freeResource((void*)rbuf.data, rbuf.size, nullptr);
   
-    transformToUnitCube();
+//    transformToUnitCube();
+  
+    setCamera("Camera.001"); // TODO - expose this for external invocation
+
   
     std::cerr << "Successfully loaded GLB." << std::endl;
 }
@@ -280,8 +287,57 @@ void FilamentViewer::loadGltf(const char* const uri, const char* const relativeR
 
     _freeResource((void*)rbuf.data, rbuf.size, nullptr);
   
-    transformToUnitCube();
+//    transformToUnitCube();
 
+    setCamera("Camera.001"); // TODO - expose this for external invocation
+
+}
+
+void FilamentViewer::setCamera(const char* cameraName) {
+  FFilamentAsset* asset = (FFilamentAsset*)_asset;
+
+  NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
+                                            : asset->mNodeMap;
+
+  for (auto pair : sourceNodes) {
+      cgltf_node const *node = pair.first;
+
+      if(node->camera) {
+        std::cout << "Got camera " << node->camera->name << " of type " << node->camera->type << std::endl;
+
+        if(strcmp(cameraName, node->camera->name) == 0) {
+         filament::math::mat4 mat(
+             node->matrix[0],
+             node->matrix[1],
+             node->matrix[2],
+             node->matrix[3],
+             node->matrix[4],
+             node->matrix[5],
+             node->matrix[6],
+             node->matrix[7],
+             node->matrix[8],
+             node->matrix[9],
+             node->matrix[10],
+             node->matrix[11],
+             node->parent->translation[0],
+             node->parent->translation[1],
+             node->parent->translation[2],
+             1
+             );
+
+            quatf rot1(node->parent->rotation[0],node->parent->rotation[1], node->parent->rotation[2], node->parent->rotation[3]);
+            quatf rot2(node->rotation[0],node->rotation[1], node->rotation[2], node->rotation[3]);
+            quatf rot3 = rot1 * rot2;
+            filament::math::mat4 rotm(rot3);
+          
+          filament::math::mat4 result = mat * rotm;
+
+            _engine->getTransformManager().setTransform(
+               _engine->getTransformManager().getInstance(_mainCamera->getEntity()), result);
+            
+        }
+      }
+  }
 }
 
 StringList FilamentViewer::getTargetNames(const char* meshName) {
@@ -294,6 +350,10 @@ StringList FilamentViewer::getTargetNames(const char* meshName) {
   for (auto pair : sourceNodes) {
       cgltf_node const *node = pair.first;
       cgltf_mesh const *mesh = node->mesh;
+
+      if(node->camera) {
+        std::cout << "Got camera " << node->camera->name << " of type " << node->camera->type << std::endl;
+      } 
       
       if (mesh) {
         std::cout << "Mesh : " << mesh->name;
@@ -415,10 +475,10 @@ void FilamentViewer::render() {
         return;
     }
   // Extract the camera basis from the helper and push it to the Filament camera.
-    math::float3 eye, target, upward;
-    manipulator->getLookAt(&eye, &target, &upward);
+    //math::float3 eye, target, upward;
+    //manipulator->getLookAt(&eye, &target, &upward);
 
-    _mainCamera->lookAt(eye, target, upward);
+    //_mainCamera->lookAt(eye, target, upward);
   
     if(morphAnimationBuffer) {
       updateMorphAnimation();
