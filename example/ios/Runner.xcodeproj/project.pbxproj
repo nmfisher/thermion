@@ -10,6 +10,26 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		840FCC1E274298BB008E5682 /* libutils.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC12274298BA008E5682 /* libutils.a */; };
+		840FCC2A27429A42008E5682 /* libcamutils.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC13274298BA008E5682 /* libcamutils.a */; };
+		840FCC2B27429A42008E5682 /* libfilabridge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC16274298BB008E5682 /* libfilabridge.a */; };
+		840FCC2C27429A42008E5682 /* libfilaflat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC17274298BB008E5682 /* libfilaflat.a */; };
+		840FCC2E27429A42008E5682 /* libfilameshio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC19274298BB008E5682 /* libfilameshio.a */; };
+		840FCC2F27429A42008E5682 /* libgeometry.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC1A274298BB008E5682 /* libgeometry.a */; };
+		840FCC3027429A42008E5682 /* libgltfio_core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC18274298BB008E5682 /* libgltfio_core.a */; };
+		840FCC3127429A42008E5682 /* libgltfio_resources_lite.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC1B274298BB008E5682 /* libgltfio_resources_lite.a */; };
+		840FCC3227429A42008E5682 /* libgltfio_resources.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC1D274298BB008E5682 /* libgltfio_resources.a */; };
+		840FCC3327429A42008E5682 /* libmath.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC1C274298BB008E5682 /* libmath.a */; };
+		840FCC3427429A42008E5682 /* libmathio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC14274298BA008E5682 /* libmathio.a */; };
+		840FCC3927429B1F008E5682 /* libviewer.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3527429B1F008E5682 /* libviewer.a */; };
+		840FCC3A27429B1F008E5682 /* libfilament-iblprefilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3627429B1F008E5682 /* libfilament-iblprefilter.a */; };
+		840FCC3B27429B1F008E5682 /* libibl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3727429B1F008E5682 /* libibl.a */; };
+		840FCC3C27429B1F008E5682 /* libimage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3827429B1F008E5682 /* libimage.a */; };
+		840FCC3F27429BEC008E5682 /* libbackend.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3D27429BEC008E5682 /* libbackend.a */; };
+		840FCC4027429BEC008E5682 /* libfilament.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3E27429BEC008E5682 /* libfilament.a */; };
+		840FCC4227429C5B008E5682 /* libdracodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC4127429C5B008E5682 /* libdracodec.a */; };
+		8444BD14275320B200A5921D /* libOGLCompiler.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8444BD12275320B100A5921D /* libOGLCompiler.a */; };
+		8444BD15275320B200A5921D /* libOSDependent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8444BD13275320B200A5921D /* libOSDependent.a */; };
 		8A41CA36A92CBF01E35DB723 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 729293464FDAFA80294C03ED /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -38,6 +58,27 @@
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		797D1F14B06B2A55521439EC /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		840FCC12274298BA008E5682 /* libutils.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libutils.a; path = ../../ios/lib/libutils.a; sourceTree = "<group>"; };
+		840FCC13274298BA008E5682 /* libcamutils.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcamutils.a; path = ../../ios/lib/libcamutils.a; sourceTree = "<group>"; };
+		840FCC14274298BA008E5682 /* libmathio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmathio.a; path = ../../ios/lib/libmathio.a; sourceTree = "<group>"; };
+		840FCC15274298BA008E5682 /* libfilamat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilamat.a; path = ../../ios/lib/libfilamat.a; sourceTree = "<group>"; };
+		840FCC16274298BB008E5682 /* libfilabridge.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilabridge.a; path = ../../ios/lib/libfilabridge.a; sourceTree = "<group>"; };
+		840FCC17274298BB008E5682 /* libfilaflat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilaflat.a; path = ../../ios/lib/libfilaflat.a; sourceTree = "<group>"; };
+		840FCC18274298BB008E5682 /* libgltfio_core.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgltfio_core.a; path = ../../ios/lib/libgltfio_core.a; sourceTree = "<group>"; };
+		840FCC19274298BB008E5682 /* libfilameshio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilameshio.a; path = ../../ios/lib/libfilameshio.a; sourceTree = "<group>"; };
+		840FCC1A274298BB008E5682 /* libgeometry.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgeometry.a; path = ../../ios/lib/libgeometry.a; sourceTree = "<group>"; };
+		840FCC1B274298BB008E5682 /* libgltfio_resources_lite.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgltfio_resources_lite.a; path = ../../ios/lib/libgltfio_resources_lite.a; sourceTree = "<group>"; };
+		840FCC1C274298BB008E5682 /* libmath.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmath.a; path = ../../ios/lib/libmath.a; sourceTree = "<group>"; };
+		840FCC1D274298BB008E5682 /* libgltfio_resources.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgltfio_resources.a; path = ../../ios/lib/libgltfio_resources.a; sourceTree = "<group>"; };
+		840FCC3527429B1F008E5682 /* libviewer.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libviewer.a; path = ../../ios/lib/libviewer.a; sourceTree = "<group>"; };
+		840FCC3627429B1F008E5682 /* libfilament-iblprefilter.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libfilament-iblprefilter.a"; path = "../../ios/lib/libfilament-iblprefilter.a"; sourceTree = "<group>"; };
+		840FCC3727429B1F008E5682 /* libibl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libibl.a; path = ../../ios/lib/libibl.a; sourceTree = "<group>"; };
+		840FCC3827429B1F008E5682 /* libimage.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libimage.a; path = ../../ios/lib/libimage.a; sourceTree = "<group>"; };
+		840FCC3D27429BEC008E5682 /* libbackend.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libbackend.a; path = ../../ios/lib/libbackend.a; sourceTree = "<group>"; };
+		840FCC3E27429BEC008E5682 /* libfilament.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilament.a; path = ../../ios/lib/libfilament.a; sourceTree = "<group>"; };
+		840FCC4127429C5B008E5682 /* libdracodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdracodec.a; path = ../../ios/lib/libdracodec.a; sourceTree = "<group>"; };
+		8444BD12275320B100A5921D /* libOGLCompiler.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libOGLCompiler.a; path = ../../ios/lib/libOGLCompiler.a; sourceTree = "<group>"; };
+		8444BD13275320B200A5921D /* libOSDependent.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libOSDependent.a; path = ../../ios/lib/libOSDependent.a; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -54,6 +95,26 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8444BD14275320B200A5921D /* libOGLCompiler.a in Frameworks */,
+				8444BD15275320B200A5921D /* libOSDependent.a in Frameworks */,
+				840FCC4227429C5B008E5682 /* libdracodec.a in Frameworks */,
+				840FCC3F27429BEC008E5682 /* libbackend.a in Frameworks */,
+				840FCC4027429BEC008E5682 /* libfilament.a in Frameworks */,
+				840FCC3927429B1F008E5682 /* libviewer.a in Frameworks */,
+				840FCC3A27429B1F008E5682 /* libfilament-iblprefilter.a in Frameworks */,
+				840FCC3B27429B1F008E5682 /* libibl.a in Frameworks */,
+				840FCC3C27429B1F008E5682 /* libimage.a in Frameworks */,
+				840FCC2A27429A42008E5682 /* libcamutils.a in Frameworks */,
+				840FCC2B27429A42008E5682 /* libfilabridge.a in Frameworks */,
+				840FCC2C27429A42008E5682 /* libfilaflat.a in Frameworks */,
+				840FCC2E27429A42008E5682 /* libfilameshio.a in Frameworks */,
+				840FCC2F27429A42008E5682 /* libgeometry.a in Frameworks */,
+				840FCC3027429A42008E5682 /* libgltfio_core.a in Frameworks */,
+				840FCC3127429A42008E5682 /* libgltfio_resources_lite.a in Frameworks */,
+				840FCC3227429A42008E5682 /* libgltfio_resources.a in Frameworks */,
+				840FCC3327429A42008E5682 /* libmath.a in Frameworks */,
+				840FCC3427429A42008E5682 /* libmathio.a in Frameworks */,
+				840FCC1E274298BB008E5682 /* libutils.a in Frameworks */,
 				8A41CA36A92CBF01E35DB723 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -119,6 +180,27 @@
 		F66758AA6E5A6218A5D00433 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				8444BD12275320B100A5921D /* libOGLCompiler.a */,
+				8444BD13275320B200A5921D /* libOSDependent.a */,
+				840FCC4127429C5B008E5682 /* libdracodec.a */,
+				840FCC3D27429BEC008E5682 /* libbackend.a */,
+				840FCC3E27429BEC008E5682 /* libfilament.a */,
+				840FCC3627429B1F008E5682 /* libfilament-iblprefilter.a */,
+				840FCC3727429B1F008E5682 /* libibl.a */,
+				840FCC3827429B1F008E5682 /* libimage.a */,
+				840FCC3527429B1F008E5682 /* libviewer.a */,
+				840FCC13274298BA008E5682 /* libcamutils.a */,
+				840FCC16274298BB008E5682 /* libfilabridge.a */,
+				840FCC17274298BB008E5682 /* libfilaflat.a */,
+				840FCC15274298BA008E5682 /* libfilamat.a */,
+				840FCC19274298BB008E5682 /* libfilameshio.a */,
+				840FCC1A274298BB008E5682 /* libgeometry.a */,
+				840FCC18274298BB008E5682 /* libgltfio_core.a */,
+				840FCC1B274298BB008E5682 /* libgltfio_resources_lite.a */,
+				840FCC1D274298BB008E5682 /* libgltfio_resources.a */,
+				840FCC1C274298BB008E5682 /* libmath.a */,
+				840FCC14274298BA008E5682 /* libmathio.a */,
+				840FCC12274298BA008E5682 /* libutils.a */,
 				729293464FDAFA80294C03ED /* Pods_Runner.framework */,
 			);
 			name = Frameworks;
@@ -154,7 +236,7 @@
 		97C146E61CF9000F007C117D /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1020;
+				LastUpgradeCheck = 1310;
 				ORGANIZATIONNAME = "";
 				TargetAttributes = {
 					97C146ED1CF9000F007C117D = {
@@ -303,6 +385,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -323,7 +406,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				STRIP_INSTALLED_PRODUCT = NO;
@@ -349,8 +432,12 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
+				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.holovoxAvatarExample;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -382,6 +469,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -408,7 +496,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -440,6 +529,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -460,7 +550,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				STRIP_INSTALLED_PRODUCT = NO;
@@ -488,8 +579,12 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
+				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.holovoxAvatarExample;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -515,8 +610,12 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
+				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.holovoxAvatarExample;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";

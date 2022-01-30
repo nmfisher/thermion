@@ -1,6 +1,6 @@
-# holovox_filament_example
+# polyvox_filament_example
 
-Demonstrates how to use the holovox_filament plugin.
+Demonstrates how to use the polyvox_filament plugin.
 
 ## Getting Started
 
