@@ -8,7 +8,7 @@ import '../../filament_controller.dart';
 import 'filament_view_platform.dart';
 
 class FilamentView extends FilamentViewPlatform {
-  static const FILAMENT_VIEW_ID = 'holovox.app/filament_view';
+  static const FILAMENT_VIEW_ID = 'app.polyvox.filament/filament_view';
 
   @override
   Widget buildView(
@@ -50,6 +50,9 @@ class FilamentView extends FilamentViewPlatform {
             onFilamentViewCreated(id);
           },
         );
+      case TargetPlatform.windows:
+        return Text(
+            "Flutter doesn't support platform view on Windows yet.");
       default:
         return Text(
             '$defaultTargetPlatform is not yet implemented by Filament plugin.');

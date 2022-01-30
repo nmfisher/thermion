@@ -21,10 +21,10 @@ dev_dependencies:
 
 
 flutter:
-  assets:
-    - assets/compiled.mat
-    - assets/lit_opaque.filamat
-    - assets/lit_fade.filamat
+  #assets:
+    #- assets/compiled.mat
+    ##- assets/lit_opaque.filamat
+    #- assets/lit_fade.filamat
   plugin:
     platforms:
       ios:
