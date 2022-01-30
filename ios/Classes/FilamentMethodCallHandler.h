@@ -7,7 +7,7 @@
 
 #include "FilamentViewer.hpp"
 
-static const id VIEW_TYPE = @"holovox.app/filament_view";
+static const id VIEW_TYPE = @"app.polyvox.filament/filament_view";
 
 @interface FilamentMethodCallHandler : FlutterMethodChannel
 - (void)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:( FlutterResult _Nonnull)result;

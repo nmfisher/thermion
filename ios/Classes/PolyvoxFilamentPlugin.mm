@@ -7,6 +7,6 @@ FilamentNativeViewFactory* factory;
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
   factory =
       [[FilamentNativeViewFactory alloc] initWithRegistrar:registrar];
-  [registrar registerViewFactory:factory withId:@"holovox.app/filament_view"];
+  [registrar registerViewFactory:factory withId:@"app.polyvox.filament/filament_view"];
 }
 @end

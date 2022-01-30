@@ -41,9 +41,9 @@ class PolyvoxFilamentController extends FilamentController {
   @override
   void onFilamentViewCreated(int id) async {
     _id = id;
-    _channel = MethodChannel("holovox.app/filament_view_$id");
+    _channel = MethodChannel("app.polyvox.filament/filament_view_$id");
     _channel.setMethodCallHandler((call) async {
-      await Future.delayed(Duration(
+      await Future.delayed(const Duration(
           seconds:
               1)); // todo - need a better way to know when the GL context is actually ready
       await _initialize();
@@ -52,7 +52,7 @@ class PolyvoxFilamentController extends FilamentController {
     });
   }
 
-  @override
+
   Future _initialize() async {
     await _channel.invokeMethod("initialize", [
       "packages/polyvox_filament/assets/lit_opaque.filamat",
