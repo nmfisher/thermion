@@ -1,4 +1,4 @@
-package com.example.polyvox_filament
+package app.polyvox.filament
 
 import androidx.annotation.NonNull
 
