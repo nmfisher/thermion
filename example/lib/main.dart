@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/gesture_detecting_filament_view.dart';
+import 'package:polyvox_filament/view/filament_view.dart';
 import 'package:polyvox_filament/view/filament_widget.dart';
 
 void main() {
@@ -36,9 +37,14 @@ class _MyAppState extends State<MyApp> {
             title: const Text('Plugin example app'),
           ),
           body: Stack(children: [
-            GestureDetectingFilamentView(
-              controller: _filamentController,
-            ),
+            Center(
+                child: Container(
+              width: 400,
+              height: 400,
+              child: FilamentWidget(
+                controller: _filamentController,
+              ),
+            )),
             Positioned.fill(
               child: Wrap(
                 alignment: WrapAlignment.end,
@@ -56,35 +62,72 @@ class _MyAppState extends State<MyApp> {
                       onPressed: () async {
                         await _filamentController.loadGltf(
                             'assets/cube.gltf', 'assets');
-                        await _filamentController.createMorpher('Cube', [0]);
                       }),
                   ElevatedButton(
-                      child: const Text('stretch'),
+                      child: const Text('set all weights to 1'),
                       onPressed: () async {
                         await _filamentController
                             .applyWeights(List.filled(8, 1.0));
                       }),
                   ElevatedButton(
-                      child: const Text('squeeze'),
+                      child: const Text('set all weights to 0'),
                       onPressed: () async {
                         await _filamentController
                             .applyWeights(List.filled(8, 0));
                       }),
                   ElevatedButton(
-                      child: const Text('load caleb'),
-                      onPressed: () async {
-                        await _filamentController.loadGltf(
-                            'assets/caleb_mouth_morph_target.gltf', 'assets');
-                        _targets = await _filamentController
-                            .getTargetNames('CC_Base_Body');
-                        setState(() {});
-
-                        _filamentController
-                            .createMorpher('CC_Base_Body', [1, 7, 8]);
-                      }),
-                  ElevatedButton(
                       onPressed: () => _filamentController.playAnimation(0),
-                      child: const Text('Play'))
+                      child: const Text('play animation')),
+                  ElevatedButton(
+                      onPressed: () {
+                        _filamentController.zoom(-1.0);
+                      },
+                      child: const Text('zoom in')),
+                  ElevatedButton(
+                      onPressed: () {
+                        _filamentController.zoom(1.0);
+                      },
+                      child: const Text('zoom out')),
+                  Builder(builder:(innerCtx) => ElevatedButton(
+                      onPressed: () async {
+                        final names = await _filamentController
+                            .getTargetNames("Cube");
+                        
+                        await showDialog(
+                            builder: (ctx) {
+                              return Container(
+                                  color: Colors.white,
+                                  height:200, width:200,
+                                  child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: names
+                                              .map((name) => Text(name))
+                                              .cast<Widget>()
+                                              .toList() +
+                                          <Widget>[
+                                            ElevatedButton(
+                                                onPressed: () =>
+                                                    Navigator.of(ctx).pop(),
+                                                child: Text("Close"))
+                                          ]));
+                            },
+                            context: innerCtx);
+                      },
+                      child: const Text('get target names'))),
+                  ElevatedButton(
+                      onPressed: () async {
+                        await _filamentController.panStart(1, 1);
+                        await _filamentController.panUpdate(1, 2);
+                        await _filamentController.panEnd();
+                      },
+                      child: Text("Pan left")),
+                  ElevatedButton(
+                      onPressed: () async {
+                        await _filamentController.panStart(1, 1);
+                        await _filamentController.panUpdate(0, 0);
+                        await _filamentController.panEnd();
+                      },
+                      child: Text("Pan right"))
                 ],
               ),
             ),
@@ -137,3 +180,8 @@ class _MyAppState extends State<MyApp> {
 //       .values
 //       .toList(),
 // )
+                  //  ElevatedButton(
+                  //     child: const Text('init'),
+                  //     onPressed: () async {
+                  //       await _filamentController.initialize();
+                  //     }),

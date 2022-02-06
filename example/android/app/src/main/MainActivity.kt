@@ -1,6 +1,7 @@
-package app.polyvox.polyvox_filament_example
+package app.polyvox.filament_example
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity: FlutterActivity() {
+
 }
