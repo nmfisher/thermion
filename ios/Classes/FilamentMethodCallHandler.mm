@@ -8,8 +8,8 @@ static polyvox::ResourceBuffer loadResourceGlobal(const char* name) {
   return [_handler loadResource:name];
 }
 
-static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
-  [_handler freeResource:mem size:size misc:misc ];
+static void* freeResourceGlobal(ResourceBuffer rb) {
+  [_handler freeResource:rb ];
   return nullptr;
 }
 
@@ -37,19 +37,16 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     [self handleMethodCall:call result:result];
   }];
   _handler = self;
+  
+  _viewer = new polyvox::FilamentViewer(_layer, nullptr, nullptr, loadResourceGlobal, freeResourceGlobal);
+  [_controller setViewer:_viewer];
+  [_controller startDisplayLink];
+
   return self;
 }
 
 - (void)handleMethodCall:(FlutterMethodCall* _Nonnull)call result:(FlutterResult _Nonnull )result {
-  if([@"initialize" isEqualToString:call.method]) {
-      if(!call.arguments)
-        _viewer = new polyvox::FilamentViewer(_layer, nullptr, nullptr, loadResourceGlobal, freeResourceGlobal);
-      else
-        _viewer = new polyvox::FilamentViewer(_layer, [call.arguments[0] UTF8String], [call.arguments[1] UTF8String], loadResourceGlobal, freeResourceGlobal);
-      [_controller setViewer:_viewer];
-      [_controller startDisplayLink];
-      result(@"OK");
-  } else if([@"loadSkybox" isEqualToString:call.method]) {
+  if([@"loadSkybox" isEqualToString:call.method]) {
     if(!_viewer)
       return;
 
@@ -64,6 +61,11 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     if(!_viewer)
       return; // TODO should throw exception here
     _viewer->loadGltf([call.arguments[0] UTF8String], [call.arguments[1] UTF8String]);
+    result(@"OK");
+  } else if([@"setCamera" isEqualToString:call.method]) {
+    if(!_viewer)
+      return; // TODO should throw exception here
+    _viewer->setCamera([call.arguments UTF8String]);
     result(@"OK");
   } else if([@"panStart" isEqualToString:call.method]) {
     if(!_viewer)
@@ -169,8 +171,8 @@ static void* freeResourceGlobal(void* mem, size_t size, void* misc) {
     return rbuf;
 }
 
-- (void)freeResource:(void*)mem size:(size_t)s misc:(void *)m {
-    free(mem);
+- (void)freeResource:(ResourceBuffer)rb {
+    free(rb.data);
 }
 
 - (void)ready {

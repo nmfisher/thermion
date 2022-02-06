@@ -30,7 +30,11 @@
 #include <string>
 #include <chrono>
 
-#include "GPUMorphHelper.h"
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+#include <android/native_window_jni.h>
+#include <android/log.h>
+#include <android/native_activity.h>
 
 using namespace std;
 using namespace filament;
@@ -51,46 +55,22 @@ namespace polyvox {
     };
 
     struct ResourceBuffer {
-        ResourceBuffer(const void* data, const uint32_t size) : data(data), size(size) {};
+        ResourceBuffer(const void* data, const uint32_t size, const uint32_t id) : data(data), size(size), id(id) {};
 
         ResourceBuffer& operator=(ResourceBuffer other)
         {
           data = other.data;
           size = other.size;
+          id = other.id;
           return *this;
         }
         const void* data;
-        uint64_t size;
-    };
-
-    struct MorphAnimationBuffer {
-      
-      MorphAnimationBuffer(float* frameData,
-                           int numWeights,
-                           int numFrames,
-                           float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLength(frameLength) {
-      }
-      
-      int frameIndex = -1;
-      int numFrames;
-      float frameLength;
-      time_point_t startTime;
-      
-      float* frameData;
-      int numWeights;
-    };
-
-    struct EmbeddedAnimationBuffer  {
-        
-      EmbeddedAnimationBuffer(int animationIndex, float duration) : animationIndex(animationIndex), duration(duration) {}
-      bool hasStarted = false;
-      int animationIndex;
-      float duration = 0;
-      time_point_t lastTime;
+        uint32_t size;
+        uint32_t id;
     };
 
     using LoadResource = std::function<ResourceBuffer(const char* uri)>;
-    using FreeResource = std::function<void * (void *mem, size_t s, void *)>;
+    using FreeResource = std::function<void (ResourceBuffer)>;
 
     class FilamentViewer {
         public:
@@ -98,31 +78,29 @@ namespace polyvox {
             ~FilamentViewer();
             void loadGlb(const char* const uri);
             void loadGltf(const char* const uri, const char* relativeResourcePath);
-            void loadSkybox(const char* const skyboxUri, const char* const iblUri);
+            void loadSkybox(const char* const skyboxUri, const char* const iblUri, AAssetManager* am);
+
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
-            void createMorpher(const char* meshName, int* primitives, int numPrimitives);
+            // void createMorpher(const char* meshName, int* primitives, int numPrimitives);
             void releaseSourceAssets();
             StringList getTargetNames(const char* meshName);
             Manipulator<float>* manipulator;
             void applyWeights(float* weights, int count);
-            void animateWeights(float* data, int numWeights, int length, float frameRate);
-            void animateBones();
+            // void animateWeights(float* data, int numWeights, int length, float frameRate);
+            // void animateBones();
             void playAnimation(int index);
+            void setCamera(const char* nodeName);
+            void destroySwapChain();
+            void createSwapChain(void* surface);
+
+            Renderer* getRenderer();
 
         private:
       
             void loadResources(std::string relativeResourcePath);
             void transformToUnitCube();
             void cleanup();
-            void updateMorphAnimation();
-            void updateEmbeddedAnimation();
-            void setCamera(const char* cameraName);
-            
-            // animation flags;
-            bool isAnimating;
-            unique_ptr<MorphAnimationBuffer> morphAnimationBuffer;
-            unique_ptr<EmbeddedAnimationBuffer> embeddedAnimationBuffer;
             
             void* _layer;
 
@@ -138,12 +116,13 @@ namespace polyvox {
             Camera* _mainCamera;
             Renderer* _renderer;
     
-            SwapChain* _swapChain;
+            SwapChain* _swapChain = nullptr;
 
             Animator* _animator;
 
             AssetLoader* _assetLoader;
             FilamentAsset* _asset = nullptr;
+            ResourceBuffer _assetBuffer;
             NameComponentManager* _ncm;
 
             Entity _sun;
@@ -161,9 +140,41 @@ namespace polyvox {
             
             float _cameraFocalLength = 0.0f;
 
-            GPUMorphHelper* morphHelper;
-    
 
 
     };
 }
+
+            // void updateMorphAnimation();
+            // void updateEmbeddedAnimation();
+            
+            // animation flags;
+            // bool isAnimating;
+            // unique_ptr<MorphAnimationBuffer> morphAnimationBuffer;
+            // unique_ptr<EmbeddedAnimationBuffer> embeddedAnimationBuffer;
+
+                // struct EmbeddedAnimationBuffer  {
+        
+    //   EmbeddedAnimationBuffer(int animationIndex, float duration) : animationIndex(animationIndex), duration(duration) {}
+    //   bool hasStarted = false;
+    //   int animationIndex;
+    //   float duration = 0;
+    //   time_point_t lastTime;
+    // };
+
+    //     struct MorphAnimationBuffer {
+      
+    //   MorphAnimationBuffer(float* frameData,
+    //                        int numWeights,
+    //                        int numFrames,
+    //                        float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLength(frameLength) {
+    //   }
+      
+    //   int frameIndex = -1;
+    //   int numFrames;
+    //   float frameLength;
+    //   time_point_t startTime;
+      
+    //   float* frameData;
+    //   int numWeights;
+    // };

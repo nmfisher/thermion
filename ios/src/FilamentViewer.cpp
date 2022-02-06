@@ -44,7 +44,9 @@
 #include <utils/JobSystem.h>
 
 #include "math.h"
-#include "upcast.h"
+
+#include "FFilamentInstance.h"
+#include "FFilamentAsset.h"
 
 #include <math/mat4.h>
 #include <math/quat.h>
@@ -57,13 +59,21 @@
 #include <chrono>
 #include <iostream>
 
+#include "Log.h"
+
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+#include <android/native_window_jni.h>
+#include <android/log.h>
+#include <android/native_activity.h>
+
 using namespace filament;
 using namespace filament::math;
 using namespace gltfio;
 using namespace utils;
 using namespace std::chrono;
 
-namespace foo {
+namespace gltfio {
   MaterialProvider* createUbershaderLoader(filament::Engine* engine);
 }
 
@@ -127,11 +137,16 @@ FilamentViewer::FilamentViewer(
         FreeResource freeResource) : _layer(layer), 
                                     _loadResource(loadResource),
                                     _freeResource(freeResource),
-                                    opaqueShaderResources(nullptr, 0),
-                                    fadeShaderResources(nullptr, 0) {
+                                    opaqueShaderResources(nullptr, 0, 0),
+                                    fadeShaderResources(nullptr, 0, 0),
+                                    _assetBuffer(nullptr, 0, 0) {
     _engine = Engine::create(Engine::Backend::OPENGL);
 
     _renderer = _engine->createRenderer();
+
+    _renderer->setDisplayInfo({ .refreshRate = 60.0f,
+                               .presentationDeadlineNanos = (uint64_t)0,
+                               .vsyncOffsetNanos = (uint64_t)0 });
     _scene = _engine->createScene();
     Entity camera = EntityManager::get().create();
     _mainCamera = _engine->createCamera(camera);
@@ -144,18 +159,22 @@ FilamentViewer::FilamentViewer(
 
     _swapChain = _engine->createSwapChain(_layer);
 
-  //  if(shaderPath) {
-       opaqueShaderResources = _loadResource(opaqueShaderPath);
-       fadeShaderResources = _loadResource(fadeShaderPath);
-       _materialProvider = createGPUMorphShaderLoader(
-         opaqueShaderResources.data,
-         opaqueShaderResources.size,
-         fadeShaderResources.data,
-         fadeShaderResources.size,
-         _engine);
-  //  } else {
-        //  _materialProvider = foo::createUbershaderLoader(_engine);
-  //   }
+    View::DynamicResolutionOptions options;
+    options.enabled = true;
+    // options.homogeneousScaling = homogeneousScaling;
+    // options.minScale = filament::math::float2{ minScale };
+    // options.maxScale = filament::math::float2{ maxScale };
+    //options.sharpness = sharpness;
+    options.quality = View::QualityLevel::MEDIUM;;
+    _view->setDynamicResolutionOptions(options);
+
+    View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
+    multiSampleAntiAliasingOptions.enabled = true;
+
+    _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
+
+    _materialProvider = gltfio::createUbershaderLoader(_engine);
+
     EntityManager& em = EntityManager::get();
     _ncm = new NameComponentManager(em);
     _assetLoader = AssetLoader::create({_engine, _materialProvider, _ncm, &em});
@@ -163,7 +182,7 @@ FilamentViewer::FilamentViewer(
             {.engine = _engine, .normalizeSkinningWeights = true, .recomputeBoundingBoxes = false});
         
     manipulator =
-            Manipulator<float>::Builder().orbitHomePosition(0.0f, -1.4f, 1.0f).targetPosition(0.0f, -0.5f, 0.75f).build(Mode::ORBIT);
+            Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.0f).targetPosition(0.0f, 0.0f, -4.0f).build(Mode::ORBIT);
     _asset = nullptr;
                                       
 }
@@ -172,21 +191,54 @@ FilamentViewer::~FilamentViewer() {
 
 }
 
-void printWeights(float* weights, int numWeights) {
-  for(int i =0; i < numWeights; i++) {
-//    std::cout << weights[i];
+Renderer* FilamentViewer::getRenderer() {
+  return _renderer;
+}
+
+void FilamentViewer::createSwapChain(void* surface) {
+  _swapChain = _engine->createSwapChain(surface);
+  // Log("swapchain created.");
+}
+
+void FilamentViewer::destroySwapChain() {
+  if(_swapChain) {
+    _engine->destroy(_swapChain);
+    _swapChain = nullptr;
+  }
+  // Log("swapchain destroyed.");
+}
+
+void FilamentViewer::applyWeights(float* weights, int count) {
+
+  for (size_t i = 0, c = _asset->getEntityCount(); i != c; ++i) {
+    _asset->setMorphWeights(
+      _asset->getEntities()[i],
+      weights, 
+      count
+    );
   }
 }
 
 void FilamentViewer::loadResources(string relativeResourcePath) {
     const char* const* const resourceUris = _asset->getResourceUris();
     const size_t resourceUriCount = _asset->getResourceUriCount();
+
+    Log("Loading %d resources for asset", resourceUriCount);
+
     for (size_t i = 0; i < resourceUriCount; i++) {
         string uri = relativeResourcePath + string(resourceUris[i]);
         ResourceBuffer buf = _loadResource(uri.c_str());
+             
+        // using FunctionCallback = std::function<void(void*, unsigned int, void *)>;
+
+        // auto cb = [&] (void * ptr, unsigned int len, void * misc)  {
+          
+        // };
+        // FunctionCallback fcb = cb;
         ResourceLoader::BufferDescriptor b(
-                buf.data, buf.size, (ResourceLoader::BufferDescriptor::Callback)&_freeResource, nullptr);
+                buf.data, buf.size);
         _resourceLoader->addResourceData(resourceUris[i], std::move(b));
+        _freeResource(buf);
     }
 
     _resourceLoader->loadResources(_asset);
@@ -204,26 +256,22 @@ void FilamentViewer::loadResources(string relativeResourcePath) {
 };
 
 void FilamentViewer::releaseSourceAssets() {
-  std::cout << "Releasing source data" << std::endl;
+  Log("Releasing source data");
   _asset->releaseSourceData();
-  _freeResource((void*)opaqueShaderResources.data, opaqueShaderResources.size, nullptr);
-  _freeResource((void*)fadeShaderResources.data, fadeShaderResources.size, nullptr);
+  // _freeResource(opaqueShaderResources);
+  // _freeResource(fadeShaderResources);
 }
 
-
-void FilamentViewer::animateWeights(float* data, int numWeights, int length, float frameRate) {
-//  transformToUnitCube();
-  morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, length / numWeights, 1000 / frameRate );
-}
 
 void FilamentViewer::loadGlb(const char* const uri) {
   
-  std::cerr << "Loading GLB at URI " << uri << std::endl;
+  Log("Loading GLB at URI %s", uri);
 
   if(_asset) {
         _resourceLoader->evictResourceData();
         _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
         _assetLoader->destroyAsset(_asset);
+        _freeResource(_assetBuffer);
    }
    _asset = nullptr;
    _animator = nullptr;
@@ -234,7 +282,7 @@ void FilamentViewer::loadGlb(const char* const uri) {
             (const uint8_t*)rbuf.data, rbuf.size);
 
    if (!_asset) {
-      std::cerr << "Unknown error loading GLB asset." << std::endl;
+      Log("Unknown error loading GLB asset.");
       exit(1);
    }
    
@@ -242,7 +290,7 @@ void FilamentViewer::loadGlb(const char* const uri) {
   
    _scene->addEntities(_asset->getEntities(), entityCount);
 
-   std::cerr << "Added " << entityCount << " entities to scene" << std::endl;
+   Log("Added %d entities to scene",  entityCount);
    _resourceLoader->loadResources(_asset);
    _animator = _asset->getAnimator();
 
@@ -254,56 +302,58 @@ void FilamentViewer::loadGlb(const char* const uri) {
         rm.setCulling(inst, false);
     }
 
-    _freeResource((void*)rbuf.data, rbuf.size, nullptr);
-  
-//    transformToUnitCube();
-  
-    setCamera("Camera.001"); // TODO - expose this for external invocation
-
-  
-    std::cerr << "Successfully loaded GLB." << std::endl;
+    _freeResource(rbuf);
+    
+    Log("Successfully loaded GLB.");
 }
 
 void FilamentViewer::loadGltf(const char* const uri, const char* const relativeResourcePath) {
+
+    Log("Loading GLTF at URI %s", uri);
+
     if(_asset) {
+        Log("Asset already exists");
         _resourceLoader->evictResourceData();
         _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
         _assetLoader->destroyAsset(_asset);
+        _freeResource(_assetBuffer);
     }
     _asset = nullptr;
     _animator = nullptr;
 
-    ResourceBuffer rbuf = _loadResource(uri);
+    _assetBuffer = _loadResource(uri);
     
     // Parse the glTF file and create Filament entities.
-    _asset = _assetLoader->createAssetFromJson((uint8_t*)rbuf.data, rbuf.size);
+    Log("Creating asset from JSON");
+    _asset = _assetLoader->createAssetFromJson((uint8_t*)_assetBuffer.data, _assetBuffer.size);
+    Log("Created asset from JSON");
   
     if (!_asset) {
-        std::cerr << "Unable to parse asset" << std::endl;
+        Log("Unable to parse asset");
         exit(1);
     }
-
+    Log("Loading relative resources");
     loadResources(string(relativeResourcePath) + string("/"));
+    Log("Loaded relative resources");
+//    _asset->releaseSourceData();
 
-    _freeResource((void*)rbuf.data, rbuf.size, nullptr);
+    Log("Load complete for GLTF at URI %s", uri);
+
+    transformToUnitCube();
   
-//    transformToUnitCube();
-
-    setCamera("Camera.001"); // TODO - expose this for external invocation
-
 }
 
 void FilamentViewer::setCamera(const char* cameraName) {
   FFilamentAsset* asset = (FFilamentAsset*)_asset;
 
-  NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
+  gltfio::NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
                                             : asset->mNodeMap;
 
   for (auto pair : sourceNodes) {
       cgltf_node const *node = pair.first;
 
       if(node->camera) {
-        std::cout << "Got camera " << node->camera->name << " of type " << node->camera->type << std::endl;
+        Log("Got camera %s of type %s ", node->camera->name, node->camera->type);
 
         if(strcmp(cameraName, node->camera->name) == 0) {
          filament::math::mat4 mat(
@@ -342,84 +392,48 @@ void FilamentViewer::setCamera(const char* cameraName) {
 
 StringList FilamentViewer::getTargetNames(const char* meshName) {
   FFilamentAsset* asset = (FFilamentAsset*)_asset;
+  NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap : asset->mNodeMap;
 
-  NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
-                                            : asset->mNodeMap;
-  FilamentInstance** instances = asset->getAssetInstances();
-  std::cout << "Fetching morph target names for mesh " << meshName;
+  if(sourceNodes.empty()) {
+      Log("Asset source nodes empty?");
+      return StringList(nullptr, 0);
+  }
+  Log("Fetching morph target names for mesh %s", meshName);
+
   for (auto pair : sourceNodes) {
       cgltf_node const *node = pair.first;
       cgltf_mesh const *mesh = node->mesh;
 
       if(node->camera) {
-        std::cout << "Got camera " << node->camera->name << " of type " << node->camera->type << std::endl;
+        Log("Got camera %s of type %s", node->camera->name, node->camera->type);
       } 
       
       if (mesh) {
-        std::cout << "Mesh : " << mesh->name;
+        Log("Mesh : %s ",mesh->name);
         if(strcmp(meshName, mesh->name) == 0) {
           return StringList((const char**)mesh->target_names, (int) mesh->target_names_count);
         } 
       } else {
-        std::cout << "No mesh attached to node";
+        Log("No mesh attached to node");
       }
   }
   return StringList(nullptr, 0);
 }
 
-void FilamentViewer::createMorpher(const char* meshName, int* primitives, int numPrimitives) {
-  morphHelper = new gltfio::GPUMorphHelper((FFilamentAsset*)_asset, meshName, primitives, numPrimitives);
-//  morphHelper = new gltfio::CPUMorpher(((FFilamentAsset)*_asset, (FFilamentInstance*)_asset));
-}
 
-void FilamentViewer::applyWeights(float* weights, int count) {
-  morphHelper->applyWeights(weights, count);
-}
-
-void FilamentViewer::animateBones() {
-  Entity entity = _asset->getFirstEntityByName("CC_Base_JawRoot");
-  if(!entity) {
-    return;
-  }
-
-  TransformManager& transformManager = _engine->getTransformManager();
-
-  TransformManager::Instance node = transformManager.getInstance(  entity);
-
-  mat4f xform = transformManager.getTransform(node);
-  float3 scale;
-  quatf rotation;
-  float3 translation;
-  decomposeMatrix(xform, &translation, &rotation, &scale);
-
-//  const quatf srcQuat { weights[0] * 0.9238,0,weights[0] *  0.3826, 0 };
-//  float3 { scale[0] * (1.0f - weights[0]), scale[1] * (1.0f - weights[1]), scale[2] * (1.0f - weights[2]) }
-//  xform = composeMatrix(translation + float3 { weights[0], weights[1], weights[2] }, rotation, scale );
-  transformManager.setTransform(node, xform);
-
-}
-
-void FilamentViewer::playAnimation(int index) {
-  embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index));
-}
-    
-void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const iblPath) {
+void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const iblPath, AAssetManager* am) {
      
-    std::cout << "Loading skybox from " << skyboxPath << std::endl;
-
     ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
 
-    std::cout << "Loaded skybox resource buffer of size  " << skyboxBuffer.size << std::endl;
-    
     image::KtxBundle* skyboxBundle =
-            new image::KtxBundle(static_cast<const uint8_t*>(skyboxBuffer.data),
-                    static_cast<uint32_t>(skyboxBuffer.size));
-    _skyboxTexture = image::ktx::createTexture(_engine, skyboxBundle, true);
+            new image::KtxBundle(static_cast<const uint8_t*>(skyboxBuffer.data), static_cast<uint32_t>(skyboxBuffer.size));    
+    _skyboxTexture = image::ktx::createTexture(_engine, skyboxBundle, false);
     _skybox = filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
+    // _skybox = Skybox::Builder().color({0.1, 0.125, 0.25, 1.0}).build(*_engine);
     _scene->setSkybox(_skybox);
-    _freeResource((void*)skyboxBuffer.data, skyboxBuffer.size, nullptr);
-
-    std::cout << "Loading IBL from " << iblPath << std::endl;
+    _freeResource(skyboxBuffer);
+    
+    Log("Loading IBL from %s",  iblPath);
 
     // Load IBL.
     ResourceBuffer iblBuffer = _loadResource(iblPath);
@@ -436,7 +450,7 @@ void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const 
                              .build(*_engine);
     _scene->setIndirectLight(_indirectLight);
   
-    _freeResource((void*)iblBuffer.data, iblBuffer.size, nullptr);
+    _freeResource(iblBuffer);
 
     // Always add a direct light source since it is required for shadowing.
     _sun = EntityManager::get().create();
@@ -447,10 +461,14 @@ void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const 
             .castShadows(true)
             .build(*_engine, _sun);
     _scene->addEntity(_sun);
+    
+    Log("Skybox/IBL load complete.");
+
 }
 
 void FilamentViewer::transformToUnitCube() {
       if (!_asset) {
+          Log("No asset, cannot transform.");
           return;
       }
       auto& tm = _engine->getTransformManager();
@@ -468,36 +486,47 @@ void FilamentViewer::cleanup() {
     _assetLoader->destroyAsset(_asset);
     _materialProvider->destroyMaterials();
     AssetLoader::destroy(&_assetLoader);
+    _freeResource(_assetBuffer);
 };
 
 void FilamentViewer::render() {
-    if (!_view || !_mainCamera || !manipulator || !_animator) {
+    if (!_view || !_mainCamera || !_swapChain) {
+        Log("Not ready for rendering");
         return;
     }
-  // Extract the camera basis from the helper and push it to the Filament camera.
-    //math::float3 eye, target, upward;
-    //manipulator->getLookAt(&eye, &target, &upward);
 
-    //_mainCamera->lookAt(eye, target, upward);
-  
-    if(morphAnimationBuffer) {
-      updateMorphAnimation();
-    }
-    
-    if(embeddedAnimationBuffer) {
-      updateEmbeddedAnimation();
-    }
+    math::float3 eye, target, upward;
+    manipulator->getLookAt(&eye, &target, &upward);
+    _mainCamera->lookAt(eye, target, upward);
 
     // Render the scene, unless the renderer wants to skip the frame.
     if (_renderer->beginFrame(_swapChain)) {
         _renderer->render(_view);
         _renderer->endFrame();
-    } else {
-     // std::cout << "Skipping frame" << std::endl;
-    }
+    } 
 }
 
-//void FilamentViewer::updateAnimation(AnimationBuffer animation, std::function<void(int)> moo) {
+
+void FilamentViewer::updateViewportAndCameraProjection(int width, int height, float contentScaleFactor) {
+    if (!_view || !_mainCamera) {
+        Log("Skipping camera update, no view or camrea");
+        return;
+    }
+
+    const uint32_t _width = width * contentScaleFactor;
+    const uint32_t _height = height * contentScaleFactor;
+    _view->setViewport({0, 0, _width, _height});
+
+    const double aspect = (double)width / height;
+    _mainCamera->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
+    Log("Set viewport to %d %d", _width, _height);
+}
+
+
+}
+
+
+    //void FilamentViewer::updateAnimation(AnimationBuffer animation, std::function<void(int)> moo) {
 //  if(morphAnimationBuffer.frameIndex >= animation.numFrames) {
 //    this.animation = null;
 //    return;
@@ -518,80 +547,115 @@ void FilamentViewer::render() {
 //  }
 //}
 
-void FilamentViewer::updateMorphAnimation() {
+// void FilamentViewer::updateMorphAnimation() {
   
-  if(morphAnimationBuffer->frameIndex >= morphAnimationBuffer->numFrames) {
-    morphAnimationBuffer = nullptr;
-    return;
-  }
+//   if(morphAnimationBuffer->frameIndex >= morphAnimationBuffer->numFrames) {
+//     morphAnimationBuffer = nullptr;
+//     return;
+//   }
   
-  if(morphAnimationBuffer->frameIndex == -1) {
-    morphAnimationBuffer->frameIndex++;
-    morphAnimationBuffer->startTime = std::chrono::high_resolution_clock::now();
-    applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
-  } else {
-    std::chrono::duration<double, std::milli> dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->startTime;
-    int frameIndex = dur.count() / morphAnimationBuffer->frameLength;
-    if(frameIndex != morphAnimationBuffer->frameIndex) {
-        morphAnimationBuffer->frameIndex = frameIndex;
-        applyWeights(morphAnimationBuffer->frameData + (morphAnimationBuffer->frameIndex * morphAnimationBuffer->numWeights), morphAnimationBuffer->numWeights);
-    }
-  }
+//   if(morphAnimationBuffer->frameIndex == -1) {
+//     morphAnimationBuffer->frameIndex++;
+//     morphAnimationBuffer->startTime = std::chrono::high_resolution_clock::now();
+//     applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
+//   } else {
+//     std::chrono::duration<double, std::milli> dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->startTime;
+//     int frameIndex = dur.count() / morphAnimationBuffer->frameLength;
+//     if(frameIndex != morphAnimationBuffer->frameIndex) {
+//         morphAnimationBuffer->frameIndex = frameIndex;
+//         applyWeights(morphAnimationBuffer->frameData + (morphAnimationBuffer->frameIndex * morphAnimationBuffer->numWeights), morphAnimationBuffer->numWeights);
+//     }
+//   }
   
-}
+// }
 
-void FilamentViewer::updateEmbeddedAnimation() {
-  duration<double> dur = duration_cast<duration<double>>(std::chrono::high_resolution_clock::now() - embeddedAnimationBuffer->lastTime);
-  float startTime = 0;
-  if(!embeddedAnimationBuffer->hasStarted) {
-    embeddedAnimationBuffer->hasStarted = true;
-    embeddedAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
-  } else if(dur.count() >= embeddedAnimationBuffer->duration) {
-    embeddedAnimationBuffer = nullptr;
-    return;
-  } else {
-    startTime = dur.count();
-  }
+// void FilamentViewer::updateEmbeddedAnimation() {
+//   duration<double> dur = duration_cast<duration<double>>(std::chrono::high_resolution_clock::now() - embeddedAnimationBuffer->lastTime);
+//   float startTime = 0;
+//   if(!embeddedAnimationBuffer->hasStarted) {
+//     embeddedAnimationBuffer->hasStarted = true;
+//     embeddedAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+//   } else if(dur.count() >= embeddedAnimationBuffer->duration) {
+//     embeddedAnimationBuffer = nullptr;
+//     return;
+//   } else {
+//     startTime = dur.count();
+//   }
   
 
-  _animator->applyAnimation(embeddedAnimationBuffer->animationIndex, startTime);
-  _animator->updateBoneMatrices();
+//   _animator->applyAnimation(embeddedAnimationBuffer->animationIndex, startTime);
+//   _animator->updateBoneMatrices();
   
-}
-//
-//if(morphAnimationBuffer.frameIndex >= morphAnimationBuffer.numFrames) {
-//  this.morphAnimationBuffer = null;
-//  return;
-//}
-//
-//if(morphAnimationBuffer.frameIndex == -1) {
-//  applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
-//  morphAnimationBuffer->frameIndex++;
-//  morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
-//} else {
-//  duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
-//  float msElapsed = dur.count();
-//  if(msElapsed > morphAnimationBuffer->frameLength) {
-//      frameIndex++;
-//      applyWeights(frameData + (frameIndex * numWeights), numWeights);
-//      morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
-//  }
-//}
+// }
+// //
+// //if(morphAnimationBuffer.frameIndex >= morphAnimationBuffer.numFrames) {
+// //  this.morphAnimationBuffer = null;
+// //  return;
+// //}
+// //
+// //if(morphAnimationBuffer.frameIndex == -1) {
+// //  applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
+// //  morphAnimationBuffer->frameIndex++;
+// //  morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+// //} else {
+// //  duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
+// //  float msElapsed = dur.count();
+// //  if(msElapsed > morphAnimationBuffer->frameLength) {
+// //      frameIndex++;
+// //      applyWeights(frameData + (frameIndex * numWeights), numWeights);
+// //      morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+// //  }
+// //}
+// void FilamentViewer::playAnimation(int index) {
+//   embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index));
+// }
 
-void FilamentViewer::updateViewportAndCameraProjection(int width, int height, float contentScaleFactor) {
-    if (!_view || !_mainCamera || !manipulator) {
-        return;
-    }
+// void FilamentViewer::animateWeights(float* data, int numWeights, int length, float frameRate) {
+//   morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, length / numWeights, 1000 / frameRate );
+// }
 
-    manipulator->setViewport(width, height);
+           //  if(shaderPath) {
+      //  opaqueShaderResources = _loadResource(opaqueShaderPath);
+      //  fadeShaderResources = _loadResource(fadeShaderPath);
+      //  _materialProvider = createGPUMorphShaderLoader(
+      //    opaqueShaderResources.data,
+      //    opaqueShaderResources.size,
+      //    fadeShaderResources.data,
+      //    fadeShaderResources.size,
+      //    _engine);
+  //  } else {
+  //   }
+//   void printWeights(float* weights, int numWeights) {
+//   for(int i =0; i < numWeights; i++) {
+// //    std::cout << weights[i];
+//   }
+// }
 
-    const uint32_t _width = width * contentScaleFactor;
-    const uint32_t _height = height * contentScaleFactor;
-    _view->setViewport({0, 0, _width, _height});
+// void FilamentViewer::createMorpher(const char* meshName, int* primitives, int numPrimitives) {
+//   // morphHelper = new gltfio::GPUMorphHelper((FFilamentAsset*)_asset, meshName, primitives, numPrimitives);
+// //  morphHelper = new gltfio::CPUMorpher(((FFilamentAsset)*_asset, (FFilamentInstance*)_asset));
+// }
 
-    const double aspect = (double)width / height;
-    _mainCamera->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
-}
+// void FilamentViewer::animateBones() {
+// }
+//   Entity entity = _asset->getFirstEntityByName("CC_Base_JawRoot");
+//   if(!entity) {
+//     return;
+//   }
 
+//   TransformManager& transformManager = _engine->getTransformManager();
 
-}
+//   TransformManager::Instance node = transformManager.getInstance(  entity);
+
+//   mat4f xform = transformManager.getTransform(node);
+//   float3 scale;
+//   quatf rotation;
+//   float3 translation;
+//   decomposeMatrix(xform, &translation, &rotation, &scale);
+
+// //  const quatf srcQuat { weights[0] * 0.9238,0,weights[0] *  0.3826, 0 };
+// //  float3 { scale[0] * (1.0f - weights[0]), scale[1] * (1.0f - weights[1]), scale[2] * (1.0f - weights[2]) }
+// //  xform = composeMatrix(translation + float3 { weights[0], weights[1], weights[2] }, rotation, scale );
+//   transformManager.setTransform(node, xform);
+
+// }
