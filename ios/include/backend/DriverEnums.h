@@ -193,10 +193,12 @@ static constexpr size_t SHADER_MODEL_COUNT = 3;
  */
 enum class PrimitiveType : uint8_t {
     // don't change the enums values (made to match GL)
-    POINTS      = 0,    //!< points
-    LINES       = 1,    //!< lines
-    TRIANGLES   = 4,    //!< triangles
-    NONE        = 0xFF
+    POINTS         = 0,    //!< points
+    LINES          = 1,    //!< lines
+    LINE_STRIP     = 3,    //!< line strip
+    TRIANGLES      = 4,    //!< triangles
+    TRIANGLE_STRIP = 5,    //!< triangle strip
+    NONE           = 0xFF
 };
 
 /**
@@ -220,7 +222,8 @@ enum class UniformType : uint8_t {
     UINT3,
     UINT4,
     MAT3,   //!< a 3x3 float matrix
-    MAT4    //!< a 4x4 float matrix
+    MAT4,   //!< a 4x4 float matrix
+    STRUCT
 };
 
 enum class Precision : uint8_t {
@@ -806,10 +809,10 @@ using AttributeArray = std::array<Attribute, MAX_VERTEX_ATTRIBUTE_COUNT>;
 //! Raster state descriptor
 struct RasterState {
 
-    using CullingMode = CullingMode;
-    using DepthFunc = SamplerCompareFunc;
-    using BlendEquation = BlendEquation;
-    using BlendFunction = BlendFunction;
+    using CullingMode = backend::CullingMode;
+    using DepthFunc = backend::SamplerCompareFunc;
+    using BlendEquation = backend::BlendEquation;
+    using BlendFunction = backend::BlendFunction;
 
     RasterState() noexcept { // NOLINT
         static_assert(sizeof(RasterState) == sizeof(uint32_t),

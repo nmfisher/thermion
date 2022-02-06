@@ -32,6 +32,10 @@
 
 namespace filament {
 
+namespace backend {
+class CallbackHandler;
+} // namespace backend
+
 class Camera;
 class ColorGrading;
 class MaterialInstance;
@@ -76,7 +80,10 @@ public:
     using RenderQuality = RenderQuality;
     using AmbientOcclusionOptions = AmbientOcclusionOptions;
     using TemporalAntiAliasingOptions = TemporalAntiAliasingOptions;
+    using MultiSampleAntiAliasingOptions = MultiSampleAntiAliasingOptions;
     using VsmShadowOptions = VsmShadowOptions;
+    using SoftShadowOptions = SoftShadowOptions;
+    using ScreenSpaceReflectionsOptions = ScreenSpaceReflectionsOptions;
 
     /**
      * Sets the View's name. Only useful for debugging.
@@ -275,7 +282,9 @@ public:
      *       cost. See setAntialiasing.
      *
      * @see setAntialiasing
+     * @deprecated use setMultiSampleAntiAliasingOptions instead
      */
+    UTILS_DEPRECATED
     void setSampleCount(uint8_t count = 1) noexcept;
 
     /**
@@ -283,7 +292,9 @@ public:
      * A value of 0 or 1 means MSAA is disabled.
      *
      * @return value set by setSampleCount().
+     * @deprecated use getMultiSampleAntiAliasingOptions instead
      */
+    UTILS_DEPRECATED
     uint8_t getSampleCount() const noexcept;
 
     /**
@@ -319,6 +330,34 @@ public:
      * @return temporal anti-aliasing options
      */
     TemporalAntiAliasingOptions const& getTemporalAntiAliasingOptions() const noexcept;
+
+    /**
+     * Enables or disable screen-space reflections. Disabled by default.
+     *
+     * @param options screen-space reflections options
+     */
+    void setScreenSpaceReflectionsOptions(ScreenSpaceReflectionsOptions options) noexcept;
+
+    /**
+     * Returns screen-space reflections options.
+     *
+     * @return screen-space reflections options
+     */
+    ScreenSpaceReflectionsOptions const& getScreenSpaceReflectionsOptions() const noexcept;
+
+    /**
+     * Enables or disable multi-sample anti-aliasing (MSAA). Disabled by default.
+     *
+     * @param options multi-sample anti-aliasing options
+     */
+    void setMultiSampleAntiAliasingOptions(MultiSampleAntiAliasingOptions options) noexcept;
+
+    /**
+     * Returns multi-sample anti-aliasing options.
+     *
+     * @return multi-sample anti-aliasing options
+     */
+    MultiSampleAntiAliasingOptions const& getMultiSampleAntiAliasingOptions() const noexcept;
 
     /**
      * Sets this View's color grading transforms.
@@ -515,18 +554,43 @@ public:
     VsmShadowOptions getVsmShadowOptions() const noexcept;
 
     /**
+     * Sets soft shadowing options that apply across the entire View.
+     *
+     * Additional light-specific soft shadow parameters can be set with LightManager::setShadowOptions.
+     *
+     * Only applicable when shadow type is set to ShadowType::DPCF or ShadowType::PCSS.
+     *
+     * @param options Options for shadowing.
+     *
+     * @see setShadowType
+     *
+     * @warning This API is still experimental and subject to change.
+     */
+    void setSoftShadowOptions(SoftShadowOptions const& options) noexcept;
+
+    /**
+     * Returns the soft shadowing options associated with this View.
+     *
+     * @return value set by setSoftShadowOptions().
+     */
+    SoftShadowOptions getSoftShadowOptions() const noexcept;
+
+    /**
      * Enables or disables post processing. Enabled by default.
      *
      * Post-processing includes:
+     *  - Depth-of-field
      *  - Bloom
-     *  - Tone-mapping & gamma encoding
+     *  - Vignetting
+     *  - Temporal Anti-aliasing (TAA)
+     *  - Color grading & gamma encoding
      *  - Dithering
-     *  - MSAA
      *  - FXAA
      *  - Dynamic scaling
      *
-     * Disabling post-processing forgoes color correctness as well as anti-aliasing and
-     * should only be used experimentally (e.g., for UI overlays).
+     * Disabling post-processing forgoes color correctness as well as some anti-aliasing techniques
+     * and should only be used for debugging, UI overlays or when using custom render targets
+     * (see RenderTarget).
      *
      * @param enabled true enables post processing, false disables it.
      *
@@ -611,9 +675,10 @@ public:
      * @param x         Horizontal coordinate to query in the viewport with origin on the left.
      * @param y         Vertical coordinate to query on the viewport with origin at the bottom.
      * @param data      A pointer to an instance of T
+     * @param handler   Handler to dispatch the callback or nullptr for the default handler.
      */
     template<typename T, void(T::*method)(PickingQueryResult const&)>
-    void pick(uint32_t x, uint32_t y, T* instance) noexcept {
+    void pick(uint32_t x, uint32_t y, T* instance, backend::CallbackHandler* handler = nullptr) noexcept {
         PickingQuery& query = pick(x, y, [](PickingQueryResult const& result, PickingQuery* pq) {
             void* user = pq->storage;
             (*static_cast<T**>(user)->*method)(result);
@@ -630,9 +695,10 @@ public:
      * @param x         Horizontal coordinate to query in the viewport with origin on the left.
      * @param y         Vertical coordinate to query on the viewport with origin at the bottom.
      * @param data      An instance of T
+     * @param handler   Handler to dispatch the callback or nullptr for the default handler.
      */
     template<typename T, void(T::*method)(PickingQueryResult const&)>
-    void pick(uint32_t x, uint32_t y, T instance) noexcept {
+    void pick(uint32_t x, uint32_t y, T instance, backend::CallbackHandler* handler = nullptr) noexcept {
         static_assert(sizeof(instance) <= sizeof(PickingQuery::storage), "user data too large");
         PickingQuery& query = pick(x, y, [](PickingQueryResult const& result, PickingQuery* pq) {
             void* user = pq->storage;
@@ -650,11 +716,12 @@ public:
      * @param x         Horizontal coordinate to query in the viewport with origin on the left.
      * @param y         Vertical coordinate to query on the viewport with origin at the bottom.
      * @param functor   A functor, typically a lambda function.
+     * @param handler   Handler to dispatch the callback or nullptr for the default handler.
      */
     template<typename T>
-    void pick(uint32_t x, uint32_t y, T functor) noexcept {
+    void pick(uint32_t x, uint32_t y, T functor, backend::CallbackHandler* handler = nullptr) noexcept {
         static_assert(sizeof(functor) <= sizeof(PickingQuery::storage), "functor too large");
-        PickingQuery& query = pick(x, y,
+        PickingQuery& query = pick(x, y, handler,
                 (PickingQueryResultCallback)[](PickingQueryResult const& result, PickingQuery* pq) {
             void* user = pq->storage;
             T& that = *static_cast<T*>(user);
@@ -674,11 +741,12 @@ public:
      * @param x         Horizontal coordinate to query in the viewport with origin on the left.
      * @param y         Vertical coordinate to query on the viewport with origin at the bottom.
      * @param callback  User callback, called when the picking query result is available.
+     * @param handler   Handler to dispatch the callback or nullptr for the default handler.
      * @return          A reference to a PickingQuery structure, which can be used to store up to
      *                  8*sizeof(void*) bytes of user data. This user data is later accessible
      *                  in the PickingQueryResultCallback callback 3rd parameter.
      */
-    PickingQuery& pick(uint32_t x, uint32_t y,
+    PickingQuery& pick(uint32_t x, uint32_t y, backend::CallbackHandler* handler,
             PickingQueryResultCallback callback) noexcept;
 
 
