@@ -41,7 +41,7 @@ flutter:
     - assets/BusterDrone/
     - assets/BusterDrone/textures/
     - assets/FlightHelmet/
-    - assets/FlightHelmet/textures/
-    - assets/textures/
+    #- assets/FlightHelmet/textures/
+    #- assets/textures/
 
   
