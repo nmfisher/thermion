@@ -23,10 +23,12 @@ if (flutterVersionName == null) {
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -43,8 +45,8 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "app.polyvox.polyvox_filament_example"
-        minSdkVersion 16
+        applicationId "app.polyvox.filament_example"
+        minSdkVersion 21
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -57,6 +59,14 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+    packagingOptions {
+      merge "**/libfilament-jni.so"
+      merge "**/libgltfio-jni.so"
+      merge "**/libfilament-utils-jni.so"
+    }
+    aaptOptions {
+      noCompress "ktx"
+    }
 }
 
 flutter {
@@ -64,5 +74,13 @@ flutter {
 }
 
 dependencies {
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "com.google.android.filament:filament-android:1.17.0"
+    implementation "com.google.android.filament:filament-utils-android:1.17.0"
+    implementation "com.google.android.filament:gltfio-android:1.17.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2"
+    implementation "androidx.annotation:annotation:1.3.0"
+    implementation "androidx.core:core:1.7.0"
 }

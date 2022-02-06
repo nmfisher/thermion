@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 
 abstract class FilamentController {
   void onFilamentViewCreated(int id);
-
   Future loadSkybox(String skyboxPath, String lightingPath);
   Future loadGlb(String path);
   Future loadGltf(String path, String relativeResourcePath);
@@ -43,21 +42,13 @@ class PolyvoxFilamentController extends FilamentController {
     _id = id;
     _channel = MethodChannel("app.polyvox.filament/filament_view_$id");
     _channel.setMethodCallHandler((call) async {
-      await Future.delayed(const Duration(
-          seconds:
-              1)); // todo - need a better way to know when the GL context is actually ready
-      await _initialize();
-      onFilamentViewCreatedHandler?.call(_id);
-      return Future.value(true);
+      if(call.method == "ready") {
+        onFilamentViewCreatedHandler?.call(_id);
+        return Future.value(true);
+      } else {
+        throw Exception("Unknown method channel invocation ${call.method}");
+      }
     });
-  }
-
-
-  Future _initialize() async {
-    await _channel.invokeMethod("initialize", [
-      "packages/polyvox_filament/assets/lit_opaque.filamat",
-      "packages/polyvox_filament/assets/lit_fade.filamat"
-    ]);
   }
 
   @override

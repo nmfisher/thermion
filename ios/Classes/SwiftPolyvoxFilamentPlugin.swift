@@ -3,7 +3,7 @@ import UIKit
 
 public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "polyvox_filament", binaryMessenger: registrar.messenger())
+    let channel = FlutterMethodChannel(name: "app.polyvox.filament", binaryMessenger: registrar.messenger())
     let instance = SwiftPolyvoxFilamentPlugin()
     registrar.addMethodCallDelegate(instance, channel: channel)
   }

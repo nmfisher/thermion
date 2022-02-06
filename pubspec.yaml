@@ -27,6 +27,9 @@ flutter:
     #- assets/lit_fade.filamat
   plugin:
     platforms:
+      android:
+        pluginClass: PolyvoxFilamentPlugin
+        package: app.polyvox.filament
       ios:
         pluginClass: PolyvoxFilamentPlugin
       windows:

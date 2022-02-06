@@ -17,32 +17,14 @@ class FilamentView extends FilamentViewPlatform {
   ) {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return PlatformViewLink(
-          viewType: FILAMENT_VIEW_ID,
-          surfaceFactory:
-              (BuildContext context, PlatformViewController controller) {
-            return AndroidViewSurface(
-              controller: controller as AndroidViewController,
-              gestureRecognizers: const <
-                  Factory<OneSequenceGestureRecognizer>>{},
-              hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-            );
-          },
-          onCreatePlatformView: (PlatformViewCreationParams params) {
-            return PlatformViewsService.initSurfaceAndroidView(
-              id: params.id,
-              viewType: FILAMENT_VIEW_ID,
-              layoutDirection: TextDirection.ltr,
-              creationParams: {},
-              creationParamsCodec: StandardMessageCodec(),
-            )
-              ..addOnPlatformViewCreatedListener((int id) {
-                onFilamentViewCreated(id);
-                params.onPlatformViewCreated(id);
-              })
-              ..create();
-          },
-        );
+        return AndroidView(
+            viewType: FILAMENT_VIEW_ID,
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{},
+            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+            onPlatformViewCreated: (id) {
+              print("onplatformview created $id");
+              onFilamentViewCreated(id);
+            });
       case TargetPlatform.iOS:
         return UiKitView(
           viewType: FILAMENT_VIEW_ID,
@@ -51,8 +33,7 @@ class FilamentView extends FilamentViewPlatform {
           },
         );
       case TargetPlatform.windows:
-        return Text(
-            "Flutter doesn't support platform view on Windows yet.");
+        return Text("Flutter doesn't support platform view on Windows yet.");
       default:
         return Text(
             '$defaultTargetPlatform is not yet implemented by Filament plugin.');
