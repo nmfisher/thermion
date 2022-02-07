@@ -83,15 +83,21 @@ class _MyAppState extends State<MyApp> {
                         _filamentController.zoom(-1.0);
                       },
                       child: const Text('zoom in')),
+                      
                   ElevatedButton(
                       onPressed: () {
                         _filamentController.zoom(1.0);
                       },
                       child: const Text('zoom out')),
+                  ElevatedButton(
+                      onPressed: () {
+                        _filamentController.setCamera("Camera.001");
+                      },
+                      child: const Text('Set Camera')),
                   Builder(builder:(innerCtx) => ElevatedButton(
                       onPressed: () async {
                         final names = await _filamentController
-                            .getTargetNames("Cube");
+                            .getTargetNames("Cube.001");
                         
                         await showDialog(
                             builder: (ctx) {

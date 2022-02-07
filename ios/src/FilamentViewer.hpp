@@ -90,7 +90,7 @@ namespace polyvox {
             // void animateWeights(float* data, int numWeights, int length, float frameRate);
             // void animateBones();
             void playAnimation(int index);
-            void setCamera(const char* nodeName);
+            bool setCamera(const char* nodeName);
             void destroySwapChain();
             void createSwapChain(void* surface);
 
