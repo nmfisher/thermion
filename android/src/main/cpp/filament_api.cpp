@@ -49,8 +49,8 @@ extern "C" {
     ((FilamentViewer*)viewer)->loadGltf(assetPath, relativePath);
   }
 
-  void set_camera(void* viewer, const char* nodeName) {
-    ((FilamentViewer*)viewer)->setCamera(nodeName);
+  bool set_camera(void* viewer, const char* nodeName) {
+    return ((FilamentViewer*)viewer)->setCamera(nodeName);
   }
 
   void* filament_viewer_new(
@@ -133,10 +133,12 @@ extern "C" {
     }
   }
 
-  void free_pointer(void** ptr, int size) {
+  void free_pointer(char*** ptr, int size) {
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Freeing %d char pointers", size);     
     for(int i = 0; i < size; i++) {
-      free(ptr[i]);
+      free((*ptr)[i]);
     }
+    free(*ptr);
   }
 
   void release_source_assets(void* viewer) {

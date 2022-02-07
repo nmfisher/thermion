@@ -17,6 +17,7 @@ abstract class FilamentController {
   Future<List<String>> getTargetNames(String meshName);
   Future releaseSourceAssets();
   Future playAnimation(int index);
+  Future setCamera(String name);
 
   ///
   /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where [framerate] is the number of times per second the weights should be updated).
@@ -120,5 +121,9 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future playAnimation(int index) async {
     await _channel.invokeMethod("playAnimation", index);
+  }
+
+  Future setCamera(String name) async {
+    await _channel.invokeMethod("setCamera", name);
   }
 }

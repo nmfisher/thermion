@@ -268,10 +268,10 @@ void FilamentViewer::loadGlb(const char* const uri) {
   Log("Loading GLB at URI %s", uri);
 
   if(_asset) {
+        _asset->releaseSourceData();
         _resourceLoader->evictResourceData();
         _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
         _assetLoader->destroyAsset(_asset);
-        _freeResource(_assetBuffer);
    }
    _asset = nullptr;
    _animator = nullptr;
@@ -339,55 +339,83 @@ void FilamentViewer::loadGltf(const char* const uri, const char* const relativeR
 
     Log("Load complete for GLTF at URI %s", uri);
 
-    transformToUnitCube();
+    // transformToUnitCube();
   
 }
 
-void FilamentViewer::setCamera(const char* cameraName) {
+bool FilamentViewer::setCamera(const char* cameraName) {
   FFilamentAsset* asset = (FFilamentAsset*)_asset;
 
   gltfio::NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
                                             : asset->mNodeMap;
-
+  Log("Setting camera to %s", cameraName);
   for (auto pair : sourceNodes) {
       cgltf_node const *node = pair.first;
 
-      if(node->camera) {
-        Log("Got camera %s of type %s ", node->camera->name, node->camera->type);
+      if(!node->camera) {
+        if(node->name) {
+          Log("No camera found under node %s", node->name);
+        } else {
+          Log("No camera found under unnamed node.");
+        }
+        continue;
+      }
 
-        if(strcmp(cameraName, node->camera->name) == 0) {
-         filament::math::mat4 mat(
-             node->matrix[0],
-             node->matrix[1],
-             node->matrix[2],
-             node->matrix[3],
-             node->matrix[4],
-             node->matrix[5],
-             node->matrix[6],
-             node->matrix[7],
-             node->matrix[8],
-             node->matrix[9],
-             node->matrix[10],
-             node->matrix[11],
-             node->parent->translation[0],
-             node->parent->translation[1],
-             node->parent->translation[2],
-             1
-             );
+      Log("Found camera under node %s", node->name);
 
-            quatf rot1(node->parent->rotation[0],node->parent->rotation[1], node->parent->rotation[2], node->parent->rotation[3]);
-            quatf rot2(node->rotation[0],node->rotation[1], node->rotation[2], node->rotation[3]);
-            quatf rot3 = rot1 * rot2;
-            filament::math::mat4 rotm(rot3);
-          
+      if(node->camera->name) {
+        Log("Checking camera : %s", node->camera->name);
+      }
+
+      if(strcmp(cameraName, node->camera->name) == 0) {
+        Log("Found camera.");
+        filament::math::mat4 mat(
+            node->matrix[0],
+            node->matrix[1],
+            node->matrix[2],
+            node->matrix[3],
+            node->matrix[4],
+            node->matrix[5],
+            node->matrix[6],
+            node->matrix[7],
+            node->matrix[8],
+            node->matrix[9],
+            node->matrix[10],
+            node->matrix[11],
+            node->parent->translation[0],
+            node->parent->translation[1],
+            node->parent->translation[2],
+            1
+            );
+
+          quatf rot1(node->parent->rotation[0],node->parent->rotation[1], node->parent->rotation[2], node->parent->rotation[3]);
+          quatf rot2(node->rotation[0],node->rotation[1], node->rotation[2], node->rotation[3]);
+          quatf rot3 = rot1 * rot2;
+          filament::math::mat4 rotm(rot3);
+        
           filament::math::mat4 result = mat * rotm;
 
+          Entity cameraEntity = EntityManager::get().create();
+          Camera* cam = _engine->createCamera(cameraEntity);
+
+          const Viewport& vp = _view->getViewport();
+
+          const double aspect = (double)vp.width / vp.height;
+
+          cam->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
+
+          if(!cam) {
+            Log("Couldn't create camera"); 
+          } else {
             _engine->getTransformManager().setTransform(
-               _engine->getTransformManager().getInstance(_mainCamera->getEntity()), result);
-            
-        }
+                _engine->getTransformManager().getInstance(cameraEntity), result);
+
+            _view->setCamera(cam);
+            return true;
+          }
       }
   }
+  return false;
 }
 
 StringList FilamentViewer::getTargetNames(const char* meshName) {
@@ -404,18 +432,12 @@ StringList FilamentViewer::getTargetNames(const char* meshName) {
       cgltf_node const *node = pair.first;
       cgltf_mesh const *mesh = node->mesh;
 
-      if(node->camera) {
-        Log("Got camera %s of type %s", node->camera->name, node->camera->type);
-      } 
-      
       if (mesh) {
         Log("Mesh : %s ",mesh->name);
         if(strcmp(meshName, mesh->name) == 0) {
           return StringList((const char**)mesh->target_names, (int) mesh->target_names_count);
         } 
-      } else {
-        Log("No mesh attached to node");
-      }
+      } 
   }
   return StringList(nullptr, 0);
 }
@@ -429,7 +451,7 @@ void FilamentViewer::loadSkybox(const char* const skyboxPath, const char* const 
             new image::KtxBundle(static_cast<const uint8_t*>(skyboxBuffer.data), static_cast<uint32_t>(skyboxBuffer.size));    
     _skyboxTexture = image::ktx::createTexture(_engine, skyboxBundle, false);
     _skybox = filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
-    // _skybox = Skybox::Builder().color({0.1, 0.125, 0.25, 1.0}).build(*_engine);
+    
     _scene->setSkybox(_skybox);
     _freeResource(skyboxBuffer);
     
