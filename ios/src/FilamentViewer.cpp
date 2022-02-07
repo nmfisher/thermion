@@ -517,6 +517,10 @@ void FilamentViewer::render() {
         return;
     }
 
+    if(morphAnimationBuffer) {
+      updateMorphAnimation();
+    }
+
     math::float3 eye, target, upward;
     manipulator->getLookAt(&eye, &target, &upward);
     _mainCamera->lookAt(eye, target, upward);
@@ -544,52 +548,37 @@ void FilamentViewer::updateViewportAndCameraProjection(int width, int height, fl
     Log("Set viewport to %d %d", _width, _height);
 }
 
+void FilamentViewer::animateWeights(float* data, int numWeights, int numFrames, float frameRate) {
+  morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, numFrames, 1000 / frameRate );
+}
 
+void FilamentViewer::updateMorphAnimation() {
+  
+  if(morphAnimationBuffer->frameIndex >= morphAnimationBuffer->numFrames) {
+    morphAnimationBuffer = nullptr;
+    return;
+  }
+  
+  if(morphAnimationBuffer->frameIndex == -1) {
+    morphAnimationBuffer->frameIndex++;
+    morphAnimationBuffer->startTime = std::chrono::high_resolution_clock::now();
+    applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
+  } else {
+    std::chrono::duration<double, std::milli> dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->startTime;
+    int frameIndex = dur.count() / morphAnimationBuffer->frameLength;
+    if(frameIndex != morphAnimationBuffer->frameIndex) {
+        morphAnimationBuffer->frameIndex = frameIndex;
+        applyWeights(morphAnimationBuffer->frameData + (morphAnimationBuffer->frameIndex * morphAnimationBuffer->numWeights), morphAnimationBuffer->numWeights);
+    }
+  }
+  
 }
 
 
-    //void FilamentViewer::updateAnimation(AnimationBuffer animation, std::function<void(int)> moo) {
-//  if(morphAnimationBuffer.frameIndex >= animation.numFrames) {
-//    this.animation = null;
-//    return;
-//  }
-//  
-//  if(animation.frameIndex == -1) {
-//    animation->frameIndex++;
-//    animation->lastTime = std::chrono::high_resolution_clock::now();
-//    callback(); //     applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
-//  } else {
-//    duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
-//    float msElapsed = dur.count();
-//    if(msElapsed > animation->frameLength) {
-//        animation->frameIndex++;
-//        animation->lastTime = std::chrono::high_resolution_clock::now();
-//        callback(); //             applyWeights(frameData + (frameIndex * numWeights), numWeights);
-//    }
-//  }
-//}
 
-// void FilamentViewer::updateMorphAnimation() {
-  
-//   if(morphAnimationBuffer->frameIndex >= morphAnimationBuffer->numFrames) {
-//     morphAnimationBuffer = nullptr;
-//     return;
-//   }
-  
-//   if(morphAnimationBuffer->frameIndex == -1) {
-//     morphAnimationBuffer->frameIndex++;
-//     morphAnimationBuffer->startTime = std::chrono::high_resolution_clock::now();
-//     applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
-//   } else {
-//     std::chrono::duration<double, std::milli> dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->startTime;
-//     int frameIndex = dur.count() / morphAnimationBuffer->frameLength;
-//     if(frameIndex != morphAnimationBuffer->frameIndex) {
-//         morphAnimationBuffer->frameIndex = frameIndex;
-//         applyWeights(morphAnimationBuffer->frameData + (morphAnimationBuffer->frameIndex * morphAnimationBuffer->numWeights), morphAnimationBuffer->numWeights);
-//     }
-//   }
-  
-// }
+
+}
+ 
 
 // void FilamentViewer::updateEmbeddedAnimation() {
 //   duration<double> dur = duration_cast<duration<double>>(std::chrono::high_resolution_clock::now() - embeddedAnimationBuffer->lastTime);
@@ -632,26 +621,6 @@ void FilamentViewer::updateViewportAndCameraProjection(int width, int height, fl
 //   embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index));
 // }
 
-// void FilamentViewer::animateWeights(float* data, int numWeights, int length, float frameRate) {
-//   morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, length / numWeights, 1000 / frameRate );
-// }
-
-           //  if(shaderPath) {
-      //  opaqueShaderResources = _loadResource(opaqueShaderPath);
-      //  fadeShaderResources = _loadResource(fadeShaderPath);
-      //  _materialProvider = createGPUMorphShaderLoader(
-      //    opaqueShaderResources.data,
-      //    opaqueShaderResources.size,
-      //    fadeShaderResources.data,
-      //    fadeShaderResources.size,
-      //    _engine);
-  //  } else {
-  //   }
-//   void printWeights(float* weights, int numWeights) {
-//   for(int i =0; i < numWeights; i++) {
-// //    std::cout << weights[i];
-//   }
-// }
 
 // void FilamentViewer::createMorpher(const char* meshName, int* primitives, int numPrimitives) {
 //   // morphHelper = new gltfio::GPUMorphHelper((FFilamentAsset*)_asset, meshName, primitives, numPrimitives);
@@ -680,4 +649,25 @@ void FilamentViewer::updateViewportAndCameraProjection(int width, int height, fl
 // //  xform = composeMatrix(translation + float3 { weights[0], weights[1], weights[2] }, rotation, scale );
 //   transformManager.setTransform(node, xform);
 
+// }
+
+// void FilamentViewer::updateAnimation(AnimationBuffer animation, std::function<void(int)> callback) {
+//  if(morphAnimationBuffer.frameIndex >= animation.numFrames) {
+//    this.animation = null;
+//    return;
+//  }
+ 
+//  if(animation.frameIndex == -1) {
+//    animation->frameIndex++;
+//    animation->lastTime = std::chrono::high_resolution_clock::now();
+//    callback(); //     applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
+//  } else {
+//    duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
+//    float msElapsed = dur.count();
+//    if(msElapsed > animation->frameLength) {
+//        animation->frameIndex++;
+//        animation->lastTime = std::chrono::high_resolution_clock::now();
+//        callback(); //             applyWeights(frameData + (frameIndex * numWeights), numWeights);
+//    }
+//  }
 // }

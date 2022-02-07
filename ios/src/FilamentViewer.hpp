@@ -72,6 +72,23 @@ namespace polyvox {
     using LoadResource = std::function<ResourceBuffer(const char* uri)>;
     using FreeResource = std::function<void (ResourceBuffer)>;
 
+    struct MorphAnimationBuffer {
+      
+      MorphAnimationBuffer(float* frameData,
+                           int numWeights,
+                           int numFrames,
+                           float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLength(frameLength) {
+      }
+      
+      int frameIndex = -1;
+      int numFrames;
+      float frameLength;
+      time_point_t startTime;
+      
+      float* frameData;
+      int numWeights;
+    };
+
     class FilamentViewer {
         public:
             FilamentViewer(void* layer, const char* opaqueShaderPath, const char* fadeShaderPath, LoadResource loadResource, FreeResource freeResource);
@@ -87,7 +104,7 @@ namespace polyvox {
             StringList getTargetNames(const char* meshName);
             Manipulator<float>* manipulator;
             void applyWeights(float* weights, int count);
-            // void animateWeights(float* data, int numWeights, int length, float frameRate);
+            void animateWeights(float* data, int numWeights, int length, float frameRate);
             // void animateBones();
             void playAnimation(int index);
             bool setCamera(const char* nodeName);
@@ -140,18 +157,20 @@ namespace polyvox {
             
             float _cameraFocalLength = 0.0f;
 
+            void updateMorphAnimation();
+            // void updateEmbeddedAnimation();
+            
+            // animation flags;
+            bool isAnimating;
+            unique_ptr<MorphAnimationBuffer> morphAnimationBuffer;
+            // unique_ptr<EmbeddedAnimationBuffer> embeddedAnimationBuffer;
+
 
 
     };
 }
 
-            // void updateMorphAnimation();
-            // void updateEmbeddedAnimation();
             
-            // animation flags;
-            // bool isAnimating;
-            // unique_ptr<MorphAnimationBuffer> morphAnimationBuffer;
-            // unique_ptr<EmbeddedAnimationBuffer> embeddedAnimationBuffer;
 
                 // struct EmbeddedAnimationBuffer  {
         
@@ -162,19 +181,4 @@ namespace polyvox {
     //   time_point_t lastTime;
     // };
 
-    //     struct MorphAnimationBuffer {
-      
-    //   MorphAnimationBuffer(float* frameData,
-    //                        int numWeights,
-    //                        int numFrames,
-    //                        float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLength(frameLength) {
-    //   }
-      
-    //   int frameIndex = -1;
-    //   int numFrames;
-    //   float frameLength;
-    //   time_point_t startTime;
-      
-    //   float* frameData;
-    //   int numWeights;
-    // };
+    

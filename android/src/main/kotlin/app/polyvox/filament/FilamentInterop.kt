@@ -32,7 +32,7 @@ interface FilamentInterop : Library {
 
     fun load_gltf(viewer:Pointer, uri:String, relativeResourcePath:String) : Pointer;
     
-    fun set_camera(viewer:Pointer, nodeName:String) : Pointer;
+    fun set_camera(viewer:Pointer, nodeName:String) : Boolean;
 
     fun render(viewer:Pointer);
 
@@ -52,9 +52,11 @@ interface FilamentInterop : Library {
 
     fun apply_weights(viewer:Pointer, weights:FloatArray, size:Int);
 
+    fun animate_weights(viewer:Pointer, frames:FloatArray, numWeights:Int, numFrames:Int,  frameRate:Float);
+
     fun get_target_names(viewer:Pointer, meshName:String, outPtr:PointerByReference, outLen:IntByReference);
 
-    fun free_pointer(ptr:Pointer, size:Int)
+    fun free_pointer(ptr:PointerByReference, size:Int)
 
     fun release_source_assets(viewer:Pointer)
 
