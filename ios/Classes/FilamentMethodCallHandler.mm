@@ -109,7 +109,7 @@ static void* freeResourceGlobal(ResourceBuffer rb) {
     for(int i =0 ; i < [frameData count]; i++) {
       *(framesArr+i) = [[frameData objectAtIndex:i] floatValue];
     }
-    _viewer->animateWeights((float*)framesArr, [numWeights intValue], [frameData count], [frameRate floatValue]);
+    _viewer->animateWeights((float*)framesArr, [numWeights intValue], [frameData count] / numWeights, [frameRate floatValue]);
     result(@"OK");
   } else if([@"createMorpher" isEqualToString:call.method]) {
     const char* meshName = [call.arguments[0] UTF8String];

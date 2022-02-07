@@ -83,7 +83,6 @@ class _MyAppState extends State<MyApp> {
                         _filamentController.zoom(-1.0);
                       },
                       child: const Text('zoom in')),
-                      
                   ElevatedButton(
                       onPressed: () {
                         _filamentController.zoom(1.0);
@@ -93,33 +92,50 @@ class _MyAppState extends State<MyApp> {
                       onPressed: () {
                         _filamentController.setCamera("Camera.001");
                       },
-                      child: const Text('Set Camera')),
-                  Builder(builder:(innerCtx) => ElevatedButton(
-                      onPressed: () async {
-                        final names = await _filamentController
-                            .getTargetNames("Cube.001");
-                        
-                        await showDialog(
-                            builder: (ctx) {
-                              return Container(
-                                  color: Colors.white,
-                                  height:200, width:200,
-                                  child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: names
-                                              .map((name) => Text(name))
-                                              .cast<Widget>()
-                                              .toList() +
-                                          <Widget>[
-                                            ElevatedButton(
-                                                onPressed: () =>
-                                                    Navigator.of(ctx).pop(),
-                                                child: Text("Close"))
-                                          ]));
-                            },
-                            context: innerCtx);
+                      child: const Text('set camera')),
+                  ElevatedButton(
+                      onPressed: () {
+                        final framerate = 30;
+                        final totalSecs = 5;
+                        final numWeights = 8;
+                        final totalFrames = framerate * totalSecs;
+                        final frames = List.generate(
+                                totalFrames,
+                                (frame) => List.filled(
+                                    numWeights, frame / totalFrames))
+                            .reduce((accum, next) => accum + next);
+
+                        _filamentController.animate(frames, numWeights, framerate.toDouble());
                       },
-                      child: const Text('get target names'))),
+                      child: const Text('animate weights')),
+                  Builder(
+                      builder: (innerCtx) => ElevatedButton(
+                          onPressed: () async {
+                            final names = await _filamentController
+                                .getTargetNames("Cube.001");
+
+                            await showDialog(
+                                builder: (ctx) {
+                                  return Container(
+                                      color: Colors.white,
+                                      height: 200,
+                                      width: 200,
+                                      child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: names
+                                                  .map((name) => Text(name))
+                                                  .cast<Widget>()
+                                                  .toList() +
+                                              <Widget>[
+                                                ElevatedButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(ctx).pop(),
+                                                    child: Text("Close"))
+                                              ]));
+                                },
+                                context: innerCtx);
+                          },
+                          child: const Text('get target names'))),
                   ElevatedButton(
                       onPressed: () async {
                         await _filamentController.panStart(1, 1);

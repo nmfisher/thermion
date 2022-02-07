@@ -182,11 +182,15 @@ PlatformView  {
             "setCamera" -> {
               if (_viewer == null)
                     return;
-                _lib.set_camera(
+                val success = _lib.set_camera(
                     _viewer!!,
                     call.arguments as String
                 )
-                result.success("OK");
+                if(success) {
+                  result.success("OK");
+                } else {
+                  result.error("failed","failed", "Failed to set camera")
+                }
             }
             "zoom" -> {
               if(_viewer == null)
@@ -203,8 +207,14 @@ PlatformView  {
 
               val names = arrPtr.value.getStringArray(0, countPtr.value);
 
-              _lib.free_pointer(arrPtr.value, countPtr.getValue())
-                val namesAsList = names.toCollection(ArrayList())
+              Log.v(TAG, "Got target names $names")
+
+              val namesAsList = names.toCollection(ArrayList())
+
+              _lib.free_pointer(arrPtr, countPtr.getValue())
+
+              Log.v(TAG, "Free complete")
+
               result.success(namesAsList)
             } 
             "applyWeights" -> {
@@ -213,6 +223,17 @@ PlatformView  {
               val weights = call.arguments as ArrayList<Float>;
     
               _lib.apply_weights(_viewer!!, weights.toFloatArray(), weights.size)
+              result.success("OK");
+            }
+            "animateWeights" -> {
+              if(_viewer == null)
+                return;
+              val args = call.arguments as ArrayList<Any?>
+              val frames = args[0] as ArrayList<Float>;
+              val numWeights = args[1] as Int
+              val frameRate = args[2] as Double
+    
+              _lib.animate_weights(_viewer!!, frames.toFloatArray(), numWeights, (frames.size / numWeights).toInt(), frameRate.toFloat())
               result.success("OK");
             }
             "panStart" -> {

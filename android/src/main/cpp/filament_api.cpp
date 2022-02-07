@@ -117,6 +117,11 @@ extern "C" {
     ((FilamentViewer*)viewer)->applyWeights(weights, count);
   }
 
+  void animate_weights(void* viewer, float* data, int numWeights, int numFrames,  float frameRate) {
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Animating %d frames, each with %d weights", numFrames, numWeights);     
+    ((FilamentViewer*)viewer)->animateWeights((float*)data, numWeights, numFrames, frameRate);
+  }
+
   void get_target_names(void* viewer, char* meshName, char*** outPtr, int* countPtr ) {
     StringList names = ((FilamentViewer*)viewer)->getTargetNames(meshName);
          
@@ -136,9 +141,11 @@ extern "C" {
   void free_pointer(char*** ptr, int size) {
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Freeing %d char pointers", size);     
     for(int i = 0; i < size; i++) {
-      free((*ptr)[i]);
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "%d", i);     
+      // free((*ptr)[i]);
     }
-    free(*ptr);
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Free complete");     
+    // free(*ptr);
   }
 
   void release_source_assets(void* viewer) {
