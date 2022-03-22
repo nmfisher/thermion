@@ -15,6 +15,7 @@ abstract class FilamentController {
   Future rotateEnd();
   Future applyWeights(List<double> weights);
   Future<List<String>> getTargetNames(String meshName);
+  Future<List<String>> getAnimationNames();
   Future releaseSourceAssets();
   Future playAnimation(int index);
   Future setCamera(String name);
@@ -98,6 +99,12 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future<List<String>> getTargetNames(String meshName) async {
     var result = (await _channel.invokeMethod("getTargetNames", meshName))
+        .cast<String>();
+    return result;
+  }
+
+  Future<List<String>> getAnimationNames() async {
+    var result = (await _channel.invokeMethod("getAnimationNames"))
         .cast<String>();
     return result;
   }

@@ -6,10 +6,11 @@
 #include <android/native_activity.h>
 
 using namespace polyvox;
+using namespace std;
 
 static AAssetManager* am;
 
-std::vector<AAsset*> _assets;
+vector<AAsset*> _assets;
 uint64_t id = -1;
 
 static polyvox::ResourceBuffer loadResource(const char* name) {
@@ -122,30 +123,44 @@ extern "C" {
     ((FilamentViewer*)viewer)->animateWeights((float*)data, numWeights, numFrames, frameRate);
   }
 
-  void get_target_names(void* viewer, char* meshName, char*** outPtr, int* countPtr ) {
-    StringList names = ((FilamentViewer*)viewer)->getTargetNames(meshName);
-         
-    *countPtr = names.count;
-    
-	  *outPtr = (char**)malloc(sizeof(char*) * names.count);
-
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Got %d names", names.count);     
-    
-    for(int i = 0; i < names.count; i++) {
-      std::string as_str(names.strings[i]);      
-      (*outPtr)[i] = (char*)malloc(sizeof(char) * as_str.length());
-	    strcpy((*outPtr)[i], as_str.c_str());
-    }
+  void play_animation(void* viewer, int index) {
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Playing embedded animation %d", index);     
+    ((FilamentViewer*)viewer)->playAnimation(index);
   }
 
-  void free_pointer(char*** ptr, int size) {
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Freeing %d char pointers", size);     
-    for(int i = 0; i < size; i++) {
-      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "%d", i);     
-      // free((*ptr)[i]);
+  char** get_animation_names(void* viewer, int* countPtr) {
+    auto names = ((FilamentViewer*)viewer)->getAnimationNames();
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Got %d animation names", names->size());     
+    char** names_c;
+    names_c = new char*[names->size()];
+    for(int i = 0; i < names->size(); i++) {
+      names_c[i] = (char*) names->at(i).c_str();
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Alloced animation name %s ", (char*) names->at(i).c_str());     
     }
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Free complete");     
-    // free(*ptr);
+    (*countPtr) = names->size();
+    return names_c;
+  }
+
+  char** get_target_names(void* viewer, char* meshName, int* countPtr ) {
+    StringList names = ((FilamentViewer*)viewer)->getTargetNames(meshName);
+
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Got %d names", names.count);     
+         
+    *countPtr = names.count;
+
+    char** retval;
+    retval = new char*[names.count];
+
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Allocated char* array of size %d", names.count);     
+
+    for(int i =0; i < names.count; i++) {
+      retval[i] = (char*)names.strings[i];  
+    }
+    return retval;
+  }
+
+  void free_pointer(char** ptr, int num) {
+    free(ptr);
   }
 
   void release_source_assets(void* viewer) {

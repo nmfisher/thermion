@@ -54,10 +54,14 @@ interface FilamentInterop : Library {
 
     fun animate_weights(viewer:Pointer, frames:FloatArray, numWeights:Int, numFrames:Int,  frameRate:Float);
 
-    fun get_target_names(viewer:Pointer, meshName:String, outPtr:PointerByReference, outLen:IntByReference);
+    fun get_target_names(viewer:Pointer, meshName:String, outLen:IntByReference) : Pointer;
 
-    fun free_pointer(ptr:PointerByReference, size:Int)
+    fun get_animation_names(viewer:Pointer, outLen:IntByReference) : Pointer;
 
-    fun release_source_assets(viewer:Pointer)
+    fun play_animation(viewer:Pointer, index:Int);
+
+    fun free_pointer(ptr:Pointer, size:Int);
+
+    fun release_source_assets(viewer:Pointer);
 
 }
