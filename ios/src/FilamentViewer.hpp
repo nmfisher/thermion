@@ -54,6 +54,16 @@ namespace polyvox {
       const int count;
     };
 
+    struct EmbeddedAnimationBuffer  {        
+      EmbeddedAnimationBuffer(int animationIndex, float duration) : animationIndex(animationIndex), duration(duration) {}
+      bool hasStarted = false;
+      int animationIndex;
+      float duration = 0;
+      time_point_t lastTime;
+    };
+
+    
+
     struct ResourceBuffer {
         ResourceBuffer(const void* data, const uint32_t size, const uint32_t id) : data(data), size(size), id(id) {};
 
@@ -102,6 +112,7 @@ namespace polyvox {
             // void createMorpher(const char* meshName, int* primitives, int numPrimitives);
             void releaseSourceAssets();
             StringList getTargetNames(const char* meshName);
+            unique_ptr<vector<string>> getAnimationNames();
             Manipulator<float>* manipulator;
             void applyWeights(float* weights, int count);
             void animateWeights(float* data, int numWeights, int length, float frameRate);
@@ -158,27 +169,16 @@ namespace polyvox {
             float _cameraFocalLength = 0.0f;
 
             void updateMorphAnimation();
-            // void updateEmbeddedAnimation();
+            void updateEmbeddedAnimation();
             
             // animation flags;
             bool isAnimating;
             unique_ptr<MorphAnimationBuffer> morphAnimationBuffer;
-            // unique_ptr<EmbeddedAnimationBuffer> embeddedAnimationBuffer;
-
-
-
+            unique_ptr<EmbeddedAnimationBuffer> embeddedAnimationBuffer;
     };
+
+
 }
 
             
 
-                // struct EmbeddedAnimationBuffer  {
-        
-    //   EmbeddedAnimationBuffer(int animationIndex, float duration) : animationIndex(animationIndex), duration(duration) {}
-    //   bool hasStarted = false;
-    //   int animationIndex;
-    //   float duration = 0;
-    //   time_point_t lastTime;
-    // };
-
-    

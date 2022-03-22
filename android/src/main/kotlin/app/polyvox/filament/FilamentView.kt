@@ -201,19 +201,38 @@ PlatformView  {
             "getTargetNames" -> {
               if(_viewer == null)
                 return;
-              val arrPtr = PointerByReference();
+              
               val countPtr = IntByReference();
-              _lib.get_target_names(_viewer!!, call.arguments as String, arrPtr, countPtr)
+              val arrPtr = _lib.get_target_names(_viewer!!, call.arguments as String, countPtr)
 
-              val names = arrPtr.value.getStringArray(0, countPtr.value);
+              val names = arrPtr.getStringArray(0, countPtr.value);
 
-              Log.v(TAG, "Got target names $names")
-
+              for(i in 0..countPtr.value-1) {
+                Log.v(TAG, "Got target names ${names[i]} ${names[i].length}")
+              }
+              
               val namesAsList = names.toCollection(ArrayList())
 
               _lib.free_pointer(arrPtr, countPtr.getValue())
 
-              Log.v(TAG, "Free complete")
+              result.success(namesAsList)
+            } 
+            "getAnimationNames" -> {
+              if(_viewer == null)
+                return;
+              
+              val countPtr = IntByReference();
+              val arrPtr = _lib.get_animation_names(_viewer!!, countPtr)
+
+              val names = arrPtr.getStringArray(0, countPtr.value);
+
+              for(i in 0..countPtr.value-1) {
+                Log.v(TAG, "Got animation names ${names[i]} ${names[i].length}")
+              }
+              
+              val namesAsList = names.toCollection(ArrayList())
+
+              _lib.free_pointer(arrPtr, 1)
 
               result.success(namesAsList)
             } 
@@ -281,6 +300,13 @@ PlatformView  {
             "releaseSourceAssets" -> {
               _lib.release_source_assets(_viewer!!)
               result.success("OK");
+            } 
+            "playAnimation" -> {
+              _lib.play_animation(_viewer!!, call.arguments as Int)
+              result.success("OK")
+            }
+            else -> {
+              result.notImplemented()
             }
         }
     }
