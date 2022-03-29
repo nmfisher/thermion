@@ -23,6 +23,7 @@ class _MyAppState extends State<MyApp> {
   int _primitiveIndex = 0;
   final weights = List.filled(255, 0.0);
   List<String> _targets = [];
+  bool _loop = false;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _MyAppState extends State<MyApp> {
                       onPressed: () async {
                         await _filamentController.loadGltf(
                             'assets/cube.gltf', 'assets');
+                        print(await _filamentController.getAnimationNames());
                       }),
                   ElevatedButton(
                       child: const Text('set all weights to 1'),
@@ -76,8 +78,14 @@ class _MyAppState extends State<MyApp> {
                             .applyWeights(List.filled(8, 0));
                       }),
                   ElevatedButton(
-                      onPressed: () => _filamentController.playAnimation(0),
+                      onPressed: () =>
+                          _filamentController.playAnimation(0, loop:_loop),
                       child: const Text('play animation')),
+                  Checkbox(
+                      onChanged: (_) => setState(() {
+                            _loop = !_loop;
+                          }),
+                      value: _loop),
                   ElevatedButton(
                       onPressed: () {
                         _filamentController.zoom(-1.0);
@@ -90,7 +98,7 @@ class _MyAppState extends State<MyApp> {
                       child: const Text('zoom out')),
                   ElevatedButton(
                       onPressed: () {
-                        _filamentController.setCamera("Camera.001");
+                        _filamentController.setCamera("Camera");
                       },
                       child: const Text('set camera')),
                   ElevatedButton(
@@ -105,7 +113,8 @@ class _MyAppState extends State<MyApp> {
                                     numWeights, frame / totalFrames))
                             .reduce((accum, next) => accum + next);
 
-                        _filamentController.animate(frames, numWeights, framerate.toDouble());
+                        _filamentController.animate(
+                            frames, numWeights, framerate.toDouble());
                       },
                       child: const Text('animate weights')),
                   Builder(

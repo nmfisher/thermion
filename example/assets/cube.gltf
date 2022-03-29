@@ -44,15 +44,15 @@
             ],
             "name" : "Camera",
             "rotation" : [
-                0.5797627568244934,
-                0.0033576595596969128,
-                -0.013425502926111221,
-                0.8146679401397705
+                0.5715538859367371,
+                0,
+                0,
+                0.8205645084381104
             ],
             "translation" : [
                 0,
                 6.8069868087768555,
-                10.594138145446777
+                10.164137840270996
             ]
         }
     ],
@@ -66,6 +66,27 @@
                 "znear" : 0.10000000149011612
             },
             "type" : "perspective"
+        }
+    ],
+    "animations" : [
+        {
+            "channels" : [
+                {
+                    "sampler" : 0,
+                    "target" : {
+                        "node" : 0,
+                        "path" : "translation"
+                    }
+                }
+            ],
+            "name" : "FloatUp",
+            "samplers" : [
+                {
+                    "input" : 36,
+                    "interpolation" : "LINEAR",
+                    "output" : 37
+                }
+            ]
         }
     ],
     "materials" : [
@@ -589,6 +610,24 @@
             "componentType" : 5126,
             "count" : 148,
             "type" : "VEC3"
+        },
+        {
+            "bufferView" : 36,
+            "componentType" : 5126,
+            "count" : 60,
+            "max" : [
+                2.5
+            ],
+            "min" : [
+                0.041666666666666664
+            ],
+            "type" : "SCALAR"
+        },
+        {
+            "bufferView" : 37,
+            "componentType" : 5126,
+            "count" : 60,
+            "type" : "VEC3"
         }
     ],
     "bufferViews" : [
@@ -771,11 +810,21 @@
             "buffer" : 0,
             "byteLength" : 1776,
             "byteOffset" : 87020
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 240,
+            "byteOffset" : 88796
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 720,
+            "byteOffset" : 89036
         }
     ],
     "buffers" : [
         {
-            "byteLength" : 88796,
+            "byteLength" : 89756,
             "uri" : "cube.bin"
         }
     ]
