@@ -594,7 +594,7 @@ namespace polyvox
   {
     if (!_view || !_mainCamera || !_swapChain)
     {
-      Log("Not ready for rendering");
+      // Log("Not ready for rendering");
       return;
     }
 
@@ -668,8 +668,12 @@ namespace polyvox
     }
   }
 
-  void FilamentViewer::playAnimation(int index) {
-    embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index));
+  void FilamentViewer::playAnimation(int index, bool loop) {
+    if(index > _animator->getAnimationCount() - 1) {
+      Log("Asset does not contain an animation at index %d", index);
+    } else {
+      embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index), loop);
+    }
   }
 
   void FilamentViewer::updateEmbeddedAnimation() {
@@ -679,8 +683,12 @@ namespace polyvox
       embeddedAnimationBuffer->hasStarted = true;
       embeddedAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
     } else if(dur.count() >= embeddedAnimationBuffer->duration) {
-      embeddedAnimationBuffer = nullptr;
-      return;
+      if(embeddedAnimationBuffer->loop) {
+        embeddedAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+      } else {
+        embeddedAnimationBuffer = nullptr;
+        return;
+      }
     } else {
       startTime = dur.count();
     }

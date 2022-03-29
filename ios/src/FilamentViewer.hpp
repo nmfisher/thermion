@@ -55,11 +55,12 @@ namespace polyvox {
     };
 
     struct EmbeddedAnimationBuffer  {        
-      EmbeddedAnimationBuffer(int animationIndex, float duration) : animationIndex(animationIndex), duration(duration) {}
+      EmbeddedAnimationBuffer(int animationIndex, float duration, bool loop) : animationIndex(animationIndex), duration(duration), loop(loop) {}
       bool hasStarted = false;
       int animationIndex;
       float duration = 0;
       time_point_t lastTime;
+      bool loop;
     };
 
     
@@ -117,7 +118,7 @@ namespace polyvox {
             void applyWeights(float* weights, int count);
             void animateWeights(float* data, int numWeights, int length, float frameRate);
             // void animateBones();
-            void playAnimation(int index);
+            void playAnimation(int index, bool loop);
             bool setCamera(const char* nodeName);
             void destroySwapChain();
             void createSwapChain(void* surface);
