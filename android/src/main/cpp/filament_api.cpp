@@ -123,9 +123,9 @@ extern "C" {
     ((FilamentViewer*)viewer)->animateWeights((float*)data, numWeights, numFrames, frameRate);
   }
 
-  void play_animation(void* viewer, int index) {
+  void play_animation(void* viewer, int index, bool loop) {
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Playing embedded animation %d", index);     
-    ((FilamentViewer*)viewer)->playAnimation(index);
+    ((FilamentViewer*)viewer)->playAnimation(index, loop);
   }
 
   char** get_animation_names(void* viewer, int* countPtr) {
@@ -134,8 +134,10 @@ extern "C" {
     char** names_c;
     names_c = new char*[names->size()];
     for(int i = 0; i < names->size(); i++) {
-      names_c[i] = (char*) names->at(i).c_str();
-      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Alloced animation name %s ", (char*) names->at(i).c_str());     
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Memcpy %d bytes ", names->at(i).size());     
+      names_c[i] = (char*) malloc(names->at(i).size() +1);
+      strcpy(names_c[i], names->at(i).c_str());
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Alloced animation name %s ", (char*) names_c[i]);     
     }
     (*countPtr) = names->size();
     return names_c;
