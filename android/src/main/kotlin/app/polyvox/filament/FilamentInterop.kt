@@ -58,7 +58,7 @@ interface FilamentInterop : Library {
 
     fun get_animation_names(viewer:Pointer, outLen:IntByReference) : Pointer;
 
-    fun play_animation(viewer:Pointer, index:Int);
+    fun play_animation(viewer:Pointer, index:Int, loop:Boolean);
 
     fun free_pointer(ptr:Pointer, size:Int);
 
