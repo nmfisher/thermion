@@ -17,7 +17,7 @@ abstract class FilamentController {
   Future<List<String>> getTargetNames(String meshName);
   Future<List<String>> getAnimationNames();
   Future releaseSourceAssets();
-  Future playAnimation(int index);
+  Future playAnimation(int index, {bool loop=false});
   Future setCamera(String name);
 
   ///
@@ -44,6 +44,7 @@ class PolyvoxFilamentController extends FilamentController {
     _id = id;
     _channel = MethodChannel("app.polyvox.filament/filament_view_$id");
     _channel.setMethodCallHandler((call) async {
+      print("Received Filament method channel call : ${call.method}");
       if(call.method == "ready") {
         onFilamentViewCreatedHandler?.call(_id);
         return Future.value(true);
@@ -126,8 +127,8 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("createMorpher", [meshName, primitives]);
   }
 
-  Future playAnimation(int index) async {
-    await _channel.invokeMethod("playAnimation", index);
+  Future playAnimation(int index, {bool loop=false}) async {
+    await _channel.invokeMethod("playAnimation", [index,loop]);
   }
 
   Future setCamera(String name) async {
