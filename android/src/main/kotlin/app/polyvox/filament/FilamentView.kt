@@ -103,7 +103,6 @@ PlatformView  {
         }
         _lib = Native.loadLibrary("filament_interop", FilamentInterop::class.java, Collections.singletonMap(Library.OPTION_ALLOW_OBJECTS, true))
         
-        
         choreographer = Choreographer.getInstance()
                 
         _view.setZOrderOnTop(false)
@@ -139,6 +138,8 @@ PlatformView  {
         uiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK)
         uiHelper.renderCallback = SurfaceCallback()
         uiHelper.attachTo(_view)
+
+        _methodChannel.invokeMethod("ready", null)
     }
     
     override fun onFlutterViewAttached(flutterView:View) {
@@ -225,16 +226,20 @@ PlatformView  {
               val arrPtr = _lib.get_animation_names(_viewer!!, countPtr)
 
               val names = arrPtr.getStringArray(0, countPtr.value);
+              // val namesPtr = arrPtr.getPointerArray(0, countPtr.value);
+              // val names : MutableList<String> = mutableListOf()
 
               for(i in 0..countPtr.value-1) {
-                Log.v(TAG, "Got animation names ${names[i]} ${names[i].length}")
+                // val name = arrPtr.getString(0, countPtr.value);
+                // val name = namesPtr[i].getString(0)
+                val name = names[i];
+                Log.v(TAG, "Got animation names ${name} ${name.length}")
+                // names.add(name)
               }
               
-              val namesAsList = names.toCollection(ArrayList())
-
               _lib.free_pointer(arrPtr, 1)
 
-              result.success(namesAsList)
+              result.success(names.toCollection(ArrayList()))
             } 
             "applyWeights" -> {
               if(_viewer == null)
@@ -302,7 +307,8 @@ PlatformView  {
               result.success("OK");
             } 
             "playAnimation" -> {
-              _lib.play_animation(_viewer!!, call.arguments as Int)
+              val args = call.arguments as ArrayList<Any?>
+              _lib.play_animation(_viewer!!, args[0] as Int, args[1] as Boolean)
               result.success("OK")
             }
             else -> {
