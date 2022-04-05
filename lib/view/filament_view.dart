@@ -1,10 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../filament_controller.dart';
 import 'filament_view_platform.dart';
 
 class FilamentView extends FilamentViewPlatform {
@@ -22,7 +20,6 @@ class FilamentView extends FilamentViewPlatform {
             gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{},
             hitTestBehavior: PlatformViewHitTestBehavior.opaque,
             onPlatformViewCreated: (id) {
-              print("onplatformview created $id");
               onFilamentViewCreated(id);
             });
       case TargetPlatform.iOS:
