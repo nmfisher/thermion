@@ -1,9 +1,5 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:polyvox_filament/filament_controller.dart';
-import 'package:polyvox_filament/gesture_detecting_filament_view.dart';
-import 'package:polyvox_filament/view/filament_view.dart';
 import 'package:polyvox_filament/view/filament_widget.dart';
 
 void main() {
@@ -38,13 +34,10 @@ class _MyAppState extends State<MyApp> {
             title: const Text('Plugin example app'),
           ),
           body: Stack(children: [
-            Center(
-                child: Container(
-              width: 400,
-              height: 400,
-              child: FilamentWidget(
+            Positioned.fill(
+                child: FilamentWidget(
                 controller: _filamentController,
-              ),
+              
             )),
             Positioned.fill(
               child: Wrap(
