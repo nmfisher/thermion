@@ -20,8 +20,6 @@ interface FilamentInterop : Library {
 
     fun filament_viewer_new(
             layer:Object,
-            opaqueShaderPath:String,
-            fadeShaderPath:String,
             env:JNIEnv,
             am:AssetManager
     ) : Pointer;

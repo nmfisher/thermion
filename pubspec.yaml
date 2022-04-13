@@ -1,5 +1,5 @@
 name: polyvox_filament
-description: The 3D rendering layer for the Polyvox app.
+description: A Flutter plugin to wrap the Filament rendering engine.
 version: 0.0.1
 homepage:
 
@@ -10,7 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ffi:
     
   plugin_platform_interface: ^2.0.0
 
@@ -21,10 +20,6 @@ dev_dependencies:
 
 
 flutter:
-  #assets:
-    #- assets/compiled.mat
-    ##- assets/lit_opaque.filamat
-    #- assets/lit_fade.filamat
   plugin:
     platforms:
       android:

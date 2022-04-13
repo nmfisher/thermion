@@ -30,12 +30,6 @@
 #include <string>
 #include <chrono>
 
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
-#include <android/native_window_jni.h>
-#include <android/log.h>
-#include <android/native_activity.h>
-
 using namespace std;
 using namespace filament;
 using namespace filament::math;
@@ -102,22 +96,21 @@ namespace polyvox {
 
     class FilamentViewer {
         public:
-            FilamentViewer(void* layer, const char* opaqueShaderPath, const char* fadeShaderPath, LoadResource loadResource, FreeResource freeResource);
+            FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
             void loadGlb(const char* const uri);
             void loadGltf(const char* const uri, const char* relativeResourcePath);
-            void loadSkybox(const char* const skyboxUri, const char* const iblUri, AAssetManager* am);
+            void loadSkybox(const char* const skyboxUri, const char* const iblUri);
 
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
-            // void createMorpher(const char* meshName, int* primitives, int numPrimitives);
             void releaseSourceAssets();
             StringList getTargetNames(const char* meshName);
             unique_ptr<vector<string>> getAnimationNames();
             Manipulator<float>* manipulator;
             void applyWeights(float* weights, int count);
             void animateWeights(float* data, int numWeights, int length, float frameRate);
-            // void animateBones();
+
             void playAnimation(int index, bool loop);
             bool setCamera(const char* nodeName);
             void destroySwapChain();
@@ -136,9 +129,6 @@ namespace polyvox {
             LoadResource _loadResource;
             FreeResource _freeResource;
       
-            ResourceBuffer opaqueShaderResources;
-            ResourceBuffer fadeShaderResources;
-
             Scene* _scene;
             View* _view;  
             Engine* _engine;
