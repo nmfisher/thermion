@@ -27,7 +27,7 @@
 namespace filament {
 
 // update this when a new version of filament wouldn't work with older materials
-static constexpr size_t MATERIAL_VERSION = 17;
+static constexpr size_t MATERIAL_VERSION = 21;
 
 /**
  * Supported shading models
@@ -136,10 +136,22 @@ enum VertexAttribute : uint8_t {
     CUSTOM6         = 14,
     CUSTOM7         = 15,
 
+    // Aliases for legacy vertex morphing.
+    // See RenderableManager::Builder::morphing().
+    MORPH_POSITION_0 = CUSTOM0,
+    MORPH_POSITION_1 = CUSTOM1,
+    MORPH_POSITION_2 = CUSTOM2,
+    MORPH_POSITION_3 = CUSTOM3,
+    MORPH_TANGENTS_0 = CUSTOM4,
+    MORPH_TANGENTS_1 = CUSTOM5,
+    MORPH_TANGENTS_2 = CUSTOM6,
+    MORPH_TANGENTS_3 = CUSTOM7,
+
     // this is limited by driver::MAX_VERTEX_ATTRIBUTE_COUNT
 };
 
-static constexpr size_t MAX_MORPH_TARGETS = 128; // this is limited by filament::CONFIG_MAX_MORPH_TARGET_COUNT
+static constexpr size_t MAX_LEGACY_MORPH_TARGETS = 4;
+static constexpr size_t MAX_MORPH_TARGETS = 256; // this is limited by filament::CONFIG_MAX_MORPH_TARGET_COUNT
 static constexpr size_t MAX_CUSTOM_ATTRIBUTES = 8;
 
 /**
@@ -218,6 +230,18 @@ enum class Property : uint8_t {
 
     // when adding new Properties, make sure to update MATERIAL_PROPERTIES_COUNT
 };
+
+enum class UserVariantFilterBit : uint32_t {
+    DIRECTIONAL_LIGHTING        = 0x01,
+    DYNAMIC_LIGHTING            = 0x02,
+    SHADOW_RECEIVER             = 0x04,
+    SKINNING                    = 0x08,
+    FOG                         = 0x10,
+    VSM                         = 0x20,
+    SSR                         = 0x40,
+};
+
+using UserVariantFilterMask = uint32_t;
 
 } // namespace filament
 

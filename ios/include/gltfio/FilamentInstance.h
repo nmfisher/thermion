@@ -57,7 +57,14 @@ public:
     utils::Entity getRoot() const noexcept;
 
     /**
-     * Lazily creates the animation engine for the instance, or returns it from the cache.
+     * Applies the given material variant to all primitives in this instance.
+     *
+     * Ignored if variantIndex is out of bounds.
+     */
+    void applyMaterialVariant(size_t variantIndex) noexcept;
+
+    /**
+     * Returns the animation engine for the instance.
      *
      * Note that an animator can be obtained either from an individual instance, or from the
      * originating FilamentAsset. In the latter case, the animation frame is shared amongst all
@@ -65,7 +72,6 @@ public:
      * individual instances.
      *
      * The animator is owned by the asset and should not be manually deleted.
-     * The first time this is called, it must be called before FilamentAsset::releaseSourceData().
      */
     Animator* getAnimator() noexcept;
 };
