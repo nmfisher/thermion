@@ -351,99 +351,32 @@ namespace polyvox
   ///
   bool FilamentViewer::setCamera(const char *cameraName)
   {
+    size_t count = _asset->getCameraEntityCount();
+    if(count == 0)
+      return false;
 
-    // gltfio::NodeMap &sourceNodes = _asset->isInstanced() ? asset->mInstances[0]->nodeMap
-    //                                                     : asset->mNodeMap;
-    // Log("Setting camera to node %s", cameraName);
-    // for (auto pair : sourceNodes)
-    // {
-    //   cgltf_node const *node = pair.first;
+    const utils::Entity* cameras = _asset->getCameraEntities();
+    Log("Found %d cameras in asset", count);
+    for(int i=0; i < count; i++) {
+      
+      auto inst = _ncm->getInstance(cameras[i]);
+      const char* name = _ncm->getName(inst);
+      Log("Camera %d : %s", i, name);
+      if (strcmp(name, cameraName) == 0) {
 
-    //   if (strcmp(cameraName, node->name) != 0)
-    //   {
-    //     continue;
-    //   }
+        Camera* camera = _engine->createCamera(cameras[i]);
+        const Viewport &vp = _view->getViewport();
 
-    //   Log("Node %s : Matrix : %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f Translation : %03f %03f %03f Rotation %03f %03f %03f %03f Scale %03f %03f %03f",
-    //       node->name,
-    //       node->matrix[0],
-    //       node->matrix[1],
-    //       node->matrix[2],
-    //       node->matrix[3],
-    //       node->matrix[4],
-    //       node->matrix[5],
-    //       node->matrix[6],
-    //       node->matrix[7],
-    //       node->matrix[8],
-    //       node->matrix[9],
-    //       node->matrix[10],
-    //       node->matrix[11],
-    //       node->matrix[12],
-    //       node->matrix[13],
-    //       node->matrix[14],
-    //       node->matrix[15],
-    //       node->translation[0],
-    //       node->translation[1],
-    //       node->translation[2],
-    //       node->rotation[0],
-    //       node->rotation[1],
-    //       node->rotation[2],
-    //       node->rotation[3],
-    //       node->scale[0],
-    //       node->scale[1],
-    //       node->scale[2]
-    //     );
-    //   mat4f t = mat4f::translation(float3 { node->translation[0],node->translation[1],node->translation[2] });
-    //   mat4f r { quatf { node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2] } };
-    //   mat4f transform = t * r;
+        const double aspect = (double)vp.width / vp.height;
 
-    //   if (!node->camera)
-    //   {
-    //     cgltf_node* leaf = node->children[0];
+        // todo - pull focal length from gltf node
 
-    //     Log("Child 1 trans : %03f %03f %03f rot : %03f %03f %03f %03f ", leaf->translation[0], leaf->translation[1],leaf->translation[2], leaf->rotation[0],leaf->rotation[1],leaf->rotation[2],leaf->rotation[3]);
-
-    //     if (!leaf->camera) {
-    //       leaf = leaf->children[0];
-    //       Log("Child 2 %03f %03f %03f %03f %03f %03f %03f ", leaf->translation[0], leaf->translation[1],leaf->translation[2], leaf->rotation[0],leaf->rotation[1],leaf->rotation[2],leaf->rotation[3]);
-    //       if (!leaf->camera) {
-    //         Log("Could not find GLTF camera under node or its ssecond or third child nodes.");
-    //         exit(-1);
-    //       }
-    //     }
-
-    //     Log("Using rotation from leaf node.");
-
-    //     mat4f child_rot { quatf { leaf->rotation[3], leaf->rotation[0], leaf->rotation[1], leaf->rotation[2] } };
-
-    //     transform *= child_rot;
-    //   }
-  
-    //   Entity cameraEntity = EntityManager::get().create();
-    //   Camera *cam = _engine->createCamera(cameraEntity);
-
-    //   const Viewport &vp = _view->getViewport();
-
-    //   const double aspect = (double)vp.width / vp.height;
-
-    //   // todo - pull focal length from gltf node
-
-    //   cam->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
-
-    //   if (!cam)
-    //   {
-    //     Log("Couldn't create camera");
-    //   }
-    //   else
-    //   {
-    //     _engine->getTransformManager().setTransform(
-    //         _engine->getTransformManager().getInstance(cameraEntity), transform
-    //         );
-
-    //     _view->setCamera(cam);
-    //     return true;
-    //   }
-    // }
+        camera->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
+        _view->setCamera(camera);
+      }
+      return true;
+    }
+    Log("Unable to locate camera under name %s ", cameraName);
     return false;
   }
 
@@ -464,11 +397,28 @@ namespace polyvox
     return names;
   }
 
-  StringList FilamentViewer::getTargetNames(const char *meshName)
+  unique_ptr<vector<string>> FilamentViewer::getTargetNames(const char *meshName)
   {
-    // int count = asset->getMorphTargetCountAt()
-    // asset->getMorphTargetNameAt()
-    return StringList(nullptr, 0);
+    Log("Retrieving morph target names for mesh  %s", meshName);
+    unique_ptr<vector<string>> names = make_unique<vector<string>>();
+    const Entity *entities = _asset->getEntities();
+    RenderableManager &rm = _engine->getRenderableManager();
+    for (int i = 0; i < _asset->getEntityCount(); i++)
+    {
+      Entity e = entities[i];
+      auto inst = _ncm->getInstance(e);
+      const char* name = _ncm->getName(inst);
+      Log("Got entity instance name %s", name);
+      if(strcmp(name, meshName) == 0) {
+        size_t count = _asset->getMorphTargetCountAt(e);
+        for(int j=0; j< count; j++) {
+          const char* morphName = _asset->getMorphTargetNameAt(e, j);
+          names->push_back(morphName);
+        }
+        break;
+      }
+    }
+    return names;
   }
 
   void FilamentViewer::loadSkybox(const char *const skyboxPath, const char *const iblPath)

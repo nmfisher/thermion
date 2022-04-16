@@ -42,12 +42,6 @@ namespace polyvox {
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
 
-    struct StringList {
-      StringList(const char** strings, const int count) : strings(strings), count(count) {};
-      const char** strings;
-      const int count;
-    };
-
     struct EmbeddedAnimationBuffer  {        
       EmbeddedAnimationBuffer(int animationIndex, float duration, bool loop) : animationIndex(animationIndex), duration(duration), loop(loop) {}
       bool hasStarted = false;
@@ -105,7 +99,7 @@ namespace polyvox {
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
             void releaseSourceAssets();
-            StringList getTargetNames(const char* meshName);
+            unique_ptr<vector<string>> getTargetNames(const char* meshName);
             unique_ptr<vector<string>> getAnimationNames();
             Manipulator<float>* manipulator;
             void applyWeights(float* weights, int count);
