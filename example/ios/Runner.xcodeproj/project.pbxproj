@@ -10,26 +10,6 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
-		840FCC1E274298BB008E5682 /* libutils.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC12274298BA008E5682 /* libutils.a */; };
-		840FCC2A27429A42008E5682 /* libcamutils.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC13274298BA008E5682 /* libcamutils.a */; };
-		840FCC2B27429A42008E5682 /* libfilabridge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC16274298BB008E5682 /* libfilabridge.a */; };
-		840FCC2C27429A42008E5682 /* libfilaflat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC17274298BB008E5682 /* libfilaflat.a */; };
-		840FCC2E27429A42008E5682 /* libfilameshio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC19274298BB008E5682 /* libfilameshio.a */; };
-		840FCC2F27429A42008E5682 /* libgeometry.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC1A274298BB008E5682 /* libgeometry.a */; };
-		840FCC3027429A42008E5682 /* libgltfio_core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC18274298BB008E5682 /* libgltfio_core.a */; };
-		840FCC3127429A42008E5682 /* libgltfio_resources_lite.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC1B274298BB008E5682 /* libgltfio_resources_lite.a */; };
-		840FCC3227429A42008E5682 /* libgltfio_resources.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC1D274298BB008E5682 /* libgltfio_resources.a */; };
-		840FCC3327429A42008E5682 /* libmath.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC1C274298BB008E5682 /* libmath.a */; };
-		840FCC3427429A42008E5682 /* libmathio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC14274298BA008E5682 /* libmathio.a */; };
-		840FCC3927429B1F008E5682 /* libviewer.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3527429B1F008E5682 /* libviewer.a */; };
-		840FCC3A27429B1F008E5682 /* libfilament-iblprefilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3627429B1F008E5682 /* libfilament-iblprefilter.a */; };
-		840FCC3B27429B1F008E5682 /* libibl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3727429B1F008E5682 /* libibl.a */; };
-		840FCC3C27429B1F008E5682 /* libimage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3827429B1F008E5682 /* libimage.a */; };
-		840FCC3F27429BEC008E5682 /* libbackend.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3D27429BEC008E5682 /* libbackend.a */; };
-		840FCC4027429BEC008E5682 /* libfilament.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC3E27429BEC008E5682 /* libfilament.a */; };
-		840FCC4227429C5B008E5682 /* libdracodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 840FCC4127429C5B008E5682 /* libdracodec.a */; };
-		8444BD14275320B200A5921D /* libOGLCompiler.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8444BD12275320B100A5921D /* libOGLCompiler.a */; };
-		8444BD15275320B200A5921D /* libOSDependent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8444BD13275320B200A5921D /* libOSDependent.a */; };
 		8A41CA36A92CBF01E35DB723 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 729293464FDAFA80294C03ED /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -77,8 +57,14 @@
 		840FCC3D27429BEC008E5682 /* libbackend.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libbackend.a; path = ../../ios/lib/libbackend.a; sourceTree = "<group>"; };
 		840FCC3E27429BEC008E5682 /* libfilament.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilament.a; path = ../../ios/lib/libfilament.a; sourceTree = "<group>"; };
 		840FCC4127429C5B008E5682 /* libdracodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdracodec.a; path = ../../ios/lib/libdracodec.a; sourceTree = "<group>"; };
-		8444BD12275320B100A5921D /* libOGLCompiler.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libOGLCompiler.a; path = ../../ios/lib/libOGLCompiler.a; sourceTree = "<group>"; };
 		8444BD13275320B200A5921D /* libOSDependent.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libOSDependent.a; path = ../../ios/lib/libOSDependent.a; sourceTree = "<group>"; };
+		84B172F62806081B00C9FD8C /* libsmol-v.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libsmol-v.a"; path = "../../ios/lib/libsmol-v.a"; sourceTree = "<group>"; };
+		84B172F72806081B00C9FD8C /* libmeshoptimizer.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmeshoptimizer.a; path = ../../ios/lib/libmeshoptimizer.a; sourceTree = "<group>"; };
+		84B172F82806081C00C9FD8C /* libvkshaders.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libvkshaders.a; path = ../../ios/lib/libvkshaders.a; sourceTree = "<group>"; };
+		84B172F92806081C00C9FD8C /* libshaders.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libshaders.a; path = ../../ios/lib/libshaders.a; sourceTree = "<group>"; };
+		84B172FA2806081C00C9FD8C /* libibl-lite.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libibl-lite.a"; path = "../../ios/lib/libibl-lite.a"; sourceTree = "<group>"; };
+		84B172FB2806081C00C9FD8C /* libfilamat_lite.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilamat_lite.a; path = ../../ios/lib/libfilamat_lite.a; sourceTree = "<group>"; };
+		84B172FC2806081C00C9FD8C /* libcivetweb.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcivetweb.a; path = ../../ios/lib/libcivetweb.a; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -95,26 +81,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8444BD14275320B200A5921D /* libOGLCompiler.a in Frameworks */,
-				8444BD15275320B200A5921D /* libOSDependent.a in Frameworks */,
-				840FCC4227429C5B008E5682 /* libdracodec.a in Frameworks */,
-				840FCC3F27429BEC008E5682 /* libbackend.a in Frameworks */,
-				840FCC4027429BEC008E5682 /* libfilament.a in Frameworks */,
-				840FCC3927429B1F008E5682 /* libviewer.a in Frameworks */,
-				840FCC3A27429B1F008E5682 /* libfilament-iblprefilter.a in Frameworks */,
-				840FCC3B27429B1F008E5682 /* libibl.a in Frameworks */,
-				840FCC3C27429B1F008E5682 /* libimage.a in Frameworks */,
-				840FCC2A27429A42008E5682 /* libcamutils.a in Frameworks */,
-				840FCC2B27429A42008E5682 /* libfilabridge.a in Frameworks */,
-				840FCC2C27429A42008E5682 /* libfilaflat.a in Frameworks */,
-				840FCC2E27429A42008E5682 /* libfilameshio.a in Frameworks */,
-				840FCC2F27429A42008E5682 /* libgeometry.a in Frameworks */,
-				840FCC3027429A42008E5682 /* libgltfio_core.a in Frameworks */,
-				840FCC3127429A42008E5682 /* libgltfio_resources_lite.a in Frameworks */,
-				840FCC3227429A42008E5682 /* libgltfio_resources.a in Frameworks */,
-				840FCC3327429A42008E5682 /* libmath.a in Frameworks */,
-				840FCC3427429A42008E5682 /* libmathio.a in Frameworks */,
-				840FCC1E274298BB008E5682 /* libutils.a in Frameworks */,
 				8A41CA36A92CBF01E35DB723 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -180,7 +146,13 @@
 		F66758AA6E5A6218A5D00433 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				8444BD12275320B100A5921D /* libOGLCompiler.a */,
+				84B172FC2806081C00C9FD8C /* libcivetweb.a */,
+				84B172FB2806081C00C9FD8C /* libfilamat_lite.a */,
+				84B172FA2806081C00C9FD8C /* libibl-lite.a */,
+				84B172F72806081B00C9FD8C /* libmeshoptimizer.a */,
+				84B172F92806081C00C9FD8C /* libshaders.a */,
+				84B172F62806081B00C9FD8C /* libsmol-v.a */,
+				84B172F82806081C00C9FD8C /* libvkshaders.a */,
 				8444BD13275320B200A5921D /* libOSDependent.a */,
 				840FCC4127429C5B008E5682 /* libdracodec.a */,
 				840FCC3D27429BEC008E5682 /* libbackend.a */,
@@ -236,7 +208,7 @@
 		97C146E61CF9000F007C117D /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1310;
+				LastUpgradeCheck = 1300;
 				ORGANIZATIONNAME = "";
 				TargetAttributes = {
 					97C146ED1CF9000F007C117D = {
@@ -366,6 +338,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -398,7 +371,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_INPUT_FILETYPE = automatic;
+				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -450,6 +423,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -483,7 +457,7 @@
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_INPUT_FILETYPE = automatic;
+				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -510,6 +484,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -542,7 +517,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_INPUT_FILETYPE = automatic;
+				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
