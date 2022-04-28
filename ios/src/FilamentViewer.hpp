@@ -76,12 +76,12 @@ namespace polyvox {
       MorphAnimationBuffer(float* frameData,
                            int numWeights,
                            int numFrames,
-                           float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLength(frameLength) {
+                           float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLengthInMs(frameLength) {
       }
       
       int frameIndex = -1;
       int numFrames;
-      float frameLength;
+      float frameLengthInMs;
       time_point_t startTime;
       
       float* frameData;
@@ -102,10 +102,32 @@ namespace polyvox {
             unique_ptr<vector<string>> getTargetNames(const char* meshName);
             unique_ptr<vector<string>> getAnimationNames();
             Manipulator<float>* manipulator;
+            
+            
+            ///
+            /// Manually set the weights for all morph targets in the assets to the provided values.
+            /// See [animateWeights] if you want to automatically
+            ///
             void applyWeights(float* weights, int count);
-            void animateWeights(float* data, int numWeights, int length, float frameRate);
 
+            ///
+            /// Update the asset's morph target weights every "frame" (which is an arbitrary length of time, i.e. this is not the same as a frame at the framerate of the underlying rendering framework).
+            /// Accordingly:
+            ///       length(data) = numWeights * numFrames
+            ///       total_animation_duration_in_ms = number_of_frames * frameLengthInMs
+            ///
+            void animateWeights(float* data, int numWeights, int numFrames, float frameLengthInMs);
+
+            ///  
+            /// Play an embedded animation (i.e. an animation node embedded in the GLTF asset). If [loop] is true, the animation will repeat indefinitely.
+            ///
             void playAnimation(int index, bool loop);
+
+            ///
+            /// Immediately stop the currently playing animation. NOOP if no animation is playing.
+            ///
+            void stopAnimation();
+
             bool setCamera(const char* nodeName);
             void destroySwapChain();
             void createSwapChain(void* surface);
