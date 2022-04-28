@@ -81,6 +81,11 @@ class _MyAppState extends State<MyApp> {
                       onPressed: () =>
                           _filamentController.playAnimation(0, loop: _loop),
                       child: const Text('play animation')),
+                  ElevatedButton(
+                      onPressed: () {
+                        _filamentController.stopAnimation();
+                      },
+                      child: const Text('stop animation')),
                   Checkbox(
                       onChanged: (_) => setState(() {
                             _loop = !_loop;
@@ -108,13 +113,15 @@ class _MyAppState extends State<MyApp> {
                         final numWeights = 8;
                         final totalFrames = framerate * totalSecs;
                         final frames = List.generate(
-                                totalFrames,
-                                (frame) => List.filled(
-                                    numWeights, frame / totalFrames))
-                            .reduce((accum, next) => accum + next);
+                            totalFrames,
+                            (frame) =>
+                                List.filled(numWeights, frame / totalFrames));
 
                         _filamentController.animate(
-                            frames, numWeights, framerate.toDouble());
+                            frames.reduce((a, b) => a + b),
+                            numWeights,
+                            totalFrames,
+                            1000 / framerate.toDouble());
                       },
                       child: const Text('animate weights')),
                   Builder(

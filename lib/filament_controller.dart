@@ -17,16 +17,18 @@ abstract class FilamentController {
   Future<List<String>> getTargetNames(String meshName);
   Future<List<String>> getAnimationNames();
   Future releaseSourceAssets();
-  Future playAnimation(int index, {bool loop=false});
+  Future playAnimation(int index, {bool loop = false});
+  Future stopAnimation();
   Future setCamera(String name);
 
   ///
-  /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where [framerate] is the number of times per second the weights should be updated).
+  /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where each frame requires a duration of [frameLengthInMs].
   /// Accepts a list of doubles representing a sequence of "frames", stacked end-to-end.
   /// Each frame is [numWeights] in length, where each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   /// In other words, weights is a contiguous sequence of floats of size W*F, where W is the number of weights and F is the number of frames
   ///
-  Future animate(List<double> weights, int numWeights, double frameRate);
+  Future animate(
+      List<double> data, int numWeights, int numFrames, double frameLengthInMs);
   Future createMorpher(String meshName, List<int> primitives);
   Future zoom(double z);
 }
@@ -45,7 +47,7 @@ class PolyvoxFilamentController extends FilamentController {
     _channel = MethodChannel("app.polyvox.filament/filament_view_$id");
     _channel.setMethodCallHandler((call) async {
       print("Received Filament method channel call : ${call.method}");
-      if(call.method == "ready") {
+      if (call.method == "ready") {
         onFilamentViewCreatedHandler?.call(_id);
         return Future.value(true);
       } else {
@@ -105,14 +107,15 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future<List<String>> getAnimationNames() async {
-    var result = (await _channel.invokeMethod("getAnimationNames"))
-        .cast<String>();
+    var result =
+        (await _channel.invokeMethod("getAnimationNames")).cast<String>();
     return result;
   }
 
-  Future animate(List<double> weights, int numWeights, double frameRate) async {
-    await _channel
-        .invokeMethod("animateWeights", [weights, numWeights, frameRate]);
+  Future animate(List<double> weights, int numWeights, int numFrames,
+      double frameLengthInMs) async {
+    await _channel.invokeMethod(
+        "animateWeights", [weights, numWeights, numFrames, frameLengthInMs]);
   }
 
   Future releaseSourceAssets() async {
@@ -127,8 +130,12 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("createMorpher", [meshName, primitives]);
   }
 
-  Future playAnimation(int index, {bool loop=false}) async {
-    await _channel.invokeMethod("playAnimation", [index,loop]);
+  Future playAnimation(int index, {bool loop = false}) async {
+    await _channel.invokeMethod("playAnimation", [index, loop]);
+  }
+
+  Future stopAnimation() async {
+    await _channel.invokeMethod("stopAnimation");
   }
 
   Future setCamera(String name) async {
