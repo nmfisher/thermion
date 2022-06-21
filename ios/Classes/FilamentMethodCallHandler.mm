@@ -4,6 +4,7 @@
 static int _resourceId = 0;
 
 using namespace polyvox;
+using namespace std;
 
 @implementation FilamentMethodCallHandler {
   FlutterMethodChannel* _channel;
@@ -73,28 +74,30 @@ using namespace polyvox;
   } else if([@"animateWeights" isEqualToString:call.method]) {
     NSArray* frameData = call.arguments[0];
     NSNumber* numWeights = call.arguments[1];
-    NSNumber* frameRate = call.arguments[2];
-    NSUInteger numElements = [frameData count];
-
+    NSNumber* numFrames = call.arguments[2];
+    NSNumber* frameLenInMs = call.arguments[3];
+    
     float* framesArr = (float*)malloc([frameData count] *sizeof(float));
     for(int i =0 ; i < [frameData count]; i++) {
       *(framesArr+i) = [[frameData objectAtIndex:i] floatValue];
     }
-    NSUInteger numFrames =  numElements / [ numWeights intValue ];
-    _viewer->animateWeights((float*)framesArr, [numWeights intValue], numFrames, [frameRate floatValue]);
+
+    _viewer->animateWeights((float*)framesArr, [numWeights intValue], [numFrames intValue], [frameLenInMs floatValue]);
     result(@"OK");
   } else if([@"playAnimation" isEqualToString:call.method]) {
     int animationIndex = [call.arguments[0] intValue];
     bool loop = call.arguments[1];
     _viewer->playAnimation(animationIndex, loop);
     result(@"OK");
+  } else if ([@"stopAnimation" isEqualToString:call.method]) {
+    _viewer->stopAnimation();
+    result(@"OK");
   } else if([@"getTargetNames" isEqualToString:call.method]) {
-    StringList list = _viewer->getTargetNames([call.arguments UTF8String]);
-    NSMutableArray* asArray = [NSMutableArray arrayWithCapacity:list.count];
-    for(int i = 0; i < list.count; i++) {
-      asArray[i] = [NSString stringWithFormat:@"%s", list.strings[i]];
-    }
-    result(asArray);
+    NSMutableArray* names = [self getTargetNames:call.arguments];
+    result(names);
+  } else if([@"getAnimationNames" isEqualToString:call.method]) {
+    NSMutableArray* names = [self getAnimationNames];
+    result(names);
   } else if([@"applyWeights" isEqualToString:call.method]) {
 
     NSArray* nWeights = call.arguments;
@@ -138,6 +141,24 @@ using namespace polyvox;
 
 - (void)ready {
   [_channel invokeMethod:@"ready" arguments:nil];
+}
+
+- (NSMutableArray*) getAnimationNames { 
+    unique_ptr<vector<string>> list = _viewer->getAnimationNames();
+    NSMutableArray* asArray = [NSMutableArray arrayWithCapacity:list->size()];
+    for(int i = 0; i < list->size(); i++) {
+      asArray[i] = [NSString stringWithFormat:@"%s", list->at(i).c_str()];
+    }
+    return asArray;
+}
+
+- (NSMutableArray*) getTargetNames:(NSString*) meshName {
+  unique_ptr<vector<string>> list = _viewer->getTargetNames([meshName UTF8String]);
+  NSMutableArray* asArray = [NSMutableArray arrayWithCapacity:list->size()];
+  for(int i = 0; i < list->size(); i++) {
+    asArray[i] = [NSString stringWithFormat:@"%s", list->at(i).c_str()];
+  }
+  return asArray;
 }
 
 @end
