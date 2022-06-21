@@ -541,21 +541,17 @@ namespace polyvox
 
   void FilamentViewer::animateWeights(float *data, int numWeights, int numFrames, float frameLengthInMs)
   {
-    // assert numWeights == asset.numWeights ?
     Log("Making morph animation buffer with %d weights across %d frames and frame length %f ms ", numWeights, numFrames, frameLengthInMs);
     morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, numFrames, frameLengthInMs);
   }
 
   void FilamentViewer::updateMorphAnimation()
   {
+    if(!morphAnimationBuffer) {
+      return;
+    }
 
-    if (morphAnimationBuffer->frameIndex >= morphAnimationBuffer->numFrames)
-    {
-      duration<double, std::milli> dur = high_resolution_clock::now() - morphAnimationBuffer->startTime;
-      Log("Morph animation completed in %f ms (%d frames at framerate %f), final frame was %d", dur.count(), morphAnimationBuffer->numFrames, 1000 / morphAnimationBuffer->frameLengthInMs, morphAnimationBuffer->frameIndex);
-      morphAnimationBuffer = nullptr;
-    } else if (morphAnimationBuffer->frameIndex == -1)
-    {
+    if (morphAnimationBuffer->frameIndex == -1) {
       morphAnimationBuffer->frameIndex++;
       morphAnimationBuffer->startTime = high_resolution_clock::now();
       applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
@@ -564,10 +560,17 @@ namespace polyvox
     {
       duration<double, std::milli> dur = high_resolution_clock::now() - morphAnimationBuffer->startTime;
       int frameIndex = static_cast<int>(dur.count() / morphAnimationBuffer->frameLengthInMs);
-      if (frameIndex != morphAnimationBuffer->frameIndex)
+
+      if (frameIndex > morphAnimationBuffer->numFrames - 1)
       {
+        duration<double, std::milli> dur = high_resolution_clock::now() - morphAnimationBuffer->startTime;
+        Log("Morph animation completed in %f ms (%d frames at framerate %f), final frame was %d", dur.count(), morphAnimationBuffer->numFrames, 1000 / morphAnimationBuffer->frameLengthInMs, morphAnimationBuffer->frameIndex);
+        morphAnimationBuffer = nullptr;
+      } else if (frameIndex != morphAnimationBuffer->frameIndex) {
+        Log("Rendering frame %d (of a total %d)", frameIndex, morphAnimationBuffer->numFrames);
         morphAnimationBuffer->frameIndex = frameIndex;
-        applyWeights(morphAnimationBuffer->frameData + (morphAnimationBuffer->frameIndex * morphAnimationBuffer->numWeights), morphAnimationBuffer->numWeights);
+        auto framePtrOffset = frameIndex * morphAnimationBuffer->numWeights;
+        applyWeights(morphAnimationBuffer->frameData + framePtrOffset, morphAnimationBuffer->numWeights);
       }
     }
   }
