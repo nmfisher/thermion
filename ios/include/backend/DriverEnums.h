@@ -49,7 +49,9 @@ static constexpr uint64_t SWAP_CHAIN_CONFIG_ENABLE_XCB = 0x4;
 static constexpr uint64_t SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER = 0x8;
 
 static constexpr size_t MAX_VERTEX_ATTRIBUTE_COUNT = 16; // This is guaranteed by OpenGL ES.
-static constexpr size_t MAX_SAMPLER_COUNT = 16;          // Matches the Adreno Vulkan driver.
+static constexpr size_t MAX_VERTEX_SAMPLER_COUNT = 16;   // This is guaranteed by OpenGL ES.
+static constexpr size_t MAX_FRAGMENT_SAMPLER_COUNT = 16; // This is guaranteed by OpenGL ES.
+static constexpr size_t MAX_SAMPLER_COUNT = 32;          // This is guaranteed by OpenGL ES.
 static constexpr size_t MAX_VERTEX_BUFFER_COUNT = 16;    // Max number of bound buffer objects.
 
 static_assert(MAX_VERTEX_BUFFER_COUNT <= MAX_VERTEX_ATTRIBUTE_COUNT,
@@ -638,6 +640,10 @@ enum class TextureCubemapFace : uint8_t {
     NEGATIVE_Z = 5, //!< -z face
 };
 
+inline constexpr int operator +(TextureCubemapFace rhs) noexcept {
+    return int(rhs);
+}
+
 //! Face offsets for all faces of a cubemap
 struct FaceOffsets {
     using size_type = size_t;
@@ -900,6 +906,16 @@ enum ShaderType : uint8_t {
 };
 static constexpr size_t PIPELINE_STAGE_COUNT = 2;
 
+struct ShaderStageFlags {
+    bool vertex : 1;
+    bool fragment : 1;
+    bool hasShaderType(ShaderType type) const {
+        return (vertex && type == ShaderType::VERTEX) ||
+               (fragment && type == ShaderType::FRAGMENT);
+    }
+};
+static constexpr ShaderStageFlags ALL_SHADER_STAGE_FLAGS = { .vertex = true, .fragment = true };
+
 /**
  * Selects which buffers to clear at the beginning of the render pass, as well as which buffers
  * can be discarded at the beginning and end of the render pass.
@@ -948,10 +964,20 @@ struct RenderPassParams {
      * subpass. If this is zero, the render pass has only one subpass. The least significant bit
      * specifies that the first color attachment in the render target is a subpass input.
      *
-     * For now only 2 subpasses are supported, so only the lower 4 bits are used, one for each color
-     * attachment (see MRT::TARGET_COUNT).
+     * For now only 2 subpasses are supported, so only the lower 8 bits are used, one for each color
+     * attachment (see MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT).
      */
-    uint32_t subpassMask = 0;
+    uint16_t subpassMask = 0;
+
+    /**
+     * This mask makes a promise to the backend about read-only usage of the depth attachment (bit
+     * 0) and the stencil attachment (bit 1). Some backends need to know if writes are disabled in
+     * order to allow sampling from the depth attachment.
+     */
+    uint16_t readOnlyDepthStencil = 0;
+
+    static constexpr uint16_t READONLY_DEPTH = 1 << 0;
+    static constexpr uint16_t READONLY_STENCIL = 1 << 1;
 };
 
 struct PolygonOffset {
@@ -965,7 +991,11 @@ using FrameScheduledCallback = void(*)(PresentCallable callable, void* user);
 using FrameCompletedCallback = void(*)(void* user);
 
 enum class Workaround : uint16_t {
-    SPLIT_EASU
+    // The EASU pass must split because shader compiler flattens early-exit branch
+    SPLIT_EASU,
+    // Backend allows feedback loop with ancillary buffers (depth/stencil) as long as they're read-only for
+    // the whole render pass.
+    ALLOW_READ_ONLY_ANCILLARY_FEEDBACK_LOOP
 };
 
 } // namespace backend
@@ -1006,6 +1036,7 @@ utils::io::ostream& operator<<(utils::io::ostream& out, const filament::backend:
 utils::io::ostream& operator<<(utils::io::ostream& out, const filament::backend::RasterState& rs);
 utils::io::ostream& operator<<(utils::io::ostream& out, const filament::backend::RenderPassParams& b);
 utils::io::ostream& operator<<(utils::io::ostream& out, const filament::backend::Viewport& v);
+utils::io::ostream& operator<<(utils::io::ostream& out, filament::backend::ShaderStageFlags stageFlags);
 #endif
 
 #endif // TNT_FILAMENT_BACKEND_DRIVERENUMS_H

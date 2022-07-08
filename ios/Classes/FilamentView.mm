@@ -20,21 +20,21 @@
 #import <Foundation/Foundation.h>
 
 using namespace std;
+using namespace polyvox;
 
 @interface FilamentView ()
 - (void)initCommon;
-- (void)setViewer:(polyvox::FilamentViewer*)viewer;
+- (void)setViewer:(FilamentViewer*)viewer;
 @end
 
 @implementation FilamentView {
-    polyvox::FilamentViewer* _viewer;
+    FilamentViewer* _viewer;
+    CADisplayLink* _displayLink;
 }
 
-- (void)setViewer:(polyvox::FilamentViewer*)viewer {
+- (void)setViewer:(FilamentViewer*)viewer {
     _viewer = viewer;
-    _viewer->updateViewportAndCameraProjection(self.bounds.size.width, self.bounds.size.height, self.contentScaleFactor);
 }
-
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
@@ -65,9 +65,12 @@ using namespace std;
 
 - (void)layoutSubviews {
     [super layoutSubviews];
+  NSLog(@"layout subview");
+
     if(_viewer) {
         _viewer->updateViewportAndCameraProjection(self.bounds.size.width, self.bounds.size.height, self.contentScaleFactor);
     }
+  [self startDisplayLink];
 }
 
 - (void)setContentScaleFactor:(CGFloat)contentScaleFactor {
@@ -75,6 +78,31 @@ using namespace std;
     if(_viewer) {
         _viewer->updateViewportAndCameraProjection(self.bounds.size.width, self.bounds.size.height, self.contentScaleFactor);
     }
+}
+
+- (void)drawRect:(CGRect)rect {
+  NSLog(@"Drawing rect");
+  [super drawRect:rect];
+}
+
+- (void)startDisplayLink {
+  NSLog(@"Starting display link");
+
+    [self stopDisplayLink];
+
+    // Call our render method 60 times a second.
+    _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(render)];
+    _displayLink.preferredFramesPerSecond = 60;
+    [_displayLink addToRunLoop:NSRunLoop.currentRunLoop forMode:NSDefaultRunLoopMode];
+}
+
+- (void)stopDisplayLink {
+    [_displayLink invalidate];
+    _displayLink = nil;
+}
+
+- (void)render {
+  _viewer->render();
 }
 
 @end

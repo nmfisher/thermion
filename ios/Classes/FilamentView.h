@@ -25,6 +25,8 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface FilamentView : UIView
 - (void)setViewer:(polyvox::FilamentViewer*)viewer;
+- (void)startDisplayLink;
+- (void)stopDisplayLink;
 @end
 
 NS_ASSUME_NONNULL_END

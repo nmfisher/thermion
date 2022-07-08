@@ -16,9 +16,9 @@ void Log(const char *fmt, ...) {
 #elif defined __OBJC__
     NSString *format = [[NSString alloc] initWithUTF8String:fmt];
     NSLogv(format, args);
-    [format release];
 #else
-    printf(fmt, args);
+    vprintf(fmt, args);
+    printf("\n");
 #endif
     
     va_end(args);

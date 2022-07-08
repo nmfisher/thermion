@@ -56,15 +56,13 @@ extern "C" {
 
   void* filament_viewer_new(
     jobject surface,
-    const char* opaqueShaderPath, 
-    const char* fadeShaderPath,
     JNIEnv* env,
     jobject assetManager
   ) {
     ANativeWindow* layer = ANativeWindow_fromSurface(env, surface);
     am = AAssetManager_fromJava(env, assetManager);
     
-    return new FilamentViewer((void*)layer, opaqueShaderPath, fadeShaderPath, loadResource, freeResource);
+    return new FilamentViewer((void*)layer, loadResource, freeResource);
   }
 
   void render(

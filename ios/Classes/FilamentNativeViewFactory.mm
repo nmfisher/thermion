@@ -1,6 +1,18 @@
 #import "FilamentNativeViewFactory.h"
-#import "FilamentViewController.h"
 #import "FilamentMethodCallHandler.h"
+
+using namespace polyvox;
+
+static const FilamentMethodCallHandler* _shandler;
+
+static ResourceBuffer loadResource(const char* name) {
+  return [_shandler loadResource:name];
+}
+
+static void* freeResource(ResourceBuffer rb) {
+  [_shandler freeResource:rb ];
+  return nullptr;
+}
 
 @implementation FilamentNativeViewFactory   {
   NSObject<FlutterPluginRegistrar>* _registrar;
@@ -25,16 +37,12 @@
 
 @end
 
-
-
 @implementation FilamentNativeView  {
    FilamentView* _view;
-   FilamentViewController* _controller;
-   polyvox::FilamentViewer* _viewer;
+   FilamentViewer* _viewer;
    FilamentMethodCallHandler* _handler;
    void* _layer;
 }
-
 
 - (instancetype)initWithFrame:(CGRect)frame
                viewIdentifier:(int64_t)viewId
@@ -42,11 +50,11 @@
                     registrar:(NSObject<FlutterPluginRegistrar>*)registrar {
   if (self = [super init]) {
     _view = [[FilamentView alloc] init];
-    _controller = [[FilamentViewController alloc] initWithRegistrar:registrar view:_view];
-    [_controller viewDidLoad];
     _layer = (__bridge_retained void*)[_view layer];
-    _handler = [[FilamentMethodCallHandler alloc] initWithController:_controller registrar:registrar viewId:viewId layer:_layer];
-    [_handler ready];
+    _viewer = new FilamentViewer(_layer, loadResource, freeResource);
+    [_view setViewer:_viewer];
+    _handler = [[FilamentMethodCallHandler alloc] initWithRegistrar:registrar viewId:viewId viewer:_viewer ];
+    _shandler = _handler;
   }
   return self;
 }
