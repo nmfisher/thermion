@@ -30,12 +30,6 @@
 #include <string>
 #include <chrono>
 
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
-#include <android/native_window_jni.h>
-#include <android/log.h>
-#include <android/native_activity.h>
-
 using namespace std;
 using namespace filament;
 using namespace filament::math;
@@ -47,12 +41,6 @@ using namespace camutils;
 namespace polyvox {
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
-
-    struct StringList {
-      StringList(const char** strings, const int count) : strings(strings), count(count) {};
-      const char** strings;
-      const int count;
-    };
 
     struct EmbeddedAnimationBuffer  {        
       EmbeddedAnimationBuffer(int animationIndex, float duration, bool loop) : animationIndex(animationIndex), duration(duration), loop(loop) {}
@@ -88,12 +76,12 @@ namespace polyvox {
       MorphAnimationBuffer(float* frameData,
                            int numWeights,
                            int numFrames,
-                           float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLength(frameLength) {
+                           float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLengthInMs(frameLength) {
       }
       
       int frameIndex = -1;
       int numFrames;
-      float frameLength;
+      float frameLengthInMs;
       time_point_t startTime;
       
       float* frameData;
@@ -102,23 +90,44 @@ namespace polyvox {
 
     class FilamentViewer {
         public:
-            FilamentViewer(void* layer, const char* opaqueShaderPath, const char* fadeShaderPath, LoadResource loadResource, FreeResource freeResource);
+            FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
             void loadGlb(const char* const uri);
             void loadGltf(const char* const uri, const char* relativeResourcePath);
-            void loadSkybox(const char* const skyboxUri, const char* const iblUri, AAssetManager* am);
+            void loadSkybox(const char* const skyboxUri, const char* const iblUri);
 
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
-            // void createMorpher(const char* meshName, int* primitives, int numPrimitives);
             void releaseSourceAssets();
-            StringList getTargetNames(const char* meshName);
+            unique_ptr<vector<string>> getTargetNames(const char* meshName);
             unique_ptr<vector<string>> getAnimationNames();
             Manipulator<float>* manipulator;
+            
+            
+            ///
+            /// Manually set the weights for all morph targets in the assets to the provided values.
+            /// See [animateWeights] if you want to automatically
+            ///
             void applyWeights(float* weights, int count);
-            void animateWeights(float* data, int numWeights, int length, float frameRate);
-            // void animateBones();
+
+            ///
+            /// Update the asset's morph target weights every "frame" (which is an arbitrary length of time, i.e. this is not the same as a frame at the framerate of the underlying rendering framework).
+            /// Accordingly:
+            ///       length(data) = numWeights * numFrames
+            ///       total_animation_duration_in_ms = number_of_frames * frameLengthInMs
+            ///
+            void animateWeights(float* data, int numWeights, int numFrames, float frameLengthInMs);
+
+            ///  
+            /// Play an embedded animation (i.e. an animation node embedded in the GLTF asset). If [loop] is true, the animation will repeat indefinitely.
+            ///
             void playAnimation(int index, bool loop);
+
+            ///
+            /// Immediately stop the currently playing animation. NOOP if no animation is playing.
+            ///
+            void stopAnimation();
+
             bool setCamera(const char* nodeName);
             void destroySwapChain();
             void createSwapChain(void* surface);
@@ -136,9 +145,6 @@ namespace polyvox {
             LoadResource _loadResource;
             FreeResource _freeResource;
       
-            ResourceBuffer opaqueShaderResources;
-            ResourceBuffer fadeShaderResources;
-
             Scene* _scene;
             View* _view;  
             Engine* _engine;

@@ -72,8 +72,13 @@ class _MyAppState extends State<MyApp> {
                       }),
                   ElevatedButton(
                       onPressed: () =>
-                          _filamentController.playAnimation(0, loop:_loop),
+                          _filamentController.playAnimation(0, loop: _loop),
                       child: const Text('play animation')),
+                  ElevatedButton(
+                      onPressed: () {
+                        _filamentController.stopAnimation();
+                      },
+                      child: const Text('stop animation')),
                   Checkbox(
                       onChanged: (_) => setState(() {
                             _loop = !_loop;
@@ -91,7 +96,7 @@ class _MyAppState extends State<MyApp> {
                       child: const Text('zoom out')),
                   ElevatedButton(
                       onPressed: () {
-                        _filamentController.setCamera("Camera");
+                        _filamentController.setCamera("Camera_Orientation");
                       },
                       child: const Text('set camera')),
                   ElevatedButton(
@@ -101,20 +106,22 @@ class _MyAppState extends State<MyApp> {
                         final numWeights = 8;
                         final totalFrames = framerate * totalSecs;
                         final frames = List.generate(
-                                totalFrames,
-                                (frame) => List.filled(
-                                    numWeights, frame / totalFrames))
-                            .reduce((accum, next) => accum + next);
+                            totalFrames,
+                            (frame) =>
+                                List.filled(numWeights, frame / totalFrames));
 
                         _filamentController.animate(
-                            frames, numWeights, framerate.toDouble());
+                            frames.reduce((a, b) => a + b),
+                            numWeights,
+                            totalFrames,
+                            1000 / framerate.toDouble());
                       },
                       child: const Text('animate weights')),
                   Builder(
                       builder: (innerCtx) => ElevatedButton(
                           onPressed: () async {
                             final names = await _filamentController
-                                .getTargetNames("Cube.001");
+                                .getTargetNames("Cube");
 
                             await showDialog(
                                 builder: (ctx) {
@@ -138,6 +145,34 @@ class _MyAppState extends State<MyApp> {
                                 context: innerCtx);
                           },
                           child: const Text('get target names'))),
+                  Builder(
+                      builder: (innerCtx) => ElevatedButton(
+                          onPressed: () async {
+                            final names =
+                                await _filamentController.getAnimationNames();
+
+                            await showDialog(
+                                builder: (ctx) {
+                                  return Container(
+                                      color: Colors.white,
+                                      height: 200,
+                                      width: 200,
+                                      child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: names
+                                                  .map((name) => Text(name))
+                                                  .cast<Widget>()
+                                                  .toList() +
+                                              <Widget>[
+                                                ElevatedButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(ctx).pop(),
+                                                    child: Text("Close"))
+                                              ]));
+                                },
+                                context: innerCtx);
+                          },
+                          child: const Text('get animation names'))),
                   ElevatedButton(
                       onPressed: () async {
                         await _filamentController.panStart(1, 1);
@@ -204,8 +239,8 @@ class _MyAppState extends State<MyApp> {
 //       .values
 //       .toList(),
 // )
-                  //  ElevatedButton(
-                  //     child: const Text('init'),
-                  //     onPressed: () async {
-                  //       await _filamentController.initialize();
-                  //     }),
+//  ElevatedButton(
+//     child: const Text('init'),
+//     onPressed: () async {
+//       await _filamentController.initialize();
+//     }),

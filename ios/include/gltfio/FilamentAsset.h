@@ -194,24 +194,68 @@ public:
     const char* getExtras(utils::Entity entity = {}) const noexcept;
 
     /**
-     * Lazily creates the animation engine or returns it from the cache.
+     * Returns the animation engine.
      *
      * The animator is owned by the asset and should not be manually deleted.
-     * The first time this is called, it must be called before FilamentAsset::releaseSourceData().
+     * Must be called after loadResources or asyncBeginLoad, otherwise returns null.
      * If the asset is instanced, this returns a "primary" animator that controls all instances.
      * To animate each instance individually, use \see FilamentInstance.
      */
-    Animator* getAnimator() noexcept;
+    Animator* getAnimator() const noexcept;
 
     /**
-     * Updates the morphing weights in the given entity.
+     * Gets the number of skins.
      */
-    void setMorphWeights(utils::Entity entity, const float* weights, size_t count);
+    size_t getSkinCount() const noexcept;
 
     /**
-     * Gets the number of morphing in the given entity.
+     * Gets the skin name at skin index.
      */
-    int getMorphTargetCount(utils::Entity entity) noexcept;
+    const char* getSkinNameAt(size_t skinIndex) const noexcept;
+
+    /**
+     * Gets the number of joints at skin index.
+     */
+    size_t getJointCountAt(size_t skinIndex) const noexcept;
+
+    /**
+     * Gets joints at skin index.
+     */
+    const utils::Entity* getJointsAt(size_t skinIndex) const noexcept;
+
+    /**
+     * Gets the morph target name at the given index in the given entity.
+     */
+    const char* getMorphTargetNameAt(utils::Entity entity, size_t targetIndex) const noexcept;
+
+    /**
+     * Returns the number of morph targets in the given entity.
+     */
+    size_t getMorphTargetCountAt(utils::Entity entity) const noexcept;
+
+    /**
+     * Returns the number of material variants in the asset.
+     */
+    size_t getMaterialVariantCount() const noexcept;
+
+    /**
+     * Returns the name of the given material variant, or null if it is out of bounds.
+     */
+    const char* getMaterialVariantName(size_t variantIndex) const noexcept;
+
+    /**
+     * Applies the given material variant to all primitives that it affects.
+     *
+     * This is efficient because it merely swaps around persistent MaterialInstances. If you change
+     * a material parameter while a certain variant is active, the updated value will be remembered
+     * after you re-apply that variant.
+     *
+     * If the asset is instanced, this affects all instances in the same way.
+     * To set the variant on an individual instance, use FilamentInstance::applyMaterialVariant.
+     *
+     * Ignored if variantIndex is out of bounds.
+     */
+    void applyMaterialVariant(size_t variantIndex) noexcept;
 
     /**
      * Lazily creates a single LINES renderable that draws the transformed bounding-box hierarchy
@@ -228,7 +272,6 @@ public:
      * Reclaims CPU-side memory for URI strings, binding lists, and raw animation data.
      *
      * This should only be called after ResourceLoader::loadResources().
-     * If using Animator, this should be called after getAnimator().
      * If this is an instanced asset, this prevents creation of new instances.
      */
     void releaseSourceData() noexcept;

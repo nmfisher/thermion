@@ -86,7 +86,9 @@ public:
     constexpr StaticString(StringLiteral<N> const& other) noexcept // NOLINT(google-explicit-constructor)
         : mString(other),
           mLength(size_type(N - 1)),
-          mHash(computeHash(other)) {
+          mHash(computeHash(other, N - 1)) {
+              // we rely on inlining for computeHash. It would be nice to do this with constexpr
+              // instead, but unfortunately 'other' is not constexpr once a parameter.
     }
 
     // assignment from a string literal
@@ -94,7 +96,9 @@ public:
     StaticString& operator=(StringLiteral<N> const& other) noexcept {
         mString = other;
         mLength = size_type(N - 1);
-        mHash = computeHash(other);
+        // we rely on inlining for computeHash. It would be nice to do this with constexpr
+        // instead, but unfortunately 'other' is not constexpr once a parameter.
+        mHash = computeHash(other, N - 1);
         return *this;
     }
 
@@ -103,11 +107,7 @@ public:
         StaticString r;
         r.mString = literal;
         r.mLength = size_type(length);
-        size_type hash = 5381;
-        while (int c = *literal++) {
-            hash = (hash * 33u) ^ size_type(c);
-        }
-        r.mHash = hash;
+        r.mHash = computeHash(literal, length);
         return r;
     }
 
@@ -154,9 +154,9 @@ private:
     size_type mLength = 0;
     size_type mHash = 0;
 
-    template<size_t N>
-    static constexpr size_type computeHash(StringLiteral<N> const& s) noexcept {
+    static constexpr size_type computeHash(const char* s, const size_t N) noexcept {
         size_type hash = 5381;
+        UTILS_NOUNROLL
         for (size_t i = 0; i < N - 1; i++) {
             hash = (hash * 33u) ^ size_type(s[i]);
         }
@@ -206,12 +206,17 @@ public:
     // inside the string (i.e. it can contain nulls or non-ASCII encodings).
     CString(const char* cstr, size_t length);
 
+    // Allocates memory for a string of size length plus space for the null terminating character.
+    // Also initializes the memory to 0. This constructor can be used to hold arbitrary data
+    // inside the string.
+    explicit CString(size_t length);
+
     // Allocates memory and copies traditional C string content. Unlike the above constructor, this
     // does not alllow embedded nulls. This is explicit because this operation is costly.
     explicit CString(const char* cstr);
 
     template<size_t N>
-    explicit CString(StringLiteral<N> const& other) noexcept // NOLINT(google-explicit-constructor)
+    CString(StringLiteral<N> const& other) noexcept // NOLINT(google-explicit-constructor)
             : CString(other, N - 1) {
     }
 

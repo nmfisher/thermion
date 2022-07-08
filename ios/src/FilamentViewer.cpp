@@ -41,12 +41,8 @@
 #include <camutils/Manipulator.h>
 
 #include <utils/NameComponentManager.h>
-#include <utils/JobSystem.h>
 
 #include "math.h"
-
-#include "FFilamentInstance.h"
-#include "FFilamentAsset.h"
 
 #include <math/mat4.h>
 #include <math/quat.h>
@@ -60,12 +56,6 @@
 #include <iostream>
 
 #include "Log.h"
-
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
-#include <android/native_window_jni.h>
-#include <android/log.h>
-#include <android/native_activity.h>
 
 using namespace filament;
 using namespace filament::math;
@@ -82,18 +72,6 @@ namespace filament
 {
   class IndirectLight;
   class LightManager;
-}
-
-namespace gltfio
-{
-  MaterialProvider *createGPUMorphShaderLoader(
-      const void *opaqueData,
-      uint64_t opaqueDataSize,
-      const void *fadeData,
-      uint64_t fadeDataSize,
-      Engine *engine);
-  void decomposeMatrix(const filament::math::mat4f &mat, filament::math::float3 *translation,
-                       filament::math::quatf *rotation, filament::math::float3 *scale);
 }
 
 namespace polyvox
@@ -136,14 +114,10 @@ namespace polyvox
 
   FilamentViewer::FilamentViewer(
       void *layer,
-      const char *opaqueShaderPath,
-      const char *fadeShaderPath,
       LoadResource loadResource,
       FreeResource freeResource) : _layer(layer),
                                    _loadResource(loadResource),
                                    _freeResource(freeResource),
-                                   opaqueShaderResources(nullptr, 0, 0),
-                                   fadeShaderResources(nullptr, 0, 0),
                                    _assetBuffer(nullptr, 0, 0)
   {
     _engine = Engine::create(Engine::Backend::OPENGL);
@@ -205,7 +179,7 @@ namespace polyvox
   void FilamentViewer::createSwapChain(void *surface)
   {
     _swapChain = _engine->createSwapChain(surface);
-    // Log("swapchain created.");
+    Log("swapchain created.");
   }
 
   void FilamentViewer::destroySwapChain()
@@ -214,8 +188,8 @@ namespace polyvox
     {
       _engine->destroy(_swapChain);
       _swapChain = nullptr;
+      Log("Swapchain destroyed.");
     }
-    // Log("swapchain destroyed.");
   }
 
   void FilamentViewer::applyWeights(float *weights, int count)
@@ -223,8 +197,10 @@ namespace polyvox
 
     for (size_t i = 0, c = _asset->getEntityCount(); i != c; ++i)
     {
-      _asset->setMorphWeights(
-          _asset->getEntities()[i],
+      RenderableManager &rm = _engine->getRenderableManager();
+      auto inst = rm.getInstance(_asset->getEntities()[i]);
+      rm.setMorphWeights(
+          inst,
           weights,
           count);
     }
@@ -240,6 +216,7 @@ namespace polyvox
     for (size_t i = 0; i < resourceUriCount; i++)
     {
       string uri = relativeResourcePath + string(resourceUris[i]);
+      Log("Creating resource buffer for resource at %s",uri.c_str());
       ResourceBuffer buf = _loadResource(uri.c_str());
 
       // using FunctionCallback = std::function<void(void*, unsigned int, void *)>;
@@ -273,8 +250,6 @@ namespace polyvox
   {
     Log("Releasing source data");
     _asset->releaseSourceData();
-    // _freeResource(opaqueShaderResources);
-    // _freeResource(fadeShaderResources);
   }
 
   void FilamentViewer::loadGlb(const char *const uri)
@@ -376,100 +351,32 @@ namespace polyvox
   ///
   bool FilamentViewer::setCamera(const char *cameraName)
   {
-    FFilamentAsset *asset = (FFilamentAsset *)_asset;
+    size_t count = _asset->getCameraEntityCount();
+    if(count == 0)
+      return false;
 
-    gltfio::NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap
-                                                        : asset->mNodeMap;
-    Log("Setting camera to node %s", cameraName);
-    for (auto pair : sourceNodes)
-    {
-      cgltf_node const *node = pair.first;
+    const utils::Entity* cameras = _asset->getCameraEntities();
+    Log("Found %d cameras in asset", count);
+    for(int i=0; i < count; i++) {
+      
+      auto inst = _ncm->getInstance(cameras[i]);
+      const char* name = _ncm->getName(inst);
+      Log("Camera %d : %s", i, name);
+      if (strcmp(name, cameraName) == 0) {
 
-      if (strcmp(cameraName, node->name) != 0)
-      {
-        continue;
+        Camera* camera = _engine->createCamera(cameras[i]);
+        const Viewport &vp = _view->getViewport();
+
+        const double aspect = (double)vp.width / vp.height;
+
+        // todo - pull focal length from gltf node
+
+        camera->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
+        _view->setCamera(camera);
       }
-
-      Log("Node %s : Matrix : %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f %03f Translation : %03f %03f %03f Rotation %03f %03f %03f %03f Scale %03f %03f %03f",
-          node->name,
-          node->matrix[0],
-          node->matrix[1],
-          node->matrix[2],
-          node->matrix[3],
-          node->matrix[4],
-          node->matrix[5],
-          node->matrix[6],
-          node->matrix[7],
-          node->matrix[8],
-          node->matrix[9],
-          node->matrix[10],
-          node->matrix[11],
-          node->matrix[12],
-          node->matrix[13],
-          node->matrix[14],
-          node->matrix[15],
-          node->translation[0],
-          node->translation[1],
-          node->translation[2],
-          node->rotation[0],
-          node->rotation[1],
-          node->rotation[2],
-          node->rotation[3],
-          node->scale[0],
-          node->scale[1],
-          node->scale[2]
-        );
-      mat4f t = mat4f::translation(float3 { node->translation[0],node->translation[1],node->translation[2] });
-      mat4f r { quatf { node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2] } };
-      mat4f transform = t * r;
-
-      if (!node->camera)
-      {
-        cgltf_node* leaf = node->children[0];
-
-        Log("Child 1 trans : %03f %03f %03f rot : %03f %03f %03f %03f ", leaf->translation[0], leaf->translation[1],leaf->translation[2], leaf->rotation[0],leaf->rotation[1],leaf->rotation[2],leaf->rotation[3]);
-
-        if (!leaf->camera) {
-          leaf = leaf->children[0];
-          Log("Child 2 %03f %03f %03f %03f %03f %03f %03f ", leaf->translation[0], leaf->translation[1],leaf->translation[2], leaf->rotation[0],leaf->rotation[1],leaf->rotation[2],leaf->rotation[3]);
-          if (!leaf->camera) {
-            Log("Could not find GLTF camera under node or its ssecond or third child nodes.");
-            exit(-1);
-          }
-        }
-
-        Log("Using rotation from leaf node.");
-
-        mat4f child_rot { quatf { leaf->rotation[3], leaf->rotation[0], leaf->rotation[1], leaf->rotation[2] } };
-
-        transform *= child_rot;
-      }
-  
-      Entity cameraEntity = EntityManager::get().create();
-      Camera *cam = _engine->createCamera(cameraEntity);
-
-      const Viewport &vp = _view->getViewport();
-
-      const double aspect = (double)vp.width / vp.height;
-
-      // todo - pull focal length from gltf node
-
-      cam->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
-
-      if (!cam)
-      {
-        Log("Couldn't create camera");
-      }
-      else
-      {
-        _engine->getTransformManager().setTransform(
-            _engine->getTransformManager().getInstance(cameraEntity), transform
-            );
-
-        _view->setCamera(cam);
-        return true;
-      }
+      return true;
     }
+    Log("Unable to locate camera under name %s ", cameraName);
     return false;
   }
 
@@ -490,36 +397,31 @@ namespace polyvox
     return names;
   }
 
-  StringList FilamentViewer::getTargetNames(const char *meshName)
+  unique_ptr<vector<string>> FilamentViewer::getTargetNames(const char *meshName)
   {
-    FFilamentAsset *asset = (FFilamentAsset *)_asset;
-    NodeMap &sourceNodes = asset->isInstanced() ? asset->mInstances[0]->nodeMap : asset->mNodeMap;
-
-    if (sourceNodes.empty())
+    Log("Retrieving morph target names for mesh  %s", meshName);
+    unique_ptr<vector<string>> names = make_unique<vector<string>>();
+    const Entity *entities = _asset->getEntities();
+    RenderableManager &rm = _engine->getRenderableManager();
+    for (int i = 0; i < _asset->getEntityCount(); i++)
     {
-      Log("Asset source nodes empty?");
-      return StringList(nullptr, 0);
-    }
-    Log("Fetching morph target names for mesh %s", meshName);
-
-    for (auto pair : sourceNodes)
-    {
-      cgltf_node const *node = pair.first;
-      cgltf_mesh const *mesh = node->mesh;
-
-      if (mesh)
-      {
-        Log("Mesh : %s ", mesh->name);
-        if (strcmp(meshName, mesh->name) == 0)
-        {
-          return StringList((const char **)mesh->target_names, (int)mesh->target_names_count);
+      Entity e = entities[i];
+      auto inst = _ncm->getInstance(e);
+      const char* name = _ncm->getName(inst);
+      Log("Got entity instance name %s", name);
+      if(strcmp(name, meshName) == 0) {
+        size_t count = _asset->getMorphTargetCountAt(e);
+        for(int j=0; j< count; j++) {
+          const char* morphName = _asset->getMorphTargetNameAt(e, j);
+          names->push_back(morphName);
         }
+        break;
       }
     }
-    return StringList(nullptr, 0);
+    return names;
   }
 
-  void FilamentViewer::loadSkybox(const char *const skyboxPath, const char *const iblPath, AAssetManager *am)
+  void FilamentViewer::loadSkybox(const char *const skyboxPath, const char *const iblPath)
   {
 
     ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
@@ -633,37 +535,42 @@ namespace polyvox
 
     const double aspect = (double)width / height;
     _mainCamera->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
-    Log("Set viewport to %d %d", _width, _height);
+
+    Log("Set viewport to width: %d height:  %d scaleFactor : %f", width, height, contentScaleFactor);
   }
 
-  void FilamentViewer::animateWeights(float *data, int numWeights, int numFrames, float frameRate)
+  void FilamentViewer::animateWeights(float *data, int numWeights, int numFrames, float frameLengthInMs)
   {
-    morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, numFrames, 1000 / frameRate);
+    Log("Making morph animation buffer with %d weights across %d frames and frame length %f ms ", numWeights, numFrames, frameLengthInMs);
+    morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, numFrames, frameLengthInMs);
   }
 
   void FilamentViewer::updateMorphAnimation()
   {
-
-    if (morphAnimationBuffer->frameIndex >= morphAnimationBuffer->numFrames)
-    {
-      morphAnimationBuffer = nullptr;
+    if(!morphAnimationBuffer) {
       return;
     }
 
-    if (morphAnimationBuffer->frameIndex == -1)
-    {
+    if (morphAnimationBuffer->frameIndex == -1) {
       morphAnimationBuffer->frameIndex++;
-      morphAnimationBuffer->startTime = std::chrono::high_resolution_clock::now();
+      morphAnimationBuffer->startTime = high_resolution_clock::now();
       applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
     }
     else
     {
-      std::chrono::duration<double, std::milli> dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->startTime;
-      int frameIndex = dur.count() / morphAnimationBuffer->frameLength;
-      if (frameIndex != morphAnimationBuffer->frameIndex)
+      duration<double, std::milli> dur = high_resolution_clock::now() - morphAnimationBuffer->startTime;
+      int frameIndex = static_cast<int>(dur.count() / morphAnimationBuffer->frameLengthInMs);
+
+      if (frameIndex > morphAnimationBuffer->numFrames - 1)
       {
+        duration<double, std::milli> dur = high_resolution_clock::now() - morphAnimationBuffer->startTime;
+        Log("Morph animation completed in %f ms (%d frames at framerate %f), final frame was %d", dur.count(), morphAnimationBuffer->numFrames, 1000 / morphAnimationBuffer->frameLengthInMs, morphAnimationBuffer->frameIndex);
+        morphAnimationBuffer = nullptr;
+      } else if (frameIndex != morphAnimationBuffer->frameIndex) {
+        Log("Rendering frame %d (of a total %d)", frameIndex, morphAnimationBuffer->numFrames);
         morphAnimationBuffer->frameIndex = frameIndex;
-        applyWeights(morphAnimationBuffer->frameData + (morphAnimationBuffer->frameIndex * morphAnimationBuffer->numWeights), morphAnimationBuffer->numWeights);
+        auto framePtrOffset = frameIndex * morphAnimationBuffer->numWeights;
+        applyWeights(morphAnimationBuffer->frameData + framePtrOffset, morphAnimationBuffer->numWeights);
       }
     }
   }
@@ -676,15 +583,20 @@ namespace polyvox
     }
   }
 
+  void FilamentViewer::stopAnimation() {
+    // TODO - does this need to be threadsafe?
+    embeddedAnimationBuffer = nullptr;
+  }
+
   void FilamentViewer::updateEmbeddedAnimation() {
-    duration<double> dur = duration_cast<duration<double>>(std::chrono::high_resolution_clock::now() - embeddedAnimationBuffer->lastTime);
+    duration<double> dur = duration_cast<duration<double>>(high_resolution_clock::now() - embeddedAnimationBuffer->lastTime);
     float startTime = 0;
     if(!embeddedAnimationBuffer->hasStarted) {
       embeddedAnimationBuffer->hasStarted = true;
-      embeddedAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+      embeddedAnimationBuffer->lastTime = high_resolution_clock::now();
     } else if(dur.count() >= embeddedAnimationBuffer->duration) {
       if(embeddedAnimationBuffer->loop) {
-        embeddedAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
+        embeddedAnimationBuffer->lastTime = high_resolution_clock::now();
       } else {
         embeddedAnimationBuffer = nullptr;
         return;
@@ -700,74 +612,3 @@ namespace polyvox
 
 }
 
-
-// //
-// //if(morphAnimationBuffer.frameIndex >= morphAnimationBuffer.numFrames) {
-// //  this.morphAnimationBuffer = null;
-// //  return;
-// //}
-// //
-// //if(morphAnimationBuffer.frameIndex == -1) {
-// //  applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
-// //  morphAnimationBuffer->frameIndex++;
-// //  morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
-// //} else {
-// //  duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
-// //  float msElapsed = dur.count();
-// //  if(msElapsed > morphAnimationBuffer->frameLength) {
-// //      frameIndex++;
-// //      applyWeights(frameData + (frameIndex * numWeights), numWeights);
-// //      morphAnimationBuffer->lastTime = std::chrono::high_resolution_clock::now();
-// //  }
-// //}
-
-
-// void FilamentViewer::createMorpher(const char* meshName, int* primitives, int numPrimitives) {
-//   // morphHelper = new gltfio::GPUMorphHelper((FFilamentAsset*)_asset, meshName, primitives, numPrimitives);
-// //  morphHelper = new gltfio::CPUMorpher(((FFilamentAsset)*_asset, (FFilamentInstance*)_asset));
-// }
-
-// void FilamentViewer::animateBones() {
-// }
-//   Entity entity = _asset->getFirstEntityByName("CC_Base_JawRoot");
-//   if(!entity) {
-//     return;
-//   }
-
-//   TransformManager& transformManager = _engine->getTransformManager();
-
-//   TransformManager::Instance node = transformManager.getInstance(  entity);
-
-//   mat4f xform = transformManager.getTransform(node);
-//   float3 scale;
-//   quatf rotation;
-//   float3 translation;
-//   decomposeMatrix(xform, &translation, &rotation, &scale);
-
-// //  const quatf srcQuat { weights[0] * 0.9238,0,weights[0] *  0.3826, 0 };
-// //  float3 { scale[0] * (1.0f - weights[0]), scale[1] * (1.0f - weights[1]), scale[2] * (1.0f - weights[2]) }
-// //  xform = composeMatrix(translation + float3 { weights[0], weights[1], weights[2] }, rotation, scale );
-//   transformManager.setTransform(node, xform);
-
-// }
-
-// void FilamentViewer::updateAnimation(AnimationBuffer animation, std::function<void(int)> callback) {
-//  if(morphAnimationBuffer.frameIndex >= animation.numFrames) {
-//    this.animation = null;
-//    return;
-//  }
-
-//  if(animation.frameIndex == -1) {
-//    animation->frameIndex++;
-//    animation->lastTime = std::chrono::high_resolution_clock::now();
-//    callback(); //     applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
-//  } else {
-//    duration dur = std::chrono::high_resolution_clock::now() - morphAnimationBuffer->lastTime;
-//    float msElapsed = dur.count();
-//    if(msElapsed > animation->frameLength) {
-//        animation->frameIndex++;
-//        animation->lastTime = std::chrono::high_resolution_clock::now();
-//        callback(); //             applyWeights(frameData + (frameIndex * numWeights), numWeights);
-//    }
-//  }
-// }
