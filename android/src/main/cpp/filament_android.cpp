@@ -10,7 +10,7 @@ using namespace std;
 
 static AAssetManager* am;
 
-vector<AAsset*> _assets;
+static vector<AAsset*> _assets;
 uint64_t id = -1;
 
 static polyvox::ResourceBuffer loadResource(const char* name) {
@@ -25,21 +25,29 @@ static polyvox::ResourceBuffer loadResource(const char* name) {
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Loading asset [ %s ]", name);
     off_t length = AAsset_getLength(asset);
     const void * buffer = AAsset_getBuffer(asset);
+
+    uint8_t *buf = new uint8_t[length ];
+    memcpy(buf,buffer,  length);
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Read [ %lu ] bytes into buffer", length);
     _assets.push_back(asset);
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Loaded asset [ %s ] of length %zu", name, length);
-    return ResourceBuffer(buffer, length, id);
+    return ResourceBuffer(buf, length, id);
 
 }
 
 static void freeResource(ResourceBuffer rb) {
-  AAsset_close(_assets.at(rb.id));
+  __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Freeing loaded resource at index [ %d ] ", rb.id);
+  AAsset* asset = _assets[rb.id];
+  if(asset) {
+    AAsset_close(asset);
+  }
+  _assets[rb.id] = nullptr;
 }
 
 extern "C" {
 
   void load_skybox(void* viewer, const char* skyboxPath, const char* iblPath) {
-    ((FilamentViewer*)viewer)->loadSkybox(skyboxPath, iblPath, am);
+    ((FilamentViewer*)viewer)->loadSkybox(skyboxPath, iblPath);
   }
 
   void load_glb(void* viewer, const char* assetPath) {
@@ -61,7 +69,6 @@ extern "C" {
   ) {
     ANativeWindow* layer = ANativeWindow_fromSurface(env, surface);
     am = AAssetManager_fromJava(env, assetManager);
-    
     return new FilamentViewer((void*)layer, loadResource, freeResource);
   }
 
@@ -104,7 +111,7 @@ extern "C" {
   }
 
   void grab_update(void* viewer, int x, int y) {
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Grab update at %d %d %d", x, y);     
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Grab update at %d %d", x, y);     
     ((FilamentViewer*)viewer)->manipulator->grabUpdate(x, y);
   }
 
@@ -132,29 +139,25 @@ extern "C" {
     char** names_c;
     names_c = new char*[names->size()];
     for(int i = 0; i < names->size(); i++) {
-      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Memcpy %d bytes ", names->at(i).size());     
       names_c[i] = (char*) malloc(names->at(i).size() +1);
       strcpy(names_c[i], names->at(i).c_str());
-      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Alloced animation name %s ", (char*) names_c[i]);     
     }
     (*countPtr) = names->size();
     return names_c;
   }
 
   char** get_target_names(void* viewer, char* meshName, int* countPtr ) {
-    StringList names = ((FilamentViewer*)viewer)->getTargetNames(meshName);
+    unique_ptr<vector<string>> names = ((FilamentViewer*)viewer)->getTargetNames(meshName);
 
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Got %d names", names.count);     
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Got %d names", names->size());     
          
-    *countPtr = names.count;
+    *countPtr = names->size();
 
     char** retval;
-    retval = new char*[names.count];
+    retval = new char*[names->size()];
 
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Allocated char* array of size %d", names.count);     
-
-    for(int i =0; i < names.count; i++) {
-      retval[i] = (char*)names.strings[i];  
+    for(int i =0; i < names->size(); i++) {
+      retval[i] = (char*)(names->at(i).c_str()); 
     }
     return retval;
   }
