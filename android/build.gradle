@@ -60,9 +60,6 @@ android {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     compile 'net.java.dev.jna:jna:5.10.0@aar'
-    implementation "com.google.android.filament:filament-android:1.17.0"
-    implementation "com.google.android.filament:filament-utils-android:1.17.0"
-    implementation "com.google.android.filament:gltfio-android:1.17.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2"
 }
