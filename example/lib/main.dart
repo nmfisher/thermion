@@ -16,7 +16,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final FilamentController _filamentController = PolyvoxFilamentController();
 
-  int _primitiveIndex = 0;
   final weights = List.filled(255, 0.0);
   List<String> _targets = [];
   bool _loop = false;
@@ -33,17 +32,17 @@ class _MyAppState extends State<MyApp> {
           appBar: AppBar(
             title: const Text('Plugin example app'),
           ),
-          body: Stack(children: [
-            Positioned.fill(
-                child: FilamentWidget(
+          body: Column(children: [
+            SizedBox(
+              height:200, width:200,
+              child:FilamentWidget(
                 controller: _filamentController,
-              
             )),
-            Positioned.fill(
+            Expanded(
               child: Wrap(
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.end,
-                children: [
+                children: [ 
                   ElevatedButton(
                       child: const Text('load skybox'),
                       onPressed: () async {
@@ -55,8 +54,14 @@ class _MyAppState extends State<MyApp> {
                       child: const Text('load cube'),
                       onPressed: () async {
                         await _filamentController.loadGltf(
-                            'assets/cube.gltf', 'assets');
+                            'assets/eloise.gltf' ,"assets");
                         print(await _filamentController.getAnimationNames());
+                      }),
+                       ElevatedButton(
+                      child: const Text('load flight helmet'),
+                      onPressed: () async {
+                        await _filamentController.loadGltf(
+                            'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
                       }),
                   ElevatedButton(
                       child: const Text('set all weights to 1'),
