@@ -11,6 +11,8 @@ import android.graphics.PixelFormat
 
 import io.flutter.FlutterInjector
 
+import 	android.os.CountDownTimer
+
 import android.opengl.GLU
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -49,14 +51,10 @@ import android.R.attr.path
 
 import java.util.Collections;
 
-import com.google.android.filament.android.DisplayHelper
-
 import android.hardware.display.DisplayManager
        
 import com.google.android.filament.android.*
 import com.google.android.filament.*
-import com.google.android.filament.SwapChain
-import com.google.android.filament.utils.*
 
 import android.view.Choreographer
 import android.view.SurfaceHolder
@@ -89,7 +87,7 @@ PlatformView  {
     private var _viewer : Pointer? = null
 
     private lateinit var choreographer: Choreographer
-    private lateinit var displayHelper : DisplayHelper
+    
     private val frameScheduler = FrameCallback()
 
     private lateinit var uiHelper : UiHelper
@@ -102,47 +100,48 @@ PlatformView  {
             it.setMethodCallHandler(this)
         }
         _lib = Native.loadLibrary("filament_interop", FilamentInterop::class.java, Collections.singletonMap(Library.OPTION_ALLOW_OBJECTS, true))
-        
-        choreographer = Choreographer.getInstance()
-                
-        _view.setZOrderOnTop(false)
-        _view.holder.setFormat(PixelFormat.OPAQUE)
 
+        _methodChannel.invokeMethod("ready", null)
+
+        choreographer = Choreographer.getInstance()
+            
+        _view.setZOrderOnTop(true)
+        _view.holder.setFormat(PixelFormat.OPAQUE)
+  
         _view.holder.addCallback (object : SurfaceHolder.Callback {
             override fun surfaceChanged(holder:SurfaceHolder, format:Int, width:Int, height:Int) {
-              _lib.update_viewport_and_camera_projection(_viewer!!, width, height, 1.0f);
+              Log.v(TAG, "SURFACE CHANGED")
+              if(_viewer != null) {
+                _lib.update_viewport_and_camera_projection(_viewer!!, width, height, 1.0f);
+              }
             }
         
             override fun surfaceCreated(holder:SurfaceHolder) {            
+              Log.v(TAG, "SURFACE CREATED")
+              if(_viewer == null) {
+                _viewer = _lib.filament_viewer_new(
+                            _view.holder.surface as Object,
+                            JNIEnv.CURRENT,
+                            context.assets)
+      
+                choreographer.postFrameCallback(frameScheduler)
+                
+                activity.window.setFormat(PixelFormat.RGBA_8888)
+        
+                uiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK)
+                uiHelper.renderCallback = SurfaceCallback()
+                uiHelper.attachTo(_view)
+              }
               _lib.destroy_swap_chain(_viewer!!)
               _lib.create_swap_chain(_viewer!!, _view.holder.surface, JNIEnv.CURRENT)
             }
+
             override fun surfaceDestroyed(holder:SurfaceHolder) {
-              _lib.destroy_swap_chain(_viewer!!)
+              if(_viewer != null) {
+                _lib.destroy_swap_chain(_viewer!!)
+              }
             }
         })
-        assetManager = context.assets
-        _viewer = _lib.filament_viewer_new(
-                        _view.holder.surface as Object,
-                        "unused",
-                        "unused",
-                        JNIEnv.CURRENT,
-                        assetManager)
-
-        choreographer.postFrameCallback(frameScheduler)
-
-        val mDisplayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-
-        activity.window.setFormat(PixelFormat.RGBA_8888)
-
-        uiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK)
-        uiHelper.renderCallback = SurfaceCallback()
-        uiHelper.attachTo(_view)
-
-        _methodChannel.invokeMethod("ready", null)
-    }
-    
-    override fun onFlutterViewAttached(flutterView:View) {
 
     }
 
@@ -226,15 +225,10 @@ PlatformView  {
               val arrPtr = _lib.get_animation_names(_viewer!!, countPtr)
 
               val names = arrPtr.getStringArray(0, countPtr.value);
-              // val namesPtr = arrPtr.getPointerArray(0, countPtr.value);
-              // val names : MutableList<String> = mutableListOf()
 
               for(i in 0..countPtr.value-1) {
-                // val name = arrPtr.getString(0, countPtr.value);
-                // val name = namesPtr[i].getString(0)
                 val name = names[i];
                 Log.v(TAG, "Got animation names ${name} ${name.length}")
-                // names.add(name)
               }
               
               _lib.free_pointer(arrPtr, 1)
@@ -255,9 +249,10 @@ PlatformView  {
               val args = call.arguments as ArrayList<Any?>
               val frames = args[0] as ArrayList<Float>;
               val numWeights = args[1] as Int
-              val frameRate = args[2] as Double
+              val numFrames = args[2] as Int
+              val frameLenInMs = args[3] as Double
     
-              _lib.animate_weights(_viewer!!, frames.toFloatArray(), numWeights, (frames.size / numWeights).toInt(), frameRate.toFloat())
+              _lib.animate_weights(_viewer!!, frames.toFloatArray(), numWeights, numFrames, frameLenInMs.toFloat())
               result.success("OK");
             }
             "panStart" -> {
@@ -335,16 +330,8 @@ PlatformView  {
 
     inner class FrameCallback : Choreographer.FrameCallback {
         private val startTime = System.nanoTime()
-        override fun doFrame(frameTimeNanos: Long) {
+      override fun doFrame(frameTimeNanos: Long) {
             choreographer.postFrameCallback(this)
-
-            // modelViewer.animator?.apply {
-            //     if (animationCount > 0) {
-            //         val elapsedTimeSeconds = (frameTimeNanos - startTime).toDouble() / 1_000_000_000
-            //         applyAnimation(0, elapsedTimeSeconds.toFloat())
-            //     }
-            //     updateBoneMatrices()
-            // }
             _lib.render(_viewer!!)
         }
     }
