@@ -169,6 +169,7 @@ namespace polyvox {
             MaterialProvider* _materialProvider;
 
             gltfio::ResourceLoader* _resourceLoader = nullptr;
+            gltfio::TextureProvider* _stbDecoder = nullptr;
             bool _recomputeAabb = false;
 
             bool _actualSize = false;     

@@ -16,6 +16,7 @@
 
 #include "FilamentViewer.hpp"
 
+
 #include <filament/Camera.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
@@ -37,6 +38,9 @@
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
 #include <gltfio/Animator.h>
+#include <gltfio/TextureProvider.h>
+
+#include <gltfio/materials/uberarchive.h>
 
 #include <camutils/Manipulator.h>
 
@@ -50,7 +54,7 @@
 #include <math/vec3.h>
 #include <math/vec4.h>
 
-#include <image/KtxUtility.h>
+#include <ktxreader/Ktx1Reader.h>
 
 #include <chrono>
 #include <iostream>
@@ -62,11 +66,6 @@ using namespace filament::math;
 using namespace gltfio;
 using namespace utils;
 using namespace std::chrono;
-
-namespace gltfio
-{
-  MaterialProvider *createUbershaderLoader(filament::Engine *engine);
-}
 
 namespace filament
 {
@@ -154,14 +153,16 @@ namespace polyvox
 
     _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
 
-    _materialProvider = gltfio::createUbershaderLoader(_engine);
+    _materialProvider = gltfio::createUbershaderProvider(_engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
 
     EntityManager &em = EntityManager::get();
     _ncm = new NameComponentManager(em);
     _assetLoader = AssetLoader::create({_engine, _materialProvider, _ncm, &em});
     _resourceLoader = new ResourceLoader(
         {.engine = _engine, .normalizeSkinningWeights = true, .recomputeBoundingBoxes = true});
-
+    _stbDecoder = createStbProvider(_engine);
+    _resourceLoader->addTextureProvider("image/png", _stbDecoder);
+    _resourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
     manipulator =
         Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.05f).targetPosition(0.0f, 0.0f, 0.0f).build(Mode::ORBIT);
     _asset = nullptr;
@@ -299,6 +300,8 @@ namespace polyvox
 
     _animator->updateBoneMatrices();
 
+    // transformToUnitCube();
+
     Log("Successfully loaded GLB.");
   }
 
@@ -426,9 +429,9 @@ namespace polyvox
 
     ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
 
-    image::KtxBundle *skyboxBundle =
-        new image::KtxBundle(static_cast<const uint8_t *>(skyboxBuffer.data), static_cast<uint32_t>(skyboxBuffer.size));
-    _skyboxTexture = image::ktx::createTexture(_engine, skyboxBundle, false);
+    image::Ktx1Bundle *skyboxBundle =
+        new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data), static_cast<uint32_t>(skyboxBuffer.size));
+    _skyboxTexture = ktxreader::Ktx1Reader::createTexture(_engine, skyboxBundle, false);
     _skybox = filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
 
     _scene->setSkybox(_skybox);
@@ -439,11 +442,11 @@ namespace polyvox
     // Load IBL.
     ResourceBuffer iblBuffer = _loadResource(iblPath);
 
-    image::KtxBundle *iblBundle = new image::KtxBundle(
+    image::Ktx1Bundle *iblBundle = new image::Ktx1Bundle(
         static_cast<const uint8_t *>(iblBuffer.data), static_cast<uint32_t>(iblBuffer.size));
     math::float3 harmonics[9];
     iblBundle->getSphericalHarmonics(harmonics);
-    _iblTexture = image::ktx::createTexture(_engine, iblBundle, false);
+    _iblTexture = ktxreader::Ktx1Reader::createTexture(_engine, iblBundle, false);
     _indirectLight = IndirectLight::Builder()
                          .reflections(_iblTexture)
                          .irradiance(3, harmonics)
@@ -496,7 +499,7 @@ namespace polyvox
   {
     if (!_view || !_mainCamera || !_swapChain)
     {
-      // Log("Not ready for rendering");
+      Log("Not ready for rendering");
       return;
     }
 
