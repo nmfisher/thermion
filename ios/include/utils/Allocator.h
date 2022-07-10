@@ -162,7 +162,7 @@ public:
     }
 
     void free(void* p, size_t) noexcept {
-        free(p);
+        this->free(p);
     }
 
     ~HeapAllocator() noexcept = default;
@@ -457,6 +457,12 @@ private:
     void* mEnd = nullptr;
 };
 
+class NullArea {
+public:
+    void* data() const noexcept { return nullptr; }
+    size_t size() const noexcept { return 0; }
+};
+
 } // namespace AreaPolicy
 
 // ------------------------------------------------------------------------------------------------
@@ -498,6 +504,7 @@ struct HighWatermark {
     void onFree(void* p, size_t size) noexcept;
     void onReset() noexcept;
     void onRewind(void const* addr) noexcept;
+    uint32_t getHighWatermark() const noexcept { return mHighWaterMark; }
 protected:
     const char* mName = nullptr;
     void* mBase = nullptr;
