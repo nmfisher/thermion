@@ -34,7 +34,9 @@ namespace utils {
 /**
  * Loader and pipeline for glTF 2.0 assets.
  */
-namespace gltfio {
+namespace filament::gltfio {
+
+class NodeManager;
 
 /**
  * \struct AssetConfiguration AssetLoader.h gltfio/AssetLoader.h
@@ -47,7 +49,7 @@ struct AssetConfiguration {
 
     //! Controls whether the loader uses filamat to generate materials on the fly, or loads a small
     //! set of precompiled ubershader materials. Deleting the MaterialProvider is the client's
-    //! responsibility. See createMaterialGenerator() and createUbershaderLoader().
+    //! responsibility. See createJitShaderProvider() and createUbershaderProvider().
     MaterialProvider* materials;
 
     //! Optional manager for associating string names with entities in the transform hierarchy.
@@ -70,7 +72,8 @@ struct AssetConfiguration {
  * object, which is a bundle of Filament entities, material instances, textures, vertex buffers,
  * and index buffers.
  *
- * Clients must use AssetLoader to create and destroy FilamentAsset objects.
+ * Clients must use AssetLoader to create and destroy FilamentAsset objects. This is similar to
+ * how filament::Engine is used to create and destroy core objects like VertexBuffer.
  *
  * AssetLoader does not fetch external buffer data or create textures on its own. Clients can use
  * ResourceLoader for this, which obtains the URI list from the asset. This is demonstrated in the
@@ -83,7 +86,8 @@ struct AssetConfiguration {
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * auto engine = Engine::create();
- * auto materials = createMaterialGenerator(engine);
+ * auto materials = createJitShaderProvider(engine);
+ * auto decoder = createStbProvider(engine);
  * auto loader = AssetLoader::create({engine, materials});
  *
  * // Parse the glTF content and create Filament entities.
@@ -92,7 +96,10 @@ struct AssetConfiguration {
  * content.clear();
  *
  * // Load buffers and textures from disk.
- * ResourceLoader({engine, ".", true}).loadResources(asset);
+ * ResourceLoader resourceLoader({engine, ".", true});
+ * resourceLoader.addTextureProvider("image/png", decoder)
+ * resourceLoader.addTextureProvider("image/jpeg", decoder)
+ * resourceLoader.loadResources(asset);
  *
  * // Free the glTF hierarchy as it is no longer needed.
  * asset->releaseSourceData();
@@ -114,6 +121,7 @@ struct AssetConfiguration {
  * loader->destroyAsset(asset);
  * materials->destroyMaterials();
  * delete materials;
+ * delete decoder;
  * AssetLoader::destroy(&loader);
  * Engine::destroy(&engine);
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -221,7 +229,9 @@ public:
 
     utils::NameComponentManager* getNames() const noexcept;
 
-    MaterialProvider* getMaterialProvider() const noexcept;
+    NodeManager& getNodeManager() noexcept;
+
+    MaterialProvider& getMaterialProvider() noexcept;
 
     /*! \cond PRIVATE */
 protected:
@@ -236,6 +246,6 @@ public:
     /*! \endcond */
 };
 
-} // namespace gltfio
+} // namespace filament::gltfio
 
 #endif // GLTFIO_ASSETLOADER_H

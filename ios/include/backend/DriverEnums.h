@@ -33,7 +33,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace filament {
 /**
  * Types and enums used by filament's driver.
  *
@@ -41,24 +40,24 @@ namespace filament {
  * internal redeclaration of these types.
  * For e.g. Use Texture::Sampler instead of filament::SamplerType.
  */
-namespace backend {
+namespace filament::backend {
 
-static constexpr uint64_t SWAP_CHAIN_CONFIG_TRANSPARENT = 0x1;
-static constexpr uint64_t SWAP_CHAIN_CONFIG_READABLE = 0x2;
-static constexpr uint64_t SWAP_CHAIN_CONFIG_ENABLE_XCB = 0x4;
+static constexpr uint64_t SWAP_CHAIN_CONFIG_TRANSPARENT         = 0x1;
+static constexpr uint64_t SWAP_CHAIN_CONFIG_READABLE            = 0x2;
+static constexpr uint64_t SWAP_CHAIN_CONFIG_ENABLE_XCB          = 0x4;
 static constexpr uint64_t SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER = 0x8;
 
-static constexpr size_t MAX_VERTEX_ATTRIBUTE_COUNT = 16; // This is guaranteed by OpenGL ES.
-static constexpr size_t MAX_VERTEX_SAMPLER_COUNT = 16;   // This is guaranteed by OpenGL ES.
-static constexpr size_t MAX_FRAGMENT_SAMPLER_COUNT = 16; // This is guaranteed by OpenGL ES.
-static constexpr size_t MAX_SAMPLER_COUNT = 32;          // This is guaranteed by OpenGL ES.
-static constexpr size_t MAX_VERTEX_BUFFER_COUNT = 16;    // Max number of bound buffer objects.
+static constexpr size_t MAX_VERTEX_ATTRIBUTE_COUNT  = 16;   // This is guaranteed by OpenGL ES.
+static constexpr size_t MAX_VERTEX_SAMPLER_COUNT    = 16;   // This is guaranteed by OpenGL ES.
+static constexpr size_t MAX_FRAGMENT_SAMPLER_COUNT  = 16;   // This is guaranteed by OpenGL ES.
+static constexpr size_t MAX_SAMPLER_COUNT           = 32;   // This is guaranteed by OpenGL ES.
+static constexpr size_t MAX_VERTEX_BUFFER_COUNT     = 16;   // Max number of bound buffer objects.
 
 static_assert(MAX_VERTEX_BUFFER_COUNT <= MAX_VERTEX_ATTRIBUTE_COUNT,
         "The number of buffer objects that can be attached to a VertexBuffer must be "
         "less than or equal to the maximum number of vertex attributes.");
 
-static constexpr size_t CONFIG_BINDING_COUNT = 8;
+static constexpr size_t CONFIG_BINDING_COUNT = 12;  // This is guaranteed by OpenGL ES.
 
 /**
  * Selects which driver a particular Engine should use.
@@ -129,7 +128,6 @@ inline constexpr TargetBufferFlags getTargetBufferFlagsAt(size_t index) noexcept
 enum class BufferUsage : uint8_t {
     STATIC,      //!< content modified once, used many times
     DYNAMIC,     //!< content modified frequently, used many times
-    STREAM,      //!< content invalidated and modified frequently, used many times
 };
 
 /**
@@ -142,9 +140,9 @@ struct Viewport {
     uint32_t width;     //!< width in pixels
     uint32_t height;    //!< height in pixels
     //! get the right coordinate in window space of the viewport
-    int32_t right() const noexcept { return left + width; }
+    int32_t right() const noexcept { return left + int32_t(width); }
     //! get the top coordinate in window space of the viewport
-    int32_t top() const noexcept { return bottom + height; }
+    int32_t top() const noexcept { return bottom + int32_t(height); }
 };
 
 /**
@@ -160,7 +158,7 @@ struct DepthRange {
  * @see Fence, Fence::wait()
  */
 enum class FenceStatus : int8_t {
-    ERROR = -1,                 //!< An error occured. The Fence condition is not satisfied.
+    ERROR = -1,                 //!< An error occurred. The Fence condition is not satisfied.
     CONDITION_SATISFIED = 0,    //!< The Fence condition is satisfied.
     TIMEOUT_EXPIRED = 1,        //!< wait()'s timeout expired. The Fence condition is not satisfied.
 };
@@ -169,7 +167,7 @@ enum class FenceStatus : int8_t {
  * Status codes for sync objects
  */
 enum class SyncStatus : int8_t {
-    ERROR = -1,          //!< An error occured. The Sync is not signaled.
+    ERROR = -1,          //!< An error occurred. The Sync is not signaled.
     SIGNALED = 0,        //!< The Sync is signaled.
     NOT_SIGNALED = 1,    //!< The Sync is not signaled yet
 };
@@ -720,7 +718,7 @@ enum class SamplerCompareMode : uint8_t {
     COMPARE_TO_TEXTURE = 1
 };
 
-//! comparison function for the depth sampler
+//! comparison function for the depth / stencil sampler
 enum class SamplerCompareFunc : uint8_t {
     // don't change the enums values
     LE = 0,     //!< Less or equal
@@ -729,11 +727,11 @@ enum class SamplerCompareFunc : uint8_t {
     G,          //!< Strictly greater than
     E,          //!< Equal
     NE,         //!< Not equal
-    A,          //!< Always. Depth testing is deactivated.
-    N           //!< Never. The depth test always fails.
+    A,          //!< Always. Depth / stencil testing is deactivated.
+    N           //!< Never. The depth / stencil test always fails.
 };
 
-//! Sampler paramters
+//! Sampler parameters
 struct SamplerParams { // NOLINT
     union {
         struct {
@@ -786,10 +784,21 @@ enum class BlendFunction : uint8_t {
     SRC_ALPHA_SATURATE      //!< f(src, dst) = (1,1,1) * min(src.a, 1 - dst.a), 1
 };
 
+//! stencil operation
+enum class StencilOperation : uint8_t {
+    KEEP,                   //!< Keeps the current value.
+    ZERO,                   //!< Sets the value to 0.
+    REPLACE,                //!< Sets the value to the stencil reference value.
+    INCR,                   //!< Increments the current value. Clamps to the maximum representable unsigned value.
+    INCR_WRAP,              //!< Increments the current value. Wraps value to zero when incrementing the maximum representable unsigned value.
+    DECR,                   //!< Decrements the current value. Clamps to 0.
+    DECR_WRAP,              //!< Decrements the current value. Wraps value to the maximum representable unsigned value when decrementing a value of zero.
+    INVERT,                 //!< Bitwise inverts the current value.
+};
+
 //! Stream for external textures
 enum class StreamType {
     NATIVE,     //!< Not synchronized but copy-free. Good for video.
-    TEXTURE_ID, //!< Synchronized, but GL-only and incurs copies. Good for AR on devices before API 26.
     ACQUIRED,   //!< Synchronized, copy-free, and take a release callback. Good for AR but requires API 26+.
 };
 
@@ -819,9 +828,11 @@ struct RasterState {
     using DepthFunc = backend::SamplerCompareFunc;
     using BlendEquation = backend::BlendEquation;
     using BlendFunction = backend::BlendFunction;
+    using StencilFunction = backend::SamplerCompareFunc;
+    using StencilOperation = backend::StencilOperation;
 
     RasterState() noexcept { // NOLINT
-        static_assert(sizeof(RasterState) == sizeof(uint32_t),
+        static_assert(sizeof(RasterState) == sizeof(uint64_t),
                 "RasterState size not what was intended");
         culling = CullingMode::BACK;
         blendEquationRGB = BlendEquation::ADD;
@@ -830,6 +841,10 @@ struct RasterState {
         blendFunctionSrcAlpha = BlendFunction::ONE;
         blendFunctionDstRGB = BlendFunction::ZERO;
         blendFunctionDstAlpha = BlendFunction::ZERO;
+        stencilFunc = StencilFunction::A;
+        stencilOpStencilFail = StencilOperation::KEEP;
+        stencilOpDepthFail = StencilOperation::KEEP;
+        stencilOpDepthStencilPass = StencilOperation::KEEP;
     }
 
     bool operator == (RasterState rhs) const noexcept { return u == rhs.u; }
@@ -858,40 +873,56 @@ struct RasterState {
     union {
         struct {
             //! culling mode
-            CullingMode culling                 : 2;        //  2
+            CullingMode culling                         : 2;        //  2
 
             //! blend equation for the red, green and blue components
-            BlendEquation blendEquationRGB      : 3;        //  5
+            BlendEquation blendEquationRGB              : 3;        //  5
             //! blend equation for the alpha component
-            BlendEquation blendEquationAlpha    : 3;        //  8
+            BlendEquation blendEquationAlpha            : 3;        //  8
 
             //! blending function for the source color
-            BlendFunction blendFunctionSrcRGB   : 4;        // 12
+            BlendFunction blendFunctionSrcRGB           : 4;        // 12
             //! blending function for the source alpha
-            BlendFunction blendFunctionSrcAlpha : 4;        // 16
+            BlendFunction blendFunctionSrcAlpha         : 4;        // 16
             //! blending function for the destination color
-            BlendFunction blendFunctionDstRGB   : 4;        // 20
+            BlendFunction blendFunctionDstRGB           : 4;        // 20
             //! blending function for the destination alpha
-            BlendFunction blendFunctionDstAlpha : 4;        // 24
+            BlendFunction blendFunctionDstAlpha         : 4;        // 24
 
             //! Whether depth-buffer writes are enabled
-            bool depthWrite                     : 1;        // 25
+            bool depthWrite                             : 1;        // 25
             //! Depth test function
-            DepthFunc depthFunc                 : 3;        // 28
+            DepthFunc depthFunc                         : 3;        // 28
 
             //! Whether color-buffer writes are enabled
-            bool colorWrite                     : 1;        // 29
+            bool colorWrite                             : 1;        // 29
 
             //! use alpha-channel as coverage mask for anti-aliasing
-            bool alphaToCoverage                : 1;        // 30
+            bool alphaToCoverage                        : 1;        // 30
 
             //! whether front face winding direction must be inverted
-            bool inverseFrontFaces              : 1;        // 31
+            bool inverseFrontFaces                      : 1;        // 31
 
+            //! Whether stencil-buffer writes are enabled
+            bool stencilWrite                           : 1;        // 32
+            //! Stencil reference value
+            uint8_t stencilRef                          : 8;        // 40
+            //! Stencil test function
+            StencilFunction stencilFunc                 : 3;        // 43
+            //! Stencil operation when stencil test fails
+            StencilOperation stencilOpStencilFail       : 3;        // 46
             //! padding, must be 0
-            uint8_t padding                     : 1;        // 32
+            uint8_t padding0                            : 2;        // 48
+            //! Stencil operation when stencil test passes but depth test fails
+            StencilOperation stencilOpDepthFail         : 3;        // 51
+            //! Stencil operation when both stencil and depth test pass
+            StencilOperation stencilOpDepthStencilPass  : 3;        // 54
+            //! padding, must be 0
+            uint8_t padding1                            : 2;        // 56
+            //! padding, must be 0
+            uint8_t padding2                            : 8;        // 64
         };
-        uint32_t u = 0;
+        uint64_t u = 0;
     };
 };
 
@@ -914,7 +945,7 @@ struct ShaderStageFlags {
                (fragment && type == ShaderType::FRAGMENT);
     }
 };
-static constexpr ShaderStageFlags ALL_SHADER_STAGE_FLAGS = { .vertex = true, .fragment = true };
+static constexpr ShaderStageFlags ALL_SHADER_STAGE_FLAGS = { true, true };
 
 /**
  * Selects which buffers to clear at the beginning of the render pass, as well as which buffers
@@ -998,8 +1029,7 @@ enum class Workaround : uint16_t {
     ALLOW_READ_ONLY_ANCILLARY_FEEDBACK_LOOP
 };
 
-} // namespace backend
-} // namespace filament
+} // namespace filament::backend
 
 template<> struct utils::EnableBitMaskOperators<filament::backend::TargetBufferFlags>
         : public std::true_type {};

@@ -205,10 +205,12 @@ public:
          * avoid using a separate View for the HUD. Note that priority is completely orthogonal to
          * Builder::layerMask, which merely controls visibility.
          *
-         * \see Builder::blendOrder()
+         * @param priority clamped to the range [0..7], defaults to 4; 7 is lowest priority
+         *                 (rendered last).
          *
-         * The priority is clamped to the range [0..7], defaults to 4; 7 is lowest priority
-         * (rendered last).
+         * @return Builder reference for chaining calls.
+         *
+         * @see Builder::blendOrder(), RenderableManager::setBlendOrderAt()
          */
         Builder& priority(uint8_t priority) noexcept;
 
@@ -337,23 +339,44 @@ public:
          */
         Builder& morphing(uint8_t level, size_t primitiveIndex,
                 MorphTargetBuffer* morphTargetBuffer, size_t offset, size_t count) noexcept;
+
         inline Builder& morphing(uint8_t level, size_t primitiveIndex,
                 MorphTargetBuffer* morphTargetBuffer) noexcept;
 
         /**
-         * Sets an ordering index for blended primitives that all live at the same Z value.
+         * Sets the drawing order for blended primitives. The drawing order is either global or
+         * local (default) to this Renderable. In either case, the Renderable priority takes
+         * precedence.
          *
          * @param primitiveIndex the primitive of interest
          * @param order draw order number (0 by default). Only the lowest 15 bits are used.
+         *
+         * @return Builder reference for chaining calls.
+         *
+         * @see globalBlendOrderEnabled
          */
         Builder& blendOrder(size_t primitiveIndex, uint16_t order) noexcept;
+
+        /**
+         * Sets whether the blend order is global or local to this Renderable (by default).
+         *
+         * @param primitiveIndex the primitive of interest
+         * @param enabled true for global, false for local blend ordering.
+         *
+         * @return Builder reference for chaining calls.
+         *
+         * @see blendOrder
+         */
+        Builder& globalBlendOrderEnabled(size_t primitiveIndex, bool enabled) noexcept;
+
 
         /**
          * Specifies the number of draw instance of this renderable. The default is 1 instance and
          * the maximum number of instances allowed is 65535. 0 is invalid.
          * All instances are culled using the same bounding box, so care must be taken to make
          * sure all instances render inside the specified bounding box.
-         * The material can use getInstanceIndex() in the vertex shader to get the instance index and
+         * The material must set its `instanced` parameter to `true` in order to use
+         * getInstanceIndex() in the vertex or fragment shader to get the instance index and
          * possibly adjust the position or transform.
          *
          * @param instanceCount the number of instances silently clamped between 1 and 65535.
@@ -394,6 +417,7 @@ public:
             MaterialInstance const* materialInstance = nullptr;
             PrimitiveType type = PrimitiveType::TRIANGLES;
             uint16_t blendOrder = 0;
+            bool globalBlendOrderEnabled = false;
             struct {
                 MorphTargetBuffer* buffer = nullptr;
                 size_t offset = 0;
@@ -497,7 +521,15 @@ public:
     void setBones(Instance instance, math::mat4f const* transforms, size_t boneCount = 1, size_t offset = 0); //!< \overload
 
     /**
-     * Associates a SkinningBuffer to a renderable instance
+     * Associates a region of a SkinningBuffer to a renderable instance
+     *
+     * Note: due to hardware limitations offset + 256 must be smaller or equal to
+     *       skinningBuffer->getBoneCount()
+     *
+     * @param instance          Instance of the component obtained from getInstance().
+     * @param skinningBuffer    skinning buffer to associate to the instance
+     * @param count             Size of the region in bones, must be smaller or equal to 256.
+     * @param offset            Start offset of the region in bones
      */
     void setSkinningBuffer(Instance instance, SkinningBuffer* skinningBuffer,
             size_t count, size_t offset);
@@ -511,7 +543,7 @@ public:
      * @param instance Instance of the component obtained from getInstance().
      * @param weights Pointer to morph target weights to be update.
      * @param count Number of morph target weights.
-     * @param offset Index of the first first morph target weight to set at instance.
+     * @param offset Index of the first morph target weight to set at instance.
      */
     void setMorphWeights(Instance instance,
             float const* weights, size_t count, size_t offset = 0);
@@ -578,23 +610,27 @@ public:
             size_t offset, size_t count) noexcept;
 
     /**
-     * Changes the active range of indices or topology for the given primitive.
-     *
-     * \see Builder::geometry()
-     */
-    void setGeometryAt(Instance instance, size_t primitiveIndex,
-            PrimitiveType type, size_t offset, size_t count) noexcept;
-
-    /**
-     * Changes the ordering index for blended primitives that all live at the same Z value.
-     *
-     * \see Builder::blendOrder()
+     * Changes the drawing order for blended primitives. The drawing order is either global or
+     * local (default) to this Renderable. In either case, the Renderable priority takes precedence.
      *
      * @param instance the renderable of interest
      * @param primitiveIndex the primitive of interest
      * @param order draw order number (0 by default). Only the lowest 15 bits are used.
+     *
+     * @see Builder::blendOrder(), setGlobalBlendOrderEnabledAt()
      */
     void setBlendOrderAt(Instance instance, size_t primitiveIndex, uint16_t order) noexcept;
+
+    /**
+     * Changes whether the blend order is global or local to this Renderable (by default).
+     *
+     * @param instance the renderable of interest
+     * @param primitiveIndex the primitive of interest
+     * @param enabled true for global, false for local blend ordering.
+     *
+     * @see Builder::globalBlendOrderEnabled(), setBlendOrderAt()
+     */
+    void setGlobalBlendOrderEnabledAt(Instance instance, size_t primitiveIndex, bool enabled) noexcept;
 
     /**
      * Retrieves the set of enabled attribute slots in the given primitive's VertexBuffer.
