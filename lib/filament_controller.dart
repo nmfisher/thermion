@@ -17,6 +17,7 @@ abstract class FilamentController {
   Future<List<String>> getTargetNames(String meshName);
   Future<List<String>> getAnimationNames();
   Future releaseSourceAssets();
+  Future removeAsset();
   Future playAnimation(int index, {bool loop = false});
   Future stopAnimation();
   Future setCamera(String name);
@@ -120,6 +121,10 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future releaseSourceAssets() async {
     await _channel.invokeMethod("releaseSourceAssets");
+  }
+
+  Future removeAsset() async {
+    await _channel.invokeMethod("removeAsset");
   }
 
   Future zoom(double z) async {

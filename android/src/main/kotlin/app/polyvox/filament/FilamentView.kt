@@ -104,8 +104,8 @@ PlatformView  {
         _methodChannel.invokeMethod("ready", null)
 
         choreographer = Choreographer.getInstance()
-            
-        _view.setZOrderOnTop(true)
+        
+        _view.setZOrderOnTop(false)            
         _view.holder.setFormat(PixelFormat.OPAQUE)
   
         _view.holder.addCallback (object : SurfaceHolder.Callback {
@@ -299,6 +299,10 @@ PlatformView  {
             }
             "releaseSourceAssets" -> {
               _lib.release_source_assets(_viewer!!)
+              result.success("OK");
+            } 
+            "removeAsset" -> {
+              _lib.remove_asset(_viewer!!)
               result.success("OK");
             } 
             "playAnimation" -> {

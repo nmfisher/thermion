@@ -116,8 +116,7 @@ namespace polyvox
       LoadResource loadResource,
       FreeResource freeResource) : _layer(layer),
                                    _loadResource(loadResource),
-                                   _freeResource(freeResource),
-                                   _assetBuffer(nullptr, 0, 0)
+                                   _freeResource(freeResource)
   {
     _engine = Engine::create(Engine::Backend::OPENGL);
 
@@ -166,10 +165,23 @@ namespace polyvox
     manipulator =
         Manipulator<float>::Builder().orbitHomePosition(0.0f, 0.0f, 0.05f).targetPosition(0.0f, 0.0f, 0.0f).build(Mode::ORBIT);
     _asset = nullptr;
+
+    // Always add a direct light source since it is required for shadowing.
+    _sun = EntityManager::get().create();
+    LightManager::Builder(LightManager::Type::DIRECTIONAL)
+        .color(Color::cct(6500.0f))
+        .intensity(100000.0f)
+        .direction(math::float3(0.0f, 1.0f, 0.0f))
+        .castShadows(false)
+        // .castShadows(true)
+        .build(*_engine, _sun);
+    _scene->addEntity(_sun);
+
   }
 
   FilamentViewer::~FilamentViewer()
   {
+    cleanup();
   }
 
   Renderer *FilamentViewer::getRenderer()
@@ -258,15 +270,15 @@ namespace polyvox
 
     Log("Loading GLB at URI %s", uri);
 
-    if (_asset)
-    {
-      _asset->releaseSourceData();
-      _resourceLoader->evictResourceData();
-      _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
-      _assetLoader->destroyAsset(_asset);
-    }
-    _asset = nullptr;
-    _animator = nullptr;
+    // if (_asset)
+    // {
+    //   _asset->releaseSourceData();
+    //   _resourceLoader->evictResourceData();
+    //   _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
+    //   _assetLoader->destroyAsset(_asset);
+    // }
+    // _asset = nullptr;
+    // _animator = nullptr;
 
     ResourceBuffer rbuf = _loadResource(uri);
 
@@ -302,6 +314,8 @@ namespace polyvox
 
     // transformToUnitCube();
 
+    _asset->releaseSourceData();
+
     Log("Successfully loaded GLB.");
   }
 
@@ -310,22 +324,14 @@ namespace polyvox
 
     Log("Loading GLTF at URI %s", uri);
 
-    if (_asset)
-    {
-      Log("Asset already exists");
-      _resourceLoader->evictResourceData();
-      _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
-      _assetLoader->destroyAsset(_asset);
-      _freeResource(_assetBuffer);
-    }
     _asset = nullptr;
     _animator = nullptr;
 
-    _assetBuffer = _loadResource(uri);
+    ResourceBuffer rbuf  = _loadResource(uri);
 
     // Parse the glTF file and create Filament entities.
     Log("Creating asset from JSON");
-    _asset = _assetLoader->createAssetFromJson((uint8_t *)_assetBuffer.data, _assetBuffer.size);
+    _asset = _assetLoader->createAssetFromJson((uint8_t *)rbuf.data, rbuf.size);
     Log("Created asset from JSON");
 
     if (!_asset)
@@ -336,12 +342,28 @@ namespace polyvox
     Log("Loading relative resources");
     loadResources(string(relativeResourcePath) + string("/"));
     Log("Loaded relative resources");
-    //    _asset->releaseSourceData();
+    _asset->releaseSourceData();
 
     Log("Load complete for GLTF at URI %s", uri);
 
     // transformToUnitCube();
   }
+
+  void FilamentViewer::removeAsset() {
+    if (!_asset) {
+      Log("No asset loaded, ignoring call.");
+      return;
+    }
+    
+    _resourceLoader->evictResourceData();
+    _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
+    _assetLoader->destroyAsset(_asset);
+    _asset = nullptr;
+    _animator = nullptr;
+    _morphAnimationBuffer = nullptr;
+    _embeddedAnimationBuffer = nullptr;
+  }
+
 
   ///
   /// Sets the active camera to the GLTF camera specified by [name].
@@ -354,12 +376,15 @@ namespace polyvox
   ///
   bool FilamentViewer::setCamera(const char *cameraName)
   {
+    Log("Attempting to set camera to %s.", cameraName);
     size_t count = _asset->getCameraEntityCount();
-    if(count == 0)
+    if(count == 0) {
+          Log("Failed, no cameras found in current asset.");
       return false;
+    }
 
     const utils::Entity* cameras = _asset->getCameraEntities();
-    Log("Found %d cameras in asset", count);
+    Log("%d cameras found in current asset", cameraName, count);
     for(int i=0; i < count; i++) {
       
       auto inst = _ncm->getInstance(cameras[i]);
@@ -376,8 +401,9 @@ namespace polyvox
 
         camera->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
         _view->setCamera(camera);
+        Log("Successfully set camera.");
+        return true;
       }
-      return true;
     }
     Log("Unable to locate camera under name %s ", cameraName);
     return false;
@@ -456,16 +482,6 @@ namespace polyvox
 
     _freeResource(iblBuffer);
 
-    // Always add a direct light source since it is required for shadowing.
-    _sun = EntityManager::get().create();
-    LightManager::Builder(LightManager::Type::DIRECTIONAL)
-        .color(Color::cct(6500.0f))
-        .intensity(100000.0f)
-        .direction(math::float3(0.0f, 1.0f, 0.0f))
-        .castShadows(true)
-        .build(*_engine, _sun);
-    _scene->addEntity(_sun);
-
     Log("Skybox/IBL load complete.");
   }
 
@@ -492,7 +508,6 @@ namespace polyvox
     _assetLoader->destroyAsset(_asset);
     _materialProvider->destroyMaterials();
     AssetLoader::destroy(&_assetLoader);
-    _freeResource(_assetBuffer);
   };
 
   void FilamentViewer::render()
@@ -503,12 +518,12 @@ namespace polyvox
       return;
     }
 
-    if (morphAnimationBuffer)
+    if (_morphAnimationBuffer)
     {
       updateMorphAnimation();
     }
 
-    if(embeddedAnimationBuffer) {
+    if(_embeddedAnimationBuffer) {
       updateEmbeddedAnimation();
     }
 
@@ -545,35 +560,35 @@ namespace polyvox
   void FilamentViewer::animateWeights(float *data, int numWeights, int numFrames, float frameLengthInMs)
   {
     Log("Making morph animation buffer with %d weights across %d frames and frame length %f ms ", numWeights, numFrames, frameLengthInMs);
-    morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, numFrames, frameLengthInMs);
+    _morphAnimationBuffer = std::make_unique<MorphAnimationBuffer>(data, numWeights, numFrames, frameLengthInMs);
   }
 
   void FilamentViewer::updateMorphAnimation()
   {
-    if(!morphAnimationBuffer) {
+    if(!_morphAnimationBuffer) {
       return;
     }
 
-    if (morphAnimationBuffer->frameIndex == -1) {
-      morphAnimationBuffer->frameIndex++;
-      morphAnimationBuffer->startTime = high_resolution_clock::now();
-      applyWeights(morphAnimationBuffer->frameData, morphAnimationBuffer->numWeights);
+    if (_morphAnimationBuffer->frameIndex == -1) {
+      _morphAnimationBuffer->frameIndex++;
+      _morphAnimationBuffer->startTime = high_resolution_clock::now();
+      applyWeights(_morphAnimationBuffer->frameData, _morphAnimationBuffer->numWeights);
     }
     else
     {
-      duration<double, std::milli> dur = high_resolution_clock::now() - morphAnimationBuffer->startTime;
-      int frameIndex = static_cast<int>(dur.count() / morphAnimationBuffer->frameLengthInMs);
+      duration<double, std::milli> dur = high_resolution_clock::now() - _morphAnimationBuffer->startTime;
+      int frameIndex = static_cast<int>(dur.count() / _morphAnimationBuffer->frameLengthInMs);
 
-      if (frameIndex > morphAnimationBuffer->numFrames - 1)
+      if (frameIndex > _morphAnimationBuffer->numFrames - 1)
       {
-        duration<double, std::milli> dur = high_resolution_clock::now() - morphAnimationBuffer->startTime;
-        Log("Morph animation completed in %f ms (%d frames at framerate %f), final frame was %d", dur.count(), morphAnimationBuffer->numFrames, 1000 / morphAnimationBuffer->frameLengthInMs, morphAnimationBuffer->frameIndex);
-        morphAnimationBuffer = nullptr;
-      } else if (frameIndex != morphAnimationBuffer->frameIndex) {
-        Log("Rendering frame %d (of a total %d)", frameIndex, morphAnimationBuffer->numFrames);
-        morphAnimationBuffer->frameIndex = frameIndex;
-        auto framePtrOffset = frameIndex * morphAnimationBuffer->numWeights;
-        applyWeights(morphAnimationBuffer->frameData + framePtrOffset, morphAnimationBuffer->numWeights);
+        duration<double, std::milli> dur = high_resolution_clock::now() - _morphAnimationBuffer->startTime;
+        Log("Morph animation completed in %f ms (%d frames at framerate %f), final frame was %d", dur.count(), _morphAnimationBuffer->numFrames, 1000 / _morphAnimationBuffer->frameLengthInMs, _morphAnimationBuffer->frameIndex);
+        _morphAnimationBuffer = nullptr;
+      } else if (frameIndex != _morphAnimationBuffer->frameIndex) {
+        Log("Rendering frame %d (of a total %d)", frameIndex, _morphAnimationBuffer->numFrames);
+        _morphAnimationBuffer->frameIndex = frameIndex;
+        auto framePtrOffset = frameIndex * _morphAnimationBuffer->numWeights;
+        applyWeights(_morphAnimationBuffer->frameData + framePtrOffset, _morphAnimationBuffer->numWeights);
       }
     }
   }
@@ -582,33 +597,33 @@ namespace polyvox
     if(index > _animator->getAnimationCount() - 1) {
       Log("Asset does not contain an animation at index %d", index);
     } else {
-      embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index), loop);
+      _embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index), loop);
     }
   }
 
   void FilamentViewer::stopAnimation() {
     // TODO - does this need to be threadsafe?
-    embeddedAnimationBuffer = nullptr;
+    _embeddedAnimationBuffer = nullptr;
   }
 
   void FilamentViewer::updateEmbeddedAnimation() {
-    duration<double> dur = duration_cast<duration<double>>(high_resolution_clock::now() - embeddedAnimationBuffer->lastTime);
+    duration<double> dur = duration_cast<duration<double>>(high_resolution_clock::now() - _embeddedAnimationBuffer->lastTime);
     float startTime = 0;
-    if(!embeddedAnimationBuffer->hasStarted) {
-      embeddedAnimationBuffer->hasStarted = true;
-      embeddedAnimationBuffer->lastTime = high_resolution_clock::now();
-    } else if(dur.count() >= embeddedAnimationBuffer->duration) {
-      if(embeddedAnimationBuffer->loop) {
-        embeddedAnimationBuffer->lastTime = high_resolution_clock::now();
+    if(!_embeddedAnimationBuffer->hasStarted) {
+      _embeddedAnimationBuffer->hasStarted = true;
+      _embeddedAnimationBuffer->lastTime = high_resolution_clock::now();
+    } else if(dur.count() >= _embeddedAnimationBuffer->duration) {
+      if(_embeddedAnimationBuffer->loop) {
+        _embeddedAnimationBuffer->lastTime = high_resolution_clock::now();
       } else {
-        embeddedAnimationBuffer = nullptr;
+        _embeddedAnimationBuffer = nullptr;
         return;
       }
     } else {
       startTime = dur.count();
     }
 
-    _animator->applyAnimation(embeddedAnimationBuffer->animationIndex, startTime);
+    _animator->applyAnimation(_embeddedAnimationBuffer->animationIndex, startTime);
     _animator->updateBoneMatrices();
 
   }

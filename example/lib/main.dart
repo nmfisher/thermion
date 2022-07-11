@@ -28,16 +28,16 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      color: Colors.transparent,
       home: Scaffold(
-          appBar: AppBar(
-            title: const Text('Plugin example app'),
-          ),
+          backgroundColor: Colors.transparent,
           body: Column(children: [
-            SizedBox(
+            Expanded(child:SizedBox(
               height:200, width:200,
               child:FilamentWidget(
                 controller: _filamentController,
-            )),
+            ))),
+            
             Expanded(
               child: Wrap(
                 alignment: WrapAlignment.end,
@@ -62,6 +62,12 @@ class _MyAppState extends State<MyApp> {
                       onPressed: () async {
                         await _filamentController.loadGltf(
                             'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
+                      }),
+                      ElevatedButton(
+                      child: const Text('remove asset'),
+                      onPressed: () async {
+                        await _filamentController
+                            .removeAsset();
                       }),
                   ElevatedButton(
                       child: const Text('set all weights to 1'),
