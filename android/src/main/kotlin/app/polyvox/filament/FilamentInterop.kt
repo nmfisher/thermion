@@ -62,4 +62,7 @@ interface FilamentInterop : Library {
 
     fun release_source_assets(viewer:Pointer);
 
+    fun remove_asset(viewer:Pointer);
+
+
 }

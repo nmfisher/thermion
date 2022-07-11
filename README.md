@@ -20,3 +20,23 @@ iOS:
 
 Extract and move both lib/ and include/ to ./ios
 
+# Running
+
+## Android 
+
+- MainActivity.kt must have the following:
+```
+class MainActivity: FlutterActivity() {
+    override fun getTransparencyMode(): TransparencyMode {
+        return TransparencyMode.transparent
+    }
+}
+```
+and theme must have the following in `styles.xml`
+```
+<style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+    <item name="android:windowBackground">@android:color/transparent</item>
+</style>
+```
+
+

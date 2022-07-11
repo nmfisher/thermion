@@ -95,6 +95,7 @@ namespace polyvox {
             void loadGlb(const char* const uri);
             void loadGltf(const char* const uri, const char* relativeResourcePath);
             void loadSkybox(const char* const skyboxUri, const char* const iblUri);
+            void removeAsset();
 
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
@@ -157,7 +158,7 @@ namespace polyvox {
 
             AssetLoader* _assetLoader;
             FilamentAsset* _asset = nullptr;
-            ResourceBuffer _assetBuffer;
+            // ResourceBuffer _assetBuffer;
             NameComponentManager* _ncm;
 
             Entity _sun;
@@ -181,8 +182,8 @@ namespace polyvox {
             
             // animation flags;
             bool isAnimating;
-            unique_ptr<MorphAnimationBuffer> morphAnimationBuffer;
-            unique_ptr<EmbeddedAnimationBuffer> embeddedAnimationBuffer;
+            unique_ptr<MorphAnimationBuffer> _morphAnimationBuffer;
+            unique_ptr<EmbeddedAnimationBuffer> _embeddedAnimationBuffer;
     };
 
 

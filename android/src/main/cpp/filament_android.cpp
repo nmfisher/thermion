@@ -169,5 +169,9 @@ extern "C" {
   void release_source_assets(void* viewer) {
     ((FilamentViewer*)viewer)->releaseSourceAssets();
   }
+
+  void remove_asset(void* viewer) {
+    ((FilamentViewer*)viewer)->removeAsset();
+  }
   
 }
