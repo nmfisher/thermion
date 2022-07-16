@@ -59,6 +59,8 @@
 #include <chrono>
 #include <iostream>
 
+#include <mutex>
+
 #include "Log.h"
 
 using namespace filament;
@@ -259,26 +261,10 @@ namespace polyvox
     _scene->addEntities(_asset->getEntities(), _asset->getEntityCount());
   };
 
-  void FilamentViewer::releaseSourceAssets()
-  {
-    Log("Releasing source data");
-    _asset->releaseSourceData();
-  }
-
   void FilamentViewer::loadGlb(const char *const uri)
   {
 
     Log("Loading GLB at URI %s", uri);
-
-    // if (_asset)
-    // {
-    //   _asset->releaseSourceData();
-    //   _resourceLoader->evictResourceData();
-    //   _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
-    //   _assetLoader->destroyAsset(_asset);
-    // }
-    // _asset = nullptr;
-    // _animator = nullptr;
 
     ResourceBuffer rbuf = _loadResource(uri);
 
@@ -354,6 +340,8 @@ namespace polyvox
       Log("No asset loaded, ignoring call.");
       return;
     }
+
+    mtx.lock();
     
     _resourceLoader->evictResourceData();
     _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
@@ -362,6 +350,12 @@ namespace polyvox
     _animator = nullptr;
     _morphAnimationBuffer = nullptr;
     _embeddedAnimationBuffer = nullptr;
+    _view->setCamera(_mainCamera);
+    mtx.unlock();
+  }
+
+  void FilamentViewer::removeSkybox() { 
+    _scene->setSkybox(nullptr);
   }
 
 
@@ -384,7 +378,7 @@ namespace polyvox
     }
 
     const utils::Entity* cameras = _asset->getCameraEntities();
-    Log("%d cameras found in current asset", cameraName, count);
+    Log("%zu cameras found in current asset", cameraName, count);
     for(int i=0; i < count; i++) {
       
       auto inst = _ncm->getInstance(cameras[i]);
@@ -411,7 +405,10 @@ namespace polyvox
 
   unique_ptr<vector<string>> FilamentViewer::getAnimationNames()
   {
-
+    if(!_asset) {
+      Log("No asset, ignoring call.");
+      return nullptr;
+    }
     size_t count = _animator->getAnimationCount();
 
     Log("Found %d animations in asset.", count);
@@ -428,6 +425,10 @@ namespace polyvox
 
   unique_ptr<vector<string>> FilamentViewer::getTargetNames(const char *meshName)
   {
+    if(!_asset) {
+      Log("No asset, ignoring call.");
+      return nullptr;
+    }
     Log("Retrieving morph target names for mesh  %s", meshName);
     unique_ptr<vector<string>> names = make_unique<vector<string>>();
     const Entity *entities = _asset->getEntities();
@@ -512,20 +513,19 @@ namespace polyvox
 
   void FilamentViewer::render()
   {
+
     if (!_view || !_mainCamera || !_swapChain)
     {
       Log("Not ready for rendering");
       return;
     }
-
-    if (_morphAnimationBuffer)
-    {
+    
+    mtx.lock();
+    if(_asset) {
       updateMorphAnimation();
-    }
-
-    if(_embeddedAnimationBuffer) {
       updateEmbeddedAnimation();
     }
+    
 
     math::float3 eye, target, upward;
     manipulator->getLookAt(&eye, &target, &upward);
@@ -537,6 +537,7 @@ namespace polyvox
       _renderer->render(_view);
       _renderer->endFrame();
     }
+    mtx.unlock();  
   }
 
   void FilamentViewer::updateViewportAndCameraProjection(int width, int height, float contentScaleFactor)
@@ -607,6 +608,9 @@ namespace polyvox
   }
 
   void FilamentViewer::updateEmbeddedAnimation() {
+    if(!_embeddedAnimationBuffer) {
+      return;
+    }
     duration<double> dur = duration_cast<duration<double>>(high_resolution_clock::now() - _embeddedAnimationBuffer->lastTime);
     float startTime = 0;
     if(!_embeddedAnimationBuffer->hasStarted) {

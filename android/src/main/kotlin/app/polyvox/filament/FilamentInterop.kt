@@ -64,5 +64,7 @@ interface FilamentInterop : Library {
 
     fun remove_asset(viewer:Pointer);
 
+    fun remove_skybox(viewer:Pointer);
+
 
 }

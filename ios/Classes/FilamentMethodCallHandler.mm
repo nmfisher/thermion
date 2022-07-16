@@ -41,6 +41,9 @@ using namespace std;
   if([@"loadSkybox" isEqualToString:call.method]) {
     _viewer->loadSkybox([call.arguments[0] UTF8String], [call.arguments[1] UTF8String]);
     result(@"OK");
+  } else if([@"loadSkybox" isEqualToString:call.method]) {
+    _viewer->removeSkybox();
+    result(@"OK");
   } else if([@"loadGlb" isEqualToString:call.method]) {
     _viewer->loadGlb([call.arguments UTF8String]);
     result(@"OK");
@@ -67,9 +70,6 @@ using namespace std;
     result(@"OK");
   } else if([@"rotateEnd" isEqualToString:call.method]) {
     _viewer->manipulator->grabEnd();
-    result(@"OK");
-  } else if([@"releaseSourceAssets" isEqualToString:call.method]) {
-    _viewer->releaseSourceAssets();
     result(@"OK");
   } else if([@"animateWeights" isEqualToString:call.method]) {
     NSArray* frameData = call.arguments[0];

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 abstract class FilamentController {
   void onFilamentViewCreated(int id);
   Future loadSkybox(String skyboxPath, String lightingPath);
+  Future removeSkybox();
   Future loadGlb(String path);
   Future loadGltf(String path, String relativeResourcePath);
   Future panStart(double x, double y);
@@ -60,6 +61,11 @@ class PolyvoxFilamentController extends FilamentController {
   @override
   Future loadSkybox(String skyboxPath, String lightingPath) async {
     await _channel.invokeMethod("loadSkybox", [skyboxPath, lightingPath]);
+  }
+
+  @override
+  Future removeSkybox() async {
+    await _channel.invokeMethod("removeSkybox");
   }
 
   Future loadGlb(String path) async {

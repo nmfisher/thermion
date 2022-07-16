@@ -104,9 +104,9 @@ PlatformView  {
         _methodChannel.invokeMethod("ready", null)
 
         choreographer = Choreographer.getInstance()
-        
+        // _view.setAlpha(0)
         _view.setZOrderOnTop(false)            
-        _view.holder.setFormat(PixelFormat.OPAQUE)
+        _view.holder.setFormat(PixelFormat.TRANSPARENT)
   
         _view.holder.addCallback (object : SurfaceHolder.Callback {
             override fun surfaceChanged(holder:SurfaceHolder, format:Int, width:Int, height:Int) {
@@ -151,19 +151,34 @@ PlatformView  {
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
+            "reloadAssets" -> {
+              // context = context.createPackageContext(context.getPackageName(), 0)
+              // val assetManager = context.getAssets()
+              // val flutterJNI = 	FlutterJNI.Factory.provideFlutterJNI()
+              // flutterJNI.updateJavaAssetManager(assetManager, flutterApplicationInfo.flutterAssetsDir)
+            }
             "loadSkybox" -> {
                 val args = call.arguments as ArrayList<Any?>
                 val loader = FlutterInjector.instance().flutterLoader()
                 _lib.load_skybox(_viewer!!, loader.getLookupKeyForAsset(args[0] as String), loader.getLookupKeyForAsset(args[1] as String))                
                 result.success("OK");
             }
+            "removeSkybox" -> {
+              _lib.remove_skybox(_viewer!!)                
+              result.success(true);
+            }
             "loadGlb" -> {
                 if (_viewer == null)
                     return;
                 val loader = FlutterInjector.instance().flutterLoader()
+                val key = loader.getLookupKeyForAsset(call.arguments as String)
+                val key2 = loader.getLookupKeyForAsset(call.arguments as String, context.packageName)
+                val path = loader.findAppBundlePath()
+                Log.v(TAG, "key ${key} key2 ${key2} path : ${path}")
+
                 _lib.load_glb(
                     _viewer!!,
-                    loader.getLookupKeyForAsset(call.arguments as String)
+                    key
                 )
                 result.success("OK");
             }
@@ -297,10 +312,6 @@ PlatformView  {
               _lib.grab_end(_viewer!!)
               result.success("OK");
             }
-            "releaseSourceAssets" -> {
-              _lib.release_source_assets(_viewer!!)
-              result.success("OK");
-            } 
             "removeAsset" -> {
               _lib.remove_asset(_viewer!!)
               result.success("OK");
