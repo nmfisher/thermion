@@ -9,9 +9,10 @@ using namespace polyvox;
 using namespace std;
 
 static AAssetManager* am;
-
 static vector<AAsset*> _assets;
 uint64_t id = -1;
+
+static FilamentViewer* _viewer;
 
 static polyvox::ResourceBuffer loadResource(const char* name) {
 
@@ -50,6 +51,10 @@ extern "C" {
     ((FilamentViewer*)viewer)->loadSkybox(skyboxPath, iblPath);
   }
 
+  void remove_skybox(void* viewer) {
+    ((FilamentViewer*)viewer)->removeSkybox();
+  }
+
   void load_glb(void* viewer, const char* assetPath) {
     ((FilamentViewer*)viewer)->loadGlb(assetPath);
   }
@@ -67,9 +72,13 @@ extern "C" {
     JNIEnv* env,
     jobject assetManager
   ) {
+    if(_viewer) {
+      return _viewer;
+    }
     ANativeWindow* layer = ANativeWindow_fromSurface(env, surface);
     am = AAssetManager_fromJava(env, assetManager);
-    return new FilamentViewer((void*)layer, loadResource, freeResource);
+    _viewer = new FilamentViewer((void*)layer, loadResource, freeResource);
+    return _viewer;
   }
 
   void render(
@@ -164,10 +173,6 @@ extern "C" {
 
   void free_pointer(char** ptr, int num) {
     free(ptr);
-  }
-
-  void release_source_assets(void* viewer) {
-    ((FilamentViewer*)viewer)->releaseSourceAssets();
   }
 
   void remove_asset(void* viewer) {

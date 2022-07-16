@@ -92,14 +92,16 @@ namespace polyvox {
         public:
             FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
+
+            void loadSkybox(const char* const skyboxUri, const char* const iblUri);
+            void removeSkybox();
+            
             void loadGlb(const char* const uri);
             void loadGltf(const char* const uri, const char* relativeResourcePath);
-            void loadSkybox(const char* const skyboxUri, const char* const iblUri);
             void removeAsset();
 
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
-            void releaseSourceAssets();
             unique_ptr<vector<string>> getTargetNames(const char* meshName);
             unique_ptr<vector<string>> getAnimationNames();
             Manipulator<float>* manipulator;
@@ -158,8 +160,8 @@ namespace polyvox {
 
             AssetLoader* _assetLoader;
             FilamentAsset* _asset = nullptr;
-            // ResourceBuffer _assetBuffer;
             NameComponentManager* _ncm;
+            std::mutex mtx; // mutex to ensure thread safety when removing assets
 
             Entity _sun;
             Texture* _skyboxTexture;
@@ -184,6 +186,7 @@ namespace polyvox {
             bool isAnimating;
             unique_ptr<MorphAnimationBuffer> _morphAnimationBuffer;
             unique_ptr<EmbeddedAnimationBuffer> _embeddedAnimationBuffer;
+
     };
 
 
