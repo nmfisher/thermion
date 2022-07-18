@@ -360,13 +360,9 @@ namespace polyvox
 
 
   ///
-  /// Sets the active camera to the GLTF camera specified by [name].
-  /// Blender export arranges cameras as follows
-  /// - parent node with global (?) matrix
-  /// --- child node with "camera" property set to camera node name
-  /// - camera node
-  /// We therefore find the first node where the "camera" property is equal to the requested name,
-  /// then use the parent transform matrix.
+  /// Sets the active camera to the GLTF camera node specified by [name].
+  /// N.B. Blender will generally export a three-node hierarchy - Camera1->Camera_Orientation->Camera2.
+  /// The correct name will be the grandchild (i.e. Camera2 in this scenario).
   ///
   bool FilamentViewer::setCamera(const char *cameraName)
   {
@@ -378,7 +374,7 @@ namespace polyvox
     }
 
     const utils::Entity* cameras = _asset->getCameraEntities();
-    Log("%zu cameras found in current asset", cameraName, count);
+    Log("%zu cameras found in current asset", count);
     for(int i=0; i < count; i++) {
       
       auto inst = _ncm->getInstance(cameras[i]);
@@ -386,15 +382,14 @@ namespace polyvox
       Log("Camera %d : %s", i, name);
       if (strcmp(name, cameraName) == 0) {
 
-        Camera* camera = _engine->createCamera(cameras[i]);
+        Camera* camera = _engine->getCameraComponent(cameras[i]); 
+        _view->setCamera(camera);
+        
         const Viewport &vp = _view->getViewport();
-
         const double aspect = (double)vp.width / vp.height;
 
-        // todo - pull focal length from gltf node
-
-        camera->setLensProjection(_cameraFocalLength, aspect, kNearPlane, kFarPlane);
-        _view->setCamera(camera);
+        Log("Camera focal length : %f aspect %f", camera->getFocalLength(), aspect);
+        camera->setScaling({1.0 / aspect, 1.0});
         Log("Successfully set camera.");
         return true;
       }
