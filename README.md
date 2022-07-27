@@ -39,4 +39,6 @@ and theme must have the following in `styles.xml`
 </style>
 ```
 
+Remember to set the background colour for your Scaffold to transparent!
+
 
