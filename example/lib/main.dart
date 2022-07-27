@@ -51,10 +51,16 @@ class _MyAppState extends State<MyApp> {
                             'assets/default_env/default_env_ibl.ktx');
                       }),
                   ElevatedButton(
+                      child: const Text('remove skybox'),
+                      onPressed: () async {
+                        await _filamentController.removeSkybox();
+                      }
+                      ),
+                  ElevatedButton(
                       child: const Text('load cube'),
                       onPressed: () async {
                         await _filamentController.loadGltf(
-                            'assets/eloise.gltf' ,"assets");
+                            'assets/cube.glb' ,"assets");
                         print(await _filamentController.getAnimationNames());
                       }),
                        ElevatedButton(
