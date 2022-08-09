@@ -13,6 +13,8 @@ All:
 
 Android:
 - build from Filament repository on Linux (build native, then build Android). Reminder that NDK >= 24 required.
+- need to specifically move imageio/png/tinyexr 
+- if release build, then need to comment out -fno-exceptions
 - copy out/android-release/filament/lib to android/src/main/jniLibs
 
 iOS:
