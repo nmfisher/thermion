@@ -94,6 +94,7 @@ PlatformView  {
 
     private lateinit var assetManager : AssetManager
 
+
     init {
         MethodChannel(binaryMessenger, PolyvoxFilamentPlugin.VIEW_TYPE + '_' + viewId).also {
             _methodChannel = it
@@ -157,11 +158,28 @@ PlatformView  {
               // val flutterJNI = 	FlutterJNI.Factory.provideFlutterJNI()
               // flutterJNI.updateJavaAssetManager(assetManager, flutterApplicationInfo.flutterAssetsDir)
             }
-            "loadSkybox" -> {
-                val args = call.arguments as ArrayList<Any?>
+            "setBackgroundImage" -> {
+                val args = call.arguments as String
                 val loader = FlutterInjector.instance().flutterLoader()
-                _lib.load_skybox(_viewer!!, loader.getLookupKeyForAsset(args[0] as String), loader.getLookupKeyForAsset(args[1] as String))                
+                _lib.set_background_image(_viewer!!, loader.getLookupKeyForAsset(args))                
                 result.success("OK");
+            }
+            "loadSkybox" -> {
+                val args = call.arguments as String
+                val loader = FlutterInjector.instance().flutterLoader()
+                _lib.load_skybox(_viewer!!, loader.getLookupKeyForAsset(args))                
+                result.success("OK");
+            }
+             "loadIbl" -> {
+                val args = call.arguments as String
+                val loader = FlutterInjector.instance().flutterLoader()
+
+                _lib.load_ibl(_viewer!!, loader.getLookupKeyForAsset(args))
+                result.success("OK");
+            }
+            "removeIbl" -> {
+              _lib.remove_ibl(_viewer!!)                
+              result.success(true);
             }
             "removeSkybox" -> {
               _lib.remove_skybox(_viewer!!)                
