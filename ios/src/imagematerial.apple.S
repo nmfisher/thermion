@@ -1,0 +1,12 @@
+    .global _IMAGEMATERIAL_IMAGE_OFFSET;
+    .global _IMAGEMATERIAL_IMAGE_SIZE;
+
+    .global _IMAGEMATERIAL_PACKAGE
+    .section __TEXT,__const
+_IMAGEMATERIAL_PACKAGE:
+    .incbin "imagematerial.bin"
+_IMAGEMATERIAL_IMAGE_OFFSET:
+    .int 0
+_IMAGEMATERIAL_IMAGE_SIZE:
+    .int 13322
+
