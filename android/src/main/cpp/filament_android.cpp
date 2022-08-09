@@ -47,12 +47,25 @@ static void freeResource(ResourceBuffer rb) {
 
 extern "C" {
 
-  void load_skybox(void* viewer, const char* skyboxPath, const char* iblPath) {
-    ((FilamentViewer*)viewer)->loadSkybox(skyboxPath, iblPath);
+  void set_background_image(void* viewer, const char* path) {
+    ((FilamentViewer*)viewer)->setBackgroundImage(path);
+  }
+
+  void load_skybox(void* viewer, const char* skyboxPath) {
+    ((FilamentViewer*)viewer)->loadSkybox(skyboxPath);
+  }
+
+  void load_ibl(void* viewer, const char* iblPath) {
+    ((FilamentViewer*)viewer)->loadIbl(iblPath);
   }
 
   void remove_skybox(void* viewer) {
     ((FilamentViewer*)viewer)->removeSkybox();
+  }
+
+  
+  void remove_ibl(void* viewer) {
+    ((FilamentViewer*)viewer)->removeIbl();
   }
 
   void load_glb(void* viewer, const char* assetPath) {

@@ -39,10 +39,16 @@ using namespace std;
     return;
   }
   if([@"loadSkybox" isEqualToString:call.method]) {
-    _viewer->loadSkybox([call.arguments[0] UTF8String], [call.arguments[1] UTF8String]);
+    _viewer->loadSkybox([call.arguments UTF8String]);
     result(@"OK");
-  } else if([@"loadSkybox" isEqualToString:call.method]) {
+  } else if([@"removeSkybox" isEqualToString:call.method]) {
     _viewer->removeSkybox();
+    result(@"OK");
+  } else if([@"loadIbl" isEqualToString:call.method]) {
+    _viewer->loadIbl([call.arguments UTF8String]);
+    result(@"OK");
+  } else if([@"removeIbl" isEqualToString:call.method]) {
+    _viewer->removeIbl();
     result(@"OK");
   } else if([@"loadGlb" isEqualToString:call.method]) {
     _viewer->loadGlb([call.arguments UTF8String]);

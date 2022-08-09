@@ -24,7 +24,9 @@ interface FilamentInterop : Library {
             am:AssetManager
     ) : Pointer;
 
-    fun load_skybox(viewer:Pointer, skyboxPath:String, iblPath:String) : Pointer;
+    fun load_skybox(viewer:Pointer, skyboxPath:String) : Pointer;
+
+    fun load_ibl(viewer:Pointer, skyboxPath:String) : Pointer;
 
     fun load_glb(viewer:Pointer, uri:String) : Pointer;
 
@@ -66,5 +68,7 @@ interface FilamentInterop : Library {
 
     fun remove_skybox(viewer:Pointer);
 
+    fun remove_ibl(viewer:Pointer);
 
+    fun set_background_image(viewer:Pointer, path:String);
 }

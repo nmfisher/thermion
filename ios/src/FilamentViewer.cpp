@@ -16,6 +16,7 @@
 
 #include "FilamentViewer.hpp"
 
+#include "streambuf.hpp"
 
 #include <filament/Camera.h>
 #include <filament/ColorGrading.h>
@@ -46,6 +47,8 @@
 
 #include <utils/NameComponentManager.h>
 
+#include <imageio/ImageDecoder.h>
+
 #include "math.h"
 
 #include <math/mat4.h>
@@ -63,11 +66,14 @@
 
 #include "Log.h"
 
+#include "imagematerial.h"
+
 using namespace filament;
 using namespace filament::math;
 using namespace gltfio;
 using namespace utils;
 using namespace std::chrono;
+using namespace image;
 
 namespace filament
 {
@@ -170,15 +176,161 @@ namespace polyvox
 
     // Always add a direct light source since it is required for shadowing.
     _sun = EntityManager::get().create();
-    LightManager::Builder(LightManager::Type::DIRECTIONAL)
+    LightManager::Builder(LightManager::Type::SUN)
         .color(Color::cct(6500.0f))
-        .intensity(100000.0f)
-        .direction(math::float3(0.0f, 1.0f, 0.0f))
+        .intensity(150000.0f)
+        .direction(math::float3(0.0f, 0.0f, -1.0f))
         .castShadows(false)
         // .castShadows(true)
         .build(*_engine, _sun);
     _scene->addEntity(_sun);
+  }
 
+  static constexpr float4 sFullScreenTriangleVertices[3] = {
+      {-1.0f, -1.0f, 1.0f, 1.0f},
+      {3.0f, -1.0f, 1.0f, 1.0f},
+      {-1.0f, 3.0f, 1.0f, 1.0f}};
+
+  static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
+
+  void FilamentViewer::createImageRenderable()
+  {
+
+    if (_imageEntity)
+      return;
+
+    auto &em = EntityManager::get();
+    _imageMaterial = Material::Builder()
+                         .package(IMAGEMATERIAL_IMAGE_DATA, IMAGEMATERIAL_IMAGE_SIZE)
+                         .build(*_engine);
+
+    _imageVb = VertexBuffer::Builder()
+                   .vertexCount(3)
+                   .bufferCount(1)
+                   .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT4, 0)
+                   .build(*_engine);
+
+    _imageVb->setBufferAt(
+        *_engine, 0, {sFullScreenTriangleVertices, sizeof(sFullScreenTriangleVertices)});
+
+    _imageIb = IndexBuffer::Builder()
+                   .indexCount(3)
+                   .bufferType(IndexBuffer::IndexType::USHORT)
+                   .build(*_engine);
+
+    _imageIb->setBuffer(*_engine,
+                        {sFullScreenTriangleIndices, sizeof(sFullScreenTriangleIndices)});
+
+    Entity imageEntity = em.create();
+    RenderableManager::Builder(1)
+        .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+        .material(0, _imageMaterial->getDefaultInstance())
+        .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, _imageVb, _imageIb, 0, 3)
+        .culling(false)
+        .build(*_engine, imageEntity);
+
+    _scene->addEntity(imageEntity);
+
+    _imageEntity = &imageEntity;
+
+    Texture *texture = Texture::Builder()
+                           .width(1)
+                           .height(1)
+                           .levels(1)
+                           .format(Texture::InternalFormat::RGBA8)
+                           .sampler(Texture::Sampler::SAMPLER_2D)
+                           .build(*_engine);
+    static uint32_t pixel = 0;
+    Texture::PixelBufferDescriptor buffer(&pixel, 4, Texture::Format::RGBA, Texture::Type::UBYTE);
+    texture->setImage(*_engine, 0, std::move(buffer));
+  }
+
+  void FilamentViewer::setBackgroundImage(const char *resourcePath)
+  {
+
+    if (colorGrading)
+    {
+      _engine->destroy(colorGrading);
+    }
+    ToneMapper *tm = new LinearToneMapper();
+    colorGrading = ColorGrading::Builder()
+                       .toneMapper(tm)
+                       .build(*_engine);
+    delete tm;
+
+    _view->setColorGrading(colorGrading);
+
+    createImageRenderable();
+
+    if (_imageTexture)
+    {
+      _engine->destroy(_imageTexture);
+      _imageTexture = nullptr;
+    }
+
+    ResourceBuffer bg = _loadResource(resourcePath);
+
+    polyvox::streambuf sb((char *)bg.data, (char *)bg.data + bg.size);
+
+    std::istream *inputStream = new std::istream(&sb);
+
+    LinearImage *image = new LinearImage(ImageDecoder::decode(
+        *inputStream, resourcePath, ImageDecoder::ColorSpace::SRGB));
+
+    if (!image->isValid())
+    {
+      Log("Invalid image : %s", resourcePath);
+      return;
+    }
+
+    delete inputStream;
+
+    _freeResource(bg);
+
+    uint32_t channels = image->getChannels();
+    uint32_t w = image->getWidth();
+    uint32_t h = image->getHeight();
+    _imageTexture = Texture::Builder()
+                        .width(w)
+                        .height(h)
+                        .levels(0xff)
+                        .format(channels == 3 ? Texture::InternalFormat::RGB16F : Texture::InternalFormat::RGBA16F)
+                        .sampler(Texture::Sampler::SAMPLER_2D)
+                        .build(*_engine);
+
+    Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t, void *data)
+    {
+      delete reinterpret_cast<LinearImage *>(data);
+    };
+
+    Texture::PixelBufferDescriptor buffer(
+        image->getPixelRef(),
+        size_t(w * h * channels * sizeof(float)),
+        channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
+        Texture::Type::FLOAT,
+        freeCallback);
+
+    _imageTexture->setImage(*_engine, 0, std::move(buffer));
+    // _imageTexture->generateMipmaps(*_engine);
+
+    float srcWidth = _imageTexture->getWidth();
+    float srcHeight = _imageTexture->getHeight();
+    float dstWidth = _view->getViewport().width;
+    float dstHeight = _view->getViewport().height;
+
+    mat3f transform(
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f);
+
+    _imageMaterial->setDefaultParameter("transform", transform);
+    _imageMaterial->setDefaultParameter(
+        "image", _imageTexture, _imageSampler);
+
+    _imageMaterial->setDefaultParameter("showImage", 1);
+
+    _imageMaterial->setDefaultParameter(
+        "backgroundColor", RgbType::sRGB, float3(1.0f));
   }
 
   FilamentViewer::~FilamentViewer()
@@ -231,7 +383,7 @@ namespace polyvox
     for (size_t i = 0; i < resourceUriCount; i++)
     {
       string uri = relativeResourcePath + string(resourceUris[i]);
-      Log("Creating resource buffer for resource at %s",uri.c_str());
+      Log("Creating resource buffer for resource at %s", uri.c_str());
       ResourceBuffer buf = _loadResource(uri.c_str());
 
       // using FunctionCallback = std::function<void(void*, unsigned int, void *)>;
@@ -313,7 +465,7 @@ namespace polyvox
     _asset = nullptr;
     _animator = nullptr;
 
-    ResourceBuffer rbuf  = _loadResource(uri);
+    ResourceBuffer rbuf = _loadResource(uri);
 
     // Parse the glTF file and create Filament entities.
     Log("Creating asset from JSON");
@@ -335,14 +487,16 @@ namespace polyvox
     // transformToUnitCube();
   }
 
-  void FilamentViewer::removeAsset() {
-    if (!_asset) {
+  void FilamentViewer::removeAsset()
+  {
+    if (!_asset)
+    {
       Log("No asset loaded, ignoring call.");
       return;
     }
 
     mtx.lock();
-    
+
     _resourceLoader->evictResourceData();
     _scene->removeEntities(_asset->getEntities(), _asset->getEntityCount());
     _assetLoader->destroyAsset(_asset);
@@ -354,11 +508,6 @@ namespace polyvox
     mtx.unlock();
   }
 
-  void FilamentViewer::removeSkybox() { 
-    _scene->setSkybox(nullptr);
-  }
-
-
   ///
   /// Sets the active camera to the GLTF camera node specified by [name].
   /// N.B. Blender will generally export a three-node hierarchy - Camera1->Camera_Orientation->Camera2.
@@ -368,23 +517,26 @@ namespace polyvox
   {
     Log("Attempting to set camera to %s.", cameraName);
     size_t count = _asset->getCameraEntityCount();
-    if(count == 0) {
-          Log("Failed, no cameras found in current asset.");
+    if (count == 0)
+    {
+      Log("Failed, no cameras found in current asset.");
       return false;
     }
 
-    const utils::Entity* cameras = _asset->getCameraEntities();
+    const utils::Entity *cameras = _asset->getCameraEntities();
     Log("%zu cameras found in current asset", count);
-    for(int i=0; i < count; i++) {
-      
-      auto inst = _ncm->getInstance(cameras[i]);
-      const char* name = _ncm->getName(inst);
-      Log("Camera %d : %s", i, name);
-      if (strcmp(name, cameraName) == 0) {
+    for (int i = 0; i < count; i++)
+    {
 
-        Camera* camera = _engine->getCameraComponent(cameras[i]); 
+      auto inst = _ncm->getInstance(cameras[i]);
+      const char *name = _ncm->getName(inst);
+      Log("Camera %d : %s", i, name);
+      if (strcmp(name, cameraName) == 0)
+      {
+
+        Camera *camera = _engine->getCameraComponent(cameras[i]);
         _view->setCamera(camera);
-        
+
         const Viewport &vp = _view->getViewport();
         const double aspect = (double)vp.width / vp.height;
 
@@ -400,7 +552,8 @@ namespace polyvox
 
   unique_ptr<vector<string>> FilamentViewer::getAnimationNames()
   {
-    if(!_asset) {
+    if (!_asset)
+    {
       Log("No asset, ignoring call.");
       return nullptr;
     }
@@ -420,7 +573,8 @@ namespace polyvox
 
   unique_ptr<vector<string>> FilamentViewer::getTargetNames(const char *meshName)
   {
-    if(!_asset) {
+    if (!_asset)
+    {
       Log("No asset, ignoring call.");
       return nullptr;
     }
@@ -432,12 +586,14 @@ namespace polyvox
     {
       Entity e = entities[i];
       auto inst = _ncm->getInstance(e);
-      const char* name = _ncm->getName(inst);
+      const char *name = _ncm->getName(inst);
       Log("Got entity instance name %s", name);
-      if(strcmp(name, meshName) == 0) {
+      if (strcmp(name, meshName) == 0)
+      {
         size_t count = _asset->getMorphTargetCountAt(e);
-        for(int j=0; j< count; j++) {
-          const char* morphName = _asset->getMorphTargetNameAt(e, j);
+        for (int j = 0; j < count; j++)
+        {
+          const char *morphName = _asset->getMorphTargetNameAt(e, j);
           names->push_back(morphName);
         }
         break;
@@ -446,39 +602,66 @@ namespace polyvox
     return names;
   }
 
-  void FilamentViewer::loadSkybox(const char *const skyboxPath, const char *const iblPath)
+  void FilamentViewer::loadSkybox(const char *const skyboxPath)
   {
+    if (!skyboxPath)
+    {
+      _scene->setSkybox(nullptr);
+    }
+    else
+    {
+      ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
 
-    ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
+      image::Ktx1Bundle *skyboxBundle =
+          new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data), static_cast<uint32_t>(skyboxBuffer.size));
+      _skyboxTexture = ktxreader::Ktx1Reader::createTexture(_engine, skyboxBundle, false);
+      _skybox = filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
 
-    image::Ktx1Bundle *skyboxBundle =
-        new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data), static_cast<uint32_t>(skyboxBuffer.size));
-    _skyboxTexture = ktxreader::Ktx1Reader::createTexture(_engine, skyboxBundle, false);
-    _skybox = filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
+      _scene->setSkybox(_skybox);
+      _freeResource(skyboxBuffer);
+    }
+  }
 
-    _scene->setSkybox(_skybox);
-    _freeResource(skyboxBuffer);
+  void FilamentViewer::removeSkybox()
+  {
+    _scene->setSkybox(nullptr);
+  }
 
-    Log("Loading IBL from %s", iblPath);
+  void FilamentViewer::removeIbl()
+  {
+    _scene->setIndirectLight(nullptr);
+  }
 
-    // Load IBL.
-    ResourceBuffer iblBuffer = _loadResource(iblPath);
+  void FilamentViewer::loadIbl(const char *const iblPath)
+  {
+    if (!iblPath)
+    {
+      _scene->setIndirectLight(nullptr);
+    }
+    else
+    {
 
-    image::Ktx1Bundle *iblBundle = new image::Ktx1Bundle(
-        static_cast<const uint8_t *>(iblBuffer.data), static_cast<uint32_t>(iblBuffer.size));
-    math::float3 harmonics[9];
-    iblBundle->getSphericalHarmonics(harmonics);
-    _iblTexture = ktxreader::Ktx1Reader::createTexture(_engine, iblBundle, false);
-    _indirectLight = IndirectLight::Builder()
-                         .reflections(_iblTexture)
-                         .irradiance(3, harmonics)
-                         .intensity(30000.0f)
-                         .build(*_engine);
-    _scene->setIndirectLight(_indirectLight);
+      Log("Loading IBL from %s", iblPath);
 
-    _freeResource(iblBuffer);
+      // Load IBL.
+      ResourceBuffer iblBuffer = _loadResource(iblPath);
 
-    Log("Skybox/IBL load complete.");
+      image::Ktx1Bundle *iblBundle = new image::Ktx1Bundle(
+          static_cast<const uint8_t *>(iblBuffer.data), static_cast<uint32_t>(iblBuffer.size));
+      math::float3 harmonics[9];
+      iblBundle->getSphericalHarmonics(harmonics);
+      _iblTexture = ktxreader::Ktx1Reader::createTexture(_engine, iblBundle, false);
+      _indirectLight = IndirectLight::Builder()
+                           .reflections(_iblTexture)
+                           .irradiance(3, harmonics)
+                           .intensity(30000.0f)
+                           .build(*_engine);
+      _scene->setIndirectLight(_indirectLight);
+
+      _freeResource(iblBuffer);
+
+      Log("Skybox/IBL load complete.");
+    }
   }
 
   void FilamentViewer::transformToUnitCube()
@@ -514,13 +697,13 @@ namespace polyvox
       Log("Not ready for rendering");
       return;
     }
-    
+
     mtx.lock();
-    if(_asset) {
+    if (_asset)
+    {
       updateMorphAnimation();
       updateEmbeddedAnimation();
     }
-    
 
     math::float3 eye, target, upward;
     manipulator->getLookAt(&eye, &target, &upward);
@@ -532,7 +715,7 @@ namespace polyvox
       _renderer->render(_view);
       _renderer->endFrame();
     }
-    mtx.unlock();  
+    mtx.unlock();
   }
 
   void FilamentViewer::updateViewportAndCameraProjection(int width, int height, float contentScaleFactor)
@@ -561,11 +744,13 @@ namespace polyvox
 
   void FilamentViewer::updateMorphAnimation()
   {
-    if(!_morphAnimationBuffer) {
+    if (!_morphAnimationBuffer)
+    {
       return;
     }
 
-    if (_morphAnimationBuffer->frameIndex == -1) {
+    if (_morphAnimationBuffer->frameIndex == -1)
+    {
       _morphAnimationBuffer->frameIndex++;
       _morphAnimationBuffer->startTime = high_resolution_clock::now();
       applyWeights(_morphAnimationBuffer->frameData, _morphAnimationBuffer->numWeights);
@@ -580,7 +765,9 @@ namespace polyvox
         duration<double, std::milli> dur = high_resolution_clock::now() - _morphAnimationBuffer->startTime;
         Log("Morph animation completed in %f ms (%d frames at framerate %f), final frame was %d", dur.count(), _morphAnimationBuffer->numFrames, 1000 / _morphAnimationBuffer->frameLengthInMs, _morphAnimationBuffer->frameIndex);
         _morphAnimationBuffer = nullptr;
-      } else if (frameIndex != _morphAnimationBuffer->frameIndex) {
+      }
+      else if (frameIndex != _morphAnimationBuffer->frameIndex)
+      {
         Log("Rendering frame %d (of a total %d)", frameIndex, _morphAnimationBuffer->numFrames);
         _morphAnimationBuffer->frameIndex = frameIndex;
         auto framePtrOffset = frameIndex * _morphAnimationBuffer->numWeights;
@@ -589,43 +776,56 @@ namespace polyvox
     }
   }
 
-  void FilamentViewer::playAnimation(int index, bool loop) {
-    if(index > _animator->getAnimationCount() - 1) {
+  void FilamentViewer::playAnimation(int index, bool loop)
+  {
+    if (index > _animator->getAnimationCount() - 1)
+    {
       Log("Asset does not contain an animation at index %d", index);
-    } else {
+    }
+    else
+    {
       _embeddedAnimationBuffer = make_unique<EmbeddedAnimationBuffer>(index, _animator->getAnimationDuration(index), loop);
     }
   }
 
-  void FilamentViewer::stopAnimation() {
+  void FilamentViewer::stopAnimation()
+  {
     // TODO - does this need to be threadsafe?
     _embeddedAnimationBuffer = nullptr;
   }
 
-  void FilamentViewer::updateEmbeddedAnimation() {
-    if(!_embeddedAnimationBuffer) {
+  void FilamentViewer::updateEmbeddedAnimation()
+  {
+    if (!_embeddedAnimationBuffer)
+    {
       return;
     }
     duration<double> dur = duration_cast<duration<double>>(high_resolution_clock::now() - _embeddedAnimationBuffer->lastTime);
     float startTime = 0;
-    if(!_embeddedAnimationBuffer->hasStarted) {
+    if (!_embeddedAnimationBuffer->hasStarted)
+    {
       _embeddedAnimationBuffer->hasStarted = true;
       _embeddedAnimationBuffer->lastTime = high_resolution_clock::now();
-    } else if(dur.count() >= _embeddedAnimationBuffer->duration) {
-      if(_embeddedAnimationBuffer->loop) {
+    }
+    else if (dur.count() >= _embeddedAnimationBuffer->duration)
+    {
+      if (_embeddedAnimationBuffer->loop)
+      {
         _embeddedAnimationBuffer->lastTime = high_resolution_clock::now();
-      } else {
+      }
+      else
+      {
         _embeddedAnimationBuffer = nullptr;
         return;
       }
-    } else {
+    }
+    else
+    {
       startTime = dur.count();
     }
 
     _animator->applyAnimation(_embeddedAnimationBuffer->animationIndex, startTime);
     _animator->updateBoneMatrices();
-
   }
 
 }
-

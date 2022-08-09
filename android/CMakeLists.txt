@@ -14,7 +14,43 @@ add_library(
             src/main/cpp/StbProvider.cpp
             src/main/cpp/JobSystem.cpp
             ../ios/src/FilamentViewer.cpp
+            ../ios/src/streambuf.cpp
+            ../ios/src/imagematerial.c
         )
 
-target_link_libraries(filament_interop -landroid -llog -lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_core -lfilament-iblprefilter -limage -lcamutils -lfilaflat -ldracodec -libl -lktxreader -lstb  -lEGL -lGLESv3 -lbluevk -lvkshaders -luberzlib -lsmol-v -luberarchive -lzstd)
+target_link_libraries(
+  filament_interop 
+  -landroid 
+  -llog 
+  -lfilament 
+  -lbackend 
+  -lfilameshio 
+  -lviewer 
+  -lfilamat 
+  -lgeometry 
+  -lutils 
+  -lfilabridge 
+  -lgltfio_core 
+  -lfilament-iblprefilter 
+  -limage 
+  -lcamutils 
+  -lfilaflat 
+  -ldracodec 
+  -libl 
+  -lktxreader 
+  -limageio
+  -lpng
+  -ltinyexr
+  -lz
+  -lstb  
+  -lEGL 
+  -lGLESv3 
+  -lbluevk 
+  -lvkshaders 
+  -luberzlib 
+  -lsmol-v 
+  -luberarchive 
+  -lzstd
+  
+  )
 

@@ -93,8 +93,11 @@ namespace polyvox {
             FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
 
-            void loadSkybox(const char* const skyboxUri, const char* const iblUri);
+            void loadSkybox(const char* const skyboxUri);
             void removeSkybox();
+
+            void loadIbl(const char* const iblUri);
+            void removeIbl();
             
             void loadGlb(const char* const uri);
             void loadGltf(const char* const uri, const char* relativeResourcePath);
@@ -137,8 +140,10 @@ namespace polyvox {
 
             Renderer* getRenderer();
 
+            void setBackgroundImage(const char* resourcePath);
+
         private:
-      
+            void createImageRenderable();
             void loadResources(std::string relativeResourcePath);
             void transformToUnitCube();
             void cleanup();
@@ -186,6 +191,16 @@ namespace polyvox {
             bool isAnimating;
             unique_ptr<MorphAnimationBuffer> _morphAnimationBuffer;
             unique_ptr<EmbeddedAnimationBuffer> _embeddedAnimationBuffer;
+
+            Texture* _imageTexture = nullptr;
+            Entity* _imageEntity = nullptr;
+            VertexBuffer* _imageVb = nullptr;
+            IndexBuffer* _imageIb = nullptr;
+            Material* _imageMaterial = nullptr;
+            TextureSampler _imageSampler;
+
+            ColorGrading *colorGrading = nullptr;
+
 
     };
 
