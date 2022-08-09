@@ -32,22 +32,29 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
           backgroundColor: Colors.transparent,
           body: Column(children: [
-            Expanded(child:SizedBox(
+            Expanded(child:SizedBox(  
               height:200, width:200,
               child:FilamentWidget(
                 controller: _filamentController,
             ))),
             
             Expanded(
-              child: Wrap(
+              child: SingleChildScrollView(child:Wrap(
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.end,
                 children: [ 
+                   ElevatedButton(
+                      child: const Text('load background image'),
+                      onPressed: () async {
+                        await _filamentController.setBackgroundImage(
+                            'assets/background3.png');
+                      }),
                   ElevatedButton(
                       child: const Text('load skybox'),
                       onPressed: () async {
                         await _filamentController.loadSkybox(
-                            'assets/default_env/default_env_skybox.ktx',
+                            'assets/default_env/default_env_skybox.ktx');
+                        await _filamentController.loadSkybox(
                             'assets/default_env/default_env_ibl.ktx');
                       }),
                   ElevatedButton(
@@ -206,7 +213,7 @@ class _MyAppState extends State<MyApp> {
                       child: Text("Pan right"))
                 ],
               ),
-            ),
+            )),
           ])),
     );
   }
