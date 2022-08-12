@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+typedef FilamentAsset = int;
+
 abstract class FilamentController {
   void onFilamentViewCreated(int id);
   Future setBackgroundImage(String path);
@@ -9,22 +11,21 @@ abstract class FilamentController {
   Future removeSkybox();
   Future loadIbl(String path);
   Future removeIbl();
-  Future loadGlb(String path);
-  Future loadGltf(String path, String relativeResourcePath);
+  Future<FilamentAsset> loadGlb(String path);
+  Future<FilamentAsset> loadGltf(String path, String relativeResourcePath);
   Future panStart(double x, double y);
   Future panUpdate(double x, double y);
   Future panEnd();
   Future rotateStart(double x, double y);
   Future rotateUpdate(double x, double y);
   Future rotateEnd();
-  Future applyWeights(List<double> weights);
-  Future<List<String>> getTargetNames(String meshName);
-  Future<List<String>> getAnimationNames();
-  Future releaseSourceAssets();
-  Future removeAsset();
-  Future playAnimation(int index, {bool loop = false});
-  Future stopAnimation();
-  Future setCamera(String name);
+  Future applyWeights(FilamentAsset asset, List<double> weights);
+  Future<List<String>> getTargetNames(FilamentAsset asset, String meshName);
+  Future<List<String>> getAnimationNames(FilamentAsset asset);
+  Future removeAsset(FilamentAsset asset);
+  Future playAnimation(FilamentAsset asset, int index, {bool loop = false});
+  Future stopAnimation(FilamentAsset asset);
+  Future setCamera(FilamentAsset asset, String name);
 
   ///
   /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where each frame requires a duration of [frameLengthInMs].
@@ -32,9 +33,8 @@ abstract class FilamentController {
   /// Each frame is [numWeights] in length, where each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   /// In other words, weights is a contiguous sequence of floats of size W*F, where W is the number of weights and F is the number of frames
   ///
-  Future animate(
+  Future animate(FilamentAsset asset, 
       List<double> data, int numWeights, int numFrames, double frameLengthInMs);
-  Future createMorpher(String meshName, List<int> primitives);
   Future zoom(double z);
 }
 
@@ -86,15 +86,18 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("removeIbl");
   }
 
-  Future loadGlb(String path) async {
+  Future<FilamentAsset> loadGlb(String path) async {
     print("Loading GLB at $path ");
-    await _channel.invokeMethod("loadGlb", path);
+    var asset = await _channel.invokeMethod("loadGlb", path);
+    print("Got asset : $asset ");
+    return asset as FilamentAsset;
   }
 
-  Future loadGltf(String path, String relativeResourcePath) async {
+  Future<FilamentAsset> loadGltf(String path, String relativeResourcePath) async {
     print(
         "Loading GLTF at $path with relative resource path $relativeResourcePath");
-    await _channel.invokeMethod("loadGltf", [path, relativeResourcePath]);
+    var asset = await _channel.invokeMethod("loadGltf", [path, relativeResourcePath]);
+    return asset as FilamentAsset;
   }
 
   Future panStart(double x, double y) async {
@@ -121,53 +124,45 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("rotateEnd");
   }
 
-  Future applyWeights(List<double> weights) async {
-    await _channel.invokeMethod("applyWeights", weights);
+  Future applyWeights(FilamentAsset asset, List<double> weights) async {
+    await _channel.invokeMethod("applyWeights", [asset, weights]);
   }
 
-  Future<List<String>> getTargetNames(String meshName) async {
-    var result = (await _channel.invokeMethod("getTargetNames", meshName))
+  Future<List<String>> getTargetNames(FilamentAsset asset, String meshName) async {
+    var result = (await _channel.invokeMethod("getTargetNames", [asset, meshName]))
         .cast<String>();
     return result;
   }
 
-  Future<List<String>> getAnimationNames() async {
+  Future<List<String>> getAnimationNames(FilamentAsset asset) async {
     var result =
-        (await _channel.invokeMethod("getAnimationNames")).cast<String>();
+        (await _channel.invokeMethod("getAnimationNames", asset)).cast<String>();
     return result;
   }
 
-  Future animate(List<double> weights, int numWeights, int numFrames,
+  Future animate(FilamentAsset asset, List<double> weights, int numWeights, int numFrames,
       double frameLengthInMs) async {
     await _channel.invokeMethod(
-        "animateWeights", [weights, numWeights, numFrames, frameLengthInMs]);
+        "animateWeights", [asset, weights, numWeights, numFrames, frameLengthInMs]);
   }
 
-  Future releaseSourceAssets() async {
-    await _channel.invokeMethod("releaseSourceAssets");
-  }
-
-  Future removeAsset() async {
-    await _channel.invokeMethod("removeAsset");
+  Future removeAsset(FilamentAsset asset) async {
+    await _channel.invokeMethod("removeAsset", asset);
   }
 
   Future zoom(double z) async {
     await _channel.invokeMethod("zoom", z);
   }
 
-  Future createMorpher(String meshName, List<int> primitives) async {
-    await _channel.invokeMethod("createMorpher", [meshName, primitives]);
+  Future playAnimation(FilamentAsset asset, int index, {bool loop = false}) async {
+    await _channel.invokeMethod("playAnimation", [asset, index, loop]);
   }
 
-  Future playAnimation(int index, {bool loop = false}) async {
-    await _channel.invokeMethod("playAnimation", [index, loop]);
-  }
-
-  Future stopAnimation() async {
+  Future stopAnimation(FilamentAsset asset) async {
     await _channel.invokeMethod("stopAnimation");
   }
 
-  Future setCamera(String name) async {
-    await _channel.invokeMethod("setCamera", name);
+  Future setCamera(FilamentAsset asset, String name) async {
+    await _channel.invokeMethod("setCamera", [asset, name]);
   }
 }
