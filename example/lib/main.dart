@@ -16,6 +16,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final FilamentController _filamentController = PolyvoxFilamentController();
 
+  FilamentAsset? _cube;
+  FilamentAsset? _flightHelmet;
+
   final weights = List.filled(255, 0.0);
   List<String> _targets = [];
   bool _loop = false;
@@ -32,22 +35,24 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
           backgroundColor: Colors.transparent,
           body: Column(children: [
-            Expanded(child:SizedBox(  
-              height:200, width:200,
-              child:FilamentWidget(
-                controller: _filamentController,
-            ))),
-            
             Expanded(
-              child: SingleChildScrollView(child:Wrap(
+                child: SizedBox(
+                    height: 200,
+                    width: 200,
+                    child: FilamentWidget(
+                      controller: _filamentController,
+                    ))),
+            Expanded(
+                child: SingleChildScrollView(
+              child: Wrap(
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.end,
-                children: [ 
-                   ElevatedButton(
+                children: [
+                  ElevatedButton(
                       child: const Text('load background image'),
                       onPressed: () async {
-                        await _filamentController.setBackgroundImage(
-                            'assets/background3.png');
+                        await _filamentController
+                            .setBackgroundImage('assets/background.png');
                       }),
                   ElevatedButton(
                       child: const Text('load skybox'),
@@ -61,46 +66,57 @@ class _MyAppState extends State<MyApp> {
                       child: const Text('remove skybox'),
                       onPressed: () async {
                         await _filamentController.removeSkybox();
-                      }
-                      ),
+                      }),
                   ElevatedButton(
-                      child: const Text('load cube'),
-                      onPressed: () async {
-                        await _filamentController.loadGltf(
-                            'assets/cube.glb' ,"assets");
-                        print(await _filamentController.getAnimationNames());
+                      child: const Text('load cube GLB'),
+                      onPressed:_cube != null ? null : () async {
+                        _cube = await _filamentController
+                            .loadGlb('assets/cube.glb');
+                        print(await _filamentController
+                            .getAnimationNames(_cube!));
                       }),
-                       ElevatedButton(
+                    ElevatedButton(
+                      child: const Text('load cube GLTF'),
+                      onPressed:() async {
+                        if(_cube != null) {
+                          await _filamentController.removeAsset(_cube!);
+                        }
+                        _cube = await _filamentController
+                            .loadGltf('assets/cube.gltf', 'assets');
+                        print(await _filamentController
+                            .getAnimationNames(_cube!));
+                      }),
+                  ElevatedButton(
                       child: const Text('load flight helmet'),
-                      onPressed: () async {
-                        await _filamentController.loadGltf(
-                            'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
+                      onPressed:_flightHelmet != null ? null : () async {
+                        _flightHelmet = await _filamentController.loadGltf(
+                            'assets/FlightHelmet/FlightHelmet.gltf',
+                            'assets/FlightHelmet');
                       }),
-                      ElevatedButton(
-                      child: const Text('remove asset'),
+                  ElevatedButton(
+                      child: const Text('remove cube'),
                       onPressed: () async {
-                        await _filamentController
-                            .removeAsset();
+                        await _filamentController.removeAsset(_cube!);
                       }),
                   ElevatedButton(
                       child: const Text('set all weights to 1'),
                       onPressed: () async {
                         await _filamentController
-                            .applyWeights(List.filled(8, 1.0));
+                            .applyWeights(_cube!, List.filled(8, 1.0));
                       }),
                   ElevatedButton(
                       child: const Text('set all weights to 0'),
                       onPressed: () async {
                         await _filamentController
-                            .applyWeights(List.filled(8, 0));
+                            .applyWeights(_cube!, List.filled(8, 0));
                       }),
                   ElevatedButton(
                       onPressed: () =>
-                          _filamentController.playAnimation(0, loop: _loop),
+                          _filamentController.playAnimation(_cube!, 0, loop: _loop),
                       child: const Text('play animation')),
                   ElevatedButton(
                       onPressed: () {
-                        _filamentController.stopAnimation();
+                        _filamentController.stopAnimation(_cube!);
                       },
                       child: const Text('stop animation')),
                   Checkbox(
@@ -120,7 +136,7 @@ class _MyAppState extends State<MyApp> {
                       child: const Text('zoom out')),
                   ElevatedButton(
                       onPressed: () {
-                        _filamentController.setCamera("Camera_Orientation");
+                        _filamentController.setCamera(_cube!, "Camera_Orientation");
                       },
                       child: const Text('set camera')),
                   ElevatedButton(
@@ -135,6 +151,7 @@ class _MyAppState extends State<MyApp> {
                                 List.filled(numWeights, frame / totalFrames));
 
                         _filamentController.animate(
+                          _cube!,
                             frames.reduce((a, b) => a + b),
                             numWeights,
                             totalFrames,
@@ -145,7 +162,7 @@ class _MyAppState extends State<MyApp> {
                       builder: (innerCtx) => ElevatedButton(
                           onPressed: () async {
                             final names = await _filamentController
-                                .getTargetNames("Cube");
+                                .getTargetNames(_cube!, "Cube");
 
                             await showDialog(
                                 builder: (ctx) {
@@ -173,7 +190,7 @@ class _MyAppState extends State<MyApp> {
                       builder: (innerCtx) => ElevatedButton(
                           onPressed: () async {
                             final names =
-                                await _filamentController.getAnimationNames();
+                                await _filamentController.getAnimationNames(_cube!);
 
                             await showDialog(
                                 builder: (ctx) {
@@ -219,52 +236,4 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-// ElevatedButton(
-//     child: Text('load skybox'),
-//     onPressed: () {
-//       _filamentController.loadSkybox(
-//           'assets/default_env/default_env_skybox.ktx',
-//           'assets/default_env/default_env_ibl.ktx');
-//     }),
-// ElevatedButton(
-//     child: Text('load gltf'),
-//     onPressed: () {
-//       _filamentController.loadGltf(
-//           'assets/guy.gltf', 'assets', 'Material');
-//     }),
-// ElevatedButton(
-//     child: Text('create morpher'),
-//     onPressed: () {
-//       _filamentController.createMorpher(
-//           'CC_Base_Body.003', 'CC_Base_Body.003',
-//           materialName: 'Material');
-//     }),
-// ])),
-// Column(
-//   children: _targets
-//       .asMap()
-//       .map((i, t) => MapEntry(
-//           i,
-//           Row(children: [
-//             Text(t),
-//             Slider(
-//                 min: 0,
-//                 max: 1,
-//                 divisions: 10,
-//                 value: weights[i],
-//                 onChanged: (v) {
-//                   setState(() {
-//                     weights[i] = v;
-//                     _filamentController
-//                         .applyWeights(weights);
-//                   });
-//                 })
-//           ])))
-//       .values
-//       .toList(),
-// )
-//  ElevatedButton(
-//     child: const Text('init'),
-//     onPressed: () async {
-//       await _filamentController.initialize();
-//     }),
+

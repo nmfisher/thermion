@@ -1,4 +1,5 @@
 #include "FilamentViewer.hpp"
+#include "SceneAsset.hpp"
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <android/native_window_jni.h>
@@ -41,6 +42,8 @@ static void freeResource(ResourceBuffer rb) {
   AAsset* asset = _assets[rb.id];
   if(asset) {
     AAsset_close(asset);
+  } else {
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Attempting to free resource at index [ %d ] that has already been released.", rb.id);
   }
   _assets[rb.id] = nullptr;
 }
@@ -68,16 +71,16 @@ extern "C" {
     ((FilamentViewer*)viewer)->removeIbl();
   }
 
-  void load_glb(void* viewer, const char* assetPath) {
-    ((FilamentViewer*)viewer)->loadGlb(assetPath);
+  void* load_glb(void* viewer, const char* assetPath) {
+    return ((FilamentViewer*)viewer)->loadGlb(assetPath);
   }
 
-  void load_gltf(void* viewer, const char* assetPath, const char* relativePath) {
-    ((FilamentViewer*)viewer)->loadGltf(assetPath, relativePath);
+  void* load_gltf(void* viewer, const char* assetPath, const char* relativePath) {
+    return ((FilamentViewer*)viewer)->loadGltf(assetPath, relativePath);
   }
 
-  bool set_camera(void* viewer, const char* nodeName) {
-    return ((FilamentViewer*)viewer)->setCamera(nodeName);
+  bool set_camera(void* viewer, void* asset, const char* nodeName) {
+    return ((FilamentViewer*)viewer)->setCamera((SceneAsset*)asset, nodeName);
   }
 
   void* filament_viewer_new(
@@ -141,22 +144,22 @@ extern "C" {
     ((FilamentViewer*)viewer)->manipulator->grabEnd();
   }
 
-  void apply_weights(void* viewer, float* weights, int count) {
-    ((FilamentViewer*)viewer)->applyWeights(weights, count);
+  void apply_weights(void* asset, float* weights, int count) {
+    ((SceneAsset*)asset)->applyWeights(weights, count);
   }
 
-  void animate_weights(void* viewer, float* data, int numWeights, int numFrames,  float frameRate) {
+  void animate_weights(void* asset, float* data, int numWeights, int numFrames,  float frameRate) {
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Animating %d frames, each with %d weights", numFrames, numWeights);     
-    ((FilamentViewer*)viewer)->animateWeights((float*)data, numWeights, numFrames, frameRate);
+    ((SceneAsset*)asset)->animateWeights((float*)data, numWeights, numFrames, frameRate);
   }
 
-  void play_animation(void* viewer, int index, bool loop) {
+  void play_animation(void* asset, int index, bool loop) {
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Playing embedded animation %d", index);     
-    ((FilamentViewer*)viewer)->playAnimation(index, loop);
+    ((SceneAsset*)asset)->playAnimation(index, loop);
   }
 
-  char** get_animation_names(void* viewer, int* countPtr) {
-    auto names = ((FilamentViewer*)viewer)->getAnimationNames();
+  char** get_animation_names(void* asset, int* countPtr) {
+    auto names = ((SceneAsset*)asset)->getAnimationNames();
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Got %d animation names", names->size());     
     char** names_c;
     names_c = new char*[names->size()];
@@ -168,8 +171,8 @@ extern "C" {
     return names_c;
   }
 
-  char** get_target_names(void* viewer, char* meshName, int* countPtr ) {
-    unique_ptr<vector<string>> names = ((FilamentViewer*)viewer)->getTargetNames(meshName);
+  char** get_target_names(void* asset, char* meshName, int* countPtr ) {
+    unique_ptr<vector<string>> names = ((SceneAsset*)asset)->getTargetNames(meshName);
 
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Got %d names", names->size());     
          
@@ -188,8 +191,8 @@ extern "C" {
     free(ptr);
   }
 
-  void remove_asset(void* viewer) {
-    ((FilamentViewer*)viewer)->removeAsset();
+  void remove_asset(void* viewer, void* asset) {
+    ((FilamentViewer*)viewer)->removeAsset((SceneAsset*)asset);
   }
   
 }

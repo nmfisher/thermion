@@ -5,11 +5,15 @@
 
 namespace polyvox {
 
-  class streambuf : public std::streambuf
+  // 
+  // A generic adapter to expose any contiguous section of memory as a std::streambuf.
+  // Mostly for Android/iOS assets which may not be able to be directly loaded as streams.
+  //
+  class StreamBufferAdapter : public std::streambuf
   {
       public:
-          streambuf(const char *begin, const char *end);
-          ~streambuf() {
+          StreamBufferAdapter(const char *begin, const char *end);
+          ~StreamBufferAdapter() {
             
           }
           streamsize size();

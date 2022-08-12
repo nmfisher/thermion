@@ -13,9 +13,11 @@ add_library(
             src/main/cpp/KtxReader1.cpp
             src/main/cpp/StbProvider.cpp
             src/main/cpp/JobSystem.cpp
+            ../ios/src/SceneAssetLoader.cpp
             ../ios/src/FilamentViewer.cpp
-            ../ios/src/streambuf.cpp
-            ../ios/src/imagematerial.c
+            ../ios/src/StreamBufferAdapter.cpp
+            ../ios/src/image/imagematerial.c
+            ../ios/src/SceneAsset.cpp
         )
 
 target_link_libraries(

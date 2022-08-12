@@ -192,32 +192,31 @@ PlatformView  {
                 val key = loader.getLookupKeyForAsset(call.arguments as String)
                 val key2 = loader.getLookupKeyForAsset(call.arguments as String, context.packageName)
                 val path = loader.findAppBundlePath()
-                Log.v(TAG, "key ${key} key2 ${key2} path : ${path}")
 
-                _lib.load_glb(
+                val assetPtr = _lib.load_glb(
                     _viewer!!,
                     key
                 )
-                result.success("OK");
+                result.success(Pointer.nativeValue(assetPtr));
             }
             "loadGltf" -> {
                 if (_viewer == null)
                     return;
                 val args = call.arguments as ArrayList<Any?>
                 val loader = FlutterInjector.instance().flutterLoader()
-                _lib.load_gltf(
+                val assetPtr = _lib.load_gltf(
                     _viewer!!,
                     loader.getLookupKeyForAsset(args[0] as String),
                     loader.getLookupKeyForAsset(args[1] as String)
                 )
-                result.success("OK");
+                result.success(Pointer.nativeValue(assetPtr));
             }
             "setCamera" -> {
-              if (_viewer == null)
-                    return;
+                val args = call.arguments as ArrayList<*>
                 val success = _lib.set_camera(
                     _viewer!!,
-                    call.arguments as String
+                    Pointer(args[0] as Long),
+                    args[1] as String,
                 )
                 if(success) {
                   result.success("OK");
@@ -236,9 +235,10 @@ PlatformView  {
                 return;
               
               val countPtr = IntByReference();
-              val arrPtr = _lib.get_target_names(_viewer!!, call.arguments as String, countPtr)
+              val args = call.arguments as ArrayList<*>
+              val namesPtr = _lib.get_target_names(Pointer(args[0] as Long), args[1] as String, countPtr)
 
-              val names = arrPtr.getStringArray(0, countPtr.value);
+              val names = namesPtr.getStringArray(0, countPtr.value);
 
               for(i in 0..countPtr.value-1) {
                 Log.v(TAG, "Got target names ${names[i]} ${names[i].length}")
@@ -246,16 +246,14 @@ PlatformView  {
               
               val namesAsList = names.toCollection(ArrayList())
 
-              _lib.free_pointer(arrPtr, countPtr.getValue())
+              _lib.free_pointer(namesPtr, countPtr.getValue())
 
               result.success(namesAsList)
             } 
             "getAnimationNames" -> {
-              if(_viewer == null)
-                return;
-              
+              val assetPtr = Pointer(call.arguments as Long)
               val countPtr = IntByReference();
-              val arrPtr = _lib.get_animation_names(_viewer!!, countPtr)
+              val arrPtr = _lib.get_animation_names(assetPtr, countPtr)
 
               val names = arrPtr.getStringArray(0, countPtr.value);
 
@@ -269,23 +267,22 @@ PlatformView  {
               result.success(names.toCollection(ArrayList()))
             } 
             "applyWeights" -> {
-              if(_viewer == null)
-              return;
-              val weights = call.arguments as ArrayList<Float>;
+              val args = call.arguments as ArrayList<*>
+              val assetPtr = Pointer(args[0] as Long)
+              val weights = args[1] as ArrayList<Float>;
     
-              _lib.apply_weights(_viewer!!, weights.toFloatArray(), weights.size)
+              _lib.apply_weights(assetPtr, weights.toFloatArray(), weights.size)
               result.success("OK");
             }
             "animateWeights" -> {
-              if(_viewer == null)
-                return;
               val args = call.arguments as ArrayList<Any?>
-              val frames = args[0] as ArrayList<Float>;
-              val numWeights = args[1] as Int
-              val numFrames = args[2] as Int
-              val frameLenInMs = args[3] as Double
+              val assetPtr = Pointer(args[0] as Long)
+              val frames = args[1] as ArrayList<Float>;
+              val numWeights = args[2] as Int
+              val numFrames = args[3] as Int
+              val frameLenInMs = args[4] as Double
     
-              _lib.animate_weights(_viewer!!, frames.toFloatArray(), numWeights, numFrames, frameLenInMs.toFloat())
+              _lib.animate_weights(assetPtr, frames.toFloatArray(), numWeights, numFrames, frameLenInMs.toFloat())
               result.success("OK");
             }
             "panStart" -> {
@@ -331,12 +328,12 @@ PlatformView  {
               result.success("OK");
             }
             "removeAsset" -> {
-              _lib.remove_asset(_viewer!!)
+              _lib.remove_asset(_viewer!!, Pointer(call.arguments as Long))
               result.success("OK");
             } 
             "playAnimation" -> {
               val args = call.arguments as ArrayList<Any?>
-              _lib.play_animation(_viewer!!, args[0] as Int, args[1] as Boolean)
+              _lib.play_animation(Pointer(args[0] as Long), args[1] as Int, args[2] as Boolean)
               result.success("OK")
             }
             else -> {

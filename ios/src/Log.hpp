@@ -1,3 +1,8 @@
+#pragma once 
+
+#ifndef POLYVOX_FILAMENT_LOG_H
+#define POLYVOX_FILAMENT_LOG_H
+
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 #elif defined __ANDROID__
@@ -7,7 +12,7 @@
 #include <stdio.h>
 #endif
 
-void Log(const char *fmt, ...) {    
+static void Log(const char *fmt, ...) {    
     va_list args;
     va_start(args, fmt);
     
@@ -23,3 +28,5 @@ void Log(const char *fmt, ...) {
     
     va_end(args);
 }
+
+#endif

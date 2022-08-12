@@ -32,7 +32,7 @@ interface FilamentInterop : Library {
 
     fun load_gltf(viewer:Pointer, uri:String, relativeResourcePath:String) : Pointer;
     
-    fun set_camera(viewer:Pointer, nodeName:String) : Boolean;
+    fun set_camera(viewer:Pointer, asset:Pointer, nodeName:String) : Boolean;
 
     fun render(viewer:Pointer);
 
@@ -50,21 +50,19 @@ interface FilamentInterop : Library {
 
     fun grab_end(viewer:Pointer)
 
-    fun apply_weights(viewer:Pointer, weights:FloatArray, size:Int);
+    fun apply_weights(asset:Pointer, weights:FloatArray, size:Int);
 
-    fun animate_weights(viewer:Pointer, frames:FloatArray, numWeights:Int, numFrames:Int,  frameRate:Float);
+    fun animate_weights(asset:Pointer, frames:FloatArray, numWeights:Int, numFrames:Int,  frameRate:Float);
 
-    fun get_target_names(viewer:Pointer, meshName:String, outLen:IntByReference) : Pointer;
+    fun get_target_names(asset:Pointer, meshName:String, outLen:IntByReference) : Pointer;
 
-    fun get_animation_names(viewer:Pointer, outLen:IntByReference) : Pointer;
+    fun get_animation_names(asset:Pointer, outLen:IntByReference) : Pointer;
 
-    fun play_animation(viewer:Pointer, index:Int, loop:Boolean);
+    fun play_animation(asset:Pointer, index:Int, loop:Boolean);
 
     fun free_pointer(ptr:Pointer, size:Int);
 
-    fun release_source_assets(viewer:Pointer);
-
-    fun remove_asset(viewer:Pointer);
+    fun remove_asset(viewer:Pointer, asset:Pointer);
 
     fun remove_skybox(viewer:Pointer);
 
