@@ -51,15 +51,44 @@ namespace polyvox {
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;   
 
     // 
-    // Holds the current state of a bone animation embeded in a GLTF asset.
+    // Holds the current state of a bone animation embeded in a GLTF asset. 
+    // Currently, an instance will be constructed for every animation in an asset whenever a SceneAsset is created (and thus will persist for the lifetime of the SceneAsset).
     //
-    struct BoneAnimationStatus  {        
-      BoneAnimationStatus(int animationIndex, float duration, bool loop) : animationIndex(animationIndex), duration(duration), loop(loop) {}
-      bool hasStarted = false;
-      int animationIndex;
-      float duration = 0;
-      time_point_t lastTime;
+    struct EmbeddedAnimationStatus  {        
+      EmbeddedAnimationStatus(int animationIndex, float duration, bool loop) : animationIndex(animationIndex), duration(duration), loop(loop) {}
+
+      // 
+      // A flag that is checked each frame to determine whether or not the animation should play.
+      //
+      bool play;
+
+      //
+      // If [play] is true, this flag will be checked when the animation is complete. If true, the animation will restart.
+      //
       bool loop;
+      
+      // 
+      // If [play] is true, this flag will be set to true when the animation is started.
+      // 
+      bool started = false;
+      
+      //
+      // The index of the animation in the GLTF asset.
+      //
+      int animationIndex;
+      
+      //
+      // The duration of the animation (calculated from the GLTF animator). 
+      //
+      float duration = 0;
+
+      //
+      // The time point at which this animation was last started.
+      // This is used to calculate the "animation time offset" that is passed to the Animator.
+      //
+      time_point_t startedAt;
+
+      
     };
 
     // 
