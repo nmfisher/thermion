@@ -1,15 +1,15 @@
-#include <chrono>
-#include "SceneResources.hpp"
 #include "SceneAsset.hpp"
 #include "Log.hpp"
+#include "SceneResources.hpp"
+#include <chrono>
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
 #include <gltfio/TextureProvider.h>
 
-#include <filament/TransformManager.h>
 
+#include <filament/TransformManager.h>
 
 using namespace std::chrono;
 
@@ -20,15 +20,21 @@ using namespace filament;
 using namespace filament::gltfio;
 using namespace utils;
 
-SceneAsset::SceneAsset(FilamentAsset* asset, Engine* engine, NameComponentManager* ncm)
+SceneAsset::SceneAsset(FilamentAsset *asset, Engine *engine,
+                       NameComponentManager *ncm)
     : _asset(asset), _engine(engine), _ncm(ncm) {
-      _animator = _asset->getAnimator();
+  _animator = _asset->getAnimator();
+  for (int i = 0; i < _animator->getAnimationCount(); i++) {
+    _embeddedAnimationStatus.push_back(
+        EmbeddedAnimationStatus(i, _animator->getAnimationDuration(i), false));
   }
+  Log("Created animation buffers for %d", _embeddedAnimationStatus.size());
+}
 
 SceneAsset::~SceneAsset() { _asset = nullptr; }
 
 void SceneAsset::applyWeights(float *weights, int count) {
-  RenderableManager& rm = _engine->getRenderableManager();
+  RenderableManager &rm = _engine->getRenderableManager();
   for (size_t i = 0, c = _asset->getEntityCount(); i != c; ++i) {
     auto inst = rm.getInstance(_asset->getEntities()[i]);
     rm.setMorphWeights(inst, weights, count);
@@ -46,7 +52,7 @@ void SceneAsset::animateWeights(float *data, int numWeights, int numFrames,
 
 void SceneAsset::updateAnimations() {
   updateMorphAnimation();
-  updateEmbeddedAnimation();
+  updateEmbeddedAnimations();
 }
 
 void SceneAsset::updateMorphAnimation() {
@@ -86,42 +92,60 @@ void SceneAsset::updateMorphAnimation() {
 }
 
 void SceneAsset::playAnimation(int index, bool loop) {
+  Log("Playing animation at index %d", index);
   if (index > _animator->getAnimationCount() - 1) {
     Log("Asset does not contain an animation at index %d", index);
+  } else if (_embeddedAnimationStatus[index].started) {
+    Log("Animation already playing, call stop first.");
   } else {
-    _boneAnimationStatus = make_unique<BoneAnimationStatus>(
-        index, _animator->getAnimationDuration(index), loop);
+    Log("Starting animation at index %d", index);
+    _embeddedAnimationStatus[index].play = true;
+    _embeddedAnimationStatus[index].loop = loop;
   }
 }
 
-void SceneAsset::stopAnimation() {
+void SceneAsset::stopAnimation(int index) {
   // TODO - does this need to be threadsafe?
-  _boneAnimationStatus = nullptr;
+  _embeddedAnimationStatus[index].play = false;
+  _embeddedAnimationStatus[index].started = false;
 }
 
-void SceneAsset::updateEmbeddedAnimation() {
-  if (!_boneAnimationStatus) {
-    return;
-  }
-
-  duration<double> dur = duration_cast<duration<double>>(
-      high_resolution_clock::now() - _boneAnimationStatus->lastTime);
-  float startTime = 0;
-  if (!_boneAnimationStatus->hasStarted) {
-    _boneAnimationStatus->hasStarted = true;
-    _boneAnimationStatus->lastTime = high_resolution_clock::now();
-  } else if (dur.count() >= _boneAnimationStatus->duration) {
-    if (_boneAnimationStatus->loop) {
-      _boneAnimationStatus->lastTime = high_resolution_clock::now();
-    } else {
-      _boneAnimationStatus = nullptr;
-      return;
+void SceneAsset::updateEmbeddedAnimations() {
+  auto now = high_resolution_clock::now();
+  for (auto &status : _embeddedAnimationStatus) {
+    if (!status.play) {
+      // Log("Skipping animation %d", status.animationIndex);
+      continue;
     }
-  } else {
-    startTime = dur.count();
+    duration<double> dur =
+        duration_cast<duration<double>>(now - status.startedAt);
+    float animationTimeOffset = 0;
+    bool finished =  false;
+    if (!status.started) {
+      status.started = true;
+      status.startedAt = now;
+    } else if (dur.count() >= status.duration) {
+      if (status.loop) {
+        status.startedAt = now;
+      } else {
+        finished = true;
+      }
+    } else {
+      animationTimeOffset = dur.count();
+    }
+
+    // Log("time offset %f", animationTimeOffset);
+
+    if (!finished) {
+      _animator->applyAnimation(status.animationIndex, animationTimeOffset);
+    } else {
+      Log("Animation %d finished", status.animationIndex);
+
+      status.play = false;
+      status.started = false;
+    }
   }
 
-  _animator->applyAnimation(_boneAnimationStatus->animationIndex, startTime);
   _animator->updateBoneMatrices();
 }
 
@@ -165,29 +189,28 @@ unique_ptr<vector<string>> SceneAsset::getTargetNames(const char *meshName) {
   return names;
 }
 
-void SceneAsset::transformToUnitCube()
-  {
-    if (!_asset)
-    {
-      Log("No asset, cannot transform.");
-      return;
-    }
-    auto &tm = _engine->getTransformManager();
-    auto aabb = _asset->getBoundingBox();
-    auto center = aabb.center();
-    auto halfExtent = aabb.extent();
-    auto maxExtent = max(halfExtent) * 2;
-    auto scaleFactor = 2.0f / maxExtent;
-    auto transform = math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
-    tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
+void SceneAsset::transformToUnitCube() {
+  if (!_asset) {
+    Log("No asset, cannot transform.");
+    return;
   }
+  auto &tm = _engine->getTransformManager();
+  auto aabb = _asset->getBoundingBox();
+  auto center = aabb.center();
+  auto halfExtent = aabb.extent();
+  auto maxExtent = max(halfExtent) * 2;
+  auto scaleFactor = 2.0f / maxExtent;
+  auto transform =
+      math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
+  tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
+}
 
-  const utils::Entity* SceneAsset::getCameraEntities() {
-    return _asset->getCameraEntities();
-  }
+const utils::Entity *SceneAsset::getCameraEntities() {
+  return _asset->getCameraEntities();
+}
 
-  size_t SceneAsset::getCameraEntityCount() {
-    return _asset->getCameraEntityCount();
-  }
+size_t SceneAsset::getCameraEntityCount() {
+  return _asset->getCameraEntityCount();
+}
 
 } // namespace polyvox

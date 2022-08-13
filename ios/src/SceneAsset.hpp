@@ -35,12 +35,12 @@ namespace polyvox {
             void updateAnimations();
 
             ///
-            /// Immediately stop the currently playing animation. NOOP if no animation is playing.
+            /// Immediately stop the animation at the specified index. Noop if no animation is playing.
             ///
-            void stopAnimation();
+            void stopAnimation(int index);
 
             ///  
-            /// Play an embedded animation (i.e. an animation node embedded in the GLTF asset). If [loop] is true, the animation will repeat indefinitely.
+            /// Play the embedded animation (i.e. animation node embedded in the GLTF asset) under the specified index. If [loop] is true, the animation will repeat indefinitely.
             ///
             void playAnimation(int index, bool loop);
 
@@ -69,15 +69,15 @@ namespace polyvox {
             FilamentAsset* _asset = nullptr;
             Engine* _engine = nullptr;
             NameComponentManager* _ncm;
+
             void updateMorphAnimation();
-            void updateEmbeddedAnimation();
+            void updateEmbeddedAnimations();
 
             Animator* _animator;
             
             // animation flags;
-            bool isAnimating;
             unique_ptr<MorphAnimationStatus> _morphAnimationBuffer;
-            unique_ptr<BoneAnimationStatus> _boneAnimationStatus;
+            vector<EmbeddedAnimationStatus> _embeddedAnimationStatus;
 
     };
 }

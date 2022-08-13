@@ -21,6 +21,7 @@ class _MyAppState extends State<MyApp> {
 
   final weights = List.filled(255, 0.0);
   List<String> _targets = [];
+  List<String> _animationNames = [];
   bool _loop = false;
 
   @override
@@ -69,11 +70,13 @@ class _MyAppState extends State<MyApp> {
                       }),
                   ElevatedButton(
                       child: const Text('load cube GLB'),
-                      onPressed:_cube != null ? null : () async {
+                      onPressed:() async {
                         _cube = await _filamentController
                             .loadGlb('assets/cube.glb');
-                        print(await _filamentController
-                            .getAnimationNames(_cube!));
+                        
+                        _animationNames = 
+                        await _filamentController
+                            .getAnimationNames(_cube!);
                       }),
                     ElevatedButton(
                       child: const Text('load cube GLTF'),
@@ -111,8 +114,12 @@ class _MyAppState extends State<MyApp> {
                             .applyWeights(_cube!, List.filled(8, 0));
                       }),
                   ElevatedButton(
-                      onPressed: () =>
-                          _filamentController.playAnimation(_cube!, 0, loop: _loop),
+                      onPressed: () {
+                        _animationNames.asMap().forEach((idx, element) {
+                          _filamentController.playAnimation(_cube!, idx, loop: _loop);                          
+                        });
+
+                      },
                       child: const Text('play animation')),
                   ElevatedButton(
                       onPressed: () {
