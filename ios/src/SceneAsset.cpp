@@ -143,13 +143,12 @@ void SceneAsset::updateEmbeddedAnimations() {
       if (status.loop) {
         status.startedAt = now;
       } else {
+        animationTimeOffset = dur.count();
         finished = true;
       }
     } else {
       animationTimeOffset = dur.count();
     }
-
-    // Log("time offset %f", animationTimeOffset);
 
     if (!finished) {
       _animator->applyAnimation(status.animationIndex, animationTimeOffset);
