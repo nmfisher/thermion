@@ -23,7 +23,9 @@ abstract class FilamentController {
   Future<List<String>> getTargetNames(FilamentAsset asset, String meshName);
   Future<List<String>> getAnimationNames(FilamentAsset asset);
   Future removeAsset(FilamentAsset asset);
+  Future clearAssets();
   Future playAnimation(FilamentAsset asset, int index, {bool loop = false});
+  Future playAnimations(FilamentAsset asset, List<int> indices, {bool loop = false});
   Future stopAnimation(FilamentAsset asset);
   Future setCamera(FilamentAsset asset, String name);
 
@@ -150,12 +152,22 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("removeAsset", asset);
   }
 
+  Future clearAssets() async {
+    await _channel.invokeMethod("clearAssets");
+  }
+
   Future zoom(double z) async {
     await _channel.invokeMethod("zoom", z);
   }
 
   Future playAnimation(FilamentAsset asset, int index, {bool loop = false}) async {
     await _channel.invokeMethod("playAnimation", [asset, index, loop]);
+  }
+
+  Future playAnimations(FilamentAsset asset, List<int> indices, {bool loop = false}) async {
+    return Future.wait(indices.map((index) { 
+      return _channel.invokeMethod("playAnimation", [asset, index, loop]);
+    }));
   }
 
   Future stopAnimation(FilamentAsset asset) async {

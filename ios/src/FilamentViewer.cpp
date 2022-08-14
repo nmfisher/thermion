@@ -359,6 +359,7 @@ SceneAsset *FilamentViewer::loadGlb(const char *const uri) {
     Log("Unknown error loading asset.");
   } else {
     _assets.push_back(asset);
+    Log("GLB loaded, asset at index %d", _assets.size() - 1);
   }
   return asset;
 }
@@ -376,10 +377,25 @@ SceneAsset *FilamentViewer::loadGltf(const char *const uri,
   return asset;
 }
 
+
+void FilamentViewer::clearAssets() {
+  Log("Clearing all assets");
+  mtx.lock();
+  int i = 0;
+  for (auto asset : _assets) {
+    _sceneAssetLoader->remove(asset);
+    Log("Cleared asset %d", i);
+    i++;
+  }
+  _assets.clear();
+  mtx.unlock();
+}
+
 void FilamentViewer::removeAsset(SceneAsset *asset) {
   mtx.lock();
   _sceneAssetLoader->remove(asset);
-  _view->setCamera(_mainCamera);
+  // todo - what if we are using a camera from this asset?
+  
   bool erased = false;
   for (auto it = _assets.begin(); it != _assets.end();) {
     if (*it == asset) {
