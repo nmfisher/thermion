@@ -194,5 +194,9 @@ extern "C" {
   void remove_asset(void* viewer, void* asset) {
     ((FilamentViewer*)viewer)->removeAsset((SceneAsset*)asset);
   }
+
+  void clear_assets(void* viewer) {
+    ((FilamentViewer*)viewer)->clearAssets();
+  }
   
 }

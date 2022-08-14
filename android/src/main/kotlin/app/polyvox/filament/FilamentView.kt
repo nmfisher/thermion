@@ -331,6 +331,10 @@ PlatformView  {
               _lib.remove_asset(_viewer!!, Pointer(call.arguments as Long))
               result.success("OK");
             } 
+            "clearAssets" -> {
+              _lib.clear_assets(_viewer!!)
+              result.success("OK");
+            } 
             "playAnimation" -> {
               val args = call.arguments as ArrayList<Any?>
               _lib.play_animation(Pointer(args[0] as Long), args[1] as Int, args[2] as Boolean)

@@ -57,6 +57,8 @@ namespace polyvox {
             SceneAsset* loadGlb(const char* const uri);
             SceneAsset* loadGltf(const char* const uri, const char* relativeResourcePath);
             void removeAsset(SceneAsset* asset);
+            // removes all add assets from the current scene
+            void clearAssets();
 
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();

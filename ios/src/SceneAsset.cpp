@@ -31,7 +31,9 @@ SceneAsset::SceneAsset(FilamentAsset *asset, Engine *engine,
   Log("Created animation buffers for %d", _embeddedAnimationStatus.size());
 }
 
-SceneAsset::~SceneAsset() { _asset = nullptr; }
+SceneAsset::~SceneAsset() { 
+  // we defer all destructor work to SceneAssetLoader so we don't need to do anything here
+}
 
 void SceneAsset::applyWeights(float *weights, int count) {
   RenderableManager &rm = _engine->getRenderableManager();
@@ -109,6 +111,19 @@ void SceneAsset::stopAnimation(int index) {
   _embeddedAnimationStatus[index].play = false;
   _embeddedAnimationStatus[index].started = false;
 }
+
+// void SceneAsset:swapTexture() { 
+//     materialInstance = material2.createInstance()
+//     baseColor = loadTexture(filament.engine, context.resources, R.drawable.wall_tex_at, TextureType.COLOR)
+//     normal = loadTexture(filament.engine, context.resources,R.drawable.wall_tex_n,TextureType.NORMAL)
+//     ao = loadTexture(filament.engine, context.resources,R.drawable.wall_tex_ao,TextureType.DATA)
+//     roughnessMetallic = loadTexture(filament.engine, context.resources,R.drawable.wall_tex_ms,TextureType.DATA)
+//     val rm = filament.engine.renderableManager
+//     val sampler = TextureSampler()
+//     sampler.anisotropy = 8.0f
+//     material.setParameter("baseColorIndex",0)
+//     material.setParameter("baseColorMap",baseColor,sampler)
+// }
 
 void SceneAsset::updateEmbeddedAnimations() {
   auto now = high_resolution_clock::now();

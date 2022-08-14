@@ -115,9 +115,10 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
 }
 
 void SceneAssetLoader::remove(SceneAsset *asset) {
-  _resourceLoader->evictResourceData();
   _scene->removeEntities(asset->_asset->getEntities(),
                          asset->_asset->getEntityCount());
+  _resourceLoader->evictResourceData();
   _assetLoader->destroyAsset(asset->_asset);
+  delete asset;
 }
 } // namespace polyvox
