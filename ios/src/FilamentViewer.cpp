@@ -353,8 +353,7 @@ void FilamentViewer::destroySwapChain() {
 }
 
 SceneAsset *FilamentViewer::loadGlb(const char *const uri) {
-  Log("Loading GLB at URI %s", uri);
-  SceneAsset *asset = _sceneAssetLoader->fromGlb(uri);
+    SceneAsset *asset = _sceneAssetLoader->fromGlb(uri);
   if (!asset) {
     Log("Unknown error loading asset.");
   } else {
@@ -381,6 +380,7 @@ SceneAsset *FilamentViewer::loadGltf(const char *const uri,
 void FilamentViewer::clearAssets() {
   Log("Clearing all assets");
   mtx.lock();
+  _view->setCamera(_mainCamera);
   int i = 0;
   for (auto asset : _assets) {
     _sceneAssetLoader->remove(asset);
@@ -393,8 +393,9 @@ void FilamentViewer::clearAssets() {
 
 void FilamentViewer::removeAsset(SceneAsset *asset) {
   mtx.lock();
-  _sceneAssetLoader->remove(asset);
   // todo - what if we are using a camera from this asset?
+  _view->setCamera(_mainCamera);
+  _sceneAssetLoader->remove(asset);
   
   bool erased = false;
   for (auto it = _assets.begin(); it != _assets.end();) {
