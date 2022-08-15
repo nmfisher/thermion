@@ -198,5 +198,9 @@ extern "C" {
   void clear_assets(void* viewer) {
     ((FilamentViewer*)viewer)->clearAssets();
   }
+
+  void set_texture(void* asset, const char* assetPath, int renderableIndex) {
+    ((SceneAsset*)asset)->setTexture(assetPath, renderableIndex);
+  }
   
 }

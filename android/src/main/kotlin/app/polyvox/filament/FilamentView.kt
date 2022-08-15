@@ -170,7 +170,7 @@ PlatformView  {
                 _lib.load_skybox(_viewer!!, loader.getLookupKeyForAsset(args))                
                 result.success("OK");
             }
-             "loadIbl" -> {
+            "loadIbl" -> {
                 val args = call.arguments as String
                 val loader = FlutterInjector.instance().flutterLoader()
 
@@ -210,6 +210,13 @@ PlatformView  {
                     loader.getLookupKeyForAsset(args[1] as String)
                 )
                 result.success(Pointer.nativeValue(assetPtr));
+            }
+            "setTexture" -> {
+              val args = call.arguments as ArrayList<*>
+              val loader = FlutterInjector.instance().flutterLoader()
+              val assetPtr = Pointer(args[0] as Long);
+              _lib.set_texture(assetPtr, loader.getLookupKeyForAsset(args[1] as String), args[2] as Int)
+              result.success("OK");
             }
             "setCamera" -> {
                 val args = call.arguments as ArrayList<*>
