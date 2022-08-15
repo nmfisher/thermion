@@ -72,7 +72,7 @@ SceneAsset *SceneAssetLoader::fromGltf(const char *uri,
   asset->releaseSourceData();
 
   Log("Load complete for GLTF at URI %s", uri);
-  return new SceneAsset(asset, _engine, _ncm);
+  return new SceneAsset(asset, _engine, _ncm, _loadResource,_freeResource);
 }
 
 SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
@@ -111,7 +111,7 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
   asset->releaseSourceData();
 
   Log("Successfully loaded GLB.");
-  return new SceneAsset(asset, _engine, _ncm);
+  return new SceneAsset(asset, _engine, _ncm, _loadResource, _freeResource);
 }
 
 void SceneAssetLoader::remove(SceneAsset *asset) {

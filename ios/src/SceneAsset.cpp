@@ -1,15 +1,22 @@
-#include "SceneAsset.hpp"
-#include "Log.hpp"
-#include "SceneResources.hpp"
+#include <iostream>
 #include <chrono>
+
+#include <filament/Engine.h>
+#include <filament/TransformManager.h>
+#include <filament/Texture.h>
+
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
 #include <gltfio/TextureProvider.h>
 
+#include <imageio/ImageDecoder.h>
 
-#include <filament/TransformManager.h>
+#include "StreamBufferAdapter.hpp"
+#include "SceneAsset.hpp"
+#include "Log.hpp"
+#include "SceneResources.hpp"
 
 using namespace std::chrono;
 
@@ -18,11 +25,13 @@ namespace polyvox {
 using namespace std;
 using namespace filament;
 using namespace filament::gltfio;
+using namespace image;
 using namespace utils;
+using namespace filament::math;
 
 SceneAsset::SceneAsset(FilamentAsset *asset, Engine *engine,
-                       NameComponentManager *ncm)
-    : _asset(asset), _engine(engine), _ncm(ncm) {
+                       NameComponentManager *ncm, LoadResource loadResource, FreeResource freeResource)
+    : _asset(asset), _engine(engine), _ncm(ncm), _loadResource(loadResource), _freeResource(freeResource) {
   _animator = _asset->getAnimator();
   for (int i = 0; i < _animator->getAnimationCount(); i++) {
     _embeddedAnimationStatus.push_back(
@@ -112,18 +121,59 @@ void SceneAsset::stopAnimation(int index) {
   _embeddedAnimationStatus[index].started = false;
 }
 
-// void SceneAsset:swapTexture() { 
-//     materialInstance = material2.createInstance()
-//     baseColor = loadTexture(filament.engine, context.resources, R.drawable.wall_tex_at, TextureType.COLOR)
-//     normal = loadTexture(filament.engine, context.resources,R.drawable.wall_tex_n,TextureType.NORMAL)
-//     ao = loadTexture(filament.engine, context.resources,R.drawable.wall_tex_ao,TextureType.DATA)
-//     roughnessMetallic = loadTexture(filament.engine, context.resources,R.drawable.wall_tex_ms,TextureType.DATA)
-//     val rm = filament.engine.renderableManager
-//     val sampler = TextureSampler()
-//     sampler.anisotropy = 8.0f
-//     material.setParameter("baseColorIndex",0)
-//     material.setParameter("baseColorMap",baseColor,sampler)
-// }
+void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
+
+  ResourceBuffer imageResource = _loadResource(resourcePath);
+
+  polyvox::StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
+
+  std::istream *inputStream = new std::istream(&sb);
+
+  LinearImage *image = new LinearImage(ImageDecoder::decode(
+      *inputStream, resourcePath, ImageDecoder::ColorSpace::SRGB));
+
+  if (!image->isValid()) {
+    Log("Invalid image : %s", resourcePath);
+    return;
+  }
+
+  delete inputStream;
+
+  _freeResource(imageResource);
+
+  uint32_t channels = image->getChannels();
+  uint32_t w = image->getWidth();
+  uint32_t h = image->getHeight();
+  auto texture = Texture::Builder()
+                      .width(w)
+                      .height(h)
+                      .levels(0xff)
+                      .format(channels == 3 ? Texture::InternalFormat::RGB16F
+                                            : Texture::InternalFormat::RGBA16F)
+                      .sampler(Texture::Sampler::SAMPLER_2D)
+                      .build(*_engine);
+
+  Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
+                                                             void *data) {
+    delete reinterpret_cast<LinearImage *>(data);
+  };
+
+  Texture::PixelBufferDescriptor buffer(
+      image->getPixelRef(), size_t(w * h * channels * sizeof(float)),
+      channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
+      Texture::Type::FLOAT, freeCallback);
+
+  texture->setImage(*_engine, 0, std::move(buffer));
+
+  size_t mic =  _asset->getMaterialInstanceCount();
+  MaterialInstance* const* inst = _asset->getMaterialInstances();
+  Log("Material instance count : %d", mic);
+    
+  RenderableManager &rm = _engine->getRenderableManager();
+  auto sampler = TextureSampler();
+  inst[0]->setParameter("baseColorIndex",0);
+  inst[0]->setParameter("baseColorMap",texture,sampler);
+}
 
 void SceneAsset::updateEmbeddedAnimations() {
   auto now = high_resolution_clock::now();
