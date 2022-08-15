@@ -13,15 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#include "FilamentViewer.hpp"
-
-#include "StreamBufferAdapter.hpp"
-
 #include <filament/Camera.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
-
 #include <filament/IndexBuffer.h>
 #include <filament/RenderableManager.h>
 #include <filament/Renderer.h>
@@ -40,7 +34,6 @@
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
 #include <gltfio/TextureProvider.h>
-
 
 #include <gltfio/materials/uberarchive.h>
 
@@ -67,12 +60,13 @@
 #include "Log.hpp"
 #include "SceneResources.hpp"
 #include "image/imagematerial.h"
+#include "FilamentViewer.hpp"
+#include "StreamBufferAdapter.hpp"
 
 using namespace filament;
 using namespace filament::math;
 using namespace gltfio;
 using namespace utils;
-
 using namespace image;
 
 namespace filament {
@@ -88,36 +82,6 @@ const float kScaleMultiplier = 100.0f;
 const float kAperture = 16.0f;
 const float kShutterSpeed = 1.0f / 125.0f;
 const float kSensitivity = 100.0f;
-
-// filament::math::mat4f composeMatrix(const filament::math::float3
-// &translation,
-//                                     const filament::math::quatf &rotation,
-//                                     const filament::math::float3 &scale)
-// {
-//   float tx = translation[0];
-//   float ty = translation[1];
-//   float tz = translation[2];
-//   float qx = rotation[0];
-//   float qy = rotation[1];
-//   float qz = rotation[2];
-//   float qw = rotation[3];
-//   float sx = scale[0];
-//   float sy = scale[1];
-//   float sz = scale[2];
-//   return filament::math::mat4f(
-//       (1 - 2 * qy * qy - 2 * qz * qz) * sx,
-//       (2 * qx * qy + 2 * qz * qw) * sx,
-//       (2 * qx * qz - 2 * qy * qw) * sx,
-//       0.f,
-//       (2 * qx * qy - 2 * qz * qw) * sy,
-//       (1 - 2 * qx * qx - 2 * qz * qz) * sy,
-//       (2 * qy * qz + 2 * qx * qw) * sy,
-//       0.f,
-//       (2 * qx * qz + 2 * qy * qw) * sz,
-//       (2 * qy * qz - 2 * qx * qw) * sz,
-//       (1 - 2 * qx * qx - 2 * qy * qy) * sz,
-//       0.f, tx, ty, tz, 1.f);
-// }
 
 FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
                                FreeResource freeResource)

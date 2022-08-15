@@ -28,6 +28,7 @@ abstract class FilamentController {
   Future playAnimations(FilamentAsset asset, List<int> indices, {bool loop = false});
   Future stopAnimation(FilamentAsset asset);
   Future setCamera(FilamentAsset asset, String name);
+  Future setTexture(FilamentAsset asset, String assetPath, { int renderableIndex=0});
 
   ///
   /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where each frame requires a duration of [frameLengthInMs].
@@ -176,5 +177,9 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future setCamera(FilamentAsset asset, String name) async {
     await _channel.invokeMethod("setCamera", [asset, name]);
+  }
+
+  Future setTexture(FilamentAsset asset, String assetPath, { int renderableIndex=0}) async {
+    await _channel.invokeMethod("setTexture", [asset, assetPath, renderableIndex]);
   }
 }
