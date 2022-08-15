@@ -1,9 +1,13 @@
+#pragma once
+
 #include <streambuf>
 #include <functional>
 #include <cassert>
 #include <cstring>
 
 namespace polyvox {
+
+  using namespace std;
 
   // 
   // A generic adapter to expose any contiguous section of memory as a std::streambuf.
@@ -24,7 +28,7 @@ namespace polyvox {
           int_type pbackfail(int_type ch) override;
           streampos seekoff(streamoff off, ios_base::seekdir way, ios_base::openmode which) override;
           streampos seekpos(streampos sp, ios_base::openmode which) override;
-          std::streamsize showmanyc() override;
+          streamsize showmanyc() override;
           
   };
 
