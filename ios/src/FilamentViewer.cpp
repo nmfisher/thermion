@@ -137,6 +137,12 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
 
+  ToneMapper *tm = new LinearToneMapper();
+  colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
+  delete tm;
+
+  _view->setColorGrading(colorGrading);
+
   _cameraFocalLength = 28.0f;
   _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
 
@@ -259,15 +265,6 @@ void FilamentViewer::createImageRenderable() {
 }
 
 void FilamentViewer::setBackgroundImage(const char *resourcePath) {
-
-  if (colorGrading) {
-    _engine->destroy(colorGrading);
-  }
-  ToneMapper *tm = new LinearToneMapper();
-  colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
-  delete tm;
-
-  _view->setColorGrading(colorGrading);
 
   createImageRenderable();
 
