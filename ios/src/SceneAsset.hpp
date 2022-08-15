@@ -23,11 +23,16 @@ namespace polyvox {
     class SceneAsset {
         friend class SceneAssetLoader;
         public:
-            SceneAsset(FilamentAsset* asset, Engine* engine, NameComponentManager* ncm);
+            SceneAsset(FilamentAsset* asset, Engine* engine, NameComponentManager* ncm, LoadResource loadResource, FreeResource freeResource);
             ~SceneAsset();
 
             unique_ptr<vector<string>> getTargetNames(const char* meshName);
             unique_ptr<vector<string>> getAnimationNames();
+
+            ///
+            ///
+            ///
+            void setTexture(const char* resourcePath, int renderableIndex);
 
             ///
             /// Update the bone/morph target animations to reflect the current frame (if applicable).
@@ -78,6 +83,9 @@ namespace polyvox {
             // animation flags;
             unique_ptr<MorphAnimationStatus> _morphAnimationBuffer;
             vector<EmbeddedAnimationStatus> _embeddedAnimationStatus;
+
+            LoadResource _loadResource;
+            FreeResource _freeResource;
 
     };
 }
