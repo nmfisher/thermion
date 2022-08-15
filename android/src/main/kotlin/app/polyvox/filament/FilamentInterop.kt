@@ -71,4 +71,7 @@ interface FilamentInterop : Library {
     fun remove_ibl(viewer:Pointer);
 
     fun set_background_image(viewer:Pointer, path:String);
+    
+    fun set_texture(asset:Pointer, path:String, renderableIndex:Int);
 }
+
