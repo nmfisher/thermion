@@ -93,7 +93,13 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
   _scene->addEntities(asset->getEntities(), entityCount);
 
   Log("Added %d entities to scene", entityCount);
+
+  size_t lightEntityCount = asset->getLightEntityCount();
+  Log("Found %d light entities in scene.", lightEntityCount );
+  
   _resourceLoader->loadResources(asset);
+
+  Log("Resources loaded.");
 
   const Entity *entities = asset->getEntities();
   RenderableManager &rm = _engine->getRenderableManager();
@@ -101,14 +107,15 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
     Entity e = entities[i];
     auto inst = rm.getInstance(e);
     // check this
-    rm.setCulling(inst, false);
+    rm.setCulling(inst, true);
   }
-
-  _freeResource(rbuf);
 
   asset->getAnimator()->updateBoneMatrices();
 
   asset->releaseSourceData();
+  Log("Source data released.");
+
+  _freeResource(rbuf);
 
   Log("Successfully loaded GLB.");
   return new SceneAsset(asset, _engine, _ncm, _loadResource, _freeResource);
