@@ -154,7 +154,6 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
       // .castShadows(true)
       .build(*_engine, _sun);
   _scene->addEntity(_sun);
-
   
   _sceneAssetLoader = new SceneAssetLoader(_loadResource,
                                    _freeResource,
@@ -373,10 +372,26 @@ void FilamentViewer::removeAsset(SceneAsset *asset) {
 }
 
 ///
+/// Sets the active camera to the first GLTF camera node found in the hierarchy.
+/// Useful when your asset only has one camera.
+///
+bool FilamentViewer::setFirstCamera(SceneAsset *asset) {
+  size_t count = asset->getCameraEntityCount();
+  if (count == 0) {
+    Log("Failed, no cameras found in current asset.");
+    return false;
+  }
+  const utils::Entity *cameras = asset->getCameraEntities();
+  Log("%zu cameras found in asset", count);
+  auto inst = _ncm->getInstance(cameras[0]);
+  const char *name = _ncm->getName(inst);
+  return setCamera(asset, name);
+}
+
+///
 /// Sets the active camera to the GLTF camera node specified by [name].
 /// N.B. Blender will generally export a three-node hierarchy -
-/// Camera1->Camera_Orientation->Camera2. The correct name will be the
-/// grandchild (i.e. Camera2 in this scenario).
+/// Camera1->Camera_Orientation->Camera2. The correct name will be the Camera_Orientation.
 ///
 bool FilamentViewer::setCamera(SceneAsset *asset, const char *cameraName) {
   Log("Attempting to set camera to %s.", cameraName);
@@ -401,8 +416,14 @@ bool FilamentViewer::setCamera(SceneAsset *asset, const char *cameraName) {
       const Viewport &vp = _view->getViewport();
       const double aspect = (double)vp.width / vp.height;
 
-      Log("Camera focal length : %f aspect %f", camera->getFocalLength(),
-          aspect);
+      const float aperture = camera->getAperture();
+      const float shutterSpeed = camera->getShutterSpeed();
+      const float sens = camera->getSensitivity();
+
+      // camera->setExposure(1.0f);
+
+      Log("Camera focal length : %f aspect %f aperture %f shutter %f sensitivity %f", camera->getFocalLength(),
+          aspect, aperture, shutterSpeed, sens);
       camera->setScaling({1.0 / aspect, 1.0});
       Log("Successfully set camera.");
       return true;
