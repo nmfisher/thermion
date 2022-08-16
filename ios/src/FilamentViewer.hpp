@@ -65,6 +65,7 @@ namespace polyvox {
 
             Manipulator<float>* manipulator;
             
+            bool setFirstCamera(SceneAsset* asset);
             bool setCamera(SceneAsset* asset, const char* nodeName);
             void destroySwapChain();
             void createSwapChain(void* surface);
