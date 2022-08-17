@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 import 'filament_controller.dart';
-import 'view/filament_widget.dart';
+import 'filament_widget.dart';
 
 class GestureDetectingFilamentView extends StatefulWidget {
   final FilamentController controller;
