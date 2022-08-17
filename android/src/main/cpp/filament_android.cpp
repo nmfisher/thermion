@@ -202,5 +202,17 @@ extern "C" {
   void set_texture(void* asset, const char* assetPath, int renderableIndex) {
     ((SceneAsset*)asset)->setTexture(assetPath, renderableIndex);
   }
+
+  void transform_to_unit_cube(void* asset) {
+    ((SceneAsset*)asset)->transformToUnitCube();
+  }
+
+  void set_position(void* asset, float x, float y, float z) {
+    ((SceneAsset*)asset)->setPosition(x, y, z);
+  }
+
+  void set_rotation(void* asset, float rads, float x, float y, float z) {
+    ((SceneAsset*)asset)->setRotation(rads, x, y, z);
+  }
   
 }
