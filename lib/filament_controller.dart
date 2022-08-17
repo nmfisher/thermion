@@ -29,6 +29,9 @@ abstract class FilamentController {
   Future stopAnimation(FilamentAsset asset);
   Future setCamera(FilamentAsset asset, String name);
   Future setTexture(FilamentAsset asset, String assetPath, { int renderableIndex=0});
+  Future transformToUnitCube(FilamentAsset asset);
+  Future setPosition(FilamentAsset asset, double x, double y, double z);
+  Future setRotation(FilamentAsset asset, double rads, double x, double y, double z);
 
   ///
   /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where each frame requires a duration of [frameLengthInMs].
@@ -181,5 +184,17 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future setTexture(FilamentAsset asset, String assetPath, { int renderableIndex=0}) async {
     await _channel.invokeMethod("setTexture", [asset, assetPath, renderableIndex]);
+  }
+
+  Future transformToUnitCube(FilamentAsset asset) async {
+    await _channel.invokeMethod("transformToUnitCube", asset);
+  }
+
+  Future setPosition(FilamentAsset asset, double x, double y, double z) async {
+    await _channel.invokeMethod("setPosition", [asset, x, y, z]);
+  }
+
+  Future setRotation(FilamentAsset asset, double rads, double x, double y, double z) async {
+    await _channel.invokeMethod("setRotation", [asset, rads, x, y, z]);
   }
 }
