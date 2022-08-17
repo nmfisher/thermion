@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 typedef FilamentAsset = int;
 
 abstract class FilamentController {
-  void onFilamentViewCreated(int id);
+
+  late int textureId;
+  Future initialize(int width, int height);
+  Future resize(int width, int height);
   Future setBackgroundImage(String path);
   Future loadSkybox(String skyboxPath);
   Future removeSkybox();
@@ -45,26 +48,22 @@ abstract class FilamentController {
 }
 
 class PolyvoxFilamentController extends FilamentController {
-  late int _id;
-  late MethodChannel _channel;
 
-  final Function(int id)? onFilamentViewCreatedHandler;
+  late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
-  PolyvoxFilamentController({this.onFilamentViewCreatedHandler});
-
-  @override
-  void onFilamentViewCreated(int id) async {
-    _id = id;
-    _channel = MethodChannel("app.polyvox.filament/filament_view_$id");
+  PolyvoxFilamentController() {
     _channel.setMethodCallHandler((call) async {
       print("Received Filament method channel call : ${call.method}");
-      if (call.method == "ready") {
-        onFilamentViewCreatedHandler?.call(_id);
-        return Future.value(true);
-      } else {
-        throw Exception("Unknown method channel invocation ${call.method}");
-      }
+      throw Exception("Unknown method channel invocation ${call.method}");
     });
+  }
+
+  Future initialize(int width, int height) async {
+    textureId = await _channel.invokeMethod("initialize", [width, height]);
+  }
+
+  Future resize(int width, int height) async {
+    await _channel.invokeMethod("resize", [width, height]);
   }
 
   @override
