@@ -162,6 +162,7 @@ PlatformView  {
                 val args = call.arguments as String
                 val loader = FlutterInjector.instance().flutterLoader()
                 _lib.set_background_image(_viewer!!, loader.getLookupKeyForAsset(args))                
+                Log.v(TAG, "Package name : ${context.getPackageName()}")
                 result.success("OK");
             }
             "loadSkybox" -> {
@@ -210,6 +211,23 @@ PlatformView  {
                     loader.getLookupKeyForAsset(args[1] as String)
                 )
                 result.success(Pointer.nativeValue(assetPtr));
+            }
+            "transformToUnitCube" -> {
+              val assetPtr = Pointer(call.arguments as Long);
+              _lib.transform_to_unit_cube(assetPtr)
+              result.success("OK");
+            }
+            "setPosition" -> {
+              val args = call.arguments as ArrayList<*>
+              val assetPtr = Pointer(args[0] as Long)
+              _lib.set_position(assetPtr, (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat())
+              result.success("OK");
+            }
+            "setRotation" -> {
+              val args = call.arguments as ArrayList<*>
+              val assetPtr = Pointer(args[0] as Long)
+              _lib.set_rotation(assetPtr, (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat(), (args[4] as Double).toFloat())
+              result.success("OK");
             }
             "setTexture" -> {
               val args = call.arguments as ArrayList<*>
