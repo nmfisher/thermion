@@ -1,3 +1,8 @@
+#if __APPLE__
+  #include "TargetConditionals.h"
+#endif
+
+
 /*
  * Copyright (C) 2019 The Android Open Source Project
  *
@@ -14,6 +19,7 @@
  * limitations under the License.
  */
 #include <filament/Camera.h>
+#include <backend/DriverEnums.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
 #include <filament/IndexBuffer.h>
@@ -59,7 +65,7 @@
 
 #include "Log.hpp"
 #include "SceneResources.hpp"
-#include "image/imagematerial.h"
+#include "image/imagematerials_ios.h"
 #include "FilamentViewer.hpp"
 #include "StreamBufferAdapter.hpp"
 
@@ -86,7 +92,12 @@ const float kSensitivity = 100.0f;
 FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
                                FreeResource freeResource)
     : _layer(layer), _loadResource(loadResource), _freeResource(freeResource) {
-  _engine = Engine::create(Engine::Backend::OPENGL);
+
+  #if TARGET_OS_IPHONE
+    _engine = Engine::create(Engine::Backend::METAL);
+  #else
+    _engine = Engine::create(Engine::Backend::OPENGL);
+  #endif;
 
   _renderer = _engine->createRenderer();
 
@@ -109,8 +120,11 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
 
   _cameraFocalLength = 28.0f;
   _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
-
-  _swapChain = _engine->createSwapChain(_layer);
+  #if TARGET_OS_IPHONE
+    _swapChain = _engine->createSwapChain(layer, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
+  #else 
+    _swapChain = _engine->createSwapChain(layer);
+  #endif
 
   View::DynamicResolutionOptions options;
   options.enabled = true;
@@ -179,7 +193,7 @@ void FilamentViewer::createImageRenderable() {
   auto &em = EntityManager::get();
   _imageMaterial =
       Material::Builder()
-          .package(IMAGEMATERIAL_IMAGE_DATA, IMAGEMATERIAL_IMAGE_SIZE)
+          .package(IMAGEMATERIALS_IOS_IMAGE_FILAMAT_DATA, IMAGEMATERIALS_IOS_IMAGE_FILAMAT_SIZE)
           .build(*_engine);
 
   _imageVb = VertexBuffer::Builder()
@@ -252,7 +266,7 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
 
   delete inputStream;
 
-  _freeResource(bg);
+  _freeResource(bg.id);
 
   uint32_t channels = image->getChannels();
   uint32_t w = image->getWidth();
@@ -300,8 +314,12 @@ FilamentViewer::~FilamentViewer() { cleanup(); }
 Renderer *FilamentViewer::getRenderer() { return _renderer; }
 
 void FilamentViewer::createSwapChain(void *surface) {
-  _swapChain = _engine->createSwapChain(surface);
-  Log("swapchain created.");
+  #if TARGET_OS_IPHONE
+    _swapChain = _engine->createSwapChain(surface, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
+  #else
+    _swapChain = _engine->createSwapChain(surface);
+  #endif
+  Log("Swapchain created.");
 }
 
 void FilamentViewer::destroySwapChain() {
@@ -448,7 +466,7 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
         filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
 
     _scene->setSkybox(_skybox);
-    _freeResource(skyboxBuffer);
+    _freeResource(skyboxBuffer.id);
   }
 }
 
@@ -480,7 +498,7 @@ void FilamentViewer::loadIbl(const char *const iblPath) {
                          .build(*_engine);
     _scene->setIndirectLight(_indirectLight);
 
-    _freeResource(iblBuffer);
+    _freeResource(iblBuffer.id);
 
     Log("Skybox/IBL load complete.");
   }
