@@ -122,7 +122,7 @@ void SceneAsset::stopAnimation(int index) {
 }
 
 void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
-
+  Log("Setting texture to %s for renderableIndex %d", resourcePath, renderableIndex);
   ResourceBuffer imageResource = _loadResource(resourcePath);
 
   polyvox::StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
@@ -136,10 +136,6 @@ void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
     Log("Invalid image : %s", resourcePath);
     return;
   }
-
-  delete inputStream;
-
-  _freeResource(imageResource.id);
 
   uint32_t channels = image->getChannels();
   uint32_t w = image->getWidth();
@@ -173,6 +169,10 @@ void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
   auto sampler = TextureSampler();
   inst[0]->setParameter("baseColorIndex",0);
   inst[0]->setParameter("baseColorMap",texture,sampler);
+
+    delete inputStream;
+
+  _freeResource(imageResource);
 }
 
 void SceneAsset::updateEmbeddedAnimations() {
@@ -258,6 +258,7 @@ void SceneAsset::transformToUnitCube() {
     Log("No asset, cannot transform.");
     return;
   }
+  Log("Transforming asset to unit cube.");
   auto &tm = _engine->getTransformManager();
   auto aabb = _asset->getBoundingBox();
   auto center = aabb.center();
@@ -269,6 +270,21 @@ void SceneAsset::transformToUnitCube() {
   tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
 }
 
+void SceneAsset::setPosition(float x, float y, float z) {
+  Log("Setting position to %f %f %f", x, y, z);
+  auto &tm = _engine->getTransformManager();
+  auto transform = tm.getTransform(tm.getInstance(_asset->getRoot()));
+  tm.setTransform(tm.getInstance(_asset->getRoot()), transform * math::mat4f::translation(math::float3(x,y,z)));
+}
+
+void SceneAsset::setRotation(float rads, float x, float y, float z) {
+  Log("Rotating %f radians around axis %f %f %f", x, y, z);
+  auto &tm = _engine->getTransformManager();
+  auto transform = tm.getTransform(tm.getInstance(_asset->getRoot()));
+  tm.setTransform(tm.getInstance(_asset->getRoot()), transform * math::mat4f::rotation(rads, math::float3(x,y,z)));
+}
+
+
 const utils::Entity *SceneAsset::getCameraEntities() {
   return _asset->getCameraEntities();
 }
@@ -276,5 +292,14 @@ const utils::Entity *SceneAsset::getCameraEntities() {
 size_t SceneAsset::getCameraEntityCount() {
   return _asset->getCameraEntityCount();
 }
+
+const Entity* SceneAsset::getLightEntities() const noexcept { 
+  return _asset->getLightEntities();
+}
+
+size_t SceneAsset::getLightEntityCount() const noexcept {
+  return _asset->getLightEntityCount();
+}
+
 
 } // namespace polyvox
