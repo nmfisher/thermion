@@ -139,7 +139,7 @@ class _MyAppState extends State<MyApp> {
                                         loop: _loop);
                                     break;
                                   case 10:
-                                    _filamentController.stopAnimation(_cube!);
+                                    _filamentController.stopAnimation(_cube!, 0);
                                     break;
                                   case 11:
                                     setState(() {
