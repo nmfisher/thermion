@@ -88,7 +88,10 @@ namespace polyvox {
             Scene* _scene;
             View* _view;  
             Engine* _engine;
+            
+            // a default camera that we add to every scene
             Camera* _mainCamera;
+
             Renderer* _renderer;
     
             SwapChain* _swapChain = nullptr;
