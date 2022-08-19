@@ -8,6 +8,7 @@
 
 #include "SceneResources.hpp"
 #include "SceneAsset.hpp"
+#include "ResourceBuffer.hpp"
 
 namespace polyvox {
     using namespace filament;

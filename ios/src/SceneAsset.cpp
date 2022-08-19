@@ -139,7 +139,7 @@ void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
 
   delete inputStream;
 
-  _freeResource(imageResource);
+  _freeResource(imageResource.id);
 
   uint32_t channels = image->getChannels();
   uint32_t w = image->getWidth();
