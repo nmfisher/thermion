@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 typedef FilamentAsset = int;
 
 abstract class FilamentController {
-
   late int textureId;
   Future initialize(int width, int height);
   Future resize(int width, int height);
@@ -28,13 +27,16 @@ abstract class FilamentController {
   Future removeAsset(FilamentAsset asset);
   Future clearAssets();
   Future playAnimation(FilamentAsset asset, int index, {bool loop = false});
-  Future playAnimations(FilamentAsset asset, List<int> indices, {bool loop = false});
-  Future stopAnimation(FilamentAsset asset);
+  Future playAnimations(FilamentAsset asset, List<int> indices,
+      {bool loop = false});
+  Future stopAnimation(FilamentAsset asset, int index);
   Future setCamera(FilamentAsset asset, String name);
-  Future setTexture(FilamentAsset asset, String assetPath, { int renderableIndex=0});
+  Future setTexture(FilamentAsset asset, String assetPath,
+      {int renderableIndex = 0});
   Future transformToUnitCube(FilamentAsset asset);
   Future setPosition(FilamentAsset asset, double x, double y, double z);
-  Future setRotation(FilamentAsset asset, double rads, double x, double y, double z);
+  Future setRotation(
+      FilamentAsset asset, double rads, double x, double y, double z);
 
   ///
   /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where each frame requires a duration of [frameLengthInMs].
@@ -42,13 +44,12 @@ abstract class FilamentController {
   /// Each frame is [numWeights] in length, where each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   /// In other words, weights is a contiguous sequence of floats of size W*F, where W is the number of weights and F is the number of frames
   ///
-  Future animate(FilamentAsset asset, 
-      List<double> data, int numWeights, int numFrames, double frameLengthInMs);
+  Future animate(FilamentAsset asset, List<double> data, int numWeights,
+      int numFrames, double frameLengthInMs);
   Future zoom(double z);
 }
 
 class PolyvoxFilamentController extends FilamentController {
-
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
   PolyvoxFilamentController() {
@@ -98,10 +99,12 @@ class PolyvoxFilamentController extends FilamentController {
     return asset as FilamentAsset;
   }
 
-  Future<FilamentAsset> loadGltf(String path, String relativeResourcePath) async {
+  Future<FilamentAsset> loadGltf(
+      String path, String relativeResourcePath) async {
     print(
         "Loading GLTF at $path with relative resource path $relativeResourcePath");
-    var asset = await _channel.invokeMethod("loadGltf", [path, relativeResourcePath]);
+    var asset =
+        await _channel.invokeMethod("loadGltf", [path, relativeResourcePath]);
     return asset as FilamentAsset;
   }
 
@@ -133,22 +136,24 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("applyWeights", [asset, weights]);
   }
 
-  Future<List<String>> getTargetNames(FilamentAsset asset, String meshName) async {
-    var result = (await _channel.invokeMethod("getTargetNames", [asset, meshName]))
-        .cast<String>();
+  Future<List<String>> getTargetNames(
+      FilamentAsset asset, String meshName) async {
+    var result =
+        (await _channel.invokeMethod("getTargetNames", [asset, meshName]))
+            .cast<String>();
     return result;
   }
 
   Future<List<String>> getAnimationNames(FilamentAsset asset) async {
-    var result =
-        (await _channel.invokeMethod("getAnimationNames", asset)).cast<String>();
+    var result = (await _channel.invokeMethod("getAnimationNames", asset))
+        .cast<String>();
     return result;
   }
 
-  Future animate(FilamentAsset asset, List<double> weights, int numWeights, int numFrames,
-      double frameLengthInMs) async {
-    await _channel.invokeMethod(
-        "animateWeights", [asset, weights, numWeights, numFrames, frameLengthInMs]);
+  Future animate(FilamentAsset asset, List<double> weights, int numWeights,
+      int numFrames, double frameLengthInMs) async {
+    await _channel.invokeMethod("animateWeights",
+        [asset, weights, numWeights, numFrames, frameLengthInMs]);
   }
 
   Future removeAsset(FilamentAsset asset) async {
@@ -163,26 +168,30 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("zoom", z);
   }
 
-  Future playAnimation(FilamentAsset asset, int index, {bool loop = false}) async {
+  Future playAnimation(FilamentAsset asset, int index,
+      {bool loop = false}) async {
     await _channel.invokeMethod("playAnimation", [asset, index, loop]);
   }
 
-  Future playAnimations(FilamentAsset asset, List<int> indices, {bool loop = false}) async {
-    return Future.wait(indices.map((index) { 
+  Future playAnimations(FilamentAsset asset, List<int> indices,
+      {bool loop = false}) async {
+    return Future.wait(indices.map((index) {
       return _channel.invokeMethod("playAnimation", [asset, index, loop]);
     }));
   }
 
-  Future stopAnimation(FilamentAsset asset) async {
-    await _channel.invokeMethod("stopAnimation");
+  Future stopAnimation(FilamentAsset asset, int animationIndex) async {
+    await _channel.invokeMethod("stopAnimation", [asset, animationIndex]);
   }
 
   Future setCamera(FilamentAsset asset, String name) async {
     await _channel.invokeMethod("setCamera", [asset, name]);
   }
 
-  Future setTexture(FilamentAsset asset, String assetPath, { int renderableIndex=0}) async {
-    await _channel.invokeMethod("setTexture", [asset, assetPath, renderableIndex]);
+  Future setTexture(FilamentAsset asset, String assetPath,
+      {int renderableIndex = 0}) async {
+    await _channel
+        .invokeMethod("setTexture", [asset, assetPath, renderableIndex]);
   }
 
   Future transformToUnitCube(FilamentAsset asset) async {
@@ -193,7 +202,8 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("setPosition", [asset, x, y, z]);
   }
 
-  Future setRotation(FilamentAsset asset, double rads, double x, double y, double z) async {
+  Future setRotation(
+      FilamentAsset asset, double rads, double x, double y, double z) async {
     await _channel.invokeMethod("setRotation", [asset, rads, x, y, z]);
   }
 }
