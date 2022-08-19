@@ -134,13 +134,17 @@ extern "C" {
     ((SceneAsset*)asset)->transformToUnitCube();
   }
 
-  // void set_position(void* asset, float x, float y, float z) {
-  //   ((SceneAsset*)asset)->setPosition(x, y, z);
-  // }
+   void set_position(void* asset, float x, float y, float z) {
+     ((SceneAsset*)asset)->setPosition(x, y, z);
+   }
 
-  // void set_rotation(void* asset, float rads, float x, float y, float z) {
-  //   ((SceneAsset*)asset)->setRotation(rads, x, y, z);
-  // }
+   void set_rotation(void* asset, float rads, float x, float y, float z) {
+     ((SceneAsset*)asset)->setRotation(rads, x, y, z);
+   }
+
+  void stop_animation(void* asset, int index) {
+     ((SceneAsset*)asset)->stopAnimation(index);
+  }
   
 }
 
