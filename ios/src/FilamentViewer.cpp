@@ -65,7 +65,11 @@
 
 #include "Log.hpp"
 #include "SceneResources.hpp"
+#if TARGET_OS_IPHONE
 #include "image/imagematerials_ios.h"
+#else 
+#include "image/imagematerial.h"
+#endif
 #include "FilamentViewer.hpp"
 #include "StreamBufferAdapter.hpp"
 
@@ -204,10 +208,18 @@ void FilamentViewer::createImageRenderable() {
     return;
 
   auto &em = EntityManager::get();
+  #if TARGET_OS_IPHONE
   _imageMaterial =
       Material::Builder()
           .package(IMAGEMATERIALS_IOS_IMAGE_FILAMAT_DATA, IMAGEMATERIALS_IOS_IMAGE_FILAMAT_SIZE)
           .build(*_engine);
+  #else
+    _imageMaterial =
+      Material::Builder()
+          .package(IMAGEMATERIAL_IMAGE_DATA, IMAGEMATERIAL_IMAGE_SIZE)
+          .build(*_engine);
+  #endif
+  // TODO - can we make these resgen names consistent
 
   _imageVb = VertexBuffer::Builder()
                  .vertexCount(3)
