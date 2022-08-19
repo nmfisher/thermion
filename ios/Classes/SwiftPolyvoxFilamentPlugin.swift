@@ -204,7 +204,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         let args = call.arguments as! Array<Any?>
         let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
         let animationIndex = args[1] as! Int32
-//        stop_animation(assetPtr, animationIndex) // TODO
+        stop_animation(assetPtr, animationIndex) // TODO
         result("OK");
       case "getTargetNames":
         let args = call.arguments as! Array<Any?>
@@ -254,30 +254,42 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           animate_weights(assetPtr, UnsafeMutablePointer<Float>.init(mutating:$0.baseAddress), Int32(numWeights), Int32(numFrames), Float(frameLenInMs))
         }
         result("OK")
+      case "panStart":
+        let args = call.arguments as! Array<Any>
+        grab_begin(self.viewer, args[0] as! Int32, args[1] as! Int32, true)
+        result("OK")
+      case "panUpdate":
+        let args = call.arguments as! Array<Any>
+        grab_update(self.viewer, args[0] as! Int32, args[1] as! Int32)
+        result("OK")
+      case "panEnd":
+        grab_end(self.viewer)
+        result("OK")
+      case "rotateStart":
+        let args = call.arguments as! Array<Any>
+        grab_begin(self.viewer, args[0] as! Int32, args[1] as! Int32, false)
+        result("OK")
+      case "rotateUpdate":
+        let args = call.arguments as! Array<Any>
+        grab_update(self.viewer, args[0] as! Int32, args[1] as! Int32)
+        result("OK")
+      case "rotateEnd":
+        grab_end(self.viewer)
+        result("OK")
+      case "setPosition":
+        let args = call.arguments as! Array<Any>
+        let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
+        let x = Float(args[1] as! Double)
+        set_position(assetPtr, x, Float(args[2] as! Double), Float(args[3] as! Double))
+        result("OK")
+      case "setRotation":
+        let args = call.arguments as! Array<Any>
+        let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
+        set_rotation(assetPtr, Float(args[1] as! Double), Float(args[2] as! Double), Float(args[3] as! Double), Float(args[4] as! Double))
+        result("OK")
       default:
         result(FlutterMethodNotImplemented)
       }
     }
 }
 
-
-
-//   } else if([@"panStart" isEqualToString:call.method]) {
-//     _viewer->manipulator->grabBegin([call.arguments[0] intValue], [call.arguments[1] intValue], true);
-//     result(@"OK");
-//   } else if([@"panUpdate" isEqualToString:call.method]) {
-//     _viewer->manipulator->grabUpdate([call.arguments[0] intValue], [call.arguments[1] intValue]);
-//     result(@"OK");
-//   } else if([@"panEnd" isEqualToString:call.method]) {
-//     _viewer->manipulator->grabEnd();
-//     result(@"OK");
-//   } else if([@"rotateStart" isEqualToString:call.method]) {
-//     _viewer->manipulator->grabBegin([call.arguments[0] intValue], [call.arguments[1] intValue], false);
-//     result(@"OK");
-//   } else if([@"rotateUpdate" isEqualToString:call.method]) {
-//     _viewer->manipulator->grabUpdate([call.arguments[0] intValue], [call.arguments[1] intValue]);
-//     result(@"OK");
-//   } else if([@"rotateEnd" isEqualToString:call.method]) {
-//     _viewer->manipulator->grabEnd();
-//     result(@"OK");
-//   } else

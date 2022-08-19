@@ -52,5 +52,7 @@ void transform_to_unit_cube(void* asset);
 void set_position(void* asset, float x, float y, float z);
     
 void set_rotation(void* asset, float rads, float x, float y, float z);
+
+void stop_animation(void* asset, int index);
       
 #endif
