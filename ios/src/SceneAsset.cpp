@@ -172,7 +172,7 @@ void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
 
     delete inputStream;
 
-  _freeResource(imageResource);
+  _freeResource(imageResource.id);
 }
 
 void SceneAsset::updateEmbeddedAnimations() {
