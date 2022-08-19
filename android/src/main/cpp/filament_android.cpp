@@ -1,5 +1,6 @@
 #include "FilamentViewer.hpp"
 #include "SceneAsset.hpp"
+#include "ResourceBuffer.hpp"
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <android/native_window_jni.h>
@@ -15,14 +16,14 @@ uint64_t id = -1;
 
 static FilamentViewer* _viewer;
 
-static polyvox::ResourceBuffer loadResource(const char* name) {
+static ResourceBuffer loadResource(const char* name) {
 
     id++;
   
     AAsset *asset = AAssetManager_open(am, name, AASSET_MODE_BUFFER);
     if(asset == nullptr) {
       __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Couldn't locate asset [ %s ]", name);
-      return polyvox::ResourceBuffer(nullptr, 0, 0);
+      return ResourceBuffer(nullptr, 0, 0);
     }
     __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Loading asset [ %s ]", name);
     off_t length = AAsset_getLength(asset);
@@ -37,15 +38,15 @@ static polyvox::ResourceBuffer loadResource(const char* name) {
 
 }
 
-static void freeResource(ResourceBuffer rb) {
-  __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Freeing loaded resource at index [ %d ] ", rb.id);
-  AAsset* asset = _assets[rb.id];
+static void freeResource(uint32_t id) {
+  __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Freeing loaded resource at index [ %d ] ", id);
+  AAsset* asset = _assets[id];
   if(asset) {
     AAsset_close(asset);
   } else {
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Attempting to free resource at index [ %d ] that has already been released.", rb.id);
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Attempting to free resource at index [ %d ] that has already been released.", id);
   }
-  _assets[rb.id] = nullptr;
+  _assets[id] = nullptr;
 }
 
 extern "C" {
