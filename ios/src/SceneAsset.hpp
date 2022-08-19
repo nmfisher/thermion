@@ -65,9 +65,17 @@ namespace polyvox {
 
             void transformToUnitCube();
 
+            void setPosition(float x, float y, float z);
+            
+            void setRotation(float rads, float x, float y, float z);
+
             const utils::Entity* getCameraEntities();
 
             size_t getCameraEntityCount();
+
+            const Entity* getLightEntities() const noexcept;
+
+            size_t getLightEntityCount() const noexcept;
 
 
         private:
