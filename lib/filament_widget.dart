@@ -2,7 +2,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'filament_controller.dart';
 
-
 typedef ResizeCallback = void Function(Size oldSize, Size newSize);
 
 class ResizeObserver extends SingleChildRenderObjectWidget {
@@ -43,7 +42,6 @@ class _RenderResizeObserver extends RenderProxyBox {
 }
 
 class FilamentWidget extends StatefulWidget {
-
   final FilamentController controller;
 
   const FilamentWidget({Key? key, required this.controller}) : super(key: key);
@@ -53,7 +51,6 @@ class FilamentWidget extends StatefulWidget {
 }
 
 class _FilamentWidgetState extends State<FilamentWidget> {
-
   bool _ready = false;
 
   @override
@@ -61,28 +58,30 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       var size = ((context.findRenderObject()) as RenderBox).size;
       print("Requesting texture creation for Filament of size $size");
-      await widget.controller.initialize(size.width.toInt(), size.height.toInt());
+      await widget.controller
+          .initialize(size.width.toInt(), size.height.toInt());
       print("Filament texture available");
       setState(() {
         _ready = true;
       });
     });
-    
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    if(!_ready) {
+    if (!_ready) {
       return Container();
     }
     return ResizeObserver(
-      onResized: (Size oldSize, Size newSize) async {
-        await widget.controller.resize(newSize.width.toInt(), newSize.height.toInt());
-      },
-      child:Texture(
-      textureId: widget.controller.textureId,
-      filterQuality: FilterQuality.none,
-    ));
+        onResized: (Size oldSize, Size newSize) async {
+          await widget.controller
+              .resize(newSize.width.toInt(), newSize.height.toInt());
+        },
+        child: Texture(
+          textureId: widget.controller.textureId,
+          filterQuality: FilterQuality.none,
+        ));
   }
 }
