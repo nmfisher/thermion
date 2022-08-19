@@ -92,22 +92,31 @@ const float kSensitivity = 100.0f;
 FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
                                FreeResource freeResource)
     : _layer(layer), _loadResource(loadResource), _freeResource(freeResource) {
-
+  Log("Creating FilamentViewer");
   #if TARGET_OS_IPHONE
     _engine = Engine::create(Engine::Backend::METAL);
   #else
     _engine = Engine::create(Engine::Backend::OPENGL);
   #endif;
 
+  Log("Engine created");
+
   _renderer = _engine->createRenderer();
 
   _renderer->setDisplayInfo({.refreshRate = 60.0f,
                              .presentationDeadlineNanos = (uint64_t)0,
                              .vsyncOffsetNanos = (uint64_t)0});
+  Renderer::FrameRateOptions fro;
+  fro.interval = 30;
+  _renderer->setFrameRateOptions(fro);
+
   _scene = _engine->createScene();
+
+  Log("Scene created");
   
   Entity camera = EntityManager::get().create();
   _mainCamera = _engine->createCamera(camera);
+  Log("Main camera created");
   _view = _engine->createView();
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
@@ -125,6 +134,8 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   #else 
     _swapChain = _engine->createSwapChain(layer);
   #endif
+
+  Log("Swapchain created");
 
   View::DynamicResolutionOptions options;
   options.enabled = true;
@@ -154,7 +165,7 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _resourceLoader->addTextureProvider("image/png", _stbDecoder);
   _resourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
   manipulator = Manipulator<float>::Builder()
-                    .orbitHomePosition(0.0f, 0.0f, 0.05f)
+                    .orbitHomePosition(0.0f, 0.0f, 1.0f)
                     .targetPosition(0.0f, 0.0f, 0.0f)
                     .build(Mode::ORBIT);
 
@@ -168,6 +179,8 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
       // .castShadows(true)
       .build(*_engine, _sun);
   _scene->addEntity(_sun);
+
+  Log("Added sun");
   
   _sceneAssetLoader = new SceneAssetLoader(_loadResource,
                                    _freeResource,
@@ -546,10 +559,14 @@ void FilamentViewer::updateViewportAndCameraProjection(
   _view->setViewport({0, 0, _width, _height});
 
   const double aspect = (double)width / height;
-  _mainCamera->setLensProjection(_cameraFocalLength, aspect, kNearPlane,
+
+  Camera& cam =_view->getCamera();
+  cam.setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
                                  kFarPlane);
 
-  Log("Set viewport to width: %d height:  %d scaleFactor : %f", width, height,
+  cam.setScaling({1.0 / aspect, 1.0});
+
+  Log("Set viewport to width: %d height: %d aspect %f scaleFactor : %f", width, height, aspect,
       contentScaleFactor);
 }
 
