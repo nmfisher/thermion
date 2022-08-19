@@ -52,7 +52,7 @@ SceneAsset *SceneAssetLoader::fromGltf(const char *uri,
 
     ResourceLoader::BufferDescriptor b(buf.data, buf.size);
     _resourceLoader->addResourceData(resourceUris[i], std::move(b));
-    _freeResource(buf);
+    _freeResource(buf.id);
   }
 
   _resourceLoader->loadResources(asset);
@@ -115,7 +115,7 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
   asset->releaseSourceData();
   Log("Source data released.");
 
-  _freeResource(rbuf);
+  _freeResource(rbuf.id);
 
   Log("Successfully loaded GLB.");
   return new SceneAsset(asset, _engine, _ncm, _loadResource, _freeResource);
