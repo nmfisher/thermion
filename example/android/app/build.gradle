@@ -64,7 +64,7 @@ android {
         }
     }
     packagingOptions {
-        
+        pickFirst "lib/**/libjnidispatch.so"
     }
     aaptOptions {
       noCompress "ktx"
