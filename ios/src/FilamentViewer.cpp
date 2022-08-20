@@ -334,7 +334,26 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
                                       float3(1.0f));
 }
 
-FilamentViewer::~FilamentViewer() { cleanup(); }
+FilamentViewer::~FilamentViewer() { 
+  clearAssets();
+  _resourceLoader->asyncCancelLoad();
+  Log("c1");
+  _materialProvider->destroyMaterials();
+  Log("c2");
+  AssetLoader::destroy(&_assetLoader);
+  Log("c3");
+  delete _sceneAssetLoader;
+  _engine->destroy(_view);
+  Log("c4");
+  _engine->destroy(_scene);
+  Log("c5");
+  _engine->destroy(_renderer);
+  Log("c6");
+  _engine->destroy(_swapChain);
+  Log("c7");
+  Engine::destroy(&_engine); // clears engine*
+  Log("c8");
+}
 
 Renderer *FilamentViewer::getRenderer() { return _renderer; }
 
@@ -528,12 +547,6 @@ void FilamentViewer::loadIbl(const char *const iblPath) {
     Log("Skybox/IBL load complete.");
   }
 }
-
-void FilamentViewer::cleanup() {
-  _resourceLoader->asyncCancelLoad();
-  _materialProvider->destroyMaterials();
-  AssetLoader::destroy(&_assetLoader);
-};
 
 void FilamentViewer::render() {
 
