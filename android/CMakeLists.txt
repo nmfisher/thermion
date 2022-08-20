@@ -15,6 +15,7 @@ add_library(
             src/main/cpp/JobSystem.cpp
             ../ios/src/SceneAssetLoader.cpp
             ../ios/src/FilamentViewer.cpp
+            ../ios/src/PolyvoxFilamentApi.cpp
             ../ios/src/StreamBufferAdapter.cpp
             ../ios/src/image/imagematerial.c
             ../ios/src/SceneAsset.cpp

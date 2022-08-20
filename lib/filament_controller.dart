@@ -6,6 +6,7 @@ typedef FilamentAsset = int;
 
 abstract class FilamentController {
   late int textureId;
+  Future get initialized;
   Future initialize(int width, int height);
   Future resize(int width, int height);
   Future setBackgroundImage(String path);
@@ -52,6 +53,9 @@ abstract class FilamentController {
 class PolyvoxFilamentController extends FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
+  final _initialized = Completer();
+  Future get initialized => _initialized.future;
+
   PolyvoxFilamentController() {
     _channel.setMethodCallHandler((call) async {
       print("Received Filament method channel call : ${call.method}");
@@ -61,6 +65,7 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future initialize(int width, int height) async {
     textureId = await _channel.invokeMethod("initialize", [width, height]);
+    _initialized.complete(true);
   }
 
   Future resize(int width, int height) async {

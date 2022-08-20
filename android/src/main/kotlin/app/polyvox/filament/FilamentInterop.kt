@@ -18,10 +18,14 @@ import java.nio.ByteBuffer
 
 interface FilamentInterop : Library {
 
-    fun filament_viewer_new(
+    fun filament_viewer_new_android(
             layer:Object,
             env:JNIEnv,
             am:AssetManager
+    ) : Pointer;
+
+    fun filament_viewer_delete(
+            viewer:Pointer,
     ) : Pointer;
 
     fun load_skybox(viewer:Pointer, skyboxPath:String) : Pointer;
@@ -54,9 +58,11 @@ interface FilamentInterop : Library {
 
     fun animate_weights(asset:Pointer, frames:FloatArray, numWeights:Int, numFrames:Int,  frameRate:Float);
 
-    fun get_target_names(asset:Pointer, meshName:String, outLen:IntByReference) : Pointer;
+    fun get_target_name_count(asset:Pointer, meshName:String) : Int;
+    fun get_target_name(asset:Pointer, meshName:String, outPtr:Pointer, index:Int);
 
-    fun get_animation_names(asset:Pointer, outLen:IntByReference) : Pointer;
+    fun get_animation_count(asset:Pointer) : Int;
+    fun get_animation_name(asset:Pointer, outPtr:Pointer, index:Int);
 
     fun play_animation(asset:Pointer, index:Int, loop:Boolean);
 

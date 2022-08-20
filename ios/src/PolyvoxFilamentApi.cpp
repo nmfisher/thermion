@@ -3,6 +3,7 @@
 
 #include "ResourceBuffer.hpp"
 #include "FilamentViewer.hpp"
+#include "Log.hpp"
 
 using namespace polyvox;
 
@@ -13,6 +14,14 @@ extern "C" {
 
   void* filament_viewer_new(void* texture, ResourceBuffer (*loadResource)(const char*), void (*freeResource)(uint32_t)) {
     return nullptr;
+  }
+
+  
+  void filament_viewer_delete(void* viewer) {
+    delete((FilamentViewer*)viewer);
+    Log(
+      "deleted"
+    );
   }
 
   void set_background_image(void* viewer, const char* path) {

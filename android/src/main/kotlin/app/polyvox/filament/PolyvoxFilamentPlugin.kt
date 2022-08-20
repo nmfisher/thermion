@@ -51,6 +51,7 @@ import android.util.Log
 import com.sun.jna.Library
 import com.sun.jna.Native
 import com.sun.jna.Pointer
+import com.sun.jna.Memory
 import com.sun.jna.ptr.PointerByReference
 import com.sun.jna.ptr.IntByReference
 import com.sun.jna.Structure
@@ -77,14 +78,20 @@ import android.view.SurfaceHolder
 /** PolyvoxFilamentPlugin */
 class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
+  private val lock = Object()
+
   inner class FrameCallback : Choreographer.FrameCallback {
     private val startTime = System.nanoTime()
     override fun doFrame(frameTimeNanos: Long) {
-        choreographer.postFrameCallback(this)
-      if(!surface.isValid()) {
-        Log.v(TAG, "INVALID")
+      choreographer.postFrameCallback(this)
+      synchronized(lock) {
+        if(_viewer != null) {
+          if(!surface.isValid()) {
+            Log.v(TAG, "INVALID")
+          }
+          _lib.render(_viewer!!)
+        }
       }
-      _lib.render(_viewer!!)
     }
   }
 
@@ -115,7 +122,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   private lateinit var assetManager : AssetManager
 
   private lateinit var surface: Surface
-  private lateinit var surfaceTexture: SurfaceTexture
+  private var surfaceTexture: SurfaceTexture? = null
   
   private lateinit var activity:Activity
 
@@ -135,6 +142,18 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     when (call.method) {
       "initialize" -> {
+        if(_viewer != null) {
+          synchronized(lock) {
+            print("Deleting existing viewer")
+            _lib.filament_viewer_delete(_viewer!!);
+            _viewer = null;
+          }
+        }
+        if(surfaceTexture != null) {
+          print("Releasing existing texture")
+          surfaceTexture!!.release()
+          surfaceTexture = null;
+        }
         val args = call.arguments as ArrayList<Int>
         val width = args[0]
         val height = args[1]
@@ -145,11 +164,11 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
         surfaceTexture = entry.surfaceTexture()
 
-        surfaceTexture.setDefaultBufferSize(width, height)
+        surfaceTexture!!.setDefaultBufferSize(width, height)
 
-        surface = Surface(surfaceTexture) 
+        surface = Surface(surfaceTexture!!) 
 
-        _viewer = _lib.filament_viewer_new(
+        _viewer = _lib.filament_viewer_new_android(
                     surface as Object,
                     JNIEnv.CURRENT,
                     (activity as Context).assets)
@@ -167,7 +186,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         val width = args[0]
         val height = args[1]
 
-        surfaceTexture.setDefaultBufferSize(width, height)
+        surfaceTexture!!.setDefaultBufferSize(width, height)
         _lib.update_viewport_and_camera_projection(_viewer!!, width, height, 1.0f);
         result.success(null)
       }
@@ -275,40 +294,28 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           result.success("OK");
         }
         "getTargetNames" -> {
-          if(_viewer == null)
-            return;
-          
-          val countPtr = IntByReference();
           val args = call.arguments as ArrayList<*>
-          val namesPtr = _lib.get_target_names(Pointer(args[0] as Long), args[1] as String, countPtr)
-
-          val names = namesPtr.getStringArray(0, countPtr.value);
-
-          for(i in 0..countPtr.value-1) {
-            Log.v(TAG, "Got target names ${names[i]} ${names[i].length}")
+          val assetPtr = Pointer(args[0] as Long)
+          val meshName = args[1] as String
+          val names = mutableListOf<String>()
+          val outPtr = Memory(256)
+          for(i in 0.._lib.get_target_name_count(assetPtr, meshName) - 1) {
+            _lib.get_target_name(assetPtr, meshName, outPtr, i)
+            val name = outPtr.getString(0)
+            names.add(name)
           }
-          
-          val namesAsList = names.toCollection(ArrayList())
-
-          _lib.free_pointer(namesPtr, countPtr.getValue())
-
-          result.success(namesAsList)
+          result.success(names)
         } 
         "getAnimationNames" -> {
           val assetPtr = Pointer(call.arguments as Long)
-          val countPtr = IntByReference();
-          val arrPtr = _lib.get_animation_names(assetPtr, countPtr)
-
-          val names = arrPtr.getStringArray(0, countPtr.value);
-
-          for(i in 0..countPtr.value-1) {
-            val name = names[i];
-            Log.v(TAG, "Got animation names ${name} ${name.length}")
+          val names = mutableListOf<String>()
+          val outPtr = Memory(256)
+          for(i in 0.._lib.get_animation_count(assetPtr) - 1) {
+            _lib.get_animation_name(assetPtr, outPtr, i)
+            val name = outPtr.getString(0)
+            names.add(name)
           }
-          
-          _lib.free_pointer(arrPtr, 1)
-
-          result.success(names.toCollection(ArrayList()))
+          result.success(names)
         } 
         "applyWeights" -> {
           val args = call.arguments as ArrayList<*>

@@ -22,7 +22,7 @@ class _MyAppState extends State<MyApp> {
   FilamentAsset? _flightHelmet;
 
   final weights = List.filled(255, 0.0);
-  List<String> _targets = [];
+  List<String> _targetNames = [];
   List<String> _animationNames = [];
   bool _loop = false;
   bool _vertical = false;
@@ -36,9 +36,9 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
         showPerformanceOverlay: true,
-        color: Colors.transparent,
+        color: Colors.white,
         home: Scaffold(
-            backgroundColor: Colors.transparent,
+            backgroundColor: Colors.white,
             body: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -67,6 +67,7 @@ class _MyAppState extends State<MyApp> {
                           controller: _filamentController,
                         )),
                       )),
+                      Text("Target names : ${_targetNames.join(",")}, Animation names : ${_animationNames.join(",")}"),
                   Align(
                       alignment: Alignment.bottomLeft,
                       child: Container(
@@ -174,64 +175,20 @@ class _MyAppState extends State<MyApp> {
                                         1000 / framerate.toDouble());
                                     break;
                                   case 16:
-                                    final names = await _filamentController
-                                        .getTargetNames(_cube!, "Cube");
 
-                                    await showDialog(
-                                        builder: (ctx) {
-                                          return Container(
-                                              color: Colors.white,
-                                              height: 200,
-                                              width: 200,
-                                              child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: names
-                                                          .map((name) =>
-                                                              Text(name))
-                                                          .cast<Widget>()
-                                                          .toList() +
-                                                      <Widget>[
-                                                        ElevatedButton(
-                                                            onPressed: () =>
-                                                                Navigator.of(
-                                                                        ctx)
-                                                                    .pop(),
-                                                            child:
-                                                                Text("Close"))
-                                                      ]));
-                                        },
-                                        context: context);
+                                    _targetNames = await _filamentController
+                                        .getTargetNames(_cube!, "Cube");
+                                                                          setState(() {
+                                  
+                                  });
                                     break;
                                   case 17:
-                                    final names = await _filamentController
+                                    _animationNames = await _filamentController
                                         .getAnimationNames(_cube!);
+                                      setState(() {
+                                  
+                                  });
 
-                                    await showDialog(
-                                        builder: (ctx) {
-                                          return Container(
-                                              color: Colors.white,
-                                              height: 200,
-                                              width: 200,
-                                              child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: names
-                                                          .map((name) =>
-                                                              Text(name))
-                                                          .cast<Widget>()
-                                                          .toList() +
-                                                      <Widget>[
-                                                        ElevatedButton(
-                                                            onPressed: () =>
-                                                                Navigator.of(
-                                                                        ctx)
-                                                                    .pop(),
-                                                            child:
-                                                                Text("Close"))
-                                                      ]));
-                                        },
-                                        context: context);
                                     break;
                                   case 18:
                                     await _filamentController.panStart(1, 1);
