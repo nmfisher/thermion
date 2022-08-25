@@ -24,7 +24,8 @@ namespace polyvox {
                 ResourceLoader* resourceLoader,
                 NameComponentManager* ncm,
                 Engine* engine,
-                Scene* scene);
+                Scene* scene,
+                workqueue::threadpool& threadpool);
             SceneAsset* fromGltf(const char* uri, const char* relativeResourcePath);
             SceneAsset* fromGlb(const char* uri);
             void remove(SceneAsset* asset);
@@ -37,6 +38,7 @@ namespace polyvox {
             NameComponentManager* _ncm;
             Scene* _scene;
             Engine* _engine;
+            workqueue::threadpool& _threadpool;
 
 
     };

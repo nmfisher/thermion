@@ -15,7 +15,6 @@ extern "C" {
   void* filament_viewer_new(void* texture, ResourceBuffer (*loadResource)(const char*), void (*freeResource)(uint32_t)) {
     return nullptr;
   }
-
   
   void filament_viewer_delete(void* viewer) {
     delete((FilamentViewer*)viewer);
@@ -135,8 +134,12 @@ extern "C" {
     ((FilamentViewer*)viewer)->clearAssets();
   }
 
-  void set_texture(void* asset, const char* assetPath, int renderableIndex) {
-    ((SceneAsset*)asset)->setTexture(assetPath, renderableIndex);
+  void load_texture(void* asset, const char* assetPath, int renderableIndex) {
+    ((SceneAsset*)asset)->loadTexture(assetPath, renderableIndex);
+  }
+
+  void set_texture(void* asset) {
+    ((SceneAsset*)asset)->setTexture();
   }
 
   void transform_to_unit_cube(void* asset) {

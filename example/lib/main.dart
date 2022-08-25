@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/filament_widget.dart';
 
+
 void main() {
   runApp(const MyApp());
 }
@@ -223,6 +224,9 @@ class _MyAppState extends State<MyApp> {
                                     setState(() {
                                       _vertical = !_vertical;
                                     });
+                                    break;
+                                  case 26:
+                                    await _filamentController.reload();
                                 }
                               },
                               itemBuilder: (BuildContext context) =>
@@ -302,6 +306,9 @@ class _MyAppState extends State<MyApp> {
                                         value: 19, child: Text('pan right')),
                                     PopupMenuItem(
                                         value: 25, child: Text(_vertical ? 'set horizontal' : 'set vertical')),
+                                    PopupMenuItem(
+                                        value: 26, child: Text(
+                                          "reload native assets")),
                                   ])))
                 ])));
   }

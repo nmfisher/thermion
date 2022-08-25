@@ -41,7 +41,11 @@ SceneAsset::SceneAsset(FilamentAsset *asset, Engine *engine,
 }
 
 SceneAsset::~SceneAsset() { 
-  // we defer all destructor work to SceneAssetLoader so we don't need to do anything here
+  // most other destructor work is deferred to SceneAssetLoader so we don't need to do anything here
+  if(_texture) {
+    _engine->destroy(_texture);
+    _texture = nullptr;
+  }
 }
 
 void SceneAsset::applyWeights(float *weights, int count) {
@@ -121,26 +125,35 @@ void SceneAsset::stopAnimation(int index) {
   _embeddedAnimationStatus[index].started = false;
 }
 
-void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
-  Log("Setting texture to %s for renderableIndex %d", resourcePath, renderableIndex);
-  ResourceBuffer imageResource = _loadResource(resourcePath);
+void SceneAsset::loadTexture(const char* resourcePath, int renderableIndex) {
 
-  polyvox::StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
+  Log("Loading texture at %s for renderableIndex %d", resourcePath, renderableIndex);
 
-  std::istream *inputStream = new std::istream(&sb);
+  string rp("flutter_assets/assets/background.png");
+
+  if(_texture) {
+    _engine->destroy(_texture);
+    _texture = nullptr;
+  }
+  
+  ResourceBuffer imageResource = _loadResource(rp.c_str());
+  
+  StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
+
+  istream *inputStream = new std::istream(&sb);
 
   LinearImage *image = new LinearImage(ImageDecoder::decode(
-      *inputStream, resourcePath, ImageDecoder::ColorSpace::SRGB));
+      *inputStream, rp.c_str(), ImageDecoder::ColorSpace::SRGB));
 
   if (!image->isValid()) {
-    Log("Invalid image : %s", resourcePath);
+    Log("Invalid image : %s", rp.c_str());
     return;
   }
 
   uint32_t channels = image->getChannels();
   uint32_t w = image->getWidth();
   uint32_t h = image->getHeight();
-  auto texture = Texture::Builder()
+  _texture = Texture::Builder()
                       .width(w)
                       .height(h)
                       .levels(0xff)
@@ -149,8 +162,10 @@ void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
                       .sampler(Texture::Sampler::SAMPLER_2D)
                       .build(*_engine);
 
+  Log("build texture");
+
   Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-                                                             void *data) {
+                                                            void *data) {
     delete reinterpret_cast<LinearImage *>(data);
   };
 
@@ -159,20 +174,26 @@ void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
       channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
       Texture::Type::FLOAT, freeCallback);
 
-  texture->setImage(*_engine, 0, std::move(buffer));
+  _texture->setImage(*_engine, 0, std::move(buffer));
+  Log("set image");
+  setTexture();
+  delete inputStream;
 
-  size_t mic =  _asset->getMaterialInstanceCount();
+  _freeResource(imageResource.id);
+  
+}
+
+void SceneAsset::setTexture() {
+  
   MaterialInstance* const* inst = _asset->getMaterialInstances();
+  size_t mic =  _asset->getMaterialInstanceCount();
   Log("Material instance count : %d", mic);
     
   RenderableManager &rm = _engine->getRenderableManager();
   auto sampler = TextureSampler();
   inst[0]->setParameter("baseColorIndex",0);
-  inst[0]->setParameter("baseColorMap",texture,sampler);
+  inst[0]->setParameter("baseColorMap",_texture,sampler);
 
-    delete inputStream;
-
-  _freeResource(imageResource.id);
 }
 
 void SceneAsset::updateEmbeddedAnimations() {

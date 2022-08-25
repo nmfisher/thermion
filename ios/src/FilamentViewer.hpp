@@ -127,7 +127,6 @@ namespace polyvox {
             Material* _imageMaterial = nullptr;
             TextureSampler _imageSampler;
             ColorGrading *colorGrading = nullptr;
-
     };
 
 
