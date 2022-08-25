@@ -57,11 +57,15 @@ extern "C" {
   }
 
   void set_camera_position(void* viewer, float x, float y, float z) {
-    return ((FilamentViewer*)viewer)->setCameraPosition(x, y, z);
+    ((FilamentViewer*)viewer)->setCameraPosition(x, y, z);
   }
 
   void set_camera_rotation(void* viewer, float rads, float x, float y, float z) {
-    return ((FilamentViewer*)viewer)->setCameraRotation(rads, x, y, z);
+    ((FilamentViewer*)viewer)->setCameraRotation(rads, x, y, z);
+  }
+
+  void set_camera_focal_length(void* viewer, float focalLength) {
+    ((FilamentViewer*)viewer)->setCameraFocalLength(focalLength);
   }
 
   void render(

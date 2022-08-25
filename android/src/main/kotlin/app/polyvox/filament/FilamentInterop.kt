@@ -85,5 +85,10 @@ interface FilamentInterop : Library {
 
     fun set_position(asset:Pointer, x:Float, y:Float, z:Float);
     fun set_rotation(asset:Pointer, rads:Float, x:Float, y:Float, z:Float);
+
+    fun set_camera_position(asset:Pointer, x:Float, y:Float, z:Float);
+    fun set_camera_rotation(asset:Pointer, rads:Float, x:Float, y:Float, z:Float);
+    fun set_camera_focal_length(asset:Pointer, focalLength:Float);
+    fun set_camera_focus_distance(asset:Pointer, focusDistance:Float);
 }
 

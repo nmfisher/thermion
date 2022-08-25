@@ -60,5 +60,7 @@ void stop_animation(void* asset, int index);
 void set_camera_position(void* viewer, float x, float y, float z);
 
 void set_camera_rotation(void* viewer, float rads, float x, float y, float z);
+void set_camera_focal_length(void* viewer, float focalLength);
+void set_camera_focus_distance(void* viewer, float focusDistance);
       
 #endif
