@@ -8,7 +8,7 @@ abstract class FilamentController {
   late int textureId;
   Future get initialized;
   Future initialize(int width, int height);
-  Future resize(int width, int height);
+  Future resize(int width, int height, {double contentScaleFactor=1});
   Future setBackgroundImage(String path);
   Future loadSkybox(String skyboxPath);
   Future removeSkybox();
@@ -38,6 +38,10 @@ abstract class FilamentController {
   Future setPosition(FilamentAsset asset, double x, double y, double z);
   Future setRotation(
       FilamentAsset asset, double rads, double x, double y, double z);
+  Future setCameraFocalLength(
+      double focalLength);
+  Future setCameraFocusDistance(
+      double focusDistance);
 
   ///
   /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where each frame requires a duration of [frameLengthInMs].
@@ -68,8 +72,8 @@ class PolyvoxFilamentController extends FilamentController {
     _initialized.complete(true);
   }
 
-  Future resize(int width, int height) async {
-    await _channel.invokeMethod("resize", [width, height]);
+  Future resize(int width, int height, { double contentScaleFactor=1.0}) async {
+    await _channel.invokeMethod("resize", [width, height, contentScaleFactor]);
   }
 
   @override
@@ -191,6 +195,14 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future setCamera(FilamentAsset asset, String name) async {
     await _channel.invokeMethod("setCamera", [asset, name]);
+  }
+
+  Future setCameraFocalLength(double focalLength) async {
+    await _channel.invokeMethod("setCameraFocalLength", focalLength);
+  }
+
+  Future setCameraFocusDistance(double focusDistance) async {
+    await _channel.invokeMethod("setCameraFocusDistance", focusDistance);
   }
 
   Future setTexture(FilamentAsset asset, String assetPath,

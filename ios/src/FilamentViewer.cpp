@@ -121,6 +121,7 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   Entity camera = EntityManager::get().create();
 
   _mainCamera = _engine->createCamera(camera);
+
   Log("Main camera created");
   _view = _engine->createView();
   _view->setScene(_scene);
@@ -133,6 +134,8 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _view->setColorGrading(colorGrading);
 
   _cameraFocalLength = 28.0f;
+  _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
+                                 kFarPlane);
   _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
   #if TARGET_OS_IPHONE
     _swapChain = _engine->createSwapChain(layer, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
@@ -433,6 +436,25 @@ void FilamentViewer::removeAsset(SceneAsset *asset) {
     Log("Error removing asset from scene : not found");
   }
   mtx.unlock();
+}
+
+///
+/// Set the focal length of the active camera.
+///
+void FilamentViewer::setCameraFocalLength(float focalLength) {
+  Camera& cam =_view->getCamera();
+  _cameraFocalLength = focalLength;
+  cam.setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
+                                 kFarPlane);                            
+}
+
+///
+/// Set the focus distance of the active camera.
+///
+void FilamentViewer::setCameraFocusDistance(float focusDistance) {
+  Camera& cam =_view->getCamera();
+  _cameraFocusDistance = focusDistance;
+  cam.setFocusDistance(_cameraFocusDistance);                           
 }
 
 ///

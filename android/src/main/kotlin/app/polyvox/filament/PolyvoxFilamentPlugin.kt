@@ -212,9 +212,9 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           val args = call.arguments as ArrayList<Int>
           val width = args[0]
           val height = args[1]
-
+          val scale = if(args.size > 2) (args[2] as Double).toFloat() else 1.0f
           surfaceTexture!!.setDefaultBufferSize(width, height)
-          _lib.update_viewport_and_camera_projection(_viewer!!, width, height, 1.0f);
+          _lib.update_viewport_and_camera_projection(_viewer!!, width, height, scale);
           result.success(null)
         }
       }
@@ -288,6 +288,32 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
             val args = call.arguments as ArrayList<*>
             val assetPtr = Pointer(args[0] as Long)
             _lib.set_rotation(assetPtr, (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat(), (args[4] as Double).toFloat())
+            result.success("OK");
+          }
+        }
+        "setCameraPosition" -> {
+          executor.execute { 
+            val args = call.arguments as ArrayList<*>
+            _lib.set_camera_position(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat())
+            result.success("OK");
+          }
+        }
+        "setCameraRotation" -> {
+          executor.execute { 
+            val args = call.arguments as ArrayList<*>
+            _lib.set_camera_rotation(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat())
+            result.success("OK");
+          }
+        }
+        "setCameraFocalLength" -> {
+          executor.execute { 
+            _lib.set_camera_focal_length(_viewer!!, (call.arguments as Double).toFloat())
+            result.success("OK");
+          }
+        }
+        "setCameraFocusDistance" -> {
+          executor.execute { 
+            _lib.set_camera_focus_distance(_viewer!!, (call.arguments as Double).toFloat())
             result.success("OK");
           }
         }
@@ -460,14 +486,13 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
-    //_lib.destroy_swap_chain(_viewer!!)
+    _lib.destroy_swap_chain(_viewer!!)
   }
 
   
   override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
     onAttachedToActivity(binding)
-    //_lib.create_swap_chain(_viewer!!, surface, JNIEnv.CURRENT)
-
+    _lib.create_swap_chain(_viewer!!, surface, JNIEnv.CURRENT)
   }
 
   override fun onDetachedFromActivityForConfigChanges() {

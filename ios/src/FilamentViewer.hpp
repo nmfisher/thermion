@@ -76,6 +76,8 @@ namespace polyvox {
 
             void setCameraPosition(float x, float y, float z);
             void setCameraRotation(float rads, float x, float y, float z);
+            void setCameraFocalLength(float fl);
+            void setCameraFocusDistance(float focusDistance);
 
         private:
             void createImageRenderable();
@@ -120,7 +122,8 @@ namespace polyvox {
 
             bool _actualSize = false;     
             
-            float _cameraFocalLength = 0.0f;
+            float _cameraFocalLength = 28.0f;
+            float _cameraFocusDistance = 0.0f;
 
             // these flags relate to the textured quad we use for rendering unlit background images
             Texture* _imageTexture = nullptr;
