@@ -4,15 +4,16 @@
 #include <filament/RenderableManager.h>
 #include <filament/Renderer.h>
 #include <filament/Scene.h>
+#include <filament/Texture.h>
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
 
+
 #include <utils/NameComponentManager.h>
 
 #include "SceneResources.hpp"
-
 
 namespace polyvox {
     using namespace filament;
@@ -32,7 +33,8 @@ namespace polyvox {
             ///
             ///
             ///
-            void setTexture(const char* resourcePath, int renderableIndex);
+            void loadTexture(const char* resourcePath, int renderableIndex);
+            void setTexture();
 
             ///
             /// Update the bone/morph target animations to reflect the current frame (if applicable).
@@ -79,12 +81,14 @@ namespace polyvox {
 
 
         private:
+
             FilamentAsset* _asset = nullptr;
             Engine* _engine = nullptr;
             NameComponentManager* _ncm;
 
             void updateMorphAnimation();
             void updateEmbeddedAnimations();
+
 
             Animator* _animator;
             
@@ -94,6 +98,9 @@ namespace polyvox {
 
             LoadResource _loadResource;
             FreeResource _freeResource;
+
+            // a slot to preload textures
+            filament::Texture* _texture = nullptr;
 
     };
 }

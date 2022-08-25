@@ -111,7 +111,7 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
                              .presentationDeadlineNanos = (uint64_t)0,
                              .vsyncOffsetNanos = (uint64_t)0});
   Renderer::FrameRateOptions fro;
-  fro.interval = 30;
+  fro.interval = 60;
   _renderer->setFrameRateOptions(fro);
 
   _scene = _engine->createScene();
@@ -119,6 +119,7 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   Log("Scene created");
   
   Entity camera = EntityManager::get().create();
+
   _mainCamera = _engine->createCamera(camera);
   Log("Main camera created");
   _view = _engine->createView();
@@ -185,14 +186,15 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _scene->addEntity(_sun);
 
   Log("Added sun");
-  
+
   _sceneAssetLoader = new SceneAssetLoader(_loadResource,
                                    _freeResource,
                                    _assetLoader,
                                    _resourceLoader,
                                    _ncm, 
                                    _engine,
-                                   _scene);
+                                   _scene,
+                                   tp);
 }
 
 static constexpr float4 sFullScreenTriangleVertices[3] = {
@@ -336,23 +338,20 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
 
 FilamentViewer::~FilamentViewer() { 
   clearAssets();
-  _resourceLoader->asyncCancelLoad();
-  Log("c1");
-  _materialProvider->destroyMaterials();
-  Log("c2");
-  AssetLoader::destroy(&_assetLoader);
-  Log("c3");
+  Log("Deleting SceneAssetLoader");
   delete _sceneAssetLoader;
+  _resourceLoader->asyncCancelLoad();
+  _materialProvider->destroyMaterials();
+  AssetLoader::destroy(&_assetLoader);
+  _engine->destroy(_sun);
+  _engine->destroyCameraComponent(_mainCamera->getEntity());
+  _mainCamera = nullptr;
   _engine->destroy(_view);
-  Log("c4");
   _engine->destroy(_scene);
-  Log("c5");
   _engine->destroy(_renderer);
-  Log("c6");
   _engine->destroy(_swapChain);
-  Log("c7");
+  
   Engine::destroy(&_engine); // clears engine*
-  Log("c8");
 }
 
 Renderer *FilamentViewer::getRenderer() { return _renderer; }
@@ -401,8 +400,11 @@ SceneAsset *FilamentViewer::loadGltf(const char *const uri,
 
 void FilamentViewer::clearAssets() {
   Log("Clearing all assets");
-  mtx.lock();
-  _view->setCamera(_mainCamera);
+  // mtx.lock();
+  if(_mainCamera) {
+    _view->setCamera(_mainCamera);
+  }
+  
   int i = 0;
   for (auto asset : _assets) {
     _sceneAssetLoader->remove(asset);
@@ -410,7 +412,8 @@ void FilamentViewer::clearAssets() {
     i++;
   }
   _assets.clear();
-  mtx.unlock();
+  // mtx.unlock();
+  Log("Cleared all assets");
 }
 
 void FilamentViewer::removeAsset(SceneAsset *asset) {
@@ -555,7 +558,7 @@ void FilamentViewer::render() {
     return;
   }
 
-  mtx.lock();
+  // mtx.lock();
   for (auto &asset : _assets) {
     asset->updateAnimations();
   }
@@ -569,7 +572,7 @@ void FilamentViewer::render() {
     _renderer->render(_view);
     _renderer->endFrame();
   }
-  mtx.unlock();
+  // mtx.unlock();
 }
 
 void FilamentViewer::updateViewportAndCameraProjection(

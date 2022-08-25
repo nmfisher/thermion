@@ -46,7 +46,8 @@ void remove_asset(void* viewer, void* asset);
     
 void clear_assets(void* viewer);
     
-void set_texture(void* asset, const char* assetPath, int renderableIndex);
+void load_texture(void* asset, const char* assetPath, int renderableIndex);
+void set_texture(void* asset);
     
 void transform_to_unit_cube(void* asset);
     

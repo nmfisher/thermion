@@ -78,7 +78,8 @@ interface FilamentInterop : Library {
 
     fun set_background_image(viewer:Pointer, path:String);
     
-    fun set_texture(asset:Pointer, path:String, renderableIndex:Int);
+    fun load_texture(asset:Pointer, path:String, renderableIndex:Int);
+    fun set_texture(asset:Pointer);
 
     fun transform_to_unit_cube(asset:Pointer);
 

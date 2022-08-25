@@ -7,44 +7,69 @@
 #include <android/log.h>
 #include <android/native_activity.h>
 
+#include <map>
+
 using namespace polyvox;
 using namespace std;
 
 static AAssetManager* am;
-static vector<AAsset*> _assets;
-uint64_t id = -1;
+static map<uint32_t, AAsset*> _apk_assets;
+static map<uint32_t, void*> _file_assets;
+static uint32_t _i = 0;
 
 static ResourceBuffer loadResource(const char* name) {
 
-    id++;
-  
-    AAsset *asset = AAssetManager_open(am, name, AASSET_MODE_BUFFER);
-    if(asset == nullptr) {
-      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Couldn't locate asset [ %s ]", name);
-      return ResourceBuffer(nullptr, 0, 0);
+
+    string name_str(name);
+    auto id = _i++;
+    
+    if (name_str.rfind("file://", 0) == 0) {
+      streampos length;
+      ifstream is(name_str.substr(7), ios::binary);
+      is.seekg (0, ios::end);
+      length = is.tellg();
+      char * buffer;
+      buffer = new char [length];
+      is.seekg (0, ios::beg);
+      is.read (buffer, length);
+      is.close();      
+      _file_assets[id] = buffer;
+      return ResourceBuffer(buffer, length, id);
+    } else {
+      AAsset *asset = AAssetManager_open(am, name, AASSET_MODE_BUFFER);
+      if(asset == nullptr) {
+        __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Couldn't locate asset [ %s ]", name);
+        return ResourceBuffer(nullptr, 0, 0);
+      }
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Loading asset [ %s ]", name);
+
+      off_t length = AAsset_getLength(asset);
+      const void * buffer = AAsset_getBuffer(asset);
+
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Read [ %lu ] bytes into buffer", length);
+      
+      _apk_assets[id] = asset;
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Loaded asset [ %s ] of length %zu at index %d", name, length, id);
+      return ResourceBuffer(buffer, length, id);
     }
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Loading asset [ %s ]", name);
-    off_t length = AAsset_getLength(asset);
-    const void * buffer = AAsset_getBuffer(asset);
-
-    uint8_t *buf = new uint8_t[length ];
-    memcpy(buf,buffer,  length);
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Read [ %lu ] bytes into buffer", length);
-    _assets.push_back(asset);
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Loaded asset [ %s ] of length %zu", name, length);
-    return ResourceBuffer(buf, length, id);
-
 }
 
 static void freeResource(uint32_t id) {
   __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Freeing loaded resource at index [ %d ] ", id);
-  AAsset* asset = _assets[id];
-  if(asset) {
-    AAsset_close(asset);
+  auto apk_it = _apk_assets.find(id);
+  if (apk_it != _apk_assets.end()) {
+    AAsset_close(apk_it->second);
+    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Closed Android asset");
   } else {
-    __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Attempting to free resource at index [ %d ] that has already been released.", id);
+    auto file_it = _file_assets.find(id);
+    if (file_it != _file_assets.end()) {
+      free(file_it->second);
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "Freed asset from filesystem.");
+    } else {
+      __android_log_print(ANDROID_LOG_VERBOSE, "filament_api", "FATAL - could not find Android or filesystem (hot reload) asset under id %d", id);
+    }
   }
-  _assets[id] = nullptr;
+
 }
 
 extern "C" {
