@@ -74,6 +74,9 @@ namespace polyvox {
 
             void setBackgroundImage(const char* resourcePath);
 
+            void setCameraPosition(float x, float y, float z);
+            void setCameraRotation(float rads, float x, float y, float z);
+
         private:
             void createImageRenderable();
             void loadResources(std::string relativeResourcePath);

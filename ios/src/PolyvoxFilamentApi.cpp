@@ -56,6 +56,14 @@ extern "C" {
     return ((FilamentViewer*)viewer)->setCamera((SceneAsset*)asset, nodeName);
   }
 
+  void set_camera_position(void* viewer, float x, float y, float z) {
+    return ((FilamentViewer*)viewer)->setCameraPosition(x, y, z);
+  }
+
+  void set_camera_rotation(void* viewer, float rads, float x, float y, float z) {
+    return ((FilamentViewer*)viewer)->setCameraRotation(rads, x, y, z);
+  }
+
   void render(
     void* viewer
   ) {
