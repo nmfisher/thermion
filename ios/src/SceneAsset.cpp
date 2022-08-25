@@ -27,7 +27,6 @@ using namespace filament;
 using namespace filament::gltfio;
 using namespace image;
 using namespace utils;
-using namespace filament::math;
 
 SceneAsset::SceneAsset(FilamentAsset *asset, Engine *engine,
                        NameComponentManager *ncm, LoadResource loadResource, FreeResource freeResource)
@@ -294,15 +293,29 @@ void SceneAsset::transformToUnitCube() {
 void SceneAsset::setPosition(float x, float y, float z) {
   Log("Setting position to %f %f %f", x, y, z);
   auto &tm = _engine->getTransformManager();
-  auto transform = tm.getTransform(tm.getInstance(_asset->getRoot()));
-  tm.setTransform(tm.getInstance(_asset->getRoot()), transform * math::mat4f::translation(math::float3(x,y,z)));
+  _position = math::mat4f::translation(math::float3(x,y,z));
+  auto aabb = _asset->getBoundingBox();
+  auto center = aabb.center();
+  auto halfExtent = aabb.extent();
+  auto maxExtent = max(halfExtent) * 2;
+  auto scaleFactor = 2.0f / maxExtent;
+  auto transform =
+      math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center) * _position * _rotation;
+  tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
 }
 
 void SceneAsset::setRotation(float rads, float x, float y, float z) {
   Log("Rotating %f radians around axis %f %f %f", x, y, z);
   auto &tm = _engine->getTransformManager();
-  auto transform = tm.getTransform(tm.getInstance(_asset->getRoot()));
-  tm.setTransform(tm.getInstance(_asset->getRoot()), transform * math::mat4f::rotation(rads, math::float3(x,y,z)));
+  _rotation = math::mat4f::rotation(rads, math::float3(x,y,z));
+  auto aabb = _asset->getBoundingBox();
+  auto center = aabb.center();
+  auto halfExtent = aabb.extent();
+  auto maxExtent = max(halfExtent) * 2;
+  auto scaleFactor = 2.0f / maxExtent;
+  auto transform =
+      math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center) * _position * _rotation;
+  tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
 }
 
 

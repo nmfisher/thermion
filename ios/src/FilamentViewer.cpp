@@ -597,4 +597,14 @@ void FilamentViewer::updateViewportAndCameraProjection(
       contentScaleFactor);
 }
 
+void FilamentViewer::setCameraPosition(float x, float y, float z) {
+  Camera& cam =_view->getCamera();
+  auto &tm = _engine->getTransformManager();
+  // tm.setTransform(tm.getInstance(_asset->getRoot()), math::mat4f::translation(math::float3(x,y,z)) * _cameraRotation);
+}
+
+void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
+  Camera& cam =_view->getCamera();
+}
+
 } // namespace polyvox

@@ -6,10 +6,14 @@
 #include <filament/Scene.h>
 #include <filament/Texture.h>
 
+#include <math/vec3.h>
+#include <math/vec4.h>
+#include <math/mat3.h>
+#include <math/norm.h>
+
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
-
 
 #include <utils/NameComponentManager.h>
 
@@ -101,6 +105,9 @@ namespace polyvox {
 
             // a slot to preload textures
             filament::Texture* _texture = nullptr;
+
+            math::mat4f _position;
+            math::mat4f _rotation;
 
     };
 }
