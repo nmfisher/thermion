@@ -193,8 +193,7 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
                                    _resourceLoader,
                                    _ncm, 
                                    _engine,
-                                   _scene,
-                                   tp);
+                                   _scene);
 }
 
 static constexpr float4 sFullScreenTriangleVertices[3] = {
