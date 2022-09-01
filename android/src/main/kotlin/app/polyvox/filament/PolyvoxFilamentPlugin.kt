@@ -283,6 +283,14 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
             result.success("OK");
           }
         }
+        "setScale" -> {
+          executor.execute { 
+            val args = call.arguments as ArrayList<*>
+            val assetPtr = Pointer(args[0] as Long)
+            _lib.set_scale(assetPtr, (args[1] as Double).toFloat())
+            result.success("OK");
+          }
+        }
         "setRotation" -> {
           executor.execute { 
             val args = call.arguments as ArrayList<*>
@@ -344,7 +352,8 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         }
         "zoom" -> {
           executor.execute { 
-            _lib.scroll(_viewer!!, 0.0f, 0.0f, (call.arguments as Double).toFloat())
+            val args = call.arguments as ArrayList<*>
+            _lib.scroll(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat())
             result.success("OK");
           }
         }
@@ -402,14 +411,17 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         "panStart" -> {
           executor.execute { 
             val args = call.arguments as ArrayList<Any?>
-            _lib.grab_begin(_viewer!!, args[0] as Int, args[1] as Int, true)
+            _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), true)
             result.success("OK");
           }
         }
         "panUpdate" -> {
           executor.execute { 
             val args = call.arguments as ArrayList<Any?>
-            _lib.grab_update(_viewer!!, args[0] as Int, args[1] as Int)
+            val x = (args[0] as Double).toFloat()
+            val y = (args[1] as Double).toFloat()
+            Log.v(TAG, "panUpdate ${x} ${y}")
+            _lib.grab_update(_viewer!!, x, y)
             result.success("OK");
           }
         }
@@ -422,14 +434,14 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         "rotateStart" -> {
           executor.execute { 
             val args = call.arguments as ArrayList<Any?>
-            _lib.grab_begin(_viewer!!, args[0] as Int, args[1] as Int, false)
+            _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), false)
             result.success("OK");
           }
         }
         "rotateUpdate" -> {
           executor.execute { 
             val args = call.arguments as ArrayList<Any?>
-            _lib.grab_update(_viewer!!, args[0] as Int, args[1] as Int)
+            _lib.grab_update(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
             result.success("OK");
           }
         }
@@ -442,14 +454,14 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         "grabStart" -> {
           executor.execute { 
             val args = call.arguments as ArrayList<Any?>
-            _lib.grab_begin(_viewer!!, args[0] as Int, args[1] as Int, true)
+            _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), true)
             result.success("OK");
           }
         }
         "grabUpdate" -> {
           executor.execute { 
             val args = call.arguments as ArrayList<Any?>
-            _lib.grab_update(_viewer!!, args[0] as Int, args[1] as Int)
+            _lib.grab_update(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
             result.success("OK");
           }
         }

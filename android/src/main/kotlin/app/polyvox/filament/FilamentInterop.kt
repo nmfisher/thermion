@@ -46,11 +46,11 @@ interface FilamentInterop : Library {
 
     fun update_viewport_and_camera_projection(viewer:Pointer, width:Int, height:Int, scaleFactor:Float);
 
-    fun scroll(viewer:Pointer, x:Float, y:Float, z:Float);
+    fun scroll(viewer:Pointer, x:Float, y:Float, delta:Float);
 
-    fun grab_begin(viewer:Pointer, x:Int, y:Int, pan:Boolean)
+    fun grab_begin(viewer:Pointer, x:Float, y:Float, pan:Boolean)
 
-    fun grab_update(viewer:Pointer, x:Int, y:Int)
+    fun grab_update(viewer:Pointer, x:Float, y:Float)
 
     fun grab_end(viewer:Pointer)
 
@@ -90,5 +90,6 @@ interface FilamentInterop : Library {
     fun set_camera_rotation(asset:Pointer, rads:Float, x:Float, y:Float, z:Float);
     fun set_camera_focal_length(asset:Pointer, focalLength:Float);
     fun set_camera_focus_distance(asset:Pointer, focusDistance:Float);
+    fun set_scale(asset:Pointer, scale:Float);
 }
 
