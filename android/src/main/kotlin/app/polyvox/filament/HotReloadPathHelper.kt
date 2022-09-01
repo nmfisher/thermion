@@ -20,7 +20,7 @@ class HotReloadPathHelper {
             }.toList()
             Log.v("FFI", files.size.toString())
             if(files.size > 0)
-                return files.first().path;
+                return files.last().path;
             return null;
           }
     }
