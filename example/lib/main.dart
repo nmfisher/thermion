@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/filament_widget.dart';
-
+import 'package:polyvox_filament/gesture_detecting_filament_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,6 +27,8 @@ class _MyAppState extends State<MyApp> {
   List<String> _animationNames = [];
   bool _loop = false;
   bool _vertical = false;
+  bool _rendering = true;
+  int _framerate = 60;  
 
   @override
   void initState() {
@@ -44,31 +46,18 @@ class _MyAppState extends State<MyApp> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  GestureDetector(
-                      onScaleStart: (d) {
-                        if (d.pointerCount == 1)
-                          _filamentController.panStart(0.5, 0.5);
-                      },
-                      onScaleEnd: (d) {
-                        // if(d.pointerCount == 2) {}
-                        // _filamentController.panEnd(d. .focalPoint.dx,d.focalPoint.dy);
-                      },
-                      onScaleUpdate: (d) {
-                        if (d.pointerCount == 1) {
-                          // _filamentController.panUpdate(d.focalPoint.dx,d.focalPoint.dy);
-                        } else {
-                          _filamentController.zoom(10.0);
-                        }
-                      },
-                      child: Container(
-                        width: _vertical ? 100 : 200, height: _vertical ? 200 : 100,
-                        alignment: Alignment.center,
-                        child: SizedBox(
-                            child: FilamentWidget(
+                  Container(
+                      width: _vertical ? 200 : 400,
+                      height: _vertical ? 400 : 200,
+                      alignment: Alignment.center,
+                      child: SizedBox(
+                        child: GestureDetectingFilamentView(
+                          showControls: true,
                           controller: _filamentController,
-                        )),
+                        ),
                       )),
-                      Text("Target names : ${_targetNames.join(",")}, Animation names : ${_animationNames.join(",")}"),
+                  Text(
+                      "Target names : ${_targetNames.join(",")}, Animation names : ${_animationNames.join(",")}"),
                   Align(
                       alignment: Alignment.bottomLeft,
                       child: Container(
@@ -80,6 +69,10 @@ class _MyAppState extends State<MyApp> {
                               child: const Icon(Icons.menu),
                               onSelected: (int item) async {
                                 switch (item) {
+                                  case -1:
+                                      await _filamentController
+                                        .initialize();
+                                    break;
                                   case 0:
                                     await _filamentController
                                         .setBackgroundImage(
@@ -141,7 +134,8 @@ class _MyAppState extends State<MyApp> {
                                         loop: _loop);
                                     break;
                                   case 10:
-                                    _filamentController.stopAnimation(_cube!, 0);
+                                    _filamentController.stopAnimation(
+                                        _cube!, 0);
                                     break;
                                   case 11:
                                     setState(() {
@@ -176,19 +170,14 @@ class _MyAppState extends State<MyApp> {
                                         1000 / framerate.toDouble());
                                     break;
                                   case 16:
-
                                     _targetNames = await _filamentController
                                         .getTargetNames(_cube!, "Cube");
-                                                                          setState(() {
-                                  
-                                  });
+                                    setState(() {});
                                     break;
                                   case 17:
                                     _animationNames = await _filamentController
                                         .getAnimationNames(_cube!);
-                                      setState(() {
-                                  
-                                  });
+                                    setState(() {});
 
                                     break;
                                   case 18:
@@ -226,11 +215,21 @@ class _MyAppState extends State<MyApp> {
                                     });
                                     break;
                                   case 26:
-                                    await _filamentController.reload();
+                                    await _filamentController.setCameraPosition(
+                                        0, -3, 10);
+                                    await _filamentController.setCameraRotation(
+                                        pi / 8, 1, 0, 0);
+                                    break;
+                                  case 27:
+                                    _framerate = _framerate == 60 ? 30 : 60;
+                                    await _filamentController.setFrameRate(_framerate);
                                 }
                               },
                               itemBuilder: (BuildContext context) =>
                                   <PopupMenuEntry<int>>[
+                                    const PopupMenuItem(
+                                        value: -1,
+                                        child: Text("initialize")),
                                     const PopupMenuItem(
                                         value: 0,
                                         child: Text("load background image")),
@@ -283,8 +282,9 @@ class _MyAppState extends State<MyApp> {
                                         child: Text('stop animations')),
                                     PopupMenuItem(
                                         value: 11,
-                                        child: Text(
-                                            _loop ? "don't loop animation" : "loop animation")),
+                                        child: Text(_loop
+                                            ? "don't loop animation"
+                                            : "loop animation")),
                                     const PopupMenuItem(
                                         value: 12, child: Text('zoom in')),
                                     const PopupMenuItem(
@@ -305,11 +305,44 @@ class _MyAppState extends State<MyApp> {
                                     const PopupMenuItem(
                                         value: 19, child: Text('pan right')),
                                     PopupMenuItem(
-                                        value: 25, child: Text(_vertical ? 'set horizontal' : 'set vertical')),
+                                        value: 25,
+                                        child: Text(_vertical
+                                            ? 'set horizontal'
+                                            : 'set vertical')),
                                     PopupMenuItem(
-                                        value: 26, child: Text(
-                                          "reload native assets")),
-                                  ])))
+                                        value: 26,
+                                        child:
+                                            Text('set camera pos to 0,1,10')),
+                                    PopupMenuItem(
+                                        value: 27,
+                                        child:
+                                            Text('toggle framerate')),
+                                  ]))),
+                 Align(
+                      alignment: Alignment.bottomRight,
+                      child: Row(children:[
+                        GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _rendering = !_rendering;
+                            _filamentController.setRendering(_rendering);
+                          });
+                        },
+                        child:Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(50),
+                          child:Text("Rendering: $_rendering "))),
+                        GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _framerate = _framerate == 60 ? 30 : 60;
+                            _filamentController.setFrameRate(_framerate);
+                          });
+                        },
+                        child:Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(50),
+                          child:Text("$_framerate fps")) )]))
                 ])));
   }
 }

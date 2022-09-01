@@ -94,7 +94,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       choreographer.postFrameCallback(this)
 
       executor.execute { 
-        if(_viewer == null) {
+        if(_viewer == null || !_render) {
           
         } else if(!surface.isValid()) {
           Log.v(TAG, "INVALID")
@@ -124,6 +124,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   private lateinit var _lib : FilamentInterop
 
   private var _viewer : Pointer? = null
+  private var _render : Boolean = true
 
   private lateinit var choreographer: Choreographer
 
@@ -213,6 +214,10 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           _lib.update_viewport_and_camera_projection(_viewer!!, width, height, scale);
           result.success(null)
         }
+      }
+      "setRendering" -> {
+        _render = call.arguments as Boolean
+        result.success(null)
       }
       "setFrameInterval" -> {
         executor.execute { 
