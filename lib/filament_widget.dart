@@ -1,5 +1,6 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'dart:async';
 import 'filament_controller.dart';
 
 typedef ResizeCallback = void Function(Size oldSize, Size newSize);
@@ -52,11 +53,14 @@ class FilamentWidget extends StatefulWidget {
 
 class _FilamentWidgetState extends State<FilamentWidget> {
   bool _ready = false;
+  StreamSubscription? _listener;
 
   @override
   void initState() {
-
-    widget.controller.onInitializationRequested.listen((_) {
+    _listener = widget.controller.onInitializationRequested.listen((_) {
+      if(_ready) {
+        return;
+      }
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
         var size = ((context.findRenderObject()) as RenderBox).size;
         print("Requesting texture creation for Filament of size $size");
@@ -66,10 +70,21 @@ class _FilamentWidgetState extends State<FilamentWidget> {
         setState(() {
           _ready = true;
         });
+        _listener!.cancel();
+        _listener = null;
+      });
+      // we need to make sure a new frame is requested, otherwise the callback may not run
+      setState(() {
+          
       });
     });
 
     super.initState();
+  }
+
+  void dispose() {
+    _listener?.cancel();
+    super.dispose();
   }
 
   @override
