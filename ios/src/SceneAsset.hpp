@@ -71,6 +71,8 @@ namespace polyvox {
 
             void transformToUnitCube();
 
+            void setScale(float scale);
+
             void setPosition(float x, float y, float z);
             
             void setRotation(float rads, float x, float y, float z);
@@ -108,6 +110,9 @@ namespace polyvox {
 
             math::mat4f _position;
             math::mat4f _rotation;
+            float _scale = 1;
+
+            void updateTransform();
 
     };
 }

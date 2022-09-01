@@ -69,6 +69,7 @@
 #include "image/imagematerials_ios.h"
 #else 
 #include "image/imagematerial.h"
+#include "shaders/unlitopaque.h"
 #endif
 #include "FilamentViewer.hpp"
 #include "StreamBufferAdapter.hpp"
@@ -85,6 +86,48 @@ class LightManager;
 } // namespace filament
 
 namespace polyvox {
+
+  class UnlitMaterialProvider : public MaterialProvider {
+
+    const Material* _m;
+    const Material* _ms[1];
+
+    public:
+      UnlitMaterialProvider(Engine* engine) {
+        _m = Material::Builder()
+          .package(UNLITOPAQUE_UNLIT_OPAQUE_DATA, UNLITOPAQUE_UNLIT_OPAQUE_SIZE)
+          .build(*engine);
+        _ms[0] = _m;
+      }
+
+      filament::MaterialInstance* createMaterialInstance(MaterialKey* config, UvMap* uvmap,
+              const char* label = "material", const char* extras = nullptr) {
+                MaterialInstance* d = (MaterialInstance*)_m->getDefaultInstance();
+        return d;
+      }
+
+      /**
+      * Gets a weak reference to the array of cached materials.
+      */
+      const filament::Material* const* getMaterials() const noexcept {
+        return _ms;
+      }
+
+      /**
+      * Gets the number of cached materials.
+      */
+      size_t getMaterialsCount() const noexcept {
+        return (size_t)1;
+      }
+
+      void destroyMaterials() {
+
+      }
+
+      bool needsDummyData(filament::VertexAttribute attrib) const noexcept {
+        return true;
+      }
+  };
 
 const double kNearPlane = 0.05;  // 5 cm
 const double kFarPlane = 1000.0; // 1 km
@@ -160,8 +203,10 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
 
   _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
 
-  _materialProvider = gltfio::createUbershaderProvider(
-      _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
+  _materialProvider = 
+  // new UnlitMaterialProvider(_engine);
+  gltfio::createUbershaderProvider(
+       _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
 
   EntityManager &em = EntityManager::get();
   _ncm = new NameComponentManager(em);
@@ -172,10 +217,6 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _stbDecoder = createStbProvider(_engine);
   _resourceLoader->addTextureProvider("image/png", _stbDecoder);
   _resourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
-  manipulator = Manipulator<float>::Builder()
-                    .orbitHomePosition(0.0f, 0.0f, 1.0f)
-                    .targetPosition(0.0f, 0.0f, 0.0f)
-                    .build(Mode::ORBIT);
 
   // Always add a direct light source since it is required for shadowing.
   _sun = EntityManager::get().create();
@@ -406,6 +447,11 @@ void FilamentViewer::clearAssets() {
   if(_mainCamera) {
     _view->setCamera(_mainCamera);
   }
+
+  if(_manipulator) { 
+    delete _manipulator;
+    _manipulator = nullptr;
+  }
   
   int i = 0;
   for (auto asset : _assets) {
@@ -579,21 +625,23 @@ void FilamentViewer::render() {
     return;
   }
 
-  // mtx.lock();
   for (auto &asset : _assets) {
     asset->updateAnimations();
   }
 
-  math::float3 eye, target, upward;
-  manipulator->getLookAt(&eye, &target, &upward);
-  _mainCamera->lookAt(eye, target, upward);
+  if(_manipulator) {
+    math::float3 eye, target, upward;
+    Camera& cam =_view->getCamera();
+    _manipulator->getLookAt(&eye, &target, &upward);
+    cam.lookAt(eye, target, upward);
+  }
 
   // Render the scene, unless the renderer wants to skip the frame.
   if (_renderer->beginFrame(_swapChain)) {
     _renderer->render(_view);
     _renderer->endFrame();
   }
-  // mtx.unlock();
+  
 }
 
 void FilamentViewer::updateViewportAndCameraProjection(
@@ -622,11 +670,57 @@ void FilamentViewer::updateViewportAndCameraProjection(
 void FilamentViewer::setCameraPosition(float x, float y, float z) {
   Camera& cam =_view->getCamera();
   auto &tm = _engine->getTransformManager();
-  // tm.setTransform(tm.getInstance(_asset->getRoot()), math::mat4f::translation(math::float3(x,y,z)) * _cameraRotation);
+  _cameraPosition = math::mat4f::translation(math::float3(x,y,z));
+  cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }
 
 void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
   Camera& cam =_view->getCamera();
+  auto &tm = _engine->getTransformManager();
+  _cameraRotation = math::mat4f::rotation(rads, math::float3(x,y,z));
+  cam.setModelMatrix(_cameraPosition * _cameraRotation);
+}
+
+void FilamentViewer::grabBegin(float x, float y, bool pan) {
+  if(!_manipulator) {
+    Camera& cam =_view->getCamera();
+    math::float3 home = cam.getPosition();
+    math::float3 fv = cam.getForwardVector();
+    Viewport const& vp = _view->getViewport();
+    _manipulator = Manipulator<float>::Builder()
+                    .viewport(vp.width, vp.height)
+                    .orbitHomePosition(home[0], home[1], home[2])
+                    .targetPosition(fv[0], fv[1], fv[2])
+                    .build(Mode::ORBIT);
+    Log("Created manipualtor for vp width %d height %d ", vp.width, vp.height);
+  } else {
+    // Log("Error - calling grabBegin while another grab session is active. This will probably cause weirdness");
+  }
+  _manipulator->grabBegin(x, y, pan);
+}
+
+void FilamentViewer::grabUpdate(float x, float y) {
+  if(_manipulator) {
+    Log("grab update %f %f", x, y);
+    _manipulator->grabUpdate(x, y);
+  } else {
+    Log("Error - trying to use a manipulator when one is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
+  }
+}
+
+void FilamentViewer::grabEnd() {
+  if(_manipulator) {
+    _manipulator->grabEnd();
+    // delete _manipulator;
+  } else {
+    Log("Error - trying to use a manipulator when one is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
+  }
+}
+
+void FilamentViewer::scroll(float x, float y, float delta) {
+  if(_manipulator) {
+    _manipulator->scroll(x, y, delta);
+  }
 }
 
 } // namespace polyvox

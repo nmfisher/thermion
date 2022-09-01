@@ -1,0 +1,12 @@
+    .global UNLITOPAQUE_UNLIT_OPAQUE_OFFSET;
+    .global UNLITOPAQUE_UNLIT_OPAQUE_SIZE;
+
+    .global UNLITOPAQUE_PACKAGE
+    .section .rodata
+UNLITOPAQUE_PACKAGE:
+    .incbin "unlitopaque.bin"
+UNLITOPAQUE_UNLIT_OPAQUE_OFFSET:
+    .int 0
+UNLITOPAQUE_UNLIT_OPAQUE_SIZE:
+    .int 35615
+
