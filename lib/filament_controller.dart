@@ -11,6 +11,8 @@ abstract class FilamentController {
   Future initialize();
   Future createTextureViewer(int width, int height, { double devicePixelRatio = 1});
   Future setFrameRate(int framerate);
+  Future setRendering(bool render);
+
   Future resize(int width, int height, { double devicePixelRatio = 1, double contentScaleFactor=1});
   Future setBackgroundImage(String path);
   Future loadSkybox(String skyboxPath);
@@ -84,6 +86,10 @@ class PolyvoxFilamentController extends FilamentController {
   Future initialize() async {
     _onInitRequestedController.add(true);
     return _initialized.future;
+  }
+
+  Future setRendering(bool render) async {
+    await _channel.invokeMethod("setRendering",  render);
   }
 
   Future setFrameRate(int framerate) async {
