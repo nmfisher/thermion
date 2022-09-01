@@ -149,12 +149,12 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   Log("Engine created");
 
   _renderer = _engine->createRenderer();
-
-  _renderer->setDisplayInfo({.refreshRate = 60.0f,
+  float fr = 60.0f;
+  _renderer->setDisplayInfo({.refreshRate = fr,
                              .presentationDeadlineNanos = (uint64_t)0,
                              .vsyncOffsetNanos = (uint64_t)0});
   Renderer::FrameRateOptions fro;
-  fro.interval = 60;
+  fro.interval = 1 / fr;
   _renderer->setFrameRateOptions(fro);
 
   _scene = _engine->createScene();
@@ -246,6 +246,13 @@ static constexpr float4 sFullScreenTriangleVertices[3] = {
     {-1.0f, 3.0f, 1.0f, 1.0f}};
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
+
+void FilamentViewer::setFrameInterval(float frameInterval) {
+  Renderer::FrameRateOptions fro;
+  fro.interval = frameInterval;
+  _renderer->setFrameRateOptions(fro);
+  Log("Set framerate interval to %f", frameInterval);
+}
 
 void FilamentViewer::createImageRenderable() {
 
@@ -618,7 +625,7 @@ void FilamentViewer::loadIbl(const char *const iblPath) {
   }
 }
 
-void FilamentViewer::render() {
+void FilamentViewer::render(uint64_t frameTimeInNanos) {
 
   if (!_view || !_mainCamera || !_swapChain) {
     Log("Not ready for rendering");
@@ -637,7 +644,7 @@ void FilamentViewer::render() {
   }
 
   // Render the scene, unless the renderer wants to skip the frame.
-  if (_renderer->beginFrame(_swapChain)) {
+  if (_renderer->beginFrame(_swapChain, frameTimeInNanos)) {
     _renderer->render(_view);
     _renderer->endFrame();
   }

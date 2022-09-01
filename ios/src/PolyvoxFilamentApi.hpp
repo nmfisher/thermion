@@ -16,8 +16,9 @@ void remove_ibl(void* viewer);
 void* load_glb(void* viewer, const char* assetPath);
 void* load_gltf(void* viewer, const char* assetPath, const char* relativePath);
 bool set_camera(void* viewer, void* asset, const char* nodeName);
-void render(void* viewer);
+void render(void* viewer, uint64_t frameTimeInNanos);
 void destroy_swap_chain(void* viewer);
+void set_frame_interval(void* viewer, float interval);
 void* get_renderer(void* viewer);
 void update_viewport_and_camera_projection(void* viewer, int width, int height, float scaleFactor);
    

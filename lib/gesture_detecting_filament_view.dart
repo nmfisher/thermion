@@ -95,20 +95,22 @@ class _GestureDetectingFilamentViewState
               },
               child: FilamentWidget(controller: widget.controller))),
       widget.showControls
-          ? Align(alignment:Alignment.bottomRight, child:GestureDetector(
-              onTap: () {
-                setState(() {
-                  _rotate = !_rotate;
-                  _setFunction();
-                });
-              },
-              child: Container(
-                  padding: const EdgeInsets.all(50),
-                  child: Icon(Icons.rotate_90_degrees_ccw,
-                      color: _rotate
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.5))),
-            ))
+          ? Align(
+              alignment: Alignment.bottomRight,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _rotate = !_rotate;
+                    _setFunction();
+                  });
+                },
+                child: Container(
+                    padding: const EdgeInsets.all(50),
+                    child: Icon(Icons.rotate_90_degrees_ccw,
+                        color: _rotate
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.5))),
+              ))
           : Container()
     ]);
   }

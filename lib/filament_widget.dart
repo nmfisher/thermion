@@ -55,14 +55,17 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      var size = ((context.findRenderObject()) as RenderBox).size;
-      print("Requesting texture creation for Filament of size $size");
-      await widget.controller
-          .initialize(size.width.toInt(), size.height.toInt());
-      print("Filament texture available");
-      setState(() {
-        _ready = true;
+
+    widget.controller.onInitializationRequested.listen((_) {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+        var size = ((context.findRenderObject()) as RenderBox).size;
+        print("Requesting texture creation for Filament of size $size");
+        await widget.controller
+            .createTextureViewer(size.width.toInt(), size.height.toInt());
+        print("Filament texture available");
+        setState(() {
+          _ready = true;
+        });
       });
     });
 

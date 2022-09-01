@@ -69,9 +69,17 @@ extern "C" {
   }
 
   void render(
-    void* viewer
+    void* viewer,
+    uint64_t frameTimeInNanos
   ) {
-    ((FilamentViewer*)viewer)->render();
+    ((FilamentViewer*)viewer)->render(frameTimeInNanos);
+  }
+
+  void set_frame_interval(
+    void* viewer,
+    float frameInterval
+  ) {
+    ((FilamentViewer*)viewer)->setFrameInterval(frameInterval);
   }
 
   void destroy_swap_chain(void* viewer) {

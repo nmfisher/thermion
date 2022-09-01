@@ -7,7 +7,10 @@ typedef FilamentAsset = int;
 abstract class FilamentController {
   late int textureId;
   Future get initialized;
-  Future initialize(int width, int height, { double devicePixelRatio = 1});
+  Stream get onInitializationRequested;
+  Future initialize();
+  Future createTextureViewer(int width, int height, { double devicePixelRatio = 1});
+  Future setFrameRate(int framerate);
   Future resize(int width, int height, { double devicePixelRatio = 1, double contentScaleFactor=1});
   Future setBackgroundImage(String path);
   Future loadSkybox(String skyboxPath);
@@ -64,6 +67,10 @@ class PolyvoxFilamentController extends FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
   late double _devicePixelRatio;
 
+
+  final _onInitRequestedController = StreamController();
+  Stream get onInitializationRequested => _onInitRequestedController.stream;
+
   final _initialized = Completer();
   Future get initialized => _initialized.future;
 
@@ -74,7 +81,16 @@ class PolyvoxFilamentController extends FilamentController {
     });
   }
 
-  Future initialize(int width, int height, { double devicePixelRatio=1 }) async {
+  Future initialize() async {
+    _onInitRequestedController.add(true);
+    return _initialized.future;
+  }
+
+  Future setFrameRate(int framerate) async {
+    await _channel.invokeMethod("setFrameInterval",  1/ framerate);
+  }
+
+  Future createTextureViewer(int width, int height, { double devicePixelRatio=1 }) async {
     _devicePixelRatio = devicePixelRatio;
     textureId = await _channel.invokeMethod("initialize", [width*devicePixelRatio, height*devicePixelRatio]);
     _initialized.complete(true);
