@@ -27,7 +27,7 @@ import android.content.pm.PackageManager
 
 import io.flutter.FlutterInjector
 
-import 	android.os.CountDownTimer
+import android.os.CountDownTimer
 import android.os.Handler
 
 import android.opengl.GLU
@@ -92,12 +92,14 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
     private val startTime = System.nanoTime()
     override fun doFrame(frameTimeNanos: Long) {
       choreographer.postFrameCallback(this)
+
       executor.execute { 
-        if(_viewer != null) {
-          if(!surface.isValid()) {
-            Log.v(TAG, "INVALID")
-          }
-          _lib.render(_viewer!!)
+        if(_viewer == null) {
+          
+        } else if(!surface.isValid()) {
+          Log.v(TAG, "INVALID")
+        } else {
+          _lib.render(_viewer!!, frameTimeNanos)
         }
       }
     }
@@ -114,7 +116,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
 
-  /// Keep a referene to the plugin binding so we can use the TextureRegistry when initialize is called from the platform channel.
+  /// Keep a reference to the plugin binding so we can use the TextureRegistry when initialize is called from the platform channel.
   private lateinit var flutterPluginBinding : FlutterPlugin.FlutterPluginBinding
 
   private var lifecycle: Lifecycle? = null
@@ -147,10 +149,9 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
     lifecycle = (binding.lifecycle as? HiddenLifecycleReference)?.lifecycle
     activity = binding.activity
+    activity.window.setFormat(PixelFormat.RGBA_8888)
     choreographer = Choreographer.getInstance()
     choreographer.postFrameCallback(frameCallback)
-    activity.window.setFormat(PixelFormat.RGBA_8888)
-
   }
 
   fun getAssetPath(path:String) : String {
@@ -170,13 +171,12 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
         val entry = flutterPluginBinding.textureRegistry.createSurfaceTexture();
         executor.execute { 
+
           if(_viewer != null) {
-            synchronized(lock) {
-              print("Deleting existing viewer")
-              _lib.filament_viewer_delete(_viewer!!);
-              print("Deleted viewer")
-              _viewer = null;
-            }
+            print("Deleting existing viewer")
+            _lib.filament_viewer_delete(_viewer!!);
+            print("Deleted viewer")
+            _viewer = null;
           }
           if(surfaceTexture != null) {
             print("Releasing existing texture")
@@ -186,7 +186,6 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           val args = call.arguments as ArrayList<Int>
           val width = args[0]
           val height = args[1]
-  
   
           surfaceTexture = entry.surfaceTexture()
   
@@ -198,9 +197,6 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                       surface as Object,
                       JNIEnv.CURRENT,
                       (activity as Context).assets)
-  
-  
-  
           _lib.update_viewport_and_camera_projection(_viewer!!, width, height, 1.0f);
   
           result.success(entry.id().toInt())
@@ -215,6 +211,12 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           val scale = if(args.size > 2) (args[2] as Double).toFloat() else 1.0f
           surfaceTexture!!.setDefaultBufferSize(width, height)
           _lib.update_viewport_and_camera_projection(_viewer!!, width, height, scale);
+          result.success(null)
+        }
+      }
+      "setFrameInterval" -> {
+        executor.execute { 
+          _lib.set_frame_interval(_viewer!!, (call.arguments as Double).toFloat());
           result.success(null)
         }
       }
