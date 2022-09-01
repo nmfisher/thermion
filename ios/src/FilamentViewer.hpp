@@ -62,8 +62,6 @@ namespace polyvox {
 
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
             void render();
-
-            Manipulator<float>* manipulator;
             
             bool setFirstCamera(SceneAsset* asset);
             bool setCamera(SceneAsset* asset, const char* nodeName);
@@ -79,6 +77,11 @@ namespace polyvox {
             void setCameraFocalLength(float fl);
             void setCameraFocusDistance(float focusDistance);
 
+            void grabBegin(float x, float y, bool pan);
+            void grabUpdate(float x, float y);
+            void grabEnd();
+            void scroll(float x, float y, float delta);
+
         private:
             void createImageRenderable();
             void loadResources(std::string relativeResourcePath);
@@ -86,6 +89,10 @@ namespace polyvox {
             void cleanup();
             
             void* _layer;
+
+            Manipulator<float>* _manipulator;
+            math::mat4f _cameraPosition;
+            math::mat4f _cameraRotation;
 
             LoadResource _loadResource;
             FreeResource _freeResource;

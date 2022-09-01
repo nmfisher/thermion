@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-
 import 'filament_controller.dart';
 import 'filament_widget.dart';
 
@@ -20,6 +18,29 @@ class GestureDetectingFilamentView extends StatefulWidget {
 class _GestureDetectingFilamentViewState
     extends State<GestureDetectingFilamentView> {
   bool _rotate = false;
+  late Future Function(double x, double y) _functionStart;
+  late Future Function(double x, double y) _functionUpdate;
+  late Future Function() _functionEnd;
+
+  double _lastScale = 0;
+
+  @override
+  void initState() {
+    _setFunction();
+    super.initState();
+  }
+
+  void _setFunction() {
+    if (_rotate) {
+      _functionStart = widget.controller.rotateStart;
+      _functionUpdate = widget.controller.rotateUpdate;
+      _functionEnd = widget.controller.rotateEnd;
+    } else {
+      _functionStart = widget.controller.panStart;
+      _functionUpdate = widget.controller.panUpdate;
+      _functionEnd = widget.controller.panEnd;
+    }
+  }
 
   @override
   void didUpdateWidget(Widget oldWidget) {
@@ -27,6 +48,7 @@ class _GestureDetectingFilamentViewState
         (oldWidget as GestureDetectingFilamentView).showControls) {
       setState(() {});
     }
+
     super.didUpdateWidget(oldWidget);
   }
 
@@ -36,67 +58,58 @@ class _GestureDetectingFilamentViewState
       Positioned.fill(
           child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onPanDown: (details) async {
-                await widget.controller.panEnd();
-                await widget.controller.rotateEnd();
-                _rotate
-                    ? widget.controller.rotateStart(
-                        details.globalPosition.dx, details.globalPosition.dy)
-                    : widget.controller.panStart(
-                        details.globalPosition.dx, details.globalPosition.dy);
+              onScaleStart: (d) {
+                if (d.pointerCount == 2) {
+                  // _lastScale = d.
+                } else {
+                  // print("start ${d.focalPoint}");
+                  _functionStart(d.focalPoint.dx, d.focalPoint.dy);
+                }
               },
-              onPanUpdate: (details) {
-                _rotate
-                    ? widget.controller.rotateUpdate(
-                        details.globalPosition.dx, details.globalPosition.dy)
-                    : widget.controller.panUpdate(
-                        details.globalPosition.dx, details.globalPosition.dy);
+              onScaleEnd: (d) {
+                if (d.pointerCount == 2) {
+                  _lastScale = 0;
+                } else {
+                  // print("end ${d.velocity}");
+                  _functionEnd();
+                }
               },
-              onPanEnd: (d) {
-                _rotate
-                    ? widget.controller.rotateEnd()
-                    : widget.controller.panEnd();
+              onScaleUpdate: (d) {
+                if (d.pointerCount == 2) {
+                  if (_lastScale == 0) {
+                    _lastScale = d.scale;
+                  } else {
+                    // var zoomFactor = ;
+                    // if(zoomFactor < 0) {
+                    //   zoomFactor *= 10;
+                    // }
+                    // print(zoomFactor);
+                    print(d.horizontalScale);
+                    // print(d.focalPoint.dx);
+                    widget.controller.zoom(d.scale > 1 ? 10 : -10);
+                  }
+                } else {
+                  // print("update ${d.focalPoint}");
+                  _functionUpdate(d.focalPoint.dx, d.focalPoint.dy);
+                }
               },
               child: FilamentWidget(controller: widget.controller))),
       widget.showControls
-          ? Padding(
-              padding: const EdgeInsets.all(50),
-              child: Row(children: [
-                Checkbox(
-                    value: _rotate,
-                    onChanged: (v) {
-                      setState(() {
-                        _rotate = v == true;
-                      });
-                    }),
-                ElevatedButton(
-                    onPressed: () => widget.controller.zoom(30.0),
-                    child: const Text('-')),
-                ElevatedButton(
-                    onPressed: () => widget.controller.zoom(-30.0),
-                    child: const Text('+'))
-              ]))
+          ? Align(alignment:Alignment.bottomRight, child:GestureDetector(
+              onTap: () {
+                setState(() {
+                  _rotate = !_rotate;
+                  _setFunction();
+                });
+              },
+              child: Container(
+                  padding: const EdgeInsets.all(50),
+                  child: Icon(Icons.rotate_90_degrees_ccw,
+                      color: _rotate
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.5))),
+            ))
           : Container()
     ]);
   }
 }
-// behavior: HitTestBehavior.opaque,
-// onPanDown: (details) {
-//               _rotate
-//                   ? _filamentController.rotateStart(
-//                       details.globalPosition.dx, details.globalPosition.dy)
-//                   : _filamentController.panStart(
-//                       details.globalPosition.dx, details.globalPosition.dy);
-//             },
-//             onPanUpdate: (details) {
-//               _rotate
-//                   ? _filamentController.rotateUpdate(
-//                       details.globalPosition.dx, details.globalPosition.dy)
-//                   : _filamentController.panUpdate(
-//                       details.globalPosition.dx, details.globalPosition.dy);
-//             },
-//             onPanEnd: (d) {
-//               _rotate
-//                   ? _filamentController.rotateEnd()
-//                   : _filamentController.panEnd();
-//             },

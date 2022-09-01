@@ -128,7 +128,7 @@ void SceneAsset::loadTexture(const char* resourcePath, int renderableIndex) {
 
   Log("Loading texture at %s for renderableIndex %d", resourcePath, renderableIndex);
 
-  string rp("flutter_assets/assets/background.png");
+  string rp(resourcePath);
 
   if(_texture) {
     _engine->destroy(_texture);
@@ -161,8 +161,6 @@ void SceneAsset::loadTexture(const char* resourcePath, int renderableIndex) {
                       .sampler(Texture::Sampler::SAMPLER_2D)
                       .build(*_engine);
 
-  Log("build texture");
-
   Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
                                                             void *data) {
     delete reinterpret_cast<LinearImage *>(data);
@@ -174,7 +172,6 @@ void SceneAsset::loadTexture(const char* resourcePath, int renderableIndex) {
       Texture::Type::FLOAT, freeCallback);
 
   _texture->setImage(*_engine, 0, std::move(buffer));
-  Log("set image");
   setTexture();
   delete inputStream;
 
@@ -290,32 +287,28 @@ void SceneAsset::transformToUnitCube() {
   tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
 }
 
-void SceneAsset::setPosition(float x, float y, float z) {
-  Log("Setting position to %f %f %f", x, y, z);
+void SceneAsset::updateTransform() {
   auto &tm = _engine->getTransformManager();
-  _position = math::mat4f::translation(math::float3(x,y,z));
-  auto aabb = _asset->getBoundingBox();
-  auto center = aabb.center();
-  auto halfExtent = aabb.extent();
-  auto maxExtent = max(halfExtent) * 2;
-  auto scaleFactor = 2.0f / maxExtent;
-  auto transform =
-      math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center) * _position * _rotation;
+  auto transform = 
+      math::mat4f::scaling(_scale) * _position * _rotation;
   tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
 }
 
+void SceneAsset::setScale(float scale) {
+  _scale = scale;
+  updateTransform();
+}
+
+void SceneAsset::setPosition(float x, float y, float z) {
+  Log("Setting position to %f %f %f", x, y, z);
+  _position = math::mat4f::translation(math::float3(x,y,z));
+  updateTransform();
+}
+
 void SceneAsset::setRotation(float rads, float x, float y, float z) {
-  Log("Rotating %f radians around axis %f %f %f", x, y, z);
-  auto &tm = _engine->getTransformManager();
+  Log("Rotating %f radians around axis %f %f %f", rads, x, y, z);
   _rotation = math::mat4f::rotation(rads, math::float3(x,y,z));
-  auto aabb = _asset->getBoundingBox();
-  auto center = aabb.center();
-  auto halfExtent = aabb.extent();
-  auto maxExtent = max(halfExtent) * 2;
-  auto scaleFactor = 2.0f / maxExtent;
-  auto transform =
-      math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center) * _position * _rotation;
-  tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
+  updateTransform();
 }
 
 

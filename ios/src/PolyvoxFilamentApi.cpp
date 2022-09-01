@@ -87,21 +87,21 @@ extern "C" {
     
   }
 
-  void scroll(void* viewer, float x, float y , float z) {
-    return ((FilamentViewer*)viewer)->manipulator->scroll(x, y, z);
+  void scroll(void* viewer, float x, float y, float delta) {
+    return ((FilamentViewer*)viewer)->scroll(x, y, delta);
   }
 
-  void grab_begin(void* viewer, int x, int y, bool pan) {
-    ((FilamentViewer*)viewer)->manipulator->grabBegin(x, y, pan);
+  void grab_begin(void* viewer, float x, float y, bool pan) {
 
+    ((FilamentViewer*)viewer)->grabBegin(x, y, pan);
   }
 
-  void grab_update(void* viewer, int x, int y) {
-    ((FilamentViewer*)viewer)->manipulator->grabUpdate(x, y);
+  void grab_update(void* viewer, float x, float y) {
+    ((FilamentViewer*)viewer)->grabUpdate(x, y);
   }
 
   void grab_end(void* viewer) {
-    ((FilamentViewer*)viewer)->manipulator->grabEnd();
+    ((FilamentViewer*)viewer)->grabEnd();
   }
 
   void apply_weights(void* asset, float* const weights, int count) {
@@ -158,12 +158,16 @@ extern "C" {
     ((SceneAsset*)asset)->transformToUnitCube();
   }
 
-   void set_position(void* asset, float x, float y, float z) {
+  void set_position(void* asset, float x, float y, float z) {
      ((SceneAsset*)asset)->setPosition(x, y, z);
-   }
+  }
 
    void set_rotation(void* asset, float rads, float x, float y, float z) {
      ((SceneAsset*)asset)->setRotation(rads, x, y, z);
+   }
+
+  void set_scale(void* asset, float scale) {
+     ((SceneAsset*)asset)->setScale(scale);
    }
 
   void stop_animation(void* asset, int index) {
