@@ -38,7 +38,9 @@ interface FilamentInterop : Library {
     
     fun set_camera(viewer:Pointer, asset:Pointer, nodeName:String) : Boolean;
 
-    fun render(viewer:Pointer);
+    fun render(viewer:Pointer, frameTimeInNanos:Long);
+    
+    fun set_frame_interval(viewer:Pointer, interval:Float);
 
     fun create_swap_chain(viewer:Pointer, surface:Surface, env:JNIEnv);
 
@@ -59,6 +61,7 @@ interface FilamentInterop : Library {
     fun animate_weights(asset:Pointer, frames:FloatArray, numWeights:Int, numFrames:Int,  frameRate:Float);
 
     fun get_target_name_count(asset:Pointer, meshName:String) : Int;
+    
     fun get_target_name(asset:Pointer, meshName:String, outPtr:Pointer, index:Int);
 
     fun get_animation_count(asset:Pointer) : Int;
