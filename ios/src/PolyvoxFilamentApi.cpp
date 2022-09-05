@@ -27,6 +27,10 @@ extern "C" {
     ((FilamentViewer*)viewer)->setBackgroundImage(path);
   }
 
+  void set_background_image_position(void* viewer, float x, float y) {
+    ((FilamentViewer*)viewer)->setBackgroundImagePosition(x, y);
+  }
+
   void load_skybox(void* viewer, const char* skyboxPath) {
     ((FilamentViewer*)viewer)->loadSkybox(skyboxPath);
   }
