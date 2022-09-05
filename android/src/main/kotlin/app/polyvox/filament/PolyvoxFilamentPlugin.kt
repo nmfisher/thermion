@@ -225,288 +225,334 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           result.success(null)
         }
       }
-        "setBackgroundImage" -> {
-          executor.execute { 
-            _lib.set_background_image(_viewer!!, getAssetPath(call.arguments as String))                
+      "setBackgroundImage" -> {
+        executor.execute { 
+          _lib.set_background_image(_viewer!!, getAssetPath(call.arguments as String))                
+          result.success("OK");
+        }
+      }
+      "setBackgroundImagePosition" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          _lib.set_background_image_position(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
+          result.success("OK");
+        }
+      }
+      "loadSkybox" -> {
+        executor.execute { 
+          _lib.load_skybox(_viewer!!, getAssetPath(call.arguments as String))
+          result.success("OK");
+        }
+      }
+      "loadIbl" -> {
+        executor.execute { 
+          _lib.load_ibl(_viewer!!, getAssetPath(call.arguments as String))
+          result.success("OK");
+        }
+      }
+      "removeIbl" -> {
+        executor.execute { 
+          _lib.remove_ibl(_viewer!!)                
+          result.success(true);
+        }
+      }
+      "removeSkybox" -> {
+        executor.execute { 
+          _lib.remove_skybox(_viewer!!)                
+          result.success(true);
+        }
+      }
+      "addLight" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          val entity = _lib.add_light(
+            _viewer!!, 
+            args[0] as Int, 
+            (args[1] as Double).toFloat(),  
+            (args[2] as Double).toFloat(), 
+            (args[3] as Double).toFloat(), 
+            (args[4] as Double).toFloat(), 
+            (args[5] as Double).toFloat(),
+            (args[6] as Double).toFloat(), 
+            (args[7] as Double).toFloat(), 
+            (args[8] as Double).toFloat(),
+            (args[9] as Boolean))
+          result.success(entity);
+        }
+      }
+      "removeLight" -> {
+        executor.execute { 
+          _lib.remove_light(
+            _viewer!!, 
+            call.arguments as Int)
+          result.success(true);
+        }
+      }
+      "clearLights" -> {
+        executor.execute { 
+          _lib.clear_lights(
+            _viewer!!
+          )
+          result.success(true);
+        }
+      }
+      "loadGlb" -> {
+        executor.execute { 
+          val assetPtr = _lib.load_glb(
+              _viewer!!,
+              getAssetPath(call.arguments as String)
+          )
+          result.success(Pointer.nativeValue(assetPtr));
+        }
+      }
+      "loadGltf" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          val assetPtr = _lib.load_gltf(
+              _viewer!!,
+              getAssetPath(args[0] as String),
+              getAssetPath(args[1] as String)
+          )
+          result.success(Pointer.nativeValue(assetPtr));
+        }
+      }
+      "transformToUnitCube" -> {
+        executor.execute { 
+          val assetPtr = Pointer(call.arguments as Long);
+          _lib.transform_to_unit_cube(assetPtr)
+          result.success("OK");
+        }
+      }
+      "setPosition" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          val assetPtr = Pointer(args[0] as Long)
+          _lib.set_position(assetPtr, (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat())
+          result.success("OK");
+        }
+      }
+      "setScale" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          val assetPtr = Pointer(args[0] as Long)
+          _lib.set_scale(assetPtr, (args[1] as Double).toFloat())
+          result.success("OK");
+        }
+      }
+      "setRotation" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          val assetPtr = Pointer(args[0] as Long)
+          _lib.set_rotation(assetPtr, (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat(), (args[4] as Double).toFloat())
+          result.success("OK");
+        }
+      }
+      "setCameraPosition" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          _lib.set_camera_position(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat())
+          result.success("OK");
+        }
+      }
+      "setCameraRotation" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          _lib.set_camera_rotation(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat())
+          result.success("OK");
+        }
+      }
+      "setCameraFocalLength" -> {
+        executor.execute { 
+          _lib.set_camera_focal_length(_viewer!!, (call.arguments as Double).toFloat())
+          result.success("OK");
+        }
+      }
+      "setCameraFocusDistance" -> {
+        executor.execute { 
+          _lib.set_camera_focus_distance(_viewer!!, (call.arguments as Double).toFloat())
+          result.success("OK");
+        }
+      }
+      "setTexture" -> {
+        executor.execute {
+          val args = call.arguments as ArrayList<*>
+          val assetPtr = Pointer(args[0] as Long);
+          _lib.load_texture(assetPtr, getAssetPath(args[1] as String), args[2] as Int)
+          print("Texture loaded")
+          result.success("OK");
+        }
+        
+      }
+      "setCamera" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          val success = _lib.set_camera(
+              _viewer!!,
+              Pointer(args[0] as Long),
+              args[1] as String,
+          )
+          if(success) {
             result.success("OK");
+          } else {
+            result.error("failed","failed", "Failed to set camera")
           }
         }
-        "setBackgroundImagePosition" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            _lib.set_background_image_position(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
-            result.success("OK");
-          }
+      }
+      "zoomBegin" -> {
+        executor.execute { 
+          _lib.scroll_begin(_viewer!!)
+          result.success("OK");
         }
-        "loadSkybox" -> {
-          executor.execute { 
-            _lib.load_skybox(_viewer!!, getAssetPath(call.arguments as String))
-            result.success("OK");
-          }
+      }
+      "zoomUpdate" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          _lib.scroll_update(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat())
+          result.success("OK");
         }
-        "loadIbl" -> {
-          executor.execute { 
-            _lib.load_ibl(_viewer!!, getAssetPath(call.arguments as String))
-            result.success("OK");
-          }
+      }
+      "zoomEnd" -> {
+        executor.execute { 
+          _lib.scroll_end(_viewer!!)
+          result.success("OK");
         }
-        "removeIbl" -> {
-          executor.execute { 
-            _lib.remove_ibl(_viewer!!)                
-            result.success(true);
+      }
+      "getTargetNames" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          val assetPtr = Pointer(args[0] as Long)
+          val meshName = args[1] as String
+          val names = mutableListOf<String>()
+          val outPtr = Memory(256)
+          for(i in 0.._lib.get_target_name_count(assetPtr, meshName) - 1) {
+            _lib.get_target_name(assetPtr, meshName, outPtr, i)
+            val name = outPtr.getString(0)
+            names.add(name)
           }
+          result.success(names)
         }
-        "removeSkybox" -> {
-          executor.execute { 
-            _lib.remove_skybox(_viewer!!)                
-            result.success(true);
+      } 
+      "getAnimationNames" -> {
+        executor.execute { 
+          val assetPtr = Pointer(call.arguments as Long)
+          val names = mutableListOf<String>()
+          val outPtr = Memory(256)
+          for(i in 0.._lib.get_animation_count(assetPtr) - 1) {
+            _lib.get_animation_name(assetPtr, outPtr, i)
+            val name = outPtr.getString(0)
+            names.add(name)
           }
+          result.success(names)
         }
-        "loadGlb" -> {
-          executor.execute { 
-            val assetPtr = _lib.load_glb(
-                _viewer!!,
-                getAssetPath(call.arguments as String)
-            )
-            result.success(Pointer.nativeValue(assetPtr));
-          }
-        }
-        "loadGltf" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            val assetPtr = _lib.load_gltf(
-                _viewer!!,
-                getAssetPath(args[0] as String),
-                getAssetPath(args[1] as String)
-            )
-            result.success(Pointer.nativeValue(assetPtr));
-          }
-        }
-        "transformToUnitCube" -> {
-          executor.execute { 
-            val assetPtr = Pointer(call.arguments as Long);
-            _lib.transform_to_unit_cube(assetPtr)
-            result.success("OK");
-          }
-        }
-        "setPosition" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            val assetPtr = Pointer(args[0] as Long)
-            _lib.set_position(assetPtr, (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat())
-            result.success("OK");
-          }
-        }
-        "setScale" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            val assetPtr = Pointer(args[0] as Long)
-            _lib.set_scale(assetPtr, (args[1] as Double).toFloat())
-            result.success("OK");
-          }
-        }
-        "setRotation" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            val assetPtr = Pointer(args[0] as Long)
-            _lib.set_rotation(assetPtr, (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat(), (args[4] as Double).toFloat())
-            result.success("OK");
-          }
-        }
-        "setCameraPosition" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            _lib.set_camera_position(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat())
-            result.success("OK");
-          }
-        }
-        "setCameraRotation" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            _lib.set_camera_rotation(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat(), (args[3] as Double).toFloat())
-            result.success("OK");
-          }
-        }
-        "setCameraFocalLength" -> {
-          executor.execute { 
-            _lib.set_camera_focal_length(_viewer!!, (call.arguments as Double).toFloat())
-            result.success("OK");
-          }
-        }
-        "setCameraFocusDistance" -> {
-          executor.execute { 
-            _lib.set_camera_focus_distance(_viewer!!, (call.arguments as Double).toFloat())
-            result.success("OK");
-          }
-        }
-        "setTexture" -> {
-          executor.execute {
-            val args = call.arguments as ArrayList<*>
-            val assetPtr = Pointer(args[0] as Long);
-            _lib.load_texture(assetPtr, getAssetPath(args[1] as String), args[2] as Int)
-            print("Texture loaded")
-            result.success("OK");
-          }
-          
-        }
-        "setCamera" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            val success = _lib.set_camera(
-                _viewer!!,
-                Pointer(args[0] as Long),
-                args[1] as String,
-            )
-            if(success) {
-              result.success("OK");
-            } else {
-              result.error("failed","failed", "Failed to set camera")
-            }
-          }
-        }
-        "zoom" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            _lib.scroll(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Double).toFloat())
-            result.success("OK");
-          }
-        }
-        "getTargetNames" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            val assetPtr = Pointer(args[0] as Long)
-            val meshName = args[1] as String
-            val names = mutableListOf<String>()
-            val outPtr = Memory(256)
-            for(i in 0.._lib.get_target_name_count(assetPtr, meshName) - 1) {
-              _lib.get_target_name(assetPtr, meshName, outPtr, i)
-              val name = outPtr.getString(0)
-              names.add(name)
-            }
-            result.success(names)
-          }
-        } 
-        "getAnimationNames" -> {
-          executor.execute { 
-            val assetPtr = Pointer(call.arguments as Long)
-            val names = mutableListOf<String>()
-            val outPtr = Memory(256)
-            for(i in 0.._lib.get_animation_count(assetPtr) - 1) {
-              _lib.get_animation_name(assetPtr, outPtr, i)
-              val name = outPtr.getString(0)
-              names.add(name)
-            }
-            result.success(names)
-          }
-        } 
-        "applyWeights" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<*>
-            val assetPtr = Pointer(args[0] as Long)
-            val weights = args[1] as ArrayList<Float>;
+      } 
+      "applyWeights" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<*>
+          val assetPtr = Pointer(args[0] as Long)
+          val weights = args[1] as ArrayList<Float>;
 
-            _lib.apply_weights(assetPtr, weights.toFloatArray(), weights.size)
-            result.success("OK");
-          }
+          _lib.apply_weights(assetPtr, weights.toFloatArray(), weights.size)
+          result.success("OK");
         }
-        "animateWeights" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            val assetPtr = Pointer(args[0] as Long)
-            val frames = args[1] as ArrayList<Float>;
-            val numWeights = args[2] as Int
-            val numFrames = args[3] as Int
-            val frameLenInMs = args[4] as Double
+      }
+      "animateWeights" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          val assetPtr = Pointer(args[0] as Long)
+          val frames = args[1] as ArrayList<Float>;
+          val numWeights = args[2] as Int
+          val numFrames = args[3] as Int
+          val frameLenInMs = args[4] as Double
 
-            _lib.animate_weights(assetPtr, frames.toFloatArray(), numWeights, numFrames, frameLenInMs.toFloat())
-            result.success("OK");
-          }
+          _lib.animate_weights(assetPtr, frames.toFloatArray(), numWeights, numFrames, frameLenInMs.toFloat())
+          result.success("OK");
         }
-        "panStart" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), true)
-            result.success("OK");
-          }
+      }
+      "panStart" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), true)
+          result.success("OK");
         }
-        "panUpdate" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            val x = (args[0] as Double).toFloat()
-            val y = (args[1] as Double).toFloat()
-            Log.v(TAG, "panUpdate ${x} ${y}")
-            _lib.grab_update(_viewer!!, x, y)
-            result.success("OK");
-          }
+      }
+      "panUpdate" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          val x = (args[0] as Double).toFloat()
+          val y = (args[1] as Double).toFloat()
+          Log.v(TAG, "panUpdate ${x} ${y}")
+          _lib.grab_update(_viewer!!, x, y)
+          result.success("OK");
         }
-        "panEnd" -> {
-          executor.execute { 
-            _lib.grab_end(_viewer!!)
-            result.success("OK");
-          }
+      }
+      "panEnd" -> {
+        executor.execute { 
+          _lib.grab_end(_viewer!!)
+          result.success("OK");
         }
-        "rotateStart" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), false)
-            result.success("OK");
-          }
+      }
+      "rotateStart" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), false)
+          result.success("OK");
         }
-        "rotateUpdate" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            _lib.grab_update(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
-            result.success("OK");
-          }
+      }
+      "rotateUpdate" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          _lib.grab_update(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
+          result.success("OK");
         }
-        "rotateEnd" -> {
-          executor.execute { 
-            _lib.grab_end(_viewer!!)
-            result.success("OK");
-          }
+      }
+      "rotateEnd" -> {
+        executor.execute { 
+          _lib.grab_end(_viewer!!)
+          result.success("OK");
         }
-        "grabStart" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), true)
-            result.success("OK");
-          }
+      }
+      "grabStart" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          _lib.grab_begin(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), true)
+          result.success("OK");
         }
-        "grabUpdate" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            _lib.grab_update(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
-            result.success("OK");
-          }
+      }
+      "grabUpdate" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          _lib.grab_update(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
+          result.success("OK");
         }
-        "grabEnd" -> {
-          executor.execute { 
-            _lib.grab_end(_viewer!!)
-            result.success("OK");
-          }
+      }
+      "grabEnd" -> {
+        executor.execute { 
+          _lib.grab_end(_viewer!!)
+          result.success("OK");
         }
-        "removeAsset" -> {
-          executor.execute { 
-            _lib.remove_asset(_viewer!!, Pointer(call.arguments as Long))
-            result.success("OK");
-          }
-        } 
-        "clearAssets" -> {
-          executor.execute { 
-            _lib.clear_assets(_viewer!!)
-            result.success("OK");
-          }
-        } 
-        "playAnimation" -> {
-          executor.execute { 
-            val args = call.arguments as ArrayList<Any?>
-            _lib.play_animation(Pointer(args[0] as Long), args[1] as Int, args[2] as Boolean)
-            result.success("OK")
-          }
+      }
+      "removeAsset" -> {
+        executor.execute { 
+          _lib.remove_asset(_viewer!!, Pointer(call.arguments as Long))
+          result.success("OK");
         }
-        else -> {
-          result.notImplemented()
+      } 
+      "clearAssets" -> {
+        executor.execute { 
+          _lib.clear_assets(_viewer!!)
+          result.success("OK");
         }
+      } 
+      "playAnimation" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          _lib.play_animation(Pointer(args[0] as Long), args[1] as Int, args[2] as Boolean)
+          result.success("OK")
+        }
+      }
+      else -> {
+        result.notImplemented()
+      }
     }
 }
 

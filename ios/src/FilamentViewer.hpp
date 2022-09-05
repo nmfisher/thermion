@@ -11,6 +11,7 @@
 #include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/View.h>
+#include <filament/LightManager.h>
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -82,7 +83,13 @@ namespace polyvox {
             void grabBegin(float x, float y, bool pan);
             void grabUpdate(float x, float y);
             void grabEnd();
-            void scroll(float x, float y, float delta);
+            void scrollBegin();
+            void scrollUpdate(float x, float y, float delta);
+            void scrollEnd();
+
+            int32_t addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
+            void removeLight(int32_t entityId);
+            void clearLights();
 
         private:
             void createImageRenderable();
@@ -117,7 +124,7 @@ namespace polyvox {
             NameComponentManager* _ncm;
             std::mutex mtx; // mutex to ensure thread safety when removing assets
 
-            Entity _sun;
+            vector<Entity> _lights;
             Texture* _skyboxTexture;
             Skybox* _skybox;
             Texture* _iblTexture;
@@ -145,6 +152,8 @@ namespace polyvox {
             Material* _imageMaterial = nullptr;
             TextureSampler _imageSampler;
             ColorGrading *colorGrading = nullptr;
+
+            void _createManipulator();
     };
 
 

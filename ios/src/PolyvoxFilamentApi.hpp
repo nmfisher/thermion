@@ -2,6 +2,7 @@
 #define _POLYVOX_FILAMENT_API_H
 
 #include "ResourceBuffer.hpp"
+#include "LightManager.hpp"
 
 typedef struct ResourceBuffer ResourceBuffer;
 
@@ -14,6 +15,9 @@ void load_skybox(void* viewer, const char* skyboxPath);
 void load_ibl(void* viewer, const char* iblPath);
 void remove_skybox(void* viewer);
 void remove_ibl(void* viewer);
+int32_t add_light(void* viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
+void remove_light(void* viewer, int32_t entityId);
+void clear_lights(void* viewer);
 void* load_glb(void* viewer, const char* assetPath);
 void* load_gltf(void* viewer, const char* assetPath, const char* relativePath);
 bool set_camera(void* viewer, void* asset, const char* nodeName);
@@ -23,12 +27,14 @@ void set_frame_interval(void* viewer, float interval);
 void* get_renderer(void* viewer);
 void update_viewport_and_camera_projection(void* viewer, int width, int height, float scaleFactor);
    
-void scroll(void* viewer, float x, float y , float z);
+void scroll_begin(void* viewer);
+void scroll_update(void* viewer, float x, float y , float z);
+void scroll_end(void* viewer);
     
 void grab_begin(void* viewer, int x, int y, bool pan);
 void grab_update(void* viewer, int x, int y);
-    
 void grab_end(void* viewer);
+
     
 void apply_weights(void* asset, float* const weights, int count);
     

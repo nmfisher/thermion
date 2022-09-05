@@ -145,7 +145,7 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
     _engine = Engine::create(Engine::Backend::METAL);
   #else
     _engine = Engine::create(Engine::Backend::OPENGL);
-  #endif;
+  #endif
 
   Log("Engine created");
 
@@ -220,20 +220,6 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _stbDecoder = createStbProvider(_engine);
   _resourceLoader->addTextureProvider("image/png", _stbDecoder);
   _resourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
-
-  // Always add a direct light source since it is required for shadowing.
-  _sun = EntityManager::get().create();
-  LightManager::Builder(LightManager::Type::SUN)
-      .color(Color::cct(6500.0f))
-      .intensity(150000.0f)
-      .direction(math::float3(0.0f, 0.0f, -1.0f))
-      .castShadows(false)
-      // .castShadows(true)
-      .build(*_engine, _sun);
-  _scene->addEntity(_sun);
-
-  Log("Added sun");
-
   _sceneAssetLoader = new SceneAssetLoader(_loadResource,
                                    _freeResource,
                                    _assetLoader,
@@ -255,6 +241,35 @@ void FilamentViewer::setFrameInterval(float frameInterval) {
   fro.interval = frameInterval;
   _renderer->setFrameRateOptions(fro);
   Log("Set framerate interval to %f", frameInterval);
+}
+
+int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows) {
+  Log("Adding light of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+  auto light = EntityManager::get().create();
+  LightManager::Builder(LightManager::Type::SUN)
+      .color(Color::cct(colour))
+      .intensity(intensity)
+      .position(math::float3(posX, posY, posZ))
+      .direction(math::float3(dirX, dirY, dirZ))
+      .castShadows(shadows)
+      .build(*_engine, light);
+  _scene->addEntity(light);
+  _lights.push_back(light);
+  return Entity::smuggle(light);
+}
+
+void FilamentViewer::removeLight(int32_t id) {
+  Log("Removing light with entity ID %d", id);
+  auto e = utils::Entity::import(id);
+  _scene->removeEntities(&e, 1);
+  EntityManager::get().destroy(1, &e);
+}
+
+void FilamentViewer::clearLights() {
+  Log("Removing all lights");
+  _scene->removeEntities(_lights.data(), _lights.size());
+  EntityManager::get().destroy(_lights.size(), _lights.data());
+  _lights.clear();
 }
 
 void FilamentViewer::createImageRenderable() {
@@ -452,7 +467,10 @@ FilamentViewer::~FilamentViewer() {
   _resourceLoader->asyncCancelLoad();
   _materialProvider->destroyMaterials();
   AssetLoader::destroy(&_assetLoader);
-  _engine->destroy(_sun);
+  for(auto it : _lights) {
+    _engine->destroy(it);
+  }
+  
   _engine->destroyCameraComponent(_mainCamera->getEntity());
   _mainCamera = nullptr;
   _engine->destroy(_view);
@@ -747,24 +765,31 @@ void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }
 
+void FilamentViewer::_createManipulator() {
+  if(_manipulator) {
+    delete _manipulator;
+  }
+  Camera& cam =_view->getCamera();
+  math::float3 home = cam.getPosition();
+  math::float3 fv = cam.getForwardVector();
+  Viewport const& vp = _view->getViewport();
+  _manipulator = Manipulator<float>::Builder()
+                  .viewport(vp.width, vp.height)
+                  .orbitHomePosition(home[0], home[1], home[2])
+                  .targetPosition(fv[0], fv[1], fv[2])
+                  .build(Mode::ORBIT);
+  Log("Created manipulator for vp width %d height %d ", vp.width, vp.height);
+}
+
 void FilamentViewer::grabBegin(float x, float y, bool pan) {
   if (!_view || !_mainCamera || !_swapChain) {
     Log("View not ready, ignoring grab");
     return;
   }
   if(!_manipulator) {
-    Camera& cam =_view->getCamera();
-    math::float3 home = cam.getPosition();
-    math::float3 fv = cam.getForwardVector();
-    Viewport const& vp = _view->getViewport();
-    _manipulator = Manipulator<float>::Builder()
-                    .viewport(vp.width, vp.height)
-                    .orbitHomePosition(home[0], home[1], home[2])
-                    .targetPosition(fv[0], fv[1], fv[2])
-                    .build(Mode::ORBIT);
-    Log("Created manipualtor for vp width %d height %d ", vp.width, vp.height);
+    _createManipulator();
   } else {
-    // Log("Error - calling grabBegin while another grab session is active. This will probably cause weirdness");
+    Log("Error - calling grabBegin while another grab session is active. This will probably cause weirdness");
   }
   _manipulator->grabBegin(x, y, pan);
 }
@@ -775,7 +800,6 @@ void FilamentViewer::grabUpdate(float x, float y) {
     return;
   }
   if(_manipulator) {
-    Log("grab update %f %f", x, y);
     _manipulator->grabUpdate(x, y);
   } else {
     Log("Error - trying to use a manipulator when one is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
@@ -789,16 +813,34 @@ void FilamentViewer::grabEnd() {
   }
   if(_manipulator) {
     _manipulator->grabEnd();
-    // delete _manipulator;
+    delete _manipulator;
+    _manipulator = nullptr;
   } else {
     Log("Error - trying to use a manipulator when one is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
   }
 }
 
-void FilamentViewer::scroll(float x, float y, float delta) {
-  if(_manipulator) {
-    _manipulator->scroll(x, y, delta);
+void FilamentViewer::scrollBegin() {
+  if(!_manipulator) {
+    _createManipulator();
   }
+}
+
+void FilamentViewer::scrollUpdate(float x, float y, float delta) {
+  if(!_manipulator) {
+    Log("No manipulator has been created - ensure you call scrollStart before scroll");
+    return;
+  }
+  _manipulator->scroll(x, y, delta);
+}
+
+void FilamentViewer::scrollEnd() {
+  if(!_manipulator) {
+    Log("No manipulator has been created - ensure you call scrollStart before scroll/scrollEnd");
+    return;
+  }
+  delete _manipulator;
+  _manipulator = nullptr;
 }
 
 } // namespace polyvox

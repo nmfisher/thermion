@@ -87,7 +87,7 @@ class _GestureDetectingFilamentViewState
               behavior: HitTestBehavior.opaque,
               onScaleStart: (d) {
                 if (d.pointerCount == 2) {
-                  // _lastScale = d.
+                  widget.controller.zoomBegin();
                 } else {
                   _functionStart(d.focalPoint.dx, d.focalPoint.dy);
                 }
@@ -95,6 +95,7 @@ class _GestureDetectingFilamentViewState
               onScaleEnd: (d) {
                 if (d.pointerCount == 2) {
                   _lastScale = 0;
+                  widget.controller.zoomEnd();
                 } else {
                   _functionEnd();
                 }
@@ -104,7 +105,7 @@ class _GestureDetectingFilamentViewState
                   if (_lastScale == 0) {
                     _lastScale = d.scale;
                   } else {
-                    widget.controller.zoom(d.scale > 1 ? 5 : -5);
+                    widget.controller.zoomUpdate(d.scale > 1 ? 2 : -2);
                   }
                 } else {
                   // print("update ${d.focalPoint}");

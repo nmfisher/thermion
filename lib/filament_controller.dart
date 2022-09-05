@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+// this is confusing - "FilamentAsset" actually defines a pointer to a SceneAsset, whereas FilamentLight is an Entity ID.
+// should make this consistent
 typedef FilamentAsset = int;
+typedef FilamentLight = int;
 
 abstract class FilamentController {
   late int textureId;
@@ -20,8 +23,23 @@ abstract class FilamentController {
   Future removeSkybox();
   Future loadIbl(String path);
   Future removeIbl();
+  
+  // copied from LightManager.h
+  //  enum class Type : uint8_t {
+  //       SUN,            //!< Directional light that also draws a sun's disk in the sky.
+  //       DIRECTIONAL,    //!< Directional light, emits light in a given direction.
+  //       POINT,          //!< Point light, emits light from a position, in all directions.
+  //       FOCUSED_SPOT,   //!< Physically correct spot light.
+  //       SPOT,           //!< Spot light with coupling of outer cone and illumination disabled.
+  //   };
+  Future<FilamentLight> addLight(int type, double colour, double intensity, double posX, double posY, double posZ,double dirX, double dirY, double dirZ, bool castShadows);
+  Future removeLight(FilamentLight light);
+  Future clearLights();
   Future<FilamentAsset> loadGlb(String path);
   Future<FilamentAsset> loadGltf(String path, String relativeResourcePath);
+  Future zoomBegin();
+  Future zoomUpdate(double z);
+  Future zoomEnd();
   Future panStart(double x, double y);
   Future panUpdate(double x, double y);
   Future panEnd();
@@ -62,7 +80,7 @@ abstract class FilamentController {
   ///
   Future animate(FilamentAsset asset, List<double> data, int numWeights,
       int numFrames, double frameLengthInMs);
-  Future zoom(double z);
+
 }
 
 class PolyvoxFilamentController extends FilamentController {
@@ -136,6 +154,22 @@ class PolyvoxFilamentController extends FilamentController {
   @override
   Future removeIbl() async {
     await _channel.invokeMethod("removeIbl");
+  }
+
+  @override
+  Future<FilamentLight> addLight(int type, double colour, double intensity, double posX, double posY, double posZ,double dirX, double dirY, double dirZ, bool castShadows) async {
+    var entityId = await _channel.invokeMethod("addLight", [type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, castShadows]);
+    return entityId as FilamentLight;
+  }
+
+  @override
+  Future removeLight(FilamentLight light) {
+    return _channel.invokeMethod("removeLight", light);
+  }
+
+  @override
+  Future clearLights() {
+    return _channel.invokeMethod("clearLights");
   }
 
   Future<FilamentAsset> loadGlb(String path) async {
@@ -214,8 +248,16 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("clearAssets");
   }
 
-  Future zoom(double z) async {
-    await _channel.invokeMethod("zoom", [0.0,0.0,z]);
+  Future zoomBegin() async {
+    await _channel.invokeMethod("zoomBegin");
+  }
+
+  Future zoomUpdate(double z) async {
+    await _channel.invokeMethod("zoomUpdate", [0.0,0.0,z]);
+  }
+
+  Future zoomEnd() async {
+    await _channel.invokeMethod("zoomEnd");
   }
 
   Future playAnimation(FilamentAsset asset, int index,
