@@ -38,7 +38,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        showPerformanceOverlay: true,
+        // showPerformanceOverlay: true,
         color: Colors.white,
         home: Scaffold(
             backgroundColor: Colors.white,
@@ -223,6 +223,10 @@ class _MyAppState extends State<MyApp> {
                                   case 27:
                                     _framerate = _framerate == 60 ? 30 : 60;
                                     await _filamentController.setFrameRate(_framerate);
+                                    break;
+                                  case 28:
+                                    await _filamentController.setBackgroundImagePosition(-5, -5);
+                                    break;
                                 }
                               },
                               itemBuilder: (BuildContext context) =>
@@ -317,6 +321,10 @@ class _MyAppState extends State<MyApp> {
                                         value: 27,
                                         child:
                                             Text('toggle framerate')),
+                                    PopupMenuItem(
+                                        value: 28,
+                                        child:
+                                            Text('set bg image pos')),
                                   ]))),
                  Align(
                       alignment: Alignment.bottomRight,
