@@ -48,7 +48,9 @@ interface FilamentInterop : Library {
 
     fun update_viewport_and_camera_projection(viewer:Pointer, width:Int, height:Int, scaleFactor:Float);
 
-    fun scroll(viewer:Pointer, x:Float, y:Float, delta:Float);
+    fun scroll_begin(viewer:Pointer);
+    fun scroll_update(viewer:Pointer, x:Float, y:Float, delta:Float);
+    fun scroll_end(viewer:Pointer);
 
     fun grab_begin(viewer:Pointer, x:Float, y:Float, pan:Boolean)
 
@@ -76,8 +78,11 @@ interface FilamentInterop : Library {
     fun clear_assets(viewer:Pointer);
 
     fun remove_skybox(viewer:Pointer);
-
     fun remove_ibl(viewer:Pointer);
+
+    fun add_light(viewer:Pointer, type:Int, colour:Float, intensity:Float, posX:Float, posY:Float, posZ:Float, dirX:Float, dirY:Float, dirZ:Float, shadows:Boolean) : Int;
+    fun remove_light(viewer:Pointer, entityId:Int);
+    fun clear_lights(viewer:Pointer);
 
     fun set_background_image(viewer:Pointer, path:String);
     fun set_background_image_position(viewer:Pointer, x:Float, y:Float);
