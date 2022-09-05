@@ -231,6 +231,13 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
             result.success("OK");
           }
         }
+        "setBackgroundImagePosition" -> {
+          executor.execute { 
+            val args = call.arguments as ArrayList<Any?>
+            _lib.set_background_image_position(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
+            result.success("OK");
+          }
+        }
         "loadSkybox" -> {
           executor.execute { 
             _lib.load_skybox(_viewer!!, getAssetPath(call.arguments as String))
