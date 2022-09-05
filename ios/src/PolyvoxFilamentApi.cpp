@@ -3,6 +3,7 @@
 
 #include "ResourceBuffer.hpp"
 #include "FilamentViewer.hpp"
+#include "filament/LightManager.h"
 #include "Log.hpp"
 
 using namespace polyvox;
@@ -46,6 +47,18 @@ extern "C" {
   
   void remove_ibl(void* viewer) {
     ((FilamentViewer*)viewer)->removeIbl();
+  }
+
+  int32_t add_light(void* viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows) { 
+    return ((FilamentViewer*)viewer)->addLight((LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+  }
+
+  void remove_light(void* viewer, int32_t entityId) {
+    ((FilamentViewer*)viewer)->removeLight(entityId);
+  }
+
+  void clear_lights(void* viewer) {
+    ((FilamentViewer*)viewer)->clearLights();
   }
 
   void* load_glb(void* viewer, const char* assetPath) {
@@ -96,15 +109,21 @@ extern "C" {
 
   void update_viewport_and_camera_projection(void* viewer, int width, int height, float scaleFactor) {
     return ((FilamentViewer*)viewer)->updateViewportAndCameraProjection(width, height, scaleFactor);
-    
   }
 
-  void scroll(void* viewer, float x, float y, float delta) {
-    return ((FilamentViewer*)viewer)->scroll(x, y, delta);
+  void scroll_update(void* viewer, float x, float y, float delta) {
+    ((FilamentViewer*)viewer)->scrollUpdate(x, y, delta);
+  }
+
+  void scroll_begin(void* viewer) {
+    ((FilamentViewer*)viewer)->scrollBegin();
+  }
+
+  void scroll_end(void* viewer) {
+    ((FilamentViewer*)viewer)->scrollEnd();
   }
 
   void grab_begin(void* viewer, float x, float y, bool pan) {
-
     ((FilamentViewer*)viewer)->grabBegin(x, y, pan);
   }
 
