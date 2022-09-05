@@ -15,6 +15,7 @@ abstract class FilamentController {
 
   Future resize(int width, int height, { double devicePixelRatio = 1, double contentScaleFactor=1});
   Future setBackgroundImage(String path);
+  Future setBackgroundImagePosition(double x, double y);
   Future loadSkybox(String skyboxPath);
   Future removeSkybox();
   Future loadIbl(String path);
@@ -113,6 +114,11 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   @override
+  Future setBackgroundImagePosition(double x, double y) async {
+    await _channel.invokeMethod("setBackgroundImagePosition", [x,y]);
+  }
+
+  @override
   Future loadSkybox(String skyboxPath) async {
     await _channel.invokeMethod("loadSkybox", skyboxPath);
   }
@@ -149,6 +155,7 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future panStart(double x, double y) async {
+    await setRendering(true);
     await _channel.invokeMethod("panStart", [x * _devicePixelRatio, y * _devicePixelRatio]);
   }
 
@@ -158,9 +165,11 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future panEnd() async {
     await _channel.invokeMethod("panEnd");
+    await setRendering(false);
   }
 
   Future rotateStart(double x, double y) async {
+    await setRendering(true);
     await _channel.invokeMethod("rotateStart", [x * _devicePixelRatio, y * _devicePixelRatio]);
   }
 
@@ -169,6 +178,7 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future rotateEnd() async {
+    await setRendering(false);
     await _channel.invokeMethod("rotateEnd");
   }
 

@@ -9,6 +9,7 @@ typedef struct ResourceBuffer ResourceBuffer;
 void* filament_viewer_new(void* texture, void* loadResource, void* freeResource);
 void* filament_viewer_delete(void* viewer);
 void set_background_image(void* viewer, const char* path);
+void set_background_image_position(void* viewer, float x, float y);
 void load_skybox(void* viewer, const char* skyboxPath);
 void load_ibl(void* viewer, const char* iblPath);
 void remove_skybox(void* viewer);

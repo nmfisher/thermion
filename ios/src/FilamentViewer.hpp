@@ -72,6 +72,7 @@ namespace polyvox {
             Renderer* getRenderer();
 
             void setBackgroundImage(const char* resourcePath);
+            void setBackgroundImagePosition(float x, float y);
 
             void setCameraPosition(float x, float y, float z);
             void setCameraRotation(float rads, float x, float y, float z);
@@ -91,7 +92,7 @@ namespace polyvox {
             
             void* _layer;
 
-            Manipulator<float>* _manipulator;
+            Manipulator<float>* _manipulator = nullptr;
             math::mat4f _cameraPosition;
             math::mat4f _cameraRotation;
 
@@ -134,6 +135,9 @@ namespace polyvox {
             float _cameraFocusDistance = 0.0f;
 
             // these flags relate to the textured quad we use for rendering unlit background images
+            uint32_t _imageHeight = 0;
+            uint32_t _imageWidth = 0;
+            mat4f _imageScale;
             Texture* _imageTexture = nullptr;
             Entity* _imageEntity = nullptr;
             VertexBuffer* _imageVb = nullptr;

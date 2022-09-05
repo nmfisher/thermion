@@ -30,6 +30,7 @@
 #include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/View.h>
+#include <filament/Options.h>
 #include <filament/Viewport.h>
 
 #include <filament/IndirectLight.h>
@@ -199,9 +200,11 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _view->setDynamicResolutionOptions(options);
 
   View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
-  multiSampleAntiAliasingOptions.enabled = true;
+  multiSampleAntiAliasingOptions.enabled = false;
 
   _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
+
+  // _view->setAntiAliasing(AntiAliasing::NONE);
 
   _materialProvider = 
   // new UnlitMaterialProvider(_engine);
@@ -241,9 +244,9 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
 }
 
 static constexpr float4 sFullScreenTriangleVertices[3] = {
-    {-1.0f, -1.0f, 1.0f, 1.0f},
-    {3.0f, -1.0f, 1.0f, 1.0f},
-    {-1.0f, 3.0f, 1.0f, 1.0f}};
+        { -1.0f, -1.0f, 1.0f, 1.0f },
+        {  3.0f, -1.0f, 1.0f, 1.0f },
+        { -1.0f,  3.0f, 1.0f, 1.0f } };
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
@@ -346,11 +349,12 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
   _freeResource(bg.id);
 
   uint32_t channels = image->getChannels();
-  uint32_t w = image->getWidth();
-  uint32_t h = image->getHeight();
+  _imageWidth = image->getWidth();
+  _imageHeight = image->getHeight();
+
   _imageTexture = Texture::Builder()
-                      .width(w)
-                      .height(h)
+                      .width(_imageWidth)
+                      .height(_imageHeight)
                       .levels(0xff)
                       .format(channels == 3 ? Texture::InternalFormat::RGB16F
                                             : Texture::InternalFormat::RGBA16F)
@@ -363,32 +367,87 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
   };
 
   Texture::PixelBufferDescriptor buffer(
-      image->getPixelRef(), size_t(w * h * channels * sizeof(float)),
+      image->getPixelRef(), size_t(_imageWidth * _imageHeight * channels * sizeof(float)),
       channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
       Texture::Type::FLOAT, freeCallback);
 
   _imageTexture->setImage(*_engine, 0, std::move(buffer));
   _imageTexture->generateMipmaps(*_engine);
 
-  float srcWidth = _imageTexture->getWidth();
-  float srcHeight = _imageTexture->getHeight();
-  float dstWidth = _view->getViewport().width;
-  float dstHeight = _view->getViewport().height;
+  // This currently just centers the image in the viewport at its original size
+  // TODO - implement stretch/etc 
+  const Viewport& vp = _view->getViewport();
+  Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
+  _imageScale = mat4f { float(vp.width) / float(_imageWidth) , 0.0f, 0.0f, 1.0f, 0.0f, float(vp.height) / float(_imageHeight), 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
-  mat3f transform(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+  // _imageScale = mat4f { 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
-  _imageMaterial->setDefaultParameter("transform", transform);
+  _imageMaterial->setDefaultParameter("transform", _imageScale);
   _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
 
   _imageMaterial->setDefaultParameter("showImage", 1);
 
   _imageMaterial->setDefaultParameter("backgroundColor", RgbType::sRGB,
-                                      float3(1.0f));
+                                      float3(0.3f));
+}
+
+
+///
+/// Translates the background image by the specified x/y NDC units (i.e. between -1 and 1).
+/// Clamps both values so that the left/top and right/bottom sides of the background image are 
+/// positioned at a max/min of -1/1 respectively (i.e. you cannot set a position where the left/top or right/bottom sides would be "inside" the screen coordinate space.
+///
+void FilamentViewer::setBackgroundImagePosition(float x, float y) {
+
+  // first, clamp x/y
+  auto xScale = float(_imageWidth) / _view->getViewport().width;
+  auto yScale = float(_imageHeight) / _view->getViewport().height;
+
+  float xMin = 0;
+  float xMax = 0;
+  float yMin = 0;
+  float yMax = 0;
+
+  // we need to clamp x so that it can only be translated between (left side touching viewport left) and (right side touching viewport right)
+  // if width is less than viewport, these values are 0/1-xScale respectively
+  if(xScale < 1) {
+    xMin = 0;
+    xMax = 1-xScale;  
+  // otherwise, these value are (xScale-1 and 1-xScale)
+  } else {
+    xMin = 1-xScale;
+    xMax = 0;
+  }
+
+  // do the same for y
+  if(yScale < 1) {
+    yMin = 0;
+    yMax = 1-yScale;  
+  } else {
+    yMin = 1-yScale;
+    yMax = 0;
+  }
+
+  x = std::max(xMin, std::min(x,xMax));
+  y = std::max(yMin, std::min(y,yMax));
+
+
+  // these values are then negated to account for the fact that the transform is applied to the UV coordinates, not the vertices (see image.mat).
+  // i.e. translating the image right by 0.5 units means translating the UV coordinates left by 0.5 units.
+  x = -x;
+  y = -y;
+  Log("x %f y %f", x, y);
+
+  auto transform = _imageScale * math::mat4f::translation(math::float3(x, y, 0.0f));
+  Log("transform %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f ", transform[0][0],transform[0][1],transform[0][2], transform[0][3], \
+  transform[1][0],transform[1][1],transform[1][2], transform[1][3],\
+  transform[2][0],transform[2][1],transform[2][2], transform[2][3], \
+  transform[3][0],transform[3][1],transform[3][2], transform[3][3]);
+  _imageMaterial->setDefaultParameter("transform", transform);
 }
 
 FilamentViewer::~FilamentViewer() { 
   clearAssets();
-  Log("Deleting SceneAssetLoader");
   delete _sceneAssetLoader;
   _resourceLoader->asyncCancelLoad();
   _materialProvider->destroyMaterials();
@@ -689,6 +748,10 @@ void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
 }
 
 void FilamentViewer::grabBegin(float x, float y, bool pan) {
+  if (!_view || !_mainCamera || !_swapChain) {
+    Log("View not ready, ignoring grab");
+    return;
+  }
   if(!_manipulator) {
     Camera& cam =_view->getCamera();
     math::float3 home = cam.getPosition();
@@ -707,6 +770,10 @@ void FilamentViewer::grabBegin(float x, float y, bool pan) {
 }
 
 void FilamentViewer::grabUpdate(float x, float y) {
+  if (!_view || !_mainCamera || !_swapChain) {
+    Log("View not ready, ignoring grab");
+    return;
+  }
   if(_manipulator) {
     Log("grab update %f %f", x, y);
     _manipulator->grabUpdate(x, y);
@@ -716,6 +783,10 @@ void FilamentViewer::grabUpdate(float x, float y) {
 }
 
 void FilamentViewer::grabEnd() {
+  if (!_view || !_mainCamera || !_swapChain) {
+    Log("View not ready, ignoring grab");
+    return;
+  }
   if(_manipulator) {
     _manipulator->grabEnd();
     // delete _manipulator;
