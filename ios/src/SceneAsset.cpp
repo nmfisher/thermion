@@ -290,7 +290,7 @@ void SceneAsset::transformToUnitCube() {
 void SceneAsset::updateTransform() {
   auto &tm = _engine->getTransformManager();
   auto transform = 
-      math::mat4f::scaling(_scale) * _position * _rotation;
+      _position * _rotation * math::mat4f::scaling(_scale);
   tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
 }
 

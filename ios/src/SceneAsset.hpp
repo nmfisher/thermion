@@ -108,8 +108,12 @@ namespace polyvox {
             // a slot to preload textures
             filament::Texture* _texture = nullptr;
 
+            // initialized to identity
             math::mat4f _position;
+            
+            // initialized to identity
             math::mat4f _rotation;
+            
             float _scale = 1;
 
             void updateTransform();
