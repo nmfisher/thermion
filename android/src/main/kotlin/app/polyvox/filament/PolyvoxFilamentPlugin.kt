@@ -215,6 +215,12 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           result.success(null)
         }
       }
+      "render" -> {
+        executor.execute { 
+          _lib.render(_viewer!!, 0)
+          result.success(null)
+        }
+      }
       "setRendering" -> {
         _render = call.arguments as Boolean
         result.success(null)
@@ -480,7 +486,6 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           val args = call.arguments as ArrayList<Any?>
           val x = (args[0] as Double).toFloat()
           val y = (args[1] as Double).toFloat()
-          Log.v(TAG, "panUpdate ${x} ${y}")
           _lib.grab_update(_viewer!!, x, y)
           result.success("OK");
         }
