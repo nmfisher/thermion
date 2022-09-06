@@ -94,7 +94,6 @@ namespace polyvox {
         private:
             void createImageRenderable();
             void loadResources(std::string relativeResourcePath);
-            void transformToUnitCube();
             void cleanup();
             
             void* _layer;
@@ -154,6 +153,7 @@ namespace polyvox {
             ColorGrading *colorGrading = nullptr;
 
             void _createManipulator();
+            uint32_t _lastFrameTimeInNanos;
     };
 
 
