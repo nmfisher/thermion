@@ -527,7 +527,6 @@ SceneAsset *FilamentViewer::loadGltf(const char *const uri,
 
 void FilamentViewer::clearAssets() {
   Log("Clearing all assets");
-  // mtx.lock();
   if(_mainCamera) {
     _view->setCamera(_mainCamera);
   }
@@ -544,18 +543,19 @@ void FilamentViewer::clearAssets() {
     i++;
   }
   _assets.clear();
-  // mtx.unlock();
   Log("Cleared all assets");
 }
 
 void FilamentViewer::removeAsset(SceneAsset *asset) {
+  Log("Removing asset from scene");
+
   mtx.lock();
   // todo - what if we are using a camera from this asset?
   _view->setCamera(_mainCamera);
   _sceneAssetLoader->remove(asset);
   
   bool erased = false;
-  for (auto it = _assets.begin(); it != _assets.end();) {
+  for (auto it = _assets.begin(); it != _assets.end();++it) {
     if (*it == asset) {
       _assets.erase(it);
       erased = true;
@@ -716,6 +716,8 @@ void FilamentViewer::render(uint64_t frameTimeInNanos) {
   if(_manipulator) {
     math::float3 eye, target, upward;
     Camera& cam =_view->getCamera();
+    _manipulator->update((float(frameTimeInNanos) - float(_lastFrameTimeInNanos)) / 1000000);
+    _lastFrameTimeInNanos = frameTimeInNanos;
     _manipulator->getLookAt(&eye, &target, &upward);
     cam.lookAt(eye, target, upward);
   }
@@ -752,6 +754,10 @@ void FilamentViewer::updateViewportAndCameraProjection(
 }
 
 void FilamentViewer::setCameraPosition(float x, float y, float z) {
+  if(_manipulator) {
+    delete _manipulator;
+    _manipulator = nullptr;
+  }
   Camera& cam =_view->getCamera();
   auto &tm = _engine->getTransformManager();
   _cameraPosition = math::mat4f::translation(math::float3(x,y,z));
@@ -759,6 +765,10 @@ void FilamentViewer::setCameraPosition(float x, float y, float z) {
 }
 
 void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
+  if(_manipulator) {
+    delete _manipulator;
+    _manipulator = nullptr;
+  }
   Camera& cam =_view->getCamera();
   auto &tm = _engine->getTransformManager();
   _cameraRotation = math::mat4f::rotation(rads, math::float3(x,y,z));
@@ -772,13 +782,16 @@ void FilamentViewer::_createManipulator() {
   Camera& cam =_view->getCamera();
   math::float3 home = cam.getPosition();
   math::float3 fv = cam.getForwardVector();
+  math::float3 tp = home + fv;
   Viewport const& vp = _view->getViewport();
   _manipulator = Manipulator<float>::Builder()
                   .viewport(vp.width, vp.height)
                   .orbitHomePosition(home[0], home[1], home[2])
-                  .targetPosition(fv[0], fv[1], fv[2])
+                  .targetPosition(tp[0], tp[1], tp[2])
+                  // .targetPosition(fv[0], fv[1], fv[2])
                   .build(Mode::ORBIT);
-  Log("Created manipulator for vp width %d height %d ", vp.width, vp.height);
+  _lastFrameTimeInNanos = 0;
+  Log("Created orbit manipulator for vp width %d height %d with home %f %f %f and target pos %f %f %f ", vp.width, vp.height, home[0], home[1], home[2], tp[0], tp[1], tp[2]);
 }
 
 void FilamentViewer::grabBegin(float x, float y, bool pan) {
@@ -790,6 +803,7 @@ void FilamentViewer::grabBegin(float x, float y, bool pan) {
     _createManipulator();
   } else {
     Log("Error - calling grabBegin while another grab session is active. This will probably cause weirdness");
+    return;
   }
   _manipulator->grabBegin(x, y, pan);
 }
@@ -815,8 +829,9 @@ void FilamentViewer::grabEnd() {
     _manipulator->grabEnd();
     delete _manipulator;
     _manipulator = nullptr;
+    Log("Destroyed manipulator");
   } else {
-    Log("Error - trying to use a manipulator when one is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
+    Log("Error - trying to call GrabEnd when a manipulator is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
   }
 }
 
@@ -841,6 +856,7 @@ void FilamentViewer::scrollEnd() {
   }
   delete _manipulator;
   _manipulator = nullptr;
+  Log("Destroyed manipulator");
 }
 
 } // namespace polyvox
