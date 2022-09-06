@@ -15,6 +15,7 @@ abstract class FilamentController {
   Future createTextureViewer(int width, int height, { double devicePixelRatio = 1});
   Future setFrameRate(int framerate);
   Future setRendering(bool render);
+  Future render();
 
   Future resize(int width, int height, { double devicePixelRatio = 1, double contentScaleFactor=1});
   Future setBackgroundImage(String path);
@@ -109,6 +110,10 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future setRendering(bool render) async {
     await _channel.invokeMethod("setRendering",  render);
+  }
+
+  Future render() async {
+    await _channel.invokeMethod("render");
   }
 
   Future setFrameRate(int framerate) async {
@@ -241,6 +246,7 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future removeAsset(FilamentAsset asset) async {
+    print("Removing asset : $asset");
     await _channel.invokeMethod("removeAsset", asset);
   }
 
