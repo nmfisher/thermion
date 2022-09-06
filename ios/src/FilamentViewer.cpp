@@ -788,7 +788,6 @@ void FilamentViewer::_createManipulator() {
                   .viewport(vp.width, vp.height)
                   .orbitHomePosition(home[0], home[1], home[2])
                   .targetPosition(tp[0], tp[1], tp[2])
-                  // .targetPosition(fv[0], fv[1], fv[2])
                   .build(Mode::ORBIT);
   _lastFrameTimeInNanos = 0;
   Log("Created orbit manipulator for vp width %d height %d with home %f %f %f and target pos %f %f %f ", vp.width, vp.height, home[0], home[1], home[2], tp[0], tp[1], tp[2]);
