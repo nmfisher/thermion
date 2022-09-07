@@ -32,6 +32,9 @@ class _GestureDetectingFilamentViewState
     GestureType.RotateCamera:Icons.rotate_90_degrees_ccw
   };
 
+  // to avoid duplicating code for pan/rotate (panStart, panUpdate, panEnd, rotateStart, rotateUpdate etc) 
+  // we have only a single function for start/update/end.
+  // when the gesture type is changed, these properties are updated to point to the correct function.
   late Future Function(double x, double y) _functionStart;
   late Future Function(double x, double y) _functionUpdate;
   late Future Function() _functionEnd;
@@ -56,12 +59,13 @@ class _GestureDetectingFilamentViewState
         _functionUpdate = widget.controller.panUpdate;
         _functionEnd = widget.controller.panEnd;
         break;
+      // TODO 
       case GestureType.PanBackground:
         _functionStart = (x,y) async {
 
         };
         _functionUpdate = (x,y) async  {
-          // print("Updating ${");
+
         };
         _functionEnd = () async {
           
@@ -85,33 +89,31 @@ class _GestureDetectingFilamentViewState
       Positioned.fill(
           child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onScaleStart: (d) {
+              onScaleStart: (d) async {
                 if (d.pointerCount == 2) {
-                  widget.controller.zoomBegin();
+                  await widget.controller.zoomEnd();
+                  await widget.controller.zoomBegin();
                 } else {
-                  _functionStart(d.focalPoint.dx, d.focalPoint.dy);
+                  await _functionStart(d.focalPoint.dx, d.focalPoint.dy); 
                 }
               },
-              onScaleEnd: (d) {
+              onScaleEnd: (d) async {
                 if (d.pointerCount == 2) {
                   _lastScale = 0;
-                  widget.controller.zoomEnd();
+                  await widget.controller.zoomEnd();
                 } else {
-                  _functionEnd();
+                  await _functionEnd();
                 }
               },
-              onScaleUpdate: (d) {
+              onScaleUpdate: (d) async {
                 if (d.pointerCount == 2) {
-                  if (_lastScale == 0) {
-                    _lastScale = d.scale;
-                  } else {
-                    widget.controller.zoomUpdate(d.scale > 1 ? 2 : -2);
+                  if (_lastScale != 0) {
+                    await widget.controller.zoomUpdate(100 * (d.scale -_lastScale));
                   }
                 } else {
-                  // print("update ${d.focalPoint}");
-                  print(d.focalPointDelta);
-                  _functionUpdate(d.focalPoint.dx, d.focalPoint.dy);
+                  await _functionUpdate(d.focalPoint.dx, d.focalPoint.dy);  
                 }
+                _lastScale = d.scale;
               },
               child: FilamentWidget(controller: widget.controller))),
       widget.showControls
