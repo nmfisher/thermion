@@ -73,7 +73,7 @@ namespace polyvox {
             Renderer* getRenderer();
 
             void setBackgroundImage(const char* resourcePath);
-            void setBackgroundImagePosition(float x, float y);
+            void setBackgroundImagePosition(float x, float y, bool clamp);
 
             void setCameraPosition(float x, float y, float z);
             void setCameraRotation(float rads, float x, float y, float z);

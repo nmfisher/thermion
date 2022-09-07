@@ -19,7 +19,7 @@ abstract class FilamentController {
 
   Future resize(int width, int height, { double devicePixelRatio = 1, double contentScaleFactor=1});
   Future setBackgroundImage(String path);
-  Future setBackgroundImagePosition(double x, double y);
+  Future setBackgroundImagePosition(double x, double y, {bool clamp=false});
   Future loadSkybox(String skyboxPath);
   Future removeSkybox();
   Future loadIbl(String path);
@@ -137,8 +137,8 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   @override
-  Future setBackgroundImagePosition(double x, double y) async {
-    await _channel.invokeMethod("setBackgroundImagePosition", [x,y]);
+  Future setBackgroundImagePosition(double x, double y, { bool clamp = false}) async {
+    await _channel.invokeMethod("setBackgroundImagePosition", [x,y, clamp]);
   }
 
   @override

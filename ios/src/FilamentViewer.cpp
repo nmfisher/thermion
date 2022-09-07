@@ -389,13 +389,11 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
   _imageTexture->setImage(*_engine, 0, std::move(buffer));
   _imageTexture->generateMipmaps(*_engine);
 
-  // This currently just centers the image in the viewport at its original size
+  // This currently just acnhors the image at the bottom left of the viewport at its original size
   // TODO - implement stretch/etc 
   const Viewport& vp = _view->getViewport();
   Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
-  _imageScale = mat4f { float(vp.width) / float(_imageWidth) , 0.0f, 0.0f, 1.0f, 0.0f, float(vp.height) / float(_imageHeight), 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
-
-  // _imageScale = mat4f { 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+  _imageScale = mat4f { float(vp.width) / float(_imageWidth) , 0.0f, 0.0f, 0.0f, 0.0f, float(vp.height) / float(_imageHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
   _imageMaterial->setDefaultParameter("transform", _imageScale);
   _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
@@ -408,44 +406,60 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
 
 
 ///
-/// Translates the background image by the specified x/y NDC units (i.e. between -1 and 1).
-/// Clamps both values so that the left/top and right/bottom sides of the background image are 
-/// positioned at a max/min of -1/1 respectively (i.e. you cannot set a position where the left/top or right/bottom sides would be "inside" the screen coordinate space.
+/// Translates the background image by (x,y) pixels.
+/// If clamp is true, x/y are both clamped so that the left/top and right/bottom sides of the background image 
+/// are positioned at a max/min of -1/1 respectively 
+/// (i.e. you cannot set a position where the left/top or right/bottom sides would be "inside" the screen coordinate space).
 ///
-void FilamentViewer::setBackgroundImagePosition(float x, float y) {
+void FilamentViewer::setBackgroundImagePosition(float x, float y, bool clamp=false) {
 
-  // first, clamp x/y
-  auto xScale = float(_imageWidth) / _view->getViewport().width;
-  auto yScale = float(_imageHeight) / _view->getViewport().height;
+  // to translate the background image, we apply a transform to the UV coordinates of the quad texture, not the quad itself (see image.mat).
+  // this allows us to set a background colour for the quad when the texture has been translated outside the quad's bounds. 
+  // so we need to munge the coordinates appropriately (and take into consideration the scale transform applied when the image was loaded).
 
-  float xMin = 0;
-  float xMax = 0;
-  float yMin = 0;
-  float yMax = 0;
+  // first, convert x/y to a percentage of the original image size
+  x /= _imageWidth;
+  y /= _imageHeight;
 
-  // we need to clamp x so that it can only be translated between (left side touching viewport left) and (right side touching viewport right)
-  // if width is less than viewport, these values are 0/1-xScale respectively
-  if(xScale < 1) {
-    xMin = 0;
-    xMax = 1-xScale;  
-  // otherwise, these value are (xScale-1 and 1-xScale)
-  } else {
-    xMin = 1-xScale;
-    xMax = 0;
+  // now scale these by the viewport dimensions so they can be incorporated directly into the UV transform matrix.
+  // x *= _imageScale[0][0];
+  // y *= _imageScale[1][1];
+
+  // TODO - I haven't updated the clamp calculations to work with scaled image width/height percentages so the below code is probably wrong, don't use it until it's fixed.
+  if(clamp) {
+    Log("Clamping background image translation");
+    // first, clamp x/y
+    auto xScale = float(_imageWidth) / _view->getViewport().width;
+    auto yScale = float(_imageHeight) / _view->getViewport().height;
+
+    float xMin = 0;
+    float xMax = 0;
+    float yMin = 0;
+    float yMax = 0;
+
+    // we need to clamp x so that it can only be translated between (left side touching viewport left) and (right side touching viewport right)
+    // if width is less than viewport, these values are 0/1-xScale respectively
+    if(xScale < 1) {
+      xMin = 0;
+      xMax = 1-xScale;  
+    // otherwise, these value are (xScale-1 and 1-xScale)
+    } else {
+      xMin = 1-xScale;
+      xMax = 0;
+    }
+
+    // do the same for y
+    if(yScale < 1) {
+      yMin = 0;
+      yMax = 1-yScale;  
+    } else {
+      yMin = 1-yScale;
+      yMax = 0;
+    }
+
+    x = std::max(xMin, std::min(x,xMax));
+    y = std::max(yMin, std::min(y,yMax));
   }
-
-  // do the same for y
-  if(yScale < 1) {
-    yMin = 0;
-    yMax = 1-yScale;  
-  } else {
-    yMin = 1-yScale;
-    yMax = 0;
-  }
-
-  x = std::max(xMin, std::min(x,xMax));
-  y = std::max(yMin, std::min(y,yMax));
-
 
   // these values are then negated to account for the fact that the transform is applied to the UV coordinates, not the vertices (see image.mat).
   // i.e. translating the image right by 0.5 units means translating the UV coordinates left by 0.5 units.
@@ -453,7 +467,14 @@ void FilamentViewer::setBackgroundImagePosition(float x, float y) {
   y = -y;
   Log("x %f y %f", x, y);
 
-  auto transform = _imageScale * math::mat4f::translation(math::float3(x, y, 0.0f));
+  Log("imageScale %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f ", _imageScale[0][0],_imageScale[0][1],_imageScale[0][2], _imageScale[0][3], \
+  _imageScale[1][0],_imageScale[1][1],_imageScale[1][2], _imageScale[1][3],\
+  _imageScale[2][0],_imageScale[2][1],_imageScale[2][2], _imageScale[2][3], \
+  _imageScale[3][0],_imageScale[3][1],_imageScale[3][2], _imageScale[3][3]);
+
+  auto transform = math::mat4f::translation(math::float3(x, y, 0.0f)) * _imageScale;
+  
+
   Log("transform %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f ", transform[0][0],transform[0][1],transform[0][2], transform[0][3], \
   transform[1][0],transform[1][1],transform[1][2], transform[1][3],\
   transform[2][0],transform[2][1],transform[2][2], transform[2][3], \

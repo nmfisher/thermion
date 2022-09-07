@@ -63,10 +63,10 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       }
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
         var size = ((context.findRenderObject()) as RenderBox).size;
-        print("Requesting texture creation for Filament of size $size");
+        print("Requesting creation of Filament back-end texture/viewer for viewport size $size");
         await widget.controller
             .createTextureViewer(size.width.toInt(), size.height.toInt());
-        print("Filament texture available");
+        print("Filament texture/viewer created.");
         setState(() {
           _ready = true;
         });
