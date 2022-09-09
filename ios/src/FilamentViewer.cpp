@@ -59,8 +59,10 @@
 #include <math/vec4.h>
 
 #include <ktxreader/Ktx1Reader.h>
+#include <ktxreader/Ktx2Reader.h>
 
 #include <iostream>
+#include <fstream>
 
 #include <mutex>
 
@@ -323,74 +325,132 @@ void FilamentViewer::createImageRenderable() {
 
   _imageEntity = &imageEntity;
 
-  Texture *texture = Texture::Builder()
-                         .width(1)
-                         .height(1)
-                         .levels(1)
-                         .format(Texture::InternalFormat::RGBA8)
-                         .sampler(Texture::Sampler::SAMPLER_2D)
-                         .build(*_engine);
-  static uint32_t pixel = 0;
-  Texture::PixelBufferDescriptor buffer(&pixel, 4, Texture::Format::RGBA,
-                                        Texture::Type::UBYTE);
-  texture->setImage(*_engine, 0, std::move(buffer));
 }
 
-void FilamentViewer::setBackgroundImage(const char *resourcePath) {
+static bool endsWith(string path, string ending) {
+  return path.compare(path.length() - ending.length(), ending.length(), ending) == 0;
+}
 
-  createImageRenderable();
+void FilamentViewer::loadKtx2Texture(string path, ResourceBuffer rb) {
 
-  if (_imageTexture) {
-    _engine->destroy(_imageTexture);
-    _imageTexture = nullptr;
-  }
+  // TODO - check all this
 
-  ResourceBuffer bg = _loadResource(resourcePath);
+  // ktxreader::Ktx2Reader reader(*_engine);
 
-  polyvox::StreamBufferAdapter sb((char *)bg.data, (char *)bg.data + bg.size);
+  // reader.requestFormat(Texture::InternalFormat::DXT3_SRGBA);
+  // reader.requestFormat(Texture::InternalFormat::DXT3_RGBA);
 
-  std::istream *inputStream = new std::istream(&sb);
+  // // Uncompressed formats are lower priority, so they get added last.
+  // reader.requestFormat(Texture::InternalFormat::SRGB8_A8);
+  // reader.requestFormat(Texture::InternalFormat::RGBA8);
 
-  LinearImage *image = new LinearImage(ImageDecoder::decode(
-      *inputStream, resourcePath, ImageDecoder::ColorSpace::SRGB));
+  // // std::ifstream inputStream("/data/data/app.polyvox.filament_example/foo.ktx", ios::binary);
+
+  // // auto contents = vector<uint8_t>((istreambuf_iterator<char>(inputStream)), {});
+
+  // _imageTexture = reader.load(contents.data(), contents.size(),
+  //           ktxreader::Ktx2Reader::TransferFunction::LINEAR);
+}
+
+void FilamentViewer::loadKtxTexture(string path, ResourceBuffer rb) {
+    ktxreader::Ktx1Bundle *bundle =
+          new ktxreader::Ktx1Bundle(static_cast<const uint8_t *>(rb.data),
+                                static_cast<uint32_t>(rb.size));
+    _imageTexture =
+          ktxreader::Ktx1Reader::createTexture(_engine, *bundle, false, [](void* userdata) {
+          Ktx1Bundle* bundle = (Ktx1Bundle*) userdata;
+          delete bundle;
+      }, bundle);
+
+    auto info = bundle->getInfo();
+    _imageWidth = info.pixelWidth;
+    _imageHeight = info.pixelHeight;
+}
+
+void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb) {
+  
+  polyvox::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
+
+  std::istream inputStream(&sb);
+
+  LinearImage* image = new LinearImage(ImageDecoder::decode(
+        inputStream, path.c_str(), ImageDecoder::ColorSpace::SRGB));
 
   if (!image->isValid()) {
-    Log("Invalid image : %s", resourcePath);
+    Log("Invalid image : %s", path.c_str());
     return;
   }
-
-  delete inputStream;
-
-  _freeResource(bg.id);
 
   uint32_t channels = image->getChannels();
   _imageWidth = image->getWidth();
   _imageHeight = image->getHeight();
 
   _imageTexture = Texture::Builder()
-                      .width(_imageWidth)
-                      .height(_imageHeight)
-                      .levels(0xff)
-                      .format(channels == 3 ? Texture::InternalFormat::RGB16F
-                                            : Texture::InternalFormat::RGBA16F)
-                      .sampler(Texture::Sampler::SAMPLER_2D)
-                      .build(*_engine);
+                     .width(_imageWidth)
+                     .height(_imageHeight)
+                     .levels(0xff)
+                     .format(channels == 3 ? Texture::InternalFormat::RGB16F
+                                           : Texture::InternalFormat::RGBA16F)
+                     .sampler(Texture::Sampler::SAMPLER_2D)
+                     .build(*_engine);
 
   Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-                                                             void *data) {
-    delete reinterpret_cast<LinearImage *>(data);
+                                                            void *data) {
+    Log("Deleting LinearImage");
+    delete reinterpret_cast<LinearImage*>(data);
   };
 
-  Texture::PixelBufferDescriptor buffer(
-      image->getPixelRef(), size_t(_imageWidth * _imageHeight * channels * sizeof(float)),
-      channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
-      Texture::Type::FLOAT, freeCallback);
+  auto pbd = Texture::PixelBufferDescriptor(
+     image->getPixelRef(), size_t(_imageWidth * _imageHeight * channels * sizeof(float)),
+     channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
+     Texture::Type::FLOAT, nullptr, freeCallback, image);
 
-  _imageTexture->setImage(*_engine, 0, std::move(buffer));
-  _imageTexture->generateMipmaps(*_engine);
+  _imageTexture->setImage(*_engine, 0, std::move(pbd));
+}
 
-  // This currently just acnhors the image at the bottom left of the viewport at its original size
-  // TODO - implement stretch/etc 
+void FilamentViewer::loadTextureFromPath(string path) {
+  string ktxExt(".ktx");
+  string ktx2Ext(".ktx2");
+  string pngExt(".png");
+
+  if (path.length() < 5) {
+    Log("Invalid resource path : %s", path.c_str());
+    return;
+  }
+
+  ResourceBuffer rb = _loadResource(path.c_str());
+
+  if(endsWith(path, ktxExt)) {
+    loadKtxTexture(path, rb);
+  } else if(endsWith(path, ktx2Ext)) {
+    loadKtx2Texture(path, rb);
+  } else if(endsWith(path, pngExt)) {
+    loadPngTexture(path, rb);
+  }
+
+  _freeResource(rb.id);
+
+}
+
+void FilamentViewer::setBackgroundImage(const char *resourcePath) {
+
+  string resourcePathString(resourcePath);
+
+  Log("Setting background image to %s", resourcePath);
+
+  createImageRenderable();
+
+  if (_imageTexture) {
+    Log("Destroying existing texture");
+    _engine->destroy(_imageTexture);
+    Log("Destroyed.");
+    _imageTexture = nullptr;
+  }
+
+  loadTextureFromPath(resourcePathString);
+
+  // This currently just anchors the image at the bottom left of the viewport at its original size
+  // TODO - implement stretch/etc
   const Viewport& vp = _view->getViewport();
   Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
   _imageScale = mat4f { float(vp.width) / float(_imageWidth) , 0.0f, 0.0f, 0.0f, 0.0f, float(vp.height) / float(_imageHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
@@ -671,16 +731,18 @@ bool FilamentViewer::setCamera(SceneAsset *asset, const char *cameraName) {
 }
 
 void FilamentViewer::loadSkybox(const char *const skyboxPath) {
-  if (!skyboxPath) {
-    _scene->setSkybox(nullptr);
-  } else {
+  removeSkybox();
+  if (skyboxPath) {
     ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
 
     image::Ktx1Bundle *skyboxBundle =
         new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data),
                               static_cast<uint32_t>(skyboxBuffer.size));
     _skyboxTexture =
-        ktxreader::Ktx1Reader::createTexture(_engine, skyboxBundle, false);
+        ktxreader::Ktx1Reader::createTexture(_engine, *skyboxBundle, false, [](void* userdata) {
+        image::Ktx1Bundle* bundle = (image::Ktx1Bundle*) userdata;
+        delete bundle;
+    }, skyboxBundle);
     _skybox =
         filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
 
@@ -689,15 +751,29 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
   }
 }
 
-void FilamentViewer::removeSkybox() { _scene->setSkybox(nullptr); }
+void FilamentViewer::removeSkybox() { 
+  if(_skybox) {
+    _engine->destroy(_skybox);
+    _engine->destroy(_skyboxTexture);
+    _skybox = nullptr;
+    _skyboxTexture = nullptr;
+  }
+  _scene->setSkybox(nullptr); 
+}
 
-void FilamentViewer::removeIbl() { _scene->setIndirectLight(nullptr); }
+void FilamentViewer::removeIbl() { 
+  if(_indirectLight) {
+    _engine->destroy(_indirectLight);
+    _engine->destroy(_iblTexture);
+    _indirectLight = nullptr;
+    _iblTexture = nullptr;
+  }
+  _scene->setIndirectLight(nullptr); 
+}
 
 void FilamentViewer::loadIbl(const char *const iblPath) {
-  if (!iblPath) {
-    _scene->setIndirectLight(nullptr);
-  } else {
-
+  removeIbl();
+  if (iblPath) {
     Log("Loading IBL from %s", iblPath);
 
     // Load IBL.
@@ -709,7 +785,10 @@ void FilamentViewer::loadIbl(const char *const iblPath) {
     math::float3 harmonics[9];
     iblBundle->getSphericalHarmonics(harmonics);
     _iblTexture =
-        ktxreader::Ktx1Reader::createTexture(_engine, iblBundle, false);
+        ktxreader::Ktx1Reader::createTexture(_engine, *iblBundle, false, [](void* userdata) {
+        image::Ktx1Bundle* bundle = (image::Ktx1Bundle*) userdata;
+        delete bundle;
+    }, iblBundle);
     _indirectLight = IndirectLight::Builder()
                          .reflections(_iblTexture)
                          .irradiance(3, harmonics)

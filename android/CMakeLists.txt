@@ -10,7 +10,7 @@ add_library(
             filament_interop
             SHARED
             src/main/cpp/filament_android.cpp
-            src/main/cpp/KtxReader1.cpp
+            ../ios/src/ktxreader/Ktx1Reader.cpp
             src/main/cpp/StbProvider.cpp
             src/main/cpp/JobSystem.cpp
             ../ios/src/SceneAssetLoader.cpp

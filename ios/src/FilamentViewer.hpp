@@ -151,6 +151,10 @@ namespace polyvox {
             Material* _imageMaterial = nullptr;
             TextureSampler _imageSampler;
             ColorGrading *colorGrading = nullptr;
+            void loadKtx2Texture(string path, ResourceBuffer data);
+            void loadKtxTexture(string path, ResourceBuffer data);
+            void loadPngTexture(string path, ResourceBuffer data);
+            void loadTextureFromPath(string path);
 
             void _createManipulator();
             uint32_t _lastFrameTimeInNanos;
