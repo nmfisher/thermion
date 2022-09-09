@@ -21,6 +21,7 @@ class _MyAppState extends State<MyApp> {
 
   FilamentAsset? _cube;
   FilamentAsset? _flightHelmet;
+  FilamentLight? _light;
 
   final weights = List.filled(255, 0.0);
   List<String> _targetNames = [];
@@ -74,9 +75,9 @@ class _MyAppState extends State<MyApp> {
                                         .initialize();
                                     break;
                                   case 0:
-                                    await _filamentController
-                                        .setBackgroundImage(
-                                            'assets/background.png');
+                                      await _filamentController
+                                          .setBackgroundImage(
+                                              'assets/background.ktx');
                                     break;
                                   case 1:
                                     await _filamentController.loadSkybox(
@@ -141,12 +142,6 @@ class _MyAppState extends State<MyApp> {
                                     setState(() {
                                       _loop = !_loop;
                                     });
-                                    break;
-                                  case 12:
-                                    _filamentController.zoom(-1.0);
-                                    break;
-                                  case 13:
-                                    _filamentController.zoom(1.0);
                                     break;
                                   case 14:
                                     _filamentController.setCamera(
@@ -216,16 +211,28 @@ class _MyAppState extends State<MyApp> {
                                     break;
                                   case 26:
                                     await _filamentController.setCameraPosition(
-                                        0, -3, 10);
+                                        0, 0, 3);
                                     await _filamentController.setCameraRotation(
-                                        pi / 8, 1, 0, 0);
+                                        0, 0, 1, 0);
                                     break;
                                   case 27:
                                     _framerate = _framerate == 60 ? 30 : 60;
                                     await _filamentController.setFrameRate(_framerate);
                                     break;
                                   case 28:
-                                    await _filamentController.setBackgroundImagePosition(-5, -5);
+                                    await _filamentController.setBackgroundImagePosition(25, 25);
+                                    break;
+                                  case 29:
+                                    _light = await _filamentController.addLight(2, 6500, 15000000, 0,1,0, 0, -1 , 0, true);
+                                    _light = await _filamentController.addLight(2, 6500, 15000000, 0,0,1, 0, 0 , -1, true);
+                                    break;
+                                  case 30:
+                                    if(_light != null) {
+                                      await _filamentController.removeLight(_light!);
+                                    }
+                                    break;
+                                  case 31:
+                                    await _filamentController.clearLights();
                                     break;
                                 }
                               },
@@ -271,7 +278,7 @@ class _MyAppState extends State<MyApp> {
                                         value: 6, child: Text('remove cube')),
                                     const PopupMenuItem(
                                         value: 20,
-                                        child: Text('remove all assets')),
+                                        child: Text('clear all assets')),
                                     const PopupMenuItem(
                                         value: 7,
                                         child: Text('set all weights to 1')),
@@ -289,10 +296,6 @@ class _MyAppState extends State<MyApp> {
                                         child: Text(_loop
                                             ? "don't loop animation"
                                             : "loop animation")),
-                                    const PopupMenuItem(
-                                        value: 12, child: Text('zoom in')),
-                                    const PopupMenuItem(
-                                        value: 13, child: Text('zoom out')),
                                     const PopupMenuItem(
                                         value: 14, child: Text('set camera')),
                                     const PopupMenuItem(
@@ -316,7 +319,7 @@ class _MyAppState extends State<MyApp> {
                                     PopupMenuItem(
                                         value: 26,
                                         child:
-                                            Text('set camera pos to 0,1,10')),
+                                            Text('set camera pos to 0,0,3')),
                                     PopupMenuItem(
                                         value: 27,
                                         child:
@@ -325,6 +328,18 @@ class _MyAppState extends State<MyApp> {
                                         value: 28,
                                         child:
                                             Text('set bg image pos')),
+                                    PopupMenuItem(
+                                        value: 29,
+                                        child:
+                                            Text('add light')),
+                                    PopupMenuItem(
+                                        value: 30,
+                                        child:
+                                            Text('remove light')),
+                                      PopupMenuItem(
+                                        value: 31,
+                                        child:
+                                            Text('clear all lights')),
                                   ]))),
                  Align(
                       alignment: Alignment.bottomRight,
