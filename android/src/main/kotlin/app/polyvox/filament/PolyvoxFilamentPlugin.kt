@@ -156,6 +156,10 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   }
 
   fun getAssetPath(path:String) : String {
+    if(path.startsWith("file://")) {
+      return path
+    }
+
     val loader = FlutterInjector.instance().flutterLoader()
     val key = loader.getLookupKeyForAsset(path)
     val hotReloadPath = HotReloadPathHelper.getAssetPath(key, activity.getPackageName())
@@ -240,7 +244,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       "setBackgroundImagePosition" -> {
         executor.execute { 
           val args = call.arguments as ArrayList<Any?>
-          _lib.set_background_image_position(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat())
+          _lib.set_background_image_position(_viewer!!, (args[0] as Double).toFloat(), (args[1] as Double).toFloat(), (args[2] as Boolean))
           result.success("OK");
         }
       }

@@ -85,7 +85,7 @@ interface FilamentInterop : Library {
     fun clear_lights(viewer:Pointer);
 
     fun set_background_image(viewer:Pointer, path:String);
-    fun set_background_image_position(viewer:Pointer, x:Float, y:Float);
+    fun set_background_image_position(viewer:Pointer, x:Float, y:Float, clamp:Boolean);
     
     fun load_texture(asset:Pointer, path:String, renderableIndex:Int);
     fun set_texture(asset:Pointer);
