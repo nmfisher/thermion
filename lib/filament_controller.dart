@@ -12,12 +12,12 @@ abstract class FilamentController {
   Future get initialized;
   Stream get onInitializationRequested;
   Future initialize();
-  Future createTextureViewer(int width, int height, { double devicePixelRatio = 1});
+  Future createTextureViewer(int width, int height);
   Future setFrameRate(int framerate);
   Future setRendering(bool render);
   Future render();
 
-  Future resize(int width, int height, { double devicePixelRatio = 1, double contentScaleFactor=1});
+  Future resize(int width, int height, { double contentScaleFactor=1});
   Future setBackgroundImage(String path);
   Future setBackgroundImagePosition(double x, double y, {bool clamp=false});
   Future loadSkybox(String skyboxPath);
@@ -87,7 +87,8 @@ abstract class FilamentController {
 class PolyvoxFilamentController extends FilamentController {
   
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
-  late double _devicePixelRatio;
+  
+  double _pixelRatio = 1.0;
 
 
   final _onInitRequestedController = StreamController();
@@ -120,15 +121,17 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("setFrameInterval",  1/ framerate);
   }
 
-  Future createTextureViewer(int width, int height, { double devicePixelRatio=1 }) async {
-    _devicePixelRatio = devicePixelRatio;
-    textureId = await _channel.invokeMethod("initialize", [width*devicePixelRatio, height*devicePixelRatio]);
+  void setPixelRatio(double ratio) {
+    _pixelRatio = ratio;
+  }
+
+  Future createTextureViewer(int width, int height) async {
+    textureId = await _channel.invokeMethod("initialize", [width * _pixelRatio, height * _pixelRatio]);
     _initialized.complete(true);
   }
 
-  Future resize(int width, int height, { double devicePixelRatio=1, double contentScaleFactor=1.0}) async {
-    _devicePixelRatio = devicePixelRatio;
-    await _channel.invokeMethod("resize", [width*devicePixelRatio, height*devicePixelRatio, contentScaleFactor]);
+  Future resize(int width, int height, { double contentScaleFactor=1.0}) async {
+    await _channel.invokeMethod("resize", [width*_pixelRatio, height*_pixelRatio, contentScaleFactor]);
   }
 
   @override
@@ -195,11 +198,11 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future panStart(double x, double y) async {
     await setRendering(true);
-    await _channel.invokeMethod("panStart", [x * _devicePixelRatio, y * _devicePixelRatio]);
+    await _channel.invokeMethod("panStart", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future panUpdate(double x, double y) async {
-    await _channel.invokeMethod("panUpdate", [x * _devicePixelRatio, y * _devicePixelRatio]);
+    await _channel.invokeMethod("panUpdate", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future panEnd() async {
@@ -209,11 +212,11 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future rotateStart(double x, double y) async {
     await setRendering(true);
-    await _channel.invokeMethod("rotateStart", [x * _devicePixelRatio, y * _devicePixelRatio]);
+    await _channel.invokeMethod("rotateStart", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future rotateUpdate(double x, double y) async {
-    await _channel.invokeMethod("rotateUpdate", [x * _devicePixelRatio, y * _devicePixelRatio]);
+    await _channel.invokeMethod("rotateUpdate", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future rotateEnd() async {
