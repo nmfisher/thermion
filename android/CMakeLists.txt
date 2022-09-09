@@ -18,6 +18,7 @@ add_library(
             ../ios/src/PolyvoxFilamentApi.cpp
             ../ios/src/StreamBufferAdapter.cpp
             ../ios/src/image/imagematerial.c
+            ../ios/src/shaders/unlitopaque.c
             ../ios/src/SceneAsset.cpp
         )
 
