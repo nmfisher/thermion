@@ -24,7 +24,7 @@ namespace polyvox {
     // Currently, an instance will be constructed for every animation in an asset whenever a SceneAsset is created (and thus will persist for the lifetime of the SceneAsset).
     //
     struct EmbeddedAnimationStatus  {        
-      EmbeddedAnimationStatus(int animationIndex, float duration, bool loop) : animationIndex(animationIndex), duration(duration), loop(loop) {}
+      EmbeddedAnimationStatus(bool loop, bool reverse) : loop(loop), reverse(reverse) {}
 
       // 
       // A flag that is checked each frame to determine whether or not the animation should play.
@@ -35,6 +35,11 @@ namespace polyvox {
       // If [play] is true, this flag will be checked when the animation is complete. If true, the animation will restart.
       //
       bool loop;
+
+      //
+      // If true, the animation will be played in reverse.
+      //
+      bool reverse;
       
       // 
       // If [play] is true, this flag will be set to true when the animation is started.
@@ -46,11 +51,6 @@ namespace polyvox {
       //
       int animationIndex;
       
-      //
-      // The duration of the animation (calculated from the GLTF animator). 
-      //
-      float duration = 0;
-
       //
       // The time point at which this animation was last started.
       // This is used to calculate the "animation time offset" that is passed to the Animator.

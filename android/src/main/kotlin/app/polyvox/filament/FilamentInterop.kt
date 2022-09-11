@@ -69,7 +69,8 @@ interface FilamentInterop : Library {
     fun get_animation_count(asset:Pointer) : Int;
     fun get_animation_name(asset:Pointer, outPtr:Pointer, index:Int);
 
-    fun play_animation(asset:Pointer, index:Int, loop:Boolean);
+    fun play_animation(asset:Pointer, index:Int, loop:Boolean, reverse:Boolean);
+    fun stop_animation(asset:Pointer, index:Int);
 
     fun free_pointer(ptr:Pointer, size:Int);
 
