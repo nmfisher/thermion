@@ -461,7 +461,7 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
   _imageMaterial->setDefaultParameter("showImage", 1);
 
   _imageMaterial->setDefaultParameter("backgroundColor", RgbType::sRGB,
-                                      float3(0.3f));
+                                      float3(1.f));
 }
 
 
@@ -582,7 +582,7 @@ void FilamentViewer::destroySwapChain() {
 }
 
 SceneAsset *FilamentViewer::loadGlb(const char *const uri) {
-    SceneAsset *asset = _sceneAssetLoader->fromGlb(uri);
+  SceneAsset *asset = _sceneAssetLoader->fromGlb(uri);
   if (!asset) {
     Log("Unknown error loading asset.");
   } else {
@@ -735,6 +735,11 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
   if (skyboxPath) {
     ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
 
+    if(skyboxBuffer.size == 0) {
+      Log("Error loading IBL, resource could not be loaded.");
+      return;
+    }
+
     image::Ktx1Bundle *skyboxBundle =
         new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data),
                               static_cast<uint32_t>(skyboxBuffer.size));
@@ -778,6 +783,11 @@ void FilamentViewer::loadIbl(const char *const iblPath) {
 
     // Load IBL.
     ResourceBuffer iblBuffer = _loadResource(iblPath);
+
+    if(iblBuffer.size == 0) {
+      Log("Error loading IBL, resource could not be loaded.");
+      return;
+    }
 
     image::Ktx1Bundle *iblBundle =
         new image::Ktx1Bundle(static_cast<const uint8_t *>(iblBuffer.data),
@@ -928,7 +938,10 @@ void FilamentViewer::grabEnd() {
     _manipulator->grabEnd();
     delete _manipulator;
     _manipulator = nullptr;
-    Log("Destroyed manipulator");
+    Camera& cam =_view->getCamera();
+    math::float3 home = cam.getPosition();
+    math::float3 fv = cam.getForwardVector();
+    Log("Destroyed manipulator, end camera pos/fv was %f %f %f / %f %f %f ", home[0], home[1], home[2], fv[0], fv[1], fv[2]);
   } else {
     Log("Error - trying to call GrabEnd when a manipulator is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
   }
