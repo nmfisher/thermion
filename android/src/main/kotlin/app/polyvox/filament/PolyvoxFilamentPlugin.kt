@@ -172,19 +172,14 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     when (call.method) {
       "initialize" -> {
-        print("Initializing")
-
         val entry = flutterPluginBinding.textureRegistry.createSurfaceTexture();
         executor.execute { 
 
           if(_viewer != null) {
-            print("Deleting existing viewer")
             _lib.filament_viewer_delete(_viewer!!);
-            print("Deleted viewer")
             _viewer = null;
           }
           if(surfaceTexture != null) {
-            print("Releasing existing texture")
             surfaceTexture!!.release()
             surfaceTexture = null;
           }
@@ -227,6 +222,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       }
       "setRendering" -> {
         _render = call.arguments as Boolean
+        Log.v(TAG, "Set rendering to ${_render}")
         result.success(null)
       }
       "setFrameInterval" -> {
@@ -555,7 +551,14 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       "playAnimation" -> {
         executor.execute { 
           val args = call.arguments as ArrayList<Any?>
-          _lib.play_animation(Pointer(args[0] as Long), args[1] as Int, args[2] as Boolean)
+          _lib.play_animation(Pointer(args[0] as Long), args[1] as Int, args[2] as Boolean, args[3] as Boolean)
+          result.success("OK")
+        }
+      }
+      "stopAnimation" -> {
+        executor.execute { 
+          val args = call.arguments as ArrayList<Any?>
+          _lib.stop_animation(Pointer(args[0] as Long), args[1] as Int)
           result.success("OK")
         }
       }

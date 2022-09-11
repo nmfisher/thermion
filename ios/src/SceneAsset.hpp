@@ -53,7 +53,7 @@ namespace polyvox {
             ///  
             /// Play the embedded animation (i.e. animation node embedded in the GLTF asset) under the specified index. If [loop] is true, the animation will repeat indefinitely.
             ///
-            void playAnimation(int index, bool loop);
+            void playAnimation(int index, bool loop, bool reverse);
 
             ///
             /// Manually set the weights for all morph targets in the assets to the provided values.

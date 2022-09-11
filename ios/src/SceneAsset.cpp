@@ -34,7 +34,7 @@ SceneAsset::SceneAsset(FilamentAsset *asset, Engine *engine,
   _animator = _asset->getAnimator();
   for (int i = 0; i < _animator->getAnimationCount(); i++) {
     _embeddedAnimationStatus.push_back(
-        EmbeddedAnimationStatus(i, _animator->getAnimationDuration(i), false));
+        EmbeddedAnimationStatus(false,false));
   }
   Log("Created animation buffers for %d", _embeddedAnimationStatus.size());
 }
@@ -105,16 +105,20 @@ void SceneAsset::updateMorphAnimation() {
   }
 }
 
-void SceneAsset::playAnimation(int index, bool loop) {
-  Log("Playing animation at index %d", index);
+void SceneAsset::playAnimation(int index, bool loop, bool reverse) {
   if (index > _animator->getAnimationCount() - 1) {
     Log("Asset does not contain an animation at index %d", index);
-  } else if (_embeddedAnimationStatus[index].started) {
-    Log("Animation already playing, call stop first.");
   } else {
-    Log("Starting animation at index %d", index);
-    _embeddedAnimationStatus[index].play = true;
-    _embeddedAnimationStatus[index].loop = loop;
+    const char* name = _animator->getAnimationName(index);
+    Log("Playing animation %d : %s", index, name);
+    if (_embeddedAnimationStatus[index].started) {
+      Log("Animation already playing, call stop first.");
+    } else {
+      Log("Starting animation at index %d with loop : %d and reverse %d ", index, loop, reverse);
+      _embeddedAnimationStatus[index].play = true;
+      _embeddedAnimationStatus[index].loop = loop;
+      _embeddedAnimationStatus[index].reverse = reverse;
+    }
   }
 }
 
@@ -194,37 +198,48 @@ void SceneAsset::setTexture() {
 
 void SceneAsset::updateEmbeddedAnimations() {
   auto now = high_resolution_clock::now();
+  int animationIndex = 0;
   for (auto &status : _embeddedAnimationStatus) {
     if (!status.play) {
-      // Log("Skipping animation %d", status.animationIndex);
+      Log("Animation %d not playing", animationIndex);
       continue;
     }
-    duration<double> dur =
+
+    float animationLength = _animator->getAnimationDuration(animationIndex);
+    
+    duration<double> elapsed =
         duration_cast<duration<double>>(now - status.startedAt);
     float animationTimeOffset = 0;
-    bool finished =  false;
+    bool finished = false;
     if (!status.started) {
+      Log("Starting");
+
       status.started = true;
       status.startedAt = now;
-    } else if (dur.count() >= status.duration) {
+    } else if (elapsed.count() >= animationLength) {
       if (status.loop) {
         status.startedAt = now;
       } else {
-        animationTimeOffset = dur.count();
+        animationTimeOffset = elapsed.count();
         finished = true;
       }
     } else {
-      animationTimeOffset = dur.count();
+      animationTimeOffset = elapsed.count();
+    }
+
+    if(status.reverse) {
+      animationTimeOffset = _animator->getAnimationDuration(animationIndex) - animationTimeOffset;
     }
 
     if (!finished) {
-      _animator->applyAnimation(status.animationIndex, animationTimeOffset);
+      _animator->applyAnimation(animationIndex, animationTimeOffset);
     } else {
-      Log("Animation %d finished", status.animationIndex);
+      Log("Animation %d finished", animationIndex);
 
       status.play = false;
       status.started = false;
     }
+    animationIndex++;
   }
 
   _animator->updateBoneMatrices();

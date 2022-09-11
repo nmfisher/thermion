@@ -40,7 +40,8 @@ void apply_weights(void* asset, float* const weights, int count);
     
 void animate_weights(void* asset, float* data, int numWeights, int numFrames,  float frameRate);
     
-void play_animation(void* asset, int index, bool loop);
+void play_animation(void* asset, int index, bool loop, bool reverse);
+void stop_animation(void* asset, int index);
 
 int get_animation_count(void* asset);
     
@@ -62,8 +63,6 @@ void transform_to_unit_cube(void* asset);
 void set_position(void* asset, float x, float y, float z);
     
 void set_rotation(void* asset, float rads, float x, float y, float z);
-
-void stop_animation(void* asset, int index);
 
 void set_camera_position(void* viewer, float x, float y, float z);
 

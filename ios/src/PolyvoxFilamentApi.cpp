@@ -143,8 +143,8 @@ extern "C" {
     ((SceneAsset*)asset)->animateWeights((float*)data, numWeights, numFrames, frameRate);
   }
 
-  void play_animation(void* asset, int index, bool loop) {
-    ((SceneAsset*)asset)->playAnimation(index, loop);
+  void play_animation(void* asset, int index, bool loop, bool reverse) {
+    ((SceneAsset*)asset)->playAnimation(index, loop, reverse);
   }
 
   int get_animation_count(void* asset) {
