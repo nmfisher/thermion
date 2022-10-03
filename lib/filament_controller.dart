@@ -16,7 +16,7 @@ abstract class FilamentController {
   Future setFrameRate(int framerate);
   Future setRendering(bool render);
   Future render();
-
+  void setPixelRatio(double ratio);
   Future resize(int width, int height, { double contentScaleFactor=1});
   Future setBackgroundImage(String path);
   Future setBackgroundImagePosition(double x, double y, {bool clamp=false});
@@ -52,9 +52,9 @@ abstract class FilamentController {
   Future<List<String>> getAnimationNames(FilamentAsset asset);
   Future removeAsset(FilamentAsset asset);
   Future clearAssets();
-  Future playAnimation(FilamentAsset asset, int index, {bool loop = false});
+  Future playAnimation(FilamentAsset asset, int index, {bool loop = false, bool reverse=false});
   Future playAnimations(FilamentAsset asset, List<int> indices,
-      {bool loop = false});
+      {bool loop = false, bool reverse=false});
   Future stopAnimation(FilamentAsset asset, int index);
   Future setCamera(FilamentAsset asset, String name);
   Future setTexture(FilamentAsset asset, String assetPath,
@@ -270,14 +270,14 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future playAnimation(FilamentAsset asset, int index,
-      {bool loop = false}) async {
-    await _channel.invokeMethod("playAnimation", [asset, index, loop]);
+      {bool loop = false, bool reverse=false}) async {
+    await _channel.invokeMethod("playAnimation", [asset, index, loop, reverse]);
   }
 
   Future playAnimations(FilamentAsset asset, List<int> indices,
-      {bool loop = false}) async {
+      {bool loop = false, bool reverse=false}) async {
     return Future.wait(indices.map((index) {
-      return _channel.invokeMethod("playAnimation", [asset, index, loop]);
+      return _channel.invokeMethod("playAnimation", [asset, index, loop, reverse]);
     }));
   }
 
