@@ -248,7 +248,7 @@ void FilamentViewer::setFrameInterval(float frameInterval) {
 int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows) {
   Log("Adding light of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
   auto light = EntityManager::get().create();
-  LightManager::Builder(LightManager::Type::SUN)
+  LightManager::Builder(t)
       .color(Color::cct(colour))
       .intensity(intensity)
       .position(math::float3(posX, posY, posZ))
