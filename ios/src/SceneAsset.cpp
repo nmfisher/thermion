@@ -201,7 +201,6 @@ void SceneAsset::updateEmbeddedAnimations() {
   int animationIndex = 0;
   for (auto &status : _embeddedAnimationStatus) {
     if (!status.play) {
-      Log("Animation %d not playing", animationIndex);
       continue;
     }
 
