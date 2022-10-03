@@ -108,7 +108,7 @@ class _GestureDetectingFilamentViewState
               onScaleUpdate: (d) async {
                 if (d.pointerCount == 2) {
                   if (_lastScale != 0) {
-                    await widget.controller.zoomUpdate(100 * (d.scale -_lastScale));
+                    await widget.controller.zoomUpdate(100 * (_lastScale - d.scale));
                   }
                 } else {
                   await _functionUpdate(d.focalPoint.dx, d.focalPoint.dy);  
