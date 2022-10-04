@@ -26,6 +26,6 @@ flutter:
         pluginClass: PolyvoxFilamentPlugin
         package: app.polyvox.filament
       ios:
-        pluginClass: PolyvoxFilamentPlugin
+        pluginClass: SwiftPolyvoxFilamentPlugin
       windows:
         pluginClass: PolyvoxFilamentPlugin
