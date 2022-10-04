@@ -409,6 +409,12 @@
 					"$(inherited)",
 					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
 				);
+				OTHER_CFLAGS = (
+					"\"--std=c++17\"",
+					"\"-fmodules\"",
+					"\"-fcxx-modules\"",
+					"\"$(inherited)\"",
+				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -558,6 +564,12 @@
 					"$(inherited)",
 					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
 				);
+				OTHER_CFLAGS = (
+					"\"--std=c++17\"",
+					"\"-fmodules\"",
+					"\"-fcxx-modules\"",
+					"\"$(inherited)\"",
+				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -588,6 +600,12 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
+				);
+				OTHER_CFLAGS = (
+					"\"--std=c++17\"",
+					"\"-fmodules\"",
+					"\"-fcxx-modules\"",
+					"\"$(inherited)\"",
 				);
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
