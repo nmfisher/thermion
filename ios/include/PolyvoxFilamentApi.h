@@ -2,7 +2,6 @@
 #define _POLYVOX_FILAMENT_API_H
 
 #include "ResourceBuffer.hpp"
-#include "LightManager.hpp"
 
 typedef struct ResourceBuffer ResourceBuffer;
 
@@ -31,11 +30,10 @@ void scroll_begin(void* viewer);
 void scroll_update(void* viewer, float x, float y , float z);
 void scroll_end(void* viewer);
     
-void grab_begin(void* viewer, int x, int y, bool pan);
-void grab_update(void* viewer, int x, int y);
+void grab_begin(void* viewer, float x, float y, bool pan);
+void grab_update(void* viewer, float x, float y);
 void grab_end(void* viewer);
 
-    
 void apply_weights(void* asset, float* const weights, int count);
     
 void animate_weights(void* asset, float* data, int numWeights, int numFrames,  float frameRate);
@@ -61,11 +59,10 @@ void set_texture(void* asset);
 void transform_to_unit_cube(void* asset);
     
 void set_position(void* asset, float x, float y, float z);
-    
 void set_rotation(void* asset, float rads, float x, float y, float z);
+void set_scale(void* asset, float scale);
 
 void set_camera_position(void* viewer, float x, float y, float z);
-
 void set_camera_rotation(void* viewer, float rads, float x, float y, float z);
 void set_camera_focal_length(void* viewer, float focalLength);
 void set_camera_focus_distance(void* viewer, float focusDistance);

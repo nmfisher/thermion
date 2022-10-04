@@ -69,7 +69,8 @@
 #include "Log.hpp"
 #include "SceneResources.hpp"
 #if TARGET_OS_IPHONE
-#include "image/imagematerials_ios.h"
+#include "material/imagematerials_ios.h"
+#include "material/unlitopaque.h"
 #else 
 #include "image/imagematerial.h"
 #include "shaders/unlitopaque.h"
@@ -98,7 +99,7 @@ namespace polyvox {
     public:
       UnlitMaterialProvider(Engine* engine) {
         _m = Material::Builder()
-          .package(UNLITOPAQUE_UNLIT_OPAQUE_DATA, UNLITOPAQUE_UNLIT_OPAQUE_SIZE)
+          .package(	UNLITOPAQUE_UNLIT_OPAQUE_DATA, UNLITOPAQUE_UNLIT_OPAQUE_SIZE)
           .build(*engine);
         _ms[0] = _m;
       }
