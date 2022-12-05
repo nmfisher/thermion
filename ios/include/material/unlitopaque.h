@@ -1,0 +1,13 @@
+#ifndef UNLITOPAQUE_H_
+#define UNLITOPAQUE_H_
+
+#include <stdint.h>
+
+extern "C" {
+    extern const uint8_t UNLITOPAQUE_PACKAGE[];
+    extern int UNLITOPAQUE_UNLIT_OPAQUE_OFFSET;
+    extern int UNLITOPAQUE_UNLIT_OPAQUE_SIZE;
+}
+#define UNLITOPAQUE_UNLIT_OPAQUE_DATA (UNLITOPAQUE_PACKAGE + UNLITOPAQUE_UNLIT_OPAQUE_OFFSET)
+
+#endif

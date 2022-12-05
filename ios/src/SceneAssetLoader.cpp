@@ -25,7 +25,7 @@ SceneAsset *SceneAssetLoader::fromGltf(const char *uri,
   // Parse the glTF file and create Filament entities.
   Log("Creating asset from JSON");
   FilamentAsset *asset =
-      _assetLoader->createAssetFromJson((uint8_t *)rbuf.data, rbuf.size);
+      _assetLoader->createAsset((uint8_t *)rbuf.data, rbuf.size);
   Log("Created asset from JSON");
 
   if (!asset) {
@@ -52,7 +52,7 @@ SceneAsset *SceneAssetLoader::fromGltf(const char *uri,
 
     ResourceLoader::BufferDescriptor b(buf.data, buf.size);
     _resourceLoader->addResourceData(resourceUris[i], std::move(b));
-    _freeResource(buf);
+    _freeResource(buf.id);
   }
 
   _resourceLoader->loadResources(asset);
@@ -64,7 +64,10 @@ SceneAsset *SceneAssetLoader::fromGltf(const char *uri,
     rm.setCulling(inst, false);
   }
 
-  asset->getAnimator()->updateBoneMatrices();
+  FilamentInstance* inst = asset->getInstance();
+  inst->getAnimator()->updateBoneMatrices();
+
+  inst->recomputeBoundingBoxes();
 
   _scene->addEntities(asset->getEntities(), asset->getEntityCount());
 
@@ -80,7 +83,7 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
 
   ResourceBuffer rbuf = _loadResource(uri);
 
-  FilamentAsset *asset = _assetLoader->createAssetFromBinary(
+  FilamentAsset *asset = _assetLoader->createAsset(
       (const uint8_t *)rbuf.data, rbuf.size);
 
   if (!asset) {
@@ -93,7 +96,13 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
   _scene->addEntities(asset->getEntities(), entityCount);
 
   Log("Added %d entities to scene", entityCount);
+
+  size_t lightEntityCount = asset->getLightEntityCount();
+  Log("Found %d light entities in scene.", lightEntityCount );
+  
   _resourceLoader->loadResources(asset);
+
+  Log("Resources loaded.");
 
   const Entity *entities = asset->getEntities();
   RenderableManager &rm = _engine->getRenderableManager();
@@ -101,14 +110,18 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
     Entity e = entities[i];
     auto inst = rm.getInstance(e);
     // check this
-    rm.setCulling(inst, false);
+    rm.setCulling(inst, true);
   }
 
-  _freeResource(rbuf);
+  FilamentInstance* inst = asset->getInstance();
+  inst->getAnimator()->updateBoneMatrices();
 
-  asset->getAnimator()->updateBoneMatrices();
+  inst->recomputeBoundingBoxes();
 
   asset->releaseSourceData();
+  Log("Source data released.");
+
+  _freeResource(rbuf.id);
 
   Log("Successfully loaded GLB.");
   return new SceneAsset(asset, _engine, _ncm, _loadResource, _freeResource);

@@ -10,10 +10,10 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
-		8A41CA36A92CBF01E35DB723 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 729293464FDAFA80294C03ED /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		EE85ADA13CE47012212956FB /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A258321425FD15835C0E85C8 /* Pods_Runner.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -30,41 +30,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0E69A8E4F4FBCA8CA51688D8 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
-		729293464FDAFA80294C03ED /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		797D1F14B06B2A55521439EC /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
-		840FCC12274298BA008E5682 /* libutils.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libutils.a; path = ../../ios/lib/libutils.a; sourceTree = "<group>"; };
-		840FCC13274298BA008E5682 /* libcamutils.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcamutils.a; path = ../../ios/lib/libcamutils.a; sourceTree = "<group>"; };
-		840FCC14274298BA008E5682 /* libmathio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmathio.a; path = ../../ios/lib/libmathio.a; sourceTree = "<group>"; };
-		840FCC15274298BA008E5682 /* libfilamat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilamat.a; path = ../../ios/lib/libfilamat.a; sourceTree = "<group>"; };
-		840FCC16274298BB008E5682 /* libfilabridge.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilabridge.a; path = ../../ios/lib/libfilabridge.a; sourceTree = "<group>"; };
-		840FCC17274298BB008E5682 /* libfilaflat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilaflat.a; path = ../../ios/lib/libfilaflat.a; sourceTree = "<group>"; };
-		840FCC18274298BB008E5682 /* libgltfio_core.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgltfio_core.a; path = ../../ios/lib/libgltfio_core.a; sourceTree = "<group>"; };
-		840FCC19274298BB008E5682 /* libfilameshio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilameshio.a; path = ../../ios/lib/libfilameshio.a; sourceTree = "<group>"; };
-		840FCC1A274298BB008E5682 /* libgeometry.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgeometry.a; path = ../../ios/lib/libgeometry.a; sourceTree = "<group>"; };
-		840FCC1B274298BB008E5682 /* libgltfio_resources_lite.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgltfio_resources_lite.a; path = ../../ios/lib/libgltfio_resources_lite.a; sourceTree = "<group>"; };
-		840FCC1C274298BB008E5682 /* libmath.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmath.a; path = ../../ios/lib/libmath.a; sourceTree = "<group>"; };
-		840FCC1D274298BB008E5682 /* libgltfio_resources.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libgltfio_resources.a; path = ../../ios/lib/libgltfio_resources.a; sourceTree = "<group>"; };
-		840FCC3527429B1F008E5682 /* libviewer.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libviewer.a; path = ../../ios/lib/libviewer.a; sourceTree = "<group>"; };
-		840FCC3627429B1F008E5682 /* libfilament-iblprefilter.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libfilament-iblprefilter.a"; path = "../../ios/lib/libfilament-iblprefilter.a"; sourceTree = "<group>"; };
-		840FCC3727429B1F008E5682 /* libibl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libibl.a; path = ../../ios/lib/libibl.a; sourceTree = "<group>"; };
-		840FCC3827429B1F008E5682 /* libimage.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libimage.a; path = ../../ios/lib/libimage.a; sourceTree = "<group>"; };
-		840FCC3D27429BEC008E5682 /* libbackend.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libbackend.a; path = ../../ios/lib/libbackend.a; sourceTree = "<group>"; };
-		840FCC3E27429BEC008E5682 /* libfilament.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilament.a; path = ../../ios/lib/libfilament.a; sourceTree = "<group>"; };
-		840FCC4127429C5B008E5682 /* libdracodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdracodec.a; path = ../../ios/lib/libdracodec.a; sourceTree = "<group>"; };
-		8444BD13275320B200A5921D /* libOSDependent.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libOSDependent.a; path = ../../ios/lib/libOSDependent.a; sourceTree = "<group>"; };
-		84B172F62806081B00C9FD8C /* libsmol-v.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libsmol-v.a"; path = "../../ios/lib/libsmol-v.a"; sourceTree = "<group>"; };
-		84B172F72806081B00C9FD8C /* libmeshoptimizer.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmeshoptimizer.a; path = ../../ios/lib/libmeshoptimizer.a; sourceTree = "<group>"; };
-		84B172F82806081C00C9FD8C /* libvkshaders.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libvkshaders.a; path = ../../ios/lib/libvkshaders.a; sourceTree = "<group>"; };
-		84B172F92806081C00C9FD8C /* libshaders.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libshaders.a; path = ../../ios/lib/libshaders.a; sourceTree = "<group>"; };
-		84B172FA2806081C00C9FD8C /* libibl-lite.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libibl-lite.a"; path = "../../ios/lib/libibl-lite.a"; sourceTree = "<group>"; };
-		84B172FB2806081C00C9FD8C /* libfilamat_lite.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfilamat_lite.a; path = ../../ios/lib/libfilamat_lite.a; sourceTree = "<group>"; };
-		84B172FC2806081C00C9FD8C /* libcivetweb.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcivetweb.a; path = ../../ios/lib/libcivetweb.a; sourceTree = "<group>"; };
+		887CF3E1D8F177CD306AEE91 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -72,8 +45,8 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		C38BB8F063815E911BAE04B0 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
-		FCA201E227680DE4C83A0A35 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
+		A258321425FD15835C0E85C8 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		E540D86FF0BEABF308A14DBB /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,13 +54,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8A41CA36A92CBF01E35DB723 /* Pods_Runner.framework in Frameworks */,
+				EE85ADA13CE47012212956FB /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		359B21BE5E35E51F8685F431 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A258321425FD15835C0E85C8 /* Pods_Runner.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		9740EEB11CF90186004384FC /* Flutter */ = {
 			isa = PBXGroup;
 			children = (
@@ -105,8 +86,8 @@
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
-				B35AFB2F8AF234BCF7B9F86F /* Pods */,
-				F66758AA6E5A6218A5D00433 /* Frameworks */,
+				D3880C741B2115E941EC88CD /* Pods */,
+				359B21BE5E35E51F8685F431 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -133,49 +114,14 @@
 			path = Runner;
 			sourceTree = "<group>";
 		};
-		B35AFB2F8AF234BCF7B9F86F /* Pods */ = {
+		D3880C741B2115E941EC88CD /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				797D1F14B06B2A55521439EC /* Pods-Runner.debug.xcconfig */,
-				FCA201E227680DE4C83A0A35 /* Pods-Runner.release.xcconfig */,
-				C38BB8F063815E911BAE04B0 /* Pods-Runner.profile.xcconfig */,
+				0E69A8E4F4FBCA8CA51688D8 /* Pods-Runner.debug.xcconfig */,
+				887CF3E1D8F177CD306AEE91 /* Pods-Runner.release.xcconfig */,
+				E540D86FF0BEABF308A14DBB /* Pods-Runner.profile.xcconfig */,
 			);
 			path = Pods;
-			sourceTree = "<group>";
-		};
-		F66758AA6E5A6218A5D00433 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				84B172FC2806081C00C9FD8C /* libcivetweb.a */,
-				84B172FB2806081C00C9FD8C /* libfilamat_lite.a */,
-				84B172FA2806081C00C9FD8C /* libibl-lite.a */,
-				84B172F72806081B00C9FD8C /* libmeshoptimizer.a */,
-				84B172F92806081C00C9FD8C /* libshaders.a */,
-				84B172F62806081B00C9FD8C /* libsmol-v.a */,
-				84B172F82806081C00C9FD8C /* libvkshaders.a */,
-				8444BD13275320B200A5921D /* libOSDependent.a */,
-				840FCC4127429C5B008E5682 /* libdracodec.a */,
-				840FCC3D27429BEC008E5682 /* libbackend.a */,
-				840FCC3E27429BEC008E5682 /* libfilament.a */,
-				840FCC3627429B1F008E5682 /* libfilament-iblprefilter.a */,
-				840FCC3727429B1F008E5682 /* libibl.a */,
-				840FCC3827429B1F008E5682 /* libimage.a */,
-				840FCC3527429B1F008E5682 /* libviewer.a */,
-				840FCC13274298BA008E5682 /* libcamutils.a */,
-				840FCC16274298BB008E5682 /* libfilabridge.a */,
-				840FCC17274298BB008E5682 /* libfilaflat.a */,
-				840FCC15274298BA008E5682 /* libfilamat.a */,
-				840FCC19274298BB008E5682 /* libfilameshio.a */,
-				840FCC1A274298BB008E5682 /* libgeometry.a */,
-				840FCC18274298BB008E5682 /* libgltfio_core.a */,
-				840FCC1B274298BB008E5682 /* libgltfio_resources_lite.a */,
-				840FCC1D274298BB008E5682 /* libgltfio_resources.a */,
-				840FCC1C274298BB008E5682 /* libmath.a */,
-				840FCC14274298BA008E5682 /* libmathio.a */,
-				840FCC12274298BA008E5682 /* libutils.a */,
-				729293464FDAFA80294C03ED /* Pods_Runner.framework */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -185,7 +131,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
-				3734E56921255BC0B0DCAC3C /* [CP] Check Pods Manifest.lock */,
+				2ED3154DB81A6C5E50B63848 /* [CP] Check Pods Manifest.lock */,
 				9740EEB61CF901F6004384FC /* Run Script */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
@@ -250,7 +196,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		3734E56921255BC0B0DCAC3C /* [CP] Check Pods Manifest.lock */ = {
+		2ED3154DB81A6C5E50B63848 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -338,9 +284,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -366,12 +311,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -382,7 +325,6 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
-				STRIP_INSTALLED_PRODUCT = NO;
 				SUPPORTED_PLATFORMS = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -396,23 +338,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEAD_CODE_STRIPPING = NO;
-				DEVELOPMENT_TEAM = 873X6R39HP;
+				DEVELOPMENT_TEAM = TM2B4SJXNJ;
 				ENABLE_BITCODE = NO;
-				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
-				);
-				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
+				PRODUCT_BUNDLE_IDENTIFIER = app.polyvox.example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -423,9 +357,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -451,13 +384,11 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -471,11 +402,9 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
-				STRIP_INSTALLED_PRODUCT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -484,9 +413,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -512,12 +440,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -526,10 +452,8 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
-				STRIP_INSTALLED_PRODUCT = NO;
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -545,23 +469,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEAD_CODE_STRIPPING = NO;
-				DEVELOPMENT_TEAM = 873X6R39HP;
+				DEVELOPMENT_TEAM = TM2B4SJXNJ;
 				ENABLE_BITCODE = NO;
-				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
-				);
-				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
+				PRODUCT_BUNDLE_IDENTIFIER = app.polyvox.example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -576,23 +492,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEAD_CODE_STRIPPING = NO;
-				DEVELOPMENT_TEAM = 873X6R39HP;
+				DEVELOPMENT_TEAM = TM2B4SJXNJ;
 				ENABLE_BITCODE = NO;
-				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib",
-				);
-				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.polyvox.filament-example";
+				PRODUCT_BUNDLE_IDENTIFIER = app.polyvox.example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";

@@ -104,7 +104,8 @@ private:
     friend struct FFilamentInstance;
     /*! \endcond */
 
-    Animator(FFilamentAsset* asset, FFilamentInstance* instance);
+    // If "instance" is null, then this is the primary animator.
+    Animator(FFilamentAsset const* asset, FFilamentInstance* instance);
     ~Animator();
 
     Animator(const Animator& animator) = delete;

@@ -10,13 +10,15 @@ add_library(
             filament_interop
             SHARED
             src/main/cpp/filament_android.cpp
-            src/main/cpp/KtxReader1.cpp
+            ../ios/src/ktxreader/Ktx1Reader.cpp
             src/main/cpp/StbProvider.cpp
             src/main/cpp/JobSystem.cpp
             ../ios/src/SceneAssetLoader.cpp
             ../ios/src/FilamentViewer.cpp
+            ../ios/src/PolyvoxFilamentApi.cpp
             ../ios/src/StreamBufferAdapter.cpp
             ../ios/src/image/imagematerial.c
+            ../ios/src/shaders/unlitopaque.c
             ../ios/src/SceneAsset.cpp
         )
 
