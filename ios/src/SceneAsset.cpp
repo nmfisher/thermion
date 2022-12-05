@@ -31,7 +31,7 @@ using namespace utils;
 SceneAsset::SceneAsset(FilamentAsset *asset, Engine *engine,
                        NameComponentManager *ncm, LoadResource loadResource, FreeResource freeResource)
     : _asset(asset), _engine(engine), _ncm(ncm), _loadResource(loadResource), _freeResource(freeResource) {
-  _animator = _asset->getAnimator();
+  _animator = _asset->getInstance()->getAnimator();
   for (int i = 0; i < _animator->getAnimationCount(); i++) {
     _embeddedAnimationStatus.push_back(
         EmbeddedAnimationStatus(false,false));
@@ -185,8 +185,8 @@ void SceneAsset::loadTexture(const char* resourcePath, int renderableIndex) {
 
 void SceneAsset::setTexture() {
   
-  MaterialInstance* const* inst = _asset->getMaterialInstances();
-  size_t mic =  _asset->getMaterialInstanceCount();
+  MaterialInstance* const* inst = _asset->getInstance()->getMaterialInstances();
+  size_t mic =  _asset->getInstance()->getMaterialInstanceCount();
   Log("Material instance count : %d", mic);
     
   RenderableManager &rm = _engine->getRenderableManager();
@@ -263,7 +263,7 @@ unique_ptr<vector<string>> SceneAsset::getTargetNames(const char *meshName) {
     Log("No asset, ignoring call.");
     return nullptr;
   }
-  Log("Retrieving morph target names for mesh  %s", meshName);
+//  Log("Retrieving morph target names for mesh  %s", meshName);
   unique_ptr<vector<string>> names = make_unique<vector<string>>();
   const Entity *entities = _asset->getEntities();
   RenderableManager &rm = _engine->getRenderableManager();
@@ -271,7 +271,7 @@ unique_ptr<vector<string>> SceneAsset::getTargetNames(const char *meshName) {
     Entity e = entities[i];
     auto inst = _ncm->getInstance(e);
     const char *name = _ncm->getName(inst);
-    Log("Got entity instance name %s", name);
+//    Log("Got entity instance name %s", name);
     if (strcmp(name, meshName) == 0) {
       size_t count = _asset->getMorphTargetCountAt(e);
       for (int j = 0; j < count; j++) {
@@ -291,14 +291,15 @@ void SceneAsset::transformToUnitCube() {
   }
   Log("Transforming asset to unit cube.");
   auto &tm = _engine->getTransformManager();
-  auto aabb = _asset->getBoundingBox();
+  FilamentInstance* inst = _asset->getInstance();
+  auto aabb = inst->getBoundingBox();
   auto center = aabb.center();
   auto halfExtent = aabb.extent();
   auto maxExtent = max(halfExtent) * 2;
   auto scaleFactor = 2.0f / maxExtent;
   auto transform =
       math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
-  tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
+  tm.setTransform(tm.getInstance(inst->getRoot()), transform);
 }
 
 void SceneAsset::updateTransform() {
