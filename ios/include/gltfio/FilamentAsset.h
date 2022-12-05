@@ -48,7 +48,7 @@ class FilamentInstance;
  * \c Light, \c Camera, or \c Node components.
  *
  * In addition to the aforementioned entities, an asset has strong ownership over a list of
- * filament::VertexBuffer, filament::IndexBuffer, filament::MaterialInstance, filament::Texture,
+ * filament::VertexBuffer, filament::IndexBuffer, filament::Texture,
  * and, optionally, a simple animation engine (gltfio::Animator).
  *
  * Clients must use ResourceLoader to create filament::Texture objects, compute tangent quaternions,
@@ -139,6 +139,8 @@ public:
      *
      *    while (Entity e = popRenderable()) { scene.addEntity(e); }
      *
+     * Progressive reveal is not supported for dynamically added instances.
+     *
      * \see ResourceLoader#asyncBeginLoad
      * \see popRenderables()
      */
@@ -155,22 +157,18 @@ public:
      */
     size_t popRenderables(Entity* entities, size_t count) noexcept;
 
-    /** Gets all material instances. These are already bound to renderables. */
-    const filament::MaterialInstance* const* getMaterialInstances() const noexcept;
-
-    /** Gets all material instances (non-const). These are already bound to renderables. */
-    filament::MaterialInstance* const* getMaterialInstances() noexcept;
-
-    /** Gets the number of materials returned by getMaterialInstances(). */
-    size_t getMaterialInstanceCount() const noexcept;
-
     /** Gets resource URIs for all externally-referenced buffers. */
     const char* const* getResourceUris() const noexcept;
 
     /** Gets the number of resource URIs returned by getResourceUris(). */
     size_t getResourceUriCount() const noexcept;
 
-    /** Gets the bounding box computed from the supplied min / max values in glTF accessors. */
+    /**
+     * Gets the bounding box computed from the supplied min / max values in glTF accessors.
+     *
+     * This does not return a bounding box over all FilamentInstance, it's just a straightforward
+     * AAAB that can be determined at load time from the asset data.
+     */
     filament::Aabb getBoundingBox() const noexcept;
 
     /** Gets the NameComponentManager label for the given entity, if it exists. */
@@ -209,51 +207,6 @@ public:
     const char* getExtras(Entity entity = {}) const noexcept;
 
     /**
-     * Returns the animation engine.
-     *
-     * The animator is owned by the asset and should not be manually deleted.
-     * Must be called after loadResources or asyncBeginLoad, otherwise returns null.
-     * If the asset is instanced, this returns a "primary" animator that controls all instances.
-     * To animate each instance individually, use \see FilamentInstance.
-     */
-    Animator* getAnimator() const noexcept;
-
-    /**
-     * Gets the number of skins.
-     */
-    size_t getSkinCount() const noexcept;
-
-    /**
-     * Gets the skin name at skin index.
-     */
-    const char* getSkinNameAt(size_t skinIndex) const noexcept;
-
-    /**
-     * Gets the number of joints at skin index.
-     */
-    size_t getJointCountAt(size_t skinIndex) const noexcept;
-
-    /**
-     * Gets joints at skin index.
-     */
-    const Entity* getJointsAt(size_t skinIndex) const noexcept;
-
-    /**
-     * Attaches the given skin to the given node, which must have an associated mesh with
-     * BONE_INDICES and BONE_WEIGHTS attributes.
-     *
-     * This is a no-op if the given skin index or target is invalid.
-     */
-    void attachSkin(size_t skinIndex, Entity target) noexcept;
-
-    /**
-     * Detaches the given skin from the given node.
-     *
-     * This is a no-op if the given skin index or target is invalid.
-     */
-    void detachSkin(size_t skinIndex, Entity target) noexcept;
-
-    /**
      * Gets the morph target name at the given index in the given entity.
      */
     const char* getMorphTargetNameAt(Entity entity, size_t targetIndex) const noexcept;
@@ -262,30 +215,6 @@ public:
      * Returns the number of morph targets in the given entity.
      */
     size_t getMorphTargetCountAt(Entity entity) const noexcept;
-
-    /**
-     * Returns the number of material variants in the asset.
-     */
-    size_t getMaterialVariantCount() const noexcept;
-
-    /**
-     * Returns the name of the given material variant, or null if it is out of bounds.
-     */
-    const char* getMaterialVariantName(size_t variantIndex) const noexcept;
-
-    /**
-     * Applies the given material variant to all primitives that it affects.
-     *
-     * This is efficient because it merely swaps around persistent MaterialInstances. If you change
-     * a material parameter while a certain variant is active, the updated value will be remembered
-     * after you re-apply that variant.
-     *
-     * If the asset is instanced, this affects all instances in the same way.
-     * To set the variant on an individual instance, use FilamentInstance::applyMaterialVariant.
-     *
-     * Ignored if variantIndex is out of bounds.
-     */
-    void applyMaterialVariant(size_t variantIndex) noexcept;
 
     /**
      * Lazily creates a single LINES renderable that draws the transformed bounding-box hierarchy
@@ -332,7 +261,25 @@ public:
      * and provides filtering functionality.
      */
     void addEntitiesToScene(filament::Scene& targetScene, const Entity* entities, size_t count,
-            SceneMask sceneFilter);
+            SceneMask sceneFilter) const;
+
+    /**
+     * Releases ownership of entities and their Filament components.
+     *
+     * This makes the client take responsibility for destroying Filament
+     * components (e.g. Renderable, TransformManager component) as well as
+     * the underlying entities.
+     */
+    void detachFilamentComponents() noexcept;
+
+    bool areFilamentComponentsDetached() const noexcept;
+
+    /**
+     * Convenience function to get the first instance, or null if it doesn't exist.
+     */
+    FilamentInstance* getInstance() noexcept {
+        return getAssetInstanceCount() > 0 ? getAssetInstances()[0] : nullptr;
+    }
 
     /*! \cond PRIVATE */
 

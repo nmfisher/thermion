@@ -220,7 +220,6 @@ public:
      *
      * Renderable objects can have one or several layers associated to them. Layers are
      * represented with an 8-bits bitmask, where each bit corresponds to a layer.
-     * @see RenderableManager::setLayerMask().
      *
      * This call sets which of those layers are visible. Renderables in invisible layers won't be
      * rendered.
@@ -229,10 +228,23 @@ public:
      * @param values    a bitmask where each bit sets the visibility of the corresponding layer
      *                  (1: visible, 0: invisible), only layers in \p select are affected.
      *
-     * @note By default all layers are visible.
+     * @see RenderableManager::setLayerMask().
+     *
+     * @note By default only layer 0 (bitmask 0x01) is visible.
      * @note This is a convenient way to quickly show or hide sets of Renderable objects.
      */
     void setVisibleLayers(uint8_t select, uint8_t values) noexcept;
+
+    /**
+     * Helper function to enable or disable a visibility layer.
+     * @param layer     layer between 0 and 7 to enable or disable
+     * @param enabled   true to enable the layer, false to disable it
+     * @see RenderableManager::setVisibleLayers()
+     */
+    inline void setLayerEnabled(size_t layer, bool enabled) noexcept {
+        const uint8_t mask = 1u << layer;
+        setVisibleLayers(mask, enabled ? mask : 0);
+    }
 
     /**
      * Get the visible layers.
@@ -637,6 +649,33 @@ public:
      */
     bool isFrontFaceWindingInverted() const noexcept;
 
+    /**
+     * Enables use of the stencil buffer.
+     *
+     * The stencil buffer is an 8-bit, per-fragment unsigned integer stored alongside the depth
+     * buffer. The stencil buffer is cleared at the beginning of a frame and discarded after the
+     * color pass.
+     *
+     * Each fragment's stencil value is set during rasterization by specifying stencil operations on
+     * a Material. The stencil buffer can be used as a mask for later rendering by setting a
+     * Material's stencil comparison function and reference value. Fragments that don't pass the
+     * stencil test are then discarded.
+     *
+     * Post-processing must be enabled in order to use the stencil buffer.
+     *
+     * A renderable's priority (see RenderableManager::setPriority) is useful to control the order
+     * in which primitives are drawn.
+     *
+     * @param enabled True to enable the stencil buffer, false disables it (default)
+     */
+    void setStencilBufferEnabled(bool enabled) noexcept;
+
+    /**
+     * Returns true if the stencil buffer is enabled.
+     * See setStencilBufferEnabled() for more information.
+     */
+    bool isStencilBufferEnabled() const noexcept;
+
     // for debugging...
 
     //! debugging: allows to entirely disable frustum culling. (culling enabled by default).
@@ -697,7 +736,7 @@ public:
         PickingQuery& query = pick(x, y, [](PickingQueryResult const& result, PickingQuery* pq) {
             void* user = pq->storage;
             (*static_cast<T**>(user)->*method)(result);
-        });
+        }, handler);
         query.storage[0] = instance;
     }
 
@@ -720,7 +759,7 @@ public:
             T* that = static_cast<T*>(user);
             (that->*method)(result);
             that->~T();
-        });
+        }, handler);
         new(query.storage) T(std::move(instance));
     }
 

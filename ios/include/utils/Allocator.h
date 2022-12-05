@@ -51,7 +51,7 @@ static inline P* align(P* p, size_t alignment) noexcept {
 template <typename P>
 static inline P* align(P* p, size_t alignment, size_t offset) noexcept {
     P* const r = align(add(p, offset), alignment);
-    assert(pointermath::add(r, -offset) >= p);
+    assert(r >= add(p, offset));
     return r;
 }
 
@@ -129,7 +129,9 @@ public:
 private:
     void* end() UTILS_RESTRICT noexcept { return pointermath::add(mBegin, mSize); }
     void* current() UTILS_RESTRICT noexcept { return pointermath::add(mBegin, mCur); }
-    void set_current(void* p) UTILS_RESTRICT noexcept { mCur = uintptr_t(p) - uintptr_t(mBegin); }
+    void set_current(void* p) UTILS_RESTRICT noexcept {
+        mCur = uint32_t(uintptr_t(p) - uintptr_t(mBegin));
+    }
 
     void* mBegin = nullptr;
     uint32_t mSize = 0;
@@ -167,7 +169,7 @@ public:
 
     ~HeapAllocator() noexcept = default;
 
-    void swap(HeapAllocator& rhs) noexcept { }
+    void swap(HeapAllocator&) noexcept { }
 };
 
 // ------------------------------------------------------------------------------------------------
@@ -487,11 +489,15 @@ namespace TrackingPolicy {
 // default no-op tracker
 struct Untracked {
     Untracked() noexcept = default;
-    Untracked(const char* name, void* base, size_t size) noexcept { }
-    void onAlloc(void* p, size_t size, size_t alignment, size_t extra) noexcept { }
-    void onFree(void* p, size_t = 0) noexcept { }
+    Untracked(const char* name, void* base, size_t size) noexcept {
+        (void)name, void(base), (void)size;
+    }
+    void onAlloc(void* p, size_t size, size_t alignment, size_t extra) noexcept {
+        (void)p, (void)size, (void)alignment, (void)extra;
+    }
+    void onFree(void* p, size_t = 0) noexcept { (void)p; }
     void onReset() noexcept { }
-    void onRewind(void* addr) noexcept { }
+    void onRewind(void* addr) noexcept { (void)addr; }
 };
 
 // This just track the max memory usage and logs it in the destructor
