@@ -2,6 +2,11 @@
 
 Demonstrates how to use the polyvox_filament plugin.
 
+## Linux
+
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig/:/usr/lib64/pkgconfig/
+export CPLUS_INCLUDE_PATH=/usr/include/gtk-3.0/:/usr/include/pango-1.0/:/usr/include/harfbuzz:/usr/include/cairo/:/usr/include/gdk-pixbuf-2.0/:/usr/include/atk-1.0/
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

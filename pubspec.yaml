@@ -29,3 +29,5 @@ flutter:
         pluginClass: PolyvoxFilamentPlugin
       windows:
         pluginClass: PolyvoxFilamentPlugin
+      linux:
+        pluginClass: PolyvoxFilamentPlugin
