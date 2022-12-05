@@ -1,0 +1,12 @@
+    .global _UBERARCHIVE_DEFAULT_OFFSET;
+    .global _UBERARCHIVE_DEFAULT_SIZE;
+
+    .global _UBERARCHIVE_PACKAGE
+    .section __TEXT,__const
+_UBERARCHIVE_PACKAGE:
+    .incbin "uberarchive.bin"
+_UBERARCHIVE_DEFAULT_OFFSET:
+    .int 0
+_UBERARCHIVE_DEFAULT_SIZE:
+    .int 1148763
+
