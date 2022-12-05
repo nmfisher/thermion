@@ -2,8 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:polyvox_filament/filament_controller.dart';
+import 'package:polyvox_filament/filament_gesture_detector.dart';
 import 'package:polyvox_filament/filament_widget.dart';
-import 'package:polyvox_filament/gesture_detecting_filament_view.dart';
 
 void main() {
   runApp(const MyApp());
