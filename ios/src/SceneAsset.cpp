@@ -27,21 +27,24 @@ using namespace filament;
 using namespace filament::gltfio;
 using namespace image;
 using namespace utils;
-using namespace filament::math;
 
 SceneAsset::SceneAsset(FilamentAsset *asset, Engine *engine,
                        NameComponentManager *ncm, LoadResource loadResource, FreeResource freeResource)
     : _asset(asset), _engine(engine), _ncm(ncm), _loadResource(loadResource), _freeResource(freeResource) {
-  _animator = _asset->getAnimator();
+  _animator = _asset->getInstance()->getAnimator();
   for (int i = 0; i < _animator->getAnimationCount(); i++) {
     _embeddedAnimationStatus.push_back(
-        EmbeddedAnimationStatus(i, _animator->getAnimationDuration(i), false));
+        EmbeddedAnimationStatus(false,false));
   }
   Log("Created animation buffers for %d", _embeddedAnimationStatus.size());
 }
 
 SceneAsset::~SceneAsset() { 
-  // we defer all destructor work to SceneAssetLoader so we don't need to do anything here
+  // most other destructor work is deferred to SceneAssetLoader so we don't need to do anything here
+  if(_texture) {
+    _engine->destroy(_texture);
+    _texture = nullptr;
+  }
 }
 
 void SceneAsset::applyWeights(float *weights, int count) {
@@ -102,16 +105,20 @@ void SceneAsset::updateMorphAnimation() {
   }
 }
 
-void SceneAsset::playAnimation(int index, bool loop) {
-  Log("Playing animation at index %d", index);
+void SceneAsset::playAnimation(int index, bool loop, bool reverse) {
   if (index > _animator->getAnimationCount() - 1) {
     Log("Asset does not contain an animation at index %d", index);
-  } else if (_embeddedAnimationStatus[index].started) {
-    Log("Animation already playing, call stop first.");
   } else {
-    Log("Starting animation at index %d", index);
-    _embeddedAnimationStatus[index].play = true;
-    _embeddedAnimationStatus[index].loop = loop;
+    const char* name = _animator->getAnimationName(index);
+    Log("Playing animation %d : %s", index, name);
+    if (_embeddedAnimationStatus[index].started) {
+      Log("Animation already playing, call stop first.");
+    } else {
+      Log("Starting animation at index %d with loop : %d and reverse %d ", index, loop, reverse);
+      _embeddedAnimationStatus[index].play = true;
+      _embeddedAnimationStatus[index].loop = loop;
+      _embeddedAnimationStatus[index].reverse = reverse;
+    }
   }
 }
 
@@ -121,30 +128,35 @@ void SceneAsset::stopAnimation(int index) {
   _embeddedAnimationStatus[index].started = false;
 }
 
-void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
+void SceneAsset::loadTexture(const char* resourcePath, int renderableIndex) {
 
-  ResourceBuffer imageResource = _loadResource(resourcePath);
+  Log("Loading texture at %s for renderableIndex %d", resourcePath, renderableIndex);
 
-  polyvox::StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
+  string rp(resourcePath);
 
-  std::istream *inputStream = new std::istream(&sb);
+  if(_texture) {
+    _engine->destroy(_texture);
+    _texture = nullptr;
+  }
+  
+  ResourceBuffer imageResource = _loadResource(rp.c_str());
+  
+  StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
+
+  istream *inputStream = new std::istream(&sb);
 
   LinearImage *image = new LinearImage(ImageDecoder::decode(
-      *inputStream, resourcePath, ImageDecoder::ColorSpace::SRGB));
+      *inputStream, rp.c_str(), ImageDecoder::ColorSpace::SRGB));
 
   if (!image->isValid()) {
-    Log("Invalid image : %s", resourcePath);
+    Log("Invalid image : %s", rp.c_str());
     return;
   }
-
-  delete inputStream;
-
-  _freeResource(imageResource);
 
   uint32_t channels = image->getChannels();
   uint32_t w = image->getWidth();
   uint32_t h = image->getHeight();
-  auto texture = Texture::Builder()
+  _texture = Texture::Builder()
                       .width(w)
                       .height(h)
                       .levels(0xff)
@@ -154,7 +166,7 @@ void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
                       .build(*_engine);
 
   Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-                                                             void *data) {
+                                                            void *data) {
     delete reinterpret_cast<LinearImage *>(data);
   };
 
@@ -163,51 +175,70 @@ void SceneAsset::setTexture(const char* resourcePath, int renderableIndex) {
       channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
       Texture::Type::FLOAT, freeCallback);
 
-  texture->setImage(*_engine, 0, std::move(buffer));
+  _texture->setImage(*_engine, 0, std::move(buffer));
+  setTexture();
+  delete inputStream;
 
-  size_t mic =  _asset->getMaterialInstanceCount();
-  MaterialInstance* const* inst = _asset->getMaterialInstances();
+  _freeResource(imageResource.id);
+  
+}
+
+void SceneAsset::setTexture() {
+  
+  MaterialInstance* const* inst = _asset->getInstance()->getMaterialInstances();
+  size_t mic =  _asset->getInstance()->getMaterialInstanceCount();
   Log("Material instance count : %d", mic);
     
   RenderableManager &rm = _engine->getRenderableManager();
   auto sampler = TextureSampler();
   inst[0]->setParameter("baseColorIndex",0);
-  inst[0]->setParameter("baseColorMap",texture,sampler);
+  inst[0]->setParameter("baseColorMap",_texture,sampler);
+
 }
 
 void SceneAsset::updateEmbeddedAnimations() {
   auto now = high_resolution_clock::now();
+  int animationIndex = 0;
   for (auto &status : _embeddedAnimationStatus) {
     if (!status.play) {
-      // Log("Skipping animation %d", status.animationIndex);
       continue;
     }
-    duration<double> dur =
+
+    float animationLength = _animator->getAnimationDuration(animationIndex);
+    
+    duration<double> elapsed =
         duration_cast<duration<double>>(now - status.startedAt);
     float animationTimeOffset = 0;
-    bool finished =  false;
+    bool finished = false;
     if (!status.started) {
+      Log("Starting");
+
       status.started = true;
       status.startedAt = now;
-    } else if (dur.count() >= status.duration) {
+    } else if (elapsed.count() >= animationLength) {
       if (status.loop) {
         status.startedAt = now;
       } else {
-        animationTimeOffset = dur.count();
+        animationTimeOffset = elapsed.count();
         finished = true;
       }
     } else {
-      animationTimeOffset = dur.count();
+      animationTimeOffset = elapsed.count();
+    }
+
+    if(status.reverse) {
+      animationTimeOffset = _animator->getAnimationDuration(animationIndex) - animationTimeOffset;
     }
 
     if (!finished) {
-      _animator->applyAnimation(status.animationIndex, animationTimeOffset);
+      _animator->applyAnimation(animationIndex, animationTimeOffset);
     } else {
-      Log("Animation %d finished", status.animationIndex);
+      Log("Animation %d finished", animationIndex);
 
       status.play = false;
       status.started = false;
     }
+    animationIndex++;
   }
 
   _animator->updateBoneMatrices();
@@ -232,7 +263,7 @@ unique_ptr<vector<string>> SceneAsset::getTargetNames(const char *meshName) {
     Log("No asset, ignoring call.");
     return nullptr;
   }
-  Log("Retrieving morph target names for mesh  %s", meshName);
+//  Log("Retrieving morph target names for mesh  %s", meshName);
   unique_ptr<vector<string>> names = make_unique<vector<string>>();
   const Entity *entities = _asset->getEntities();
   RenderableManager &rm = _engine->getRenderableManager();
@@ -240,7 +271,7 @@ unique_ptr<vector<string>> SceneAsset::getTargetNames(const char *meshName) {
     Entity e = entities[i];
     auto inst = _ncm->getInstance(e);
     const char *name = _ncm->getName(inst);
-    Log("Got entity instance name %s", name);
+//    Log("Got entity instance name %s", name);
     if (strcmp(name, meshName) == 0) {
       size_t count = _asset->getMorphTargetCountAt(e);
       for (int j = 0; j < count; j++) {
@@ -258,16 +289,43 @@ void SceneAsset::transformToUnitCube() {
     Log("No asset, cannot transform.");
     return;
   }
+  Log("Transforming asset to unit cube.");
   auto &tm = _engine->getTransformManager();
-  auto aabb = _asset->getBoundingBox();
+  FilamentInstance* inst = _asset->getInstance();
+  auto aabb = inst->getBoundingBox();
   auto center = aabb.center();
   auto halfExtent = aabb.extent();
   auto maxExtent = max(halfExtent) * 2;
   auto scaleFactor = 2.0f / maxExtent;
   auto transform =
       math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
+  tm.setTransform(tm.getInstance(inst->getRoot()), transform);
+}
+
+void SceneAsset::updateTransform() {
+  auto &tm = _engine->getTransformManager();
+  auto transform = 
+      _position * _rotation * math::mat4f::scaling(_scale);
   tm.setTransform(tm.getInstance(_asset->getRoot()), transform);
 }
+
+void SceneAsset::setScale(float scale) {
+  _scale = scale;
+  updateTransform();
+}
+
+void SceneAsset::setPosition(float x, float y, float z) {
+  Log("Setting position to %f %f %f", x, y, z);
+  _position = math::mat4f::translation(math::float3(x,y,z));
+  updateTransform();
+}
+
+void SceneAsset::setRotation(float rads, float x, float y, float z) {
+  Log("Rotating %f radians around axis %f %f %f", rads, x, y, z);
+  _rotation = math::mat4f::rotation(rads, math::float3(x,y,z));
+  updateTransform();
+}
+
 
 const utils::Entity *SceneAsset::getCameraEntities() {
   return _asset->getCameraEntities();
@@ -276,5 +334,14 @@ const utils::Entity *SceneAsset::getCameraEntities() {
 size_t SceneAsset::getCameraEntityCount() {
   return _asset->getCameraEntityCount();
 }
+
+const Entity* SceneAsset::getLightEntities() const noexcept { 
+  return _asset->getLightEntities();
+}
+
+size_t SceneAsset::getLightEntityCount() const noexcept {
+  return _asset->getLightEntityCount();
+}
+
 
 } // namespace polyvox

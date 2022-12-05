@@ -69,8 +69,8 @@ struct AssetConfiguration {
  * \brief Consumes glTF content and produces FilamentAsset objects.
  *
  * AssetLoader consumes a blob of glTF 2.0 content (either JSON or GLB) and produces a FilamentAsset
- * object, which is a bundle of Filament entities, material instances, textures, vertex buffers,
- * and index buffers.
+ * object, which is a bundle of Filament textures, vertex buffers, index buffers, etc. An asset is
+ * composed of 1 or more FilamentInstance objects which contain entities and components.
  *
  * Clients must use AssetLoader to create and destroy FilamentAsset objects. This is similar to
  * how filament::Engine is used to create and destroy core objects like VertexBuffer.
@@ -92,7 +92,7 @@ struct AssetConfiguration {
  *
  * // Parse the glTF content and create Filament entities.
  * std::vector<uint8_t> content(...);
- * FilamentAsset* asset = loader->createAssetFromJson(content.data(), content.size());
+ * FilamentAsset* asset = loader->createAsset(content.data(), content.size());
  * content.clear();
  *
  * // Load buffers and textures from disk.
@@ -107,10 +107,13 @@ struct AssetConfiguration {
  * // Add renderables to the scene.
  * scene->addEntities(asset->getEntities(), asset->getEntityCount());
  *
+ * // Extract the animator interface from the FilamentInstance.
+ * auto animator = asset->getInstance()->getAnimator();
+ *
  * // Execute the render loop and play the first animation.
  * do {
- *      asset->getAnimator()->applyAnimation(0, time);
- *      asset->getAnimator()->updateBoneMatrices();
+ *      animator->applyAnimation(0, time);
+ *      animator->updateBoneMatrices();
  *      if (renderer->beginFrame(swapChain)) {
  *          renderer->render(view);
  *          renderer->endFrame();
@@ -148,24 +151,19 @@ public:
     static void destroy(AssetLoader** loader);
 
     /**
-     * Takes a pointer to the contents of a JSON-based glTF 2.0 file and returns a bundle
-     * of Filament objects. Returns null on failure.
+     * Takes a pointer to the contents of a GLB or a JSON-based glTF 2.0 file and returns an asset
+     * with one instance, or null on failure.
      */
-    FilamentAsset* createAssetFromJson(const uint8_t* bytes, uint32_t nbytes);
-
-    /**
-     * Takes a pointer to the contents of a GLB glTF 2.0 file and returns a bundle
-     * of Filament objects. Returns null on failure.
-     */
-    FilamentAsset* createAssetFromBinary(const uint8_t* bytes, uint32_t nbytes);
+    FilamentAsset* createAsset(const uint8_t* bytes, uint32_t nbytes);
 
     /**
      * Consumes the contents of a glTF 2.0 file and produces a primary asset with one or more
      * instances. The primary asset has ownership over the instances.
      *
-     * The returned instances share their textures, material instances, and vertex buffers with the
-     * primary asset. However each instance has its own unique set of entities, transform
-     * components, and renderable components. Instances are freed when the primary asset is freed.
+     * The returned instances share their textures, materials, and vertex buffers with the primary
+     * asset. However each instance has its own unique set of entities, transform components,
+     * material instances, and renderable components. Instances are freed when the primary asset is
+     * freed.
      *
      * Light components are not instanced, they belong only to the primary asset.
      *
@@ -186,7 +184,7 @@ public:
             FilamentInstance** instances, size_t numInstances);
 
     /**
-     * Adds a new instance to an instanced asset.
+     * Adds a new instance to the asset.
      *
      * Use this with caution. It is more efficient to pre-allocate a max number of instances, and
      * gradually add them to the scene as needed. Instances can also be "recycled" by removing and
@@ -197,7 +195,6 @@ public:
      * create/destroy churn, as noted above.
      *
      * This cannot be called after FilamentAsset::releaseSourceData().
-     * This cannot be called on a non-instanced asset.
      * See also AssetLoader::createInstancedAsset().
      */
     FilamentInstance* createInstance(FilamentAsset* primary);
@@ -208,7 +205,8 @@ public:
     void enableDiagnostics(bool enable = true);
 
     /**
-     * Destroys the given asset and all of its associated Filament objects.
+     * Destroys the given asset, all of its associated Filament objects, and all associated
+     * FilamentInstance objects.
      *
      * This destroys entities, components, material instances, vertex buffers, index buffers,
      * and textures. This does not necessarily immediately free all source data, since

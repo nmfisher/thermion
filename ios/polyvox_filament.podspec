@@ -13,38 +13,36 @@ A new flutter plugin project.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*', 'src/*.*', 'src/morph/*.*', 'src/morph/UbershaderLoader.cpp' #, "include/**/*"
-  #s.header_dir = "include"
-  #s.header_mappings_dir = "include"
+  s.source_files = 'Classes/*', 'src/*', 'src/ios/*', 'src/shaders/*.c', 'src/shaders/*.h', 'include/filament/*', 'include/*', 'include/material/*.c'
+  s.public_header_files = 'include/SwiftPolyvoxFilamentPlugin-Bridging-Header.h',  'include/PolyvoxFilamentIOSApi.h', 'include/PolyvoxFilamentApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
+#  s.header_mappings_dir = 'include'
   s.dependency 'Flutter' 
   s.platform = :ios, '12.1'
   s.static_framework = true
   s.vendored_libraries = "lib/*.a"
+  s.user_target_xcconfig = { 
+    'DEFINES_MODULE' => 'YES', 
+    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
+    "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
+    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-stdlib=libc++" "-fvisibility=default" "$(inherited)"',
+    'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
+    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/image" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/shaders"  "$(inherited)"',
+    'ALWAYS_SEARCH_USER_PATHS' => 'YES',
+    "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_core -lfilament-iblprefilter -limage -lcamutils -lgltfio_core -lfilaflat -ldracodec -libl -lktxreader -limageio -lpng -lpng16 -ltinyexr  -lz -lstb -luberzlib -lsmol-v -luberarchive -lzstd -lstdc++',
+    'LIBRARY_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib" "$(inherited)"',
+  }
 
-  s.library = "c++"
-
-
-  # Flutter.framework does not contain a i386 slice.
-  # s.user_target_xcconfig = {
-  #   'CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES' => 'YES',
-  #   'ALWAYS_SEARCH_USER_PATHS' => 'YES',
-  #   'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/morph" "$(inherited)"',
-  #   'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "$(inherited)"',
-  #   "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-  #   #"CLANG_CXX_LIBRARY" => "libc++"
-  #   "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_resources_lite -lgltfio_core -lfilament-iblprefilter -limage -lcamutils -lgltfio_resources -lfilaflat -ldracodec -libl',
-  #   'LIBRARY_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib" "$(inherited)"',
-  # }
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES', 
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "$(inherited)"',
-    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src", "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/morph" "$(inherited)"',
+    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "$(inherited)"',
+    'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
+    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/image" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/shaders"  "$(inherited)"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
-    "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_resources_lite -lgltfio_core -lfilament-iblprefilter -limage -lcamutils -lgltfio_resources -lfilaflat -ldracodec -libl',
+    "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_core -lfilament-iblprefilter -limage -lcamutils -lgltfio_core -lfilaflat -ldracodec -libl -lktxreader -limageio -lpng -lpng16 -ltinyexr  -lz -lstb -luberzlib -lsmol-v -luberarchive -lzstd -lstdc++',
     'LIBRARY_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/lib" "$(inherited)"',
   }
-      
+
   s.swift_version = '5.0'
 end

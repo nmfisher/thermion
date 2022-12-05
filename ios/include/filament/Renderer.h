@@ -80,8 +80,8 @@ public:
         // refresh-rate of the display in Hz. set to 0 for offscreen or turn off frame-pacing.
         float refreshRate = 60.0f;
 
-        [[deprecated]] uint64_t presentationDeadlineNanos = 0;
-        [[deprecated]] uint64_t vsyncOffsetNanos = 0;
+        UTILS_DEPRECATED uint64_t presentationDeadlineNanos = 0;
+        UTILS_DEPRECATED uint64_t vsyncOffsetNanos = 0;
     };
 
     /**
@@ -119,6 +119,8 @@ public:
     struct ClearOptions {
         /** Color to use to clear the SwapChain */
         math::float4 clearColor = {};
+        /** Value to clear the stencil buffer */
+        uint8_t clearStencil = 0u;
         /**
          * Whether the SwapChain should be cleared using the clearColor. Use this if translucent
          * View will be drawn, for instance.
