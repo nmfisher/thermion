@@ -13,7 +13,7 @@ A new flutter plugin project.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/*', 'src/*', 'src/ios/*', 'src/shaders/*.c', 'src/shaders/*.h', 'include/filament/*', 'include/*', 'include/material/*.h', 'include/material/*.c'
+  s.source_files = 'Classes/*', 'src/*', 'src/ios/*', 'src/shaders/*.c', 'src/shaders/*.h', 'include/filament/*', 'include/*', 'include/material/*.c'
   s.public_header_files = 'include/SwiftPolyvoxFilamentPlugin-Bridging-Header.h',  'include/PolyvoxFilamentIOSApi.h', 'include/PolyvoxFilamentApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
 #  s.header_mappings_dir = 'include'
   s.dependency 'Flutter' 
@@ -24,7 +24,8 @@ A new flutter plugin project.
     'DEFINES_MODULE' => 'YES', 
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-stdlib=libc++" "$(inherited)"',
+    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-stdlib=libc++" "-fvisibility=default" "$(inherited)"',
+    'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
     'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/image" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/shaders"  "$(inherited)"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
     "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_core -lfilament-iblprefilter -limage -lcamutils -lgltfio_core -lfilaflat -ldracodec -libl -lktxreader -limageio -lpng -lpng16 -ltinyexr  -lz -lstb -luberzlib -lsmol-v -luberarchive -lzstd -lstdc++',
@@ -35,7 +36,8 @@ A new flutter plugin project.
     'DEFINES_MODULE' => 'YES', 
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "$(inherited)"',
+    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "$(inherited)"',
+    'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
     'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/image" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/shaders"  "$(inherited)"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
     "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_core -lfilament-iblprefilter -limage -lcamutils -lgltfio_core -lfilaflat -ldracodec -libl -lktxreader -limageio -lpng -lpng16 -ltinyexr  -lz -lstb -luberzlib -lsmol-v -luberarchive -lzstd -lstdc++',
