@@ -8,6 +8,7 @@ typedef FilamentAsset = int;
 typedef FilamentLight = int;
 
 abstract class FilamentController {
+  Size get size;
   late int textureId;
   Future get initialized;
   Stream get onInitializationRequested;
@@ -17,14 +18,14 @@ abstract class FilamentController {
   Future setRendering(bool render);
   Future render();
   void setPixelRatio(double ratio);
-  Future resize(int width, int height, { double contentScaleFactor=1});
+  Future resize(int width, int height, {double contentScaleFactor = 1});
   Future setBackgroundImage(String path);
-  Future setBackgroundImagePosition(double x, double y, {bool clamp=false});
+  Future setBackgroundImagePosition(double x, double y, {bool clamp = false});
   Future loadSkybox(String skyboxPath);
   Future removeSkybox();
   Future loadIbl(String path);
   Future removeIbl();
-  
+
   // copied from LightManager.h
   //  enum class Type : uint8_t {
   //       SUN,            //!< Directional light that also draws a sun's disk in the sky.
@@ -33,7 +34,17 @@ abstract class FilamentController {
   //       FOCUSED_SPOT,   //!< Physically correct spot light.
   //       SPOT,           //!< Spot light with coupling of outer cone and illumination disabled.
   //   };
-  Future<FilamentLight> addLight(int type, double colour, double intensity, double posX, double posY, double posZ,double dirX, double dirY, double dirZ, bool castShadows);
+  Future<FilamentLight> addLight(
+      int type,
+      double colour,
+      double intensity,
+      double posX,
+      double posY,
+      double posZ,
+      double dirX,
+      double dirY,
+      double dirZ,
+      bool castShadows);
   Future removeLight(FilamentLight light);
   Future clearLights();
   Future<FilamentAsset> loadGlb(String path);
@@ -52,9 +63,10 @@ abstract class FilamentController {
   Future<List<String>> getAnimationNames(FilamentAsset asset);
   Future removeAsset(FilamentAsset asset);
   Future clearAssets();
-  Future playAnimation(FilamentAsset asset, int index, {bool loop = false, bool reverse=false});
+  Future playAnimation(FilamentAsset asset, int index,
+      {bool loop = false, bool reverse = false});
   Future playAnimations(FilamentAsset asset, List<int> indices,
-      {bool loop = false, bool reverse=false});
+      {bool loop = false, bool reverse = false});
   Future stopAnimation(FilamentAsset asset, int index);
   Future setCamera(FilamentAsset asset, String name);
   Future setTexture(FilamentAsset asset, String assetPath,
@@ -63,16 +75,12 @@ abstract class FilamentController {
   Future setPosition(FilamentAsset asset, double x, double y, double z);
   Future setRotation(
       FilamentAsset asset, double rads, double x, double y, double z);
-  Future setScale(
-      FilamentAsset asset, double scale);
-  Future setCameraFocalLength(
-      double focalLength);
-  Future setCameraFocusDistance(
-      double focusDistance);
-  Future setCameraPosition(
-      double x, double y, double z);
-  Future setCameraRotation(
-      double rads, double x, double y, double z);
+  Future setScale(FilamentAsset asset, double scale);
+  Future setCameraFocalLength(double focalLength);
+  Future setCameraFocusDistance(double focusDistance);
+  Future setCameraPosition(double x, double y, double z);
+  Future setCameraRotation(double rads, double x, double y, double z);
+
   ///
   /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where each frame requires a duration of [frameLengthInMs].
   /// Accepts a list of doubles representing a sequence of "frames", stacked end-to-end.
@@ -81,15 +89,13 @@ abstract class FilamentController {
   ///
   Future animate(FilamentAsset asset, List<double> data, int numWeights,
       int numFrames, double frameLengthInMs);
-
 }
 
 class PolyvoxFilamentController extends FilamentController {
-  
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
-  
-  double _pixelRatio = 1.0;
 
+  double _pixelRatio = 1.0;
+  Size size = Size(0, 0);
 
   final _onInitRequestedController = StreamController();
   Stream get onInitializationRequested => _onInitRequestedController.stream;
@@ -110,7 +116,7 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future setRendering(bool render) async {
-    await _channel.invokeMethod("setRendering",  render);
+    await _channel.invokeMethod("setRendering", render);
   }
 
   Future render() async {
@@ -118,7 +124,7 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future setFrameRate(int framerate) async {
-    await _channel.invokeMethod("setFrameInterval",  1/ framerate);
+    await _channel.invokeMethod("setFrameInterval", 1 / framerate);
   }
 
   void setPixelRatio(double ratio) {
@@ -126,12 +132,17 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future createTextureViewer(int width, int height) async {
-    textureId = await _channel.invokeMethod("initialize", [width * _pixelRatio, height * _pixelRatio]);
+    size = Size(width * _pixelRatio, height * _pixelRatio);
+    textureId =
+        await _channel.invokeMethod("initialize", [size.width, size.height]);
     _initialized.complete(true);
   }
 
-  Future resize(int width, int height, { double contentScaleFactor=1.0}) async {
-    await _channel.invokeMethod("resize", [width*_pixelRatio, height*_pixelRatio, contentScaleFactor]);
+  Future resize(int width, int height,
+      {double contentScaleFactor = 1.0}) async {
+    size = Size(width * _pixelRatio, height * _pixelRatio);
+    await _channel.invokeMethod("resize",
+        [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
   }
 
   @override
@@ -140,8 +151,9 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   @override
-  Future setBackgroundImagePosition(double x, double y, { bool clamp = false}) async {
-    await _channel.invokeMethod("setBackgroundImagePosition", [x,y, clamp]);
+  Future setBackgroundImagePosition(double x, double y,
+      {bool clamp = false}) async {
+    await _channel.invokeMethod("setBackgroundImagePosition", [x, y, clamp]);
   }
 
   @override
@@ -165,8 +177,29 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   @override
-  Future<FilamentLight> addLight(int type, double colour, double intensity, double posX, double posY, double posZ,double dirX, double dirY, double dirZ, bool castShadows) async {
-    var entityId = await _channel.invokeMethod("addLight", [type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, castShadows]);
+  Future<FilamentLight> addLight(
+      int type,
+      double colour,
+      double intensity,
+      double posX,
+      double posY,
+      double posZ,
+      double dirX,
+      double dirY,
+      double dirZ,
+      bool castShadows) async {
+    var entityId = await _channel.invokeMethod("addLight", [
+      type,
+      colour,
+      intensity,
+      posX,
+      posY,
+      posZ,
+      dirX,
+      dirY,
+      dirZ,
+      castShadows
+    ]);
     return entityId as FilamentLight;
   }
 
@@ -202,7 +235,8 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future panUpdate(double x, double y) async {
-    await _channel.invokeMethod("panUpdate", [x * _pixelRatio, y * _pixelRatio]);
+    await _channel
+        .invokeMethod("panUpdate", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future panEnd() async {
@@ -212,11 +246,13 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future rotateStart(double x, double y) async {
     await setRendering(true);
-    await _channel.invokeMethod("rotateStart", [x * _pixelRatio, y * _pixelRatio]);
+    await _channel
+        .invokeMethod("rotateStart", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future rotateUpdate(double x, double y) async {
-    await _channel.invokeMethod("rotateUpdate", [x * _pixelRatio, y * _pixelRatio]);
+    await _channel
+        .invokeMethod("rotateUpdate", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future rotateEnd() async {
@@ -262,7 +298,7 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future zoomUpdate(double z) async {
-    await _channel.invokeMethod("zoomUpdate", [0.0,0.0,z]);
+    await _channel.invokeMethod("zoomUpdate", [0.0, 0.0, z]);
   }
 
   Future zoomEnd() async {
@@ -270,14 +306,15 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future playAnimation(FilamentAsset asset, int index,
-      {bool loop = false, bool reverse=false}) async {
+      {bool loop = false, bool reverse = false}) async {
     await _channel.invokeMethod("playAnimation", [asset, index, loop, reverse]);
   }
 
   Future playAnimations(FilamentAsset asset, List<int> indices,
-      {bool loop = false, bool reverse=false}) async {
+      {bool loop = false, bool reverse = false}) async {
     return Future.wait(indices.map((index) {
-      return _channel.invokeMethod("playAnimation", [asset, index, loop, reverse]);
+      return _channel
+          .invokeMethod("playAnimation", [asset, index, loop, reverse]);
     }));
   }
 
@@ -297,14 +334,12 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("setCameraFocusDistance", focusDistance);
   }
 
-  Future setCameraPosition(
-      double x, double y, double z) async {
-    await _channel.invokeMethod("setCameraPosition", [x,y,z]);
+  Future setCameraPosition(double x, double y, double z) async {
+    await _channel.invokeMethod("setCameraPosition", [x, y, z]);
   }
-  
-  Future setCameraRotation(
-      double rads, double x, double y, double z) async {
-    await _channel.invokeMethod("setCameraRotation", [rads, x,y,z]);
+
+  Future setCameraRotation(double rads, double x, double y, double z) async {
+    await _channel.invokeMethod("setCameraRotation", [rads, x, y, z]);
   }
 
   Future setTexture(FilamentAsset asset, String assetPath,
@@ -321,9 +356,8 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("setPosition", [asset, x, y, z]);
   }
 
-  Future setScale(
-      FilamentAsset asset, double scale) async {
-        await _channel.invokeMethod("setScale", [asset, scale]);
+  Future setScale(FilamentAsset asset, double scale) async {
+    await _channel.invokeMethod("setScale", [asset, scale]);
   }
 
   Future setRotation(
