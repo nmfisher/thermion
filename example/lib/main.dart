@@ -29,7 +29,7 @@ class _MyAppState extends State<MyApp> {
   bool _loop = false;
   bool _vertical = false;
   bool _rendering = true;
-  int _framerate = 60;  
+  int _framerate = 60;
 
   @override
   void initState() {
@@ -52,10 +52,12 @@ class _MyAppState extends State<MyApp> {
                       height: _vertical ? 400 : 200,
                       alignment: Alignment.center,
                       child: SizedBox(
-                        child: GestureDetectingFilamentView(
-                          showControls: true,
-                          controller: _filamentController,
-                        ),
+                        child: FilamentGestureDetector(
+                            showControls: true,
+                            controller: _filamentController,
+                            child: FilamentWidget(
+                              controller: _filamentController,
+                            )),
                       )),
                   Text(
                       "Target names : ${_targetNames.join(",")}, Animation names : ${_animationNames.join(",")}"),
@@ -71,13 +73,12 @@ class _MyAppState extends State<MyApp> {
                               onSelected: (int item) async {
                                 switch (item) {
                                   case -1:
-                                      await _filamentController
-                                        .initialize();
+                                    await _filamentController.initialize();
                                     break;
                                   case 0:
-                                      await _filamentController
-                                          .setBackgroundImage(
-                                              'assets/background.ktx');
+                                    await _filamentController
+                                        .setBackgroundImage(
+                                            'assets/background.ktx');
                                     break;
                                   case 1:
                                     await _filamentController.loadSkybox(
@@ -217,18 +218,41 @@ class _MyAppState extends State<MyApp> {
                                     break;
                                   case 27:
                                     _framerate = _framerate == 60 ? 30 : 60;
-                                    await _filamentController.setFrameRate(_framerate);
+                                    await _filamentController
+                                        .setFrameRate(_framerate);
                                     break;
                                   case 28:
-                                    await _filamentController.setBackgroundImagePosition(25, 25);
+                                    await _filamentController
+                                        .setBackgroundImagePosition(25, 25);
                                     break;
                                   case 29:
-                                    _light = await _filamentController.addLight(2, 6500, 15000000, 0,1,0, 0, -1 , 0, true);
-                                    _light = await _filamentController.addLight(2, 6500, 15000000, 0,0,1, 0, 0 , -1, true);
+                                    _light = await _filamentController.addLight(
+                                        2,
+                                        6500,
+                                        15000000,
+                                        0,
+                                        1,
+                                        0,
+                                        0,
+                                        -1,
+                                        0,
+                                        true);
+                                    _light = await _filamentController.addLight(
+                                        2,
+                                        6500,
+                                        15000000,
+                                        0,
+                                        0,
+                                        1,
+                                        0,
+                                        0,
+                                        -1,
+                                        true);
                                     break;
                                   case 30:
-                                    if(_light != null) {
-                                      await _filamentController.removeLight(_light!);
+                                    if (_light != null) {
+                                      await _filamentController
+                                          .removeLight(_light!);
                                     }
                                     break;
                                   case 31:
@@ -239,8 +263,7 @@ class _MyAppState extends State<MyApp> {
                               itemBuilder: (BuildContext context) =>
                                   <PopupMenuEntry<int>>[
                                     const PopupMenuItem(
-                                        value: -1,
-                                        child: Text("initialize")),
+                                        value: -1, child: Text("initialize")),
                                     const PopupMenuItem(
                                         value: 0,
                                         child: Text("load background image")),
@@ -318,54 +341,47 @@ class _MyAppState extends State<MyApp> {
                                             : 'set vertical')),
                                     PopupMenuItem(
                                         value: 26,
-                                        child:
-                                            Text('set camera pos to 0,0,3')),
+                                        child: Text('set camera pos to 0,0,3')),
                                     PopupMenuItem(
                                         value: 27,
-                                        child:
-                                            Text('toggle framerate')),
+                                        child: Text('toggle framerate')),
                                     PopupMenuItem(
                                         value: 28,
-                                        child:
-                                            Text('set bg image pos')),
+                                        child: Text('set bg image pos')),
                                     PopupMenuItem(
-                                        value: 29,
-                                        child:
-                                            Text('add light')),
+                                        value: 29, child: Text('add light')),
                                     PopupMenuItem(
-                                        value: 30,
-                                        child:
-                                            Text('remove light')),
-                                      PopupMenuItem(
+                                        value: 30, child: Text('remove light')),
+                                    PopupMenuItem(
                                         value: 31,
-                                        child:
-                                            Text('clear all lights')),
+                                        child: Text('clear all lights')),
                                   ]))),
-                 Align(
+                  Align(
                       alignment: Alignment.bottomRight,
-                      child: Row(children:[
+                      child: Row(children: [
                         GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _rendering = !_rendering;
-                            _filamentController.setRendering(_rendering);
-                          });
-                        },
-                        child:Container(
-                          color: Colors.white,
-                          padding: const EdgeInsets.all(50),
-                          child:Text("Rendering: $_rendering "))),
+                            onTap: () {
+                              setState(() {
+                                _rendering = !_rendering;
+                                _filamentController.setRendering(_rendering);
+                              });
+                            },
+                            child: Container(
+                                color: Colors.white,
+                                padding: const EdgeInsets.all(50),
+                                child: Text("Rendering: $_rendering "))),
                         GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _framerate = _framerate == 60 ? 30 : 60;
-                            _filamentController.setFrameRate(_framerate);
-                          });
-                        },
-                        child:Container(
-                          color: Colors.white,
-                          padding: const EdgeInsets.all(50),
-                          child:Text("$_framerate fps")) )]))
+                            onTap: () {
+                              setState(() {
+                                _framerate = _framerate == 60 ? 30 : 60;
+                                _filamentController.setFrameRate(_framerate);
+                              });
+                            },
+                            child: Container(
+                                color: Colors.white,
+                                padding: const EdgeInsets.all(50),
+                                child: Text("$_framerate fps")))
+                      ]))
                 ])));
   }
 }
