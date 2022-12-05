@@ -25,7 +25,7 @@ SceneAsset *SceneAssetLoader::fromGltf(const char *uri,
   // Parse the glTF file and create Filament entities.
   Log("Creating asset from JSON");
   FilamentAsset *asset =
-      _assetLoader->createAssetFromJson((uint8_t *)rbuf.data, rbuf.size);
+      _assetLoader->createAsset((uint8_t *)rbuf.data, rbuf.size);
   Log("Created asset from JSON");
 
   if (!asset) {
@@ -64,7 +64,10 @@ SceneAsset *SceneAssetLoader::fromGltf(const char *uri,
     rm.setCulling(inst, false);
   }
 
-  asset->getAnimator()->updateBoneMatrices();
+  FilamentInstance* inst = asset->getInstance();
+  inst->getAnimator()->updateBoneMatrices();
+
+  inst->recomputeBoundingBoxes();
 
   _scene->addEntities(asset->getEntities(), asset->getEntityCount());
 
@@ -80,7 +83,7 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
 
   ResourceBuffer rbuf = _loadResource(uri);
 
-  FilamentAsset *asset = _assetLoader->createAssetFromBinary(
+  FilamentAsset *asset = _assetLoader->createAsset(
       (const uint8_t *)rbuf.data, rbuf.size);
 
   if (!asset) {
@@ -110,7 +113,10 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
     rm.setCulling(inst, true);
   }
 
-  asset->getAnimator()->updateBoneMatrices();
+  FilamentInstance* inst = asset->getInstance();
+  inst->getAnimator()->updateBoneMatrices();
+
+  inst->recomputeBoundingBoxes();
 
   asset->releaseSourceData();
   Log("Source data released.");
