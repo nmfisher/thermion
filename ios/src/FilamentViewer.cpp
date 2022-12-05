@@ -69,7 +69,7 @@
 #include "Log.hpp"
 #include "SceneResources.hpp"
 #if TARGET_OS_IPHONE
-#include "material/imagematerials_ios.h"
+#include "material/image_material.h"
 #include "material/unlitopaque.h"
 #else 
 #include "image/imagematerial.h"
@@ -218,8 +218,7 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _ncm = new NameComponentManager(em);
   _assetLoader = AssetLoader::create({_engine, _materialProvider, _ncm, &em});
   _resourceLoader = new ResourceLoader({.engine = _engine,
-                                        .normalizeSkinningWeights = true,
-                                        .recomputeBoundingBoxes = true});
+                                        .normalizeSkinningWeights = true });
   _stbDecoder = createStbProvider(_engine);
   _resourceLoader->addTextureProvider("image/png", _stbDecoder);
   _resourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
@@ -284,15 +283,14 @@ void FilamentViewer::createImageRenderable() {
   #if TARGET_OS_IPHONE
   _imageMaterial =
       Material::Builder()
-          .package(IMAGEMATERIALS_IOS_IMAGE_FILAMAT_DATA, IMAGEMATERIALS_IOS_IMAGE_FILAMAT_SIZE)
+          .package(IMAGE_MATERIAL_PACKAGE, IMAGE_MATERIAL_IMAGE_SIZE)
           .build(*_engine);
   #else
     _imageMaterial =
       Material::Builder()
-          .package(IMAGEMATERIAL_IMAGE_DATA, IMAGEMATERIAL_IMAGE_SIZE)
+          .package(IMAGE_MATERIAL_PACKAGE, IMAGE_MATERIAL_IMAGE_SIZE)
           .build(*_engine);
   #endif
-  // TODO - can we make these resgen names consistent
 
   _imageVb = VertexBuffer::Builder()
                  .vertexCount(3)
