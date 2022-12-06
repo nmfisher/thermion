@@ -69,7 +69,7 @@ namespace polyvox {
       MorphAnimationStatus(float* frameData,
                            int numWeights,
                            int numFrames,
-                           float frameLength) : frameData(frameData), numWeights(numWeights), numFrames(numFrames), frameLengthInMs(frameLength) {
+                           float frameLength) : numFrames(numFrames), frameLengthInMs(frameLength), frameData(frameData), numWeights(numWeights)  {
       }
       
       int frameIndex = -1;
