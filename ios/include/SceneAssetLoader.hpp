@@ -35,8 +35,8 @@ namespace polyvox {
             AssetLoader* _assetLoader;
             ResourceLoader* _resourceLoader;
             NameComponentManager* _ncm;
-            Scene* _scene;
             Engine* _engine;
+            Scene* _scene;
 
     };
 }
