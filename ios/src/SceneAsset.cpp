@@ -189,7 +189,6 @@ void SceneAsset::setTexture() {
   size_t mic =  _asset->getInstance()->getMaterialInstanceCount();
   Log("Material instance count : %d", mic);
     
-  RenderableManager &rm = _engine->getRenderableManager();
   auto sampler = TextureSampler();
   inst[0]->setParameter("baseColorIndex",0);
   inst[0]->setParameter("baseColorMap",_texture,sampler);
@@ -266,7 +265,7 @@ unique_ptr<vector<string>> SceneAsset::getTargetNames(const char *meshName) {
 //  Log("Retrieving morph target names for mesh  %s", meshName);
   unique_ptr<vector<string>> names = make_unique<vector<string>>();
   const Entity *entities = _asset->getEntities();
-  RenderableManager &rm = _engine->getRenderableManager();
+  
   for (int i = 0; i < _asset->getEntityCount(); i++) {
     Entity e = entities[i];
     auto inst = _ncm->getInstance(e);

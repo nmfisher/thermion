@@ -22,8 +22,14 @@ add_library(
             ../ios/src/SceneAsset.cpp
         )
 
+add_library(FILAMENT_SHADERS SHARED 
+  ../ios/include/material/image_material.c
+  ../ios/include/material/unlitopaque.c
+)
+
 target_link_libraries(
   filament_interop 
+  FILAMENT_SHADERS
   -landroid 
   -llog 
   -lfilament 
@@ -55,6 +61,5 @@ target_link_libraries(
   -lsmol-v 
   -luberarchive 
   -lzstd
-  
   )
 

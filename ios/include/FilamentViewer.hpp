@@ -46,7 +46,8 @@ using namespace camutils;
 namespace polyvox {
     class FilamentViewer {
         public:
-            FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
+            // FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
+            FilamentViewer(void* context, LoadResource loadResource, FreeResource freeResource);
             ~FilamentViewer();
 
             void loadSkybox(const char* const skyboxUri);
@@ -67,8 +68,11 @@ namespace polyvox {
             
             bool setFirstCamera(SceneAsset* asset);
             bool setCamera(SceneAsset* asset, const char* nodeName);
+            
+            void createSwapChain(void* surface, uint32_t width, uint32_t height);
             void destroySwapChain();
-            void createSwapChain(void* surface);
+
+            void createRenderTarget(uint32_t glTextureId, uint32_t width,uint32_t height);
 
             Renderer* getRenderer();
 
@@ -96,8 +100,6 @@ namespace polyvox {
             void loadResources(std::string relativeResourcePath);
             void cleanup();
             
-            void* _layer;
-
             Manipulator<float>* _manipulator = nullptr;
             math::mat4f _cameraPosition;
             math::mat4f _cameraRotation;
@@ -113,6 +115,9 @@ namespace polyvox {
             Camera* _mainCamera;
 
             Renderer* _renderer;
+            RenderTarget* _rt;
+            Texture* _rtColor;
+            Texture* _rtDepth;
     
             SwapChain* _swapChain = nullptr;
 
@@ -124,12 +129,12 @@ namespace polyvox {
             std::mutex mtx; // mutex to ensure thread safety when removing assets
 
             vector<Entity> _lights;
-            Texture* _skyboxTexture;
-            Skybox* _skybox;
-            Texture* _iblTexture;
-            IndirectLight* _indirectLight;
+            Texture* _skyboxTexture = nullptr;
+            Skybox* _skybox = nullptr;
+            Texture* _iblTexture = nullptr;
+            IndirectLight* _indirectLight = nullptr;
 
-            MaterialProvider* _materialProvider;
+            MaterialProvider* _materialProvider = nullptr;
 
             gltfio::ResourceLoader* _resourceLoader = nullptr;
             gltfio::TextureProvider* _stbDecoder = nullptr;

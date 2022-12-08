@@ -2,7 +2,7 @@
 
 Flutter plugin wrapping the Filament renderer https://github.com/google/filament.
 
-Current Filament version: 1.25.0
+Current Filament version: 1.28.3
 
 All:
 - clone Filament repository 
@@ -19,6 +19,15 @@ Android:
 
 iOS:
 - filament-v1.25.0-ios.tgz
+
+Linux:
+
+(Fedora 34)
+Building Filament:
+env LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/11/ CC=clang CXX=clang++ CXX_FLAGS="-v" LD_FLAGS="-v" FILAMENT_REQUIRES_CXXABI=true  ./build.sh -c release
+
+Running example project:
+CPLUS_INCLUDE_PATH=/usr/include/gtk-3.0/:/usr/include/pango-1.0/:/usr/include/harfbuzz:/usr/include/cairo/:/usr/include/gdk-pixbuf-2.0/:/usr/include/atk-1.0/
 
 Extract and move both lib/ and include/ to ./ios
 

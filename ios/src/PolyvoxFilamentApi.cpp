@@ -1,6 +1,3 @@
-#ifndef _POLYVOX_FILAMENT_API_H
-#define _POLYVOX_FILAMENT_API_H
-
 #include "ResourceBuffer.hpp"
 #include "FilamentViewer.hpp"
 #include "filament/LightManager.h"
@@ -13,8 +10,13 @@ extern "C" {
 //    return ResourceBuffer {data, size, id };
 //  }
 
-  void* filament_viewer_new(void* texture, ResourceBuffer (*loadResource)(const char*), void (*freeResource)(uint32_t)) {
-    return nullptr;
+  void* filament_viewer_new(void* context, ResourceBuffer (*loadResource)(char const*), void (*freeResource)(unsigned int)) {
+    FilamentViewer* v = new FilamentViewer(context, loadResource, freeResource);
+    return (void*)v;
+  }
+
+  void create_render_target(void* viewer, uint32_t textureId, uint32_t width, uint32_t height) {
+    ((FilamentViewer*)viewer)->createRenderTarget(textureId, width, height);
   }
   
   void filament_viewer_delete(void* viewer) {
@@ -43,7 +45,6 @@ extern "C" {
   void remove_skybox(void* viewer) {
     ((FilamentViewer*)viewer)->removeSkybox();
   }
-
   
   void remove_ibl(void* viewer) {
     ((FilamentViewer*)viewer)->removeIbl();
@@ -101,6 +102,10 @@ extern "C" {
 
   void destroy_swap_chain(void* viewer) {
     ((FilamentViewer*)viewer)->destroySwapChain();
+  }
+
+  void create_swap_chain(void* viewer, void* surface=nullptr, uint32_t width=0, uint32_t height=0) {
+    ((FilamentViewer*)viewer)->createSwapChain(surface, width, height);
   }
 
   void* get_renderer(void* viewer) {
@@ -206,5 +211,3 @@ extern "C" {
   }
   
 }
-
-#endif

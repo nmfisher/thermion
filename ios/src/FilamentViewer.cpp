@@ -23,17 +23,20 @@
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
 #include <filament/IndexBuffer.h>
-#include <filament/RenderableManager.h>
+#include <filament/IndirectLight.h>
+
+#include <filament/Options.h>
+
 #include <filament/Renderer.h>
+#include <filament/RenderTarget.h>
 #include <filament/Scene.h>
 #include <filament/Skybox.h>
 #include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
 #include <filament/View.h>
-#include <filament/Options.h>
 #include <filament/Viewport.h>
 
-#include <filament/IndirectLight.h>
+#include <filament/RenderableManager.h>
 #include <filament/LightManager.h>
 
 #include <gltfio/Animator.h>
@@ -68,15 +71,15 @@
 
 #include "Log.hpp"
 #include "SceneResources.hpp"
-#if TARGET_OS_IPHONE
-#include "material/image_material.h"
-#include "material/unlitopaque.h"
-#else 
-#include "image/imagematerial.h"
-#include "shaders/unlitopaque.h"
-#endif
+
+extern "C" {
+  #include "material/image_material.h"
+  #include "material/unlitopaque.h"
+}
+
 #include "FilamentViewer.hpp"
 #include "StreamBufferAdapter.hpp"
+#include "material/UnlitMaterialProvider.hpp"
 
 using namespace filament;
 using namespace filament::math;
@@ -90,73 +93,44 @@ class LightManager;
 } // namespace filament
 
 namespace polyvox {
-
-  class UnlitMaterialProvider : public MaterialProvider {
-
-    const Material* _m;
-    const Material* _ms[1];
-
-    public:
-      UnlitMaterialProvider(Engine* engine) {
-        _m = Material::Builder()
-          .package(	UNLITOPAQUE_UNLIT_OPAQUE_DATA, UNLITOPAQUE_UNLIT_OPAQUE_SIZE)
-          .build(*engine);
-        _ms[0] = _m;
-      }
-
-      filament::MaterialInstance* createMaterialInstance(MaterialKey* config, UvMap* uvmap,
-              const char* label = "material", const char* extras = nullptr) {
-                MaterialInstance* d = (MaterialInstance*)_m->getDefaultInstance();
-        return d;
-      }
-
-      /**
-      * Gets a weak reference to the array of cached materials.
-      */
-      const filament::Material* const* getMaterials() const noexcept {
-        return _ms;
-      }
-
-      /**
-      * Gets the number of cached materials.
-      */
-      size_t getMaterialsCount() const noexcept {
-        return (size_t)1;
-      }
-
-      void destroyMaterials() {
-
-      }
-
-      bool needsDummyData(filament::VertexAttribute attrib) const noexcept {
-        return true;
-      }
-  };
-
+  
 const double kNearPlane = 0.05;  // 5 cm
 const double kFarPlane = 1000.0; // 1 km
-const float kScaleMultiplier = 100.0f;
+// const float kScaleMultiplier = 100.0f;
 const float kAperture = 16.0f;
 const float kShutterSpeed = 1.0f / 125.0f;
 const float kSensitivity = 100.0f;
+struct Vertex {
+    filament::math::float2 position;
+    uint32_t color;
+};
 
-FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
+// static const Vertex TRIANGLE_VERTICES[3] = {
+//     {{1, 0}, 0xffff0000u},
+//     {{cos(M_PI * 2 / 3), sin(M_PI * 2 / 3)}, 0xff00ff00u},
+//     {{cos(M_PI * 4 / 3), sin(M_PI * 4 / 3)}, 0xff0000ffu},
+// };
+
+// static constexpr uint16_t TRIANGLE_INDICES[3] = { 0, 1, 2 };
+
+
+FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
                                FreeResource freeResource)
-    : _layer(layer), _loadResource(loadResource), _freeResource(freeResource) {
+  : _loadResource(loadResource), _freeResource(freeResource) {
   Log("Creating FilamentViewer");
   #if TARGET_OS_IPHONE
     _engine = Engine::create(Engine::Backend::METAL);
   #else
-    _engine = Engine::create(Engine::Backend::OPENGL);
+    _engine = Engine::create(Engine::Backend::OPENGL, nullptr, context, nullptr);
   #endif
 
   Log("Engine created");
 
   _renderer = _engine->createRenderer();
+
   float fr = 60.0f;
-  _renderer->setDisplayInfo({.refreshRate = fr,
-                             .presentationDeadlineNanos = (uint64_t)0,
-                             .vsyncOffsetNanos = (uint64_t)0});
+  _renderer->setDisplayInfo({.refreshRate = fr});
+
   Renderer::FrameRateOptions fro;
   fro.interval = 1 / fr;
   _renderer->setFrameRateOptions(fro);
@@ -171,6 +145,11 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
 
   Log("Main camera created");
   _view = _engine->createView();
+
+  decltype(_view->getBloomOptions()) opts;
+  opts.enabled = true;
+  _view->setBloomOptions(opts);
+
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
 
@@ -184,13 +163,6 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
   _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
                                  kFarPlane);
   _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
-  #if TARGET_OS_IPHONE
-    _swapChain = _engine->createSwapChain(layer, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
-  #else 
-    _swapChain = _engine->createSwapChain(layer);
-  #endif
-
-  Log("Swapchain created");
 
   View::DynamicResolutionOptions options;
   options.enabled = true;
@@ -229,6 +201,7 @@ FilamentViewer::FilamentViewer(void *layer, LoadResource loadResource,
                                    _ncm, 
                                    _engine,
                                    _scene);
+
 }
 
 static constexpr float4 sFullScreenTriangleVertices[3] = {
@@ -280,17 +253,11 @@ void FilamentViewer::createImageRenderable() {
     return;
 
   auto &em = EntityManager::get();
-  #if TARGET_OS_IPHONE
+  
   _imageMaterial =
       Material::Builder()
           .package(IMAGE_MATERIAL_PACKAGE, IMAGE_MATERIAL_IMAGE_SIZE)
           .build(*_engine);
-  #else
-    _imageMaterial =
-      Material::Builder()
-          .package(IMAGE_MATERIAL_PACKAGE, IMAGE_MATERIAL_IMAGE_SIZE)
-          .build(*_engine);
-  #endif
 
   _imageVb = VertexBuffer::Builder()
                  .vertexCount(3)
@@ -563,13 +530,46 @@ FilamentViewer::~FilamentViewer() {
 
 Renderer *FilamentViewer::getRenderer() { return _renderer; }
 
-void FilamentViewer::createSwapChain(void *surface) {
+void FilamentViewer::createSwapChain(void *surface, uint32_t width, uint32_t height) {
   #if TARGET_OS_IPHONE
     _swapChain = _engine->createSwapChain(surface, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
   #else
-    _swapChain = _engine->createSwapChain(surface);
+    if(surface) {
+      _swapChain = _engine->createSwapChain(surface);
+    } else {
+      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+    }
   #endif
   Log("Swapchain created.");
+}
+
+void FilamentViewer::createRenderTarget(uint32_t glTextureId, uint32_t width, uint32_t height) {
+  // Create filament textures and render targets (note the color buffer has the import call)
+  _rtColor = filament::Texture::Builder()
+    .width(width)
+    .height(height)
+    .levels(1)
+    .usage(filament::Texture::Usage::COLOR_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
+    .format(filament::Texture::InternalFormat::RGBA8)
+    .import(glTextureId)
+    .build(*_engine);
+  _rtDepth = filament::Texture::Builder()
+    .width(width)
+    .height(height)
+    .levels(1)
+    .usage(filament::Texture::Usage::DEPTH_ATTACHMENT)
+    .format(filament::Texture::InternalFormat::DEPTH24)
+    .build(*_engine);
+  _rt = filament::RenderTarget::Builder()
+    .texture(RenderTarget::AttachmentPoint::COLOR, _rtColor)
+    .texture(RenderTarget::AttachmentPoint::DEPTH, _rtDepth)
+    .build(*_engine);
+
+  // Make a specific viewport just for our render target
+  _view->setRenderTarget(_rt);
+  
+  Log("Set render target for glTextureId %u %u x %u", glTextureId, width, height);
+
 }
 
 void FilamentViewer::destroySwapChain() {
@@ -730,18 +730,22 @@ bool FilamentViewer::setCamera(SceneAsset *asset, const char *cameraName) {
 }
 
 void FilamentViewer::loadSkybox(const char *const skyboxPath) {
+  Log("Loading skybox from %s", skyboxPath);
+
   removeSkybox();
+ 
   if (skyboxPath) {
     ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
 
-    if(skyboxBuffer.size == 0) {
-      Log("Error loading IBL, resource could not be loaded.");
+    if(skyboxBuffer.size <= 0) {
+      Log("Could not load skybox resource.");
       return;
     }
-
+    
     image::Ktx1Bundle *skyboxBundle =
         new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data),
                               static_cast<uint32_t>(skyboxBuffer.size));
+
     _skyboxTexture =
         ktxreader::Ktx1Reader::createTexture(_engine, *skyboxBundle, false, [](void* userdata) {
         image::Ktx1Bundle* bundle = (image::Ktx1Bundle*) userdata;
@@ -752,16 +756,21 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
 
     _scene->setSkybox(_skybox);
     _freeResource(skyboxBuffer.id);
+
+    
+
   }
 }
 
 void FilamentViewer::removeSkybox() { 
+  Log("Removing skybox");
   if(_skybox) {
+
     _engine->destroy(_skybox);
     _engine->destroy(_skyboxTexture);
     _skybox = nullptr;
     _skyboxTexture = nullptr;
-  }
+  } 
   _scene->setSkybox(nullptr); 
 }
 
@@ -835,6 +844,8 @@ void FilamentViewer::render(uint64_t frameTimeInNanos) {
   if (_renderer->beginFrame(_swapChain, frameTimeInNanos)) {
     _renderer->render(_view);
     _renderer->endFrame();
+  } else {
+    // skipped frame
   }
   
 }
@@ -868,7 +879,7 @@ void FilamentViewer::setCameraPosition(float x, float y, float z) {
     _manipulator = nullptr;
   }
   Camera& cam =_view->getCamera();
-  auto &tm = _engine->getTransformManager();
+
   _cameraPosition = math::mat4f::translation(math::float3(x,y,z));
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }
@@ -879,7 +890,7 @@ void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
     _manipulator = nullptr;
   }
   Camera& cam =_view->getCamera();
-  auto &tm = _engine->getTransformManager();
+
   _cameraRotation = math::mat4f::rotation(rads, math::float3(x,y,z));
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }
@@ -971,3 +982,5 @@ void FilamentViewer::scrollEnd() {
 }
 
 } // namespace polyvox
+
+  
