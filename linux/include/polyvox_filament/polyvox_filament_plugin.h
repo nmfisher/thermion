@@ -2,6 +2,7 @@
 #define FLUTTER_PLUGIN_POLYVOX_FILAMENT_PLUGIN_H_
 
 #include <flutter_linux/flutter_linux.h>
+#include <epoxy/gl.h>
 
 G_BEGIN_DECLS
 

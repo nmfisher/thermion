@@ -1,3 +1,9 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:84f9da89760420d519b4be28e1c9b3962416b7b87e4a1484ca56a83d57c53e3e
-size 330
+Model by LaVADraGoN at Sketchfab.
+
+From an joint University Project "Dune Express" Concept-Model was created by my Partner Evil Cloud.
+
+License: CC Attribution-NonCommercial
+
+Draco compression was done via Cesium tools on 27-03-2020 as follows.
+
+    gltf-pipeline -i scene.gltf -o scene.gltf -d -s --keep-unused-elements

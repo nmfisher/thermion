@@ -75,6 +75,9 @@ class _MyAppState extends State<MyApp> {
                                   case -1:
                                     await _filamentController.initialize();
                                     break;
+                                  case -2:
+                                    await _filamentController.render();
+                                    break;
                                   case 0:
                                     await _filamentController
                                         .setBackgroundImage(
@@ -83,7 +86,9 @@ class _MyAppState extends State<MyApp> {
                                   case 1:
                                     await _filamentController.loadSkybox(
                                         'assets/default_env/default_env_skybox.ktx');
-                                    await _filamentController.loadSkybox(
+                                    break;
+                                  case -3:
+                                    await _filamentController.loadIbl(
                                         'assets/default_env/default_env_ibl.ktx');
                                     break;
                                   case 2:
@@ -265,11 +270,17 @@ class _MyAppState extends State<MyApp> {
                                     const PopupMenuItem(
                                         value: -1, child: Text("initialize")),
                                     const PopupMenuItem(
+                                        value: -2, child: Text("render")),
+                                    const PopupMenuItem(
                                         value: 0,
                                         child: Text("load background image")),
                                     const PopupMenuItem(
                                       value: 1,
                                       child: Text('load skybox'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: -3,
+                                      child: Text('load IBL'),
                                     ),
                                     const PopupMenuItem(
                                       value: 2,

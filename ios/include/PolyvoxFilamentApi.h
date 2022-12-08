@@ -6,8 +6,9 @@
 typedef struct ResourceBuffer ResourceBuffer;
 
 //ResourceBuffer create_resource_buffer(const void* data, const uint32_t size, const uint32_t id);
-void* filament_viewer_new(void* texture, void* loadResource, void* freeResource);
+void* filament_viewer_new(void* context, ResourceBuffer (*loadResource)(const char*), void (*freeResource)(uint32_t));
 void* filament_viewer_delete(void* viewer);
+void create_render_target(void* viewer, uint32_t textureId, uint32_t width, uint32_t height);
 void set_background_image(void* viewer, const char* path);
 void set_background_image_position(void* viewer, float x, float y, bool clamp);
 void load_skybox(void* viewer, const char* skyboxPath);
@@ -21,6 +22,7 @@ void* load_glb(void* viewer, const char* assetPath);
 void* load_gltf(void* viewer, const char* assetPath, const char* relativePath);
 bool set_camera(void* viewer, void* asset, const char* nodeName);
 void render(void* viewer, uint64_t frameTimeInNanos);
+void create_swap_chain(void* viewer, void* surface = nullptr, uint32_t width = 0, uint32_t height = 0);
 void destroy_swap_chain(void* viewer);
 void set_frame_interval(void* viewer, float interval);
 void* get_renderer(void* viewer);
