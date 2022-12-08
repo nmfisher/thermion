@@ -27,7 +27,7 @@ Building Filament:
 env LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/11/ CC=clang CXX=clang++ CXX_FLAGS="-v" LD_FLAGS="-v" FILAMENT_REQUIRES_CXXABI=true  ./build.sh -c release
 
 Running example project:
-CPLUS_INCLUDE_PATH=/usr/include/gtk-3.0/:/usr/include/pango-1.0/:/usr/include/harfbuzz:/usr/include/cairo/:/usr/include/gdk-pixbuf-2.0/:/usr/include/atk-1.0/
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig/:/usr/lib64/pkgconfig/ CPLUS_INCLUDE_PATH=/usr/include/gtk-3.0/:/usr/include/pango-1.0/:/usr/include/harfbuzz:/usr/include/cairo/:/usr/include/gdk-pixbuf-2.0/:/usr/include/atk-1.0/
 
 Extract and move both lib/ and include/ to ./ios
 
