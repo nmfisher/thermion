@@ -27,11 +27,18 @@ ResourceBuffer loadResource(const char* name) {
     string name_str(name);
     auto id = _i++;
     
+    // this functions accepts URIs, so  
+    // - file:// points to a file on the filesystem
+    // - asset:// points to an asset, usually resolved relative to the current working directory
+    // - no prefix is presumed to be an absolute file path
     if (name_str.rfind("file://", 0) == 0) {
       name_str = name_str.substr(7);
+    } else if(name_str.rfind("asset://", 0) == 0) {
+      name_str = name_str.substr(7);
+      name_str = string(cwd) + string("/") + name_str;
+    } else {
+      
     }
-
-    name_str = string(cwd) + string("/") + name_str;
 
     std::cout << "Loading resource at " << name_str.c_str() << std::endl;
 
