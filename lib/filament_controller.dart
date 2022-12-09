@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 // this is confusing - "FilamentAsset" actually defines a pointer to a SceneAsset, whereas FilamentLight is an Entity ID.
@@ -231,7 +232,6 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future panStart(double x, double y) async {
-    await setRendering(true);
     await _channel.invokeMethod("panStart", [x * _pixelRatio, y * _pixelRatio]);
   }
 
@@ -242,11 +242,9 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future panEnd() async {
     await _channel.invokeMethod("panEnd");
-    await setRendering(false);
   }
 
   Future rotateStart(double x, double y) async {
-    await setRendering(true);
     await _channel
         .invokeMethod("rotateStart", [x * _pixelRatio, y * _pixelRatio]);
   }
@@ -257,12 +255,12 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future rotateEnd() async {
-    await setRendering(false);
     await _channel.invokeMethod("rotateEnd");
   }
 
   Future applyWeights(FilamentAsset asset, List<double> weights) async {
-    await _channel.invokeMethod("applyWeights", [asset, weights]);
+    await _channel
+        .invokeMethod("applyWeights", [asset, Float32List.fromList(weights)]);
   }
 
   Future<List<String>> getTargetNames(
@@ -281,8 +279,13 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future animate(FilamentAsset asset, List<double> weights, int numWeights,
       int numFrames, double frameLengthInMs) async {
-    await _channel.invokeMethod("animateWeights",
-        [asset, weights, numWeights, numFrames, frameLengthInMs]);
+    await _channel.invokeMethod("animateWeights", [
+      asset,
+      Float32List.fromList(weights),
+      numWeights,
+      numFrames,
+      frameLengthInMs
+    ]);
   }
 
   Future removeAsset(FilamentAsset asset) async {
