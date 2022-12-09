@@ -44,17 +44,9 @@ struct _PolyvoxFilamentPlugin {
 
 G_DEFINE_TYPE(PolyvoxFilamentPlugin, polyvox_filament_plugin, g_object_get_type())
 
-// Called when a method call is received from Flutter.
-static void polyvox_filament_plugin_handle_method_call(
-    PolyvoxFilamentPlugin* self,
-    FlMethodCall* method_call) {
 
-  g_autoptr(FlMethodResponse) response = nullptr;
-
-  const gchar* method = fl_method_call_get_name(method_call);
-
-  if(strcmp(method, "initialize") == 0) {
-
+static FlMethodResponse* _initialize(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+    
     if(self->_viewer) {
       std::cout << "Deleting existing viewer";
       filament_viewer_delete(self->_viewer);
@@ -71,9 +63,6 @@ static void polyvox_filament_plugin_handle_method_call(
     //auto texture = create_filament_pb_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
     self->texture = texture;
     
-    g_autoptr(FlValue) result =   
-         fl_value_new_int(reinterpret_cast<int64_t>(texture));   
-
     self->_viewer = filament_viewer_new(
       (void*)context,
       loadResource,
@@ -85,23 +74,105 @@ static void polyvox_filament_plugin_handle_method_call(
     create_render_target(self->_viewer, ((FilamentTextureGL*)texture)->texture_id,width,height);
     
     update_viewport_and_camera_projection(self->_viewer, width, height, 1.0f);
-    
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-  } else if(strcmp(method, "loadSkybox") == 0) {
 
-    FlValue* args = fl_method_call_get_args(method_call);
+    g_autoptr(FlValue) result =   
+         fl_value_new_int(reinterpret_cast<int64_t>(texture));   
 
-    const gchar* path = fl_value_get_string(args);
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
 
-    load_skybox(self->_viewer, path);
+static FlMethodResponse* _loadSkybox(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+
+  const gchar* path = fl_value_get_string(args);
+
+  load_skybox(self->_viewer, path);
                                        
-    g_autoptr(FlValue) result = fl_value_new_string("OK");
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
+
+static FlMethodResponse* _removeSkybox(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  std::cout << "Removing skybox" << std::endl;
+  remove_skybox(self->_viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_background_image(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+
+  FlValue* args = fl_method_call_get_args(method_call);
+
+  const gchar* path = fl_value_get_string(args);
+
+  set_background_image(self->_viewer, path);
+  
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _add_light(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+
+  FlValue* args = fl_method_call_get_args(method_call);
+  
+  auto type = (uint8_t)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto color = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto intensity = float(fl_value_get_float(fl_value_get_list_value(args, 2)));
+  auto posX = (float)fl_value_get_float(fl_value_get_list_value(args, 3));
+  auto posY = (float)fl_value_get_float(fl_value_get_list_value(args, 4));
+  auto posZ = (float)fl_value_get_float(fl_value_get_list_value(args, 5));
+  auto dirX = (float)fl_value_get_float(fl_value_get_list_value(args, 6));
+  auto dirY = (float)fl_value_get_float(fl_value_get_list_value(args, 7));
+  auto dirZ = (float)fl_value_get_float(fl_value_get_list_value(args, 8));
+  auto shadows = fl_value_get_bool(fl_value_get_list_value(args, 9));
+
+  auto entityId = add_light(self->_viewer, type, color, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+  g_autoptr(FlValue) result = fl_value_new_int(entityId);
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+
+}
+
+static FlMethodResponse* _load_glb(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+    FlValue* args = fl_method_call_get_args(method_call);
+    auto path = fl_value_get_string(args);
+    auto entityId = load_glb(self->_viewer, path);
+    g_autoptr(FlValue) result = fl_value_new_int((int64_t)entityId);
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _get_animation_names(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetPtr = (void*)fl_value_get_int(args);
+  g_autoptr(FlValue) result = fl_value_new_list();
+
+  auto numNames = get_animation_count(assetPtr);
+
+  for(int i = 0; i < numNames; i++) {
+    gchar out[255];
+    get_animation_name(assetPtr, out, i);
+    fl_value_append_take (result, fl_value_new_string (out));
+  }
+      
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+
+// Called when a method call is received from Flutter.
+static void polyvox_filament_plugin_handle_method_call(
+    PolyvoxFilamentPlugin* self,
+    FlMethodCall* method_call) {
+
+  g_autoptr(FlMethodResponse) response = nullptr;
+
+  const gchar* method = fl_method_call_get_name(method_call);
+
+  if(strcmp(method, "initialize") == 0) {
+    response = _initialize(self, method_call);    
+  } else if(strcmp(method, "loadSkybox") == 0) {
+    response = _loadSkybox(self, method_call);
   } else if(strcmp(method, "removeSkybox") == 0) {
-    std::cout << "Removing skybox" << std::endl;
-    remove_skybox(self->_viewer);
-    g_autoptr(FlValue) result = fl_value_new_string("OK");
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+    response = _removeSkybox(self, method_call);    
   } else if(strcmp(method, "resize") == 0) { 
       // val args = call.arguments as ArrayList<Int>
       // val width = args[0]
@@ -111,20 +182,17 @@ static void polyvox_filament_plugin_handle_method_call(
       // _lib.update_viewport_and_camera_projection(_viewer!!, width, height, scale);
       // result.success(null)
   } else if(strcmp(method, "render") == 0) {
-
     render(self->_viewer, 0);
     g_autoptr(FlValue) result = fl_value_new_string("OK");
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
   } else if(strcmp(method, "setBackgroundImage") == 0) {
-
-    FlValue* args = fl_method_call_get_args(method_call);
-
-    const gchar* path = fl_value_get_string(args);
-
-    set_background_image(self->_viewer, path);
-    
-    g_autoptr(FlValue) result = fl_value_new_string("OK");
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+    response = _set_background_image(self, method_call);
+  } else if(strcmp(method, "addLight") == 0) {
+    response = _add_light(self, method_call);  
+  } else if(strcmp(method, "loadGlb") == 0) {
+    response = _load_glb(self, method_call);
+  } else if(strcmp(method, "getAnimationNames") == 0) {
+    response = _get_animation_names(self, method_call);
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
