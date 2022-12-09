@@ -347,6 +347,23 @@ static FlMethodResponse* _animate_weights(PolyvoxFilamentPlugin* self, FlMethodC
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
+static FlMethodResponse* _get_target_names(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto meshName = fl_value_get_string(fl_value_get_list_value(args, 1));
+  g_autoptr(FlValue) result = fl_value_new_list();
+
+  auto numNames = get_target_name_count(assetPtr, meshName);
+
+  for(int i = 0; i < numNames; i++) {
+    gchar out[255];
+    get_target_name(assetPtr, meshName, out, i);
+    fl_value_append_take (result, fl_value_new_string (out));
+  }
+      
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
 // Called when a method call is received from Flutter.
 static void polyvox_filament_plugin_handle_method_call(
     PolyvoxFilamentPlugin* self,
@@ -426,6 +443,8 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _apply_weights(self, method_call);
   } else if(strcmp(method, "animateWeights") == 0) {
     response = _animate_weights(self, method_call);
+  } else if(strcmp(method, "getTargetNames") == 0) {
+    response = _get_target_names(self, method_call);
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
