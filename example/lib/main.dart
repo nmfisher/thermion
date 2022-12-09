@@ -28,7 +28,7 @@ class _MyAppState extends State<MyApp> {
   List<String> _animationNames = [];
   bool _loop = false;
   bool _vertical = false;
-  bool _rendering = true;
+  bool _rendering = false;
   int _framerate = 60;
 
   @override
@@ -232,7 +232,7 @@ class _MyAppState extends State<MyApp> {
                                     break;
                                   case 29:
                                     _light = await _filamentController.addLight(
-                                        2,
+                                        1,
                                         6500,
                                         15000000,
                                         0,
