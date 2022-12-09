@@ -171,7 +171,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "animateWeights":
           let args = call.arguments as! Array<Any?>
           let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
-          let frameData = args[1] as! Array<Double>
+          let frameData = args[1] as! Array<Float>
           let numWeights = args[2] as! Int
           let numFrames = args[3] as! Int
           let frameLenInMs = args[4] as! Double
@@ -257,7 +257,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "applyWeights":
           let args = call.arguments as! Array<Any?>
           let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
-          let weights = args[1] as! Array<Double>
+          let weights = args[1] as! Array<Float>
           weights.map { Float($0) }.withUnsafeBufferPointer {
             apply_weights(assetPtr,           UnsafeMutablePointer<Float>.init(mutating:$0.baseAddress), Int32(weights.count))
 
