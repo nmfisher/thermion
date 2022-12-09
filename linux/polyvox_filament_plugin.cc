@@ -5,7 +5,6 @@
 #include <flutter_linux/fl_texture_gl.h>
 #include <gtk/gtk.h>
 
-
 #include <sys/utsname.h>
 
 #include <math.h>
@@ -18,6 +17,7 @@
 
 #include "include/polyvox_filament/filament_texture.h"
 #include "include/polyvox_filament/filament_pb_texture.h"
+#include "include/polyvox_filament/resource_loader.hpp"
 
 #include "FilamentViewer.hpp"
 extern "C" {
@@ -43,52 +43,6 @@ struct _PolyvoxFilamentPlugin {
 };
 
 G_DEFINE_TYPE(PolyvoxFilamentPlugin, polyvox_filament_plugin, g_object_get_type())
-
-static map<uint32_t, void*> _file_assets;
-static uint32_t _i = 0;
-
-static ResourceBuffer loadResource(const char* name) {
-
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {
-       std::cout << "Current working dir: " << cwd  << std::endl;
-    }
-
-    string name_str(name);
-    auto id = _i++;
-    
-    if (name_str.rfind("file://", 0) == 0) {
-      name_str = name_str.substr(7);
-    }
-
-    name_str = string(cwd) + string("/") + name_str;
-
-    std::cout << "Loading resource at " << name_str.c_str() << std::endl;
-
-    streampos length;
-    ifstream is(name_str, ios::binary);
-    if(!is) {
-      std::cout << "Failed to find resource at file path " << name_str.c_str() << std::endl;
-      return ResourceBuffer(nullptr, 0, -1);
-    }
-    is.seekg (0, ios::end);
-    length = is.tellg();
-    char * buffer;
-    buffer = new char [length];
-    is.seekg (0, ios::beg);
-    is.read (buffer, length);
-    is.close();      
-    _file_assets[id] = buffer;
-    return ResourceBuffer(buffer, length, id);
-}
-
-static void freeResource(uint32_t id) {
-  std::cout << "Freeing resource " << id << std::endl;
-  auto it = _file_assets.find(id);
-  if (it != _file_assets.end()) {
-    free(it->second);
-  }
-}
 
 // Called when a method call is received from Flutter.
 static void polyvox_filament_plugin_handle_method_call(
