@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'filament_controller.dart';
 import 'filament_widget.dart';
@@ -74,39 +77,70 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
     super.didUpdateWidget(oldWidget);
   }
 
+  Timer? _scrollTimer;
+
   @override
   Widget build(BuildContext context) {
     return Stack(children: [
       Positioned.fill(
-          child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onScaleStart: (d) async {
-                if (d.pointerCount == 2) {
-                  await widget.controller.zoomEnd();
+          child: Listener(
+              onPointerSignal: (pointerSignal) async {
+                if (pointerSignal is PointerScrollEvent) {
+                  _scrollTimer?.cancel();
                   await widget.controller.zoomBegin();
+                  await widget.controller.zoomUpdate(
+                      pointerSignal.scrollDelta.dy > 0 ? 100 : -100);
+                  _scrollTimer = Timer(Duration(milliseconds: 100), () {
+                    widget.controller.zoomEnd();
+                    _scrollTimer = null;
+                  });
                 } else {
-                  await _functionStart(d.focalPoint.dx, d.focalPoint.dy);
+                  print(pointerSignal);
                 }
               },
-              onScaleEnd: (d) async {
-                if (d.pointerCount == 2) {
-                  _lastScale = 0;
-                  await widget.controller.zoomEnd();
-                } else {
-                  await _functionEnd();
-                }
+              onPointerPanZoomStart: (pzs) {
+                print(pzs);
               },
-              onScaleUpdate: (d) async {
-                if (d.pointerCount == 2) {
-                  if (_lastScale != 0) {
-                    await widget.controller
-                        .zoomUpdate(100 * (_lastScale - d.scale));
-                  }
-                } else {
-                  await _functionUpdate(d.focalPoint.dx, d.focalPoint.dy);
-                }
-                _lastScale = d.scale;
+              onPointerDown: (d) async {
+                await _functionStart(d.localPosition.dx, d.localPosition.dy);
               },
+              onPointerMove: (d) async {
+                await _functionUpdate(d.localPosition.dx, d.localPosition.dy);
+              },
+              onPointerUp: (d) async {
+                await _functionEnd();
+              },
+              // on
+              //   onScaleStart: (d) async {
+              //     print("SCALE START");
+              //     if (d.pointerCount == 2) {
+              //       await widget.controller.zoomEnd();
+              //       await widget.controller.zoomBegin();
+              //     } else {
+              //       await _functionStart(d.focalPoint.dx, d.focalPoint.dy);
+              //     }
+              //   },
+              //   onScaleEnd: (d) async {
+              //     print("SCALE END");
+
+              //     if (d.pointerCount == 2) {
+              //       _lastScale = 0;
+              //       await widget.controller.zoomEnd();
+              //     } else {
+              //       await _functionEnd();
+              //     }
+              //   },
+              //   onScaleUpdate: (d) async {
+              //     if (d.pointerCount == 2) {
+              //       if (_lastScale != 0) {
+              //         await widget.controller
+              //             .zoomUpdate(100 * (_lastScale - d.scale));
+              //       }
+              //     } else {
+              //       await _functionUpdate(d.focalPoint.dx, d.focalPoint.dy);
+              //     }
+              //     _lastScale = d.scale;
+              //   },
               child: widget.child)),
       widget.showControls
           ? Align(
