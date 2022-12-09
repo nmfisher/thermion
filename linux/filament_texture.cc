@@ -49,7 +49,6 @@ FLUTTER_PLUGIN_EXPORT FlTexture* create_filament_texture(uint32_t width, uint32_
 
   g_autoptr(FlTexture) texture = FL_TEXTURE(textureGL);
 
-  
   glGenTextures(1, &textureGL->texture_id);
 
   glBindTexture(GL_TEXTURE_2D, textureGL->texture_id);
