@@ -10,6 +10,7 @@
 #define LOGTAG "PolyvoxFilament"
 #else
 #include <stdio.h>
+#include <iostream>
 #endif
 
 static void Log(const char *fmt, ...) {    
@@ -23,7 +24,7 @@ static void Log(const char *fmt, ...) {
     NSLogv(format, args);
 #else
     vprintf(fmt, args);
-    printf("\n");
+    std::cout << std::endl;
 #endif
     
     va_end(args);
