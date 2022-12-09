@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:async';
@@ -58,12 +61,13 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   @override
   void initState() {
     _listener = widget.controller.onInitializationRequested.listen((_) {
-      if(_ready) {
+      if (_ready) {
         return;
       }
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
         var size = ((context.findRenderObject()) as RenderBox).size;
-        print("Requesting creation of Filament back-end texture/viewer for viewport size $size");
+        print(
+            "Requesting creation of Filament back-end texture/viewer for viewport size $size");
         await widget.controller
             .createTextureViewer(size.width.toInt(), size.height.toInt());
         print("Filament texture/viewer created.");
@@ -74,9 +78,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
         _listener = null;
       });
       // we need to make sure a new frame is requested, otherwise the callback may not run
-      setState(() {
-          
-      });
+      setState(() {});
     });
 
     super.initState();
@@ -92,14 +94,20 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     if (!_ready) {
       return Container();
     }
+    var texture = Texture(
+      textureId: widget.controller.textureId,
+      filterQuality: FilterQuality.none,
+    );
     return ResizeObserver(
         onResized: (Size oldSize, Size newSize) async {
           await widget.controller
               .resize(newSize.width.toInt(), newSize.height.toInt());
         },
-        child: Texture(
-          textureId: widget.controller.textureId,
-          filterQuality: FilterQuality.none,
-        ));
+        child: Platform.isLinux
+            ? Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.rotationX(pi),
+                child: texture)
+            : texture);
   }
 }
