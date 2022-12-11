@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <chrono>
+#include <iostream> 
 
 #include "ResourceBuffer.hpp"
 
@@ -66,19 +67,26 @@ namespace polyvox {
     //
     struct MorphAnimationStatus {
       
-      MorphAnimationStatus(float* frameData,
+      MorphAnimationStatus(float* data,
                            int numWeights,
                            int numFrames,
-                           float frameLength) : numFrames(numFrames), frameLengthInMs(frameLength), frameData(frameData), numWeights(numWeights)  {
+                           float frameLengthInMs) : numFrames(numFrames), frameLengthInMs(frameLengthInMs), numWeights(numWeights)  {
+        size_t size = numWeights * numFrames * sizeof(float);
+        frameData = (float*)malloc(size);
+        memcpy(frameData, data, size);
+      }
+
+      ~MorphAnimationStatus() {
+        delete(frameData);
       }
       
       int frameIndex = -1;
-      int numFrames;
-      float frameLengthInMs;
+      int numFrames = -1;
+      float frameLengthInMs = 0;
       time_point_t startTime;
       
-      float* frameData;
-      int numWeights;
+      float* frameData = nullptr;
+      int numWeights = 0;
     };
 }
 

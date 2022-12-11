@@ -95,8 +95,8 @@ void SceneAsset::updateMorphAnimation() {
           _morphAnimationBuffer->frameIndex);
       _morphAnimationBuffer = nullptr;
     } else if (frameIndex != _morphAnimationBuffer->frameIndex) {
-      Log("Rendering frame %d (of a total %d)", frameIndex,
-          _morphAnimationBuffer->numFrames);
+//      Log("Rendering frame %d (of a total %d)", frameIndex,
+//          _morphAnimationBuffer->numFrames);
       _morphAnimationBuffer->frameIndex = frameIndex;
       auto framePtrOffset = frameIndex * _morphAnimationBuffer->numWeights;
       applyWeights(_morphAnimationBuffer->frameData + framePtrOffset,
@@ -123,6 +123,7 @@ void SceneAsset::playAnimation(int index, bool loop, bool reverse) {
 }
 
 void SceneAsset::stopAnimation(int index) {
+  Log("Stopping animation %d", index);
   // TODO - does this need to be threadsafe?
   _embeddedAnimationStatus[index].play = false;
   _embeddedAnimationStatus[index].started = false;
@@ -199,7 +200,7 @@ void SceneAsset::updateEmbeddedAnimations() {
   auto now = high_resolution_clock::now();
   int animationIndex = 0;
   for (auto &status : _embeddedAnimationStatus) {
-    if (!status.play) {
+    if (status.play == false) {
       continue;
     }
 
