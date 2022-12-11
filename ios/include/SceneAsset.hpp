@@ -66,6 +66,7 @@ namespace polyvox {
             /// Accordingly:
             ///       length(data) = numWeights * numFrames
             ///       total_animation_duration_in_ms = number_of_frames * frameLengthInMs
+            /// [data] will be copied; you should ensure this is freed after invoking this function.
             ///
             void animateWeights(float* data, int numWeights, int numFrames, float frameLengthInMs);
 
