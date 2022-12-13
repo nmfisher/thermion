@@ -22,7 +22,7 @@ void* load_glb(void* viewer, const char* assetPath);
 void* load_gltf(void* viewer, const char* assetPath, const char* relativePath);
 bool set_camera(void* viewer, void* asset, const char* nodeName);
 void render(void* viewer, uint64_t frameTimeInNanos);
-void create_swap_chain(void* viewer, void* surface = nullptr, uint32_t width = 0, uint32_t height = 0);
+void create_swap_chain(void* viewer, void* surface, uint32_t width, uint32_t height);
 void destroy_swap_chain(void* viewer);
 void set_frame_interval(void* viewer, float interval);
 void* get_renderer(void* viewer);
