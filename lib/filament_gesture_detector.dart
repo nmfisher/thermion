@@ -83,65 +83,61 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
   Widget build(BuildContext context) {
     return Stack(children: [
       Positioned.fill(
-          child: Listener(
-              onPointerSignal: (pointerSignal) async {
-                if (pointerSignal is PointerScrollEvent) {
-                  _scrollTimer?.cancel();
+          // pinch zoom on mobile
+          // couldn't find any equivalent for pointerCount in Listener so we use two widgets:
+          // - outer is a GestureDetector only for pinch zoom
+          // - inner is a Listener for all other gestures
+          child: GestureDetector(
+              onScaleStart: (d) async {
+                if (d.pointerCount == 2) {
+                  await widget.controller.zoomEnd();
                   await widget.controller.zoomBegin();
-                  await widget.controller.zoomUpdate(
-                      pointerSignal.scrollDelta.dy > 0 ? 100 : -100);
-                  _scrollTimer = Timer(Duration(milliseconds: 100), () {
-                    widget.controller.zoomEnd();
-                    _scrollTimer = null;
-                  });
-                } else {
-                  print(pointerSignal);
                 }
               },
-              onPointerPanZoomStart: (pzs) {
-                print(pzs);
+              onScaleEnd: (d) async {
+                if (d.pointerCount == 2) {
+                  _lastScale = 0;
+                  await widget.controller.zoomEnd();
+                }
               },
-              onPointerDown: (d) async {
-                await _functionStart(d.localPosition.dx, d.localPosition.dy);
+              onScaleUpdate: (d) async {
+                if (d.pointerCount == 2) {
+                  if (_lastScale != 0) {
+                    await widget.controller
+                        .zoomUpdate(100 * (_lastScale - d.scale));
+                  }
+                }
+                _lastScale = d.scale;
               },
-              onPointerMove: (d) async {
-                await _functionUpdate(d.localPosition.dx, d.localPosition.dy);
-              },
-              onPointerUp: (d) async {
-                await _functionEnd();
-              },
-              // on
-              //   onScaleStart: (d) async {
-              //     print("SCALE START");
-              //     if (d.pointerCount == 2) {
-              //       await widget.controller.zoomEnd();
-              //       await widget.controller.zoomBegin();
-              //     } else {
-              //       await _functionStart(d.focalPoint.dx, d.focalPoint.dy);
-              //     }
-              //   },
-              //   onScaleEnd: (d) async {
-              //     print("SCALE END");
-
-              //     if (d.pointerCount == 2) {
-              //       _lastScale = 0;
-              //       await widget.controller.zoomEnd();
-              //     } else {
-              //       await _functionEnd();
-              //     }
-              //   },
-              //   onScaleUpdate: (d) async {
-              //     if (d.pointerCount == 2) {
-              //       if (_lastScale != 0) {
-              //         await widget.controller
-              //             .zoomUpdate(100 * (_lastScale - d.scale));
-              //       }
-              //     } else {
-              //       await _functionUpdate(d.focalPoint.dx, d.focalPoint.dy);
-              //     }
-              //     _lastScale = d.scale;
-              //   },
-              child: widget.child)),
+              child: Listener(
+                  onPointerSignal: (pointerSignal) async {
+                    // scroll-wheel zoom on desktop
+                    if (pointerSignal is PointerScrollEvent) {
+                      _scrollTimer?.cancel();
+                      await widget.controller.zoomBegin();
+                      await widget.controller.zoomUpdate(
+                          pointerSignal.scrollDelta.dy > 0 ? 100 : -100);
+                      _scrollTimer = Timer(Duration(milliseconds: 100), () {
+                        widget.controller.zoomEnd();
+                        _scrollTimer = null;
+                      });
+                    } else {
+                      print(pointerSignal);
+                    }
+                  },
+                  onPointerPanZoomStart: (pzs) {},
+                  onPointerDown: (d) async {
+                    await _functionStart(
+                        d.localPosition.dx, d.localPosition.dy);
+                  },
+                  onPointerMove: (d) async {
+                    await _functionUpdate(
+                        d.localPosition.dx, d.localPosition.dy);
+                  },
+                  onPointerUp: (d) async {
+                    await _functionEnd();
+                  },
+                  child: widget.child))),
       widget.showControls
           ? Align(
               alignment: Alignment.bottomRight,
