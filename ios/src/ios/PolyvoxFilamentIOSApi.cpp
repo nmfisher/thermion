@@ -26,7 +26,4 @@ extern "C" {
 
       return (void*)viewer;
     }
-    void create_swap_chain(void* viewer, void* texture) {
-        ((FilamentViewer*)viewer)->createSwapChain(texture);
-    }
 }

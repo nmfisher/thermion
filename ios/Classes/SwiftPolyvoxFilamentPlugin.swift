@@ -119,11 +119,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                                       kCVPixelFormatType_32BGRA, pixelBufferAttrs, &targetPixelBuffer) != kCVReturnSuccess) {
         print("Error allocating pixel buffer")
       }
-      if(self.viewer != nil) {
-        create_swap_chain(self.viewer, unsafeBitCast(targetPixelBuffer!, to: UnsafeMutableRawPointer.self))
-        update_viewport_and_camera_projection(self.viewer!, Int32(width), Int32(height), 1.0);
-      }
-
       print("Pixel buffer created")
     }
   
@@ -136,11 +131,16 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       freeResourcePtr = unsafeBitCast(freeResource, to: UnsafeMutableRawPointer.self)
 
       viewer = filament_viewer_new_ios(
-        unsafeBitCast(targetPixelBuffer!, to: UnsafeMutableRawPointer.self),
+        nil,
         loadResourcePtr!,
         freeResourcePtr!,
         Unmanaged.passUnretained(self).toOpaque()
       )
+
+      create_swap_chain(
+        self.viewer, 
+        unsafeBitCast(targetPixelBuffer!, to: UnsafeMutableRawPointer.self),
+        UInt32(width), UInt32(height))
 
       update_viewport_and_camera_projection(self.viewer!, Int32(width), Int32(height), 1.0);
       
@@ -285,6 +285,10 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             let width = Int(args[0])
             let height = Int(args[1])
             createPixelBuffer(width: width, height:height)
+            create_swap_chain(
+              self.viewer, 
+              unsafeBitCast(targetPixelBuffer!, to: UnsafeMutableRawPointer.self),
+              UInt32(width), UInt32(height))
             result("OK")
         case "rotateStart":
           let args = call.arguments as! Array<Any>
