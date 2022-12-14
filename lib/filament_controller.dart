@@ -143,7 +143,7 @@ class PolyvoxFilamentController extends FilamentController {
   Future resize(int width, int height,
       {double contentScaleFactor = 1.0}) async {
     size = Size(width * _pixelRatio, height * _pixelRatio);
-    await _channel.invokeMethod("resize",
+    textureId = await _channel.invokeMethod("resize",
         [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
   }
 
