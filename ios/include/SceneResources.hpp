@@ -31,17 +31,17 @@ namespace polyvox {
       // 
       // A flag that is checked each frame to determine whether or not the animation should play.
       //
-      bool play;
+      bool play = false;
 
       //
       // If [play] is true, this flag will be checked when the animation is complete. If true, the animation will restart.
       //
-      bool loop;
+      bool loop = false;
 
       //
       // If true, the animation will be played in reverse.
       //
-      bool reverse;
+      bool reverse = false;
       
       // 
       // If [play] is true, this flag will be set to true when the animation is started.
@@ -51,7 +51,7 @@ namespace polyvox {
       //
       // The index of the animation in the GLTF asset.
       //
-      int animationIndex;
+      int animationIndex = -1;
       
       //
       // The time point at which this animation was last started.
