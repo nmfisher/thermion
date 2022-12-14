@@ -38,9 +38,11 @@ struct _PolyvoxFilamentPlugin {
   GObject parent_instance;
   FlTextureRegistrar* texture_registrar;
   FlView* fl_view;
-
   FlTexture* texture;
   void* _viewer;
+
+  double width;
+  double height;
 };
 
 G_DEFINE_TYPE(PolyvoxFilamentPlugin, polyvox_filament_plugin, g_object_get_type())
@@ -72,7 +74,9 @@ static FlMethodResponse* _initialize(PolyvoxFilamentPlugin* self, FlMethodCall* 
     const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
     const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
 
-   
+    self->width = width;
+    self->height = height;
+
     auto texture = create_filament_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
     //auto texture = create_filament_pb_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
     self->texture = texture;
@@ -364,6 +368,37 @@ static FlMethodResponse* _get_target_names(PolyvoxFilamentPlugin* self, FlMethod
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
+// TODO - defer the destruction of the old texture until this call has returned
+// otherwise the front-end may render using the destroyed texture ID for a single frame (hopefully no more)
+static FlMethodResponse* _resize(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  
+  const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
+  const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
+
+  if(width != self->width || height != self->height) {
+
+    destroy_swap_chain(self->_viewer);
+
+    destroy_filament_texture(self->texture, self->texture_registrar);
+
+    self->texture = create_filament_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
+
+    create_swap_chain(self->_viewer, nullptr, width, height);
+    create_render_target(self->_viewer, ((FilamentTextureGL*)self->texture)->texture_id,width,height);
+      
+    update_viewport_and_camera_projection(self->_viewer, width, height, 1.0f);
+
+    std::cout << "Created new texture " << self->texture << std::endl;
+  }
+
+  g_autoptr(FlValue) result =   
+         fl_value_new_int(reinterpret_cast<int64_t>(self->texture));   
+      
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+
 // Called when a method call is received from Flutter.
 static void polyvox_filament_plugin_handle_method_call(
     PolyvoxFilamentPlugin* self,
@@ -380,13 +415,7 @@ static void polyvox_filament_plugin_handle_method_call(
   } else if(strcmp(method, "removeSkybox") == 0) {
     response = _removeSkybox(self, method_call);    
   } else if(strcmp(method, "resize") == 0) { 
-      // val args = call.arguments as ArrayList<Int>
-      // val width = args[0]
-      // val height = args[1]
-      // val scale = if(args.size > 2) (args[2] as Double).toFloat() else 1.0f
-      // surfaceTexture!!.setDefaultBufferSize(width, height)
-      // _lib.update_viewport_and_camera_projection(_viewer!!, width, height, scale);
-      // result.success(null)
+    response = _resize(self, method_call);    
   } else if(strcmp(method, "render") == 0) {
     render(self->_viewer, 0);
     g_autoptr(FlValue) result = fl_value_new_string("OK");

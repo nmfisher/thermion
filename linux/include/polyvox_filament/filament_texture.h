@@ -26,6 +26,7 @@ struct _FilamentTextureGL {
     GLuint texture_id;
     uint32_t width;
     uint32_t height;
+    FlTextureRegistrar* registrar;
 };
 
 typedef struct _FilamentTextureGL FilamentTextureGL;
@@ -37,12 +38,12 @@ typedef struct {
                        uint32_t* width,
                        uint32_t* height,
                        GError** error);
-
   GLuint texture_id;
 } FilamentTextureGLClass;
 
 G_END_DECLS
 
 FLUTTER_PLUGIN_EXPORT FlTexture* create_filament_texture(uint32_t width, uint32_t height, FlTextureRegistrar* registrar);
+FLUTTER_PLUGIN_EXPORT void destroy_filament_texture(FlTexture* texture, FlTextureRegistrar* registrar);
 
 #endif 

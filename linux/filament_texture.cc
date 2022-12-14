@@ -32,7 +32,9 @@ filament_texture_populate (FlTextureGL *texture,
 }
 
 void filament_texture_gl_dispose(GObject* object) {
-    G_OBJECT_CLASS(filament_texture_gl_parent_class)->dispose(object);
+  auto filamentTextureGL = FILAMENT_TEXTURE_GL(object);
+  glDeleteTextures(1, &(filamentTextureGL->texture_id));
+  filamentTextureGL->texture_id = 0;
 }
 
 void filament_texture_gl_class_init(FilamentTextureGLClass* klass) {
@@ -42,10 +44,15 @@ void filament_texture_gl_class_init(FilamentTextureGLClass* klass) {
 
 void filament_texture_gl_init(FilamentTextureGL* self) { }
 
-FLUTTER_PLUGIN_EXPORT FlTexture* create_filament_texture(uint32_t width, uint32_t height, FlTextureRegistrar* registrar) {   
+void destroy_filament_texture(FlTexture* texture, FlTextureRegistrar* registrar) { 
+  fl_texture_registrar_unregister_texture(registrar, texture);
+}
+
+FlTexture* create_filament_texture(uint32_t width, uint32_t height, FlTextureRegistrar* registrar) {   
   auto textureGL = FILAMENT_TEXTURE_GL(g_object_new(filament_texture_gl_get_type(), nullptr));
   textureGL->width = width;
   textureGL->height = height;
+  textureGL->registrar = registrar;
 
   g_autoptr(FlTexture) texture = FL_TEXTURE(textureGL);
 
@@ -61,13 +68,13 @@ FLUTTER_PLUGIN_EXPORT FlTexture* create_filament_texture(uint32_t width, uint32_
   glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA8, textureGL->width, textureGL->height, 0, GL_RGBA,
                   GL_UNSIGNED_BYTE, 0);
    
-    if(fl_texture_registrar_register_texture(registrar, texture) == TRUE) { 
+  if(fl_texture_registrar_register_texture(registrar, texture) == TRUE) { 
 
-      if(fl_texture_registrar_mark_texture_frame_available(registrar,
-                                                      texture) != TRUE) {
-        std::cout << "FAILED" << std::endl;
-        return nullptr;
-      } 
-    }
-    return texture;
+    if(fl_texture_registrar_mark_texture_frame_available(registrar,
+                                                    texture) != TRUE) {
+      std::cout << "FAILED" << std::endl;
+      return nullptr;
+    } 
+  }
+  return texture;
 }
