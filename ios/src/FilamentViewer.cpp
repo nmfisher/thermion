@@ -573,6 +573,15 @@ void FilamentViewer::createRenderTarget(uint32_t glTextureId, uint32_t width, ui
 }
 
 void FilamentViewer::destroySwapChain() {
+  if(_rt) {
+    _view->setRenderTarget(nullptr);
+    _engine->destroy(_rtDepth);
+    _engine->destroy(_rtColor);
+    _engine->destroy(_rt);
+    _rt = nullptr;
+    _rtDepth = nullptr;
+    _rtColor = nullptr;
+  }
   if (_swapChain) {
     _engine->destroy(_swapChain);
     _swapChain = nullptr;
