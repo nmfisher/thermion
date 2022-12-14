@@ -68,4 +68,5 @@ linux/lib/libtinyexr.a filter=lfs diff=lfs merge=lfs -text
 linux/lib/libz.a filter=lfs diff=lfs merge=lfs -text
 linux/lib/libmatdbg.a filter=lfs diff=lfs merge=lfs -text
 linux/lib/libSPIRV-Tools-opt.a filter=lfs diff=lfs merge=lfs -text
+windows/lib/** filter=lfs diff=lfs merge=lfs -text
 *.a filter=lfs diff=lfs merge=lfs -text
