@@ -75,6 +75,8 @@ void SceneAsset::updateMorphAnimation() {
   }
 
   if (_morphAnimationBuffer->frameIndex == -1) {
+//    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+//    Log("Frame 1 at %lu", ms);
     _morphAnimationBuffer->frameIndex++;
     _morphAnimationBuffer->startTime = high_resolution_clock::now();
     applyWeights(_morphAnimationBuffer->frameData,
@@ -94,7 +96,7 @@ void SceneAsset::updateMorphAnimation() {
           1000 / _morphAnimationBuffer->frameLengthInMs,
           _morphAnimationBuffer->frameIndex);
       _morphAnimationBuffer = nullptr;
-    } else if (frameIndex != _morphAnimationBuffer->frameIndex) {
+    } else if (frameIndex > _morphAnimationBuffer->frameIndex) {
 //      Log("Rendering frame %d (of a total %d)", frameIndex,
 //          _morphAnimationBuffer->numFrames);
       _morphAnimationBuffer->frameIndex = frameIndex;
@@ -211,7 +213,6 @@ void SceneAsset::updateEmbeddedAnimations() {
     float animationTimeOffset = 0;
     bool finished = false;
     if (!status.started) {
-      Log("Starting");
 
       status.started = true;
       status.startedAt = now;
