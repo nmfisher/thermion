@@ -15,7 +15,11 @@ class Animation {
   final Float32List? boneTransforms;
 
   Animation(this.morphData, this.numMorphWeights, this.boneTransforms,
-      this.boneNames, this.meshNames, this.numFrames, this.frameLengthInMs);
+      this.boneNames, this.meshNames, this.numFrames, this.frameLengthInMs) {
+    if (morphData != null && morphData!.length != numFrames * numMorphWeights) {
+      throw Exception("Mismatched animation data with frame length");
+    }
+  }
 
   Animation.from(
       {required List<List<double>> morphData,
