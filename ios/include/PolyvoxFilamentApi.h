@@ -38,7 +38,30 @@ void grab_end(void* viewer);
 
 void apply_weights(void* asset, float* const weights, int count);
     
-void animate_weights(void* asset, float* data, int numWeights, int numFrames,  float frameRate);
+void set_animation(
+    void* asset, 
+    float* morphData, 
+    int numMorphWeights, 
+    float* boneData, 
+    const char** boneNames, 
+    const char** meshNames, 
+    int numBones, 
+    int numFrames, 
+    float frameLengthInMs
+);
+
+void set_bone_transform(
+    void* asset, 
+    const char* boneName, 
+    const char* entityName,
+    float transX, 
+    float transY, 
+    float transZ, 
+    float quatX,
+    float quatY,
+    float quatZ,
+    float quatW
+);
     
 void play_animation(void* asset, int index, bool loop, bool reverse);
 void stop_animation(void* asset, int index);
@@ -47,9 +70,9 @@ int get_animation_count(void* asset);
     
 void get_animation_name(void* asset, char* const outPtr, int index);
 
-void get_target_name(void* asset, const char* meshName, char* const outPtr, int index );
+void get_morph_target_name(void* asset, const char* meshName, char* const outPtr, int index );
 
-int get_target_name_count(void* asset, const char* meshName);
+int get_morph_target_name_count(void* asset, const char* meshName);
     
 void remove_asset(void* viewer, void* asset);
     

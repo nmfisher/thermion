@@ -96,7 +96,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     }
     var texture = Texture(
       textureId: widget.controller.textureId,
-      filterQuality: FilterQuality.none,
+      filterQuality: FilterQuality.high,
     );
     return ResizeObserver(
         onResized: (Size oldSize, Size newSize) async {

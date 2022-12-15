@@ -4,11 +4,14 @@
 #include <memory>
 #include <chrono>
 #include <iostream> 
+#include <vector>
 
 #include "ResourceBuffer.hpp"
 
 namespace polyvox { 
-   using namespace std;
+    
+    using namespace std;
+
     // 
     // Typedef for a function that loads a resource into a ResourceBuffer from an asset URI.
     //
@@ -22,11 +25,13 @@ namespace polyvox {
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;   
 
     // 
-    // Holds the current state of a bone animation embeded in a GLTF asset. 
-    // Currently, an instance will be constructed for every animation in an asset whenever a SceneAsset is created (and thus will persist for the lifetime of the SceneAsset).
+    // Holds the current state of a GLTF animation. 
+    // Whenever a SceneAsset is created, an instance of GLTFAnimation will be created for every embedded animation.
+    // On each frame loop, we check if [play] is true, and if so, advance the animation to the correct frame based on [startedAt].
+    // The [GLTFAnimation] will persist for the lifetime of the SceneAsset.
     //
-    struct EmbeddedAnimationStatus  {        
-      EmbeddedAnimationStatus(bool loop, bool reverse) : loop(loop), reverse(reverse) {}
+    struct GLTFAnimation  {        
+      GLTFAnimation(bool loop, bool reverse) : loop(loop), reverse(reverse) {}
 
       // 
       // A flag that is checked each frame to determine whether or not the animation should play.
@@ -59,34 +64,64 @@ namespace polyvox {
       //
       time_point_t startedAt;
 
-      
     };
 
     // 
-    // Holds the current state of a morph-target animation in a GLTF asset.
+    // An animation created by manually passing frame data for morph weights/bone transforms.
     //
-    struct MorphAnimationStatus {
+    struct RuntimeAnimation {
       
-      MorphAnimationStatus(float* data,
-                           int numWeights,
-                           int numFrames,
-                           float frameLengthInMs) : numFrames(numFrames), frameLengthInMs(frameLengthInMs), numWeights(numWeights)  {
-        size_t size = numWeights * numFrames * sizeof(float);
-        frameData = (float*)malloc(size);
-        memcpy(frameData, data, size);
+      RuntimeAnimation(float* morphData,
+                       int numMorphWeights,
+                       float* boneData,
+                       const char** boneNames,
+                       const char** meshNames,
+                       int numBones,
+                       int numFrames,
+                       float frameLengthInMs) : 
+                       mNumFrames(numFrames), 
+                       mFrameLengthInMs(frameLengthInMs), 
+                       mNumMorphWeights(numMorphWeights), 
+                       mNumBones(numBones) {
+
+        if(numMorphWeights > 0) {
+          size_t morphSize = numMorphWeights * mNumFrames * sizeof(float);
+          mMorphFrameData = (float*)malloc(morphSize);
+          memcpy(mMorphFrameData, morphData, morphSize);
+        }
+
+        if(numBones > 0) { 
+          size_t boneSize = numBones * numFrames * 7 * sizeof(float);
+          mBoneFrameData = (float*)malloc(boneSize);
+          memcpy(mBoneFrameData, boneData, boneSize);
+        }
+        
+        for(int i =0; i < numBones; i++) {
+          mBoneNames.push_back(string(boneNames[i]));
+          mMeshNames.push_back(string(meshNames[i]));
+        }
       }
 
-      ~MorphAnimationStatus() {
-        delete(frameData);
+      ~RuntimeAnimation() {
+        delete(mMorphFrameData);
+        delete(mBoneFrameData);
       }
       
       int frameIndex = -1;
-      int numFrames = -1;
-      float frameLengthInMs = 0;
+      int mNumFrames = -1;
+      float mFrameLengthInMs = 0;
       time_point_t startTime;
       
-      float* frameData = nullptr;
-      int numWeights = 0;
+      float* mMorphFrameData = nullptr;
+      int mNumMorphWeights = 0;
+
+      float* mBoneFrameData = nullptr;
+      int mNumBones = 0;
+              
+      vector<string> mBoneNames;
+      vector<string> mMeshNames;
+
     };
+  
 }
 
