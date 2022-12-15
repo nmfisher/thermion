@@ -4,6 +4,9 @@ class Vec3 {
   final double z;
 
   Vec3({this.x = 0, this.y = 0, this.z = 0});
+
+  factory Vec3.from(List<double> vals) =>
+      Vec3(x: vals[0], y: vals[1], z: vals[2]);
 }
 
 class Quaternion {
@@ -13,6 +16,9 @@ class Quaternion {
   double w = 1;
 
   Quaternion({this.x = 0, this.y = 0, this.z = 0, this.w = 1.0});
+
+  factory Quaternion.from(List<double> vals) =>
+      Quaternion(x: vals[0], y: vals[1], z: vals[2], w: vals[3]);
 }
 
 class BoneTransform {
