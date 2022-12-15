@@ -105,29 +105,29 @@ void SceneAsset::updateRuntimeAnimation() {
   if (frameIndex > _runtimeAnimationBuffer->frameIndex) {
     _runtimeAnimationBuffer->frameIndex = frameIndex;
     if(_runtimeAnimationBuffer->mMorphFrameData) {
-      auto morphFramePtrOffset = frameIndex * _runtimeAnimationBuffer->mNumMorphWeights;
-      setMorphTargetWeights(_runtimeAnimationBuffer->mMorphFrameData + morphFramePtrOffset,
-                    _runtimeAnimationBuffer->mNumMorphWeights);
+      // auto morphFramePtrOffset = frameIndex * _runtimeAnimationBuffer->mNumMorphWeights;
+      // setMorphTargetWeights(_runtimeAnimationBuffer->mMorphFrameData + morphFramePtrOffset,
+      //               _runtimeAnimationBuffer->mNumMorphWeights);
     }
 
-    if(_runtimeAnimationBuffer->mBoneFrameData) {
+    // if(_runtimeAnimationBuffer->mBoneFrameData) {
 
-      for(int i = 0; i < _runtimeAnimationBuffer->mNumBones; i++) {
-        auto boneFramePtrOffset = (frameIndex * _runtimeAnimationBuffer->mNumBones * 7) + (i*7);
-        const char* boneName = _runtimeAnimationBuffer->mBoneNames[i].c_str();
-        const char* meshName = _runtimeAnimationBuffer->mMeshNames[i].c_str();
-        float* frame = _runtimeAnimationBuffer->mBoneFrameData + boneFramePtrOffset;
+      // for(int i = 0; i < _runtimeAnimationBuffer->mNumBones; i++) {
+      //   auto boneFramePtrOffset = (frameIndex * _runtimeAnimationBuffer->mNumBones * 7) + (i*7);
+      //   const char* boneName = _runtimeAnimationBuffer->mBoneNames[i].c_str();
+      //   const char* meshName = _runtimeAnimationBuffer->mMeshNames[i].c_str();
+      //   float* frame = _runtimeAnimationBuffer->mBoneFrameData + boneFramePtrOffset;
 
-        float transX = frame[0];
-        float transY = frame[1];
-        float transZ = frame[2];
-        float quatX = frame[3];
-        float quatY = frame[4];
-        float quatZ = frame[5];
-        float quatW = frame[6];
-        setBoneTransform(boneName, meshName, transX, transY, transZ, quatX, quatY, quatZ, quatW);
-      }
-    }
+      //   float transX = frame[0];
+      //   float transY = frame[1];
+      //   float transZ = frame[2];
+      //   float quatX = frame[3];
+      //   float quatY = frame[4];
+      //   float quatZ = frame[5];
+      //   float quatW = frame[6];
+      //   setBoneTransform(boneName, meshName, transX, transY, transZ, quatX, quatY, quatZ, quatW);
+      // }
+    // }
   }
 }
 

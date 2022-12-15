@@ -3,19 +3,37 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class Animation {
-  final Float32List morphWeights;
+  late final Float32List? morphData;
   final int numMorphWeights;
 
   final int numFrames;
   final double frameLengthInMs;
 
-  final List<String> boneNames;
-  final List<String> meshNames;
+  final List<String>? boneNames;
+  final List<String>? meshNames;
 
-  final Float32List boneTransforms;
+  final Float32List? boneTransforms;
 
-  Animation(this.morphWeights, this.numMorphWeights, this.boneTransforms,
+  Animation(this.morphData, this.numMorphWeights, this.boneTransforms,
       this.boneNames, this.meshNames, this.numFrames, this.frameLengthInMs);
+
+  Animation.from(
+      {required List<List<double>> morphData,
+      required this.numMorphWeights,
+      this.boneTransforms,
+      this.boneNames,
+      this.meshNames,
+      required this.numFrames,
+      required this.frameLengthInMs}) {
+    if (morphData.length != numFrames) {
+      throw Exception("Mismatched animation data with frame length");
+    }
+    this.morphData = Float32List(numMorphWeights * numFrames);
+    for (int i = 0; i < numFrames; i++) {
+      this.morphData!.setRange((i * numMorphWeights),
+          (i * numMorphWeights) + numMorphWeights, morphData[i]);
+    }
+  }
 }
 
 class AnimationBuilder {
@@ -39,7 +57,7 @@ class AnimationBuilder {
 
     int numFrames = _duration * 1000 ~/ _frameLengthInMs;
 
-    final _morphWeights = Float32List((numFrames * _numMorphWeights).toInt());
+    final morphData = Float32List((numFrames * _numMorphWeights).toInt());
 
     var frameStart = (_interpMorphStart! * 1000) ~/ _frameLengthInMs;
     var frameEnd = (_interpMorphEnd! * 1000) ~/ _frameLengthInMs;
@@ -50,12 +68,12 @@ class AnimationBuilder {
       var val = ((1 - linear) * _interpMorphStartValue!) +
           (linear * _interpMorphEndValue!);
       for (int j = 0; j < _numMorphWeights; j++) {
-        _morphWeights[(i * _numMorphWeights) + j] = val;
+        morphData[(i * _numMorphWeights) + j] = val;
       }
     }
 
     print(
-        "Created morphWeights of size ${_morphWeights.length} (${_morphWeights.lengthInBytes} for ${numFrames} frames");
+        "Created morphWeights of size ${morphData.length} (${morphData.lengthInBytes} for ${numFrames} frames");
 
     final boneTransforms = Float32List(numFrames * _boneTransforms.length * 7);
     print(
@@ -71,8 +89,8 @@ class AnimationBuilder {
           "frameData for frame $i ${boneTransforms.sublist(i * _boneTransforms.length * 7, (i * _boneTransforms.length * 7) + 7)}");
     }
 
-    return Animation(_morphWeights, _numMorphWeights, boneTransforms,
-        _boneNames, _meshNames, numFrames, _frameLengthInMs);
+    return Animation(morphData, _numMorphWeights, boneTransforms, _boneNames,
+        _meshNames, numFrames, _frameLengthInMs);
   }
 
   AnimationBuilder setFramerate(int framerate) {

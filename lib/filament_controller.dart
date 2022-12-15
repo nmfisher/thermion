@@ -222,7 +222,6 @@ class PolyvoxFilamentController extends FilamentController {
   Future<FilamentAsset> loadGlb(String path) async {
     print("Loading GLB at $path ");
     var asset = await _channel.invokeMethod("loadGlb", path);
-    print("Got asset : $asset ");
     return asset as FilamentAsset;
   }
 
@@ -283,13 +282,14 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future setAnimation(FilamentAsset asset, Animation animation) async {
+    print("Frmael en ${animation.frameLengthInMs}");
     await _channel.invokeMethod("setAnimation", [
       asset,
-      animation.morphWeights,
+      animation.morphData!,
       animation.numMorphWeights,
-      animation.boneTransforms,
-      animation.boneNames,
-      animation.meshNames,
+      animation.boneTransforms ?? Float32List(0),
+      animation.boneNames ?? <String>[],
+      animation.meshNames ?? <String>[],
       animation.numFrames,
       animation.frameLengthInMs
     ]);
