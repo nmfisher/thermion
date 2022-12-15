@@ -380,23 +380,31 @@ static FlMethodResponse* _set_animation(PolyvoxFilamentPlugin* self, FlMethodCal
   int64_t numMorphWeights = fl_value_get_int(fl_value_get_list_value(args, 2));
 
   float* const boneData = (float* const) fl_value_get_float32_list(fl_value_get_list_value(args, 3));  
+
   FlValue* boneNamesValue = fl_value_get_list_value(args, 4);  
   int64_t numBones = fl_value_get_length(boneNamesValue);
-  const char* boneNames[numBones];
-  for(int i=0; i< numBones;i++) {
-    boneNames[i] = fl_value_get_string(fl_value_get_list_value(boneNamesValue, i));
-  }
+
+  const char** boneNames = nullptr;
+  const char** meshNames = nullptr;
+  if(numBones > 0) {
+    boneNames = new const char*[numBones];
+    meshNames = new const char*[numBones];
+    
+    
+    for(int i=0; i< numBones;i++) {
+      boneNames[i] = fl_value_get_string(fl_value_get_list_value(boneNamesValue, i));
+    }
   
-  FlValue* meshNamesValue = fl_value_get_list_value(args, 5);  
-  const char* meshNames[numBones];
-  for(int i=0; i< numBones;i++) {
-    meshNames[i] = fl_value_get_string(fl_value_get_list_value(meshNamesValue, i));
+    FlValue* meshNamesValue = fl_value_get_list_value(args, 5);  
+    
+    for(int i=0; i< numBones;i++) {
+      meshNames[i] = fl_value_get_string(fl_value_get_list_value(meshNamesValue, i));
+    }
   }
   
   int64_t numFrames = fl_value_get_int(fl_value_get_list_value(args, 6));
   float frameLengthInMs = fl_value_get_float(fl_value_get_list_value(args, 7));
-
-  set_animation(assetPtr, morphData, numMorphWeights, boneData, boneNames, meshNames, numBones, numFrames,  1000.0f / frameLengthInMs);
+  set_animation(assetPtr, morphData, numMorphWeights, boneData, boneNames, meshNames, numBones, numFrames,  frameLengthInMs);
 
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
