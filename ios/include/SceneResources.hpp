@@ -90,16 +90,16 @@ namespace polyvox {
           memcpy(mMorphFrameData, morphData, morphSize);
         }
 
-        // if(numBones > 0) { 
-        //   size_t boneSize = numBones * numFrames * 7 * sizeof(float);
-        //   mBoneFrameData = (float*)malloc(boneSize);
-        //   memcpy(mBoneFrameData, boneData, boneSize);
-        // }
+        if(numBones > 0) { 
+          size_t boneSize = numBones * numFrames * 7 * sizeof(float);
+          mBoneFrameData = (float*)malloc(boneSize);
+          memcpy(mBoneFrameData, boneData, boneSize);
+        }
         
-        // for(int i =0; i < numBones; i++) {
-        //   mBoneNames.push_back(string(boneNames[i]));
-        //   mMeshNames.push_back(string(meshNames[i]));
-        // }
+        for(int i =0; i < numBones; i++) {
+          mBoneNames.push_back(string(boneNames[i]));
+          mMeshNames.push_back(string(meshNames[i]));
+        }
       }
 
       ~RuntimeAnimation() {
