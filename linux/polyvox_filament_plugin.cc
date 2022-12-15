@@ -251,6 +251,42 @@ static FlMethodResponse* _pan_end(PolyvoxFilamentPlugin* self, FlMethodCall* met
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
+static FlMethodResponse* _set_position(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+
+  set_position(
+    assetPtr, 
+    (float)fl_value_get_float(fl_value_get_list_value(args, 1)), // x
+    (float)fl_value_get_float(fl_value_get_list_value(args, 2)), // y
+    (float)fl_value_get_float(fl_value_get_list_value(args, 3)) // z
+  );
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_bone_transform(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto boneName = fl_value_get_string(fl_value_get_list_value(args, 1));
+  auto meshName = fl_value_get_string(fl_value_get_list_value(args, 2));
+
+  set_bone_transform(
+    assetPtr, 
+    boneName,
+    meshName,
+    (float)fl_value_get_float(fl_value_get_list_value(args, 3)), // transX
+    (float)fl_value_get_float(fl_value_get_list_value(args, 4)), // transY
+    (float)fl_value_get_float(fl_value_get_list_value(args, 5)), // transZ
+    (float)fl_value_get_float(fl_value_get_list_value(args, 6)), // quatX
+    (float)fl_value_get_float(fl_value_get_list_value(args, 7)), // quatY
+    (float)fl_value_get_float(fl_value_get_list_value(args, 8)), // quatZ
+    (float)fl_value_get_float(fl_value_get_list_value(args, 9)) // quatW
+  );
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
 static FlMethodResponse* _set_camera_position(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
@@ -335,33 +371,48 @@ static FlMethodResponse* _apply_weights(PolyvoxFilamentPlugin* self, FlMethodCal
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _animate_weights(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
-  auto weightsValue = fl_value_get_list_value(args, 1);
+  
+  float* const morphData = (float* const) fl_value_get_float32_list(fl_value_get_list_value(args, 1));  
+  
+  int64_t numMorphWeights = fl_value_get_int(fl_value_get_list_value(args, 2));
 
-  float* const weights = (float* const) fl_value_get_float32_list(weightsValue);  
-  int64_t numWeights = fl_value_get_int(fl_value_get_list_value(args, 2));
-  int64_t numFrames = fl_value_get_int(fl_value_get_list_value(args, 3));
-  float frameLengthInMs = fl_value_get_float(fl_value_get_list_value(args, 4));
+  float* const boneData = (float* const) fl_value_get_float32_list(fl_value_get_list_value(args, 3));  
+  FlValue* boneNamesValue = fl_value_get_list_value(args, 4);  
+  int64_t numBones = fl_value_get_length(boneNamesValue);
+  const char* boneNames[numBones];
+  for(int i=0; i< numBones;i++) {
+    boneNames[i] = fl_value_get_string(fl_value_get_list_value(boneNamesValue, i));
+  }
+  
+  FlValue* meshNamesValue = fl_value_get_list_value(args, 5);  
+  const char* meshNames[numBones];
+  for(int i=0; i< numBones;i++) {
+    meshNames[i] = fl_value_get_string(fl_value_get_list_value(meshNamesValue, i));
+  }
+  
+  int64_t numFrames = fl_value_get_int(fl_value_get_list_value(args, 6));
+  float frameLengthInMs = fl_value_get_float(fl_value_get_list_value(args, 7));
 
-  animate_weights(assetPtr, weights, numWeights, numFrames,  1000.0f / frameLengthInMs);
+  set_animation(assetPtr, morphData, numMorphWeights, boneData, boneNames, meshNames, numBones, numFrames,  1000.0f / frameLengthInMs);
 
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _get_target_names(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _get_morph_target_names(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto meshName = fl_value_get_string(fl_value_get_list_value(args, 1));
   g_autoptr(FlValue) result = fl_value_new_list();
 
-  auto numNames = get_target_name_count(assetPtr, meshName);
+  auto numNames = get_morph_target_name_count(assetPtr, meshName);
 
   for(int i = 0; i < numNames; i++) {
     gchar out[255];
-    get_target_name(assetPtr, meshName, out, i);
+    get_morph_target_name(assetPtr, meshName, out, i);
     fl_value_append_take (result, fl_value_new_string (out));
   }
       
@@ -468,12 +519,16 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _play_animation(self, method_call);
   } else if(strcmp(method, "stopAnimation") == 0) {
     response = _stop_animation(self, method_call);
-  } else if(strcmp(method, "applyWeights") == 0) {
+  } else if(strcmp(method, "setMorphTargetWeights") == 0) {
     response = _apply_weights(self, method_call);
-  } else if(strcmp(method, "animateWeights") == 0) {
-    response = _animate_weights(self, method_call);
-  } else if(strcmp(method, "getTargetNames") == 0) {
-    response = _get_target_names(self, method_call);
+  } else if(strcmp(method, "setAnimation") == 0) {
+    response = _set_animation(self, method_call);
+  } else if(strcmp(method, "getMorphTargetNames") == 0) {
+    response = _get_morph_target_names(self, method_call);
+  } else if(strcmp(method, "setPosition") == 0) {
+    response = _set_position(self, method_call);
+  } else if(strcmp(method, "setBoneTransform") == 0) {
+    response = _set_bone_transform(self, method_call);
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }

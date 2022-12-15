@@ -170,16 +170,16 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   // options.minScale = filament::math::float2{ minScale };
   // options.maxScale = filament::math::float2{ maxScale };
   // options.sharpness = sharpness;
-  options.quality = View::QualityLevel::MEDIUM;
-  ;
+  options.quality = View::QualityLevel::HIGH;
+  
   _view->setDynamicResolutionOptions(options);
 
-  View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
-  multiSampleAntiAliasingOptions.enabled = false;
+  //View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
+  //multiSampleAntiAliasingOptions.enabled = true;
 
-  _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
+  //_view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
 
-  // _view->setAntiAliasing(AntiAliasing::NONE);
+  //_view->setAntiAliasing(AntiAliasing::NONE);
 
   _materialProvider = 
   // new UnlitMaterialProvider(_engine);

@@ -31,7 +31,7 @@ namespace polyvox {
             SceneAsset(FilamentAsset* asset, Engine* engine, NameComponentManager* ncm, LoadResource loadResource, FreeResource freeResource);
             ~SceneAsset();
 
-            unique_ptr<vector<string>> getTargetNames(const char* meshName);
+            unique_ptr<vector<string>> getMorphTargetNames(const char* meshName);
             unique_ptr<vector<string>> getAnimationNames();
 
             ///
@@ -57,18 +57,39 @@ namespace polyvox {
 
             ///
             /// Manually set the weights for all morph targets in the assets to the provided values.
-            /// See [animateWeights] if you want to automatically
+            /// See [setAnimation] if you want to do the same across a number of frames (and extended to bone transforms).
             ///
-            void applyWeights(float* weights, int count);
+            void setMorphTargetWeights(float* weights, int count);
 
             ///
-            /// Update the asset's morph target weights every "frame" (which is an arbitrary length of time, i.e. this is not the same as a frame at the framerate of the underlying rendering framework).
-            /// Accordingly:
-            ///       length(data) = numWeights * numFrames
-            ///       total_animation_duration_in_ms = number_of_frames * frameLengthInMs
-            /// [data] will be copied; you should ensure this is freed after invoking this function.
+            /// Animates the asset's morph targets/bone transforms according to the frame weights/transforms specified in [morphData]/[boneData].
+            ///  The duration of each "frame" is specified by [frameLengthInMs] (i.e. this is not the framerate of the renderer).
+            /// [morphData] is a contiguous chunk of floats whose length will be (numMorphWeights * numFrames).
+            /// [boneData] is a contiguous chunk of floats whose length will be (numBones * 7 * numFrames) (where 7 is 3 floats for translation, 4 for quat rotation).
+            /// [morphData] and [boneData] will both be copied, so remember to free these after calling this function.
             ///
-            void animateWeights(float* data, int numWeights, int numFrames, float frameLengthInMs);
+            void setAnimation(
+                float* morphData, 
+                int numMorphWeights, 
+                float* boneData, 
+                const char** boneNames, 
+                const char** meshNames, 
+                int numBones, 
+                int numFrames, 
+                float frameLengthInMs
+            );
+
+            void setBoneTransform(
+                const char* boneName, 
+                const char* meshName, 
+                float transX, 
+                float transY, 
+                float transZ, 
+                float quatX,
+                float quatY,
+                float quatZ,
+                float quatW
+            );
 
             void transformToUnitCube();
 
@@ -77,6 +98,8 @@ namespace polyvox {
             void setPosition(float x, float y, float z);
             
             void setRotation(float rads, float x, float y, float z);
+            
+          
 
             const utils::Entity* getCameraEntities();
 
@@ -93,15 +116,15 @@ namespace polyvox {
             Engine* _engine = nullptr;
             NameComponentManager* _ncm;
 
-            void updateMorphAnimation();
+            void updateRuntimeAnimation();
             void updateEmbeddedAnimations();
 
 
             Animator* _animator;
             
             // animation flags;
-            unique_ptr<MorphAnimationStatus> _morphAnimationBuffer;
-            vector<EmbeddedAnimationStatus> _embeddedAnimationStatus;
+            unique_ptr<RuntimeAnimation> _runtimeAnimationBuffer;
+            vector<GLTFAnimation> _embeddedAnimationStatus;
 
             LoadResource _loadResource;
             FreeResource _freeResource;

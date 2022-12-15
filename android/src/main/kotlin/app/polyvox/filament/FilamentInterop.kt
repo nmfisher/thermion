@@ -60,11 +60,11 @@ interface FilamentInterop : Library {
 
     fun apply_weights(asset:Pointer, weights:FloatArray, size:Int);
 
-    fun animate_weights(asset:Pointer, frames:FloatArray, numWeights:Int, numFrames:Int,  frameRate:Float);
+    fun set_animation(asset:Pointer, frames:FloatArray, numWeights:Int, numFrames:Int,  frameRate:Float);
 
-    fun get_target_name_count(asset:Pointer, meshName:String) : Int;
+    fun get_morph_target_name_count(asset:Pointer, meshName:String) : Int;
     
-    fun get_target_name(asset:Pointer, meshName:String, outPtr:Pointer, index:Int);
+    fun get_morph_target_name(asset:Pointer, meshName:String, outPtr:Pointer, index:Int);
 
     fun get_animation_count(asset:Pointer) : Int;
     fun get_animation_name(asset:Pointer, outPtr:Pointer, index:Int);

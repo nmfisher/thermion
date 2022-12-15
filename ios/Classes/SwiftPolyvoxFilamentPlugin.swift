@@ -168,7 +168,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
              Float(args[8] as! Double),
              args[9] as! Bool)
            result(entity);
-        case "animateWeights":
+        case "setAnimation":
           let args = call.arguments as! Array<Any?>
           let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
           let frameData = args[1] as! Array<Float>
@@ -176,7 +176,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           let numFrames = args[3] as! Int
           let frameLenInMs = args[4] as! Double
           frameData.map { Float($0)}.withUnsafeBufferPointer {
-            animate_weights(assetPtr, UnsafeMutablePointer<Float>.init(mutating:$0.baseAddress), Int32(numWeights), Int32(numFrames), Float(frameLenInMs))
+            set_animation(assetPtr, UnsafeMutablePointer<Float>.init(mutating:$0.baseAddress), Int32(numWeights), Int32(numFrames), Float(frameLenInMs))
           }
           result("OK")
         case "initialize":
@@ -232,15 +232,15 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           let animationIndex = args[1] as! Int32
           stop_animation(assetPtr, animationIndex) // TODO
           result("OK");
-        case "getTargetNames":
+        case "getMorphTargetNames":
           let args = call.arguments as! Array<Any?>
           let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
           let meshName = args[1] as! String
-          let numNames = get_target_name_count(assetPtr, meshName)
+          let numNames = get_morph_target_name_count(assetPtr, meshName)
           var names = [String]()
           for i in 0...numNames - 1{
             let outPtr = UnsafeMutablePointer<CChar>.allocate(capacity:256)
-            get_target_name(assetPtr, meshName, outPtr, i)
+            get_morph_target_name(assetPtr, meshName, outPtr, i)
             names.append(String(cString:outPtr))
           }
           result(names);
@@ -254,7 +254,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             names.append(String(cString:outPtr))
           }
           result(names);
-        case "applyWeights":
+        case "setMorphTargetWeights":
           let args = call.arguments as! Array<Any?>
           let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
           let weights = args[1] as! Array<Float>

@@ -423,15 +423,15 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           result.success("OK");
         }
       }
-      "getTargetNames" -> {
+      "getMorphTargetNames" -> {
         executor.execute { 
           val args = call.arguments as ArrayList<*>
           val assetPtr = Pointer(args[0] as Long)
           val meshName = args[1] as String
           val names = mutableListOf<String>()
           val outPtr = Memory(256)
-          for(i in 0.._lib.get_target_name_count(assetPtr, meshName) - 1) {
-            _lib.get_target_name(assetPtr, meshName, outPtr, i)
+          for(i in 0.._lib.get_morph_target_name_count(assetPtr, meshName) - 1) {
+            _lib.get_morph_target_name(assetPtr, meshName, outPtr, i)
             val name = outPtr.getString(0)
             names.add(name)
           }
@@ -451,7 +451,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           result.success(names)
         }
       } 
-      "applyWeights" -> {
+      "setMorphTargetWeights" -> {
         executor.execute { 
           val args = call.arguments as ArrayList<*>
           val assetPtr = Pointer(args[0] as Long)
@@ -461,7 +461,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           result.success("OK");
         }
       }
-      "animateWeights" -> {
+      "setAnimation" -> {
         executor.execute { 
           val args = call.arguments as ArrayList<Any?>
           val assetPtr = Pointer(args[0] as Long)
@@ -470,7 +470,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           val numFrames = args[3] as Int
           val frameLenInMs = args[4] as Double
 
-          _lib.animate_weights(assetPtr, frames.toFloatArray(), numWeights, numFrames, frameLenInMs.toFloat())
+          _lib.set_animation(assetPtr, frames.toFloatArray(), numWeights, numFrames, frameLenInMs.toFloat())
           result.success("OK");
         }
       }

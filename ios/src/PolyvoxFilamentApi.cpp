@@ -141,12 +141,58 @@ extern "C" {
   }
 
   void apply_weights(void* asset, float* const weights, int count) {
-    ((SceneAsset*)asset)->applyWeights(weights, count);
+    ((SceneAsset*)asset)->setMorphTargetWeights(weights, count);
   }
 
-  void animate_weights(void* asset, float* data, int numWeights, int numFrames,  float frameRate) {
-    ((SceneAsset*)asset)->animateWeights((float*)data, numWeights, numFrames, frameRate);
+  void set_animation(
+    void* asset, 
+    float* morphData, 
+    int numMorphWeights, 
+    float* boneData, 
+    const char** boneNames, 
+    const char** meshNames, 
+    int numBones, 
+    int numFrames, 
+    float frameLengthInMs) {
+    ((SceneAsset*)asset)->setAnimation(
+      morphData, 
+      numMorphWeights, 
+      boneData, 
+      boneNames, 
+      meshNames,
+      numBones, 
+      numFrames, 
+      frameLengthInMs
+    );
   }
+
+
+  void set_bone_transform(
+    void* asset, 
+    const char* boneName, 
+    const char* entityName,
+    float transX, 
+    float transY, 
+    float transZ, 
+    float quatX,
+    float quatY,
+    float quatZ,
+    float quatW
+) {
+    ((SceneAsset*)asset)->setBoneTransform(
+        boneName, 
+        entityName, 
+        transX, 
+        transY, 
+        transZ, 
+        quatX, 
+        quatY, 
+        quatZ, 
+        quatW
+    );
+
+  }
+
 
   void play_animation(void* asset, int index, bool loop, bool reverse) {
     ((SceneAsset*)asset)->playAnimation(index, loop, reverse);
@@ -163,13 +209,13 @@ extern "C" {
     strcpy(outPtr, name.c_str());
   }
   
-  int get_target_name_count(void* asset, const char* meshName) {
-    unique_ptr<vector<string>> names = ((SceneAsset*)asset)->getTargetNames(meshName);
+  int get_morph_target_name_count(void* asset, const char* meshName) {
+    unique_ptr<vector<string>> names = ((SceneAsset*)asset)->getMorphTargetNames(meshName);
     return names->size();
   }
 
-  void get_target_name(void* asset, const char* meshName, char* const outPtr, int index ) {
-    unique_ptr<vector<string>> names = ((SceneAsset*)asset)->getTargetNames(meshName);
+  void get_morph_target_name(void* asset, const char* meshName, char* const outPtr, int index ) {
+    unique_ptr<vector<string>> names = ((SceneAsset*)asset)->getMorphTargetNames(meshName);
     string name = names->at(index);
     strcpy(outPtr, name.c_str());
   }

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
+import 'animations/animation_builder.dart';
+import 'animations/animations.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -60,8 +62,9 @@ abstract class FilamentController {
   Future rotateStart(double x, double y);
   Future rotateUpdate(double x, double y);
   Future rotateEnd();
-  Future applyWeights(FilamentAsset asset, List<double> weights);
-  Future<List<String>> getTargetNames(FilamentAsset asset, String meshName);
+  Future setMorphTargetWeights(FilamentAsset asset, List<double> weights);
+  Future<List<String>> getMorphTargetNames(
+      FilamentAsset asset, String meshName);
   Future<List<String>> getAnimationNames(FilamentAsset asset);
   Future removeAsset(FilamentAsset asset);
   Future clearAssets();
@@ -77,6 +80,8 @@ abstract class FilamentController {
   Future setPosition(FilamentAsset asset, double x, double y, double z);
   Future setRotation(
       FilamentAsset asset, double rads, double x, double y, double z);
+  Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
+      BoneTransform transform);
   Future setScale(FilamentAsset asset, double scale);
   Future setCameraFocalLength(double focalLength);
   Future setCameraFocusDistance(double focusDistance);
@@ -84,13 +89,11 @@ abstract class FilamentController {
   Future setCameraRotation(double rads, double x, double y, double z);
 
   ///
-  /// Set the weights of all morph targets in the mesh to the specified weights at successive frames (where each frame requires a duration of [frameLengthInMs].
-  /// Accepts a list of doubles representing a sequence of "frames", stacked end-to-end.
-  /// Each frame is [numWeights] in length, where each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
-  /// In other words, weights is a contiguous sequence of floats of size W*F, where W is the number of weights and F is the number of frames
+  /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
+  /// [morphWeights] is a list of doubles in frame-major format.
+  /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   ///
-  Future animate(FilamentAsset asset, List<double> data, int numWeights,
-      int numFrames, double frameLengthInMs);
+  Future setAnimation(FilamentAsset asset, Animation animation);
 }
 
 class PolyvoxFilamentController extends FilamentController {
@@ -130,6 +133,7 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   void setPixelRatio(double ratio) {
+    print("Set pixel ratio to $ratio");
     _pixelRatio = ratio;
   }
 
@@ -258,15 +262,16 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("rotateEnd");
   }
 
-  Future applyWeights(FilamentAsset asset, List<double> weights) async {
-    await _channel
-        .invokeMethod("applyWeights", [asset, Float32List.fromList(weights)]);
+  Future setMorphTargetWeights(
+      FilamentAsset asset, List<double> weights) async {
+    await _channel.invokeMethod(
+        "setMorphTargetWeights", [asset, Float32List.fromList(weights)]);
   }
 
-  Future<List<String>> getTargetNames(
+  Future<List<String>> getMorphTargetNames(
       FilamentAsset asset, String meshName) async {
     var result =
-        (await _channel.invokeMethod("getTargetNames", [asset, meshName]))
+        (await _channel.invokeMethod("getMorphTargetNames", [asset, meshName]))
             .cast<String>();
     return result;
   }
@@ -277,14 +282,16 @@ class PolyvoxFilamentController extends FilamentController {
     return result;
   }
 
-  Future animate(FilamentAsset asset, List<double> weights, int numWeights,
-      int numFrames, double frameLengthInMs) async {
-    await _channel.invokeMethod("animateWeights", [
+  Future setAnimation(FilamentAsset asset, Animation animation) async {
+    await _channel.invokeMethod("setAnimation", [
       asset,
-      Float32List.fromList(weights),
-      numWeights,
-      numFrames,
-      frameLengthInMs
+      animation.morphWeights,
+      animation.numMorphWeights,
+      animation.boneTransforms,
+      animation.boneNames,
+      animation.meshNames,
+      animation.numFrames,
+      animation.frameLengthInMs
     ]);
   }
 
@@ -358,6 +365,22 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future setPosition(FilamentAsset asset, double x, double y, double z) async {
     await _channel.invokeMethod("setPosition", [asset, x, y, z]);
+  }
+
+  Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
+      BoneTransform transform) async {
+    await _channel.invokeMethod("setBoneTransform", [
+      asset,
+      boneName,
+      meshName,
+      transform.translations[0].x,
+      transform.translations[0].y,
+      transform.translations[0].z,
+      transform.quaternions[0].x,
+      transform.quaternions[0].y,
+      transform.quaternions[0].z,
+      transform.quaternions[0].w
+    ]);
   }
 
   Future setScale(FilamentAsset asset, double scale) async {

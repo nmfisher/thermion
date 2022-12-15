@@ -106,13 +106,15 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
   Log("Resources loaded.");
 
   const Entity *entities = asset->getEntities();
+
   RenderableManager &rm = _engine->getRenderableManager();
+  
+  // why did I need to explicitly enable culling?
   for (int i = 0; i < asset->getEntityCount(); i++) {
-    Entity e = entities[i];
-    auto inst = rm.getInstance(e);
-    // check this
-    rm.setCulling(inst, true);
-  }
+    auto entityInstance = rm.getInstance(entities[i]);
+    rm.setCulling(entityInstance, true);
+  }  
+
 
   FilamentInstance* inst = asset->getInstance();
   inst->getAnimator()->updateBoneMatrices();
