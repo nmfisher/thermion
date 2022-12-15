@@ -105,29 +105,29 @@ void SceneAsset::updateRuntimeAnimation() {
   if (frameIndex > _runtimeAnimationBuffer->frameIndex) {
     _runtimeAnimationBuffer->frameIndex = frameIndex;
     if(_runtimeAnimationBuffer->mMorphFrameData) {
-      // auto morphFramePtrOffset = frameIndex * _runtimeAnimationBuffer->mNumMorphWeights;
-      // setMorphTargetWeights(_runtimeAnimationBuffer->mMorphFrameData + morphFramePtrOffset,
-      //               _runtimeAnimationBuffer->mNumMorphWeights);
+      auto morphFramePtrOffset = frameIndex * _runtimeAnimationBuffer->mNumMorphWeights;
+      setMorphTargetWeights(_runtimeAnimationBuffer->mMorphFrameData + morphFramePtrOffset,
+                    _runtimeAnimationBuffer->mNumMorphWeights);
     }
 
-    // if(_runtimeAnimationBuffer->mBoneFrameData) {
+    if(_runtimeAnimationBuffer->mBoneFrameData) {
 
-      // for(int i = 0; i < _runtimeAnimationBuffer->mNumBones; i++) {
-      //   auto boneFramePtrOffset = (frameIndex * _runtimeAnimationBuffer->mNumBones * 7) + (i*7);
-      //   const char* boneName = _runtimeAnimationBuffer->mBoneNames[i].c_str();
-      //   const char* meshName = _runtimeAnimationBuffer->mMeshNames[i].c_str();
-      //   float* frame = _runtimeAnimationBuffer->mBoneFrameData + boneFramePtrOffset;
+      for(int i = 0; i < _runtimeAnimationBuffer->mNumBones; i++) {
+        // auto boneFramePtrOffset = (frameIndex * _runtimeAnimationBuffer->mNumBones * 7) + (i*7);
+        const char* boneName = _runtimeAnimationBuffer->mBoneNames[i].c_str();
+        const char* meshName = _runtimeAnimationBuffer->mMeshNames[i].c_str();
+        // float* frame = _runtimeAnimationBuffer->mBoneFrameData + boneFramePtrOffset;
 
-      //   float transX = frame[0];
-      //   float transY = frame[1];
-      //   float transZ = frame[2];
-      //   float quatX = frame[3];
-      //   float quatY = frame[4];
-      //   float quatZ = frame[5];
-      //   float quatW = frame[6];
-      //   setBoneTransform(boneName, meshName, transX, transY, transZ, quatX, quatY, quatZ, quatW);
-      // }
-    // }
+        float transX = 0.0f;//frame[0];
+        float transY = 0.0f;//frame[1];
+        float transZ = 0.0f;//frame[2];
+        float quatX = 0.0f; //frame[3];
+        float quatY = 0.0f;//frame[4];
+        float quatZ = 0.0f; //frame[5];
+        float quatW = 1.0;//frame[6];
+        setBoneTransform(boneName, meshName, transX, transY, transZ, quatX, quatY, quatZ, quatW);
+      }
+    }
   }
 }
 
@@ -367,10 +367,10 @@ void SceneAsset::setBoneTransform(
   auto filamentInstance = _asset->getInstance();
 
   if(filamentInstance->getSkinCount()) { 
-    Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
+    // Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
   }
 
-  filamentInstance->getAnimator()->resetBoneMatrices();
+  // filamentInstance->getAnimator()->resetBoneMatrices();
   
   int skinIndex = 0;
   const utils::Entity* joints = filamentInstance->getJointsAt(skinIndex);
@@ -381,7 +381,7 @@ void SceneAsset::setBoneTransform(
     const char* jointName = _ncm->getName(_ncm->getInstance(joints[i]));
     if(strcmp(jointName, boneName) == 0) { 
       boneIndex = i;
-      Log("Found bone index %d for bone %s", boneIndex, boneName);
+      // Log("Found bone index %d for bone %s", boneIndex, boneName);
       break;
     }
   }
@@ -392,19 +392,22 @@ void SceneAsset::setBoneTransform(
 
   RenderableManager &rm = _engine->getRenderableManager();
   
-  RenderableManager::Bone transform = {.unitQuaternion={quatX,quatY,quatZ,quatW}, .translation={transX,transY,transZ}};
+  // RenderableManager::Bone transform = {
+    // .unitQuaternion={quatX,quatY,quatZ,quatW}, 
+    // .translation={transX,transY,transZ}
+    // };
   
   for(int j = 0; j < _asset->getEntityCount(); j++) {
     Entity e = _asset->getEntities()[j];    
     if(strcmp(entityName,_ncm->getName(_ncm->getInstance(e)))==0) {
       
-      Log("Setting bone transform on entity %s", _ncm->getName(_ncm->getInstance(e)));
+      // Log("Setting bone transform on entity %s", _ncm->getName(_ncm->getInstance(e)));
 
       auto inst = rm.getInstance(e);
       if(!inst) {
         Log("No renderable instance");  
       }
-      rm.setBones(inst, &transform, 1, boneIndex);
+      // rm.setBones(inst, &transform, 1, boneIndex);
     }    
   }
 }
