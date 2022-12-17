@@ -1,4 +1,5 @@
 #include "ResourceBuffer.hpp"
+
 #include "FilamentViewer.hpp"
 #include "filament/LightManager.h"
 #include "Log.hpp"
@@ -6,9 +7,8 @@
 using namespace polyvox;
 
 extern "C" {
-//  ResourceBuffer create_resource_buffer(const void* data, const uint32_t size, const uint32_t id) {
-//    return ResourceBuffer {data, size, id };
-//  }
+
+  #include "PolyvoxFilamentApi.h"
 
   void* filament_viewer_new(void* context, ResourceBuffer (*loadResource)(char const*), void (*freeResource)(unsigned int)) {
     FilamentViewer* v = new FilamentViewer(context, loadResource, freeResource);
@@ -148,50 +148,47 @@ extern "C" {
     void* asset, 
     float* morphData, 
     int numMorphWeights, 
-    float* boneData, 
-    const char** boneNames, 
-    const char** meshNames, 
-    int numBones, 
+    BoneAnimation* boneAnimations,
+    int numBoneAnimations,
     int numFrames, 
     float frameLengthInMs) {
     ((SceneAsset*)asset)->setAnimation(
       morphData, 
       numMorphWeights, 
-      boneData, 
-      boneNames, 
-      meshNames,
-      numBones, 
+      boneAnimations, 
+      numBoneAnimations,
       numFrames, 
       frameLengthInMs
     );
   }
 
 
-  void set_bone_transform(
-    void* asset, 
-    const char* boneName, 
-    const char* entityName,
-    float transX, 
-    float transY, 
-    float transZ, 
-    float quatX,
-    float quatY,
-    float quatZ,
-    float quatW
-) {
-    ((SceneAsset*)asset)->setBoneTransform(
-        boneName, 
-        entityName, 
-        transX, 
-        transY, 
-        transZ, 
-        quatX, 
-        quatY, 
-        quatZ, 
-        quatW
-    );
+//   void set_bone_transform(
+//     void* asset, 
+//     const char* boneName, 
+//     const char* entityName,
+//     float transX, 
+//     float transY, 
+//     float transZ, 
+//     float quatX,
+//     float quatY,
+//     float quatZ,
+//     float quatW
+// ) {
+//     ((SceneAsset*)asset)->setBoneTransform(
+//         boneName, 
+//         entityName, 
+//         transX, 
+//         transY, 
+//         transZ, 
+//         quatX, 
+//         quatY, 
+//         quatZ, 
+//         quatW,
+//         false
+//     );
 
-  }
+//   }
 
 
   void play_animation(void* asset, int index, bool loop, bool reverse) {

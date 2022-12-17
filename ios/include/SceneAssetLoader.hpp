@@ -6,7 +6,7 @@
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
 
-#include "SceneResources.hpp"
+#include "ResourceManagement.hpp"
 #include "SceneAsset.hpp"
 #include "ResourceBuffer.hpp"
 

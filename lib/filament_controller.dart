@@ -80,8 +80,8 @@ abstract class FilamentController {
   Future setPosition(FilamentAsset asset, double x, double y, double z);
   Future setRotation(
       FilamentAsset asset, double rads, double x, double y, double z);
-  Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
-      BoneTransform transform);
+  // Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
+  //     BoneTransform transform);
   Future setScale(FilamentAsset asset, double scale);
   Future setCameraFocalLength(double focalLength);
   Future setCameraFocusDistance(double focusDistance);
@@ -282,14 +282,11 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future setAnimation(FilamentAsset asset, Animation animation) async {
-    print("Frmael en ${animation.frameLengthInMs}");
     await _channel.invokeMethod("setAnimation", [
       asset,
       animation.morphData!,
       animation.numMorphWeights,
-      animation.boneTransforms ?? Float32List(0),
-      animation.boneNames ?? <String>[],
-      animation.meshNames ?? <String>[],
+      animation.boneAnimations?.map((a) => a.toList()).toList() ?? [],
       animation.numFrames,
       animation.frameLengthInMs
     ]);
@@ -367,21 +364,21 @@ class PolyvoxFilamentController extends FilamentController {
     await _channel.invokeMethod("setPosition", [asset, x, y, z]);
   }
 
-  Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
-      BoneTransform transform) async {
-    await _channel.invokeMethod("setBoneTransform", [
-      asset,
-      boneName,
-      meshName,
-      transform.translations[0].x,
-      transform.translations[0].y,
-      transform.translations[0].z,
-      transform.quaternions[0].x,
-      transform.quaternions[0].y,
-      transform.quaternions[0].z,
-      transform.quaternions[0].w
-    ]);
-  }
+  // Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
+  //     BoneTransform transform) async {
+  //   await _channel.invokeMethod("setBoneTransform", [
+  //     asset,
+  //     boneName,
+  //     meshName,
+  //     transform.translations[0].x,
+  //     transform.translations[0].y,
+  //     transform.translations[0].z,
+  //     transform.quaternions[0].x,
+  //     transform.quaternions[0].y,
+  //     transform.quaternions[0].z,
+  //     transform.quaternions[0].w
+  //   ]);
+  // }
 
   Future setScale(FilamentAsset asset, double scale) async {
     await _channel.invokeMethod("setScale", [asset, scale]);

@@ -126,6 +126,8 @@ public:
      */
     void detachSkin(size_t skinIndex, utils::Entity target) noexcept;
 
+    const math::mat4f* getInverseBindMatricesAt(size_t skinIndex) const noexcept;
+
     /**
      * Resets the AABB on all renderables by manually computing the bounding box.
      *

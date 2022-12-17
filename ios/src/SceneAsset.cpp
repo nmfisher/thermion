@@ -16,7 +16,8 @@
 #include "StreamBufferAdapter.hpp"
 #include "SceneAsset.hpp"
 #include "Log.hpp"
-#include "SceneResources.hpp"
+#include "ResourceManagement.hpp"
+#include "SceneAssetAnimation.hpp"
 
 using namespace std::chrono;
 
@@ -58,19 +59,58 @@ void SceneAsset::setMorphTargetWeights(float *weights, int count) {
 void SceneAsset::setAnimation(
                 float* morphData, 
                 int numMorphWeights, 
-                float* boneData, 
-                const char** boneNames, 
-                const char** meshNames, 
-                int numBones, 
+                BoneAnimation* boneAnimations,
+                int numBoneAnimations,
                 int numFrames, 
                 float frameLengthInMs) {
+
+  auto filamentInstance = _asset->getInstance();
+
+  size_t skinCount = filamentInstance->getSkinCount();
+
+  if(skinCount > 1) { 
+    Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
+  }
+  
+  auto transforms = make_unique<vector<BoneTransformTarget>>();
+
+  auto numFloats = numFrames * 7;
+
+  for(int i = 0; i < numBoneAnimations; i++) {
+    
+    auto boneIndices = make_unique<vector<uint8_t>>();
+    boneIndices->resize(boneAnimations[i].numBones);
+    for(int j = 0; j < boneAnimations[i].numBones; j++) {
+      boneIndices->at(j) = getBoneIndex(boneAnimations[i].boneNames[j]);
+    }
+
+    auto meshTargets = make_unique<vector<Entity>>();
+    for(int j = 0; j < _asset->getEntityCount(); j++) {
+      for(int k = 0; k < boneAnimations[i].numMeshTargets;k++) {
+        auto meshName = boneAnimations[i].meshNames[k];
+        auto entity = _asset->getEntities()[j];    
+        auto nameInstance = _ncm->getInstance(entity);
+        if(strcmp(meshName,_ncm->getName(nameInstance))==0) {
+            meshTargets->push_back(entity);
+        }
+      }
+    }
+
+      auto frameData = make_unique<vector<float>>(
+        boneAnimations[i].data, 
+        boneAnimations[i].data + (numFloats * sizeof(float))
+      );
+
+      transforms->push_back(BoneTransformTarget(
+          boneIndices,
+          meshTargets,
+          frameData
+      ));
+  }
   _runtimeAnimationBuffer = std::make_unique<RuntimeAnimation>(
       morphData, 
       numMorphWeights, 
-      boneData, 
-      boneNames, 
-      meshNames,
-      numBones, 
+      transforms, 
       numFrames, 
       frameLengthInMs
     );
@@ -87,47 +127,112 @@ void SceneAsset::updateRuntimeAnimation() {
     return;
   }
 
-  if (_runtimeAnimationBuffer->frameIndex == -1) {
+  if (_runtimeAnimationBuffer->frameNumber == -1) {
     _runtimeAnimationBuffer->startTime = high_resolution_clock::now();
   }  
 
   duration<double, std::milli> dur =
         high_resolution_clock::now() - _runtimeAnimationBuffer->startTime;
-    int frameIndex =
+    int frameNumber =
         static_cast<int>(dur.count() / _runtimeAnimationBuffer->mFrameLengthInMs);
     
   // if the animation has finished, return early
-  if (frameIndex >= _runtimeAnimationBuffer->mNumFrames) {
+  if (frameNumber >= _runtimeAnimationBuffer->mNumFrames) {
     _runtimeAnimationBuffer = nullptr;
     return;
   } 
 
-  if (frameIndex > _runtimeAnimationBuffer->frameIndex) {
-    _runtimeAnimationBuffer->frameIndex = frameIndex;
+  if (frameNumber > _runtimeAnimationBuffer->frameNumber) {
+    _runtimeAnimationBuffer->frameNumber = frameNumber;
     if(_runtimeAnimationBuffer->mMorphFrameData) {
-      auto morphFramePtrOffset = frameIndex * _runtimeAnimationBuffer->mNumMorphWeights;
+      auto morphFramePtrOffset = frameNumber * _runtimeAnimationBuffer->mNumMorphWeights;
       setMorphTargetWeights(_runtimeAnimationBuffer->mMorphFrameData + morphFramePtrOffset,
                     _runtimeAnimationBuffer->mNumMorphWeights);
     }
 
-    if(_runtimeAnimationBuffer->mBoneFrameData) {
-
-      for(int i = 0; i < _runtimeAnimationBuffer->mNumBones; i++) {
-        // auto boneFramePtrOffset = (frameIndex * _runtimeAnimationBuffer->mNumBones * 7) + (i*7);
-        const char* boneName = _runtimeAnimationBuffer->mBoneNames[i].c_str();
-        const char* meshName = _runtimeAnimationBuffer->mMeshNames[i].c_str();
-        // float* frame = _runtimeAnimationBuffer->mBoneFrameData + boneFramePtrOffset;
-
-        float transX = 0.0f;//frame[0];
-        float transY = 0.0f;//frame[1];
-        float transZ = 0.0f;//frame[2];
-        float quatX = 0.0f; //frame[3];
-        float quatY = 0.0f;//frame[4];
-        float quatZ = 0.0f; //frame[5];
-        float quatW = 1.0;//frame[6];
-        setBoneTransform(boneName, meshName, transX, transY, transZ, quatX, quatY, quatZ, quatW);
+    if(_runtimeAnimationBuffer->mTargets->size() > 0) {
+      for(auto& target : *(_runtimeAnimationBuffer->mTargets)) {
+        
+        setBoneTransform(
+          target.skinIndex,
+          *(target.mBoneIndices), 
+          *(target.mMeshTargets),
+          *(target.mBoneData),
+          frameNumber
+        );
       }
     }
+  }
+}
+
+size_t SceneAsset::getBoneIndex(const char* name) { 
+  
+  auto filamentInstance = _asset->getInstance();
+
+  int skinIndex = 0;
+  const utils::Entity* joints = filamentInstance->getJointsAt(skinIndex);
+  size_t numJoints = filamentInstance->getJointCountAt(skinIndex);
+
+  int boneIndex = -1;
+  for(int i =0; i < numJoints; i++) {
+    const char* jointName = _ncm->getName(_ncm->getInstance(joints[i]));
+    if(strcmp(jointName, name) == 0) { 
+      boneIndex = i;
+      break;
+    }
+  }
+  if(boneIndex == -1) {
+    Log("Failed to find bone index %d for bone %s", name);
+  }
+  return boneIndex;
+}
+
+void SceneAsset::setBoneTransform(
+  uint8_t skinIndex,
+  const vector<uint8_t>& boneIndices,
+  const vector<Entity>& targets, 
+  const vector<float> data,
+  int frameNumber) {  
+
+  auto filamentInstance = _asset->getInstance();
+
+  RenderableManager &rm = _engine->getRenderableManager();
+  TransformManager &transformManager = _engine->getTransformManager();
+
+  auto frameDataOffset = frameNumber * 7;
+
+  for(auto& target : targets) {
+  
+    auto renderable = rm.getInstance(target);
+
+    math::mat4f inverseGlobalTransform = inverse(
+      transformManager.getWorldTransform(
+        transformManager.getInstance(target)
+      )
+    );
+
+    for(auto boneIndex : boneIndices) {
+
+        utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[boneIndex];
+
+        math::mat4f localTransform(math::quatf{
+          data[frameDataOffset+6],
+          data[frameDataOffset+3],
+          data[frameDataOffset+4],
+          data[frameDataOffset+5]
+        });
+
+        const math::mat4f& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[boneIndex];
+        auto jointInstance = transformManager.getInstance(joint);
+        math::mat4f globalJointTransform = transformManager.getWorldTransform(jointInstance);
+      
+        math::mat4f boneTransform = inverseGlobalTransform * globalJointTransform * localTransform * inverseBindMatrix;
+        
+        rm.setBones(
+        renderable, 
+        &boneTransform,
+        1, boneIndex);
+    }    
   }
 }
 
@@ -353,66 +458,6 @@ void SceneAsset::setRotation(float rads, float x, float y, float z) {
   updateTransform();
 }
 
-void SceneAsset::setBoneTransform(
-  const char* boneName, 
-  const char* entityName, 
-  float transX, 
-  float transY, 
-  float transZ, 
-  float quatX,
-  float quatY,
-  float quatZ,
-  float quatW) {  
-
-  auto filamentInstance = _asset->getInstance();
-
-  if(filamentInstance->getSkinCount()) { 
-    // Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
-  }
-
-  // filamentInstance->getAnimator()->resetBoneMatrices();
-  
-  int skinIndex = 0;
-  const utils::Entity* joints = filamentInstance->getJointsAt(skinIndex);
-  size_t numJoints = filamentInstance->getJointCountAt(skinIndex);
-
-  int boneIndex = -1;
-  for(int i =0; i < numJoints; i++) {
-    const char* jointName = _ncm->getName(_ncm->getInstance(joints[i]));
-    if(strcmp(jointName, boneName) == 0) { 
-      boneIndex = i;
-      // Log("Found bone index %d for bone %s", boneIndex, boneName);
-      break;
-    }
-  }
-  if(boneIndex == -1) {
-    Log("Failed to find bone index %d for bone %s", boneName);
-    return;
-  }
-
-  RenderableManager &rm = _engine->getRenderableManager();
-  
-  // RenderableManager::Bone transform = {
-    // .unitQuaternion={quatX,quatY,quatZ,quatW}, 
-    // .translation={transX,transY,transZ}
-    // };
-  
-  for(int j = 0; j < _asset->getEntityCount(); j++) {
-    Entity e = _asset->getEntities()[j];    
-    if(strcmp(entityName,_ncm->getName(_ncm->getInstance(e)))==0) {
-      
-      // Log("Setting bone transform on entity %s", _ncm->getName(_ncm->getInstance(e)));
-
-      auto inst = rm.getInstance(e);
-      if(!inst) {
-        Log("No renderable instance");  
-      }
-      // rm.setBones(inst, &transform, 1, boneIndex);
-    }    
-  }
-}
-
-
 const utils::Entity *SceneAsset::getCameraEntities() {
   return _asset->getCameraEntities();
 }
@@ -431,3 +476,20 @@ size_t SceneAsset::getLightEntityCount() const noexcept {
 
 
 } // namespace polyvox
+
+
+        // const utils::Entity* joints = filamentInstance->getJointsAt(skinIndex);
+  // size_t numJoints = filamentInstance->getJointCountAt(skinIndex);
+    // int boneIndex = -1;
+  // for(int i =0; i < numJoints; i++) {
+  //   const char* jointName = _ncm->getName(_ncm->getInstance(joints[i]));
+  //   if(strcmp(jointName, boneName) == 0) { 
+  //     boneIndex = i;
+  //     joint = joints[i];
+  //     break;
+  //   }
+  // }
+  // if(boneIndex == -1) {
+  //   Log("Failed to find bone index %d for bone %s", boneName);
+  //   return;
+  // }

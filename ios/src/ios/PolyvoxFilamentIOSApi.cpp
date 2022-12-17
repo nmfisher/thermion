@@ -1,7 +1,7 @@
 #include "PolyvoxFilamentApi.h"
 #include "FilamentViewer.hpp"
 #include "ResourceBuffer.hpp"
-#include "SceneResources.hpp"
+#include "ResourceManagement.hpp"
 #include <functional>
 
 using namespace polyvox;
