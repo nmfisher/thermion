@@ -70,7 +70,7 @@
 #include <mutex>
 
 #include "Log.hpp"
-#include "SceneResources.hpp"
+#include "ResourceManagement.hpp"
 
 extern "C" {
   #include "material/image_material.h"

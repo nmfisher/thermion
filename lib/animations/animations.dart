@@ -1,47 +1,87 @@
-class Vec3 {
-  final double x;
-  final double y;
-  final double z;
+import 'dart:typed_data';
 
-  Vec3({this.x = 0, this.y = 0, this.z = 0});
+import 'package:vector_math/vector_math.dart';
 
-  factory Vec3.from(List<double> vals) =>
-      Vec3(x: vals[0], y: vals[1], z: vals[2]);
+// class Vec3 {
+//   final double x;
+//   final double y;
+//   final double z;
+
+//   Vec3({this.x = 0, this.y = 0, this.z = 0});
+
+//   factory Vec3.from(List<double> vals) =>
+//       Vec3(x: vals[0], y: vals[1], z: vals[2]);
+// }
+
+// class Quaternion {
+//   double x = 0;
+//   double y = 0;
+//   double z = 0;
+//   double w = 1;
+
+//   Quaternion({this.x = 0, this.y = 0, this.z = 0, this.w = 1.0});
+
+//   factory Quaternion.from(List<double> vals) =>
+//       Quaternion(x: vals[0], y: vals[1], z: vals[2], w: vals[3]);
+// }
+
+class BoneAnimation {
+  final List<String> boneNames;
+  final List<String> meshNames;
+  final Float32List frameData;
+
+  BoneAnimation(this.boneNames, this.meshNames, this.frameData);
+
+  List<List> toList() {
+    return [boneNames, meshNames, frameData];
+  }
 }
 
-class Quaternion {
-  double x = 0;
-  double y = 0;
-  double z = 0;
-  double w = 1;
+class Animation {
+  late final Float32List? morphData;
+  final int numMorphWeights;
 
-  Quaternion({this.x = 0, this.y = 0, this.z = 0, this.w = 1.0});
+  final int numFrames;
+  final double frameLengthInMs;
 
-  factory Quaternion.from(List<double> vals) =>
-      Quaternion(x: vals[0], y: vals[1], z: vals[2], w: vals[3]);
+  final List<BoneAnimation>? boneAnimations;
+
+  Animation(this.morphData, this.numMorphWeights, this.boneAnimations,
+      this.numFrames, this.frameLengthInMs) {
+    if (morphData != null && morphData!.length != numFrames * numMorphWeights) {
+      throw Exception("Mismatched animation data with frame length");
+    }
+  }
+
+  Animation.from(
+      {required List<List<double>> morphData,
+      required this.numMorphWeights,
+      this.boneAnimations,
+      required this.numFrames,
+      required this.frameLengthInMs}) {
+    if (morphData.length != numFrames) {
+      throw Exception("Mismatched animation data with frame length");
+    }
+    this.morphData = Float32List(numMorphWeights * numFrames);
+    for (int i = 0; i < numFrames; i++) {
+      this.morphData!.setRange((i * numMorphWeights),
+          (i * numMorphWeights) + numMorphWeights, morphData[i]);
+    }
+  }
 }
 
-class BoneTransform {
-  final List<Vec3> translations;
+class BoneTransformFrameData {
+  final List<Vector3> translations;
   final List<Quaternion> quaternions;
 
   ///
   /// The length of [translations] and [quaternions] must be the same;
   /// each entry represents the Vec3/Quaternion for the given frame.
   ///
-  BoneTransform(this.translations, this.quaternions) {
+  BoneTransformFrameData(this.translations, this.quaternions) {
     if (translations.length != quaternions.length) {
       throw Exception("Length of translation/quaternion frames must match");
     }
-    // for (int i = 0; i < quaternions.length; i++) {
-    //   _frameData.add(translations[i].x);
-    //   _frameData.add(translations[i].y);
-    //   _frameData.add(translations[i].z);
-    //   _frameData.add(quaternions[i].x);
-    //   _frameData.add(quaternions[i].y);
-    //   _frameData.add(quaternions[i].z);
-    //   _frameData.add(quaternions[i].w);
-    // }
   }
 
   Iterable<double> getFrameData(int frame) sync* {
@@ -52,24 +92,5 @@ class BoneTransform {
     yield quaternions[frame].y;
     yield quaternions[frame].z;
     yield quaternions[frame].w;
-  }
-}
-
-class BoneAnimation {
-  final List<BoneTransform> boneTransforms;
-  final List<String> boneNames;
-  final List<String> meshNames;
-
-  final int numFrames;
-
-  BoneAnimation(
-      this.boneTransforms, this.boneNames, this.meshNames, this.numFrames);
-
-  Iterable<double> toFrameData() sync* {
-    for (int i = 0; i < numFrames; i++) {
-      for (int j = 0; j < boneTransforms.length; j++) {
-        yield* boneTransforms[j].getFrameData(i);
-      }
-    }
   }
 }

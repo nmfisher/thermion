@@ -17,14 +17,16 @@
 
 #include <utils/NameComponentManager.h>
 
-#include "SceneResources.hpp"
+#include "ResourceManagement.hpp"
+#include "SceneAssetAnimation.hpp"
+#include "PolyvoxFilamentApi.h"
 
 namespace polyvox {
     using namespace filament;
     using namespace filament::gltfio;
     using namespace utils;
-
     using namespace std;
+
     class SceneAsset {
         friend class SceneAssetLoader;
         public:
@@ -71,25 +73,16 @@ namespace polyvox {
             void setAnimation(
                 float* morphData, 
                 int numMorphWeights, 
-                float* boneData, 
-                const char** boneNames, 
-                const char** meshNames, 
-                int numBones, 
+                BoneAnimation* targets,
+                int numBoneAnimations,
                 int numFrames, 
                 float frameLengthInMs
             );
 
-            void setBoneTransform(
-                const char* boneName, 
-                const char* meshName, 
-                float transX, 
-                float transY, 
-                float transZ, 
-                float quatX,
-                float quatY,
-                float quatZ,
-                float quatW
-            );
+            void fillEntitiesByName(const char** name, int count, vector<Entity>& out);
+            size_t getBoneIndex(const char* name);
+            
+            Entity getNode(const char* name);
 
             void transformToUnitCube();
 
@@ -97,9 +90,7 @@ namespace polyvox {
 
             void setPosition(float x, float y, float z);
             
-            void setRotation(float rads, float x, float y, float z);
-            
-          
+            void setRotation(float rads, float x, float y, float z);         
 
             const utils::Entity* getCameraEntities();
 
@@ -116,9 +107,17 @@ namespace polyvox {
             Engine* _engine = nullptr;
             NameComponentManager* _ncm;
 
-            void updateRuntimeAnimation();
-            void updateEmbeddedAnimations();
+            void setBoneTransform(
+                uint8_t skinIndex,
+                const vector<uint8_t>& boneIndices,
+                const vector<Entity>& targets, 
+                const vector<float> data,
+                int frameNumber
+            );
 
+            void updateRuntimeAnimation();
+
+            void updateEmbeddedAnimations();
 
             Animator* _animator;
             

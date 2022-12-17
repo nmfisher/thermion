@@ -1,26 +1,11 @@
-#pragma once
+#ifndef SCENE_ASSET_ANIMATION_H_
+#define SCENE_ASSET_ANIMATION_H_
 
-#include <functional>
-#include <memory>
-#include <chrono>
-#include <iostream> 
-#include <vector>
+#include "utils/Entity.h"
 
-#include "ResourceBuffer.hpp"
-
-namespace polyvox { 
+namespace polyvox {
     
     using namespace std;
-
-    // 
-    // Typedef for a function that loads a resource into a ResourceBuffer from an asset URI.
-    //
-    using LoadResource = function<ResourceBuffer(const char* uri)>;
-
-    // 
-    // Typedef for a function that frees an ID associated with a ResourceBuffer.
-    //
-    using FreeResource = function<void (uint32_t)>;
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;   
 
@@ -66,48 +51,29 @@ namespace polyvox {
 
     };
 
+    ///
+    /// Holds a single set of frame data that may be used to animate multiple bones/meshes.
+    ///
+    struct BoneTransformTarget {
+
+        size_t skinIndex = 0;
+        unique_ptr<vector<uint8_t>> mBoneIndices;
+        unique_ptr<vector<utils::Entity>> mMeshTargets;
+        unique_ptr<vector<float>> mBoneData;
+
+        BoneTransformTarget(
+          unique_ptr<vector<uint8_t>>& boneIndices,
+          unique_ptr<vector<utils::Entity>>& meshTargets,
+          unique_ptr<vector<float>>& boneData) : mBoneIndices(move(boneIndices)), mMeshTargets(move(meshTargets)), mBoneData(move(boneData)) {}
+
+    };
+
     // 
     // An animation created by manually passing frame data for morph weights/bone transforms.
     //
     struct RuntimeAnimation {
-      
-      RuntimeAnimation(float* morphData,
-                       int numMorphWeights,
-                       float* boneData,
-                       const char** boneNames,
-                       const char** meshNames,
-                       int numBones,
-                       int numFrames,
-                       float frameLengthInMs) : 
-                       mNumFrames(numFrames), 
-                       mFrameLengthInMs(frameLengthInMs), 
-                       mNumMorphWeights(numMorphWeights), 
-                       mNumBones(numBones) {
 
-        if(numMorphWeights > 0) {
-          size_t morphSize = numMorphWeights * mNumFrames * sizeof(float);
-          mMorphFrameData = (float*)malloc(morphSize);
-          memcpy(mMorphFrameData, morphData, morphSize);
-        }
-
-        if(numBones > 0) { 
-          size_t boneSize = numBones * numFrames * 7 * sizeof(float);
-          mBoneFrameData = (float*)malloc(boneSize);
-          memcpy(mBoneFrameData, boneData, boneSize);
-        }
-        
-        for(int i =0; i < numBones; i++) {
-          mBoneNames.push_back(string(boneNames[i]));
-          mMeshNames.push_back(string(meshNames[i]));
-        }
-      }
-
-      ~RuntimeAnimation() {
-        delete(mMorphFrameData);
-        delete(mBoneFrameData);
-      }
-      
-      int frameIndex = -1;
+      int frameNumber = -1;
       int mNumFrames = -1;
       float mFrameLengthInMs = 0;
       time_point_t startTime;
@@ -115,13 +81,30 @@ namespace polyvox {
       float* mMorphFrameData = nullptr;
       int mNumMorphWeights = 0;
 
-      float* mBoneFrameData = nullptr;
-      int mNumBones = 0;
-              
-      vector<string> mBoneNames;
-      vector<string> mMeshNames;
+      unique_ptr<vector<BoneTransformTarget>> mTargets;
+      
+      RuntimeAnimation(float* morphData,
+                       int numMorphWeights,
+                       unique_ptr<vector<BoneTransformTarget>>& targets,
+                       int numFrames,
+                       float frameLengthInMs) : 
+                       mNumFrames(numFrames), 
+                       mFrameLengthInMs(frameLengthInMs), 
+                       mNumMorphWeights(numMorphWeights),
+                      mTargets(move(targets)) {
 
+        if(numMorphWeights > 0) {
+          size_t morphSize = numMorphWeights * mNumFrames * sizeof(float);
+          mMorphFrameData = (float*)malloc(morphSize);
+          memcpy(mMorphFrameData, morphData, morphSize);
+        }
+      }
+
+      ~RuntimeAnimation() {
+        delete(mMorphFrameData);
+      }
     };
-  
+    
 }
 
+#endif

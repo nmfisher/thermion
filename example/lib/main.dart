@@ -208,12 +208,13 @@ class _MyAppState extends State<MyApp> {
         await _filamentController.clearLights();
         break;
       case 32:
-        await _filamentController.setBoneTransform(
-            _cube!,
-            "Bone.001",
-            "Cube.001",
-            BoneTransform([Vec3(x: 0, y: 0.0, z: 0.0)],
-                [Quaternion(x: 1, y: 1, z: 1, w: 1)]));
+
+        // await _filamentController.setBoneTransform(
+        //     _cube!,
+        //     "Bone.001",
+        //     "Cube.001",
+        //     BoneTransform([Vec3(x: 0, y: 0.0, z: 0.0)],
+        //         [Quaternion(x: 1, y: 1, z: 1, w: 1)]));
         break;
     }
   }

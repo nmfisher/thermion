@@ -33,7 +33,7 @@
 
 #include "SceneAssetLoader.hpp"
 #include "SceneAsset.hpp"
-#include "SceneResources.hpp"
+#include "ResourceManagement.hpp"
 
 using namespace std;
 using namespace filament;

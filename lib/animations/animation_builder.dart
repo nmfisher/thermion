@@ -1,44 +1,7 @@
 import 'animations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-
-class Animation {
-  late final Float32List? morphData;
-  final int numMorphWeights;
-
-  final int numFrames;
-  final double frameLengthInMs;
-
-  final List<String>? boneNames;
-  final List<String>? meshNames;
-
-  final Float32List? boneTransforms;
-
-  Animation(this.morphData, this.numMorphWeights, this.boneTransforms,
-      this.boneNames, this.meshNames, this.numFrames, this.frameLengthInMs) {
-    if (morphData != null && morphData!.length != numFrames * numMorphWeights) {
-      throw Exception("Mismatched animation data with frame length");
-    }
-  }
-
-  Animation.from(
-      {required List<List<double>> morphData,
-      required this.numMorphWeights,
-      this.boneTransforms,
-      this.boneNames,
-      this.meshNames,
-      required this.numFrames,
-      required this.frameLengthInMs}) {
-    if (morphData.length != numFrames) {
-      throw Exception("Mismatched animation data with frame length");
-    }
-    this.morphData = Float32List(numMorphWeights * numFrames);
-    for (int i = 0; i < numFrames; i++) {
-      this.morphData!.setRange((i * numMorphWeights),
-          (i * numMorphWeights) + numMorphWeights, morphData[i]);
-    }
-  }
-}
+import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {
   BoneAnimation? boneAnimation;
@@ -53,7 +16,7 @@ class AnimationBuilder {
 
   final List<String> _boneNames = [];
   final List<String> _meshNames = [];
-  final List<BoneTransform> _boneTransforms = [];
+  final List<BoneTransformFrameData> _boneTransforms = [];
 
   Animation build() {
     if (_numMorphWeights == 0 || _duration == 0 || _frameLengthInMs == 0)
@@ -79,22 +42,31 @@ class AnimationBuilder {
     print(
         "Created morphWeights of size ${morphData.length} (${morphData.lengthInBytes} for ${numFrames} frames");
 
-    final boneTransforms = Float32List(numFrames * _boneTransforms.length * 7);
-    print(
-        "Creating bone transforms of size ${numFrames * _boneTransforms.length * 7}");
-    for (int i = 0; i < numFrames; i++) {
-      for (int j = 0; j < _boneTransforms.length; j++) {
-        var frameData = _boneTransforms[j].getFrameData(i).toList();
-        var rngStart = ((i * _boneTransforms.length) + j) * 7;
-        var rngEnd = rngStart + 7;
-        boneTransforms.setRange(rngStart, rngEnd, frameData);
-      }
-      print(
-          "frameData for frame $i ${boneTransforms.sublist(i * _boneTransforms.length * 7, (i * _boneTransforms.length * 7) + 7)}");
+    List<BoneAnimation>? boneAnimations;
+
+    if (_boneTransforms.isNotEmpty) {
+      throw Exception("TODO");
+      boneAnimations = <BoneAnimation>[];
+
+      final boneTransforms =
+          Float32List(numFrames * _boneTransforms.length * 7);
+
+      // print(
+      //     "Creating bone transforms of size ${numFrames * _boneTransforms.length * 7}");
+      // for (int i = 0; i < numFrames; i++) {
+      //   for (int j = 0; j < _boneTransforms.length; j++) {
+      //     var frameData = _boneTransforms[j].getFrameData(i).toList();
+      //     var rngStart = ((i * _boneTransforms.length) + j) * 7;
+      //     var rngEnd = rngStart + 7;
+      //     boneTransforms.setRange(rngStart, rngEnd, frameData);
+      //   }
+      //   print(
+      //       "frameData for frame $i ${boneTransforms.sublist(i * _boneTransforms.length * 7, (i * _boneTransforms.length * 7) + 7)}");
+      // }
     }
 
-    return Animation(morphData, _numMorphWeights, boneTransforms, _boneNames,
-        _meshNames, numFrames, _frameLengthInMs);
+    return Animation(morphData, _numMorphWeights, boneAnimations, numFrames,
+        _frameLengthInMs);
   }
 
   AnimationBuilder setFramerate(int framerate) {
@@ -126,11 +98,11 @@ class AnimationBuilder {
       String meshName,
       double start,
       double end,
-      Vec3 transStart,
-      Vec3 transEnd,
+      Vector3 transStart,
+      Vector3 transEnd,
       Quaternion quatStart,
       Quaternion quatEnd) {
-    var translations = <Vec3>[];
+    var translations = <Vector3>[];
     var quats = <Quaternion>[];
     var frameStart = (start * 1000) ~/ _frameLengthInMs;
     var frameEnd = (end * 1000) ~/ _frameLengthInMs;
@@ -143,25 +115,25 @@ class AnimationBuilder {
       if (i >= frameStart && i < frameEnd) {
         var linear = (i - frameStart) / (frameEnd - frameStart);
 
-        translations.add(Vec3(
-          x: ((1 - linear) * transStart.x) + (linear * transEnd.x),
-          y: ((1 - linear) * transStart.y) + (linear * transEnd.y),
-          z: ((1 - linear) * transStart.z) + (linear * transEnd.z),
+        translations.add(Vector3(
+          ((1 - linear) * transStart.x) + (linear * transEnd.x),
+          ((1 - linear) * transStart.y) + (linear * transEnd.y),
+          ((1 - linear) * transStart.z) + (linear * transEnd.z),
         ));
 
         quats.add(Quaternion(
-          x: ((1 - linear) * quatStart.x) + (linear * quatEnd.x),
-          y: ((1 - linear) * quatStart.y) + (linear * quatEnd.y),
-          z: ((1 - linear) * quatStart.z) + (linear * quatEnd.z),
-          w: ((1 - linear) * quatStart.w) + (linear * quatEnd.w),
+          ((1 - linear) * quatStart.x) + (linear * quatEnd.x),
+          ((1 - linear) * quatStart.y) + (linear * quatEnd.y),
+          ((1 - linear) * quatStart.z) + (linear * quatEnd.z),
+          ((1 - linear) * quatStart.w) + (linear * quatEnd.w),
         ));
       } else {
-        translations.add(Vec3());
-        quats.add(Quaternion());
+        translations.add(Vector3.zero());
+        quats.add(Quaternion.identity());
       }
     }
 
-    _boneTransforms.add(BoneTransform(translations, quats));
+    _boneTransforms.add(BoneTransformFrameData(translations, quats));
 
     _boneNames.add(boneName);
     _meshNames.add(meshName);
