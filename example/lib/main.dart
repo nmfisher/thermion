@@ -1,6 +1,7 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math.dart' as v;
+
 import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/filament_gesture_detector.dart';
 import 'package:polyvox_filament/filament_widget.dart';
@@ -132,11 +133,11 @@ class _MyAppState extends State<MyApp> {
                 "Cube.001",
                 2,
                 4,
-                Vec3(),
-                Vec3(),
+                v.Vector3.zero(),
+                v.Vector3.zero(),
                 // Vec3(x: 1, y: 1, z: 1),
-                Quaternion(x: 0, y: 0, z: 0, w: 1),
-                Quaternion(x: 1, y: 1, z: 1, w: 1))
+                v.Quaternion(0, 0, 0, 1),
+                v.Quaternion(1, 1, 1, 1))
             // Quaternion(x: 1, y: 1, z: 1, w: 1))
             .build();
 
