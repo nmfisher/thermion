@@ -74,9 +74,9 @@ namespace polyvox {
             /// [morphData] and [boneData] will both be copied, so remember to free these after calling this function.
             ///
             void setAnimation(
-                float* morphData, 
+                const float* const morphData,
                 int numMorphWeights, 
-                BoneAnimation* targets,
+                const BoneAnimation* const targets,
                 int numBoneAnimations,
                 int numFrames, 
                 float frameLengthInMs

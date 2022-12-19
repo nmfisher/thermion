@@ -57,9 +57,9 @@ void SceneAsset::setMorphTargetWeights(float *weights, int count) {
 }
 
 void SceneAsset::setAnimation(
-                float* morphData, 
+                const float* const morphData,
                 int numMorphWeights, 
-                BoneAnimation* boneAnimations,
+                const BoneAnimation* const boneAnimations,
                 int numBoneAnimations,
                 int numFrames, 
                 float frameLengthInMs) {
@@ -476,20 +476,3 @@ size_t SceneAsset::getLightEntityCount() const noexcept {
 
 
 } // namespace polyvox
-
-
-        // const utils::Entity* joints = filamentInstance->getJointsAt(skinIndex);
-  // size_t numJoints = filamentInstance->getJointCountAt(skinIndex);
-    // int boneIndex = -1;
-  // for(int i =0; i < numJoints; i++) {
-  //   const char* jointName = _ncm->getName(_ncm->getInstance(joints[i]));
-  //   if(strcmp(jointName, boneName) == 0) { 
-  //     boneIndex = i;
-  //     joint = joints[i];
-  //     break;
-  //   }
-  // }
-  // if(boneIndex == -1) {
-  //   Log("Failed to find bone index %d for bone %s", boneName);
-  //   return;
-  // }

@@ -14,7 +14,7 @@ typedef struct ResourceBuffer ResourceBuffer;
 struct BoneAnimation {
     const char* const* const boneNames;
     const char* const* const meshNames;
-    float* const data;
+    const float* const data;
     size_t numBones;
     size_t numMeshTargets;
 };
@@ -56,9 +56,9 @@ void grab_end(void* viewer);
         
     void set_animation(
         void* asset, 
-        float* const morphData, 
+        const float* const morphData, 
         int numMorphWeights, 
-        BoneAnimation* const boneAnimations,
+        const BoneAnimation* const boneAnimations,
         int numBoneAnimations,
         int numFrames, 
         float frameLengthInMs
