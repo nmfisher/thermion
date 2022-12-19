@@ -2,7 +2,7 @@
 
 Flutter plugin wrapping the Filament renderer https://github.com/google/filament.
 
-Current Filament version: 1.28.3
+Current Filament version: 112366e54524149e3a5cc601067280766efe06df
 
 All:
 - clone Filament repository 
