@@ -146,9 +146,9 @@ extern "C" {
 
   void set_animation(
     void* asset, 
-    float* morphData, 
+    const float* const morphData,
     int numMorphWeights, 
-    BoneAnimation* boneAnimations,
+    const BoneAnimation* const boneAnimations,
     int numBoneAnimations,
     int numFrames, 
     float frameLengthInMs) {

@@ -152,42 +152,105 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       let methodName = call.method;
 
       switch methodName {
-
+        
         case "addLight":
-          let args = call.arguments as! Array<Any>
-          let entity = add_light(
-            self.viewer,
-             args[0] as! UInt8,
-             Float(args[1] as! Double),
-             Float(args[2] as! Double),
-             Float(args[3] as! Double),
-             Float(args[4] as! Double),
-             Float(args[5] as! Double),
-             Float(args[6] as! Double),
-             Float(args[7] as! Double),
-             Float(args[8] as! Double),
-             args[9] as! Bool)
-           result(entity);
+            let args = call.arguments as! Array<Any>
+            let entity = add_light(
+              self.viewer,
+              args[0] as! UInt8,
+              Float(args[1] as! Double),
+              Float(args[2] as! Double),
+              Float(args[3] as! Double),
+              Float(args[4] as! Double),
+              Float(args[5] as! Double),
+              Float(args[6] as! Double),
+              Float(args[7] as! Double),
+              Float(args[8] as! Double),
+              args[9] as! Bool)
+            result(entity);
         case "setAnimation":
-          let args = call.arguments as! Array<Any?>
-          let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
-          let frameData = args[1] as! Array<Float>
-          let numWeights = args[2] as! Int
-          let numFrames = args[3] as! Int
-          let frameLenInMs = args[4] as! Double
-          frameData.map { Float($0)}.withUnsafeBufferPointer {
-            set_animation(assetPtr, UnsafeMutablePointer<Float>.init(mutating:$0.baseAddress), Int32(numWeights), Int32(numFrames), Float(frameLenInMs))
-          }
-          result("OK")
+            let args = call.arguments as! Array<Any?>
+            let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
+            
+            let morphData = (args[1] as! FlutterStandardTypedData)
+            
+            let numMorphWeights = args[2] as! Int
+            
+            let boneAnimations = args[3] as! Array<Array<Any?>>
+            let numBoneAnimations = boneAnimations.count
+            
+            var boneAnimStructs = UnsafeMutableBufferPointer<BoneAnimation>.allocate(capacity: numBoneAnimations)
+            
+            for i in 0...numBoneAnimations - 1 {
+              let boneNames = boneAnimations[i][0] as! Array<String>
+              let meshNames = boneAnimations[i][1] as! Array<String>
+              let frameData = (boneAnimations[i][2] as! FlutterStandardTypedData)
+              let frameDataNative =  UnsafeMutableBufferPointer<Float>.allocate(capacity: Int(frameData.elementCount))
+              
+              frameData.data.withUnsafeBytes{ (floatPtr: UnsafePointer<Float>) in
+                for i in 0...Int(frameData.elementCount - 1) {
+                  frameDataNative[i] = floatPtr.advanced(by: i).pointee
+                }
+              }
+              
+              var boneNameArray =  UnsafeMutableBufferPointer<UnsafePointer<CChar>?>.allocate(capacity: boneNames.count)
+              
+              for i in 0...boneNames.count - 1 {
+                boneNameArray[i] = UnsafePointer(strdup(boneNames[i]))
+              }
+              
+              var meshNameArray =  UnsafeMutableBufferPointer<UnsafePointer<CChar>?>.allocate(capacity: meshNames.count)
+              
+              for i in 0...meshNames.count - 1 {
+                meshNameArray[i] = UnsafePointer(strdup(meshNames[i]))
+              }
+              boneAnimStructs[i] = BoneAnimation(
+                boneNames: boneNameArray.baseAddress,
+                meshNames:meshNameArray.baseAddress,
+                data:frameDataNative.baseAddress,
+                numBones: boneNames.count,
+                numMeshTargets: meshNames.count
+              )
+            }
+              
+            let numFrames = args[4] as! Int
+            let frameLenInMs = args[5] as! Double
+            morphData.data.withUnsafeBytes { (morphDataNative: UnsafePointer<Float>) in
+              set_animation(
+                assetPtr,
+                morphDataNative,
+                Int32(numMorphWeights),
+                boneAnimStructs.baseAddress,
+                Int32(boneAnimations.count),
+                Int32(numFrames),
+                Float(frameLenInMs)
+              )
+            }
+            
+            boneAnimStructs.forEach { (boneAnimStruct:BoneAnimation) in
+
+              for i in 0...boneAnimStruct.numBones - 1 {
+                boneAnimStruct.boneNames[i]?.deallocate()
+              }
+              boneAnimStruct.boneNames.deallocate()
+              
+              for i in 0...boneAnimStruct.numMeshTargets - 1 {
+                boneAnimStruct.meshNames[i]?.deallocate()
+              }
+              boneAnimStruct.meshNames.deallocate()
+              
+              boneAnimStruct.data.deallocate();
+              
+            }
+            boneAnimStructs.deallocate()
+            result("OK")
         case "initialize":
             let args = call.arguments as! Array<Int32>
             initialize(width:args[0], height:args[1])
-            result(self.textureId);
-        
+            result(self.textureId);        
         case "clearLights":
            clear_lights(self.viewer);
            result(true);
-        
         case "loadSkybox":
             load_skybox(self.viewer!, call.arguments as! String)
             result("OK");
@@ -238,7 +301,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           let meshName = args[1] as! String
           let numNames = get_morph_target_name_count(assetPtr, meshName)
           var names = [String]()
-          for i in 0...numNames - 1{
+          for i in 0...numNames - 1 {
             let outPtr = UnsafeMutablePointer<CChar>.allocate(capacity:256)
             get_morph_target_name(assetPtr, meshName, outPtr, i)
             names.append(String(cString:outPtr))

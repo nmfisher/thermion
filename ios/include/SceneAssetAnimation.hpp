@@ -83,7 +83,7 @@ namespace polyvox {
 
       unique_ptr<vector<BoneTransformTarget>> mTargets;
       
-      RuntimeAnimation(float* morphData,
+      RuntimeAnimation(const float* const morphData,
                        int numMorphWeights,
                        unique_ptr<vector<BoneTransformTarget>>& targets,
                        int numFrames,

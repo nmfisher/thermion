@@ -1,6 +1,5 @@
 import 'animations.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {
@@ -14,9 +13,7 @@ class AnimationBuilder {
   double? _interpMorphStartValue;
   double? _interpMorphEndValue;
 
-  final List<String> _boneNames = [];
-  final List<String> _meshNames = [];
-  final List<BoneTransformFrameData> _boneTransforms = [];
+  List<BoneAnimation>? _boneAnimations = null;
 
   Animation build() {
     if (_numMorphWeights == 0 || _duration == 0 || _frameLengthInMs == 0)
@@ -39,33 +36,7 @@ class AnimationBuilder {
       }
     }
 
-    print(
-        "Created morphWeights of size ${morphData.length} (${morphData.lengthInBytes} for ${numFrames} frames");
-
-    List<BoneAnimation>? boneAnimations;
-
-    if (_boneTransforms.isNotEmpty) {
-      throw Exception("TODO");
-      boneAnimations = <BoneAnimation>[];
-
-      final boneTransforms =
-          Float32List(numFrames * _boneTransforms.length * 7);
-
-      // print(
-      //     "Creating bone transforms of size ${numFrames * _boneTransforms.length * 7}");
-      // for (int i = 0; i < numFrames; i++) {
-      //   for (int j = 0; j < _boneTransforms.length; j++) {
-      //     var frameData = _boneTransforms[j].getFrameData(i).toList();
-      //     var rngStart = ((i * _boneTransforms.length) + j) * 7;
-      //     var rngEnd = rngStart + 7;
-      //     boneTransforms.setRange(rngStart, rngEnd, frameData);
-      //   }
-      //   print(
-      //       "frameData for frame $i ${boneTransforms.sublist(i * _boneTransforms.length * 7, (i * _boneTransforms.length * 7) + 7)}");
-      // }
-    }
-
-    return Animation(morphData, _numMorphWeights, boneAnimations, numFrames,
+    return Animation(morphData, _numMorphWeights, _boneAnimations, numFrames,
         _frameLengthInMs);
   }
 
@@ -133,10 +104,16 @@ class AnimationBuilder {
       }
     }
 
-    _boneTransforms.add(BoneTransformFrameData(translations, quats));
+    var boneFrameData = BoneTransformFrameData(translations, quats);
 
-    _boneNames.add(boneName);
-    _meshNames.add(meshName);
+    _boneAnimations ??= <BoneAnimation>[];
+
+    var frameData = List<List<double>>.generate(
+        numFrames, (index) => boneFrameData.getFrameData(index).toList());
+
+    var animData = Float32List.fromList(frameData.expand((x) => x).toList());
+
+    _boneAnimations!.add(BoneAnimation([boneName], [meshName], animData));
 
     return this;
   }
