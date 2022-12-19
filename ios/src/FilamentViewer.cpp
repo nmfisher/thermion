@@ -165,7 +165,7 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
 
   View::DynamicResolutionOptions options;
-  options.enabled = true;
+  options.enabled = false;
   // options.homogeneousScaling = homogeneousScaling;
   // options.minScale = filament::math::float2{ minScale };
   // options.maxScale = filament::math::float2{ maxScale };
@@ -174,12 +174,12 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   
   _view->setDynamicResolutionOptions(options);
 
-  //View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
-  //multiSampleAntiAliasingOptions.enabled = true;
+  View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
+  multiSampleAntiAliasingOptions.enabled = true;
 
-  //_view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
+  _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
 
-  //_view->setAntiAliasing(AntiAliasing::NONE);
+  _view->setAntiAliasing(AntiAliasing::FXAA);
 
   _materialProvider = 
   // new UnlitMaterialProvider(_engine);
