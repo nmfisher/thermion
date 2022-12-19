@@ -19,7 +19,10 @@
 
 #include "ResourceManagement.hpp"
 #include "SceneAssetAnimation.hpp"
-#include "PolyvoxFilamentApi.h"
+
+extern "C" {
+    #include "PolyvoxFilamentApi.h"
+}
 
 namespace polyvox {
     using namespace filament;
