@@ -1,6 +1,5 @@
 import Flutter
 import UIKit
-import OpenGLES.ES3
 import GLKit
 
 public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture {
@@ -12,12 +11,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     var width: Double = 0
     var height: Double = 0
   
-    var context: EAGLContext?;
+    
     var targetPixelBuffer: CVPixelBuffer?;
-    var textureCache: CVOpenGLESTextureCache?;
-    var texture: CVOpenGLESTexture? = nil;
-    var frameBuffer: GLuint = 0;
-
+    // var context: EAGLContext?;
+    // var textureCache: CVOpenGLESTextureCache?;
+    // var texture: CVOpenGLESTexture? = nil;
+    // var frameBuffer: GLuint = 0;
     
     var pixelBufferAttrs = [
         kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32BGRA),
@@ -83,10 +82,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     }
   
     @objc func doRender() {
-      if(viewer != nil && _rendering) {
+        guard _rendering == true, let textureId = self.textureId, let viewer = viewer else {
+          return
+        }
         render(viewer, 0)
-        self.registry.textureFrameAvailable(self.textureId!)
-      }
+        self.registry.textureFrameAvailable(textureId)
     }
   
     public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
@@ -95,6 +95,10 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             return nil;
         } 
         return Unmanaged.passRetained(targetPixelBuffer!);
+    }
+  
+    public func onTextureUnregistered(texture:FlutterTexture) {
+        print("Texture unregistered")
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -124,6 +128,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
   
     private func initialize(width:Int32, height:Int32) {
 
+      print("Initializing with size \(width)x\(height)")
+
       createPixelBuffer(width:Int(width), height:Int(height))
       self.textureId = self.registry.register(self)
 
@@ -142,18 +148,35 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         unsafeBitCast(targetPixelBuffer!, to: UnsafeMutableRawPointer.self),
         UInt32(width), UInt32(height))
 
-      update_viewport_and_camera_projection(self.viewer!, Int32(width), Int32(height), 1.0);
+      update_viewport_and_camera_projection(self.viewer!, width, height, 1.0);
       
       createDisplayLink()
 
     }
+  
+  private func resize(width:Int32, height:Int32) {
+    print("Resizing to size \(width)x\(height)")
+    if(self.textureId != nil) {
+      self.registry.unregisterTexture(self.textureId!)
+    }
+    createPixelBuffer(width: Int(width), height:Int(height))
+
+    create_swap_chain(
+      self.viewer,
+      unsafeBitCast(targetPixelBuffer!, to: UnsafeMutableRawPointer.self),
+      UInt32(width), UInt32(height))
+
+    update_viewport_and_camera_projection(self.viewer!, width, height, 1.0);
+
+    self.textureId = self.registry.register(self)
+  }
   
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
       let methodName = call.method;
 
       switch methodName {
         
-        case "addLight":
+          case "addLight":
             let args = call.arguments as! Array<Any>
             let entity = add_light(
               self.viewer,
@@ -168,7 +191,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
               Float(args[8] as! Double),
               args[9] as! Bool)
             result(entity);
-        case "setAnimation":
+          case "setAnimation":
             let args = call.arguments as! Array<Any?>
             let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
             
@@ -180,39 +203,41 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             let numBoneAnimations = boneAnimations.count
             
             var boneAnimStructs = UnsafeMutableBufferPointer<BoneAnimation>.allocate(capacity: numBoneAnimations)
-            
-            for i in 0...numBoneAnimations - 1 {
-              let boneNames = boneAnimations[i][0] as! Array<String>
-              let meshNames = boneAnimations[i][1] as! Array<String>
-              let frameData = (boneAnimations[i][2] as! FlutterStandardTypedData)
-              let frameDataNative =  UnsafeMutableBufferPointer<Float>.allocate(capacity: Int(frameData.elementCount))
-              
-              frameData.data.withUnsafeBytes{ (floatPtr: UnsafePointer<Float>) in
-                for i in 0...Int(frameData.elementCount - 1) {
-                  frameDataNative[i] = floatPtr.advanced(by: i).pointee
+            if numBoneAnimations > 0 {
+              for i in 0...numBoneAnimations - 1 {
+                let boneNames = boneAnimations[i][0] as! Array<String>
+                let meshNames = boneAnimations[i][1] as! Array<String>
+                let frameData = (boneAnimations[i][2] as! FlutterStandardTypedData)
+                let frameDataNative =  UnsafeMutableBufferPointer<Float>.allocate(capacity: Int(frameData.elementCount))
+                
+                frameData.data.withUnsafeBytes{ (floatPtr: UnsafePointer<Float>) in
+                  for i in 0...Int(frameData.elementCount - 1) {
+                    frameDataNative[i] = floatPtr.advanced(by: i).pointee
+                  }
                 }
+                
+                var boneNameArray =  UnsafeMutableBufferPointer<UnsafePointer<CChar>?>.allocate(capacity: boneNames.count)
+                
+                for i in 0...boneNames.count - 1 {
+                  boneNameArray[i] = UnsafePointer(strdup(boneNames[i]))
+                }
+                
+                var meshNameArray =  UnsafeMutableBufferPointer<UnsafePointer<CChar>?>.allocate(capacity: meshNames.count)
+                
+                for i in 0...meshNames.count - 1 {
+                  meshNameArray[i] = UnsafePointer(strdup(meshNames[i]))
+                }
+                boneAnimStructs[i] = BoneAnimation(
+                  boneNames: boneNameArray.baseAddress,
+                  meshNames:meshNameArray.baseAddress,
+                  data:frameDataNative.baseAddress,
+                  numBones: boneNames.count,
+                  numMeshTargets: meshNames.count
+                )
               }
-              
-              var boneNameArray =  UnsafeMutableBufferPointer<UnsafePointer<CChar>?>.allocate(capacity: boneNames.count)
-              
-              for i in 0...boneNames.count - 1 {
-                boneNameArray[i] = UnsafePointer(strdup(boneNames[i]))
-              }
-              
-              var meshNameArray =  UnsafeMutableBufferPointer<UnsafePointer<CChar>?>.allocate(capacity: meshNames.count)
-              
-              for i in 0...meshNames.count - 1 {
-                meshNameArray[i] = UnsafePointer(strdup(meshNames[i]))
-              }
-              boneAnimStructs[i] = BoneAnimation(
-                boneNames: boneNameArray.baseAddress,
-                meshNames:meshNameArray.baseAddress,
-                data:frameDataNative.baseAddress,
-                numBones: boneNames.count,
-                numMeshTargets: meshNames.count
-              )
             }
-              
+            
+                  
             let numFrames = args[4] as! Int
             let frameLenInMs = args[5] as! Double
             morphData.data.withUnsafeBytes { (morphDataNative: UnsafePointer<Float>) in
@@ -344,15 +369,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           doRender()
           result("OK")
         case "resize":
-            let args = call.arguments as! Array<Double>
-            let width = Int(args[0])
-            let height = Int(args[1])
-            createPixelBuffer(width: width, height:height)
-            create_swap_chain(
-              self.viewer, 
-              unsafeBitCast(targetPixelBuffer!, to: UnsafeMutableRawPointer.self),
-              UInt32(width), UInt32(height))
-            result("OK")
+          let args = call.arguments as! Array<Double>
+          let width = Int32(args[0])
+          let height = Int32(args[1])
+        resize(width:width, height:height)
+          result(self.textureId)
         case "rotateStart":
           let args = call.arguments as! Array<Any>
           grab_begin(self.viewer, Float(args[0] as! Double), Float(args[1] as! Double), false)
