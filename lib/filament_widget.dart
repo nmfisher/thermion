@@ -55,15 +55,11 @@ class FilamentWidget extends StatefulWidget {
 }
 
 class _FilamentWidgetState extends State<FilamentWidget> {
-  bool _ready = false;
   StreamSubscription? _listener;
 
   @override
   void initState() {
     _listener = widget.controller.onInitializationRequested.listen((_) {
-      if (_ready) {
-        return;
-      }
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
         var size = ((context.findRenderObject()) as RenderBox).size;
         print(
@@ -71,13 +67,9 @@ class _FilamentWidgetState extends State<FilamentWidget> {
         await widget.controller
             .createTextureViewer(size.width.toInt(), size.height.toInt());
         print("Filament texture/viewer created.");
-        setState(() {
-          _ready = true;
-        });
         _listener!.cancel();
         _listener = null;
       });
-      // we need to make sure a new frame is requested, otherwise the callback may not run
       setState(() {});
     });
 
@@ -91,23 +83,33 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_ready) {
-      return Container();
-    }
-    var texture = Texture(
-      textureId: widget.controller.textureId,
-      filterQuality: FilterQuality.high,
-    );
-    return ResizeObserver(
-        onResized: (Size oldSize, Size newSize) async {
-          await widget.controller
-              .resize(newSize.width.toInt(), newSize.height.toInt());
-        },
-        child: Platform.isLinux
-            ? Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.rotationX(pi),
-                child: texture)
-            : texture);
+    return StreamBuilder(
+        stream: widget.controller.textureId,
+        builder: (ctx, AsyncSnapshot<int> textureId) {
+          if (textureId.data == null) {
+            return Container();
+          }
+
+          var texture = Texture(
+            key: ObjectKey("texture_${textureId.data}"),
+            textureId: textureId.data!,
+            filterQuality: FilterQuality.high,
+          );
+          return LayoutBuilder(
+              builder: ((context, constraints) => SizedBox(
+                  height: constraints.maxHeight,
+                  width: constraints.maxWidth,
+                  child: ResizeObserver(
+                      onResized: (Size oldSize, Size newSize) async {
+                        await widget.controller.resize(
+                            newSize.width.toInt(), newSize.height.toInt());
+                      },
+                      child: Platform.isLinux
+                          ? Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.rotationX(pi),
+                              child: texture)
+                          : texture))));
+        });
   }
 }
