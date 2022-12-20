@@ -13,7 +13,7 @@ typedef FilamentLight = int;
 
 abstract class FilamentController {
   Size get size;
-  late int textureId;
+  late Stream<int> textureId;
   Future get initialized;
   Stream get onInitializationRequested;
   Future initialize();
@@ -102,7 +102,10 @@ class PolyvoxFilamentController extends FilamentController {
   double _pixelRatio = 1.0;
   Size size = Size(0, 0);
 
-  final _onInitRequestedController = StreamController();
+  final _textureIdController = StreamController<int>();
+  Stream<int> get textureId => _textureIdController.stream;
+
+  final _onInitRequestedController = StreamController.broadcast();
   Stream get onInitializationRequested => _onInitRequestedController.stream;
 
   final _initialized = Completer();
@@ -139,16 +142,21 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future createTextureViewer(int width, int height) async {
     size = Size(width * _pixelRatio, height * _pixelRatio);
-    textureId =
+    print("Creating texture of size $size");
+    var textureId =
         await _channel.invokeMethod("initialize", [size.width, size.height]);
+    _textureIdController.add(textureId);
     _initialized.complete(true);
   }
 
   Future resize(int width, int height,
       {double contentScaleFactor = 1.0}) async {
     size = Size(width * _pixelRatio, height * _pixelRatio);
-    textureId = await _channel.invokeMethod("resize",
+
+    var textureId = await _channel.invokeMethod("resize",
         [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
+    print("Resized to $size with texutre Id $textureId");
+    _textureIdController.add(textureId);
   }
 
   @override
