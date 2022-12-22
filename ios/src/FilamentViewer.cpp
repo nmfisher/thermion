@@ -873,10 +873,10 @@ void FilamentViewer::updateViewportAndCameraProjection(
   const double aspect = (double)width / height;
 
   Camera& cam =_view->getCamera();
-  cam.setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
+  cam.setLensProjection(_cameraFocalLength, aspect, kNearPlane,
                                  kFarPlane);
 
-  cam.setScaling({1.0 / aspect, 1.0});
+  // cam.setScaling({1.0 / aspect, 1.0});
 
   Log("Set viewport to width: %d height: %d aspect %f scaleFactor : %f", width, height, aspect,
       contentScaleFactor);
