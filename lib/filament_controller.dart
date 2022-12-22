@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 // should make this consistent
 typedef FilamentAsset = int;
 typedef FilamentLight = int;
+const FilamentAsset FILAMENT_ASSET_ERROR = 0;
 
 abstract class FilamentController {
   Size get size;
@@ -230,6 +231,9 @@ class PolyvoxFilamentController extends FilamentController {
   Future<FilamentAsset> loadGlb(String path) async {
     print("Loading GLB at $path ");
     var asset = await _channel.invokeMethod("loadGlb", path);
+    if (asset == FILAMENT_ASSET_ERROR) {
+      throw Exception("An error occurred loading the asset at $path");
+    }
     return asset as FilamentAsset;
   }
 
