@@ -343,33 +343,47 @@ void SceneAsset::updateEmbeddedAnimations() {
         duration_cast<duration<double>>(now - status.startedAt);
     float animationTimeOffset = 0;
     bool finished = false;
+    bool fading = false;
+    
+    // if the animation hasn't started yet, start the animation at time zero
     if (!status.started) {
-
       status.started = true;
       status.startedAt = now;
+    
+    // if the animation has finished
     } else if (elapsed.count() >= animationLength) {
-      if (status.loop) {
-        status.startedAt = now;
-      } else {
-        animationTimeOffset = elapsed.count();
+      // if we aren't looping, just mark the animation as finished 
+      if(!status.loop) {
         finished = true;
+      // otherwise, cross-fade between the end of the animation and the start frame over 1 second
+      } else {
+        // if 1 second has elapsed, 
+        if(elapsed.count() >= animationLength + 0.3) {
+          // reset the start time to zero 
+          status.startedAt = now;
+        // otherwise, apply the first frame of the animation, then cross-fade with the last frame over 1 second
+        } else { 
+          fading = true;
+        }
       }
     } else {
       animationTimeOffset = elapsed.count();
     }
 
-    if(status.reverse) {
-      animationTimeOffset = _animator->getAnimationDuration(animationIndex) - animationTimeOffset;
-    }
-
-    if (!finished) {
-      _animator->applyAnimation(animationIndex, animationTimeOffset);
-    } else {
+    if (finished) {
       Log("Animation %d finished", animationIndex);
-
       status.play = false;
       status.started = false;
-    }
+    } else {
+      if(status.reverse) {
+        animationTimeOffset = _animator->getAnimationDuration(animationIndex) - animationTimeOffset;
+      }       
+      _animator->applyAnimation(animationIndex, animationTimeOffset);
+      if(fading) {
+        // Log("Fading at %0f offset %f", elapsed.count() - animationLength, animationTimeOffset);
+        _animator->applyCrossFade(animationIndex, animationLength - 0.05, (elapsed.count() - animationLength) / 0.3);
+      }
+    } 
     animationIndex++;
   }
   if(playing)
@@ -378,8 +392,6 @@ void SceneAsset::updateEmbeddedAnimations() {
 
 unique_ptr<vector<string>> SceneAsset::getAnimationNames() {
   size_t count = _animator->getAnimationCount();
-
-  Log("Found %d animations in asset.", count);
 
   unique_ptr<vector<string>> names = make_unique<vector<string>>();
 
