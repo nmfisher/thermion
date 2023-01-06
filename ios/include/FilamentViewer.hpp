@@ -81,6 +81,7 @@ namespace polyvox {
 
             void setCameraPosition(float x, float y, float z);
             void setCameraRotation(float rads, float x, float y, float z);
+            void setCameraModelMatrix(const float* const matrix);
             void setCameraFocalLength(float fl);
             void setCameraFocusDistance(float focusDistance);
 

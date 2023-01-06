@@ -52,17 +52,17 @@ void grab_begin(void* viewer, float x, float y, bool pan);
 void grab_update(void* viewer, float x, float y);
 void grab_end(void* viewer);
 
-    void apply_weights(void* asset, float* const weights, int count);
-        
-    void set_animation(
-        void* asset, 
-        const float* const morphData, 
-        int numMorphWeights, 
-        const BoneAnimation* const boneAnimations,
-        int numBoneAnimations,
-        int numFrames, 
-        float frameLengthInMs
-    );
+void apply_weights(void* asset, float* const weights, int count);
+    
+void set_animation(
+    void* asset, 
+    const float* const morphData, 
+    int numMorphWeights, 
+    const BoneAnimation* const boneAnimations,
+    int numBoneAnimations,
+    int numFrames, 
+    float frameLengthInMs
+);
 
 // void set_bone_transform(
 //     void* asset, 
@@ -103,6 +103,7 @@ void set_scale(void* asset, float scale);
 
 void set_camera_position(void* viewer, float x, float y, float z);
 void set_camera_rotation(void* viewer, float rads, float x, float y, float z);
+void set_camera_model_matrix(void* viewer, const float* const matrix);
 void set_camera_focal_length(void* viewer, float focalLength);
 void set_camera_focus_distance(void* viewer, float focusDistance);
       

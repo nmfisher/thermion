@@ -904,6 +904,34 @@ void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }
 
+void FilamentViewer::setCameraModelMatrix(const float* const matrix) {
+  if(_manipulator) {
+    delete _manipulator;
+    _manipulator = nullptr;
+  }
+  Camera& cam =_view->getCamera();
+
+  mat4 modelMatrix(
+    matrix[0],
+   matrix[1],
+   matrix[2],
+   matrix[3],
+   matrix[4],
+   matrix[5],
+   matrix[6],
+   matrix[7],
+   matrix[8],
+   matrix[9],
+   matrix[10],
+   matrix[11],
+   matrix[12],
+   matrix[13],
+   matrix[14],
+   matrix[15]
+);
+  cam.setModelMatrix(modelMatrix);
+}
+
 void FilamentViewer::_createManipulator() {
   if(_manipulator) {
     delete _manipulator;
@@ -919,7 +947,7 @@ void FilamentViewer::_createManipulator() {
                   .targetPosition(tp[0], tp[1], tp[2])
                   .build(Mode::ORBIT);
   _lastFrameTimeInNanos = 0;
-  Log("Created orbit manipulator for vp width %d height %d with home %f %f %f and target pos %f %f %f ", vp.width, vp.height, home[0], home[1], home[2], tp[0], tp[1], tp[2]);
+  // Log("Created orbit manipulator for vp width %d height %d with home %f %f %f and target pos %f %f %f ", vp.width, vp.height, home[0], home[1], home[2], tp[0], tp[1], tp[2]);
 }
 
 void FilamentViewer::grabBegin(float x, float y, bool pan) {
@@ -958,9 +986,27 @@ void FilamentViewer::grabEnd() {
     delete _manipulator;
     _manipulator = nullptr;
     Camera& cam =_view->getCamera();
-    math::float3 home = cam.getPosition();
-    math::float3 fv = cam.getForwardVector();
-    Log("Destroyed manipulator, end camera pos/fv was %f %f %f / %f %f %f ", home[0], home[1], home[2], fv[0], fv[1], fv[2]);
+    math::mat4 camMatrix = cam.getModelMatrix();
+    // math::float3 home = cam.getPosition();
+    // math::float3 fv = cam.getForwardVector();
+    Log("Destroyed manipulator, end camera model matrix was %0.3f %0.3f %03.f %03.f %0.3f %0.3f %03.f %03.f %0.3f %0.3f %03.f %03.f %0.3f %0.3f %03.f %03.f ", 
+    camMatrix[0][0],
+    camMatrix[0][1],
+    camMatrix[0][2],
+    camMatrix[0][3],
+    camMatrix[1][0],
+    camMatrix[1][1],
+    camMatrix[1][2],
+    camMatrix[1][3],
+    camMatrix[2][0],
+    camMatrix[2][1],
+    camMatrix[2][2],
+    camMatrix[2][3],
+    camMatrix[3][0],
+    camMatrix[3][1],
+    camMatrix[3][2],
+    camMatrix[3][3]
+    );
   } else {
     Log("Error - trying to call GrabEnd when a manipulator is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
   }

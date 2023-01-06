@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'animations/animation_builder.dart';
 import 'animations/animations.dart';
@@ -88,6 +89,7 @@ abstract class FilamentController {
   Future setCameraFocusDistance(double focusDistance);
   Future setCameraPosition(double x, double y, double z);
   Future setCameraRotation(double rads, double x, double y, double z);
+  Future setCameraModelMatrix(List<double> matrix);
 
   ///
   /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
@@ -360,6 +362,11 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future setCameraRotation(double rads, double x, double y, double z) async {
     await _channel.invokeMethod("setCameraRotation", [rads, x, y, z]);
+  }
+
+  Future setCameraModelMatrix(List<double> matrix) async {
+    await _channel.invokeMethod(
+        "setCameraModelMatrix", Float32List.fromList(matrix));
   }
 
   Future setTexture(FilamentAsset asset, String assetPath,
