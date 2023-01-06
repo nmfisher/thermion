@@ -326,10 +326,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           let meshName = args[1] as! String
           let numNames = get_morph_target_name_count(assetPtr, meshName)
           var names = [String]()
-          for i in 0...numNames - 1 {
-            let outPtr = UnsafeMutablePointer<CChar>.allocate(capacity:256)
-            get_morph_target_name(assetPtr, meshName, outPtr, i)
-            names.append(String(cString:outPtr))
+          if(numNames > 0) {
+            for i in 0...numNames - 1 {
+              let outPtr = UnsafeMutablePointer<CChar>.allocate(capacity:256)
+              get_morph_target_name(assetPtr, meshName, outPtr, i)
+              names.append(String(cString:outPtr))
+            }
           }
           result(names);
         case "getAnimationNames":
@@ -418,6 +420,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "setCameraRotation":
           let args = call.arguments as! Array<Any>
           set_camera_rotation(self.viewer, Float(args[0] as! Double), Float(args[1] as! Double), Float(args[2] as! Double),Float(args[3] as! Double))
+          result("OK")
+        case "setCameraModelMatrix":
+          let matrix = call.arguments as! FlutterStandardTypedData
+          matrix.data.withUnsafeBytes{ (floatPtr: UnsafePointer<Float>) in
+            set_camera_model_matrix(self.viewer, floatPtr)
+          }
           result("OK")
         case "setCameraFocalLength":
           set_camera_focal_length(self.viewer, Float(call.arguments as! Double))

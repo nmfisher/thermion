@@ -209,6 +209,8 @@ class _MyAppState extends State<MyApp> {
         await _filamentController.clearLights();
         break;
       case 32:
+        await _filamentController
+            .setCameraModelMatrix(List<double>.filled(16, 1.0));
 
         // await _filamentController.setBoneTransform(
         //     _cube!,
@@ -297,6 +299,7 @@ class _MyAppState extends State<MyApp> {
                     _item(value: 29, child: Text('add light')),
                     _item(value: 30, child: Text('remove light')),
                     _item(value: 31, child: Text('clear all lights')),
+                    _item(value: 32, child: Text('set camera model matrix')),
                   ])),
               Container(
                   width: _vertical ? 200 : 400,

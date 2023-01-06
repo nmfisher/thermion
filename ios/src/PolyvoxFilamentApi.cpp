@@ -82,6 +82,10 @@ extern "C" {
     ((FilamentViewer*)viewer)->setCameraRotation(rads, x, y, z);
   }
 
+  void set_camera_model_matrix(void* viewer, const float* const matrix) {
+    ((FilamentViewer*)viewer)->setCameraModelMatrix(matrix);
+  }
+
   void set_camera_focal_length(void* viewer, float focalLength) {
     ((FilamentViewer*)viewer)->setCameraFocalLength(focalLength);
   }
