@@ -45,18 +45,54 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       let uriString = String(cString:uri.assumingMemoryBound(to: UInt8.self))
 
       var path:String? = nil
+      
+      let appFolder = Bundle.main.resourceURL
+      let dirPaths = NSSearchPathForDirectoriesInDomains(.applicationDirectory,
+                    .userDomainMask, true)
+      let supportDirPaths = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory,
+                    .userDomainMask, true)
+      let devFsPath = URL(fileURLWithPath: supportDirPaths.first!, isDirectory:true).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("tmp")
+      
+      var found : URL? = nil
 
-      if(uriString.hasPrefix("file://")) { 
-        path = String(uriString.dropFirst(7))
+      let orderedURLs = try? FileManager.default.enumerator(at: devFsPath, includingPropertiesForKeys: [ .pathKey, .creationDateKey], options: .skipsHiddenFiles)
+      for case let fileURL as URL in orderedURLs! {
+        if !(fileURL.path.hasSuffix(uriString)) {
+          continue
+        }
+        if found == nil {
+          found = fileURL
+        } else {
+          do {
+            let c1 = try found!.resourceValues(forKeys: [.creationDateKey]).creationDate
+            let c2 = try fileURL.resourceValues(forKeys: [.creationDateKey]).creationDate
+            if c1! < c2! {
+              found = fileURL
+            }
+          } catch {
+            
+          }
+        }
+      }
+      
+      if found != nil {
+        path = found?.path
+        print("FOUND \(found)")
       } else {
-        let key = instance.registrar.lookupKey(forAsset:uriString)
-        path = Bundle.main.path(forResource: key, ofType:nil)
-        guard path != nil else {
-          print("File not present in bundle : \(uri)")
-          return ResourceBuffer()
+        if(uriString.hasPrefix("file://")) {
+          path = String(uriString.dropFirst(7))
+        } else {
+          let key = instance.registrar.lookupKey(forAsset:uriString)
+          path = Bundle.main.path(forResource: key, ofType:nil)
+          print("Found path \(path) for uri \(uriString)")
+          guard path != nil else {
+            print("File not present in bundle : \(uri)")
+            return ResourceBuffer()
+          }
         }
       }
       do {
+        print("Opening data from path \(path)")
         let data = try Data(contentsOf: URL(fileURLWithPath:path!))
         let resId = instance.resources.count
         let nsData = data as NSData
@@ -127,6 +163,13 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     }
   
     private func initialize(width:Int32, height:Int32) {
+
+      if(self.viewer != nil) { 
+        clear_assets(self.viewer)
+        clear_lights(self.viewer)
+        destroy_swap_chain(self.viewer)
+        filament_viewer_delete(self.viewer)
+      }
 
       print("Initializing with size \(width)x\(height)")
 
