@@ -21,9 +21,6 @@ extern "C" {
   
   void filament_viewer_delete(void* viewer) {
     delete((FilamentViewer*)viewer);
-    Log(
-      "deleted"
-    );
   }
 
   void set_background_image(void* viewer, const char* path) {
