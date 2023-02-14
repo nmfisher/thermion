@@ -141,12 +141,13 @@ extern "C" {
     ((FilamentViewer*)viewer)->grabEnd();
   }
 
-  void apply_weights(void* asset, float* const weights, int count) {
-    ((SceneAsset*)asset)->setMorphTargetWeights(weights, count);
+  void apply_weights(void* asset, const char* const entityName, float* const weights, int count) {
+    ((SceneAsset*)asset)->setMorphTargetWeights(entityName, weights, count);
   }
 
   void set_animation(
     void* asset, 
+    const char* const entityName,
     const float* const morphData,
     int numMorphWeights, 
     const BoneAnimation* const boneAnimations,
@@ -154,6 +155,7 @@ extern "C" {
     int numFrames, 
     float frameLengthInMs) {
     ((SceneAsset*)asset)->setAnimation(
+      entityName,
       morphData, 
       numMorphWeights, 
       boneAnimations, 

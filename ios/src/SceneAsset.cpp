@@ -4,6 +4,7 @@
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
+#include <filament/RenderableManager.h>
 
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
@@ -48,15 +49,12 @@ SceneAsset::~SceneAsset() {
   }
 }
 
-void SceneAsset::setMorphTargetWeights(float *weights, int count) {
-  RenderableManager &rm = _engine->getRenderableManager();
-  for (size_t i = 0, c = _asset->getEntityCount(); i != c; ++i) {
-    auto inst = rm.getInstance(_asset->getEntities()[i]);
-    rm.setMorphWeights(inst, weights, count);
-  }
+void SceneAsset::setMorphTargetWeights(const char* const entityName, float *weights, int count) {
+  // TODO 
 }
 
 void SceneAsset::setAnimation(
+                const char* entityName,
                 const float* const morphData,
                 int numMorphWeights, 
                 const BoneAnimation* const boneAnimations,
@@ -107,13 +105,31 @@ void SceneAsset::setAnimation(
           frameData
       ));
   }
-  _runtimeAnimationBuffer = std::make_unique<RuntimeAnimation>(
-      morphData, 
-      numMorphWeights, 
-      transforms, 
-      numFrames, 
-      frameLengthInMs
-    );
+
+  RenderableManager &rm = _engine->getRenderableManager();
+  Instance inst;
+  for (size_t i = 0, c = _asset->getEntityCount(); i != c; ++i) {
+    auto entity = _asset->getEntities()[i];    
+    auto name = _ncm->getName(_ncm->getInstance(entity));
+
+    if(strcmp(entityName,name)==0) {
+      inst = rm.getInstance(_asset->getEntities()[i]);
+    }
+  }
+
+  if(!inst) {
+    Log("Warning: failed to find Renderable instance for entity %s", entityName);
+  } else {
+
+    _runtimeAnimationBuffer = std::make_unique<RuntimeAnimation>(
+        inst,
+        morphData, 
+        numMorphWeights, 
+        transforms, 
+        numFrames, 
+        frameLengthInMs
+      );
+  }
 }
 
 void SceneAsset::updateAnimations() {
@@ -142,12 +158,15 @@ void SceneAsset::updateRuntimeAnimation() {
     return;
   } 
 
+  RenderableManager &rm = _engine->getRenderableManager();
   if (frameNumber > _runtimeAnimationBuffer->frameNumber) {
     _runtimeAnimationBuffer->frameNumber = frameNumber;
     if(_runtimeAnimationBuffer->mMorphFrameData) {
       auto morphFramePtrOffset = frameNumber * _runtimeAnimationBuffer->mNumMorphWeights;
-      setMorphTargetWeights(_runtimeAnimationBuffer->mMorphFrameData + morphFramePtrOffset,
-                    _runtimeAnimationBuffer->mNumMorphWeights);
+      rm.setMorphWeights(
+        _runtimeAnimationBuffer->mInstance,
+        _runtimeAnimationBuffer->mMorphFrameData + morphFramePtrOffset,
+        _runtimeAnimationBuffer->mNumMorphWeights);
     }
 
     if(_runtimeAnimationBuffer->mTargets->size() > 0) {

@@ -97,9 +97,6 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
   _scene->addEntities(asset->getEntities(), entityCount);
 
   Log("Added %d entities to scene", entityCount);
-
-  size_t lightEntityCount = asset->getLightEntityCount();
-  Log("Found %d light entities in scene.", lightEntityCount );
   
   _resourceLoader->loadResources(asset);
 
@@ -115,6 +112,10 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
     rm.setCulling(entityInstance, true);
   }  
 
+  auto lights = asset->getLightEntities();
+  _scene->addEntities(lights, asset->getLightEntityCount());
+  
+  Log("Added %d lights to scene from asset", asset->getLightEntityCount());
 
   FilamentInstance* inst = asset->getInstance();
   inst->getAnimator()->updateBoneMatrices();
@@ -131,8 +132,15 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
 }
 
 void SceneAssetLoader::remove(SceneAsset *asset) {
+
+  Log("Removing asset and all associated entities/lights.");
+
   _scene->removeEntities(asset->_asset->getEntities(),
                          asset->_asset->getEntityCount());
+
+  _scene->removeEntities(asset->getLightEntities(),
+                         asset->getLightEntityCount());
+
   _resourceLoader->evictResourceData();
   _assetLoader->destroyAsset(asset->_asset);
   delete asset;
