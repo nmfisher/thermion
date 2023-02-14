@@ -8,9 +8,10 @@
 typedef struct ResourceBuffer ResourceBuffer;
 
 /// 
-/// A wrapper for a single set of frame-data that may animate multiples bones/mesh nodes.
+/// Frame data for animating multiples bones for multiple meshes.
 /// [data]
 ///
+
 struct BoneAnimation {
     const char* const* const boneNames;
     const char* const* const meshNames;
@@ -52,10 +53,11 @@ void grab_begin(void* viewer, float x, float y, bool pan);
 void grab_update(void* viewer, float x, float y);
 void grab_end(void* viewer);
 
-void apply_weights(void* asset, float* const weights, int count);
+void apply_weights(void* asset, const char* const entityName, float* const weights, int count);
     
 void set_animation(
     void* asset, 
+    const char* const entityName,
     const float* const morphData, 
     int numMorphWeights, 
     const BoneAnimation* const boneAnimations,

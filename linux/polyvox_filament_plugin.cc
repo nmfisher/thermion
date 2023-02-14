@@ -21,10 +21,11 @@
 #include "include/polyvox_filament/resource_loader.hpp"
 
 #include "FilamentViewer.hpp"
+#include "Log.hpp"
+
 extern "C" {
 #include "PolyvoxFilamentApi.h"
 }
-
 
 #include <epoxy/gl.h>
 #include <epoxy/glx.h>
@@ -63,7 +64,7 @@ static gboolean on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpo
 static FlMethodResponse* _initialize(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
     
     if(self->_viewer) {
-      std::cout << "Deleting existing viewer";
+      Log("Deleting existing viewer");
       filament_viewer_delete(self->_viewer);
     } 
 
@@ -108,6 +109,17 @@ static FlMethodResponse* _loadSkybox(PolyvoxFilamentPlugin* self, FlMethodCall* 
   const gchar* path = fl_value_get_string(args);
 
   load_skybox(self->_viewer, path);
+                                       
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
+
+static FlMethodResponse* _loadIbl(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+
+  const gchar* path = fl_value_get_string(args);
+
+  load_ibl(self->_viewer, path);
                                        
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
@@ -287,6 +299,16 @@ static FlMethodResponse* _set_position(PolyvoxFilamentPlugin* self, FlMethodCall
 //   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 // }
 
+static FlMethodResponse* _set_camera(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto cameraName = fl_value_get_string(fl_value_get_list_value(args, 1)) ;
+  
+  set_camera(self->_viewer, (void*)assetPtr, cameraName);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
 static FlMethodResponse* _set_camera_position(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
@@ -363,10 +385,11 @@ static FlMethodResponse* _stop_animation(PolyvoxFilamentPlugin* self, FlMethodCa
 static FlMethodResponse* _apply_weights(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
-  auto weightsValue = fl_value_get_list_value(args, 1);
+  auto entityName = fl_value_get_string(fl_value_get_list_value(args, 1));
+  auto weightsValue = fl_value_get_list_value(args, 2);
   float* const weights = (float* const) fl_value_get_float32_list(weightsValue);  
   size_t len = fl_value_get_length(weightsValue);
-  apply_weights(assetPtr, weights, (int)len);
+  apply_weights(assetPtr, entityName, weights, (int)len);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
@@ -374,17 +397,18 @@ static FlMethodResponse* _apply_weights(PolyvoxFilamentPlugin* self, FlMethodCal
 static FlMethodResponse* _set_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
-  
-  float* const morphData = (float* const) fl_value_get_float32_list(fl_value_get_list_value(args, 1));  
-  
-  int64_t numMorphWeights = fl_value_get_int(fl_value_get_list_value(args, 2));
 
-  FlValue* flBoneAnimations = fl_value_get_list_value(args, 3);
+  const char* entityName = fl_value_get_string(fl_value_get_list_value(args, 1));  
+  
+  float* const morphData = (float* const) fl_value_get_float32_list(fl_value_get_list_value(args, 2));  
+  
+  int64_t numMorphWeights = fl_value_get_int(fl_value_get_list_value(args, 3));
+
+  FlValue* flBoneAnimations = fl_value_get_list_value(args, 4);
 
   size_t numBoneAnimations = fl_value_get_length(flBoneAnimations);
 
   vector<BoneAnimation> boneAnimations;
-  boneAnimations.resize(numBoneAnimations);
 
   for(int i = 0; i < numBoneAnimations; i++) {  
     
@@ -394,12 +418,13 @@ static FlMethodResponse* _set_animation(PolyvoxFilamentPlugin* self, FlMethodCal
     FlValue* flMeshNames = fl_value_get_list_value(flBoneAnimation, 1);  
     float* const frameData = (float* const) fl_value_get_float32_list(fl_value_get_list_value(flBoneAnimation, 2));  
 
+    Log("Framedata %f", frameData);
+
     vector<const char*> boneNames;
     boneNames.resize(fl_value_get_length(flBoneNames));
 
     for(int i=0; i < boneNames.size(); i++) {
       boneNames[i] = fl_value_get_string(fl_value_get_list_value(flBoneNames, i)) ;
-      std::cout << boneNames[i] << std::endl;
     }
 
     vector<const char*> meshNames;
@@ -407,28 +432,34 @@ static FlMethodResponse* _set_animation(PolyvoxFilamentPlugin* self, FlMethodCal
     for(int i=0; i < meshNames.size(); i++) {
       meshNames[i] = fl_value_get_string(fl_value_get_list_value(flMeshNames, i));
     }
+  
+    const char** boneNamesPtr = (const char**)malloc(boneNames.size() * sizeof(char*));
+    memcpy((void*)boneNamesPtr, (void*)boneNames.data(), boneNames.size() * sizeof(char*));
+    auto meshNamesPtr = (const char**)malloc(meshNames.size() * sizeof(char*));
+    memcpy((void*)meshNamesPtr, (void*)meshNames.data(), meshNames.size() * sizeof(char*));
 
-    auto animation = BoneAnimation();
-    animation.boneNames = (const char**)malloc(boneNames.size() * sizeof(char*));
-    memcpy(animation.boneNames, boneNames.data(), boneNames.size() * sizeof(char*));
-    animation.numBones = boneNames.size();
-    animation.meshNames = (const char**)malloc(meshNames.size() * sizeof(char*));
-    memcpy(animation.meshNames, meshNames.data(), meshNames.size() * sizeof(char*));
-    animation.numMeshTargets = meshNames.size();
-    animation.data = frameData;
+    BoneAnimation animation {
+      .boneNames = boneNamesPtr,
+      .meshNames = meshNamesPtr,
+      .data = frameData,
+      .numBones = boneNames.size(),
+      .numMeshTargets = meshNames.size()
+    };
 
-    boneAnimations[i] = animation;
+    boneAnimations.push_back(animation);
+
   }
 
-  int64_t numFrames = fl_value_get_int(fl_value_get_list_value(args, 4));
+  int64_t numFrames = fl_value_get_int(fl_value_get_list_value(args, 5));
   
-  float frameLengthInMs = fl_value_get_float(fl_value_get_list_value(args, 5));
+  float frameLengthInMs = fl_value_get_float(fl_value_get_list_value(args, 6));
 
   auto boneAnimationsPointer = boneAnimations.data();
   auto boneAnimationsSize = boneAnimations.size();
   
   set_animation(
     assetPtr, 
+    entityName,
     morphData, 
     numMorphWeights, 
     boneAnimationsPointer,
@@ -501,6 +532,8 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _initialize(self, method_call);    
   } else if(strcmp(method, "loadSkybox") == 0) {
     response = _loadSkybox(self, method_call);
+  } else if(strcmp(method, "loadIbl") == 0) {
+    response = _loadIbl(self, method_call);
   } else if(strcmp(method, "removeSkybox") == 0) {
     response = _removeSkybox(self, method_call);    
   } else if(strcmp(method, "resize") == 0) { 
@@ -541,6 +574,8 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _rotate_end(self, method_call);
   } else if(strcmp(method, "rotateUpdate") == 0) {
     response = _rotate_update(self, method_call);
+  } else if(strcmp(method, "setCamera") == 0) {
+    response = _set_camera(self, method_call);
   } else if(strcmp(method, "setCameraPosition") == 0) {
     response = _set_camera_position(self, method_call);
   } else if(strcmp(method, "setCameraRotation") == 0) {

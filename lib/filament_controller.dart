@@ -298,11 +298,12 @@ class PolyvoxFilamentController extends FilamentController {
   Future setAnimation(FilamentAsset asset, Animation animation) async {
     await _channel.invokeMethod("setAnimation", [
       asset,
-      animation.morphData!,
-      animation.numMorphWeights,
+      animation.morphAnimation!.meshName,
+      animation.morphAnimation!.morphData,
+      animation.morphAnimation!.numMorphWeights,
       animation.boneAnimations?.map((a) => a.toList()).toList() ?? [],
-      animation.numFrames,
-      animation.frameLengthInMs
+      animation.morphAnimation!.numFrames,
+      animation.morphAnimation!.frameLengthInMs
     ]);
   }
 
