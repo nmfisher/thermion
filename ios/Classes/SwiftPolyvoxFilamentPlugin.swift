@@ -77,7 +77,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       
       if found != nil {
         path = found?.path
-        print("FOUND \(found)")
       } else {
         if(uriString.hasPrefix("file://")) {
           path = String(uriString.dropFirst(7))
@@ -356,6 +355,13 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           let loop = args[2] as! Bool;
           let reverse = args[3] as! Bool;
           play_animation(assetPtr, animationIndex, loop, reverse)
+          result("OK");
+        case "setAnimationFrame":
+          let args = call.arguments as! Array<Any?>
+          let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
+          let animationIndex = args[1] as! Int32;
+          let animationFrame = args[2] as! Int32;
+          set_animation_frame(assetPtr, animationIndex, animationFrame)
           result("OK");
         case "stopAnimation":
           let args = call.arguments as! Array<Any?>
