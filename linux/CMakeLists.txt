@@ -8,7 +8,7 @@ set(PROJECT_NAME "polyvox_filament")
 project(${PROJECT_NAME})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -fPIC -Wno-unused-variable -Wno-unused-function")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-unused-variable")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-unused-variable -Wno-unused-function")
 
 # This value is used when generating builds using this plugin, so it must
 # not be changed.

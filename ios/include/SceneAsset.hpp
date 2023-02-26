@@ -63,10 +63,10 @@ namespace polyvox {
             void setAnimationFrame(int animationIndex, int animationFrame);
 
             ///
-            /// Manually set the weights for all morph targets in the assets to the provided values.
+            /// Set the weights for all [count] morph targets in this asset's entity named [inst] to [weights].
             /// See [setAnimation] if you want to do the same across a number of frames (and extended to bone transforms).
             ///
-            void setMorphTargetWeights(float* weights, int count);
+            void setMorphTargetWeights(const char* const entityName, float* weights, int count);
 
             ///
             /// Animates the asset's morph targets/bone transforms according to the frame weights/transforms specified in [morphData]/[boneData].
@@ -76,6 +76,7 @@ namespace polyvox {
             /// [morphData] and [boneData] will both be copied, so remember to free these after calling this function.
             ///
             void setAnimation(
+                const char* entityName,
                 const float* const morphData,
                 int numMorphWeights, 
                 const BoneAnimation* const targets,
@@ -84,7 +85,6 @@ namespace polyvox {
                 float frameLengthInMs
             );
 
-            void fillEntitiesByName(const char** name, int count, vector<Entity>& out);
             size_t getBoneIndex(const char* name);
             
             Entity getNode(const char* name);
