@@ -2,29 +2,6 @@ import 'dart:typed_data';
 
 import 'package:vector_math/vector_math.dart';
 
-// class Vec3 {
-//   final double x;
-//   final double y;
-//   final double z;
-
-//   Vec3({this.x = 0, this.y = 0, this.z = 0});
-
-//   factory Vec3.from(List<double> vals) =>
-//       Vec3(x: vals[0], y: vals[1], z: vals[2]);
-// }
-
-// class Quaternion {
-//   double x = 0;
-//   double y = 0;
-//   double z = 0;
-//   double w = 1;
-
-//   Quaternion({this.x = 0, this.y = 0, this.z = 0, this.w = 1.0});
-
-//   factory Quaternion.from(List<double> vals) =>
-//       Quaternion(x: vals[0], y: vals[1], z: vals[2], w: vals[3]);
-// }
-
 class BoneAnimation {
   final List<String> boneNames;
   final List<String> meshNames;
@@ -37,37 +14,33 @@ class BoneAnimation {
   }
 }
 
-class Animation {
-  late final Float32List? morphData;
-  final int numMorphWeights;
+//
+// Frame weights for the morph targets specified in [morphNames] attached to mesh [meshName].
+// morphData is laid out as numFrames x numMorphTargets
+// where the weights are in the same order as [morphNames].
+// [morphNames] must be provided but is not used directly; this is only used to check that the eventual asset being animated contains the same morph targets in the same order.
+//
+class MorphAnimation {
+  final String meshName;
+  final List<String> morphNames;
 
-  final int numFrames;
+  late final Float32List morphData;
+
+  MorphAnimation(
+      this.meshName, this.morphData, this.morphNames, this.frameLengthInMs);
+
+  int get numMorphWeights => morphNames.length;
+
+  int get numFrames => morphData.length ~/ numMorphWeights;
+
   final double frameLengthInMs;
+}
 
+class Animation {
+  final MorphAnimation? morphAnimation;
   final List<BoneAnimation>? boneAnimations;
 
-  Animation(this.morphData, this.numMorphWeights, this.boneAnimations,
-      this.numFrames, this.frameLengthInMs) {
-    if (morphData != null && morphData!.length != numFrames * numMorphWeights) {
-      throw Exception("Mismatched animation data with frame length");
-    }
-  }
-
-  Animation.from(
-      {required List<List<double>> morphData,
-      required this.numMorphWeights,
-      this.boneAnimations,
-      required this.numFrames,
-      required this.frameLengthInMs}) {
-    if (morphData.length != numFrames) {
-      throw Exception("Mismatched animation data with frame length");
-    }
-    this.morphData = Float32List(numMorphWeights * numFrames);
-    for (int i = 0; i < numFrames; i++) {
-      this.morphData!.setRange((i * numMorphWeights),
-          (i * numMorphWeights) + numMorphWeights, morphData[i]);
-    }
-  }
+  Animation({this.morphAnimation, this.boneAnimations});
 }
 
 class BoneTransformFrameData {
@@ -94,3 +67,18 @@ class BoneTransformFrameData {
     yield quaternions[frame].w;
   }
 }
+
+// Animation.from(
+//     {required this.meshName,
+//     required List<List<double>> morphData,
+//     required this.numMorphWeights,
+//     this.boneAnimations,
+//     required this.numFrames,
+//     required this.frameLengthInMs}) {
+//   if (morphData.length != numFrames) {
+//     throw Exception("Mismatched animation data with frame length");
+//   }
+// }
+
+//  not directly used, the list of morph targets animated by this [Animation], and may be a subset of the actual morph targets in the asset (and may also be ordered differently).
+// // When passed to a [FilamentController], these will be re-mapped appropriately (and any morph targets not provided will be set to zero at each frame).

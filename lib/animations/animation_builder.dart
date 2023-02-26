@@ -15,7 +15,7 @@ class AnimationBuilder {
 
   List<BoneAnimation>? _boneAnimations = null;
 
-  Animation build() {
+  Animation build(String meshName, List<String> morphNames) {
     if (_numMorphWeights == 0 || _duration == 0 || _frameLengthInMs == 0)
       throw Exception();
 
@@ -36,8 +36,11 @@ class AnimationBuilder {
       }
     }
 
-    return Animation(morphData, _numMorphWeights, _boneAnimations, numFrames,
-        _frameLengthInMs);
+    var morphAnimation =
+        MorphAnimation(meshName, morphData, morphNames, _frameLengthInMs);
+
+    return Animation(
+        morphAnimation: morphAnimation, boneAnimations: _boneAnimations);
   }
 
   AnimationBuilder setFramerate(int framerate) {

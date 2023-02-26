@@ -2,10 +2,13 @@
 #define SCENE_ASSET_ANIMATION_H_
 
 #include "utils/Entity.h"
+#include <filament/RenderableManager.h>
 
 namespace polyvox {
     
     using namespace std;
+    
+    using Instance = utils::EntityInstance<filament::RenderableManager>;
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;   
 
@@ -73,21 +76,26 @@ namespace polyvox {
     //
     struct RuntimeAnimation {
 
+      Instance mInstance;
+
       int frameNumber = -1;
       int mNumFrames = -1;
       float mFrameLengthInMs = 0;
       time_point_t startTime;
+
       
       float* mMorphFrameData = nullptr;
       int mNumMorphWeights = 0;
 
       unique_ptr<vector<BoneTransformTarget>> mTargets;
       
-      RuntimeAnimation(const float* const morphData,
+      RuntimeAnimation(Instance instance,
+                       const float* const morphData,
                        int numMorphWeights,
                        unique_ptr<vector<BoneTransformTarget>>& targets,
                        int numFrames,
                        float frameLengthInMs) : 
+                       mInstance(instance),
                        mNumFrames(numFrames), 
                        mFrameLengthInMs(frameLengthInMs), 
                        mNumMorphWeights(numMorphWeights),
