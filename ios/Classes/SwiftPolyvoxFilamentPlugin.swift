@@ -236,12 +236,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           case "setAnimation":
             let args = call.arguments as! Array<Any?>
             let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
+            let entityName = args[1] as! String
+            let morphData = (args[2] as! FlutterStandardTypedData)
             
-            let morphData = (args[1] as! FlutterStandardTypedData)
+            let numMorphWeights = args[3] as! Int
             
-            let numMorphWeights = args[2] as! Int
-            
-            let boneAnimations = args[3] as! Array<Array<Any?>>
+            let boneAnimations = args[4] as! Array<Array<Any?>>
             let numBoneAnimations = boneAnimations.count
             
             var boneAnimStructs = UnsafeMutableBufferPointer<BoneAnimation>.allocate(capacity: numBoneAnimations)
@@ -280,11 +280,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             }
             
                   
-            let numFrames = args[4] as! Int
-            let frameLenInMs = args[5] as! Double
+            let numFrames = args[5] as! Int
+            let frameLenInMs = args[6] as! Double
             morphData.data.withUnsafeBytes { (morphDataNative: UnsafePointer<Float>) in
               set_animation(
                 assetPtr,
+                entityName,
                 morphDataNative,
                 Int32(numMorphWeights),
                 boneAnimStructs.baseAddress,
@@ -396,9 +397,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "setMorphTargetWeights":
           let args = call.arguments as! Array<Any?>
           let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
-          let weights = args[1] as! Array<Float>
+          let entityName = args[1] as! String
+          let weights = args[2] as! Array<Float>
+          let count = args[3] as! Int
           weights.map { Float($0) }.withUnsafeBufferPointer {
-            apply_weights(assetPtr,           UnsafeMutablePointer<Float>.init(mutating:$0.baseAddress), Int32(weights.count))
+            apply_weights(assetPtr, entityName, UnsafeMutablePointer<Float>.init(mutating:$0.baseAddress), Int32(count))
 
           }
           result("OK")
