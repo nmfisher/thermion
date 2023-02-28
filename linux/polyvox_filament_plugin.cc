@@ -114,6 +114,12 @@ static FlMethodResponse* _loadSkybox(PolyvoxFilamentPlugin* self, FlMethodCall* 
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
+static FlMethodResponse* _remove_ibl(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  remove_ibl(self->_viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
+
 static FlMethodResponse* _loadIbl(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
 
@@ -277,6 +283,23 @@ static FlMethodResponse* _set_position(PolyvoxFilamentPlugin* self, FlMethodCall
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
+static FlMethodResponse* _set_rotation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+
+  set_rotation(
+    assetPtr, 
+    (float)fl_value_get_float(fl_value_get_list_value(args, 1)), // rads
+    (float)fl_value_get_float(fl_value_get_list_value(args, 2)), // x
+    (float)fl_value_get_float(fl_value_get_list_value(args, 3)), // y
+    (float)fl_value_get_float(fl_value_get_list_value(args, 4)) // z
+  );
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+
+
 // static FlMethodResponse* _set_bone_transform(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
 //   FlValue* args = fl_method_call_get_args(method_call);
 //   auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
@@ -305,6 +328,13 @@ static FlMethodResponse* _set_camera(PolyvoxFilamentPlugin* self, FlMethodCall* 
   auto cameraName = fl_value_get_string(fl_value_get_list_value(args, 1)) ;
   
   set_camera(self->_viewer, (void*)assetPtr, cameraName);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_camera_model_matrix(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  set_camera_model_matrix(self->_viewer, fl_value_get_float32_list(args));
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
@@ -544,6 +574,8 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _loadSkybox(self, method_call);
   } else if(strcmp(method, "loadIbl") == 0) {
     response = _loadIbl(self, method_call);
+  } else if(strcmp(method, "removeIbl") ==0) { 
+    response = _remove_ibl(self, method_call);
   } else if(strcmp(method, "removeSkybox") == 0) {
     response = _removeSkybox(self, method_call);    
   } else if(strcmp(method, "resize") == 0) { 
@@ -584,8 +616,12 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _rotate_end(self, method_call);
   } else if(strcmp(method, "rotateUpdate") == 0) {
     response = _rotate_update(self, method_call);
+  } else if(strcmp(method, "setRotation") == 0) {
+    response = _set_rotation(self, method_call);
   } else if(strcmp(method, "setCamera") == 0) {
     response = _set_camera(self, method_call);
+  } else if(strcmp(method, "setCameraModelMatrix") == 0) {
+    response = _set_camera_model_matrix(self, method_call);
   } else if(strcmp(method, "setCameraPosition") == 0) {
     response = _set_camera_position(self, method_call);
   } else if(strcmp(method, "setCameraRotation") == 0) {

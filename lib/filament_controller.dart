@@ -374,6 +374,7 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future setCameraModelMatrix(List<double> matrix) async {
+    assert(matrix.length == 16);
     await _channel.invokeMethod(
         "setCameraModelMatrix", Float32List.fromList(matrix));
   }

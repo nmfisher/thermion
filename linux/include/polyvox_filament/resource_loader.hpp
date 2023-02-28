@@ -30,14 +30,14 @@ ResourceBuffer loadResource(const char* name) {
     // this functions accepts URIs, so  
     // - file:// points to a file on the filesystem
     // - asset:// points to an asset, usually resolved relative to the current working directory
-    // - no prefix is presumed to be an absolute file path
+    // - no prefix is presumed to be an asset
     if (name_str.rfind("file://", 0) == 0) {
       name_str = name_str.substr(7);
     } else if(name_str.rfind("asset://", 0) == 0) {
       name_str = name_str.substr(7);
       name_str = string(cwd) + string("/") + name_str;
     } else {
-      
+      name_str = string(cwd) + string("/build/linux/x64/debug/bundle/data/flutter_assets/") + name_str;
     }
 
     std::cout << "Loading resource at " << name_str.c_str() << std::endl;
