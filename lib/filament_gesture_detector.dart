@@ -116,7 +116,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                       _scrollTimer?.cancel();
                       await widget.controller.zoomBegin();
                       await widget.controller.zoomUpdate(
-                          pointerSignal.scrollDelta.dy > 0 ? 100 : -100);
+                          pointerSignal.scrollDelta.dy > 0 ? 10 : -10);
                       _scrollTimer = Timer(Duration(milliseconds: 100), () {
                         widget.controller.zoomEnd();
                         _scrollTimer = null;
