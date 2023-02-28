@@ -338,6 +338,14 @@ static FlMethodResponse* _set_rendering(PolyvoxFilamentPlugin* self, FlMethodCal
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
+static FlMethodResponse* _set_frame_interval(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto val = (float) fl_value_get_float(args);
+  set_frame_interval(self->_viewer, val);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
 static FlMethodResponse* _zoom_begin(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   scroll_begin(self->_viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
@@ -479,6 +487,8 @@ static FlMethodResponse* _get_morph_target_names(PolyvoxFilamentPlugin* self, Fl
 
   auto numNames = get_morph_target_name_count(assetPtr, meshName);
 
+  std::cout << numNames << " morph targets found in mesh " << meshName << std::endl;
+
   for(int i = 0; i < numNames; i++) {
     gchar out[255];
     get_morph_target_name(assetPtr, meshName, out, i);
@@ -582,6 +592,8 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _set_camera_rotation(self, method_call);
   } else if(strcmp(method, "setRendering") == 0) {
     response = _set_rendering(self, method_call);
+  } else if(strcmp(method, "setFrameInterval") == 0) {
+    response = _set_frame_interval(self, method_call);
   } else if(strcmp(method, "zoomBegin") == 0) {
     response = _zoom_begin(self, method_call);
   } else if(strcmp(method, "zoomEnd") == 0) {
