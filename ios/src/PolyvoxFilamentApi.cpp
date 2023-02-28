@@ -198,6 +198,10 @@ extern "C" {
     ((SceneAsset*)asset)->playAnimation(index, loop, reverse);
   }
 
+  void set_animation_frame(void* asset, int animationIndex, int animationFrame) {
+    ((SceneAsset*)asset)->setAnimationFrame(animationIndex, animationFrame);
+  }
+
   int get_animation_count(void* asset) {
     auto names = ((SceneAsset*)asset)->getAnimationNames();
     return names->size();

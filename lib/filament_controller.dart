@@ -70,6 +70,8 @@ abstract class FilamentController {
   Future<List<String>> getAnimationNames(FilamentAsset asset);
   Future removeAsset(FilamentAsset asset);
   Future clearAssets();
+  Future setAnimationFrame(
+      FilamentAsset asset, int animationIndex, int animationFrame);
   Future playAnimation(FilamentAsset asset, int index,
       {bool loop = false, bool reverse = false});
   Future playAnimations(FilamentAsset asset, List<int> indices,
@@ -331,6 +333,12 @@ class PolyvoxFilamentController extends FilamentController {
   Future playAnimation(FilamentAsset asset, int index,
       {bool loop = false, bool reverse = false}) async {
     await _channel.invokeMethod("playAnimation", [asset, index, loop, reverse]);
+  }
+
+  Future setAnimationFrame(
+      FilamentAsset asset, int index, int animationFrame) async {
+    await _channel
+        .invokeMethod("setAnimationFrame", [asset, index, animationFrame]);
   }
 
   Future playAnimations(FilamentAsset asset, List<int> indices,

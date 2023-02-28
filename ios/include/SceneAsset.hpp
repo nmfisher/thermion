@@ -60,6 +60,8 @@ namespace polyvox {
             ///
             void playAnimation(int index, bool loop, bool reverse);
 
+            void setAnimationFrame(int animationIndex, int animationFrame);
+
             ///
             /// Set the weights for all [count] morph targets in this asset's entity named [inst] to [weights].
             /// See [setAnimation] if you want to do the same across a number of frames (and extended to bone transforms).
