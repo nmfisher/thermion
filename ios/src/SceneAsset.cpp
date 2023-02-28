@@ -346,6 +346,12 @@ void SceneAsset::setTexture() {
 
 }
 
+void SceneAsset::setAnimationFrame(int animationIndex, int animationFrame) {
+  auto offset = 60 * animationFrame * 1000; // TODO - don't hardcore 60fps framerate
+  _animator->applyAnimation(animationIndex, offset);
+  _animator->updateBoneMatrices();
+}
+
 void SceneAsset::updateEmbeddedAnimations() {
   auto now = high_resolution_clock::now();
   

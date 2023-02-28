@@ -80,6 +80,7 @@ void set_animation(
 // );
     
 void play_animation(void* asset, int index, bool loop, bool reverse);
+void set_animation_frame(void* asset, int animationIndex, int animationFrame);
 void stop_animation(void* asset, int index);
 
 int get_animation_count(void* asset);
