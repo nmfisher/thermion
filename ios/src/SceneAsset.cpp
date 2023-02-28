@@ -348,13 +348,14 @@ void SceneAsset::setTexture() {
 
 void SceneAsset::updateEmbeddedAnimations() {
   auto now = high_resolution_clock::now();
-  int animationIndex = 0;
-  bool playing = false;
-  for (auto &status : _embeddedAnimationStatus) {
+  
+  bool needsUpdate = false;
+  for (int animationIndex = 0; animationIndex < _embeddedAnimationStatus.size(); animationIndex++) {
+    auto &status = _embeddedAnimationStatus[animationIndex];
     if (status.play == false) {
       continue;
     }
-    playing = true;
+    needsUpdate = true;
 
     float animationLength = _animator->getAnimationDuration(animationIndex);
     
@@ -403,10 +404,11 @@ void SceneAsset::updateEmbeddedAnimations() {
         _animator->applyCrossFade(animationIndex, animationLength - 0.05, (elapsed.count() - animationLength) / 0.3);
       }
     } 
-    animationIndex++;
   }
-  if(playing)
+  if(needsUpdate) {
     _animator->updateBoneMatrices();
+  }
+  needsUpdate = false;
 }
 
 unique_ptr<vector<string>> SceneAsset::getAnimationNames() {
