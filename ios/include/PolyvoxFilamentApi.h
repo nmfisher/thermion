@@ -27,6 +27,9 @@ void* filament_viewer_new(void* context, ResourceBuffer (*loadResource)(const ch
 void filament_viewer_delete(void* viewer);
 void create_render_target(void* viewer, uint32_t textureId, uint32_t width, uint32_t height);
 void set_background_image(void* viewer, const char* path);
+
+// color is rgba
+void set_background_color(void* viewer, const float* color);
 void set_background_image_position(void* viewer, float x, float y, bool clamp);
 void load_skybox(void* viewer, const char* skyboxPath);
 void load_ibl(void* viewer, const char* iblPath);
@@ -104,6 +107,7 @@ void set_position(void* asset, float x, float y, float z);
 void set_rotation(void* asset, float rads, float x, float y, float z);
 void set_scale(void* asset, float scale);
 
+void set_camera_exposure(void* viewer, float aperture, float shutterSpeed, float sensitivity);
 void set_camera_position(void* viewer, float x, float y, float z);
 void set_camera_rotation(void* viewer, float rads, float x, float y, float z);
 void set_camera_model_matrix(void* viewer, const float* const matrix);
