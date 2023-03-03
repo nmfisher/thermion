@@ -44,15 +44,17 @@ struct _PolyvoxFilamentPlugin {
 
   double width;
   double height;
+
+  bool _resizing = false;
+  bool _rendering = false;
 };
 
 G_DEFINE_TYPE(PolyvoxFilamentPlugin, polyvox_filament_plugin, g_object_get_type())
 
-static bool _rendering = false;
 
 static gboolean on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpointer self) {
-  if(_rendering) {
-    PolyvoxFilamentPlugin* plugin = (PolyvoxFilamentPlugin*)self;
+  PolyvoxFilamentPlugin* plugin = (PolyvoxFilamentPlugin*)self;
+  if(plugin->_rendering) {
     render(plugin->_viewer, 0);
     fl_texture_registrar_mark_texture_frame_available(plugin->texture_registrar,
                                                       plugin->texture);
@@ -145,6 +147,15 @@ static FlMethodResponse* _set_background_image(PolyvoxFilamentPlugin* self, FlMe
   const gchar* path = fl_value_get_string(args);
 
   set_background_image(self->_viewer, path);
+  
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _set_background_color(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+
+  const float* color = fl_value_get_float32_list(fl_method_call_get_args(method_call));
+  set_background_color(self->_viewer, color);
   
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
@@ -339,6 +350,16 @@ static FlMethodResponse* _set_camera_model_matrix(PolyvoxFilamentPlugin* self, F
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
+static FlMethodResponse* _set_camera_exposure(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto aperture = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto shutter_speed = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto sensitivity = (float)fl_value_get_float(fl_value_get_list_value(args, 2));
+  set_camera_exposure(self->_viewer, aperture, shutter_speed, sensitivity);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
 static FlMethodResponse* _set_camera_position(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
@@ -363,7 +384,7 @@ static FlMethodResponse* _set_camera_rotation(PolyvoxFilamentPlugin* self, FlMet
 
 static FlMethodResponse* _set_rendering(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
-  _rendering = (bool)fl_value_get_bool(args);
+  self->_rendering = (bool)fl_value_get_bool(args);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
@@ -536,7 +557,9 @@ static FlMethodResponse* _resize(PolyvoxFilamentPlugin* self, FlMethodCall* meth
   const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
   const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
 
-  if(width != self->width || height != self->height) {
+  if(!self->_resizing && (width != self->width || height != self->height)) {
+    self->_rendering = false;
+    self->_resizing = true;
 
     destroy_swap_chain(self->_viewer);
 
@@ -550,6 +573,9 @@ static FlMethodResponse* _resize(PolyvoxFilamentPlugin* self, FlMethodCall* meth
     update_viewport_and_camera_projection(self->_viewer, width, height, 1.0f);
 
     std::cout << "Created new texture " << self->texture << std::endl;
+
+    self->_resizing = false;
+    self->_rendering = true;
   }
 
   g_autoptr(FlValue) result =   
@@ -584,6 +610,8 @@ static void polyvox_filament_plugin_handle_method_call(
     render(self->_viewer, 0);
     g_autoptr(FlValue) result = fl_value_new_string("OK");
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+  } else if(strcmp(method, "setBackgroundColor") == 0) {
+    response = _set_background_color(self, method_call);
   } else if(strcmp(method, "setBackgroundImage") == 0) {
     response = _set_background_image(self, method_call);
   } else if(strcmp(method, "addLight") == 0) {
@@ -622,6 +650,8 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _set_camera(self, method_call);
   } else if(strcmp(method, "setCameraModelMatrix") == 0) {
     response = _set_camera_model_matrix(self, method_call);
+  } else if(strcmp(method, "setCameraExposure") == 0) {
+    response = _set_camera_exposure(self, method_call);
   } else if(strcmp(method, "setCameraPosition") == 0) {
     response = _set_camera_position(self, method_call);
   } else if(strcmp(method, "setCameraRotation") == 0) {

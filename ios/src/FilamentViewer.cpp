@@ -74,12 +74,13 @@
 
 extern "C" {
   #include "material/image_material.h"
-  #include "material/unlitopaque.h"
+  #include "material/unlit_opaque.h"
 }
 
 #include "FilamentViewer.hpp"
 #include "StreamBufferAdapter.hpp"
 #include "material/UnlitMaterialProvider.hpp"
+#include "material/FileMaterialProvider.hpp"
 
 using namespace filament;
 using namespace filament::math;
@@ -96,10 +97,10 @@ namespace polyvox {
   
 const double kNearPlane = 0.05;  // 5 cm
 const double kFarPlane = 1000.0; // 1 km
-// const float kScaleMultiplier = 100.0f;
-const float kAperture = 16.0f;
-const float kShutterSpeed = 1.0f / 125.0f;
-const float kSensitivity = 100.0f;
+
+// const float kAperture = 1.0f;
+// const float kShutterSpeed = 1.0f;
+// const float kSensitivity = 50.0f;
 struct Vertex {
     filament::math::float2 position;
     uint32_t color;
@@ -147,22 +148,29 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   _view = _engine->createView();
 
   decltype(_view->getBloomOptions()) opts;
-  opts.enabled = true;
+  opts.enabled = false;
   _view->setBloomOptions(opts);
 
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
 
-  ToneMapper *tm = new LinearToneMapper();
-  colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
-  delete tm;
+  // ToneMapper *tm = new LinearToneMapper();
+  // colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
+  // delete tm;
 
-  _view->setColorGrading(colorGrading);
+  // _view->setColorGrading(colorGrading);
 
   _cameraFocalLength = 28.0f;
   _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
                                  kFarPlane);
-  _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
+  // _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
+  
+  const float aperture = _mainCamera->getAperture();
+  const float shutterSpeed = _mainCamera->getShutterSpeed();
+  const float sens = _mainCamera->getSensitivity();
+  // _mainCamera->setExposure(2.0f, 1.0f, 1.0f);
+
+  Log("Camera aperture %f shutter %f sensitivity %f", aperture, shutterSpeed, sens);
 
   View::DynamicResolutionOptions options;
   options.enabled = false;
@@ -170,7 +178,7 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   // options.minScale = filament::math::float2{ minScale };
   // options.maxScale = filament::math::float2{ maxScale };
   // options.sharpness = sharpness;
-  options.quality = View::QualityLevel::HIGH;
+  options.quality = View::QualityLevel::ULTRA;
   
   _view->setDynamicResolutionOptions(options);
 
@@ -179,12 +187,16 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
 
   _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
 
-  _view->setAntiAliasing(AntiAliasing::FXAA);
+  _view->setAntiAliasing(AntiAliasing::NONE);
 
-  _materialProvider = 
-  // new UnlitMaterialProvider(_engine);
-  gltfio::createUbershaderProvider(
-       _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
+  // auto materialRb = _loadResource("file:///mnt/hdd_2tb/home/hydroxide/projects/filament/unlit.filamat");
+  // Log("Loaded resource of size %d", materialRb.size);
+  // _materialProvider = new FileMaterialProvider(_engine, (void*) materialRb.data, (size_t)materialRb.size);
+  //_materialProvider = new UnlitMaterialProvider(_engine);
+   
+  _materialProvider = gltfio::createUbershaderProvider(
+         _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
+  Log("Created material provider");
 
   EntityManager &em = EntityManager::get();
   _ncm = new NameComponentManager(em);
@@ -398,6 +410,12 @@ void FilamentViewer::loadTextureFromPath(string path) {
 
 }
 
+void FilamentViewer::setBackgroundColor(const float* color) {
+  _imageMaterial->setDefaultParameter("showImage", 0);
+
+  _imageMaterial->setDefaultParameter("backgroundColor", RgbType::sRGB, float3(color[0], color[1], color[2]));
+}
+
 void FilamentViewer::setBackgroundImage(const char *resourcePath) {
 
   string resourcePathString(resourcePath);
@@ -427,7 +445,7 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
   _imageMaterial->setDefaultParameter("showImage", 1);
 
   _imageMaterial->setDefaultParameter("backgroundColor", RgbType::sRGB,
-                                      float3(1.f));
+                                      float3(0.f));
 }
 
 
@@ -655,6 +673,15 @@ void FilamentViewer::removeAsset(SceneAsset *asset) {
     Log("Error removing asset from scene : not found");
   }
   mtx.unlock();
+}
+
+/// 
+/// Set the exposure for the current active camera.
+///
+void FilamentViewer::setCameraExposure(float aperture, float shutterSpeed, float sensitivity) {
+  Camera& cam =_view->getCamera();
+  Log("Setting aperture (%03f) shutterSpeed (%03f) and sensitivity (%03f)", aperture, shutterSpeed, sensitivity);
+  cam.setExposure(aperture, shutterSpeed, sensitivity);
 }
 
 ///

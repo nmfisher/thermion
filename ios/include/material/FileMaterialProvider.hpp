@@ -1,0 +1,89 @@
+#ifndef FILE_MATERIAL_PROVIDER
+#define FILE_MATERIAL_PROVIDER
+
+#include <filament/Texture.h>
+#include <filament/TextureSampler.h>
+#include <math/mat4.h>
+
+namespace polyvox {
+  class FileMaterialProvider : public MaterialProvider {
+
+      Material* _m;
+      const Material* _ms[1];
+      Texture* mDummyTexture = nullptr;
+
+
+      public:
+        FileMaterialProvider(Engine* engine, void* const  data, size_t size) {
+          _m = Material::Builder()
+            .package(data, size)
+            .build(*engine);
+          _ms[0] = _m;
+          unsigned char texels[4] = {};
+          mDummyTexture = Texture::Builder()
+            .width(1).height(1)
+            .format(Texture::InternalFormat::RGBA8)
+            .build(*engine);
+          Texture::PixelBufferDescriptor pbd(texels, sizeof(texels), Texture::Format::RGBA,
+            Texture::Type::UBYTE);
+            mDummyTexture->setImage(*engine, 0, std::move(pbd));
+        }
+
+        filament::MaterialInstance* createMaterialInstance(MaterialKey* config, UvMap* uvmap,
+                const char* label = "material", const char* extras = nullptr) {
+
+            auto getUvIndex = [uvmap](uint8_t srcIndex, bool hasTexture) -> int {
+              return hasTexture ? int(uvmap->at(srcIndex)) - 1 : -1;
+            };
+
+            Log("CREATING MATERIAL INSTANCE");
+            auto instance = _m->createInstance();
+            mat3f identity;
+            instance->setParameter("baseColorUvMatrix", identity);
+            instance->setParameter("normalUvMatrix", identity);
+
+            instance->setParameter("baseColorIndex", getUvIndex(config->baseColorUV, config->hasBaseColorTexture));
+            instance->setParameter("normalIndex", getUvIndex(config->normalUV, config->hasNormalTexture));
+            if(config->hasNormalTexture) {
+              Log("HAS NORMAL TEXTURE");
+            } else {
+              Log("NO NORMAL TEXTURE?");
+            }
+            // TextureSampler sampler;
+            // instance->setParameter("normalMap", mDummyTexture, sampler);
+            // instance->setParameter("baseColorMap", mDummyTexture, sampler);
+            return instance;
+        }
+
+        /**
+        * Creates or fetches a compiled Filament material corresponding to the given config.
+        */
+        virtual Material* getMaterial(MaterialKey* config, UvMap* uvmap, const char* label = "material") { 
+          return _m;
+        }
+
+        /**
+        * Gets a weak reference to the array of cached materials.
+        */
+        const filament::Material* const* getMaterials() const noexcept {
+          return _ms;
+        }
+
+        /**
+        * Gets the number of cached materials.
+        */
+        size_t getMaterialsCount() const noexcept {
+          return (size_t)1;
+        }
+
+        void destroyMaterials() {
+
+        }
+
+        bool needsDummyData(filament::VertexAttribute attrib) const noexcept {
+          return true;
+        }
+  };
+}
+
+#endif

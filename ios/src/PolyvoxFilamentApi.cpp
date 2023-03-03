@@ -23,6 +23,10 @@ extern "C" {
     delete((FilamentViewer*)viewer);
   }
 
+  void set_background_color(void* viewer, const float* color) {
+    ((FilamentViewer*)viewer)->setBackgroundColor(color);
+  }
+
   void set_background_image(void* viewer, const char* path) {
     ((FilamentViewer*)viewer)->setBackgroundImage(path);
   }
@@ -69,6 +73,10 @@ extern "C" {
 
   bool set_camera(void* viewer, void* asset, const char* nodeName) {
     return ((FilamentViewer*)viewer)->setCamera((SceneAsset*)asset, nodeName);
+  }
+
+  void set_camera_exposure(void* viewer, float aperture, float shutterSpeed, float sensitivity) {
+    ((FilamentViewer*)viewer)->setCameraExposure(aperture, shutterSpeed, sensitivity);
   }
 
   void set_camera_position(void* viewer, float x, float y, float z) {
