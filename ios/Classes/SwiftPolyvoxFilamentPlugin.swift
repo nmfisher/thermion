@@ -80,15 +80,17 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       } else {
         if(uriString.hasPrefix("file://")) {
           path = String(uriString.dropFirst(7))
-        } else {
-          let key = instance.registrar.lookupKey(forAsset:uriString)
+        } else if(uriString.hasPrefix("asset://")) {
+          let key = instance.registrar.lookupKey(forAsset:String(uriString.dropFirst(6)))
           path = Bundle.main.path(forResource: key, ofType:nil)
           print("Found path \(path) for uri \(uriString)")
           guard path != nil else {
             print("File not present in bundle : \(uri)")
             return ResourceBuffer()
           }
-        }
+        } else {
+		// TODO
+	}
       }
       do {
         print("Opening data from path \(path)")
