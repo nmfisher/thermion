@@ -18,7 +18,7 @@ link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib")
 
 add_library(FILAMENT_SHADERS SHARED 
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/image_material.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/unlitopaque.c"  
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/unlit_opaque.c"  
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
