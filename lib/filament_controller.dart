@@ -15,7 +15,7 @@ const FilamentAsset FILAMENT_ASSET_ERROR = 0;
 
 abstract class FilamentController {
   Size get size;
-  late Stream<int> textureId;
+  late Stream<int?> textureId;
   Future get initialized;
   Stream get onInitializationRequested;
   Future initialize();
@@ -25,6 +25,7 @@ abstract class FilamentController {
   Future render();
   void setPixelRatio(double ratio);
   Future resize(int width, int height, {double contentScaleFactor = 1});
+  Future setBackgroundColor(Color color);
   Future setBackgroundImage(String path);
   Future setBackgroundImagePosition(double x, double y, {bool clamp = false});
   Future loadSkybox(String skyboxPath);
@@ -87,6 +88,8 @@ abstract class FilamentController {
   // Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
   //     BoneTransform transform);
   Future setScale(FilamentAsset asset, double scale);
+  Future setCameraExposure(
+      double aperture, double shutterSpeed, double sensitivity);
   Future setCameraFocalLength(double focalLength);
   Future setCameraFocusDistance(double focusDistance);
   Future setCameraPosition(double x, double y, double z);
@@ -107,8 +110,9 @@ class PolyvoxFilamentController extends FilamentController {
   double _pixelRatio = 1.0;
   Size size = Size(0, 0);
 
-  final _textureIdController = StreamController<int>();
-  Stream<int> get textureId => _textureIdController.stream;
+  int? _textureId;
+  final _textureIdController = StreamController<int?>.broadcast();
+  Stream<int?> get textureId => _textureIdController.stream;
 
   final _onInitRequestedController = StreamController.broadcast();
   Stream get onInitializationRequested => _onInitRequestedController.stream;
@@ -121,6 +125,10 @@ class PolyvoxFilamentController extends FilamentController {
       print("Received Filament method channel call : ${call.method}");
       throw Exception("Unknown method channel invocation ${call.method}");
     });
+
+    _textureIdController.onListen = () {
+      _textureIdController.add(_textureId);
+    };
   }
 
   Future initialize() async {
@@ -148,9 +156,9 @@ class PolyvoxFilamentController extends FilamentController {
   Future createTextureViewer(int width, int height) async {
     size = Size(width * _pixelRatio, height * _pixelRatio);
     print("Creating texture of size $size");
-    var textureId =
+    _textureId =
         await _channel.invokeMethod("initialize", [size.width, size.height]);
-    _textureIdController.add(textureId);
+    _textureIdController.add(_textureId);
     _initialized.complete(true);
   }
 
@@ -158,15 +166,28 @@ class PolyvoxFilamentController extends FilamentController {
       {double contentScaleFactor = 1.0}) async {
     size = Size(width * _pixelRatio, height * _pixelRatio);
 
-    var textureId = await _channel.invokeMethod("resize",
+    _textureId = await _channel.invokeMethod("resize",
         [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
     print("Resized to $size with texutre Id $textureId");
-    _textureIdController.add(textureId);
+    _textureIdController.add(_textureId);
   }
 
   @override
   Future setBackgroundImage(String path) async {
     await _channel.invokeMethod("setBackgroundImage", path);
+  }
+
+  @override
+  Future setBackgroundColor(Color color) async {
+    print(
+        "setting to ${color.red.toDouble() / 255.0} ${color.blue.toDouble() / 255.0} ${color.red.toDouble() / 255.0}");
+    await _channel.invokeMethod(
+        "setBackgroundColor",
+        Float32List.fromList([
+          color.red.toDouble() / 255.0,
+          color.green.toDouble() / 255.0,
+          color.blue.toDouble() / 255.0
+        ]));
   }
 
   @override
@@ -367,6 +388,12 @@ class PolyvoxFilamentController extends FilamentController {
 
   Future setCameraPosition(double x, double y, double z) async {
     await _channel.invokeMethod("setCameraPosition", [x, y, z]);
+  }
+
+  Future setCameraExposure(
+      double aperture, double shutterSpeed, double sensitivity) async {
+    await _channel.invokeMethod(
+        "setCameraExposure", [aperture, shutterSpeed, sensitivity]);
   }
 
   Future setCameraRotation(double rads, double x, double y, double z) async {
