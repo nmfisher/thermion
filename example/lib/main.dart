@@ -123,25 +123,26 @@ class _MyAppState extends State<MyApp> {
         _filamentController.setCamera(_cube!, "Camera_Orientation");
         break;
       case 15:
-        final animation = AnimationBuilder()
-            .setFramerate(30)
-            .setDuration(4)
-            .setNumMorphWeights(8)
-            .interpolateMorphWeights(0, 4, 0, 1)
-            .interpolateBoneTransform(
-                "Bone.001",
-                "Cube.001",
-                2,
-                4,
-                v.Vector3.zero(),
-                v.Vector3.zero(),
-                // Vec3(x: 1, y: 1, z: 1),
-                v.Quaternion(0, 0, 0, 1),
-                v.Quaternion(1, 1, 1, 1))
-            // Quaternion(x: 1, y: 1, z: 1, w: 1))
-            .build();
+        throw Exception("FIXME");
+        // final animation = AnimationBuilder()
+        //     .setFramerate(30)
+        //     .setDuration(4)
+        //     .setNumMorphWeights(8)
+        //     .interpolateMorphWeights(0, 4, 0, 1)
+        //     .interpolateBoneTransform(
+        //         "Bone.001",
+        //         "Cube.001",
+        //         2,
+        //         4,
+        //         v.Vector3.zero(),
+        //         v.Vector3.zero(),
+        //         // Vec3(x: 1, y: 1, z: 1),
+        //         v.Quaternion(0, 0, 0, 1),
+        //         v.Quaternion(1, 1, 1, 1))
+        //     // Quaternion(x: 1, y: 1, z: 1, w: 1))
+        //     .build();
 
-        _filamentController.setAnimation(_cube!, animation);
+        // _filamentController.setAnimation(_cube!, animation);
         break;
       case 16:
         _targetNames =
@@ -307,7 +308,7 @@ class _MyAppState extends State<MyApp> {
                   alignment: Alignment.center,
                   child: SizedBox(
                     child: FilamentGestureDetector(
-                        showControls: true,
+                        showControlOverlay: true,
                         controller: _filamentController,
                         child: FilamentWidget(
                           controller: _filamentController,

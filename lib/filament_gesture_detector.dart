@@ -10,14 +10,16 @@ enum GestureType { RotateCamera, PanCamera, PanBackground }
 class FilamentGestureDetector extends StatefulWidget {
   final Widget? child;
   final FilamentController controller;
-  final bool showControls;
+  final bool showControlOverlay;
+  final bool enableControls;
 
-  const FilamentGestureDetector({
-    Key? key,
-    required this.controller,
-    this.child,
-    this.showControls = false,
-  }) : super(key: key);
+  const FilamentGestureDetector(
+      {Key? key,
+      required this.controller,
+      this.child,
+      this.showControlOverlay = false,
+      this.enableControls = true})
+      : super(key: key);
 
   @override
   State<StatefulWidget> createState() => _FilamentGestureDetectorState();
@@ -68,9 +70,9 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
   }
 
   @override
-  void didUpdateWidget(Widget oldWidget) {
-    if (widget.showControls !=
-        (oldWidget as FilamentGestureDetector).showControls) {
+  void didUpdateWidget(FilamentGestureDetector oldWidget) {
+    if (widget.showControlOverlay != oldWidget.showControlOverlay ||
+        widget.enableControls != oldWidget.enableControls) {
       setState(() {});
     }
 
@@ -81,64 +83,93 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
 
   @override
   Widget build(BuildContext context) {
+    print(widget.enableControls);
     return Stack(children: [
       Positioned.fill(
           // pinch zoom on mobile
           // couldn't find any equivalent for pointerCount in Listener so we use two widgets:
           // - outer is a GestureDetector only for pinch zoom
-          // - inner is a Listener for all other gestures
+          // - inner is a Listener for all other gestures (including scroll zoom on desktop)
           child: GestureDetector(
-              onScaleStart: (d) async {
-                if (d.pointerCount == 2) {
-                  await widget.controller.zoomEnd();
-                  await widget.controller.zoomBegin();
-                }
-              },
-              onScaleEnd: (d) async {
-                if (d.pointerCount == 2) {
-                  _lastScale = 0;
-                  await widget.controller.zoomEnd();
-                }
-              },
-              onScaleUpdate: (d) async {
-                if (d.pointerCount == 2) {
-                  if (_lastScale != 0) {
-                    await widget.controller
-                        .zoomUpdate(100 * (_lastScale - d.scale));
-                  }
-                }
-                _lastScale = d.scale;
-              },
+              onScaleStart: !widget.enableControls
+                  ? null
+                  : (d) async {
+                      if (d.pointerCount == 2) {
+                        await widget.controller.zoomEnd();
+                        await widget.controller.zoomBegin();
+                      }
+                    },
+              onScaleEnd: !widget.enableControls
+                  ? null
+                  : (d) async {
+                      if (d.pointerCount == 2) {
+                        _lastScale = 0;
+                        await widget.controller.zoomEnd();
+                      }
+                    },
+              onScaleUpdate: !widget.enableControls
+                  ? null
+                  : (d) async {
+                      if (d.pointerCount == 2) {
+                        if (_lastScale != 0) {
+                          await widget.controller
+                              .zoomUpdate(100 * (_lastScale - d.scale));
+                        }
+                      }
+                      _lastScale = d.scale;
+                    },
               child: Listener(
-                  onPointerSignal: (pointerSignal) async {
-                    // scroll-wheel zoom on desktop
-                    if (pointerSignal is PointerScrollEvent) {
-                      _scrollTimer?.cancel();
-                      await widget.controller.zoomBegin();
-                      await widget.controller.zoomUpdate(
-                          pointerSignal.scrollDelta.dy > 0 ? 10 : -10);
-                      _scrollTimer = Timer(Duration(milliseconds: 100), () {
-                        widget.controller.zoomEnd();
-                        _scrollTimer = null;
-                      });
-                    } else {
-                      print(pointerSignal);
-                    }
-                  },
-                  onPointerPanZoomStart: (pzs) {},
-                  onPointerDown: (d) async {
-                    await _functionStart(
-                        d.localPosition.dx, d.localPosition.dy);
-                  },
-                  onPointerMove: (d) async {
-                    await _functionUpdate(
-                        d.localPosition.dx, d.localPosition.dy);
-                  },
-                  onPointerUp: (d) async {
-                    await _functionEnd();
-                  },
+                  onPointerSignal: !widget.enableControls
+                      ? null
+                      : (pointerSignal) async {
+                          // scroll-wheel zoom on desktop
+                          if (pointerSignal is PointerScrollEvent) {
+                            _scrollTimer?.cancel();
+                            await widget.controller.zoomBegin();
+                            await widget.controller.zoomUpdate(
+                                pointerSignal.scrollDelta.dy > 0 ? 10 : -10);
+                            _scrollTimer =
+                                Timer(Duration(milliseconds: 100), () {
+                              widget.controller.zoomEnd();
+                              _scrollTimer = null;
+                            });
+                          }
+                        },
+                  onPointerPanZoomStart:
+                      !widget.enableControls ? null : (pzs) {},
+                  onPointerDown: !widget.enableControls
+                      ? null
+                      : (d) async {
+                          if (d.buttons == kTertiaryButton) {
+                            await widget.controller.rotateStart(
+                                d.localPosition.dx, d.localPosition.dy);
+                          } else {
+                            await _functionStart(
+                                d.localPosition.dx, d.localPosition.dy);
+                          }
+                        },
+                  onPointerMove: !widget.enableControls
+                      ? null
+                      : (d) async {
+                          if (d.buttons == kTertiaryButton) {
+                            await widget.controller.rotateUpdate(
+                                d.localPosition.dx, d.localPosition.dy);
+                          } else {
+                            await _functionUpdate(
+                                d.localPosition.dx, d.localPosition.dy);
+                          }
+                        },
+                  onPointerUp: !widget.enableControls
+                      ? null
+                      : (d) async {
+                          if (d.buttons == kTertiaryButton) {
+                            await widget.controller.rotateEnd();
+                          } else {
+                            await _functionEnd();
+                          }
+                        },
                   child: widget.child))),
-      widget.showControls
+      widget.showControlOverlay
           ? Align(
               alignment: Alignment.bottomRight,
               child: GestureDetector(

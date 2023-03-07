@@ -57,6 +57,8 @@ class FilamentWidget extends StatefulWidget {
 class _FilamentWidgetState extends State<FilamentWidget> {
   StreamSubscription? _listener;
 
+  bool _resizing = false;
+
   @override
   void initState() {
     _listener = widget.controller.onInitializationRequested.listen((_) {
@@ -85,7 +87,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   Widget build(BuildContext context) {
     return StreamBuilder(
         stream: widget.controller.textureId,
-        builder: (ctx, AsyncSnapshot<int> textureId) {
+        builder: (ctx, AsyncSnapshot<int?> textureId) {
           if (textureId.data == null) {
             return Container();
           }
@@ -101,14 +103,23 @@ class _FilamentWidgetState extends State<FilamentWidget> {
                   width: constraints.maxWidth,
                   child: ResizeObserver(
                       onResized: (Size oldSize, Size newSize) async {
+                        setState(() {
+                          _resizing = true;
+                        });
+
                         await widget.controller.resize(
                             newSize.width.toInt(), newSize.height.toInt());
+                        setState(() {
+                          _resizing = false;
+                        });
                       },
                       child: Platform.isLinux
-                          ? Transform(
-                              alignment: Alignment.center,
-                              transform: Matrix4.rotationX(pi),
-                              child: texture)
+                          ? _resizing
+                              ? Container()
+                              : Transform(
+                                  alignment: Alignment.center,
+                                  transform: Matrix4.rotationX(pi),
+                                  child: texture)
                           : texture))));
         });
   }
