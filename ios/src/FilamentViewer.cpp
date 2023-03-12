@@ -73,7 +73,7 @@
 #include "ResourceManagement.hpp"
 
 extern "C" {
-  #include "material/image_material.h"
+  #include "material/image.h"
   #include "material/unlit_opaque.h"
 }
 
@@ -154,11 +154,11 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
 
-  // ToneMapper *tm = new LinearToneMapper();
-  // colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
-  // delete tm;
+  ToneMapper *tm = new LinearToneMapper();
+  colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
+  delete tm;
 
-  // _view->setColorGrading(colorGrading);
+  _view->setColorGrading(colorGrading);
 
   _cameraFocalLength = 28.0f;
   _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
@@ -192,15 +192,16 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   // auto materialRb = _loadResource("file:///mnt/hdd_2tb/home/hydroxide/projects/filament/unlit.filamat");
   // Log("Loaded resource of size %d", materialRb.size);
   // _materialProvider = new FileMaterialProvider(_engine, (void*) materialRb.data, (size_t)materialRb.size);
-  //_materialProvider = new UnlitMaterialProvider(_engine);
-   
-  _materialProvider = gltfio::createUbershaderProvider(
+  
+  _unlitProvider = new UnlitMaterialProvider(_engine);
+  _ubershaderProvider = gltfio::createUbershaderProvider(
          _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
   Log("Created material provider");
 
   EntityManager &em = EntityManager::get();
   _ncm = new NameComponentManager(em);
-  _assetLoader = AssetLoader::create({_engine, _materialProvider, _ncm, &em});
+  _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em});
+  
   _resourceLoader = new ResourceLoader({.engine = _engine,
                                         .normalizeSkinningWeights = true });
   _stbDecoder = createStbProvider(_engine);
@@ -268,7 +269,7 @@ void FilamentViewer::createImageRenderable() {
   
   _imageMaterial =
       Material::Builder()
-          .package(IMAGE_MATERIAL_PACKAGE, IMAGE_MATERIAL_IMAGE_SIZE)
+          .package(IMAGE_PACKAGE, IMAGE_IMAGE_SIZE)
           .build(*_engine);
 
   _imageVb = VertexBuffer::Builder()
@@ -530,7 +531,8 @@ FilamentViewer::~FilamentViewer() {
   clearAssets();
   delete _sceneAssetLoader;
   _resourceLoader->asyncCancelLoad();
-  _materialProvider->destroyMaterials();
+  _ubershaderProvider->destroyMaterials();
+  _unlitProvider->destroyMaterials();
   AssetLoader::destroy(&_assetLoader);
   for(auto it : _lights) {
     _engine->destroy(it);
