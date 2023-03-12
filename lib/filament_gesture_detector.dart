@@ -34,6 +34,8 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
     GestureType.RotateCamera: Icons.rotate_90_degrees_ccw
   };
 
+  bool _rotating = false;
+
   // to avoid duplicating code for pan/rotate (panStart, panUpdate, panEnd, rotateStart, rotateUpdate etc)
   // we have only a single function for start/update/end.
   // when the gesture type is changed, these properties are updated to point to the correct function.
@@ -91,6 +93,10 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
           // - outer is a GestureDetector only for pinch zoom
           // - inner is a Listener for all other gestures (including scroll zoom on desktop)
           child: GestureDetector(
+              onDoubleTap: () {
+                _rotating = !_rotating;
+                print("Set rotating to $_rotating");
+              },
               onScaleStart: !widget.enableControls
                   ? null
                   : (d) async {
@@ -140,7 +146,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerDown: !widget.enableControls
                       ? null
                       : (d) async {
-                          if (d.buttons == kTertiaryButton) {
+                          if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateStart(
                                 d.localPosition.dx, d.localPosition.dy);
                           } else {
@@ -151,7 +157,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerMove: !widget.enableControls
                       ? null
                       : (d) async {
-                          if (d.buttons == kTertiaryButton) {
+                          if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateUpdate(
                                 d.localPosition.dx, d.localPosition.dy);
                           } else {
@@ -162,7 +168,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerUp: !widget.enableControls
                       ? null
                       : (d) async {
-                          if (d.buttons == kTertiaryButton) {
+                          if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateEnd();
                           } else {
                             await _functionEnd();
