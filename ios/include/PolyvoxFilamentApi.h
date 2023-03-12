@@ -32,7 +32,7 @@ void set_background_image(void* viewer, const char* path);
 void set_background_color(void* viewer, const float* color);
 void set_background_image_position(void* viewer, float x, float y, bool clamp);
 void load_skybox(void* viewer, const char* skyboxPath);
-void load_ibl(void* viewer, const char* iblPath);
+void load_ibl(void* viewer, const char* iblPath, float intensity);
 void remove_skybox(void* viewer);
 void remove_ibl(void* viewer);
 int32_t add_light(void* viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);

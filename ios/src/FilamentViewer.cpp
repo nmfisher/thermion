@@ -822,7 +822,7 @@ void FilamentViewer::removeIbl() {
   _scene->setIndirectLight(nullptr); 
 }
 
-void FilamentViewer::loadIbl(const char *const iblPath) {
+void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
   removeIbl();
   if (iblPath) {
     Log("Loading IBL from %s", iblPath);
@@ -848,7 +848,7 @@ void FilamentViewer::loadIbl(const char *const iblPath) {
     _indirectLight = IndirectLight::Builder()
                          .reflections(_iblTexture)
                          .irradiance(3, harmonics)
-                         .intensity(30000.0f)
+                         .intensity(intensity)
                          .build(*_engine);
     _scene->setIndirectLight(_indirectLight);
 

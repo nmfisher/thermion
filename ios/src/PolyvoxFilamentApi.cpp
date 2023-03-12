@@ -39,8 +39,8 @@ extern "C" {
     ((FilamentViewer*)viewer)->loadSkybox(skyboxPath);
   }
 
-  void load_ibl(void* viewer, const char* iblPath) {
-    ((FilamentViewer*)viewer)->loadIbl(iblPath);
+  void load_ibl(void* viewer, const char* iblPath, float intensity) {
+    ((FilamentViewer*)viewer)->loadIbl(iblPath, intensity);
   }
 
   void remove_skybox(void* viewer) {

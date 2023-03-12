@@ -202,8 +202,8 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   @override
-  Future loadIbl(String lightingPath) async {
-    await _channel.invokeMethod("loadIbl", lightingPath);
+  Future loadIbl(String lightingPath, {double intensity = 30000}) async {
+    await _channel.invokeMethod("loadIbl", [lightingPath, intensity]);
   }
 
   @override
