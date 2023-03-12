@@ -9,24 +9,14 @@ namespace polyvox {
       public:
         UnlitMaterialProvider(Engine* engine) {
           _m = Material::Builder()
-            .package(	UNLIT_OPAQUE_UNLIT_DATA, UNLIT_OPAQUE_UNLIT_SIZE)
+            .package(	UNLIT_OPAQUE_UNLIT_OPAQUE_DATA, UNLIT_OPAQUE_UNLIT_OPAQUE_SIZE)
             .build(*engine);
-          if(_m) {
-            Log("YES");
-          } else {
-            Log("NO!");
-          }
           _ms[0] = _m;
         }
 
         filament::MaterialInstance* createMaterialInstance(MaterialKey* config, UvMap* uvmap,
                 const char* label = "material", const char* extras = nullptr) {
           MaterialInstance* d = (MaterialInstance*)_m->getDefaultInstance();
-          if(d) {
-            Log("YES");
-          } else {
-            Log("NO INSTANCE!");
-          }
           return d;
         }
 
