@@ -53,7 +53,7 @@ namespace polyvox {
             void loadSkybox(const char* const skyboxUri);
             void removeSkybox();
 
-            void loadIbl(const char* const iblUri);
+            void loadIbl(const char* const iblUri, float intensity);
             void removeIbl();
             
             SceneAsset* loadGlb(const char* const uri);

@@ -362,7 +362,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           clear_assets(viewer!)
           result("OK")
         case "loadIbl":
-          load_ibl(self.viewer, call.arguments as! String)
+          let args = call.arguments as! Array<Any?>
+          load_ibl(self.viewer, args[0] as! String, Float(args[1] as! Double))
           result("OK");
         case "removeIbl":
           remove_ibl(self.viewer)
