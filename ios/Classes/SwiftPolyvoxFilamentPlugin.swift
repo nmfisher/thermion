@@ -45,43 +45,56 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       let uriString = String(cString:uri.assumingMemoryBound(to: UInt8.self))
 
       var path:String? = nil
-      
-      let appFolder = Bundle.main.resourceURL
-      let dirPaths = NSSearchPathForDirectoriesInDomains(.applicationDirectory,
-                    .userDomainMask, true)
-      let supportDirPaths = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory,
-                    .userDomainMask, true)
-      let devFsPath = URL(fileURLWithPath: supportDirPaths.first!, isDirectory:true).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("tmp")
-      
+
+      // check for hot-reloaded asset
       var found : URL? = nil
 
-      let orderedURLs = try? FileManager.default.enumerator(at: devFsPath, includingPropertiesForKeys: [ .pathKey, .creationDateKey], options: .skipsHiddenFiles)
-      for case let fileURL as URL in orderedURLs! {
-        if !(fileURL.path.hasSuffix(uriString)) {
-          continue
-        }
-        if found == nil {
-          found = fileURL
-        } else {
-          do {
-            let c1 = try found!.resourceValues(forKeys: [.creationDateKey]).creationDate
-            let c2 = try fileURL.resourceValues(forKeys: [.creationDateKey]).creationDate
-            if c1! < c2! {
-              found = fileURL
+      if(uriString.hasPrefix("asset://")) {
+        let assetPath = String(uriString.dropFirst(8))
+        print("Searching for hot reloaded asset under path : \(assetPath)")
+        let appFolder = Bundle.main.resourceURL
+        let dirPaths = NSSearchPathForDirectoriesInDomains(.applicationDirectory,
+                      .userDomainMask, true)
+        let supportDirPaths = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory,
+                      .userDomainMask, true)
+        let devFsPath = URL(fileURLWithPath: supportDirPaths.first!, isDirectory:true).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("tmp")
+        
+
+        let orderedURLs = try? FileManager.default.enumerator(at: devFsPath, includingPropertiesForKeys: [ .pathKey, .creationDateKey], options: .skipsHiddenFiles)
+
+        
+        for case let fileURL as URL in orderedURLs! {
+          if !(fileURL.path.hasSuffix(assetPath)) {
+            continue
+          }
+          print("Found hot reloaded asset : \(fileURL)")
+          if found == nil {
+            found = fileURL
+          } else {
+            do {
+              let c1 = try found!.resourceValues(forKeys: [.creationDateKey]).creationDate
+              let c2 = try fileURL.resourceValues(forKeys: [.creationDateKey]).creationDate
+              if c1! < c2! {
+                found = fileURL
+                print("\(fileURL) is newer, replacing")
+              } else {
+                print("Ignoring older asset")
+              }
+            } catch {
+              
             }
-          } catch {
-            
           }
         }
       }
       
       if found != nil {
+        print("Using hot reloaded asset  : \(found)")
         path = found?.path
       } else {
         if(uriString.hasPrefix("file://")) {
           path = String(uriString.dropFirst(7))
         } else if(uriString.hasPrefix("asset://")) {
-          let key = instance.registrar.lookupKey(forAsset:String(uriString.dropFirst(6)))
+          let key = instance.registrar.lookupKey(forAsset:String(uriString.dropFirst(8)))
           path = Bundle.main.path(forResource: key, ofType:nil)
           print("Found path \(path) for uri \(uriString)")
           guard path != nil else {
@@ -120,6 +133,14 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
   
     @objc func doRender() {
         guard _rendering == true, let textureId = self.textureId, let viewer = viewer else {
+          return
+        }
+        render(viewer, 0)
+        self.registry.textureFrameAvailable(textureId)
+    }
+
+    func forceRender() { 
+        guard let textureId = self.textureId, let viewer = viewer else {
           return
         }
         render(viewer, 0)
@@ -422,7 +443,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
            remove_light(self.viewer,call.arguments as! Int32)
            result(true);
         case "render":
-          doRender()
+          forceRender()
           result("OK")
         case "resize":
           let args = call.arguments as! Array<Double>
@@ -481,6 +502,10 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             set_camera_model_matrix(self.viewer, floatPtr)
           }
           result("OK")
+        case "setCameraExposure":
+          let args = call.arguments as! Array<Any>
+          set_camera_exposure(self.viewer, Float(args[0] as! Double), Float(args[1] as! Double),Float(args[2] as! Double))
+          result("OK");
         case "setCameraFocalLength":
           set_camera_focal_length(self.viewer, Float(call.arguments as! Double))
           result("OK");
