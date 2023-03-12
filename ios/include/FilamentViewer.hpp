@@ -136,7 +136,8 @@ namespace polyvox {
             Texture* _iblTexture = nullptr;
             IndirectLight* _indirectLight = nullptr;
 
-            MaterialProvider* _materialProvider = nullptr;
+            MaterialProvider* _ubershaderProvider = nullptr;
+            MaterialProvider* _unlitProvider = nullptr;
 
             gltfio::ResourceLoader* _resourceLoader = nullptr;
             gltfio::TextureProvider* _stbDecoder = nullptr;
