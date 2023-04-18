@@ -106,14 +106,12 @@ struct Vertex {
     uint32_t color;
 };
 
-// static const Vertex TRIANGLE_VERTICES[3] = {
-//     {{1, 0}, 0xffff0000u},
-//     {{cos(M_PI * 2 / 3), sin(M_PI * 2 / 3)}, 0xff00ff00u},
-//     {{cos(M_PI * 4 / 3), sin(M_PI * 4 / 3)}, 0xff0000ffu},
-// };
+static constexpr float4 sFullScreenTriangleVertices[3] = {
+        { -1.0f, -1.0f, 1.0f, 1.0f },
+        {  3.0f, -1.0f, 1.0f, 1.0f },
+        { -1.0f,  3.0f, 1.0f, 1.0f } };
 
-// static constexpr uint16_t TRIANGLE_INDICES[3] = { 0, 1, 2 };
-
+static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
 FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
                                FreeResource freeResource)
@@ -196,33 +194,84 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   _unlitProvider = new UnlitMaterialProvider(_engine);
   _ubershaderProvider = gltfio::createUbershaderProvider(
          _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
-  Log("Created material provider");
 
   EntityManager &em = EntityManager::get();
   _ncm = new NameComponentManager(em);
-  _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em});
   
   _resourceLoader = new ResourceLoader({.engine = _engine,
                                         .normalizeSkinningWeights = true });
   _stbDecoder = createStbProvider(_engine);
   _resourceLoader->addTextureProvider("image/png", _stbDecoder);
   _resourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
-  _sceneAssetLoader = new SceneAssetLoader(_loadResource,
+  _ubershaderAssetLoader = new SceneAssetLoader(_loadResource,
                                    _freeResource,
-                                   _assetLoader,
+                                   _ubershaderProvider,
+                                   &em,
                                    _resourceLoader,
                                    _ncm, 
                                    _engine,
                                    _scene);
 
+  _unlitAssetLoader = new SceneAssetLoader(_loadResource,
+                                   _freeResource,
+                                   _unlitProvider,
+                                   &em,
+                                   _resourceLoader,
+
+                                   _ncm, 
+                                   _engine,
+                                   _scene);
+      
+      
+ _imageTexture = Texture::Builder()
+                         .width(1)
+                         .height(1)
+                         .levels(0x01)
+                         .format(Texture::InternalFormat::RGB16F)
+                         .sampler(Texture::Sampler::SAMPLER_2D)
+                         .build(*_engine);
+    
+  _imageMaterial =
+       Material::Builder()
+           .package(IMAGE_PACKAGE, IMAGE_IMAGE_SIZE)
+           .build(*_engine);
+  _imageMaterial->setDefaultParameter("showImage",0);
+  _imageMaterial->setDefaultParameter("backgroundColor", RgbType::sRGB, float3(0.f));
+  _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
+  _imageScale = mat4f { 1.0f , 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+
+  _imageMaterial->setDefaultParameter("transform", _imageScale);
+
+  _imageVb = VertexBuffer::Builder()
+                 .vertexCount(3)
+                 .bufferCount(1)
+                 .attribute(VertexAttribute::POSITION, 0,
+                             VertexBuffer::AttributeType::FLOAT4, 0)
+                 .build(*_engine);
+
+  _imageVb->setBufferAt(
+       *_engine, 0,
+       {sFullScreenTriangleVertices, sizeof(sFullScreenTriangleVertices)});
+
+  _imageIb = IndexBuffer::Builder()
+                 .indexCount(3)
+                 .bufferType(IndexBuffer::IndexType::USHORT)
+                 .build(*_engine);
+
+  _imageIb->setBuffer(*_engine, {sFullScreenTriangleIndices,
+                                 sizeof(sFullScreenTriangleIndices)});
+
+  Entity imageEntity = em.create();
+  RenderableManager::Builder(1)
+      .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+      .material(0, _imageMaterial->getDefaultInstance())
+      .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, _imageVb,
+                _imageIb, 0, 3)
+      .culling(false)
+      .build(*_engine, imageEntity);
+  _imageEntity = &imageEntity;
+  _scene->addEntity(imageEntity);
 }
-
-static constexpr float4 sFullScreenTriangleVertices[3] = {
-        { -1.0f, -1.0f, 1.0f, 1.0f },
-        {  3.0f, -1.0f, 1.0f, 1.0f },
-        { -1.0f,  3.0f, 1.0f, 1.0f } };
-
-static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
 void FilamentViewer::setFrameInterval(float frameInterval) {
   Renderer::FrameRateOptions fro;
@@ -258,52 +307,6 @@ void FilamentViewer::clearLights() {
   _scene->removeEntities(_lights.data(), _lights.size());
   EntityManager::get().destroy(_lights.size(), _lights.data());
   _lights.clear();
-}
-
-void FilamentViewer::createImageRenderable() {
-
-  if (_imageEntity)
-    return;
-
-  auto &em = EntityManager::get();
-  
-  _imageMaterial =
-      Material::Builder()
-          .package(IMAGE_PACKAGE, IMAGE_IMAGE_SIZE)
-          .build(*_engine);
-
-  _imageVb = VertexBuffer::Builder()
-                 .vertexCount(3)
-                 .bufferCount(1)
-                 .attribute(VertexAttribute::POSITION, 0,
-                            VertexBuffer::AttributeType::FLOAT4, 0)
-                 .build(*_engine);
-
-  _imageVb->setBufferAt(
-      *_engine, 0,
-      {sFullScreenTriangleVertices, sizeof(sFullScreenTriangleVertices)});
-
-  _imageIb = IndexBuffer::Builder()
-                 .indexCount(3)
-                 .bufferType(IndexBuffer::IndexType::USHORT)
-                 .build(*_engine);
-
-  _imageIb->setBuffer(*_engine, {sFullScreenTriangleIndices,
-                                 sizeof(sFullScreenTriangleIndices)});
-
-  Entity imageEntity = em.create();
-  RenderableManager::Builder(1)
-      .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-      .material(0, _imageMaterial->getDefaultInstance())
-      .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, _imageVb,
-                _imageIb, 0, 3)
-      .culling(false)
-      .build(*_engine, imageEntity);
-
-  _scene->addEntity(imageEntity);
-
-  _imageEntity = &imageEntity;
-
 }
 
 static bool endsWith(string path, string ending) {
@@ -367,7 +370,7 @@ void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb) {
   _imageTexture = Texture::Builder()
                      .width(_imageWidth)
                      .height(_imageHeight)
-                     .levels(0xff)
+                     .levels(0x01)
                      .format(channels == 3 ? Texture::InternalFormat::RGB16F
                                            : Texture::InternalFormat::RGBA16F)
                      .sampler(Texture::Sampler::SAMPLER_2D)
@@ -411,11 +414,24 @@ void FilamentViewer::loadTextureFromPath(string path) {
 
 }
 
-void FilamentViewer::setBackgroundColor(const float* color) {
+void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a) {
   _imageMaterial->setDefaultParameter("showImage", 0);
-
-  _imageMaterial->setDefaultParameter("backgroundColor", RgbType::sRGB, float3(color[0], color[1], color[2]));
+  _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
+  const Viewport& vp = _view->getViewport();
+  Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
+  _imageMaterial->setDefaultParameter("transform", _imageScale);
 }
+
+void FilamentViewer::clearBackgroundImage() {
+  _imageMaterial->setDefaultParameter("showImage", 0);
+  if (_imageTexture) {
+    Log("Destroying existing texture");
+    _engine->destroy(_imageTexture);
+    Log("Destroyed.");
+    _imageTexture = nullptr;
+  }
+}
+
 
 void FilamentViewer::setBackgroundImage(const char *resourcePath) {
 
@@ -423,14 +439,7 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
 
   Log("Setting background image to %s", resourcePath);
 
-  createImageRenderable();
-
-  if (_imageTexture) {
-    Log("Destroying existing texture");
-    _engine->destroy(_imageTexture);
-    Log("Destroyed.");
-    _imageTexture = nullptr;
-  }
+  clearBackgroundImage();
 
   loadTextureFromPath(resourcePathString);
 
@@ -442,11 +451,8 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
 
   _imageMaterial->setDefaultParameter("transform", _imageScale);
   _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
-
   _imageMaterial->setDefaultParameter("showImage", 1);
-
-  _imageMaterial->setDefaultParameter("backgroundColor", RgbType::sRGB,
-                                      float3(0.f));
+  
 }
 
 
@@ -529,11 +535,12 @@ void FilamentViewer::setBackgroundImagePosition(float x, float y, bool clamp=fal
 
 FilamentViewer::~FilamentViewer() { 
   clearAssets();
-  delete _sceneAssetLoader;
+  delete _ubershaderAssetLoader;
+  delete _unlitAssetLoader;
   _resourceLoader->asyncCancelLoad();
   _ubershaderProvider->destroyMaterials();
   _unlitProvider->destroyMaterials();
-  AssetLoader::destroy(&_assetLoader);
+  
   for(auto it : _lights) {
     _engine->destroy(it);
   }
@@ -609,14 +616,20 @@ void FilamentViewer::destroySwapChain() {
   }
 }
 
-SceneAsset *FilamentViewer::loadGlb(const char *const uri) {
-  SceneAsset *asset = _sceneAssetLoader->fromGlb(uri);
+SceneAsset *FilamentViewer::loadGlb(const char *const uri, bool unlit) {
+  SceneAsset *asset;
+  if(unlit) {
+    asset = _unlitAssetLoader->fromGlb(uri);
+  } else {
+    asset = _ubershaderAssetLoader->fromGlb(uri);
+  }
   if (!asset) {
     Log("Unknown error loading asset.");
   } else {
     _assets.push_back(asset);
     Log("GLB loaded, asset at index %d", _assets.size() - 1);
   }
+  
   return asset;
 }
 
@@ -624,7 +637,7 @@ SceneAsset *FilamentViewer::loadGltf(const char *const uri,
                                      const char *const relativeResourcePath) {
   Log("Loading GLTF at URI %s with relativeResourcePath %s", uri,
       relativeResourcePath);
-  SceneAsset *asset = _sceneAssetLoader->fromGltf(uri, relativeResourcePath);
+  SceneAsset *asset = _ubershaderAssetLoader->fromGltf(uri, relativeResourcePath);
   if (!asset) {
     Log("Unknown error loading asset.");
   } else {
@@ -632,7 +645,6 @@ SceneAsset *FilamentViewer::loadGltf(const char *const uri,
   }
   return asset;
 }
-
 
 void FilamentViewer::clearAssets() {
   Log("Clearing all assets");
@@ -644,13 +656,10 @@ void FilamentViewer::clearAssets() {
     delete _manipulator;
     _manipulator = nullptr;
   }
+
+  _ubershaderAssetLoader->destroyAll();
+  _unlitAssetLoader->destroyAll();
   
-  int i = 0;
-  for (auto asset : _assets) {
-    _sceneAssetLoader->remove(asset);
-    Log("Cleared asset %d", i);
-    i++;
-  }
   _assets.clear();
   Log("Cleared all assets");
 }
@@ -661,19 +670,8 @@ void FilamentViewer::removeAsset(SceneAsset *asset) {
   mtx.lock();
   // todo - what if we are using a camera from this asset?
   _view->setCamera(_mainCamera);
-  _sceneAssetLoader->remove(asset);
-  
-  bool erased = false;
-  for (auto it = _assets.begin(); it != _assets.end();++it) {
-    if (*it == asset) {
-      _assets.erase(it);
-      erased = true;
-      break;
-    }
-  }
-  if (!erased) {
-    Log("Error removing asset from scene : not found");
-  }
+  _ubershaderAssetLoader->remove(asset);
+  _unlitAssetLoader->remove(asset);
   mtx.unlock();
 }
 

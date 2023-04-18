@@ -56,7 +56,7 @@ namespace polyvox {
             void loadIbl(const char* const iblUri, float intensity);
             void removeIbl();
             
-            SceneAsset* loadGlb(const char* const uri);
+            SceneAsset* loadGlb(const char* const uri, bool unlit);
             SceneAsset* loadGltf(const char* const uri, const char* relativeResourcePath);
             void removeAsset(SceneAsset* asset);
             // removes all add assets from the current scene
@@ -76,8 +76,9 @@ namespace polyvox {
 
             Renderer* getRenderer();
 
-            void setBackgroundColor(const float* color);
+            void setBackgroundColor(const float r, const float g, const float b, const float a);
             void setBackgroundImage(const char* resourcePath);
+            void clearBackgroundImage();
             void setBackgroundImagePosition(float x, float y, bool clamp);
             void setCameraExposure(float aperture, float shutterSpeed, float sensitivity);
             void setCameraPosition(float x, float y, float z);
@@ -125,8 +126,8 @@ namespace polyvox {
 
             vector<SceneAsset*> _assets;
 
-            AssetLoader* _assetLoader;
-            SceneAssetLoader* _sceneAssetLoader;
+            SceneAssetLoader* _ubershaderAssetLoader;
+            SceneAssetLoader* _unlitAssetLoader;
             NameComponentManager* _ncm;
             std::mutex mtx; // mutex to ensure thread safety when removing assets
 
@@ -148,7 +149,9 @@ namespace polyvox {
             float _cameraFocalLength = 28.0f;
             float _cameraFocusDistance = 0.0f;
 
-            // these flags relate to the textured quad we use for rendering unlit background images
+            ColorGrading *colorGrading = nullptr;
+
+            // background image properties
             uint32_t _imageHeight = 0;
             uint32_t _imageWidth = 0;
             mat4f _imageScale;
@@ -158,12 +161,12 @@ namespace polyvox {
             IndexBuffer* _imageIb = nullptr;
             Material* _imageMaterial = nullptr;
             TextureSampler _imageSampler;
-            ColorGrading *colorGrading = nullptr;
             void loadKtx2Texture(string path, ResourceBuffer data);
             void loadKtxTexture(string path, ResourceBuffer data);
             void loadPngTexture(string path, ResourceBuffer data);
             void loadTextureFromPath(string path);
-
+            
+            
             void _createManipulator();
             uint32_t _lastFrameTimeInNanos;
     };

@@ -26,11 +26,11 @@ typedef struct BoneAnimation BoneAnimation;
 void* filament_viewer_new(void* context, ResourceBuffer (*loadResource)(const char*), void (*freeResource)(uint32_t));
 void filament_viewer_delete(void* viewer);
 void create_render_target(void* viewer, uint32_t textureId, uint32_t width, uint32_t height);
+void clear_background_image(void* viewer);
 void set_background_image(void* viewer, const char* path);
-
-// color is rgba
-void set_background_color(void* viewer, const float* color);
 void set_background_image_position(void* viewer, float x, float y, bool clamp);
+void set_background_color(void* viewer, const float r, const float g, const float b, const float a);
+
 void load_skybox(void* viewer, const char* skyboxPath);
 void load_ibl(void* viewer, const char* iblPath, float intensity);
 void remove_skybox(void* viewer);
@@ -38,7 +38,7 @@ void remove_ibl(void* viewer);
 int32_t add_light(void* viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
 void remove_light(void* viewer, int32_t entityId);
 void clear_lights(void* viewer);
-void* load_glb(void* viewer, const char* assetPath);
+void* load_glb(void* viewer, const char* assetPath, bool unlit);
 void* load_gltf(void* viewer, const char* assetPath, const char* relativePath);
 bool set_camera(void* viewer, void* asset, const char* nodeName);
 void render(void* viewer, uint64_t frameTimeInNanos);

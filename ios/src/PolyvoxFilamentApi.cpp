@@ -23,8 +23,12 @@ extern "C" {
     delete((FilamentViewer*)viewer);
   }
 
-  void set_background_color(void* viewer, const float* color) {
-    ((FilamentViewer*)viewer)->setBackgroundColor(color);
+  void set_background_color(void* viewer, const float r, const float g, const float b, const float a) {
+    ((FilamentViewer*)viewer)->setBackgroundColor(r, g, b, a);
+  }
+
+  void clear_background_image(void* viewer) {
+    ((FilamentViewer*)viewer)->clearBackgroundImage();
   }
 
   void set_background_image(void* viewer, const char* path) {
@@ -63,8 +67,8 @@ extern "C" {
     ((FilamentViewer*)viewer)->clearLights();
   }
 
-  void* load_glb(void* viewer, const char* assetPath) {
-    return ((FilamentViewer*)viewer)->loadGlb(assetPath);
+  void* load_glb(void* viewer, const char* assetPath, bool unlit) {
+    return ((FilamentViewer*)viewer)->loadGlb(assetPath, unlit);
   }
 
   void* load_gltf(void* viewer, const char* assetPath, const char* relativePath) {

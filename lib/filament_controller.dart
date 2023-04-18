@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
+
+import 'package:flutter/services.dart';
+
 import 'animations/animation_builder.dart';
 import 'animations/animations.dart';
-
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
 // this is confusing - "FilamentAsset" actually defines a pointer to a SceneAsset, whereas FilamentLight is an Entity ID.
 // should make this consistent
@@ -26,11 +26,12 @@ abstract class FilamentController {
   void setPixelRatio(double ratio);
   Future resize(int width, int height, {double contentScaleFactor = 1});
   Future setBackgroundColor(Color color);
+  Future clearBackgroundImage();
   Future setBackgroundImage(String path);
   Future setBackgroundImagePosition(double x, double y, {bool clamp = false});
   Future loadSkybox(String skyboxPath);
   Future removeSkybox();
-  Future loadIbl(String path);
+  Future loadIbl(String path, {double intensity = 30000});
   Future removeIbl();
 
   // copied from LightManager.h
@@ -54,7 +55,7 @@ abstract class FilamentController {
       bool castShadows);
   Future removeLight(FilamentLight light);
   Future clearLights();
-  Future<FilamentAsset> loadGlb(String path);
+  Future<FilamentAsset> loadGlb(String path, {bool unlit = false});
   Future<FilamentAsset> loadGltf(String path, String relativeResourcePath);
   Future zoomBegin();
   Future zoomUpdate(double z);
@@ -173,21 +174,23 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   @override
+  Future clearBackgroundImage() async {
+    await _channel.invokeMethod("clearBackgroundImage");
+  }
+
+  @override
   Future setBackgroundImage(String path) async {
     await _channel.invokeMethod("setBackgroundImage", path);
   }
 
   @override
   Future setBackgroundColor(Color color) async {
-    print(
-        "setting to ${color.red.toDouble() / 255.0} ${color.blue.toDouble() / 255.0} ${color.red.toDouble() / 255.0}");
-    await _channel.invokeMethod(
-        "setBackgroundColor",
-        Float32List.fromList([
-          color.red.toDouble() / 255.0,
-          color.green.toDouble() / 255.0,
-          color.blue.toDouble() / 255.0
-        ]));
+    await _channel.invokeMethod("setBackgroundColor", [
+      color.red.toDouble() / 255.0,
+      color.green.toDouble() / 255.0,
+      color.blue.toDouble() / 255.0,
+      color.alpha.toDouble() / 255.0
+    ]);
   }
 
   @override
@@ -253,9 +256,9 @@ class PolyvoxFilamentController extends FilamentController {
     return _channel.invokeMethod("clearLights");
   }
 
-  Future<FilamentAsset> loadGlb(String path) async {
+  Future<FilamentAsset> loadGlb(String path, {bool unlit = false}) async {
     print("Loading GLB at $path ");
-    var asset = await _channel.invokeMethod("loadGlb", path);
+    var asset = await _channel.invokeMethod("loadGlb", [path, unlit]);
     if (asset == FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }

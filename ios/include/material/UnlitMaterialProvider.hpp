@@ -6,8 +6,11 @@ namespace polyvox {
       const Material* _m;
       const Material* _ms[1];
 
+      const Engine* _engine;
+
       public:
         UnlitMaterialProvider(Engine* engine) {
+          _engine = engine;
           _m = Material::Builder()
             .package(	UNLIT_OPAQUE_UNLIT_OPAQUE_DATA, UNLIT_OPAQUE_UNLIT_OPAQUE_SIZE)
             .build(*engine);
@@ -35,11 +38,11 @@ namespace polyvox {
         }
 
         void destroyMaterials() {
-
+          // TODO - do we need to do anything here?
         }
 
         bool needsDummyData(filament::VertexAttribute attrib) const noexcept {
-          return true;
+          return false;
         }
   };
 }

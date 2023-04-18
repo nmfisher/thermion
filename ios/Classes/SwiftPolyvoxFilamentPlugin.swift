@@ -11,6 +11,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     var width: Double = 0
     var height: Double = 0
   
+    var createdAt = Date()
     
     var targetPixelBuffer: CVPixelBuffer?;
     // var context: EAGLContext?;
@@ -74,6 +75,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             do {
               let c1 = try found!.resourceValues(forKeys: [.creationDateKey]).creationDate
               let c2 = try fileURL.resourceValues(forKeys: [.creationDateKey]).creationDate
+            
               if c1! < c2! {
                 found = fileURL
                 print("\(fileURL) is newer, replacing")
@@ -86,11 +88,18 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           }
         }
       }
-      
-      if found != nil {
-        print("Using hot reloaded asset  : \(found)")
-        path = found?.path
-      } else {
+
+      do {
+          if let cd = try found?.resourceValues(forKeys:[.creationDateKey]).creationDate {
+              if cd > instance.createdAt {
+                  print("Using hot reloaded asset  : \(found)")
+                  path = found!.path
+              }
+          }
+      } catch {
+                
+      }
+      if path == nil {
         if(uriString.hasPrefix("file://")) {
           path = String(uriString.dropFirst(7))
         } else if(uriString.hasPrefix("asset://")) {
@@ -103,7 +112,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           }
         } else {
 		// TODO
-	}
+        }
       }
       do {
         print("Opening data from path \(path)")
@@ -115,9 +124,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         return ResourceBuffer(data:rawPtr, size:UInt32(nsData.count), id:UInt32(resId))
       } catch {
           print("Error opening file: \(error)")
-          return ResourceBuffer()
       }
-        return ResourceBuffer()
+      return ResourceBuffer()
     }
   
     var freeResource : @convention(c) (UInt32,UnsafeMutableRawPointer) -> () = { rid, resourcesPtr in
@@ -349,7 +357,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             remove_skybox(self.viewer!)
             result("OK");
         case "loadGlb":
-            let assetPtr = load_glb(self.viewer, call.arguments as! String)
+            let args = call.arguments as! Array<Any>
+            let assetPtr = load_glb(self.viewer, args[0] as! String, args[1] as! Bool)
             result(unsafeBitCast(assetPtr, to:Int64.self));
         case "loadGltf":
           let args = call.arguments as! Array<Any?>
@@ -463,16 +472,21 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "rotateEnd":
           grab_end(self.viewer)
           result("OK")
+        case "clearBackgroundImage":
+          clear_background_image(self.viewer!)
+          result("OK")
+        case "setBackgroundColor":
+          let args = call.arguments as! Array<Any>
+          set_background_color(self.viewer!, Float(args[0] as! Double),Float(args[1] as! Double),Float(args[2] as! Double), Float(args[3] as! Double))
+          result("OK")
         case "setBackgroundImage":
-            let uri = call.arguments as! String
-            set_background_image(self.viewer!, uri)
-            render(self.viewer!, 0)
-            self.registry.textureFrameAvailable(self.textureId!)
-            result("OK")
+          let uri = call.arguments as? String
+          set_background_image(self.viewer!, uri)
+          result("OK")
         case "setBackgroundImagePosition":
-            let args = call.arguments as! Array<Any>
-            set_background_image_position(self.viewer, Float(args[0] as! Double), Float(args[1] as! Double), args[2] as! Bool)
-            result("OK");
+          let args = call.arguments as! Array<Any>
+          set_background_image_position(self.viewer, Float(args[0] as! Double), Float(args[1] as! Double), args[2] as! Bool)
+          result("OK");
         case "setPosition":
           let args = call.arguments as! Array<Any>
           let assetPtr = UnsafeMutableRawPointer.init(bitPattern: args[0] as! Int)
