@@ -23,7 +23,7 @@ add_library(
         )
 
 add_library(FILAMENT_SHADERS SHARED 
-  ../ios/include/material/image_material.c
+  ../ios/include/material/image.c
   ../ios/include/material/unlitopaque.c
 )
 
