@@ -103,7 +103,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   ? null
                   : (d) async {
                       _scaling = true;
-                      print("SCALE START");
                       if (d.pointerCount == 2) {
                         await widget.controller.zoomEnd();
                         await widget.controller.zoomBegin();
@@ -154,7 +153,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerDown: !widget.enableControls
                       ? null
                       : (d) async {
-                          print("piinterodoiwn");
                           if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateStart(
                                 d.localPosition.dx, d.localPosition.dy);
@@ -166,7 +164,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerMove: !widget.enableControls
                       ? null
                       : (d) async {
-                          print("pointermove");
                           if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateUpdate(
                                 d.localPosition.dx, d.localPosition.dy);
@@ -178,7 +175,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerUp: !widget.enableControls
                       ? null
                       : (d) async {
-                          print("pointerup");
                           if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateEnd();
                           } else {

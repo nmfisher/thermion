@@ -125,9 +125,10 @@ static FlMethodResponse* _remove_ibl(PolyvoxFilamentPlugin* self, FlMethodCall* 
 static FlMethodResponse* _loadIbl(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
 
-  const gchar* path = fl_value_get_string(args);
+  auto path = fl_value_get_string(fl_value_get_list_value(args, 0));
+  auto intensity = fl_value_get_float(fl_value_get_list_value(args, 1));
 
-  load_ibl(self->_viewer, path);
+  load_ibl(self->_viewer, path, intensity);
                                        
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
@@ -155,7 +156,7 @@ static FlMethodResponse* _set_background_image(PolyvoxFilamentPlugin* self, FlMe
 static FlMethodResponse* _set_background_color(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
 
   const float* color = fl_value_get_float32_list(fl_method_call_get_args(method_call));
-  set_background_color(self->_viewer, color);
+  set_background_color(self->_viewer, color[0], color[1], color[2], color[2]);
   
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
@@ -184,8 +185,9 @@ static FlMethodResponse* _add_light(PolyvoxFilamentPlugin* self, FlMethodCall* m
 
 static FlMethodResponse* _load_glb(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
     FlValue* args = fl_method_call_get_args(method_call);
-    auto path = fl_value_get_string(args);
-    auto entityId = load_glb(self->_viewer, path);
+    auto path = fl_value_get_string(fl_value_get_list_value(args, 0));
+    auto unlit = fl_value_get_bool(fl_value_get_list_value(args, 1));
+    auto entityId = load_glb(self->_viewer, path, unlit);
     g_autoptr(FlValue) result = fl_value_new_int((int64_t)entityId);
     return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }

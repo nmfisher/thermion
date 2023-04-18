@@ -35,8 +35,6 @@ namespace polyvox {
         private:
             LoadResource _loadResource;
             FreeResource _freeResource;
-            MaterialProvider* _materialProvider;
-            EntityManager* _entityManager;
             AssetLoader* _assetLoader;
             ResourceLoader* _resourceLoader;
             NameComponentManager* _ncm;

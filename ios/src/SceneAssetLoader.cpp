@@ -16,8 +16,7 @@ SceneAssetLoader::SceneAssetLoader(LoadResource loadResource,
                                    NameComponentManager *ncm, 
                                    Engine *engine,
                                    Scene *scene)
-    : _loadResource(loadResource), _freeResource(freeResource), _materialProvider(materialProvider), _entityManager(entityManager), 
-      _resourceLoader(resourceLoader), _ncm(ncm),
+    : _loadResource(loadResource), _freeResource(freeResource), _resourceLoader(resourceLoader), _ncm(ncm),
       _engine(engine), _scene(scene) {
         _assetLoader =   AssetLoader::create({_engine, materialProvider, _ncm, entityManager});
       }
@@ -111,21 +110,20 @@ SceneAsset *SceneAssetLoader::fromGlb(const char *uri) {
 
   Log("Resources loaded.");
 
-  const Entity *entities = asset->getEntities();
+  // const Entity *entities = asset->getEntities();
 
-  RenderableManager &rm = _engine->getRenderableManager();
+  // RenderableManager &rm = _engine->getRenderableManager();
 
-  MaterialKey config;
-  auto mi_new = _materialProvider->createMaterialInstance(&config, nullptr);
+  // MaterialKey config;
+  // auto mi_new = _materialProvider->createMaterialInstance(&config, nullptr);
   
-  // why did I need to explicitly enable culling?
-  for (int i = 0; i < asset->getEntityCount(); i++) {
-    auto entityInstance = rm.getInstance(entities[i]);   
-    auto mi = rm.getMaterialInstanceAt(entityInstance, 0);
-    // auto m = mi->getMaterial();
-    // auto shading = m->getShading();
-    // Log("Shading %d", shading);
-  }
+  // for (int i = 0; i < asset->getEntityCount(); i++) {
+  //   auto entityInstance = rm.getInstance(entities[i]);   
+  //   auto mi = rm.getMaterialInstanceAt(entityInstance, 0);
+  //   // auto m = mi->getMaterial();
+  //   // auto shading = m->getShading();
+  //   // Log("Shading %d", shading);
+  // }
 
   auto lights = asset->getLightEntities();
   _scene->addEntities(lights, asset->getLightEntityCount());
