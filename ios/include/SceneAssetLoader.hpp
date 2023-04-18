@@ -20,23 +20,30 @@ namespace polyvox {
             SceneAssetLoader(
                 LoadResource loadResource, 
                 FreeResource freeResource, 
-                AssetLoader* assetLoader,
+                MaterialProvider* materialProvider,
+                EntityManager* entityManager,
                 ResourceLoader* resourceLoader,
                 NameComponentManager* ncm,
                 Engine* engine,
                 Scene* scene);
+            ~SceneAssetLoader();
             SceneAsset* fromGltf(const char* uri, const char* relativeResourcePath);
             SceneAsset* fromGlb(const char* uri);
             void remove(SceneAsset* asset);
+            void destroyAll();
 
         private:
             LoadResource _loadResource;
             FreeResource _freeResource;
+            MaterialProvider* _materialProvider;
+            EntityManager* _entityManager;
             AssetLoader* _assetLoader;
             ResourceLoader* _resourceLoader;
             NameComponentManager* _ncm;
             Engine* _engine;
             Scene* _scene;
+
+            vector<SceneAsset*> _assets;
 
     };
 }

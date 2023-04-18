@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
   };
 
   bool _rotating = false;
+  bool _scaling = false;
 
   // to avoid duplicating code for pan/rotate (panStart, panUpdate, panEnd, rotateStart, rotateUpdate etc)
   // we have only a single function for start/update/end.
@@ -100,6 +102,8 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
               onScaleStart: !widget.enableControls
                   ? null
                   : (d) async {
+                      _scaling = true;
+                      print("SCALE START");
                       if (d.pointerCount == 2) {
                         await widget.controller.zoomEnd();
                         await widget.controller.zoomBegin();
@@ -108,6 +112,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
               onScaleEnd: !widget.enableControls
                   ? null
                   : (d) async {
+                      _scaling = false;
                       if (d.pointerCount == 2) {
                         _lastScale = 0;
                         await widget.controller.zoomEnd();
@@ -118,8 +123,9 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   : (d) async {
                       if (d.pointerCount == 2) {
                         if (_lastScale != 0) {
-                          await widget.controller
-                              .zoomUpdate(100 * (_lastScale - d.scale));
+                          await widget.controller.zoomUpdate(Platform.isIOS
+                              ? 1000 * (_lastScale - d.scale)
+                              : 100 * (_lastScale - d.scale));
                         }
                       }
                       _lastScale = d.scale;
@@ -128,6 +134,8 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerSignal: !widget.enableControls
                       ? null
                       : (pointerSignal) async {
+                          print("ponter signal");
+
                           // scroll-wheel zoom on desktop
                           if (pointerSignal is PointerScrollEvent) {
                             _scrollTimer?.cancel();
@@ -146,6 +154,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerDown: !widget.enableControls
                       ? null
                       : (d) async {
+                          print("piinterodoiwn");
                           if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateStart(
                                 d.localPosition.dx, d.localPosition.dy);
@@ -157,6 +166,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerMove: !widget.enableControls
                       ? null
                       : (d) async {
+                          print("pointermove");
                           if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateUpdate(
                                 d.localPosition.dx, d.localPosition.dy);
@@ -168,6 +178,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerUp: !widget.enableControls
                       ? null
                       : (d) async {
+                          print("pointerup");
                           if (d.buttons == kTertiaryButton || _rotating) {
                             await widget.controller.rotateEnd();
                           } else {
