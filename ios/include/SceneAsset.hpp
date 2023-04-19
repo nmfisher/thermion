@@ -11,14 +11,12 @@
 #include <math/mat3.h>
 #include <math/norm.h>
 
+#include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
-#include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
-
 #include <utils/NameComponentManager.h>
 
 #include "ResourceManagement.hpp"
-#include "SceneAssetAnimation.hpp"
 
 extern "C" {
     #include "PolyvoxFilamentApi.h"
@@ -30,121 +28,88 @@ namespace polyvox {
     using namespace utils;
     using namespace std;
 
-    class SceneAsset {
-        friend class SceneAssetLoader;
-        public:
-            SceneAsset(FilamentAsset* asset, Engine* engine, NameComponentManager* ncm, LoadResource loadResource, FreeResource freeResource);
-            ~SceneAsset();
+    typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;   
 
-            unique_ptr<vector<string>> getMorphTargetNames(const char* meshName);
-            unique_ptr<vector<string>> getAnimationNames();
-
-            ///
-            ///
-            ///
-            void loadTexture(const char* resourcePath, int renderableIndex);
-            void setTexture();
-
-            ///
-            /// Update the bone/morph target animations to reflect the current frame (if applicable).
-            ///
-            void updateAnimations();
-
-            ///
-            /// Immediately stop the animation at the specified index. Noop if no animation is playing.
-            ///
-            void stopAnimation(int index);
-
-            ///  
-            /// Play the embedded animation (i.e. animation node embedded in the GLTF asset) under the specified index. If [loop] is true, the animation will repeat indefinitely.
-            ///
-            void playAnimation(int index, bool loop, bool reverse);
-
-            void setAnimationFrame(int animationIndex, int animationFrame);
-
-            ///
-            /// Set the weights for all [count] morph targets in this asset's entity named [inst] to [weights].
-            /// See [setAnimation] if you want to do the same across a number of frames (and extended to bone transforms).
-            ///
-            void setMorphTargetWeights(const char* const entityName, float* weights, int count);
-
-            ///
-            /// Animates the asset's morph targets/bone transforms according to the frame weights/transforms specified in [morphData]/[boneData].
-            ///  The duration of each "frame" is specified by [frameLengthInMs] (i.e. this is not the framerate of the renderer).
-            /// [morphData] is a contiguous chunk of floats whose length will be (numMorphWeights * numFrames).
-            /// [boneData] is a contiguous chunk of floats whose length will be (numBones * 7 * numFrames) (where 7 is 3 floats for translation, 4 for quat rotation).
-            /// [morphData] and [boneData] will both be copied, so remember to free these after calling this function.
-            ///
-            void setAnimation(
-                const char* entityName,
-                const float* const morphData,
-                int numMorphWeights, 
-                const BoneAnimation* const targets,
-                int numBoneAnimations,
-                int numFrames, 
-                float frameLengthInMs
-            );
-
-            size_t getBoneIndex(const char* name);
-            
-            Entity getNode(const char* name);
-
-            void transformToUnitCube();
-
-            void setScale(float scale);
-
-            void setPosition(float x, float y, float z);
-            
-            void setRotation(float rads, float x, float y, float z);         
-
-            const utils::Entity* getCameraEntities();
-
-            size_t getCameraEntityCount();
-
-            const Entity* getLightEntities() const noexcept;
-
-            size_t getLightEntityCount() const noexcept;
-
-
-        private:
-
-            FilamentAsset* _asset = nullptr;
-            Engine* _engine = nullptr;
-            NameComponentManager* _ncm;
-
-            void setBoneTransform(
-                uint8_t skinIndex,
-                const vector<uint8_t>& boneIndices,
-                const vector<Entity>& targets, 
-                const vector<float> data,
-                int frameNumber
-            );
-
-            void updateRuntimeAnimation();
-
-            void updateEmbeddedAnimations();
-
-            Animator* _animator;
-            
-            // animation flags;
-            unique_ptr<RuntimeAnimation> _runtimeAnimationBuffer;
-            vector<GLTFAnimation> _embeddedAnimationStatus;
-
-            LoadResource _loadResource;
-            FreeResource _freeResource;
-
-            // a slot to preload textures
-            filament::Texture* _texture = nullptr;
-
-            // initialized to identity
-            math::mat4f _position;
-            
-            // initialized to identity
-            math::mat4f _rotation;
-            
-            float _scale = 1;
-
-            void updateTransform();
-
+    struct AnimationStatus {
+        time_point_t mStart = time_point_t::max();
+        bool mLoop = false;
+        bool mReverse = false;
+        float mDuration = 0;
+        int mFrameNumber = -1;
     };
+
+        // 
+    // Use this to manually construct a buffer of frame data for morph animations.
+    //
+    struct MorphAnimationBuffer {
+        utils::EntityInstance<RenderableManager>* mInstance = nullptr;
+        int mNumFrames = -1;
+        float mFrameLengthInMs = 0;
+        vector<float> mFrameData;
+        int mNumMorphWeights = 0;
+    };
+
+    ///
+    /// Frame data for the bones/meshes specified by [mBoneIndices] and [mMeshTargets].
+    /// This is mainly used as a wrapper for animation data being transferred from the Dart to the native side.
+    ///
+    struct BoneAnimationData {
+        size_t skinIndex = 0;
+        uint8_t mBoneIndex;
+        utils::Entity mMeshTarget;
+        vector<float> mFrameData;
+    };
+
+    // 
+    // Use this to manually construct a buffer of frame data for bone animations.
+    //
+    struct BoneAnimationBuffer {
+        int mNumFrames = -1;
+        float mFrameLengthInMs = 0;
+        vector<BoneAnimationData> mAnimations;
+    };
+
+    struct SceneAsset {
+        
+        FilamentAsset* mAsset = nullptr;
+        Animator* mAnimator = nullptr;
+
+        // animation flags;
+        bool mAnimating = false;
+
+        // fixed-sized vector containing the status of the morph, bone and GLTF animations.
+        // entries 0 and 1 are the morph/bone animations.
+        // subsequent entries are the GLTF animations.
+        vector<AnimationStatus> mAnimations;
+
+        MorphAnimationBuffer mMorphAnimationBuffer;
+        BoneAnimationBuffer mBoneAnimationBuffer;
+
+        // a slot to preload textures
+        filament::Texture* mTexture = nullptr;
+
+        // initialized to identity
+        math::mat4f mPosition;
+        
+        // initialized to identity
+        math::mat4f mRotation;
+            
+        float mScale = 1;
+
+        SceneAsset(
+            FilamentAsset* asset
+        ) : mAsset(asset) {
+
+            mAnimator = mAsset->getInstance()->getAnimator();
+
+            mAnimations.resize(2 + mAnimator->getAnimationCount());
+            
+            for(int i=2; i < mAnimations.size(); i++) {
+                mAnimations[i].mDuration = mAnimator->getAnimationDuration(i-2);
+            }
+        }
+    };
+
 }
+
+    

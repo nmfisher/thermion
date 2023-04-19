@@ -4,6 +4,10 @@
 #include <filament/Texture.h>
 #include <filament/TextureSampler.h>
 #include <math/mat4.h>
+#include <math/vec3.h>
+#include <math/vec4.h>
+#include <math/mat3.h>
+#include <math/norm.h>
 
 namespace polyvox {
   class FileMaterialProvider : public MaterialProvider {
@@ -36,9 +40,8 @@ namespace polyvox {
               return hasTexture ? int(uvmap->at(srcIndex)) - 1 : -1;
             };
 
-            Log("CREATING MATERIAL INSTANCE");
             auto instance = _m->createInstance();
-            mat3f identity;
+            math::mat3f identity;
             instance->setParameter("baseColorUvMatrix", identity);
             instance->setParameter("normalUvMatrix", identity);
 

@@ -19,6 +19,8 @@ static uint32_t _i = 0;
 
 ResourceBuffer loadResource(const char* name) {
 
+  std::cout << "LOADING RESOURCE" << std::endl;
+
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
        std::cout << "Current working dir: " << cwd  << std::endl;

@@ -12,12 +12,20 @@ dependencies:
     sdk: flutter
   vector_math: ^2.1.2
   plugin_platform_interface: ^2.0.0
+  ffi: 
+  tuple:
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^1.0.0
+  ffigen: 
 
+ffigen:
+  output: 'lib/generated_bindings.dart'
+  headers:
+    entry-points:
+      - 'ios/include/PolyvoxFilamentApi.h'
 
 flutter:
   plugin:

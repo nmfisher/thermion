@@ -19,12 +19,12 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
-  final FilamentController _filamentController = PolyvoxFilamentController();
+class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
+  late FilamentController _filamentController;
 
-  FilamentAsset? _cube;
-  FilamentAsset? _flightHelmet;
-  FilamentLight? _light;
+  FilamentEntity? _cube;
+  FilamentEntity? _flightHelmet;
+  FilamentEntity? _light;
 
   final weights = List.filled(255, 0.0);
   List<String> _targetNames = [];
@@ -37,6 +37,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _filamentController = FilamentController(this);
   }
 
   void onClick(int index) async {
@@ -45,7 +46,7 @@ class _MyAppState extends State<MyApp> {
         await _filamentController.initialize();
         break;
       case -2:
-        await _filamentController.render();
+        _filamentController.render();
         break;
       case -4:
         setState(() {
@@ -61,55 +62,48 @@ class _MyAppState extends State<MyApp> {
         break;
 
       case 0:
-        await _filamentController.setBackgroundImage('assets/background.ktx');
+        _filamentController.setBackgroundImage('assets/background.ktx');
         break;
       case 1:
-        await _filamentController
+        _filamentController
             .loadSkybox('assets/default_env/default_env_skybox.ktx');
         break;
       case -3:
-        await _filamentController
-            .loadIbl('assets/default_env/default_env_ibl.ktx');
+        _filamentController.loadIbl('assets/default_env/default_env_ibl.ktx');
         break;
       case 2:
-        await _filamentController.removeSkybox();
+        _filamentController.removeSkybox();
         break;
       case 3:
-        _cube = await _filamentController.loadGlb('assets/cube.glb');
-
-        _animationNames = await _filamentController.getAnimationNames(_cube!);
+        _cube = _filamentController.loadGlb('assets/cube.glb');
+        _animationNames = _filamentController.getAnimationNames(_cube!);
         break;
 
       case 4:
         if (_cube != null) {
-          await _filamentController.removeAsset(_cube!);
+          _filamentController.removeAsset(_cube!);
         }
-        _cube =
-            await _filamentController.loadGltf('assets/cube.gltf', 'assets');
-        print(await _filamentController.getAnimationNames(_cube!));
+        _cube = _filamentController.loadGltf('assets/cube.gltf', 'assets');
         break;
       case 5:
-        if (_flightHelmet == null) {
-          _flightHelmet = await _filamentController.loadGltf(
-              'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
-        }
+        _flightHelmet ??= _filamentController.loadGltf(
+            'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
         break;
       case 6:
-        await _filamentController.removeAsset(_cube!);
+        _filamentController.removeAsset(_cube!);
         break;
 
       case 7:
-        await _filamentController.setMorphTargetWeights(
-            _cube!, List.filled(8, 1.0));
+        _filamentController.setMorphTargetWeights(_cube!, List.filled(8, 1.0));
         break;
       case 8:
-        await _filamentController.setMorphTargetWeights(
-            _cube!, List.filled(8, 0));
+        _filamentController.setMorphTargetWeights(_cube!, List.filled(8, 0));
         break;
       case 9:
-        _filamentController.playAnimations(
-            _cube!, List.generate(_animationNames.length, (i) => i),
-            loop: _loop);
+        for (int i = 0; i < _animationNames.length; i++) {
+          _filamentController.playAnimation(_cube!, i, loop: _loop);
+        }
+
         break;
       case 10:
         _filamentController.stopAnimation(_cube!, 0);
@@ -145,39 +139,38 @@ class _MyAppState extends State<MyApp> {
         // _filamentController.setAnimation(_cube!, animation);
         break;
       case 16:
-        _targetNames =
-            await _filamentController.getMorphTargetNames(_cube!, "Cube");
+        _targetNames = _filamentController.getMorphTargetNames(_cube!, "Cube");
         setState(() {});
         break;
       case 17:
-        _animationNames = await _filamentController.getAnimationNames(_cube!);
+        _animationNames = _filamentController.getAnimationNames(_cube!);
         setState(() {});
 
         break;
       case 18:
-        await _filamentController.panStart(1, 1);
-        await _filamentController.panUpdate(1, 2);
-        await _filamentController.panEnd();
+        _filamentController.panStart(1, 1);
+        _filamentController.panUpdate(1, 2);
+        _filamentController.panEnd();
         break;
       case 19:
-        await _filamentController.panStart(1, 1);
-        await _filamentController.panUpdate(0, 0);
-        await _filamentController.panEnd();
+        _filamentController.panStart(1, 1);
+        _filamentController.panUpdate(0, 0);
+        _filamentController.panEnd();
         break;
       case 20:
-        await _filamentController.clearAssets();
+        _filamentController.clearAssets();
         break;
       case 21:
-        await _filamentController.setTexture(_cube!, "assets/background.png");
+        _filamentController.setTexture(_cube!, "assets/background.png");
         break;
       case 22:
-        await _filamentController.transformToUnitCube(_cube!);
+        _filamentController.transformToUnitCube(_cube!);
         break;
       case 23:
-        await _filamentController.setPosition(_cube!, 1.0, 1.0, -1.0);
+        _filamentController.setPosition(_cube!, 1.0, 1.0, -1.0);
         break;
       case 24:
-        await _filamentController.setRotation(_cube!, pi / 2, 0.0, 1.0, 0.0);
+        _filamentController.setRotation(_cube!, pi / 2, 0.0, 1.0, 0.0);
         break;
       case 25:
         setState(() {
@@ -185,35 +178,34 @@ class _MyAppState extends State<MyApp> {
         });
         break;
       case 26:
-        await _filamentController.setCameraPosition(0, 0, 3);
-        await _filamentController.setCameraRotation(0, 0, 1, 0);
+        _filamentController.setCameraPosition(0, 0, 3);
+        _filamentController.setCameraRotation(0, 0, 1, 0);
         break;
       case 27:
         _framerate = _framerate == 60 ? 30 : 60;
-        await _filamentController.setFrameRate(_framerate);
+        _filamentController.setFrameRate(_framerate);
         break;
       case 28:
-        await _filamentController.setBackgroundImagePosition(25, 25);
+        _filamentController.setBackgroundImagePosition(25, 25);
         break;
       case 29:
-        _light = await _filamentController.addLight(
+        _light = _filamentController.addLight(
             1, 6500, 15000000, 0, 1, 0, 0, -1, 0, true);
-        _light = await _filamentController.addLight(
+        _light = _filamentController.addLight(
             2, 6500, 15000000, 0, 0, 1, 0, 0, -1, true);
         break;
       case 30:
         if (_light != null) {
-          await _filamentController.removeLight(_light!);
+          _filamentController.removeLight(_light!);
         }
         break;
       case 31:
-        await _filamentController.clearLights();
+        _filamentController.clearLights();
         break;
       case 32:
-        await _filamentController
-            .setCameraModelMatrix(List<double>.filled(16, 1.0));
+        _filamentController.setCameraModelMatrix(List<double>.filled(16, 1.0));
 
-        // await _filamentController.setBoneTransform(
+        //  _filamentController.setBoneTransform(
         //     _cube!,
         //     "Bone.001",
         //     "Cube.001",

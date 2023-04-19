@@ -6,180 +6,210 @@
 
 using namespace polyvox;
 
+#define FLUTTER_PLUGIN_EXPORT __attribute__((visibility("default")))
+
 extern "C" {
 
   #include "PolyvoxFilamentApi.h"
 
-  void* filament_viewer_new(void* context, ResourceBuffer (*loadResource)(char const*), void (*freeResource)(unsigned int)) {
+  FLUTTER_PLUGIN_EXPORT void* create_filament_viewer(void* context, ResourceBuffer (*loadResource)(char const*), void (*freeResource)(unsigned int)) {
     FilamentViewer* v = new FilamentViewer(context, loadResource, freeResource);
     return (void*)v;
   }
 
-  void create_render_target(void* viewer, uint32_t textureId, uint32_t width, uint32_t height) {
+  FLUTTER_PLUGIN_EXPORT void create_render_target(void* viewer, uint32_t textureId, uint32_t width, uint32_t height) {
     ((FilamentViewer*)viewer)->createRenderTarget(textureId, width, height);
   }
   
-  void filament_viewer_delete(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void delete_filament_viewer(void* viewer) {
     delete((FilamentViewer*)viewer);
   }
 
-  void set_background_color(void* viewer, const float r, const float g, const float b, const float a) {
+  FLUTTER_PLUGIN_EXPORT void set_background_color(void* viewer, const float r, const float g, const float b, const float a) {
     ((FilamentViewer*)viewer)->setBackgroundColor(r, g, b, a);
   }
 
-  void clear_background_image(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void clear_background_image(void* viewer) {
     ((FilamentViewer*)viewer)->clearBackgroundImage();
   }
 
-  void set_background_image(void* viewer, const char* path) {
+  FLUTTER_PLUGIN_EXPORT void set_background_image(void* viewer, const char* path) {
     ((FilamentViewer*)viewer)->setBackgroundImage(path);
   }
 
-  void set_background_image_position(void* viewer, float x, float y, bool clamp) {
+  FLUTTER_PLUGIN_EXPORT void set_background_image_position(void* viewer, float x, float y, bool clamp) {
   ((FilamentViewer*)viewer)->setBackgroundImagePosition(x, y, clamp);
   }
 
-  void load_skybox(void* viewer, const char* skyboxPath) {
+  FLUTTER_PLUGIN_EXPORT void load_skybox(void* viewer, const char* skyboxPath) {
     ((FilamentViewer*)viewer)->loadSkybox(skyboxPath);
   }
 
-  void load_ibl(void* viewer, const char* iblPath, float intensity) {
+  FLUTTER_PLUGIN_EXPORT void load_ibl(void* viewer, const char* iblPath, float intensity) {
     ((FilamentViewer*)viewer)->loadIbl(iblPath, intensity);
   }
 
-  void remove_skybox(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void remove_skybox(void* viewer) {
     ((FilamentViewer*)viewer)->removeSkybox();
   }
   
-  void remove_ibl(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void remove_ibl(void* viewer) {
     ((FilamentViewer*)viewer)->removeIbl();
   }
 
-  int32_t add_light(void* viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows) { 
+  FLUTTER_PLUGIN_EXPORT int32_t add_light(void* viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows) { 
     return ((FilamentViewer*)viewer)->addLight((LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
   }
 
-  void remove_light(void* viewer, int32_t entityId) {
+  FLUTTER_PLUGIN_EXPORT void remove_light(void* viewer, int32_t entityId) {
     ((FilamentViewer*)viewer)->removeLight(entityId);
   }
 
-  void clear_lights(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void clear_lights(void* viewer) {
     ((FilamentViewer*)viewer)->clearLights();
   }
 
-  void* load_glb(void* viewer, const char* assetPath, bool unlit) {
-    return ((FilamentViewer*)viewer)->loadGlb(assetPath, unlit);
+  FLUTTER_PLUGIN_EXPORT EntityId load_glb(void* assetManager, const char* assetPath, bool unlit) {
+    return ((AssetManager*)assetManager)->loadGlb(assetPath, unlit);
   }
 
-  void* load_gltf(void* viewer, const char* assetPath, const char* relativePath) {
-    return ((FilamentViewer*)viewer)->loadGltf(assetPath, relativePath);
+  FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void* assetManager, const char* assetPath, const char* relativePath) {
+    return ((AssetManager*)assetManager)->loadGltf(assetPath, relativePath);
   }
 
-  bool set_camera(void* viewer, void* asset, const char* nodeName) {
-    return ((FilamentViewer*)viewer)->setCamera((SceneAsset*)asset, nodeName);
+  FLUTTER_PLUGIN_EXPORT bool set_camera(void* viewer, EntityId asset, const char* nodeName) {
+    return ((FilamentViewer*)viewer)->setCamera(asset, nodeName);
   }
 
-  void set_camera_exposure(void* viewer, float aperture, float shutterSpeed, float sensitivity) {
+  FLUTTER_PLUGIN_EXPORT void set_camera_exposure(void* viewer, float aperture, float shutterSpeed, float sensitivity) {
     ((FilamentViewer*)viewer)->setCameraExposure(aperture, shutterSpeed, sensitivity);
   }
 
-  void set_camera_position(void* viewer, float x, float y, float z) {
+  FLUTTER_PLUGIN_EXPORT void set_camera_position(void* viewer, float x, float y, float z) {
     ((FilamentViewer*)viewer)->setCameraPosition(x, y, z);
   }
 
-  void set_camera_rotation(void* viewer, float rads, float x, float y, float z) {
+  FLUTTER_PLUGIN_EXPORT void set_camera_rotation(void* viewer, float rads, float x, float y, float z) {
     ((FilamentViewer*)viewer)->setCameraRotation(rads, x, y, z);
   }
 
-  void set_camera_model_matrix(void* viewer, const float* const matrix) {
+  FLUTTER_PLUGIN_EXPORT void set_camera_model_matrix(void* viewer, const float* const matrix) {
     ((FilamentViewer*)viewer)->setCameraModelMatrix(matrix);
   }
 
-  void set_camera_focal_length(void* viewer, float focalLength) {
+  FLUTTER_PLUGIN_EXPORT void set_camera_focal_length(void* viewer, float focalLength) {
     ((FilamentViewer*)viewer)->setCameraFocalLength(focalLength);
   }
 
-  void render(
+  FLUTTER_PLUGIN_EXPORT void render(
     void* viewer,
     uint64_t frameTimeInNanos
   ) {
     ((FilamentViewer*)viewer)->render(frameTimeInNanos);
   }
 
-  void set_frame_interval(
+  FLUTTER_PLUGIN_EXPORT void set_frame_interval(
     void* viewer,
     float frameInterval
   ) {
     ((FilamentViewer*)viewer)->setFrameInterval(frameInterval);
   }
 
-  void destroy_swap_chain(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void destroy_swap_chain(void* viewer) {
     ((FilamentViewer*)viewer)->destroySwapChain();
   }
 
-  void create_swap_chain(void* viewer, void* surface=nullptr, uint32_t width=0, uint32_t height=0) {
+  FLUTTER_PLUGIN_EXPORT void create_swap_chain(void* viewer, void* surface=nullptr, uint32_t width=0, uint32_t height=0) {
     ((FilamentViewer*)viewer)->createSwapChain(surface, width, height);
   }
 
-  void* get_renderer(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void* get_renderer(void* viewer) {
     return ((FilamentViewer*)viewer)->getRenderer();
   }
 
-  void update_viewport_and_camera_projection(void* viewer, int width, int height, float scaleFactor) {
+  FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection(void* viewer, int width, int height, float scaleFactor) {
     return ((FilamentViewer*)viewer)->updateViewportAndCameraProjection(width, height, scaleFactor);
   }
 
-  void scroll_update(void* viewer, float x, float y, float delta) {
+  FLUTTER_PLUGIN_EXPORT void scroll_update(void* viewer, float x, float y, float delta) {
     ((FilamentViewer*)viewer)->scrollUpdate(x, y, delta);
   }
 
-  void scroll_begin(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void scroll_begin(void* viewer) {
     ((FilamentViewer*)viewer)->scrollBegin();
   }
 
-  void scroll_end(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void scroll_end(void* viewer) {
     ((FilamentViewer*)viewer)->scrollEnd();
   }
 
-  void grab_begin(void* viewer, float x, float y, bool pan) {
+  FLUTTER_PLUGIN_EXPORT void grab_begin(void* viewer, float x, float y, bool pan) {
     ((FilamentViewer*)viewer)->grabBegin(x, y, pan);
   }
 
-  void grab_update(void* viewer, float x, float y) {
+  FLUTTER_PLUGIN_EXPORT void grab_update(void* viewer, float x, float y) {
     ((FilamentViewer*)viewer)->grabUpdate(x, y);
   }
 
-  void grab_end(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void grab_end(void* viewer) {
     ((FilamentViewer*)viewer)->grabEnd();
   }
 
-  void apply_weights(void* asset, const char* const entityName, float* const weights, int count) {
-    ((SceneAsset*)asset)->setMorphTargetWeights(entityName, weights, count);
+  FLUTTER_PLUGIN_EXPORT void* get_asset_manager(void* viewer) {
+    return (void*)((FilamentViewer*)viewer)->getAssetManager();
   }
 
-  void set_animation(
-    void* asset, 
+  FLUTTER_PLUGIN_EXPORT void apply_weights(
+    void* assetManager,
+    EntityId asset, 
+    const char* const entityName, 
+    float* const weights, 
+    int count) {
+    // ((AssetManager*)assetManager)->setMorphTargetWeights(asset, entityName, weights, count);
+  }
+
+  FLUTTER_PLUGIN_EXPORT void set_morph_animation(
+    void* assetManager,
+    EntityId asset, 
     const char* const entityName,
     const float* const morphData,
     int numMorphWeights, 
-    const BoneAnimation* const boneAnimations,
-    int numBoneAnimations,
     int numFrames, 
     float frameLengthInMs) {
-    ((SceneAsset*)asset)->setAnimation(
+    ((AssetManager*)assetManager)->setMorphAnimationBuffer(
+      asset, 
       entityName,
       morphData, 
       numMorphWeights, 
-      boneAnimations, 
-      numBoneAnimations,
+      numFrames, 
+      frameLengthInMs
+    );
+  }
+
+  FLUTTER_PLUGIN_EXPORT void set_bone_animation(
+    void* assetManager,
+    EntityId asset, 
+    int length,
+    const char** const boneNames,
+    const char** const meshNames,
+    const float* const frameData,
+    int numFrames, 
+    float frameLengthInMs) {
+    ((AssetManager*)assetManager)->setBoneAnimationBuffer(
+      asset, 
+      length,
+      boneNames, 
+      meshNames,
+      frameData,
       numFrames, 
       frameLengthInMs
     );
   }
 
 
+
 //   void set_bone_transform(
-//     void* asset, 
+//     EntityId asset, 
 //     const char* boneName, 
 //     const char* entityName,
 //     float transX, 
@@ -190,7 +220,7 @@ extern "C" {
 //     float quatZ,
 //     float quatW
 // ) {
-//     ((SceneAsset*)asset)->setBoneTransform(
+//     ((AssetManager*)assetManager)->setBoneTransform(
 //         boneName, 
 //         entityName, 
 //         transX, 
@@ -206,70 +236,86 @@ extern "C" {
 //   }
 
 
-  void play_animation(void* asset, int index, bool loop, bool reverse) {
-    ((SceneAsset*)asset)->playAnimation(index, loop, reverse);
+  FLUTTER_PLUGIN_EXPORT void play_animation(
+    void* assetManager,
+    EntityId asset, 
+    int index, 
+    bool loop, 
+    bool reverse) {
+    ((AssetManager*)assetManager)->playAnimation(asset, index, loop, reverse);
   }
 
-  void set_animation_frame(void* asset, int animationIndex, int animationFrame) {
-    ((SceneAsset*)asset)->setAnimationFrame(animationIndex, animationFrame);
+  FLUTTER_PLUGIN_EXPORT void set_animation_frame(
+    void* assetManager,
+    EntityId asset, 
+    int animationIndex, 
+    int animationFrame) {
+    // ((AssetManager*)assetManager)->setAnimationFrame(asset, animationIndex, animationFrame);
   }
 
-  int get_animation_count(void* asset) {
-    auto names = ((SceneAsset*)asset)->getAnimationNames();
+  FLUTTER_PLUGIN_EXPORT int get_animation_count(
+    void* assetManager,
+    EntityId asset) {
+    auto names = ((AssetManager*)assetManager)->getAnimationNames(asset);
     return names->size();
   }
 
-  void get_animation_name(void* asset, char* const outPtr, int index) {
-    auto names = ((SceneAsset*)asset)->getAnimationNames();
+  FLUTTER_PLUGIN_EXPORT void get_animation_name(
+    void* assetManager,
+    EntityId asset, 
+    char* const outPtr, 
+    int index
+  ) {
+    auto names = ((AssetManager*)assetManager)->getAnimationNames(asset);
     string name = names->at(index);
     strcpy(outPtr, name.c_str());
   }
   
-  int get_morph_target_name_count(void* asset, const char* meshName) {
-    unique_ptr<vector<string>> names = ((SceneAsset*)asset)->getMorphTargetNames(meshName);
+  FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void* assetManager, EntityId asset, const char* meshName) {
+    unique_ptr<vector<string>> names = ((AssetManager*)assetManager)->getMorphTargetNames(asset, meshName);
     return names->size();
   }
 
-  void get_morph_target_name(void* asset, const char* meshName, char* const outPtr, int index ) {
-    unique_ptr<vector<string>> names = ((SceneAsset*)asset)->getMorphTargetNames(meshName);
+  FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void* assetManager, EntityId asset, const char* meshName, char* const outPtr, int index ) {
+    unique_ptr<vector<string>> names = ((AssetManager*)assetManager)->getMorphTargetNames(asset, meshName);
     string name = names->at(index);
     strcpy(outPtr, name.c_str());
   }
 
-  void remove_asset(void* viewer, void* asset) {
-    ((FilamentViewer*)viewer)->removeAsset((SceneAsset*)asset);
+  FLUTTER_PLUGIN_EXPORT void remove_asset(void* viewer, EntityId asset) {
+    ((FilamentViewer*)viewer)->removeAsset(asset);
   }
 
-  void clear_assets(void* viewer) {
+  FLUTTER_PLUGIN_EXPORT void clear_assets(void* viewer) {
     ((FilamentViewer*)viewer)->clearAssets();
   }
 
-  void load_texture(void* asset, const char* assetPath, int renderableIndex) {
-    ((SceneAsset*)asset)->loadTexture(assetPath, renderableIndex);
+  FLUTTER_PLUGIN_EXPORT void load_texture(void* assetManager, EntityId asset, const char* assetPath, int renderableIndex) {
+    // ((AssetManager*)assetManager)->loadTexture(assetPath, renderableIndex);
   }
 
-  void set_texture(void* asset) {
-    ((SceneAsset*)asset)->setTexture();
+  FLUTTER_PLUGIN_EXPORT void set_texture(void* assetManager, EntityId asset) {
+    // ((AssetManager*)assetManager)->setTexture();
   }
 
-  void transform_to_unit_cube(void* asset) {
-    ((SceneAsset*)asset)->transformToUnitCube();
+  FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void* assetManager, EntityId asset) {
+    ((AssetManager*)assetManager)->transformToUnitCube(asset);
   }
 
-  void set_position(void* asset, float x, float y, float z) {
-     ((SceneAsset*)asset)->setPosition(x, y, z);
+  FLUTTER_PLUGIN_EXPORT void set_position(void* assetManager, EntityId asset, float x, float y, float z) {
+     ((AssetManager*)assetManager)->setPosition(asset, x, y, z);
   }
 
-   void set_rotation(void* asset, float rads, float x, float y, float z) {
-     ((SceneAsset*)asset)->setRotation(rads, x, y, z);
+  FLUTTER_PLUGIN_EXPORT void set_rotation(void* assetManager, EntityId asset, float rads, float x, float y, float z) {
+     ((AssetManager*)assetManager)->setRotation(asset, rads, x, y, z);
    }
 
-  void set_scale(void* asset, float scale) {
-     ((SceneAsset*)asset)->setScale(scale);
-   }
+  FLUTTER_PLUGIN_EXPORT void set_scale(void* assetManager, EntityId asset, float scale) {
+    ((AssetManager*)assetManager)->setScale(asset, scale);
+  }
 
-  void stop_animation(void* asset, int index) {
-     ((SceneAsset*)asset)->stopAnimation(index);
+  FLUTTER_PLUGIN_EXPORT void stop_animation(void* assetManager, EntityId asset, int index) {
+     ((AssetManager*)assetManager)->stopAnimation(asset, index);
   }
   
 }

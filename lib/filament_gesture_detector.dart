@@ -41,9 +41,9 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
   // to avoid duplicating code for pan/rotate (panStart, panUpdate, panEnd, rotateStart, rotateUpdate etc)
   // we have only a single function for start/update/end.
   // when the gesture type is changed, these properties are updated to point to the correct function.
-  late Future Function(double x, double y) _functionStart;
-  late Future Function(double x, double y) _functionUpdate;
-  late Future Function() _functionEnd;
+  late Function(double x, double y) _functionStart;
+  late Function(double x, double y) _functionUpdate;
+  late Function() _functionEnd;
 
   double _lastScale = 0;
 
@@ -104,8 +104,8 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   : (d) async {
                       _scaling = true;
                       if (d.pointerCount == 2) {
-                        await widget.controller.zoomEnd();
-                        await widget.controller.zoomBegin();
+                        widget.controller.zoomEnd();
+                        widget.controller.zoomBegin();
                       }
                     },
               onScaleEnd: !widget.enableControls
@@ -114,7 +114,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                       _scaling = false;
                       if (d.pointerCount == 2) {
                         _lastScale = 0;
-                        await widget.controller.zoomEnd();
+                        widget.controller.zoomEnd();
                       }
                     },
               onScaleUpdate: !widget.enableControls
@@ -122,7 +122,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   : (d) async {
                       if (d.pointerCount == 2) {
                         if (_lastScale != 0) {
-                          await widget.controller.zoomUpdate(Platform.isIOS
+                          widget.controller.zoomUpdate(Platform.isIOS
                               ? 1000 * (_lastScale - d.scale)
                               : 100 * (_lastScale - d.scale));
                         }
@@ -138,8 +138,8 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                           // scroll-wheel zoom on desktop
                           if (pointerSignal is PointerScrollEvent) {
                             _scrollTimer?.cancel();
-                            await widget.controller.zoomBegin();
-                            await widget.controller.zoomUpdate(
+                            widget.controller.zoomBegin();
+                            widget.controller.zoomUpdate(
                                 pointerSignal.scrollDelta.dy > 0 ? 10 : -10);
                             _scrollTimer =
                                 Timer(Duration(milliseconds: 100), () {
@@ -154,10 +154,10 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                       ? null
                       : (d) async {
                           if (d.buttons == kTertiaryButton || _rotating) {
-                            await widget.controller.rotateStart(
+                            widget.controller.rotateStart(
                                 d.localPosition.dx, d.localPosition.dy);
                           } else {
-                            await _functionStart(
+                            _functionStart(
                                 d.localPosition.dx, d.localPosition.dy);
                           }
                         },
@@ -165,10 +165,10 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                       ? null
                       : (d) async {
                           if (d.buttons == kTertiaryButton || _rotating) {
-                            await widget.controller.rotateUpdate(
+                            widget.controller.rotateUpdate(
                                 d.localPosition.dx, d.localPosition.dy);
                           } else {
-                            await _functionUpdate(
+                            _functionUpdate(
                                 d.localPosition.dx, d.localPosition.dy);
                           }
                         },
@@ -176,9 +176,9 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                       ? null
                       : (d) async {
                           if (d.buttons == kTertiaryButton || _rotating) {
-                            await widget.controller.rotateEnd();
+                            widget.controller.rotateEnd();
                           } else {
-                            await _functionEnd();
+                            _functionEnd();
                           }
                         },
                   child: widget.child))),

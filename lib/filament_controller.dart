@@ -1,115 +1,27 @@
 import 'dart:async';
-import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:ffi';
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:ffi/ffi.dart';
+import 'package:flutter/animation.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'package:flutter/services.dart';
+import 'package:polyvox_filament/generated_bindings.dart';
 
-import 'animations/animation_builder.dart';
 import 'animations/animations.dart';
 
-// this is confusing - "FilamentAsset" actually defines a pointer to a SceneAsset, whereas FilamentLight is an Entity ID.
-// should make this consistent
-typedef FilamentAsset = int;
-typedef FilamentLight = int;
-const FilamentAsset FILAMENT_ASSET_ERROR = 0;
+typedef AssetManager = Pointer<Void>;
+typedef FilamentViewer = Pointer<Void>;
+typedef FilamentEntity = int;
+const FilamentEntity FILAMENT_ASSET_ERROR = 0;
 
-abstract class FilamentController {
-  Size get size;
-  late Stream<int?> textureId;
-  Future get initialized;
-  Stream get onInitializationRequested;
-  Future initialize();
-  Future createTextureViewer(int width, int height);
-  Future setFrameRate(int framerate);
-  Future setRendering(bool render);
-  Future render();
-  void setPixelRatio(double ratio);
-  Future resize(int width, int height, {double contentScaleFactor = 1});
-  Future setBackgroundColor(Color color);
-  Future clearBackgroundImage();
-  Future setBackgroundImage(String path);
-  Future setBackgroundImagePosition(double x, double y, {bool clamp = false});
-  Future loadSkybox(String skyboxPath);
-  Future removeSkybox();
-  Future loadIbl(String path, {double intensity = 30000});
-  Future removeIbl();
-
-  // copied from LightManager.h
-  //  enum class Type : uint8_t {
-  //       SUN,            //!< Directional light that also draws a sun's disk in the sky.
-  //       DIRECTIONAL,    //!< Directional light, emits light in a given direction.
-  //       POINT,          //!< Point light, emits light from a position, in all directions.
-  //       FOCUSED_SPOT,   //!< Physically correct spot light.
-  //       SPOT,           //!< Spot light with coupling of outer cone and illumination disabled.
-  //   };
-  Future<FilamentLight> addLight(
-      int type,
-      double colour,
-      double intensity,
-      double posX,
-      double posY,
-      double posZ,
-      double dirX,
-      double dirY,
-      double dirZ,
-      bool castShadows);
-  Future removeLight(FilamentLight light);
-  Future clearLights();
-  Future<FilamentAsset> loadGlb(String path, {bool unlit = false});
-  Future<FilamentAsset> loadGltf(String path, String relativeResourcePath);
-  Future zoomBegin();
-  Future zoomUpdate(double z);
-  Future zoomEnd();
-  Future panStart(double x, double y);
-  Future panUpdate(double x, double y);
-  Future panEnd();
-  Future rotateStart(double x, double y);
-  Future rotateUpdate(double x, double y);
-  Future rotateEnd();
-  Future setMorphTargetWeights(FilamentAsset asset, List<double> weights);
-  Future<List<String>> getMorphTargetNames(
-      FilamentAsset asset, String meshName);
-  Future<List<String>> getAnimationNames(FilamentAsset asset);
-  Future removeAsset(FilamentAsset asset);
-  Future clearAssets();
-  Future setAnimationFrame(
-      FilamentAsset asset, int animationIndex, int animationFrame);
-  Future playAnimation(FilamentAsset asset, int index,
-      {bool loop = false, bool reverse = false});
-  Future playAnimations(FilamentAsset asset, List<int> indices,
-      {bool loop = false, bool reverse = false});
-  Future stopAnimation(FilamentAsset asset, int index);
-  Future setCamera(FilamentAsset asset, String name);
-  Future setTexture(FilamentAsset asset, String assetPath,
-      {int renderableIndex = 0});
-  Future transformToUnitCube(FilamentAsset asset);
-  Future setPosition(FilamentAsset asset, double x, double y, double z);
-  Future setRotation(
-      FilamentAsset asset, double rads, double x, double y, double z);
-  // Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
-  //     BoneTransform transform);
-  Future setScale(FilamentAsset asset, double scale);
-  Future setCameraExposure(
-      double aperture, double shutterSpeed, double sensitivity);
-  Future setCameraFocalLength(double focalLength);
-  Future setCameraFocusDistance(double focusDistance);
-  Future setCameraPosition(double x, double y, double z);
-  Future setCameraRotation(double rads, double x, double y, double z);
-  Future setCameraModelMatrix(List<double> matrix);
-
-  ///
-  /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
-  /// [morphWeights] is a list of doubles in frame-major format.
-  /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
-  ///
-  Future setAnimation(FilamentAsset asset, Animation animation);
-}
-
-class PolyvoxFilamentController extends FilamentController {
+class FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
   double _pixelRatio = 1.0;
-  Size size = Size(0, 0);
+  ui.Size size = ui.Size.zero;
 
   int? _textureId;
   final _textureIdController = StreamController<int?>.broadcast();
@@ -121,15 +33,27 @@ class PolyvoxFilamentController extends FilamentController {
   final _initialized = Completer();
   Future get initialized => _initialized.future;
 
-  PolyvoxFilamentController() {
+  late NativeLibrary _nativeLibrary;
+
+  late FilamentViewer _viewer;
+  late AssetManager _assetManager;
+
+  final TickerProvider _tickerProvider;
+  Ticker? _ticker;
+  bool _rendering = false;
+
+  FilamentController(this._tickerProvider) {
     _channel.setMethodCallHandler((call) async {
-      print("Received Filament method channel call : ${call.method}");
       throw Exception("Unknown method channel invocation ${call.method}");
     });
 
     _textureIdController.onListen = () {
       _textureIdController.add(_textureId);
     };
+
+    _nativeLibrary = NativeLibrary(Platform.isAndroid || Platform.isLinux
+        ? DynamicLibrary.open("libpolyvox_filament_plugin.so")
+        : DynamicLibrary.process());
   }
 
   Future initialize() async {
@@ -138,89 +62,126 @@ class PolyvoxFilamentController extends FilamentController {
   }
 
   Future setRendering(bool render) async {
-    await _channel.invokeMethod("setRendering", render);
+    _rendering = render;
   }
 
-  Future render() async {
-    await _channel.invokeMethod("render");
+  void render() {
+    _nativeLibrary.render(_viewer, 0);
+    _channel.invokeMethod("onFrameAvailable");
   }
 
   Future setFrameRate(int framerate) async {
-    await _channel.invokeMethod("setFrameInterval", 1 / framerate);
+    _nativeLibrary.set_frame_interval(_viewer, 1 / framerate);
   }
 
   void setPixelRatio(double ratio) {
-    print("Set pixel ratio to $ratio");
     _pixelRatio = ratio;
   }
 
   Future createTextureViewer(int width, int height) async {
-    size = Size(width * _pixelRatio, height * _pixelRatio);
-    print("Creating texture of size $size");
+    size = ui.Size(width * _pixelRatio, height * _pixelRatio);
     _textureId =
-        await _channel.invokeMethod("initialize", [size.width, size.height]);
+        await _channel.invokeMethod("createTexture", [size.width, size.height]);
     _textureIdController.add(_textureId);
+
+    var glContext =
+        Pointer<Void>.fromAddress(await _channel.invokeMethod("getContext"));
+
+    final loadResource = Pointer<
+            NativeFunction<ResourceBuffer Function(Pointer<Char>)>>.fromAddress(
+        await _channel.invokeMethod("getLoadResourceFn"));
+
+    print("got $loadResource loadResource");
+    var freeResource =
+        Pointer<NativeFunction<Void Function(Uint32)>>.fromAddress(
+            await _channel.invokeMethod("getFreeResourceFn"));
+
+    _viewer = _nativeLibrary.create_filament_viewer(
+        glContext, loadResource, freeResource);
+
+    // don't pass a surface to the SwapChain as we are effectively creating a headless SwapChain that will render into a RenderTarget associated with a texture
+    _nativeLibrary.create_swap_chain(
+        _viewer, nullptr, size.width.toInt(), size.height.toInt());
+
+    var glTextureId = await _channel.invokeMethod("getGlTextureId");
+
+    _nativeLibrary.create_render_target(
+        _viewer, glTextureId, size.width.toInt(), size.height.toInt());
+    _nativeLibrary.update_viewport_and_camera_projection(
+        _viewer, size.width.toInt(), size.height.toInt(), 1.0);
+
     _initialized.complete(true);
+    _assetManager = _nativeLibrary.get_asset_manager(_viewer);
+    print("got asset maanger $_assetManager");
+
+    _ticker = _tickerProvider.createTicker((elapsed) {
+      if (_rendering) {
+        render();
+      }
+    });
+    _ticker!.start();
   }
 
   Future resize(int width, int height,
       {double contentScaleFactor = 1.0}) async {
-    size = Size(width * _pixelRatio, height * _pixelRatio);
+    size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
     _textureId = await _channel.invokeMethod("resize",
         [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
-    print("Resized to $size with texutre Id $textureId");
+
     _textureIdController.add(_textureId);
   }
 
-  @override
-  Future clearBackgroundImage() async {
-    await _channel.invokeMethod("clearBackgroundImage");
+  void clearBackgroundImage() async {
+    _nativeLibrary.clear_background_image(_viewer);
   }
 
-  @override
-  Future setBackgroundImage(String path) async {
-    await _channel.invokeMethod("setBackgroundImage", path);
+  void setBackgroundImage(String path) async {
+    _nativeLibrary.set_background_image(
+        _viewer, path.toNativeUtf8().cast<Char>());
   }
 
-  @override
-  Future setBackgroundColor(Color color) async {
-    await _channel.invokeMethod("setBackgroundColor", [
-      color.red.toDouble() / 255.0,
-      color.green.toDouble() / 255.0,
-      color.blue.toDouble() / 255.0,
-      color.alpha.toDouble() / 255.0
-    ]);
+  void setBackgroundColor(Color color) async {
+    _nativeLibrary.set_background_color(
+        _viewer,
+        color.red.toDouble() / 255.0,
+        color.green.toDouble() / 255.0,
+        color.blue.toDouble() / 255.0,
+        color.alpha.toDouble() / 255.0);
   }
 
-  @override
-  Future setBackgroundImagePosition(double x, double y,
+  void setBackgroundImagePosition(double x, double y,
       {bool clamp = false}) async {
-    await _channel.invokeMethod("setBackgroundImagePosition", [x, y, clamp]);
+    _nativeLibrary.set_background_image_position(_viewer, x, y, clamp ? 1 : 0);
   }
 
-  @override
-  Future loadSkybox(String skyboxPath) async {
-    await _channel.invokeMethod("loadSkybox", skyboxPath);
+  void loadSkybox(String skyboxPath) async {
+    _nativeLibrary.load_skybox(_viewer, skyboxPath.toNativeUtf8().cast<Char>());
   }
 
-  @override
-  Future loadIbl(String lightingPath, {double intensity = 30000}) async {
-    await _channel.invokeMethod("loadIbl", [lightingPath, intensity]);
+  void loadIbl(String lightingPath, {double intensity = 30000}) async {
+    _nativeLibrary.load_ibl(
+        _viewer, lightingPath.toNativeUtf8().cast<Char>(), intensity);
   }
 
-  @override
-  Future removeSkybox() async {
-    await _channel.invokeMethod("removeSkybox");
+  void removeSkybox() async {
+    _nativeLibrary.remove_skybox(_viewer);
   }
 
-  @override
-  Future removeIbl() async {
-    await _channel.invokeMethod("removeIbl");
+  void removeIbl() async {
+    _nativeLibrary.remove_ibl(_viewer);
   }
 
-  @override
-  Future<FilamentLight> addLight(
+  // copied from LightManager.h
+  //  enum class Type : uint8_t {
+  //       SUN,            //!< Directional light that also draws a sun's disk in the sky.
+  //       DIRECTIONAL,    //!< Directional light, emits light in a given direction.
+  //       POINT,          //!< Point light, emits light from a position, in all directions.
+  //       FOCUSED_SPOT,   //!< Physically correct spot light.
+  //       SPOT,           //!< Spot light with coupling of outer cone and illumination disabled.
+  //   };
+
+  FilamentEntity addLight(
       int type,
       double colour,
       double intensity,
@@ -230,221 +191,241 @@ class PolyvoxFilamentController extends FilamentController {
       double dirX,
       double dirY,
       double dirZ,
-      bool castShadows) async {
-    var entityId = await _channel.invokeMethod("addLight", [
-      type,
-      colour,
-      intensity,
-      posX,
-      posY,
-      posZ,
-      dirX,
-      dirY,
-      dirZ,
-      castShadows
-    ]);
-    return entityId as FilamentLight;
+      bool castShadows) {
+    return _nativeLibrary.add_light(_viewer, type, colour, intensity, posX,
+        posY, posZ, dirX, dirY, dirZ, castShadows ? 1 : 0);
   }
 
-  @override
-  Future removeLight(FilamentLight light) {
-    return _channel.invokeMethod("removeLight", light);
+  void removeLight(FilamentEntity light) async {
+    _nativeLibrary.remove_light(_viewer, light);
   }
 
-  @override
-  Future clearLights() {
-    return _channel.invokeMethod("clearLights");
+  void clearLights() async {
+    _nativeLibrary.clear_lights(_viewer);
   }
 
-  Future<FilamentAsset> loadGlb(String path, {bool unlit = false}) async {
-    print("Loading GLB at $path ");
-    var asset = await _channel.invokeMethod("loadGlb", [path, unlit]);
+  FilamentEntity loadGlb(String path, {bool unlit = false}) {
+    var asset = _nativeLibrary.load_glb(
+        _assetManager, path.toNativeUtf8().cast<Char>(), unlit ? 1 : 0);
     if (asset == FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    return asset as FilamentAsset;
+    return asset;
   }
 
-  Future<FilamentAsset> loadGltf(
-      String path, String relativeResourcePath) async {
-    print(
-        "Loading GLTF at $path with relative resource path $relativeResourcePath");
-    var asset =
-        await _channel.invokeMethod("loadGltf", [path, relativeResourcePath]);
-    return asset as FilamentAsset;
+  FilamentEntity loadGltf(String path, String relativeResourcePath) {
+    return _nativeLibrary.load_gltf(
+        _assetManager,
+        path.toNativeUtf8().cast<Char>(),
+        relativeResourcePath.toNativeUtf8().cast<Char>());
   }
 
-  Future panStart(double x, double y) async {
-    await _channel.invokeMethod("panStart", [x * _pixelRatio, y * _pixelRatio]);
+  void panStart(double x, double y) async {
+    _nativeLibrary.grab_begin(_viewer, x * _pixelRatio, y * _pixelRatio, 1);
   }
 
-  Future panUpdate(double x, double y) async {
-    await _channel
-        .invokeMethod("panUpdate", [x * _pixelRatio, y * _pixelRatio]);
+  void panUpdate(double x, double y) async {
+    _nativeLibrary.grab_update(_viewer, x * _pixelRatio, y * _pixelRatio);
   }
 
-  Future panEnd() async {
-    await _channel.invokeMethod("panEnd");
+  void panEnd() async {
+    _nativeLibrary.grab_end(_viewer);
   }
 
-  Future rotateStart(double x, double y) async {
-    await _channel
-        .invokeMethod("rotateStart", [x * _pixelRatio, y * _pixelRatio]);
+  void rotateStart(double x, double y) async {
+    _nativeLibrary.grab_begin(_viewer, x * _pixelRatio, y * _pixelRatio, 0);
   }
 
-  Future rotateUpdate(double x, double y) async {
-    await _channel
-        .invokeMethod("rotateUpdate", [x * _pixelRatio, y * _pixelRatio]);
+  void rotateUpdate(double x, double y) async {
+    _nativeLibrary.grab_update(_viewer, x * _pixelRatio, y * _pixelRatio);
   }
 
-  Future rotateEnd() async {
-    await _channel.invokeMethod("rotateEnd");
+  void rotateEnd() async {
+    _nativeLibrary.grab_end(_viewer);
   }
 
-  Future setMorphTargetWeights(
-      FilamentAsset asset, List<double> weights) async {
-    await _channel.invokeMethod(
-        "setMorphTargetWeights", [asset, Float32List.fromList(weights)]);
+  void setMorphTargetWeights(FilamentEntity asset, List<double> weights) {
+    throw Exception("TODO");
+    // _nativeLibrary.set_morph_target_weights(_assetManager, asset, Float32List.fromList(weights));
   }
 
-  Future<List<String>> getMorphTargetNames(
-      FilamentAsset asset, String meshName) async {
-    var result =
-        (await _channel.invokeMethod("getMorphTargetNames", [asset, meshName]))
-            .cast<String>();
-    return result;
+  List<String> getMorphTargetNames(FilamentEntity asset, String meshName) {
+    var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
+    var count = _nativeLibrary.get_morph_target_name_count(
+        _assetManager, asset, meshNamePtr);
+    var names = <String>[];
+    for (int i = 0; i < count; i++) {
+      var outPtr = calloc<Char>(255);
+      _nativeLibrary.get_morph_target_name(
+          _assetManager, asset, meshNamePtr, outPtr, i);
+      names.add(outPtr.cast<Utf8>().toDartString());
+    }
+    return names;
   }
 
-  Future<List<String>> getAnimationNames(FilamentAsset asset) async {
-    var result = (await _channel.invokeMethod("getAnimationNames", asset))
-        .cast<String>();
-    return result;
+  List<String> getAnimationNames(FilamentEntity asset) {
+    var count = _nativeLibrary.get_animation_count(_assetManager, asset);
+    var names = <String>[];
+    for (int i = 0; i < count; i++) {
+      var outPtr = calloc<Char>(255);
+      _nativeLibrary.get_animation_name(_assetManager, asset, outPtr, i);
+      names.add(outPtr.cast<Utf8>().toDartString());
+    }
+    return names;
   }
 
-  Future setAnimation(FilamentAsset asset, Animation animation) async {
-    await _channel.invokeMethod("setAnimation", [
-      asset,
-      animation.morphAnimation!.meshName,
-      animation.morphAnimation!.morphData,
-      animation.morphAnimation!.numMorphWeights,
-      animation.boneAnimations?.map((a) => a.toList()).toList() ?? [],
-      animation.morphAnimation!.numFrames,
-      animation.morphAnimation!.frameLengthInMs
-    ]);
+  ///
+  /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
+  /// [morphWeights] is a list of doubles in frame-major format.
+  /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
+  ///
+  void setMorphAnimation(FilamentEntity asset, MorphAnimation animation) async {
+    var data = calloc<Float>(animation.data.length);
+    for (int i = 0; i < animation.data.length; i++) {
+      data.elementAt(i).value = animation.data[i];
+    }
+    _nativeLibrary.set_morph_animation(
+        _assetManager,
+        asset,
+        animation.meshName.toNativeUtf8().cast<Char>(),
+        data,
+        animation.numMorphWeights,
+        animation.numFrames,
+        animation.frameLengthInMs);
+    calloc.free(data);
   }
 
-  Future removeAsset(FilamentAsset asset) async {
-    print("Removing asset : $asset");
-    await _channel.invokeMethod("removeAsset", asset);
+  ///
+  /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
+  /// [morphWeights] is a list of doubles in frame-major format.
+  /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
+  ///
+  void setBoneAnimation(
+      FilamentEntity asset, List<DartBoneAnimation> animations) async {
+    var data =
+        calloc<Float>(animations.length * animations.first.frameData.length);
+    int offset = 0;
+    var numFrames = animations.first.frameData.length;
+    var meshNames = calloc<Pointer<Char>>(animations.length);
+    var boneNames = calloc<Pointer<Char>>(animations.length);
+    int animIdx = 0;
+    for (var animation in animations) {
+      if (animation.frameData.length != numFrames) {
+        throw Exception(
+            "All bone animations must share the same animation frame data length.");
+      }
+      for (int i = 0; i < animation.frameData.length; i++) {
+        data.elementAt(offset).value = animation.frameData[i];
+        offset += 1;
+      }
+      meshNames.elementAt(animIdx).value =
+          animation.meshName.toNativeUtf8().cast<Char>();
+      boneNames.elementAt(animIdx).value =
+          animation.boneName.toNativeUtf8().cast<Char>();
+    }
+
+    _nativeLibrary.set_bone_animation(
+        _assetManager,
+        asset,
+        animations.length,
+        boneNames,
+        meshNames,
+        data,
+        numFrames,
+        animations.first.frameLengthInMs);
+    calloc.free(data);
   }
 
-  Future clearAssets() async {
-    await _channel.invokeMethod("clearAssets");
+  void removeAsset(FilamentEntity asset) async {
+    _nativeLibrary.remove_asset(_viewer, asset);
   }
 
-  Future zoomBegin() async {
-    await _channel.invokeMethod("zoomBegin");
+  void clearAssets() async {
+    _nativeLibrary.clear_assets(_viewer);
   }
 
-  Future zoomUpdate(double z) async {
-    await _channel.invokeMethod("zoomUpdate", [0.0, 0.0, z]);
+  void zoomBegin() async {
+    _nativeLibrary.scroll_begin(_viewer);
   }
 
-  Future zoomEnd() async {
-    await _channel.invokeMethod("zoomEnd");
+  void zoomUpdate(double z) async {
+    _nativeLibrary.scroll_update(_viewer, 0.0, 0.0, z);
   }
 
-  Future playAnimation(FilamentAsset asset, int index,
+  void zoomEnd() async {
+    _nativeLibrary.scroll_end(_viewer);
+  }
+
+  void playAnimation(FilamentEntity asset, int index,
       {bool loop = false, bool reverse = false}) async {
-    await _channel.invokeMethod("playAnimation", [asset, index, loop, reverse]);
+    _nativeLibrary.play_animation(
+        _assetManager, asset, index, loop ? 1 : 0, reverse ? 1 : 0);
   }
 
-  Future setAnimationFrame(
-      FilamentAsset asset, int index, int animationFrame) async {
-    await _channel
-        .invokeMethod("setAnimationFrame", [asset, index, animationFrame]);
+  void setAnimationFrame(
+      FilamentEntity asset, int index, int animationFrame) async {
+    _nativeLibrary.set_animation_frame(
+        _assetManager, asset, index, animationFrame);
   }
 
-  Future playAnimations(FilamentAsset asset, List<int> indices,
-      {bool loop = false, bool reverse = false}) async {
-    return Future.wait(indices.map((index) {
-      return _channel
-          .invokeMethod("playAnimation", [asset, index, loop, reverse]);
-    }));
+  void stopAnimation(FilamentEntity asset, int animationIndex) async {
+    _nativeLibrary.stop_animation(_assetManager, asset, animationIndex);
   }
 
-  Future stopAnimation(FilamentAsset asset, int animationIndex) async {
-    await _channel.invokeMethod("stopAnimation", [asset, animationIndex]);
+  void setCamera(FilamentEntity asset, String name) async {
+    _nativeLibrary.set_camera(_viewer, asset, name.toNativeUtf8().cast<Char>());
   }
 
-  Future setCamera(FilamentAsset asset, String name) async {
-    await _channel.invokeMethod("setCamera", [asset, name]);
+  void setCameraFocalLength(double focalLength) async {
+    _nativeLibrary.set_camera_focal_length(_viewer, focalLength);
   }
 
-  Future setCameraFocalLength(double focalLength) async {
-    await _channel.invokeMethod("setCameraFocalLength", focalLength);
+  void setCameraFocusDistance(double focusDistance) async {
+    _nativeLibrary.set_camera_focus_distance(_viewer, focusDistance);
   }
 
-  Future setCameraFocusDistance(double focusDistance) async {
-    await _channel.invokeMethod("setCameraFocusDistance", focusDistance);
+  void setCameraPosition(double x, double y, double z) async {
+    _nativeLibrary.set_camera_position(_viewer, x, y, z);
   }
 
-  Future setCameraPosition(double x, double y, double z) async {
-    await _channel.invokeMethod("setCameraPosition", [x, y, z]);
-  }
-
-  Future setCameraExposure(
+  void setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
-    await _channel.invokeMethod(
-        "setCameraExposure", [aperture, shutterSpeed, sensitivity]);
+    _nativeLibrary.set_camera_exposure(
+        _viewer, aperture, shutterSpeed, sensitivity);
   }
 
-  Future setCameraRotation(double rads, double x, double y, double z) async {
-    await _channel.invokeMethod("setCameraRotation", [rads, x, y, z]);
+  void setCameraRotation(double rads, double x, double y, double z) async {
+    _nativeLibrary.set_camera_rotation(_viewer, rads, x, y, z);
   }
 
-  Future setCameraModelMatrix(List<double> matrix) async {
+  void setCameraModelMatrix(List<double> matrix) async {
     assert(matrix.length == 16);
-    await _channel.invokeMethod(
-        "setCameraModelMatrix", Float32List.fromList(matrix));
+    var ptr = calloc<Float>(16);
+    for (int i = 0; i < 16; i++) {
+      ptr.elementAt(i).value = matrix[i];
+    }
+    _nativeLibrary.set_camera_model_matrix(_viewer, ptr);
   }
 
-  Future setTexture(FilamentAsset asset, String assetPath,
+  void setTexture(FilamentEntity asset, String assetPath,
       {int renderableIndex = 0}) async {
-    await _channel
-        .invokeMethod("setTexture", [asset, assetPath, renderableIndex]);
+    _nativeLibrary.set_texture(_assetManager, asset);
   }
 
-  Future transformToUnitCube(FilamentAsset asset) async {
-    await _channel.invokeMethod("transformToUnitCube", asset);
+  void transformToUnitCube(FilamentEntity asset) async {
+    _nativeLibrary.transform_to_unit_cube(_assetManager, asset);
   }
 
-  Future setPosition(FilamentAsset asset, double x, double y, double z) async {
-    await _channel.invokeMethod("setPosition", [asset, x, y, z]);
+  void setPosition(FilamentEntity asset, double x, double y, double z) async {
+    _nativeLibrary.set_position(_assetManager, asset, x, y, z);
   }
 
-  // Future setBoneTransform(FilamentAsset asset, String boneName, String meshName,
-  //     BoneTransform transform) async {
-  //   await _channel.invokeMethod("setBoneTransform", [
-  //     asset,
-  //     boneName,
-  //     meshName,
-  //     transform.translations[0].x,
-  //     transform.translations[0].y,
-  //     transform.translations[0].z,
-  //     transform.quaternions[0].x,
-  //     transform.quaternions[0].y,
-  //     transform.quaternions[0].z,
-  //     transform.quaternions[0].w
-  //   ]);
-  // }
-
-  Future setScale(FilamentAsset asset, double scale) async {
-    await _channel.invokeMethod("setScale", [asset, scale]);
+  void setScale(FilamentEntity asset, double scale) async {
+    _nativeLibrary.set_scale(_assetManager, asset, scale);
   }
 
-  Future setRotation(
-      FilamentAsset asset, double rads, double x, double y, double z) async {
-    await _channel.invokeMethod("setRotation", [asset, rads, x, y, z]);
+  void setRotation(
+      FilamentEntity asset, double rads, double x, double y, double z) async {
+    _nativeLibrary.set_rotation(_assetManager, asset, rads, x, y, z);
   }
 }

@@ -70,17 +70,11 @@
 #include <mutex>
 
 #include "Log.hpp"
-#include "ResourceManagement.hpp"
-
-extern "C" {
-  #include "material/image.h"
-  #include "material/unlit_opaque.h"
-}
 
 #include "FilamentViewer.hpp"
 #include "StreamBufferAdapter.hpp"
-#include "material/UnlitMaterialProvider.hpp"
-#include "material/FileMaterialProvider.hpp"
+#include "material/image.h"
+#include "TimeIt.hpp"
 
 using namespace filament;
 using namespace filament::math;
@@ -116,14 +110,12 @@ static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
                                FreeResource freeResource)
   : _loadResource(loadResource), _freeResource(freeResource) {
-  Log("Creating FilamentViewer");
+  
   #if TARGET_OS_IPHONE
     _engine = Engine::create(Engine::Backend::METAL);
   #else
     _engine = Engine::create(Engine::Backend::OPENGL, nullptr, context, nullptr);
   #endif
-
-  Log("Engine created");
 
   _renderer = _engine->createRenderer();
 
@@ -138,7 +130,7 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
 
   Log("Scene created");
   
-  Entity camera = EntityManager::get().create();
+  utils::Entity camera = EntityManager::get().create();
 
   _mainCamera = _engine->createCamera(camera);
 
@@ -191,38 +183,17 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   // Log("Loaded resource of size %d", materialRb.size);
   // _materialProvider = new FileMaterialProvider(_engine, (void*) materialRb.data, (size_t)materialRb.size);
   
-  _unlitProvider = new UnlitMaterialProvider(_engine);
-  _ubershaderProvider = gltfio::createUbershaderProvider(
-         _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
-
   EntityManager &em = EntityManager::get();
+
   _ncm = new NameComponentManager(em);
+
+  _assetManager = new AssetManager(
+    _loadResource, 
+    _freeResource, 
+    _ncm, 
+    _engine,
+    _scene);
   
-  _resourceLoader = new ResourceLoader({.engine = _engine,
-                                        .normalizeSkinningWeights = true });
-  _stbDecoder = createStbProvider(_engine);
-  _resourceLoader->addTextureProvider("image/png", _stbDecoder);
-  _resourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
-  _ubershaderAssetLoader = new SceneAssetLoader(_loadResource,
-                                   _freeResource,
-                                   _ubershaderProvider,
-                                   &em,
-                                   _resourceLoader,
-                                   _ncm, 
-                                   _engine,
-                                   _scene);
-
-  _unlitAssetLoader = new SceneAssetLoader(_loadResource,
-                                   _freeResource,
-                                   _unlitProvider,
-                                   &em,
-                                   _resourceLoader,
-
-                                   _ncm, 
-                                   _engine,
-                                   _scene);
-      
-      
  _imageTexture = Texture::Builder()
                          .width(1)
                          .height(1)
@@ -261,7 +232,7 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   _imageIb->setBuffer(*_engine, {sFullScreenTriangleIndices,
                                  sizeof(sFullScreenTriangleIndices)});
 
-  Entity imageEntity = em.create();
+  utils::Entity imageEntity = em.create();
   RenderableManager::Builder(1)
       .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
       .material(0, _imageMaterial->getDefaultInstance())
@@ -432,7 +403,6 @@ void FilamentViewer::clearBackgroundImage() {
   }
 }
 
-
 void FilamentViewer::setBackgroundImage(const char *resourcePath) {
 
   string resourcePathString(resourcePath);
@@ -535,11 +505,7 @@ void FilamentViewer::setBackgroundImagePosition(float x, float y, bool clamp=fal
 
 FilamentViewer::~FilamentViewer() { 
   clearAssets();
-  delete _ubershaderAssetLoader;
-  delete _unlitAssetLoader;
-  _resourceLoader->asyncCancelLoad();
-  _ubershaderProvider->destroyMaterials();
-  _unlitProvider->destroyMaterials();
+  delete _assetManager;
   
   for(auto it : _lights) {
     _engine->destroy(it);
@@ -616,36 +582,6 @@ void FilamentViewer::destroySwapChain() {
   }
 }
 
-SceneAsset *FilamentViewer::loadGlb(const char *const uri, bool unlit) {
-  SceneAsset *asset;
-  if(unlit) {
-    asset = _unlitAssetLoader->fromGlb(uri);
-  } else {
-    asset = _ubershaderAssetLoader->fromGlb(uri);
-  }
-  if (!asset) {
-    Log("Unknown error loading asset.");
-  } else {
-    _assets.push_back(asset);
-    Log("GLB loaded, asset at index %d", _assets.size() - 1);
-  }
-  
-  return asset;
-}
-
-SceneAsset *FilamentViewer::loadGltf(const char *const uri,
-                                     const char *const relativeResourcePath) {
-  Log("Loading GLTF at URI %s with relativeResourcePath %s", uri,
-      relativeResourcePath);
-  SceneAsset *asset = _ubershaderAssetLoader->fromGltf(uri, relativeResourcePath);
-  if (!asset) {
-    Log("Unknown error loading asset.");
-  } else {
-    _assets.push_back(asset);
-  }
-  return asset;
-}
-
 void FilamentViewer::clearAssets() {
   Log("Clearing all assets");
   if(_mainCamera) {
@@ -657,21 +593,18 @@ void FilamentViewer::clearAssets() {
     _manipulator = nullptr;
   }
 
-  _ubershaderAssetLoader->destroyAll();
-  _unlitAssetLoader->destroyAll();
-  
-  _assets.clear();
+  _assetManager->destroyAll();
+ 
   Log("Cleared all assets");
 }
 
-void FilamentViewer::removeAsset(SceneAsset *asset) {
+void FilamentViewer::removeAsset(EntityId asset) {
   Log("Removing asset from scene");
 
   mtx.lock();
   // todo - what if we are using a camera from this asset?
   _view->setCamera(_mainCamera);
-  _ubershaderAssetLoader->remove(asset);
-  _unlitAssetLoader->remove(asset);
+  _assetManager->remove(asset);
   mtx.unlock();
 }
 
@@ -704,65 +637,58 @@ void FilamentViewer::setCameraFocusDistance(float focusDistance) {
 }
 
 ///
-/// Sets the active camera to the first GLTF camera node found in the hierarchy.
-/// Useful when your asset only has one camera.
-///
-bool FilamentViewer::setFirstCamera(SceneAsset *asset) {
-  size_t count = asset->getCameraEntityCount();
-  if (count == 0) {
-    Log("Failed, no cameras found in current asset.");
-    return false;
-  }
-  const utils::Entity *cameras = asset->getCameraEntities();
-  Log("%zu cameras found in asset", count);
-  auto inst = _ncm->getInstance(cameras[0]);
-  const char *name = _ncm->getName(inst);
-  return setCamera(asset, name);
-}
-
-///
-/// Sets the active camera to the GLTF camera node specified by [name].
+/// Sets the active camera to the GLTF camera node specified by [name] (or if null, the first camera found under that node).
 /// N.B. Blender will generally export a three-node hierarchy -
 /// Camera1->Camera_Orientation->Camera2. The correct name will be the Camera_Orientation.
 ///
-bool FilamentViewer::setCamera(SceneAsset *asset, const char *cameraName) {
-  Log("Attempting to set camera to %s.", cameraName);
+bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
+
+  auto asset = _assetManager->getAssetByEntityId(entityId);
+  if(!asset) {
+    Log("Failed to find asset attached to specified entity id.");
+  }
   size_t count = asset->getCameraEntityCount();
   if (count == 0) {
     Log("Failed, no cameras found in current asset.");
     return false;
   }
 
-  const utils::Entity *cameras = asset->getCameraEntities();
-  Log("%zu cameras found in asset", count);
-  for (int i = 0; i < count; i++) {
+  const utils::Entity* cameras = asset->getCameraEntities();
 
-    auto inst = _ncm->getInstance(cameras[i]);
-    const char *name = _ncm->getName(inst);
-    Log("Camera %d : %s", i, name);
-    if (strcmp(name, cameraName) == 0) {
+  const utils::Entity target;
 
-      Camera *camera = _engine->getCameraComponent(cameras[i]);
-      _view->setCamera(camera);
+  int i = -1;
 
-      const Viewport &vp = _view->getViewport();
-      const double aspect = (double)vp.width / vp.height;
-
-      const float aperture = camera->getAperture();
-      const float shutterSpeed = camera->getShutterSpeed();
-      const float sens = camera->getSensitivity();
-
-      // camera->setExposure(1.0f);
-
-      Log("Camera focal length : %f aspect %f aperture %f shutter %f sensitivity %f", camera->getFocalLength(),
-          aspect, aperture, shutterSpeed, sens);
-      camera->setScaling({1.0 / aspect, 1.0});
-      Log("Successfully set camera.");
-      return true;
+  if(!cameraName) {
+    i = 0;
+  } else {
+    for (int j = 0; j < count; j++) {
+      auto inst = _ncm->getInstance(cameras[j]);
+      const char *name = _ncm->getName(inst);
+      if (strcmp(name, cameraName) == 0) {
+        i = j;
+        break;
+      }
+    }
+    if(i == -1) {
+      Log("Unable to locate camera under name %s ", cameraName);
+      return false;
     }
   }
-  Log("Unable to locate camera under name %s ", cameraName);
-  return false;
+
+  Camera *camera = _engine->getCameraComponent(target);
+  _view->setCamera(camera);
+
+  const Viewport &vp = _view->getViewport();
+  const double aspect = (double)vp.width / vp.height;
+
+  // const float aperture = camera->getAperture();
+  // const float shutterSpeed = camera->getShutterSpeed();
+  // const float sens = camera->getSensitivity();
+  // camera->setExposure(1.0f);
+
+  camera->setScaling({1.0 / aspect, 1.0});
+  return true;
 }
 
 void FilamentViewer::loadSkybox(const char *const skyboxPath) {
@@ -792,9 +718,6 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
 
     _scene->setSkybox(_skybox);
     _freeResource(skyboxBuffer.id);
-
-    
-
   }
 }
 
@@ -856,6 +779,9 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
   }
 }
 
+double _elapsed = 0;
+int _frameCount = 0;
+
 void FilamentViewer::render(uint64_t frameTimeInNanos) {
 
   if (!_view || !_mainCamera || !_swapChain) {
@@ -863,9 +789,18 @@ void FilamentViewer::render(uint64_t frameTimeInNanos) {
     return;
   }
 
-  for (auto &asset : _assets) {
-    asset->updateAnimations();
+  if(_frameCount == 60) {
+    Log("1 sec average for asset animation update %f", _elapsed);
+    _elapsed = 0;
+    _frameCount = 0;
   }
+
+  Timer tmr;
+
+  _assetManager->updateAnimations();
+
+  _elapsed += tmr.elapsed();
+  _frameCount++;
 
   if(_manipulator) {
     math::float3 eye, target, upward;

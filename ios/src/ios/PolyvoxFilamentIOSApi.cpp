@@ -11,7 +11,7 @@ extern "C" {
     using RawLoadType = ResourceBuffer(const char*, void* resource);
     using RawFreeType = void(uint32_t, void*);
 
-    void* filament_viewer_new_ios(void* pb, void* loadResource, void* freeResource, void* resources) {
+    void* create_filament_viewer_ios(void* pb, void* loadResource, void* freeResource, void* resources) {
             
       FreeResource _freeResource = [=](uint32_t rid) {
         reinterpret_cast<RawFreeType*>(freeResource)(rid, resources);

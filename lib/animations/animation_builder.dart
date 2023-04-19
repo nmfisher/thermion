@@ -1,9 +1,11 @@
-import 'animations.dart';
+import 'package:polyvox_filament/animations/animations.dart';
+import 'package:tuple/tuple.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {
-  BoneAnimation? boneAnimation;
+  DartBoneAnimation? dartBoneAnimation;
   double _frameLengthInMs = 0;
   double _duration = 0;
   int _numMorphWeights = 0;
@@ -13,9 +15,10 @@ class AnimationBuilder {
   double? _interpMorphStartValue;
   double? _interpMorphEndValue;
 
-  List<BoneAnimation>? _boneAnimations = null;
+  List<DartBoneAnimation>? _dartBoneAnimations = null;
 
-  Animation build(String meshName, List<String> morphNames) {
+  Tuple2<MorphAnimation, List<DartBoneAnimation>> build(
+      String meshName, List<String> morphNames) {
     if (_numMorphWeights == 0 || _duration == 0 || _frameLengthInMs == 0)
       throw Exception();
 
@@ -39,8 +42,8 @@ class AnimationBuilder {
     var morphAnimation =
         MorphAnimation(meshName, morphData, morphNames, _frameLengthInMs);
 
-    return Animation(
-        morphAnimation: morphAnimation, boneAnimations: _boneAnimations);
+    return Tuple2<MorphAnimation, List<DartBoneAnimation>>(
+        morphAnimation, _dartBoneAnimations!);
   }
 
   AnimationBuilder setFramerate(int framerate) {
@@ -107,16 +110,18 @@ class AnimationBuilder {
       }
     }
 
-    var boneFrameData = BoneTransformFrameData(translations, quats);
+    throw Exception();
 
-    _boneAnimations ??= <BoneAnimation>[];
+    // var boneFrameData = BoneTransformFrameData(translations, quats);
 
-    var frameData = List<List<double>>.generate(
-        numFrames, (index) => boneFrameData.getFrameData(index).toList());
+    // _DartBoneAnimations ??= <DartBoneAnimation>[];
 
-    var animData = Float32List.fromList(frameData.expand((x) => x).toList());
+    // var frameData = List<List<double>>.generate(
+    //     numFrames, (index) => boneFrameData.getFrameData(index).toList());
 
-    _boneAnimations!.add(BoneAnimation([boneName], [meshName], animData));
+    // var animData = Float32List.fromList(frameData.expand((x) => x).toList());
+
+    // _DartBoneAnimations!.add(DartDartBoneAnimation([boneName], [meshName], animData));
 
     return this;
   }

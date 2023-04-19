@@ -31,17 +31,16 @@
 #include <string>
 #include <chrono>
 
-#include "SceneAssetLoader.hpp"
-#include "SceneAsset.hpp"
+#include "AssetManager.hpp"
 #include "ResourceManagement.hpp"
 
 using namespace std;
 using namespace filament;
 using namespace filament::math;
 using namespace gltfio;
-using namespace utils;
 using namespace camutils;
 
+typedef int32_t EntityId;
 
 namespace polyvox {
     class FilamentViewer {
@@ -56,9 +55,7 @@ namespace polyvox {
             void loadIbl(const char* const iblUri, float intensity);
             void removeIbl();
             
-            SceneAsset* loadGlb(const char* const uri, bool unlit);
-            SceneAsset* loadGltf(const char* const uri, const char* relativeResourcePath);
-            void removeAsset(SceneAsset* asset);
+            void removeAsset(EntityId asset);
             // removes all add assets from the current scene
             void clearAssets();
 
@@ -66,8 +63,7 @@ namespace polyvox {
             void render(uint64_t frameTimeInNanos);
             void setFrameInterval(float interval);
             
-            bool setFirstCamera(SceneAsset* asset);
-            bool setCamera(SceneAsset* asset, const char* nodeName);
+            bool setCamera(EntityId asset, const char* nodeName);
             
             void createSwapChain(void* surface, uint32_t width, uint32_t height);
             void destroySwapChain();
@@ -95,8 +91,12 @@ namespace polyvox {
             void scrollEnd();
 
             int32_t addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
-            void removeLight(int32_t entityId);
+            void removeLight(EntityId entityId);
             void clearLights();
+
+            AssetManager* const getAssetManager() {
+                return (AssetManager* const) _assetManager;
+            }
 
         private:
             void createImageRenderable();
@@ -124,24 +124,18 @@ namespace polyvox {
     
             SwapChain* _swapChain = nullptr;
 
-            vector<SceneAsset*> _assets;
-
-            SceneAssetLoader* _ubershaderAssetLoader;
-            SceneAssetLoader* _unlitAssetLoader;
-            NameComponentManager* _ncm;
+            AssetManager* _assetManager = nullptr;
+            
+            NameComponentManager* _ncm = nullptr;
+            
             std::mutex mtx; // mutex to ensure thread safety when removing assets
 
-            vector<Entity> _lights;
+            vector<utils::Entity> _lights;
             Texture* _skyboxTexture = nullptr;
             Skybox* _skybox = nullptr;
             Texture* _iblTexture = nullptr;
             IndirectLight* _indirectLight = nullptr;
 
-            MaterialProvider* _ubershaderProvider = nullptr;
-            MaterialProvider* _unlitProvider = nullptr;
-
-            gltfio::ResourceLoader* _resourceLoader = nullptr;
-            gltfio::TextureProvider* _stbDecoder = nullptr;
             bool _recomputeAabb = false;
 
             bool _actualSize = false;     
@@ -156,7 +150,7 @@ namespace polyvox {
             uint32_t _imageWidth = 0;
             mat4f _imageScale;
             Texture* _imageTexture = nullptr;
-            Entity* _imageEntity = nullptr;
+            utils::Entity* _imageEntity = nullptr;
             VertexBuffer* _imageVb = nullptr;
             IndexBuffer* _imageIb = nullptr;
             Material* _imageMaterial = nullptr;

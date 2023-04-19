@@ -29,11 +29,11 @@ add_library(${PLUGIN_NAME} SHARED
   "polyvox_filament_plugin.cc"
   "filament_texture.cc"
   "filament_pb_texture.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/SceneAssetLoader.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/SceneAsset.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/StreamBufferAdapter.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/TimeIt.cpp"
 )
 
 # Apply a standard set of build settings that are configured in the

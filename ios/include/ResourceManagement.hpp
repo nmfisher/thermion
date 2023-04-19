@@ -15,7 +15,7 @@ namespace polyvox {
     // 
     // Typedef for a function that loads a resource into a ResourceBuffer from an asset URI.
     //
-    using LoadResource = function<ResourceBuffer(const char* uri)>;
+    using LoadResource = function<ResourceBuffer(const char* uri)>; 
 
     // 
     // Typedef for a function that frees an ID associated with a ResourceBuffer.

@@ -13,7 +13,7 @@ add_library(
             ../ios/src/ktxreader/Ktx1Reader.cpp
             src/main/cpp/StbProvider.cpp
             src/main/cpp/JobSystem.cpp
-            ../ios/src/SceneAssetLoader.cpp
+            ../ios/src/AssetManager.cpp
             ../ios/src/FilamentViewer.cpp
             ../ios/src/PolyvoxFilamentApi.cpp
             ../ios/src/StreamBufferAdapter.cpp

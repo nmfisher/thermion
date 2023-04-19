@@ -1,5 +1,8 @@
 #ifndef UNLIT_MATERIAL_PROVIDER
 #define UNLIT_MATERIAL_PROVIDER
+
+#include "material/unlit_opaque.h"
+
 namespace polyvox {
   class UnlitMaterialProvider : public MaterialProvider {
 
