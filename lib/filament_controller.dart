@@ -358,6 +358,7 @@ class FilamentController {
 
   void playAnimation(FilamentEntity asset, int index,
       {bool loop = false, bool reverse = false}) async {
+    print("Playing animation @ $index");
     _nativeLibrary.play_animation(
         _assetManager, asset, index, loop ? 1 : 0, reverse ? 1 : 0);
   }

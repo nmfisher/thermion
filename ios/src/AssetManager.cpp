@@ -1,6 +1,6 @@
 #include "AssetManager.hpp"
 #include "Log.hpp"
-
+#include <thread>
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
@@ -119,11 +119,14 @@ EntityId AssetManager::loadGltf(const char *uri,
 
   Log("Load complete for GLTF at URI %s", uri);
   SceneAsset sceneAsset(asset);
+  
+
   utils::Entity e = EntityManager::get().create();
 
   EntityId eid = Entity::smuggle(e);
 
-  _assets.emplace(eid, sceneAsset);
+  _entityIdLookup.emplace(eid, _assets.size());
+  _assets.push_back(sceneAsset);
 
   return eid;
 }
@@ -131,8 +134,6 @@ EntityId AssetManager::loadGltf(const char *uri,
 EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
   
   Log("Loading GLB at URI %s", uri);
-  _loadResource("BLORTY");
-  Log("blorty");
 
   ResourceBuffer rbuf = _loadResource(uri);
 
@@ -183,14 +184,14 @@ EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
   utils::Entity e = EntityManager::get().create();
   EntityId eid = Entity::smuggle(e);
 
-  _assets.emplace(eid, sceneAsset);
+  _entityIdLookup.emplace(eid, _assets.size());
+  _assets.push_back(sceneAsset);
 
   return eid;
 }
 
 void AssetManager::destroyAll() {
-  for (auto kp : _assets) {
-    auto asset = kp.second;
+  for (auto& asset : _assets) {
     _scene->removeEntities(asset.mAsset->getEntities(),
                          asset.mAsset->getEntityCount());
 
@@ -204,11 +205,11 @@ void AssetManager::destroyAll() {
 }
 
 FilamentAsset* AssetManager::getAssetByEntityId(EntityId entityId) {
-  const auto& pos = _assets.find(entityId);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entityId);
+  if(pos == _entityIdLookup.end()) {
     return nullptr;
   }
-  return pos->second.mAsset;
+  return _assets[pos->second].mAsset;
 }
 
 
@@ -217,117 +218,118 @@ void AssetManager::updateAnimations() {
 
   RenderableManager &rm = _engine->getRenderableManager();
   
-  for (auto kp : _assets) {
-    auto asset = kp.second;
-    if(asset.mAnimating) {
-
-      asset.mAnimating = false;
-      
-      // morph animation
-      AnimationStatus morphAnimation = asset.mAnimations[0];
-      auto elapsed = (now - morphAnimation.mStart).count();
-
-      int lengthInFrames = static_cast<int>(morphAnimation.mDuration / asset.mMorphAnimationBuffer.mFrameLengthInMs);
-
-      if(elapsed >= morphAnimation.mDuration) {
-        if(morphAnimation.mLoop) {
-          morphAnimation.mStart = now;
-          if(morphAnimation.mReverse) {
-            morphAnimation.mFrameNumber = lengthInFrames;
-          }
-          asset.mAnimating = true;
-        } else {
-          morphAnimation.mStart = time_point_t::max();
-        }
-      } else {
-        asset.mAnimating = true;
-      }
-      
-      int frameNumber = static_cast<int>(elapsed / asset.mMorphAnimationBuffer.mFrameLengthInMs);
-      if(frameNumber < lengthInFrames) {
-        if(morphAnimation.mReverse) {
-          frameNumber = lengthInFrames - frameNumber;
-        } 
-        rm.setMorphWeights(
-          *(asset.mMorphAnimationBuffer.mInstance),
-          asset.mMorphAnimationBuffer.mFrameData.data() + (morphAnimation.mFrameNumber * asset.mMorphAnimationBuffer.mNumMorphWeights),
-          asset.mMorphAnimationBuffer.mNumMorphWeights);
-      }
-
-      // bone animation
-      AnimationStatus boneAnimation = asset.mAnimations[1];
-      elapsed = (now - boneAnimation.mStart).count();
-
-      lengthInFrames = static_cast<int>(boneAnimation.mDuration / asset.mBoneAnimationBuffer.mFrameLengthInMs);
-
-      if(elapsed >= boneAnimation.mDuration) {
-        if(boneAnimation.mLoop) {
-          boneAnimation.mStart = now;
-          if(boneAnimation.mReverse) {
-            boneAnimation.mFrameNumber = lengthInFrames;
-          }
-          asset.mAnimating = true;
-        } else {
-          boneAnimation.mStart = time_point_t::max();
-        }
-      } else {
-        asset.mAnimating = true;
-      }
-
-      frameNumber = static_cast<int>(elapsed / asset.mBoneAnimationBuffer.mFrameLengthInMs);
-      if(frameNumber < lengthInFrames) {
-        if(boneAnimation.mReverse) {
-          frameNumber = lengthInFrames - frameNumber;
-        } 
-        boneAnimation.mFrameNumber = frameNumber;
-        setBoneTransform(
-          asset.mAsset->getInstance(),
-          asset.mBoneAnimationBuffer.mAnimations,
-          frameNumber
-        );
-      }
-
-      // GLTF animations
-      
-      Animator* animator = asset.mAnimator;
-      
-      for(int j = 2; j < asset.mAnimations.size(); j++) {
-        
-        AnimationStatus anim = asset.mAnimations[j];
-        
-        elapsed = (now - anim.mStart).count();
-
-        if(elapsed < anim.mDuration) {
-          if(anim.mLoop) {
-            animator->applyAnimation(j-2, anim.mDuration - elapsed);
-          } else {
-            animator->applyAnimation(j-2, elapsed);
-          }
-          asset.mAnimating = true;
-        } else if(anim.mLoop) {
-          animator->applyAnimation(j-2, float(elapsed) ); //% anim.mDuration
-          asset.mAnimating = true;
-        } else if(elapsed - anim.mDuration < 0.3) { 
-          // cross-fade
-          animator->applyCrossFade(j-2, anim.mDuration - 0.05, elapsed / 0.3);
-          asset.mAnimating = true;
-        } else { 
-          // stop
-          anim.mStart = time_point_t::max();
-        }
-      }
-      asset.mAnimator->updateBoneMatrices();
+  for (auto& asset : _assets) {
+    if(!asset.mAnimating) {
+      continue;
     }
+
+    asset.mAnimating = false;
+    
+    // // morph animation
+    // AnimationStatus morphAnimation = asset.mAnimations[0];
+    // auto elapsed = (now - morphAnimation.mStart).count();
+
+    // int lengthInFrames = static_cast<int>(morphAnimation.mDuration / asset.mMorphAnimationBuffer.mFrameLengthInMs);
+
+    // if(elapsed >= morphAnimation.mDuration) {
+    //   if(morphAnimation.mLoop) {
+    //     morphAnimation.mStart = now;
+    //     if(morphAnimation.mReverse) {
+    //       morphAnimation.mFrameNumber = lengthInFrames;
+    //     }
+    //     asset.mAnimating = true;
+    //   } else {
+    //     morphAnimation.mStart = time_point_t::max();
+    //   }
+    // } else {
+    //   asset.mAnimating = true;
+    // }
+    
+    // int frameNumber = static_cast<int>(elapsed / asset.mMorphAnimationBuffer.mFrameLengthInMs);
+    // if(frameNumber < lengthInFrames) {
+    //   if(morphAnimation.mReverse) {
+    //     frameNumber = lengthInFrames - frameNumber;
+    //   } 
+    //   rm.setMorphWeights(
+    //     *(asset.mMorphAnimationBuffer.mInstance),
+    //     asset.mMorphAnimationBuffer.mFrameData.data() + (morphAnimation.mFrameNumber * asset.mMorphAnimationBuffer.mNumMorphWeights),
+    //     asset.mMorphAnimationBuffer.mNumMorphWeights);
+    // }
+
+    // // bone animation
+    // AnimationStatus boneAnimation = asset.mAnimations[1];
+    // elapsed = (now - boneAnimation.mStart).count();
+
+    // lengthInFrames = static_cast<int>(boneAnimation.mDuration / asset.mBoneAnimationBuffer.mFrameLengthInMs);
+
+    // if(elapsed >= boneAnimation.mDuration) {
+    //   if(boneAnimation.mLoop) {
+    //     boneAnimation.mStart = now;
+    //     if(boneAnimation.mReverse) {
+    //       boneAnimation.mFrameNumber = lengthInFrames;
+    //     }
+    //     asset.mAnimating = true;
+    //   } else {
+    //     boneAnimation.mStart = time_point_t::max();
+    //   }
+    // } else {
+    //   asset.mAnimating = true;
+    // }
+
+    // frameNumber = static_cast<int>(elapsed / asset.mBoneAnimationBuffer.mFrameLengthInMs);
+    // if(frameNumber < lengthInFrames) {
+    //   if(boneAnimation.mReverse) {
+    //     frameNumber = lengthInFrames - frameNumber;
+    //   } 
+    //   boneAnimation.mFrameNumber = frameNumber;
+    //   setBoneTransform(
+    //     asset.mAsset->getInstance(),
+    //     asset.mBoneAnimationBuffer.mAnimations,
+    //     frameNumber
+    //   );
+    // }
+
+    // GLTF animations
+    
+    Animator* animator = asset.mAnimator;
+    
+    for(int j = 2; j < asset.mAnimations.size(); j++) {
+      
+      AnimationStatus& anim = asset.mAnimations[j];
+
+      auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
+
+      if(elapsed < anim.mDuration) {
+        if(anim.mLoop) {
+          animator->applyAnimation(j-2, anim.mDuration - elapsed);
+        } else {
+          animator->applyAnimation(j-2, elapsed);
+        }
+        asset.mAnimating = true;
+      } else if(anim.mLoop) {
+        animator->applyAnimation(j-2, float(elapsed) ); //% anim.mDuration
+        asset.mAnimating = true;
+      } else if(elapsed - anim.mDuration < 0.3) { 
+        // cross-fade
+        // animator->applyCrossFade(j-2, anim.mDuration - 0.05, elapsed / 0.3);
+        // asset.mAnimating = true;
+        anim.mStart = time_point_t::max();
+      } else { 
+        // stop
+        anim.mStart = time_point_t::max();
+      }
+    }
+    asset.mAnimator->updateBoneMatrices();
   }
 }
 
 void AssetManager::remove(EntityId entityId) {
-  const auto& pos = _assets.find(entityId);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entityId);
+  if(pos == _entityIdLookup.end()) {
     Log("Couldn't find asset under specified entity id.");
     return;
   }
-  auto sceneAsset = pos->second;
+  SceneAsset& sceneAsset = _assets[pos->second];
 
   _scene->removeEntities(sceneAsset.mAsset->getEntities(),
                         sceneAsset.mAsset->getEntityCount());
@@ -342,7 +344,7 @@ void AssetManager::remove(EntityId entityId) {
   }
   EntityManager& em = EntityManager::get();
   em.destroy(Entity::import(entityId));
-  _assets.erase(entityId);
+  sceneAsset.mAsset = nullptr; // still need to remove this somewhere...
 }
 
 void AssetManager::setMorphTargetWeights(const char* const entityName, float *weights, int count) {
@@ -371,12 +373,12 @@ bool AssetManager::setMorphAnimationBuffer(
     int numFrames, 
     float frameLengthInMs) {
 
-  const auto& pos = _assets.find(entityId);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entityId);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return false;
   }
-  auto asset = pos->second;
+  auto asset = _assets[pos->second];
 
   auto entity = findEntityByName(asset, entityName);
   if(!entity) {
@@ -409,12 +411,12 @@ bool AssetManager::setBoneAnimationBuffer(
     int numFrames, 
     float frameLengthInMs) {
 
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return false;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
 
   auto filamentInstance = asset.mAsset->getInstance();
 
@@ -515,36 +517,39 @@ void AssetManager::setBoneTransform(
 }
 
 void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse) {
-  const auto& pos = _assets.find(e);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(e);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
+  
+  Log("prev start %d", std::chrono::duration_cast<std::chrono::milliseconds>(asset.mAnimations[index+2].mStart.time_since_epoch()).count());
 
-  asset.mAnimations[index+2].mStart = high_resolution_clock::now();
+  asset.mAnimations[index+2].mStart = std::chrono::high_resolution_clock::now();
   asset.mAnimations[index+2].mLoop = loop;
   asset.mAnimations[index+2].mReverse = reverse;
+  asset.mAnimating = true;
 }
 
 void AssetManager::stopAnimation(EntityId entityId, int index) {
-  const auto& pos = _assets.find(entityId);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entityId);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   asset.mAnimations[index+2].mStart = time_point_t::max();
 }
 
 void AssetManager::loadTexture(EntityId entity, const char* resourcePath, int renderableIndex) {
 
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
 
   Log("Loading texture at %s for renderableIndex %d", resourcePath, renderableIndex);
 
@@ -609,12 +614,12 @@ void AssetManager::loadTexture(EntityId entity, const char* resourcePath, int re
 
 
 void AssetManager::setAnimationFrame(EntityId entity, int animationIndex, int animationFrame) {
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   auto offset = 60 * animationFrame * 1000; // TODO - don't hardcore 60fps framerate
   asset.mAnimator->applyAnimation(animationIndex, offset);
   asset.mAnimator->updateBoneMatrices();
@@ -622,15 +627,15 @@ void AssetManager::setAnimationFrame(EntityId entity, int animationIndex, int an
 
 unique_ptr<vector<string>> AssetManager::getAnimationNames(EntityId entity) {
 
-  const auto& pos = _assets.find(entity);
+  const auto& pos = _entityIdLookup.find(entity);
 
   unique_ptr<vector<string>> names = make_unique<vector<string>>();
 
-  if(pos == _assets.end()) {
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity id.");
     return names;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
 
   size_t count = asset.mAnimator->getAnimationCount();
 
@@ -646,12 +651,12 @@ unique_ptr<vector<string>> AssetManager::getMorphTargetNames(EntityId entity, co
 
   unique_ptr<vector<string>> names = make_unique<vector<string>>();
 
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return names;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
 
   const utils::Entity *entities = asset.mAsset->getEntities();
   
@@ -673,12 +678,12 @@ unique_ptr<vector<string>> AssetManager::getMorphTargetNames(EntityId entity, co
 }
 
 void AssetManager::transformToUnitCube(EntityId entity) {
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
 
   Log("Transforming asset to unit cube.");
   auto &tm = _engine->getTransformManager();
@@ -701,75 +706,75 @@ void AssetManager::updateTransform(SceneAsset asset) {
 }
 
 void AssetManager::setScale(EntityId entity, float scale) {
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   asset.mScale = scale;
   updateTransform(asset);
 }
 
 void AssetManager::setPosition(EntityId entity, float x, float y, float z) {
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   asset.mPosition = math::mat4f::translation(math::float3(x,y,z));
   updateTransform(asset);
 }
 
 void AssetManager::setRotation(EntityId entity, float rads, float x, float y, float z) {
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   asset.mRotation = math::mat4f::rotation(rads, math::float3(x,y,z));
   updateTransform(asset);
 }
 
 const utils::Entity *AssetManager::getCameraEntities(EntityId entity) {
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return nullptr;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   return asset.mAsset->getCameraEntities();
 }
 
 size_t AssetManager::getCameraEntityCount(EntityId entity) {
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return 0;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   return asset.mAsset->getCameraEntityCount();
 }
 
 const utils::Entity* AssetManager::getLightEntities(EntityId entity) const noexcept { 
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return nullptr;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   return asset.mAsset->getLightEntities();
 }
 
 size_t AssetManager::getLightEntityCount(EntityId entity) const noexcept {
-  const auto& pos = _assets.find(entity);
-  if(pos == _assets.end()) {
+  const auto& pos = _entityIdLookup.find(entity);
+  if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return 0;
   }
-  auto asset = pos->second;
+  auto& asset = _assets[pos->second];
   return asset.mAsset->getLightEntityCount();
 }
 

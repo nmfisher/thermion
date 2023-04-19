@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Log.hpp"
+
 #include <filament/Engine.h>
 #include <filament/RenderableManager.h>
 #include <filament/Renderer.h>
@@ -36,9 +38,38 @@ namespace polyvox {
         bool mReverse = false;
         float mDuration = 0;
         int mFrameNumber = -1;
+
+        // AnimationStatus() {
+        //     Log("default constr");
+        // }
+
+        // AnimationStatus(AnimationStatus& a) {
+        //     mStart = a.mStart;
+        //     mLoop = a.mLoop;
+        //     mReverse = a.mReverse;
+        //     mDuration = a.mDuration;
+        //     mFrameNumber = a.mFrameNumber;
+        // }
+
+        // AnimationStatus& operator=(AnimationStatus a) {
+        //     mStart = a.mStart;
+        //     mLoop = a.mLoop;
+        //     mReverse = a.mReverse;
+        //     mDuration = a.mDuration;
+        //     mFrameNumber = a.mFrameNumber;
+        //     return *this;
+        // }
+
+        // AnimationStatus(AnimationStatus&& a) {
+        //     mStart = a.mStart;
+        //     mLoop = a.mLoop;
+        //     mReverse = a.mReverse;
+        //     mDuration = a.mDuration;
+        //     mFrameNumber = a.mFrameNumber;
+        // }
     };
 
-        // 
+    // 
     // Use this to manually construct a buffer of frame data for morph animations.
     //
     struct MorphAnimationBuffer {
@@ -70,12 +101,9 @@ namespace polyvox {
     };
 
     struct SceneAsset {
-        
+        bool mAnimating = false;
         FilamentAsset* mAsset = nullptr;
         Animator* mAnimator = nullptr;
-
-        // animation flags;
-        bool mAnimating = false;
 
         // fixed-sized vector containing the status of the morph, bone and GLTF animations.
         // entries 0 and 1 are the morph/bone animations.
@@ -96,10 +124,40 @@ namespace polyvox {
             
         float mScale = 1;
 
+        // SceneAsset(const SceneAsset&& a) {
+        //     Log("MOVE");
+        // }
+
+
+        // SceneAsset(const SceneAsset& a) {
+        //     mAsset = a.mAsset;
+        //     mAnimator = a.mAnimator;
+        //     mAnimations = a.mAnimations;
+        //     mMorphAnimationBuffer = a.mMorphAnimationBuffer;
+        //     mBoneAnimationBuffer = a.mBoneAnimationBuffer;
+        //     mTexture = a.mTexture;
+        //     mPosition = a.mPosition;
+        //     mRotation = a.mRotation;
+        //     mScale = a.mScale;
+        // }
+
+
+        // SceneAsset& operator=(SceneAsset a) {
+        //     mAsset = a.mAsset;
+        //     mAnimator = a.mAnimator;
+        //     mAnimations = a.mAnimations;
+        //     mMorphAnimationBuffer = a.mMorphAnimationBuffer;
+        //     mBoneAnimationBuffer = a.mBoneAnimationBuffer;
+        //     mTexture = a.mTexture;
+        //     mPosition = a.mPosition;
+        //     mRotation = a.mRotation;
+        //     mScale = a.mScale;
+        //     return *this;
+        // }
+
         SceneAsset(
             FilamentAsset* asset
         ) : mAsset(asset) {
-
             mAnimator = mAsset->getInstance()->getAnimator();
 
             mAnimations.resize(2 + mAnimator->getAnimationCount());

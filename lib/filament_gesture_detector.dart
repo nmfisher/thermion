@@ -133,8 +133,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   onPointerSignal: !widget.enableControls
                       ? null
                       : (pointerSignal) async {
-                          print("ponter signal");
-
                           // scroll-wheel zoom on desktop
                           if (pointerSignal is PointerScrollEvent) {
                             _scrollTimer?.cancel();

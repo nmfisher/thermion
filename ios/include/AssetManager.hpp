@@ -75,8 +75,9 @@ namespace polyvox {
             MaterialProvider* _ubershaderProvider = nullptr;
             gltfio::ResourceLoader* _gltfResourceLoader = nullptr;
             gltfio::TextureProvider* _stbDecoder = nullptr;
-            tsl::robin_map<EntityId, SceneAsset> _assets;
-  
+            vector<SceneAsset> _assets;
+            tsl::robin_map<EntityId, int> _entityIdLookup;
+ 
             void setBoneTransform(
               FilamentInstance* instance,
                 vector<BoneAnimationData> animations,
