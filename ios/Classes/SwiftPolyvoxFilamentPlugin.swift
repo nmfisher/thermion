@@ -198,7 +198,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         clear_assets(self.viewer)
         clear_lights(self.viewer)
         destroy_swap_chain(self.viewer)
-        filament_viewer_delete(self.viewer)
+        delete_filament_viewer(self.viewer)
       }
 
       print("Initializing with size \(width)x\(height)")
@@ -209,7 +209,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       loadResourcePtr = unsafeBitCast(loadResource, to: UnsafeMutableRawPointer.self)
       freeResourcePtr = unsafeBitCast(freeResource, to: UnsafeMutableRawPointer.self)
 
-      viewer = filament_viewer_new_ios(
+      viewer = create_filament_viewer_ios(
         nil,
         loadResourcePtr!,
         freeResourcePtr!,

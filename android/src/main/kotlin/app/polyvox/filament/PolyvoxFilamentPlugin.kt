@@ -176,7 +176,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         executor.execute { 
 
           if(_viewer != null) {
-            _lib.filament_viewer_delete(_viewer!!);
+            _lib.delete_filament_viewer(_viewer!!);
             _viewer = null;
           }
           if(surfaceTexture != null) {
@@ -193,7 +193,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   
           surface = Surface(surfaceTexture!!) 
   
-          _viewer = _lib.filament_viewer_new_android(
+          _viewer = _lib.create_filament_viewer_android(
                       surface as Object,
                       JNIEnv.CURRENT,
                       (activity as Context).assets)

@@ -3,22 +3,56 @@
 #include "FilamentViewer.hpp"
 #include "filament/LightManager.h"
 #include "Log.hpp"
+#include "ThreadPool.hpp"
+#include <thread>
+#include "dart/dart_api_dl.h"
 
 using namespace polyvox;
 
 #define FLUTTER_PLUGIN_EXPORT __attribute__((visibility("default")))
 
+static ThreadPool* _tp;
+static Dart_Port _port;
+
 extern "C" {
 
   #include "PolyvoxFilamentApi.h"
 
-  FLUTTER_PLUGIN_EXPORT void* create_filament_viewer(void* context, ResourceBuffer (*loadResource)(char const*), void (*freeResource)(unsigned int)) {
-    FilamentViewer* v = new FilamentViewer(context, loadResource, freeResource);
-    return (void*)v;
+  FLUTTER_PLUGIN_EXPORT intptr_t init_dart_api_dl(void* data) {
+      return Dart_InitializeApiDL(data);
   }
 
+  FLUTTER_PLUGIN_EXPORT void register_filament_port(Dart_Port port) {
+    _port = port;
+  }
+
+  FLUTTER_PLUGIN_EXPORT void* create_filament_viewer(void* context, ResourceBuffer (*loadResource)(char const*), void (*freeResource)(unsigned int)) {
+    if(!_tp) {
+      _tp = new ThreadPool();
+    }
+    std::packaged_task<void*()> lambda([=]() mutable  {
+      return (void*) new FilamentViewer(context, loadResource, freeResource);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
+  }
+
+  // Dart_CObject dart_object;
+  //     dart_object.type = Dart_CObject_kInt64;
+  //     dart_object.value.as_int64 = (size_t)viewer;
+
+  //     const bool result = Dart_PostCObject_DL(_port, &dart_object);
+  //     if (!result) {
+  //       std::cout << "TTS: C   :  Posting message to port failed." << std::endl;
+  //     }
+
   FLUTTER_PLUGIN_EXPORT void create_render_target(void* viewer, uint32_t textureId, uint32_t width, uint32_t height) {
-    ((FilamentViewer*)viewer)->createRenderTarget(textureId, width, height);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->createRenderTarget(textureId, width, height);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
   
   FLUTTER_PLUGIN_EXPORT void delete_filament_viewer(void* viewer) {
@@ -26,137 +60,270 @@ extern "C" {
   }
 
   FLUTTER_PLUGIN_EXPORT void set_background_color(void* viewer, const float r, const float g, const float b, const float a) {
-    ((FilamentViewer*)viewer)->setBackgroundColor(r, g, b, a);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setBackgroundColor(r, g, b, a);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void clear_background_image(void* viewer) {
-    ((FilamentViewer*)viewer)->clearBackgroundImage();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->clearBackgroundImage();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_background_image(void* viewer, const char* path) {
-    ((FilamentViewer*)viewer)->setBackgroundImage(path);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setBackgroundImage(path);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_background_image_position(void* viewer, float x, float y, bool clamp) {
-  ((FilamentViewer*)viewer)->setBackgroundImagePosition(x, y, clamp);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setBackgroundImagePosition(x, y, clamp);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void load_skybox(void* viewer, const char* skyboxPath) {
-    ((FilamentViewer*)viewer)->loadSkybox(skyboxPath);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->loadSkybox(skyboxPath);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void load_ibl(void* viewer, const char* iblPath, float intensity) {
-    ((FilamentViewer*)viewer)->loadIbl(iblPath, intensity);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->loadIbl(iblPath, intensity);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void remove_skybox(void* viewer) {
-    ((FilamentViewer*)viewer)->removeSkybox();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->removeSkybox();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
   
   FLUTTER_PLUGIN_EXPORT void remove_ibl(void* viewer) {
-    ((FilamentViewer*)viewer)->removeIbl();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->removeIbl();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
-  FLUTTER_PLUGIN_EXPORT int32_t add_light(void* viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows) { 
-    return ((FilamentViewer*)viewer)->addLight((LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+  FLUTTER_PLUGIN_EXPORT EntityId add_light(void* viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows) { 
+    std::packaged_task<EntityId()> lambda([=]() mutable  {
+      return ((FilamentViewer*)viewer)->addLight((LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT void remove_light(void* viewer, int32_t entityId) {
-    ((FilamentViewer*)viewer)->removeLight(entityId);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->removeLight(entityId);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void clear_lights(void* viewer) {
-    ((FilamentViewer*)viewer)->clearLights();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->clearLights();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT EntityId load_glb(void* assetManager, const char* assetPath, bool unlit) {
-    return ((AssetManager*)assetManager)->loadGlb(assetPath, unlit);
+    std::packaged_task<EntityId()> lambda([=]() mutable  {
+      return ((AssetManager*)assetManager)->loadGlb(assetPath, unlit);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void* assetManager, const char* assetPath, const char* relativePath) {
-    return ((AssetManager*)assetManager)->loadGltf(assetPath, relativePath);
+    std::packaged_task<EntityId()> lambda([=]() mutable  {
+      return ((AssetManager*)assetManager)->loadGltf(assetPath, relativePath);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT bool set_camera(void* viewer, EntityId asset, const char* nodeName) {
-    return ((FilamentViewer*)viewer)->setCamera(asset, nodeName);
+    std::packaged_task<bool()> lambda([=]() mutable  {
+      return ((FilamentViewer*)viewer)->setCamera(asset, nodeName);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_camera_exposure(void* viewer, float aperture, float shutterSpeed, float sensitivity) {
-    ((FilamentViewer*)viewer)->setCameraExposure(aperture, shutterSpeed, sensitivity);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setCameraExposure(aperture, shutterSpeed, sensitivity);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_camera_position(void* viewer, float x, float y, float z) {
-    ((FilamentViewer*)viewer)->setCameraPosition(x, y, z);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setCameraPosition(x, y, z);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_camera_rotation(void* viewer, float rads, float x, float y, float z) {
-    ((FilamentViewer*)viewer)->setCameraRotation(rads, x, y, z);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setCameraRotation(rads, x, y, z);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_camera_model_matrix(void* viewer, const float* const matrix) {
-    ((FilamentViewer*)viewer)->setCameraModelMatrix(matrix);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setCameraModelMatrix(matrix);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_camera_focal_length(void* viewer, float focalLength) {
-    ((FilamentViewer*)viewer)->setCameraFocalLength(focalLength);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setCameraFocalLength(focalLength);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void render(
     void* viewer,
     uint64_t frameTimeInNanos
   ) {
-    ((FilamentViewer*)viewer)->render(frameTimeInNanos);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->render(frameTimeInNanos);
+    });
+    _tp->add_task(lambda);
   }
 
   FLUTTER_PLUGIN_EXPORT void set_frame_interval(
     void* viewer,
     float frameInterval
   ) {
-    ((FilamentViewer*)viewer)->setFrameInterval(frameInterval);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->setFrameInterval(frameInterval);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void destroy_swap_chain(void* viewer) {
-    ((FilamentViewer*)viewer)->destroySwapChain();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->destroySwapChain();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void create_swap_chain(void* viewer, void* surface=nullptr, uint32_t width=0, uint32_t height=0) {
-    ((FilamentViewer*)viewer)->createSwapChain(surface, width, height);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->createSwapChain(surface, width, height);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void* get_renderer(void* viewer) {
-    return ((FilamentViewer*)viewer)->getRenderer();
+    std::packaged_task<void*()> lambda([=]() mutable  {
+      return ((FilamentViewer*)viewer)->getRenderer();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection(void* viewer, int width, int height, float scaleFactor) {
-    return ((FilamentViewer*)viewer)->updateViewportAndCameraProjection(width, height, scaleFactor);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      return ((FilamentViewer*)viewer)->updateViewportAndCameraProjection(width, height, scaleFactor);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void scroll_update(void* viewer, float x, float y, float delta) {
-    ((FilamentViewer*)viewer)->scrollUpdate(x, y, delta);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->scrollUpdate(x, y, delta);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void scroll_begin(void* viewer) {
-    ((FilamentViewer*)viewer)->scrollBegin();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->scrollBegin();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void scroll_end(void* viewer) {
-    ((FilamentViewer*)viewer)->scrollEnd();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->scrollEnd();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void grab_begin(void* viewer, float x, float y, bool pan) {
-    ((FilamentViewer*)viewer)->grabBegin(x, y, pan);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->grabBegin(x, y, pan);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void grab_update(void* viewer, float x, float y) {
-    ((FilamentViewer*)viewer)->grabUpdate(x, y);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->grabUpdate(x, y);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void grab_end(void* viewer) {
-    ((FilamentViewer*)viewer)->grabEnd();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->grabEnd();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void* get_asset_manager(void* viewer) {
-    return (void*)((FilamentViewer*)viewer)->getAssetManager();
+    std::packaged_task<void*()> lambda([=]() mutable  {
+      return (void*)((FilamentViewer*)viewer)->getAssetManager();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT void apply_weights(
@@ -165,7 +332,11 @@ extern "C" {
     const char* const entityName, 
     float* const weights, 
     int count) {
+    // std::packaged_task<void()> lambda([=]() mutable  {
     // ((AssetManager*)assetManager)->setMorphTargetWeights(asset, entityName, weights, count);
+    // });
+    // auto fut = _tp->add_task(lambda);
+    // fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_morph_animation(
@@ -176,14 +347,19 @@ extern "C" {
     int numMorphWeights, 
     int numFrames, 
     float frameLengthInMs) {
-    ((AssetManager*)assetManager)->setMorphAnimationBuffer(
-      asset, 
-      entityName,
-      morphData, 
-      numMorphWeights, 
-      numFrames, 
-      frameLengthInMs
-    );
+
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((AssetManager*)assetManager)->setMorphAnimationBuffer(
+        asset, 
+        entityName,
+        morphData, 
+        numMorphWeights, 
+        numFrames, 
+        frameLengthInMs
+      );
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_bone_animation(
@@ -195,15 +371,19 @@ extern "C" {
     const float* const frameData,
     int numFrames, 
     float frameLengthInMs) {
-    ((AssetManager*)assetManager)->setBoneAnimationBuffer(
-      asset, 
-      length,
-      boneNames, 
-      meshNames,
-      frameData,
-      numFrames, 
-      frameLengthInMs
-    );
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((AssetManager*)assetManager)->setBoneAnimationBuffer(
+        asset, 
+        length,
+        boneNames, 
+        meshNames,
+        frameData,
+        numFrames, 
+        frameLengthInMs
+      );
+      });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
 
@@ -242,7 +422,13 @@ extern "C" {
     int index, 
     bool loop, 
     bool reverse) {
-    ((AssetManager*)assetManager)->playAnimation(asset, index, loop, reverse);
+    
+    std::packaged_task<void()> lambda([=]() mutable  {
+      std::cout << "Playing animation" << std::endl;
+      ((AssetManager*)assetManager)->playAnimation(asset, index, loop, reverse);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_animation_frame(
@@ -250,14 +436,23 @@ extern "C" {
     EntityId asset, 
     int animationIndex, 
     int animationFrame) {
+    // std::packaged_task<void()> lambda([=]() mutable  {
     // ((AssetManager*)assetManager)->setAnimationFrame(asset, animationIndex, animationFrame);
+    // });
+    // auto fut = _tp->add_task(lambda);
+    // fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT int get_animation_count(
     void* assetManager,
     EntityId asset) {
-    auto names = ((AssetManager*)assetManager)->getAnimationNames(asset);
-    return names->size();
+    std::packaged_task<int()> lambda([=]() mutable  {
+      auto names = ((AssetManager*)assetManager)->getAnimationNames(asset);
+      return names->size();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT void get_animation_name(
@@ -266,28 +461,49 @@ extern "C" {
     char* const outPtr, 
     int index
   ) {
-    auto names = ((AssetManager*)assetManager)->getAnimationNames(asset);
-    string name = names->at(index);
-    strcpy(outPtr, name.c_str());
+    std::packaged_task<void()> lambda([=]() mutable  {
+      auto names = ((AssetManager*)assetManager)->getAnimationNames(asset);
+      string name = names->at(index);
+      strcpy(outPtr, name.c_str());
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
   
   FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void* assetManager, EntityId asset, const char* meshName) {
-    unique_ptr<vector<string>> names = ((AssetManager*)assetManager)->getMorphTargetNames(asset, meshName);
-    return names->size();
+    std::packaged_task<int()> lambda([=]() mutable  {
+      unique_ptr<vector<string>> names = ((AssetManager*)assetManager)->getMorphTargetNames(asset, meshName);
+      return names->size();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
+    return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void* assetManager, EntityId asset, const char* meshName, char* const outPtr, int index ) {
-    unique_ptr<vector<string>> names = ((AssetManager*)assetManager)->getMorphTargetNames(asset, meshName);
-    string name = names->at(index);
-    strcpy(outPtr, name.c_str());
+    std::packaged_task<void()> lambda([=]() mutable  {
+      unique_ptr<vector<string>> names = ((AssetManager*)assetManager)->getMorphTargetNames(asset, meshName);
+      string name = names->at(index);
+      strcpy(outPtr, name.c_str());
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void remove_asset(void* viewer, EntityId asset) {
-    ((FilamentViewer*)viewer)->removeAsset(asset);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->removeAsset(asset);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void clear_assets(void* viewer) {
-    ((FilamentViewer*)viewer)->clearAssets();
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((FilamentViewer*)viewer)->clearAssets();
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void load_texture(void* assetManager, EntityId asset, const char* assetPath, int renderableIndex) {
@@ -299,23 +515,43 @@ extern "C" {
   }
 
   FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void* assetManager, EntityId asset) {
-    ((AssetManager*)assetManager)->transformToUnitCube(asset);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((AssetManager*)assetManager)->transformToUnitCube(asset);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_position(void* assetManager, EntityId asset, float x, float y, float z) {
-     ((AssetManager*)assetManager)->setPosition(asset, x, y, z);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((AssetManager*)assetManager)->setPosition(asset, x, y, z);
+     });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_rotation(void* assetManager, EntityId asset, float rads, float x, float y, float z) {
-     ((AssetManager*)assetManager)->setRotation(asset, rads, x, y, z);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((AssetManager*)assetManager)->setRotation(asset, rads, x, y, z);
+     });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
    }
 
   FLUTTER_PLUGIN_EXPORT void set_scale(void* assetManager, EntityId asset, float scale) {
-    ((AssetManager*)assetManager)->setScale(asset, scale);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((AssetManager*)assetManager)->setScale(asset, scale);
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
 
   FLUTTER_PLUGIN_EXPORT void stop_animation(void* assetManager, EntityId asset, int index) {
-     ((AssetManager*)assetManager)->stopAnimation(asset, index);
+    std::packaged_task<void()> lambda([=]() mutable  {
+      ((AssetManager*)assetManager)->stopAnimation(asset, index);
+     });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
   }
   
 }

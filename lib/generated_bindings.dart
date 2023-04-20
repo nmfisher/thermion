@@ -19,7 +19,34 @@ class NativeLibrary {
           lookup)
       : _lookup = lookup;
 
-  /// struct to facilitate passing bone animation frame data between Dart/native.
+  int init_dart_api_dl(
+    ffi.Pointer<ffi.Void> data,
+  ) {
+    return _init_dart_api_dl(
+      data,
+    );
+  }
+
+  late final _init_dart_api_dlPtr =
+      _lookup<ffi.NativeFunction<ffi.IntPtr Function(ffi.Pointer<ffi.Void>)>>(
+          'init_dart_api_dl');
+  late final _init_dart_api_dl =
+      _init_dart_api_dlPtr.asFunction<int Function(ffi.Pointer<ffi.Void>)>();
+
+  void register_filament_port(
+    int port,
+  ) {
+    return _register_filament_port(
+      port,
+    );
+  }
+
+  late final _register_filament_portPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>(
+          'register_filament_port');
+  late final _register_filament_port =
+      _register_filament_portPtr.asFunction<void Function(int)>();
+
   ffi.Pointer<ffi.Void> create_filament_viewer(
     ffi.Pointer<ffi.Void> context,
     ffi.Pointer<
@@ -51,6 +78,16 @@ class NativeLibrary {
               ffi.NativeFunction<
                   ResourceBuffer Function(ffi.Pointer<ffi.Char>)>>,
           ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>>)>();
+
+  renderCallback make_render_callback() {
+    return _make_render_callback();
+  }
+
+  late final _make_render_callbackPtr =
+      _lookup<ffi.NativeFunction<renderCallback Function()>>(
+          'make_render_callback');
+  late final _make_render_callback =
+      _make_render_callbackPtr.asFunction<renderCallback Function()>();
 
   void delete_filament_viewer(
     ffi.Pointer<ffi.Void> viewer,
@@ -1122,6 +1159,8 @@ class ResourceBuffer extends ffi.Struct {
   external int id;
 }
 
+typedef renderCallback = ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> viewer)>>;
 typedef EntityId = ffi.Int32;
 
 const int _STDINT_H = 1;

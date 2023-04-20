@@ -1,0 +1,2 @@
+ninja: Entering directory `/mnt/hdd_2tb/home/hydroxide/projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/x86_64'
+ninja: no work to do.

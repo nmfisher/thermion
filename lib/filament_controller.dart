@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:ui' as ui;
 
 import 'package:ffi/ffi.dart';
@@ -38,11 +39,17 @@ class FilamentController {
   late FilamentViewer _viewer;
   late AssetManager _assetManager;
 
-  final TickerProvider _tickerProvider;
-  Ticker? _ticker;
   bool _rendering = false;
 
-  FilamentController(this._tickerProvider) {
+  final _port = ReceivePort();
+
+  ///
+  /// This now uses an FFI implementation.
+  /// Platform channels are only used to setup the context/texture (since this is platform-specific) and the render ticker.
+  /// All other methods directly invoke the FFI functions defined in PolyvoxFilamentApi.cpp,
+  /// which itself uses a threadpool so that calls are run on a separate thread.
+  ///
+  FilamentController() {
     _channel.setMethodCallHandler((call) async {
       throw Exception("Unknown method channel invocation ${call.method}");
     });
@@ -63,6 +70,7 @@ class FilamentController {
 
   Future setRendering(bool render) async {
     _rendering = render;
+    _channel.invokeMethod("setRendering", render);
   }
 
   void render() {
@@ -78,7 +86,13 @@ class FilamentController {
     _pixelRatio = ratio;
   }
 
-  Future createTextureViewer(int width, int height) async {
+  Future createViewer(int width, int height) async {
+    // if (_viewer.address == 0) {
+    //   throw Exception("TODO");
+    // }
+    _nativeLibrary.init_dart_api_dl(NativeApi.initializeApiDLData);
+    _nativeLibrary.register_filament_port(_port.sendPort.nativePort);
+
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
     _textureId =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
@@ -86,19 +100,15 @@ class FilamentController {
 
     var glContext =
         Pointer<Void>.fromAddress(await _channel.invokeMethod("getContext"));
-
     final loadResource = Pointer<
             NativeFunction<ResourceBuffer Function(Pointer<Char>)>>.fromAddress(
         await _channel.invokeMethod("getLoadResourceFn"));
 
-    print("got $loadResource loadResource");
     var freeResource =
         Pointer<NativeFunction<Void Function(Uint32)>>.fromAddress(
             await _channel.invokeMethod("getFreeResourceFn"));
-
     _viewer = _nativeLibrary.create_filament_viewer(
         glContext, loadResource, freeResource);
-
     // don't pass a surface to the SwapChain as we are effectively creating a headless SwapChain that will render into a RenderTarget associated with a texture
     _nativeLibrary.create_swap_chain(
         _viewer, nullptr, size.width.toInt(), size.height.toInt());
@@ -112,14 +122,8 @@ class FilamentController {
 
     _initialized.complete(true);
     _assetManager = _nativeLibrary.get_asset_manager(_viewer);
-    print("got asset maanger $_assetManager");
 
-    _ticker = _tickerProvider.createTicker((elapsed) {
-      if (_rendering) {
-        render();
-      }
-    });
-    _ticker!.start();
+    await _channel.invokeMethod("setRenderTicker", _viewer.address);
   }
 
   Future resize(int width, int height,
@@ -358,7 +362,6 @@ class FilamentController {
 
   void playAnimation(FilamentEntity asset, int index,
       {bool loop = false, bool reverse = false}) async {
-    print("Playing animation @ $index");
     _nativeLibrary.play_animation(
         _assetManager, asset, index, loop ? 1 : 0, reverse ? 1 : 0);
   }

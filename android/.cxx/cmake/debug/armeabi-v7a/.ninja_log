@@ -1,0 +1,5 @@
+# ninja log v5
+0	2594	1648744256	CMakeFiles/filament_interop.dir/src/main/cpp/filament_api.cpp.o	d473c6ae2dbe7817
+0	3196	1648744256	CMakeFiles/filament_interop.dir/mnt/hdd_2tb/home/hydroxide/projects/polyvox/polyvox_filament/ios/src/FilamentViewer.cpp.o	b5f4a260707c5d6e
+2	606	1648744685	/mnt/hdd_2tb/home/hydroxide/projects/polyvox/polyvox_app/build/polyvox_filament/intermediates/cmake/debug/obj/armeabi-v7a/libfilament_interop.so	c491a4212e8046ef
+1	305	1648964361	/mnt/hdd_2tb/home/hydroxide/projects/polyvox/polyvox_app/build/polyvox_filament/intermediates/cmake/debug/obj/armeabi-v7a/libfilament_interop.so	c491a4212e8046ef

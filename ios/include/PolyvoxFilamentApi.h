@@ -4,15 +4,14 @@
 #include "ResourceBuffer.hpp"
 
 #include <stddef.h>
+#include "dart/dart_api_dl.h"
 
 typedef struct ResourceBuffer ResourceBuffer;
 
 typedef int32_t EntityId;
 
-///
-/// struct to facilitate passing bone animation frame data between Dart/native.
-///
-
+intptr_t init_dart_api_dl(void* data);
+void register_filament_port(Dart_Port port);
 void* create_filament_viewer(void *context, ResourceBuffer (*loadResource)(const char *), void (*freeResource)(uint32_t));
 void delete_filament_viewer(void *viewer);
 void* get_asset_manager(void* viewer);

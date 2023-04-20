@@ -74,7 +74,7 @@ static void freeResource(uint32_t id) {
 
 extern "C" {
 
-  void* filament_viewer_new_android(
+  void* create_filament_viewer_android(
     jobject surface,
     JNIEnv* env,
     jobject assetManager

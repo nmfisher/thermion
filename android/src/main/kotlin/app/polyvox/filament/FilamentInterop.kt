@@ -18,13 +18,13 @@ import java.nio.ByteBuffer
 
 interface FilamentInterop : Library {
 
-    fun filament_viewer_new_android(
+    fun create_filament_viewer_android(
             layer:Object,
             env:JNIEnv,
             am:AssetManager
     ) : Pointer;
 
-    fun filament_viewer_delete(
+    fun delete_filament_viewer(
             viewer:Pointer,
     ) : Pointer;
 

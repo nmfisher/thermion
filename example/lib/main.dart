@@ -37,7 +37,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _filamentController = FilamentController(this);
+    _filamentController = FilamentController();
   }
 
   void onClick(int index) async {

@@ -5,7 +5,7 @@
 #include <flutter_linux/fl_texture_gl.h>
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
-
+#include <thread>
 #include <sys/utsname.h>
 
 #include <math.h>
@@ -40,25 +40,22 @@ struct _PolyvoxFilamentPlugin {
   FlTextureRegistrar* texture_registrar;
   FlView* fl_view;
   FlTexture* texture;
-  void* viewer;
-
   double width;
   double height;
-
-  bool _resizing = false;
-  bool _rendering = false;
+  bool rendering = false;
+  bool resizing = false;
+  void* viewer = nullptr;
 };
 
 G_DEFINE_TYPE(PolyvoxFilamentPlugin, polyvox_filament_plugin, g_object_get_type())
 
-
-// unused, left here for posterity in case we want to restore
 static gboolean on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpointer self) {
   PolyvoxFilamentPlugin* plugin = (PolyvoxFilamentPlugin*)self;
-  if(plugin->_rendering) {
+  
+  if(plugin->rendering) {
     render(plugin->viewer, 0);
     fl_texture_registrar_mark_texture_frame_available(plugin->texture_registrar,
-                                                      plugin->texture);
+                                                        plugin->texture);
   }
   return TRUE; 
 }
@@ -95,25 +92,25 @@ static FlMethodResponse* _resize(PolyvoxFilamentPlugin* self, FlMethodCall* meth
   const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
   const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
 
-  if(!self->_resizing && (width != self->width || height != self->height)) {
-    self->_rendering = false;
-    self->_resizing = true;
+  if(!self->resizing && (width != self->width || height != self->height)) {
+    // self->rendering = false;
+    // self->resizing = true;
 
-    destroy_swap_chain(self->viewer);
+    // // destroy_swap_chain(self->viewer);
 
-    destroy_filament_texture(self->texture, self->texture_registrar);
+    // destroy_filament_texture(self->texture, self->texture_registrar);
 
-    self->texture = create_filament_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
+    // self->texture = create_filament_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
 
-    create_swap_chain(self->viewer, nullptr, width, height);
-    create_render_target(self->viewer, ((FilamentTextureGL*)self->texture)->texture_id,width,height);
+    // create_swap_chain(self->viewer, nullptr, width, height);
+    // create_render_target(self->viewer, ((FilamentTextureGL*)self->texture)->texture_id,width,height);
       
-    update_viewport_and_camera_projection(self->viewer, width, height, 1.0f);
+    // update_viewport_and_camera_projection(self->viewer, width, height, 1.0f);
 
-    std::cout << "Created new texture " << self->texture << std::endl;
+    // std::cout << "Created new texture " << self->texture << std::endl;
 
-    self->_resizing = false;
-    self->_rendering = true;
+    // self->resizing = false;
+    // self->rendering = true;
   }
 
   g_autoptr(FlValue) result =   
@@ -133,6 +130,7 @@ static void polyvox_filament_plugin_handle_method_call(
   const gchar* method = fl_method_call_get_name(method_call);
 
   if(strcmp(method, "createTexture") == 0) {
+    Log("THREAD ID %d", std::this_thread::get_id());
     response = _create_texture(self, method_call);    
   } else if(strcmp(method, "getContext") == 0) {
     g_autoptr(FlValue) result =   
@@ -150,13 +148,17 @@ static void polyvox_filament_plugin_handle_method_call(
     g_autoptr(FlValue) result =   
          fl_value_new_int(reinterpret_cast<int64_t>(&freeResource));   
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-  } else if(strcmp(method, "getRenderCallback") == 0) {
-    GtkWidget *w = gtk_widget_get_toplevel (GTK_WIDGET(self->fl_view));
-    gtk_widget_add_tick_callback(w, on_frame_tick, self,NULL);
+  } else if(strcmp(method, "setRendering") == 0) {
+    self->rendering =  fl_value_get_bool(fl_method_call_get_args(method_call));
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
-  } else if(strcmp(method, "onFrameAvailable") == 0) { 
-    fl_texture_registrar_mark_texture_frame_available(self->texture_registrar,
-                                                      self->texture);
+  } else if(strcmp(method, "setRenderTicker") == 0) {        
+    if(self->viewer) {
+      Log("Ticker has already been set, ignoring");
+    } else {
+      self->viewer = (void*)fl_value_get_int(fl_method_call_get_args(method_call));
+      GtkWidget *w = gtk_widget_get_toplevel (GTK_WIDGET(self->fl_view));
+      gtk_widget_add_tick_callback(w, on_frame_tick, self, NULL);
+    }
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
@@ -489,7 +491,7 @@ void polyvox_filament_plugin_register_with_registrar(FlPluginRegistrar* registra
 
 // static FlMethodResponse* _set_rendering(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
 //   FlValue* args = fl_method_call_get_args(method_call);
-//   self->_rendering = (bool)fl_value_get_bool(args);
+//   self->rendering = (bool)fl_value_get_bool(args);
 //   g_autoptr(FlValue) result = fl_value_new_string("OK");
 //   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 // }

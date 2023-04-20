@@ -67,7 +67,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
         print(
             "Requesting creation of Filament back-end texture/viewer for viewport size $size");
         await widget.controller
-            .createTextureViewer(size.width.toInt(), size.height.toInt());
+            .createViewer(size.width.toInt(), size.height.toInt());
         print("Filament texture/viewer created.");
         _listener!.cancel();
         _listener = null;

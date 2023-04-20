@@ -214,6 +214,7 @@ FilamentAsset* AssetManager::getAssetByEntityId(EntityId entityId) {
 
 
 void AssetManager::updateAnimations() { 
+  
   auto now = high_resolution_clock::now();
 
   RenderableManager &rm = _engine->getRenderableManager();
@@ -529,6 +530,7 @@ void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse)
   asset.mAnimations[index+2].mStart = std::chrono::high_resolution_clock::now();
   asset.mAnimations[index+2].mLoop = loop;
   asset.mAnimations[index+2].mReverse = reverse;
+  Log("new start %d", std::chrono::duration_cast<std::chrono::milliseconds>(asset.mAnimations[index+2].mStart.time_since_epoch()).count());
   asset.mAnimating = true;
 }
 
