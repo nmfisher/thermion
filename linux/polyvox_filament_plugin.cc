@@ -42,23 +42,9 @@ struct _PolyvoxFilamentPlugin {
   FlTexture* texture;
   double width;
   double height;
-  bool rendering = false;
-  bool resizing = false;
-  void* viewer = nullptr;
 };
 
 G_DEFINE_TYPE(PolyvoxFilamentPlugin, polyvox_filament_plugin, g_object_get_type())
-
-static gboolean on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpointer self) {
-  PolyvoxFilamentPlugin* plugin = (PolyvoxFilamentPlugin*)self;
-  
-  if(plugin->rendering) {
-    render(plugin->viewer, 0);
-    fl_texture_registrar_mark_texture_frame_available(plugin->texture_registrar,
-                                                        plugin->texture);
-  }
-  return TRUE; 
-}
 
 static FlMethodResponse* _create_texture(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
    if(self->texture) {
@@ -129,21 +115,9 @@ static void polyvox_filament_plugin_handle_method_call(
     g_autoptr(FlValue) result =   
          fl_value_new_int(reinterpret_cast<int64_t>(&freeResource));   
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-  } else if(strcmp(method, "setRendering") == 0) {
-    self->rendering =  fl_value_get_bool(fl_method_call_get_args(method_call));
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
   } else if(strcmp(method, "tick") == 0) {        
     fl_texture_registrar_mark_texture_frame_available(self->texture_registrar,
                                                         self->texture);
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
-  } else if(strcmp(method, "setRenderTicker") == 0) {        
-    if(self->viewer) {
-      Log("Ticker has already been set, ignoring");
-    } else {
-      self->viewer = (void*)fl_value_get_int(fl_method_call_get_args(method_call));
-      GtkWidget *w = gtk_widget_get_toplevel (GTK_WIDGET(self->fl_view));
-      gtk_widget_add_tick_callback(w, on_frame_tick, self, NULL);
-    }
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
