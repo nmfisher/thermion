@@ -32,7 +32,6 @@
 #include <chrono>
 
 #include "AssetManager.hpp"
-#include "ResourceManagement.hpp"
 
 using namespace std;
 using namespace filament;
@@ -46,7 +45,7 @@ namespace polyvox {
     class FilamentViewer {
         public:
             // FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
-            FilamentViewer(void* context, LoadResource loadResource, FreeResource freeResource);
+            FilamentViewer(void* context, ResourceLoaderWrapper* resourceLoaderWrapper);
             ~FilamentViewer();
 
             void loadSkybox(const char* const skyboxUri);
@@ -107,8 +106,7 @@ namespace polyvox {
             math::mat4f _cameraPosition;
             math::mat4f _cameraRotation;
 
-            LoadResource _loadResource;
-            FreeResource _freeResource;
+            ResourceLoaderWrapper* _resourceLoaderWrapper;
       
             Scene* _scene;
             View* _view;  

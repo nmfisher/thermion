@@ -17,7 +17,7 @@
 #include "StreamBufferAdapter.hpp"
 #include "SceneAsset.hpp"
 #include "Log.hpp"
-#include "ResourceManagement.hpp"
+
 #include "material/UnlitMaterialProvider.hpp"
 #include "material/FileMaterialProvider.hpp"
 #include "gltfio/materials/uberarchive.h"
@@ -36,13 +36,11 @@ using namespace utils;
 using namespace filament;
 using namespace filament::gltfio;
 
-AssetManager::AssetManager(LoadResource loadResource,
-                            FreeResource freeResource,
+AssetManager::AssetManager(ResourceLoaderWrapper* resourceLoaderWrapper,
                             NameComponentManager *ncm, 
                             Engine *engine,
                             Scene *scene)
-    : _loadResource(loadResource), 
-      _freeResource(freeResource), 
+    : _resourceLoaderWrapper(resourceLoaderWrapper),
       _ncm(ncm),
       _engine(engine), 
       _scene(scene) {
@@ -72,7 +70,7 @@ AssetManager::~AssetManager() {
 
 EntityId AssetManager::loadGltf(const char *uri,
                                        const char *relativeResourcePath) {
-  ResourceBuffer rbuf = _loadResource(uri);
+  ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
 
   // Parse the glTF file and create Filament entities.
   FilamentAsset *asset =
@@ -89,11 +87,11 @@ EntityId AssetManager::loadGltf(const char *uri,
   for (size_t i = 0; i < resourceUriCount; i++) {
     string uri =
         string(relativeResourcePath) + string("/") + string(resourceUris[i]);
-    ResourceBuffer buf = _loadResource(uri.c_str());
+    ResourceBuffer buf = _resourceLoaderWrapper->load(uri.c_str());
 
     ResourceLoader::BufferDescriptor b(buf.data, buf.size);
     _gltfResourceLoader->addResourceData(resourceUris[i], std::move(b));
-    _freeResource(buf.id);
+    _resourceLoaderWrapper->free(buf);
   }
 
   _gltfResourceLoader->loadResources(asset);
@@ -130,7 +128,7 @@ EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
   
   Log("Loading GLB at URI %s", uri);
 
-  ResourceBuffer rbuf = _loadResource(uri);
+  ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
 
   FilamentAsset *asset = _assetLoader->createAsset(
       (const uint8_t *)rbuf.data, rbuf.size);
@@ -172,7 +170,7 @@ EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
 
   asset->releaseSourceData();
 
-  _freeResource(rbuf.id);
+  _resourceLoaderWrapper->free(rbuf);
 
   SceneAsset sceneAsset(asset);
 
@@ -567,7 +565,7 @@ void AssetManager::loadTexture(EntityId entity, const char* resourcePath, int re
     asset.mTexture = nullptr;
   }
   
-  ResourceBuffer imageResource = _loadResource(rp.c_str());
+  ResourceBuffer imageResource = _resourceLoaderWrapper->load(rp.c_str());
   
   StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
 
@@ -579,7 +577,7 @@ void AssetManager::loadTexture(EntityId entity, const char* resourcePath, int re
   if (!image->isValid()) {
     Log("Invalid image : %s", rp.c_str());
     delete inputStream;
-    _freeResource(imageResource.id);
+    _resourceLoaderWrapper->free(imageResource);
     return;
   }
 
@@ -615,7 +613,7 @@ void AssetManager::loadTexture(EntityId entity, const char* resourcePath, int re
   inst[0]->setParameter("baseColorMap",asset.mTexture,sampler);
   delete inputStream;
 
-  _freeResource(imageResource.id);
+  _resourceLoaderWrapper->free(imageResource);
   
 }
 

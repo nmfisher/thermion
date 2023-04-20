@@ -5,10 +5,12 @@ import GLKit
 public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture {
   
     var registrar : FlutterPluginRegistrar
-    var textureId: Int64?
+    var flutterTextureId: Int64?
     var registry: FlutterTextureRegistry
    
     var pixelBuffer: CVPixelBuffer?;
+    
+    var createdAt = Date()
     
     var pixelBufferAttrs = [
         kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32BGRA),
@@ -27,11 +29,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     var freeResourcePtr: UnsafeMutableRawPointer? = nil
  
   
-    var loadResource : @convention(c) (UnsafeRawPointer, UnsafeMutableRawPointer) -> ResourceBuffer = { uri, resourcesPtr in
+    var loadResource : @convention(c) (UnsafePointer<Int8>?, UnsafeMutableRawPointer?) -> ResourceBuffer = { uri, resourcesPtr in
       
-      let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr).takeUnretainedValue()
+        let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
 
-      let uriString = String(cString:uri.assumingMemoryBound(to: UInt8.self))
+        let uriString = String(cString:uri!)
 
       var path:String? = nil
 
@@ -99,7 +101,13 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             return ResourceBuffer()
           }
         } else {
-		// TODO
+            let key = instance.registrar.lookupKey(forAsset:uriString)
+            path = Bundle.main.path(forResource: key, ofType:nil)
+            print("Found path \(path) for uri \(uriString)")
+            guard path != nil else {
+              print("File not present in bundle : \(uri)")
+              return ResourceBuffer()
+            }
         }
       }
       do {
@@ -116,9 +124,13 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       return ResourceBuffer()
     }
   
-    var freeResource : @convention(c) (UInt32,UnsafeMutableRawPointer) -> () = { rid, resourcesPtr in
-      let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr).takeUnretainedValue()
-      instance.resources.removeObject(forKey:rid)
+    var freeResource : @convention(c) (ResourceBuffer,UnsafeMutableRawPointer?) -> () = { rbuf, resourcesPtr in
+      let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
+        instance.resources.removeObject(forKey:rbuf.id)
+    }
+    
+    @objc func doRender() {
+        
     }
   
     func createDisplayLink() {
@@ -135,7 +147,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         return Unmanaged.passRetained(pixelBuffer!);
     }
   
-    public func onTextureUnregistered(texture:FlutterTexture) {
+    public func onTextureUnregistered(_ texture:FlutterTexture) {
         print("Texture unregistered")
     }
     
@@ -157,37 +169,45 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                                       kCVPixelFormatType_32BGRA, pixelBufferAttrs, &pixelBuffer) != kCVReturnSuccess) {
         print("Error allocating pixel buffer")
       }
-      self.textureId = self.registry.register(self)
+      self.flutterTextureId = self.registry.register(self)
     }
   
     private func resize(width:Int32, height:Int32) {
-      if(self.textureId != nil) {
-        self.registry.unregisterTexture(self.textureId!)
+      if(self.flutterTextureId != nil) {
+        self.registry.unregisterTexture(self.flutterTextureId!)
       }
       createPixelBuffer(width: Int(width), height:Int(height))
     }
   
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
       let methodName = call.method;
-
+      print(methodName)
       switch methodName {
         case "createTexture":
           let args = call.arguments as! Array<Int32>
-          createPixelBuffer(width:args[0], height:args[1])
+          createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
           createDisplayLink()
-          result(unsafeBitCast(pixelBuffer!, to: UnsafeMutableRawPointer.self))
-        case "getLoadResourceFn":           
-          result(unsafeBitCast(loadResource, to: UnsafeMutableRawPointer.self))
+          result(self.flutterTextureId)
+          //          print("texture id \(pixelBufferflutterTextureId)")
+        case "getLoadResourceFn":
+
+          let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
+
+          result(unsafeBitCast(callback,  to:Int64.self))
         case "getFreeResourceFn":
-          result(unsafeBitCast(freeResource, to: UnsafeMutableRawPointer.self))
+          result(unsafeBitCast(freeResource,  to:Int64.self))
         case "getGlTextureId":
-          result(Unmanaged.passUnretained(self).toOpaque())
+          result(FlutterMethodNotImplemented)
+      case "getSurface":
+          var pixelBufferTextureId = Int64(Int(bitPattern:unsafeBitCast(pixelBuffer!, to: UnsafeMutableRawPointer.self)))
+          result(pixelBufferTextureId)
+
         case "getContext":
-           result(nil)
+           result(0) //nullptr
         case "resize":
-          result(self.textureId);
+          result(self.flutterTextureId);
         case "tick":
-          self.registry.textureFrameAvailable(textureId)
+          self.registry.textureFrameAvailable(flutterTextureId!)
           result(true)
         default:
           result(FlutterMethodNotImplemented)

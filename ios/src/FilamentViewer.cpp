@@ -107,9 +107,8 @@ static constexpr float4 sFullScreenTriangleVertices[3] = {
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
-FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
-                               FreeResource freeResource)
-  : _loadResource(loadResource), _freeResource(freeResource) {
+FilamentViewer::FilamentViewer(void* context, ResourceLoaderWrapper* resourceLoaderWrapper)
+  : _resourceLoaderWrapper(resourceLoaderWrapper) {
   
   #if TARGET_OS_IPHONE
     _engine = Engine::create(Engine::Backend::METAL);
@@ -179,7 +178,7 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
 
   _view->setAntiAliasing(AntiAliasing::NONE);
 
-  // auto materialRb = _loadResource("file:///mnt/hdd_2tb/home/hydroxide/projects/filament/unlit.filamat");
+  // auto materialRb = _resourceLoader->load("file:///mnt/hdd_2tb/home/hydroxide/projects/filament/unlit.filamat");
   // Log("Loaded resource of size %d", materialRb.size);
   // _materialProvider = new FileMaterialProvider(_engine, (void*) materialRb.data, (size_t)materialRb.size);
   
@@ -188,8 +187,7 @@ FilamentViewer::FilamentViewer(void* context, LoadResource loadResource,
   _ncm = new NameComponentManager(em);
 
   _assetManager = new AssetManager(
-    _loadResource, 
-    _freeResource, 
+    _resourceLoaderWrapper, 
     _ncm, 
     _engine,
     _scene);
@@ -371,7 +369,7 @@ void FilamentViewer::loadTextureFromPath(string path) {
     return;
   }
 
-  ResourceBuffer rb = _loadResource(path.c_str());
+  ResourceBuffer rb = _resourceLoaderWrapper->load(path.c_str());
 
   if(endsWith(path, ktxExt)) {
     loadKtxTexture(path, rb);
@@ -381,7 +379,7 @@ void FilamentViewer::loadTextureFromPath(string path) {
     loadPngTexture(path, rb);
   }
 
-  _freeResource(rb.id);
+  _resourceLoaderWrapper->free(rb);
 
 }
 
@@ -697,7 +695,7 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
   removeSkybox();
  
   if (skyboxPath) {
-    ResourceBuffer skyboxBuffer = _loadResource(skyboxPath);
+    ResourceBuffer skyboxBuffer = _resourceLoaderWrapper->load(skyboxPath);
 
     if(skyboxBuffer.size <= 0) {
       Log("Could not load skybox resource.");
@@ -717,7 +715,7 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
         filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
 
     _scene->setSkybox(_skybox);
-    _freeResource(skyboxBuffer.id);
+    _resourceLoaderWrapper->free(skyboxBuffer);
   }
 }
 
@@ -749,7 +747,7 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
     Log("Loading IBL from %s", iblPath);
 
     // Load IBL.
-    ResourceBuffer iblBuffer = _loadResource(iblPath);
+    ResourceBuffer iblBuffer = _resourceLoaderWrapper->load(iblPath);
 
     if(iblBuffer.size == 0) {
       Log("Error loading IBL, resource could not be loaded.");
@@ -773,7 +771,7 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
                          .build(*_engine);
     _scene->setIndirectLight(_indirectLight);
 
-    _freeResource(iblBuffer.id);
+    _resourceLoaderWrapper->free(iblBuffer);
 
     Log("Skybox/IBL load complete.");
   }

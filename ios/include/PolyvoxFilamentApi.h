@@ -5,12 +5,10 @@
 
 #include <stddef.h>
 
-typedef struct ResourceBuffer ResourceBuffer;
-
 typedef int32_t EntityId;
 
-intptr_t init_dart_api_dl(void* data);
-void* create_filament_viewer(void *context, ResourceBuffer (*loadResource)(const char *), void (*freeResource)(uint32_t));
+void* create_filament_viewer(void *context, ResourceLoaderWrapper* loader);
+ResourceLoaderWrapper* make_resource_loader(LoadResourceFromOwner loadFn, FreeResourceFromOwner freeFn, void* owner);
 void delete_filament_viewer(void *viewer);
 void* get_asset_manager(void* viewer);
 void create_render_target(void *viewer, uint32_t textureId, uint32_t width, uint32_t height);
@@ -103,5 +101,6 @@ void set_camera_rotation(void *viewer, float rads, float x, float y, float z);
 void set_camera_model_matrix(void *viewer, const float *const matrix);
 void set_camera_focal_length(void *viewer, float focalLength);
 void set_camera_focus_distance(void *viewer, float focusDistance);
+void ios_dummy();
 
 #endif

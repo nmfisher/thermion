@@ -6,7 +6,6 @@
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
 
-#include "ResourceManagement.hpp"
 #include "SceneAsset.hpp"
 #include "ResourceBuffer.hpp"
 
@@ -18,8 +17,7 @@ namespace polyvox {
 
     class AssetManager {
         public:
-            AssetManager(LoadResource loadResource,
-                        FreeResource freeResource,
+            AssetManager(ResourceLoaderWrapper* loader,
                         NameComponentManager *ncm, 
                         Engine *engine,
                         Scene *scene);
@@ -64,10 +62,8 @@ namespace polyvox {
             void setAnimationFrame(EntityId entity, int animationIndex, int animationFrame);
             
         private:
-            LoadResource _loadResource;
-            FreeResource _freeResource;
             AssetLoader* _assetLoader = nullptr;
-            ResourceLoader* _resourceLoader = nullptr;
+            ResourceLoaderWrapper* _resourceLoaderWrapper;
             NameComponentManager* _ncm = nullptr;
             Engine* _engine;
             Scene* _scene;

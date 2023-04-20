@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #if defined(__cplusplus)
+#include "Log.hpp"
 extern "C" {
 #endif
     // 
@@ -38,6 +39,43 @@ extern "C" {
         uint32_t size;
         uint32_t id;
     };
+
+    typedef struct ResourceBuffer ResourceBuffer;
+    typedef ResourceBuffer (*LoadResource)(const char* uri);
+    typedef ResourceBuffer (*LoadResourceFromOwner)(const char* const, void* const owner);
+    typedef void (*FreeResource)(ResourceBuffer);
+    typedef void (*FreeResourceFromOwner)(ResourceBuffer, void* const owner);
+    
+    struct ResourceLoaderWrapper {
+      #if defined(__cplusplus)
+        ResourceLoaderWrapper(LoadResource loader, FreeResource freeResource) : mLoadResource(loader), mFreeResource(freeResource) {};
+        ResourceLoaderWrapper(LoadResourceFromOwner loader, FreeResourceFromOwner freeResource, void* const owner) : mLoadResourceFromOwner(loader), mFreeResourceFromOwner(freeResource),  mOwner(owner) {};
+
+        ResourceBuffer load(const char* uri) {
+          Log("LOADING %s", uri);
+          if(mLoadResourceFromOwner) {
+            return mLoadResourceFromOwner(uri, mOwner);
+          }
+          return mLoadResource(uri);
+        }
+
+        void free(ResourceBuffer rb) {
+          if(mFreeResourceFromOwner) {
+            mFreeResourceFromOwner(rb, mOwner);
+          } else {
+            mFreeResource(rb);
+          }
+        }
+      #endif
+        void* mOwner;
+        LoadResource mLoadResource;
+        FreeResource mFreeResource;
+        LoadResourceFromOwner mLoadResourceFromOwner;
+        FreeResourceFromOwner mFreeResourceFromOwner;
+    };
+    typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
+    
+    
 #if defined(__cplusplus)
 }
 #endif

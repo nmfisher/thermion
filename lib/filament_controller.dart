@@ -71,7 +71,6 @@ class FilamentController {
 
   Future setRendering(bool render) async {
     _rendering = render;
-    _channel.invokeMethod("setRendering", render);
   }
 
   void render() {
@@ -91,6 +90,7 @@ class FilamentController {
     _textureId =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
     _textureIdController.add(_textureId);
+    print("Got texture id $_textureId");
 
     var glContext =
         Pointer<Void>.fromAddress(await _channel.invokeMethod("getContext"));
@@ -103,25 +103,30 @@ class FilamentController {
             await _channel.invokeMethod("getFreeResourceFn"));
     _viewer = _nativeLibrary.create_filament_viewer(
         glContext, loadResource, freeResource);
-    // don't pass a surface to the SwapChain as we are effectively creating a headless SwapChain that will render into a RenderTarget associated with a texture
-    _nativeLibrary.create_swap_chain(
-        _viewer, nullptr, size.width.toInt(), size.height.toInt());
+    if (Platform.isLinux) {
+      // don't pass a surface to the SwapChain as we are effectively creating a headless SwapChain that will render into a RenderTarget associated with a texture
+      _nativeLibrary.create_swap_chain(
+          _viewer, nullptr, size.width.toInt(), size.height.toInt());
 
-    var glTextureId = await _channel.invokeMethod("getGlTextureId");
+      var glTextureId = await _channel.invokeMethod("getGlTextureId");
 
-    _nativeLibrary.create_render_target(
-        _viewer, glTextureId, size.width.toInt(), size.height.toInt());
+      _nativeLibrary.create_render_target(
+          _viewer, glTextureId, size.width.toInt(), size.height.toInt());
+    } else {
+      var surface =
+          Pointer<Void>.fromAddress(await _channel.invokeMethod("getSurface"));
+      _nativeLibrary.create_swap_chain(
+          _viewer, surface, size.width.toInt(), size.height.toInt());
+    }
+
     _nativeLibrary.update_viewport_and_camera_projection(
         _viewer, size.width.toInt(), size.height.toInt(), 1.0);
 
     _initialized.complete(true);
     _assetManager = _nativeLibrary.get_asset_manager(_viewer);
 
-    // await _channel.invokeMethod("setRenderTicker", _viewer.address);
-
     _ticker = _tickerProvider.createTicker((elapsed) async {
       _nativeLibrary.render(_viewer, 0);
-      await _channel.invokeMethod("tick");
     });
     _ticker!.start();
   }

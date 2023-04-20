@@ -8,8 +8,11 @@
 #import "polyvox_filament-Swift.h"
 #endif
 
+#include "PolyvoxFilamentApi.h"
+
 @implementation PolyvoxFilamentPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
   [SwiftPolyvoxFilamentPlugin registerWithRegistrar:registrar];
+  ios_dummy();
 }
 @end

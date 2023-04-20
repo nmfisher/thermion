@@ -4,11 +4,15 @@
 #include "filament/LightManager.h"
 #include "Log.hpp"
 #include "ThreadPool.hpp"
+
 #include <thread>
+#include <functional>
 
 using namespace polyvox;
 
 #define FLUTTER_PLUGIN_EXPORT __attribute__((visibility("default")))
+
+
 
 // static ThreadPool* _tp;
 
@@ -16,16 +20,22 @@ extern "C" {
 
   #include "PolyvoxFilamentApi.h"
 
-  FLUTTER_PLUGIN_EXPORT void* create_filament_viewer(void* context, ResourceBuffer (*loadResource)(char const*), void (*freeResource)(unsigned int)) {
+  FLUTTER_PLUGIN_EXPORT void* create_filament_viewer(void* context, ResourceLoaderWrapper* loader) {
     // if(!_tp) {
     //   _tp = new ThreadPool();
     // }
     // //std::packaged_task<void*()> lambda([=]() mutable  {
-      return (void*) new FilamentViewer(context, loadResource, freeResource);
+      return (void*) new FilamentViewer(context, loader);
     // });
     // auto fut = _tp->add_task(lambda);
     // fut.wait();
     // //return fut.get();
+  }
+
+  FLUTTER_PLUGIN_EXPORT ResourceLoaderWrapper* make_resource_loader(LoadResourceFromOwner loadFn, FreeResourceFromOwner freeFn, void* const owner) {
+      return new ResourceLoaderWrapper(loadFn, freeFn, owner);
+//      ResourceLoaderWrapper* lod(loadFn, freeFn, owner);
+//      return &lod;
   }
 
   FLUTTER_PLUGIN_EXPORT void create_render_target(void* viewer, uint32_t textureId, uint32_t width, uint32_t height) {
@@ -535,5 +545,8 @@ extern "C" {
 //    auto fut = _tp->add_task(lambda);
 //    fut.wait();
   }
-  
+
+  FLUTTER_PLUGIN_EXPORT void ios_dummy() {
+    Log("Dummy called");
+  }
 }

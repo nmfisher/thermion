@@ -18,8 +18,6 @@
 #include <gltfio/ResourceLoader.h>
 #include <utils/NameComponentManager.h>
 
-#include "ResourceManagement.hpp"
-
 extern "C" {
     #include "PolyvoxFilamentApi.h"
 }
