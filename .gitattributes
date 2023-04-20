@@ -170,7 +170,7 @@ ios/lib/filament/include/tsl/robin_set.h filter=lfs diff=lfs merge=lfs -text
 ios/lib/filament/include/backend/Handle.h filter=lfs diff=lfs merge=lfs -text
 ios/lib/filament/include/ibl/CubemapIBL.h filter=lfs diff=lfs merge=lfs -text
 ios/lib/filament/include/backend/platforms/VulkanPlatform.h filter=lfs diff=lfs merge=lfs -text
-ios/lib/filament/include/gltfio/FilamentAsset.h filter=lfs diff=lfs merge=lfs -text
+ios/lib/filament/include/gltfio/FilamentEntity.h filter=lfs diff=lfs merge=lfs -text
 ios/lib/filament/LICENSE filter=lfs diff=lfs merge=lfs -text
 ios/lib/filament/include/backend/BufferDescriptor.h filter=lfs diff=lfs merge=lfs -text
 ios/lib/libfilament.a filter=lfs diff=lfs merge=lfs -text
