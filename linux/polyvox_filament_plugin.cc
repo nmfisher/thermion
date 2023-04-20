@@ -83,36 +83,16 @@ static FlMethodResponse* _create_texture(PolyvoxFilamentPlugin* self, FlMethodCa
     return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
-
-// TODO - defer the destruction of the old texture until this call has returned
-// otherwise the front-end may render using the destroyed texture ID for a single frame (hopefully no more)
 static FlMethodResponse* _resize(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   
   const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
   const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
 
-  if(!self->resizing && (width != self->width || height != self->height)) {
-    // self->rendering = false;
-    // self->resizing = true;
+  destroy_filament_texture(self->texture, self->texture_registrar);
 
-    // // destroy_swap_chain(self->viewer);
-
-    // destroy_filament_texture(self->texture, self->texture_registrar);
-
-    // self->texture = create_filament_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
-
-    // create_swap_chain(self->viewer, nullptr, width, height);
-    // create_render_target(self->viewer, ((FilamentTextureGL*)self->texture)->texture_id,width,height);
-      
-    // update_viewport_and_camera_projection(self->viewer, width, height, 1.0f);
-
-    // std::cout << "Created new texture " << self->texture << std::endl;
-
-    // self->resizing = false;
-    // self->rendering = true;
-  }
-
+  self->texture = create_filament_texture(uint32_t(width), uint32_t(height), self->texture_registrar);
+  
   g_autoptr(FlValue) result =   
          fl_value_new_int(reinterpret_cast<int64_t>(self->texture));   
       
@@ -130,8 +110,9 @@ static void polyvox_filament_plugin_handle_method_call(
   const gchar* method = fl_method_call_get_name(method_call);
 
   if(strcmp(method, "createTexture") == 0) {
-    Log("THREAD ID %d", std::this_thread::get_id());
     response = _create_texture(self, method_call);    
+  } else if(strcmp(method, "resize") == 0) {
+    response = _resize(self, method_call);
   } else if(strcmp(method, "getContext") == 0) {
     g_autoptr(FlValue) result =   
          fl_value_new_int(reinterpret_cast<int64_t>(glXGetCurrentContext()));   
@@ -150,6 +131,10 @@ static void polyvox_filament_plugin_handle_method_call(
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
   } else if(strcmp(method, "setRendering") == 0) {
     self->rendering =  fl_value_get_bool(fl_method_call_get_args(method_call));
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
+  } else if(strcmp(method, "tick") == 0) {        
+    fl_texture_registrar_mark_texture_frame_available(self->texture_registrar,
+                                                        self->texture);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
   } else if(strcmp(method, "setRenderTicker") == 0) {        
     if(self->viewer) {

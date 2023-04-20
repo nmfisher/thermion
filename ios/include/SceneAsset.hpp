@@ -37,7 +37,7 @@ namespace polyvox {
         bool mLoop = false;
         bool mReverse = false;
         float mDuration = 0;
-        int mFrameNumber = -1;
+        bool mAnimating = false;
 
         // AnimationStatus() {
         //     Log("default constr");
@@ -73,7 +73,7 @@ namespace polyvox {
     // Use this to manually construct a buffer of frame data for morph animations.
     //
     struct MorphAnimationBuffer {
-        utils::EntityInstance<RenderableManager>* mInstance = nullptr;
+        utils::Entity mMeshTarget;
         int mNumFrames = -1;
         float mFrameLengthInMs = 0;
         vector<float> mFrameData;
@@ -124,38 +124,7 @@ namespace polyvox {
             
         float mScale = 1;
 
-        // SceneAsset(const SceneAsset&& a) {
-        //     Log("MOVE");
-        // }
-
-
-        // SceneAsset(const SceneAsset& a) {
-        //     mAsset = a.mAsset;
-        //     mAnimator = a.mAnimator;
-        //     mAnimations = a.mAnimations;
-        //     mMorphAnimationBuffer = a.mMorphAnimationBuffer;
-        //     mBoneAnimationBuffer = a.mBoneAnimationBuffer;
-        //     mTexture = a.mTexture;
-        //     mPosition = a.mPosition;
-        //     mRotation = a.mRotation;
-        //     mScale = a.mScale;
-        // }
-
-
-        // SceneAsset& operator=(SceneAsset a) {
-        //     mAsset = a.mAsset;
-        //     mAnimator = a.mAnimator;
-        //     mAnimations = a.mAnimations;
-        //     mMorphAnimationBuffer = a.mMorphAnimationBuffer;
-        //     mBoneAnimationBuffer = a.mBoneAnimationBuffer;
-        //     mTexture = a.mTexture;
-        //     mPosition = a.mPosition;
-        //     mRotation = a.mRotation;
-        //     mScale = a.mScale;
-        //     return *this;
-        // }
-
-        SceneAsset(
+      SceneAsset(
             FilamentAsset* asset
         ) : mAsset(asset) {
             mAnimator = mAsset->getInstance()->getAnimator();

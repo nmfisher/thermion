@@ -33,20 +33,6 @@ class NativeLibrary {
   late final _init_dart_api_dl =
       _init_dart_api_dlPtr.asFunction<int Function(ffi.Pointer<ffi.Void>)>();
 
-  void register_filament_port(
-    int port,
-  ) {
-    return _register_filament_port(
-      port,
-    );
-  }
-
-  late final _register_filament_portPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>(
-          'register_filament_port');
-  late final _register_filament_port =
-      _register_filament_portPtr.asFunction<void Function(int)>();
-
   ffi.Pointer<ffi.Void> create_filament_viewer(
     ffi.Pointer<ffi.Void> context,
     ffi.Pointer<
@@ -78,16 +64,6 @@ class NativeLibrary {
               ffi.NativeFunction<
                   ResourceBuffer Function(ffi.Pointer<ffi.Char>)>>,
           ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>>)>();
-
-  renderCallback make_render_callback() {
-    return _make_render_callback();
-  }
-
-  late final _make_render_callbackPtr =
-      _lookup<ffi.NativeFunction<renderCallback Function()>>(
-          'make_render_callback');
-  late final _make_render_callback =
-      _make_render_callbackPtr.asFunction<renderCallback Function()>();
 
   void delete_filament_viewer(
     ffi.Pointer<ffi.Void> viewer,
@@ -648,7 +624,7 @@ class NativeLibrary {
       void Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Float>, int)>();
 
-  void set_morph_animation(
+  int set_morph_animation(
     ffi.Pointer<ffi.Void> assetManager,
     int asset,
     ffi.Pointer<ffi.Char> entityName,
@@ -670,7 +646,7 @@ class NativeLibrary {
 
   late final _set_morph_animationPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(
+          ffi.Int Function(
               ffi.Pointer<ffi.Void>,
               EntityId,
               ffi.Pointer<ffi.Char>,
@@ -679,7 +655,7 @@ class NativeLibrary {
               ffi.Int,
               ffi.Float)>>('set_morph_animation');
   late final _set_morph_animation = _set_morph_animationPtr.asFunction<
-      void Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>,
+      int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Float>, int, int, double)>();
 
   void set_bone_animation(
@@ -1159,8 +1135,6 @@ class ResourceBuffer extends ffi.Struct {
   external int id;
 }
 
-typedef renderCallback = ffi.Pointer<
-    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> viewer)>>;
 typedef EntityId = ffi.Int32;
 
 const int _STDINT_H = 1;

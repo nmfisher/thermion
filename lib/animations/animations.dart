@@ -24,7 +24,9 @@ class MorphAnimation {
   final Float32List data;
 
   MorphAnimation(
-      this.meshName, this.data, this.morphNames, this.frameLengthInMs);
+      this.meshName, this.data, this.morphNames, this.frameLengthInMs) {
+    assert(data.length == morphNames.length * numFrames);
+  }
 
   int get numMorphWeights => morphNames.length;
 

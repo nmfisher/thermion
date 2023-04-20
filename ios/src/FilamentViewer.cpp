@@ -790,7 +790,7 @@ void FilamentViewer::render(uint64_t frameTimeInNanos) {
   }
 
   if(_frameCount == 60) {
-    // Log("1 sec average for asset animation update %f", _elapsed);
+    Log("1 sec average for asset animation update %f", _elapsed);
     _elapsed = 0;
     _frameCount = 0;
   }

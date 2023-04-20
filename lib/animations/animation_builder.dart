@@ -1,14 +1,15 @@
 import 'package:polyvox_filament/animations/animations.dart';
+import 'package:polyvox_filament/filament_controller.dart';
 import 'package:tuple/tuple.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {
+  final FilamentController controller;
   DartBoneAnimation? dartBoneAnimation;
   double _frameLengthInMs = 0;
   double _duration = 0;
-  int _numMorphWeights = 0;
 
   double? _interpMorphStart;
   double? _interpMorphEnd;
@@ -17,14 +18,26 @@ class AnimationBuilder {
 
   List<DartBoneAnimation>? _dartBoneAnimations = null;
 
-  Tuple2<MorphAnimation, List<DartBoneAnimation>> build(
-      String meshName, List<String> morphNames) {
-    if (_numMorphWeights == 0 || _duration == 0 || _frameLengthInMs == 0)
+  FilamentEntity asset;
+  String meshName;
+  late List<String> morphNames;
+
+  AnimationBuilder(
+      {required this.controller,
+      required this.asset,
+      required this.meshName,
+      required int framerate}) {
+    _frameLengthInMs = 1000 / framerate;
+    morphNames = controller.getMorphTargetNames(asset, meshName);
+  }
+
+  void set() {
+    if (morphNames.isEmpty == 0 || _duration == 0 || _frameLengthInMs == 0)
       throw Exception();
 
     int numFrames = _duration * 1000 ~/ _frameLengthInMs;
 
-    final morphData = Float32List((numFrames * _numMorphWeights).toInt());
+    final morphData = Float32List((numFrames * morphNames.length).toInt());
 
     var frameStart = (_interpMorphStart! * 1000) ~/ _frameLengthInMs;
     var frameEnd = (_interpMorphEnd! * 1000) ~/ _frameLengthInMs;
@@ -34,30 +47,21 @@ class AnimationBuilder {
 
       var val = ((1 - linear) * _interpMorphStartValue!) +
           (linear * _interpMorphEndValue!);
-      for (int j = 0; j < _numMorphWeights; j++) {
-        morphData[(i * _numMorphWeights) + j] = val;
+      for (int j = 0; j < morphNames.length; j++) {
+        morphData[(i * morphNames.length) + j] = val;
       }
     }
 
     var morphAnimation =
         MorphAnimation(meshName, morphData, morphNames, _frameLengthInMs);
-
-    return Tuple2<MorphAnimation, List<DartBoneAnimation>>(
-        morphAnimation, _dartBoneAnimations!);
-  }
-
-  AnimationBuilder setFramerate(int framerate) {
-    _frameLengthInMs = 1000 / framerate;
-    return this;
+    print("SETTING!");
+    controller.setMorphAnimation(asset, morphAnimation);
+    // return Tuple2<MorphAnimation, List<DartBoneAnimation>>(
+    //     morphAnimation, _dartBoneAnimations!);
   }
 
   AnimationBuilder setDuration(double secs) {
     _duration = secs;
-    return this;
-  }
-
-  AnimationBuilder setNumMorphWeights(int numMorphWeights) {
-    _numMorphWeights = numMorphWeights;
     return this;
   }
 

@@ -4,14 +4,12 @@
 #include "ResourceBuffer.hpp"
 
 #include <stddef.h>
-#include "dart/dart_api_dl.h"
 
 typedef struct ResourceBuffer ResourceBuffer;
 
 typedef int32_t EntityId;
 
 intptr_t init_dart_api_dl(void* data);
-void register_filament_port(Dart_Port port);
 void* create_filament_viewer(void *context, ResourceBuffer (*loadResource)(const char *), void (*freeResource)(uint32_t));
 void delete_filament_viewer(void *viewer);
 void* get_asset_manager(void* viewer);
@@ -52,7 +50,7 @@ void apply_weights(
     int count
 );
 
-void set_morph_animation(
+bool set_morph_animation(
     void* assetManager,
     EntityId asset,
     const char *const entityName,

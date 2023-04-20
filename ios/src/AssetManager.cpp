@@ -91,11 +91,6 @@ EntityId AssetManager::loadGltf(const char *uri,
         string(relativeResourcePath) + string("/") + string(resourceUris[i]);
     ResourceBuffer buf = _loadResource(uri.c_str());
 
-    // using FunctionCallback = std::function<void(void*, unsigned int, void
-    // *)>; auto cb = [&] (void * ptr, unsigned int len, void * misc)  {
-    // };
-    // FunctionCallback fcb = cb;
-
     ResourceLoader::BufferDescriptor b(buf.data, buf.size);
     _gltfResourceLoader->addResourceData(resourceUris[i], std::move(b));
     _freeResource(buf.id);
@@ -223,39 +218,44 @@ void AssetManager::updateAnimations() {
     if(!asset.mAnimating) {
       continue;
     }
-
     asset.mAnimating = false;
     
-    // // morph animation
-    // AnimationStatus morphAnimation = asset.mAnimations[0];
-    // auto elapsed = (now - morphAnimation.mStart).count();
+    // dynamically constructed morph animation
+    AnimationStatus& morphAnimation = asset.mAnimations[0];
 
-    // int lengthInFrames = static_cast<int>(morphAnimation.mDuration / asset.mMorphAnimationBuffer.mFrameLengthInMs);
+    if(morphAnimation.mAnimating) {
+      
+      auto elapsed = float(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+          now - morphAnimation.mStart
+        ).count()) / 1000.0f;
+      int lengthInFrames = static_cast<int>(
+        morphAnimation.mDuration * 1000.0f / 
+        asset.mMorphAnimationBuffer.mFrameLengthInMs
+      );
 
-    // if(elapsed >= morphAnimation.mDuration) {
-    //   if(morphAnimation.mLoop) {
-    //     morphAnimation.mStart = now;
-    //     if(morphAnimation.mReverse) {
-    //       morphAnimation.mFrameNumber = lengthInFrames;
-    //     }
-    //     asset.mAnimating = true;
-    //   } else {
-    //     morphAnimation.mStart = time_point_t::max();
-    //   }
-    // } else {
-    //   asset.mAnimating = true;
-    // }
-    
-    // int frameNumber = static_cast<int>(elapsed / asset.mMorphAnimationBuffer.mFrameLengthInMs);
-    // if(frameNumber < lengthInFrames) {
-    //   if(morphAnimation.mReverse) {
-    //     frameNumber = lengthInFrames - frameNumber;
-    //   } 
-    //   rm.setMorphWeights(
-    //     *(asset.mMorphAnimationBuffer.mInstance),
-    //     asset.mMorphAnimationBuffer.mFrameData.data() + (morphAnimation.mFrameNumber * asset.mMorphAnimationBuffer.mNumMorphWeights),
-    //     asset.mMorphAnimationBuffer.mNumMorphWeights);
-    // }
+      // if more time has elapsed than the animation duration && not looping
+      // mark the animation as complete
+      if(elapsed >= morphAnimation.mDuration && !morphAnimation.mLoop) {
+        morphAnimation.mStart = time_point_t::max();
+        morphAnimation.mAnimating = false;
+      } else {
+        
+        asset.mAnimating = true;      
+        int frameNumber = static_cast<int>(elapsed * 1000.0f / asset.mMorphAnimationBuffer.mFrameLengthInMs) % lengthInFrames;
+        // offset from the end if reverse
+        if(morphAnimation.mReverse) {
+          frameNumber = lengthInFrames - frameNumber;
+        } 
+        
+        Log("setting weights for framenumber %d, elapsed is %f, lengthInFrames is %d, mNumMorphWeights %d", frameNumber, elapsed, lengthInFrames,asset.mMorphAnimationBuffer.mNumMorphWeights );
+          // set the weights appropriately
+          rm.setMorphWeights(
+            rm.getInstance(asset.mMorphAnimationBuffer.mMeshTarget),
+            asset.mMorphAnimationBuffer.mFrameData.data() + (frameNumber * asset.mMorphAnimationBuffer.mNumMorphWeights),
+            asset.mMorphAnimationBuffer.mNumMorphWeights);
+      }
+    }
 
     // // bone animation
     // AnimationStatus boneAnimation = asset.mAnimations[1];
@@ -292,35 +292,35 @@ void AssetManager::updateAnimations() {
 
     // GLTF animations
     
-    Animator* animator = asset.mAnimator;
-    
-    for(int j = 2; j < asset.mAnimations.size(); j++) {
-      
-      AnimationStatus& anim = asset.mAnimations[j];
+    int j = -1;
+    for(AnimationStatus& anim : asset.mAnimations) {
+      j++;
+      if(j < 2) {
+        continue;
+      }
+
+      if(!anim.mAnimating) {
+        continue;
+      }
 
       auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
 
-      if(elapsed < anim.mDuration) {
-        if(anim.mLoop) {
-          animator->applyAnimation(j-2, anim.mDuration - elapsed);
-        } else {
-          animator->applyAnimation(j-2, elapsed);
-        }
-        asset.mAnimating = true;
-      } else if(anim.mLoop) {
-        animator->applyAnimation(j-2, float(elapsed) ); //% anim.mDuration
+      if(anim.mLoop || elapsed < anim.mDuration) {
+        asset.mAnimator->applyAnimation(j-2, elapsed);
         asset.mAnimating = true;
       } else if(elapsed - anim.mDuration < 0.3) { 
         // cross-fade
         // animator->applyCrossFade(j-2, anim.mDuration - 0.05, elapsed / 0.3);
         // asset.mAnimating = true;
-        anim.mStart = time_point_t::max();
+        // anim.mStart = time_point_t::max();
       } else { 
         // stop
         anim.mStart = time_point_t::max();
       }
     }
-    asset.mAnimator->updateBoneMatrices();
+    if(asset.mAnimating) {
+      asset.mAnimator->updateBoneMatrices();
+    }
   }
 }
 
@@ -379,27 +379,33 @@ bool AssetManager::setMorphAnimationBuffer(
     Log("ERROR: asset not found for entity.");
     return false;
   }
-  auto asset = _assets[pos->second];
+  auto& asset = _assets[pos->second];
 
   auto entity = findEntityByName(asset, entityName);
   if(!entity) {
     Log("Warning: failed to find entity %s", entityName);
     return false;
   } 
-  RenderableManager &rm = _engine->getRenderableManager();
-  auto inst = rm.getInstance(entity);
-  
-  asset.mMorphAnimationBuffer.mInstance = &inst;
-  asset.mMorphAnimationBuffer.mNumFrames = numFrames;
-  asset.mMorphAnimationBuffer.mFrameLengthInMs = frameLengthInMs;
+
+  asset.mMorphAnimationBuffer.mMeshTarget = entity;
   asset.mMorphAnimationBuffer.mFrameData.clear();
   asset.mMorphAnimationBuffer.mFrameData.insert(
     asset.mMorphAnimationBuffer.mFrameData.begin(), 
     morphData,
     morphData + (numFrames * numMorphWeights)
   );
-
+  asset.mMorphAnimationBuffer.mFrameLengthInMs = frameLengthInMs;
   asset.mMorphAnimationBuffer.mNumMorphWeights = numMorphWeights;
+  
+  AnimationStatus& animation = asset.mAnimations[0];
+  animation.mDuration = (frameLengthInMs * numFrames) / 1000.0f;
+  animation.mStart = high_resolution_clock::now();
+  animation.mAnimating = true;
+  asset.mAnimating = true;
+  Log("set start to  %d, dur is %f", 
+      std::chrono::duration_cast<std::chrono::milliseconds>(animation.mStart.time_since_epoch()).count(), 
+      animation.mDuration
+  );
   return true;
 }
 
@@ -524,13 +530,12 @@ void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse)
     return;
   }
   auto& asset = _assets[pos->second];
-  
-  Log("prev start %d", std::chrono::duration_cast<std::chrono::milliseconds>(asset.mAnimations[index+2].mStart.time_since_epoch()).count());
 
+  asset.mAnimations[index+2].mAnimating = true;
   asset.mAnimations[index+2].mStart = std::chrono::high_resolution_clock::now();
   asset.mAnimations[index+2].mLoop = loop;
   asset.mAnimations[index+2].mReverse = reverse;
-  Log("new start %d", std::chrono::duration_cast<std::chrono::milliseconds>(asset.mAnimations[index+2].mStart.time_since_epoch()).count());
+  // Log("new start %d, dur is %f", std::chrono::duration_cast<std::chrono::milliseconds>(asset.mAnimations[index+2].mStart.time_since_epoch()).count(), asset.mAnimations[index+2].mDuration);
   asset.mAnimating = true;
 }
 

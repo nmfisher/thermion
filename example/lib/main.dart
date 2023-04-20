@@ -37,7 +37,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _filamentController = FilamentController();
+    _filamentController = FilamentController(this);
   }
 
   void onClick(int index) async {
@@ -117,26 +117,25 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         _filamentController.setCamera(_cube!, "Camera_Orientation");
         break;
       case 15:
-        throw Exception("FIXME");
-        // final animation = AnimationBuilder()
-        //     .setFramerate(30)
-        //     .setDuration(4)
-        //     .setNumMorphWeights(8)
-        //     .interpolateMorphWeights(0, 4, 0, 1)
-        //     .interpolateBoneTransform(
-        //         "Bone.001",
-        //         "Cube.001",
-        //         2,
-        //         4,
-        //         v.Vector3.zero(),
-        //         v.Vector3.zero(),
-        //         // Vec3(x: 1, y: 1, z: 1),
-        //         v.Quaternion(0, 0, 0, 1),
-        //         v.Quaternion(1, 1, 1, 1))
-        //     // Quaternion(x: 1, y: 1, z: 1, w: 1))
-        //     .build();
-
-        // _filamentController.setAnimation(_cube!, animation);
+        final animation = AnimationBuilder(
+                controller: _filamentController,
+                asset: _cube!,
+                framerate: 30,
+                meshName: "Cube.001")
+            .setDuration(4)
+            .interpolateMorphWeights(0, 4, 0, 1)
+            // .interpolateBoneTransform(
+            //     "Bone.001",
+            //     "Cube.001",
+            //     2,
+            //     4,
+            //     v.Vector3.zero(),
+            //     v.Vector3.zero(),
+            //     // Vec3(x: 1, y: 1, z: 1),
+            //     v.Quaternion(0, 0, 0, 1),
+            //     v.Quaternion(1, 1, 1, 1))
+            // Quaternion(x: 1, y: 1, z: 1, w: 1))
+            .set();
         break;
       case 16:
         _targetNames = _filamentController.getMorphTargetNames(_cube!, "Cube");

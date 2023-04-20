@@ -103,9 +103,9 @@ class _FilamentWidgetState extends State<FilamentWidget> {
                   width: constraints.maxWidth,
                   child: ResizeObserver(
                       onResized: (Size oldSize, Size newSize) async {
-                        setState(() {
-                          _resizing = true;
-                        });
+                        // setState(() {
+                        //   _resizing = true;
+                        // });
 
                         await widget.controller.resize(
                             newSize.width.toInt(), newSize.height.toInt());

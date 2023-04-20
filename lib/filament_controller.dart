@@ -41,7 +41,8 @@ class FilamentController {
 
   bool _rendering = false;
 
-  final _port = ReceivePort();
+  final TickerProvider _tickerProvider;
+  Ticker? _ticker;
 
   ///
   /// This now uses an FFI implementation.
@@ -49,7 +50,7 @@ class FilamentController {
   /// All other methods directly invoke the FFI functions defined in PolyvoxFilamentApi.cpp,
   /// which itself uses a threadpool so that calls are run on a separate thread.
   ///
-  FilamentController() {
+  FilamentController(this._tickerProvider) {
     _channel.setMethodCallHandler((call) async {
       throw Exception("Unknown method channel invocation ${call.method}");
     });
@@ -75,7 +76,6 @@ class FilamentController {
 
   void render() {
     _nativeLibrary.render(_viewer, 0);
-    _channel.invokeMethod("onFrameAvailable");
   }
 
   Future setFrameRate(int framerate) async {
@@ -87,12 +87,6 @@ class FilamentController {
   }
 
   Future createViewer(int width, int height) async {
-    // if (_viewer.address == 0) {
-    //   throw Exception("TODO");
-    // }
-    _nativeLibrary.init_dart_api_dl(NativeApi.initializeApiDLData);
-    _nativeLibrary.register_filament_port(_port.sendPort.nativePort);
-
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
     _textureId =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
@@ -123,17 +117,32 @@ class FilamentController {
     _initialized.complete(true);
     _assetManager = _nativeLibrary.get_asset_manager(_viewer);
 
-    await _channel.invokeMethod("setRenderTicker", _viewer.address);
+    // await _channel.invokeMethod("setRenderTicker", _viewer.address);
+
+    _ticker = _tickerProvider.createTicker((elapsed) async {
+      _nativeLibrary.render(_viewer, 0);
+      await _channel.invokeMethod("tick");
+    });
+    _ticker!.start();
   }
 
   Future resize(int width, int height,
       {double contentScaleFactor = 1.0}) async {
-    size = ui.Size(width * _pixelRatio, height * _pixelRatio);
+    // await setRendering(false);
+    // _textureIdController.add(null);
+    // _nativeLibrary.destroy_swap_chain(_viewer);
+    // size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
-    _textureId = await _channel.invokeMethod("resize",
-        [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
+    // _textureId = await _channel.invokeMethod("resize",
+    //     [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
 
-    _textureIdController.add(_textureId);
+    // _textureIdController.add(_textureId);
+    // _nativeLibrary.create_swap_chain(_viewer, nullptr, width, height);
+    // _nativeLibrary.create_render_target(
+    //     _viewer, await _channel.invokeMethod("getGlTextureId"), width, height);
+    // _nativeLibrary.update_viewport_and_camera_projection(
+    //     _viewer, width, height, contentScaleFactor);
+    // await setRendering(true);
   }
 
   void clearBackgroundImage() async {
@@ -362,6 +371,7 @@ class FilamentController {
 
   void playAnimation(FilamentEntity asset, int index,
       {bool loop = false, bool reverse = false}) async {
+    print("LOOP $loop");
     _nativeLibrary.play_animation(
         _assetManager, asset, index, loop ? 1 : 0, reverse ? 1 : 0);
   }
