@@ -246,7 +246,6 @@ void AssetManager::updateAnimations() {
           frameNumber = lengthInFrames - frameNumber;
         } 
         
-        Log("setting weights for framenumber %d, elapsed is %f, lengthInFrames is %d, mNumMorphWeights %d", frameNumber, elapsed, lengthInFrames,asset.mMorphAnimationBuffer.mNumMorphWeights );
           // set the weights appropriately
           rm.setMorphWeights(
             rm.getInstance(asset.mMorphAnimationBuffer.mMeshTarget),
