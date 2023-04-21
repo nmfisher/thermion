@@ -189,13 +189,9 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
           createDisplayLink()
           result(self.flutterTextureId)
           //          print("texture id \(pixelBufferflutterTextureId)")
-        case "getLoadResourceFn":
-
+        case "getResourceLoader":
           let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
-
           result(unsafeBitCast(callback,  to:Int64.self))
-        case "getFreeResourceFn":
-          result(unsafeBitCast(freeResource,  to:Int64.self))
         case "getGlTextureId":
           result(FlutterMethodNotImplemented)
       case "getSurface":

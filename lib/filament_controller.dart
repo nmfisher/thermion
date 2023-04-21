@@ -95,19 +95,13 @@ class FilamentController {
     _textureId =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
     _textureIdController.add(_textureId);
-    print("Got texture id $_textureId");
 
     var glContext =
         Pointer<Void>.fromAddress(await _channel.invokeMethod("getContext"));
-    final loadResource = Pointer<
-            NativeFunction<ResourceBuffer Function(Pointer<Char>)>>.fromAddress(
-        await _channel.invokeMethod("getLoadResourceFn"));
+    final resourceLoader = Pointer<ResourceLoaderWrapper>.fromAddress(
+        await _channel.invokeMethod("getResourceLoader"));
 
-    var freeResource =
-        Pointer<NativeFunction<Void Function(Uint32)>>.fromAddress(
-            await _channel.invokeMethod("getFreeResourceFn"));
-    _viewer = _nativeLibrary.create_filament_viewer(
-        glContext, loadResource, freeResource);
+    _viewer = _nativeLibrary.create_filament_viewer(glContext, resourceLoader);
     if (Platform.isLinux) {
       // don't pass a surface to the SwapChain as we are effectively creating a headless SwapChain that will render into a RenderTarget associated with a texture
       _nativeLibrary.create_swap_chain(
