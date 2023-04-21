@@ -77,13 +77,18 @@ class FilamentController {
     _nativeLibrary.render(_viewer, 0);
   }
 
+  int _frameLengthInMicroseconds = 1000000 ~/ 60;
+
   Future setFrameRate(int framerate) async {
+    _frameLengthInMicroseconds = 1000000 ~/ framerate;
     _nativeLibrary.set_frame_interval(_viewer, 1 / framerate);
   }
 
   void setPixelRatio(double ratio) {
     _pixelRatio = ratio;
   }
+
+  int _last = 0;
 
   Future createViewer(int width, int height) async {
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
@@ -125,8 +130,11 @@ class FilamentController {
     _initialized.complete(true);
     _assetManager = _nativeLibrary.get_asset_manager(_viewer);
 
-    _ticker = _tickerProvider.createTicker((elapsed) async {
-      _nativeLibrary.render(_viewer, 0);
+    _ticker = _tickerProvider.createTicker((Duration elapsed) async {
+      if (elapsed.inMicroseconds - _last > _frameLengthInMicroseconds) {
+        render();
+        _last = elapsed.inMicroseconds;
+      }
     });
     _ticker!.start();
   }
