@@ -58,12 +58,15 @@ ResourceBuffer loadResource(const char* name) {
     is.read (buffer, length);
     is.close();      
     _file_assets[id] = buffer;
+    std::cout << "Loaded!" << std::endl;
+
     return ResourceBuffer(buffer, length, id);
 }
 
-void freeResource(uint32_t id) {
-  std::cout << "Freeing resource " << id << std::endl;
-  auto it = _file_assets.find(id);
+void freeResource(ResourceBuffer rbuf) {
+  std::cout << "Free " << rbuf.id << std::endl;
+  std::cout << "Freeing resource " << rbuf.id << std::endl;
+  auto it = _file_assets.find(rbuf.id);
   if (it != _file_assets.end()) {
     free(it->second);
   }

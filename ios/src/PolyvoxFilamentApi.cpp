@@ -21,6 +21,7 @@ extern "C" {
   #include "PolyvoxFilamentApi.h"
 
   FLUTTER_PLUGIN_EXPORT void* create_filament_viewer(void* context, ResourceLoaderWrapper* loader) {
+    loader->load("foo");
     // if(!_tp) {
     //   _tp = new ThreadPool();
     // }

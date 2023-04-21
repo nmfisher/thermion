@@ -49,10 +49,9 @@ extern "C" {
     struct ResourceLoaderWrapper {
       #if defined(__cplusplus)
         ResourceLoaderWrapper(LoadResource loader, FreeResource freeResource) : mLoadResource(loader), mFreeResource(freeResource) {};
-        ResourceLoaderWrapper(LoadResourceFromOwner loader, FreeResourceFromOwner freeResource, void* const owner) : mLoadResourceFromOwner(loader), mFreeResourceFromOwner(freeResource),  mOwner(owner) {};
+        ResourceLoaderWrapper(LoadResourceFromOwner loader, FreeResourceFromOwner freeResource, void* const owner) : mOwner(owner), mLoadResourceFromOwner(loader), mFreeResourceFromOwner(freeResource) {};
 
         ResourceBuffer load(const char* uri) {
-          Log("LOADING %s", uri);
           if(mLoadResourceFromOwner) {
             return mLoadResourceFromOwner(uri, mOwner);
           }
@@ -67,11 +66,11 @@ extern "C" {
           }
         }
       #endif
-        void* mOwner;
-        LoadResource mLoadResource;
-        FreeResource mFreeResource;
-        LoadResourceFromOwner mLoadResourceFromOwner;
-        FreeResourceFromOwner mFreeResourceFromOwner;
+        void* mOwner = nullptr;
+        LoadResource mLoadResource = nullptr;
+        FreeResource mFreeResource = nullptr;
+        LoadResourceFromOwner mLoadResourceFromOwner = nullptr;
+        FreeResourceFromOwner mFreeResourceFromOwner = nullptr;
     };
     typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
     

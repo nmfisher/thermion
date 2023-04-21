@@ -107,13 +107,10 @@ static void polyvox_filament_plugin_handle_method_call(
     g_autoptr(FlValue) result =   
          fl_value_new_int(reinterpret_cast<unsigned int>(((FilamentTextureGL*)self->texture)->texture_id));   
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-  } else if(strcmp(method, "getLoadResourceFn") == 0) {
+  } else if(strcmp(method, "getResourceLoader") == 0) {
+    ResourceLoaderWrapper* resourceLoader = new ResourceLoaderWrapper(loadResource, freeResource);
     g_autoptr(FlValue) result =   
-         fl_value_new_int(reinterpret_cast<int64_t>(loadResource));   
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-  } else if(strcmp(method, "getFreeResourceFn") == 0) {
-    g_autoptr(FlValue) result =   
-         fl_value_new_int(reinterpret_cast<int64_t>(&freeResource));   
+         fl_value_new_int(reinterpret_cast<int64_t>(resourceLoader));   
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
   } else if(strcmp(method, "tick") == 0) {        
     fl_texture_registrar_mark_texture_frame_available(self->texture_registrar,

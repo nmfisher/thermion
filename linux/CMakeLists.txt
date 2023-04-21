@@ -21,10 +21,6 @@ add_library(FILAMENT_SHADERS SHARED
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/unlit_opaque.c"  
 )
 
-add_library(DART_API SHARED 
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/dart_api_dl.c"
-)
-
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
 #
@@ -61,7 +57,6 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
 
 include_directories(../ios/src)
 include_directories(../ios/include)
-include_directories(../ios/include/dart)
 include_directories(../example/linux)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
@@ -126,7 +121,6 @@ set_property(TARGET math PROPERTY IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE
   FILAMENT_SHADERS
-  DART_API
   gltfio_core 
   filament 
   backend 
