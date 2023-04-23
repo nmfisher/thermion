@@ -25,10 +25,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     
     static var messenger : FlutterBinaryMessenger? = nil;
   
-    var loadResourcePtr: UnsafeMutableRawPointer? = nil
-    var freeResourcePtr: UnsafeMutableRawPointer? = nil
- 
-  
     var loadResource : @convention(c) (UnsafePointer<Int8>?, UnsafeMutableRawPointer?) -> ResourceBuffer = { uri, resourcesPtr in
       
         let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
@@ -130,9 +126,9 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     }
     
     @objc func doRender() {
-        
+
     }
-  
+
     func createDisplayLink() {
       displayLink = CADisplayLink(target: self,
                                       selector: #selector(doRender))
@@ -141,9 +137,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     
     public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
         if(pixelBuffer == nil) {
-            print("empty")
             return nil;
-        } 
+        }
         return Unmanaged.passRetained(pixelBuffer!);
     }
   
@@ -186,9 +181,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "createTexture":
           let args = call.arguments as! Array<Int32>
           createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
-          createDisplayLink()
+//          we no longer need to call createDisplayLink() because we drive our render ticker from the Dart side, not the platform side
           result(self.flutterTextureId)
-          //          print("texture id \(pixelBufferflutterTextureId)")
         case "getResourceLoader":
           let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
           result(unsafeBitCast(callback,  to:Int64.self))
@@ -197,7 +191,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
       case "getSurface":
           var pixelBufferTextureId = Int64(Int(bitPattern:unsafeBitCast(pixelBuffer!, to: UnsafeMutableRawPointer.self)))
           result(pixelBufferTextureId)
-
         case "getContext":
            result(0) //nullptr
         case "resize":

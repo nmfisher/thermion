@@ -46,10 +46,16 @@ extern "C" {
     typedef void (*FreeResource)(ResourceBuffer);
     typedef void (*FreeResourceFromOwner)(ResourceBuffer, void* const owner);
     
+    // this may be compiled as either C or C++, depending on which compiler is being invoked (e.g. binding to Swift will compile as C).
+    // the former does not allow default initialization to be specified inline), so we need to explicitly set the unused members to nullptr
     struct ResourceLoaderWrapper {
       #if defined(__cplusplus)
-        ResourceLoaderWrapper(LoadResource loader, FreeResource freeResource) : mLoadResource(loader), mFreeResource(freeResource) {};
-        ResourceLoaderWrapper(LoadResourceFromOwner loader, FreeResourceFromOwner freeResource, void* const owner) : mOwner(owner), mLoadResourceFromOwner(loader), mFreeResourceFromOwner(freeResource) {};
+        ResourceLoaderWrapper(LoadResource loader, FreeResource freeResource) : mLoadResource(loader), mFreeResource(freeResource), mLoadResourceFromOwner(nullptr), mFreeResourceFromOwner(nullptr),
+        mOwner(nullptr) {}
+        
+        ResourceLoaderWrapper(LoadResourceFromOwner loader, FreeResourceFromOwner freeResource, void* const owner) : mLoadResource(nullptr), mFreeResource(nullptr), mLoadResourceFromOwner(loader), mFreeResourceFromOwner(freeResource), mOwner(owner) {
+            
+        };
 
         ResourceBuffer load(const char* uri) {
           if(mLoadResourceFromOwner) {
@@ -66,11 +72,11 @@ extern "C" {
           }
         }
       #endif
-        void* mOwner = nullptr;
-        LoadResource mLoadResource = nullptr;
-        FreeResource mFreeResource = nullptr;
-        LoadResourceFromOwner mLoadResourceFromOwner = nullptr;
-        FreeResourceFromOwner mFreeResourceFromOwner = nullptr;
+        LoadResource mLoadResource;
+        FreeResource mFreeResource;
+        LoadResourceFromOwner mLoadResourceFromOwner;
+        FreeResourceFromOwner mFreeResourceFromOwner;
+        void* mOwner;
     };
     typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
     
