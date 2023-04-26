@@ -27,17 +27,11 @@ extern "C" {
     //
     struct ResourceBuffer {
         #if defined(__cplusplus)
-        ResourceBuffer(const void* data, const uint32_t size, const uint32_t id) : data(data), size(size), id(id) {};
-        ResourceBuffer& operator=(ResourceBuffer other) {
-          data = other.data;
-          size = other.size;
-          id = other.id;
-          return *this;
-        }
+        ResourceBuffer(const void* const data, const uint32_t size, const uint32_t id) : data(data), size(size), id(id) {};
         #endif
-        const void* data;
-        uint32_t size;
-        uint32_t id;
+        const void * const data;
+        const uint32_t size;
+        const uint32_t id;
     };
 
     typedef struct ResourceBuffer ResourceBuffer;
