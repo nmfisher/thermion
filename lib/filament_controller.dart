@@ -9,9 +9,9 @@ import 'package:flutter/animation.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:flutter/services.dart';
+import 'package:polyvox_filament/animations/bone_animation_data.dart';
+import 'package:polyvox_filament/animations/morph_animation_data.dart';
 import 'package:polyvox_filament/generated_bindings.dart';
-
-import 'animations/animations.dart';
 
 typedef AssetManager = Pointer<Void>;
 typedef FilamentViewer = Pointer<Void>;
@@ -299,7 +299,8 @@ class FilamentController {
   /// [morphWeights] is a list of doubles in frame-major format.
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   ///
-  void setMorphAnimation(FilamentEntity asset, MorphAnimation animation) async {
+  void setMorphAnimationData(
+      FilamentEntity asset, MorphAnimationData animation) async {
     var data = calloc<Float>(animation.data.length);
     for (int i = 0; i < animation.data.length; i++) {
       data.elementAt(i).value = animation.data[i];
@@ -321,7 +322,7 @@ class FilamentController {
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   ///
   void setBoneAnimation(
-      FilamentEntity asset, List<DartBoneAnimation> animations) async {
+      FilamentEntity asset, List<BoneAnimationData> animations) async {
     var data =
         calloc<Float>(animations.length * animations.first.frameData.length);
     int offset = 0;
