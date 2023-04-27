@@ -323,15 +323,19 @@ class FilamentController {
   ///
   void setBoneAnimation(
       FilamentEntity asset, List<BoneAnimationData> animations) async {
+    // for future compatibility, instances of BoneAnimationData can specify individual mesh targets
+    // however on the rendering side we currently only allow one set of frame data for one mesh target (though multiple bones are supported).
+    // this is a check that all animations are targeting the same mesh
+    assert(animations.map((e) => e.meshName).toSet().length == 1);
+
     var data =
         calloc<Float>(animations.length * animations.first.frameData.length);
     int offset = 0;
-    var numFrames = animations.first.frameData.length;
-    var meshNames = calloc<Pointer<Char>>(animations.length);
+    var numFrames = animations.first.frameData.length ~/ 7;
     var boneNames = calloc<Pointer<Char>>(animations.length);
     int animIdx = 0;
     for (var animation in animations) {
-      if (animation.frameData.length != numFrames) {
+      if (animation.frameData.length ~/ 7 != numFrames) {
         throw Exception(
             "All bone animations must share the same animation frame data length.");
       }
@@ -339,20 +343,19 @@ class FilamentController {
         data.elementAt(offset).value = animation.frameData[i];
         offset += 1;
       }
-      meshNames.elementAt(animIdx).value =
-          animation.meshName.toNativeUtf8().cast<Char>();
       boneNames.elementAt(animIdx).value =
           animation.boneName.toNativeUtf8().cast<Char>();
+      animIdx++;
     }
 
     _nativeLibrary.set_bone_animation(
         _assetManager,
         asset,
-        animations.length,
-        boneNames,
-        meshNames,
         data,
         numFrames,
+        animations.length,
+        boneNames,
+        animations.first.meshName.toNativeUtf8().cast<Char>(),
         animations.first.frameLengthInMs);
     calloc.free(data);
   }
@@ -379,7 +382,6 @@ class FilamentController {
 
   void playAnimation(FilamentEntity asset, int index,
       {bool loop = false, bool reverse = false}) async {
-    print("LOOP $loop");
     _nativeLibrary.play_animation(
         _assetManager, asset, index, loop ? 1 : 0, reverse ? 1 : 0);
   }

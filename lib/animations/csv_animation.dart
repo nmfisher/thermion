@@ -15,40 +15,52 @@ class DynamicAnimation {
   final List<BoneAnimationData> boneAnimation;
 
   factory DynamicAnimation.load(String meshName, String csvPath,
-      {String? boneDriverConfigPath}) {
+      {List<BoneDriver>? boneDrivers,
+      String? boneDriverConfigPath,
+      double? framerate}) {
     // create a MorphAnimationData instance from the given CSV
     var llf = _loadLiveLinkFaceCSV(csvPath);
+    var frameLengthInMs = 1000 / (framerate ?? 60.0);
     var morphNames = llf
         .item1; //.where((name) => !boneDrivers.any((element) => element.blendshape == name));
-    var morphAnimationData = MorphAnimationData(
-      meshName,
-      llf.item2,
-      morphNames,
-      1000 / 60.0,
-    );
+    var morphAnimationData =
+        MorphAnimationData(meshName, llf.item2, morphNames, frameLengthInMs);
 
     final boneAnimations = <BoneAnimationData>[];
 
     // if applicable, load the bone driver config
     if (boneDriverConfigPath != null) {
-      var boneData = json.decode(File(boneDriverConfigPath).readAsStringSync());
-      // for each driver
-      for (var key in boneData.keys()) {
-        var driver = BoneDriver.fromJsonObject(boneData[key]);
+      if (boneDrivers != null) {
+        throw Exception(
+            "Specify either boneDrivers, or the config path, not both");
+      }
+      boneDrivers = [
+        json
+            .decode(File(boneDriverConfigPath).readAsStringSync())
+            .map(BoneDriver.fromJsonObject)
+            .toList()
+      ];
+    }
 
+    // iterate over every bone driver
+    if (boneDrivers != null) {
+      for (var driver in boneDrivers) {
         // get all frames for the single the blendshape
-        var morphFrameData =
-            morphAnimationData.getData(driver.blendshape).toList();
+        var morphData = driver.transformations
+            .map((String blendshape, Transformation transformation) {
+          return MapEntry(
+              blendshape, morphAnimationData.getData(blendshape).toList());
+        });
 
         // apply the driver to the blendshape weight
-        var transformedQ = driver.transform(morphFrameData).toList();
+        var transformedQ = driver.transform(morphData).toList();
 
         // transform the quaternion to a Float32List
         var transformedF = _quaternionToFloatList(transformedQ);
 
         // add to the list of boneAnimations
         boneAnimations.add(BoneAnimationData(
-            driver.bone, meshName, transformedF, 1000.0 / 60.0));
+            driver.bone, meshName, transformedF, frameLengthInMs));
       }
     }
 
@@ -56,9 +68,11 @@ class DynamicAnimation {
   }
 
   static Float32List _quaternionToFloatList(List<Quaternion> quats) {
-    var data = Float32List(quats.length * 4);
+    var data = Float32List(quats.length * 7);
+    int i = 0;
     for (var quat in quats) {
-      data.addAll([0, 0, 0, quat.w, quat.x, quat.y, quat.z]);
+      data.setRange(i, i + 7, [0, 0, 0, quat.w, quat.x, quat.y, quat.z]);
+      i += 7;
     }
     return data;
   }
@@ -86,7 +100,7 @@ class DynamicAnimation {
       // CSVs may contain rows where the "BlendShapeCount" column is set to "0" and/or the weight columns are simply missing.
       // This can happen when something went wrong while recording via an app (e.g. LiveLinkFace)
       // Whenever we encounter this type of row, we consider that all weights should be set to zero for that frame.
-      if (numFrameWeights == int.parse(frame[1])) {
+      if (numFrameWeights != int.parse(frame[1])) {
         _data.addAll(List<double>.filled(numBlendShapes, 0.0));
         continue;
       }

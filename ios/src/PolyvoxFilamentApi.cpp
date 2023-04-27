@@ -358,20 +358,20 @@ extern "C" {
   FLUTTER_PLUGIN_EXPORT void set_bone_animation(
     void* assetManager,
     EntityId asset, 
-    int length,
-    const char** const boneNames,
-    const char** const meshNames,
     const float* const frameData,
     int numFrames, 
+    int numBones,
+    const char** const boneNames,
+    const char* const meshName,
     float frameLengthInMs) {
     //std::packaged_task<void()> lambda([=]() mutable  {
       ((AssetManager*)assetManager)->setBoneAnimationBuffer(
         asset, 
-        length,
-        boneNames, 
-        meshNames,
         frameData,
-        numFrames, 
+        numFrames,
+        numBones,
+        boneNames, 
+        meshName,
         frameLengthInMs
       );
       //});
@@ -417,7 +417,6 @@ extern "C" {
     bool reverse) {
     
     //std::packaged_task<void()> lambda([=]() mutable  {
-      std::cout << "Playing animation" << std::endl;
       ((AssetManager*)assetManager)->playAnimation(asset, index, loop, reverse);
     //});
 //    auto fut = _tp->add_task(lambda);

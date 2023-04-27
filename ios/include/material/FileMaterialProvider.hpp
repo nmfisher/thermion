@@ -18,7 +18,7 @@ namespace polyvox {
 
 
       public:
-        FileMaterialProvider(Engine* engine, void* const  data, size_t size) {
+        FileMaterialProvider(Engine* engine, const void* const  data, const size_t size) {
           _m = Material::Builder()
             .package(data, size)
             .build(*engine);

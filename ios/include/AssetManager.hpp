@@ -40,20 +40,21 @@ namespace polyvox {
             size_t getLightEntityCount(EntityId e) const noexcept;
             void updateAnimations();
 
-            bool setBoneAnimationBuffer(
-                EntityId entity,
-                int length,
-                const char** const boneNames,
-                const char** const meshNames,
-                const float* const frameData,
-                int numFrames, 
-                float frameLengthInMs);
+            
             bool setMorphAnimationBuffer(
-                EntityId entity, 
-                const char* entityName, 
-                const float* const morphData,     
+                EntityId entityId,
+                const char* entityName,
+                const float* const morphData,
                 int numMorphWeights, 
                 int numFrames, 
+                float frameLengthInMs);
+            bool setBoneAnimationBuffer(
+                EntityId entity,
+                const float* const frameData,
+                int numFrames, 
+                int numBones,
+                const char** const boneNames,
+                const char* const meshName,
                 float frameLengthInMs);
             void playAnimation(EntityId e, int index, bool loop, bool reverse);
             void stopAnimation(EntityId e, int index);
@@ -74,18 +75,15 @@ namespace polyvox {
             vector<SceneAsset> _assets;
             tsl::robin_map<EntityId, int> _entityIdLookup;
  
-            void setBoneTransform(
-              FilamentInstance* instance,
-                vector<BoneAnimationData> animations,
-                int frameNumber
-            );
-
             utils::Entity findEntityByName(
                 SceneAsset asset, 
                 const char* entityName
             );
             
-            inline void updateTransform(SceneAsset asset);
+            inline void updateTransform(SceneAsset& asset);
+
+            inline void setBoneTransform(SceneAsset& asset, int frameNumber);
+
 
 
     };

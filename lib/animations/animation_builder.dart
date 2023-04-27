@@ -7,7 +7,7 @@ import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {
   final FilamentController controller;
-  BoneAnimationData? BoneAnimationData;
+  // BoneAnimationData? BoneAnimationData;
   double _frameLengthInMs = 0;
   double _duration = 0;
 
@@ -16,7 +16,7 @@ class AnimationBuilder {
   double? _interpMorphStartValue;
   double? _interpMorphEndValue;
 
-  List<BoneAnimationData>? _BoneAnimationDatas = null;
+  // List<BoneAnimationData>? _BoneAnimationDatas = null;
 
   FilamentEntity asset;
   String meshName;

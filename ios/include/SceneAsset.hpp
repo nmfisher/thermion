@@ -7,6 +7,7 @@
 #include <filament/Renderer.h>
 #include <filament/Scene.h>
 #include <filament/Texture.h>
+#include <filament/TransformManager.h>
 
 #include <math/vec3.h>
 #include <math/vec4.h>
@@ -36,35 +37,6 @@ namespace polyvox {
         bool mReverse = false;
         float mDuration = 0;
         bool mAnimating = false;
-
-        // AnimationStatus() {
-        //     Log("default constr");
-        // }
-
-        // AnimationStatus(AnimationStatus& a) {
-        //     mStart = a.mStart;
-        //     mLoop = a.mLoop;
-        //     mReverse = a.mReverse;
-        //     mDuration = a.mDuration;
-        //     mFrameNumber = a.mFrameNumber;
-        // }
-
-        // AnimationStatus& operator=(AnimationStatus a) {
-        //     mStart = a.mStart;
-        //     mLoop = a.mLoop;
-        //     mReverse = a.mReverse;
-        //     mDuration = a.mDuration;
-        //     mFrameNumber = a.mFrameNumber;
-        //     return *this;
-        // }
-
-        // AnimationStatus(AnimationStatus&& a) {
-        //     mStart = a.mStart;
-        //     mLoop = a.mLoop;
-        //     mReverse = a.mReverse;
-        //     mDuration = a.mDuration;
-        //     mFrameNumber = a.mFrameNumber;
-        // }
     };
 
     // 
@@ -78,24 +50,18 @@ namespace polyvox {
         int mNumMorphWeights = 0;
     };
 
-    ///
-    /// Frame data for the bones/meshes specified by [mBoneIndices] and [mMeshTargets].
-    /// This is mainly used as a wrapper for animation data being transferred from the Dart to the native side.
-    ///
-    struct BoneAnimationData {
-        size_t skinIndex = 0;
-        uint8_t mBoneIndex;
-        utils::Entity mMeshTarget;
-        vector<float> mFrameData;
-    };
-
     // 
-    // Use this to manually construct a buffer of frame data for bone animations.
+    // Use this to construct a dynamic (i.e. non-glTF embedded) bone animation.
+    // Only a single animation is supported at any time (i.e you can't blend animations).
+    // Multiple bones are supported but these must be skinned to a single mesh target.
     //
     struct BoneAnimationBuffer {
+        utils::Entity mMeshTarget;
+        vector<uint8_t> mBones;
+        size_t skinIndex = 0;
         int mNumFrames = -1;
         float mFrameLengthInMs = 0;
-        vector<BoneAnimationData> mAnimations;
+        vector<float> mFrameData;
     };
 
     struct SceneAsset {
@@ -129,10 +95,12 @@ namespace polyvox {
 
             mAnimations.resize(2 + mAnimator->getAnimationCount());
             
-            for(int i=2; i < mAnimations.size(); i++) {
-                mAnimations[i].mDuration = mAnimator->getAnimationDuration(i-2);
+            for(int i=0; i < mAnimations.size() - 2; i++) {
+                mAnimations[i].mDuration = mAnimator->getAnimationDuration(i);
             }
         }
+
+       
     };
 
 }

@@ -24,8 +24,9 @@ class MorphAnimationData {
   final double frameLengthInMs;
 
   Iterable<double> getData(String morphName) sync* {
+    int index = morphNames.indexOf(morphName);
     for (int i = 0; i < numFrames; i++) {
-      yield data[i * numMorphWeights];
+      yield data[(i * numMorphWeights) + index];
     }
   }
 }

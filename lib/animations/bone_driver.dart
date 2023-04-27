@@ -13,45 +13,64 @@ import 'package:vector_math/vector_math.dart';
 /// 4) min/max rotation values (corresponding to -1/1 on the blendshape)
 ///
 
+class Transformation {
+  final Quaternion rotation;
+  late final Vector3 translation;
+
+  Transformation(this.rotation, {Vector3? translation}) {
+    this.translation = translation ?? Vector3.zero();
+  }
+}
+
 class BoneDriver {
   final String bone;
-  final String blendshape;
+  final Map<String, Transformation>
+      transformations; // maps a blendshape key to a Transformation
 
-  late final Vector3 transMin;
-  late final Vector3 transMax;
-  late final Quaternion rotMin;
-  late final Quaternion rotMax;
-
-  BoneDriver(this.bone, this.blendshape, this.rotMin, this.rotMax,
-      Vector3? transMin, Vector3? transMax) {
-    this.transMin = transMin ?? Vector3.zero();
-    this.transMax = transMax ?? Vector3.zero();
-  }
-
-  factory BoneDriver.fromJsonObject(dynamic jsonObject) {
-    return BoneDriver(
-      jsonObject["bone"],
-      jsonObject["blendshape"],
-      Quaternion.fromFloat32List(Float32List.fromList(jsonObject["rotMin"])),
-      Quaternion.fromFloat32List(Float32List.fromList(jsonObject["rotMax"])),
-      Vector3.fromFloat32List(Float32List.fromList(jsonObject["transMin"])),
-      Vector3.fromFloat32List(Float32List.fromList(jsonObject["transMax"])),
-    );
-  }
+  BoneDriver(this.bone, this.transformations);
 
   //
   // Accepts a Float32List containing [numFrames] frames of data for a single morph target weight (for efficiency, this must be unravelled to a single contiguous Float32List).
   // Returns a generator that yields [numFrames] Quaternions, each representing the (weighted) rotation/translation specified by the mapping of this BoneDriver.
   //
-  Iterable<Quaternion> transform(List<double> morphTargetFrameData) sync* {
-    for (int i = 0; i < morphTargetFrameData.length; i++) {
-      var weight = (morphTargetFrameData[i] / 2) + 0.5;
+  Iterable<Quaternion> transform(
+      Map<String, List<double>> morphTargetFrameData) sync* {
+    assert(setEquals(
+        morphTargetFrameData.keys.toSet(), transformations.keys.toSet()));
+    var numFrames = morphTargetFrameData.values.first.length;
+    assert(morphTargetFrameData.values.every((x) => x.length == numFrames));
+    for (int frameNum = 0; frameNum < numFrames; frameNum++) {
+      var rotations = transformations.keys.map((blendshape) {
+        var weight = morphTargetFrameData[blendshape]![frameNum];
+        var rotation = transformations[blendshape]!.rotation.clone();
+        rotation.x *= weight;
+        rotation.y *= weight;
+        rotation.z *= weight;
+        return rotation;
+      }).toList();
 
-      yield Quaternion(
-          rotMin.x + (weight * (rotMax.x - rotMin.x)),
-          rotMin.y + (weight * (rotMax.y - rotMin.y)),
-          rotMin.z + (weight * (rotMax.z - rotMin.z)),
-          1.0);
+      yield rotations.fold(
+          rotations.first, (Quaternion a, Quaternion b) => a * b);
+      // todo - bone translations
     }
   }
+
+  factory BoneDriver.fromJsonObject(dynamic jsonObject) {
+    throw Exception("TODO");
+    //   return BoneDriver(
+    //     jsonObject["bone"],
+    //     Map<String,Transformation>.fromIterable(jsonObject["blendshape"].map((bsName, quats) {
+    //       var q = quats.map(())
+    //       MapEntry(k,
+  }
 }
+
+
+ 
+
+  // }
+      // yield Quaternion(
+      //     rotMin.x + (weight * (rotMax.x - rotMin.x)),
+      //     rotMin.y + (weight * (rotMax.y - rotMin.y)),
+      //     rotMin.z + (weight * (rotMax.z - rotMin.z)),
+      //     1.0);
