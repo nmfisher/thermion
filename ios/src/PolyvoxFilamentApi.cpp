@@ -362,7 +362,8 @@ extern "C" {
     int numFrames, 
     int numBones,
     const char** const boneNames,
-    const char* const meshName,
+    const char** const meshNames,
+    int numMeshTargets,
     float frameLengthInMs) {
     //std::packaged_task<void()> lambda([=]() mutable  {
       ((AssetManager*)assetManager)->setBoneAnimationBuffer(
@@ -371,7 +372,8 @@ extern "C" {
         numFrames,
         numBones,
         boneNames, 
-        meshName,
+        meshNames,
+        numMeshTargets,
         frameLengthInMs
       );
       //});

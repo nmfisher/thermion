@@ -46,11 +46,21 @@ class BoneDriver {
         rotation.x *= weight;
         rotation.y *= weight;
         rotation.z *= weight;
+        rotation.w = 1;
+
         return rotation;
       }).toList();
 
-      yield rotations.fold(
-          rotations.first, (Quaternion a, Quaternion b) => a * b);
+      if (frameNum == 0) {
+        print(rotations);
+      }
+
+      var result = rotations.fold(
+          rotations.first, (Quaternion a, Quaternion b) => a + b);
+      result.w = 1;
+      print("RESULT $result");
+      yield result;
+      // .normalized();
       // todo - bone translations
     }
   }

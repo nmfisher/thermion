@@ -214,9 +214,10 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
           return vals;
         }).toList());
 
-        _filamentController.setBoneAnimation(_cube!, [
-          BoneAnimationData("Bone.001", "Cube.001", frameData, 1000.0 / 60.0)
-        ]);
+        _filamentController.setBoneAnimation(
+            _cube!,
+            BoneAnimationData(
+                "Bone.001", ["Cube.001"], frameData, 1000.0 / 60.0));
       //     ,
       //     "Bone.001",
       //     "Cube.001",

@@ -11,11 +11,12 @@ import 'package:vector_math/vector_math.dart';
 /// A class for loading animation data from a single CSV and allocating between morph/bone animation with help.
 ///
 class DynamicAnimation {
-  final MorphAnimationData morphAnimation;
+  final MorphAnimationData? morphAnimation;
   final List<BoneAnimationData> boneAnimation;
 
-  factory DynamicAnimation.load(String meshName, String csvPath,
+  factory DynamicAnimation.load(String? meshName, String csvPath,
       {List<BoneDriver>? boneDrivers,
+      List<String>? boneMeshes,
       String? boneDriverConfigPath,
       double? framerate}) {
     // create a MorphAnimationData instance from the given CSV
@@ -23,8 +24,9 @@ class DynamicAnimation {
     var frameLengthInMs = 1000 / (framerate ?? 60.0);
     var morphNames = llf
         .item1; //.where((name) => !boneDrivers.any((element) => element.blendshape == name));
-    var morphAnimationData =
-        MorphAnimationData(meshName, llf.item2, morphNames, frameLengthInMs);
+
+    var morphAnimationData = MorphAnimationData(
+        meshName ?? "NULL", llf.item2, morphNames, frameLengthInMs);
 
     final boneAnimations = <BoneAnimationData>[];
 
@@ -45,14 +47,14 @@ class DynamicAnimation {
     // iterate over every bone driver
     if (boneDrivers != null) {
       for (var driver in boneDrivers) {
-        // get all frames for the single the blendshape
+        // collect the frame data for the blendshapes that this driver uses
         var morphData = driver.transformations
             .map((String blendshape, Transformation transformation) {
           return MapEntry(
               blendshape, morphAnimationData.getData(blendshape).toList());
         });
 
-        // apply the driver to the blendshape weight
+        // apply the driver to the frame data
         var transformedQ = driver.transform(morphData).toList();
 
         // transform the quaternion to a Float32List
@@ -60,7 +62,7 @@ class DynamicAnimation {
 
         // add to the list of boneAnimations
         boneAnimations.add(BoneAnimationData(
-            driver.bone, meshName, transformedF, frameLengthInMs));
+            driver.bone, boneMeshes!, transformedF, frameLengthInMs));
       }
     }
 

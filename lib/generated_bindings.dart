@@ -659,7 +659,8 @@ class NativeLibrary {
     int numFrames,
     int numBones,
     ffi.Pointer<ffi.Pointer<ffi.Char>> boneNames,
-    ffi.Pointer<ffi.Char> meshName,
+    ffi.Pointer<ffi.Pointer<ffi.Char>> meshName,
+    int numMeshTargets,
     double frameLengthInMs,
   ) {
     return _set_bone_animation(
@@ -670,6 +671,7 @@ class NativeLibrary {
       numBones,
       boneNames,
       meshName,
+      numMeshTargets,
       frameLengthInMs,
     );
   }
@@ -683,7 +685,8 @@ class NativeLibrary {
               ffi.Int,
               ffi.Int,
               ffi.Pointer<ffi.Pointer<ffi.Char>>,
-              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Pointer<ffi.Char>>,
+              ffi.Int,
               ffi.Float)>>('set_bone_animation');
   late final _set_bone_animation = _set_bone_animationPtr.asFunction<
       void Function(
@@ -693,7 +696,8 @@ class NativeLibrary {
           int,
           int,
           ffi.Pointer<ffi.Pointer<ffi.Char>>,
-          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Pointer<ffi.Char>>,
+          int,
           double)>();
 
   void play_animation(

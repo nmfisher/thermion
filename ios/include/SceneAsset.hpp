@@ -22,7 +22,7 @@
 extern "C" {
     #include "PolyvoxFilamentApi.h"
 }
-
+template class std::vector<float>;
 namespace polyvox {
     using namespace filament;
     using namespace filament::gltfio;
@@ -56,8 +56,12 @@ namespace polyvox {
     // Multiple bones are supported but these must be skinned to a single mesh target.
     //
     struct BoneAnimationBuffer {
-        utils::Entity mMeshTarget;
+        vector<utils::Entity> mMeshTargets;
         vector<uint8_t> mBones;
+        vector<math::mat4f> mBaseTransforms;
+        // vector<math::float3> mBaseTranslations; // these are the base transforms for the bones we will animate; the translations/rotations in mFrameData will be relative to this.
+        // vector<math::quatf> mBaseRotations; // these are the base transforms for the bones we will animate; the translations/rotations in mFrameData will be relative to this.
+        // vector<math::float3> mBaseScales; // these are the base transforms for the bones we will animate; the translations/rotations in mFrameData will be relative to this.
         size_t skinIndex = 0;
         int mNumFrames = -1;
         float mFrameLengthInMs = 0;
@@ -99,10 +103,5 @@ namespace polyvox {
                 mAnimations[i].mDuration = mAnimator->getAnimationDuration(i);
             }
         }
-
-       
     };
-
 }
-
-    

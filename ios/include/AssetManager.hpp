@@ -54,7 +54,8 @@ namespace polyvox {
                 int numFrames, 
                 int numBones,
                 const char** const boneNames,
-                const char* const meshName,
+                const char** const meshName,
+                int numMeshTargets,
                 float frameLengthInMs);
             void playAnimation(EntityId e, int index, bool loop, bool reverse);
             void stopAnimation(EntityId e, int index);

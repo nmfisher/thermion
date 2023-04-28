@@ -320,32 +320,26 @@ class FilamentController {
   /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
   /// [morphWeights] is a list of doubles in frame-major format.
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
+  /// for now we only allow animating a single bone (though multiple skinned targets are supported)
   ///
   void setBoneAnimation(
-      FilamentEntity asset, List<BoneAnimationData> animations) async {
-    // for future compatibility, instances of BoneAnimationData can specify individual mesh targets
-    // however on the rendering side we currently only allow one set of frame data for one mesh target (though multiple bones are supported).
-    // this is a check that all animations are targeting the same mesh
-    assert(animations.map((e) => e.meshName).toSet().length == 1);
-
-    var data =
-        calloc<Float>(animations.length * animations.first.frameData.length);
+      FilamentEntity asset, BoneAnimationData animation) async {
+    var data = calloc<Float>(animation.frameData.length);
     int offset = 0;
-    var numFrames = animations.first.frameData.length ~/ 7;
-    var boneNames = calloc<Pointer<Char>>(animations.length);
-    int animIdx = 0;
-    for (var animation in animations) {
-      if (animation.frameData.length ~/ 7 != numFrames) {
-        throw Exception(
-            "All bone animations must share the same animation frame data length.");
-      }
-      for (int i = 0; i < animation.frameData.length; i++) {
-        data.elementAt(offset).value = animation.frameData[i];
-        offset += 1;
-      }
-      boneNames.elementAt(animIdx).value =
-          animation.boneName.toNativeUtf8().cast<Char>();
-      animIdx++;
+    var numFrames = animation.frameData.length ~/ 7;
+    var boneNames = calloc<Pointer<Char>>(1);
+    boneNames.elementAt(0).value =
+        animation.boneName.toNativeUtf8().cast<Char>();
+
+    var meshNames = calloc<Pointer<Char>>(animation.meshNames.length);
+    for (int i = 0; i < animation.meshNames.length; i++) {
+      meshNames.elementAt(i).value =
+          animation.meshNames[i].toNativeUtf8().cast<Char>();
+    }
+
+    for (int i = 0; i < animation.frameData.length; i++) {
+      data.elementAt(offset).value = animation.frameData[i];
+      offset += 1;
     }
 
     _nativeLibrary.set_bone_animation(
@@ -353,10 +347,11 @@ class FilamentController {
         asset,
         data,
         numFrames,
-        animations.length,
+        1,
         boneNames,
-        animations.first.meshName.toNativeUtf8().cast<Char>(),
-        animations.first.frameLengthInMs);
+        meshNames,
+        animation.meshNames.length,
+        animation.frameLengthInMs);
     calloc.free(data);
   }
 

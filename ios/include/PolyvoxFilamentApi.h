@@ -64,7 +64,8 @@ void set_bone_animation(
     int numFrames, 
     int numBones,
     const char** const boneNames,
-    const char* const meshName,
+    const char** const meshName,
+    int numMeshTargets,
     float frameLengthInMs);
 
 void play_animation(void* assetManager, EntityId asset, int index, bool loop, bool reverse);

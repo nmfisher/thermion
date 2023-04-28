@@ -9,9 +9,9 @@ import 'package:vector_math/vector_math.dart';
 ///
 class BoneAnimationData {
   final String boneName;
-  final String meshName;
+  final List<String> meshNames;
   final Float32List frameData;
   double frameLengthInMs;
   BoneAnimationData(
-      this.boneName, this.meshName, this.frameData, this.frameLengthInMs);
+      this.boneName, this.meshNames, this.frameData, this.frameLengthInMs);
 }
