@@ -100,9 +100,11 @@ namespace polyvox {
         private:
             void createImageRenderable();
             void loadResources(std::string relativeResourcePath);
-            void cleanup();
-            
-            Manipulator<float>* _manipulator = nullptr;
+            void cleanup();            
+
+            bool _panning = false;
+            float _startX;
+            float _startY;
             math::mat4f _cameraPosition;
             math::mat4f _cameraRotation;
 

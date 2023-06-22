@@ -55,6 +55,8 @@ namespace polyvox {
                 int numMorphWeights, 
                 int numFrames, 
                 float frameLengthInMs);
+            void setMorphTargetWeights(EntityId entityId, const char* const entityName, const float* const weights, int count);
+
             void playAnimation(EntityId e, int index, bool loop, bool reverse);
             void stopAnimation(EntityId e, int index);
             void setMorphTargetWeights(const char* const entityName, float *weights, int count);

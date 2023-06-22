@@ -618,6 +618,35 @@ class NativeLibrary {
       void Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Float>, int)>();
 
+  void set_morph_target_weights(
+    ffi.Pointer<ffi.Void> assetManager,
+    int asset,
+    ffi.Pointer<ffi.Char> entityName,
+    ffi.Pointer<ffi.Float> morphData,
+    int numWeights,
+  ) {
+    return _set_morph_target_weights(
+      assetManager,
+      asset,
+      entityName,
+      morphData,
+      numWeights,
+    );
+  }
+
+  late final _set_morph_target_weightsPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              ffi.Pointer<ffi.Void>,
+              EntityId,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Float>,
+              ffi.Int)>>('set_morph_target_weights');
+  late final _set_morph_target_weights =
+      _set_morph_target_weightsPtr.asFunction<
+          void Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Float>, int)>();
+
   int set_morph_animation(
     ffi.Pointer<ffi.Void> assetManager,
     int asset,
@@ -1225,8 +1254,6 @@ class ResourceBuffer extends ffi.Struct {
 }
 
 class ResourceLoaderWrapper extends ffi.Struct {
-  external ffi.Pointer<ffi.Void> mOwner;
-
   external LoadResource mLoadResource;
 
   external FreeResource mFreeResource;
@@ -1234,6 +1261,8 @@ class ResourceLoaderWrapper extends ffi.Struct {
   external LoadResourceFromOwner mLoadResourceFromOwner;
 
   external FreeResourceFromOwner mFreeResourceFromOwner;
+
+  external ffi.Pointer<ffi.Void> mOwner;
 }
 
 typedef LoadResource = ffi.Pointer<

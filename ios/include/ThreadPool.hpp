@@ -44,7 +44,7 @@ public:
 		std::unique_lock<std::mutex> lock(access);
 
 		auto ret = pt.get_future();
-		tasks.push_back([pt=std::make_shared<packaged_task<Rt()>>(std::move(pt))]{ (*pt)();});
+		tasks.push_back([pt=std::make_shared<std::packaged_task<Rt()>>(std::move(pt))]{ (*pt)();});
 
 		cond.notify_one();
 

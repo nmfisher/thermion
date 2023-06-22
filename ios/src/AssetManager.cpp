@@ -316,7 +316,11 @@ void AssetManager::updateAnimations() {
       }
     }
     if(asset.mAnimating) {
-      asset.mAnimator->updateBoneMatrices();
+        if(!asset.mAnimator) {
+            Log("WARNING");
+        } else {
+            asset.mAnimator->updateBoneMatrices();
+        }
     }
   }
 }
@@ -345,8 +349,29 @@ void AssetManager::remove(EntityId entityId) {
   sceneAsset.mAsset = nullptr; // still need to remove this somewhere...
 }
 
-void AssetManager::setMorphTargetWeights(const char* const entityName, float *weights, int count) {
-  // TODO 
+void AssetManager::setMorphTargetWeights(EntityId entityId, const char* const entityName, const float* const weights, const int count) {
+  const auto& pos = _entityIdLookup.find(entityId);
+  if(pos == _entityIdLookup.end()) {
+    Log("ERROR: asset not found for entity.");
+    return;
+  }
+  auto& asset = _assets[pos->second];
+
+  auto entity = findEntityByName(asset, entityName);
+  if(!entity) {
+    Log("Warning: failed to find entity %s", entityName);
+    return;
+  } 
+
+  RenderableManager &rm = _engine->getRenderableManager();
+
+  rm.setMorphWeights(
+    rm.getInstance(entity),
+    weights,
+    count
+  );
+
+  
 }
 
 utils::Entity AssetManager::findEntityByName(SceneAsset asset, const char* entityName) {

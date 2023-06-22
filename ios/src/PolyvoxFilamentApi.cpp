@@ -332,6 +332,26 @@ extern "C" {
     // fut.wait();
   }
 
+  FLUTTER_PLUGIN_EXPORT void set_morph_target_weights(
+    void* assetManager,
+    EntityId asset, 
+    const char* const entityName,
+    const float* const weights,
+    const int numWeights
+  ) {
+
+    //std::packaged_task<void()> lambda([=]() mutable  {
+      return ((AssetManager*)assetManager)->setMorphTargetWeights(
+        asset, 
+        entityName,
+        weights,
+        numWeights
+      );
+    //});
+//    auto fut = _tp->add_task(lambda);
+//    fut.wait();
+  }
+
   FLUTTER_PLUGIN_EXPORT bool set_morph_animation(
     void* assetManager,
     EntityId asset, 

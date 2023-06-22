@@ -264,9 +264,16 @@ class FilamentController {
     _nativeLibrary.grab_end(_viewer);
   }
 
-  void setMorphTargetWeights(FilamentEntity asset, List<double> weights) {
-    throw Exception("TODO");
-    // _nativeLibrary.set_morph_target_weights(_assetManager, asset, Float32List.fromList(weights));
+  void setMorphTargetWeights(
+      FilamentEntity asset, String meshName, List<double> weights) {
+    var weightPtr = calloc<Float>(weights.length);
+    for (int i = 0; i < weights.length; i++) {
+      weightPtr[i] = weights[i];
+    }
+
+    _nativeLibrary.set_morph_target_weights(_assetManager, asset,
+        meshName.toNativeUtf8().cast<Char>(), weightPtr, weights.length);
+    calloc.free(weightPtr);
   }
 
   List<String> getMorphTargetNames(FilamentEntity asset, String meshName) {
@@ -300,6 +307,7 @@ class FilamentController {
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   ///
   void setMorphAnimation(FilamentEntity asset, MorphAnimation animation) async {
+    print("Setting morph animation");
     var data = calloc<Float>(animation.data.length);
     for (int i = 0; i < animation.data.length; i++) {
       data.elementAt(i).value = animation.data[i];
@@ -393,8 +401,13 @@ class FilamentController {
     _nativeLibrary.stop_animation(_assetManager, asset, animationIndex);
   }
 
-  void setCamera(FilamentEntity asset, String name) async {
-    _nativeLibrary.set_camera(_viewer, asset, name.toNativeUtf8().cast<Char>());
+  void setCamera(FilamentEntity asset, String? name) async {
+    if (_nativeLibrary.set_camera(
+            _viewer, asset, name?.toNativeUtf8()?.cast<Char>() ?? nullptr) !=
+        1) {
+      throw Exception("Failed to set camera");
+    }
+    ;
   }
 
   void setCameraFocalLength(double focalLength) async {

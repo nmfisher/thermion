@@ -48,6 +48,14 @@ void apply_weights(
     int count
 );
 
+void set_morph_target_weights(
+    void* assetManager,
+    EntityId asset,
+    const char *const entityName,
+    const float *const morphData,
+    int numWeights
+);
+
 bool set_morph_animation(
     void* assetManager,
     EntityId asset,

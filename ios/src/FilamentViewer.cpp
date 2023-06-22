@@ -47,8 +47,6 @@
 
 #include <gltfio/materials/uberarchive.h>
 
-#include <camutils/Manipulator.h>
-
 #include <utils/NameComponentManager.h>
 
 #include <imageio/ImageDecoder.h>
@@ -56,6 +54,8 @@
 #include "math.h"
 
 #include <math/mat4.h>
+#include <math/TVecHelpers.h>
+
 #include <math/quat.h>
 #include <math/scalar.h>
 #include <math/vec3.h>
@@ -137,17 +137,18 @@ FilamentViewer::FilamentViewer(void* context, ResourceLoaderWrapper* resourceLoa
   _view = _engine->createView();
 
   decltype(_view->getBloomOptions()) opts;
-  opts.enabled = false;
+  opts.enabled = false;//true;
+  // opts.strength = 0.6f;
   _view->setBloomOptions(opts);
 
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
 
-  ToneMapper *tm = new LinearToneMapper();
-  colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
-  delete tm;
+ ToneMapper *tm = new LinearToneMapper();
+ colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
+ delete tm;
 
-  _view->setColorGrading(colorGrading);
+ _view->setColorGrading(colorGrading);
 
   _cameraFocalLength = 28.0f;
   _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
@@ -586,11 +587,6 @@ void FilamentViewer::clearAssets() {
     _view->setCamera(_mainCamera);
   }
 
-  if(_manipulator) { 
-    delete _manipulator;
-    _manipulator = nullptr;
-  }
-
   _assetManager->destroyAll();
  
   Log("Cleared all assets");
@@ -641,52 +637,56 @@ void FilamentViewer::setCameraFocusDistance(float focusDistance) {
 ///
 bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
 
-  auto asset = _assetManager->getAssetByEntityId(entityId);
-  if(!asset) {
-    Log("Failed to find asset attached to specified entity id.");
-  }
-  size_t count = asset->getCameraEntityCount();
-  if (count == 0) {
-    Log("Failed, no cameras found in current asset.");
-    return false;
-  }
-
-  const utils::Entity* cameras = asset->getCameraEntities();
-
-  const utils::Entity target;
-
-  int i = -1;
-
-  if(!cameraName) {
-    i = 0;
-  } else {
-    for (int j = 0; j < count; j++) {
-      auto inst = _ncm->getInstance(cameras[j]);
-      const char *name = _ncm->getName(inst);
-      if (strcmp(name, cameraName) == 0) {
-        i = j;
-        break;
-      }
+    auto asset = _assetManager->getAssetByEntityId(entityId);
+    if(!asset) {
+        Log("Failed to find asset attached to specified entity id.");
     }
-    if(i == -1) {
+    size_t count = asset->getCameraEntityCount();
+    if (count == 0) {
+        Log("Failed, no cameras found in current asset.");
+        return false;
+    }
+
+    const utils::Entity* cameras = asset->getCameraEntities();
+
+    utils::Entity target;
+
+    if(!cameraName) {
+        auto inst = _ncm->getInstance(cameras[0]);
+        const char *name = _ncm->getName(inst);
+        target = cameras[0];
+        Log("No camera specified, using first : %s", name);
+    } else {
+        for (int j = 0; j < count; j++) {
+            auto inst = _ncm->getInstance(cameras[j]);
+            const char *name = _ncm->getName(inst);
+            if (strcmp(name, cameraName) == 0) {
+                target = cameras[j];
+                break;
+            }
+        }
+    }
+    if(target.isNull()) {
       Log("Unable to locate camera under name %s ", cameraName);
       return false;
     }
-  }
 
-  Camera *camera = _engine->getCameraComponent(target);
-  _view->setCamera(camera);
+    Camera *camera = _engine->getCameraComponent(target);
+    if(!camera) {
+        Log("Failed to retrieve camera component for target");
+    }
+    _view->setCamera(camera);
 
-  const Viewport &vp = _view->getViewport();
-  const double aspect = (double)vp.width / vp.height;
+    const Viewport &vp = _view->getViewport();
+    const double aspect = (double)vp.width / vp.height;
 
-  // const float aperture = camera->getAperture();
-  // const float shutterSpeed = camera->getShutterSpeed();
-  // const float sens = camera->getSensitivity();
-  // camera->setExposure(1.0f);
+    // const float aperture = camera->getAperture();
+    // const float shutterSpeed = camera->getShutterSpeed();
+    // const float sens = camera->getSensitivity();
+    // camera->setExposure(1.0f);
 
-  camera->setScaling({1.0 / aspect, 1.0});
-  return true;
+    camera->setScaling({1.0 / aspect, 1.0});
+    return true;
 }
 
 void FilamentViewer::loadSkybox(const char *const skyboxPath) {
@@ -788,7 +788,7 @@ void FilamentViewer::render(uint64_t frameTimeInNanos) {
   }
 
   if(_frameCount == 60) {
-    Log("1 sec average for asset animation update %f", _elapsed);
+    //Log("1 sec average for asset animation update %f", _elapsed);
     _elapsed = 0;
     _frameCount = 0;
   }
@@ -799,15 +799,6 @@ void FilamentViewer::render(uint64_t frameTimeInNanos) {
 
   _elapsed += tmr.elapsed();
   _frameCount++;
-
-  if(_manipulator) {
-    math::float3 eye, target, upward;
-    Camera& cam =_view->getCamera();
-    _manipulator->update((float(frameTimeInNanos) - float(_lastFrameTimeInNanos)) / 1000000);
-    _lastFrameTimeInNanos = frameTimeInNanos;
-    _manipulator->getLookAt(&eye, &target, &upward);
-    cam.lookAt(eye, target, upward);
-  }
 
   // Render the scene, unless the renderer wants to skip the frame.
   if (_renderer->beginFrame(_swapChain, frameTimeInNanos)) {
@@ -843,10 +834,6 @@ void FilamentViewer::updateViewportAndCameraProjection(
 }
 
 void FilamentViewer::setCameraPosition(float x, float y, float z) {
-  if(_manipulator) {
-    delete _manipulator;
-    _manipulator = nullptr;
-  }
   Camera& cam =_view->getCamera();
 
   _cameraPosition = math::mat4f::translation(math::float3(x,y,z));
@@ -854,10 +841,6 @@ void FilamentViewer::setCameraPosition(float x, float y, float z) {
 }
 
 void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
-  if(_manipulator) {
-    delete _manipulator;
-    _manipulator = nullptr;
-  }
   Camera& cam =_view->getCamera();
 
   _cameraRotation = math::mat4f::rotation(rads, math::float3(x,y,z));
@@ -865,10 +848,6 @@ void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
 }
 
 void FilamentViewer::setCameraModelMatrix(const float* const matrix) {
-  if(_manipulator) {
-    delete _manipulator;
-    _manipulator = nullptr;
-  }
   Camera& cam =_view->getCamera();
 
   mat4 modelMatrix(
@@ -892,48 +871,40 @@ void FilamentViewer::setCameraModelMatrix(const float* const matrix) {
   cam.setModelMatrix(modelMatrix);
 }
 
-void FilamentViewer::_createManipulator() {
-  if(_manipulator) {
-    delete _manipulator;
-  }
-  Camera& cam =_view->getCamera();
-  math::float3 home = cam.getPosition();
-  math::float3 fv = cam.getForwardVector();
-  math::float3 tp = home + fv;
-  Viewport const& vp = _view->getViewport();
-  _manipulator = Manipulator<float>::Builder()
-                  .viewport(vp.width, vp.height)
-                  .orbitHomePosition(home[0], home[1], home[2])
-                  .targetPosition(tp[0], tp[1], tp[2])
-                  .build(Mode::ORBIT);
-  _lastFrameTimeInNanos = 0;
-  // Log("Created orbit manipulator for vp width %d height %d with home %f %f %f and target pos %f %f %f ", vp.width, vp.height, home[0], home[1], home[2], tp[0], tp[1], tp[2]);
-}
-
 void FilamentViewer::grabBegin(float x, float y, bool pan) {
   if (!_view || !_mainCamera || !_swapChain) {
     Log("View not ready, ignoring grab");
     return;
   }
-  if(!_manipulator) {
-    _createManipulator();
-  } else {
-    Log("Error - calling grabBegin while another grab session is active. This will probably cause weirdness");
-    return;
-  }
-  _manipulator->grabBegin(x, y, pan);
+  _panning = pan;
+  _startX = x;
+  _startY = y;
 }
 
 void FilamentViewer::grabUpdate(float x, float y) {
-  if (!_view || !_mainCamera || !_swapChain) {
-    Log("View not ready, ignoring grab");
-    return;
-  }
-  if(_manipulator) {
-    _manipulator->grabUpdate(x, y);
-  } else {
-    Log("Error - trying to use a manipulator when one is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
-  }
+    if (!_view || !_swapChain) {
+        Log("View not ready, ignoring grab");
+        return;
+    }
+    Camera& cam =_view->getCamera();
+    auto eye =  cam.getPosition();// math::float3  {0.0f, 0.5f, 50.0f } ;// ; //
+    auto target = eye + cam.getForwardVector();
+    auto upward = cam.getUpVector();
+    Viewport const& vp = _view->getViewport();
+    if(_panning) {
+        auto trans = cam.getModelMatrix() * mat4::translation(math::float3 { 10 * (x - _startX) / vp.width, 10 * (y - _startY) / vp.height, 0.0f });
+        cam.setModelMatrix(trans);
+    } else {
+        auto trans = cam.getModelMatrix() * mat4::rotation(
+                                                   
+                                                          0.01,
+//                                                           math::float3 { 0.0f, 1.0f, 0.0f });
+                                                           math::float3 { (y - _startY) / vp.height, (x - _startX) / vp.width, 0.0f });
+        cam.setModelMatrix(trans);
+    }
+    _startX = x;
+    _startY = y;
+
 }
 
 void FilamentViewer::grabEnd() {
@@ -941,59 +912,21 @@ void FilamentViewer::grabEnd() {
     Log("View not ready, ignoring grab");
     return;
   }
-  if(_manipulator) {
-    _manipulator->grabEnd();
-    delete _manipulator;
-    _manipulator = nullptr;
-    Camera& cam =_view->getCamera();
-    math::mat4 camMatrix = cam.getModelMatrix();
-    // math::float3 home = cam.getPosition();
-    // math::float3 fv = cam.getForwardVector();
-    Log("Destroyed manipulator, end camera model matrix was %0.3f %0.3f %03.f %03.f %0.3f %0.3f %03.f %03.f %0.3f %0.3f %03.f %03.f %0.3f %0.3f %03.f %03.f ", 
-    camMatrix[0][0],
-    camMatrix[0][1],
-    camMatrix[0][2],
-    camMatrix[0][3],
-    camMatrix[1][0],
-    camMatrix[1][1],
-    camMatrix[1][2],
-    camMatrix[1][3],
-    camMatrix[2][0],
-    camMatrix[2][1],
-    camMatrix[2][2],
-    camMatrix[2][3],
-    camMatrix[3][0],
-    camMatrix[3][1],
-    camMatrix[3][2],
-    camMatrix[3][3]
-    );
-  } else {
-    Log("Error - trying to call GrabEnd when a manipulator is not available. Ensure you call grabBegin before grabUpdate/grabEnd");
-  }
 }
 
 void FilamentViewer::scrollBegin() {
-  if(!_manipulator) {
-    _createManipulator();
-  }
+  // noop
 }
 
 void FilamentViewer::scrollUpdate(float x, float y, float delta) {
-  if(!_manipulator) {
-    Log("No manipulator has been created - ensure you call scrollStart before scroll");
-    return;
-  }
-  _manipulator->scroll(x, y, delta);
+    Camera& cam =_view->getCamera();
+    Viewport const& vp = _view->getViewport();
+    auto trans = cam.getModelMatrix() * mat4::translation(math::float3 {0.0f, 0.0f, delta });
+    cam.setModelMatrix(trans);
 }
 
 void FilamentViewer::scrollEnd() {
-  if(!_manipulator) {
-    Log("No manipulator has been created - ensure you call scrollStart before scroll/scrollEnd");
-    return;
-  }
-  delete _manipulator;
-  _manipulator = nullptr;
-  Log("Destroyed manipulator");
+  
 }
 
 } // namespace polyvox
