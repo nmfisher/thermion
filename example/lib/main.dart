@@ -1,12 +1,13 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math.dart' as v;
 
 import 'package:polyvox_filament/filament_controller.dart';
+import 'package:polyvox_filament/animations/bone_animation_data.dart';
 import 'package:polyvox_filament/filament_gesture_detector.dart';
 import 'package:polyvox_filament/filament_widget.dart';
 import 'package:polyvox_filament/animations/animation_builder.dart';
-import 'package:polyvox_filament/animations/animations.dart';
 
 void main() {
   runApp(const MyApp());
@@ -103,6 +104,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         break;
       case 9:
         for (int i = 0; i < _animationNames.length; i++) {
+          print("Playing animation ${_animationNames[i]}");
           _filamentController.playAnimation(_cube!, i, loop: _loop);
         }
 
@@ -204,15 +206,26 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         _filamentController.clearLights();
         break;
       case 32:
-        _filamentController.setCameraModelMatrix(List<double>.filled(16, 1.0));
+        var frameData = Float32List.fromList(
+            List<double>.generate(120, (i) => i / 120).expand((x) {
+          var vals = List<double>.filled(7, x);
+          vals[3] = 1.0;
+          // vals[4] = 0;
+          vals[5] = 0;
+          vals[6] = 0;
+          return vals;
+        }).toList());
 
-        //  _filamentController.setBoneTransform(
-        //     _cube!,
-        //     "Bone.001",
-        //     "Cube.001",
-        //     BoneTransform([Vec3(x: 0, y: 0.0, z: 0.0)],
-        //         [Quaternion(x: 1, y: 1, z: 1, w: 1)]));
-        break;
+        _filamentController.setBoneAnimation(
+            _cube!,
+            BoneAnimationData(
+                "Bone.001", ["Cube.001"], frameData, 1000.0 / 60.0));
+      //     ,
+      //     "Bone.001",
+      //     "Cube.001",
+      //     BoneTransform([Vec3(x: 0, y: 0.0, z: 0.0)],
+      //         [Quaternion(x: 1, y: 1, z: 1, w: 1)]));
+      // break;
     }
   }
 
@@ -262,9 +275,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                     _item(value: 21, child: Text('swap cube texture')),
                     _item(value: 22, child: Text('transform to unit cube')),
                     _item(value: 23, child: Text('set position to 1, 1, -1')),
-                    _item(
-                        value: 32,
-                        child: Text('set bone transform to 1, 1, -1')),
+                    _item(value: 32, child: Text('construct bone animation')),
                     _item(value: 24, child: Text('rotate by pi around Y axis')),
                     _item(value: 5, child: Text('load flight helmet')),
                     _item(value: 6, child: Text('remove cube')),

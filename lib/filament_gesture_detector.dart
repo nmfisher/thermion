@@ -36,7 +36,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
   };
 
   bool _rotating = false;
-  bool _scaling = false;
 
   // to avoid duplicating code for pan/rotate (panStart, panUpdate, panEnd, rotateStart, rotateUpdate etc)
   // we have only a single function for start/update/end.
@@ -44,8 +43,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
   late Function(double x, double y) _functionStart;
   late Function(double x, double y) _functionUpdate;
   late Function() _functionEnd;
-
-  double _lastScale = 0;
 
   @override
   void initState() {
@@ -85,101 +82,135 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
 
   Timer? _scrollTimer;
 
+  Widget _desktop() {
+    return Listener(
+        onPointerSignal: !widget.enableControls
+            ? null
+            : (pointerSignal) async {
+                // scroll-wheel zoom on desktop
+                if (pointerSignal is PointerScrollEvent) {
+                  _scrollTimer?.cancel();
+                  widget.controller.zoomBegin();
+                  widget.controller
+                      .zoomUpdate(pointerSignal.scrollDelta.dy > 0 ? 10 : -10);
+                  _scrollTimer = Timer(Duration(milliseconds: 100), () {
+                    widget.controller.zoomEnd();
+                    _scrollTimer = null;
+                  });
+                }
+              },
+        onPointerPanZoomStart: !widget.enableControls
+            ? null
+            : (pzs) {
+                print("PAN ZOOM START");
+              },
+        onPointerDown: !widget.enableControls
+            ? null
+            : (d) async {
+                print("a");
+                // if (d.buttons == kTertiaryButton || _rotating) {
+                //   widget.controller
+                //       .rotateStart(d.localPosition.dx, d.localPosition.dy);
+                // } else {
+                //   widget.controller.panStart(d.focalPoint.dx, d.focalPoint.dy);
+                // }
+              },
+        onPointerMove: !widget.enableControls
+            ? null
+            : (PointerMoveEvent d) async {
+                // if (d.buttons == kTertiaryButton || _rotating) {
+                //   widget.controller
+                //       .rotateUpdate(d.localPosition.dx, d.localPosition.dy);
+                // } else {
+                //   widget.controller.panUpdate(d.focalPoint.dx, d.focalPoint.dy);
+                // }
+              },
+        onPointerUp: !widget.enableControls
+            ? null
+            : (d) async {
+                // if (d.buttons == kTertiaryButton || _rotating) {
+                //   widget.controller.rotateEnd();
+                // } else {
+                //   widget.controller.panEnd(d.focalPoint.dx, d.focalPoint.dy);
+                // }
+              },
+        child: widget.child);
+  }
+
+  bool _scaling = false;
+  double _lastScale = 0;
+  DateTime _lastUpdate = DateTime.now();
+  Widget _mobile() {
+    return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onDoubleTap: () {
+          _rotating = !_rotating;
+          print("Set rotating to $_rotating");
+        },
+        onScaleStart: !widget.enableControls
+            ? null
+            : (d) async {
+                if (d.pointerCount == 2) {
+                  _lastScale = 0;
+                  _scaling = true;
+                  widget.controller.zoomBegin();
+                } else if (!_scaling) {
+                  if (_rotating) {
+                    widget.controller
+                        .rotateStart(d.focalPoint.dx, d.focalPoint.dy);
+                  } else {
+                    widget.controller
+                        .panStart(d.focalPoint.dx, d.focalPoint.dy);
+                  }
+                }
+              },
+        onScaleEnd: !widget.enableControls
+            ? null
+            : (d) async {
+                if (d.pointerCount == 2) {
+                  widget.controller.zoomEnd();
+                  _lastScale = 0;
+                  _scaling = false;
+                } else if (!_scaling) {
+                  if (_rotating) {
+                    widget.controller.rotateEnd();
+                  } else {
+                    widget.controller.panEnd();
+                  }
+                }
+              },
+        onScaleUpdate: !widget.enableControls
+            ? null
+            : (ScaleUpdateDetails d) async {
+                if (d.pointerCount == 2) {
+                  // var scale = d.horizontalScale - _lastScale;
+                  // print(scale);
+                  widget.controller
+                      .zoomUpdate(d.horizontalScale > 1 ? 0.1 : -0.1);
+                  _lastScale = d.horizontalScale;
+                } else if (!_scaling) {
+                  if (_rotating) {
+                    widget.controller
+                        .rotateUpdate(d.focalPoint.dx, d.focalPoint.dy);
+                  } else {
+                    widget.controller
+                        .panUpdate(d.focalPoint.dx, d.focalPoint.dy);
+                  }
+                }
+              },
+        child: widget.child);
+  }
+
   @override
   Widget build(BuildContext context) {
-    print(widget.enableControls);
     return Stack(children: [
       Positioned.fill(
           // pinch zoom on mobile
           // couldn't find any equivalent for pointerCount in Listener so we use two widgets:
           // - outer is a GestureDetector only for pinch zoom
           // - inner is a Listener for all other gestures (including scroll zoom on desktop)
-          child: GestureDetector(
-              onDoubleTap: () {
-                _rotating = !_rotating;
-                print("Set rotating to $_rotating");
-              },
-              onScaleStart: !widget.enableControls
-                  ? null
-                  : (d) async {
-                      _scaling = true;
-                      if (d.pointerCount == 2) {
-                        widget.controller.zoomEnd();
-                        widget.controller.zoomBegin();
-                      }
-                    },
-              onScaleEnd: !widget.enableControls
-                  ? null
-                  : (d) async {
-                      _scaling = false;
-                      if (d.pointerCount == 2) {
-                        _lastScale = 0;
-                        widget.controller.zoomEnd();
-                      }
-                    },
-              onScaleUpdate: !widget.enableControls
-                  ? null
-                  : (d) async {
-                      if (d.pointerCount == 2) {
-                        if (_lastScale != 0) {
-                          widget.controller.zoomUpdate(Platform.isIOS
-                              ? 1000 * (_lastScale - d.scale)
-                              : 100 * (_lastScale - d.scale));
-                        }
-                      }
-                      _lastScale = d.scale;
-                    },
-              child: Listener(
-                  onPointerSignal: !widget.enableControls
-                      ? null
-                      : (pointerSignal) async {
-                          // scroll-wheel zoom on desktop
-                          if (pointerSignal is PointerScrollEvent) {
-                            _scrollTimer?.cancel();
-                            widget.controller.zoomBegin();
-                            widget.controller.zoomUpdate(
-                                pointerSignal.scrollDelta.dy > 0 ? 10 : -10);
-                            _scrollTimer =
-                                Timer(Duration(milliseconds: 100), () {
-                              widget.controller.zoomEnd();
-                              _scrollTimer = null;
-                            });
-                          }
-                        },
-                  onPointerPanZoomStart:
-                      !widget.enableControls ? null : (pzs) {},
-                  onPointerDown: !widget.enableControls
-                      ? null
-                      : (d) async {
-                          if (d.buttons == kTertiaryButton || _rotating) {
-                            widget.controller.rotateStart(
-                                d.localPosition.dx, d.localPosition.dy);
-                          } else {
-                            _functionStart(
-                                d.localPosition.dx, d.localPosition.dy);
-                          }
-                        },
-                  onPointerMove: !widget.enableControls
-                      ? null
-                      : (d) async {
-                          if (d.buttons == kTertiaryButton || _rotating) {
-                            widget.controller.rotateUpdate(
-                                d.localPosition.dx, d.localPosition.dy);
-                          } else {
-                            _functionUpdate(
-                                d.localPosition.dx, d.localPosition.dy);
-                          }
-                        },
-                  onPointerUp: !widget.enableControls
-                      ? null
-                      : (d) async {
-                          if (d.buttons == kTertiaryButton || _rotating) {
-                            widget.controller.rotateEnd();
-                          } else {
-                            _functionEnd();
-                          }
-                        },
-                  child: widget.child))),
+          child:
+              Platform.isLinux || Platform.isWindows ? _desktop() : _mobile()),
       widget.showControlOverlay
           ? Align(
               alignment: Alignment.bottomRight,

@@ -65,28 +65,16 @@ bool set_morph_animation(
     int numFrames,
     float frameLengthInMs);
 
- void set_bone_animation(
+void set_bone_animation(
     void* assetManager,
     EntityId asset, 
-    int length,
-    const char** const boneNames,
-    const char** const meshNames,
     const float* const frameData,
     int numFrames, 
+    int numBones,
+    const char** const boneNames,
+    const char** const meshName,
+    int numMeshTargets,
     float frameLengthInMs);
-
-// void set_bone_transform(
-//     EntityId asset,
-//     const char* boneName,
-//     const char* entityName,
-//     float transX,
-//     float transY,
-//     float transZ,
-//     float quatX,
-//     float quatY,
-//     float quatZ,
-//     float quatW
-// );
 
 void play_animation(void* assetManager, EntityId asset, int index, bool loop, bool reverse);
 void set_animation_frame(void* assetManager, EntityId asset, int animationIndex, int animationFrame);

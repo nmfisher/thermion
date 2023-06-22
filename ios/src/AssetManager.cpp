@@ -1,16 +1,17 @@
 #include "AssetManager.hpp"
-#include "Log.hpp"
 #include <thread>
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
 #include <filament/RenderableManager.h>
 
+
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/ResourceLoader.h>
 #include <gltfio/TextureProvider.h>
+#include <gltfio/math.h>
 
 #include <imageio/ImageDecoder.h>
 
@@ -52,8 +53,13 @@ AssetManager::AssetManager(ResourceLoaderWrapper* resourceLoaderWrapper,
         _ubershaderProvider = gltfio::createUbershaderProvider(
            _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
         EntityManager &em = EntityManager::get();
-        _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em });
+        
         _unlitProvider = new UnlitMaterialProvider(_engine);
+
+        // auto rb = _resourceLoaderWrapper->load("file:///mnt/hdd_2tb/home/hydroxide/projects/polyvox/flutter/polyvox_filament/materials/toon.filamat");
+        // auto toonProvider = new FileMaterialProvider(_engine, rb.data, (size_t) rb.size);
+
+        _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em });
         
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
@@ -213,13 +219,42 @@ void AssetManager::updateAnimations() {
   RenderableManager &rm = _engine->getRenderableManager();
   
   for (auto& asset : _assets) {
+    
     if(!asset.mAnimating) {
       continue;
     }
     asset.mAnimating = false;
     
+    // GLTF animations
+    for(int j = 0; j < asset.mAnimations.size() - 2; j++) {
+      AnimationStatus& anim = asset.mAnimations[j];
+  
+      if(!anim.mAnimating) {
+        // Log("Skipping anim at %d", j);
+        continue;
+      }
+
+      auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
+
+      if(anim.mLoop || elapsed < anim.mDuration) {
+        asset.mAnimator->applyAnimation(j, elapsed);
+        asset.mAnimating = true;
+      } else if(elapsed - anim.mDuration < 0.3) { 
+        // cross-fade
+        // animator->applyCrossFade(j-2, anim.mDuration - 0.05, elapsed / 0.3);
+        // asset.mAnimating = true;
+        // anim.mStart = time_point_t::max();
+      } else { 
+        // stop
+        anim.mStart = time_point_t::max();
+        anim.mAnimating = false;
+        Log("Finished");
+      }
+      asset.mAnimator->updateBoneMatrices();
+    }
+
     // dynamically constructed morph animation
-    AnimationStatus& morphAnimation = asset.mAnimations[0];
+    AnimationStatus& morphAnimation = asset.mAnimations[asset.mAnimations.size() - 2];
 
     if(morphAnimation.mAnimating) {
       
@@ -254,74 +289,79 @@ void AssetManager::updateAnimations() {
       }
     }
 
-    // // bone animation
-    // AnimationStatus boneAnimation = asset.mAnimations[1];
-    // elapsed = (now - boneAnimation.mStart).count();
+    // bone animation
+    AnimationStatus boneAnimation = asset.mAnimations[asset.mAnimations.size() - 1];
+    if(boneAnimation.mAnimating) {
+      auto elapsed = float(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+          now - boneAnimation.mStart
+        ).count()) / 1000.0f;
+      int lengthInFrames = static_cast<int>(
+        boneAnimation.mDuration * 1000.0f / 
+        asset.mBoneAnimationBuffer.mFrameLengthInMs
+      );
 
-    // lengthInFrames = static_cast<int>(boneAnimation.mDuration / asset.mBoneAnimationBuffer.mFrameLengthInMs);
+      // if more time has elapsed than the animation duration && not looping
+      // mark the animation as complete
+      if(elapsed >= boneAnimation.mDuration && !boneAnimation.mLoop) {
+        boneAnimation.mStart = time_point_t::max();
+        boneAnimation.mAnimating = false;
+      } else {
 
-    // if(elapsed >= boneAnimation.mDuration) {
-    //   if(boneAnimation.mLoop) {
-    //     boneAnimation.mStart = now;
-    //     if(boneAnimation.mReverse) {
-    //       boneAnimation.mFrameNumber = lengthInFrames;
-    //     }
-    //     asset.mAnimating = true;
-    //   } else {
-    //     boneAnimation.mStart = time_point_t::max();
-    //   }
-    // } else {
-    //   asset.mAnimating = true;
-    // }
+        asset.mAnimating = true;      
+        int frameNumber = static_cast<int>(elapsed * 1000.0f / asset.mBoneAnimationBuffer.mFrameLengthInMs) % lengthInFrames;
 
-    // frameNumber = static_cast<int>(elapsed / asset.mBoneAnimationBuffer.mFrameLengthInMs);
-    // if(frameNumber < lengthInFrames) {
-    //   if(boneAnimation.mReverse) {
-    //     frameNumber = lengthInFrames - frameNumber;
-    //   } 
-    //   boneAnimation.mFrameNumber = frameNumber;
-    //   setBoneTransform(
-    //     asset.mAsset->getInstance(),
-    //     asset.mBoneAnimationBuffer.mAnimations,
-    //     frameNumber
-    //   );
-    // }
+        // offset from the end if reverse
+        if(boneAnimation.mReverse) {
+          frameNumber = lengthInFrames - frameNumber;
+        } 
 
-    // GLTF animations
-    
-    int j = -1;
-    for(AnimationStatus& anim : asset.mAnimations) {
-      j++;
-      if(j < 2) {
+        setBoneTransform(
+          asset,
+          frameNumber
+        );
+      }
+      asset.mAnimator->updateBoneMatrices();
+    }
+  }
+  
+}
+
+ void AssetManager::setBoneTransform(SceneAsset& asset, int frameNumber) {  
+
+  RenderableManager& rm = _engine->getRenderableManager();
+
+  const auto& filamentInstance = asset.mAsset->getInstance();
+
+  TransformManager &transformManager = _engine->getTransformManager();
+
+  int skinIndex = 0;
+
+  for(int i = 0; i < asset.mBoneAnimationBuffer.mBones.size(); i++) {
+      auto mBoneIndex = asset.mBoneAnimationBuffer.mBones[i];
+      auto frameDataOffset = (frameNumber * asset.mBoneAnimationBuffer.mBones.size() * 7) + (i * 7);
+
+      utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[mBoneIndex];
+      if(joint.isNull()) {
+        Log("ERROR : joint not found");  
         continue;
       }
 
-      if(!anim.mAnimating) {
-        continue;
-      }
+      vector<float>& fd = asset.mBoneAnimationBuffer.mFrameData;
 
-      auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
+      math::mat4f localTransform(math::quatf {
+        fd[frameDataOffset+3],
+        fd[frameDataOffset+4],
+        fd[frameDataOffset+5],
+        fd[frameDataOffset+6],
+      });
+       
+      auto jointInstance = transformManager.getInstance(joint);
 
-      if(anim.mLoop || elapsed < anim.mDuration) {
-        asset.mAnimator->applyAnimation(j-2, elapsed);
-        asset.mAnimating = true;
-      } else if(elapsed - anim.mDuration < 0.3) { 
-        // cross-fade
-        // animator->applyCrossFade(j-2, anim.mDuration - 0.05, elapsed / 0.3);
-        // asset.mAnimating = true;
-        // anim.mStart = time_point_t::max();
-      } else { 
-        // stop
-        anim.mStart = time_point_t::max();
-      }
-    }
-    if(asset.mAnimating) {
-        if(!asset.mAnimator) {
-            Log("WARNING");
-        } else {
-            asset.mAnimator->updateBoneMatrices();
-        }
-    }
+      auto xform = asset.mBoneAnimationBuffer.mBaseTransforms[i];  
+
+      transformManager.setTransform(jointInstance, xform * localTransform);
+      
   }
 }
 
@@ -419,7 +459,7 @@ bool AssetManager::setMorphAnimationBuffer(
   asset.mMorphAnimationBuffer.mFrameLengthInMs = frameLengthInMs;
   asset.mMorphAnimationBuffer.mNumMorphWeights = numMorphWeights;
   
-  AnimationStatus& animation = asset.mAnimations[0];
+  AnimationStatus& animation = asset.mAnimations[asset.mAnimations.size() - 2];
   animation.mDuration = (frameLengthInMs * numFrames) / 1000.0f;
   animation.mStart = high_resolution_clock::now();
   animation.mAnimating = true;
@@ -432,21 +472,23 @@ bool AssetManager::setMorphAnimationBuffer(
 }
 
 bool AssetManager::setBoneAnimationBuffer(
-    EntityId entity,
-    int length,
-    const char** const boneNames,
-    const char** const meshNames,
+    EntityId entityId,
     const float* const frameData,
     int numFrames, 
+    int numBones,
+    const char** const boneNames,
+    const char** const meshNames,
+    int numMeshTargets,
     float frameLengthInMs) {
 
-  const auto& pos = _entityIdLookup.find(entity);
+ 
+
+  const auto& pos = _entityIdLookup.find(entityId);
   if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return false;
   }
   auto& asset = _assets[pos->second];
-
   auto filamentInstance = asset.mAsset->getInstance();
 
   size_t skinCount = filamentInstance->getSkinCount();
@@ -455,95 +497,82 @@ bool AssetManager::setBoneAnimationBuffer(
     Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
   }
 
+  TransformManager &transformManager = _engine->getTransformManager();
+
   int skinIndex = 0;
   const utils::Entity* joints = filamentInstance->getJointsAt(skinIndex);
   size_t numJoints = filamentInstance->getJointCountAt(skinIndex);
-  vector<int> boneIndices;
-  for(int i = 0; i < length; i++) {
+
+  BoneAnimationBuffer& animationBuffer = asset.mBoneAnimationBuffer;
+
+  // if an animation has already been set,  reset the transform for the respective bones
+  for(int i = 0; i < animationBuffer.mBones.size(); i++) {
+    auto boneIndex = animationBuffer.mBones[i];
+    auto jointInstance = transformManager.getInstance(joints[boneIndex]);
+    transformManager.setTransform(jointInstance, animationBuffer.mBaseTransforms[i]);
+  }
+
+  asset.mAnimator->resetBoneMatrices();
+
+  animationBuffer.mBones.resize(numBones);
+  animationBuffer.mBaseTransforms.resize(numBones);
+  
+  for(int i = 0; i < numBones; i++) {
+    Log("Bone %s", boneNames[i]);
     for(int j = 0; j < numJoints; j++) {
         const char* jointName = _ncm->getName(_ncm->getInstance(joints[j]));
-          if(strcmp(jointName, boneNames[i]) == 0) { 
-          boneIndices.push_back(j);
+        if(strcmp(jointName, boneNames[i]) == 0) { 
+          auto jointInstance = transformManager.getInstance(joints[j]);
+          // auto currentXform = ;
+          auto baseTransform = transformManager.getTransform(jointInstance); // inverse(filamentInstance->getInverseBindMatricesAt(skinIndex)[j]);
+          animationBuffer.mBaseTransforms[i] = baseTransform;
+          animationBuffer.mBones[i] = j;
           break;
         }
       }
   }
 
-  if(boneIndices.size() != length) {
+  if(animationBuffer.mBones.size() != numBones) {
     Log("Failed to find one or more bone indices");
     return false;
   }
-  
-  asset.mBoneAnimationBuffer.mAnimations.clear();
 
-  for(int i = 0; i < length; i++) {
-    BoneAnimationData boneAnimationData;
-    boneAnimationData.mBoneIndex = boneIndices[i];
+  animationBuffer.mFrameData.clear();
+  // 7 == locX, locY, locZ, rotW, rotX, rotY, rotZ
+  animationBuffer.mFrameData.resize(numFrames * numBones * 7);
+  animationBuffer.mFrameData.insert(
+    animationBuffer.mFrameData.begin(), 
+    frameData,
+    frameData + numFrames * numBones * 7
+  );
 
+  Log("%d frames for %d bones", numFrames, numBones);
+
+  animationBuffer.mFrameLengthInMs = frameLengthInMs;
+  animationBuffer.mNumFrames = numFrames;
+    
+  animationBuffer.mMeshTargets.clear();
+  for(int i = 0; i < numMeshTargets; i++) {
     auto entity = findEntityByName(asset, meshNames[i]);
-
     if(!entity) {
       Log("Mesh target %s for bone animation could not be found", meshNames[i]);
       return false;
     }
-    
-    boneAnimationData.mMeshTarget = entity;
-
-    boneAnimationData.mFrameData.insert(
-      boneAnimationData.mFrameData.begin(), 
-      frameData[i * numFrames * 7 * sizeof(float)],  // 7 == x, y, z, w + three euler angles
-      frameData[(i+1) * numFrames * 7 * sizeof(float)]
-    );
-
-    asset.mBoneAnimationBuffer.mAnimations.push_back(boneAnimationData);
+    Log("Added mesh target %s", meshNames[i]);
+    animationBuffer.mMeshTargets.push_back(entity);
   }
+
+  auto& animation = asset.mAnimations[asset.mAnimations.size() - 1];
+  animation.mStart = std::chrono::high_resolution_clock::now();
+  animation.mAnimating = true;
+  animation.mReverse = false;
+  animation.mDuration = (frameLengthInMs * numFrames) / 1000.0f;
+  asset.mAnimating = true;
+
   return true;
 }
 
-void AssetManager::setBoneTransform(
-  FilamentInstance* filamentInstance,
-  vector<BoneAnimationData> animations,
-  int frameNumber) {  
 
-  RenderableManager &rm = _engine->getRenderableManager();
-  
-  TransformManager &transformManager = _engine->getTransformManager();
-
-  auto frameDataOffset = frameNumber * 7;
-
-  int skinIndex = 0;
-
-  for(auto& animation : animations) {
-  
-    math::mat4f inverseGlobalTransform = inverse(
-      transformManager.getWorldTransform(
-        transformManager.getInstance(animation.mMeshTarget)
-      )
-    );
-
-    utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[animation.mBoneIndex];
-
-    math::mat4f localTransform(math::quatf{
-      animation.mFrameData[frameDataOffset+6],
-      animation.mFrameData[frameDataOffset+3],
-      animation.mFrameData[frameDataOffset+4],
-      animation.mFrameData[frameDataOffset+5]
-    });
-
-    const math::mat4f& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(animation.skinIndex)[animation.mBoneIndex];
-    auto jointInstance = transformManager.getInstance(joint);
-    math::mat4f globalJointTransform = transformManager.getWorldTransform(jointInstance);
-      
-    math::mat4f boneTransform = inverseGlobalTransform * globalJointTransform * localTransform * inverseBindMatrix;
-    auto renderable = rm.getInstance(animation.mMeshTarget);
-    rm.setBones(
-      renderable, 
-      &boneTransform,
-      1, 
-      animation.mBoneIndex
-    );
-  }
-}
 
 void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse) {
   const auto& pos = _entityIdLookup.find(e);
@@ -552,11 +581,12 @@ void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse)
     return;
   }
   auto& asset = _assets[pos->second];
-
-  asset.mAnimations[index+2].mAnimating = true;
-  asset.mAnimations[index+2].mStart = std::chrono::high_resolution_clock::now();
-  asset.mAnimations[index+2].mLoop = loop;
-  asset.mAnimations[index+2].mReverse = reverse;
+  Log("Playing animation at %d", index);
+  
+  asset.mAnimations[index].mStart = std::chrono::high_resolution_clock::now();
+  asset.mAnimations[index].mLoop = loop;
+  asset.mAnimations[index].mReverse = reverse;
+  asset.mAnimations[index].mAnimating = true;
   // Log("new start %d, dur is %f", std::chrono::duration_cast<std::chrono::milliseconds>(asset.mAnimations[index+2].mStart.time_since_epoch()).count(), asset.mAnimations[index+2].mDuration);
   asset.mAnimating = true;
 }
@@ -568,7 +598,7 @@ void AssetManager::stopAnimation(EntityId entityId, int index) {
     return;
   }
   auto& asset = _assets[pos->second];
-  asset.mAnimations[index+2].mStart = time_point_t::max();
+  asset.mAnimations[index].mStart = time_point_t::max();
 }
 
 void AssetManager::loadTexture(EntityId entity, const char* resourcePath, int renderableIndex) {
@@ -727,7 +757,7 @@ void AssetManager::transformToUnitCube(EntityId entity) {
   tm.setTransform(tm.getInstance(inst->getRoot()), transform);
 }
 
-void AssetManager::updateTransform(SceneAsset asset) {
+void AssetManager::updateTransform(SceneAsset& asset) {
   auto &tm = _engine->getTransformManager();
   auto transform = 
       asset.mPosition * asset.mRotation * math::mat4f::scaling(asset.mScale);
@@ -809,3 +839,40 @@ size_t AssetManager::getLightEntityCount(EntityId entity) const noexcept {
 
 
 } // namespace polyvox
+
+
+// auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[mBoneIndex];
+
+      // auto globalJointTransform = transformManager.getWorldTransform(jointInstance);
+
+      // for(auto& target : asset.mBoneAnimationBuffer.mMeshTargets) {
+        
+        // auto inverseGlobalTransform = inverse(
+        //   transformManager.getWorldTransform(
+        //       transformManager.getInstance(target)
+        //       )
+        //   );
+
+        // auto boneTransform = inverseGlobalTransform * globalJointTransform  * localTransform * inverseBindMatrix; 
+        // auto renderable = rm.getInstance(target);
+        // rm.setBones(
+        //       renderable, 
+        //       &boneTransform,
+        //       1, 
+        //       mBoneIndex
+        //   );
+      // }
+
+
+
+            //   1.0f, 0.0f, 0.0f, 0.0f,
+      //   0.0f, 0.0f, 1.0f, 0.0f,
+      //   0.0f, -1.0f, 0.0f, 0.0f, 
+      //   0.0f, 0.0f, 0.0f, 1.0f
+      // };
+            // Log("TRANSFORM");
+      // Log("%f %f %f %f", localTransform[0][0], localTransform[1][0], localTransform[2][0], localTransform[3][0] ) ;
+      // Log("%f %f %f %f", localTransform[0][1], localTransform[1][1], localTransform[2][1], localTransform[3][1] ) ;
+      // Log("%f %f %f %f", localTransform[0][2], localTransform[1][2], localTransform[2][2], localTransform[3][2] ) ;
+      // Log("%f %f %f %f", localTransform[0][3], localTransform[1][3], localTransform[2][3], localTransform[3][3] ) ;
+      //  transformManager.getTransform(jointInstance);

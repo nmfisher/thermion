@@ -24,7 +24,6 @@ A new flutter plugin project.
     'DEFINES_MODULE' => 'YES', 
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-stdlib=libc++" "-fvisibility=default" "$(inherited)"',
     'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
     'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/include" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/image" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/ios/src/shaders"  "$(inherited)"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',

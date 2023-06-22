@@ -1,13 +1,13 @@
-import 'package:polyvox_filament/animations/animations.dart';
+import 'package:polyvox_filament/animations/bone_animation_data.dart';
+import 'package:polyvox_filament/animations/morph_animation_data.dart';
 import 'package:polyvox_filament/filament_controller.dart';
-import 'package:tuple/tuple.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {
   final FilamentController controller;
-  DartBoneAnimation? dartBoneAnimation;
+  // BoneAnimationData? BoneAnimationData;
   double _frameLengthInMs = 0;
   double _duration = 0;
 
@@ -16,7 +16,7 @@ class AnimationBuilder {
   double? _interpMorphStartValue;
   double? _interpMorphEndValue;
 
-  List<DartBoneAnimation>? _dartBoneAnimations = null;
+  // List<BoneAnimationData>? _BoneAnimationDatas = null;
 
   FilamentEntity asset;
   String meshName;
@@ -53,11 +53,11 @@ class AnimationBuilder {
     }
 
     var morphAnimation =
-        MorphAnimation(meshName, morphData, morphNames, _frameLengthInMs);
-    print("SETTING!");
-    controller.setMorphAnimation(asset, morphAnimation);
-    // return Tuple2<MorphAnimation, List<DartBoneAnimation>>(
-    //     morphAnimation, _dartBoneAnimations!);
+        MorphAnimationData(meshName, morphData, morphNames, _frameLengthInMs);
+
+    controller.setMorphAnimationData(asset, morphAnimation);
+    // return Tuple2<MorphAnimationData, List<BoneAnimationData>>(
+    //     morphAnimation, _BoneAnimationDatas!);
   }
 
   AnimationBuilder setDuration(double secs) {
@@ -118,15 +118,40 @@ class AnimationBuilder {
 
     // var boneFrameData = BoneTransformFrameData(translations, quats);
 
-    // _DartBoneAnimations ??= <DartBoneAnimation>[];
+    // _BoneAnimationDatas ??= <BoneAnimationData>[];
 
     // var frameData = List<List<double>>.generate(
     //     numFrames, (index) => boneFrameData.getFrameData(index).toList());
 
     // var animData = Float32List.fromList(frameData.expand((x) => x).toList());
 
-    // _DartBoneAnimations!.add(DartDartBoneAnimation([boneName], [meshName], animData));
+    // _BoneAnimationDatas!.add(DartBoneAnimationData([boneName], [meshName], animData));
 
     return this;
+  }
+}
+
+class BoneTransformFrameData {
+  final List<Vector3> translations;
+  final List<Quaternion> quaternions;
+
+  ///
+  /// The length of [translations] and [quaternions] must be the same;
+  /// each entry represents the Vec3/Quaternion for the given frame.
+  ///
+  BoneTransformFrameData(this.translations, this.quaternions) {
+    if (translations.length != quaternions.length) {
+      throw Exception("Length of translation/quaternion frames must match");
+    }
+  }
+
+  Iterable<double> getFrameData(int frame) sync* {
+    yield translations[frame].x;
+    yield translations[frame].y;
+    yield translations[frame].z;
+    yield quaternions[frame].x;
+    yield quaternions[frame].y;
+    yield quaternions[frame].z;
+    yield quaternions[frame].w;
   }
 }

@@ -118,7 +118,8 @@ class _FilamentWidgetState extends State<FilamentWidget> {
                               ? Container()
                               : Transform(
                                   alignment: Alignment.center,
-                                  transform: Matrix4.rotationX(pi),
+                                  transform: Matrix4.rotationX(
+                                      pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
                                   child: texture)
                           : texture))));
         });

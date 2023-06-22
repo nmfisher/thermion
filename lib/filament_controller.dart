@@ -9,9 +9,9 @@ import 'package:flutter/animation.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:flutter/services.dart';
+import 'package:polyvox_filament/animations/bone_animation_data.dart';
+import 'package:polyvox_filament/animations/morph_animation_data.dart';
 import 'package:polyvox_filament/generated_bindings.dart';
-
-import 'animations/animations.dart';
 
 typedef AssetManager = Pointer<Void>;
 typedef FilamentViewer = Pointer<Void>;
@@ -306,8 +306,8 @@ class FilamentController {
   /// [morphWeights] is a list of doubles in frame-major format.
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   ///
-  void setMorphAnimation(FilamentEntity asset, MorphAnimation animation) async {
-    print("Setting morph animation");
+  void setMorphAnimationData(
+      FilamentEntity asset, MorphAnimationData animation) async {
     var data = calloc<Float>(animation.data.length);
     for (int i = 0; i < animation.data.length; i++) {
       data.elementAt(i).value = animation.data[i];
@@ -327,40 +327,38 @@ class FilamentController {
   /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
   /// [morphWeights] is a list of doubles in frame-major format.
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
+  /// for now we only allow animating a single bone (though multiple skinned targets are supported)
   ///
   void setBoneAnimation(
-      FilamentEntity asset, List<DartBoneAnimation> animations) async {
-    var data =
-        calloc<Float>(animations.length * animations.first.frameData.length);
+      FilamentEntity asset, BoneAnimationData animation) async {
+    var data = calloc<Float>(animation.frameData.length);
     int offset = 0;
-    var numFrames = animations.first.frameData.length;
-    var meshNames = calloc<Pointer<Char>>(animations.length);
-    var boneNames = calloc<Pointer<Char>>(animations.length);
-    int animIdx = 0;
-    for (var animation in animations) {
-      if (animation.frameData.length != numFrames) {
-        throw Exception(
-            "All bone animations must share the same animation frame data length.");
-      }
-      for (int i = 0; i < animation.frameData.length; i++) {
-        data.elementAt(offset).value = animation.frameData[i];
-        offset += 1;
-      }
-      meshNames.elementAt(animIdx).value =
-          animation.meshName.toNativeUtf8().cast<Char>();
-      boneNames.elementAt(animIdx).value =
-          animation.boneName.toNativeUtf8().cast<Char>();
+    var numFrames = animation.frameData.length ~/ 7;
+    var boneNames = calloc<Pointer<Char>>(1);
+    boneNames.elementAt(0).value =
+        animation.boneName.toNativeUtf8().cast<Char>();
+
+    var meshNames = calloc<Pointer<Char>>(animation.meshNames.length);
+    for (int i = 0; i < animation.meshNames.length; i++) {
+      meshNames.elementAt(i).value =
+          animation.meshNames[i].toNativeUtf8().cast<Char>();
+    }
+
+    for (int i = 0; i < animation.frameData.length; i++) {
+      data.elementAt(offset).value = animation.frameData[i];
+      offset += 1;
     }
 
     _nativeLibrary.set_bone_animation(
         _assetManager,
         asset,
-        animations.length,
-        boneNames,
-        meshNames,
         data,
         numFrames,
-        animations.first.frameLengthInMs);
+        1,
+        boneNames,
+        meshNames,
+        animation.meshNames.length,
+        animation.frameLengthInMs);
     calloc.free(data);
   }
 
@@ -386,7 +384,6 @@ class FilamentController {
 
   void playAnimation(FilamentEntity asset, int index,
       {bool loop = false, bool reverse = false}) async {
-    print("LOOP $loop");
     _nativeLibrary.play_animation(
         _assetManager, asset, index, loop ? 1 : 0, reverse ? 1 : 0);
   }
