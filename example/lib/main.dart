@@ -94,10 +94,12 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         break;
 
       case 7:
-        _filamentController.setMorphTargetWeights(_cube!, List.filled(8, 1.0));
+        _filamentController.setMorphTargetWeights(
+            _cube!, "Cube.001", List.filled(8, 1.0));
         break;
       case 8:
-        _filamentController.setMorphTargetWeights(_cube!, List.filled(8, 0));
+        _filamentController.setMorphTargetWeights(
+            _cube!, "Cube.001", List.filled(8, 0));
         break;
       case 9:
         for (int i = 0; i < _animationNames.length; i++) {
