@@ -97,6 +97,8 @@ void set_camera_rotation(void *viewer, float rads, float x, float y, float z);
 void set_camera_model_matrix(void *viewer, const float *const matrix);
 void set_camera_focal_length(void *viewer, float focalLength);
 void set_camera_focus_distance(void *viewer, float focusDistance);
+int hide_mesh(void* assetManager, EntityId asset, const char* meshName);
+int reveal_mesh(void* assetManager, EntityId asset, const char* meshName);
 void ios_dummy();
 
 #endif

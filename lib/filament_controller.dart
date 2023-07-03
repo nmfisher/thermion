@@ -459,4 +459,20 @@ class FilamentController {
       FilamentEntity asset, double rads, double x, double y, double z) async {
     _nativeLibrary.set_rotation(_assetManager, asset, rads, x, y, z);
   }
+
+  void hide(FilamentEntity asset, String meshName) {
+    if (_nativeLibrary.hide_mesh(
+            _assetManager, asset, meshName.toNativeUtf8().cast<Char>()) !=
+        1) {
+      throw Exception("Failed to hide mesh $meshName");
+    }
+  }
+
+  void reveal(FilamentEntity asset, String meshName) {
+    if (_nativeLibrary.reveal_mesh(
+            _assetManager, asset, meshName.toNativeUtf8().cast<Char>()) !=
+        1) {
+      throw Exception("Failed to unhide mesh $meshName");
+    }
+  }
 }

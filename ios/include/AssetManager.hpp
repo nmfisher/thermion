@@ -64,6 +64,8 @@ namespace polyvox {
             void setMorphTargetWeights(const char* const entityName, float *weights, int count);
             void loadTexture(EntityId entity, const char* resourcePath, int renderableIndex);
             void setAnimationFrame(EntityId entity, int animationIndex, int animationFrame);
+            bool hide(EntityId entity, const char* meshName);
+            bool reveal(EntityId entity, const char* meshName);
             
         private:
             AssetLoader* _assetLoader = nullptr;

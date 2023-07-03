@@ -150,20 +150,7 @@ EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
 
   _gltfResourceLoader->loadResources(asset);
 
-  // const Entity *entities = asset->getEntities();
-
-  // RenderableManager &rm = _engine->getRenderableManager();
-
-  // MaterialKey config;
-  // auto mi_new = _materialProvider->createMaterialInstance(&config, nullptr);
-  
-  // for (int i = 0; i < asset->getEntityCount(); i++) {
-  //   auto entityInstance = rm.getInstance(entities[i]);   
-  //   auto mi = rm.getMaterialInstanceAt(entityInstance, 0);
-  //   // auto m = mi->getMaterial();
-  //   // auto shading = m->getShading();
-  //   // Log("Shading %d", shading);
-  // }
+  const Entity *entities = asset->getEntities();
 
   auto lights = asset->getLightEntities();
   _scene->addEntities(lights, asset->getLightEntityCount());
@@ -185,8 +172,44 @@ EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
 
   _entityIdLookup.emplace(eid, _assets.size());
   _assets.push_back(sceneAsset);
-
+  
   return eid;
+}
+
+bool AssetManager::hide(EntityId entityId, const char* meshName) {
+  
+  auto asset = getAssetByEntityId(entityId);
+  if(!asset) {
+    return false;
+  }
+  
+  auto entity = findEntityByName(asset, meshName);
+
+  if(entity.isNull()) {
+    Log("Mesh %s could not be found", meshName);
+    return false;
+  }
+  _scene->remove(entity);
+  return true;
+}
+
+bool AssetManager::reveal(EntityId entityId, const char* meshName) {
+  auto asset = getAssetByEntityId(entityId);
+  if(!asset) {
+    Log("No asset found under entity ID");
+    return false;
+  }
+  
+  auto entity = findEntityByName(asset, meshName);
+
+  RenderableManager &rm = _engine->getRenderableManager();
+
+   if(entity.isNull()) {
+    Log("Mesh %s could not be found", meshName);
+    return false;
+  }
+  _scene->addEntity(entity);
+  return true;
 }
 
 void AssetManager::destroyAll() {

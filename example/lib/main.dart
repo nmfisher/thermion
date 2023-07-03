@@ -220,14 +220,26 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
             _cube!,
             BoneAnimationData(
                 "Bone.001", ["Cube.001"], frameData, 1000.0 / 60.0));
-      //     ,
-      //     "Bone.001",
-      //     "Cube.001",
-      //     BoneTransform([Vec3(x: 0, y: 0.0, z: 0.0)],
-      //         [Quaternion(x: 1, y: 1, z: 1, w: 1)]));
-      // break;
+        //     ,
+        //     "Bone.001",
+        //     "Cube.001",
+        //     BoneTransform([Vec3(x: 0, y: 0.0, z: 0.0)],
+        //         [Quaternion(x: 1, y: 1, z: 1, w: 1)]));
+        // break;
+        break;
+      case 33:
+        if (_coneHidden) {
+          _filamentController.reveal(_cube!, "Cone");
+        } else {
+          _filamentController.hide(_cube!, "Cone");
+        }
+        setState(() {
+          _coneHidden = !_coneHidden;
+        });
     }
   }
+
+  bool _coneHidden = false;
 
   Widget _item({int value = 0, Widget? child = null}) {
     return GestureDetector(
@@ -271,6 +283,9 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                       child: Text('remove skybox'),
                     ),
                     _item(value: 3, child: Text('load cube GLB')),
+                    _item(
+                        value: 33,
+                        child: Text(_coneHidden ? 'show cone' : 'hide cone')),
                     _item(value: 4, child: Text('load cube GLTF')),
                     _item(value: 21, child: Text('swap cube texture')),
                     _item(value: 22, child: Text('transform to unit cube')),

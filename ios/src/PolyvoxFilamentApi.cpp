@@ -568,6 +568,22 @@ extern "C" {
 //    fut.wait();
   }
 
+  FLUTTER_PLUGIN_EXPORT int hide_mesh(void* assetManager, EntityId asset, const char* meshName) {
+    //std::packaged_task<void()> lambda([=]() mutable  {
+      return ((AssetManager*)assetManager)->hide(asset, meshName);
+     //});
+//    auto fut = _tp->add_task(lambda);
+//    fut.wait();
+  }
+
+  FLUTTER_PLUGIN_EXPORT int reveal_mesh(void* assetManager, EntityId asset, const char* meshName) {
+    //std::packaged_task<void()> lambda([=]() mutable  {
+      return ((AssetManager*)assetManager)->reveal(asset, meshName);
+     //});
+//    auto fut = _tp->add_task(lambda);
+//    fut.wait();
+  }
+
   FLUTTER_PLUGIN_EXPORT void ios_dummy() {
     Log("Dummy called");
   }
