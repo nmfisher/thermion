@@ -472,7 +472,7 @@ class FilamentController {
     if (_nativeLibrary.reveal_mesh(
             _assetManager, asset, meshName.toNativeUtf8().cast<Char>()) !=
         1) {
-      throw Exception("Failed to unhide mesh $meshName");
+      throw Exception("Failed to reveal mesh $meshName");
     }
   }
 }
