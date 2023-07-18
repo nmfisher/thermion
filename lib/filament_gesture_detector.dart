@@ -99,40 +99,37 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   });
                 }
               },
-        onPointerPanZoomStart: !widget.enableControls
-            ? null
-            : (pzs) {
-                print("PAN ZOOM START");
-              },
+        onPointerPanZoomStart: !widget.enableControls ? null : (pzs) {},
         onPointerDown: !widget.enableControls
             ? null
             : (d) async {
-                print("a");
-                // if (d.buttons == kTertiaryButton || _rotating) {
-                //   widget.controller
-                //       .rotateStart(d.localPosition.dx, d.localPosition.dy);
-                // } else {
-                //   widget.controller.panStart(d.focalPoint.dx, d.focalPoint.dy);
-                // }
+                if (d.buttons == kTertiaryButton || _rotating) {
+                  widget.controller
+                      .rotateStart(d.localPosition.dx, d.localPosition.dy);
+                } else {
+                  widget.controller
+                      .panStart(d.localPosition.dx, d.localPosition.dy);
+                }
               },
         onPointerMove: !widget.enableControls
             ? null
             : (PointerMoveEvent d) async {
-                // if (d.buttons == kTertiaryButton || _rotating) {
-                //   widget.controller
-                //       .rotateUpdate(d.localPosition.dx, d.localPosition.dy);
-                // } else {
-                //   widget.controller.panUpdate(d.focalPoint.dx, d.focalPoint.dy);
-                // }
+                if (d.buttons == kTertiaryButton || _rotating) {
+                  widget.controller
+                      .rotateUpdate(d.localPosition.dx, d.localPosition.dy);
+                } else {
+                  widget.controller
+                      .panUpdate(d.localPosition.dx, d.localPosition.dy);
+                }
               },
         onPointerUp: !widget.enableControls
             ? null
             : (d) async {
-                // if (d.buttons == kTertiaryButton || _rotating) {
-                //   widget.controller.rotateEnd();
-                // } else {
-                //   widget.controller.panEnd(d.focalPoint.dx, d.focalPoint.dy);
-                // }
+                if (d.buttons == kTertiaryButton || _rotating) {
+                  widget.controller.rotateEnd();
+                } else {
+                  widget.controller.panEnd();
+                }
               },
         child: widget.child);
   }
@@ -145,7 +142,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
         behavior: HitTestBehavior.opaque,
         onDoubleTap: () {
           _rotating = !_rotating;
-          print("Set rotating to $_rotating");
         },
         onScaleStart: !widget.enableControls
             ? null
