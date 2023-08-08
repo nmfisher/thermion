@@ -8,7 +8,7 @@ import 'package:polyvox_filament/animations/morph_animation_data.dart';
 import 'package:vector_math/vector_math.dart';
 
 ///
-/// A class for loading animation data from a single CSV and allocating between morph/bone animation with help.
+/// A class for loading animation data from a single CSV and allocating between morph/bone animation.
 ///
 class DynamicAnimation {
   final MorphAnimationData? morphAnimation;
@@ -22,8 +22,14 @@ class DynamicAnimation {
     // create a MorphAnimationData instance from the given CSV
     var llf = _loadLiveLinkFaceCSV(csvPath);
     var frameLengthInMs = 1000 / (framerate ?? 60.0);
-    var morphNames = llf
-        .item1; //.where((name) => !boneDrivers.any((element) => element.blendshape == name));
+    var morphNames = llf.item1;
+
+    if (boneDrivers != null) {
+      morphNames = morphNames
+          .where((name) =>
+              boneDrivers!.any((element) => element.bone == name) == false)
+          .toList();
+    }
 
     var morphAnimationData = MorphAnimationData(
         meshName ?? "NULL", llf.item2, morphNames, frameLengthInMs);
@@ -84,7 +90,9 @@ class DynamicAnimation {
   ///
   /// Load visemes fom a CSV file formatted according to the following header:
   /// "Timecode,BlendShapeCount,EyeBlinkLeft,EyeLookDownLeft,EyeLookInLeft,EyeLookOutLeft,EyeLookUpLeft,EyeSquintLeft,EyeWideLeft,EyeBlinkRight,EyeLookDownRight,EyeLookInRight,EyeLookOutRight,EyeLookUpRight,EyeSquintRight,EyeWideRight,JawForward,JawRight,JawLeft,JawOpen,MouthClose,MouthFunnel,MouthPucker,MouthRight,MouthLeft,MouthSmileLeft,MouthSmileRight,MouthFrownLeft,MouthFrownRight,MouthDimpleLeft,MouthDimpleRight,MouthStretchLeft,MouthStretchRight,MouthRollLower,MouthRollUpper,MouthShrugLower,MouthShrugUpper,MouthPressLeft,MouthPressRight,MouthLowerDownLeft,MouthLowerDownRight,MouthUpperUpLeft,MouthUpperUpRight,BrowDownLeft,BrowDownRight,BrowInnerUp,BrowOuterUpLeft,BrowOuterUpRight,CheekPuff,CheekSquintLeft,CheekSquintRight,NoseSneerLeft,NoseSneerRight,TongueOut,HeadYaw,HeadPitch,HeadRoll,LeftEyeYaw,LeftEyePitch,LeftEyeRoll,RightEyeYaw,RightEyePitch,RightEyeRoll"
-  /// Returns only those specified by [targetNames].
+  /// Returns two elements:
+  /// - a list containing the names of each blendshape/morph key
+  /// - a Float32List of length TxN, where T is the number of frames and N is the number of morph keys (i.e. the length of the list in the first element of the returned tuple).
   ///
   static Tuple2<List<String>, Float32List> _loadLiveLinkFaceCSV(String path) {
     final data = File(path)

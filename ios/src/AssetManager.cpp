@@ -557,8 +557,6 @@ bool AssetManager::setBoneAnimationBuffer(
     frameData + numFrames * numBones * 7
   );
 
-  Log("%d frames for %d bones", numFrames, numBones);
-
   animationBuffer.mFrameLengthInMs = frameLengthInMs;
   animationBuffer.mNumFrames = numFrames;
     
