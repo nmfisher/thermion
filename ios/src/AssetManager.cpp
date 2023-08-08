@@ -37,7 +37,7 @@ using namespace utils;
 using namespace filament;
 using namespace filament::gltfio;
 
-AssetManager::AssetManager(ResourceLoaderWrapper* resourceLoaderWrapper,
+AssetManager::AssetManager(const ResourceLoaderWrapper* const resourceLoaderWrapper,
                             NameComponentManager *ncm, 
                             Engine *engine,
                             Scene *scene)
@@ -249,37 +249,34 @@ void AssetManager::updateAnimations() {
     asset.mAnimating = false;
     
     // GLTF animations
-    for(int j = 0; j < asset.mAnimations.size() - 2; j++) {
-      AnimationStatus& anim = asset.mAnimations[j];
+    AnimationStatus& anim = asset.mAnimations[2];
   
-      if(!anim.mAnimating) {
-        // Log("Skipping anim at %d", j);
-        continue;
-      }
-
+    if(anim.mActive) {
       auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
 
       if(anim.mLoop || elapsed < anim.mDuration) {
-        asset.mAnimator->applyAnimation(j, elapsed);
+        asset.mAnimator->applyAnimation(asset.gltfAnimationIndex, elapsed);
         asset.mAnimating = true;
-      } else if(elapsed - anim.mDuration < 0.3) { 
-        // cross-fade
-        // animator->applyCrossFade(j-2, anim.mDuration - 0.05, elapsed / 0.3);
-        // asset.mAnimating = true;
-        // anim.mStart = time_point_t::max();
+        if(asset.fadeGltfAnimationIndex != -1 && elapsed < asset.fadeDuration) {
+          // cross-fade
+          auto fadeFromTime = asset.fadeOutAnimationStart + elapsed;
+          auto alpha = elapsed / asset.fadeDuration;
+          asset.mAnimator->applyCrossFade(asset.fadeGltfAnimationIndex, fadeFromTime, alpha);
+        }
       } else { 
         // stop
         anim.mStart = time_point_t::max();
-        anim.mAnimating = false;
-        Log("Finished");
+        anim.mActive = false;
+        asset.gltfAnimationIndex = -1;
+        asset.fadeGltfAnimationIndex = -1;
       }
       asset.mAnimator->updateBoneMatrices();
     }
 
-    // dynamically constructed morph animation
-    AnimationStatus& morphAnimation = asset.mAnimations[asset.mAnimations.size() - 2];
+    // dynamic morph animation
+    AnimationStatus& morphAnimation = asset.mAnimations[0];
 
-    if(morphAnimation.mAnimating) {
+    if(morphAnimation.mActive) {
       
       auto elapsed = float(
         std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -290,13 +287,11 @@ void AssetManager::updateAnimations() {
         asset.mMorphAnimationBuffer.mFrameLengthInMs
       );
 
-      // if more time has elapsed than the animation duration && not looping
-      // mark the animation as complete
+      // if more time has elapsed than the animation duration && we aren't looping, then mark the animation as complete
       if(elapsed >= morphAnimation.mDuration && !morphAnimation.mLoop) {
         morphAnimation.mStart = time_point_t::max();
-        morphAnimation.mAnimating = false;
+        morphAnimation.mActive = false;
       } else {
-        
         asset.mAnimating = true;      
         int frameNumber = static_cast<int>(elapsed * 1000.0f / asset.mMorphAnimationBuffer.mFrameLengthInMs) % lengthInFrames;
         // offset from the end if reverse
@@ -304,17 +299,18 @@ void AssetManager::updateAnimations() {
           frameNumber = lengthInFrames - frameNumber;
         } 
         
-          // set the weights appropriately
-          rm.setMorphWeights(
+        // set the weights appropriately
+        rm.setMorphWeights(
             rm.getInstance(asset.mMorphAnimationBuffer.mMeshTarget),
             asset.mMorphAnimationBuffer.mFrameData.data() + (frameNumber * asset.mMorphAnimationBuffer.mNumMorphWeights),
-            asset.mMorphAnimationBuffer.mNumMorphWeights);
+            asset.mMorphAnimationBuffer.mNumMorphWeights
+        );
       }
     }
 
-    // bone animation
-    AnimationStatus boneAnimation = asset.mAnimations[asset.mAnimations.size() - 1];
-    if(boneAnimation.mAnimating) {
+    // dynamic bone animations
+    AnimationStatus boneAnimation = asset.mAnimations[1];
+    if(boneAnimation.mActive) {
       auto elapsed = float(
         std::chrono::duration_cast<std::chrono::milliseconds>(
           now - boneAnimation.mStart
@@ -324,11 +320,10 @@ void AssetManager::updateAnimations() {
         asset.mBoneAnimationBuffer.mFrameLengthInMs
       );
 
-      // if more time has elapsed than the animation duration && not looping
-      // mark the animation as complete
+      // if more time has elapsed than the animation duration and we are not looping, mark the animation as complete
       if(elapsed >= boneAnimation.mDuration && !boneAnimation.mLoop) {
         boneAnimation.mStart = time_point_t::max();
-        boneAnimation.mAnimating = false;
+        boneAnimation.mActive = false;
       } else {
 
         asset.mAnimating = true;      
@@ -347,7 +342,6 @@ void AssetManager::updateAnimations() {
       asset.mAnimator->updateBoneMatrices();
     }
   }
-  
 }
 
  void AssetManager::setBoneTransform(SceneAsset& asset, int frameNumber) {  
@@ -482,15 +476,11 @@ bool AssetManager::setMorphAnimationBuffer(
   asset.mMorphAnimationBuffer.mFrameLengthInMs = frameLengthInMs;
   asset.mMorphAnimationBuffer.mNumMorphWeights = numMorphWeights;
   
-  AnimationStatus& animation = asset.mAnimations[asset.mAnimations.size() - 2];
+  AnimationStatus& animation = asset.mAnimations[0];
   animation.mDuration = (frameLengthInMs * numFrames) / 1000.0f;
   animation.mStart = high_resolution_clock::now();
-  animation.mAnimating = true;
+  animation.mActive = true;
   asset.mAnimating = true;
-  Log("set start to  %d, dur is %f", 
-      std::chrono::duration_cast<std::chrono::milliseconds>(animation.mStart.time_since_epoch()).count(), 
-      animation.mDuration
-  );
   return true;
 }
 
@@ -503,8 +493,6 @@ bool AssetManager::setBoneAnimationBuffer(
     const char** const meshNames,
     int numMeshTargets,
     float frameLengthInMs) {
-
- 
 
   const auto& pos = _entityIdLookup.find(entityId);
   if(pos == _entityIdLookup.end()) {
@@ -585,9 +573,9 @@ bool AssetManager::setBoneAnimationBuffer(
     animationBuffer.mMeshTargets.push_back(entity);
   }
 
-  auto& animation = asset.mAnimations[asset.mAnimations.size() - 1];
+  auto& animation = asset.mAnimations[1];
   animation.mStart = std::chrono::high_resolution_clock::now();
-  animation.mAnimating = true;
+  animation.mActive = true;
   animation.mReverse = false;
   animation.mDuration = (frameLengthInMs * numFrames) / 1000.0f;
   asset.mAnimating = true;
@@ -596,21 +584,31 @@ bool AssetManager::setBoneAnimationBuffer(
 }
 
 
-
-void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse) {
+void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse, float crossfade) {
   const auto& pos = _entityIdLookup.find(e);
   if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
     return;
   }
   auto& asset = _assets[pos->second];
-  Log("Playing animation at %d", index);
-  
-  asset.mAnimations[index].mStart = std::chrono::high_resolution_clock::now();
-  asset.mAnimations[index].mLoop = loop;
-  asset.mAnimations[index].mReverse = reverse;
-  asset.mAnimations[index].mAnimating = true;
-  // Log("new start %d, dur is %f", std::chrono::duration_cast<std::chrono::milliseconds>(asset.mAnimations[index+2].mStart.time_since_epoch()).count(), asset.mAnimations[index+2].mDuration);
+
+  if(asset.gltfAnimationIndex != -1) {
+    asset.fadeGltfAnimationIndex = asset.gltfAnimationIndex;
+    asset.fadeDuration = crossfade;
+    auto now = high_resolution_clock::now();
+    auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - asset.mAnimations[2].mStart).count()) / 1000.0f;
+    asset.fadeOutAnimationStart = elapsed;
+  } else {
+    asset.fadeGltfAnimationIndex = -1;
+    asset.fadeDuration = 0.0f;
+  }
+
+  asset.gltfAnimationIndex = index;  
+  asset.mAnimations[2].mStart = std::chrono::high_resolution_clock::now();
+  asset.mAnimations[2].mLoop = loop;
+  asset.mAnimations[2].mReverse = reverse;
+  asset.mAnimations[2].mActive = true;
+  asset.mAnimations[2].mDuration = asset.mAnimator->getAnimationDuration(index);
   asset.mAnimating = true;
 }
 
@@ -621,7 +619,12 @@ void AssetManager::stopAnimation(EntityId entityId, int index) {
     return;
   }
   auto& asset = _assets[pos->second];
-  asset.mAnimations[index].mStart = time_point_t::max();
+  if(asset.gltfAnimationIndex != index) {
+            // ignore?
+  } else {
+      asset.mAnimations[2].mStart = time_point_t::max();
+      asset.mAnimations[2].mActive = false;
+  }
 }
 
 void AssetManager::loadTexture(EntityId entity, const char* resourcePath, int renderableIndex) {

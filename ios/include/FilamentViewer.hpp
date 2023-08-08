@@ -44,8 +44,7 @@ typedef int32_t EntityId;
 namespace polyvox {
     class FilamentViewer {
         public:
-            // FilamentViewer(void* layer, LoadResource loadResource, FreeResource freeResource);
-            FilamentViewer(void* context, ResourceLoaderWrapper* resourceLoaderWrapper);
+            FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper);
             ~FilamentViewer();
 
             void loadSkybox(const char* const skyboxUri);
@@ -64,7 +63,7 @@ namespace polyvox {
             
             bool setCamera(EntityId asset, const char* nodeName);
             
-            void createSwapChain(void* surface, uint32_t width, uint32_t height);
+            void createSwapChain(const void* surface, uint32_t width, uint32_t height);
             void destroySwapChain();
 
             void createRenderTarget(uint32_t glTextureId, uint32_t width,uint32_t height);
@@ -108,7 +107,7 @@ namespace polyvox {
             math::mat4f _cameraPosition;
             math::mat4f _cameraRotation;
 
-            ResourceLoaderWrapper* _resourceLoaderWrapper;
+            const ResourceLoaderWrapper* const _resourceLoaderWrapper;
       
             Scene* _scene;
             View* _view;  

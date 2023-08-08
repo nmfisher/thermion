@@ -35,8 +35,8 @@ namespace polyvox {
         time_point_t mStart = time_point_t::max();
         bool mLoop = false;
         bool mReverse = false;
-        float mDuration = 0;
-        bool mAnimating = false;
+        float mDuration = 0;  
+        bool mActive = false;
     };
 
     // 
@@ -73,10 +73,16 @@ namespace polyvox {
         FilamentAsset* mAsset = nullptr;
         Animator* mAnimator = nullptr;
 
-        // fixed-sized vector containing the status of the morph, bone and GLTF animations.
-        // entries 0 and 1 are the morph/bone animations.
-        // subsequent entries are the GLTF animations.
-        vector<AnimationStatus> mAnimations;
+        // fixed-sized array containing pointers to the active morph, bone and GLTF animations.
+        AnimationStatus mAnimations[3];
+        // the index of the active glTF animation in the Filament Asset animations array
+        // if no glTF animation is active, this is -1
+        int gltfAnimationIndex = -1;
+        // the index of the last active glTF animation, 
+        // used to cross-fade
+        int fadeGltfAnimationIndex = -1;
+        float fadeDuration = 0.0f;
+        float fadeOutAnimationStart = 0.0f;
 
         MorphAnimationBuffer mMorphAnimationBuffer;
         BoneAnimationBuffer mBoneAnimationBuffer;
@@ -96,12 +102,6 @@ namespace polyvox {
             FilamentAsset* asset
         ) : mAsset(asset) {
             mAnimator = mAsset->getInstance()->getAnimator();
-
-            mAnimations.resize(2 + mAnimator->getAnimationCount());
-            
-            for(int i=0; i < mAnimations.size() - 2; i++) {
-                mAnimations[i].mDuration = mAnimator->getAnimationDuration(i);
-            }
         }
     };
 }

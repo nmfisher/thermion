@@ -28,7 +28,9 @@ class AnimationBuilder {
       required this.meshName,
       required int framerate}) {
     _frameLengthInMs = 1000 / framerate;
-    morphNames = controller.getMorphTargetNames(asset, meshName);
+    controller.getMorphTargetNames(asset, meshName).then((value) {
+      morphNames = value;
+    });
   }
 
   void set() {

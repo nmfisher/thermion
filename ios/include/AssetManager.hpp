@@ -17,7 +17,7 @@ namespace polyvox {
 
     class AssetManager {
         public:
-            AssetManager(ResourceLoaderWrapper* loader,
+            AssetManager(const ResourceLoaderWrapper* const loader,
                         NameComponentManager *ncm, 
                         Engine *engine,
                         Scene *scene);
@@ -40,7 +40,6 @@ namespace polyvox {
             size_t getLightEntityCount(EntityId e) const noexcept;
             void updateAnimations();
 
-            
             bool setMorphAnimationBuffer(
                 EntityId entityId,
                 const char* entityName,
@@ -59,7 +58,7 @@ namespace polyvox {
                 const char** const meshName,
                 int numMeshTargets,
                 float frameLengthInMs);
-            void playAnimation(EntityId e, int index, bool loop, bool reverse);
+            void playAnimation(EntityId e, int index, bool loop, bool reverse, float crossfade = 0.3f);
             void stopAnimation(EntityId e, int index);
             void setMorphTargetWeights(const char* const entityName, float *weights, int count);
             void loadTexture(EntityId entity, const char* resourcePath, int renderableIndex);
@@ -69,7 +68,7 @@ namespace polyvox {
             
         private:
             AssetLoader* _assetLoader = nullptr;
-            ResourceLoaderWrapper* _resourceLoaderWrapper;
+            const ResourceLoaderWrapper* const _resourceLoaderWrapper;
             NameComponentManager* _ncm = nullptr;
             Engine* _engine;
             Scene* _scene;

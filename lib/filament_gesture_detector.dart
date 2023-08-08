@@ -107,7 +107,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
         onPointerDown: !widget.enableControls
             ? null
             : (d) async {
-                print("a");
                 // if (d.buttons == kTertiaryButton || _rotating) {
                 //   widget.controller
                 //       .rotateStart(d.localPosition.dx, d.localPosition.dy);

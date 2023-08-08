@@ -21,6 +21,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+        // showPerformanceOverlay: true,
+        color: Colors.white,
+        home: Scaffold(backgroundColor: Colors.white, body: ExampleWidget()));
+  }
+}
+
+class ExampleWidget extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+    return _ExampleWidgetState();
+  }
+}
+
+class _ExampleWidgetState extends State<ExampleWidget> {
   late FilamentController _filamentController;
 
   FilamentEntity? _cube;
@@ -28,8 +45,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   FilamentEntity? _light;
 
   final weights = List.filled(255, 0.0);
-  List<String> _targetNames = [];
-  List<String> _animationNames = [];
+
   bool _loop = false;
   bool _vertical = false;
   bool _rendering = false;
@@ -38,7 +54,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _filamentController = FilamentController(this);
+    _filamentController = FilamentController();
   }
 
   void onClick(int index) async {
@@ -61,6 +77,9 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
           _filamentController.setFrameRate(_framerate);
         });
         break;
+      case -6:
+        _filamentController.setBackgroundColor(Color(0xFF73C9FA));
+        break;
 
       case 0:
         _filamentController.setBackgroundImage('assets/background.ktx');
@@ -76,18 +95,17 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         _filamentController.removeSkybox();
         break;
       case 3:
-        _cube = _filamentController.loadGlb('assets/cube.glb');
-        _animationNames = _filamentController.getAnimationNames(_cube!);
+        _cube = await _filamentController.loadGlb('assets/cube.glb');
         break;
-
       case 4:
         if (_cube != null) {
           _filamentController.removeAsset(_cube!);
         }
-        _cube = _filamentController.loadGltf('assets/cube.gltf', 'assets');
+        _cube =
+            await _filamentController.loadGltf('assets/cube.gltf', 'assets');
         break;
       case 5:
-        _flightHelmet ??= _filamentController.loadGltf(
+        _flightHelmet ??= await _filamentController.loadGltf(
             'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
         break;
       case 6:
@@ -101,16 +119,6 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
       case 8:
         _filamentController.setMorphTargetWeights(
             _cube!, "Cube.001", List.filled(8, 0));
-        break;
-      case 9:
-        for (int i = 0; i < _animationNames.length; i++) {
-          print("Playing animation ${_animationNames[i]}");
-          _filamentController.playAnimation(_cube!, i, loop: _loop);
-        }
-
-        break;
-      case 10:
-        _filamentController.stopAnimation(_cube!, 0);
         break;
       case 11:
         setState(() {
@@ -142,12 +150,32 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
             .set();
         break;
       case 16:
-        _targetNames = _filamentController.getMorphTargetNames(_cube!, "Cube");
-        setState(() {});
+        var names =
+            await _filamentController.getMorphTargetNames(_cube!, "Cube");
+        await showDialog(
+            context: context,
+            builder: (ctx) {
+              return Container(
+                  height: 100,
+                  width: 100,
+                  color: Colors.white,
+                  child: Text(names.join(",")));
+            });
+
         break;
       case 17:
-        _animationNames = _filamentController.getAnimationNames(_cube!);
-        setState(() {});
+        var animationNames =
+            await _filamentController.getAnimationNames(_cube!);
+
+        await showDialog(
+            context: context,
+            builder: (ctx) {
+              return Container(
+                  height: 100,
+                  width: 100,
+                  color: Colors.white,
+                  child: Text(animationNames.join(",")));
+            });
 
         break;
       case 18:
@@ -192,14 +220,13 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         _filamentController.setBackgroundImagePosition(25, 25);
         break;
       case 29:
-        _light = _filamentController.addLight(
+        _light = await _filamentController.addLight(
             1, 6500, 15000000, 0, 1, 0, 0, -1, 0, true);
-        _light = _filamentController.addLight(
-            2, 6500, 15000000, 0, 0, 1, 0, 0, -1, true);
         break;
       case 30:
         if (_light != null) {
           _filamentController.removeLight(_light!);
+          _light = null;
         }
         break;
       case 31:
@@ -236,6 +263,22 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
         setState(() {
           _coneHidden = !_coneHidden;
         });
+        break;
+      case 34:
+        _filamentController.playAnimation(_cube!, 0,
+            loop: false, crossfade: 0.5);
+        break;
+      case 35:
+        _filamentController.playAnimation(_cube!, 1,
+            loop: false, crossfade: 0.5);
+        break;
+      case 36:
+        _filamentController.playAnimation(_cube!, 2,
+            loop: false, crossfade: 0.5);
+        break;
+      case 37:
+        _filamentController.stopAnimation(_cube!, 0);
+        break;
     }
   }
 
@@ -247,92 +290,89 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
           onClick(value);
         },
         child: Container(
-            margin: EdgeInsets.symmetric(vertical: 10), child: child));
+            color: Colors.transparent,
+            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+            child: child));
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-        // showPerformanceOverlay: true,
-        color: Colors.white,
-        home: Scaffold(
-            backgroundColor: Colors.white,
-            body: Row(children: [
-              SingleChildScrollView(
-                  child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                    Text(
-                        "Target names : ${_targetNames.join(",")}, Animation names : ${_animationNames.join(",")}"),
-                    _item(value: -1, child: Text("initialize")),
-                    _item(value: -2, child: Text("render")),
-                    _item(value: -4, child: Text("Rendering: $_rendering ")),
-                    _item(value: -5, child: Text("$_framerate fps")),
-                    _item(value: 0, child: Text("load background image")),
-                    _item(
-                      value: 1,
-                      child: Text('load skybox'),
-                    ),
-                    _item(
-                      value: -3,
-                      child: Text('load IBL'),
-                    ),
-                    _item(
-                      value: 2,
-                      child: Text('remove skybox'),
-                    ),
-                    _item(value: 3, child: Text('load cube GLB')),
-                    _item(
-                        value: 33,
-                        child: Text(_coneHidden ? 'show cone' : 'hide cone')),
-                    _item(value: 4, child: Text('load cube GLTF')),
-                    _item(value: 21, child: Text('swap cube texture')),
-                    _item(value: 22, child: Text('transform to unit cube')),
-                    _item(value: 23, child: Text('set position to 1, 1, -1')),
-                    _item(value: 32, child: Text('construct bone animation')),
-                    _item(value: 24, child: Text('rotate by pi around Y axis')),
-                    _item(value: 5, child: Text('load flight helmet')),
-                    _item(value: 6, child: Text('remove cube')),
-                    _item(value: 20, child: Text('clear all assets')),
-                    _item(value: 7, child: Text('set all weights to 1')),
-                    _item(value: 8, child: Text('set all weights to 0')),
-                    _item(value: 9, child: Text('play all animations')),
-                    _item(value: 10, child: Text('stop animations')),
-                    _item(
-                        value: 11,
-                        child: Text(
-                            _loop ? "don't loop animation" : "loop animation")),
-                    _item(value: 14, child: Text('set camera')),
-                    _item(value: 15, child: Text('animate weights')),
-                    _item(value: 16, child: Text('get target names')),
-                    _item(value: 17, child: Text('get animation names')),
-                    _item(value: 18, child: Text('pan left')),
-                    _item(value: 19, child: Text('pan right')),
-                    _item(
-                        value: 25,
-                        child: Text(
-                            _vertical ? 'set horizontal' : 'set vertical')),
-                    _item(value: 26, child: Text('set camera pos to 0,0,3')),
-                    _item(value: 27, child: Text('toggle framerate')),
-                    _item(value: 28, child: Text('set bg image pos')),
-                    _item(value: 29, child: Text('add light')),
-                    _item(value: 30, child: Text('remove light')),
-                    _item(value: 31, child: Text('clear all lights')),
-                    _item(value: 32, child: Text('set camera model matrix')),
-                  ])),
-              Container(
-                  width: _vertical ? 200 : 400,
-                  height: _vertical ? 400 : 200,
-                  alignment: Alignment.center,
-                  child: SizedBox(
-                    child: FilamentGestureDetector(
-                        showControlOverlay: true,
-                        controller: _filamentController,
-                        child: FilamentWidget(
-                          controller: _filamentController,
-                        )),
-                  )),
-            ])));
+    return Row(children: [
+      SingleChildScrollView(
+          child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+            _item(value: -1, child: Text("initialize")),
+            _item(value: -2, child: Text("render")),
+            _item(value: -4, child: Text("Rendering: $_rendering ")),
+            _item(value: -5, child: Text("$_framerate fps")),
+            _item(value: -6, child: Text("set background color")),
+            _item(value: 0, child: Text("load background image")),
+            _item(
+              value: 1,
+              child: Text('load skybox'),
+            ),
+            _item(
+              value: -3,
+              child: Text('load IBL'),
+            ),
+            _item(
+              value: 2,
+              child: Text('remove skybox'),
+            ),
+            _item(value: 3, child: Text('load cube GLB')),
+            _item(
+                value: 33,
+                child: Text(_coneHidden ? 'show cone' : 'hide cone')),
+            _item(value: 4, child: Text('load cube GLTF')),
+            _item(value: 21, child: Text('swap cube texture')),
+            _item(value: 22, child: Text('transform to unit cube')),
+            _item(value: 23, child: Text('set position to 1, 1, -1')),
+            _item(value: 32, child: Text('construct bone animation')),
+            _item(value: 24, child: Text('rotate by pi around Y axis')),
+            _item(value: 5, child: Text('load flight helmet')),
+            _item(value: 6, child: Text('remove cube')),
+            _item(value: 20, child: Text('clear all assets')),
+            _item(value: 7, child: Text('set all weights to 1')),
+            _item(value: 8, child: Text('set all weights to 0')),
+            _item(value: 9, child: Text('play all animations')),
+            _item(value: 34, child: Text('play animation 0')),
+            _item(value: 35, child: Text('play animation 1')),
+            _item(value: 36, child: Text('play animation 2')),
+            _item(value: 37, child: Text('stop animation 0')),
+            _item(
+                value: 11,
+                child: Text(_loop ? "don't loop animation" : "loop animation")),
+            _item(value: 14, child: Text('set camera')),
+            _item(value: 15, child: Text('animate weights')),
+            _item(value: 16, child: Text('get target names')),
+            _item(value: 17, child: Text('get animation names')),
+            _item(value: 18, child: Text('pan left')),
+            _item(value: 19, child: Text('pan right')),
+            _item(
+                value: 25,
+                child: Text(_vertical ? 'set horizontal' : 'set vertical')),
+            _item(value: 26, child: Text('set camera pos to 0,0,3')),
+            _item(value: 27, child: Text('toggle framerate')),
+            _item(value: 28, child: Text('set bg image pos')),
+            _item(value: 29, child: Text('add light')),
+            _item(value: 30, child: Text('remove light')),
+            _item(value: 31, child: Text('clear all lights')),
+            _item(value: 32, child: Text('set camera model matrix')),
+          ])),
+      Container(
+          width: _vertical ? 200 : 400,
+          height: _vertical ? 400 : 200,
+          alignment: Alignment.center,
+          child: SizedBox(
+            child: FilamentGestureDetector(
+                showControlOverlay: true,
+                controller: _filamentController,
+                child: FilamentWidget(
+                  controller: _filamentController,
+                )),
+          )),
+    ]);
   }
 }

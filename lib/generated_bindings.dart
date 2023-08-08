@@ -735,6 +735,7 @@ class NativeLibrary {
     int index,
     int loop,
     int reverse,
+    double crossfade,
   ) {
     return _play_animation(
       assetManager,
@@ -742,15 +743,16 @@ class NativeLibrary {
       index,
       loop,
       reverse,
+      crossfade,
     );
   }
 
   late final _play_animationPtr = _lookup<
       ffi.NativeFunction<
           ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
-              ffi.Int)>>('play_animation');
-  late final _play_animation = _play_animationPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Void>, int, int, int, int)>();
+              ffi.Int, ffi.Float)>>('play_animation');
+  late final _play_animation = _play_animationPtr.asFunction<
+      void Function(ffi.Pointer<ffi.Void>, int, int, int, int, double)>();
 
   void set_animation_frame(
     ffi.Pointer<ffi.Void> assetManager,
@@ -1193,7 +1195,7 @@ class NativeLibrary {
   late final _ios_dummy = _ios_dummyPtr.asFunction<void Function()>();
 }
 
-class __mbstate_t extends ffi.Union {
+final class __mbstate_t extends ffi.Union {
   @ffi.Array.multi([128])
   external ffi.Array<ffi.Char> __mbstate8;
 
@@ -1201,7 +1203,7 @@ class __mbstate_t extends ffi.Union {
   external int _mbstateL;
 }
 
-class __darwin_pthread_handler_rec extends ffi.Struct {
+final class __darwin_pthread_handler_rec extends ffi.Struct {
   external ffi
           .Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>
       __routine;
@@ -1211,7 +1213,7 @@ class __darwin_pthread_handler_rec extends ffi.Struct {
   external ffi.Pointer<__darwin_pthread_handler_rec> __next;
 }
 
-class _opaque_pthread_attr_t extends ffi.Struct {
+final class _opaque_pthread_attr_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1219,7 +1221,7 @@ class _opaque_pthread_attr_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class _opaque_pthread_cond_t extends ffi.Struct {
+final class _opaque_pthread_cond_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1227,7 +1229,7 @@ class _opaque_pthread_cond_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class _opaque_pthread_condattr_t extends ffi.Struct {
+final class _opaque_pthread_condattr_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1235,7 +1237,7 @@ class _opaque_pthread_condattr_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class _opaque_pthread_mutex_t extends ffi.Struct {
+final class _opaque_pthread_mutex_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1243,7 +1245,7 @@ class _opaque_pthread_mutex_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class _opaque_pthread_mutexattr_t extends ffi.Struct {
+final class _opaque_pthread_mutexattr_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1251,7 +1253,7 @@ class _opaque_pthread_mutexattr_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class _opaque_pthread_once_t extends ffi.Struct {
+final class _opaque_pthread_once_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1259,7 +1261,7 @@ class _opaque_pthread_once_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class _opaque_pthread_rwlock_t extends ffi.Struct {
+final class _opaque_pthread_rwlock_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1267,7 +1269,7 @@ class _opaque_pthread_rwlock_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class _opaque_pthread_rwlockattr_t extends ffi.Struct {
+final class _opaque_pthread_rwlockattr_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1275,7 +1277,7 @@ class _opaque_pthread_rwlockattr_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class _opaque_pthread_t extends ffi.Struct {
+final class _opaque_pthread_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1285,7 +1287,7 @@ class _opaque_pthread_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-class ResourceBuffer extends ffi.Struct {
+final class ResourceBuffer extends ffi.Struct {
   external ffi.Pointer<ffi.Void> data;
 
   @ffi.Uint32()
@@ -1295,7 +1297,7 @@ class ResourceBuffer extends ffi.Struct {
   external int id;
 }
 
-class ResourceLoaderWrapper extends ffi.Struct {
+final class ResourceLoaderWrapper extends ffi.Struct {
   external LoadResource mLoadResource;
 
   external FreeResource mFreeResource;
@@ -1484,13 +1486,3 @@ const int WINT_MAX = 2147483647;
 const int SIG_ATOMIC_MIN = -2147483648;
 
 const int SIG_ATOMIC_MAX = 2147483647;
-
-const int __DARWIN_WCHAR_MAX = 2147483647;
-
-const int __DARWIN_WCHAR_MIN = -2147483648;
-
-const int __DARWIN_WEOF = -1;
-
-const int _FORTIFY_SOURCE = 2;
-
-const int NULL = 0;
