@@ -70,7 +70,6 @@ class FilamentController {
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
     _textureId =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
-    _textureIdController.add(_textureId);
 
     await _channel
         .invokeMethod("createFilamentViewer", [size.width, size.height]);
@@ -93,6 +92,7 @@ class FilamentController {
 
     _initialized.complete(true);
     _assetManager = await _channel.invokeMethod("getAssetManager");
+    _textureIdController.add(_textureId);
   }
 
   Future resize(int width, int height,

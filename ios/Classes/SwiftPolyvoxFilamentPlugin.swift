@@ -188,6 +188,10 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             createDisplayLink()
             result(self.flutterTextureId)
         case "resize":
+            if(viewer == nil) {
+                print("Error: cannot resize before a viewer has been created")
+                result(nil);
+            }
             rendering = false
             destroy_swap_chain(viewer)
             let args = call.arguments as! [Any]
@@ -196,6 +200,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             create_swap_chain(viewer, pixelBufferTextureId, UInt32(args[0] as! Int64), UInt32(args[1] as! Int64))
             update_viewport_and_camera_projection(viewer, Int32(args[0] as! Int64), Int32(args[1] as! Int64), Float(args[2] as! Double))
             rendering = true
+            print("Resized to \(args[0])x\(args[1])")
             result(self.flutterTextureId);
         case "createFilamentViewer":
             let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
@@ -205,6 +210,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             viewer = create_filament_viewer(nil, callback)
             var pixelBufferTextureId = unsafeBitCast(pixelBuffer!, to: UnsafeRawPointer.self)
             create_swap_chain(viewer, pixelBufferTextureId, UInt32(width), UInt32(height))
+            update_viewport_and_camera_projection(viewer, Int32(args[0] as! Int64), Int32(args[1] as! Int64), 1.0)
             result(unsafeBitCast(viewer, to:Int64.self))
         case "deleteFilamentViewer":
             delete_filament_viewer(viewer)
@@ -545,10 +551,10 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             clear_assets(viewer)
             result(true)
         case "setCamera":
-            guard let args = call.arguments as? [Any], args.count == 3,
+            guard let args = call.arguments as? [Any], args.count == 2,
                   let asset = args[0] as? Int64,
                   let nodeName = args[1] as? String else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected viewer, asset, and nodeName for set_camera", details: nil))
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected asset and nodeName for set_camera", details: nil))
                 return
             }
             let success = set_camera(viewer, Int32(asset), nodeName)
