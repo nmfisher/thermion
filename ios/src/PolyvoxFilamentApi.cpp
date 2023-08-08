@@ -280,15 +280,16 @@ extern "C" {
     // ((AssetManager*)assetManager)->setAnimationFrame(asset, animationIndex, animationFrame);
   }
 
+
+  FLUTTER_PLUGIN_EXPORT float get_animation_duration(void* assetManager, EntityId asset, int animationIndex) {
+    return ((AssetManager*)assetManager)->getAnimationDuration(asset, animationIndex);
+  }
+
   FLUTTER_PLUGIN_EXPORT int get_animation_count(
     void* assetManager,
     EntityId asset) {
-    //std::packaged_task<int()> lambda([=]() mutable  {
       auto names = ((AssetManager*)assetManager)->getAnimationNames(asset);
       return names->size();
-    
-
-    //return fut.get();
   }
 
   FLUTTER_PLUGIN_EXPORT void get_animation_name(

@@ -73,6 +73,7 @@ void set_animation_frame(void* assetManager, EntityId asset, int animationIndex,
 void stop_animation(void* assetManager, EntityId asset, int index);
 int get_animation_count(void* assetManager, EntityId asset);
 void get_animation_name(void* assetManager, EntityId asset, char *const outPtr, int index);
+float get_animation_duration(void* assetManager, EntityId asset, int index);
 void get_morph_target_name(void* assetManager, EntityId asset, const char *meshName, char *const outPtr, int index);
 int get_morph_target_name_count(void* assetManager, EntityId asset, const char *meshName);
 void remove_asset(const void* const viewer, EntityId asset);

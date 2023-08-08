@@ -447,6 +447,18 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             
             play_animation(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, Int32(index), loop, reverse, crossfade)
             result(true)
+        case "getAnimationDuration":
+            guard let args = call.arguments as? [Any], args.count == 3,
+                  let assetManager = args[0] as? Int64,
+                  let asset = args[1] as? EntityId,
+                  let animationIndex = args[2] as? Int else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for getAnimationDuration", details: nil))
+                return
+            }
+            
+            let dur = get_animation_duration(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, Int32(animationIndex))
+            result(dur)
+            
         case "setAnimationFrame":
             guard let args = call.arguments as? [Any], args.count == 4,
                   let assetManager = args[0] as? Int64,

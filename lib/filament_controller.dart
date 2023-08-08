@@ -246,6 +246,13 @@ class FilamentController {
     return names.cast<String>();
   }
 
+  Future<double> getAnimationDuration(
+      FilamentEntity asset, int animationIndex) async {
+    var duration = await _channel.invokeMethod(
+        "getAnimationDuration", [_assetManager, asset, animationIndex]);
+    return duration as double;
+  }
+
   ///
   /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
   /// [morphWeights] is a list of doubles in frame-major format.

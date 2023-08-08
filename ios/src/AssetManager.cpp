@@ -708,6 +708,20 @@ void AssetManager::setAnimationFrame(EntityId entity, int animationIndex, int an
   asset.mAnimator->updateBoneMatrices();
 }
 
+float AssetManager::getAnimationDuration(EntityId entity, int animationIndex) {
+    const auto& pos = _entityIdLookup.find(entity);
+
+  unique_ptr<vector<string>> names = make_unique<vector<string>>();
+
+  if(pos == _entityIdLookup.end()) {
+    Log("ERROR: asset not found for entity id.");
+    return -1.0f;
+  }
+
+  auto& asset = _assets[pos->second];
+  return asset.mAnimator->getAnimationDuration(animationIndex);
+}
+
 unique_ptr<vector<string>> AssetManager::getAnimationNames(EntityId entity) {
 
   const auto& pos = _entityIdLookup.find(entity);

@@ -28,6 +28,7 @@ namespace polyvox {
             void remove(EntityId entity);
             void destroyAll();
             unique_ptr<vector<string>> getAnimationNames(EntityId entity);
+            float getAnimationDuration(EntityId entity, int animationIndex);
             unique_ptr<vector<string>> getMorphTargetNames(EntityId entity, const char *meshName);
             void transformToUnitCube(EntityId e);
             inline void updateTransform(EntityId e);
