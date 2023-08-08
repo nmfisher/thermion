@@ -229,14 +229,8 @@ class FilamentController {
 
   void setMorphTargetWeights(
       FilamentEntity asset, String meshName, List<double> weights) async {
-    var weightPtr = calloc<Float>(weights.length);
-    for (int i = 0; i < weights.length; i++) {
-      weightPtr[i] = weights[i];
-    }
-
     await _channel.invokeMethod("setMorphTargetWeights",
-        [_assetManager, asset, meshName, weightPtr, weights.length]);
-    calloc.free(weightPtr);
+        [_assetManager, asset, meshName, weights, weights.length]);
   }
 
   Future<List<String>> getMorphTargetNames(
@@ -259,20 +253,15 @@ class FilamentController {
   ///
   void setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation) async {
-    var data = calloc<Float>(animation.data.length);
-    for (int i = 0; i < animation.data.length; i++) {
-      data.elementAt(i).value = animation.data[i];
-    }
     await _channel.invokeMethod("setMorphAnimation", [
       _assetManager,
       asset,
       animation.meshName,
-      data,
+      animation.data,
       animation.numMorphWeights,
       animation.numFrames,
       animation.frameLengthInMs
     ]);
-    calloc.free(data);
   }
 
   ///
@@ -359,7 +348,7 @@ class FilamentController {
   }
 
   void setCamera(FilamentEntity asset, String? name) async {
-    if (await _channel.invokeMethod("setCamera", [asset, name]) != 1) {
+    if (await _channel.invokeMethod("setCamera", [asset, name]) != true) {
       throw Exception("Failed to set camera");
     }
   }

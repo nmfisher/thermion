@@ -372,32 +372,40 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             //                  apply_weights(assetManager, asset, entityName, UnsafeMutablePointer(&weights), Int32(count))
             result(true)
         case "setMorphTargetWeights":
-            guard let args = call.arguments as? [Any], args.count == 4,
+            guard let args = call.arguments as? [Any], args.count == 7,
                   let assetManager = args[0] as? Int64,
                   let asset = args[1] as? EntityId,
                   let entityName = args[2] as? String,
-                  let morphData = args[3] as? [Float],
-                  let numWeights = args[4] as? Int else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for set_morph_target_weights", details: nil))
+                  let morphData = args[3] as? FlutterStandardTypedData,
+                  let numMorphWeights = args[4] as? Int else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for set_morph_animation", details: nil))
                 return
             }
-            //                  set_morph_target_weights(assetManager, asset, entityName, UnsafeMutablePointer(&morphData), numWeights)
-            result(true)
+            let success = morphData.data.withUnsafeBytes { buffer in
+                buffer.withMemoryRebound(to: Float.self) {
+                    set_morph_target_weights(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, entityName, $0.baseAddress, Int32(numMorphWeights))
+                }
+            }
+            result(success)
             
         case "setMorphAnimation":
             guard let args = call.arguments as? [Any], args.count == 7,
                   let assetManager = args[0] as? Int64,
                   let asset = args[1] as? EntityId,
                   let entityName = args[2] as? String,
-                  let morphData = args[3] as? [Float],
+                  let morphData = args[3] as? FlutterStandardTypedData,
                   let numMorphWeights = args[4] as? Int,
                   let numFrames = args[5] as? Int,
-                  let frameLengthInMs = args[6] as? Float else {
+                  let frameLengthInMs = args[6] as? Double else {
                 result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for set_morph_animation", details: nil))
                 return
             }
-            //                  let success = set_morph_animation(assetManager, asset, entityName, UnsafeMutablePointer(&morphData), numMorphWeights, numFrames, frameLengthInMs)
-            result(-1)
+            let success = morphData.data.withUnsafeBytes { buffer in
+                buffer.withMemoryRebound(to: Float.self) {
+                    set_morph_animation(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, entityName, $0.baseAddress, Int32(numMorphWeights), Int32(numFrames), Float(frameLengthInMs))
+                }
+            }
+            result(success)
         case "setBoneAnimation":
             guard let args = call.arguments as? [Any], args.count == 9,
                   let assetManager = args[0] as? Int64,
@@ -552,12 +560,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             result(true)
         case "setCamera":
             guard let args = call.arguments as? [Any], args.count == 2,
-                  let asset = args[0] as? Int64,
-                  let nodeName = args[1] as? String else {
+                  let asset = args[0] as? EntityId,
+                  let nodeName = args[1] as? String? else {
                 result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected asset and nodeName for set_camera", details: nil))
                 return
             }
-            let success = set_camera(viewer, Int32(asset), nodeName)
+            let success = set_camera(viewer, asset, nodeName)
             result(success)
 
         case "setCameraPosition":
