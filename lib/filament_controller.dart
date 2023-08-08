@@ -97,21 +97,9 @@ class FilamentController {
 
   Future resize(int width, int height,
       {double contentScaleFactor = 1.0}) async {
-    // await setRendering(false);
-    // _textureIdController.add(null);
-    // await _channel.invokeMethod("destroy_swap_chain(_viewer);
-    // size = ui.Size(width * _pixelRatio, height * _pixelRatio);
-
-    // _textureId = await _channel.invokeMethod("resize",
-    //     [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
-
-    // _textureIdController.add(_textureId);
-    // await _channel.invokeMethod("create_swap_chain( nullptr, width, height);
-    // await _channel.invokeMethod("create_render_target(
-    //      await _channel.invokeMethod("getGlTextureId"), width, height);
-    // await _channel.invokeMethod("update_viewport_and_camera_projection(
-    //      width, height, contentScaleFactor);
-    // await setRendering(true);
+    _textureId = await _channel.invokeMethod("resize",
+        [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
+    _textureIdController.add(_textureId);
   }
 
   void clearBackgroundImage() async {

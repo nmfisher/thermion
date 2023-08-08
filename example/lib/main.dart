@@ -362,17 +362,16 @@ class _ExampleWidgetState extends State<ExampleWidget> {
             _item(value: 32, child: Text('set camera model matrix')),
           ])),
       Container(
-          width: _vertical ? 200 : 400,
-          height: _vertical ? 400 : 200,
-          alignment: Alignment.center,
-          child: SizedBox(
-            child: FilamentGestureDetector(
-                showControlOverlay: true,
-                controller: _filamentController,
-                child: FilamentWidget(
-                  controller: _filamentController,
-                )),
-          )),
+        width: _vertical ? 200 : 400,
+        height: _vertical ? 400 : 200,
+        alignment: Alignment.center,
+        child: FilamentGestureDetector(
+            showControlOverlay: true,
+            controller: _filamentController,
+            child: FilamentWidget(
+              controller: _filamentController,
+            )),
+      ),
     ]);
   }
 }

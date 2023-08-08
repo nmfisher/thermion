@@ -187,10 +187,15 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
             createDisplayLink()
             result(self.flutterTextureId)
-        case "getResourceLoader":
-            let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
-            result(unsafeBitCast(callback,  to:Int64.self))
         case "resize":
+            rendering = false
+            destroy_swap_chain(viewer)
+            let args = call.arguments as! [Any]
+            resize(width:args[0] as! Int32, height:args[1] as! Int32)
+            var pixelBufferTextureId = unsafeBitCast(pixelBuffer!, to: UnsafeRawPointer.self)
+            create_swap_chain(viewer, pixelBufferTextureId, UInt32(args[0] as! Int64), UInt32(args[1] as! Int64))
+            update_viewport_and_camera_projection(viewer, Int32(args[0] as! Int64), Int32(args[1] as! Int64), Float(args[2] as! Double))
+            rendering = true
             result(self.flutterTextureId);
         case "createFilamentViewer":
             let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
@@ -208,10 +213,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "getAssetManager":
             let assetManager = get_asset_manager(viewer)
             result(unsafeBitCast(assetManager, to:Int64.self))
-        case "createRenderTarget":
-            let args = call.arguments as! [Any]
-            create_render_target(viewer, args[0] as! UInt32, args[1] as! UInt32, args[2] as! UInt32)
-            result(true)
         case "clearBackgroundImage":
             clear_background_image(viewer)
             result(true)
