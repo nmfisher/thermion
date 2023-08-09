@@ -68,7 +68,7 @@ void set_bone_animation(
     int numMeshTargets,
     float frameLengthInMs);
 
-void play_animation(void* assetManager, EntityId asset, int index, bool loop, bool reverse, float crossfade);
+void play_animation(void* assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
 void set_animation_frame(void* assetManager, EntityId asset, int animationIndex, int animationFrame);
 void stop_animation(void* assetManager, EntityId asset, int index);
 int get_animation_count(void* assetManager, EntityId asset);

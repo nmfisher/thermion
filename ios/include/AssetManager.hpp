@@ -59,7 +59,7 @@ namespace polyvox {
                 const char** const meshName,
                 int numMeshTargets,
                 float frameLengthInMs);
-            void playAnimation(EntityId e, int index, bool loop, bool reverse, float crossfade = 0.3f);
+            void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f);
             void stopAnimation(EntityId e, int index);
             void setMorphTargetWeights(const char* const entityName, float *weights, int count);
             void loadTexture(EntityId entity, const char* resourcePath, int renderableIndex);

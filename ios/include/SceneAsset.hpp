@@ -31,12 +31,17 @@ namespace polyvox {
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;   
 
+    enum AnimationType {
+        MORPH, BONE, GLTF
+    };
+
     struct AnimationStatus {
         time_point_t mStart = time_point_t::max();
         bool mLoop = false;
         bool mReverse = false;
         float mDuration = 0;  
-        bool mActive = false;
+        AnimationType type;
+        int gltfIndex = -1;
     };
 
     // 
@@ -73,11 +78,9 @@ namespace polyvox {
         FilamentAsset* mAsset = nullptr;
         Animator* mAnimator = nullptr;
 
-        // fixed-sized array containing pointers to the active morph, bone and GLTF animations.
-        AnimationStatus mAnimations[3];
-        // the index of the active glTF animation in the Filament Asset animations array
-        // if no glTF animation is active, this is -1
-        int gltfAnimationIndex = -1;
+        // vector containing AnimationStatus structs for the morph, bone and/or glTF animations.
+        vector<AnimationStatus> mAnimations;
+        
         // the index of the last active glTF animation, 
         // used to cross-fade
         int fadeGltfAnimationIndex = -1;

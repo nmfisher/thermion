@@ -332,13 +332,17 @@ class FilamentController {
   }
 
   void playAnimation(FilamentEntity asset, int index,
-      {bool loop = false, bool reverse = false, double crossfade = 0.0}) async {
+      {bool loop = false,
+      bool reverse = false,
+      bool replaceActive = true,
+      double crossfade = 0.0}) async {
     await _channel.invokeMethod("playAnimation", [
       _assetManager,
       asset,
       index,
       loop ? 1 : 0,
       reverse ? 1 : 0,
+      replaceActive,
       crossfade
     ]);
   }

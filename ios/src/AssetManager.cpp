@@ -243,101 +243,64 @@ void AssetManager::updateAnimations() {
   
   for (auto& asset : _assets) {
     
-    if(!asset.mAnimating) {
-      continue;
-    }
-    asset.mAnimating = false;
-    
-    // GLTF animations
-    AnimationStatus& anim = asset.mAnimations[2];
+    vector<AnimationStatus> completed;
+    for(auto& anim : asset.mAnimations) {
   
-    if(anim.mActive) {
       auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
 
       if(anim.mLoop || elapsed < anim.mDuration) {
-        asset.mAnimator->applyAnimation(asset.gltfAnimationIndex, elapsed);
-        asset.mAnimating = true;
-        if(asset.fadeGltfAnimationIndex != -1 && elapsed < asset.fadeDuration) {
-          // cross-fade
-          auto fadeFromTime = asset.fadeOutAnimationStart + elapsed;
-          auto alpha = elapsed / asset.fadeDuration;
-          asset.mAnimator->applyCrossFade(asset.fadeGltfAnimationIndex, fadeFromTime, alpha);
+
+        switch(anim.type) {
+            case AnimationType::GLTF: {
+                asset.mAnimator->applyAnimation(anim.gltfIndex, elapsed);
+                if(asset.fadeGltfAnimationIndex != -1 && elapsed < asset.fadeDuration) {
+                    // cross-fade
+                    auto fadeFromTime = asset.fadeOutAnimationStart + elapsed;
+                    auto alpha = elapsed / asset.fadeDuration;
+                    asset.mAnimator->applyCrossFade(asset.fadeGltfAnimationIndex, fadeFromTime, alpha);
+                }
+                break;
+            }
+            case AnimationType::MORPH: {
+                int lengthInFrames = static_cast<int>(
+                                                      anim.mDuration * 1000.0f /
+                                                      asset.mMorphAnimationBuffer.mFrameLengthInMs
+                                                      );
+                int frameNumber = static_cast<int>(elapsed * 1000.0f / asset.mMorphAnimationBuffer.mFrameLengthInMs) % lengthInFrames;
+                // offset from the end if reverse
+                if(anim.mReverse) {
+                    frameNumber = lengthInFrames - frameNumber;
+                }
+                // set the weights appropriately
+                rm.setMorphWeights(
+                                   rm.getInstance(asset.mMorphAnimationBuffer.mMeshTarget),
+                                   asset.mMorphAnimationBuffer.mFrameData.data() + (frameNumber * asset.mMorphAnimationBuffer.mNumMorphWeights),
+                                   asset.mMorphAnimationBuffer.mNumMorphWeights
+                                   );
+                break;
+            }
+            case AnimationType::BONE: {
+                int lengthInFrames = static_cast<int>(
+                                                      anim.mDuration * 1000.0f /
+                                                      asset.mBoneAnimationBuffer.mFrameLengthInMs
+                                                      );
+                int frameNumber = static_cast<int>(elapsed * 1000.0f / asset.mBoneAnimationBuffer.mFrameLengthInMs) % lengthInFrames;
+                
+                // offset from the end if reverse
+                if(anim.mReverse) {
+                    frameNumber = lengthInFrames - frameNumber;
+                }
+                setBoneTransform(
+                                 asset,
+                                 frameNumber
+                                 );
+                break;
+            }
         }
+      // animation has completed
       } else { 
-        // stop
-        anim.mStart = time_point_t::max();
-        anim.mActive = false;
-        asset.gltfAnimationIndex = -1;
+        completed.push_back(anim);
         asset.fadeGltfAnimationIndex = -1;
-      }
-      asset.mAnimator->updateBoneMatrices();
-    }
-
-    // dynamic morph animation
-    AnimationStatus& morphAnimation = asset.mAnimations[0];
-
-    if(morphAnimation.mActive) {
-      
-      auto elapsed = float(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-          now - morphAnimation.mStart
-        ).count()) / 1000.0f;
-      int lengthInFrames = static_cast<int>(
-        morphAnimation.mDuration * 1000.0f / 
-        asset.mMorphAnimationBuffer.mFrameLengthInMs
-      );
-
-      // if more time has elapsed than the animation duration && we aren't looping, then mark the animation as complete
-      if(elapsed >= morphAnimation.mDuration && !morphAnimation.mLoop) {
-        morphAnimation.mStart = time_point_t::max();
-        morphAnimation.mActive = false;
-      } else {
-        asset.mAnimating = true;      
-        int frameNumber = static_cast<int>(elapsed * 1000.0f / asset.mMorphAnimationBuffer.mFrameLengthInMs) % lengthInFrames;
-        // offset from the end if reverse
-        if(morphAnimation.mReverse) {
-          frameNumber = lengthInFrames - frameNumber;
-        } 
-        
-        // set the weights appropriately
-        rm.setMorphWeights(
-            rm.getInstance(asset.mMorphAnimationBuffer.mMeshTarget),
-            asset.mMorphAnimationBuffer.mFrameData.data() + (frameNumber * asset.mMorphAnimationBuffer.mNumMorphWeights),
-            asset.mMorphAnimationBuffer.mNumMorphWeights
-        );
-      }
-    }
-
-    // dynamic bone animations
-    AnimationStatus boneAnimation = asset.mAnimations[1];
-    if(boneAnimation.mActive) {
-      auto elapsed = float(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-          now - boneAnimation.mStart
-        ).count()) / 1000.0f;
-      int lengthInFrames = static_cast<int>(
-        boneAnimation.mDuration * 1000.0f / 
-        asset.mBoneAnimationBuffer.mFrameLengthInMs
-      );
-
-      // if more time has elapsed than the animation duration and we are not looping, mark the animation as complete
-      if(elapsed >= boneAnimation.mDuration && !boneAnimation.mLoop) {
-        boneAnimation.mStart = time_point_t::max();
-        boneAnimation.mActive = false;
-      } else {
-
-        asset.mAnimating = true;      
-        int frameNumber = static_cast<int>(elapsed * 1000.0f / asset.mBoneAnimationBuffer.mFrameLengthInMs) % lengthInFrames;
-
-        // offset from the end if reverse
-        if(boneAnimation.mReverse) {
-          frameNumber = lengthInFrames - frameNumber;
-        } 
-
-        setBoneTransform(
-          asset,
-          frameNumber
-        );
       }
       asset.mAnimator->updateBoneMatrices();
     }
@@ -403,7 +366,7 @@ void AssetManager::remove(EntityId entityId) {
   }
   EntityManager& em = EntityManager::get();
   em.destroy(Entity::import(entityId));
-  sceneAsset.mAsset = nullptr; // still need to remove this somewhere...
+  sceneAsset.mAsset = nullptr; // still need to remove sceneAsset somewhere...
 }
 
 void AssetManager::setMorphTargetWeights(EntityId entityId, const char* const entityName, const float* const weights, const int count) {
@@ -427,8 +390,6 @@ void AssetManager::setMorphTargetWeights(EntityId entityId, const char* const en
     weights,
     count
   );
-
-  
 }
 
 utils::Entity AssetManager::findEntityByName(SceneAsset asset, const char* entityName) {
@@ -443,7 +404,6 @@ utils::Entity AssetManager::findEntityByName(SceneAsset asset, const char* entit
   }
   return entity;
 }
-
 
 bool AssetManager::setMorphAnimationBuffer(
     EntityId entityId,
@@ -476,11 +436,11 @@ bool AssetManager::setMorphAnimationBuffer(
   asset.mMorphAnimationBuffer.mFrameLengthInMs = frameLengthInMs;
   asset.mMorphAnimationBuffer.mNumMorphWeights = numMorphWeights;
   
-  AnimationStatus& animation = asset.mAnimations[0];
+  AnimationStatus animation;
   animation.mDuration = (frameLengthInMs * numFrames) / 1000.0f;
   animation.mStart = high_resolution_clock::now();
-  animation.mActive = true;
-  asset.mAnimating = true;
+  animation.type = AnimationType::MORPH;
+  asset.mAnimations.push_back(animation);
   return true;
 }
 
@@ -529,7 +489,6 @@ bool AssetManager::setBoneAnimationBuffer(
   animationBuffer.mBaseTransforms.resize(numBones);
   
   for(int i = 0; i < numBones; i++) {
-    Log("Bone %s", boneNames[i]);
     for(int j = 0; j < numJoints; j++) {
         const char* jointName = _ncm->getName(_ncm->getInstance(joints[j]));
         if(strcmp(jointName, boneNames[i]) == 0) { 
@@ -571,18 +530,18 @@ bool AssetManager::setBoneAnimationBuffer(
     animationBuffer.mMeshTargets.push_back(entity);
   }
 
-  auto& animation = asset.mAnimations[1];
+  AnimationStatus animation;
   animation.mStart = std::chrono::high_resolution_clock::now();
-  animation.mActive = true;
   animation.mReverse = false;
   animation.mDuration = (frameLengthInMs * numFrames) / 1000.0f;
-  asset.mAnimating = true;
+  animation.type = AnimationType::BONE;
+  asset.mAnimations.push_back(animation);
 
   return true;
 }
 
 
-void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse, float crossfade) {
+void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade) {
   const auto& pos = _entityIdLookup.find(e);
   if(pos == _entityIdLookup.end()) {
     Log("ERROR: asset not found for entity.");
@@ -590,24 +549,44 @@ void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse,
   }
   auto& asset = _assets[pos->second];
 
-  if(asset.gltfAnimationIndex != -1) {
-    asset.fadeGltfAnimationIndex = asset.gltfAnimationIndex;
-    asset.fadeDuration = crossfade;
-    auto now = high_resolution_clock::now();
-    auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - asset.mAnimations[2].mStart).count()) / 1000.0f;
-    asset.fadeOutAnimationStart = elapsed;
+  if(replaceActive) {   
+    vector<int> active;
+    for(int i = 0; i < asset.mAnimations.size(); i++) {
+      if(asset.mAnimations[i].type == AnimationType::GLTF) {
+        active.push_back(i);
+      }
+    }
+    if(active.size() > 0) { 
+      auto& last = asset.mAnimations[active.back()];
+      asset.fadeGltfAnimationIndex = last.gltfIndex;
+      asset.fadeDuration = crossfade;
+      auto now = high_resolution_clock::now();
+      auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last.mStart).count()) / 1000.0f;
+      asset.fadeOutAnimationStart = elapsed;
+      for(int j = active.size() - 1; j >= 0; j--) {
+        asset.mAnimations.erase(asset.mAnimations.begin() + active[j]);
+      }
+    } else {
+      asset.fadeGltfAnimationIndex = -1;
+      asset.fadeDuration = 0.0f;      
+    }
+  } else if(crossfade > 0) {
+      Log("ERROR: crossfade only supported when replaceActive is true.");
+      return;
   } else {
-    asset.fadeGltfAnimationIndex = -1;
-    asset.fadeDuration = 0.0f;
+          asset.fadeGltfAnimationIndex = -1;
+      asset.fadeDuration = 0.0f;
   }
 
-  asset.gltfAnimationIndex = index;  
-  asset.mAnimations[2].mStart = std::chrono::high_resolution_clock::now();
-  asset.mAnimations[2].mLoop = loop;
-  asset.mAnimations[2].mReverse = reverse;
-  asset.mAnimations[2].mActive = true;
-  asset.mAnimations[2].mDuration = asset.mAnimator->getAnimationDuration(index);
-  asset.mAnimating = true;
+  AnimationStatus animation;
+  animation.gltfIndex = index;  
+  animation.mStart = std::chrono::high_resolution_clock::now();
+  animation.mLoop = loop;
+  animation.mReverse = reverse;
+  animation.type = AnimationType::GLTF;
+  animation.mDuration = asset.mAnimator->getAnimationDuration(index);
+
+  asset.mAnimations.push_back(animation);
 }
 
 void AssetManager::stopAnimation(EntityId entityId, int index) {
@@ -617,12 +596,12 @@ void AssetManager::stopAnimation(EntityId entityId, int index) {
     return;
   }
   auto& asset = _assets[pos->second];
-  if(asset.gltfAnimationIndex != index) {
-            // ignore?
-  } else {
-      asset.mAnimations[2].mStart = time_point_t::max();
-      asset.mAnimations[2].mActive = false;
-  }
+
+  asset.mAnimations.erase(std::remove_if(asset.mAnimations.begin(), 
+                              asset.mAnimations.end(),
+                              [=](AnimationStatus& anim) { return anim.gltfIndex == index; }),
+               asset.mAnimations.end());
+  
 }
 
 void AssetManager::loadTexture(EntityId entity, const char* resourcePath, int renderableIndex) {

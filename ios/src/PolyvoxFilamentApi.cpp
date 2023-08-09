@@ -268,8 +268,9 @@ extern "C" {
     int index, 
     bool loop, 
     bool reverse,
+    bool replaceActive,
     float crossfade) {
-      ((AssetManager*)assetManager)->playAnimation(asset, index, loop, reverse, crossfade);
+      ((AssetManager*)assetManager)->playAnimation(asset, index, loop, reverse, replaceActive, crossfade);
   }
 
   FLUTTER_PLUGIN_EXPORT void set_animation_frame(

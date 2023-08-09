@@ -372,13 +372,13 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             //                  apply_weights(assetManager, asset, entityName, UnsafeMutablePointer(&weights), Int32(count))
             result(true)
         case "setMorphTargetWeights":
-            guard let args = call.arguments as? [Any], args.count == 7,
+            guard let args = call.arguments as? [Any], args.count == 5,
                   let assetManager = args[0] as? Int64,
                   let asset = args[1] as? EntityId,
                   let entityName = args[2] as? String,
                   let morphData = args[3] as? FlutterStandardTypedData,
                   let numMorphWeights = args[4] as? Int else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for set_morph_animation", details: nil))
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for setMorphTargetWeights", details: nil))
                 return
             }
             let success = morphData.data.withUnsafeBytes { buffer in
@@ -434,18 +434,18 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             result(true)
             
         case "playAnimation":
-            guard let args = call.arguments as? [Any], args.count == 6,
+            guard let args = call.arguments as? [Any], args.count == 7,
                   let assetManager = args[0] as? Int64,
                   let asset = args[1] as? EntityId,
                   let index = args[2] as? Int,
                   let loop = args[3] as? Bool,
                   let reverse = args[4] as? Bool,
-                  let crossfade = args[5] as? Float else {
+                  let replaceActive = args[5] as? Bool,
+                  let crossfade = args[6] as? Double else {
                 result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for play_animation", details: nil))
                 return
             }
-            
-            play_animation(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, Int32(index), loop, reverse, crossfade)
+            play_animation(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, Int32(index), loop, reverse, replaceActive, Float(crossfade))
             result(true)
         case "getAnimationDuration":
             guard let args = call.arguments as? [Any], args.count == 3,
@@ -546,10 +546,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             }
             let count = get_morph_target_name_count(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, meshName)
             var names:[String] = []
-            for i in 0...count - 1 {
-                var buffer = [CChar](repeating: 0, count: 256)  // Assuming max name length of 256 for simplicity
-                get_morph_target_name(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, meshName, &buffer, Int32(i))
-                names.append(String(cString:buffer))
+            if count > 0 {
+                for i in 0...count - 1 {
+                    var buffer = [CChar](repeating: 0, count: 256)  // Assuming max name length of 256 for simplicity
+                    get_morph_target_name(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, meshName, &buffer, Int32(i))
+                    names.append(String(cString:buffer))
+                }
             }
             result(names)
         case "getMorphTargetNameCount":
