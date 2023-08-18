@@ -82,7 +82,7 @@ using LightManager = filament::LightManager;
 void applySettings(Engine* engine, const ViewSettings& settings, View* dest);
 void applySettings(Engine* engine, const MaterialSettings& settings, MaterialInstance* dest);
 void applySettings(Engine* engine, const LightSettings& settings, IndirectLight* ibl, utils::Entity sunlight,
-        utils::Entity* sceneLights, size_t sceneLightCount, LightManager* lm, Scene* scene, View* view);
+        const utils::Entity* sceneLights, size_t sceneLightCount, LightManager* lm, Scene* scene, View* view);
 void applySettings(Engine* engine, const ViewerOptions& settings, Camera* camera, Skybox* skybox,
         Renderer* renderer);
 
@@ -160,6 +160,10 @@ struct DynamicLightingSettings {
     float zLightFar = 100;
 };
 
+struct FogSettings {
+    Texture* fogColorTexture = nullptr;
+};
+
 // This defines fields in the same order as the setter methods in filament::View.
 struct ViewSettings {
     // standalone View settings
@@ -185,6 +189,7 @@ struct ViewSettings {
     // Custom View Options
     ColorGradingSettings colorGrading;
     DynamicLightingSettings dynamicLighting;
+    FogSettings fogSettings;
 };
 
 template <typename T>
@@ -204,6 +209,9 @@ struct LightSettings {
     LightManager::ShadowOptions shadowOptions;
     SoftShadowOptions softShadowOptions;
     float sunlightIntensity = 100000.0f;
+    float sunlightHaloSize = 10.0f;
+    float sunlightHaloFalloff = 80.0f;
+    float sunlightAngularRadius = 1.9f;
     math::float3 sunlightDirection = {0.6, -1.0, -0.8};
     math::float3 sunlightColor = filament::Color::toLinear<filament::ACCURATE>({ 0.98, 0.92, 0.89});
     float iblIntensity = 30000.0f;
@@ -214,6 +222,8 @@ struct ViewerOptions {
     float cameraAperture = 16.0f;
     float cameraSpeed = 125.0f;
     float cameraISO = 100.0f;
+    float cameraNear = 0.1f;
+    float cameraFar = 100.0f;
     float groundShadowStrength = 0.75f;
     bool groundPlaneEnabled = false;
     bool skyboxEnabled = true;

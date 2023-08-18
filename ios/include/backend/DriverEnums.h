@@ -106,7 +106,8 @@ static constexpr size_t CONFIG_SAMPLER_BINDING_COUNT = 4;   // This is guarantee
  * Defines the backend's feature levels.
  */
 enum class FeatureLevel : uint8_t {
-    FEATURE_LEVEL_1 = 1,  //!< OpenGL ES 3.0 features (default)
+    FEATURE_LEVEL_0 = 0,  //!< OpenGL ES 2.0 features
+    FEATURE_LEVEL_1,      //!< OpenGL ES 3.0 features (default)
     FEATURE_LEVEL_2,      //!< OpenGL ES 3.1 features + 16 textures units + cubemap arrays
     FEATURE_LEVEL_3       //!< OpenGL ES 3.1 features + 31 textures units + cubemap arrays
 };
@@ -279,11 +280,28 @@ enum class UniformType : uint8_t {
     STRUCT
 };
 
+/**
+ * Supported constant parameter types
+ */
+ enum class ConstantType : uint8_t {
+  INT,
+  FLOAT,
+  BOOL
+};
+
 enum class Precision : uint8_t {
     LOW,
     MEDIUM,
     HIGH,
     DEFAULT
+};
+
+/**
+ * Shader compiler priority queue
+ */
+enum class CompilerPriorityQueue : uint8_t {
+    HIGH,
+    LOW
 };
 
 //! Texture sampler type
@@ -1117,7 +1135,12 @@ enum class Workaround : uint16_t {
     // the whole render pass.
     ALLOW_READ_ONLY_ANCILLARY_FEEDBACK_LOOP,
     // for some uniform arrays, it's needed to do an initialization to avoid crash on adreno gpu
-    ADRENO_UNIFORM_ARRAY_CRASH
+    ADRENO_UNIFORM_ARRAY_CRASH,
+    // Workaround a Metal pipeline compilation error with the message:
+    // "Could not statically determine the target of a texture". See light_indirect.fs
+    A8X_STATIC_TEXTURE_TARGET_ERROR,
+    // Adreno drivers sometimes aren't able to blit into a layer of a texture array.
+    DISABLE_BLIT_INTO_TEXTURE_ARRAY,
 };
 
 } // namespace filament::backend

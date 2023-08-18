@@ -77,6 +77,8 @@ namespace polyvox {
             MaterialProvider* _ubershaderProvider = nullptr;
             gltfio::ResourceLoader* _gltfResourceLoader = nullptr;
             gltfio::TextureProvider* _stbDecoder = nullptr;
+            gltfio::TextureProvider* _ktxDecoder = nullptr;
+        
             vector<SceneAsset> _assets;
             tsl::robin_map<EntityId, int> _entityIdLookup;
  
