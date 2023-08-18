@@ -32,7 +32,11 @@ class DynamicAnimation {
     }
 
     var morphAnimationData = MorphAnimationData(
-        meshName ?? "NULL", llf.item2, morphNames, frameLengthInMs);
+        meshName ?? "NULL",
+        llf.item2,
+        morphNames,
+        List<int>.generate(morphNames.length, (index) => index),
+        frameLengthInMs);
 
     final boneAnimations = <BoneAnimationData>[];
 

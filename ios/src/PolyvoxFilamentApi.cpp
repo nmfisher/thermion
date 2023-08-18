@@ -196,7 +196,8 @@ extern "C" {
     EntityId asset, 
     const char* const entityName,
     const float* const morphData,
-    int numMorphWeights, 
+    const int* const morphIndices,
+    int numMorphTargets, 
     int numFrames, 
     float frameLengthInMs) {
 
@@ -204,7 +205,8 @@ extern "C" {
         asset, 
         entityName,
         morphData, 
-        numMorphWeights, 
+        morphIndices,
+        numMorphTargets,
         numFrames, 
         frameLengthInMs
       );

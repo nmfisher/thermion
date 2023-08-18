@@ -1,4 +1,3 @@
-import 'package:polyvox_filament/animations/bone_animation_data.dart';
 import 'package:polyvox_filament/animations/morph_animation_data.dart';
 import 'package:polyvox_filament/filament_controller.dart';
 
@@ -6,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {
-  final FilamentController controller;
   // BoneAnimationData? BoneAnimationData;
   double _frameLengthInMs = 0;
   double _duration = 0;
@@ -18,28 +16,25 @@ class AnimationBuilder {
 
   // List<BoneAnimationData>? _BoneAnimationDatas = null;
 
-  FilamentEntity asset;
   String meshName;
-  late List<String> morphNames;
+  late List<String> availableMorphs;
+  late List<int> _morphTargets;
 
   AnimationBuilder(
-      {required this.controller,
-      required this.asset,
+      {required this.availableMorphs,
       required this.meshName,
       required int framerate}) {
     _frameLengthInMs = 1000 / framerate;
-    controller.getMorphTargetNames(asset, meshName).then((value) {
-      morphNames = value;
-    });
   }
 
-  void set() {
-    if (morphNames.isEmpty == 0 || _duration == 0 || _frameLengthInMs == 0)
+  MorphAnimationData build() {
+    if (availableMorphs.isEmpty == 0 || _duration == 0 || _frameLengthInMs == 0)
       throw Exception();
 
     int numFrames = _duration * 1000 ~/ _frameLengthInMs;
 
-    final morphData = Float32List((numFrames * morphNames.length).toInt());
+    final morphData =
+        List<double>.filled((numFrames * _morphTargets.length).toInt(), 0.0);
 
     var frameStart = (_interpMorphStart! * 1000) ~/ _frameLengthInMs;
     var frameEnd = (_interpMorphEnd! * 1000) ~/ _frameLengthInMs;
@@ -49,21 +44,25 @@ class AnimationBuilder {
 
       var val = ((1 - linear) * _interpMorphStartValue!) +
           (linear * _interpMorphEndValue!);
-      for (int j = 0; j < morphNames.length; j++) {
-        morphData[(i * morphNames.length) + j] = val;
+      for (int j = 0; j < _morphTargets.length; j++) {
+        morphData[(i * _morphTargets.length) + j] = val;
       }
     }
-
-    var morphAnimation =
-        MorphAnimationData(meshName, morphData, morphNames, _frameLengthInMs);
-
-    controller.setMorphAnimationData(asset, morphAnimation);
-    // return Tuple2<MorphAnimationData, List<BoneAnimationData>>(
-    //     morphAnimation, _BoneAnimationDatas!);
+    return MorphAnimationData(
+        meshName,
+        morphData,
+        _morphTargets.map((i) => availableMorphs[i]).toList(),
+        _morphTargets,
+        _frameLengthInMs);
   }
 
   AnimationBuilder setDuration(double secs) {
     _duration = secs;
+    return this;
+  }
+
+  AnimationBuilder setMorphTargets(List<String> names) {
+    _morphTargets = names.map((name) => availableMorphs.indexOf(name)).toList();
     return this;
   }
 

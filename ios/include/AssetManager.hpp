@@ -45,9 +45,11 @@ namespace polyvox {
                 EntityId entityId,
                 const char* entityName,
                 const float* const morphData,
-                int numMorphWeights, 
+                const int* const morphIndices, 
+                int numMorphTargets,
                 int numFrames, 
                 float frameLengthInMs);
+                
             void setMorphTargetWeights(EntityId entityId, const char* const entityName, const float* const weights, int count);
 
             bool setBoneAnimationBuffer(

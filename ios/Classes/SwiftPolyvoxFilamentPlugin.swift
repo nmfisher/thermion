@@ -381,35 +381,41 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                   let assetManager = args[0] as? Int64,
                   let asset = args[1] as? EntityId,
                   let entityName = args[2] as? String,
-                  let morphData = args[3] as? FlutterStandardTypedData,
-                  let numMorphWeights = args[4] as? Int else {
+                  let morphData = args[3] as? [Double],
+                  let numMorphWeights = args[4] as? Int32 else {
                 result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for setMorphTargetWeights", details: nil))
                 return
             }
-            let success = morphData.data.withUnsafeBytes { buffer in
-                buffer.withMemoryRebound(to: Float.self) {
-                    set_morph_target_weights(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, entityName, $0.baseAddress, Int32(numMorphWeights))
-                }
-            }
-            result(success)
+            
+            set_morph_target_weights(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, entityName, morphData.map { Float($0) }, Int32(numMorphWeights))
+
+            result(true)
             
         case "setMorphAnimation":
-            guard let args = call.arguments as? [Any], args.count == 7,
+            guard let args = call.arguments as? [Any], args.count == 8,
                   let assetManager = args[0] as? Int64,
                   let asset = args[1] as? EntityId,
                   let entityName = args[2] as? String,
-                  let morphData = args[3] as? FlutterStandardTypedData,
-                  let numMorphWeights = args[4] as? Int,
-                  let numFrames = args[5] as? Int,
-                  let frameLengthInMs = args[6] as? Double else {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for set_morph_animation", details: nil))
+                  let morphData = args[3] as? [Double],
+                  let morphIndices = args[4] as? [Int32],
+                  let numMorphTargets = args[5] as? Int32,
+                  let numFrames = args[6] as? Int32,
+                  let frameLengthInMs = args[7] as? Double else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Incorrect arguments provided for setMorphAnimation", details: nil))
                 return
             }
-            let success = morphData.data.withUnsafeBytes { buffer in
-                buffer.withMemoryRebound(to: Float.self) {
-                    set_morph_animation(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, entityName, $0.baseAddress, Int32(numMorphWeights), Int32(numFrames), Float(frameLengthInMs))
-                }
-            }
+            let frameData = morphData.map { Float($0) }
+            let am = unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self)
+                    
+            let success = set_morph_animation(
+                        am, 
+                        asset, 
+                        entityName, 
+                        frameData, 
+                        morphIndices,
+                        Int32(numMorphTargets), 
+                        Int32(numFrames),
+                        Float(frameLengthInMs))
             result(success)
         case "setBoneAnimation":
             guard let args = call.arguments as? [Any], args.count == 9,

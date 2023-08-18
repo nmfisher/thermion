@@ -175,6 +175,49 @@ class _ExampleWidgetState extends State<ExampleWidget> {
       _item(() async {
         _filamentController.clearAssets();
       }, 'clear all assets'),
+      _item(() async {
+        var names =
+            await _filamentController.getMorphTargetNames(_cube!, "Cylinder");
+        await showDialog(
+            context: context,
+            builder: (ctx) {
+              return Container(
+                  height: 100,
+                  width: 100,
+                  color: Colors.white,
+                  child: Text(names.join(",")));
+            });
+      }, "show morph target names for Cylinder"),
+      _item(() {
+        _filamentController.setMorphTargetWeights(
+            _cube!, "Cylinder", List.filled(4, 1.0));
+      }, "set Cylinder morph weights to 1"),
+      _item(() {
+        _filamentController.setMorphTargetWeights(
+            _cube!, "Cylinder", List.filled(4, 0.0));
+      }, "set Cylinder morph weights to 0.0"),
+      _item(() async {
+        var morphs =
+            await _filamentController.getMorphTargetNames(_cube!, "Cylinder");
+        final animation = AnimationBuilder(
+                availableMorphs: morphs, framerate: 30, meshName: "Cylinder")
+            .setDuration(4)
+            .setMorphTargets(["Key 1", "Key 2"])
+            .interpolateMorphWeights(0, 4, 0, 1)
+            .build();
+        _filamentController.setMorphAnimationData(_cube!, animation);
+      }, "animate morph weights #1 and #2"),
+      _item(() async {
+        var morphs =
+            await _filamentController.getMorphTargetNames(_cube!, "Cylinder");
+        final animation = AnimationBuilder(
+                availableMorphs: morphs, framerate: 30, meshName: "Cylinder")
+            .setDuration(4)
+            .setMorphTargets(["Key 3", "Key 4"])
+            .interpolateMorphWeights(0, 4, 0, 1)
+            .build();
+        _filamentController.setMorphAnimationData(_cube!, animation);
+      }, "animate morph weights #3 and #4"),
     ];
     if (_animations != null) {
       children.addAll(_animations!.map((a) => _item(() {
@@ -273,14 +316,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //         _flightHelmet ??= await _filamentController.loadGltf(
 //             'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
 //         break;
-//       case 7:
-//         _filamentController.setMorphTargetWeights(
-//             _cube!, "Cube.001", List.filled(8, 1.0));
-//         break;
-//       case 8:
-//         _filamentController.setMorphTargetWeights(
-//             _cube!, "Cube.001", List.filled(8, 0));
-//         break;
+
 //       case 11:
 //         setState(() {
 //           _loop = !_loop;
@@ -290,38 +326,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //         _filamentController.setCamera(_cube!, "Camera_Orientation");
 //         break;
 //       case 15:
-//         final animation = AnimationBuilder(
-//                 controller: _filamentController,
-//                 asset: _cube!,
-//                 framerate: 30,
-//                 meshName: "Cube.001")
-//             .setDuration(4)
-//             .interpolateMorphWeights(0, 4, 0, 1)
-//             // .interpolateBoneTransform(
-//             //     "Bone.001",
-//             //     "Cube.001",
-//             //     2,
-//             //     4,
-//             //     v.Vector3.zero(),
-//             //     v.Vector3.zero(),
-//             //     // Vec3(x: 1, y: 1, z: 1),
-//             //     v.Quaternion(0, 0, 0, 1),
-//             //     v.Quaternion(1, 1, 1, 1))
-//             // Quaternion(x: 1, y: 1, z: 1, w: 1))
-//             .set();
-//         break;
-//       case 16:
-//         var names =
-//             await _filamentController.getMorphTargetNames(_cube!, "Cube");
-//         await showDialog(
-//             context: context,
-//             builder: (ctx) {
-//               return Container(
-//                   height: 100,
-//                   width: 100,
-//                   color: Colors.white,
-//                   child: Text(names.join(",")));
-//             });
 
 //         break;
 //       case 17:

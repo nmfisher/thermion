@@ -52,7 +52,7 @@ namespace polyvox {
         int mNumFrames = -1;
         float mFrameLengthInMs = 0;
         vector<float> mFrameData;
-        int mNumMorphWeights = 0;
+        vector<int> mMorphIndices;
     };
 
     // 

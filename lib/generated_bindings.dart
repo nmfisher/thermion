@@ -450,21 +450,6 @@ class NativeLibrary {
   late final _set_frame_interval = _set_frame_intervalPtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, double)>();
 
-  ffi.Pointer<ffi.Void> get_renderer(
-    ffi.Pointer<ffi.Void> viewer,
-  ) {
-    return _get_renderer(
-      viewer,
-    );
-  }
-
-  late final _get_rendererPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Pointer<ffi.Void> Function(
-              ffi.Pointer<ffi.Void>)>>('get_renderer');
-  late final _get_renderer = _get_rendererPtr
-      .asFunction<ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>)>();
-
   void update_viewport_and_camera_projection(
     ffi.Pointer<ffi.Void> viewer,
     int width,
@@ -652,7 +637,8 @@ class NativeLibrary {
     int asset,
     ffi.Pointer<ffi.Char> entityName,
     ffi.Pointer<ffi.Float> morphData,
-    int numMorphWeights,
+    ffi.Pointer<ffi.Int> morphIndices,
+    int numMorphTargets,
     int numFrames,
     double frameLengthInMs,
   ) {
@@ -661,7 +647,8 @@ class NativeLibrary {
       asset,
       entityName,
       morphData,
-      numMorphWeights,
+      morphIndices,
+      numMorphTargets,
       numFrames,
       frameLengthInMs,
     );
@@ -674,12 +661,13 @@ class NativeLibrary {
               EntityId,
               ffi.Pointer<ffi.Char>,
               ffi.Pointer<ffi.Float>,
+              ffi.Pointer<ffi.Int>,
               ffi.Int,
               ffi.Int,
               ffi.Float)>>('set_morph_animation');
   late final _set_morph_animation = _set_morph_animationPtr.asFunction<
       int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>,
-          ffi.Pointer<ffi.Float>, int, int, double)>();
+          ffi.Pointer<ffi.Float>, ffi.Pointer<ffi.Int>, int, int, double)>();
 
   void set_bone_animation(
     ffi.Pointer<ffi.Void> assetManager,
@@ -735,6 +723,7 @@ class NativeLibrary {
     int index,
     int loop,
     int reverse,
+    int replaceActive,
     double crossfade,
   ) {
     return _play_animation(
@@ -743,6 +732,7 @@ class NativeLibrary {
       index,
       loop,
       reverse,
+      replaceActive,
       crossfade,
     );
   }
@@ -750,9 +740,9 @@ class NativeLibrary {
   late final _play_animationPtr = _lookup<
       ffi.NativeFunction<
           ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
-              ffi.Int, ffi.Float)>>('play_animation');
+              ffi.Int, ffi.Int, ffi.Float)>>('play_animation');
   late final _play_animation = _play_animationPtr.asFunction<
-      void Function(ffi.Pointer<ffi.Void>, int, int, int, int, double)>();
+      void Function(ffi.Pointer<ffi.Void>, int, int, int, int, int, double)>();
 
   void set_animation_frame(
     ffi.Pointer<ffi.Void> assetManager,
@@ -831,6 +821,25 @@ class NativeLibrary {
               ffi.Pointer<ffi.Char>, ffi.Int)>>('get_animation_name');
   late final _get_animation_name = _get_animation_namePtr.asFunction<
       void Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>, int)>();
+
+  double get_animation_duration(
+    ffi.Pointer<ffi.Void> assetManager,
+    int asset,
+    int index,
+  ) {
+    return _get_animation_duration(
+      assetManager,
+      asset,
+      index,
+    );
+  }
+
+  late final _get_animation_durationPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Float Function(ffi.Pointer<ffi.Void>, EntityId,
+              ffi.Int)>>('get_animation_duration');
+  late final _get_animation_duration = _get_animation_durationPtr
+      .asFunction<double Function(ffi.Pointer<ffi.Void>, int, int)>();
 
   void get_morph_target_name(
     ffi.Pointer<ffi.Void> assetManager,
@@ -1195,7 +1204,7 @@ class NativeLibrary {
   late final _ios_dummy = _ios_dummyPtr.asFunction<void Function()>();
 }
 
-final class __mbstate_t extends ffi.Union {
+class __mbstate_t extends ffi.Union {
   @ffi.Array.multi([128])
   external ffi.Array<ffi.Char> __mbstate8;
 
@@ -1203,7 +1212,7 @@ final class __mbstate_t extends ffi.Union {
   external int _mbstateL;
 }
 
-final class __darwin_pthread_handler_rec extends ffi.Struct {
+class __darwin_pthread_handler_rec extends ffi.Struct {
   external ffi
           .Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>
       __routine;
@@ -1213,7 +1222,7 @@ final class __darwin_pthread_handler_rec extends ffi.Struct {
   external ffi.Pointer<__darwin_pthread_handler_rec> __next;
 }
 
-final class _opaque_pthread_attr_t extends ffi.Struct {
+class _opaque_pthread_attr_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1221,7 +1230,7 @@ final class _opaque_pthread_attr_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class _opaque_pthread_cond_t extends ffi.Struct {
+class _opaque_pthread_cond_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1229,7 +1238,7 @@ final class _opaque_pthread_cond_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class _opaque_pthread_condattr_t extends ffi.Struct {
+class _opaque_pthread_condattr_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1237,7 +1246,7 @@ final class _opaque_pthread_condattr_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class _opaque_pthread_mutex_t extends ffi.Struct {
+class _opaque_pthread_mutex_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1245,7 +1254,7 @@ final class _opaque_pthread_mutex_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class _opaque_pthread_mutexattr_t extends ffi.Struct {
+class _opaque_pthread_mutexattr_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1253,7 +1262,7 @@ final class _opaque_pthread_mutexattr_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class _opaque_pthread_once_t extends ffi.Struct {
+class _opaque_pthread_once_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1261,7 +1270,7 @@ final class _opaque_pthread_once_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class _opaque_pthread_rwlock_t extends ffi.Struct {
+class _opaque_pthread_rwlock_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1269,7 +1278,7 @@ final class _opaque_pthread_rwlock_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class _opaque_pthread_rwlockattr_t extends ffi.Struct {
+class _opaque_pthread_rwlockattr_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1277,7 +1286,7 @@ final class _opaque_pthread_rwlockattr_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class _opaque_pthread_t extends ffi.Struct {
+class _opaque_pthread_t extends ffi.Struct {
   @ffi.Long()
   external int __sig;
 
@@ -1287,7 +1296,7 @@ final class _opaque_pthread_t extends ffi.Struct {
   external ffi.Array<ffi.Char> __opaque;
 }
 
-final class ResourceBuffer extends ffi.Struct {
+class ResourceBuffer extends ffi.Struct {
   external ffi.Pointer<ffi.Void> data;
 
   @ffi.Uint32()
@@ -1297,7 +1306,7 @@ final class ResourceBuffer extends ffi.Struct {
   external int id;
 }
 
-final class ResourceLoaderWrapper extends ffi.Struct {
+class ResourceLoaderWrapper extends ffi.Struct {
   external LoadResource mLoadResource;
 
   external FreeResource mFreeResource;

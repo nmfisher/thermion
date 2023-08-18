@@ -260,12 +260,14 @@ class FilamentController {
   ///
   void setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation) async {
+    print("SETTING animation with ${animation.data}");
     await _channel.invokeMethod("setMorphAnimation", [
       _assetManager,
       asset,
       animation.meshName,
       animation.data,
-      animation.numMorphWeights,
+      animation.morphIndices,
+      animation.numMorphTargets,
       animation.numFrames,
       animation.frameLengthInMs
     ]);

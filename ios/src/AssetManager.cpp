@@ -272,12 +272,16 @@ void AssetManager::updateAnimations() {
                 if(anim.mReverse) {
                     frameNumber = lengthInFrames - frameNumber;
                 }
-                // set the weights appropriately
-                rm.setMorphWeights(
-                                   rm.getInstance(asset.mMorphAnimationBuffer.mMeshTarget),
-                                   asset.mMorphAnimationBuffer.mFrameData.data() + (frameNumber * asset.mMorphAnimationBuffer.mNumMorphWeights),
-                                   asset.mMorphAnimationBuffer.mNumMorphWeights
-                                   );
+                auto baseOffset = frameNumber * asset.mMorphAnimationBuffer.mMorphIndices.size();
+                for(auto morphIndex : asset.mMorphAnimationBuffer.mMorphIndices) {
+                  // set the weights appropriately
+                  rm.setMorphWeights(
+                                    rm.getInstance(asset.mMorphAnimationBuffer.mMeshTarget),
+                                    asset.mMorphAnimationBuffer.mFrameData.data() + baseOffset + morphIndex,
+                                    1,
+                                    morphIndex
+                                    );
+                }
                 break;
             }
             case AnimationType::BONE: {
@@ -416,7 +420,8 @@ bool AssetManager::setMorphAnimationBuffer(
     EntityId entityId,
     const char* entityName,
     const float* const morphData,
-    int numMorphWeights, 
+    const int* const morphIndices,
+    int numMorphTargets, 
     int numFrames, 
     float frameLengthInMs) {
 
@@ -438,10 +443,13 @@ bool AssetManager::setMorphAnimationBuffer(
   asset.mMorphAnimationBuffer.mFrameData.insert(
     asset.mMorphAnimationBuffer.mFrameData.begin(), 
     morphData,
-    morphData + (numFrames * numMorphWeights)
+    morphData + (numFrames * numMorphTargets)
   );
   asset.mMorphAnimationBuffer.mFrameLengthInMs = frameLengthInMs;
-  asset.mMorphAnimationBuffer.mNumMorphWeights = numMorphWeights;
+  asset.mMorphAnimationBuffer.mMorphIndices.resize(numMorphTargets);
+  for(int i =0; i< numMorphTargets; i++) {
+    asset.mMorphAnimationBuffer.mMorphIndices[i] = morphIndices[i];
+  }
   
   AnimationStatus animation;
   animation.mDuration = (frameLengthInMs * numFrames) / 1000.0f;

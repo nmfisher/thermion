@@ -54,9 +54,11 @@ bool set_morph_animation(
     EntityId asset,
     const char *const entityName,
     const float *const morphData,
-    int numMorphWeights,
+    const int* const morphIndices,
+    int numMorphTargets,
     int numFrames,
     float frameLengthInMs);
+
 void set_bone_animation(
     void* assetManager,
     EntityId asset, 
