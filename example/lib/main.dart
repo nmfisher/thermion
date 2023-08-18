@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:vector_math/vector_math.dart' as v;
 
 import 'package:polyvox_filament/filament_controller.dart';
@@ -42,6 +43,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 
   FilamentEntity? _cube;
   FilamentEntity? _flightHelmet;
+  List<String>? _animations;
   FilamentEntity? _light;
 
   final weights = List.filled(255, 0.0);
@@ -57,182 +59,96 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     _filamentController = FilamentController();
   }
 
-  void onClick(int index) async {
-    switch (index) {
-      case -1:
-        await _filamentController.initialize();
-        break;
-      case -2:
+  bool _initialized = false;
+
+  bool _coneHidden = false;
+
+  Widget _item(void Function() onTap, String text) {
+    return GestureDetector(
+        onTap: onTap,
+        child: Container(
+            color: Colors.transparent,
+            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+            child: Text(text)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var children = [
+      _initialized
+          ? Container()
+          : _item(() async {
+              await _filamentController.initialize();
+              setState(() {
+                _initialized = true;
+              });
+            }, "initialize"),
+      _item(() {
         _filamentController.render();
-        break;
-      case -4:
+      }, "render"),
+      _item(() {
         setState(() {
           _rendering = !_rendering;
           _filamentController.setRendering(_rendering);
         });
-        break;
-      case -5:
+      }, "Rendering: $_rendering "),
+      _item(() {
         setState(() {
           _framerate = _framerate == 60 ? 30 : 60;
           _filamentController.setFrameRate(_framerate);
         });
-        break;
-      case -6:
+      }, "$_framerate fps"),
+      _item(() {
         _filamentController.setBackgroundColor(Color(0xFF73C9FA));
-        break;
-
-      case 0:
+      }, "set background color"),
+      _item(() {
         _filamentController.setBackgroundImage('assets/background.ktx');
-        break;
-      case 1:
+      }, "load background image"),
+      _item(() {
         _filamentController
             .loadSkybox('assets/default_env/default_env_skybox.ktx');
-        break;
-      case -3:
+      }, 'load skybox'),
+      _item(() {
         _filamentController.loadIbl('assets/default_env/default_env_ibl.ktx');
-        break;
-      case 2:
-        _filamentController.removeSkybox();
-        break;
-      case 3:
+      }, 'load IBL'),
+      _item(
+        () {
+          _filamentController.removeSkybox();
+        },
+        'remove skybox',
+      ),
+      _item(() async {
         _cube = await _filamentController.loadGlb('assets/cube.glb');
-        break;
-      case 4:
+        _animations = await _filamentController.getAnimationNames(_cube!);
+        setState(() {});
+      }, 'load cube GLB'),
+      _item(() async {
+        if (_coneHidden) {
+          _filamentController.reveal(_cube!, "Cone");
+        } else {
+          _filamentController.hide(_cube!, "Cone");
+        }
+        setState(() {
+          _coneHidden = !_coneHidden;
+        });
+      }, _coneHidden ? 'show cone' : 'hide cone'),
+      _item(() async {
         if (_cube != null) {
           _filamentController.removeAsset(_cube!);
         }
         _cube =
             await _filamentController.loadGltf('assets/cube.gltf', 'assets');
-        break;
-      case 5:
-        _flightHelmet ??= await _filamentController.loadGltf(
-            'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
-        break;
-      case 6:
-        _filamentController.removeAsset(_cube!);
-        break;
-
-      case 7:
-        _filamentController.setMorphTargetWeights(
-            _cube!, "Cube.001", List.filled(8, 1.0));
-        break;
-      case 8:
-        _filamentController.setMorphTargetWeights(
-            _cube!, "Cube.001", List.filled(8, 0));
-        break;
-      case 11:
-        setState(() {
-          _loop = !_loop;
-        });
-        break;
-      case 14:
-        _filamentController.setCamera(_cube!, "Camera_Orientation");
-        break;
-      case 15:
-        final animation = AnimationBuilder(
-                controller: _filamentController,
-                asset: _cube!,
-                framerate: 30,
-                meshName: "Cube.001")
-            .setDuration(4)
-            .interpolateMorphWeights(0, 4, 0, 1)
-            // .interpolateBoneTransform(
-            //     "Bone.001",
-            //     "Cube.001",
-            //     2,
-            //     4,
-            //     v.Vector3.zero(),
-            //     v.Vector3.zero(),
-            //     // Vec3(x: 1, y: 1, z: 1),
-            //     v.Quaternion(0, 0, 0, 1),
-            //     v.Quaternion(1, 1, 1, 1))
-            // Quaternion(x: 1, y: 1, z: 1, w: 1))
-            .set();
-        break;
-      case 16:
-        var names =
-            await _filamentController.getMorphTargetNames(_cube!, "Cube");
-        await showDialog(
-            context: context,
-            builder: (ctx) {
-              return Container(
-                  height: 100,
-                  width: 100,
-                  color: Colors.white,
-                  child: Text(names.join(",")));
-            });
-
-        break;
-      case 17:
-        var animationNames =
-            await _filamentController.getAnimationNames(_cube!);
-
-        await showDialog(
-            context: context,
-            builder: (ctx) {
-              return Container(
-                  height: 100,
-                  width: 100,
-                  color: Colors.white,
-                  child: Text(animationNames.join(",")));
-            });
-
-        break;
-      case 18:
-        _filamentController.panStart(1, 1);
-        _filamentController.panUpdate(1, 2);
-        _filamentController.panEnd();
-        break;
-      case 19:
-        _filamentController.panStart(1, 1);
-        _filamentController.panUpdate(0, 0);
-        _filamentController.panEnd();
-        break;
-      case 20:
-        _filamentController.clearAssets();
-        break;
-      case 21:
+      }, 'load cube GLTF'),
+      _item(() async {
         _filamentController.setTexture(_cube!, "assets/background.png");
-        break;
-      case 22:
+      }, 'swap cube texture'),
+      _item(() async {
         _filamentController.transformToUnitCube(_cube!);
-        break;
-      case 23:
+      }, 'transform to unit cube'),
+      _item(() async {
         _filamentController.setPosition(_cube!, 1.0, 1.0, -1.0);
-        break;
-      case 24:
-        _filamentController.setRotation(_cube!, pi / 2, 0.0, 1.0, 0.0);
-        break;
-      case 25:
-        setState(() {
-          _vertical = !_vertical;
-        });
-        break;
-      case 26:
-        _filamentController.setCameraPosition(0, 0, 3);
-        _filamentController.setCameraRotation(0, 0, 1, 0);
-        break;
-      case 27:
-        _framerate = _framerate == 60 ? 30 : 60;
-        _filamentController.setFrameRate(_framerate);
-        break;
-      case 28:
-        _filamentController.setBackgroundImagePosition(25, 25);
-        break;
-      case 29:
-        _light = await _filamentController.addLight(
-            1, 6500, 15000000, 0, 1, 0, 0, -1, 0, true);
-        break;
-      case 30:
-        if (_light != null) {
-          _filamentController.removeLight(_light!);
-          _light = null;
-        }
-        break;
-      case 31:
-        _filamentController.clearLights();
-        break;
-      case 32:
+      }, 'set position to 1, 1, -1'),
+      _item(() async {
         var frameData = Float32List.fromList(
             List<double>.generate(120, (i) => i / 120).expand((x) {
           var vals = List<double>.filled(7, x);
@@ -252,126 +168,261 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         //     "Cube.001",
         //     BoneTransform([Vec3(x: 0, y: 0.0, z: 0.0)],
         //         [Quaternion(x: 1, y: 1, z: 1, w: 1)]));
-        // break;
-        break;
-      case 33:
-        if (_coneHidden) {
-          _filamentController.reveal(_cube!, "Cone");
-        } else {
-          _filamentController.hide(_cube!, "Cone");
-        }
-        setState(() {
-          _coneHidden = !_coneHidden;
-        });
-        break;
-      case 34:
-        _filamentController.playAnimation(_cube!, 0,
-            loop: false, crossfade: 0.5);
-        break;
-      case 35:
-        _filamentController.playAnimation(_cube!, 1,
-            loop: false, crossfade: 0.5);
-        break;
-      case 36:
-        _filamentController.playAnimation(_cube!, 2,
-            loop: false, crossfade: 0.5);
-        break;
-      case 37:
-        _filamentController.stopAnimation(_cube!, 0);
-        break;
+      }, 'construct bone animation'),
+      _item(() async {
+        _filamentController.removeAsset(_cube!);
+      }, 'remove cube'),
+      _item(() async {
+        _filamentController.clearAssets();
+      }, 'clear all assets'),
+    ];
+    if (_animations != null) {
+      children.addAll(_animations!.map((a) => _item(() {
+            _filamentController.playAnimation(_cube!, _animations!.indexOf(a),
+                replaceActive: true, crossfade: 0.5);
+          }, "play animation ${_animations!.indexOf(a)} (replace/fade)")));
+      children.addAll(_animations!.map((a) => _item(() {
+            _filamentController.playAnimation(_cube!, _animations!.indexOf(a),
+                replaceActive: false);
+          }, "play animation ${_animations!.indexOf(a)} (noreplace)")));
     }
-  }
 
-  bool _coneHidden = false;
+    return Padding(
+        padding: EdgeInsets.only(top: 20, left: 20),
+        child: Row(children: [
+          Expanded(
+              child: SingleChildScrollView(
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: children
+                      // _item(24 () async { 'rotate by pi around Y axis'),
+                      // _item(5 () async { 'load flight helmet'),
 
-  Widget _item({int value = 0, Widget? child = null}) {
-    return GestureDetector(
-        onTap: () {
-          onClick(value);
-        },
-        child: Container(
-            color: Colors.transparent,
-            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-            child: child));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      SingleChildScrollView(
-          child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-            _item(value: -1, child: Text("initialize")),
-            _item(value: -2, child: Text("render")),
-            _item(value: -4, child: Text("Rendering: $_rendering ")),
-            _item(value: -5, child: Text("$_framerate fps")),
-            _item(value: -6, child: Text("set background color")),
-            _item(value: 0, child: Text("load background image")),
-            _item(
-              value: 1,
-              child: Text('load skybox'),
-            ),
-            _item(
-              value: -3,
-              child: Text('load IBL'),
-            ),
-            _item(
-              value: 2,
-              child: Text('remove skybox'),
-            ),
-            _item(value: 3, child: Text('load cube GLB')),
-            _item(
-                value: 33,
-                child: Text(_coneHidden ? 'show cone' : 'hide cone')),
-            _item(value: 4, child: Text('load cube GLTF')),
-            _item(value: 21, child: Text('swap cube texture')),
-            _item(value: 22, child: Text('transform to unit cube')),
-            _item(value: 23, child: Text('set position to 1, 1, -1')),
-            _item(value: 32, child: Text('construct bone animation')),
-            _item(value: 24, child: Text('rotate by pi around Y axis')),
-            _item(value: 5, child: Text('load flight helmet')),
-            _item(value: 6, child: Text('remove cube')),
-            _item(value: 20, child: Text('clear all assets')),
-            _item(value: 7, child: Text('set all weights to 1')),
-            _item(value: 8, child: Text('set all weights to 0')),
-            _item(value: 9, child: Text('play all animations')),
-            _item(value: 34, child: Text('play animation 0')),
-            _item(value: 35, child: Text('play animation 1')),
-            _item(value: 36, child: Text('play animation 2')),
-            _item(value: 37, child: Text('stop animation 0')),
-            _item(
-                value: 11,
-                child: Text(_loop ? "don't loop animation" : "loop animation")),
-            _item(value: 14, child: Text('set camera')),
-            _item(value: 15, child: Text('animate weights')),
-            _item(value: 16, child: Text('get target names')),
-            _item(value: 17, child: Text('get animation names')),
-            _item(value: 18, child: Text('pan left')),
-            _item(value: 19, child: Text('pan right')),
-            _item(
-                value: 25,
-                child: Text(_vertical ? 'set horizontal' : 'set vertical')),
-            _item(value: 26, child: Text('set camera pos to 0,0,3')),
-            _item(value: 27, child: Text('toggle framerate')),
-            _item(value: 28, child: Text('set bg image pos')),
-            _item(value: 29, child: Text('add light')),
-            _item(value: 30, child: Text('remove light')),
-            _item(value: 31, child: Text('clear all lights')),
-            _item(value: 32, child: Text('set camera model matrix')),
-          ])),
-      Container(
-        width: _vertical ? 200 : 400,
-        height: _vertical ? 400 : 200,
-        alignment: Alignment.center,
-        child: FilamentGestureDetector(
-            showControlOverlay: true,
-            controller: _filamentController,
-            child: FilamentWidget(
-              controller: _filamentController,
-            )),
-      ),
-    ]);
+                      // _item(7 () async { 'set all weights to 1'),
+                      // _item(8 () async { 'set all weights to 0'),
+                      // _item(9 () async { 'play all animations'),
+                      // _item(34 () async { 'play animation 0'),
+                      // _item(34 () async { 'play animation 0 (noreplace)'),
+                      // _item(35 () async { 'play animation 1'),
+                      // _item(34 () async { 'play animation 0 (noreplace)'),
+                      // _item(36 () async { 'play animation 2'),
+                      // _item(34 () async { 'play animation 0 (noreplace)'),
+                      // _item(36 () async { 'play animation 3'),
+                      // _item(34 () async { 'play animation 3 (noreplace)'),
+                      // _item(37 () async { 'stop animation 0'),
+                      // _item(11 () async {
+                      //     Text(
+                      //         _loop ? "don't loop animation" : "loop animation")),
+                      // _item(14 () async { 'set camera'),
+                      // _item(15 () async { 'animate weights'),
+                      // _item(16 () async { 'get target names'),
+                      // _item(17 () async { 'get animation names'),
+                      // _item(18 () async { 'pan left'),
+                      // _item(19 () async { 'pan right'),
+                      // _item(25 () async {
+                      //     Text(_vertical ? 'set horizontal' : 'set vertical')),
+                      // _item(26 () async { 'set camera pos to 0,0,3'),
+                      // _item(27 () async { 'toggle framerate'),
+                      // _item(28 () async { 'set bg image pos'),
+                      // _item(29 () async { 'add light'),
+                      // _item(30 () async { 'remove light'),
+                      // _item(31 () async { 'clear all lights'),
+                      // _item(32 () async { 'set camera model matrix'),
+                      ))),
+          Container(
+            width: _vertical ? 200 : 400,
+            height: _vertical ? 400 : 200,
+            alignment: Alignment.center,
+            child: FilamentGestureDetector(
+                showControlOverlay: true,
+                controller: _filamentController,
+                child: FilamentWidget(
+                  controller: _filamentController,
+                )),
+          ),
+        ]));
   }
 }
+
+// case -1:
+
+
+//         break;
+//       case -2:
+//         _filamentController.render();
+//         break;
+//       case -4:
+//         setState(() {
+//           _rendering = !_rendering;
+//           _filamentController.setRendering(_rendering);
+//         });
+//         break;
+//       case -5:
+//         setState(() {
+//           _framerate = _framerate == 60 ? 30 : 60;
+//           _filamentController.setFrameRate(_framerate);
+//         });
+//         break;
+//       case -6:
+//         _filamentController.setBackgroundColor(Color(0xFF73C9FA));
+//         break;
+
+
+//       case 5:
+//         _flightHelmet ??= await _filamentController.loadGltf(
+//             'assets/FlightHelmet/FlightHelmet.gltf', 'assets/FlightHelmet');
+//         break;
+//       case 7:
+//         _filamentController.setMorphTargetWeights(
+//             _cube!, "Cube.001", List.filled(8, 1.0));
+//         break;
+//       case 8:
+//         _filamentController.setMorphTargetWeights(
+//             _cube!, "Cube.001", List.filled(8, 0));
+//         break;
+//       case 11:
+//         setState(() {
+//           _loop = !_loop;
+//         });
+//         break;
+//       case 14:
+//         _filamentController.setCamera(_cube!, "Camera_Orientation");
+//         break;
+//       case 15:
+//         final animation = AnimationBuilder(
+//                 controller: _filamentController,
+//                 asset: _cube!,
+//                 framerate: 30,
+//                 meshName: "Cube.001")
+//             .setDuration(4)
+//             .interpolateMorphWeights(0, 4, 0, 1)
+//             // .interpolateBoneTransform(
+//             //     "Bone.001",
+//             //     "Cube.001",
+//             //     2,
+//             //     4,
+//             //     v.Vector3.zero(),
+//             //     v.Vector3.zero(),
+//             //     // Vec3(x: 1, y: 1, z: 1),
+//             //     v.Quaternion(0, 0, 0, 1),
+//             //     v.Quaternion(1, 1, 1, 1))
+//             // Quaternion(x: 1, y: 1, z: 1, w: 1))
+//             .set();
+//         break;
+//       case 16:
+//         var names =
+//             await _filamentController.getMorphTargetNames(_cube!, "Cube");
+//         await showDialog(
+//             context: context,
+//             builder: (ctx) {
+//               return Container(
+//                   height: 100,
+//                   width: 100,
+//                   color: Colors.white,
+//                   child: Text(names.join(",")));
+//             });
+
+//         break;
+//       case 17:
+//         var animationNames =
+//             await _filamentController.getAnimationNames(_cube!);
+
+//         await showDialog(
+//             context: context,
+//             builder: (ctx) {
+//               return Container(
+//                   height: 100,
+//                   width: 100,
+//                   color: Colors.white,
+//                   child: Text(animationNames.join(",")));
+//             });
+
+//         break;
+//       case 18:
+//         _filamentController.panStart(1, 1);
+//         _filamentController.panUpdate(1, 2);
+//         _filamentController.panEnd();
+//         break;
+//       case 19:
+//         _filamentController.panStart(1, 1);
+//         _filamentController.panUpdate(0, 0);
+//         _filamentController.panEnd();
+//         break;
+//       case 20:
+//         _filamentController.clearAssets();
+//         break;
+//       case 21:
+//         break;
+//       case 22:
+//         break;
+//       case 23:
+//         break;
+//       case 24:
+//         _filamentController.setRotation(_cube!, pi / 2, 0.0, 1.0, 0.0);
+//         break;
+//       case 25:
+//         setState(() {
+//           _vertical = !_vertical;
+//         });
+//         break;
+//       case 26:
+//         _filamentController.setCameraPosition(0, 0, 3);
+//         _filamentController.setCameraRotation(0, 0, 1, 0);
+//         break;
+//       case 27:
+//         _framerate = _framerate == 60 ? 30 : 60;
+//         _filamentController.setFrameRate(_framerate);
+//         break;
+//       case 28:
+//         _filamentController.setBackgroundImagePosition(25, 25);
+//         break;
+//       case 29:
+//         _light = await _filamentController.addLight(
+//             1, 6500, 15000000, 0, 1, 0, 0, -1, 0, true);
+//         break;
+//       case 30:
+//         if (_light != null) {
+//           _filamentController.removeLight(_light!);
+//           _light = null;
+//         }
+//         break;
+//       case 31:
+//         _filamentController.clearLights();
+//         break;
+//       case 32:
+      
+//         // break;
+//         break;
+//       case 33:
+        
+//         break;
+//       case 34:
+//         var duration =
+//             await _filamentController.getAnimationDuration(_cube!, 0);
+//         _filamentController.playAnimation(_cube!, 0,
+//             loop: false, crossfade: 0.5);
+//         await Future.delayed(
+//             Duration(milliseconds: (duration * 1000.0).toInt()));
+//         print("animation complete");
+//         // showDialog(
+//         //     context: context,
+//         //     builder: (context) {
+//         //       return Container(
+//         //           width: 100,
+//         //           height: 100,
+//         //           color: Colors.white,
+//         //           child: "animation complete!");
+//         //     });
+//         break;
+//       case 35:
+//         _filamentController.playAnimation(_cube!, 1,
+//             loop: false, crossfade: 0.5);
+//         break;
+//       case 36:
+//         _filamentController.playAnimation(_cube!, 2,
+//             loop: false, crossfade: 0.5);
+//         break;
+//       case 37:
+//         _filamentController.stopAnimation(_cube!, 0);
+//         break;
