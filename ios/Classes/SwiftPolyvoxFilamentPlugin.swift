@@ -306,7 +306,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             rendering = call.arguments as! Bool
             result(true)
         case "setFrameInterval":
-            set_frame_interval(viewer, Float(call.arguments as! Double))
+            let interval = call.arguments as! Double
+            displayLink!.preferredFramesPerSecond = Int(1 / interval)
+            print("Set preferred frames er second to \(displayLink!.preferredFramesPerSecond)")
+            let fInterval = Float(interval)
+            print("Set filament interval to \(fInterval)")
+            set_frame_interval(viewer, fInterval)
             result(true)
         case "updateViewportAndCameraProjection":
             guard let args = call.arguments as? [Any], args.count == 3,
