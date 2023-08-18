@@ -59,7 +59,7 @@ class FilamentController {
   }
 
   Future setFrameRate(int framerate) async {
-    _channel.invokeMethod("setFrameInterval", 1000.0 / framerate);
+    _channel.invokeMethod("setFrameInterval", 1.0 / framerate);
   }
 
   void setPixelRatio(double ratio) {
