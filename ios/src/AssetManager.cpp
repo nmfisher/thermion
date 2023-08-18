@@ -47,6 +47,7 @@ AssetManager::AssetManager(const ResourceLoaderWrapper* const resourceLoaderWrap
       _scene(scene) {
 
         _stbDecoder = createStbProvider(_engine);
+        _ktxDecoder = createKtx2Provider(_engine);
 
         _gltfResourceLoader = new ResourceLoader({.engine = _engine,
                                         .normalizeSkinningWeights = true });
@@ -54,13 +55,13 @@ AssetManager::AssetManager(const ResourceLoaderWrapper* const resourceLoaderWrap
            _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
         EntityManager &em = EntityManager::get();
         
-        _unlitProvider = new UnlitMaterialProvider(_engine);
+        //_unlitProvider = new UnlitMaterialProvider(_engine);
 
         // auto rb = _resourceLoaderWrapper->load("file:///mnt/hdd_2tb/home/hydroxide/projects/polyvox/flutter/polyvox_filament/materials/toon.filamat");
         // auto toonProvider = new FileMaterialProvider(_engine, rb.data, (size_t) rb.size);
 
         _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em });
-        
+        _gltfResourceLoader->addTextureProvider("image/ktx2", _ktxDecoder);
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
       }
@@ -68,7 +69,7 @@ AssetManager::AssetManager(const ResourceLoaderWrapper* const resourceLoaderWrap
 AssetManager::~AssetManager() { 
   _gltfResourceLoader->asyncCancelLoad();
   _ubershaderProvider->destroyMaterials();
-  _unlitProvider->destroyMaterials();
+  //_unlitProvider->destroyMaterials();
   destroyAll();
   AssetLoader::destroy(&_assetLoader);
   
@@ -395,12 +396,18 @@ void AssetManager::setMorphTargetWeights(EntityId entityId, const char* const en
 utils::Entity AssetManager::findEntityByName(SceneAsset asset, const char* entityName) {
   utils::Entity entity;
   for (size_t i = 0, c = asset.mAsset->getEntityCount(); i != c; ++i) {
-    auto entity = asset.mAsset->getEntities()[i];    
-    auto name = _ncm->getName(_ncm->getInstance(entity));
-
-    if(strcmp(entityName,name)==0) {
-      return entity;
-    }
+    auto entity = asset.mAsset->getEntities()[i];
+      auto nameInstance = _ncm->getInstance(entity);
+      if(!nameInstance.isValid()) {
+          continue;
+      }
+      auto name = _ncm->getName(nameInstance);
+      if(!name) {
+          continue;
+      }
+      if(strcmp(entityName,name)==0) {
+          return entity;
+      }
   }
   return entity;
 }
@@ -741,7 +748,7 @@ unique_ptr<vector<string>> AssetManager::getMorphTargetNames(EntityId entity, co
     auto inst = _ncm->getInstance(e);
     const char *name = _ncm->getName(inst);
 
-    if (strcmp(name, meshName) == 0) {
+    if (name && strcmp(name, meshName) == 0) {
       size_t count = asset.mAsset->getMorphTargetCountAt(e);
       for (int j = 0; j < count; j++) {
         const char *morphName = asset.mAsset->getMorphTargetNameAt(e, j);
