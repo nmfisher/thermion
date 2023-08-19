@@ -82,6 +82,7 @@ void remove_asset(const void* const viewer, EntityId asset);
 void clear_assets(const void* const viewer);
 void load_texture(void* assetManager, EntityId asset, const char *assetPath, int renderableIndex);
 void set_texture(void* assetManager, EntityId asset);
+bool set_material_color(void* assetManager, EntityId asset, const char* meshName, int materialIndex, const float r, const float g, const float b, const float a);
 void transform_to_unit_cube(void* assetManager, EntityId asset);
 void set_position(void* assetManager, EntityId asset, float x, float y, float z);
 void set_rotation(void* assetManager, EntityId asset, float rads, float x, float y, float z);

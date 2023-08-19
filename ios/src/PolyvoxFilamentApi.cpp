@@ -337,6 +337,10 @@ extern "C" {
     // ((AssetManager*)assetManager)->setTexture();
   }
 
+  bool set_material_color(void* assetManager, EntityId asset, const char* meshName, int materialIndex, const float r, const float g, const float b, const float a) {
+    return ((AssetManager*)assetManager)->setMaterialColor(asset, meshName, materialIndex, r, g, b, a);
+  }
+
   FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void* assetManager, EntityId asset) {
       ((AssetManager*)assetManager)->transformToUnitCube(asset);
   }

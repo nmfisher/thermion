@@ -40,6 +40,7 @@ namespace polyvox {
             const utils::Entity* getLightEntities(EntityId e) const noexcept;
             size_t getLightEntityCount(EntityId e) const noexcept;
             void updateAnimations();
+            bool setMaterialColor(EntityId e, const char* meshName, int materialInstance, const float r, const float g, const float b, const float a);
 
             bool setMorphAnimationBuffer(
                 EntityId entityId,

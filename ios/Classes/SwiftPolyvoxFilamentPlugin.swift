@@ -615,7 +615,18 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "setCameraFocusDistance":
             set_camera_focus_distance(viewer, call.arguments as! Float)
             result(true)
-            
+        case "setMaterialColor":
+            guard let args = call.arguments as? [Any], args.count == 5,
+                  let assetManager = args[0] as? Int64,
+                  let asset = args[1] as? EntityId,
+                  let meshName = args[2] as? String, 
+                  let materialIndex = args[3] as? Int32, 
+                  let color = args[4] as? [Double] else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for setMaterialColor", details: nil))
+                return
+            }
+            set_material_color(unsafeBitCast(assetManager, to:UnsafeMutableRawPointer.self), asset, meshName, materialIndex, Float(color[0]), Float(color[1]), Float(color[2]), Float(color[3]))
+            result(true)
             
         case "hideMesh":
             guard let args = call.arguments as? [Any], args.count == 3,

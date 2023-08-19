@@ -218,6 +218,9 @@ class _ExampleWidgetState extends State<ExampleWidget> {
             .build();
         _filamentController.setMorphAnimationData(_cube!, animation);
       }, "animate morph weights #3 and #4"),
+      _item(() {
+        _filamentController.setMaterialColor(_cube!, "Cone", 0, Colors.purple);
+      }, "set cone material color to purple")
     ];
     if (_animations != null) {
       children.addAll(_animations!.map((a) => _item(() {

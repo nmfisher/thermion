@@ -260,13 +260,12 @@ class FilamentController {
   ///
   void setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation) async {
-    print("SETTING animation with ${animation.data}");
     await _channel.invokeMethod("setMorphAnimation", [
       _assetManager,
       asset,
       animation.meshName,
       animation.data,
-      animation.morphIndices,
+      animation.animatedMorphIndices,
       animation.numMorphTargets,
       animation.numFrames,
       animation.frameLengthInMs
@@ -400,6 +399,22 @@ class FilamentController {
   void setTexture(FilamentEntity asset, String assetPath,
       {int renderableIndex = 0}) async {
     await _channel.invokeMethod("setTexture", [_assetManager, asset]);
+  }
+
+  void setMaterialColor(FilamentEntity asset, String meshName,
+      int materialIndex, Color color) async {
+    await _channel.invokeMethod("setMaterialColor", [
+      _assetManager,
+      asset,
+      meshName,
+      materialIndex,
+      [
+        color.red.toDouble() / 255.0,
+        color.green.toDouble() / 255.0,
+        color.blue.toDouble() / 255.0,
+        color.alpha.toDouble() / 255.0
+      ]
+    ]);
   }
 
   void transformToUnitCube(FilamentEntity asset) async {
