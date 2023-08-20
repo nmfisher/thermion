@@ -118,6 +118,10 @@ add_library(mathio STATIC IMPORTED)
 set_property(TARGET mathio PROPERTY IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/lib/libmathio.a")
 add_library(math STATIC IMPORTED)
 set_property(TARGET math PROPERTY IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/lib/libmath.a")
+add_library(basis_transcoder STATIC IMPORTED)
+set_property(TARGET basis_transcoder PROPERTY IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/lib/libbasis_transcoder.a")
+# add_library(basis_encoder STATIC IMPORTED)
+# set_property(TARGET basis_encoder PROPERTY IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/lib/libbasis_encoder.a")
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE
   FILAMENT_SHADERS
@@ -153,6 +157,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
   mathio
   math
   geometry
+  basis_transcoder
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin.
