@@ -107,7 +107,7 @@ static constexpr float4 sFullScreenTriangleVertices[3] = {
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
-FilamentViewer::FilamentViewer(void* context, ResourceLoaderWrapper* resourceLoaderWrapper)
+FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper)
   : _resourceLoaderWrapper(resourceLoaderWrapper) {
   
   #if TARGET_OS_IPHONE
@@ -137,13 +137,14 @@ FilamentViewer::FilamentViewer(void* context, ResourceLoaderWrapper* resourceLoa
   _view = _engine->createView();
 
   decltype(_view->getBloomOptions()) opts;
-  opts.enabled = false;//true;
-  // opts.strength = 0.6f;
+  opts.enabled = true;
+  opts.strength = 0.6f;
   _view->setBloomOptions(opts);
 
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
 
+//  ToneMapper *tm = new ACESToneMapper();
  ToneMapper *tm = new LinearToneMapper();
  colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
  delete tm;
@@ -168,8 +169,7 @@ FilamentViewer::FilamentViewer(void* context, ResourceLoaderWrapper* resourceLoa
   // options.minScale = filament::math::float2{ minScale };
   // options.maxScale = filament::math::float2{ maxScale };
   // options.sharpness = sharpness;
-  options.quality = View::QualityLevel::ULTRA;
-  
+  // options.quality = View::QualityLevel::ULTRA;
   _view->setDynamicResolutionOptions(options);
 
   View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
@@ -206,7 +206,7 @@ FilamentViewer::FilamentViewer(void* context, ResourceLoaderWrapper* resourceLoa
            .package(IMAGE_PACKAGE, IMAGE_IMAGE_SIZE)
            .build(*_engine);
   _imageMaterial->setDefaultParameter("showImage",0);
-  _imageMaterial->setDefaultParameter("backgroundColor", RgbType::sRGB, float3(0.f));
+  _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(0.5f, 0.5f, 0.5f, 1.0f));
   _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
   _imageScale = mat4f { 1.0f , 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -251,7 +251,6 @@ void FilamentViewer::setFrameInterval(float frameInterval) {
 }
 
 int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows) {
-  Log("Adding light of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
   auto light = EntityManager::get().create();
   LightManager::Builder(t)
       .color(Color::cct(colour))
@@ -262,14 +261,22 @@ int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float inten
       .build(*_engine, light);
   _scene->addEntity(light);
   _lights.push_back(light);
-  return Entity::smuggle(light);
+  auto entityId = Entity::smuggle(light);
+  Log("Added light under entity ID %d of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", entityId, t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+  return entityId;
 }
 
-void FilamentViewer::removeLight(int32_t id) {
-  Log("Removing light with entity ID %d", id);
-  auto e = utils::Entity::import(id);
-  _scene->removeEntities(&e, 1);
-  EntityManager::get().destroy(1, &e);
+void FilamentViewer::removeLight(EntityId entityId) {
+  Log("Removing light with entity ID %d", entityId);
+  auto entity = utils::Entity::import(entityId);
+  if(entity.isNull()) {
+    Log("Error: light entity not found under ID %d", entityId);
+  } else {
+
+    remove(_lights.begin(), _lights.end(), entity);
+    _scene->remove(entity);
+    EntityManager::get().destroy(1, &entity);
+  }
 }
 
 void FilamentViewer::clearLights() {
@@ -388,7 +395,6 @@ void FilamentViewer::setBackgroundColor(const float r, const float g, const floa
   _imageMaterial->setDefaultParameter("showImage", 0);
   _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
   const Viewport& vp = _view->getViewport();
-  Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
   _imageMaterial->setDefaultParameter("transform", _imageScale);
 }
 
@@ -522,9 +528,9 @@ FilamentViewer::~FilamentViewer() {
 
 Renderer *FilamentViewer::getRenderer() { return _renderer; }
 
-void FilamentViewer::createSwapChain(void *surface, uint32_t width, uint32_t height) {
+void FilamentViewer::createSwapChain(const void *surface, uint32_t width, uint32_t height) {
   #if TARGET_OS_IPHONE
-    _swapChain = _engine->createSwapChain(surface, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
+    _swapChain = _engine->createSwapChain((void*)surface, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
   #else
     if(surface) {
       _swapChain = _engine->createSwapChain(surface);
@@ -824,10 +830,10 @@ void FilamentViewer::updateViewportAndCameraProjection(
   const double aspect = (double)width / height;
 
   Camera& cam =_view->getCamera();
-  cam.setLensProjection(_cameraFocalLength, aspect, kNearPlane,
+  cam.setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
                                  kFarPlane);
 
-  // cam.setScaling({1.0 / aspect, 1.0});
+  cam.setScaling({1.0 / aspect, 1.0});
 
   Log("Set viewport to width: %d height: %d aspect %f scaleFactor : %f", width, height, aspect,
       contentScaleFactor);

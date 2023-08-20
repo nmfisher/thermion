@@ -31,12 +31,17 @@ namespace polyvox {
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;   
 
+    enum AnimationType {
+        MORPH, BONE, GLTF
+    };
+
     struct AnimationStatus {
         time_point_t mStart = time_point_t::max();
         bool mLoop = false;
         bool mReverse = false;
-        float mDuration = 0;
-        bool mAnimating = false;
+        float mDuration = 0;  
+        AnimationType type;
+        int gltfIndex = -1;
     };
 
     // 
@@ -47,7 +52,7 @@ namespace polyvox {
         int mNumFrames = -1;
         float mFrameLengthInMs = 0;
         vector<float> mFrameData;
-        int mNumMorphWeights = 0;
+        vector<int> mMorphIndices;
     };
 
     // 
@@ -73,10 +78,14 @@ namespace polyvox {
         FilamentAsset* mAsset = nullptr;
         Animator* mAnimator = nullptr;
 
-        // fixed-sized vector containing the status of the morph, bone and GLTF animations.
-        // entries 0 and 1 are the morph/bone animations.
-        // subsequent entries are the GLTF animations.
+        // vector containing AnimationStatus structs for the morph, bone and/or glTF animations.
         vector<AnimationStatus> mAnimations;
+        
+        // the index of the last active glTF animation, 
+        // used to cross-fade
+        int fadeGltfAnimationIndex = -1;
+        float fadeDuration = 0.0f;
+        float fadeOutAnimationStart = 0.0f;
 
         MorphAnimationBuffer mMorphAnimationBuffer;
         BoneAnimationBuffer mBoneAnimationBuffer;
@@ -96,12 +105,6 @@ namespace polyvox {
             FilamentAsset* asset
         ) : mAsset(asset) {
             mAnimator = mAsset->getInstance()->getAnimator();
-
-            mAnimations.resize(2 + mAnimator->getAnimationCount());
-            
-            for(int i=0; i < mAnimations.size() - 2; i++) {
-                mAnimations[i].mDuration = mAnimator->getAnimationDuration(i);
-            }
         }
     };
 }

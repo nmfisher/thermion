@@ -51,14 +51,14 @@ extern "C" {
             
         };
 
-        ResourceBuffer load(const char* uri) {
+        ResourceBuffer load(const char* uri) const {
           if(mLoadResourceFromOwner) {
             return mLoadResourceFromOwner(uri, mOwner);
           }
           return mLoadResource(uri);
         }
 
-        void free(ResourceBuffer rb) {
+        void free(ResourceBuffer rb) const {
           if(mFreeResourceFromOwner) {
             mFreeResourceFromOwner(rb, mOwner);
           } else {

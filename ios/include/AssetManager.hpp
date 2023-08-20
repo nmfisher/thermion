@@ -17,7 +17,7 @@ namespace polyvox {
 
     class AssetManager {
         public:
-            AssetManager(ResourceLoaderWrapper* loader,
+            AssetManager(const ResourceLoaderWrapper* const loader,
                         NameComponentManager *ncm, 
                         Engine *engine,
                         Scene *scene);
@@ -28,6 +28,7 @@ namespace polyvox {
             void remove(EntityId entity);
             void destroyAll();
             unique_ptr<vector<string>> getAnimationNames(EntityId entity);
+            float getAnimationDuration(EntityId entity, int animationIndex);
             unique_ptr<vector<string>> getMorphTargetNames(EntityId entity, const char *meshName);
             void transformToUnitCube(EntityId e);
             inline void updateTransform(EntityId e);
@@ -39,15 +40,17 @@ namespace polyvox {
             const utils::Entity* getLightEntities(EntityId e) const noexcept;
             size_t getLightEntityCount(EntityId e) const noexcept;
             void updateAnimations();
+            bool setMaterialColor(EntityId e, const char* meshName, int materialInstance, const float r, const float g, const float b, const float a);
 
-            
             bool setMorphAnimationBuffer(
                 EntityId entityId,
                 const char* entityName,
                 const float* const morphData,
-                int numMorphWeights, 
+                const int* const morphIndices, 
+                int numMorphTargets,
                 int numFrames, 
                 float frameLengthInMs);
+                
             void setMorphTargetWeights(EntityId entityId, const char* const entityName, const float* const weights, int count);
 
             bool setBoneAnimationBuffer(
@@ -59,7 +62,7 @@ namespace polyvox {
                 const char** const meshName,
                 int numMeshTargets,
                 float frameLengthInMs);
-            void playAnimation(EntityId e, int index, bool loop, bool reverse);
+            void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f);
             void stopAnimation(EntityId e, int index);
             void setMorphTargetWeights(const char* const entityName, float *weights, int count);
             void loadTexture(EntityId entity, const char* resourcePath, int renderableIndex);
@@ -69,7 +72,7 @@ namespace polyvox {
             
         private:
             AssetLoader* _assetLoader = nullptr;
-            ResourceLoaderWrapper* _resourceLoaderWrapper;
+            const ResourceLoaderWrapper* const _resourceLoaderWrapper;
             NameComponentManager* _ncm = nullptr;
             Engine* _engine;
             Scene* _scene;
@@ -77,6 +80,8 @@ namespace polyvox {
             MaterialProvider* _ubershaderProvider = nullptr;
             gltfio::ResourceLoader* _gltfResourceLoader = nullptr;
             gltfio::TextureProvider* _stbDecoder = nullptr;
+            gltfio::TextureProvider* _ktxDecoder = nullptr;
+        
             vector<SceneAsset> _assets;
             tsl::robin_map<EntityId, int> _entityIdLookup;
  

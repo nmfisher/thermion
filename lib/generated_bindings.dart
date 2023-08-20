@@ -450,21 +450,6 @@ class NativeLibrary {
   late final _set_frame_interval = _set_frame_intervalPtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, double)>();
 
-  ffi.Pointer<ffi.Void> get_renderer(
-    ffi.Pointer<ffi.Void> viewer,
-  ) {
-    return _get_renderer(
-      viewer,
-    );
-  }
-
-  late final _get_rendererPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Pointer<ffi.Void> Function(
-              ffi.Pointer<ffi.Void>)>>('get_renderer');
-  late final _get_renderer = _get_rendererPtr
-      .asFunction<ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>)>();
-
   void update_viewport_and_camera_projection(
     ffi.Pointer<ffi.Void> viewer,
     int width,
@@ -652,7 +637,8 @@ class NativeLibrary {
     int asset,
     ffi.Pointer<ffi.Char> entityName,
     ffi.Pointer<ffi.Float> morphData,
-    int numMorphWeights,
+    ffi.Pointer<ffi.Int> morphIndices,
+    int numMorphTargets,
     int numFrames,
     double frameLengthInMs,
   ) {
@@ -661,7 +647,8 @@ class NativeLibrary {
       asset,
       entityName,
       morphData,
-      numMorphWeights,
+      morphIndices,
+      numMorphTargets,
       numFrames,
       frameLengthInMs,
     );
@@ -674,12 +661,13 @@ class NativeLibrary {
               EntityId,
               ffi.Pointer<ffi.Char>,
               ffi.Pointer<ffi.Float>,
+              ffi.Pointer<ffi.Int>,
               ffi.Int,
               ffi.Int,
               ffi.Float)>>('set_morph_animation');
   late final _set_morph_animation = _set_morph_animationPtr.asFunction<
       int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>,
-          ffi.Pointer<ffi.Float>, int, int, double)>();
+          ffi.Pointer<ffi.Float>, ffi.Pointer<ffi.Int>, int, int, double)>();
 
   void set_bone_animation(
     ffi.Pointer<ffi.Void> assetManager,
@@ -735,6 +723,8 @@ class NativeLibrary {
     int index,
     int loop,
     int reverse,
+    int replaceActive,
+    double crossfade,
   ) {
     return _play_animation(
       assetManager,
@@ -742,15 +732,17 @@ class NativeLibrary {
       index,
       loop,
       reverse,
+      replaceActive,
+      crossfade,
     );
   }
 
   late final _play_animationPtr = _lookup<
       ffi.NativeFunction<
           ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
-              ffi.Int)>>('play_animation');
-  late final _play_animation = _play_animationPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Void>, int, int, int, int)>();
+              ffi.Int, ffi.Int, ffi.Float)>>('play_animation');
+  late final _play_animation = _play_animationPtr.asFunction<
+      void Function(ffi.Pointer<ffi.Void>, int, int, int, int, int, double)>();
 
   void set_animation_frame(
     ffi.Pointer<ffi.Void> assetManager,
@@ -829,6 +821,25 @@ class NativeLibrary {
               ffi.Pointer<ffi.Char>, ffi.Int)>>('get_animation_name');
   late final _get_animation_name = _get_animation_namePtr.asFunction<
       void Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>, int)>();
+
+  double get_animation_duration(
+    ffi.Pointer<ffi.Void> assetManager,
+    int asset,
+    int index,
+  ) {
+    return _get_animation_duration(
+      assetManager,
+      asset,
+      index,
+    );
+  }
+
+  late final _get_animation_durationPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Float Function(ffi.Pointer<ffi.Void>, EntityId,
+              ffi.Int)>>('get_animation_duration');
+  late final _get_animation_duration = _get_animation_durationPtr
+      .asFunction<double Function(ffi.Pointer<ffi.Void>, int, int)>();
 
   void get_morph_target_name(
     ffi.Pointer<ffi.Void> assetManager,
@@ -1484,13 +1495,3 @@ const int WINT_MAX = 2147483647;
 const int SIG_ATOMIC_MIN = -2147483648;
 
 const int SIG_ATOMIC_MAX = 2147483647;
-
-const int __DARWIN_WCHAR_MAX = 2147483647;
-
-const int __DARWIN_WCHAR_MIN = -2147483648;
-
-const int __DARWIN_WEOF = -1;
-
-const int _FORTIFY_SOURCE = 2;
-
-const int NULL = 0;

@@ -9,24 +9,25 @@ import 'dart:typed_data';
 class MorphAnimationData {
   final String meshName;
   final List<String> morphNames;
+  final List<int> morphIndices;
 
-  final Float32List data;
+  final List<double> data;
 
-  MorphAnimationData(
-      this.meshName, this.data, this.morphNames, this.frameLengthInMs) {
+  MorphAnimationData(this.meshName, this.data, this.morphNames,
+      this.morphIndices, this.frameLengthInMs) {
     assert(data.length == morphNames.length * numFrames);
   }
 
-  int get numMorphWeights => morphNames.length;
+  int get numMorphTargets => morphNames.length;
 
-  int get numFrames => data.length ~/ numMorphWeights;
+  int get numFrames => data.length ~/ numMorphTargets;
 
   final double frameLengthInMs;
 
   Iterable<double> getData(String morphName) sync* {
     int index = morphNames.indexOf(morphName);
     for (int i = 0; i < numFrames; i++) {
-      yield data[(i * numMorphWeights) + index];
+      yield data[(i * numMorphTargets) + index];
     }
   }
 }
