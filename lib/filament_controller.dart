@@ -184,8 +184,8 @@ class FilamentController {
   }
 
   Future<FilamentEntity> loadGlb(String path, {bool unlit = false}) async {
-    var asset = await _channel
-        .invokeMethod("loadGlb", [_assetManager, path, unlit ? 1 : 0]);
+    var asset =
+        await _channel.invokeMethod("loadGlb", [_assetManager, path, unlit]);
     if (asset == FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }

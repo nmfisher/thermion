@@ -66,11 +66,11 @@ extern "C" {
           }
         }
       #endif
-        LoadResource mLoadResource;
-        FreeResource mFreeResource;
-        LoadResourceFromOwner mLoadResourceFromOwner;
-        FreeResourceFromOwner mFreeResourceFromOwner;
-        void* mOwner;
+        LoadResource mLoadResource = nullptr;
+        FreeResource mFreeResource = nullptr;
+        LoadResourceFromOwner mLoadResourceFromOwner = nullptr;
+        FreeResourceFromOwner mFreeResourceFromOwner = nullptr;
+        void* mOwner = nullptr;
     };
     typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
     
