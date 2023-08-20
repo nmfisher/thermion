@@ -113,7 +113,7 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
   #if TARGET_OS_IPHONE
     _engine = Engine::create(Engine::Backend::METAL);
   #else
-    _engine = Engine::create(Engine::Backend::OPENGL, nullptr, context, nullptr);
+    _engine = Engine::create(Engine::Backend::OPENGL, nullptr, (void*)context, nullptr);
   #endif
 
   _renderer = _engine->createRenderer();
@@ -272,8 +272,7 @@ void FilamentViewer::removeLight(EntityId entityId) {
   if(entity.isNull()) {
     Log("Error: light entity not found under ID %d", entityId);
   } else {
-
-    remove(_lights.begin(), _lights.end(), entity);
+    auto removed = remove(_lights.begin(), _lights.end(), entity);
     _scene->remove(entity);
     EntityManager::get().destroy(1, &entity);
   }
@@ -533,9 +532,9 @@ void FilamentViewer::createSwapChain(const void *surface, uint32_t width, uint32
     _swapChain = _engine->createSwapChain((void*)surface, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
   #else
     if(surface) {
-      _swapChain = _engine->createSwapChain(surface);
-    } else {
       _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+    } else {
+      _swapChain = _engine->createSwapChain((void*)surface, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
     }
   #endif
   Log("Swapchain created.");
