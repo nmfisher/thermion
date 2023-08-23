@@ -337,15 +337,8 @@ class FilamentController {
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0}) async {
-    await _channel.invokeMethod("playAnimation", [
-      _assetManager,
-      asset,
-      index,
-      loop ? 1 : 0,
-      reverse ? 1 : 0,
-      replaceActive,
-      crossfade
-    ]);
+    await _channel.invokeMethod("playAnimation",
+        [_assetManager, asset, index, loop, reverse, replaceActive, crossfade]);
   }
 
   void setAnimationFrame(

@@ -231,16 +231,20 @@ class _ExampleWidgetState extends State<ExampleWidget> {
       }, "animate cube morph weights #1 and #2"),
       _item(() {
         _filamentController.setMaterialColor(_cube!, "Cone", 0, Colors.purple);
-      }, "set cone material color to purple")
+      }, "set cone material color to purple"),
+      _item(() {
+        _loop = !_loop;
+        setState(() {});
+      }, "toggle animation looping ${_loop ? "OFF" : "ON"}")
     ];
     if (_animations != null) {
       children.addAll(_animations!.map((a) => _item(() {
             _filamentController.playAnimation(_cube!, _animations!.indexOf(a),
-                replaceActive: true, crossfade: 0.5);
+                replaceActive: true, crossfade: 0.5, loop: _loop);
           }, "play animation ${_animations!.indexOf(a)} (replace/fade)")));
       children.addAll(_animations!.map((a) => _item(() {
             _filamentController.playAnimation(_cube!, _animations!.indexOf(a),
-                replaceActive: false);
+                replaceActive: false, loop: _loop);
           }, "play animation ${_animations!.indexOf(a)} (noreplace)")));
     }
 
@@ -268,9 +272,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
                       // _item(36 () async { 'play animation 3'),
                       // _item(34 () async { 'play animation 3 (noreplace)'),
                       // _item(37 () async { 'stop animation 0'),
-                      // _item(11 () async {
-                      //     Text(
-                      //         _loop ? "don't loop animation" : "loop animation")),
+
                       // _item(14 () async { 'set camera'),
                       // _item(15 () async { 'animate weights'),
                       // _item(16 () async { 'get target names'),

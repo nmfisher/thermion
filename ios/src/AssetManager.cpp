@@ -303,6 +303,9 @@ void AssetManager::updateAnimations() {
                         break;
                     }
                 }
+                if(anim.mLoop && elapsed >= anim.mDuration) {
+                    anim.mStart = now;
+                }
                 // animation has completed
             } else {
                 completed.push_back(anim);
