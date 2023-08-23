@@ -401,9 +401,9 @@ class FilamentController {
     await _channel.invokeMethod("setTexture", [_assetManager, asset]);
   }
 
-  void setMaterialColor(FilamentEntity asset, String meshName,
+  Future setMaterialColor(FilamentEntity asset, String meshName,
       int materialIndex, Color color) async {
-    await _channel.invokeMethod("setMaterialColor", [
+    var result = await _channel.invokeMethod("setMaterialColor", [
       _assetManager,
       asset,
       meshName,
@@ -415,6 +415,9 @@ class FilamentController {
         color.alpha.toDouble() / 255.0
       ]
     ]);
+    if (!result) {
+      throw Exception("Failed to set material color");
+    }
   }
 
   void transformToUnitCube(FilamentEntity asset) async {
