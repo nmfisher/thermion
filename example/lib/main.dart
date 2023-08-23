@@ -206,7 +206,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
             .interpolateMorphWeights(0, 4, 0, 1)
             .build();
         _filamentController.setMorphAnimationData(_cube!, animation);
-      }, "animate morph weights #1 and #2"),
+      }, "animate cylinder morph weights #1 and #2"),
       _item(() async {
         var morphs =
             await _filamentController.getMorphTargetNames(_cube!, "Cylinder");
@@ -217,7 +217,18 @@ class _ExampleWidgetState extends State<ExampleWidget> {
             .interpolateMorphWeights(0, 4, 0, 1)
             .build();
         _filamentController.setMorphAnimationData(_cube!, animation);
-      }, "animate morph weights #3 and #4"),
+      }, "animate cylinder morph weights #3 and #4"),
+      _item(() async {
+        var morphs =
+            await _filamentController.getMorphTargetNames(_cube!, "Cube");
+        final animation = AnimationBuilder(
+                availableMorphs: morphs, framerate: 30, meshName: "Cube")
+            .setDuration(4)
+            .setMorphTargets(["Key 1", "Key 2"])
+            .interpolateMorphWeights(0, 4, 0, 1)
+            .build();
+        _filamentController.setMorphAnimationData(_cube!, animation);
+      }, "animate cube morph weights #1 and #2"),
       _item(() {
         _filamentController.setMaterialColor(_cube!, "Cone", 0, Colors.purple);
       }, "set cone material color to purple")
