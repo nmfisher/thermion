@@ -475,6 +475,8 @@ bool AssetManager::setMaterialColor(EntityId entityId, const char* meshName, int
     auto renderable = rm.getInstance(entity);
     
     if(!renderable.isValid()) {
+        Log("Renderable not valid, was the entity id correct?");
+
         return false;
     }
     
@@ -485,6 +487,7 @@ bool AssetManager::setMaterialColor(EntityId entityId, const char* meshName, int
         return false;
     }
     mi->setParameter("baseColorFactor", RgbaType::sRGB, math::float4(r, g, b, a));
+    Log("Set baseColorFactor for entity %d to %f %f %f %f",entityId, r,g,b,a);
     return true;
 }
 
