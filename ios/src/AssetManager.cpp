@@ -390,9 +390,16 @@ void AssetManager::setMorphTargetWeights(EntityId entityId, const char* const en
     }
     
     RenderableManager &rm = _engine->getRenderableManager();
+
+    auto renderableInstance = rm.getInstance(entity);
+
+    if(!renderableInstance.isValid()) {
+        Log("Warning: failed to find renderable instance for entity %s", entityName);
+        return;
+    }
     
     rm.setMorphWeights(
-                       rm.getInstance(entity),
+                       renderableInstance,
                        weights,
                        count
                        );

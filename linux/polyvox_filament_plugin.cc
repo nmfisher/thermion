@@ -540,14 +540,22 @@ static FlMethodResponse* _set_morph_target_weights(PolyvoxFilamentPlugin* self, 
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
   auto entityName = fl_value_get_string(fl_value_get_list_value(args, 2));
-  auto weightsValue = fl_value_get_list_value(args, 3);
-  float weight = fl_value_get_float(fl_value_get_list_value(weightsValue, 0));  
-  size_t len = fl_value_get_length(weightsValue);
-  set_morph_target_weights(assetManager, asset, entityName, &weight, (int)len);
+  auto flWeights = fl_value_get_list_value(args, 3);
+  size_t numWeights = fl_value_get_length(flWeights);
+
+  std::vector<float> weights(numWeights);
+  for(int i =0; i < numWeights; i++) {
+      float val = fl_value_get_float(fl_value_get_list_value(flWeights, i));
+      weights[i] = val;
+  }
+    
+  set_morph_target_weights(assetManager, asset, entityName, weights.data(), (int)numWeights);
   
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
+
+template class std::vector<int>;
 
 static FlMethodResponse* _set_morph_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
@@ -565,10 +573,11 @@ static FlMethodResponse* _set_morph_animation(PolyvoxFilamentPlugin* self, FlMet
 
   auto morphIndicesList = fl_value_get_list_value(args, 4);
   auto morphIndicesListLength =  fl_value_get_length(morphIndicesList);
-  auto indices = std::vector<int64_t>(morphIndicesListLength);
+  auto indices = std::vector<int32_t>(morphIndicesListLength);
   
   for(int i =0; i < morphIndicesListLength; i++) {
-    indices[i] = fl_value_get_int(fl_value_get_list_value(morphIndicesList, i));
+    FlValue* flMorphIndex = fl_value_get_list_value(morphIndicesList, i);
+    indices[i] = static_cast<int32_t>(fl_value_get_int(flMorphIndex));
   }
   
   int64_t numMorphTargets = fl_value_get_int(fl_value_get_list_value(args, 5));
