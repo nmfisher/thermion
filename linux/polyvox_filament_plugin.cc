@@ -703,6 +703,12 @@ static FlMethodResponse* _set_tone_mapping(PolyvoxFilamentPlugin* self, FlMethod
   return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
 }
 
+static FlMethodResponse* _set_bloom(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) {
+  FlValue* args = fl_method_call_get_args(method_call);
+  set_bloom(self->viewer, fl_value_get_float(args));
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
+}
+
 // Called when a method call is received from Flutter.
 static void polyvox_filament_plugin_handle_method_call(
     PolyvoxFilamentPlugin* self,
@@ -722,6 +728,8 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _get_asset_manager(self, method_call);
   } else if(strcmp(method, "setToneMapping") == 0) {
     response = _set_tone_mapping(self, method_call);
+  } else if(strcmp(method, "setBloom") == 0) {
+    response = _set_bloom(self, method_call);
   } else if(strcmp(method, "resize") == 0) {
     response = _resize(self, method_call);
   } else if(strcmp(method, "getContext") == 0) {

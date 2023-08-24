@@ -366,6 +366,12 @@ class FilamentController {
     }
   }
 
+  void setBloom(double bloom) async {
+    if (!await _channel.invokeMethod("setBloom", bloom)) {
+      throw Exception("Failed to set bloom");
+    }
+  }
+
   void setCameraFocalLength(double focalLength) async {
     await _channel.invokeMethod("setCameraFocalLength", focalLength);
   }

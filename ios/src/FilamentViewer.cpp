@@ -138,10 +138,7 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
 
   setToneMapping(ToneMapping::ACES);
 
-  decltype(_view->getBloomOptions()) opts;
-  opts.enabled = true;
-  opts.strength = 0.6f;
-  _view->setBloomOptions(opts);
+  setBloom(0.6f);
 
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
@@ -236,6 +233,13 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
       .build(*_engine, imageEntity);
   _imageEntity = &imageEntity;
   _scene->addEntity(imageEntity);
+}
+
+void FilamentViewer::setBloom(float strength) {
+  decltype(_view->getBloomOptions()) opts;
+  opts.enabled = true;
+  opts.strength = strength;
+  _view->setBloomOptions(opts);
 }
 
 void FilamentViewer::setToneMapping(ToneMapping toneMapping) {

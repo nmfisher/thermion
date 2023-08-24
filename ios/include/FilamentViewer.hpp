@@ -53,6 +53,7 @@ namespace polyvox {
             ~FilamentViewer();
 
             void setToneMapping(ToneMapping toneMapping);
+            void setBloom(float strength);
             void loadSkybox(const char* const skyboxUri);
             void removeSkybox();
 

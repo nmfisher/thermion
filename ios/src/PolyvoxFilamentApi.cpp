@@ -52,6 +52,11 @@ extern "C" {
       ((FilamentViewer*)viewer)->setToneMapping((ToneMapping)toneMapping);
   }
 
+  FLUTTER_PLUGIN_EXPORT void set_bloom(const void* const viewer, float strength) {
+        Log("Setting bloom to %f", strength);
+      ((FilamentViewer*)viewer)->setBloom(strength);
+  }
+
   FLUTTER_PLUGIN_EXPORT void load_skybox(const void* const viewer, const char* skyboxPath) {
       ((FilamentViewer*)viewer)->loadSkybox(skyboxPath);
   }
