@@ -48,6 +48,10 @@ extern "C" {
       ((FilamentViewer*)viewer)->setBackgroundImagePosition(x, y, clamp);
   }
 
+  FLUTTER_PLUGIN_EXPORT void set_tone_mapping(const void* const viewer, int toneMapping) {
+      ((FilamentViewer*)viewer)->setToneMapping((ToneMapping)toneMapping);
+  }
+
   FLUTTER_PLUGIN_EXPORT void load_skybox(const void* const viewer, const char* skyboxPath) {
       ((FilamentViewer*)viewer)->loadSkybox(skyboxPath);
   }

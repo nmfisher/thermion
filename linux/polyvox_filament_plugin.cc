@@ -696,7 +696,12 @@ static FlMethodResponse* _get_morph_target_names(PolyvoxFilamentPlugin* self, Fl
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-
+static FlMethodResponse* _set_tone_mapping(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) {
+  FlValue* args = fl_method_call_get_args(method_call);
+  polyvox::ToneMapping toneMapping = static_cast<polyvox::ToneMapping>(fl_value_get_int(args)); 
+  set_tone_mapping(self->viewer, toneMapping);
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
+}
 
 // Called when a method call is received from Flutter.
 static void polyvox_filament_plugin_handle_method_call(
@@ -715,6 +720,8 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _update_viewport_and_camera_projection(self, method_call);
   } else if(strcmp(method, "getAssetManager") ==0){ 
     response = _get_asset_manager(self, method_call);
+  } else if(strcmp(method, "setToneMapping") == 0) {
+    response = _set_tone_mapping(self, method_call);
   } else if(strcmp(method, "resize") == 0) {
     response = _resize(self, method_call);
   } else if(strcmp(method, "getContext") == 0) {

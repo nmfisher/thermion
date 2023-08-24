@@ -13,6 +13,8 @@ typedef AssetManager = int;
 typedef FilamentEntity = int;
 const FilamentEntity FILAMENT_ASSET_ERROR = 0;
 
+enum ToneMapper { ACES, FILMIC, LINEAR }
+
 class FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
@@ -355,6 +357,12 @@ class FilamentController {
   void setCamera(FilamentEntity asset, String? name) async {
     if (await _channel.invokeMethod("setCamera", [asset, name]) != true) {
       throw Exception("Failed to set camera");
+    }
+  }
+
+  void setToneMapping(ToneMapper mapper) async {
+    if (!await _channel.invokeMethod("setToneMapping", mapper.index)) {
+      throw Exception("Failed to set tone mapper");
     }
   }
 

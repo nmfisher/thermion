@@ -136,6 +136,8 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
   Log("Main camera created");
   _view = _engine->createView();
 
+  setToneMapping(ToneMapping::ACES);
+
   decltype(_view->getBloomOptions()) opts;
   opts.enabled = true;
   opts.strength = 0.6f;
@@ -143,13 +145,6 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
 
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
-
-//  ToneMapper *tm = new ACESToneMapper();
- ToneMapper *tm = new LinearToneMapper();
- colorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
- delete tm;
-
- _view->setColorGrading(colorGrading);
 
   _cameraFocalLength = 28.0f;
   _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
@@ -241,6 +236,28 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
       .build(*_engine, imageEntity);
   _imageEntity = &imageEntity;
   _scene->addEntity(imageEntity);
+}
+
+void FilamentViewer::setToneMapping(ToneMapping toneMapping) {
+  
+  ToneMapper* tm;
+  switch(toneMapping) {
+    case ToneMapping::ACES:
+      tm = new ACESToneMapper();
+      break;
+    case ToneMapping::LINEAR:
+      tm = new LinearToneMapper();
+      break;
+    case ToneMapping::FILMIC:
+      tm = new FilmicToneMapper();
+      break;
+  }
+
+ 
+ auto newColorGrading = ColorGrading::Builder().toneMapper(tm).build(*_engine);
+ _view->setColorGrading(newColorGrading);
+ _engine->destroy(colorGrading);
+ delete tm;
 }
 
 void FilamentViewer::setFrameInterval(float frameInterval) {
