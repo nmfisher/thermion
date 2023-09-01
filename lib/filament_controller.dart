@@ -23,11 +23,8 @@ class FilamentController {
   final _textureIdController = StreamController<int?>.broadcast();
   Stream<int?> get textureId => _textureIdController.stream;
 
-  final _onInitRequestedController = StreamController.broadcast();
-  Stream get onInitializationRequested => _onInitRequestedController.stream;
-
-  final _initialized = Completer();
-  Future get initialized => _initialized.future;
+  // final _viewerAvailableController = StreamController<bool>.broadcast();
+  // Stream<bool> get viewerAvailable => _viewerAvailableController.stream;
 
   late AssetManager _assetManager;
 
@@ -45,9 +42,24 @@ class FilamentController {
     };
   }
 
+  final _initialSize = Completer<List<int>>();
+  void setInitialSize(int width, int height) {
+    _initialSize.complete([width, height]);
+  }
+
+  ///
+  /// The process for initializing the Filament layer is as follows:
+  /// 1) Create a FilamentController
+  /// 2) Insert a FilamentWidget into the rendering tree
+  /// 3) Initially, this widget will only contain an empty Container. After the first frame is rendered, the widget itself will automatically call [setInitialSize] with the width/height from its constraints
+  /// 4) Call [initialize], which will create a texture/viewer and notify the FilamentWidget that the texture is available
+  /// 5) The FilamentWidget will replace the empty Container with the Texture widget.
+  ///
   Future initialize() async {
-    _onInitRequestedController.add(true);
-    return _initialized.future;
+    var initialSize = await _initialSize.future;
+    var initialWidth = initialSize[0];
+    var initialHeight = initialSize[1];
+    await createViewer(initialWidth, initialHeight);
   }
 
   Future setRendering(bool render) async {
@@ -64,6 +76,17 @@ class FilamentController {
 
   void setPixelRatio(double ratio) {
     _pixelRatio = ratio;
+  }
+
+  Future destroyViewer() async {
+    await _channel.invokeMethod("destroyViewer");
+  }
+
+  Future destroyTexture() async {
+    await _channel.invokeMethod("destroyTexture");
+    _textureId = null;
+    _assetManager = 0;
+    _textureIdController.add(null);
   }
 
   Future createViewer(int width, int height) async {
@@ -90,7 +113,6 @@ class FilamentController {
     await _channel.invokeMethod("updateViewportAndCameraProjection",
         [size.width.toInt(), size.height.toInt(), 1.0]);
 
-    _initialized.complete(true);
     _assetManager = await _channel.invokeMethod("getAssetManager");
     _textureIdController.add(_textureId);
   }
@@ -438,7 +460,7 @@ class FilamentController {
         .invokeMethod("setRotation", [_assetManager, asset, rads, x, y, z]);
   }
 
-  void hide(FilamentEntity asset, String meshName) async {
+  Future hide(FilamentEntity asset, String meshName) async {
     if (await _channel
             .invokeMethod("hideMesh", [_assetManager, asset, meshName]) !=
         1) {
@@ -446,7 +468,7 @@ class FilamentController {
     }
   }
 
-  void reveal(FilamentEntity asset, String meshName) async {
+  Future reveal(FilamentEntity asset, String meshName) async {
     if (await _channel
             .invokeMethod("revealMesh", [_assetManager, asset, meshName]) !=
         1) {

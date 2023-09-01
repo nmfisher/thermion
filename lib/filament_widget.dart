@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/scheduler.dart';
+
 import 'dart:async';
 import 'filament_controller.dart';
 
@@ -56,38 +58,58 @@ class FilamentWidget extends StatefulWidget {
 }
 
 class _FilamentWidgetState extends State<FilamentWidget> {
-  StreamSubscription? _initializationListener;
   StreamSubscription? _textureIdListener;
   int? _textureId;
   bool _resizing = false;
-  bool _hasViewer = false;
+
+  late final AppLifecycleListener _listener;
+  AppLifecycleState? _lastState;
+
+  void _handleStateChange(AppLifecycleState state) async {
+    switch (state) {
+      case AppLifecycleState.detached:
+        print("Detached");
+        await widget.controller.destroyViewer();
+        await widget.controller.destroyTexture();
+        break;
+      case AppLifecycleState.hidden:
+        print("Hidden");
+        _textureId = null;
+        await widget.controller.destroyViewer();
+        await widget.controller.destroyTexture();
+        break;
+      case AppLifecycleState.inactive:
+        print("Inactive");
+        break;
+      case AppLifecycleState.paused:
+        print("Paused");
+        break;
+      case AppLifecycleState.resumed:
+        print("Resumed");
+        if (_textureId == null) {
+          var size = ((context.findRenderObject()) as RenderBox).size;
+          print("Size after resuming : $size");
+          await widget.controller
+              .createViewer(size.width.toInt(), size.height.toInt());
+        }
+        break;
+    }
+    _lastState = state;
+  }
 
   @override
   void initState() {
-    _initializationListener =
-        widget.controller.onInitializationRequested.listen((_) {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-        var size = ((context.findRenderObject()) as RenderBox).size;
-        print(
-            "Requesting creation of Filament back-end texture/viewer for viewport size $size");
-        await widget.controller
-            .createViewer(size.width.toInt(), size.height.toInt());
-        setState(() {
-          _hasViewer = true;
-        });
+    _listener = AppLifecycleListener(
+      onStateChange: _handleStateChange,
+    );
 
-        _initializationListener!.cancel();
-        _initializationListener = null;
-
-        WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-          var size = ((context.findRenderObject()) as RenderBox).size;
-          widget.controller.resize(size.width.toInt(), size.height.toInt());
-          print("RESIZED IN POST FRAME CALLBACK TO $size");
-        });
-        setState(() {});
-      });
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      var size = ((context.findRenderObject()) as RenderBox).size;
+      widget.controller.setInitialSize(size.width.toInt(), size.height.toInt());
     });
+
     _textureIdListener = widget.controller.textureId.listen((int? textureId) {
+      print("Set texture ID to $textureId");
       setState(() {
         _textureId = textureId;
       });
@@ -98,15 +120,14 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
   @override
   void dispose() {
-    _initializationListener?.cancel();
     _textureIdListener?.cancel();
+    _listener.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: ((context, constraints) {
-      print("constraints $constraints");
       if (_textureId == null) {
         return Container(color: Colors.transparent);
       }
@@ -121,10 +142,6 @@ class _FilamentWidgetState extends State<FilamentWidget> {
           width: constraints.maxWidth,
           child: ResizeObserver(
               onResized: (Size oldSize, Size newSize) async {
-                if (!_hasViewer) {
-                  return;
-                }
-                print("RESIZE OBSERVER $newSize");
                 WidgetsBinding.instance.addPostFrameCallback((_) async {
                   setState(() {
                     _resizing = true;
@@ -139,15 +156,15 @@ class _FilamentWidgetState extends State<FilamentWidget> {
                   });
                 });
               },
-              child: Platform.isLinux
-                  ? _resizing
-                      ? Container()
-                      : Transform(
+              child: _resizing
+                  ? Container()
+                  : Platform.isLinux
+                      ? Transform(
                           alignment: Alignment.center,
                           transform: Matrix4.rotationX(
                               pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
                           child: texture)
-                  : texture));
+                      : texture));
     }));
   }
 }

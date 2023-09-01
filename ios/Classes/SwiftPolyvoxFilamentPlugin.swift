@@ -187,6 +187,24 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
             createDisplayLink()
             result(self.flutterTextureId)
+        case "destroyTexture":
+            if(viewer != nil) {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Destroy the viewer before destroying the texture", details: nil))
+            } else {
+                
+                if(self.flutterTextureId != nil) {
+                    self.registry.unregisterTexture(self.flutterTextureId!)
+                }
+                self.flutterTextureId = nil 
+                self.pixelBuffer = nil
+            }
+        case "destroyViewer":
+            if(viewer != nil) {
+                destroy_swap_chain(viewer)
+                delete_filament_viewer(viewer)
+                viewer = nil
+            }
+            result(true)
         case "resize":
             if(viewer == nil) {
                 print("Error: cannot resize before a viewer has been created")
@@ -203,6 +221,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             print("Resized to \(args[0])x\(args[1])")
             result(self.flutterTextureId);
         case "createFilamentViewer":
+            if(viewer != nil) {
+                destroy_swap_chain(viewer)
+                delete_filament_viewer(viewer)
+                viewer = nil
+            }
             let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
             let args = call.arguments as! [Any]
             let width = args[0] as! Int64
@@ -212,10 +235,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             create_swap_chain(viewer, pixelBufferTextureId, UInt32(width), UInt32(height))
             update_viewport_and_camera_projection(viewer, Int32(args[0] as! Int64), Int32(args[1] as! Int64), 1.0)
             result(unsafeBitCast(viewer, to:Int64.self))
-        case "deleteFilamentViewer":
-            delete_filament_viewer(viewer)
-            viewer = nil
-            result(true)
         case "getAssetManager":
             let assetManager = get_asset_manager(viewer)
             result(unsafeBitCast(assetManager, to:Int64.self))
