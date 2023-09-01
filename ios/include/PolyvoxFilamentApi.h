@@ -14,6 +14,8 @@ void clear_background_image(const void* const viewer);
 void set_background_image(const void* const viewer, const char *path);
 void set_background_image_position(const void* const viewer, float x, float y, bool clamp);
 void set_background_color(const void* const viewer, const float r, const float g, const float b, const float a);
+void set_tone_mapping(const void* const viewer, int toneMapping);
+void set_bloom(const void* const viewer, float strength);
 void load_skybox(const void* const viewer, const char *skyboxPath);
 void load_ibl(const void* const viewer, const char *iblPath, float intensity);
 void remove_skybox(const void* const viewer);

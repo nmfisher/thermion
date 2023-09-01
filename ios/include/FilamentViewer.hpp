@@ -42,11 +42,18 @@ using namespace camutils;
 typedef int32_t EntityId;
 
 namespace polyvox {
+
+    enum ToneMapping {
+        ACES, FILMIC, LINEAR
+    };
+    
     class FilamentViewer {
         public:
             FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper);
             ~FilamentViewer();
 
+            void setToneMapping(ToneMapping toneMapping);
+            void setBloom(float strength);
             void loadSkybox(const char* const skyboxUri);
             void removeSkybox();
 

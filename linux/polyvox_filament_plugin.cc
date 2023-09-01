@@ -62,11 +62,28 @@ static gboolean on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpo
 static FlMethodResponse* _create_filament_viewer(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   auto callback = new ResourceLoaderWrapper(loadResource, freeResource);
 
+  FlValue* args = fl_method_call_get_args(method_call);
+
+  const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
+  const double height = fl_value_get_float(fl_value_get_list_value(args, 1));
+
+  self->width = width;
+  self->height = height;
+
   auto context = glXGetCurrentContext();   
   self->viewer = (polyvox::FilamentViewer*)create_filament_viewer(
     (void*)context,
     callback
   );
+
+  GtkWidget *w = gtk_widget_get_toplevel (GTK_WIDGET(self->fl_view));
+  gtk_widget_add_tick_callback(w, on_frame_tick, self,NULL);
+
+  // don't pass a surface to the SwapChain as we are effectively creating a headless SwapChain that will render into a RenderTarget associated with a texture
+  create_swap_chain(self->viewer, nullptr, width, height);
+  create_render_target(self->viewer, ((FilamentTextureGL*)self->texture)->texture_id,width,height);   
+  update_viewport_and_camera_projection(self->viewer, width, height, 1.0f); 
+
   g_autoptr(FlValue) result =   
          fl_value_new_int(reinterpret_cast<int64_t>(self->viewer));   
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
@@ -91,8 +108,29 @@ static FlMethodResponse* _create_texture(PolyvoxFilamentPlugin* self, FlMethodCa
 
     g_autoptr(FlValue) result =   
          fl_value_new_int(reinterpret_cast<int64_t>(texture));   
+
+    Log("Successfully created texture.");
     
     return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
+
+
+static FlMethodResponse* _update_viewport_and_camera_projection(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+    FlValue* args = fl_method_call_get_args(method_call);
+
+    auto width = fl_value_get_int(fl_value_get_list_value(args, 0));
+    auto height = fl_value_get_int(fl_value_get_list_value(args, 1));
+    auto scaleFactor = fl_value_get_float(fl_value_get_list_value(args, 2));
+
+    update_viewport_and_camera_projection(self->viewer, width, height, scaleFactor);
+    
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));
+}
+
+
+static FlMethodResponse* _get_asset_manager(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+    auto assetManager = get_asset_manager(self->viewer);
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_int(reinterpret_cast<int64_t>(assetManager))));
 }
 
 static FlMethodResponse* _resize(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
@@ -165,9 +203,12 @@ static FlMethodResponse* _set_background_image(PolyvoxFilamentPlugin* self, FlMe
 }
 
 static FlMethodResponse* _set_background_color(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
-
-  const float* color = fl_value_get_float32_list(fl_method_call_get_args(method_call));
-  set_background_color(self->viewer, color[0], color[1], color[2], color[2]);
+  FlValue* args = fl_method_call_get_args(method_call);
+  const float r = fl_value_get_float(fl_value_get_list_value(args, 0));
+  const float g = fl_value_get_float(fl_value_get_list_value(args, 1));
+  const float b = fl_value_get_float(fl_value_get_list_value(args, 2));
+  const float a = fl_value_get_float(fl_value_get_list_value(args, 3));
+  set_background_color(self->viewer, r,g,b,a);
   
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
@@ -196,9 +237,10 @@ static FlMethodResponse* _add_light(PolyvoxFilamentPlugin* self, FlMethodCall* m
 
 static FlMethodResponse* _load_glb(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
     FlValue* args = fl_method_call_get_args(method_call);
-    auto path = fl_value_get_string(fl_value_get_list_value(args, 0));
-    auto unlit = fl_value_get_bool(fl_value_get_list_value(args, 1));
-    auto entityId = load_glb(self->viewer, path, unlit);
+    auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+    auto path = fl_value_get_string(fl_value_get_list_value(args, 1));
+    auto unlit = fl_value_get_bool(fl_value_get_list_value(args, 2));
+    auto entityId = load_glb(assetManager, path, unlit);
     g_autoptr(FlValue) result = fl_value_new_int((int64_t)entityId);
     return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
@@ -418,19 +460,45 @@ static FlMethodResponse* _set_frame_interval(PolyvoxFilamentPlugin* self, FlMeth
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _zoom_begin(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _grab_begin(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  auto pan = (bool)fl_value_get_bool(fl_value_get_list_value(args, 2));
+  grab_begin(self->viewer, x, y, pan);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _grab_end(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  grab_end(self->viewer);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _grab_update(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
+  auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
+  
+  grab_update(self->viewer, x,y);
+  g_autoptr(FlValue) result = fl_value_new_string("OK");
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
+}
+
+static FlMethodResponse* _scroll_begin(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   scroll_begin(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _zoom_end(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _scroll_end(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   scroll_end(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _zoom_update(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _scroll_update(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
   auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -466,51 +534,69 @@ static FlMethodResponse* _stop_animation(PolyvoxFilamentPlugin* self, FlMethodCa
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _apply_weights(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
-  // FlValue* args = fl_method_call_get_args(method_call);
-  // auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
-  // auto entityName = fl_value_get_string(fl_value_get_list_value(args, 1));
-  // auto weightsValue = fl_value_get_list_value(args, 2);
-  // float* const weights = (float* const) fl_value_get_float32_list(weightsValue);  
-  // size_t len = fl_value_get_length(weightsValue);
-  // apply_weights(assetPtr, entityName, weights, (int)len);
+
+static FlMethodResponse* _set_morph_target_weights(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  auto entityName = fl_value_get_string(fl_value_get_list_value(args, 2));
+  auto flWeights = fl_value_get_list_value(args, 3);
+  size_t numWeights = fl_value_get_length(flWeights);
+
+  std::vector<float> weights(numWeights);
+  for(int i =0; i < numWeights; i++) {
+      float val = fl_value_get_float(fl_value_get_list_value(flWeights, i));
+      weights[i] = val;
+  }
+    
+  set_morph_target_weights(assetManager, asset, entityName, weights.data(), (int)numWeights);
+  
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
+template class std::vector<int>;
+
 static FlMethodResponse* _set_morph_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
-   throw std::invalid_argument( "received negative value" );
-  // int64_t assetManager = std::any_cast<int64_t>(args[0]);
-  // EntityId asset = std::any_cast<EntityId>(args[1]);
-  // std::string entityName = std::any_cast<std::string>(fl_value_get_string(fl_value_get_list_value(args, 2)));
+  FlValue* args = fl_method_call_get_args(method_call);
+  auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
+  auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
+  auto entityName = fl_value_get_string(fl_value_get_list_value(args, 2));
+  
+  auto morphDataList = fl_value_get_list_value(args, 3);
+  auto morphDataListLength = fl_value_get_length(morphDataList);
+  auto morphData = std::vector<float>(morphDataListLength);
+  
+  for(int i =0; i < morphDataListLength; i++) {
+    morphData[i] = fl_value_get_float(fl_value_get_list_value(morphDataList, i));
+  }
 
-  // std::vector<double> morphData = std::any_cast<std::vector<double>>(args[3]);
-  // std::vector<int32_t> morphIndices = std::any_cast<std::vector<int32_t>>(args[4]);
-  // int32_t numMorphTargets = std::any_cast<int32_t>(args[5]);
-  // int32_t numFrames = std::any_cast<int32_t>(args[6]);
-  // double frameLengthInMs = std::any_cast<double>(args[7]);
+  auto morphIndicesList = fl_value_get_list_value(args, 4);
+  auto morphIndicesListLength =  fl_value_get_length(morphIndicesList);
+  auto indices = std::vector<int32_t>(morphIndicesListLength);
+  
+  for(int i =0; i < morphIndicesListLength; i++) {
+    FlValue* flMorphIndex = fl_value_get_list_value(morphIndicesList, i);
+    indices[i] = static_cast<int32_t>(fl_value_get_int(flMorphIndex));
+  }
+  
+  int64_t numMorphTargets = fl_value_get_int(fl_value_get_list_value(args, 5));
+  int64_t numFrames = fl_value_get_int(fl_value_get_list_value(args, 6));
+  float frameLengthInMs = fl_value_get_float(fl_value_get_list_value(args, 7));
 
-  // // Convert morphData from double to float
-  // std::vector<float> frameData;
-  // frameData.reserve(morphData.size());
-  // for (double value : morphData) {
-  //     frameData.push_back(static_cast<float>(value));
-  // }
+  bool success = set_morph_animation(
+      assetManager, 
+      asset, 
+      (const char *const)entityName, 
+      (const float *const)morphData.data(), 
+      (const int* const)indices.data(), 
+      static_cast<int>(numMorphTargets), 
+      static_cast<int>(numFrames), 
+      frameLengthInMs
+  );  
+  g_autoptr(FlValue) result = fl_value_new_bool(success);
 
-  // void* am = reinterpret_cast<void*>(assetManager);
-    
-  // bool success = set_morph_animation(
-  //     am, 
-  //     asset, 
-  //     entityName.c_str(), 
-  //     frameData, 
-  //     morphIndices, 
-  //     numMorphTargets, 
-  //     numFrames, 
-  //     static_cast<float>(frameLengthInMs)
-  // );
-
-  // return success;
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
 static FlMethodResponse* _set_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
@@ -596,11 +682,10 @@ static FlMethodResponse* _get_morph_target_names(PolyvoxFilamentPlugin* self, Fl
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
   auto meshName = fl_value_get_string(fl_value_get_list_value(args, 2));
+  
   g_autoptr(FlValue) result = fl_value_new_list();
 
   auto numNames = get_morph_target_name_count(assetManager, asset, meshName);
-
-  std::cout << numNames << " morph targets found in mesh " << meshName << std::endl;
 
   for(int i = 0; i < numNames; i++) {
     gchar out[255];
@@ -611,7 +696,18 @@ static FlMethodResponse* _get_morph_target_names(PolyvoxFilamentPlugin* self, Fl
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
+static FlMethodResponse* _set_tone_mapping(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) {
+  FlValue* args = fl_method_call_get_args(method_call);
+  polyvox::ToneMapping toneMapping = static_cast<polyvox::ToneMapping>(fl_value_get_int(args)); 
+  set_tone_mapping(self->viewer, toneMapping);
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
+}
 
+static FlMethodResponse* _set_bloom(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) {
+  FlValue* args = fl_method_call_get_args(method_call);
+  set_bloom(self->viewer, fl_value_get_float(args));
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
+}
 
 // Called when a method call is received from Flutter.
 static void polyvox_filament_plugin_handle_method_call(
@@ -626,6 +722,14 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _create_filament_viewer(self, method_call);
   } else if(strcmp(method, "createTexture") == 0) {
     response = _create_texture(self, method_call);    
+  } else if(strcmp(method, "updateViewportAndCameraProjection")==0){ 
+    response = _update_viewport_and_camera_projection(self, method_call);
+  } else if(strcmp(method, "getAssetManager") ==0){ 
+    response = _get_asset_manager(self, method_call);
+  } else if(strcmp(method, "setToneMapping") == 0) {
+    response = _set_tone_mapping(self, method_call);
+  } else if(strcmp(method, "setBloom") == 0) {
+    response = _set_bloom(self, method_call);
   } else if(strcmp(method, "resize") == 0) {
     response = _resize(self, method_call);
   } else if(strcmp(method, "getContext") == 0) {
@@ -704,20 +808,26 @@ static void polyvox_filament_plugin_handle_method_call(
     response = _set_camera_rotation(self, method_call);
   } else if(strcmp(method, "setFrameInterval") == 0) {
     response = _set_frame_interval(self, method_call);
-  } else if(strcmp(method, "zoomBegin") == 0) {
-    response = _zoom_begin(self, method_call);
-  } else if(strcmp(method, "zoomEnd") == 0) {
-    response = _zoom_end(self, method_call);
-  } else if(strcmp(method, "zoomUpdate") == 0) {
-    response = _zoom_update(self, method_call);
+  } else if(strcmp(method, "scrollBegin") == 0) {
+    response = _scroll_begin(self, method_call);
+  } else if(strcmp(method, "scrollEnd") == 0) {
+    response = _scroll_end(self, method_call);
+  } else if(strcmp(method, "scrollUpdate") == 0) {
+    response = _scroll_update(self, method_call);
+  } else if(strcmp(method, "grabBegin") == 0) {
+    response = _grab_begin(self, method_call);
+  } else if(strcmp(method, "grabEnd") == 0) {
+    response = _grab_end(self, method_call);
+  } else if(strcmp(method, "grabUpdate") == 0) {
+    response = _grab_update(self, method_call);
   } else if(strcmp(method, "playAnimation") == 0) {
     response = _play_animation(self, method_call);
   } else if(strcmp(method, "stopAnimation") == 0) {
     response = _stop_animation(self, method_call);
   } else if(strcmp(method, "setMorphTargetWeights") == 0) {
-    response = _apply_weights(self, method_call);
-  } else if(strcmp(method, "setAnimation") == 0) {
-    response = _set_animation(self, method_call);
+    response = _set_morph_target_weights(self, method_call);
+  } else if(strcmp(method, "setMorphAnimation") == 0) {
+    response = _set_morph_animation(self, method_call);
   } else if(strcmp(method, "getMorphTargetNames") == 0) {
     response = _get_morph_target_names(self, method_call);
   } else if(strcmp(method, "setPosition") == 0) {

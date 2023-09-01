@@ -13,6 +13,8 @@ typedef AssetManager = int;
 typedef FilamentEntity = int;
 const FilamentEntity FILAMENT_ASSET_ERROR = 0;
 
+enum ToneMapper { ACES, FILMIC, LINEAR }
+
 class FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
@@ -112,8 +114,8 @@ class FilamentController {
 
     await _channel.invokeMethod("updateViewportAndCameraProjection",
         [size.width.toInt(), size.height.toInt(), 1.0]);
-
     _assetManager = await _channel.invokeMethod("getAssetManager");
+
     _textureIdController.add(_textureId);
   }
 
@@ -206,8 +208,8 @@ class FilamentController {
   }
 
   Future<FilamentEntity> loadGlb(String path, {bool unlit = false}) async {
-    var asset = await _channel
-        .invokeMethod("loadGlb", [_assetManager, path, unlit ? 1 : 0]);
+    var asset =
+        await _channel.invokeMethod("loadGlb", [_assetManager, path, unlit]);
     if (asset == FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
@@ -359,15 +361,8 @@ class FilamentController {
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0}) async {
-    await _channel.invokeMethod("playAnimation", [
-      _assetManager,
-      asset,
-      index,
-      loop ? 1 : 0,
-      reverse ? 1 : 0,
-      replaceActive,
-      crossfade
-    ]);
+    await _channel.invokeMethod("playAnimation",
+        [_assetManager, asset, index, loop, reverse, replaceActive, crossfade]);
   }
 
   void setAnimationFrame(
@@ -384,6 +379,18 @@ class FilamentController {
   void setCamera(FilamentEntity asset, String? name) async {
     if (await _channel.invokeMethod("setCamera", [asset, name]) != true) {
       throw Exception("Failed to set camera");
+    }
+  }
+
+  void setToneMapping(ToneMapper mapper) async {
+    if (!await _channel.invokeMethod("setToneMapping", mapper.index)) {
+      throw Exception("Failed to set tone mapper");
+    }
+  }
+
+  void setBloom(double bloom) async {
+    if (!await _channel.invokeMethod("setBloom", bloom)) {
+      throw Exception("Failed to set bloom");
     }
   }
 
