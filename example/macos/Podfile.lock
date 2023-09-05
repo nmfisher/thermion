@@ -1,0 +1,22 @@
+PODS:
+  - FlutterMacOS (1.0.0)
+  - polyvox_filament (0.0.1):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - polyvox_filament (from `Flutter/ephemeral/.symlinks/plugins/polyvox_filament/macos`)
+
+EXTERNAL SOURCES:
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  polyvox_filament:
+    :path: Flutter/ephemeral/.symlinks/plugins/polyvox_filament/macos
+
+SPEC CHECKSUMS:
+  FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
+  polyvox_filament: e07c84b99ef9e68c66ad32f1e47c9491306cfa30
+
+PODFILE CHECKSUM: 9cc8fc8fc62b1d9a89fd6f974ad4157b35254030
+
+COCOAPODS: 1.12.1

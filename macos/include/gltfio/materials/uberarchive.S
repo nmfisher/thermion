@@ -1,0 +1,12 @@
+    .global UBERARCHIVE_DEFAULT_OFFSET;
+    .global UBERARCHIVE_DEFAULT_SIZE;
+
+    .global UBERARCHIVE_PACKAGE
+    .section .rodata
+UBERARCHIVE_PACKAGE:
+    .incbin "uberarchive.bin"
+UBERARCHIVE_DEFAULT_OFFSET:
+    .int 0
+UBERARCHIVE_DEFAULT_SIZE:
+    .int 1148763
+

@@ -39,7 +39,7 @@ class ExampleWidget extends StatefulWidget {
 }
 
 class _ExampleWidgetState extends State<ExampleWidget> {
-  late FilamentController _filamentController;
+  final _filamentController = FilamentController();
 
   FilamentEntity? _cube;
   FilamentEntity? _flightHelmet;
@@ -52,12 +52,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   bool _vertical = false;
   bool _rendering = false;
   int _framerate = 60;
-
-  @override
-  void initState() {
-    super.initState();
-    _filamentController = FilamentController();
-  }
 
   bool _initialized = false;
 
@@ -75,14 +69,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   @override
   Widget build(BuildContext context) {
     var children = [
-      _initialized
-          ? Container()
-          : _item(() async {
-              await _filamentController.initialize();
-              setState(() {
-                _initialized = true;
-              });
-            }, "initialize"),
       _item(() {
         _filamentController.render();
       }, "render"),
@@ -247,6 +233,10 @@ class _ExampleWidgetState extends State<ExampleWidget> {
                 replaceActive: false, loop: _loop);
           }, "play animation ${_animations!.indexOf(a)} (noreplace)")));
     }
+
+    children.add(_item(() {
+      _filamentController.setToneMapping(ToneMapper.LINEAR);
+    }, "Set tone mapping to linear"));
 
     return Padding(
         padding: EdgeInsets.only(top: 20, left: 20),
