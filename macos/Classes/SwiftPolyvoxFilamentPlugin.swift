@@ -13,11 +13,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     
     var pixelBufferAttrs = [
         kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32ABGR ),
-//        kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue,
+       kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue,
         kCVPixelBufferIOSurfacePropertiesKey: [:]
     ] as CFDictionary
     
-    var resources:NSMutableDictionary = [:]
+    var resources:[UInt32:NSData] = [:]
     
     var viewer:UnsafeRawPointer? = nil
     var displayLink:CVDisplayLink? = nil
@@ -31,101 +31,38 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         
         let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
         
-        let uriString = String(cString:uri!)
+        var uriString = String(cString:uri!)
         
         var path:String? = nil
         
-        // check for hot-reloaded asset
-        var found : URL? = nil
-        
-        if(uriString.hasPrefix("asset://")) {
-            let assetPath = String(uriString.dropFirst(8))
-            print("Searching for hot reloaded asset under path : \(assetPath)")
-            let appFolder = Bundle.main.resourceURL
-            let dirPaths = NSSearchPathForDirectoriesInDomains(.applicationDirectory,
-                                                               .userDomainMask, true)
-            let supportDirPaths = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory,
-                                                                      .userDomainMask, true)
-            let devFsPath = URL(fileURLWithPath: supportDirPaths.first!, isDirectory:true).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("tmp")
-            
-            
-            let orderedURLs = try? FileManager.default.enumerator(at: devFsPath, includingPropertiesForKeys: [ .pathKey, .creationDateKey], options: .skipsHiddenFiles)
-            
-            
-            for case let fileURL as URL in orderedURLs! {
-                if !(fileURL.path.hasSuffix(assetPath)) {
-                    continue
-                }
-                print("Found hot reloaded asset : \(fileURL)")
-                if found == nil {
-                    found = fileURL
-                } else {
-                    do {
-                        let c1 = try found!.resourceValues(forKeys: [.creationDateKey]).creationDate
-                        let c2 = try fileURL.resourceValues(forKeys: [.creationDateKey]).creationDate
-                        
-                        if c1! < c2! {
-                            found = fileURL
-                            print("\(fileURL) is newer, replacing")
-                        } else {
-                            print("Ignoring older asset")
-                        }
-                    } catch {
-                        
-                    }
-                }
+        if(uriString.hasPrefix("file://")) {
+            path = String(uriString.dropFirst(7))
+        } else {
+            if(uriString.hasPrefix("asset://")) {
+                uriString = String(uriString.dropFirst(8))
             }
+            let bundle = Bundle.init(identifier: "io.flutter.flutter.app")!
+            path = bundle.path(forResource:uriString, ofType: nil, inDirectory: "flutter_assets")
         }
-        
-        do {
-            if let cd = try found?.resourceValues(forKeys:[.creationDateKey]).creationDate {
-                if cd > instance.createdAt {
-                    print("Using hot reloaded asset  : \(found)")
-                    path = found!.path
-                }
-            }
-        } catch {
-            
-        }
-        if path == nil {
-            if(uriString.hasPrefix("file://")) {
-                path = String(uriString.dropFirst(7))
-            } else if(uriString.hasPrefix("asset://")) {
-                let key = instance.registrar.lookupKey(forAsset:String(uriString.dropFirst(8)))
-                path = Bundle.main.path(forResource: key, ofType:nil)
 
-                guard path != nil else {
-                    print("File not present in bundle : \(uri)")
-                    return ResourceBuffer()
-                }
-            } else {
-                let key = instance.registrar.lookupKey(forAsset:String(uriString))
-                let bundle = Bundle.init(identifier: "io.flutter.flutter.app")!
-                path = bundle.path(forResource:uriString, ofType: nil, inDirectory: "flutter_assets")
-//                let path = bundle.path(forResource: "assets/materials.uberz", ofType: nil)
-                guard path != nil else {
-                    print("File not present in bundle : \(uriString)")
-                    return ResourceBuffer()
-                }
-            }
-        }
-        do {
-            print("Opening data from path \(path)")
-            let data = try Data(contentsOf: URL(fileURLWithPath:path!))
-            let resId = instance.resources.count
-            let nsData = data as NSData
-            instance.resources[resId] = nsData
-            let rawPtr = nsData.bytes
-            return ResourceBuffer(data:rawPtr, size:UInt32(nsData.count), id:UInt32(resId))
-        } catch {
-            print("Error opening file: \(error)")
+        if(path != nil) {
+          do {
+                let data = try Data(contentsOf: URL(fileURLWithPath:path!))
+                let nsData = data as NSData
+                let resId = UInt32(instance.resources.count)
+                instance.resources[resId] = nsData
+                let length = nsData.length
+                return ResourceBuffer(data:nsData.bytes, size:UInt32(nsData.count), id:UInt32(resId))
+          } catch {
+            print("ERROR LOADING RESOURCE")
+          }
         }
         return ResourceBuffer()
     }
     
     var freeResource : @convention(c) (ResourceBuffer,UnsafeMutableRawPointer?) -> () = { rbuf, resourcesPtr in
         let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
-        instance.resources.removeObject(forKey:rbuf.id)
+        instance.resources.removeValue(forKey:rbuf.id)
     }
     
    var displayLinkRenderCallback : @convention(c) (CVDisplayLink, UnsafePointer<CVTimeStamp>, UnsafePointer<CVTimeStamp>, CVOptionFlags, UnsafeMutablePointer<CVOptionFlags>, UnsafeMutableRawPointer?) -> CVReturn = { displayLink, ts1, ts2, options, optionsPtr, resourcesPtr in
