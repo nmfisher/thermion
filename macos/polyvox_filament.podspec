@@ -36,10 +36,10 @@ A new Flutter plugin project.
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "$(inherited)"',
     'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
-    'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../../../macos/include" "$(inherited)"',
+    'USER_HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/include" "$(inherited)"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
     "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_core -lfilament-iblprefilter -limage -limageio -ltinyexr -lcamutils -lgltfio_core -lfilaflat -ldracodec -libl -lktxreader -lpng -lz -lstb -luberzlib -lsmol-v -luberarchive -lzstd -lvkshaders -lbluegl -lbluevk -lbasis_transcoder -lmeshoptimizer',
-    'LIBRARY_SEARCH_PATHS' => '"${PODS_ROOT}/../../../macos/lib" "$(inherited)"',
+    'LIBRARY_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/lib" "$(inherited)"',
   }
   s.swift_version = '5.0'
   
