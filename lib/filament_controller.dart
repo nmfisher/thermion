@@ -25,8 +25,8 @@ class FilamentController {
   final _textureIdController = StreamController<int?>.broadcast();
   Stream<int?> get textureId => _textureIdController.stream;
 
-  // final _viewerAvailableController = StreamController<bool>.broadcast();
-  // Stream<bool> get viewerAvailable => _viewerAvailableController.stream;
+  Completer _isReadyForScene = Completer();
+  Future get isReadyForScene => _isReadyForScene.future;
 
   late AssetManager _assetManager;
 
@@ -38,42 +38,18 @@ class FilamentController {
     _channel.setMethodCallHandler((call) async {
       throw Exception("Unknown method channel invocation ${call.method}");
     });
-
-    _textureIdController.onListen = () {
-      _textureIdController.add(_textureId);
-    };
-  }
-
-  final _initialSize = Completer<List<int>>();
-  void setInitialSize(int width, int height) {
-    _initialSize.complete([width, height]);
-  }
-
-  ///
-  /// The process for initializing the Filament layer is as follows:
-  /// 1) Create a FilamentController
-  /// 2) Insert a FilamentWidget into the rendering tree
-  /// 3) Initially, this widget will only contain an empty Container. After the first frame is rendered, the widget itself will automatically call [setInitialSize] with the width/height from its constraints
-  /// 4) Call [initialize], which will create a texture/viewer and notify the FilamentWidget that the texture is available
-  /// 5) The FilamentWidget will replace the empty Container with the Texture widget.
-  ///
-  Future initialize() async {
-    var initialSize = await _initialSize.future;
-    var initialWidth = initialSize[0];
-    var initialHeight = initialSize[1];
-    await createViewer(initialWidth, initialHeight);
   }
 
   Future setRendering(bool render) async {
     _channel.invokeMethod("setRendering", render);
   }
 
-  void render() {
-    _channel.invokeMethod("render");
+  Future render() async {
+    await _channel.invokeMethod("render");
   }
 
   Future setFrameRate(int framerate) async {
-    _channel.invokeMethod("setFrameInterval", 1.0 / framerate);
+    await _channel.invokeMethod("setFrameInterval", 1.0 / framerate);
   }
 
   void setPixelRatio(double ratio) {
@@ -82,6 +58,7 @@ class FilamentController {
 
   Future destroyViewer() async {
     await _channel.invokeMethod("destroyViewer");
+    _isReadyForScene = Completer();
   }
 
   Future destroyTexture() async {
@@ -91,32 +68,33 @@ class FilamentController {
     _textureIdController.add(null);
   }
 
+  ///
+  /// The process for creating/initializing the Filament layer is as follows:
+  /// 1) Create a FilamentController
+  /// 2) Insert a FilamentWidget into the rendering tree
+  /// 3) Initially, this widget will only contain an empty Container. After the first frame is rendered, the widget itself will automatically call [createViewer] with the width/height from its constraints
+  /// 4) The FilamentWidget will replace the empty Container with the Texture widget.
+  ///
   Future createViewer(int width, int height) async {
+    if (_isReadyForScene.isCompleted) {
+      throw Exception(
+          "Do not call createViewer when a viewer has already been created without calling destroyViewer");
+    }
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
+
     _textureId =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
 
     await _channel
         .invokeMethod("createFilamentViewer", [size.width, size.height]);
 
-    // if (Platform.isLinux) {
-    //   // don't pass a surface to the SwapChain as we are effectively creating a headless SwapChain that will render into a RenderTarget associated with a texture
-    //   _nativeLibrary.create_swap_chain(
-    //        nullptr, size.width.toInt(), size.height.toInt());
-
-    //   var glTextureId = await _channel.invokeMethod("getGlTextureId");
-
-    //   await _channel.invokeMethod("create_render_target(
-    //        glTextureId, size.width.toInt(), size.height.toInt());
-    // } else {
-
-    // }
-
     await _channel.invokeMethod("updateViewportAndCameraProjection",
         [size.width.toInt(), size.height.toInt(), 1.0]);
     _assetManager = await _channel.invokeMethod("getAssetManager");
 
     _textureIdController.add(_textureId);
+
+    _isReadyForScene.complete(true);
   }
 
   Future resize(int width, int height,
@@ -126,15 +104,15 @@ class FilamentController {
     _textureIdController.add(_textureId);
   }
 
-  void clearBackgroundImage() async {
+  Future clearBackgroundImage() async {
     await _channel.invokeMethod("clearBackgroundImage");
   }
 
-  void setBackgroundImage(String path) async {
+  Future setBackgroundImage(String path) async {
     await _channel.invokeMethod("setBackgroundImage", path);
   }
 
-  void setBackgroundColor(Color color) async {
+  Future setBackgroundColor(Color color) async {
     await _channel.invokeMethod("setBackgroundColor", [
       color.red.toDouble() / 255.0,
       color.green.toDouble() / 255.0,
@@ -143,25 +121,25 @@ class FilamentController {
     ]);
   }
 
-  void setBackgroundImagePosition(double x, double y,
+  Future setBackgroundImagePosition(double x, double y,
       {bool clamp = false}) async {
     await _channel
         .invokeMethod("setBackgroundImagePosition", [x, y, clamp ? 1 : 0]);
   }
 
-  void loadSkybox(String skyboxPath) async {
+  Future loadSkybox(String skyboxPath) async {
     await _channel.invokeMethod("loadSkybox", skyboxPath);
   }
 
-  void loadIbl(String lightingPath, {double intensity = 30000}) async {
+  Future loadIbl(String lightingPath, {double intensity = 30000}) async {
     await _channel.invokeMethod("loadIbl", [lightingPath, intensity]);
   }
 
-  void removeSkybox() async {
+  Future removeSkybox() async {
     await _channel.invokeMethod("removeSkybox");
   }
 
-  void removeIbl() async {
+  Future removeIbl() async {
     await _channel.invokeMethod("removeIbl");
   }
 
@@ -199,11 +177,11 @@ class FilamentController {
     return entity as FilamentEntity;
   }
 
-  void removeLight(FilamentEntity light) async {
+  Future removeLight(FilamentEntity light) async {
     await _channel.invokeMethod("removeLight", light);
   }
 
-  void clearLights() async {
+  Future clearLights() async {
     await _channel.invokeMethod("clearLights");
   }
 
@@ -223,35 +201,35 @@ class FilamentController {
     return entity as FilamentEntity;
   }
 
-  void panStart(double x, double y) async {
+  Future panStart(double x, double y) async {
     await _channel
         .invokeMethod("grabBegin", [x * _pixelRatio, y * _pixelRatio, 1]);
   }
 
-  void panUpdate(double x, double y) async {
+  Future panUpdate(double x, double y) async {
     await _channel
         .invokeMethod("grabUpdate", [x * _pixelRatio, y * _pixelRatio]);
   }
 
-  void panEnd() async {
+  Future panEnd() async {
     await _channel.invokeMethod("grabEnd");
   }
 
-  void rotateStart(double x, double y) async {
+  Future rotateStart(double x, double y) async {
     await _channel
         .invokeMethod("grabBegin", [x * _pixelRatio, y * _pixelRatio, 0]);
   }
 
-  void rotateUpdate(double x, double y) async {
+  Future rotateUpdate(double x, double y) async {
     await _channel
         .invokeMethod("grabUpdate", [x * _pixelRatio, y * _pixelRatio]);
   }
 
-  void rotateEnd() async {
+  Future rotateEnd() async {
     await _channel.invokeMethod("grabEnd");
   }
 
-  void setMorphTargetWeights(
+  Future setMorphTargetWeights(
       FilamentEntity asset, String meshName, List<double> weights) async {
     await _channel.invokeMethod("setMorphTargetWeights",
         [_assetManager, asset, meshName, weights, weights.length]);
@@ -270,6 +248,9 @@ class FilamentController {
     return names.cast<String>();
   }
 
+  ///
+  /// Returns the length (in seconds) of the animation at the given index.
+  ///
   Future<double> getAnimationDuration(
       FilamentEntity asset, int animationIndex) async {
     var duration = await _channel.invokeMethod(
@@ -282,7 +263,7 @@ class FilamentController {
   /// [morphWeights] is a list of doubles in frame-major format.
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   ///
-  void setMorphAnimationData(
+  Future setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation) async {
     await _channel.invokeMethod("setMorphAnimation", [
       _assetManager,
@@ -302,7 +283,7 @@ class FilamentController {
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   /// for now we only allow animating a single bone (though multiple skinned targets are supported)
   ///
-  void setBoneAnimation(
+  Future setBoneAnimation(
       FilamentEntity asset, BoneAnimationData animation) async {
     var data = calloc<Float>(animation.frameData.length);
     int offset = 0;
@@ -336,27 +317,27 @@ class FilamentController {
     calloc.free(data);
   }
 
-  void removeAsset(FilamentEntity asset) async {
+  Future removeAsset(FilamentEntity asset) async {
     await _channel.invokeMethod("removeAsset", asset);
   }
 
-  void clearAssets() async {
+  Future clearAssets() async {
     await _channel.invokeMethod("clearAssets");
   }
 
-  void zoomBegin() async {
+  Future zoomBegin() async {
     await _channel.invokeMethod("scrollBegin");
   }
 
-  void zoomUpdate(double z) async {
+  Future zoomUpdate(double z) async {
     await _channel.invokeMethod("scrollUpdate", [0.0, 0.0, z]);
   }
 
-  void zoomEnd() async {
+  Future zoomEnd() async {
     await _channel.invokeMethod("scrollEnd");
   }
 
-  void playAnimation(FilamentEntity asset, int index,
+  Future playAnimation(FilamentEntity asset, int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
@@ -365,58 +346,58 @@ class FilamentController {
         [_assetManager, asset, index, loop, reverse, replaceActive, crossfade]);
   }
 
-  void setAnimationFrame(
+  Future setAnimationFrame(
       FilamentEntity asset, int index, int animationFrame) async {
     await _channel.invokeMethod(
         "setAnimationFrame", [_assetManager, asset, index, animationFrame]);
   }
 
-  void stopAnimation(FilamentEntity asset, int animationIndex) async {
+  Future stopAnimation(FilamentEntity asset, int animationIndex) async {
     await _channel
         .invokeMethod("stopAnimation", [_assetManager, asset, animationIndex]);
   }
 
-  void setCamera(FilamentEntity asset, String? name) async {
+  Future setCamera(FilamentEntity asset, String? name) async {
     if (await _channel.invokeMethod("setCamera", [asset, name]) != true) {
       throw Exception("Failed to set camera");
     }
   }
 
-  void setToneMapping(ToneMapper mapper) async {
+  Future setToneMapping(ToneMapper mapper) async {
     if (!await _channel.invokeMethod("setToneMapping", mapper.index)) {
       throw Exception("Failed to set tone mapper");
     }
   }
 
-  void setBloom(double bloom) async {
+  Future setBloom(double bloom) async {
     if (!await _channel.invokeMethod("setBloom", bloom)) {
       throw Exception("Failed to set bloom");
     }
   }
 
-  void setCameraFocalLength(double focalLength) async {
+  Future setCameraFocalLength(double focalLength) async {
     await _channel.invokeMethod("setCameraFocalLength", focalLength);
   }
 
-  void setCameraFocusDistance(double focusDistance) async {
+  Future setCameraFocusDistance(double focusDistance) async {
     await _channel.invokeMethod("setCameraFocusDistance", focusDistance);
   }
 
-  void setCameraPosition(double x, double y, double z) async {
+  Future setCameraPosition(double x, double y, double z) async {
     await _channel.invokeMethod("setCameraPosition", [x, y, z]);
   }
 
-  void setCameraExposure(
+  Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
     await _channel.invokeMethod(
         "setCameraExposure", [aperture, shutterSpeed, sensitivity]);
   }
 
-  void setCameraRotation(double rads, double x, double y, double z) async {
+  Future setCameraRotation(double rads, double x, double y, double z) async {
     await _channel.invokeMethod("setCameraRotation", [rads, x, y, z]);
   }
 
-  void setCameraModelMatrix(List<double> matrix) async {
+  Future setCameraModelMatrix(List<double> matrix) async {
     assert(matrix.length == 16);
     var ptr = calloc<Float>(16);
     for (int i = 0; i < 16; i++) {
@@ -425,7 +406,7 @@ class FilamentController {
     await _channel.invokeMethod("setCameraModelMatrix", [ptr]);
   }
 
-  void setTexture(FilamentEntity asset, String assetPath,
+  Future setTexture(FilamentEntity asset, String assetPath,
       {int renderableIndex = 0}) async {
     await _channel.invokeMethod("setTexture", [_assetManager, asset]);
   }
@@ -449,19 +430,19 @@ class FilamentController {
     }
   }
 
-  void transformToUnitCube(FilamentEntity asset) async {
+  Future transformToUnitCube(FilamentEntity asset) async {
     await _channel.invokeMethod("transformToUnitCube", [_assetManager, asset]);
   }
 
-  void setPosition(FilamentEntity asset, double x, double y, double z) async {
+  Future setPosition(FilamentEntity asset, double x, double y, double z) async {
     await _channel.invokeMethod("setPosition", [_assetManager, asset, x, y, z]);
   }
 
-  void setScale(FilamentEntity asset, double scale) async {
+  Future setScale(FilamentEntity asset, double scale) async {
     await _channel.invokeMethod("setScale", [_assetManager, asset, scale]);
   }
 
-  void setRotation(
+  Future setRotation(
       FilamentEntity asset, double rads, double x, double y, double z) async {
     await _channel
         .invokeMethod("setRotation", [_assetManager, asset, rads, x, y, z]);
