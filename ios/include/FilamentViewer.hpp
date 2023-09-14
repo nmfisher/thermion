@@ -73,7 +73,7 @@ namespace polyvox {
             void createSwapChain(const void* surface, uint32_t width, uint32_t height);
             void destroySwapChain();
 
-            void createRenderTarget(uint32_t glTextureId, uint32_t width,uint32_t height);
+            void createRenderTarget(intptr_t textureId, uint32_t width,uint32_t height);
 
             Renderer* getRenderer();
 
