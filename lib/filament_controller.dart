@@ -30,6 +30,8 @@ class FilamentController {
 
   late AssetManager _assetManager;
 
+  int? _viewer;
+
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
   /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in PolyvoxFilamentApi.h.
@@ -41,10 +43,16 @@ class FilamentController {
   }
 
   Future setRendering(bool render) async {
-    _channel.invokeMethod("setRendering", render);
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
+    return _channel.invokeMethod("setRendering", render);
   }
 
   Future render() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("render");
   }
 
@@ -57,6 +65,10 @@ class FilamentController {
   }
 
   Future destroyViewer() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
+    _viewer = null;
     await _channel.invokeMethod("destroyViewer");
     _isReadyForScene = Completer();
   }
@@ -76,6 +88,10 @@ class FilamentController {
   /// 4) The FilamentWidget will replace the empty Container with the Texture widget.
   ///
   Future createViewer(int width, int height) async {
+    if (_viewer != null) {
+      throw Exception(
+          "Viewer already exists, make sure you call destroyViewer first");
+    }
     if (_isReadyForScene.isCompleted) {
       throw Exception(
           "Do not call createViewer when a viewer has already been created without calling destroyViewer");
@@ -85,7 +101,7 @@ class FilamentController {
     _textureId =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
 
-    await _channel
+    _viewer = await _channel
         .invokeMethod("createFilamentViewer", [size.width, size.height]);
 
     await _channel.invokeMethod("updateViewportAndCameraProjection",
@@ -97,22 +113,35 @@ class FilamentController {
     _isReadyForScene.complete(true);
   }
 
+  bool _resizing = false;
+
   Future resize(int width, int height,
       {double contentScaleFactor = 1.0}) async {
+    _resizing = true;
     _textureId = await _channel.invokeMethod("resize",
         [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
     _textureIdController.add(_textureId);
+    _resizing = false;
   }
 
   Future clearBackgroundImage() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("clearBackgroundImage");
   }
 
   Future setBackgroundImage(String path) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setBackgroundImage", path);
   }
 
   Future setBackgroundColor(Color color) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setBackgroundColor", [
       color.red.toDouble() / 255.0,
       color.green.toDouble() / 255.0,
@@ -123,23 +152,38 @@ class FilamentController {
 
   Future setBackgroundImagePosition(double x, double y,
       {bool clamp = false}) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel
         .invokeMethod("setBackgroundImagePosition", [x, y, clamp ? 1 : 0]);
   }
 
   Future loadSkybox(String skyboxPath) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("loadSkybox", skyboxPath);
   }
 
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("loadIbl", [lightingPath, intensity]);
   }
 
   Future removeSkybox() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("removeSkybox");
   }
 
   Future removeIbl() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("removeIbl");
   }
 
@@ -162,6 +206,9 @@ class FilamentController {
       double dirY,
       double dirZ,
       bool castShadows) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     var entity = await _channel.invokeMethod("addLight", [
       type,
       colour,
@@ -178,14 +225,23 @@ class FilamentController {
   }
 
   Future removeLight(FilamentEntity light) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("removeLight", light);
   }
 
   Future clearLights() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("clearLights");
   }
 
   Future<FilamentEntity> loadGlb(String path, {bool unlit = false}) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     var asset =
         await _channel.invokeMethod("loadGlb", [_assetManager, path, unlit]);
     if (asset == FILAMENT_ASSET_ERROR) {
@@ -196,53 +252,83 @@ class FilamentController {
 
   Future<FilamentEntity> loadGltf(
       String path, String relativeResourcePath) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     var entity = await _channel
         .invokeMethod("loadGltf", [_assetManager, path, relativeResourcePath]);
     return entity as FilamentEntity;
   }
 
   Future panStart(double x, double y) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel
         .invokeMethod("grabBegin", [x * _pixelRatio, y * _pixelRatio, 1]);
   }
 
   Future panUpdate(double x, double y) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel
         .invokeMethod("grabUpdate", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future panEnd() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("grabEnd");
   }
 
   Future rotateStart(double x, double y) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel
         .invokeMethod("grabBegin", [x * _pixelRatio, y * _pixelRatio, 0]);
   }
 
   Future rotateUpdate(double x, double y) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel
         .invokeMethod("grabUpdate", [x * _pixelRatio, y * _pixelRatio]);
   }
 
   Future rotateEnd() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("grabEnd");
   }
 
   Future setMorphTargetWeights(
       FilamentEntity asset, String meshName, List<double> weights) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setMorphTargetWeights",
         [_assetManager, asset, meshName, weights, weights.length]);
   }
 
   Future<List<String>> getMorphTargetNames(
       FilamentEntity asset, String meshName) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     var names = await _channel
         .invokeMethod("getMorphTargetNames", [_assetManager, asset, meshName]);
     return names.cast<String>();
   }
 
   Future<List<String>> getAnimationNames(FilamentEntity asset) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     var names = await _channel
         .invokeMethod("getAnimationNames", [_assetManager, asset]);
     return names.cast<String>();
@@ -253,6 +339,9 @@ class FilamentController {
   ///
   Future<double> getAnimationDuration(
       FilamentEntity asset, int animationIndex) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     var duration = await _channel.invokeMethod(
         "getAnimationDuration", [_assetManager, asset, animationIndex]);
     return duration as double;
@@ -265,6 +354,9 @@ class FilamentController {
   ///
   Future setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setMorphAnimation", [
       _assetManager,
       asset,
@@ -285,6 +377,9 @@ class FilamentController {
   ///
   Future setBoneAnimation(
       FilamentEntity asset, BoneAnimationData animation) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     var data = calloc<Float>(animation.frameData.length);
     int offset = 0;
     var numFrames = animation.frameData.length ~/ 7;
@@ -318,22 +413,37 @@ class FilamentController {
   }
 
   Future removeAsset(FilamentEntity asset) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("removeAsset", asset);
   }
 
   Future clearAssets() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("clearAssets");
   }
 
   Future zoomBegin() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("scrollBegin");
   }
 
   Future zoomUpdate(double z) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("scrollUpdate", [0.0, 0.0, z]);
   }
 
   Future zoomEnd() async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("scrollEnd");
   }
 
@@ -342,62 +452,98 @@ class FilamentController {
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0}) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("playAnimation",
         [_assetManager, asset, index, loop, reverse, replaceActive, crossfade]);
   }
 
   Future setAnimationFrame(
       FilamentEntity asset, int index, int animationFrame) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod(
         "setAnimationFrame", [_assetManager, asset, index, animationFrame]);
   }
 
   Future stopAnimation(FilamentEntity asset, int animationIndex) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel
         .invokeMethod("stopAnimation", [_assetManager, asset, animationIndex]);
   }
 
   Future setCamera(FilamentEntity asset, String? name) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     if (await _channel.invokeMethod("setCamera", [asset, name]) != true) {
       throw Exception("Failed to set camera");
     }
   }
 
   Future setToneMapping(ToneMapper mapper) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     if (!await _channel.invokeMethod("setToneMapping", mapper.index)) {
       throw Exception("Failed to set tone mapper");
     }
   }
 
   Future setBloom(double bloom) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     if (!await _channel.invokeMethod("setBloom", bloom)) {
       throw Exception("Failed to set bloom");
     }
   }
 
   Future setCameraFocalLength(double focalLength) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setCameraFocalLength", focalLength);
   }
 
   Future setCameraFocusDistance(double focusDistance) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setCameraFocusDistance", focusDistance);
   }
 
   Future setCameraPosition(double x, double y, double z) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setCameraPosition", [x, y, z]);
   }
 
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod(
         "setCameraExposure", [aperture, shutterSpeed, sensitivity]);
   }
 
   Future setCameraRotation(double rads, double x, double y, double z) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setCameraRotation", [rads, x, y, z]);
   }
 
   Future setCameraModelMatrix(List<double> matrix) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     assert(matrix.length == 16);
     var ptr = calloc<Float>(16);
     for (int i = 0; i < 16; i++) {
@@ -408,11 +554,17 @@ class FilamentController {
 
   Future setTexture(FilamentEntity asset, String assetPath,
       {int renderableIndex = 0}) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setTexture", [_assetManager, asset]);
   }
 
   Future setMaterialColor(FilamentEntity asset, String meshName,
       int materialIndex, Color color) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     var result = await _channel.invokeMethod("setMaterialColor", [
       _assetManager,
       asset,
@@ -431,24 +583,39 @@ class FilamentController {
   }
 
   Future transformToUnitCube(FilamentEntity asset) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("transformToUnitCube", [_assetManager, asset]);
   }
 
   Future setPosition(FilamentEntity asset, double x, double y, double z) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setPosition", [_assetManager, asset, x, y, z]);
   }
 
   Future setScale(FilamentEntity asset, double scale) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel.invokeMethod("setScale", [_assetManager, asset, scale]);
   }
 
   Future setRotation(
       FilamentEntity asset, double rads, double x, double y, double z) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     await _channel
         .invokeMethod("setRotation", [_assetManager, asset, rads, x, y, z]);
   }
 
   Future hide(FilamentEntity asset, String meshName) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     if (await _channel
             .invokeMethod("hideMesh", [_assetManager, asset, meshName]) !=
         1) {
@@ -457,6 +624,9 @@ class FilamentController {
   }
 
   Future reveal(FilamentEntity asset, String meshName) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
     if (await _channel
             .invokeMethod("revealMesh", [_assetManager, asset, meshName]) !=
         1) {
