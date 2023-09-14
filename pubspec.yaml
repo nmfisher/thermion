@@ -28,12 +28,17 @@ ffigen:
       - 'ios/include/PolyvoxFilamentApi.h'
 
 flutter:
+  assets:
+    - assets/materials.uberz
+    - assets/materials_ios_arm64.uberz
   plugin:
     platforms:
       android:
         pluginClass: PolyvoxFilamentPlugin
         package: app.polyvox.filament
       ios:
+        pluginClass: SwiftPolyvoxFilamentPlugin
+      macos:
         pluginClass: SwiftPolyvoxFilamentPlugin
       windows:
         pluginClass: PolyvoxFilamentPlugin
