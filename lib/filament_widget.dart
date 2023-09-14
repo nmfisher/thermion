@@ -67,10 +67,14 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   late final AppLifecycleListener _listener;
   AppLifecycleState? _lastState;
 
+  Timer? _resizeTimer;
+
   void _handleStateChange(AppLifecycleState state) async {
     switch (state) {
       case AppLifecycleState.detached:
         print("Detached");
+        _textureId = null;
+
         await widget.controller.destroyViewer();
         await widget.controller.destroyTexture();
         break;
@@ -95,6 +99,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
           print("Size after resuming : $size");
           await widget.controller
               .createViewer(size.width.toInt(), size.height.toInt());
+          print("Created viewer Size after resuming");
         }
         break;
     }
@@ -114,7 +119,8 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
     _textureIdListener = widget.controller.textureId.listen((int? textureId) {
       var size = ((context.findRenderObject()) as RenderBox).size;
-      print("Set texture ID to $textureId, current size is $size");
+      print(
+          "Received new texture ID $textureId at size $size (current textureID  $_textureId)");
       setState(() {
         _textureId = textureId;
       });
@@ -127,6 +133,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   void dispose() {
     _textureIdListener?.cancel();
     _listener.dispose();
+    _resizeTimer?.cancel();
     super.dispose();
   }
 
@@ -134,7 +141,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: ((context, constraints) {
       if (_textureId == null) {
-        return Container(color: Colors.red);
+        return Container(color: Colors.transparent);
       }
 
       var texture = Texture(
@@ -148,16 +155,22 @@ class _FilamentWidgetState extends State<FilamentWidget> {
           child: ResizeObserver(
               onResized: (Size oldSize, Size newSize) async {
                 WidgetsBinding.instance.addPostFrameCallback((_) async {
-                  setState(() {
-                    _resizing = true;
-                  });
-
-                  await widget.controller
-                      .resize(newSize.width.toInt(), newSize.height.toInt());
-                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                  if (!_resizing) {
                     setState(() {
-                      _resizing = false;
-                      widget.onResize?.call();
+                      _resizing = true;
+                    });
+                  }
+
+                  _resizeTimer?.cancel();
+
+                  _resizeTimer = Timer(Duration(milliseconds: 500), () async {
+                    await widget.controller
+                        .resize(newSize.width.toInt(), newSize.height.toInt());
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      setState(() {
+                        _resizing = false;
+                        widget.onResize?.call();
+                      });
                     });
                   });
                 });
