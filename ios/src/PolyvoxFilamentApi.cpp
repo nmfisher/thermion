@@ -143,7 +143,7 @@ extern "C" {
       ((FilamentViewer*)viewer)->createSwapChain(surface, width, height);
   }
 
-  FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection(const void* const viewer, int width, int height, float scaleFactor) {
+  FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection(const void* const viewer, uint32_t width, uint32_t height, float scaleFactor) {
       return ((FilamentViewer*)viewer)->updateViewportAndCameraProjection(width, height, scaleFactor);
   }
 
