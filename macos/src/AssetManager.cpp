@@ -52,7 +52,7 @@ _scene(scene) {
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
 
-        auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials.uberz");
+    auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials.uberz");
     _ubershaderProvider = gltfio::createUbershaderProvider(
                                                             _engine, uberdata.data, uberdata.size);
                                                             
