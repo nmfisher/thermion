@@ -375,7 +375,6 @@ void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb) {
 
   Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
                                                             void *data) {
-    Log("Deleting LinearImage");
     delete reinterpret_cast<LinearImage*>(data);
   };
 
@@ -421,10 +420,9 @@ void FilamentViewer::setBackgroundColor(const float r, const float g, const floa
 void FilamentViewer::clearBackgroundImage() {
   _imageMaterial->setDefaultParameter("showImage", 0);
   if (_imageTexture) {
-    Log("Destroying existing texture");
     _engine->destroy(_imageTexture);
-    Log("Destroyed.");
     _imageTexture = nullptr;
+    Log("Destroyed background image texture");
   }
 }
 
