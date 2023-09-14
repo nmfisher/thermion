@@ -50,8 +50,10 @@ class _RenderResizeObserver extends RenderProxyBox {
 
 class FilamentWidget extends StatefulWidget {
   final FilamentController controller;
+  final void Function()? onResize;
 
-  const FilamentWidget({Key? key, required this.controller}) : super(key: key);
+  const FilamentWidget({Key? key, required this.controller, this.onResize})
+      : super(key: key);
 
   @override
   _FilamentWidgetState createState() => _FilamentWidgetState();
@@ -74,9 +76,11 @@ class _FilamentWidgetState extends State<FilamentWidget> {
         break;
       case AppLifecycleState.hidden:
         print("Hidden");
-        _textureId = null;
-        await widget.controller.destroyViewer();
-        await widget.controller.destroyTexture();
+        if (Platform.isIOS) {
+          _textureId = null;
+          await widget.controller.destroyViewer();
+          await widget.controller.destroyTexture();
+        }
         break;
       case AppLifecycleState.inactive:
         print("Inactive");
@@ -105,11 +109,12 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       var size = ((context.findRenderObject()) as RenderBox).size;
-      widget.controller.setInitialSize(size.width.toInt(), size.height.toInt());
+      widget.controller.createViewer(size.width.toInt(), size.height.toInt());
     });
 
     _textureIdListener = widget.controller.textureId.listen((int? textureId) {
-      print("Set texture ID to $textureId");
+      var size = ((context.findRenderObject()) as RenderBox).size;
+      print("Set texture ID to $textureId, current size is $size");
       setState(() {
         _textureId = textureId;
       });
@@ -129,7 +134,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: ((context, constraints) {
       if (_textureId == null) {
-        return Container(color: Colors.transparent);
+        return Container(color: Colors.red);
       }
 
       var texture = Texture(
@@ -152,6 +157,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
                   WidgetsBinding.instance.addPostFrameCallback((_) async {
                     setState(() {
                       _resizing = false;
+                      widget.onResize?.call();
                     });
                   });
                 });
