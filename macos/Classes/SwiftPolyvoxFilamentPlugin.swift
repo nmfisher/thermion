@@ -47,8 +47,9 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
 
         if(path != nil) {
           do {
+                print("Attempting to load file at path \(path!)")
                 let data = try Data(contentsOf: URL(fileURLWithPath:path!))
-                let nsData = data as NSData
+                let nsData = data as NSData 
                 let resId = UInt32(instance.resources.count)
                 instance.resources[resId] = nsData
                 let length = nsData.length
