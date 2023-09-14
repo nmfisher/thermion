@@ -30,7 +30,7 @@ void render(const void* const viewer, uint64_t frameTimeInNanos);
 void create_swap_chain(const void* const viewer, const void* const surface, uint32_t width, uint32_t height);
 void destroy_swap_chain(const void* const viewer);
 void set_frame_interval(const void* const viewer, float interval);
-void update_viewport_and_camera_projection(const void* const viewer, int width, int height, float scaleFactor);
+void update_viewport_and_camera_projection(const void* const viewer, uint32_t width, uint32_t height, float scaleFactor);
 void scroll_begin(const void* const viewer);
 void scroll_update(const void* const viewer, float x, float y, float z);
 void scroll_end(const void* const viewer);
