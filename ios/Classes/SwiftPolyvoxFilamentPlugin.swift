@@ -25,6 +25,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     var displayLink:CADisplayLink? = nil
     var rendering:Bool = false
     
+    var frameInterval:Double = 1 / 60.0
+    
     static var messenger : FlutterBinaryMessenger? = nil;
     
     var loadResource : @convention(c) (UnsafePointer<Int8>?, UnsafeMutableRawPointer?) -> ResourceBuffer = { uri, resourcesPtr in
@@ -138,6 +140,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         displayLink = CADisplayLink(target: self,
                                     selector: #selector(doRender))
         displayLink!.add(to: .current, forMode:  RunLoop.Mode.default)
+        displayLink!.preferredFramesPerSecond = Int(1 / frameInterval)
     }
     
     public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
@@ -179,12 +182,67 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         createPixelBuffer(width: Int(width), height:Int(height))
     }
     
+//    var glTextureId:GLuint  = 0
+    
+    var glTextureCache:CVOpenGLESTextureCache? = nil
+    var glTexture:CVOpenGLESTexture? = nil
+    
+    private func createGlTexture(width:Int, height:Int) {
+        let context = EAGLContext(api: .openGLES3)
+        EAGLContext.setCurrent(context)
+        var cvret = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault,
+                        nil,
+                        context!,
+                        nil,
+                        &glTextureCache);
+        
+        
+        cvret = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
+                                                                 glTextureCache!,
+                                                                 pixelBuffer!,
+                                                                 nil,
+                                                                 GLenum(GL_TEXTURE_2D),
+                                                                 GL_RGBA,
+                                                                 GLsizei(width), GLsizei(height),
+                                                                 GLenum(GL_RGBA),
+                                                                 GLenum(GL_UNSIGNED_BYTE),
+                                                                 0,
+                                                                 &glTexture);
+        
+        
+//        var framebuffer:GLuint = 0;
+//        glGenFramebuffers(1, &framebuffer);
+//        glBindFramebuffer(GLenum(GL_FRAMEBUFFER), framebuffer);
+//        var colorRenderbuffer:GLuint = 0;
+//        glGenRenderbuffers(1, &colorRenderbuffer);
+//        glBindRenderbuffer(GLenum(GL_RENDERBUFFER), colorRenderbuffer);
+//        glRenderbufferStorage(GLenum(GL_RENDERBUFFER), GLenum(GL_RGBA8), GLsizei(width), GLsizei(height));
+//        glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_COLOR_ATTACHMENT0), GLenum(GL_RENDERBUFFER), colorRenderbuffer);
+//        var depthRenderbuffer:GLuint = 0;
+//        glGenRenderbuffers(1, &depthRenderbuffer);
+//        glBindRenderbuffer(GLenum(GL_RENDERBUFFER), depthRenderbuffer);
+//        glRenderbufferStorage(GLenum(GL_RENDERBUFFER), GLenum(GL_DEPTH_COMPONENT16), GLsizei(width), GLsizei(height));
+//        glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_DEPTH_ATTACHMENT), GLenum(GL_RENDERBUFFER), depthRenderbuffer);
+//        let status = glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) ;
+//        if(status != GL_FRAMEBUFFER_COMPLETE) {
+//            print("failed to make complete framebuffer object \(status)");
+//        }
+//        glGenTextures(1, &glTextureId);
+//        glBindTexture(GLenum(GL_TEXTURE_2D), glTextureId);
+//        glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_MIN_FILTER), GL_LINEAR);
+//        glTexImage2D(GLenum(GL_TEXTURE_2D), 0, GL_RGBA8,  GLsizei(width), GLsizei(height), 0, GLenum(GL_RGBA), GLenum(GL_UNSIGNED_BYTE), nil);
+//        glFramebufferTexture2D(GLenum(GL_FRAMEBUFFER), GLenum(GL_COLOR_ATTACHMENT0), GLenum(GL_TEXTURE_2D), glTextureId, 0);
+//        self.flutterTextureId = self.registry.register(self)
+
+    }
+    
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
         switch methodName {
         case "createTexture":
             let args = call.arguments as! Array<Int32>
             createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
+//            createGlTexture(width:Int(args[0]), height:Int(args[1]))
             createDisplayLink()
             result(self.flutterTextureId)
         case "destroyTexture":
@@ -216,11 +274,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             resize(width:args[0] as! Int32, height:args[1] as! Int32)
             var pixelBufferTextureId = unsafeBitCast(pixelBuffer!, to: UnsafeRawPointer.self)
             create_swap_chain(viewer, pixelBufferTextureId, UInt32(args[0] as! Int64), UInt32(args[1] as! Int64))
-            update_viewport_and_camera_projection(viewer, Int32(args[0] as! Int64), Int32(args[1] as! Int64), Float(args[2] as! Double))
+            update_viewport_and_camera_projection(viewer, UInt32(args[0] as! Int64), UInt32(args[1] as! Int64), Float(args[2] as! Double))
             rendering = true
             print("Resized to \(args[0])x\(args[1])")
             result(self.flutterTextureId);
         case "createFilamentViewer":
+            print("createFilamentViewer")
             if(viewer != nil) {
                 destroy_swap_chain(viewer)
                 delete_filament_viewer(viewer)
@@ -230,10 +289,14 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             let args = call.arguments as! [Any]
             let width = args[0] as! Int64
             let height = args[1] as! Int64
+                                                                                                    
             viewer = create_filament_viewer(nil, callback)
             var pixelBufferTextureId = unsafeBitCast(pixelBuffer!, to: UnsafeRawPointer.self)
             create_swap_chain(viewer, pixelBufferTextureId, UInt32(width), UInt32(height))
-            update_viewport_and_camera_projection(viewer, Int32(args[0] as! Int64), Int32(args[1] as! Int64), 1.0)
+//            create_render_target(viewer, CVOpenGLESTextureGetName(glTexture!), UInt32(width),UInt32(height)); // OpenGL
+
+            update_viewport_and_camera_projection(viewer, UInt32(args[0] as! Int64), UInt32(args[1] as! Int64), 1.0)
+            set_frame_interval(viewer, Float(frameInterval))
             result(unsafeBitCast(viewer, to:Int64.self))
         case "getAssetManager":
             let assetManager = get_asset_manager(viewer)
@@ -255,9 +318,21 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             }
             set_background_color(viewer, Float(args[0]), Float(args[1]), Float(args[2]), Float(args[3]))
             result(true)
-        
+        case "setToneMapping":
+            guard let args = call.arguments as? Int else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected ToneMapping argument for setToneMapping", details: nil))
+                return
+            }
+            set_tone_mapping(viewer, Int32(args));  
+            result(true)
+        case "setBloom":
+            guard let args = call.arguments as? Double else {
+                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected double argument for setBloom", details: nil))
+                return
+            }
+            set_bloom(viewer, Float(args)); 
+            result(true)
         case "loadSkybox":
-            
             load_skybox(viewer, call.arguments as! String)
             result(true)
         case "loadIbl":
@@ -325,12 +400,14 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             rendering = call.arguments as! Bool
             result(true)
         case "setFrameInterval":
-            let interval = call.arguments as! Double
-            displayLink!.preferredFramesPerSecond = Int(1 / interval)
-            print("Set preferred frames er second to \(displayLink!.preferredFramesPerSecond)")
-            let fInterval = Float(interval)
-            print("Set filament interval to \(fInterval)")
-            set_frame_interval(viewer, fInterval)
+            frameInterval = call.arguments as! Double
+            if(displayLink != nil) {
+                displayLink!.preferredFramesPerSecond = Int(1 / frameInterval)
+            }
+            if(viewer != nil) {
+                set_frame_interval(viewer, Float(frameInterval))
+            }
+            print("Set preferred frame interval to \(frameInterval)")
             result(true)
         case "updateViewportAndCameraProjection":
             guard let args = call.arguments as? [Any], args.count == 3,
@@ -340,7 +417,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected viewer, width, height, and scaleFactor for update_viewport_and_camera_projection", details: nil))
                 return
             }
-            update_viewport_and_camera_projection(viewer, Int32(width), Int32(height), scaleFactor)
+            update_viewport_and_camera_projection(viewer, UInt32(width), UInt32(height), scaleFactor)
             result(true)
         case "scrollBegin":
             scroll_begin(viewer)
