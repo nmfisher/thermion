@@ -92,7 +92,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                   _scrollTimer?.cancel();
                   widget.controller.zoomBegin();
                   widget.controller
-                      .zoomUpdate(pointerSignal.scrollDelta.dy > 0 ? 10 : -10);
+                      .zoomUpdate(pointerSignal.scrollDelta.dy > 0 ? 1 : -1);
                   _scrollTimer = Timer(Duration(milliseconds: 100), () {
                     widget.controller.zoomEnd();
                     _scrollTimer = null;
@@ -205,8 +205,9 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
           // couldn't find any equivalent for pointerCount in Listener so we use two widgets:
           // - outer is a GestureDetector only for pinch zoom
           // - inner is a Listener for all other gestures (including scroll zoom on desktop)
-          child:
-              Platform.isLinux || Platform.isWindows ? _desktop() : _mobile()),
+          child: Platform.isLinux || Platform.isWindows || Platform.isMacOS
+              ? _desktop()
+              : _mobile()),
       widget.showControlOverlay
           ? Align(
               alignment: Alignment.bottomRight,
