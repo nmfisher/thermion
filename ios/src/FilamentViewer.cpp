@@ -561,7 +561,7 @@ void FilamentViewer::createSwapChain(const void *surface, uint32_t width, uint32
   Log("Swapchain created.");
 }
 
-void FilamentViewer::createRenderTarget(uint32_t glTextureId, uint32_t width, uint32_t height) {
+void FilamentViewer::createRenderTarget(intptr_t textureId, uint32_t width, uint32_t height) {
   // Create filament textures and render targets (note the color buffer has the import call)
   _rtColor = filament::Texture::Builder()
     .width(width)
@@ -569,7 +569,7 @@ void FilamentViewer::createRenderTarget(uint32_t glTextureId, uint32_t width, ui
     .levels(1)
     .usage(filament::Texture::Usage::COLOR_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
     .format(filament::Texture::InternalFormat::RGBA8)
-    .import(glTextureId)
+    .import(textureId)
     .build(*_engine);
   _rtDepth = filament::Texture::Builder()
     .width(width)
@@ -586,7 +586,7 @@ void FilamentViewer::createRenderTarget(uint32_t glTextureId, uint32_t width, ui
   // Make a specific viewport just for our render target
   _view->setRenderTarget(_rt);
   
-  Log("Set render target for glTextureId %u %u x %u", glTextureId, width, height);
+  Log("Set render target for glTextureId %u %u x %u", textureId, width, height);
 
 }
 
