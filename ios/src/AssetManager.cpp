@@ -5,7 +5,6 @@
 #include <filament/Texture.h>
 #include <filament/RenderableManager.h>
 
-
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -19,6 +18,7 @@
 #include "SceneAsset.hpp"
 #include "Log.hpp"
 
+#include "material/StandardMaterialProvider.hpp"
 #include "material/UnlitMaterialProvider.hpp"
 #include "material/FileMaterialProvider.hpp"
 #include "gltfio/materials/uberarchive.h"
@@ -51,8 +51,14 @@ _scene(scene) {
     
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
+
+    auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials_ios_arm64.uberz");
     _ubershaderProvider = gltfio::createUbershaderProvider(
-                                                           _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
+                                                            _engine, uberdata.data, uberdata.size);
+    // _ubershaderProvider = gltfio::createUbershaderProvider(
+    //                                                         _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
+    // _ubershaderProvider = gltfio::createJitShaderProvider(_engine, true);
+    // _ubershaderProvider = new StandardMaterialProvider(_engine);
     EntityManager &em = EntityManager::get();
     
     //_unlitProvider = new UnlitMaterialProvider(_engine);
