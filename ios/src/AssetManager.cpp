@@ -250,7 +250,8 @@ void AssetManager::updateAnimations() {
     
     for (auto& asset : _assets) {
         
-        vector<AnimationStatus> completed;
+        vector<int> completed;
+        int index = 0;
         for(auto& anim : asset.mAnimations) {
             
             auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
@@ -314,10 +315,14 @@ void AssetManager::updateAnimations() {
                 }
                 // animation has completed
             } else {
-                completed.push_back(anim);
+                completed.push_back(index);
                 asset.fadeGltfAnimationIndex = -1;
             }
             asset.mAnimator->updateBoneMatrices();
+            index++;
+        }
+        for(auto& it : completed) {
+            asset.mAnimations.erase(asset.mAnimations.begin() + it);
         }
     }
 }
@@ -655,6 +660,8 @@ void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse,
     animation.mDuration = asset.mAnimator->getAnimationDuration(index);
     
     asset.mAnimations.push_back(animation);
+
+    Log("Current animation count %d ", asset.mAnimations.size());
 }
 
 void AssetManager::stopAnimation(EntityId entityId, int index) {
