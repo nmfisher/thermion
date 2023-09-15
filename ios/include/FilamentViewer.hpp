@@ -78,7 +78,7 @@ namespace polyvox {
             Renderer* getRenderer();
 
             void setBackgroundColor(const float r, const float g, const float b, const float a);
-            void setBackgroundImage(const char* resourcePath);
+            void setBackgroundImage(const char* resourcePath, bool fillHeight);
             void clearBackgroundImage();
             void setBackgroundImagePosition(float x, float y, bool clamp);
             void setCameraExposure(float aperture, float shutterSpeed, float sensitivity);

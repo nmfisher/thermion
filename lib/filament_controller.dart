@@ -131,11 +131,11 @@ class FilamentController {
     await _channel.invokeMethod("clearBackgroundImage");
   }
 
-  Future setBackgroundImage(String path) async {
+  Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    await _channel.invokeMethod("setBackgroundImage", path);
+    await _channel.invokeMethod("setBackgroundImage", [path, fillHeight]);
   }
 
   Future setBackgroundColor(Color color) async {

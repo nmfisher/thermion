@@ -305,7 +305,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             clear_background_image(viewer)
             result(true)
         case "setBackgroundImage":
-            set_background_image(viewer, call.arguments as! String)
+            let args = call.arguments as! [Any];
+            
+            let path = args[0] as! String
+            let fillHeight = args[1] as! Bool
+            set_background_image(viewer, path, fillHeight)
             result(true)
         case "setBackgroundImagePosition":
             let args = call.arguments as! [Any]

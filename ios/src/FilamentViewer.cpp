@@ -426,7 +426,7 @@ void FilamentViewer::clearBackgroundImage() {
   }
 }
 
-void FilamentViewer::setBackgroundImage(const char *resourcePath) {
+void FilamentViewer::setBackgroundImage(const char *resourcePath, bool fillHeight) {
 
   string resourcePathString(resourcePath);
 
@@ -440,7 +440,18 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
   // TODO - implement stretch/etc
   const Viewport& vp = _view->getViewport();
   Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
-  _imageScale = mat4f { float(vp.width) / float(_imageWidth) , 0.0f, 0.0f, 0.0f, 0.0f, float(vp.height) / float(_imageHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+
+
+  float xScale = float(vp.width) / float(_imageWidth);
+  
+  float yScale;
+  if(fillHeight) {
+    yScale = 1.0f;
+  } else { 
+    yScale = float(vp.height) / float(_imageHeight);
+  }
+
+  _imageScale = mat4f { xScale , 0.0f, 0.0f, 0.0f, 0.0f, yScale , 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
   _imageMaterial->setDefaultParameter("transform", _imageScale);
   _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);

@@ -40,8 +40,8 @@ extern "C" {
       ((FilamentViewer*)viewer)->clearBackgroundImage();
   }
 
-  FLUTTER_PLUGIN_EXPORT void set_background_image(const void* const viewer, const char* path) {
-      ((FilamentViewer*)viewer)->setBackgroundImage(path);
+  FLUTTER_PLUGIN_EXPORT void set_background_image(const void* const viewer, const char* path, bool fillHeight) {
+      ((FilamentViewer*)viewer)->setBackgroundImage(path, fillHeight);
   }
 
   FLUTTER_PLUGIN_EXPORT void set_background_image_position(const void* const viewer, float x, float y, bool clamp) {
