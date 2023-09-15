@@ -91,6 +91,10 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         _filamentController.setBackgroundImage('assets/background.ktx');
       }, "load background image"),
       _item(() {
+        _filamentController.setBackgroundImage('assets/background.ktx',
+            fillHeight: true);
+      }, "load background image (fill height)"),
+      _item(() {
         _filamentController
             .loadSkybox('assets/default_env/default_env_skybox.ktx');
       }, 'load skybox'),
