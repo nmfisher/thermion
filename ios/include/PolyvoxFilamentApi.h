@@ -11,7 +11,7 @@ void delete_filament_viewer(const void* const viewer);
 void* get_asset_manager(const void* const viewer);
 void create_render_target(const void* const viewer, uint32_t textureId, uint32_t width, uint32_t height);
 void clear_background_image(const void* const viewer);
-void set_background_image(const void* const viewer, const char *path);
+void set_background_image(const void* const viewer, const char *path, bool fillHeight);
 void set_background_image_position(const void* const viewer, float x, float y, bool clamp);
 void set_background_color(const void* const viewer, const float r, const float g, const float b, const float a);
 void set_tone_mapping(const void* const viewer, int toneMapping);
