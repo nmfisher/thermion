@@ -1,5 +1,7 @@
-#include "AssetManager.hpp"
+#include <string>
+#include <sstream>
 #include <thread>
+
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
@@ -17,6 +19,7 @@
 #include "StreamBufferAdapter.hpp"
 #include "SceneAsset.hpp"
 #include "Log.hpp"
+#include "AssetManager.hpp"
 
 #include "material/StandardMaterialProvider.hpp"
 #include "material/UnlitMaterialProvider.hpp"
