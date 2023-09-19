@@ -1,7 +1,0 @@
-Executable : /home/hydroxide/Android/Sdk/cmake/3.10.2.4988404/bin/ninja
-arguments : 
--C
-/mnt/hdd_2tb/home/hydroxide/projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a
-filament_interop
-jvmArgs : 
-

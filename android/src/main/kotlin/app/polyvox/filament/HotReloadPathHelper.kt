@@ -15,10 +15,8 @@ class HotReloadPathHelper {
             val files = File(packagePath).walkBottomUp().filter {
               it.path.endsWith(path)
             }.sortedBy {
-              Log.v("FFI", it.path.toString())
               it.lastModified()
             }.toList()
-            Log.v("FFI", files.size.toString())
             if(files.size > 0)
                 return files.last().path;
             return null;

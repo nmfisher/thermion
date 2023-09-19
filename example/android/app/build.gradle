@@ -29,7 +29,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     compileSdkVersion 31
-    ndkVersion "23.1.7779620"
+    ndkVersion "25.2.9519653"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -45,12 +45,14 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId "app.polyvox.filament_example"
-        minSdkVersion 21
-        targetSdkVersion 30
+        minSdkVersion 22
+        targetSdkVersion 31
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        ndk {
+            abiFilters 'arm64-v8a' // 'x86_64' 'armeabi-v7a' 
+        }
     }
 
     buildTypes {
@@ -62,12 +64,6 @@ android {
                     'proguard-android-optimize.txt'),
                     'proguard-rules.pro'
         }
-    }
-    packagingOptions {
-        pickFirst "lib/**/libjnidispatch.so"
-    }
-    aaptOptions {
-      noCompress "ktx"
     }
 }
 

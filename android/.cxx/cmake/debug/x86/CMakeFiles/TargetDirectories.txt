@@ -1,3 +1,0 @@
-/mnt/hdd_2tb/home/hydroxide/projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/x86/CMakeFiles/rebuild_cache.dir
-/mnt/hdd_2tb/home/hydroxide/projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/x86/CMakeFiles/edit_cache.dir
-/mnt/hdd_2tb/home/hydroxide/projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/x86/CMakeFiles/filament_interop.dir
