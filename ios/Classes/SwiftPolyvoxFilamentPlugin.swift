@@ -181,68 +181,13 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         }
         createPixelBuffer(width: Int(width), height:Int(height))
     }
-    
-//    var glTextureId:GLuint  = 0
-    
-    var glTextureCache:CVOpenGLESTextureCache? = nil
-    var glTexture:CVOpenGLESTexture? = nil
-    
-    private func createGlTexture(width:Int, height:Int) {
-        let context = EAGLContext(api: .openGLES3)
-        EAGLContext.setCurrent(context)
-        var cvret = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault,
-                        nil,
-                        context!,
-                        nil,
-                        &glTextureCache);
         
-        
-        cvret = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
-                                                                 glTextureCache!,
-                                                                 pixelBuffer!,
-                                                                 nil,
-                                                                 GLenum(GL_TEXTURE_2D),
-                                                                 GL_RGBA,
-                                                                 GLsizei(width), GLsizei(height),
-                                                                 GLenum(GL_RGBA),
-                                                                 GLenum(GL_UNSIGNED_BYTE),
-                                                                 0,
-                                                                 &glTexture);
-        
-        
-//        var framebuffer:GLuint = 0;
-//        glGenFramebuffers(1, &framebuffer);
-//        glBindFramebuffer(GLenum(GL_FRAMEBUFFER), framebuffer);
-//        var colorRenderbuffer:GLuint = 0;
-//        glGenRenderbuffers(1, &colorRenderbuffer);
-//        glBindRenderbuffer(GLenum(GL_RENDERBUFFER), colorRenderbuffer);
-//        glRenderbufferStorage(GLenum(GL_RENDERBUFFER), GLenum(GL_RGBA8), GLsizei(width), GLsizei(height));
-//        glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_COLOR_ATTACHMENT0), GLenum(GL_RENDERBUFFER), colorRenderbuffer);
-//        var depthRenderbuffer:GLuint = 0;
-//        glGenRenderbuffers(1, &depthRenderbuffer);
-//        glBindRenderbuffer(GLenum(GL_RENDERBUFFER), depthRenderbuffer);
-//        glRenderbufferStorage(GLenum(GL_RENDERBUFFER), GLenum(GL_DEPTH_COMPONENT16), GLsizei(width), GLsizei(height));
-//        glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_DEPTH_ATTACHMENT), GLenum(GL_RENDERBUFFER), depthRenderbuffer);
-//        let status = glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) ;
-//        if(status != GL_FRAMEBUFFER_COMPLETE) {
-//            print("failed to make complete framebuffer object \(status)");
-//        }
-//        glGenTextures(1, &glTextureId);
-//        glBindTexture(GLenum(GL_TEXTURE_2D), glTextureId);
-//        glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_MIN_FILTER), GL_LINEAR);
-//        glTexImage2D(GLenum(GL_TEXTURE_2D), 0, GL_RGBA8,  GLsizei(width), GLsizei(height), 0, GLenum(GL_RGBA), GLenum(GL_UNSIGNED_BYTE), nil);
-//        glFramebufferTexture2D(GLenum(GL_FRAMEBUFFER), GLenum(GL_COLOR_ATTACHMENT0), GLenum(GL_TEXTURE_2D), glTextureId, 0);
-//        self.flutterTextureId = self.registry.register(self)
-
-    }
-    
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
         switch methodName {
         case "createTexture":
             let args = call.arguments as! Array<Int32>
             createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
-//            createGlTexture(width:Int(args[0]), height:Int(args[1]))
             createDisplayLink()
             result(self.flutterTextureId)
         case "destroyTexture":
@@ -293,8 +238,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             viewer = create_filament_viewer(nil, callback)
             var pixelBufferTextureId = unsafeBitCast(pixelBuffer!, to: UnsafeRawPointer.self)
             create_swap_chain(viewer, pixelBufferTextureId, UInt32(width), UInt32(height))
-//            create_render_target(viewer, CVOpenGLESTextureGetName(glTexture!), UInt32(width),UInt32(height)); // OpenGL
-
             update_viewport_and_camera_projection(viewer, UInt32(args[0] as! Int64), UInt32(args[1] as! Int64), 1.0)
             set_frame_interval(viewer, Float(frameInterval))
             result(unsafeBitCast(viewer, to:Int64.self))
