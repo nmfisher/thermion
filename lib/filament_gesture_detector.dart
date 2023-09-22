@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'filament_controller.dart';
-import 'filament_widget.dart';
 
 enum GestureType { RotateCamera, PanCamera, PanBackground }
 
@@ -199,15 +199,22 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
 
   @override
   Widget build(BuildContext context) {
+    late Widget controls;
+    if (kIsWeb) {
+      controls = Container();
+    } else if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+      controls = _desktop();
+    } else {
+      controls = _mobile();
+    }
+
     return Stack(children: [
       Positioned.fill(
           // pinch zoom on mobile
           // couldn't find any equivalent for pointerCount in Listener so we use two widgets:
           // - outer is a GestureDetector only for pinch zoom
           // - inner is a Listener for all other gestures (including scroll zoom on desktop)
-          child: Platform.isLinux || Platform.isWindows || Platform.isMacOS
-              ? _desktop()
-              : _mobile()),
+          child: controls),
       widget.showControlOverlay
           ? Align(
               alignment: Alignment.bottomRight,
