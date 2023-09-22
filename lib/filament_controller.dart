@@ -1,10 +1,5 @@
 import 'dart:async';
-import 'dart:ffi';
-
 import 'dart:ui' as ui;
-
-import 'package:ffi/ffi.dart';
-
 import 'package:flutter/services.dart';
 import 'package:polyvox_filament/animations/bone_animation_data.dart';
 import 'package:polyvox_filament/animations/morph_animation_data.dart';
@@ -380,36 +375,36 @@ class FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    var data = calloc<Float>(animation.frameData.length);
-    int offset = 0;
-    var numFrames = animation.frameData.length ~/ 7;
-    var boneNames = calloc<Pointer<Char>>(1);
-    boneNames.elementAt(0).value =
-        animation.boneName.toNativeUtf8().cast<Char>();
+    // var data = calloc<Float>(animation.frameData.length);
+    // int offset = 0;
+    // var numFrames = animation.frameData.length ~/ 7;
+    // var boneNames = calloc<Pointer<Char>>(1);
+    // boneNames.elementAt(0).value =
+    //     animation.boneName.toNativeUtf8().cast<Char>();
 
-    var meshNames = calloc<Pointer<Char>>(animation.meshNames.length);
-    for (int i = 0; i < animation.meshNames.length; i++) {
-      meshNames.elementAt(i).value =
-          animation.meshNames[i].toNativeUtf8().cast<Char>();
-    }
+    // var meshNames = calloc<Pointer<Char>>(animation.meshNames.length);
+    // for (int i = 0; i < animation.meshNames.length; i++) {
+    //   meshNames.elementAt(i).value =
+    //       animation.meshNames[i].toNativeUtf8().cast<Char>();
+    // }
 
-    for (int i = 0; i < animation.frameData.length; i++) {
-      data.elementAt(offset).value = animation.frameData[i];
-      offset += 1;
-    }
+    // for (int i = 0; i < animation.frameData.length; i++) {
+    //   data.elementAt(offset).value = animation.frameData[i];
+    //   offset += 1;
+    // }
 
-    await _channel.invokeMethod("setBoneAnimation", [
-      _assetManager,
-      asset,
-      data,
-      numFrames,
-      1,
-      boneNames,
-      meshNames,
-      animation.meshNames.length,
-      animation.frameLengthInMs
-    ]);
-    calloc.free(data);
+    // await _channel.invokeMethod("setBoneAnimation", [
+    //   _assetManager,
+    //   asset,
+    //   data,
+    //   numFrames,
+    //   1,
+    //   boneNames,
+    //   meshNames,
+    //   animation.meshNames.length,
+    //   animation.frameLengthInMs
+    // ]);
+    // calloc.free(data);
   }
 
   Future removeAsset(FilamentEntity asset) async {
@@ -545,11 +540,7 @@ class FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     assert(matrix.length == 16);
-    var ptr = calloc<Float>(16);
-    for (int i = 0; i < 16; i++) {
-      ptr.elementAt(i).value = matrix[i];
-    }
-    await _channel.invokeMethod("setCameraModelMatrix", [ptr]);
+    await _channel.invokeMethod("setCameraModelMatrix", matrix);
   }
 
   Future setTexture(FilamentEntity asset, String assetPath,
