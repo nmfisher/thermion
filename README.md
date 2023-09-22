@@ -31,6 +31,12 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig/:/usr/lib64/pkgconfig/ CPLUS_INCLUDE_P
 
 Extract and move both lib/ and include/ to ./ios
 
+Web:
+
+EMCC_CFLAGS="-Wno-missing-field-initializers -Wno-deprecated-literal-operator -fPIC" ./build.sh -c -p webgl -i debug
+
+EMCC_CFLAGS="-I/Users/nickfisher/Documents/filament/libs/utils/include -I/Users/nickfisher/Documents/filament/libs/image/include -I/Users/nickfisher/Documents/filament/libs/math/include -I../../..//third_party/basisu/encoder/ -I../../..//third_party/libpng/ -I../../..//third_party/tinyexr/ -fPIC" emmake make
+
 # Running
 
 ## Android 
