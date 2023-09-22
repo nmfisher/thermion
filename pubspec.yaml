@@ -10,10 +10,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
   vector_math: ^2.1.2
   plugin_platform_interface: ^2.0.0
-  ffi: 
   tuple:
+  wasm_ffi:
 
 dev_dependencies:
   flutter_test:
@@ -44,3 +46,6 @@ flutter:
         pluginClass: PolyvoxFilamentPlugin
       linux:
         pluginClass: PolyvoxFilamentPlugin
+      web:
+        pluginClass: PolyvoxFilamentPluginWeb
+        fileName: PolyvoxFilamentPluginWeb.dart
