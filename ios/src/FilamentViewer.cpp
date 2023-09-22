@@ -151,7 +151,6 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
   const float aperture = _mainCamera->getAperture();
   const float shutterSpeed = _mainCamera->getShutterSpeed();
   const float sens = _mainCamera->getSensitivity();
-  // _mainCamera->setExposure(2.0f, 1.0f, 1.0f);
 
   Log("Camera aperture %f shutter %f sensitivity %f", aperture, shutterSpeed, sens);
 
@@ -171,10 +170,6 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
 
   _view->setAntiAliasing(AntiAliasing::NONE);
 
-  // auto materialRb = _resourceLoader->load("file:///mnt/hdd_2tb/home/hydroxide/projects/filament/unlit.filamat");
-  // Log("Loaded resource of size %d", materialRb.size);
-  // _materialProvider = new FileMaterialProvider(_engine, (void*) materialRb.data, (size_t)materialRb.size);
-  
   EntityManager &em = EntityManager::get();
 
   _ncm = new NameComponentManager(em);
@@ -557,14 +552,14 @@ FilamentViewer::~FilamentViewer() {
 
 Renderer *FilamentViewer::getRenderer() { return _renderer; }
 
-void FilamentViewer::createSwapChain(const void *surface, uint32_t width, uint32_t height) {
+void FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_t height) {
   #if TARGET_OS_IPHONE
-    _swapChain = _engine->createSwapChain((void*)surface, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
+    _swapChain = _engine->createSwapChain((void*)window, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
   #else
-    if(surface) {
-      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+    if(window) {
+      _swapChain = _engine->createSwapChain((void*)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
     } else {
-      _swapChain = _engine->createSwapChain((void*)surface, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
     }
   #endif
   Log("Swapchain created.");
