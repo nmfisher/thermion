@@ -1,8 +1,5 @@
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:vector_math/vector_math.dart' as v;
 
 import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/animations/bone_animation_data.dart';
@@ -56,6 +53,11 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   bool _initialized = false;
 
   bool _coneHidden = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   Widget _item(void Function() onTap, String text) {
     return GestureDetector(
@@ -242,59 +244,55 @@ class _ExampleWidgetState extends State<ExampleWidget> {
       _filamentController.setToneMapping(ToneMapper.LINEAR);
     }, "Set tone mapping to linear"));
 
-    return Padding(
-        padding: EdgeInsets.only(top: 20, left: 20),
-        child: Row(children: [
-          Expanded(
-              child: SingleChildScrollView(
-                  child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: children
-                      // _item(24 () async { 'rotate by pi around Y axis'),
-                      // _item(5 () async { 'load flight helmet'),
-
-                      // _item(7 () async { 'set all weights to 1'),
-                      // _item(8 () async { 'set all weights to 0'),
-                      // _item(9 () async { 'play all animations'),
-                      // _item(34 () async { 'play animation 0'),
-                      // _item(34 () async { 'play animation 0 (noreplace)'),
-                      // _item(35 () async { 'play animation 1'),
-                      // _item(34 () async { 'play animation 0 (noreplace)'),
-                      // _item(36 () async { 'play animation 2'),
-                      // _item(34 () async { 'play animation 0 (noreplace)'),
-                      // _item(36 () async { 'play animation 3'),
-                      // _item(34 () async { 'play animation 3 (noreplace)'),
-                      // _item(37 () async { 'stop animation 0'),
-
-                      // _item(14 () async { 'set camera'),
-                      // _item(15 () async { 'animate weights'),
-                      // _item(16 () async { 'get target names'),
-                      // _item(17 () async { 'get animation names'),
-                      // _item(18 () async { 'pan left'),
-                      // _item(19 () async { 'pan right'),
-                      // _item(25 () async {
-                      //     Text(_vertical ? 'set horizontal' : 'set vertical')),
-                      // _item(26 () async { 'set camera pos to 0,0,3'),
-                      // _item(27 () async { 'toggle framerate'),
-                      // _item(28 () async { 'set bg image pos'),
-                      // _item(29 () async { 'add light'),
-                      // _item(30 () async { 'remove light'),
-                      // _item(31 () async { 'clear all lights'),
-                      // _item(32 () async { 'set camera model matrix'),
-                      ))),
-          Container(
-            width: _vertical ? 200 : 400,
-            height: _vertical ? 400 : 200,
-            alignment: Alignment.center,
-            child: FilamentGestureDetector(
-                showControlOverlay: true,
+    return Stack(children: [
+      Positioned.fill(
+          bottom: 100,
+          child: FilamentGestureDetector(
+              showControlOverlay: true,
+              controller: _filamentController,
+              child: FilamentWidget(
                 controller: _filamentController,
-                child: FilamentWidget(
-                  controller: _filamentController,
-                )),
-          ),
-        ]));
+              ))),
+      Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 200,
+          child: SingleChildScrollView(
+              child: Wrap(children: children
+                  // _item(24 () async { 'rotate by pi around Y axis'),
+                  // _item(5 () async { 'load flight helmet'),
+
+                  // _item(7 () async { 'set all weights to 1'),
+                  // _item(8 () async { 'set all weights to 0'),
+                  // _item(9 () async { 'play all animations'),
+                  // _item(34 () async { 'play animation 0'),
+                  // _item(34 () async { 'play animation 0 (noreplace)'),
+                  // _item(35 () async { 'play animation 1'),
+                  // _item(34 () async { 'play animation 0 (noreplace)'),
+                  // _item(36 () async { 'play animation 2'),
+                  // _item(34 () async { 'play animation 0 (noreplace)'),
+                  // _item(36 () async { 'play animation 3'),
+                  // _item(34 () async { 'play animation 3 (noreplace)'),
+                  // _item(37 () async { 'stop animation 0'),
+
+                  // _item(14 () async { 'set camera'),
+                  // _item(15 () async { 'animate weights'),
+                  // _item(16 () async { 'get target names'),
+                  // _item(17 () async { 'get animation names'),
+                  // _item(18 () async { 'pan left'),
+                  // _item(19 () async { 'pan right'),
+                  // _item(25 () async {
+                  //     Text(_vertical ? 'set horizontal' : 'set vertical')),
+                  // _item(26 () async { 'set camera pos to 0,0,3'),
+                  // _item(27 () async { 'toggle framerate'),
+                  // _item(28 () async { 'set bg image pos'),
+                  // _item(29 () async { 'add light'),
+                  // _item(30 () async { 'remove light'),
+                  // _item(31 () async { 'clear all lights'),
+                  // _item(32 () async { 'set camera model matrix'),
+                  ))),
+    ]);
   }
 }
 
