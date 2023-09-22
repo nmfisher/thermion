@@ -1,0 +1,4 @@
+/Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles/FILAMENT_SHADERS.dir
+/Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles/polyvox_filament_plugin.dir
+/Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles/edit_cache.dir
+/Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles/rebuild_cache.dir
