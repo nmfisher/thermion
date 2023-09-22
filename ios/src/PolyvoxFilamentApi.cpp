@@ -139,8 +139,8 @@ extern "C" {
       ((FilamentViewer*)viewer)->destroySwapChain();
   }
 
-  FLUTTER_PLUGIN_EXPORT void create_swap_chain(const void* const viewer, const void* const surface=nullptr, uint32_t width=0, uint32_t height=0) {
-      ((FilamentViewer*)viewer)->createSwapChain(surface, width, height);
+  FLUTTER_PLUGIN_EXPORT void create_swap_chain(const void* const viewer, const void* const window, uint32_t width, uint32_t height) {
+      ((FilamentViewer*)viewer)->createSwapChain(window, width, height);
   }
 
   FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection(const void* const viewer, uint32_t width, uint32_t height, float scaleFactor) {
