@@ -308,8 +308,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 return
             }
             let entityId = add_light(viewer, UInt8(type), Float(colour), Float(intensity),Float(posX), Float(posY), Float(posZ), Float(dirX), Float(dirY), Float(dirZ), shadows)
-            result(entityId)
-            
+            result(entityId)    
         case "removeLight":
             remove_light(viewer, Int32(call.arguments as! Int64))
             result(true)
@@ -366,6 +365,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             }
             update_viewport_and_camera_projection(viewer, UInt32(width), UInt32(height), scaleFactor)
             result(true)
+            
         case "scrollBegin":
             scroll_begin(viewer)
             result(true)
@@ -403,7 +403,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             }
             grab_update(viewer, x, y)
             result(true)
-            
         case "grabEnd":
             grab_end(viewer)
             result(true)
@@ -474,7 +473,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 result(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for set_bone_animation", details: nil))
                 return
             }
-            
             //                  // Convert boneNames and meshName to C-style strings array.
             //                  var cBoneNames: [UnsafePointer<CChar>?] = boneNames.map { $0.cString(using: .utf8) }
             //                  var cMeshName: [UnsafePointer<CChar>?] = meshName.map { $0.cString(using: .utf8) }
@@ -635,12 +633,10 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             }
             let success = set_camera(viewer, asset, nodeName)
             result(success)
-
         case "setCameraPosition":
             let args = call.arguments as! [Any]
             set_camera_position(viewer, Float(args[0] as! Double), Float(args[1] as! Double), Float(args[2] as! Double))
             result(true)
-            
         case "setCameraRotation":
             let args = call.arguments as! [Any]
             set_camera_rotation(viewer, Float(args[0] as! Double), Float(args[1] as! Double), Float(args[2] as! Double), Float(args[3] as! Double))

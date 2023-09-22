@@ -8,9 +8,10 @@ link_directories(src/main/jniLibs/${ANDROID_ABI})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 add_library(polyvox_filament_android SHARED
+"${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/FilamentAndroid.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/StreamBufferAdapter.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/TimeIt.cpp"
 )
