@@ -6,14 +6,18 @@
 
 #include <memory>
 
+#include "PolyvoxFilamentApi.h"
+
 namespace polyvox_filament {
 
 class PolyvoxFilamentPlugin : public flutter::Plugin {
  public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 
-  PolyvoxFilamentPlugin();
-
+  PolyvoxFilamentPlugin(
+    flutter::TextureRegistrar* textureRegistrar,
+    flutter::PluginRegistrarWindows *registrar
+  );
   virtual ~PolyvoxFilamentPlugin();
 
   // Disallow copy and assign.
@@ -24,6 +28,29 @@ class PolyvoxFilamentPlugin : public flutter::Plugin {
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  flutter::PluginRegistrarWindows* _pluginRegistrar;
+  flutter::TextureRegistrar* _textureRegistrar;
+
+  std::unique_ptr<flutter::TextureVariant> _texture = nullptr;
+  std::unique_ptr<FlutterDesktopPixelBuffer> _pixelBuffer = nullptr;
+  std::unique_ptr<uint8_t> _pixelData = nullptr;
+  int64_t _flutterTextureId;
+  int _glTextureId;
+
+  void* _viewer = nullptr;
+
+  void CreateFilamentViewer(
+  const flutter::MethodCall<flutter::EncodableValue> &methodCall, 
+  std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  void CreateTexture(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall, 
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  
+  void Render(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall, 
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 };
 
 }  // namespace polyvox_filament

@@ -9,6 +9,7 @@
 #include <android/log.h>
 #define LOGTAG "PolyvoxFilament"
 #else
+#include <stdarg.h>
 #include <stdio.h>
 #include <iostream>
 #endif

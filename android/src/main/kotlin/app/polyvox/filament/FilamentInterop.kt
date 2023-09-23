@@ -17,11 +17,11 @@ open class ResourceBuffer: Structure(), Structure.ByValue {
     }
 }
 
-interface LoadResourceFromOwner : Callback {
+interface LoadFilamentResourceFromOwner : Callback {
     fun loadResourceFromOwner(resourceName: String?, owner: Pointer?): ResourceBuffer
 }
 
-interface FreeResourceFromOwner : Callback {
+interface FreeFilamentResourceFromOwner : Callback {
     fun freeResourceFromOwner(rb: ResourceBuffer, owner: Pointer?)
 }
 interface FilamentInterop : Library {
@@ -97,6 +97,6 @@ fun reveal_mesh(asset_manager: Any?, asset: EntityId, mesh_name: String): Int
 fun ios_dummy()
 fun create_filament_viewer(context:Long, loader:Pointer) : Pointer;
 
-fun make_resource_loader(loadResourceFromOwner: LoadResourceFromOwner, freeResource: FreeResourceFromOwner, owner:Pointer?) : Pointer;
+fun make_resource_loader(loadResourceFromOwner: LoadFilamentResourceFromOwner, freeResource: FreeFilamentResourceFromOwner, owner:Pointer?) : Pointer;
 }
 

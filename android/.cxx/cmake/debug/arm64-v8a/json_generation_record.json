@@ -1,0 +1,398 @@
+[
+  {
+    "level": "INFO",
+    "message": "Start JSON generation. Platform version: 22 min SDK version: arm64-v8a",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Trying to locate CMake in local SDK repository.",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "CMake \u00273.10.2\u0027 found in SDK did not match requested version \u00273.18.1\u0027.",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "- CMake found in SDK at \u0027C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\u0027 had version \u00273.18.1\u0027",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "CMake \u00273.22.1\u0027 found in SDK did not match requested version \u00273.18.1\u0027.",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "CMake \u00273.6.0\u0027 found in SDK did not match requested version \u00273.18.1\u0027.",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "rebuilding JSON F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\\android_gradle_build.json due to:",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "- expected json F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\\android_gradle_build.json file is not present, will remove stale json folder",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "- missing previous command file F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\\build_command.txt, will remove stale json folder",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "- command changed from previous, will remove stale json folder",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "created folder \u0027F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\u0027",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "executing cmake Executable : C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\cmake.exe\narguments : \n-HF:\\Projects\\polyvox\\polyvox_filament\\android\n-DCMAKE_FIND_ROOT_PATH\u003dF:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\prefab\\arm64-v8a\\prefab\n-DCMAKE_BUILD_TYPE\u003dDebug\n-DCMAKE_TOOLCHAIN_FILE\u003dC:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653\\build\\cmake\\android.toolchain.cmake\n-DANDROID_ABI\u003darm64-v8a\n-DANDROID_NDK\u003dC:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653\n-DANDROID_PLATFORM\u003dandroid-22\n-DCMAKE_ANDROID_ARCH_ABI\u003darm64-v8a\n-DCMAKE_ANDROID_NDK\u003dC:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653\n-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\n-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dF:\\Projects\\polyvox\\polyvox_filament\\example\\build\\polyvox_filament\\intermediates\\cmake\\debug\\obj\\arm64-v8a\n-DCMAKE_MAKE_PROGRAM\u003dC:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\ninja.exe\n-DCMAKE_SYSTEM_NAME\u003dAndroid\n-DCMAKE_SYSTEM_VERSION\u003d22\n-BF:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\n-GNinja\njvmArgs : \n\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "[\u003d\u003d \"CMake Server\" \u003d\u003d[\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"supportedProtocolVersions\":[{\"isExperimental\":true,\"major\":1,\"minor\":2}],\"type\":\"hello\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "]\u003d\u003d \"CMake Server\" \u003d\u003d]\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\n  \"type\": \"handshake\",\n  \"cookie\": \"gradle-cmake-cookie\",\n  \"protocolVersion\": {\n    \"isExperimental\": true,\n    \"major\": 1,\n    \"minor\": 2\n  },\n  \"sourceDirectory\": \"F:/Projects/polyvox/polyvox_filament/android\",\n  \"buildDirectory\": \"F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a\",\n  \"generator\": \"Ninja\"\n}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"gradle-cmake-cookie\",\"inReplyTo\":\"handshake\",\"type\":\"reply\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\n  \"type\": \"configure\",\n  \"cacheArguments\": [\n    \"\",\n    \"-DCMAKE_FIND_ROOT_PATH\\u003dF:\\\\Projects\\\\polyvox\\\\polyvox_filament\\\\android\\\\.cxx\\\\cmake\\\\debug\\\\prefab\\\\arm64-v8a\\\\prefab\",\n    \"-DCMAKE_BUILD_TYPE\\u003dDebug\",\n    \"-DCMAKE_TOOLCHAIN_FILE\\u003dC:\\\\Users\\\\Nick\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.2.9519653\\\\build\\\\cmake\\\\android.toolchain.cmake\",\n    \"-DANDROID_ABI\\u003darm64-v8a\",\n    \"-DANDROID_NDK\\u003dC:\\\\Users\\\\Nick\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.2.9519653\",\n    \"-DANDROID_PLATFORM\\u003dandroid-22\",\n    \"-DCMAKE_ANDROID_ARCH_ABI\\u003darm64-v8a\",\n    \"-DCMAKE_ANDROID_NDK\\u003dC:\\\\Users\\\\Nick\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.2.9519653\",\n    \"-DCMAKE_EXPORT_COMPILE_COMMANDS\\u003dON\",\n    \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\\u003dF:\\\\Projects\\\\polyvox\\\\polyvox_filament\\\\example\\\\build\\\\polyvox_filament\\\\intermediates\\\\cmake\\\\debug\\\\obj\\\\arm64-v8a\",\n    \"-DCMAKE_MAKE_PROGRAM\\u003dC:\\\\Users\\\\Nick\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.18.1\\\\bin\\\\ninja.exe\",\n    \"-DCMAKE_SYSTEM_NAME\\u003dAndroid\",\n    \"-DCMAKE_SYSTEM_VERSION\\u003d22\"\n  ]\n}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"CMake Warning (dev) in CMakeLists.txt:\\n  No project() command is present.  The top-level CMakeLists.txt file must\\n  contain a literal, direct call to the project() command.  Add a line of\\n  code such as\\n\\n    project(ProjectName)\\n\\n  near the top of the file, but after cmake_minimum_required().\\n\\n  CMake is pretending there is a \\\"project(Project)\\\" command on the first\\n  line.\\nThis warning is for project developers.  Use -Wno-dev to suppress it.\\n\",\"title\":\"Warning\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "WARN",
+    "message": "CMake Warning (dev) in CMakeLists.txt:\r\n  No project() command is present.  The top-level CMakeLists.txt file must\r\n  contain a literal, direct call to the project() command.  Add a line of\r\n  code such as\r\n\r\n    project(ProjectName)\r\n\r\n  near the top of the file, but after cmake_minimum_required().\r\n\r\n  CMake is pretending there is a \"project(Project)\" command on the first\r\n  line.\r\nThis warning is for project developers.  Use -Wno-dev to suppress it.",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):\\n  An old version of CMake is being used that cannot automatically detect\\n  compiler attributes.  Compiler identification is being bypassed.  Some\\n  values may be wrong or missing.  Update to CMake 3.19 or newer to use\\n  CMake\u0027s built-in compiler identification.\\nCall Stack (most recent call first):\\n  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)\\n  C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineSystem.cmake:93 (include)\\n\\n\",\"title\":\"Warning\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "WARN",
+    "message": "CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):\r\n  An old version of CMake is being used that cannot automatically detect\r\n  compiler attributes.  Compiler identification is being bypassed.  Some\r\n  values may be wrong or missing.  Update to CMake 3.19 or newer to use\r\n  CMake\u0027s built-in compiler identification.\r\nCall Stack (most recent call first):\r\n  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)\r\n  C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineSystem.cmake:93 (include)\r\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Detecting C compiler ABI info\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Detecting C compiler ABI info",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):\\n  An old version of CMake is being used that cannot automatically detect\\n  compiler attributes.  Compiler identification is being bypassed.  Some\\n  values may be wrong or missing.  Update to CMake 3.19 or newer to use\\n  CMake\u0027s built-in compiler identification.\\nCall Stack (most recent call first):\\n  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)\\n  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)\\n  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)\\n\\n\",\"title\":\"Warning\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "WARN",
+    "message": "CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):\r\n  An old version of CMake is being used that cannot automatically detect\r\n  compiler attributes.  Compiler identification is being bypassed.  Some\r\n  values may be wrong or missing.  Update to CMake 3.19 or newer to use\r\n  CMake\u0027s built-in compiler identification.\r\nCall Stack (most recent call first):\r\n  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)\r\n  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)\r\n  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)\r\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"progressCurrent\":33,\"progressMaximum\":1000,\"progressMessage\":\"Configuring\",\"progressMinimum\":0,\"type\":\"progress\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Detecting C compiler ABI info - done\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Detecting C compiler ABI info - done",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Check for working C compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe - skipped\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Check for working C compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe - skipped",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Detecting C compile features\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Detecting C compile features",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Detecting C compile features - done\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Detecting C compile features - done",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Detecting CXX compiler ABI info\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Detecting CXX compiler ABI info",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"progressCurrent\":65,\"progressMaximum\":1000,\"progressMessage\":\"Configuring\",\"progressMinimum\":0,\"type\":\"progress\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Detecting CXX compiler ABI info - done\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Detecting CXX compiler ABI info - done",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Check for working CXX compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe - skipped\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Check for working CXX compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe - skipped",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Detecting CXX compile features\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Detecting CXX compile features",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Detecting CXX compile features - done\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Detecting CXX compile features - done",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"Configuring done\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Configuring done",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"message\":\"CMake Deprecation Warning:\\n  The \u0027cmake-server(7)\u0027 is deprecated.  Please port clients to use the\\n  \u0027cmake-file-api(7)\u0027 instead.\\n\\n\",\"title\":\"Warning\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "WARN",
+    "message": "CMake Deprecation Warning:\r\n  The \u0027cmake-server(7)\u0027 is deprecated.  Please port clients to use the\r\n  \u0027cmake-file-api(7)\u0027 instead.\r\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"configure\",\"type\":\"reply\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"type\":\"compute\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"compute\",\"progressCurrent\":100,\"progressMaximum\":1000,\"progressMessage\":\"Generating\",\"progressMinimum\":0,\"type\":\"progress\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"compute\",\"progressCurrent\":1000,\"progressMaximum\":1000,\"progressMessage\":\"Generating\",\"progressMinimum\":0,\"type\":\"progress\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"compute\",\"message\":\"Generating done\",\"type\":\"message\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "Generating done",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"cookie\":\"\",\"inReplyTo\":\"compute\",\"type\":\"reply\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"type\":\"cmakeInputs\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"buildFiles\":[{\"isCMake\":true,\"isTemporary\":false,\"sources\":[\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineSystem.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Determine.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeSystem.cmake.in\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeSystemSpecificInitialize.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Initialize.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCCompiler.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompiler.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Determine-C.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android/Determine-Compiler.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeFindBinUtils.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang-FindBinUtils.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCCompiler.cmake.in\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCXXCompiler.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompiler.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Determine-CXX.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android/Determine-Compiler.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeFindBinUtils.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang-FindBinUtils.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCXXCompiler.cmake.in\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeSystemSpecificInformation.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeGenericSystem.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeInitializeConfigs.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Linux.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/UnixPaths.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCInformation.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeLanguageInformation.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang-C.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/CMakeCommonCompilerMacros.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/GNU.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/CMakeCommonCompilerMacros.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Internal/CMakeCheckCompilerFlag.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Clang-C.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Clang.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCommonLanguageInclude.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCCompiler.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCompilerCommon.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompilerABI.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeParseImplicitIncludeInfo.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeParseImplicitLinkInfo.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCompilerCommon.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCCompilerABI.c\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompileFeatures.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Internal/FeatureTesting.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCCompiler.cmake.in\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCXXInformation.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeLanguageInformation.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang-CXX.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Clang-CXX.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Clang.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCommonLanguageInclude.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCXXCompiler.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCompilerCommon.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompilerABI.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeParseImplicitIncludeInfo.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeParseImplicitLinkInfo.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCompilerCommon.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCXXCompilerABI.cpp\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompileFeatures.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Internal/FeatureTesting.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCXXCompiler.cmake.in\"]},{\"isCMake\":false,\"isTemporary\":false,\"sources\":[\"CMakeLists.txt\",\"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/platforms.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/compiler_id.cmake\",\"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake\"]},{\"isCMake\":false,\"isTemporary\":true,\"sources\":[\".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake\",\".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeCCompiler.cmake\",\".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeCXXCompiler.cmake\",\".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeCCompiler.cmake\",\".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeCXXCompiler.cmake\"]}],\"cmakeRootDirectory\":\"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18\",\"cookie\":\"\",\"inReplyTo\":\"cmakeInputs\",\"sourceDirectory\":\"F:/Projects/polyvox/polyvox_filament/android\",\"type\":\"reply\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"type\":\"codemodel\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "{\"configurations\":[{\"name\":\"Debug\",\"projects\":[{\"buildDirectory\":\"F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a\",\"hasInstallRule\":false,\"minimumCMakeVersion\":\"3.10\",\"name\":\"Project\",\"sourceDirectory\":\"F:/Projects/polyvox/polyvox_filament/android\",\"targets\":[{\"artifacts\":[\"F:/Projects/polyvox/polyvox_filament/example/build/polyvox_filament/intermediates/cmake/debug/obj/arm64-v8a/libpolyvox_filament_android.so\"],\"buildDirectory\":\"F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a\",\"fileGroups\":[{\"compileFlags\":\"-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE\u003d2 -Wformat -Werror\u003dformat-security   -std\u003dc++17 -fno-limit-debug-info  -fPIC\",\"defines\":[\"polyvox_filament_android_EXPORTS\"],\"includePath\":[{\"path\":\"F:/Projects/polyvox/polyvox_filament/android/../ios/src\"},{\"path\":\"F:/Projects/polyvox/polyvox_filament/android/../ios/include\"},{\"path\":\"F:/Projects/polyvox/polyvox_filament/android/../ios/include/stb\"},{\"path\":\"F:/Projects/polyvox/polyvox_filament/android/src/main/cpp\"}],\"isGenerated\":false,\"language\":\"CXX\",\"sources\":[\"../ios/src/PolyvoxFilamentApi.cpp\",\"src/main/cpp/FilamentAndroid.cpp\",\"../ios/src/AssetManager.cpp\",\"../ios/src/FilamentViewer.cpp\",\"../ios/src/StreamBufferAdapter.cpp\",\"../ios/src/TimeIt.cpp\"]}],\"fullName\":\"libpolyvox_filament_android.so\",\"isGeneratorProvided\":false,\"linkFlags\":\"-static-libstdc++ -Wl,--build-id\u003dsha1 -Wl,--no-rosegment -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments\",\"linkLibraries\":\"F:\\\\Projects\\\\polyvox\\\\polyvox_filament\\\\example\\\\build\\\\polyvox_filament\\\\intermediates\\\\cmake\\\\debug\\\\obj\\\\arm64-v8a\\\\libFILAMENT_SHADERS.so  -landroid  -llog  -lgltfio_core  -lfilament  -lbackend  -lgeometry  -lfilameshio  -lfilamat  -lfilabridge  -lfilament-iblprefilter  -lcamutils  -lfilaflat  -ldracodec  -libl  -lktxreader  -limageio  -limage  -lutils  -ltinyexr  -lstb  -lbluevk  -lvkshaders  -luberzlib  -lsmol-v  -luberarchive  -lmeshoptimizer  -lgeometry  -lbasis_transcoder  -lEGL  -lGLESv3  -lpng  -lz  -lzstd  -lfilameshio  -lfilamat  -lfilabridge  -lfilament-iblprefilter  -lcamutils  -lfilaflat  -ldracodec  -libl  -lktxreader  -limageio  -limage  -lutils  -ltinyexr  -lstb  -lbluevk  -lvkshaders  -luberzlib  -lsmol-v  -luberarchive  -lmeshoptimizer  -lbasis_transcoder  -lEGL  -lGLESv3  -lpng  -lz  -lzstd  -latomic -lm\",\"linkPath\":\"-LF:\\\\Projects\\\\polyvox\\\\polyvox_filament\\\\android\\\\src\\\\main\\\\jniLibs\\\\arm64-v8a\",\"linkerLanguage\":\"CXX\",\"name\":\"polyvox_filament_android\",\"sourceDirectory\":\"F:/Projects/polyvox/polyvox_filament/android\",\"sysroot\":\"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/sysroot\",\"type\":\"SHARED_LIBRARY\"},{\"artifacts\":[\"F:/Projects/polyvox/polyvox_filament/example/build/polyvox_filament/intermediates/cmake/debug/obj/arm64-v8a/libFILAMENT_SHADERS.so\"],\"buildDirectory\":\"F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a\",\"fileGroups\":[{\"compileFlags\":\"-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE\u003d2 -Wformat -Werror\u003dformat-security  -fno-limit-debug-info  -fPIC\",\"defines\":[\"FILAMENT_SHADERS_EXPORTS\"],\"includePath\":[{\"path\":\"F:/Projects/polyvox/polyvox_filament/android/../ios/src\"},{\"path\":\"F:/Projects/polyvox/polyvox_filament/android/../ios/include\"},{\"path\":\"F:/Projects/polyvox/polyvox_filament/android/../ios/include/stb\"},{\"path\":\"F:/Projects/polyvox/polyvox_filament/android/src/main/cpp\"}],\"isGenerated\":false,\"language\":\"C\",\"sources\":[\"../ios/include/material/image.c\",\"../ios/include/material/unlit_opaque.c\"]}],\"fullName\":\"libFILAMENT_SHADERS.so\",\"isGeneratorProvided\":false,\"linkFlags\":\"-static-libstdc++ -Wl,--build-id\u003dsha1 -Wl,--no-rosegment -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments\",\"linkLibraries\":\"-latomic -lm\",\"linkPath\":\"-LF:\\\\Projects\\\\polyvox\\\\polyvox_filament\\\\android\\\\src\\\\main\\\\jniLibs\\\\arm64-v8a\",\"linkerLanguage\":\"C\",\"name\":\"FILAMENT_SHADERS\",\"sourceDirectory\":\"F:/Projects/polyvox/polyvox_filament/android\",\"sysroot\":\"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/sysroot\",\"type\":\"SHARED_LIBRARY\"}]}]}],\"cookie\":\"\",\"inReplyTo\":\"codemodel\",\"type\":\"reply\"}\n",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "done executing cmake",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "write build output F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\\build_output.txt",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "write command file F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\\build_command.txt",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  },
+  {
+    "level": "INFO",
+    "message": "JSON generation completed without problems",
+    "file": "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "tag": "debug|arm64-v8a"
+  }
+]

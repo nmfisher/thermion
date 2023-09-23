@@ -32,7 +32,7 @@ import java.util.concurrent.Executors
 typealias EntityId = Int
 
 /** PolyvoxFilamentPlugin */
-class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadResourceFromOwner, FreeResourceFromOwner {
+class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadFilamentResourceFromOwner, FreeFilamentResourceFromOwner {
 
   private val lock = Object()
 

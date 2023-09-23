@@ -38,8 +38,8 @@ class NativeLibrary {
           ffi.Pointer<ffi.Void>, ffi.Pointer<ResourceLoaderWrapper>)>();
 
   ffi.Pointer<ResourceLoaderWrapper> make_resource_loader(
-    LoadResourceFromOwner loadFn,
-    FreeResourceFromOwner freeFn,
+    LoadFilamentResourceFromOwner loadFn,
+    FreeFilamentResourceFromOwner freeFn,
     ffi.Pointer<ffi.Void> owner,
   ) {
     return _make_resource_loader(
@@ -52,12 +52,12 @@ class NativeLibrary {
   late final _make_resource_loaderPtr = _lookup<
       ffi.NativeFunction<
           ffi.Pointer<ResourceLoaderWrapper> Function(
-              LoadResourceFromOwner,
-              FreeResourceFromOwner,
+              LoadFilamentResourceFromOwner,
+              FreeFilamentResourceFromOwner,
               ffi.Pointer<ffi.Void>)>>('make_resource_loader');
   late final _make_resource_loader = _make_resource_loaderPtr.asFunction<
-      ffi.Pointer<ResourceLoaderWrapper> Function(LoadResourceFromOwner,
-          FreeResourceFromOwner, ffi.Pointer<ffi.Void>)>();
+      ffi.Pointer<ResourceLoaderWrapper> Function(LoadFilamentResourceFromOwner,
+          FreeFilamentResourceFromOwner, ffi.Pointer<ffi.Void>)>();
 
   void delete_filament_viewer(
     ffi.Pointer<ffi.Void> viewer,
@@ -1387,9 +1387,9 @@ class ResourceLoaderWrapper extends ffi.Struct {
 
   external FreeResource mFreeResource;
 
-  external LoadResourceFromOwner mLoadResourceFromOwner;
+  external LoadFilamentResourceFromOwner mLoadFilamentResourceFromOwner;
 
-  external FreeResourceFromOwner mFreeResourceFromOwner;
+  external FreeFilamentResourceFromOwner mFreeFilamentResourceFromOwner;
 
   external ffi.Pointer<ffi.Void> mOwner;
 }
@@ -1398,10 +1398,10 @@ typedef LoadResource = ffi.Pointer<
     ffi.NativeFunction<ResourceBuffer Function(ffi.Pointer<ffi.Char> uri)>>;
 typedef FreeResource
     = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ResourceBuffer)>>;
-typedef LoadResourceFromOwner = ffi.Pointer<
+typedef LoadFilamentResourceFromOwner = ffi.Pointer<
     ffi.NativeFunction<
         ResourceBuffer Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Void>)>>;
-typedef FreeResourceFromOwner = ffi.Pointer<
+typedef FreeFilamentResourceFromOwner = ffi.Pointer<
     ffi
     .NativeFunction<ffi.Void Function(ResourceBuffer, ffi.Pointer<ffi.Void>)>>;
 typedef EntityId = ffi.Int32;

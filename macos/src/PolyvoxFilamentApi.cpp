@@ -20,7 +20,7 @@ extern "C" {
       return (void*) new FilamentViewer(context, loader);
   }
 
-  FLUTTER_PLUGIN_EXPORT ResourceLoaderWrapper* make_resource_loader(LoadResourceFromOwner loadFn, FreeResourceFromOwner freeFn, void* const owner) {
+  FLUTTER_PLUGIN_EXPORT ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* const owner) {
     return new ResourceLoaderWrapper(loadFn, freeFn, owner);
   }
 

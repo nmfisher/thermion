@@ -43,7 +43,7 @@ flutter:
       macos:
         pluginClass: SwiftPolyvoxFilamentPlugin
       windows:
-        pluginClass: PolyvoxFilamentPlugin
+        pluginClass: PolyvoxFilamentPluginCApi
       linux:
         pluginClass: PolyvoxFilamentPlugin
       web:

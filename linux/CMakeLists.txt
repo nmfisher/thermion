@@ -50,6 +50,9 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 
+add_compile_definitions(IS_DLL)
+
+
 # Source include directories and library dependencies. Add any plugin-specific
 # dependencies here.
 target_include_directories(${PLUGIN_NAME} INTERFACE

@@ -36,31 +36,31 @@ extern "C" {
 
     typedef struct ResourceBuffer ResourceBuffer;
     typedef ResourceBuffer (*FlutterFilamentLoadResource)(const char* uri);
-    typedef ResourceBuffer (*LoadResourceFromOwner)(const char* const, void* const owner);
+    typedef ResourceBuffer (*LoadFilamentResourceFromOwner)(const char* const, void* const owner);
     typedef void (*FlutterFilamentFreeResource)(ResourceBuffer);
-    typedef void (*FreeResourceFromOwner)(ResourceBuffer, void* const owner);
+    typedef void (*FreeFilamentResourceFromOwner)(ResourceBuffer, void* const owner);
     
     // this may be compiled as either C or C++, depending on which compiler is being invoked (e.g. binding to Swift will compile as C).
     // the former does not allow default initialization to be specified inline), so we need to explicitly set the unused members to nullptr
     struct ResourceLoaderWrapper {
       #if defined(__cplusplus)
-        ResourceLoaderWrapper(FlutterFilamentLoadResource loader, FlutterFilamentFreeResource freeResource) : mLoadResource(loader), mFreeResource(freeResource), mLoadResourceFromOwner(nullptr), mFreeResourceFromOwner(nullptr),
+        ResourceLoaderWrapper(FlutterFilamentLoadResource loader, FlutterFilamentFreeResource freeResource) : mLoadResource(loader), mFreeResource(freeResource), mLoadFilamentResourceFromOwner(nullptr), mFreeFilamentResourceFromOwner(nullptr),
         mOwner(nullptr) {}
         
-        ResourceLoaderWrapper(LoadResourceFromOwner loader, FreeResourceFromOwner freeResource, void* const owner) : mLoadResource(nullptr), mFreeResource(nullptr), mLoadResourceFromOwner(loader), mFreeResourceFromOwner(freeResource), mOwner(owner) {
+        ResourceLoaderWrapper(LoadFilamentResourceFromOwner loader, FreeFilamentResourceFromOwner freeResource, void* const owner) : mLoadResource(nullptr), mFreeResource(nullptr), mLoadFilamentResourceFromOwner(loader), mFreeFilamentResourceFromOwner(freeResource), mOwner(owner) {
             
         };
 
         ResourceBuffer load(const char* uri) const {
-          if(mLoadResourceFromOwner) {
-            return mLoadResourceFromOwner(uri, mOwner);
+          if(mLoadFilamentResourceFromOwner) {
+            return mLoadFilamentResourceFromOwner(uri, mOwner);
           }
           return mLoadResource(uri);
         }
 
         void free(ResourceBuffer rb) const {
-          if(mFreeResourceFromOwner) {
-            mFreeResourceFromOwner(rb, mOwner);
+          if(mFreeFilamentResourceFromOwner) {
+            mFreeFilamentResourceFromOwner(rb, mOwner);
           } else {
             mFreeResource(rb);
           }
@@ -68,8 +68,8 @@ extern "C" {
       #endif
         FlutterFilamentLoadResource mLoadResource;
         FlutterFilamentFreeResource mFreeResource;
-        LoadResourceFromOwner mLoadResourceFromOwner;
-        FreeResourceFromOwner mFreeResourceFromOwner;
+        LoadFilamentResourceFromOwner mLoadFilamentResourceFromOwner;
+        FreeFilamentResourceFromOwner mFreeFilamentResourceFromOwner;
         void* mOwner;
     };
     typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;

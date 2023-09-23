@@ -1,4 +1,4 @@
-#include "include/polyvox_filament/polyvox_filament_plugin.h"
+#include "polyvox_filament_plugin.h"
 
 // This must be included before many other Windows headers.
 #include <windows.h>
@@ -14,32 +14,26 @@
 #include <memory>
 #include <sstream>
 
-namespace {
+#include <GLFW/glfw3.h>
+#include "GL/GL.h"
+#include "GL/GLu.h"
 
-class PolyvoxFilamentPlugin : public flutter::Plugin {
- public:
-  static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
+#include "PolyvoxFilamentApi.h"
 
-  PolyvoxFilamentPlugin();
-
-  virtual ~PolyvoxFilamentPlugin();
-
- private:
-  // Called when a method is called on this plugin's channel from Dart.
-  void HandleMethodCall(
-      const flutter::MethodCall<flutter::EncodableValue> &method_call,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-};
+namespace polyvox_filament {
 
 // static
 void PolyvoxFilamentPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "polyvox_filament",
+          registrar->messenger(), "app.polyvox.filament/event",
           &flutter::StandardMethodCodec::GetInstance());
 
-  auto plugin = std::make_unique<PolyvoxFilamentPlugin>();
+  auto plugin = std::make_unique<PolyvoxFilamentPlugin>(
+    registrar->texture_registrar(),
+    registrar
+  );
 
   channel->SetMethodCallHandler(
       [plugin_pointer = plugin.get()](const auto &call, auto result) {
@@ -49,34 +43,139 @@ void PolyvoxFilamentPlugin::RegisterWithRegistrar(
   registrar->AddPlugin(std::move(plugin));
 }
 
-PolyvoxFilamentPlugin::PolyvoxFilamentPlugin() {}
+PolyvoxFilamentPlugin::PolyvoxFilamentPlugin(
+  flutter::TextureRegistrar* textureRegistrar,
+  flutter::PluginRegistrarWindows *pluginRegistrar) : _textureRegistrar(textureRegistrar), _pluginRegistrar(pluginRegistrar) {
+
+}
 
 PolyvoxFilamentPlugin::~PolyvoxFilamentPlugin() {}
 
-static FlMethodResponse* _set_bloom(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) {
-  FlValue* args = fl_method_call_get_args(method_call);
-  set_bloom(self->viewer, fl_value_get_float(args));
-  return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
+
+static ResourceBuffer _loadResource(const char* name) {
+  auto rb = ResourceBuffer(nullptr, 0, 0);
+  return rb;
+}
+
+static void _freeResource(ResourceBuffer rbuf) {
+  
+}
+
+void PolyvoxFilamentPlugin::CreateFilamentViewer(
+  const flutter::MethodCall<flutter::EncodableValue> &methodCall, 
+  std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    auto window = glfwGetCurrentContext();
+    const ResourceLoaderWrapper* const resourceLoader = new ResourceLoaderWrapper(_loadResource, _freeResource);
+    _viewer = (void*) create_filament_viewer(window, resourceLoader);
+    create_swap_chain(_viewer, window, 1024, 768);
+    // result->Success(flutter::EncodableValue((long)_viewer));
+    result->Success(flutter::EncodableValue(0));
+}
+
+void PolyvoxFilamentPlugin::Render(
+  const flutter::MethodCall<flutter::EncodableValue> &methodCall, 
+  std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    render(_viewer, 0);
+    _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
+    result->Success(flutter::EncodableValue(true));
+}
+
+void PolyvoxFilamentPlugin::CreateTexture(
+  const flutter::MethodCall<flutter::EncodableValue> &methodCall, 
+  std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    
+  // HWND m_hWnd = _pluginRegistrar->GetView()->GetNativeWindow();
+  glfwInit();
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    
+  glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+  GLFWwindow* window = glfwCreateWindow(1024, 768, "", nullptr, nullptr);
+  if (!window) {
+      std::cout << "Failed to create GLFW window" << std::endl;
+      glfwTerminate();
+      return;
+  }
+
+  glfwMakeContextCurrent(window);
+
+  glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  auto data = new uint8_t[1024*768*4];
+  glReadPixels(0,0, 1024, 768, GL_RGBA, GL_UNSIGNED_BYTE, data); 
+  _pixelData.reset(data);
+
+  GLuint glTextureId = 0;
+
+  auto textureData = new uint8_t[1024*768*4];
+  for(int y = 0; y < 768; y++) {
+    for(int x=0; x < 1024; x++) {
+      textureData[y*768 + (x*4)] = 0;
+      textureData[y*768 + (x*4+1)] = 255;
+      textureData[y*768 + (x*4+2)] = 0;
+      textureData[y*768 + (x*4+3)] = 255;
+    }
+  }
+
+  glGenTextures(1, &glTextureId);
+
+  glBindTexture(GL_TEXTURE_2D, glTextureId);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1024, 768, 0, GL_RGBA,
+                  GL_UNSIGNED_BYTE, textureData);
+  
+  _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
+  _pixelBuffer->buffer = _pixelData.get();
+
+  _pixelBuffer->width = 1024;
+  _pixelBuffer->height = 768;
+
+  _texture = std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
+      [=](size_t width, size_t height) -> const FlutterDesktopPixelBuffer* {
+        std::cout << "Copying pixel buffer for " << width << "x" << height << std::endl;
+        uint8_t* data = _pixelData.get();
+        glReadPixels(0,0, (GLsizei)width, (GLsizei)height, GL_RGBA, GL_UNSIGNED_BYTE, data); 
+        return _pixelBuffer.get();
+      }));
+      
+  std::cout << "Registering texture" << std::endl;
+
+  _flutterTextureId = _textureRegistrar->RegisterTexture(_texture.get());
+  _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
+  std::cout << "Registered " << _flutterTextureId << std::endl;
+
+  result->Success(flutter::EncodableValue(_flutterTextureId));
 }
 
 void PolyvoxFilamentPlugin::HandleMethodCall(
-    const flutter::MethodCall<flutter::EncodableValue> &method_call,
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
- if(strcmp(method, "createFilamentViewer") == 0) {
-    response = _create_filament_viewer(self, method_call);
-  } else if(strcmp(method, "createTexture") == 0) {
-    response = _create_texture(self, method_call);    
-  } else if(strcmp(method, "updateViewportAndCameraProjection")==0){ 
-    response = _update_viewport_and_camera_projection(self, method_call);
-  } 
+
+    std::cout << methodCall.method_name() << std::endl;
+
+   if(methodCall.method_name() == "createFilamentViewer") {
+    CreateFilamentViewer(methodCall, std::move(result));
+  } else if(methodCall.method_name() ==  "createTexture") {
+    CreateTexture(methodCall, std::move(result));    
+  } //else if(strcmp(method, "updateViewportAndCameraProjection")==0){ 
+  //   response = _update_viewport_and_camera_projection(methodCall);
+  // } 
   // else if(strcmp(method, "getAssetManager") ==0){ 
-  //   response = _get_asset_manager(self, method_call);
+  //   response = _get_asset_manager(self, methodCall);
   // } else if(strcmp(method, "setToneMapping") == 0) {
-  //   response = _set_tone_mapping(self, method_call);
+  //   response = _set_tone_mapping(self, methodCall);
   // } else if(strcmp(method, "setBloom") == 0) {
-  //   response = _set_bloom(self, method_call);
+  //   response = _set_bloom(self, methodCall);
   // } else if(strcmp(method, "resize") == 0) {
-  //   response = _resize(self, method_call);
+  //   response = _resize(self, methodCall);
   // } else if(strcmp(method, "getContext") == 0) {
   //   g_autoptr(FlValue) result =   
   //        fl_value_new_int(reinterpret_cast<int64_t>(glXGetCurrentContext()));   
@@ -91,7 +190,7 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
   //        fl_value_new_int(reinterpret_cast<int64_t>(resourceLoader));   
   //   response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
   // } else if(strcmp(method, "setRendering") == 0) {
-  //   self->rendering =  fl_value_get_bool(fl_method_call_get_args(method_call));
+  //   self->rendering =  fl_value_get_bool(fl_methodCall_get_args(methodCall));
   //   response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("OK")));
   // } else if(strcmp(method, "loadSkybox") == 0) {
   //   response = _loadSkybox(self, method_call);
@@ -183,14 +282,9 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
   //   response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   // }
 
-  fl_method_call_respond(method_call, response, nullptr);
+  // fl_method_call_respond(method_call, response, nullptr);
 }
 
 }  // namespace
 
-void PolyvoxFilamentPluginRegisterWithRegistrar(
-    FlutterDesktopPluginRegistrarRef registrar) {
-  PolyvoxFilamentPlugin::RegisterWithRegistrar(
-      flutter::PluginRegistrarManager::GetInstance()
-          ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
-}
+

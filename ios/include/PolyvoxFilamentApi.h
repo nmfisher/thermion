@@ -3,10 +3,23 @@
 
 #include "ResourceBuffer.hpp"
 
+#ifdef _WIN32 
+#ifdef IS_DLL
+#define FLUTTER_PLUGIN_EXPORT __declspec( dllimport )
+#else
+#define FLUTTER_PLUGIN_EXPORT __declspec( dllexport )
+#endif
+#else
+#define FLUTTER_PLUGIN_EXPORT __attribute__((visibility("default")))
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef int32_t EntityId;
 
 const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader);
-ResourceLoaderWrapper* make_resource_loader(LoadResourceFromOwner loadFn, FreeResourceFromOwner freeFn, void* owner);
+ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* owner);
 void delete_filament_viewer(const void* const viewer);
 void* get_asset_manager(const void* const viewer);
 void create_render_target(const void* const viewer, uint32_t textureId, uint32_t width, uint32_t height);
@@ -98,6 +111,7 @@ void set_camera_focus_distance(const void* const viewer, float focusDistance);
 int hide_mesh(void* assetManager, EntityId asset, const char* meshName);
 int reveal_mesh(void* assetManager, EntityId asset, const char* meshName);
 void ios_dummy();
-
-
+#ifdef __cplusplus
+}
+#endif
 #endif

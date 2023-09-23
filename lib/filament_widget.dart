@@ -50,10 +50,22 @@ class _RenderResizeObserver extends RenderProxyBox {
 
 class FilamentWidget extends StatefulWidget {
   final FilamentController controller;
+  
+  ///
+  /// The content to render before the texture widget is available. 
+  /// The default is a solid red Container, intentionally chosen to make it clear that there will be at least one frame where the Texture widget is not being rendered.
+  /// 
+  late final Widget initial;
   final void Function()? onResize;
 
-  const FilamentWidget({Key? key, required this.controller, this.onResize})
-      : super(key: key);
+  FilamentWidget({Key? key, required this.controller, this.onResize, Widget? initial})
+      : super(key: key) {
+        if(initial != null) {
+          this.initial = initial;
+        } else { 
+          this.initial = Container(color:Colors.red);
+        }
+      }
 
   @override
   _FilamentWidgetState createState() => _FilamentWidgetState();
@@ -141,7 +153,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: ((context, constraints) {
       if (_textureId == null) {
-        return Container(color: Colors.transparent);
+        return widget.initial;
       }
 
       var texture = Texture(

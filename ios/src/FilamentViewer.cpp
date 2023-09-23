@@ -2,6 +2,7 @@
   #include "TargetConditionals.h"
 #endif
 
+#pragma comment(lib, "Ws2_32.lib")
 
 /*
  * Copyright (C) 2019 The Android Open Source Project

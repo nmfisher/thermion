@@ -99,9 +99,9 @@ class FilamentController {
     _viewer = await _channel
         .invokeMethod("createFilamentViewer", [size.width, size.height]);
 
-    await _channel.invokeMethod("updateViewportAndCameraProjection",
-        [size.width.toInt(), size.height.toInt(), 1.0]);
-    _assetManager = await _channel.invokeMethod("getAssetManager");
+    // await _channel.invokeMethod("updateViewportAndCameraProjection",
+    //     [size.width.toInt(), size.height.toInt(), 1.0]);
+    // _assetManager = await _channel.invokeMethod("getAssetManager");
 
     _textureIdController.add(_textureId);
 

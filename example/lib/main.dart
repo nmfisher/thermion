@@ -24,7 +24,7 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
     return MaterialApp(
         // showPerformanceOverlay: true,
         color: Colors.white,
-        home: Scaffold(backgroundColor: Colors.white, body: ExampleWidget()));
+        home: Scaffold(backgroundColor: Colors.lightBlue, body: ExampleWidget()));
   }
 }
 
@@ -245,8 +245,9 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     }, "Set tone mapping to linear"));
 
     return Stack(children: [
-      Positioned.fill(
+      Positioned(
           bottom: 100,
+          height:400, width:400,
           child: FilamentGestureDetector(
               showControlOverlay: true,
               controller: _filamentController,

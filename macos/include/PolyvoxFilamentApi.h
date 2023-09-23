@@ -6,7 +6,7 @@
 typedef int32_t EntityId;
 
 const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader);
-ResourceLoaderWrapper* make_resource_loader(LoadResourceFromOwner loadFn, FreeResourceFromOwner freeFn, void* owner);
+ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* owner);
 void delete_filament_viewer(const void* const viewer);
 void* get_asset_manager(const void* const viewer);
 void create_render_target(const void* const viewer, intptr_t textureId, uint32_t width, uint32_t height);

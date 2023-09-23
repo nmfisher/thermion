@@ -1,0 +1,388 @@
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"supportedProtocolVersions":[{"isExperimental":true,"major":1,"minor":2}],"type":"hello"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {
+  "type": "handshake",
+  "cookie": "gradle-cmake-cookie",
+  "protocolVersion": {
+    "isExperimental": true,
+    "major": 1,
+    "minor": 2
+  },
+  "sourceDirectory": "F:/Projects/polyvox/polyvox_filament/android",
+  "buildDirectory": "F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a",
+  "generator": "Ninja"
+}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"gradle-cmake-cookie","inReplyTo":"handshake","type":"reply"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {
+  "type": "configure",
+  "cacheArguments": [
+    "",
+    "-DCMAKE_FIND_ROOT_PATH\u003dF:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\prefab\\arm64-v8a\\prefab",
+    "-DCMAKE_BUILD_TYPE\u003dDebug",
+    "-DCMAKE_TOOLCHAIN_FILE\u003dC:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653\\build\\cmake\\android.toolchain.cmake",
+    "-DANDROID_ABI\u003darm64-v8a",
+    "-DANDROID_NDK\u003dC:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653",
+    "-DANDROID_PLATFORM\u003dandroid-22",
+    "-DCMAKE_ANDROID_ARCH_ABI\u003darm64-v8a",
+    "-DCMAKE_ANDROID_NDK\u003dC:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653",
+    "-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON",
+    "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dF:\\Projects\\polyvox\\polyvox_filament\\example\\build\\polyvox_filament\\intermediates\\cmake\\debug\\obj\\arm64-v8a",
+    "-DCMAKE_MAKE_PROGRAM\u003dC:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\ninja.exe",
+    "-DCMAKE_SYSTEM_NAME\u003dAndroid",
+    "-DCMAKE_SYSTEM_VERSION\u003d22"
+  ]
+}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"CMake Warning (dev) in CMakeLists.txt:\n  No project() command is present.  The top-level CMakeLists.txt file must\n  contain a literal, direct call to the project() command.  Add a line of\n  code such as\n\n    project(ProjectName)\n\n  near the top of the file, but after cmake_minimum_required().\n\n  CMake is pretending there is a \"project(Project)\" command on the first\n  line.\nThis warning is for project developers.  Use -Wno-dev to suppress it.\n","title":"Warning","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: CMake Warning (dev) in CMakeLists.txt:
+  No project() command is present.  The top-level CMakeLists.txt file must
+  contain a literal, direct call to the project() command.  Add a line of
+  code such as
+
+    project(ProjectName)
+
+  near the top of the file, but after cmake_minimum_required().
+
+  CMake is pretending there is a "project(Project)" command on the first
+  line.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+CMAKE SERVER: CMake Warning (dev) in CMakeLists.txt:
+  No project() command is present.  The top-level CMakeLists.txt file must
+  contain a literal, direct call to the project() command.  Add a line of
+  code such as
+
+    project(ProjectName)
+
+  near the top of the file, but after cmake_minimum_required().
+
+  CMake is pretending there is a "project(Project)" command on the first
+  line.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):\n  An old version of CMake is being used that cannot automatically detect\n  compiler attributes.  Compiler identification is being bypassed.  Some\n  values may be wrong or missing.  Update to CMake 3.19 or newer to use\n  CMake's built-in compiler identification.\nCall Stack (most recent call first):\n  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)\n  C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineSystem.cmake:93 (include)\n\n","title":"Warning","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)
+  C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineSystem.cmake:93 (include)
+
+CMAKE SERVER: CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)
+  C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineSystem.cmake:93 (include)
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Detecting C compiler ABI info","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Detecting C compiler ABI info
+CMAKE SERVER: Detecting C compiler ABI info
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):\n  An old version of CMake is being used that cannot automatically detect\n  compiler attributes.  Compiler identification is being bypassed.  Some\n  values may be wrong or missing.  Update to CMake 3.19 or newer to use\n  CMake's built-in compiler identification.\nCall Stack (most recent call first):\n  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)\n  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)\n  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)\n\n","title":"Warning","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)
+  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)
+  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)
+
+CMAKE SERVER: CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)
+  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)
+  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","progressCurrent":33,"progressMaximum":1000,"progressMessage":"Configuring","progressMinimum":0,"type":"progress"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Detecting C compiler ABI info - done","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Detecting C compiler ABI info - done
+CMAKE SERVER: Detecting C compiler ABI info - done
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Check for working C compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe - skipped","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Check for working C compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe - skipped
+CMAKE SERVER: Check for working C compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe - skipped
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Detecting C compile features","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Detecting C compile features
+CMAKE SERVER: Detecting C compile features
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Detecting C compile features - done","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Detecting C compile features - done
+CMAKE SERVER: Detecting C compile features - done
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Detecting CXX compiler ABI info","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Detecting CXX compiler ABI info
+CMAKE SERVER: Detecting CXX compiler ABI info
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):\n  An old version of CMake is being used that cannot automatically detect\n  compiler attributes.  Compiler identification is being bypassed.  Some\n  values may be wrong or missing.  Update to CMake 3.19 or newer to use\n  CMake's built-in compiler identification.\nCall Stack (most recent call first):\n  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)\n  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)\n  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)\n\n","title":"Warning","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)
+  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)
+  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)
+
+CMAKE SERVER: CMake Warning at C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake:418 (message):
+  An old version of CMake is being used that cannot automatically detect
+  compiler attributes.  Compiler identification is being bypassed.  Some
+  values may be wrong or missing.  Update to CMake 3.19 or newer to use
+  CMake's built-in compiler identification.
+Call Stack (most recent call first):
+  C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake:54 (include)
+  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake:6 (include)
+  F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeTmp/CMakeLists.txt:2 (project)
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","progressCurrent":65,"progressMaximum":1000,"progressMessage":"Configuring","progressMinimum":0,"type":"progress"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Detecting CXX compiler ABI info - done","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Detecting CXX compiler ABI info - done
+CMAKE SERVER: Detecting CXX compiler ABI info - done
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Check for working CXX compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe - skipped","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Check for working CXX compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe - skipped
+CMAKE SERVER: Check for working CXX compiler: C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe - skipped
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Detecting CXX compile features","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Detecting CXX compile features
+CMAKE SERVER: Detecting CXX compile features
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Detecting CXX compile features - done","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Detecting CXX compile features - done
+CMAKE SERVER: Detecting CXX compile features - done
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"Configuring done","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Configuring done
+CMAKE SERVER: Configuring done
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","message":"CMake Deprecation Warning:\n  The 'cmake-server(7)' is deprecated.  Please port clients to use the\n  'cmake-file-api(7)' instead.\n\n","title":"Warning","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: CMake Deprecation Warning:
+  The 'cmake-server(7)' is deprecated.  Please port clients to use the
+  'cmake-file-api(7)' instead.
+
+CMAKE SERVER: CMake Deprecation Warning:
+  The 'cmake-server(7)' is deprecated.  Please port clients to use the
+  'cmake-file-api(7)' instead.
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"configure","type":"reply"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"type":"compute"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"compute","progressCurrent":100,"progressMaximum":1000,"progressMessage":"Generating","progressMinimum":0,"type":"progress"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"compute","progressCurrent":1000,"progressMaximum":1000,"progressMessage":"Generating","progressMinimum":0,"type":"progress"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"compute","message":"Generating done","type":"message"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: Generating done
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"cookie":"","inReplyTo":"compute","type":"reply"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"type":"cmakeInputs"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"buildFiles":[{"isCMake":true,"isTemporary":false,"sources":["C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineSystem.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Determine.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeSystem.cmake.in","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeSystemSpecificInitialize.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Initialize.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCCompiler.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompiler.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Determine-C.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android/Determine-Compiler.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeFindBinUtils.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang-FindBinUtils.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCCompiler.cmake.in","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCXXCompiler.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompiler.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Determine-CXX.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android/Determine-Compiler.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeFindBinUtils.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang-FindBinUtils.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCXXCompiler.cmake.in","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeSystemSpecificInformation.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeGenericSystem.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeInitializeConfigs.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Linux.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/UnixPaths.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCInformation.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeLanguageInformation.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang-C.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/CMakeCommonCompilerMacros.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/GNU.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/CMakeCommonCompilerMacros.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Internal/CMakeCheckCompilerFlag.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Clang-C.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Clang.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCommonLanguageInclude.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCCompiler.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCompilerCommon.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompilerABI.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeParseImplicitIncludeInfo.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeParseImplicitLinkInfo.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCompilerCommon.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCCompilerABI.c","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompileFeatures.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Internal/FeatureTesting.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCCompiler.cmake.in","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCXXInformation.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeLanguageInformation.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang-CXX.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Compiler/Clang.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Clang-CXX.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Platform/Android-Clang.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCommonLanguageInclude.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCXXCompiler.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCompilerCommon.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompilerABI.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeParseImplicitIncludeInfo.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeParseImplicitLinkInfo.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeTestCompilerCommon.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCXXCompilerABI.cpp","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeDetermineCompileFeatures.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/Internal/FeatureTesting.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18/Modules/CMakeCXXCompiler.cmake.in"]},{"isCMake":false,"isTemporary":false,"sources":["CMakeLists.txt","C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android-legacy.toolchain.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/platforms.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/compiler_id.cmake","C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/build/cmake/android.toolchain.cmake"]},{"isCMake":false,"isTemporary":true,"sources":[".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeSystem.cmake",".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeCCompiler.cmake",".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeCXXCompiler.cmake",".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeCCompiler.cmake",".cxx/cmake/debug/arm64-v8a/CMakeFiles/3.18.1-g262b901-dirty/CMakeCXXCompiler.cmake"]}],"cmakeRootDirectory":"C:/Users/Nick/AppData/Local/Android/Sdk/cmake/3.18.1/share/cmake-3.18","cookie":"","inReplyTo":"cmakeInputs","sourceDirectory":"F:/Projects/polyvox/polyvox_filament/android","type":"reply"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"type":"codemodel"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
+CMAKE SERVER: 
+
+CMAKE SERVER: [== "CMake Server" ==[
+
+CMAKE SERVER: {"configurations":[{"name":"Debug","projects":[{"buildDirectory":"F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a","hasInstallRule":false,"minimumCMakeVersion":"3.10","name":"Project","sourceDirectory":"F:/Projects/polyvox/polyvox_filament/android","targets":[{"artifacts":["F:/Projects/polyvox/polyvox_filament/example/build/polyvox_filament/intermediates/cmake/debug/obj/arm64-v8a/libpolyvox_filament_android.so"],"buildDirectory":"F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a","fileGroups":[{"compileFlags":"-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -std=c++17 -fno-limit-debug-info  -fPIC","defines":["polyvox_filament_android_EXPORTS"],"includePath":[{"path":"F:/Projects/polyvox/polyvox_filament/android/../ios/src"},{"path":"F:/Projects/polyvox/polyvox_filament/android/../ios/include"},{"path":"F:/Projects/polyvox/polyvox_filament/android/../ios/include/stb"},{"path":"F:/Projects/polyvox/polyvox_filament/android/src/main/cpp"}],"isGenerated":false,"language":"CXX","sources":["../ios/src/PolyvoxFilamentApi.cpp","src/main/cpp/FilamentAndroid.cpp","../ios/src/AssetManager.cpp","../ios/src/FilamentViewer.cpp","../ios/src/StreamBufferAdapter.cpp","../ios/src/TimeIt.cpp"]}],"fullName":"libpolyvox_filament_android.so","isGeneratorProvided":false,"linkFlags":"-static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments","linkLibraries":"F:\\Projects\\polyvox\\polyvox_filament\\example\\build\\polyvox_filament\\intermediates\\cmake\\debug\\obj\\arm64-v8a\\libFILAMENT_SHADERS.so  -landroid  -llog  -lgltfio_core  -lfilament  -lbackend  -lgeometry  -lfilameshio  -lfilamat  -lfilabridge  -lfilament-iblprefilter  -lcamutils  -lfilaflat  -ldracodec  -libl  -lktxreader  -limageio  -limage  -lutils  -ltinyexr  -lstb  -lbluevk  -lvkshaders  -luberzlib  -lsmol-v  -luberarchive  -lmeshoptimizer  -lgeometry  -lbasis_transcoder  -lEGL  -lGLESv3  -lpng  -lz  -lzstd  -lfilameshio  -lfilamat  -lfilabridge  -lfilament-iblprefilter  -lcamutils  -lfilaflat  -ldracodec  -libl  -lktxreader  -limageio  -limage  -lutils  -ltinyexr  -lstb  -lbluevk  -lvkshaders  -luberzlib  -lsmol-v  -luberarchive  -lmeshoptimizer  -lbasis_transcoder  -lEGL  -lGLESv3  -lpng  -lz  -lzstd  -latomic -lm","linkPath":"-LF:\\Projects\\polyvox\\polyvox_filament\\android\\src\\main\\jniLibs\\arm64-v8a","linkerLanguage":"CXX","name":"polyvox_filament_android","sourceDirectory":"F:/Projects/polyvox/polyvox_filament/android","sysroot":"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/sysroot","type":"SHARED_LIBRARY"},{"artifacts":["F:/Projects/polyvox/polyvox_filament/example/build/polyvox_filament/intermediates/cmake/debug/obj/arm64-v8a/libFILAMENT_SHADERS.so"],"buildDirectory":"F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a","fileGroups":[{"compileFlags":"-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -fno-limit-debug-info  -fPIC","defines":["FILAMENT_SHADERS_EXPORTS"],"includePath":[{"path":"F:/Projects/polyvox/polyvox_filament/android/../ios/src"},{"path":"F:/Projects/polyvox/polyvox_filament/android/../ios/include"},{"path":"F:/Projects/polyvox/polyvox_filament/android/../ios/include/stb"},{"path":"F:/Projects/polyvox/polyvox_filament/android/src/main/cpp"}],"isGenerated":false,"language":"C","sources":["../ios/include/material/image.c","../ios/include/material/unlit_opaque.c"]}],"fullName":"libFILAMENT_SHADERS.so","isGeneratorProvided":false,"linkFlags":"-static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments","linkLibraries":"-latomic -lm","linkPath":"-LF:\\Projects\\polyvox\\polyvox_filament\\android\\src\\main\\jniLibs\\arm64-v8a","linkerLanguage":"C","name":"FILAMENT_SHADERS","sourceDirectory":"F:/Projects/polyvox/polyvox_filament/android","sysroot":"C:/Users/Nick/AppData/Local/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/windows-x86_64/sysroot","type":"SHARED_LIBRARY"}]}]}],"cookie":"","inReplyTo":"codemodel","type":"reply"}
+
+CMAKE SERVER: ]== "CMake Server" ==]
+
