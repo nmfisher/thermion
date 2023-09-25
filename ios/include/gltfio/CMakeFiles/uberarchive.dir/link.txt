@@ -1,2 +1,0 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc -S libuberarchive.a CMakeFiles/uberarchive.dir/dummy.c.o CMakeFiles/uberarchive.dir/materials/uberarchive.apple.S.o
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib -no_warning_for_no_symbols libuberarchive.a

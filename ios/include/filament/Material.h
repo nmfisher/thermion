@@ -22,11 +22,9 @@
 #include <filament/MaterialEnums.h>
 #include <filament/MaterialInstance.h>
 
-#include <backend/CallbackHandler.h>
 #include <backend/DriverEnums.h>
 
 #include <utils/compiler.h>
-#include <utils/Invocable.h>
 
 #include <math/mathfwd.h>
 
@@ -151,60 +149,6 @@ public:
     private:
         friend class FMaterial;
     };
-
-    using CompilerPriorityQueue = backend:: CompilerPriorityQueue;
-
-    /**
-     * Asynchronously ensures that a subset of this Material's variants are compiled. After issuing
-     * several Material::compile() calls in a row, it is recommended to call Engine::flush()
-     * such that the backend can start the compilation work as soon as possible.
-     * The provided callback is guaranteed to be called on the main thread after all specified
-     * variants of the material are compiled. This can take hundreds of milliseconds.
-     *
-     * If all the material's variants are already compiled, the callback will be scheduled as
-     * soon as possible, but this might take a few dozen millisecond, corresponding to how
-     * many previous frames are enqueued in the backend. This also varies by backend. Therefore,
-     * it is recommended to only call this method once per material shortly after creation.
-     *
-     * If the same variant is scheduled for compilation multiple times, the first scheduling
-     * takes precedence; later scheduling are ignored.
-     *
-     * caveat: A consequence is that if a variant is scheduled on the low priority queue and later
-     * scheduled again on the high priority queue, the later scheduling is ignored.
-     * Therefore, the second callback could be called before the variant is compiled.
-     * However, the first callback, if specified, will trigger as expected.
-     *
-     * The callback is guaranteed to be called. If the engine is destroyed while some material
-     * variants are still compiling or in the queue, these will be discarded and the corresponding
-     * callback will be called. In that case however the Material pointer passed to the callback
-     * is guaranteed to be invalid (either because it's been destroyed by the user already, or,
-     * because it's been cleaned-up by the Engine).
-     *
-     * @param priority      Which priority queue to use, LOW or HIGH.
-     * @param variants      Variants to include to the compile command.
-     * @param handler       Handler to dispatch the callback or nullptr for the default handler
-     * @param callback      callback called on the main thread when the compilation is done on
-     *                      by backend.
-     */
-    void compile(CompilerPriorityQueue priority,
-            UserVariantFilterMask variants,
-            backend::CallbackHandler* handler = nullptr,
-            utils::Invocable<void(Material*)>&& callback = {}) noexcept;
-
-    inline void compile(CompilerPriorityQueue priority,
-            UserVariantFilterBit variants,
-            backend::CallbackHandler* handler = nullptr,
-            utils::Invocable<void(Material*)>&& callback = {}) noexcept {
-        compile(priority, UserVariantFilterMask(variants), handler,
-                std::forward<utils::Invocable<void(Material*)>>(callback));
-    }
-
-    inline void compile(CompilerPriorityQueue priority,
-            backend::CallbackHandler* handler = nullptr,
-            utils::Invocable<void(Material*)>&& callback = {}) noexcept {
-        compile(priority, UserVariantFilterBit::ALL, handler,
-                std::forward<utils::Invocable<void(Material*)>>(callback));
-    }
 
     /**
      * Creates a new instance of this material. Material instances should be freed using

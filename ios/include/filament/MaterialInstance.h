@@ -52,7 +52,6 @@ class UTILS_PUBLIC MaterialInstance : public FilamentAPI {
 public:
     using CullingMode = filament::backend::CullingMode;
     using TransparencyMode = filament::TransparencyMode;
-    using DepthFunc = filament::backend::SamplerCompareFunc;
     using StencilCompareFunc = filament::backend::SamplerCompareFunc;
     using StencilOperation = filament::backend::StencilOperation;
     using StencilFace = filament::backend::StencilFace;
@@ -367,16 +366,6 @@ public:
      * Overrides the default depth testing state that was set on the material.
      */
     void setDepthCulling(bool enable) noexcept;
-
-    /**
-     * Overrides the default depth function state that was set on the material.
-     */
-    void setDepthFunc(DepthFunc depthFunc) noexcept;
-
-    /**
-     * Returns the depth function state.
-     */
-    DepthFunc getDepthFunc() const noexcept;
 
     /**
      * Returns whether depth culling is enabled.

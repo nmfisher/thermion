@@ -27,6 +27,10 @@ extern "C" {
     struct ResourceBuffer {
         #if defined(__cplusplus)
         ResourceBuffer(const void* const data, const uint32_t size, const uint32_t id) : data(data), size(size), id(id) {};
+        ResourceBuffer(const ResourceBuffer& rb) : data(rb.data), size(rb.size), id(rb.id) { };
+        ResourceBuffer(const ResourceBuffer&& rb) : data(rb.data), size(rb.size), id(rb.id) { };
+        ResourceBuffer& operator=(const ResourceBuffer& other) = delete;
+
         #endif
         const void * const data;
         const uint32_t size;

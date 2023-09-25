@@ -707,9 +707,6 @@ public:
          * The viewport, projection and model matrices can be obtained from Camera. Because
          * pick() has some latency, it might be more accurate to obtain these values at the
          * time the View::pick() call is made.
-         *
-         * Note: if the Engine is running at FEATURE_LEVEL_0, the precision or `depth` and
-         *       `fragCoords.z` is only 8-bits.
          */
         math::float3 fragCoords;        //! screen space coordinates in GL convention
     };
@@ -806,37 +803,6 @@ public:
     PickingQuery& pick(uint32_t x, uint32_t y, backend::CallbackHandler* handler,
             PickingQueryResultCallback callback) noexcept;
 
-    /**
-     * Set the value of material global variables. There are up-to four such variable each of
-     * type float4. These variables can be read in a user Material with
-     * `getMaterialGlobal{0|1|2|3}()`. All variable start with a default value of { 0, 0, 0, 1 }
-     *
-     * @param index index of the variable to set between 0 and 3.
-     * @param value new value for the variable.
-     * @see getMaterialGlobal
-     */
-    void setMaterialGlobal(uint32_t index, math::float4 const& value);
-
-    /**
-     * Get the value of the material global variables.
-     * All variable start with a default value of { 0, 0, 0, 1 }
-     *
-     * @param index index of the variable to set between 0 and 3.
-     * @return current value of the variable.
-     * @see setMaterialGlobal
-     */
-    math::float4 getMaterialGlobal(uint32_t index) const;
-
-    /**
-     * Get an Entity representing the large scale fog object.
-     * This entity is always inherited by the View's Scene.
-     *
-     * It is for example possible to create a TransformManager component with this
-     * Entity and apply a transformation globally on the fog.
-     *
-     * @return an Entity representing the large scale fog object.
-     */
-    utils::Entity getFogEntity() const noexcept;
 
     /**
      * List of available ambient occlusion techniques

@@ -26,9 +26,6 @@
 
 #include <backend/DriverEnums.h>
 
-#include <utility>
-#include <vector>
-
 namespace filament::backend {
 
 /**
@@ -38,31 +35,8 @@ class PlatformEGL : public OpenGLPlatform {
 public:
 
     PlatformEGL() noexcept;
-    bool isExtraContextSupported() const noexcept override;
-    void createContext(bool shared) override;
 
 protected:
-
-    // --------------------------------------------------------------------------------------------
-    // Helper for EGL configs and attributes parameters
-
-    class Config {
-    public:
-        Config();
-        Config(std::initializer_list<std::pair<EGLint, EGLint>> list);
-        EGLint& operator[](EGLint name);
-        EGLint operator[](EGLint name) const;
-        void erase(EGLint name) noexcept;
-        EGLint const* data() const noexcept {
-            return reinterpret_cast<EGLint const*>(mConfig.data());
-        }
-        size_t size() const noexcept {
-            return mConfig.size();
-        }
-    private:
-        std::vector<std::pair<EGLint, EGLint>> mConfig = {{ EGL_NONE, EGL_NONE }};
-    };
-
     // --------------------------------------------------------------------------------------------
     // Platform Interface
 
@@ -105,8 +79,6 @@ protected:
      * @param name a string giving some context on the error. Typically __func__.
      */
     static void logEglError(const char* name) noexcept;
-    static void logEglError(const char* name, EGLint error) noexcept;
-    static const char* getEglErrorName(EGLint error) noexcept;
 
     /**
      * Calls glGetError() to clear the current error flags. logs a warning to log.w if
@@ -126,8 +98,6 @@ protected:
     EGLSurface mCurrentReadSurface = EGL_NO_SURFACE;
     EGLSurface mEGLDummySurface = EGL_NO_SURFACE;
     EGLConfig mEGLConfig = EGL_NO_CONFIG_KHR;
-    Config mContextAttribs;
-    std::vector<EGLContext> mAdditionalContexts;
 
     // supported extensions detected at runtime
     struct {
@@ -135,16 +105,13 @@ protected:
             bool OES_EGL_image_external_essl3 = false;
         } gl;
         struct {
-            bool ANDROID_recordable = false;
-            bool KHR_create_context = false;
-            bool KHR_gl_colorspace = false;
             bool KHR_no_config_context = false;
+            bool KHR_gl_colorspace = false;
         } egl;
     } ext;
 
-    void initializeGlExtensions() noexcept;
-
 private:
+    void initializeGlExtensions() noexcept;
     EGLConfig findSwapChainConfig(uint64_t flags) const;
 };
 

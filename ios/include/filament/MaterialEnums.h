@@ -20,7 +20,6 @@
 #define TNT_FILAMENT_MATERIAL_ENUM_H
 
 #include <utils/bitset.h>
-#include <utils/BitmaskEnum.h>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -28,7 +27,7 @@
 namespace filament {
 
 // update this when a new version of filament wouldn't work with older materials
-static constexpr size_t MATERIAL_VERSION = 41;
+static constexpr size_t MATERIAL_VERSION = 32;
 
 /**
  * Supported shading models
@@ -233,9 +232,7 @@ enum class Property : uint8_t {
     // when adding new Properties, make sure to update MATERIAL_PROPERTIES_COUNT
 };
 
-using UserVariantFilterMask = uint32_t;
-
-enum class UserVariantFilterBit : UserVariantFilterMask {
+enum class UserVariantFilterBit : uint32_t {
     DIRECTIONAL_LIGHTING        = 0x01,
     DYNAMIC_LIGHTING            = 0x02,
     SHADOW_RECEIVER             = 0x04,
@@ -243,12 +240,10 @@ enum class UserVariantFilterBit : UserVariantFilterMask {
     FOG                         = 0x10,
     VSM                         = 0x20,
     SSR                         = 0x40,
-    ALL                         = 0x7F,
 };
 
-} // namespace filament
+using UserVariantFilterMask = uint32_t;
 
-template<> struct utils::EnableBitMaskOperators<filament::UserVariantFilterBit>
-        : public std::true_type {};
+} // namespace filament
 
 #endif

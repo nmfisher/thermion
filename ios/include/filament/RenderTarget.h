@@ -91,6 +91,8 @@ public:
         /**
          * Sets a texture to a given attachment point.
          *
+         * All RenderTargets must have a non-null COLOR attachment.
+         *
          * When using a DEPTH attachment, it is important to always disable post-processing
          * in the View. Failing to do so will cause the DEPTH attachment to be ignored in most
          * cases.

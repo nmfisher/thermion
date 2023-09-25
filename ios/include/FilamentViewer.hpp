@@ -65,7 +65,12 @@ namespace polyvox {
             void clearAssets();
 
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
-            void render(uint64_t frameTimeInNanos);
+            void render(
+                uint64_t frameTimeInNanos, 
+                void* pixelBuffer, 
+                void (*callback)(void *buf, size_t size, void *data),
+                void* data    
+            );
             void setFrameInterval(float interval);
             
             bool setCamera(EntityId asset, const char* nodeName);
