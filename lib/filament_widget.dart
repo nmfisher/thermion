@@ -189,7 +189,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
               },
               child: _resizing
                   ? Container()
-                  : Platform.isLinux
+                  : Platform.isLinux || Platform.isWindows
                       ? Transform(
                           alignment: Alignment.center,
                           transform: Matrix4.rotationX(
