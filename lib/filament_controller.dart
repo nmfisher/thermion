@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:polyvox_filament/animations/bone_animation_data.dart';
@@ -37,11 +38,23 @@ class FilamentController {
     });
   }
 
+  Timer? _renderTicker;
+
   Future setRendering(bool render) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    return _channel.invokeMethod("setRendering", render);
+    if(Platform.isWindows) {
+      _renderTicker?.cancel();
+      if(render) {
+        _renderTicker = Timer.periodic(Duration(milliseconds: 1000 ~/ 60), (timer) { 
+            _channel.invokeMethod("render");
+        });
+      }
+    } else { 
+      return _channel.invokeMethod("setRendering", render);
+    }
+    
   }
 
   Future render() async {
@@ -91,6 +104,8 @@ class FilamentController {
       throw Exception(
           "Do not call createViewer when a viewer has already been created without calling destroyViewer");
     }
+
+    print("Creating viewer with pixel ratio  $_pixelRatio");
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
     _textureId =
@@ -99,13 +114,14 @@ class FilamentController {
     _viewer = await _channel
         .invokeMethod("createFilamentViewer", [size.width, size.height]);
 
-    // await _channel.invokeMethod("updateViewportAndCameraProjection",
-    //     [size.width.toInt(), size.height.toInt(), 1.0]);
-    // _assetManager = await _channel.invokeMethod("getAssetManager");
+    await _channel.invokeMethod("updateViewportAndCameraProjection",
+        [size.width.toInt(), size.height.toInt(), 1.0]);
+    _assetManager = await _channel.invokeMethod("getAssetManager");
 
     _textureIdController.add(_textureId);
 
     _isReadyForScene.complete(true);
+
   }
 
   bool _resizing = false;
@@ -260,7 +276,7 @@ class FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     await _channel
-        .invokeMethod("grabBegin", [x * _pixelRatio, y * _pixelRatio, 1]);
+        .invokeMethod("grabBegin", [x * _pixelRatio, y * _pixelRatio, true]);
   }
 
   Future panUpdate(double x, double y) async {
@@ -283,7 +299,7 @@ class FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     await _channel
-        .invokeMethod("grabBegin", [x * _pixelRatio, y * _pixelRatio, 0]);
+        .invokeMethod("grabBegin", [x * _pixelRatio, y * _pixelRatio, false]);
   }
 
   Future rotateUpdate(double x, double y) async {

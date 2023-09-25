@@ -21,6 +21,7 @@
  */
 #include <filament/Camera.h>
 #include <backend/DriverEnums.h>
+#include <backend/platforms/OpenGLPlatform.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
 #include <filament/IndexBuffer.h>
@@ -108,13 +109,13 @@ static constexpr float4 sFullScreenTriangleVertices[3] = {
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
-FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper)
+FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWrapper* const resourceLoaderWrapper)
   : _resourceLoaderWrapper(resourceLoaderWrapper) {
   
   #if TARGET_OS_IPHONE
     _engine = Engine::create(Engine::Backend::METAL);
   #else
-    _engine = Engine::create(Engine::Backend::OPENGL, nullptr, (void*)context, nullptr);
+    _engine = Engine::create(Engine::Backend::OPENGL, nullptr, (void*)sharedContext, nullptr);
   #endif
 
   _renderer = _engine->createRenderer();
@@ -136,10 +137,15 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
 
   Log("Main camera created");
   _view = _engine->createView();
+  _view->setPostProcessingEnabled(false);
+  Log("View created");
 
   setToneMapping(ToneMapping::ACES);
 
+  Log("Set tone mapping");
+
   setBloom(0.6f);
+  Log("Set bloom");
 
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
@@ -148,7 +154,7 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
   _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
                                  kFarPlane);
   // _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
-  
+  Log("View created");
   const float aperture = _mainCamera->getAperture();
   const float shutterSpeed = _mainCamera->getShutterSpeed();
   const float sens = _mainCamera->getSensitivity();
@@ -188,14 +194,18 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
                          .format(Texture::InternalFormat::RGB16F)
                          .sampler(Texture::Sampler::SAMPLER_2D)
                          .build(*_engine);
-    
-  _imageMaterial =
-       Material::Builder()
-           .package(IMAGE_PACKAGE, IMAGE_IMAGE_SIZE)
-           .build(*_engine);
-  _imageMaterial->setDefaultParameter("showImage",0);
-  _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(0.5f, 0.5f, 0.5f, 1.0f));
-  _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
+  try {
+    _imageMaterial =
+        Material::Builder()
+            .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
+            .build(*_engine);
+    _imageMaterial->setDefaultParameter("showImage",0);
+    _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(0.5f, 0.5f, 0.5f, 1.0f));
+    _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler); 
+  } catch(...) {
+    Log("Failed to load background image material provider");
+     std::rethrow_exception(std::current_exception());
+  }
   _imageScale = mat4f { 1.0f , 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
   _imageMaterial->setDefaultParameter("transform", _imageScale);
@@ -401,16 +411,14 @@ void FilamentViewer::loadTextureFromPath(string path) {
   } else if(endsWith(path, pngExt)) {
     loadPngTexture(path, rb);
   }
-
   _resourceLoaderWrapper->free(rb);
-
 }
 
 void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a) {
   _imageMaterial->setDefaultParameter("showImage", 0);
   _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
   const Viewport& vp = _view->getViewport();
-  _imageMaterial->setDefaultParameter("transform", _imageScale);
+  _imageMaterial->setDefaultParameter("transform", _imageScale); 
 }
 
 void FilamentViewer::clearBackgroundImage() {
@@ -559,12 +567,24 @@ void FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_
   #else
     if(window) {
       _swapChain = _engine->createSwapChain((void*)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+      Log("Created window swapchain.");
     } else {
+      Log("Created headless swapchain.");
       _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
     }
   #endif
-  Log("Swapchain created.");
+  // filament::backend::OpenGLPlatform* platform = dynamic_cast<filament::backend::OpenGLPlatform*>(_engine->getPlatform());
+  // if(!platform->isExtraContextSupported()) {
+  //   Log("Extra context unsupported.");  
+  // } else {
+  //       Log("Creating additional context.");  
+
+  //   platform->createContext(false);
+  // }
+  // platform->makeCurrent((filament::backend::Platform::SwapChain*)_swapChain, (filament::backend::Platform::SwapChain*)_swapChain);
+  // Log("Made current.");
 }
+
 
 void FilamentViewer::createRenderTarget(intptr_t textureId, uint32_t width, uint32_t height) {
   // Create filament textures and render targets (note the color buffer has the import call)
@@ -811,7 +831,11 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
 double _elapsed = 0;
 int _frameCount = 0;
 
-void FilamentViewer::render(uint64_t frameTimeInNanos) {
+void FilamentViewer::render(
+  uint64_t frameTimeInNanos, 
+  void* pixelBuffer, 
+  void (*callback)(void *buf, size_t size, void *data),
+  void* data) {
 
   if (!_view || !_mainCamera || !_swapChain) {
     Log("Not ready for rendering");
@@ -831,12 +855,24 @@ void FilamentViewer::render(uint64_t frameTimeInNanos) {
   _elapsed += tmr.elapsed();
   _frameCount++;
 
-  // Render the scene, unless the renderer wants to skip the frame.
-  if (_renderer->beginFrame(_swapChain, frameTimeInNanos)) {
+  if(pixelBuffer) {
+    auto pbd = Texture::PixelBufferDescriptor(
+     pixelBuffer, size_t(1024 * 768 * 4),
+     Texture::Format::RGBA,
+     Texture::Type::BYTE, nullptr, callback, data);
+
+    _renderer->beginFrame(_swapChain, 0);
     _renderer->render(_view);
+    _renderer->readPixels(0,0,1024,768, std::move(pbd));
     _renderer->endFrame();
   } else {
-    // skipped frame
+    // Render the scene, unless the renderer wants to skip the frame.
+    if (_renderer->beginFrame(_swapChain, frameTimeInNanos)) {
+      _renderer->render(_view);
+      _renderer->endFrame();
+    } else {
+      // skipped frame
+    }
   }
   
 }

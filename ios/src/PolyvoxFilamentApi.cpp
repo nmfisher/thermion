@@ -122,9 +122,11 @@ extern "C" {
 
   void render(
     const void* const viewer,
-    uint64_t frameTimeInNanos
-  ) {
-      ((FilamentViewer*)viewer)->render(frameTimeInNanos);
+    uint64_t frameTimeInNanos,
+    void* pixelBuffer, 
+    void (*callback)(void *buf, size_t size, void *data), 
+    void* data) {
+      ((FilamentViewer*)viewer)->render(frameTimeInNanos, pixelBuffer, callback, data);
   }
 
   void set_frame_interval(

@@ -31,8 +31,7 @@ ffigen:
 
 flutter:
   assets:
-    - assets/materials.uberz
-    - assets/materials_ios_arm64.uberz
+    - assets/
   plugin:
     platforms:
       android:
