@@ -89,6 +89,7 @@ void transform_to_unit_cube(void* assetManager, EntityId asset);
 void set_position(void* assetManager, EntityId asset, float x, float y, float z);
 void set_rotation(void* assetManager, EntityId asset, float rads, float x, float y, float z);
 void set_scale(void* assetManager, EntityId asset, float scale);
+void move_camera_to_asset(const void* const viewer, EntityId asset);
 void set_camera_exposure(const void* const viewer, float aperture, float shutterSpeed, float sensitivity);
 void set_camera_position(const void* const viewer, float x, float y, float z);
 void set_camera_rotation(const void* const viewer, float rads, float x, float y, float z);

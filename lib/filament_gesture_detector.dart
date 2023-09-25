@@ -104,8 +104,11 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
             ? null
             : (d) async {
                 if (d.buttons == kTertiaryButton || _rotating) {
-                  widget.controller
-                      .rotateStart(d.localPosition.dx, d.localPosition.dy);
+                  print("Starting at ${d.position}");
+                  widget.controller.rotateStart(
+                      d.position.dx * 2.0,
+                      d.position.dy *
+                          2.0); // multiply by 2.0 to account for pixel density, TODO don't hardcode
                 } else {
                   widget.controller
                       .panStart(d.localPosition.dx, d.localPosition.dy);
@@ -115,8 +118,9 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
             ? null
             : (PointerMoveEvent d) async {
                 if (d.buttons == kTertiaryButton || _rotating) {
+                  print("Updating at ${d.position}");
                   widget.controller
-                      .rotateUpdate(d.localPosition.dx, d.localPosition.dy);
+                      .rotateUpdate(d.position.dx * 2.0, d.position.dy * 2.0);
                 } else {
                   widget.controller
                       .panUpdate(d.localPosition.dx, d.localPosition.dy);

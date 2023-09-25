@@ -52,9 +52,13 @@ _scene(scene) {
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
 
-    auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials.uberz");
+    // auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials.uberz");
+    // _ubershaderProvider = gltfio::createUbershaderProvider(
+    //                                                         _engine, uberdata.data, uberdata.size);
     _ubershaderProvider = gltfio::createUbershaderProvider(
-                                                            _engine, uberdata.data, uberdata.size);
+                                                            _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
+    
+
                                                             
     // _ubershaderProvider = gltfio::createJitShaderProvider(_engine, true);
     // _ubershaderProvider = new StandardMaterialProvider(_engine);
@@ -74,7 +78,6 @@ _scene(scene) {
 AssetManager::~AssetManager() { 
     _gltfResourceLoader->asyncCancelLoad();
     _ubershaderProvider->destroyMaterials();
-    //_unlitProvider->destroyMaterials();
     destroyAll();
     AssetLoader::destroy(&_assetLoader);
     

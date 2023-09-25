@@ -143,7 +143,6 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       if (_textureId == null) {
         return Container(color: Colors.transparent);
       }
-
       var texture = Texture(
         key: ObjectKey("texture_$_textureId"),
         textureId: _textureId!,

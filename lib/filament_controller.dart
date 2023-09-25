@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:polyvox_filament/animations/bone_animation_data.dart';
 import 'package:polyvox_filament/animations/morph_animation_data.dart';
+import 'package:polyvox_filament/generated_bindings_web.dart';
 
 typedef AssetManager = int;
 typedef FilamentEntity = int;
@@ -517,6 +518,13 @@ class FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     await _channel.invokeMethod("setCameraPosition", [x, y, z]);
+  }
+
+  Future moveCameraToAsset(FilamentEntity asset) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
+    await _channel.invokeMethod("moveCameraToAsset", asset);
   }
 
   Future setCameraExposure(

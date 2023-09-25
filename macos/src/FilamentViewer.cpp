@@ -861,6 +861,20 @@ void FilamentViewer::updateViewportAndCameraProjection(
       contentScaleFactor);
 }
 
+void FilamentViewer::moveCameraToAsset(EntityId entityId) {
+
+  auto asset = _assetManager->getAssetByEntityId(entityId);
+  if(!asset) {
+      Log("Failed to find asset attached to specified entity id.");
+      return;
+  }
+
+  const filament::Aabb bb = asset->getBoundingBox();
+  auto corners = bb.getCorners();
+  Camera& cam =_view->getCamera();
+  cam.lookAt(corners.vertices[0], corners.vertices[7]);   
+}
+
 void FilamentViewer::setCameraPosition(float x, float y, float z) {
   Camera& cam =_view->getCamera();
 
