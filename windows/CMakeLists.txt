@@ -26,7 +26,7 @@ add_library(${PLUGIN_NAME} SHARED
   "polyvox_filament_plugin_c_api.cpp"
   ${PLUGIN_SOURCES}
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/image.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/unlit_opaque.c" 
+  # "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/uberarchive.c" 
 )
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -39,9 +39,6 @@ target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-add_library(glfw SHARED IMPORTED)
-set_property(TARGET glfw PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/glfw-3.3.8.bin.WIN64/lib-vc2022/glfw3.lib")
 
 add_library(bluegl SHARED IMPORTED)
 set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/bluegl.lib")
@@ -61,6 +58,8 @@ add_library(utils SHARED IMPORTED)
 set_property(TARGET utils PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/utils.lib")
 add_library(filabridge SHARED IMPORTED)
 set_property(TARGET filabridge PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/filabridge.lib")
+add_library(gltfio SHARED IMPORTED)
+set_property(TARGET gltfio PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/gltfio.lib")
 add_library(gltfio_core SHARED IMPORTED)
 set_property(TARGET gltfio_core PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/gltfio_core.lib")
 add_library(filament-iblprefilter SHARED IMPORTED)
@@ -91,8 +90,8 @@ add_library(uberzlib SHARED IMPORTED)
 set_property(TARGET uberzlib PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/uberzlib.lib")
 add_library(smol-v SHARED IMPORTED)
 set_property(TARGET smol-v PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/smol-v.lib")
-add_library(uberarchive SHARED IMPORTED)
-set_property(TARGET uberarchive PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/uberarchive.lib")
+# add_library(uberarchive SHARED IMPORTED)
+# set_property(TARGET uberarchive PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/uberarchive.lib")
 add_library(meshoptimizer SHARED IMPORTED)
 set_property(TARGET meshoptimizer PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/meshoptimizer.lib")
 add_library(basis_transcoder SHARED IMPORTED)
@@ -104,7 +103,6 @@ set_property(TARGET zstd PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/l
 add_library(png SHARED IMPORTED)
 set_property(TARGET png PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/png.lib")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/glfw-3.3.8.bin.WIN64/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../ios/include)
 
 get_cmake_property(_variableNames VARIABLES)
@@ -116,15 +114,14 @@ endforeach()
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
 flutter
 flutter_wrapper_plugin 
-glfw
 bluegl
 opengl32
+  gltfio
  gltfio_core 
  filament 
  backend 
  geometry 
- filameshio 
- filament_viewer 
+#  filameshio 
  filamat 
  filabridge 
  filament-iblprefilter 
@@ -137,11 +134,9 @@ opengl32
  imageio
  utils 
  stb 
- bluevk 
- vkshaders 
  uberzlib 
  smol-v 
- uberarchive 
+#  uberarchive 
  meshoptimizer
  geometry
  basis_transcoder
@@ -156,4 +151,5 @@ opengl32
 set(polyvox_filament_bundled_libraries
   ""
   PARENT_SCOPE
+  windows/lib/*.lib
 )
