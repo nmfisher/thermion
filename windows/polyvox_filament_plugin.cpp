@@ -104,6 +104,13 @@ static void _freeResource(ResourceBuffer rbf, void *const plugin) {
 void PolyvoxFilamentPlugin::CreateFilamentViewer(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+
+  const auto *args =
+      std::get_if<flutter::EncodableList>(methodCall.arguments());
+
+  const auto width = uint32_t(*(std::get_if<double>(&(args->at(0)))));
+  const auto height = uint32_t(*(std::get_if<double>(&(args->at(1)))));
+
   const ResourceLoaderWrapper *const resourceLoader =
       new ResourceLoaderWrapper(_loadResource, _freeResource, this);
 
@@ -111,30 +118,11 @@ void PolyvoxFilamentPlugin::CreateFilamentViewer(
 
   _viewer = (void *)create_filament_viewer(_context, resourceLoader);
 
-  std::cout << "Created filament viewer " << std::endl;
-
   // auto hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
 
-  create_swap_chain(_viewer, nullptr, 1024, 768);
+  create_swap_chain(_viewer, nullptr, width, height);
 
-  // create_render_target(_viewer, _glTextureId, 1024, 768);
-
-  // Update the texture @ 10 Hz
-  // Setting this to 60 Hz might cause epileptic shocks :D
-  _frameInterval = std::chrono::milliseconds(1000 / 60);
-  // std::thread([&]() {
-  //   while (true) {
-  //     if (_rendering) {
-  //       auto callback = [](void *buf, size_t size, void *data) {
-  //         auto plugin = (PolyvoxFilamentPlugin*)data;
-  //         plugin->_textureRegistrar->MarkTextureFrameAvailable(
-  //             plugin->_flutterTextureId);
-  //       };
-  //       render(_viewer, 0, _pixelData.get(), callback, this);
-  //     }
-  //     std::this_thread::sleep_for(std::chrono::milliseconds(_frameInterval));
-  //   }
-  // }).detach();
+  create_render_target(_viewer, _glTextureId, width, height);
 
   result->Success(flutter::EncodableValue((int64_t)_viewer));
 }
@@ -147,7 +135,10 @@ void PolyvoxFilamentPlugin::Render(
     plugin->_textureRegistrar->MarkTextureFrameAvailable(
         plugin->_flutterTextureId);
   };
-  render(_viewer, 0, _pixelData.get(), callback, this);
+  // render(_viewer, 0, _pixelData.get(), callback, this);
+  render(_viewer, 0, nullptr, nullptr, nullptr);
+  _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
+
   result->Success(flutter::EncodableValue(true));
 }
 
@@ -160,6 +151,12 @@ void PolyvoxFilamentPlugin::SetRendering(
 void PolyvoxFilamentPlugin::CreateTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+
+  const auto *args =
+      std::get_if<flutter::EncodableList>(methodCall.arguments());
+
+  const auto width = (uint32_t)round(*(std::get_if<double>(&(args->at(0)))));
+  const auto height = (uint32_t)round(*(std::get_if<double>(&(args->at(1)))));
 
   HWND hwnd = _pluginRegistrar->GetView()
                   ->GetNativeWindow(); // CreateWindowA("STATIC", "dummy", 0, 0,
@@ -245,7 +242,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
     return;
   }
 
-  _pixelData.reset(new uint8_t[1024 * 768 * 4]);
+  _pixelData.reset(new uint8_t[width * height * 4]);
 
   glGenTextures(1, &_glTextureId);
 
@@ -258,45 +255,57 @@ void PolyvoxFilamentPlugin::CreateTexture(
 
   glBindTexture(GL_TEXTURE_2D, _glTextureId);
 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1024, 768, 0, GL_RGBA,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA,
                GL_UNSIGNED_BYTE, 0);
+
+  err = glGetError();
+
+  if (err != GL_NO_ERROR) {
+    result->Error("ERROR", "Failed to generate texture, GL error was %d", err);
+    return;
+  }
 
   _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
   _pixelBuffer->buffer = _pixelData.get();
 
-  _pixelBuffer->width = 1024;
-  _pixelBuffer->height = 768;
+  _pixelBuffer->width = size_t(width);
+  _pixelBuffer->height = size_t(height);
 
   _texture =
       std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
           [=](size_t width,
               size_t height) -> const FlutterDesktopPixelBuffer * {
-            // if(!_context || !wglMakeCurrent(whdc, _context)) {
-            //   std::cout << "Failed to switch OpenGL context." << std::endl;
-            // } else {
-            // uint8_t* data = new uint8_t[1024*768*4];
-            // auto buf = _pixelData.get();
-            //  for(int y = 0; y < 768; y++) {
-            //   for(int x=0; x < 1024; x++) {
-            //     data[y*768 + (x*4)] = uint8_t(buf[y*768 + (x*4)] * 255);
-            //     data[y*768 + (x*4+1)] = uint8_t(buf[y*768 + (x*4)] * 255);
-            //     data[y*768 + (x*4+2)] = uint8_t(buf[y*768 + (x*4)] * 255);
-            //     data[y*768 + (x*4+3)] = 255;
-            //   }
-            // }
-            //   glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
-            //   glClear(GL_COLOR_BUFFER_BIT);
-            //   glReadPixels(0,0, (GLsizei)1024, (GLsizei)768, GL_RGBA,
-            //   GL_UNSIGNED_BYTE, data);
-            // _pixelData.reset(data);
-            _pixelBuffer->buffer = _pixelData.get();
-            //   wglMakeCurrent(NULL, NULL);
-            // }
+            if(!_context || !wglMakeCurrent(whdc, _context)) {
+              std::cout << "Failed to switch OpenGL context." << std::endl;
+            } else {
+              uint8_t* data = new uint8_t[width*height*4];
+              glBindTexture(GL_TEXTURE_2D, _glTextureId);
+              glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
+
+              GLenum err = glGetError();
+
+              if(err != GL_NO_ERROR) {
+                if(err == GL_INVALID_OPERATION) {
+                  std::cout << "Invalid op" << std::endl;
+                } else if(err == GL_INVALID_VALUE) {
+                std::cout << "Invalid value" << std::endl;
+                } else if(err == GL_OUT_OF_MEMORY) {
+                  std::cout << "Out of mem" << std::endl;
+                } else if(err == GL_INVALID_ENUM ) {
+                  std::cout << "Invalid enum" << std::endl;
+                } else {
+                  std::cout << "Unknown error" << std::endl;            
+                }
+              }
+
+              _pixelData.reset(data);
+              wglMakeCurrent(NULL, NULL);
+            }
             _pixelBuffer->buffer = _pixelData.get();
 
             return _pixelBuffer.get();
