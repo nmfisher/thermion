@@ -25,6 +25,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <future> 
 
 #include <d3d.h>
 #include <d3d11.h>
@@ -37,9 +38,11 @@
 #include <wrl.h>
 
 #include "PolyvoxFilamentApi.h"
+#include "ThreadPool.hpp"
 
 namespace polyvox_filament {
 
+static ThreadPool* _tp;
 
 // static
 void PolyvoxFilamentPlugin::RegisterWithRegistrar(
@@ -115,6 +118,10 @@ void PolyvoxFilamentPlugin::CreateFilamentViewer(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
+  if(!_tp) {
+    _tp = new ThreadPool();
+  }
+
   const auto *args =
       std::get_if<flutter::EncodableList>(methodCall.arguments());
 
@@ -126,15 +133,36 @@ void PolyvoxFilamentPlugin::CreateFilamentViewer(
 
   wglMakeCurrent(NULL, NULL);
 
-  _viewer = (void *)create_filament_viewer(_context, resourceLoader);
+  std::packaged_task<void()> lambda([&]() mutable  {
 
-  // auto hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
+    _viewer = (void *)create_filament_viewer(_context, resourceLoader);
 
-  create_swap_chain(_viewer, nullptr, width, height);
+    // auto hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
 
-  create_render_target(_viewer, _glTextureId, width, height);
+    create_swap_chain(_viewer, nullptr, width, height);
 
-  result->Success(flutter::EncodableValue((int64_t)_viewer));
+    create_render_target(_viewer, _glTextureId, width, height);
+
+    result->Success(flutter::EncodableValue((int64_t)_viewer));
+  });
+
+  std::thread([&]() {
+    while (true)
+      {
+        if(_rendering) {
+          std::packaged_task<void()> renderLambda([&]() mutable  {
+            render(_viewer, 0, nullptr, nullptr, nullptr);
+            _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
+          });
+          _tp->add_task(renderLambda);
+        }
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(_frameIntervalInMilliseconds));
+      }
+  }).detach();
+
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
 }
 
 void PolyvoxFilamentPlugin::Render(
@@ -146,9 +174,12 @@ void PolyvoxFilamentPlugin::Render(
         plugin->_flutterTextureId);
   };
   // render(_viewer, 0, _pixelData.get(), callback, this);
-  render(_viewer, 0, nullptr, nullptr, nullptr);
-  _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
-
+  std::packaged_task<void()> lambda([=]() mutable  {
+    render(_viewer, 0, nullptr, nullptr, nullptr);
+    _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
   result->Success(flutter::EncodableValue(true));
 }
 
@@ -156,6 +187,7 @@ void PolyvoxFilamentPlugin::SetRendering(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   _rendering = *(std::get_if<bool>(methodCall.arguments()));
+  result->Success(flutter::EncodableValue("OK"));
 }
 
 void PolyvoxFilamentPlugin::CreateTexture(
@@ -445,7 +477,12 @@ void PolyvoxFilamentPlugin::SetBackgroundImage(
       std::get_if<flutter::EncodableList>(methodCall.arguments());
   const auto path = std::get_if<std::string>(&(args->at(0)));
   const auto fillHeight = std::get_if<bool>(&(args->at(1)));
-  set_background_image(_viewer, path->c_str(), *fillHeight);
+  std::packaged_task<void()> lambda([&]() mutable  {
+    set_background_image(_viewer, path->c_str(), *fillHeight);
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
+  
   result->Success(flutter::EncodableValue(true));
 }
 
@@ -458,8 +495,13 @@ void PolyvoxFilamentPlugin::SetBackgroundColor(
   const auto g = std::get_if<double>(&(args->at(1)));
   const auto b = std::get_if<double>(&(args->at(2)));
   const auto a = std::get_if<double>(&(args->at(3)));
-  set_background_color(_viewer, static_cast<float>(*r), static_cast<float>(*g),
+  std::packaged_task<void()> lambda([&]() mutable  {
+      set_background_color(_viewer, static_cast<float>(*r), static_cast<float>(*g),
                        static_cast<float>(*b), static_cast<float>(*a));
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
+
   result->Success(flutter::EncodableValue(true));
 }
 
@@ -490,14 +532,23 @@ void PolyvoxFilamentPlugin::LoadSkybox(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   const auto *args = std::get_if<std::string>(methodCall.arguments());
-  load_skybox(_viewer, (*args).c_str());
+  std::packaged_task<void()> lambda([&]() mutable  {
+    load_skybox(_viewer, (*args).c_str());
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
   result->Success(flutter::EncodableValue("OK"));
 }
 
 void PolyvoxFilamentPlugin::RemoveIbl(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  remove_ibl(_viewer);
+  std::packaged_task<void()> lambda([&]() mutable  {
+    remove_ibl(_viewer);
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
+  
   result->Success(flutter::EncodableValue("OK"));
 }
 
@@ -508,14 +559,24 @@ void PolyvoxFilamentPlugin::LoadIbl(
       std::get_if<flutter::EncodableList>(methodCall.arguments());
   const auto path = std::get_if<std::string>(&(args->at(0)));
   const auto intensity = std::get_if<double>(&(args->at(1)));
-  load_ibl(_viewer, (*path).c_str(), static_cast<float>(*intensity));
+  std::packaged_task<void()> lambda([&]() mutable  {
+    load_ibl(_viewer, (*path).c_str(), static_cast<float>(*intensity));
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
+  
   result->Success(flutter::EncodableValue("OK"));
 }
 
 void PolyvoxFilamentPlugin::RemoveSkybox(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  remove_skybox(_viewer);
+  std::packaged_task<void()> lambda([&]() mutable  {
+    remove_skybox(_viewer);
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
+  
   result->Success(flutter::EncodableValue("OK"));
 }
 
@@ -534,9 +595,15 @@ void PolyvoxFilamentPlugin::AddLight(
   const auto dirY = *std::get_if<double>(&(args->at(7)));
   const auto dirZ = *std::get_if<double>(&(args->at(8)));
   const auto shadows = *std::get_if<bool>(&(args->at(9)));
-  auto entityId = add_light(_viewer, type, color, intensity, posX, posY, posZ,
+
+  std::packaged_task<void()> lambda([&]() mutable  {
+    auto entityId = add_light(_viewer, type, color, intensity, posX, posY, posZ,
                             dirX, dirY, dirZ, shadows);
-  result->Success(flutter::EncodableValue(entityId));
+    result->Success(flutter::EncodableValue(entityId));
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
+  
 }
 
 void PolyvoxFilamentPlugin::LoadGlb(
@@ -549,8 +616,14 @@ void PolyvoxFilamentPlugin::LoadGlb(
   const auto assetManager = *std::get_if<int64_t>(&(args->at(0)));
   const auto path = *std::get_if<std::string>(&(args->at(1)));
   const auto unlit = *std::get_if<bool>(&(args->at(2)));
-  auto entityId = load_glb((void *)assetManager, path.c_str(), unlit);
-  result->Success(flutter::EncodableValue(entityId));
+  
+  std::packaged_task<void()> lambda([&]() mutable  {
+    auto entityId = load_glb((void *)assetManager, path.c_str(), unlit);
+    result->Success(flutter::EncodableValue(entityId));
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
+
 }
 
 void PolyvoxFilamentPlugin::GetAnimationNames(
@@ -583,8 +656,12 @@ void PolyvoxFilamentPlugin::RemoveAsset(
   const auto *args =
       std::get_if<flutter::EncodableList>(methodCall.arguments());
   const auto asset = *std::get_if<int>(&(args->at(1)));
-  remove_asset(_viewer, asset);
-  result->Success(flutter::EncodableValue("OK"));
+  std::packaged_task<void()> lambda([&]() mutable  {
+    remove_asset(_viewer, asset);
+    result->Success(flutter::EncodableValue("OK"));
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
 }
 
 void PolyvoxFilamentPlugin::TransformToUnitCube(
@@ -596,8 +673,13 @@ void PolyvoxFilamentPlugin::TransformToUnitCube(
 
   const auto assetManager = *std::get_if<int64_t>(&(args->at(0)));
   const auto asset = *std::get_if<int32_t>(&(args->at(1)));
-  transform_to_unit_cube((void *)assetManager, asset);
-  result->Success(flutter::EncodableValue("OK"));
+  std::packaged_task<void()> lambda([&]() mutable  {
+    transform_to_unit_cube((void *)assetManager, asset);
+    result->Success(flutter::EncodableValue("OK"));
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
+  
 }
 
 void PolyvoxFilamentPlugin::RotateStart(
@@ -610,7 +692,10 @@ void PolyvoxFilamentPlugin::RotateStart(
   const auto x = *std::get_if<double>(&(args->at(0)));
   const auto y = *std::get_if<double>(&(args->at(1)));
 
-  grab_begin(_viewer, static_cast<float>(x), static_cast<float>(y), false);
+  std::packaged_task<void()> lambda([=]() mutable  {
+    grab_begin(_viewer, static_cast<float>(x), static_cast<float>(y), false);
+  });
+  auto fut = _tp->add_task(lambda);
 
   result->Success(flutter::EncodableValue("OK"));
 }
@@ -618,7 +703,10 @@ void PolyvoxFilamentPlugin::RotateStart(
 void PolyvoxFilamentPlugin::RotateEnd(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  grab_end(_viewer);
+  std::packaged_task<void()> lambda([=]() mutable  {
+    grab_end(_viewer);
+  });
+  auto fut = _tp->add_task(lambda);
   result->Success(flutter::EncodableValue("OK"));
 }
 
@@ -629,7 +717,11 @@ void PolyvoxFilamentPlugin::RotateUpdate(
       std::get_if<flutter::EncodableList>(methodCall.arguments());
   const auto x = *std::get_if<double>(&(args->at(0)));
   const auto y = *std::get_if<double>(&(args->at(1)));
-  grab_update(_viewer, static_cast<float>(x), static_cast<float>(y));
+  std::packaged_task<void()> lambda([=]() mutable  {
+    grab_update(_viewer, static_cast<float>(x), static_cast<float>(y));
+  });
+  auto fut = _tp->add_task(lambda);
+
   result->Success(flutter::EncodableValue("OK"));
 }
 
