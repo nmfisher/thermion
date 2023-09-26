@@ -954,18 +954,15 @@ void FilamentViewer::grabUpdate(float x, float y) {
         return;
     }
     Camera& cam =_view->getCamera();
-    auto eye =  cam.getPosition();// math::float3  {0.0f, 0.5f, 50.0f } ;// ; //
+    auto eye =  cam.getPosition();
     auto target = eye + cam.getForwardVector();
     auto upward = cam.getUpVector();
     Viewport const& vp = _view->getViewport();
     if(_panning) {
-        auto trans = cam.getModelMatrix() * mat4::translation(math::float3 { 10 * (x - _startX) / vp.width, 10 * (y - _startY) / vp.height, 0.0f });
+        auto trans = cam.getModelMatrix() * mat4::translation(math::float3 { 50 * (x - _startX) / vp.width, 50 * (y - _startY) / vp.height, 0.0f });
         cam.setModelMatrix(trans);
     } else {
-        auto trans = cam.getModelMatrix() * mat4::rotation(
-                                                   
-                                                          0.01,
-//                                                           math::float3 { 0.0f, 1.0f, 0.0f });
+        auto trans = cam.getModelMatrix() * mat4::rotation(0.05,
                                                            math::float3 { (y - _startY) / vp.height, (x - _startX) / vp.width, 0.0f });
         cam.setModelMatrix(trans);
     }

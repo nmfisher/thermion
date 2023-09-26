@@ -40,6 +40,8 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+add_library(EGL SHARED IMPORTED)
+set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/libEGL.dll.lib")
 add_library(bluegl SHARED IMPORTED)
 set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/bluegl.lib")
 add_library(geometry SHARED IMPORTED)
@@ -105,12 +107,6 @@ set_property(TARGET png PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/li
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../ios/include)
 
-get_cmake_property(_variableNames VARIABLES)
-list (SORT _variableNames)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}FOO=BAR${${_variableName}}")
-endforeach()
-
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
 flutter
 flutter_wrapper_plugin 
@@ -145,11 +141,17 @@ opengl32
  png
  tinyexr
  Shlwapi
+ EGL
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin
 set(polyvox_filament_bundled_libraries
-  ""
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/libEGL.dll
   PARENT_SCOPE
-  windows/lib/*.lib
 )
+
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}FOO=BAR${${_variableName}}")
+endforeach()

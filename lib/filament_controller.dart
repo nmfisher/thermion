@@ -38,23 +38,11 @@ class FilamentController {
     });
   }
 
-  Timer? _renderTicker;
-
   Future setRendering(bool render) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    if(Platform.isWindows) {
-      _renderTicker?.cancel();
-      if(render) {
-        _renderTicker = Timer.periodic(Duration(milliseconds: 1000 ~/ 60), (timer) { 
-            _channel.invokeMethod("render");
-        });
-      }
-    } else { 
-      return _channel.invokeMethod("setRendering", render);
-    }
-    
+    return _channel.invokeMethod("setRendering", render);    
   }
 
   Future render() async {

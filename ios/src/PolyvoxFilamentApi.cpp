@@ -322,7 +322,6 @@ extern "C" {
     //std::packaged_task<int()> lambda([=]() mutable  {
       unique_ptr<vector<string>> names = ((AssetManager*)assetManager)->getMorphTargetNames(asset, meshName);
       return names->size();
-    
 
     //return fut.get();
   }

@@ -12,6 +12,7 @@
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
+#include <flutter/texture_registrar.h>
 
 #include <codecvt>
 #include <cstring>
@@ -27,15 +28,10 @@
 #include <vector>
 #include <future> 
 
-#include <d3d.h>
-#include <d3d11.h>
-
 #include "GL/GL.h"
 #include "GL/GLu.h"
 #include "GL/wglext.h"
 
-#include <Windows.h>
-#include <wrl.h>
 
 #include "PolyvoxFilamentApi.h"
 #include "ThreadPool.hpp"
@@ -173,6 +169,11 @@ void PolyvoxFilamentPlugin::Render(
     plugin->_textureRegistrar->MarkTextureFrameAvailable(
         plugin->_flutterTextureId);
   };
+
+  _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
+                                         _internalD3DTexture2D.Get());
+  _D3D11DeviceContext->Flush();
+  
   // render(_viewer, 0, _pixelData.get(), callback, this);
   std::packaged_task<void()> lambda([=]() mutable  {
     render(_viewer, 0, nullptr, nullptr, nullptr);
@@ -200,10 +201,47 @@ void PolyvoxFilamentPlugin::CreateTexture(
   const auto width = (uint32_t)round(*(std::get_if<double>(&(args->at(0)))));
   const auto height = (uint32_t)round(*(std::get_if<double>(&(args->at(1)))));
 
-  IDXGIAdapter* adapter_ = nullptr;
+  EGLSurface surface_ = EGL_NO_SURFACE;
+  EGLDisplay display_ = EGL_NO_DISPLAY;
+  EGLContext context_ = nullptr;
+  EGLConfig config_ = nullptr;
 
-  ID3D11Device* d3d_11_device_ = nullptr;
-  ID3D11DeviceContext* d3d_11_device_context_ = nullptr;
+  void* bar = eglGetProcAddress;
+
+  void* foo = eglGetProcAddress("eglGetPlatformDisplayEXT");
+
+  if (display_ == EGL_NO_DISPLAY) {
+    auto eglGetPlatformDisplayEXT =
+        reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(
+            eglGetProcAddress("eglGetPlatformDisplayEXT"));
+    if (eglGetPlatformDisplayEXT) {
+      display_ = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE,
+                                          EGL_DEFAULT_DISPLAY,
+                                          kD3D11DisplayAttributes);
+      if (eglInitialize(display_, 0, 0) == EGL_FALSE) {
+        display_ = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE,
+                                            EGL_DEFAULT_DISPLAY,
+                                            kD3D11_9_3DisplayAttributes);
+        if (eglInitialize(display_, 0, 0) == EGL_FALSE) {
+          display_ = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE,
+                                              EGL_DEFAULT_DISPLAY,
+                                              kD3D9DisplayAttributes);
+          if (eglInitialize(display_, 0, 0) == EGL_FALSE) {
+            display_ = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE,
+                                                EGL_DEFAULT_DISPLAY,
+                                                kWrapDisplayAttributes);
+            if (eglInitialize(display_, 0, 0) == EGL_FALSE) {
+              result->Error("eglGetPlatformDisplayEXT");
+            }
+          }
+        }
+      }
+    } else {
+      result->Error("eglGetProcAddress");
+    }
+  }
+
+  IDXGIAdapter* adapter_ = nullptr;
 
   // first, we need to initialize the D3D device and create the backing texture
   // this has been taken from https://github.com/alexmercerind/flutter-windows-ANGLE-OpenGL-ES/blob/master/windows/angle_surface_manager.cc
@@ -239,7 +277,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
   auto hr = ::D3D11CreateDevice(
       adapter_, D3D_DRIVER_TYPE_UNKNOWN, 0, 0, feature_levels.begin(),
       static_cast<UINT>(feature_levels.size()), D3D11_SDK_VERSION,
-      &d3d_11_device_, 0, &d3d_11_device_context_);
+      &_D3D11Device, 0, &_D3D11DeviceContext);
 
   if (FAILED(hr)) {   
     result->Error("ERROR", "Failed to create D3D device", nullptr);
@@ -262,52 +300,48 @@ void PolyvoxFilamentPlugin::CreateTexture(
   texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
   // create internal texture
-  HANDLE internal_handle_ = nullptr;
-  Microsoft::WRL::ComPtr<ID3D11Texture2D> internal_d3d_11_texture_2D_;
-  hr =  d3d_11_device_->CreateTexture2D(&texDesc, nullptr, &internal_d3d_11_texture_2D_);
+  hr =  _D3D11Device->CreateTexture2D(&texDesc, nullptr, &_internalD3DTexture2D);
   if FAILED(hr)
   {
     result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
   }
   auto resource = Microsoft::WRL::ComPtr<IDXGIResource>{};
-  hr = internal_d3d_11_texture_2D_.As(&resource);
+  hr = _internalD3DTexture2D.As(&resource);
   
   if FAILED(hr) { 
     result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
   }
-  hr = resource->GetSharedHandle(&internal_handle_);
+  hr = resource->GetSharedHandle(&_internalD3DTextureHandle);
   if FAILED(hr) { 
     result->Error("ERROR", "Failed to get shared handle to D3D texture", nullptr);
     return;
   }
-  internal_d3d_11_texture_2D_->AddRef();
+  _internalD3DTexture2D->AddRef();
 
   std::cout << "Created internal D3D texture" << std::endl;
 
   // external
-  HANDLE handle_ = nullptr;
-  Microsoft::WRL::ComPtr<ID3D11Texture2D> d3d_11_texture_2D_;
-  hr =  d3d_11_device_->CreateTexture2D(&texDesc, nullptr, &d3d_11_texture_2D_);
+  hr =  _D3D11Device->CreateTexture2D(&texDesc, nullptr, &_externalD3DTexture2D);
   if FAILED(hr)
   {
     result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
   }
   resource = Microsoft::WRL::ComPtr<IDXGIResource>{};
-  hr = d3d_11_texture_2D_.As(&resource);
+  hr = _externalD3DTexture2D.As(&resource);
   
   if FAILED(hr) { 
     result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
   }
-  hr = resource->GetSharedHandle(&handle_);
+  hr = resource->GetSharedHandle(&_externalD3DTextureHandle);
   if FAILED(hr) { 
     result->Error("ERROR", "Failed to get shared handle to external D3D texture", nullptr);
     return;
   }
-  d3d_11_texture_2D_->AddRef();
+  _externalD3DTexture2D->AddRef();
 
   std::cout << "Created external D3D texture" << std::endl;
 
@@ -396,8 +430,6 @@ void PolyvoxFilamentPlugin::CreateTexture(
     return;
   }
 
-  _pixelData.reset(new uint8_t[width * height * 4]);
-
   glGenTextures(1, &_glTextureId);
 
   GLenum err = glGetError();
@@ -423,50 +455,65 @@ void PolyvoxFilamentPlugin::CreateTexture(
     result->Error("ERROR", "Failed to generate texture, GL error was %d", err);
     return;
   }
+  
+  // _pixelData.reset(new uint8_t[width * height * 4]);
+  // _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
+  // _pixelBuffer->buffer = _pixelData.get();
 
-  _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
-  _pixelBuffer->buffer = _pixelData.get();
+  // _pixelBuffer->width = size_t(width);
+  // _pixelBuffer->height = size_t(height);
 
-  _pixelBuffer->width = size_t(width);
-  _pixelBuffer->height = size_t(height);
+  // _texture =
+  //     std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
+  //         [=](size_t width,
+  //             size_t height) -> const FlutterDesktopPixelBuffer * {
+  //           if(!_context || !wglMakeCurrent(whdc, _context)) {
+  //             std::cout << "Failed to switch OpenGL context." << std::endl;
+  //           } else {
+  //             uint8_t* data = new uint8_t[width*height*4];
+  //             glBindTexture(GL_TEXTURE_2D, _glTextureId);
+  //             glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
+
+  //             GLenum err = glGetError();
+
+  //             if(err != GL_NO_ERROR) {
+  //               if(err == GL_INVALID_OPERATION) {
+  //                 std::cout << "Invalid op" << std::endl;
+  //               } else if(err == GL_INVALID_VALUE) {
+  //               std::cout << "Invalid value" << std::endl;
+  //               } else if(err == GL_OUT_OF_MEMORY) {
+  //                 std::cout << "Out of mem" << std::endl;
+  //               } else if(err == GL_INVALID_ENUM ) {
+  //                 std::cout << "Invalid enum" << std::endl;
+  //               } else {
+  //                 std::cout << "Unknown error" << std::endl;            
+  //               }
+  //             }
+
+  //             _pixelData.reset(data);
+  //             wglMakeCurrent(NULL, NULL);
+  //           }
+  //           _pixelBuffer->buffer = _pixelData.get();
+
+  //           return _pixelBuffer.get();
+  //         }));
+
+  _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
+  _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
+  _textureDescriptor->handle = _externalD3DTextureHandle;
+  _textureDescriptor->width = _textureDescriptor->visible_width = width;
+  _textureDescriptor->height = _textureDescriptor->visible_height = height;
+  _textureDescriptor->release_context = nullptr;
+  _textureDescriptor->release_callback = [](void* release_context) {};
+  _textureDescriptor->format = kFlutterDesktopPixelFormatBGRA8888;
 
   _texture =
-      std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
-          [=](size_t width,
-              size_t height) -> const FlutterDesktopPixelBuffer * {
-            if(!_context || !wglMakeCurrent(whdc, _context)) {
-              std::cout << "Failed to switch OpenGL context." << std::endl;
-            } else {
-              uint8_t* data = new uint8_t[width*height*4];
-              glBindTexture(GL_TEXTURE_2D, _glTextureId);
-              glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
-
-              GLenum err = glGetError();
-
-              if(err != GL_NO_ERROR) {
-                if(err == GL_INVALID_OPERATION) {
-                  std::cout << "Invalid op" << std::endl;
-                } else if(err == GL_INVALID_VALUE) {
-                std::cout << "Invalid value" << std::endl;
-                } else if(err == GL_OUT_OF_MEMORY) {
-                  std::cout << "Out of mem" << std::endl;
-                } else if(err == GL_INVALID_ENUM ) {
-                  std::cout << "Invalid enum" << std::endl;
-                } else {
-                  std::cout << "Unknown error" << std::endl;            
-                }
-              }
-
-              _pixelData.reset(data);
-              wglMakeCurrent(NULL, NULL);
-            }
-            _pixelBuffer->buffer = _pixelData.get();
-
-            return _pixelBuffer.get();
-          }));
+        std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
+            kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
+            [&](auto, auto) { return _textureDescriptor.get(); }));
 
   _flutterTextureId = _textureRegistrar->RegisterTexture(_texture.get());
-  std::cout << "Registered flutter texture " << _flutterTextureId << std::endl;
+  std::cout << "Registered Flutter texture ID " << _flutterTextureId << std::endl;
   result->Success(flutter::EncodableValue(_flutterTextureId));
 }
 
