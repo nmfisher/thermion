@@ -1,3 +1,6 @@
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "d3d11.lib")
+
 #include "polyvox_filament_plugin.h"
 
 // This must be included before many other Windows headers.
@@ -23,13 +26,20 @@
 #include <string>
 #include <vector>
 
+#include <d3d.h>
+#include <d3d11.h>
+
 #include "GL/GL.h"
 #include "GL/GLu.h"
 #include "GL/wglext.h"
 
+#include <Windows.h>
+#include <wrl.h>
+
 #include "PolyvoxFilamentApi.h"
 
 namespace polyvox_filament {
+
 
 // static
 void PolyvoxFilamentPlugin::RegisterWithRegistrar(
@@ -157,6 +167,118 @@ void PolyvoxFilamentPlugin::CreateTexture(
 
   const auto width = (uint32_t)round(*(std::get_if<double>(&(args->at(0)))));
   const auto height = (uint32_t)round(*(std::get_if<double>(&(args->at(1)))));
+
+  IDXGIAdapter* adapter_ = nullptr;
+
+  ID3D11Device* d3d_11_device_ = nullptr;
+  ID3D11DeviceContext* d3d_11_device_context_ = nullptr;
+
+  // first, we need to initialize the D3D device and create the backing texture
+  // this has been taken from https://github.com/alexmercerind/flutter-windows-ANGLE-OpenGL-ES/blob/master/windows/angle_surface_manager.cc
+  auto feature_levels = {
+        D3D_FEATURE_LEVEL_11_0,
+        D3D_FEATURE_LEVEL_10_1,
+        D3D_FEATURE_LEVEL_10_0,
+        D3D_FEATURE_LEVEL_9_3,
+    };
+  // NOTE: Not enabling DirectX 12.
+  // |D3D11CreateDevice| crashes directly on Windows 7.
+  // D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
+  // D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1,
+  // D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_9_3,
+  IDXGIFactory* dxgi = nullptr;
+  ::CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&dxgi);
+  // Manually selecting adapter. As far as my experience goes, this is the
+  // safest approach. Passing NULL (so-called default) seems to cause issues
+  // on Windows 7 or maybe some older graphics drivers.
+  // First adapter is the default.
+  // |D3D_DRIVER_TYPE_UNKNOWN| must be passed with manual adapter selection.
+  dxgi->EnumAdapters(0, &adapter_);
+  dxgi->Release();
+  if (!adapter_) {
+    result->Error("ERROR", "Failed to locate default D3D adapter", nullptr);
+    return;
+  } 
+  
+  DXGI_ADAPTER_DESC adapter_desc_;
+  adapter_->GetDesc(&adapter_desc_);
+  std::wcout << L"D3D adapter description: " << adapter_desc_.Description << std::endl;
+  
+  auto hr = ::D3D11CreateDevice(
+      adapter_, D3D_DRIVER_TYPE_UNKNOWN, 0, 0, feature_levels.begin(),
+      static_cast<UINT>(feature_levels.size()), D3D11_SDK_VERSION,
+      &d3d_11_device_, 0, &d3d_11_device_context_);
+
+  if (FAILED(hr)) {   
+    result->Error("ERROR", "Failed to create D3D device", nullptr);
+    return;
+  }
+
+  std::cout << "Created D3D device" << std::endl;
+
+  D3D11_TEXTURE2D_DESC texDesc = { 0 };
+  texDesc.Width = width;
+  texDesc.Height = height;
+  texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+  texDesc.MipLevels = 1;
+  texDesc.ArraySize = 1;
+  texDesc.SampleDesc.Count = 1;
+  texDesc.SampleDesc.Quality = 0;
+  texDesc.Usage = D3D11_USAGE_DEFAULT;
+  texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+  texDesc.CPUAccessFlags = 0;
+  texDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+
+  // create internal texture
+  HANDLE internal_handle_ = nullptr;
+  Microsoft::WRL::ComPtr<ID3D11Texture2D> internal_d3d_11_texture_2D_;
+  hr =  d3d_11_device_->CreateTexture2D(&texDesc, nullptr, &internal_d3d_11_texture_2D_);
+  if FAILED(hr)
+  {
+    result->Error("ERROR", "Failed to create D3D texture", nullptr);
+    return;
+  }
+  auto resource = Microsoft::WRL::ComPtr<IDXGIResource>{};
+  hr = internal_d3d_11_texture_2D_.As(&resource);
+  
+  if FAILED(hr) { 
+    result->Error("ERROR", "Failed to create D3D texture", nullptr);
+    return;
+  }
+  hr = resource->GetSharedHandle(&internal_handle_);
+  if FAILED(hr) { 
+    result->Error("ERROR", "Failed to get shared handle to D3D texture", nullptr);
+    return;
+  }
+  internal_d3d_11_texture_2D_->AddRef();
+
+  std::cout << "Created internal D3D texture" << std::endl;
+
+  // external
+  HANDLE handle_ = nullptr;
+  Microsoft::WRL::ComPtr<ID3D11Texture2D> d3d_11_texture_2D_;
+  hr =  d3d_11_device_->CreateTexture2D(&texDesc, nullptr, &d3d_11_texture_2D_);
+  if FAILED(hr)
+  {
+    result->Error("ERROR", "Failed to create D3D texture", nullptr);
+    return;
+  }
+  resource = Microsoft::WRL::ComPtr<IDXGIResource>{};
+  hr = d3d_11_texture_2D_.As(&resource);
+  
+  if FAILED(hr) { 
+    result->Error("ERROR", "Failed to create D3D texture", nullptr);
+    return;
+  }
+  hr = resource->GetSharedHandle(&handle_);
+  if FAILED(hr) { 
+    result->Error("ERROR", "Failed to get shared handle to external D3D texture", nullptr);
+    return;
+  }
+  d3d_11_texture_2D_->AddRef();
+
+  std::cout << "Created external D3D texture" << std::endl;
+
 
   HWND hwnd = _pluginRegistrar->GetView()
                   ->GetNativeWindow(); // CreateWindowA("STATIC", "dummy", 0, 0,
