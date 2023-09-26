@@ -619,6 +619,9 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "moveCameraToAsset":
             move_camera_to_asset(viewer, call.arguments as! EntityId)
             result(true)
+        case "setViewFrustumCulling":
+            set_view_frustum_culling(viewer, call.arguments as! Bool)
+            result(true)
         case "setCameraPosition":
             let args = call.arguments as! [Any]
             set_camera_position(viewer, Float(args[0] as! Double), Float(args[1] as! Double), Float(args[2] as! Double))

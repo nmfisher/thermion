@@ -527,6 +527,13 @@ class FilamentController {
     await _channel.invokeMethod("moveCameraToAsset", asset);
   }
 
+  Future setViewFrustumCulling(bool enabled) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
+    await _channel.invokeMethod("setViewFrustumCulling", enabled);
+  }
+
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
     if (_viewer == null || _resizing) {

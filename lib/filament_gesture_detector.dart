@@ -13,13 +13,15 @@ class FilamentGestureDetector extends StatefulWidget {
   final FilamentController controller;
   final bool showControlOverlay;
   final bool enableControls;
+  final double zoomDelta;
 
   const FilamentGestureDetector(
       {Key? key,
       required this.controller,
       this.child,
       this.showControlOverlay = false,
-      this.enableControls = true})
+      this.enableControls = true,
+      this.zoomDelta = 1})
       : super(key: key);
 
   @override
@@ -91,8 +93,9 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                 if (pointerSignal is PointerScrollEvent) {
                   _scrollTimer?.cancel();
                   widget.controller.zoomBegin();
-                  widget.controller
-                      .zoomUpdate(pointerSignal.scrollDelta.dy > 0 ? 1 : -1);
+                  widget.controller.zoomUpdate(pointerSignal.scrollDelta.dy > 0
+                      ? widget.zoomDelta
+                      : -widget.zoomDelta);
                   _scrollTimer = Timer(Duration(milliseconds: 100), () {
                     widget.controller.zoomEnd();
                     _scrollTimer = null;
@@ -118,7 +121,6 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
             ? null
             : (PointerMoveEvent d) async {
                 if (d.buttons == kTertiaryButton || _rotating) {
-                  print("Updating at ${d.position}");
                   widget.controller
                       .rotateUpdate(d.position.dx * 2.0, d.position.dy * 2.0);
                 } else {

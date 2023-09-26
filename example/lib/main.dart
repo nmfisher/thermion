@@ -53,6 +53,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   bool _initialized = false;
 
   bool _coneHidden = false;
+  bool _frustumCulling = true;
 
   @override
   void initState() {
@@ -250,6 +251,14 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     children.add(_item(() {
       _filamentController.moveCameraToAsset(_cube!);
     }, "Move camera to asset"));
+
+    children.add(_item(() {
+      setState(() {
+        _frustumCulling = !_frustumCulling;
+      });
+
+      _filamentController.setViewFrustumCulling(_frustumCulling);
+    }, "${_frustumCulling ? "Disable" : "Enable"} frustum culling"));
 
     return Stack(children: [
       Positioned.fill(
