@@ -3,24 +3,11 @@
 
 extern "C" {
 
-  #include "PolyvoxFilamentApi.h"
-
-  const void* create_filament_viewer_android(
-          jobject surface, JNIEnv* env, ResourceLoaderWrapper* loaderWrapper
-          ) {
-    ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
-    return create_filament_viewer(window,loaderWrapper);
-  }
-
-  void create_swap_chain_android(
-    const void* const viewer,
+  void* get_native_window_from_surface(
     jobject surface,
-    JNIEnv* env,
-    uint32_t width,
-    uint32_t height
+    JNIEnv* env
   ) {
-    ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
-    create_swap_chain(viewer, window, width, height);
+    return ANativeWindow_fromSurface(env, surface);
   }
   
 }

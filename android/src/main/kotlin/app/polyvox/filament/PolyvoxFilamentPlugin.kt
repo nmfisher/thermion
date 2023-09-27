@@ -99,114 +99,114 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
     Log.e("polyvox_filament", call.method, null)
     when (call.method) {
         "createTexture" -> {
-             if(_glTextureId != 0) {
-                 result.success(_glTextureId)
-                 return
-             }
-             if(_glContext == null) {
-                 _glContext = EGL14.eglGetCurrentContext()
-                 if (_glContext == EGL14.EGL_NO_CONTEXT) {
+//              if(_glTextureId != 0) {
+//                  result.success(_glTextureId)
+//                  return
+//              }
+//              if(_glContext == null) {
+//                  _glContext = EGL14.eglGetCurrentContext()
+//                  if (_glContext == EGL14.EGL_NO_CONTEXT) {
 
-                     // if(surfaceTextureEntry != null) {
-                     //   result.error("ERR", "Surface texture already exists. Call destroyTexture before creating a new one", null);
-                     // } else {
-                     //   surface = Surface(surfaceTextureEntry!!.surfaceTexture())
+//                      // if(surfaceTextureEntry != null) {
+//                      //   result.error("ERR", "Surface texture already exists. Call destroyTexture before creating a new one", null);
+//                      // } else {
+//                      //   surface = Surface(surfaceTextureEntry!!.surfaceTexture())
 
-                     //   if(!surface!!.isValid) {
-                     //       result.error("ERR", "Surface creation failed. ", null);
-                     //   } else {
-                     //       result.success(surfaceTextureEntry!!.id().toInt())
-                     //   }
- //          }
+//                      //   if(!surface!!.isValid) {
+//                      //       result.error("ERR", "Surface creation failed. ", null);
+//                      //   } else {
+//                      //       result.success(surfaceTextureEntry!!.id().toInt())
+//                      //   }
+//  //          }
 
-                     mEglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
-                     if (mEglDisplay == EGL14.EGL_NO_DISPLAY) {
-                         result.error("Err", "eglGetDisplay failed", null);
-                         return;
-                     }
+//                      mEglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
+//                      if (mEglDisplay == EGL14.EGL_NO_DISPLAY) {
+//                          result.error("Err", "eglGetDisplay failed", null);
+//                          return;
+//                      }
 
-                     val version = IntArray(2)
+//                      val version = IntArray(2)
 
-                     if (!EGL14.eglInitialize(mEglDisplay, version, 0, version, 1)) {
-                         var error = EGL14.eglGetError();
-                         Log.e("DISPLAY_FAILED", "NativeEngine: failed to init display %d");
-                     }
+//                      if (!EGL14.eglInitialize(mEglDisplay, version, 0, version, 1)) {
+//                          var error = EGL14.eglGetError();
+//                          Log.e("DISPLAY_FAILED", "NativeEngine: failed to init display %d");
+//                      }
 
-                     val attribs = intArrayOf(
-                             EGL14.EGL_RENDERABLE_TYPE, EGL15.EGL_OPENGL_ES3_BIT,
-                             EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
-                             EGL14.EGL_BLUE_SIZE, 8,
-                             EGL14.EGL_GREEN_SIZE, 8,
-                             EGL14.EGL_RED_SIZE, 8,
-                             EGL14.EGL_DEPTH_SIZE, 16,
-                             EGL14.EGL_NONE);
-                     var numConfigs = intArrayOf(1)
-                     val configs: Array<android.opengl.EGLConfig?> = arrayOf<EGLConfig?>(null)
+//                      val attribs = intArrayOf(
+//                              EGL14.EGL_RENDERABLE_TYPE, EGL15.EGL_OPENGL_ES3_BIT,
+//                              EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
+//                              EGL14.EGL_BLUE_SIZE, 8,
+//                              EGL14.EGL_GREEN_SIZE, 8,
+//                              EGL14.EGL_RED_SIZE, 8,
+//                              EGL14.EGL_DEPTH_SIZE, 16,
+//                              EGL14.EGL_NONE);
+//                      var numConfigs = intArrayOf(1)
+//                      val configs: Array<android.opengl.EGLConfig?> = arrayOf<EGLConfig?>(null)
 
-                     if(!EGL14.eglChooseConfig(mEglDisplay, attribs, 0, configs, 0, 1, numConfigs, 0)) {
-                         result.error("NO_GL_CONTEXT", "Failed to get matching EGLConfig", null);
-                         return;
-                     }
+//                      if(!EGL14.eglChooseConfig(mEglDisplay, attribs, 0, configs, 0, 1, numConfigs, 0)) {
+//                          result.error("NO_GL_CONTEXT", "Failed to get matching EGLConfig", null);
+//                          return;
+//                      }
 
-                     _glContext = EGL14.eglCreateContext(mEglDisplay, configs[0]!!, EGL14.EGL_NO_CONTEXT, intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 3, EGL14.EGL_NONE), 0);
+//                      _glContext = EGL14.eglCreateContext(mEglDisplay, configs[0]!!, EGL14.EGL_NO_CONTEXT, intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 3, EGL14.EGL_NONE), 0);
 
-                     if (_glContext === EGL14.EGL_NO_CONTEXT || EGL14.eglMakeCurrent(mEglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, _glContext) == false) {
-                         result.error("NO_GL_CONTEXT", "Failed to get current OpenGL context", null);
-                         return;
-                     };
-                     Log.i("polyvox_filament", "Successfully created OpenGL context");
-                 }
-             }
+//                      if (_glContext === EGL14.EGL_NO_CONTEXT || EGL14.eglMakeCurrent(mEglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, _glContext) == false) {
+//                          result.error("NO_GL_CONTEXT", "Failed to get current OpenGL context", null);
+//                          return;
+//                      };
+//                      Log.i("polyvox_filament", "Successfully created OpenGL context");
+//                  }
+//              }
 
-             val args = call.arguments as List<*>
-             val width = 256 //args[0] as Double
-             val height = 256// args[1] as Double
-             if(width <1 || height < 1) {
-                 result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero", null);
-                 return;
-             }
-             Log.i("polyvox_filament", "Creating texture of size ${width}x${height}");
-             val texture = IntArray(1)
-             GLES32.glGenTextures(1, texture, 0)
-             _glTextureId = texture[0]
+              val args = call.arguments as List<*>
+              val width = 256 //args[0] as Double
+              val height = 256// args[1] as Double
+              if(width <1 || height < 1) {
+                  result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero", null);
+                  return;
+              }
+              Log.i("polyvox_filament", "Creating texture of size ${width}x${height}");
+//              val texture = IntArray(1)
+//              GLES32.glGenTextures(1, texture, 0)
+//              _glTextureId = texture[0]
 
-             GLES32.glBindTexture(GLES32.GL_TEXTURE_2D, _glTextureId)
-             GLES32.glTexParameteri(GLES32.GL_TEXTURE_2D, GLES32.GL_TEXTURE_MIN_FILTER, GLES32.GL_LINEAR)
-             GLES32.glTexParameteri(GLES32.GL_TEXTURE_2D, GLES32.GL_TEXTURE_MAG_FILTER, GLES32.GL_LINEAR)
-             GLES32.glTexParameteri(GLES32.GL_TEXTURE_2D, GLES32.GL_TEXTURE_WRAP_S, GLES32.GL_CLAMP_TO_EDGE)
-             GLES32.glTexParameteri(GLES32.GL_TEXTURE_2D, GLES32.GL_TEXTURE_WRAP_T, GLES32.GL_CLAMP_TO_EDGE)
-             GLES32.glTexImage2D(
-                     GLES32.GL_TEXTURE_2D,
-                     0,
-                     GLES32.GL_RGBA,
-                     width.toInt(),
-                     height.toInt(),
-                     0,
-                     GLES32.GL_RGBA,
-                     GLES32.GL_UNSIGNED_BYTE,
-                     null
-              )
-             if(_glTextureId == 0) {
-                 result.error("GL_TEXTURE_CREATE_FAILED", "Failed to create OpenGL texture. Check logcat for details", null);
-                 return;
-             }
+//              GLES32.glBindTexture(GLES32.GL_TEXTURE_2D, _glTextureId)
+//              GLES32.glTexParameteri(GLES32.GL_TEXTURE_2D, GLES32.GL_TEXTURE_MIN_FILTER, GLES32.GL_LINEAR)
+//              GLES32.glTexParameteri(GLES32.GL_TEXTURE_2D, GLES32.GL_TEXTURE_MAG_FILTER, GLES32.GL_LINEAR)
+//              GLES32.glTexParameteri(GLES32.GL_TEXTURE_2D, GLES32.GL_TEXTURE_WRAP_S, GLES32.GL_CLAMP_TO_EDGE)
+//              GLES32.glTexParameteri(GLES32.GL_TEXTURE_2D, GLES32.GL_TEXTURE_WRAP_T, GLES32.GL_CLAMP_TO_EDGE)
+//              GLES32.glTexImage2D(
+//                      GLES32.GL_TEXTURE_2D,
+//                      0,
+//                      GLES32.GL_RGBA,
+//                      width.toInt(),
+//                      height.toInt(),
+//                      0,
+//                      GLES32.GL_RGBA,
+//                      GLES32.GL_UNSIGNED_BYTE,
+//                      null
+//               )
+//              if(_glTextureId == 0) {
+//                  result.error("GL_TEXTURE_CREATE_FAILED", "Failed to create OpenGL texture. Check logcat for details", null);
+//                  return;
+//              }
 
-             _surfaceTexture = SurfaceTexture(_glTextureId)
-             _surfaceTexture!!.setDefaultBufferSize(width.toInt(), height.toInt())
-             _surfaceTexture!!.setOnFrameAvailableListener({
-                 Log.i("TMP","FRAME AVAILABLE");
-             })
-             _surfaceTextureEntry = flutterPluginBinding.textureRegistry.registerSurfaceTexture(_surfaceTexture!!)
+//              _surfaceTexture = SurfaceTexture(_glTextureId)
 
-//            _surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
-//            _surfaceTexture = _surfaceTextureEntry!!.surfaceTexture();
+//              _surfaceTexture!!.setOnFrameAvailableListener({
+//                  Log.i("TMP","FRAME AVAILABLE");
+//              })
+//              _surfaceTextureEntry = flutterPluginBinding.textureRegistry.registerSurfaceTexture(_surfaceTexture!!)
+
+            _surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
+            _surfaceTexture = _surfaceTextureEntry!!.surfaceTexture();
+            _surfaceTexture!!.setDefaultBufferSize(width.toInt(), height.toInt())
 
             _surface = Surface(_surfaceTexture)
-            val canvas = _surface!!.lockHardwareCanvas()
-            canvas.drawColor(Color.GREEN)
-            _surface!!.unlockCanvasAndPost(canvas)
-//            result.success(_surfaceTextureEntry!!.id())
-            result.success(0)
+            // val canvas = _surface!!.lockHardwareCanvas()
+            // canvas.drawColor(Color.GREEN)
+            // _surface!!.unlockCanvasAndPost(canvas)
+            result.success(_surfaceTextureEntry!!.id())
         }
         "destroyTexture" -> {
           if (_viewer != null) {
@@ -227,23 +227,22 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.success(true)
         }
         "resize" -> {
-            result.success(null)
-            return
-
             if (_viewer == null) {
                 result.error("VIEWER_NULL", "Error: cannot resize before a viewer has been created", null)
                 return
             }
+            val wasRendering = _rendering;
             _rendering = false
             _lib.destroy_swap_chain(_viewer)
             val args = call.arguments as List<Any>
-            val width = args[0] as Int
-            val height = args[1] as Int
-            val scale = args[2] as Float
+            val width = 100 // args[0] as Int
+            val height = 100 // args[1] as Int
+            val scale = 1.0 // args[2] as Float
             _surfaceTexture!!.setDefaultBufferSize(width, height)
-            // _lib.create_swap_chain(Pointer.nativeValue(_viewer), Surface(_surfaceTexture), width, height)
-            _lib.update_viewport_and_camera_projection(_viewer!!, width as UInt, height as UInt, scale);
-            _rendering = true
+            val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
+            _lib.create_swap_chain(_viewer!!, nativeWindow, width, height)
+            _lib.update_viewport_and_camera_projection(_viewer!!, width as UInt, height as UInt, scale.toFloat())
+            _rendering = wasRendering;
             Log.i(TAG, "Resized to ${args[0]}x${args[1]}")
             result.success(_surfaceTexture)
         }
@@ -254,20 +253,22 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
               _viewer = null
             }
             val resourceLoader = _lib.make_resource_loader(this, this, Pointer(0))
-//            _viewer = _lib.create_filament_viewer(0, resourceLoader);
-//            _viewer = _lib.create_filament_viewer_android(_surface!! as Object, JNIEnv.CURRENT, resourceLoader);
-//surface.
-              _viewer = _lib.create_filament_viewer(
-                      _glContext!!.nativeHandle,
-                      resourceLoader)
+            val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
+            _viewer = _lib.create_filament_viewer(nativeWindow, resourceLoader);
+
+              // _viewer = _lib.create_filament_viewer(
+              //         _glContext!!.nativeHandle,
+              //         resourceLoader)
             val args = call.arguments as List<Any>
-//            val width = args[0] as Double
-//            val height = args[1] as Double
-            val width = 200
-            val height = 200
-//            _lib.create_swap_chain_android(_viewer!!, _surface!! as Object, JNIEnv.CURRENT, width.toInt(), height.toInt())
-            _lib.create_swap_chain(_viewer!!, null, width.toInt(), height.toInt())
-            _lib.create_render_target(_viewer, _glTextureId, width.toInt(),height.toInt());
+            var width = 100.0 // args[0] as Double
+            val height = 100.0 // args[1] as Double
+//            if(width < 1 || height < 1) {
+//              result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero", null);
+//              return;
+//            }
+            _lib.create_swap_chain(_viewer!!, nativeWindow, width.toInt(), height.toInt())
+            // _lib.create_swap_chain(_viewer!!, null, width.toInt(), height.toInt())
+            // _lib.create_render_target(_viewer, _glTextureId, width.toInt(),height.toInt());
             result.success(Pointer.nativeValue(_viewer!!))
 
         }
@@ -380,9 +381,9 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
       result.success(true)
     }
     "render" -> {
-        val canvas = _surface!!.lockHardwareCanvas()
-        canvas.drawColor(Color.BLUE)
-        _surface!!.unlockCanvasAndPost(canvas)
+//        val canvas = _surface!!.lockHardwareCanvas()
+//        canvas.drawColor(Color.BLUE)
+//        _surface!!.unlockCanvasAndPost(canvas)
         _lib.render(_viewer, 0)
 //        _surfaceTexture!!.updateTexImage()
         result.success(true)
@@ -402,7 +403,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         val width = args[0] as Int
         val height = args[1] as Int
         val scaleFactor = args[2] as Double
-       _lib.update_viewport_and_camera_projection(_viewer, width.toUInt(), height.toUInt(), scaleFactor.toFloat())
+      //  _lib.update_viewport_and_camera_projection(_viewer, width.toUInt(), height.toUInt(), scaleFactor.toFloat())
         result.success(true)
     }
     "scrollBegin" -> {
@@ -758,6 +759,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
     var _ptr:Pointer = Pointer(0)
 
     override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
+        Log.i("Loading resource from path $path")
         var data:ByteArray? = null
         if(path!!.startsWith("file://")) {
             data = File(path!!.substring(6)).readBytes()

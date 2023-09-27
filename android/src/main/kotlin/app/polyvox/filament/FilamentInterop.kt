@@ -26,15 +26,9 @@ interface FreeFilamentResourceFromOwner : Callback {
 }
 interface FilamentInterop : Library {
 
+fun create_filament_viewer(context:Pointer, loader:Pointer) : Pointer;
 fun create_swap_chain(viewer: Pointer, window:Pointer?, width:Int, height:Int);
-
-fun create_swap_chain_android(viewer: Pointer, surface:Object,
-                              env:JNIEnv, width:Int, height:Int);
-fun create_filament_viewer_android(
-            surface:Object,
-            env:JNIEnv,
-            resourceLoader:Pointer
-) : Pointer;
+fun get_native_window_from_surface(surface:Object, env:JNIEnv) : Pointer;
 fun delete_filament_viewer(viewer: Any?)
 fun get_asset_manager(viewer: Any?): Any?
 fun create_render_target(viewer: Any?, texture_id: Int, width: Int, height: Int)
@@ -95,8 +89,6 @@ fun set_camera_focus_distance(viewer: Any?, focus_distance: Float)
 fun hide_mesh(asset_manager: Any?, asset: EntityId, mesh_name: String): Int
 fun reveal_mesh(asset_manager: Any?, asset: EntityId, mesh_name: String): Int
 fun ios_dummy()
-fun create_filament_viewer(context:Long, loader:Pointer) : Pointer;
-
-fun make_resource_loader(loadResourceFromOwner: LoadFilamentResourceFromOwner, freeResource: FreeFilamentResourceFromOwner, owner:Pointer?) : Pointer;
+fun make_resource_loader(loadResourceFromOwner: LoadResourceFromOwner, freeResource: FreeResourceFromOwner, owner:Pointer?) : Pointer;
 }
 
