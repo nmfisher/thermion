@@ -98,7 +98,7 @@ extern "C" {
   }
 
   FLUTTER_PLUGIN_EXPORT void move_camera_to_asset(const void* const viewer, EntityId asset) {
-      ((FilamentViewer*)viewer)->moveCameraToAsset(asset, asset);
+      ((FilamentViewer*)viewer)->moveCameraToAsset(asset);
   }
 
   FLUTTER_PLUGIN_EXPORT void set_camera_focus_distance(const void* const viewer, float distance) {

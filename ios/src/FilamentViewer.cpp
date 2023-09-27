@@ -872,17 +872,19 @@ void FilamentViewer::setCameraPosition(float x, float y, float z) {
 
 void FilamentViewer::moveCameraToAsset(EntityId entityId) {
 
-  auto asset = _assetManager->getAssetByEntityId(entityId);
+auto asset = _assetManager->getAssetByEntityId(entityId);
   if(!asset) {
       Log("Failed to find asset attached to specified entity id.");
       return;
   }
 
-  const filament::Aabb bb = asset->mAsset->getBoundingBox();
+  const filament::Aabb bb = asset->getBoundingBox();
+  auto corners = bb.getCorners();
   Camera& cam =_view->getCamera();
-  _cameraPosition = math::mat4f::translation(bb.getCorners());
-  _cameraRotation = math::mat4f();
-  cam.setModelMatrix(_cameraPosition * _cameraRotation);
+  auto eye = corners.vertices[0] * 1.5;
+  auto lookAt = corners.vertices[7];
+  cam.lookAt(eye, lookAt);     
+  Log("Moved camera to %f %f %f, lookAt %f %f %f, near %f far %f", eye[0], eye[1], eye[2], lookAt[0], lookAt[1], lookAt[2], cam.getNear(), cam.getCullingFar());
 }
 
 void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
