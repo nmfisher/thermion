@@ -109,13 +109,14 @@ static constexpr float4 sFullScreenTriangleVertices[3] = {
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
-FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWrapper* const resourceLoaderWrapper)
+FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform)
   : _resourceLoaderWrapper(resourceLoaderWrapper) {
   
   #if TARGET_OS_IPHONE
+    ASSERT_POSTCONDITION(platform == nullptr);
     _engine = Engine::create(Engine::Backend::METAL);
   #else
-    _engine = Engine::create(Engine::Backend::OPENGL, nullptr, (void*)sharedContext, nullptr);
+    _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform*)platform, (void*)sharedContext, nullptr);
   #endif
 
   _renderer = _engine->createRenderer();

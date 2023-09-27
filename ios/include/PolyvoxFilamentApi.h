@@ -18,7 +18,7 @@ extern "C" {
 #endif
 typedef int32_t EntityId;
 
-const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader);
+const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader, void* const platform);
 ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* owner);
 void delete_filament_viewer(const void* const viewer);
 void* get_asset_manager(const void* const viewer);

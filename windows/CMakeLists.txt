@@ -8,10 +8,13 @@ cmake_policy(VERSION 3.14...3.25)
 # not be changed
 set(PLUGIN_NAME "polyvox_filament_plugin")
 
+add_compile_definitions(FILAMENT_USE_EXTERNAL_GLES3 ON)
+
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
   "polyvox_filament_plugin.cpp"
   "polyvox_filament_plugin.h"
+  "PlatformAngle.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
@@ -26,7 +29,6 @@ add_library(${PLUGIN_NAME} SHARED
   "polyvox_filament_plugin_c_api.cpp"
   ${PLUGIN_SOURCES}
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/image.c"
-  # "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/uberarchive.c" 
 )
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -38,10 +40,15 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES
 target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
 
 add_library(EGL SHARED IMPORTED)
 set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/libEGL.dll.lib")
+add_library(GLESv2 SHARED IMPORTED)
+set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/libGLESv2.dll.lib")
+# add_library(d3d_compiler SHARED IMPORTED)
+# set_property(TARGET d3d_compiler PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/d3dcompiler_47.dll")
 add_library(bluegl SHARED IMPORTED)
 set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/bluegl.lib")
 add_library(geometry SHARED IMPORTED)
@@ -105,13 +112,15 @@ set_property(TARGET zstd PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/l
 add_library(png SHARED IMPORTED)
 set_property(TARGET png PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/png.lib")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../ios/include)
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/../ios/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
 flutter
 flutter_wrapper_plugin 
-bluegl
-opengl32
+# bluegl
   gltfio
  gltfio_core 
  filament 
@@ -142,11 +151,16 @@ opengl32
  tinyexr
  Shlwapi
  EGL
+ GLESv2
+#  d3d_compiler
+ opengl32
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin
 set(polyvox_filament_bundled_libraries
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/libEGL.dll
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/libGLESv2.dll
+  # ${CMAKE_CURRENT_SOURCE_DIR}/lib/d3dcompiler_47.dll
   PARENT_SCOPE
 )
 

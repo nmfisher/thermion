@@ -16,58 +16,16 @@
 #include "GL/GL.h"
 #include "GL/GLu.h"
 
-
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <EGL/eglplatform.h>
+#include "EGL/egl.h"
+#include "EGL/eglext.h"
+#include "EGL/eglplatform.h"
+#include "GLES2/gl2.h"
+#include "GLES2/gl2ext.h"
 
 #include "PolyvoxFilamentApi.h"
+#include "PlatformAngle.h"
 
 namespace polyvox_filament {
-
-static constexpr EGLint kEGLConfigurationAttributes[] = {
-      EGL_RED_SIZE,   8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE,    8,
-      EGL_ALPHA_SIZE, 8, EGL_DEPTH_SIZE, 8, EGL_STENCIL_SIZE, 8,
-      EGL_NONE,
-  };
-  static constexpr EGLint kEGLContextAttributes[] = {
-      EGL_CONTEXT_CLIENT_VERSION,
-      2,
-      EGL_NONE,
-  };
-  static constexpr EGLint kD3D11DisplayAttributes[] = {
-      EGL_PLATFORM_ANGLE_TYPE_ANGLE,
-      EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-      EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE,
-      EGL_TRUE,
-      EGL_NONE,
-  };
-  static constexpr EGLint kD3D11_9_3DisplayAttributes[] = {
-      EGL_PLATFORM_ANGLE_TYPE_ANGLE,
-      EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-      EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE,
-      9,
-      EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE,
-      3,
-      EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE,
-      EGL_TRUE,
-      EGL_NONE,
-  };
-  static constexpr EGLint kD3D9DisplayAttributes[] = {
-      EGL_PLATFORM_ANGLE_TYPE_ANGLE,
-      EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE,
-      EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE,
-      EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE,
-      EGL_NONE,
-  };
-  static constexpr EGLint kWrapDisplayAttributes[] = {
-      EGL_PLATFORM_ANGLE_TYPE_ANGLE,
-      EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-      EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE,
-      EGL_TRUE,
-      EGL_NONE,
-  };
-
 
 class PolyvoxFilamentPlugin : public flutter::Plugin {
 public:
@@ -91,8 +49,8 @@ public:
 
   std::unique_ptr<flutter::TextureVariant> _texture = nullptr;
 
-  // std::unique_ptr<FlutterDesktopPixelBuffer> _pixelBuffer = nullptr;
-  //   std::unique_ptr<uint8_t> _pixelData = nullptr;
+  std::unique_ptr<FlutterDesktopPixelBuffer> _pixelBuffer = nullptr;
+  std::unique_ptr<uint8_t> _pixelData = nullptr;
 
   std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> _textureDescriptor = nullptr;
 
@@ -115,6 +73,7 @@ public:
   Microsoft::WRL::ComPtr<ID3D11Texture2D> _internalD3DTexture2D;
   HANDLE _externalD3DTextureHandle = nullptr;
   HANDLE _internalD3DTextureHandle = nullptr;
+  filament::backend::PlatformANGLE* _platform = nullptr;
 
   void *_viewer = nullptr;
 

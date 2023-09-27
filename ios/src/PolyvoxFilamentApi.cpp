@@ -15,8 +15,8 @@ extern "C" {
 
   #include "PolyvoxFilamentApi.h"
 
-  const void* create_filament_viewer(const void* context, const ResourceLoaderWrapper* const loader) {
-      return (const void*) new FilamentViewer(context, loader);
+  const void* create_filament_viewer(const void* context, const ResourceLoaderWrapper* const loader, void* const platform) {
+      return (const void*) new FilamentViewer(context, loader, platform);
   }
 
   ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* const owner) {
