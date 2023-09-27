@@ -13,13 +13,15 @@ class FilamentGestureDetector extends StatefulWidget {
   final FilamentController controller;
   final bool showControlOverlay;
   final bool enableControls;
+  final double zoomDelta;
 
   const FilamentGestureDetector(
       {Key? key,
       required this.controller,
       this.child,
       this.showControlOverlay = false,
-      this.enableControls = true})
+      this.enableControls = true,
+      this.zoomDelta = 1})
       : super(key: key);
 
   @override
@@ -91,8 +93,9 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
                 if (pointerSignal is PointerScrollEvent) {
                   _scrollTimer?.cancel();
                   widget.controller.zoomBegin();
-                  widget.controller
-                      .zoomUpdate(pointerSignal.scrollDelta.dy > 0 ? 1 : -1);
+                  widget.controller.zoomUpdate(pointerSignal.scrollDelta.dy > 0
+                      ? widget.zoomDelta
+                      : -widget.zoomDelta);
                   _scrollTimer = Timer(Duration(milliseconds: 100), () {
                     widget.controller.zoomEnd();
                     _scrollTimer = null;
@@ -104,8 +107,11 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
             ? null
             : (d) async {
                 if (d.buttons == kTertiaryButton || _rotating) {
-                  widget.controller
-                      .rotateStart(d.localPosition.dx, d.localPosition.dy);
+                  print("Starting at ${d.position}");
+                  widget.controller.rotateStart(
+                      d.position.dx * 2.0,
+                      d.position.dy *
+                          2.0); // multiply by 2.0 to account for pixel density, TODO don't hardcode
                 } else {
                   widget.controller
                       .panStart(d.localPosition.dx, d.localPosition.dy);
@@ -116,7 +122,7 @@ class _FilamentGestureDetectorState extends State<FilamentGestureDetector> {
             : (PointerMoveEvent d) async {
                 if (d.buttons == kTertiaryButton || _rotating) {
                   widget.controller
-                      .rotateUpdate(d.localPosition.dx, d.localPosition.dy);
+                      .rotateUpdate(d.position.dx * 2.0, d.position.dy * 2.0);
                 } else {
                   widget.controller
                       .panUpdate(d.localPosition.dx, d.localPosition.dy);

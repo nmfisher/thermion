@@ -861,6 +861,27 @@ void FilamentViewer::updateViewportAndCameraProjection(
       contentScaleFactor);
 }
 
+void FilamentViewer::moveCameraToAsset(EntityId entityId) {
+
+  auto asset = _assetManager->getAssetByEntityId(entityId);
+  if(!asset) {
+      Log("Failed to find asset attached to specified entity id.");
+      return;
+  }
+
+  const filament::Aabb bb = asset->getBoundingBox();
+  auto corners = bb.getCorners();
+  Camera& cam =_view->getCamera();
+  auto eye = corners.vertices[0] * 1.5;
+  auto lookAt = corners.vertices[7];
+  cam.lookAt(eye, lookAt);     
+  Log("Moved camera to %f %f %f, lookAt %f %f %f, near %f far %f", eye[0], eye[1], eye[2], lookAt[0], lookAt[1], lookAt[2], cam.getNear(), cam.getCullingFar());
+}
+
+void FilamentViewer::setViewFrustumCulling(bool enabled) { 
+  _view->setFrustumCullingEnabled(enabled);
+}
+
 void FilamentViewer::setCameraPosition(float x, float y, float z) {
   Camera& cam =_view->getCamera();
 
@@ -915,7 +936,7 @@ void FilamentViewer::grabUpdate(float x, float y) {
         return;
     }
     Camera& cam =_view->getCamera();
-    auto eye =  cam.getPosition();// math::float3  {0.0f, 0.5f, 50.0f } ;// ; //
+    auto eye =  cam.getPosition();
     auto target = eye + cam.getForwardVector();
     auto upward = cam.getUpVector();
     Viewport const& vp = _view->getViewport();
@@ -924,9 +945,7 @@ void FilamentViewer::grabUpdate(float x, float y) {
         cam.setModelMatrix(trans);
     } else {
         auto trans = cam.getModelMatrix() * mat4::rotation(
-                                                   
-                                                          0.01,
-//                                                           math::float3 { 0.0f, 1.0f, 0.0f });
+                                                   0.02,
                                                            math::float3 { (y - _startY) / vp.height, (x - _startX) / vp.width, 0.0f });
         cam.setModelMatrix(trans);
     }

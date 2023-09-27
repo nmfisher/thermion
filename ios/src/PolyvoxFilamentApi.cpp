@@ -96,6 +96,10 @@ extern "C" {
       return ((FilamentViewer*)viewer)->setCamera(asset, nodeName);
   }
 
+  void move_camera_to_asset(const void* const viewer, EntityId asset) {
+      ((FilamentViewer*)viewer)->moveCameraToAsset(asset, asset);
+  }
+
   void set_camera_focus_distance(const void* const viewer, float distance) {
       ((FilamentViewer*)viewer)->setCameraFocusDistance(distance);
   }

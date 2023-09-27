@@ -908,9 +908,23 @@ void FilamentViewer::setCameraPosition(float x, float y, float z) {
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }
 
+void FilamentViewer::moveCameraToAsset(EntityId entityId) {
+
+  auto asset = _assetManager->getAssetByEntityId(entityId);
+  if(!asset) {
+      Log("Failed to find asset attached to specified entity id.");
+      return;
+  }
+
+  const filament::Aabb bb = asset->mAsset->getBoundingBox();
+  Camera& cam =_view->getCamera();
+  _cameraPosition = math::mat4f::translation(bb.getCorners());
+  _cameraRotation = math::mat4f();
+  cam.setModelMatrix(_cameraPosition * _cameraRotation);
+}
+
 void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
   Camera& cam =_view->getCamera();
-
   _cameraRotation = math::mat4f::rotation(rads, math::float3(x,y,z));
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }

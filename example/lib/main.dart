@@ -55,6 +55,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   bool _initialized = false;
 
   bool _coneHidden = false;
+  bool _frustumCulling = true;
 
   @override
   void initState() {
@@ -144,7 +145,10 @@ class _ExampleWidgetState extends State<ExampleWidget> {
       }, 'transform to unit cube'),
       _item(() async {
         _filamentController.setPosition(_cube!, 1.0, 1.0, -1.0);
-      }, 'set position to 1, 1, -1'),
+      }, 'set cube position to 1, 1, -1'),
+      _item(() async {
+        _filamentController.setPosition(_cube!, 1.0, 1.0, -1.0);
+      }, 'move camera to cube position'),
       _item(() async {
         var frameData = Float32List.fromList(
             List<double>.generate(120, (i) => i / 120).expand((x) {
@@ -248,6 +252,18 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     children.add(_item(() {
       _filamentController.setToneMapping(ToneMapper.LINEAR);
     }, "Set tone mapping to linear"));
+
+    children.add(_item(() {
+      _filamentController.moveCameraToAsset(_cube!);
+    }, "Move camera to asset"));
+
+    children.add(_item(() {
+      setState(() {
+        _frustumCulling = !_frustumCulling;
+      });
+
+      _filamentController.setViewFrustumCulling(_frustumCulling);
+    }, "${_frustumCulling ? "Disable" : "Enable"} frustum culling"));
 
     return Stack(children: [
       Positioned(

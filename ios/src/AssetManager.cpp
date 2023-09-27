@@ -21,6 +21,7 @@
 #include "Log.hpp"
 #include "AssetManager.hpp"
 
+#include "material/UnlitMaterialProvider.hpp"
 #include "material/FileMaterialProvider.hpp"
 // #include "gltfio/materials/uberarchive.h"
 

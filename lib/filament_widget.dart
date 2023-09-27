@@ -155,7 +155,6 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       if (_textureId == null) {
         return widget.initial;
       }
-
       var texture = Texture(
         key: ObjectKey("texture_$_textureId"),
         textureId: _textureId!,

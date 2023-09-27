@@ -51,19 +51,16 @@ _scene(scene) {
     
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
-sdfsdfds
     auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/default.uberz");
     _ubershaderProvider = gltfio::createUbershaderProvider(
-                                                            _engine, uberdata.data, uberdata.size);
+                                                            _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
+    
+
                                                             
     // _ubershaderProvider = gltfio::createJitShaderProvider(_engine, true);
     // _ubershaderProvider = new StandardMaterialProvider(_engine);
     EntityManager &em = EntityManager::get();
-    
-    //_unlitProvider = new UnlitMaterialProvider(_engine);
-    
-    // auto rb = _resourceLoaderWrapper->load("file:///mnt/hdd_2tb/home/hydroxide/projects/polyvox/flutter/polyvox_filament/materials/toon.filamat");
-    // auto toonProvider = new FileMaterialProvider(_engine, rb.data, (size_t) rb.size);
+
     
     _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em });
     _gltfResourceLoader->addTextureProvider("image/ktx2", _ktxDecoder);
@@ -74,7 +71,6 @@ sdfsdfds
 AssetManager::~AssetManager() { 
     _gltfResourceLoader->asyncCancelLoad();
     _ubershaderProvider->destroyMaterials();
-    //_unlitProvider->destroyMaterials();
     destroyAll();
     AssetLoader::destroy(&_assetLoader);
     

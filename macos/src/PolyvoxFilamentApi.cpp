@@ -97,6 +97,14 @@ extern "C" {
       return ((FilamentViewer*)viewer)->setCamera(asset, nodeName);
   }
 
+  FLUTTER_PLUGIN_EXPORT void move_camera_to_asset(const void* const viewer, EntityId asset) {
+      ((FilamentViewer*)viewer)->moveCameraToAsset(asset);
+  }
+
+  FLUTTER_PLUGIN_EXPORT void set_view_frustum_culling(const void* const viewer, bool enabled) {
+      ((FilamentViewer*)viewer)->setViewFrustumCulling(enabled);
+  }  
+
   FLUTTER_PLUGIN_EXPORT void set_camera_focus_distance(const void* const viewer, float distance) {
       ((FilamentViewer*)viewer)->setCameraFocusDistance(distance);
   }

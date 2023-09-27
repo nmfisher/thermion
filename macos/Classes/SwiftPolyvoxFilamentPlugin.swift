@@ -34,6 +34,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         var uriString = String(cString:uri!)
         
         var path:String? = nil
+
+        print("Received request to load \(uriString)")
         
         if(uriString.hasPrefix("file://")) {
             path = String(uriString.dropFirst(7))
@@ -47,12 +49,13 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
 
         if(path != nil) {
           do {
-                print("Attempting to load file at path \(path!)")
+                print("Loading file at path \(path!)")
                 let data = try Data(contentsOf: URL(fileURLWithPath:path!))
                 let nsData = data as NSData 
                 let resId = UInt32(instance.resources.count)
                 instance.resources[resId] = nsData
                 let length = nsData.length
+                print("Got file of length \(length)")
                 return ResourceBuffer(data:nsData.bytes, size:UInt32(nsData.count), id:UInt32(resId))
           } catch {
             print("ERROR LOADING RESOURCE")
@@ -613,7 +616,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             }
             let success = set_camera(viewer, asset, nodeName)
             result(success)
-
+        case "moveCameraToAsset":
+            move_camera_to_asset(viewer, call.arguments as! EntityId)
+            result(true)
+        case "setViewFrustumCulling":
+            set_view_frustum_culling(viewer, call.arguments as! Bool)
+            result(true)
         case "setCameraPosition":
             let args = call.arguments as! [Any]
             set_camera_position(viewer, Float(args[0] as! Double), Float(args[1] as! Double), Float(args[2] as! Double))
