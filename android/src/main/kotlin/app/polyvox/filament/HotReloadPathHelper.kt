@@ -11,7 +11,7 @@ class HotReloadPathHelper {
     companion object {
         fun getAssetPath(path: String, packageName: String): String? {
             val packagePath = "/data/user/0/${packageName}/code_cache/"
-            Log.v("FFI", "Looking for path ${path} under package path ${packagePath}")
+            Log.v("polyvox_filament", "Looking for hot reloaded asset ${path} under package path ${packagePath}")
             val files = File(packagePath).walkBottomUp().filter {
               it.path.endsWith(path)
             }.sortedBy {

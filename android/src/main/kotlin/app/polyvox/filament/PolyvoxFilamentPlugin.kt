@@ -220,8 +220,8 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         }
         "destroyViewer" -> {
             if (_viewer != null) {
-                _lib.destroy_swap_chain(_viewer)
-                _lib.delete_filament_viewer(_viewer)
+                _lib.destroy_swap_chain(_viewer!!)
+                _lib.delete_filament_viewer(_viewer!!)
                 _viewer = null
             }
             result.success(true)
@@ -233,7 +233,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             }
             val wasRendering = _rendering;
             _rendering = false
-            _lib.destroy_swap_chain(_viewer)
+            _lib.destroy_swap_chain(_viewer!!)
             val args = call.arguments as List<Any>
             val width = 100 // args[0] as Int
             val height = 100 // args[1] as Int
@@ -248,8 +248,8 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         }
         "createFilamentViewer" -> {
             if (_viewer != null) {
-              _lib.destroy_swap_chain(_viewer)
-              _lib.delete_filament_viewer(_viewer)
+              _lib.destroy_swap_chain(_viewer!!)
+              _lib.delete_filament_viewer(_viewer!!)
               _viewer = null
             }
             val resourceLoader = _lib.make_resource_loader(this, this, Pointer(0))
@@ -260,24 +260,23 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
               //         _glContext!!.nativeHandle,
               //         resourceLoader)
             val args = call.arguments as List<Any>
-            var width = 100.0 // args[0] as Double
-            val height = 100.0 // args[1] as Double
-//            if(width < 1 || height < 1) {
-//              result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero", null);
-//              return;
-//            }
+            var width = args[0] as Double
+            val height = args[1] as Double
+            if(width < 1 || height < 1) {
+              result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero", null);
+              return;
+            }
             _lib.create_swap_chain(_viewer!!, nativeWindow, width.toInt(), height.toInt())
-            // _lib.create_swap_chain(_viewer!!, null, width.toInt(), height.toInt())
-            // _lib.create_render_target(_viewer, _glTextureId, width.toInt(),height.toInt());
+            // _lib.create_render_target(_viewer!!, _glTextureId, width.toInt(),height.toInt());
             result.success(Pointer.nativeValue(_viewer!!))
 
         }
       "getAssetManager" -> {
-          val assetManager = _lib.get_asset_manager(_viewer)
-          result.success(assetManager)
+          val assetManager = _lib.get_asset_manager(_viewer!!)
+          result.success(assetManager!!)
       }
       "clearBackgroundImage" -> {
-          _lib.clear_background_image(_viewer)
+          _lib.clear_background_image(_viewer!!)
           result.success(true)
       }
       "setBackgroundImage" -> {
@@ -285,44 +284,44 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           
           val path = args[0] as String
           val fillHeight = args[1] as Boolean
-          _lib.set_background_image(_viewer, path, fillHeight)
+          _lib.set_background_image(_viewer!!, path, fillHeight)
           result.success(true)
       }
       "setBackgroundImagePosition" -> {
           val args = call.arguments as List<*>
-          _lib.set_background_image_position(_viewer, args[0] as Float, args[1] as Float, args[2] as Boolean)
+          _lib.set_background_image_position(_viewer!!, args[0] as Float, args[1] as Float, args[2] as Boolean)
           result.success(true)
       }
       "setBackgroundColor" -> {
           val args = call.arguments as List<Double>
-          _lib.set_background_color(_viewer, args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat())
+          _lib.set_background_color(_viewer!!, args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat())
           result.success(true)
       }
       "setToneMapping" -> {
           val args = call.arguments as Int
-          _lib.set_tone_mapping(_viewer, args);  
+          _lib.set_tone_mapping(_viewer!!, args);  
           result.success(true)
       }
       "setBloom" -> {
           val args = call.arguments as Float
-          _lib.set_bloom(_viewer, args as Float); 
+          _lib.set_bloom(_viewer!!, args as Float); 
           result.success(true)
       }
       "loadSkybox" -> {
-          _lib.load_skybox(_viewer, call.arguments as String)
+          _lib.load_skybox(_viewer!!, call.arguments as String)
           result.success(true)
       }
       "loadIbl" -> {
           val args = call.arguments as List<*>
-          _lib.load_ibl(_viewer, args[0] as String, args[1] as Float)
+          _lib.load_ibl(_viewer!!, args[0] as String, args[1] as Float)
           result.success(true)
       }
       "removeSkybox" -> {
-        _lib.remove_skybox(_viewer)
+        _lib.remove_skybox(_viewer!!)
         result.success(true)
       }
       "removeIbl" -> {
-          _lib.remove_ibl(_viewer)
+          _lib.remove_ibl(_viewer!!)
           result.success(true)
       }
       "addLight" -> {
@@ -339,52 +338,51 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             val dirZ = args[8] as Float
             val shadows = args[9] as Boolean
 
-            val entityId = _lib.add_light(_viewer, type, colour as Float, intensity as Float,posX as Float, posY as Float, posZ as Float, dirX as Float, dirY as Float, dirZ as Float, shadows)
+            val entityId = _lib.add_light(_viewer!!, type, colour as Float, intensity as Float,posX as Float, posY as Float, posZ as Float, dirX as Float, dirY as Float, dirZ as Float, shadows)
             result.success(entityId)
           }
       }
       "removeLight" -> {
-       _lib.remove_light(_viewer, call.arguments as Int)
+       _lib.remove_light(_viewer!!, call.arguments as Int)
         result.success(true)
     }
     "clearLights" -> {
-       _lib.clear_lights(_viewer)
+       _lib.clear_lights(_viewer!!)
         result.success(true)
     }
     "loadGlb" -> {
         val args = call.arguments as List<Any>
         if (args.size != 3) {
-            result.error("INVALID_ARGUMENTS", "Expected assetManager, assetPath, and unlit for load_glb", null)
+            result.error("INVALID_ARGUMENTS", "Expected assetManager!!, assetPath, and unlit for load_glb", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val assetPath = args[1] as String
         val unlit = args[2] as Boolean
-        val entityId =_lib.load_glb(assetManager, assetPath, unlit)
+        val entityId =_lib.load_glb(assetManager!!, assetPath, unlit)
         result.success(entityId)
     }
     "loadGltf" -> {
         val args = call.arguments as List<Any>
         if (args.size != 3) {
-            result.error("INVALID_ARGUMENTS", "Expected assetManager, assetPath, and relativePath for load_gltf", null)
+            result.error("INVALID_ARGUMENTS", "Expected assetManager!!, assetPath, and relativePath for load_gltf", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val assetPath = args[1] as String
         val relativePath = args[2] as String
-        val entityId =_lib.load_gltf(assetManager, assetPath, relativePath)
+        val entityId =_lib.load_gltf(assetManager!!, assetPath, relativePath)
         result.success(entityId)
     }
     "transformToUnitCube" -> {
       val args = call.arguments as List<Any>
-     _lib.transform_to_unit_cube(args[0] as Int, args[1] as EntityId)
+      val assetManager = Pointer((args[0] as Int).toLong())
+      val entityId = args[1] as EntityId
+      _lib.transform_to_unit_cube(assetManager, entityId)
       result.success(true)
     }
     "render" -> {
-//        val canvas = _surface!!.lockHardwareCanvas()
-//        canvas.drawColor(Color.BLUE)
-//        _surface!!.unlockCanvasAndPost(canvas)
-        _lib.render(_viewer, 0)
+        _lib.render(_viewer!!, 0)
 //        _surfaceTexture!!.updateTexImage()
         result.success(true)
     }
@@ -394,7 +392,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
     }
     "setFrameInterval" -> {
         if (_viewer != null) {
-           _lib.set_frame_interval(_viewer, call.arguments as Float)
+           _lib.set_frame_interval(_viewer!!, call.arguments as Float)
         }
         result.success(true)
     }
@@ -403,11 +401,11 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         val width = args[0] as Int
         val height = args[1] as Int
         val scaleFactor = args[2] as Double
-      //  _lib.update_viewport_and_camera_projection(_viewer, width.toUInt(), height.toUInt(), scaleFactor.toFloat())
+      //  _lib.update_viewport_and_camera_projection(_viewer!!, width.toUInt(), height.toUInt(), scaleFactor.toFloat())
         result.success(true)
     }
     "scrollBegin" -> {
-     _lib.scroll_begin(_viewer)
+     _lib.scroll_begin(_viewer!!)
       result.success(true)
     }
       "scrollUpdate" -> {
@@ -419,11 +417,11 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           val x = args[0] as Float
           val y = args[1] as Float
           val z = args[2] as Float
-         _lib.scroll_update(_viewer, x.toFloat(), y.toFloat(), z.toFloat())
+         _lib.scroll_update(_viewer!!, x.toFloat(), y.toFloat(), z.toFloat())
           result.success(true)
       }
       "scrollEnd" -> {
-         _lib.scroll_end(_viewer)
+         _lib.scroll_end(_viewer!!)
           result.success(true)
       }
       "grabBegin" -> {
@@ -435,7 +433,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           val x = args[0] as Float
           val y = args[1] as Float
           val pan = args[2] as Boolean
-         _lib.grab_begin(_viewer, x.toFloat(), y.toFloat(), pan)
+         _lib.grab_begin(_viewer!!, x.toFloat(), y.toFloat(), pan)
           result.success(true)
       }
       "grabUpdate" -> {
@@ -446,11 +444,11 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           }
           val x = args[0] as Float
           val y = args[1] as Float
-         _lib.grab_update(_viewer, x.toFloat(), y.toFloat())
+         _lib.grab_update(_viewer!!, x.toFloat(), y.toFloat())
           result.success(true)
       }
       "grabEnd" -> {
-         _lib.grab_end(_viewer)
+         _lib.grab_end(_viewer!!)
           result.success(true)
       }
       "applyWeights" -> {
@@ -464,19 +462,19 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         //     result.success(FlutterError(code: "INVALID_ARGUMENTS", message: "Expected correct arguments for apply_weights", details: nil))
         //     return
         // }
-        //                 _lib.apply_weights(assetManager, asset, entityName, UnsafeMutablePointer(&weights), count)
+        //                 _lib.apply_weights(assetManager!!, asset, entityName, UnsafeMutablePointer(&weights), count)
         result.success(true)
       }
       "setMorphTargetWeights" -> {
         val args = call.arguments as List<Any>
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val entityName = args[2] as String
         val morphData = args[3] as List<Double>
         val numMorphWeights = args[4] as Int
 
        _lib.set_morph_target_weights(
-            assetManager,
+            assetManager!!,
             asset,
             entityName,
             morphData.map { it.toFloat() }.toFloatArray(),
@@ -487,7 +485,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
       }
       "setMorphAnimation" -> {
         val args = call.arguments as List<Any>
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val entityName = args[2] as String
         val morphData = args[3] as List<Double>
@@ -499,7 +497,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         val frameData = morphData.map { it.toFloat() }
 
         val success =_lib.set_morph_animation(
-            assetManager,
+            assetManager!!,
             asset,
             entityName,
             frameData.toFloatArray(),
@@ -516,7 +514,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for set_bone_animation", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val frameData = args[2] as FloatArray
         val numFrames = args[3] as Int
@@ -525,7 +523,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         val meshNames = args[6] as Array<String>
         val numMeshTargets = args[7] as Int
         val frameLengthInMs = args[8] as Int
-       _lib.set_bone_animation(assetManager, asset, frameData, numFrames, numBones, boneNames, meshNames, numMeshTargets, frameLengthInMs)
+       _lib.set_bone_animation(assetManager!!, asset, frameData, numFrames, numBones, boneNames, meshNames, numMeshTargets, frameLengthInMs)
         result.success(true)
       }
       "playAnimation" -> {
@@ -534,14 +532,14 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for play_animation", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val index = args[2] as Int
         val loop = args[3] as Boolean
         val reverse = args[4] as Boolean
         val replaceActive = args[5] as Boolean
         val crossfade = args[6] as Float
-       _lib.play_animation(assetManager, asset, index, loop, reverse, replaceActive, crossfade.toFloat())
+       _lib.play_animation(assetManager!!, asset, index, loop, reverse, replaceActive, crossfade.toFloat())
         result.success(true)
       }
       "getAnimationDuration" -> {
@@ -550,11 +548,11 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for getAnimationDuration", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val animationIndex = args[2] as Int
 
-        val dur =_lib.get_animation_duration(assetManager, asset, animationIndex)
+        val dur =_lib.get_animation_duration(assetManager!!, asset, animationIndex)
         result.success(dur)
       }
       "setAnimationFrame" -> {
@@ -563,12 +561,12 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for set_animation_frame", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val animationIndex = args[2] as Int
         val animationFrame = args[3] as Int
 
-       _lib.set_animation_frame(assetManager, asset, animationIndex, animationFrame)
+       _lib.set_animation_frame(assetManager!!, asset, animationIndex, animationFrame)
         result.success(true)
       }
       "stopAnimation" -> {
@@ -577,10 +575,10 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for stop_animation", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val index = args[2] as Int
-       _lib.stop_animation(assetManager, asset, index)
+       _lib.stop_animation(assetManager!!, asset, index)
         result.success(true)
       }
       "getAnimationCount" -> {
@@ -589,9 +587,9 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for get_animation_count", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
-        val count =_lib.get_animation_count(assetManager, asset)
+        val count =_lib.get_animation_count(assetManager!!, asset)
         result.success(count)
       }
       "getAnimationNames" -> {
@@ -600,13 +598,13 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for get_animation_name", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val names = mutableListOf<String>()
-        val count =_lib.get_animation_count(assetManager, asset)
+        val count =_lib.get_animation_count(assetManager!!, asset)
         val buffer = ""  // Assuming max name length of 256 for simplicity
         for (i in 0 until count) {
-           _lib.get_animation_name(assetManager, asset, buffer, i)
+           _lib.get_animation_name(assetManager!!, asset, buffer, i)
             names.add(buffer)
         }
         result.success(names)
@@ -617,11 +615,11 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for get_animation_name", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val index = args[2] as Int
         val buffer = ""  // Assuming max name length of 256 for simplicity
-       _lib.get_animation_name(assetManager, asset, buffer, index)
+       _lib.get_animation_name(assetManager!!, asset, buffer, index)
         val name = buffer
         result.success(name)
       }
@@ -631,13 +629,13 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for get_morph_target_name", null)
             return
         }
-        val assetManager = args[0] as? Long ?: return
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as? EntityId ?: return
         val meshName = args[2] as? String ?: return
         val index = args[3] as? Int ?: return
         
         val buffer = ""  // Assuming max name length of 256 for simplicity
-       _lib.get_morph_target_name(assetManager, asset, meshName, buffer, index)
+       _lib.get_morph_target_name(assetManager!!, asset, meshName, buffer, index)
         val targetName = buffer
         result.success(targetName)
       }
@@ -647,16 +645,17 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for get_morph_target_names", null)
             return
         }
-        val assetManager = args[0] as? Long ?: return
+        val assetManager = Pointer((args[0] as Int).toLong())
+
         val asset = args[1] as? EntityId ?: return
         val meshName = args[2] as? String ?: return
         
-        val count =_lib.get_morph_target_name_count(assetManager, asset, meshName)
+        val count =_lib.get_morph_target_name_count(assetManager!!, asset, meshName)
         val names = ArrayList<String>()
         if (count > 0) {
             for (i in 0 until count) {
                 val buffer = ""  // Assuming max name length of 256 for simplicity
-               _lib.get_morph_target_name(assetManager, asset, meshName, buffer, i)
+               _lib.get_morph_target_name(assetManager!!, asset, meshName, buffer, i)
                 names.add(buffer)
             }
         }
@@ -668,18 +667,18 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             result.error("INVALID_ARGUMENTS", "Expected correct arguments for getMorphTargetNameCount", null)
             return
         }
-        val assetManager = args[0] as Int
+        val assetManager = Pointer((args[0] as Int).toLong())
         val asset = args[1] as Int
         val meshName = args[2] as String
-        val count =_lib.get_morph_target_name_count(assetManager, asset, meshName)
+        val count =_lib.get_morph_target_name_count(assetManager!!, asset, meshName)
         result.success(count)
       }
       "removeAsset" -> {
-       _lib.remove_asset(_viewer, call.arguments as Int)
+       _lib.remove_asset(_viewer!!, call.arguments as Int)
         result.success(true)
       }
       "clearAssets" -> {
-       _lib.clear_assets(_viewer)
+       _lib.clear_assets(_viewer!!)
         result.success(true)
       }
       "setCamera" -> {
@@ -690,30 +689,30 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         }
         val asset = args[0] as Int
         val nodeName = args[1] as String
-        val success =_lib.set_camera(_viewer, asset, nodeName)
+        val success =_lib.set_camera(_viewer!!, asset, nodeName)
         result.success(success)
       }
       "setCameraPosition" -> {
         val args = call.arguments as List<*>
-       _lib.set_camera_position(_viewer, (args[0] as Float).toFloat(), (args[1] as Float).toFloat(), (args[2] as Float).toFloat())
+       _lib.set_camera_position(_viewer!!, (args[0] as Float).toFloat(), (args[1] as Float).toFloat(), (args[2] as Float).toFloat())
         result.success(true)
       }
       "setCameraRotation" -> {
         val args = call.arguments as List<*>
-       _lib.set_camera_rotation(_viewer, args[0] as Float, args[1] as Float, args[2] as Float, args[3] as Float)
+       _lib.set_camera_rotation(_viewer!!, args[0] as Float, args[1] as Float, args[2] as Float, args[3] as Float)
         result.success(true)
       }
       "setCameraModelMatrix" -> {
         val matrix = call.arguments as List<Float>
-       _lib.set_camera_model_matrix(_viewer, matrix.toFloatArray())
+       _lib.set_camera_model_matrix(_viewer!!, matrix.toFloatArray())
         result.success(true)
       }
       "setCameraFocalLength" -> {
-       _lib.set_camera_focal_length(_viewer, call.arguments as Float)
+       _lib.set_camera_focal_length(_viewer!!, call.arguments as Float)
         result.success(true)
       }
       "setCameraFocusDistance" -> {
-       _lib.set_camera_focus_distance(_viewer, call.arguments as Float)
+       _lib.set_camera_focus_distance(_viewer!!, call.arguments as Float)
         result.success(true)
       }
       "setMaterialColor" -> {
@@ -759,7 +758,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
     var _ptr:Pointer = Pointer(0)
 
     override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
-        Log.i("Loading resource from path $path")
+        Log.i("polyvox_filament", "Loading resource from path $path")
         var data:ByteArray? = null
         if(path!!.startsWith("file://")) {
             data = File(path!!.substring(6)).readBytes()
