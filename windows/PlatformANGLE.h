@@ -4,8 +4,21 @@
 #include <d3d.h>
 #include <d3d11.h>
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
+
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#include <GLES3/gl31.h>
+
+#include "backend/DriverEnums.h"
 #include "backend/platforms/OpenGLPlatform.h"
 #include "backend/Platform.h"
+
+#define FILAMENT_USE_EXTERNAL_GLES3
+
+#include "gl_headers.h"
 
 namespace filament::backend {
 
@@ -23,6 +36,12 @@ public:
 
     Platform::SwapChain* createSwapChain(uint32_t width, uint32_t height, uint64_t flags)  noexcept override;
 
+    GLuint glTextureId = 0;
+    EGLSurface mCurrentDrawSurface = EGL_NO_SURFACE;
+    EGLSurface mCurrentReadSurface = EGL_NO_SURFACE;
+    EGLDisplay mEGLDisplay = EGL_NO_DISPLAY;
+    EGLContext mEGLContext = EGL_NO_CONTEXT;
+    EGLConfig mEGLConfig = EGL_NO_CONFIG_KHR;
 private:
     /**
      * This returns zero. This method can be overridden to return something more useful.
@@ -67,12 +86,9 @@ private:
     EGLBoolean makeCurrent(EGLSurface drawSurface, EGLSurface readSurface) noexcept;
 
     // TODO: this should probably use getters instead.
-    EGLDisplay mEGLDisplay = EGL_NO_DISPLAY;
-    EGLContext mEGLContext = EGL_NO_CONTEXT;
-    EGLSurface mCurrentDrawSurface = EGL_NO_SURFACE;
-    EGLSurface mCurrentReadSurface = EGL_NO_SURFACE;
+    
     EGLSurface mEGLDummySurface = EGL_NO_SURFACE;
-    EGLConfig mEGLConfig = EGL_NO_CONFIG_KHR;
+    
     HANDLE mD3DTextureHandle = nullptr;
     uint32_t mWidth = 0;
     uint32_t mHeight = 0;

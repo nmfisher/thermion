@@ -17,51 +17,39 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 
+#include "PlatformANGLE.h"
+
 #include <Windows.h>
 #include <wrl.h>
 
-#include <d3d.h>
-#include <d3d11.h>
+#include <thread>
 
 #include <string_view>
 #include <unordered_set>
-
+#include <iostream>
 #include <string.h>
-
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
 
 #include <utils/compiler.h>
 #include <utils/Log.h>
 #include <utils/Panic.h>
 
-#include <backend/DriverEnums.h>
-#include <GL/gl.h>
-#include <GL/glext.h>
-// #include <GLES2/gl2.h>
-
-#include "bluegl/BlueGL.h"
-
-#include "PlatformANGLE.h"
-
-
 using namespace utils;
 
-// PROC wglGetProcAddress(LPCSTR name) {
-//     // PANIC
-//     return nullptr;
-// }
+PROC wglGetProcAddress(LPCSTR name) {
+    // PANIC
+    return nullptr;
+}
+
+namespace filament::backend::GLUtils {
+    class unordered_string_set : public std::unordered_set<std::string_view> {
+    public:
+        bool has(std::string_view str) const noexcept;
+    };
+
+    unordered_string_set split(const char* extensions) noexcept;
+}
 
 namespace filament {
-
-// namespace GLUtils {
-//         class unordered_string_set : public std::unordered_set<std::string_view> {
-//         public:
-//             bool has(std::string_view str) const noexcept;
-//         };
-
-//         unordered_string_set split(const char* extensions) noexcept;
-// }
 
 using namespace backend;
 
@@ -129,54 +117,47 @@ backend::Driver* PlatformANGLE::createDriver(void* sharedContext,
         return nullptr;
     }
 
-    // EGLBoolean bindAPI = eglBindAPI(EGL_OPENGL_API);
-    // if (UTILS_UNLIKELY(!bindAPI)) {
-    //     slog.e << "eglBindAPI EGL_OPENGL_API failed" << io::endl;
-    //     return nullptr;
-    // }
-    // int bindBlueGL = bluegl::bind();
-    // if (UTILS_UNLIKELY(bindBlueGL != 0)) {
-    //     slog.e << "bluegl bind failed" << io::endl;
-    //     return nullptr;
-    // }
+    EGLBoolean bindAPI = eglBindAPI(EGL_OPENGL_ES_API);
+    if (UTILS_UNLIKELY(!bindAPI)) {
+        slog.e << "eglBindAPI EGL_OPENGL_ES_API failed" << io::endl;
+        return nullptr;
+    }
 
     // Copied from the base class and modified slightly. Should be cleaned up/improved later.
     mEGLDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     assert_invariant(mEGLDisplay != EGL_NO_DISPLAY);
 
     EGLint major, minor;
-    EGLBoolean initialized = eglInitialize(mEGLDisplay, &major, &minor);
+    EGLBoolean initialized = false; // = eglInitialize(mEGLDisplay, &major, &minor);
 
-    if (!initialized) {
+    // if (!initialized) {
       EGLDeviceEXT eglDevice;
       EGLint numDevices;
 
-      PFNEGLQUERYDEVICESEXTPROC eglQueryDevicesEXT =
-              (PFNEGLQUERYDEVICESEXTPROC)eglGetProcAddress("eglQueryDevicesEXT");
-      if (eglQueryDevicesEXT != NULL) {
-          eglQueryDevicesEXT(1, &eglDevice, &numDevices);
-          if(auto* getPlatformDisplay = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(
+    if(auto* getPlatformDisplay = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(
               eglGetProcAddress("eglGetPlatformDisplayEXT"))) {
 
-            EGLint kD3D11DisplayAttributes[] = {
-                EGL_PLATFORM_ANGLE_TYPE_ANGLE,
-                EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-                EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE,
-                EGL_TRUE,
-                EGL_NONE,
-            };
-            mEGLDisplay = getPlatformDisplay(EGL_PLATFORM_ANGLE_ANGLE, eglDevice, kD3D11DisplayAttributes);    
-            initialized = eglInitialize(mEGLDisplay, &major, &minor);
-          }
-      }
+        EGLint kD3D11DisplayAttributes[] = {
+            EGL_PLATFORM_ANGLE_TYPE_ANGLE,
+            EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
+            EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE,
+            EGL_TRUE,
+            EGL_NONE,
+        };
+        mEGLDisplay = getPlatformDisplay(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, kD3D11DisplayAttributes);
+        initialized = eglInitialize(mEGLDisplay, &major, &minor);
     }
+
+    std::cout << "Got major " << major << " and minor " << minor << std::endl;
 
     if (UTILS_UNLIKELY(!initialized)) {
         slog.e << "eglInitialize failed" << io::endl;
         return nullptr;
     }
 
-    // auto extensions = GLUtils::split(eglQueryString(mEGLDisplay, EGL_EXTENSIONS));
+    importGLESExtensionsEntryPoints();
+
+    auto extensions = GLUtils::split(eglQueryString(mEGLDisplay, EGL_EXTENSIONS));
 
     eglCreateSyncKHR = (PFNEGLCREATESYNCKHRPROC) eglGetProcAddress("eglCreateSyncKHR");
     eglDestroySyncKHR = (PFNEGLDESTROYSYNCKHRPROC) eglGetProcAddress("eglDestroySyncKHR");
@@ -204,12 +185,6 @@ backend::Driver* PlatformANGLE::createDriver(void* sharedContext,
       EGL_NONE,
   };
 
-    // kEGLConfigurationAttributes[] = {
-    //   EGL_RED_SIZE,   8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE,    8,
-    //   EGL_ALPHA_SIZE, 8, EGL_DEPTH_SIZE, 8, EGL_STENCIL_SIZE, 8,
-    //   EGL_NONE,
-    // };
-
     EGLint contextAttribs[] = {
             EGL_CONTEXT_CLIENT_VERSION, 3,
             EGL_NONE, EGL_NONE, // reserved for EGL_CONTEXT_OPENGL_NO_ERROR_KHR below
@@ -224,6 +199,8 @@ backend::Driver* PlatformANGLE::createDriver(void* sharedContext,
 
     EGLConfig eglConfig = nullptr;
     EGLConfig mEGLTransparentConfig = nullptr;
+
+    char const* version;
 
     // find an opaque config
     if (!eglChooseConfig(mEGLDisplay, configAttribs, &mEGLConfig, 1, &configsCount)) {
@@ -251,11 +228,19 @@ backend::Driver* PlatformANGLE::createDriver(void* sharedContext,
         goto error;
     }
 
-    // if (!extensions.has("EGL_KHR_no_config_context")) {
-    //     // if we have the EGL_KHR_no_config_context, we don't need to worry about the config
-    //     // when creating the context, otherwise, we must always pick a transparent config.
-    //     eglConfig = mEGLConfig = mEGLTransparentConfig;
-    // }
+    if (!extensions.has("EGL_KHR_no_config_context")) {
+         // if we have the EGL_KHR_no_config_context, we don't need to worry about the config
+         // when creating the context, otherwise, we must always pick a transparent config.
+         eglConfig = mEGLConfig = mEGLTransparentConfig;
+    }
+
+    mEGLContext = eglCreateContext(mEGLDisplay, eglConfig, EGL_NO_CONTEXT, contextAttribs);
+
+    if (UTILS_UNLIKELY(mEGLContext == EGL_NO_CONTEXT)) {
+        // eglCreateContext failed
+        logEglError("eglCreateContext");
+        goto error;
+    }
 
     mCurrentDrawSurface = mCurrentReadSurface = eglCreatePbufferFromClientBuffer(
         mEGLDisplay, EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE, mD3DTextureHandle,
@@ -266,30 +251,26 @@ backend::Driver* PlatformANGLE::createDriver(void* sharedContext,
         goto error;
     }
 
-    mEGLContext = eglCreateContext(mEGLDisplay, eglConfig, EGL_NO_CONTEXT, contextAttribs);
-    // if (mEGLContext == EGL_NO_CONTEXT && sharedContext &&
-    //     extensions.has("EGL_KHR_create_context_no_error")) {
-    //     // context creation could fail because of EGL_CONTEXT_OPENGL_NO_ERROR_KHR
-    //     // not matching the sharedContext. Try with it.
-    //     contextAttribs[2] = EGL_CONTEXT_OPENGL_NO_ERROR_KHR;
-    //     contextAttribs[3] = EGL_TRUE;
-    //     mEGLContext = eglCreateContext(mEGLDisplay, eglConfig, EGL_NO_CONTEXT, contextAttribs);
-    // }
-    if (UTILS_UNLIKELY(mEGLContext == EGL_NO_CONTEXT)) {
-        // eglCreateContext failed
-        logEglError("eglCreateContext");
-        goto error;
-    }
-
-    if (!makeCurrent(mCurrentDrawSurface, mCurrentDrawSurface)) {
+    if (!eglMakeCurrent(mEGLDisplay, mCurrentDrawSurface, mCurrentDrawSurface, mEGLContext)) {
         // eglMakeCurrent failed
         logEglError("eglMakeCurrent");
         goto error;
     }
 
+    glGenTextures(1, &glTextureId);
+    glBindTexture(GL_TEXTURE_2D, glTextureId);
+    eglBindTexImage(mEGLDisplay, mCurrentReadSurface, EGL_BACK_BUFFER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     initializeGlExtensions();
 
     clearGlError();
+
+    version = (char const*)glGetString(GL_VERSION);
+    std::cout << "Got version " << version << std::endl;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
 
     // success!!
     return OpenGLPlatform::createDefaultDriver(this, sharedContext, driverConfig);
@@ -314,11 +295,11 @@ error:
 
 
 EGLBoolean PlatformANGLE::makeCurrent(EGLSurface drawSurface, EGLSurface readSurface) noexcept {
-    if (UTILS_UNLIKELY((drawSurface != mCurrentDrawSurface || readSurface != mCurrentReadSurface))) {
+    // if (UTILS_UNLIKELY((drawSurface != mCurrentDrawSurface || readSurface != mCurrentReadSurface))) {
         mCurrentDrawSurface = drawSurface;
         mCurrentReadSurface = readSurface;
         return eglMakeCurrent(mEGLDisplay, drawSurface, readSurface, mEGLContext);
-    }
+    // }
     return EGL_TRUE;
 }
 
@@ -385,12 +366,31 @@ void PlatformANGLE::makeCurrent(Platform::SwapChain* drawSwapChain,
         makeCurrent(drawSur, readSur);
     }
 }
+    using namespace std::chrono_literals;
 
 void PlatformANGLE::commit(Platform::SwapChain* swapChain) noexcept {
     EGLSurface sur = (EGLSurface) swapChain;
     if (sur != EGL_NO_SURFACE) {
         eglSwapBuffers(mEGLDisplay, sur);
     }
+    // glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
+    // glClear(GL_COLOR_BUFFER_BIT);
+    glFinish();
+
+    uint8_t* data = new uint8_t[1024*768*4];
+    memset(data, 0, 1024 * 768 * 4);
+
+    glReadPixels(	0, 0, 100, 100, GL_RGBA,GL_UNSIGNED_BYTE, data);
+    std::this_thread::sleep_for(200ms);
+
+    char c[10];
+
+    for(int i =0; i < 10*10; i++) {
+        std::cout << itoa(data[i], c, 10) << " ";
+    }
+    std::cout << std::endl;
+
+    
 }
 
 bool PlatformANGLE::canCreateFence() noexcept {
@@ -435,18 +435,18 @@ FenceStatus PlatformANGLE::waitFence(
 
 OpenGLPlatform::ExternalTexture* PlatformANGLE::createExternalImageTexture() noexcept {
     ExternalTexture* outTexture = new ExternalTexture{};
-    glGenTextures(1, &outTexture->id);
-    if (UTILS_LIKELY(ext.gl.OES_EGL_image_external_essl3)) {
-        outTexture->target = GL_TEXTURE_EXTERNAL_OES;
-    } else {
-        // if texture external is not supported, revert to texture 2d
-        outTexture->target = GL_TEXTURE_2D;
-    }
+    // glGenTextures(1, &outTexture->id);
+    // if (UTILS_LIKELY(ext.gl.OES_EGL_image_external_essl3)) {
+    //     outTexture->target = GL_TEXTURE_EXTERNAL_OES;
+    // } else {
+    //     // if texture external is not supported, revert to texture 2d
+    //     outTexture->target = GL_TEXTURE_2D;
+    // }
     return outTexture;
 }
 
 void PlatformANGLE::destroyExternalImage(ExternalTexture* texture) noexcept {
-    glDeleteTextures(1, &texture->id);
+    // glDeleteTextures(1, &texture->id);
     delete texture;
 }
 
@@ -464,14 +464,14 @@ bool PlatformANGLE::setExternalImage(void* externalImage,
 }
 
 void PlatformANGLE::initializeGlExtensions() noexcept {
-    // GLUtils::unordered_string_set glExtensions;
-    // GLint n;
-    // glGetIntegerv(GL_NUM_EXTENSIONS, &n);
-    /*for (GLint i = 0; i < n; ++i) {
+    GLUtils::unordered_string_set glExtensions;
+    GLint n;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+    for (GLint i = 0; i < n; ++i) {
         const char* const extension = (const char*)glGetStringi(GL_EXTENSIONS, (GLuint)i);
         glExtensions.insert(extension);
-    }*/
-    // ext.gl.OES_EGL_image_external_essl3 = glExtensions.has("GL_OES_EGL_image_external_essl3");
+    }
+    ext.gl.OES_EGL_image_external_essl3 = glExtensions.has("GL_OES_EGL_image_external_essl3");
 }
 
 Platform::SwapChain* PlatformANGLE::createSwapChain(void* nativewindow, uint64_t flags) noexcept {

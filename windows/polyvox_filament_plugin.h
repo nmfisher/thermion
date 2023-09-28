@@ -64,8 +64,6 @@ public:
   // OpenGL 
   // Texture handle
   GLuint _glTextureId = 0;
-  // Shared context
-  HGLRC _context = NULL;
 
   // D3D 
   // Device
