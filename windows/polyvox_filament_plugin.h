@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 
 #include <Windows.h>
 #include <wrl.h>
@@ -57,6 +58,8 @@ public:
   int32_t _frameIntervalInMilliseconds = 1000 / 60;
   bool _rendering = false;
   int64_t _flutterTextureId;
+
+  std::mutex _renderMutex;
 
   // OpenGL 
   // Texture handle
@@ -192,6 +195,18 @@ public:
 
   void ScrollUpdate(const flutter::MethodCall<flutter::EncodableValue> &methodCall,
                     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void ClearAssets(
+        const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void ClearLights(
+        const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void MoveCameraToAsset(
+        const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void SetViewFrustumCulling(
+        const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   ResourceBuffer loadResource(const char *path);
   void freeResource(ResourceBuffer rbuf);

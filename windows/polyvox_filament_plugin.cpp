@@ -28,9 +28,18 @@
 #include <vector>
 #include <future> 
 
+
 #include "PolyvoxFilamentApi.h"
-#include "PlatformANGLE.h"
+// #include "PlatformANGLE.h"
+#include "GL/GL.h"
+#include "GL/GLu.h"
+#include "GL/wglext.h"
+
+#include <Windows.h>
+#include <wrl.h>
+
 #include "ThreadPool.hpp"
+
 
 namespace polyvox_filament {
 
@@ -63,22 +72,31 @@ PolyvoxFilamentPlugin::PolyvoxFilamentPlugin(
 PolyvoxFilamentPlugin::~PolyvoxFilamentPlugin() {}
 
 ResourceBuffer PolyvoxFilamentPlugin::loadResource(const char *name) {
-  TCHAR pBuf[256];
-  size_t len = sizeof(pBuf);
-  int bytes = GetModuleFileName(NULL, pBuf, len);
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  std::wstring assetPath = converter.from_bytes(name);
+  
+  std::string name_str(name);
+  std::filesystem::path targetFilePath;
+  
+  if (name_str.rfind("file://", 0) == 0) {
+    targetFilePath = name_str.substr(7);
+  } else {
+    TCHAR pBuf[256];
+    size_t len = sizeof(pBuf);
+    int bytes = GetModuleFileName(NULL, pBuf, len);
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring assetPath = converter.from_bytes(name);
 
-  std::wstring exePathBuf(pBuf);
-  std::filesystem::path exePath(exePathBuf);
-  auto exeDir = exePath.remove_filename();
-  std::filesystem::path p(exeDir.wstring() + L"data/flutter_assets/" +
-                          assetPath);
-  std::wcout << "Loading from " << p << std::endl;
+    std::wstring exePathBuf(pBuf);
+    std::filesystem::path exePath(exePathBuf);
+    auto exeDir = exePath.remove_filename();
+    targetFilePath = exeDir.wstring() + L"data/flutter_assets/" +
+                            assetPath;
+  }
+  std::wcout << "Loading from " << targetFilePath << std::endl;
   std::streampos length;
-  std::ifstream is(p.c_str(), std::ios::binary);
+  
+  std::ifstream is(targetFilePath.c_str(), std::ios::binary);
   if (!is) {
-    std::cout << "Failed to find resource at file path " << p << std::endl;
+    std::cout << "Failed to find resource at file path " << targetFilePath << std::endl;
     return ResourceBuffer(nullptr, 0, -1);
   }
   is.seekg(0, std::ios::end);
@@ -123,13 +141,11 @@ void PolyvoxFilamentPlugin::CreateFilamentViewer(
   const ResourceLoaderWrapper *const resourceLoader =
       new ResourceLoaderWrapper(_loadResource, _freeResource, this);
 
-  // wglMakeCurrent(NULL, NULL);
+  wglMakeCurrent(NULL, NULL);
 
   std::packaged_task<void()> lambda([&]() mutable  {
 
     _viewer = (void *)create_filament_viewer(_context, resourceLoader, _platform);
-
-    // auto hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
 
     create_swap_chain(_viewer, nullptr, width, height);
 
@@ -143,6 +159,7 @@ void PolyvoxFilamentPlugin::CreateFilamentViewer(
       {
         if(_rendering) {
           std::packaged_task<void()> renderLambda([&]() mutable  {
+            std::lock_guard<std::mutex> guard(_renderMutex);
             render(_viewer, 0, nullptr, nullptr, nullptr);
             _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
           });
@@ -160,15 +177,15 @@ void PolyvoxFilamentPlugin::CreateFilamentViewer(
 void PolyvoxFilamentPlugin::Render(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  auto callback = [](void *buf, size_t size, void *data) {
-    auto plugin = (PolyvoxFilamentPlugin *)data;
-    plugin->_textureRegistrar->MarkTextureFrameAvailable(
-        plugin->_flutterTextureId);
-  };
+  // auto callback = [](void *buf, size_t size, void *data) {
+  //   auto plugin = (PolyvoxFilamentPlugin *)data;
+  //   plugin->_textureRegistrar->MarkTextureFrameAvailable(
+  //       plugin->_flutterTextureId);
+  // };
 
-  _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
-                                         _internalD3DTexture2D.Get());
-  _D3D11DeviceContext->Flush();
+  // _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
+  //                                        _internalD3DTexture2D.Get());
+  // _D3D11DeviceContext->Flush();
   
   // render(_viewer, 0, _pixelData.get(), callback, this);
   std::packaged_task<void()> lambda([=]() mutable  {
@@ -197,121 +214,121 @@ void PolyvoxFilamentPlugin::CreateTexture(
   const auto width = (uint32_t)round(*(std::get_if<double>(&(args->at(0)))));
   const auto height = (uint32_t)round(*(std::get_if<double>(&(args->at(1)))));
 
-  // D3D starts here
-  IDXGIAdapter* adapter_ = nullptr;
+  // // D3D starts here
+  // IDXGIAdapter* adapter_ = nullptr;
 
-  // first, we need to initialize the D3D device and create the backing texture
-  // this has been taken from https://github.com/alexmercerind/flutter-windows-ANGLE-OpenGL-ES/blob/master/windows/angle_surface_manager.cc
-  auto feature_levels = {
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_1,
-        D3D_FEATURE_LEVEL_10_0,
-        D3D_FEATURE_LEVEL_9_3,
-    };
-  // NOTE: Not enabling DirectX 12.
-  // |D3D11CreateDevice| crashes directly on Windows 7.
-  // D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
-  // D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1,
-  // D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_9_3,
-  IDXGIFactory* dxgi = nullptr;
-  ::CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&dxgi);
-  // Manually selecting adapter. As far as my experience goes, this is the
-  // safest approach. Passing NULL (so-called default) seems to cause issues
-  // on Windows 7 or maybe some older graphics drivers.
-  // First adapter is the default.
-  // |D3D_DRIVER_TYPE_UNKNOWN| must be passed with manual adapter selection.
-  dxgi->EnumAdapters(0, &adapter_);
-  dxgi->Release();
-  if (!adapter_) {
-    result->Error("ERROR", "Failed to locate default D3D adapter", nullptr);
-    return;
-  } 
+  // // first, we need to initialize the D3D device and create the backing texture
+  // // this has been taken from https://github.com/alexmercerind/flutter-windows-ANGLE-OpenGL-ES/blob/master/windows/angle_surface_manager.cc
+  // auto feature_levels = {
+  //       D3D_FEATURE_LEVEL_11_0,
+  //       D3D_FEATURE_LEVEL_10_1,
+  //       D3D_FEATURE_LEVEL_10_0,
+  //       D3D_FEATURE_LEVEL_9_3,
+  //   };
+  // // NOTE: Not enabling DirectX 12.
+  // // |D3D11CreateDevice| crashes directly on Windows 7.
+  // // D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
+  // // D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1,
+  // // D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_9_3,
+  // IDXGIFactory* dxgi = nullptr;
+  // ::CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&dxgi);
+  // // Manually selecting adapter. As far as my experience goes, this is the
+  // // safest approach. Passing NULL (so-called default) seems to cause issues
+  // // on Windows 7 or maybe some older graphics drivers.
+  // // First adapter is the default.
+  // // |D3D_DRIVER_TYPE_UNKNOWN| must be passed with manual adapter selection.
+  // dxgi->EnumAdapters(0, &adapter_);
+  // dxgi->Release();
+  // if (!adapter_) {
+  //   result->Error("ERROR", "Failed to locate default D3D adapter", nullptr);
+  //   return;
+  // } 
   
-  DXGI_ADAPTER_DESC adapter_desc_;
-  adapter_->GetDesc(&adapter_desc_);
-  std::wcout << L"D3D adapter description: " << adapter_desc_.Description << std::endl;
+  // DXGI_ADAPTER_DESC adapter_desc_;
+  // adapter_->GetDesc(&adapter_desc_);
+  // std::wcout << L"D3D adapter description: " << adapter_desc_.Description << std::endl;
   
-  auto hr = ::D3D11CreateDevice(
-      adapter_, D3D_DRIVER_TYPE_UNKNOWN, 0, 0, feature_levels.begin(),
-      static_cast<UINT>(feature_levels.size()), D3D11_SDK_VERSION,
-      &_D3D11Device, 0, &_D3D11DeviceContext);
+  // auto hr = ::D3D11CreateDevice(
+  //     adapter_, D3D_DRIVER_TYPE_UNKNOWN, 0, 0, feature_levels.begin(),
+  //     static_cast<UINT>(feature_levels.size()), D3D11_SDK_VERSION,
+  //     &_D3D11Device, 0, &_D3D11DeviceContext);
 
-  if (FAILED(hr)) {   
-    result->Error("ERROR", "Failed to create D3D device", nullptr);
-    return;
-  }
+  // if (FAILED(hr)) {   
+  //   result->Error("ERROR", "Failed to create D3D device", nullptr);
+  //   return;
+  // }
 
-  Microsoft::WRL::ComPtr<IDXGIDevice> dxgi_device = nullptr;
-  auto dxgi_device_success = _D3D11Device->QueryInterface(
-      __uuidof(IDXGIDevice), (void**)&dxgi_device);
-  if (SUCCEEDED(dxgi_device_success) && dxgi_device != nullptr) {
-    dxgi_device->SetGPUThreadPriority(5);  // Must be in interval [-7, 7].
-  }
+  // Microsoft::WRL::ComPtr<IDXGIDevice> dxgi_device = nullptr;
+  // auto dxgi_device_success = _D3D11Device->QueryInterface(
+  //     __uuidof(IDXGIDevice), (void**)&dxgi_device);
+  // if (SUCCEEDED(dxgi_device_success) && dxgi_device != nullptr) {
+  //   dxgi_device->SetGPUThreadPriority(5);  // Must be in interval [-7, 7].
+  // }
 
-  auto level = _D3D11Device->GetFeatureLevel();
-  std::cout << "media_kit: ANGLESurfaceManager: Direct3D Feature Level: "
-            << (((unsigned)level) >> 12) << "_"
-            << ((((unsigned)level) >> 8) & 0xf) << std::endl;
-  auto d3d11_texture2D_desc = D3D11_TEXTURE2D_DESC{0};
-  d3d11_texture2D_desc.Width = width;
-  d3d11_texture2D_desc.Height = height;
-  d3d11_texture2D_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-  d3d11_texture2D_desc.MipLevels = 1;
-  d3d11_texture2D_desc.ArraySize = 1;
-  d3d11_texture2D_desc.SampleDesc.Count = 1;
-  d3d11_texture2D_desc.SampleDesc.Quality = 0;
-  d3d11_texture2D_desc.Usage = D3D11_USAGE_DEFAULT;
-  d3d11_texture2D_desc.BindFlags =
-      D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-  d3d11_texture2D_desc.CPUAccessFlags = 0;
-  d3d11_texture2D_desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+  // auto level = _D3D11Device->GetFeatureLevel();
+  // std::cout << "media_kit: ANGLESurfaceManager: Direct3D Feature Level: "
+  //           << (((unsigned)level) >> 12) << "_"
+  //           << ((((unsigned)level) >> 8) & 0xf) << std::endl;
+  // auto d3d11_texture2D_desc = D3D11_TEXTURE2D_DESC{0};
+  // d3d11_texture2D_desc.Width = width;
+  // d3d11_texture2D_desc.Height = height;
+  // d3d11_texture2D_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+  // d3d11_texture2D_desc.MipLevels = 1;
+  // d3d11_texture2D_desc.ArraySize = 1;
+  // d3d11_texture2D_desc.SampleDesc.Count = 1;
+  // d3d11_texture2D_desc.SampleDesc.Quality = 0;
+  // d3d11_texture2D_desc.Usage = D3D11_USAGE_DEFAULT;
+  // d3d11_texture2D_desc.BindFlags =
+  //     D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+  // d3d11_texture2D_desc.CPUAccessFlags = 0;
+  // d3d11_texture2D_desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
-  // create internal texture
-  hr =  _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr, &_internalD3DTexture2D);
-  if FAILED(hr)
-  {
-    result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
-  }
-  auto resource = Microsoft::WRL::ComPtr<IDXGIResource>{};
-  hr = _internalD3DTexture2D.As(&resource);
+  // // create internal texture
+  // hr =  _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr, &_internalD3DTexture2D);
+  // if FAILED(hr)
+  // {
+  //   result->Error("ERROR", "Failed to create D3D texture", nullptr);
+  //   return;
+  // }
+  // auto resource = Microsoft::WRL::ComPtr<IDXGIResource>{};
+  // hr = _internalD3DTexture2D.As(&resource);
   
-  if FAILED(hr) { 
-    result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
-  }
-  hr = resource->GetSharedHandle(&_internalD3DTextureHandle);
-  if FAILED(hr) { 
-    result->Error("ERROR", "Failed to get shared handle to D3D texture", nullptr);
-    return;
-  }
-  _internalD3DTexture2D->AddRef();
+  // if FAILED(hr) { 
+  //   result->Error("ERROR", "Failed to create D3D texture", nullptr);
+  //   return;
+  // }
+  // hr = resource->GetSharedHandle(&_internalD3DTextureHandle);
+  // if FAILED(hr) { 
+  //   result->Error("ERROR", "Failed to get shared handle to D3D texture", nullptr);
+  //   return;
+  // }
+  // _internalD3DTexture2D->AddRef();
 
-  std::cout << "Created internal D3D texture" << std::endl;
+  // std::cout << "Created internal D3D texture" << std::endl;
 
-  // external
-  hr =  _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr, &_externalD3DTexture2D);
-  if FAILED(hr)
-  {
-    result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
-  }
-  hr = _externalD3DTexture2D.As(&resource);
+  // // external
+  // hr =  _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr, &_externalD3DTexture2D);
+  // if FAILED(hr)
+  // {
+  //   result->Error("ERROR", "Failed to create D3D texture", nullptr);
+  //   return;
+  // }
+  // hr = _externalD3DTexture2D.As(&resource);
   
-  if FAILED(hr) { 
-    result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
-  }
-  hr = resource->GetSharedHandle(&_externalD3DTextureHandle);
-  if FAILED(hr) { 
-    result->Error("ERROR", "Failed to get shared handle to external D3D texture", nullptr);
-    return;
-  }
-  _externalD3DTexture2D->AddRef();
+  // if FAILED(hr) { 
+  //   result->Error("ERROR", "Failed to create D3D texture", nullptr);
+  //   return;
+  // }
+  // hr = resource->GetSharedHandle(&_externalD3DTextureHandle);
+  // if FAILED(hr) { 
+  //   result->Error("ERROR", "Failed to get shared handle to external D3D texture", nullptr);
+  //   return;
+  // }
+  // _externalD3DTexture2D->AddRef();
 
-  std::cout << "Created external D3D texture" << std::endl;
+  // std::cout << "Created external D3D texture" << std::endl;
 
-  _platform = new filament::backend::PlatformANGLE(_internalD3DTextureHandle, width, height);
+  // _platform = new filament::backend::PlatformANGLE(_internalD3DTextureHandle, width, height);
 
   // // OpenGL starts here
   // // GLenum err = GL_NO_ERROR;
@@ -410,97 +427,88 @@ void PolyvoxFilamentPlugin::CreateTexture(
   //   return;
   // }
 
-  // HWND hwnd = _pluginRegistrar->GetView()
-  //                 ->GetNativeWindow(); // CreateWindowA("STATIC", "dummy", 0, 0,
-  //                                      // 0, 1, 1, NULL, NULL, NULL, NULL);
+  HWND hwnd = _pluginRegistrar->GetView()
+                  ->GetNativeWindow(); // CreateWindowA("STATIC", "dummy", 0, 0,
+                                       // 0, 1, 1, NULL, NULL, NULL, NULL);
 
-  // HDC whdc = GetDC(hwnd);
-  // if (whdc == NULL) {
-  //   result->Error("ERROR", "No device context for temporary window", nullptr);
-  //   return;
-  // }
+  HDC whdc = GetDC(hwnd);
+  if (whdc == NULL) {
+    result->Error("ERROR", "No device context for temporary window", nullptr);
+    return;
+  }
 
-  // PIXELFORMATDESCRIPTOR pfd = {
-  //     sizeof(PIXELFORMATDESCRIPTOR),
-  //     1,
-  //     PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, // Flags
-  //     PFD_TYPE_RGBA, // The kind of framebuffer. RGBA or palette.
-  //     32,            // Colordepth of the framebuffer.
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     24, // Number of bits for the depthbuffer
-  //     0,  // Number of bits for the stencilbuffer
-  //     0,  // Number of Aux buffers in the framebuffer.
-  //     PFD_MAIN_PLANE,
-  //     0,
-  //     0,
-  //     0,
-  //     0};
+  PIXELFORMATDESCRIPTOR pfd = {
+        sizeof(PIXELFORMATDESCRIPTOR),
+        1,
+        PFD_DRAW_TO_BITMAP | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags
+        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+        32,                   // Colordepth of the framebuffer.
+        0, 0, 0, 0, 0, 0,
+        0,
+        0,
+        0,
+        0, 0, 0, 0,
+        32,                   // Number of bits for the depthbuffer
+        0,                    // Number of bits for the stencilbuffer
+        0,                    // Number of Aux buffers in the framebuffer.
+        PFD_MAIN_PLANE,
+        0,
+        0, 0, 0
+    };
 
-  // int pixelFormat = ChoosePixelFormat(whdc, &pfd);
-  // SetPixelFormat(whdc, pixelFormat, &pfd);
+  int pixelFormat = ChoosePixelFormat(whdc, &pfd);
+  SetPixelFormat(whdc, pixelFormat, &pfd);
 
-  // // We need a tmp context to retrieve and call wglCreateContextAttribsARB.
-  // HGLRC tempContext = wglCreateContext(whdc);
-  // if (!wglMakeCurrent(whdc, tempContext)) {
-  //   result->Error("ERROR", "Failed to acquire temporary context", nullptr);
-  //   return;
-  // }
+  // We need a tmp context to retrieve and call wglCreateContextAttribsARB.
+  HGLRC tempContext = wglCreateContext(whdc);
+  if (!wglMakeCurrent(whdc, tempContext)) {
+    result->Error("ERROR", "Failed to acquire temporary context", nullptr);
+    return;
+  }
 
-  //   GLenum err = glGetError();
+  GLenum err = glGetError();
 
-  // if(err != GL_NO_ERROR) {
-  //   result->Error("ERROR", "GL Error @ 455 %d", err);
-  //   return;
-  // }
+  if(err != GL_NO_ERROR) {
+    result->Error("ERROR", "GL Error @ 455 %d", err);
+    return;
+  }
 
-  // PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs = nullptr;
+  PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs = nullptr;
 
-  // wglCreateContextAttribs =
-  //     (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress(
-  //         "wglCreateContextAttribsARB");
+  wglCreateContextAttribs =
+      (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress(
+          "wglCreateContextAttribsARB");
 
-  // if (!wglCreateContextAttribs) {
-  //   result->Error("ERROR", "Failed to resolve wglCreateContextAttribsARB",
-  //                 nullptr);
-  //   return;
-  // }
+  if (!wglCreateContextAttribs) {
+    result->Error("ERROR", "Failed to resolve wglCreateContextAttribsARB",
+                  nullptr);
+    return;
+  }
 
-  // for (int minor = 5; minor >= 1; minor--) {
-  //   std::vector<int> mAttribs = {WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-  //                                WGL_CONTEXT_MINOR_VERSION_ARB, minor, 0};
-  //   _context = wglCreateContextAttribs(whdc, nullptr, mAttribs.data());
-  //   if (_context) {
-  //     break;
-  //   }
-  // }
+  for (int minor = 5; minor >= 1; minor--) {
+    std::vector<int> mAttribs = {WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+                                 WGL_CONTEXT_MINOR_VERSION_ARB, minor, 0};
+    _context = wglCreateContextAttribs(whdc, nullptr, mAttribs.data());
+    if (_context) {
+      break;
+    }
+  }
 
-  // wglMakeCurrent(NULL, NULL);
-  // wglDeleteContext(tempContext);
+  wglMakeCurrent(NULL, NULL);
+  wglDeleteContext(tempContext);
 
 
-  // if (!_context || !wglMakeCurrent(whdc, _context)) {
-  //   result->Error("ERROR", "Failed to create OpenGL context.");
-  //   return;
-  // }
+  if (!_context || !wglMakeCurrent(whdc, _context)) {
+    result->Error("ERROR", "Failed to create OpenGL context.");
+    return;
+  }
 
-  // glGenTextures(1, &_glTextureId);
+  glGenTextures(1, &_glTextureId);
 
-  // if(_glTextureId == 0) {
-  //   result->Error("ERROR", "Failed to generate texture, OpenGL err was %d", glGetError());
-  //   return;
-  // }
+  if(_glTextureId == 0) {
+    result->Error("ERROR", "Failed to generate texture, OpenGL err was %d", glGetError());
+    return;
+  }
 
   // err = eglGetError();
 
@@ -509,15 +517,15 @@ void PolyvoxFilamentPlugin::CreateTexture(
   //   return;
   // }
 
-  // glBindTexture(GL_TEXTURE_2D, _glTextureId);
+  glBindTexture(GL_TEXTURE_2D, _glTextureId);
   // eglBindTexImage(display, surface, EGL_BACK_BUFFER);
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-  // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA,
-  //              GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, 0);
         
   // err = eglGetError();
 
@@ -526,68 +534,70 @@ void PolyvoxFilamentPlugin::CreateTexture(
   //   return;
   // }       
 
-  // err = glGetError();
+  err = glGetError();
 
-  // if (err != GL_NO_ERROR) {
-  //   result->Error("ERROR", "Failed to generate texture, GL error was %d", err);
-  //   return;
-  // }
+  if (err != GL_NO_ERROR) {
+    result->Error("ERROR", "Failed to generate texture, GL error was %d", err);
+    return;
+  }
   
-  // _pixelData.reset(new uint8_t[width * height * 4]);
-  // _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
-  // _pixelBuffer->buffer = _pixelData.get();
+  _pixelData.reset(new uint8_t[width * height * 4]);
+  _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
+  _pixelBuffer->buffer = _pixelData.get();
 
-  // _pixelBuffer->width = size_t(width);
-  // _pixelBuffer->height = size_t(height);
-
-  // _texture =
-  //     std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
-  //         [=](size_t width,
-  //             size_t height) -> const FlutterDesktopPixelBuffer * {
-  //           if(!_context || !wglMakeCurrent(whdc, _context)) {
-  //             std::cout << "Failed to switch OpenGL context." << std::endl;
-  //           } else {
-  //             uint8_t* data = new uint8_t[width*height*4];
-  //             glBindTexture(GL_TEXTURE_2D, _glTextureId);
-  //             glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
-
-  //             GLenum err = glGetError();
-
-  //             if(err != GL_NO_ERROR) {
-  //               if(err == GL_INVALID_OPERATION) {
-  //                 std::cout << "Invalid op" << std::endl;
-  //               } else if(err == GL_INVALID_VALUE) {
-  //               std::cout << "Invalid value" << std::endl;
-  //               } else if(err == GL_OUT_OF_MEMORY) {
-  //                 std::cout << "Out of mem" << std::endl;
-  //               } else if(err == GL_INVALID_ENUM ) {
-  //                 std::cout << "Invalid enum" << std::endl;
-  //               } else {
-  //                 std::cout << "Unknown error" << std::endl;            
-  //               }
-  //             }
-
-  //             _pixelData.reset(data);
-  //             wglMakeCurrent(NULL, NULL);
-  //           }
-  //           _pixelBuffer->buffer = _pixelData.get();
-
-  //           return _pixelBuffer.get();
-  //         }));
-
-  _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
-  _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
-  _textureDescriptor->handle = _externalD3DTextureHandle;
-  _textureDescriptor->width = _textureDescriptor->visible_width = width;
-  _textureDescriptor->height = _textureDescriptor->visible_height = height;
-  _textureDescriptor->release_context = nullptr;
-  _textureDescriptor->release_callback = [](void* release_context) {};
-  _textureDescriptor->format = kFlutterDesktopPixelFormatBGRA8888;
+  _pixelBuffer->width = size_t(width);
+  _pixelBuffer->height = size_t(height);
 
   _texture =
-        std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
-            kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
-            [&](auto, auto) { return _textureDescriptor.get(); }));
+      std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
+          [=](size_t width,
+              size_t height) -> const FlutterDesktopPixelBuffer * {
+            std::lock_guard<std::mutex> guard(_renderMutex);
+
+            if(!_context || !wglMakeCurrent(whdc, _context)) {
+              std::cout << "Failed to switch OpenGL context." << std::endl;
+            } else {
+              uint8_t* data = new uint8_t[width*height*4];
+              glBindTexture(GL_TEXTURE_2D, _glTextureId);
+              glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
+
+              GLenum err = glGetError();
+
+              if(err != GL_NO_ERROR) {
+                if(err == GL_INVALID_OPERATION) {
+                  std::cout << "Invalid op" << std::endl;
+                } else if(err == GL_INVALID_VALUE) {
+                std::cout << "Invalid value" << std::endl;
+                } else if(err == GL_OUT_OF_MEMORY) {
+                  std::cout << "Out of mem" << std::endl;
+                } else if(err == GL_INVALID_ENUM ) {
+                  std::cout << "Invalid enum" << std::endl;
+                } else {
+                  std::cout << "Unknown error" << std::endl;            
+                }
+              }
+              glFinish();
+              _pixelData.reset(data);
+              wglMakeCurrent(NULL, NULL);
+            }
+            _pixelBuffer->buffer = _pixelData.get();
+
+            return _pixelBuffer.get();
+          }));
+
+  // _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
+  // _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
+  // _textureDescriptor->handle = _externalD3DTextureHandle;
+  // _textureDescriptor->width = _textureDescriptor->visible_width = width;
+  // _textureDescriptor->height = _textureDescriptor->visible_height = height;
+  // _textureDescriptor->release_context = nullptr;
+  // _textureDescriptor->release_callback = [](void* release_context) {};
+  // _textureDescriptor->format = kFlutterDesktopPixelFormatBGRA8888;
+
+  // _texture =
+  //       std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
+  //           kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
+  //           [&](auto, auto) { return _textureDescriptor.get(); }));
 
   _flutterTextureId = _textureRegistrar->RegisterTexture(_texture.get());
   std::cout << "Registered Flutter texture ID " << _flutterTextureId << std::endl;
@@ -991,11 +1001,61 @@ void PolyvoxFilamentPlugin::ScrollUpdate(
   result->Success(response);
 }
 
+void PolyvoxFilamentPlugin::ClearAssets(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  clear_assets(_viewer);
+  flutter::EncodableValue response("OK");
+  result->Success(response);
+}
+
+void PolyvoxFilamentPlugin::ClearLights(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  clear_lights(_viewer);
+  flutter::EncodableValue response("OK");
+  result->Success(response);
+}
+
+
+void PolyvoxFilamentPlugin::MoveCameraToAsset(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  
+  const auto * entityId = std::get_if<int32_t>(methodCall.arguments());
+  if(!entityId) {
+    const auto * entityId64 = std::get_if<int64_t>(methodCall.arguments());
+    if (!entityId64) {
+        result->Error("No entity ID provided");
+        return;
+    }
+  }
+  move_camera_to_asset(_viewer, *entityId);
+  flutter::EncodableValue response("OK");
+  result->Success(response);
+}
+
+void PolyvoxFilamentPlugin::SetViewFrustumCulling(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  
+  const auto* culling = std::get_if<bool>(methodCall.arguments());
+  if(!culling) {
+    result->Error("No arg provided");  
+    return;
+  }
+  std::cout << "Setting frustum culling to " << culling << std::endl;
+  set_view_frustum_culling(_viewer, *culling);
+  flutter::EncodableValue response("OK");
+  result->Success(response);
+}
+
+
 void PolyvoxFilamentPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
-  std::cout << methodCall.method_name() << std::endl;
+  // std::cout << methodCall.method_name() << std::endl;
 
   if (methodCall.method_name() == "createFilamentViewer") {
     CreateFilamentViewer(methodCall, std::move(result));
@@ -1061,6 +1121,14 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
     ScrollEnd(methodCall, std::move(result));
   } else if (methodCall.method_name() == "scrollUpdate") {
     ScrollUpdate(methodCall, std::move(result));
+  } else if (methodCall.method_name() == "clearAssets") {
+    ClearAssets(methodCall, std::move(result));
+  } else if (methodCall.method_name() == "clearLights") {
+    ClearLights(methodCall, std::move(result));
+  } else if (methodCall.method_name() == "moveCameraToAsset") {
+    MoveCameraToAsset(methodCall, std::move(result));
+  } else if (methodCall.method_name() == "setViewFrustumCulling") {
+    SetViewFrustumCulling(methodCall, std::move(result));
   } else {
     result->NotImplemented();
   }
