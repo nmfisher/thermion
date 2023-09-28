@@ -21,9 +21,8 @@
 #include "Log.hpp"
 #include "AssetManager.hpp"
 
-#include "material/UnlitMaterialProvider.hpp"
 #include "material/FileMaterialProvider.hpp"
-// #include "gltfio/materials/uberarchive.h"
+#include "gltfio/materials/uberarchive.h"
 
 extern "C" {
 #include "material/image.h"
@@ -53,14 +52,14 @@ _scene(scene) {
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
 
-    auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/default.uberz");
+    // auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/default.uberz");
 
-    if (!uberdata.data) {
-        Log("Failed to load ubershader material. This is fatal.");
-    }
+    // if (!uberdata.data) {
+    //     Log("Failed to load ubershader material. This is fatal.");
+    // }
 
     _ubershaderProvider = gltfio::createUbershaderProvider(
-                                                            _engine, uberdata.data, uberdata.size);    
+                                                            _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);    
     Log("Created ubershader provider.");
 
     EntityManager &em = EntityManager::get();

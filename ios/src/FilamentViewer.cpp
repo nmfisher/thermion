@@ -602,7 +602,7 @@ void FilamentViewer::createRenderTarget(intptr_t textureId, uint32_t width, uint
     .height(height)
     .levels(1)
     .usage(filament::Texture::Usage::DEPTH_ATTACHMENT)
-    .format(filament::Texture::InternalFormat::DEPTH24)
+    .format(filament::Texture::InternalFormat::DEPTH32F)
     .build(*_engine);
   _rt = filament::RenderTarget::Builder()
     .texture(RenderTarget::AttachmentPoint::COLOR, _rtColor)
@@ -899,6 +899,10 @@ void FilamentViewer::updateViewportAndCameraProjection(
 
   Log("Set viewport to width: %d height: %d aspect %f scaleFactor : %f", width, height, aspect,
       contentScaleFactor);
+}
+
+void FilamentViewer::setViewFrustumCulling(bool enabled) { 
+  _view->setFrustumCullingEnabled(enabled);
 }
 
 void FilamentViewer::setCameraPosition(float x, float y, float z) {

@@ -75,6 +75,7 @@ namespace polyvox {
             
             bool setCamera(EntityId asset, const char* nodeName);
             
+            
             void createSwapChain(const void* surface, uint32_t width, uint32_t height);
             void destroySwapChain();
 
@@ -87,7 +88,7 @@ namespace polyvox {
             void clearBackgroundImage();
             void setBackgroundImagePosition(float x, float y, bool clamp);
             void moveCameraToAsset(EntityId entityId);
-
+            void setViewFrustumCulling(bool enabled);
             void setCameraExposure(float aperture, float shutterSpeed, float sensitivity);
             void setCameraPosition(float x, float y, float z);
             void setCameraRotation(float rads, float x, float y, float z);

@@ -18,14 +18,11 @@
 #include "SceneAsset.hpp"
 #include "Log.hpp"
 
-#include "material/StandardMaterialProvider.hpp"
-#include "material/UnlitMaterialProvider.hpp"
 #include "material/FileMaterialProvider.hpp"
 #include "gltfio/materials/uberarchive.h"
 
 extern "C" {
 #include "material/image.h"
-#include "material/unlit_opaque.h"
 }
 
 namespace polyvox {

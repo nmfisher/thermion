@@ -76,7 +76,6 @@ namespace polyvox {
             NameComponentManager* _ncm = nullptr;
             Engine* _engine;
             Scene* _scene;
-            MaterialProvider* _unlitProvider = nullptr;
             MaterialProvider* _ubershaderProvider = nullptr;
             gltfio::ResourceLoader* _gltfResourceLoader = nullptr;
             gltfio::TextureProvider* _stbDecoder = nullptr;
