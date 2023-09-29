@@ -112,6 +112,8 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
   
   #if TARGET_OS_IPHONE
     _engine = Engine::create(Engine::Backend::METAL);
+  #elif TARGET_OS_OSX
+      _engine = Engine::create(Engine::Backend::METAL);
   #else
     _engine = Engine::create(Engine::Backend::OPENGL); //L, nullptr, (void*)context, nullptr);
   #endif
@@ -565,7 +567,7 @@ void FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_
   Log("Swapchain created.");
 }
 
-void FilamentViewer::createRenderTarget(intptr_t textureId, uint32_t width, uint32_t height) {
+void FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32_t height) {
   // Create filament textures and render targets (note the color buffer has the import call)
   _rtColor = filament::Texture::Builder()
     .width(width)
@@ -573,7 +575,7 @@ void FilamentViewer::createRenderTarget(intptr_t textureId, uint32_t width, uint
     .levels(1)
     .usage(filament::Texture::Usage::COLOR_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
     .format(filament::Texture::InternalFormat::RGBA8)
-    .import(textureId)
+    .import(texture)
     .build(*_engine);
   _rtDepth = filament::Texture::Builder()
     .width(width)
@@ -590,7 +592,7 @@ void FilamentViewer::createRenderTarget(intptr_t textureId, uint32_t width, uint
   // Make a specific viewport just for our render target
   _view->setRenderTarget(_rt);
   
-  Log("Set render target for glTextureId %u %u x %u", textureId, width, height);
+  Log("Set render target for glTextureId %u %u x %u", texture, width, height);
 
 }
 

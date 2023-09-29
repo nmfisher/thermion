@@ -33,7 +33,7 @@ extern "C" {
 
         #endif
         const void * const data;
-        const uint32_t size;
+        const int64_t size;
         const uint32_t id;
     };
 

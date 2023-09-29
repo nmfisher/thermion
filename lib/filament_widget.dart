@@ -71,39 +71,39 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   Timer? _resizeTimer;
 
   void _handleStateChange(AppLifecycleState state) async {
-    switch (state) {
-      case AppLifecycleState.detached:
-        print("Detached");
-        _textureId = null;
+    // switch (state) {
+    //   case AppLifecycleState.detached:
+    //     print("Detached");
+    //     _textureId = null;
 
-        await widget.controller.destroyViewer();
-        await widget.controller.destroyTexture();
-        break;
-      case AppLifecycleState.hidden:
-        print("Hidden");
-        if (Platform.isIOS) {
-          _textureId = null;
-          await widget.controller.destroyViewer();
-          await widget.controller.destroyTexture();
-        }
-        break;
-      case AppLifecycleState.inactive:
-        print("Inactive");
-        break;
-      case AppLifecycleState.paused:
-        print("Paused");
-        break;
-      case AppLifecycleState.resumed:
-        print("Resumed");
-        if (_textureId == null) {
-          var size = ((context.findRenderObject()) as RenderBox).size;
-          print("Size after resuming : $size");
-          await widget.controller
-              .createViewer(size.width.toInt(), size.height.toInt());
-          print("Created viewer Size after resuming");
-        }
-        break;
-    }
+    //     await widget.controller.destroyViewer();
+    //     await widget.controller.destroyTexture();
+    //     break;
+    //   case AppLifecycleState.hidden:
+    //     print("Hidden");
+    //     if (Platform.isIOS) {
+    //       _textureId = null;
+    //       await widget.controller.destroyViewer();
+    //       await widget.controller.destroyTexture();
+    //     }
+    //     break;
+    //   case AppLifecycleState.inactive:
+    //     print("Inactive");
+    //     break;
+    //   case AppLifecycleState.paused:
+    //     print("Paused");
+    //     break;
+    //   case AppLifecycleState.resumed:
+    //     print("Resumed");
+    //     if (_textureId == null) {
+    //       var size = ((context.findRenderObject()) as RenderBox).size;
+    //       print("Size after resuming : $size");
+    //       await widget.controller
+    //           .createViewer(size.width.toInt(), size.height.toInt());
+    //       print("Created viewer Size after resuming");
+    //     }
+    //     break;
+    // }
     _lastState = state;
   }
 

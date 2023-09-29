@@ -1,12 +1,12 @@
 #ifndef _POLYVOX_FILAMENT_FFI_API_H
 #define _POLYVOX_FILAMENT_FFI_API_H
 
-#include "PolyvoxFilamentApi.h"
-
 /// 
 /// This header replicates most of the methods in PolyvoxFilamentApi.h, and is only intended to be used to generate client FFI bindings.
 /// The intention is that calling one of these methods will call its respective method in PolyvoxFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety. 
 /// 
+
+#include "PolyvoxFilamentApi.h"
 
 typedef int32_t EntityId;
 
@@ -33,25 +33,25 @@ void remove_light_ffi(void* const viewer, EntityId entityId);
 void clear_lights_ffi(void* const viewer);
 EntityId load_glb_ffi(void* const assetManager, const char *assetPath, bool unlit);
 EntityId load_gltf_ffi(void* const assetManager, const char *assetPath, const char *relativePath);
-void remove_asset_ffi(void* const const viewer, EntityId asset);
-void clear_assets_ffi(void* const const viewer);
+void remove_asset_ffi(void* const viewer, EntityId asset);
+void clear_assets_ffi(void* const viewer);
 bool set_camera_ffi(void* const viewer, EntityId asset, const char *nodeName);
 void apply_weights_ffi(
-    void* assetManager,
+    void* const assetManager,
     EntityId asset, 
     const char *const entityName, 
     float *const weights, 
     int count
 );
 void set_morph_target_weights_ffi(
-    void* assetManager,
+    void* const assetManager,
     EntityId asset,
     const char *const entityName,
     const float *const morphData,
     int numWeights
 );
 bool set_morph_animation_ffi(
-    void* assetManager,
+    void* const assetManager,
     EntityId asset,
     const char *const entityName,
     const float *const morphData,
@@ -61,7 +61,7 @@ bool set_morph_animation_ffi(
     float frameLengthInMs);
 
 void set_bone_animation_ffi(
-    void* assetManager,
+    void* const assetManager,
     EntityId asset, 
     const float* const frameData,
     int numFrames, 
@@ -71,13 +71,13 @@ void set_bone_animation_ffi(
     int numMeshTargets,
     float frameLengthInMs);
 
-void play_animation_ffi(void* assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
-void set_animation_frame_ffi(void* assetManager, EntityId asset, int animationIndex, int animationFrame);
-void stop_animation_ffi(void* assetManager, EntityId asset, int index);
-int get_animation_count_ffi(void* assetManager, EntityId asset);
-void get_animation_name_ffi(void* assetManager, EntityId asset, char *const outPtr, int index);
-float get_animation_duration_ffi(void* assetManager, EntityId asset, int index);
-void get_morph_target_name_ffi(void* assetManager, EntityId asset, const char *meshName, char *const outPtr, int index);
-int get_morph_target_name_count_ffi(void* assetManager, EntityId asset, const char *meshName);
+void play_animation_ffi(void* const assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
+void set_animation_frame_ffi(void* const assetManager, EntityId asset, int animationIndex, int animationFrame);
+void stop_animation_ffi(void* const assetManager, EntityId asset, int index);
+int get_animation_count_ffi(void* const assetManager, EntityId asset);
+void get_animation_name_ffi(void* const assetManager, EntityId asset, char *const outPtr, int index);
+float get_animation_duration_ffi(void* const assetManager, EntityId asset, int index);
+void get_morph_target_name_ffi(void* const assetManager, EntityId asset, const char *meshName, char *const outPtr, int index);
+int get_morph_target_name_count_ffi(void* const assetManager, EntityId asset, const char *meshName);
 
 #endif // _POLYVOX_FILAMENT_FFI_API_H

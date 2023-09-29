@@ -55,7 +55,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 instance.resources[resId] = nsData
                 let length = nsData.length
                 print("Resolved asset to file of length \(length) at path \(path!)")
-                return ResourceBuffer(data:nsData.bytes, size:UInt32(nsData.count), id:UInt32(resId))
+                        
+              return ResourceBuffer(data:nsData.bytes, size:Int64(nsData.length), id:UInt32(resId))
           } catch {
             print("ERROR LOADING RESOURCE")
           }
@@ -160,8 +161,10 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             result([
                 unsafeBitCast(renderCallback, to:Int64.self), unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self)])
         case "createTexture":
-            let args = call.arguments as! Array<Int32>
-            createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
+            let args = call.arguments as! [Any]
+            let width = UInt32(args[0] as! Int64)
+            let height = UInt32(args[1] as! Int64)
+            createPixelBuffer(width:Int(width), height:Int(height))
            
             var cvret = CVMetalTextureCacheCreate(
                             kCFAllocatorDefault,
@@ -178,14 +181,19 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                             cvMetalTextureCache!,
                             pixelBuffer!, nil,
                             MTLPixelFormat.bgra8Unorm,
-                            Int(args[0]), Int(args[1]),
+                            Int(width), Int(height),
                             0,
                             &cvMetalTexture);
             metalTexture = CVMetalTextureGetTexture(cvMetalTexture!);
             // createDisplayLink()
-            let pixelBufferAddress = Int(bitPattern:CVPixelBufferGetBaseAddress(pixelBuffer!));
-            let metalTextureAddress = Int(bitPattern:Unmanaged.passUnretained(metalTexture!).toOpaque())
-            result([self.flutterTextureId as! Any, pixelBufferAddress, metalTextureAddress])
+            let pixelBufferPtr = CVPixelBufferGetBaseAddress(pixelBuffer!);
+            let pixelBufferAddress = Int(bitPattern:pixelBufferPtr);
+            let metalTexturePtr = Unmanaged.passUnretained(metalTexture!).toOpaque()
+            let metalTextureAddress = Int(bitPattern:metalTexturePtr)
+
+            let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
+                                                                                            
+            result([self.flutterTextureId as Any, nil, metalTextureAddress])
         case "destroyTexture":
             if(viewer != nil) {
                 result(FlutterError(code: "INVALID_ARGUMENTS", message: "Destroy the viewer before destroying the texture", details: nil))
@@ -217,7 +225,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             resize(width:Int32(width), height:Int32(height))
             create_swap_chain(viewer, CVPixelBufferGetBaseAddress(pixelBuffer!), width, height)
             let metalTextureId = Int(bitPattern:Unmanaged.passUnretained(metalTexture!).toOpaque())
-            create_render_target(viewer, UInt32(metalTextureId), width, height);
+            create_render_target(viewer, metalTextureId, width, height);
             update_viewport_and_camera_projection(viewer, width, height, Float(args[2] as! Double))
             rendering = true
             print("Resized to \(args[0])x\(args[1])")

@@ -3,13 +3,15 @@
 
 #include "ResourceBuffer.hpp"
 
+#include <stdbool.h>
+
 typedef int32_t EntityId;
 
 const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader);
 ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* owner);
 void destroy_filament_viewer(const void* const viewer);
 void* get_asset_manager(const void* const viewer);
-void create_render_target(const void* const viewer, uint32_t textureId, uint32_t width, uint32_t height);
+void create_render_target(const void* const viewer, intptr_t texture, uint32_t width, uint32_t height);
 void clear_background_image(const void* const viewer);
 void set_background_image(const void* const viewer, const char *path, bool fillHeight);
 void set_background_image_position(const void* const viewer, float x, float y, bool clamp);

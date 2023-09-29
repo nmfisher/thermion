@@ -15,6 +15,7 @@ using namespace polyvox;
 extern "C" {
 
   #include "PolyvoxFilamentApi.h"
+  
 
   FLUTTER_PLUGIN_EXPORT const void* create_filament_viewer(const void* context, const ResourceLoaderWrapper* const loader) {
     return (const void*) new FilamentViewer(context, loader);
@@ -24,8 +25,8 @@ extern "C" {
     return new ResourceLoaderWrapper(loadFn, freeFn, owner);
   }
 
-  FLUTTER_PLUGIN_EXPORT void create_render_target(const void* const viewer, uint32_t textureId, uint32_t width, uint32_t height) {
-      ((FilamentViewer*)viewer)->createRenderTarget(textureId, width, height);
+  FLUTTER_PLUGIN_EXPORT void create_render_target(const void* const viewer, intptr_t texture, uint32_t width, uint32_t height) {
+      ((FilamentViewer*)viewer)->createRenderTarget(texture, width, height);
   }
   
   FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer(const void* const viewer) {

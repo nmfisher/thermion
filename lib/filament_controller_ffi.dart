@@ -48,7 +48,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_rendering_ffi(_viewer!, render ? 1 : 0);
+    _lib.set_rendering_ffi(_viewer!, render);
   }
 
   Future render() async {
@@ -59,7 +59,7 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   Future setFrameRate(int framerate) async {
-    await _channel.invokeMethod("setFrameInterval", 1.0 / framerate);
+    _lib.set_frame_interval_ffi(1.0 / framerate);
   }
 
   void setPixelRatio(double ratio) {
@@ -107,7 +107,9 @@ class FilamentControllerFFI extends FilamentController {
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
     var flutterTextureId = textures[0];
     _textureId = flutterTextureId;
-    var pixelBuffer = textures[1] as int;
+    var surfaceAddress = textures[1] as int? ?? 0;
+
+    // void* on iOS/MacOS, GLuid on Android/Windows/Linux
     var nativeTexture = textures[2] as int;
 
     var renderCallbackResult = await _channel.invokeMethod("getRenderCallback");
@@ -127,9 +129,11 @@ class FilamentControllerFFI extends FilamentController {
         renderCallbackOwner);
 
     _lib.create_swap_chain(
-        _viewer!, Pointer<Void>.fromAddress(pixelBuffer), width, height);
-
-    _lib.create_render_target(_viewer!, nativeTexture, width, height);
+        _viewer!, Pointer<Void>.fromAddress(surfaceAddress), width, height);
+    if (nativeTexture != 0) {
+      assert(surfaceAddress == 0);
+      _lib.create_render_target(_viewer!, nativeTexture, width, height);
+    }
 
     _lib.update_viewport_and_camera_projection_ffi(
         _viewer!, width, height, 1.0);
@@ -162,7 +166,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     _lib.set_background_image_ffi(
-        _viewer!, path.toNativeUtf8().cast<Char>(), fillHeight ? 1 : 0);
+        _viewer!, path.toNativeUtf8().cast<Char>(), fillHeight);
   }
 
   Future setBackgroundColor(Color color) async {
@@ -182,7 +186,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_background_image_position_ffi(_viewer!, x, y, clamp ? 1 : 0);
+    _lib.set_background_image_position_ffi(_viewer!, x, y, clamp);
   }
 
   Future loadSkybox(String skyboxPath) async {
@@ -229,7 +233,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     var entity = _lib.add_light_ffi(_viewer!, type, colour, intensity, posX,
-        posY, posZ, dirX, dirY, dirZ, castShadows ? 1 : 0);
+        posY, posZ, dirX, dirY, dirZ, castShadows);
     return entity;
   }
 
@@ -255,7 +259,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Not yet implemented");
     }
     var asset = _lib.load_glb_ffi(
-        _assetManager!, path.toNativeUtf8().cast<Char>(), unlit ? 1 : 0);
+        _assetManager!, path.toNativeUtf8().cast<Char>(), unlit);
     if (asset == FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
@@ -278,7 +282,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, 1);
+    _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, true);
   }
 
   Future panUpdate(double x, double y) async {
@@ -299,7 +303,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, 0);
+    _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, false);
   }
 
   Future rotateUpdate(double x, double y) async {
@@ -372,9 +376,10 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    var duration = await _channel.invokeMethod(
-        "getAnimationDuration", [_assetManager!, asset, animationIndex]);
-    return duration as double;
+    var duration =
+        _lib.get_animation_duration_ffi(_assetManager!, asset, animationIndex);
+
+    return duration;
   }
 
   ///
@@ -470,7 +475,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    await _channel.invokeMethod("scrollBegin");
+    _lib.scroll_begin(_viewer!);
   }
 
   Future zoomUpdate(double z) async {
@@ -495,8 +500,8 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.play_animation_ffi(_assetManager!, asset, index, loop ? 1 : 0,
-        reverse ? 1 : 0, replaceActive ? 1 : 0, crossfade);
+    _lib.play_animation_ffi(
+        _assetManager!, asset, index, loop, reverse, replaceActive, crossfade);
   }
 
   Future setAnimationFrame(
@@ -504,23 +509,23 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    await _channel.invokeMethod(
-        "setAnimationFrame", [_assetManager!, asset, index, animationFrame]);
+    _lib.set_animation_frame(_assetManager!, asset, index, animationFrame);
   }
 
   Future stopAnimation(FilamentEntity asset, int animationIndex) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    await _channel
-        .invokeMethod("stopAnimation", [_assetManager!, asset, animationIndex]);
+    _lib.stop_animation(_assetManager!, asset, animationIndex);
   }
 
   Future setCamera(FilamentEntity asset, String? name) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    if (await _channel.invokeMethod("setCamera", [asset, name]) != true) {
+    var result = _lib.set_camera(
+        _viewer!, asset, name?.toNativeUtf8()?.cast<Char>() ?? nullptr);
+    if (result != 1) {
       throw Exception("Failed to set camera");
     }
   }
@@ -572,7 +577,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_view_frustum_culling(_viewer!, enabled ? 1 : 0);
+    _lib.set_view_frustum_culling(_viewer!, enabled);
   }
 
   Future setCameraExposure(
