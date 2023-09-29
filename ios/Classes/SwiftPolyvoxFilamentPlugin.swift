@@ -128,6 +128,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
         instance.resources.removeObject(forKey:rbuf.id)
     }
+
+    var markTextureFrameAvailable : @convention(c) (UnsafeMutableRawPointer?) -> () = { rbuf, resourcesPtr in
+        let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
+        instance.registry.textureFrameAvailable(instance.flutterTextureId)
+    }
     
     @objc func doRender() {
         if(viewer != nil && rendering) {
@@ -241,6 +246,9 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             update_viewport_and_camera_projection(viewer, UInt32(args[0] as! Int64), UInt32(args[1] as! Int64), 1.0)
             set_frame_interval(viewer, Float(frameInterval))
             result(unsafeBitCast(viewer, to:Int64.self))
+        case "textureFrameAvailable":
+            self.registry.textureFrameAvailable(flutterTextureId)
+            result(nil)
         case "getAssetManager":
             let assetManager = get_asset_manager(viewer)
             result(unsafeBitCast(assetManager, to:Int64.self))

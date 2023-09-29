@@ -311,7 +311,7 @@ extern "C" {
     void* assetManager,
     EntityId asset) {
       auto names = ((AssetManager*)assetManager)->getAnimationNames(asset);
-      return names->size();
+      return (int)names->size();
   }
 
   FLUTTER_PLUGIN_EXPORT void get_animation_name(
@@ -326,12 +326,8 @@ extern "C" {
   }
   
   FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void* assetManager, EntityId asset, const char* meshName) {
-    //std::packaged_task<int()> lambda([=]() mutable  {
       unique_ptr<vector<string>> names = ((AssetManager*)assetManager)->getMorphTargetNames(asset, meshName);
-      return names->size();
-    
-
-    //return fut.get();
+      return (int)names->size();
   }
 
   FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void* assetManager, EntityId asset, const char* meshName, char* const outPtr, int index ) {

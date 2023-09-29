@@ -1278,22 +1278,82 @@ class NativeLibrary {
   ffi.Pointer<ffi.Void> create_filament_viewer_ffi(
     ffi.Pointer<ffi.Void> context,
     ffi.Pointer<ResourceLoaderWrapper> loader,
+    ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<ffi.Void> renderCallbackOwner)>>
+        renderCallback,
+    ffi.Pointer<ffi.Void> renderCallbackOwner,
   ) {
     return _create_filament_viewer_ffi(
       context,
       loader,
+      renderCallback,
+      renderCallbackOwner,
     );
   }
 
   late final _create_filament_viewer_ffiPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Pointer<ffi.Void> Function(
-                  ffi.Pointer<ffi.Void>, ffi.Pointer<ResourceLoaderWrapper>)>>(
-      'create_filament_viewer_ffi');
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Void> Function(
+              ffi.Pointer<ffi.Void>,
+              ffi.Pointer<ResourceLoaderWrapper>,
+              ffi.Pointer<
+                  ffi.NativeFunction<
+                      ffi.Void Function(
+                          ffi.Pointer<ffi.Void> renderCallbackOwner)>>,
+              ffi.Pointer<ffi.Void>)>>('create_filament_viewer_ffi');
   late final _create_filament_viewer_ffi =
       _create_filament_viewer_ffiPtr.asFunction<
           ffi.Pointer<ffi.Void> Function(
-              ffi.Pointer<ffi.Void>, ffi.Pointer<ResourceLoaderWrapper>)>();
+              ffi.Pointer<ffi.Void>,
+              ffi.Pointer<ResourceLoaderWrapper>,
+              ffi.Pointer<
+                  ffi.NativeFunction<
+                      ffi.Void Function(
+                          ffi.Pointer<ffi.Void> renderCallbackOwner)>>,
+              ffi.Pointer<ffi.Void>)>();
+
+  void create_swap_chain_ffi(
+    ffi.Pointer<ffi.Void> viewer,
+    ffi.Pointer<ffi.Void> surface,
+    int width,
+    int height,
+  ) {
+    return _create_swap_chain_ffi(
+      viewer,
+      surface,
+      width,
+      height,
+    );
+  }
+
+  late final _create_swap_chain_ffiPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
+              ffi.Uint32, ffi.Uint32)>>('create_swap_chain_ffi');
+  late final _create_swap_chain_ffi = _create_swap_chain_ffiPtr.asFunction<
+      void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, int, int)>();
+
+  void create_render_target_ffi(
+    ffi.Pointer<ffi.Void> viewer,
+    int nativeTextureId,
+    int width,
+    int height,
+  ) {
+    return _create_render_target_ffi(
+      viewer,
+      nativeTextureId,
+      width,
+      height,
+    );
+  }
+
+  late final _create_render_target_ffiPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32,
+              ffi.Uint32)>>('create_render_target_ffi');
+  late final _create_render_target_ffi = _create_render_target_ffiPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Void>, int, int, int)>();
 
   void destroy_filament_viewer_ffi(
     ffi.Pointer<ffi.Void> viewer,
@@ -1375,27 +1435,6 @@ class NativeLibrary {
   late final _update_viewport_and_camera_projection_ffi =
       _update_viewport_and_camera_projection_ffiPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>, int, int, double)>();
-
-  void create_render_target_ffi(
-    ffi.Pointer<ffi.Void> viewer,
-    int textureId,
-    int width,
-    int height,
-  ) {
-    return _create_render_target_ffi(
-      viewer,
-      textureId,
-      width,
-      height,
-    );
-  }
-
-  late final _create_render_target_ffiPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32,
-              ffi.Uint32)>>('create_render_target_ffi');
-  late final _create_render_target_ffi = _create_render_target_ffiPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Void>, int, int, int)>();
 
   void set_background_color_ffi(
     ffi.Pointer<ffi.Void> viewer,

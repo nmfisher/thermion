@@ -10,18 +10,18 @@
 
 typedef int32_t EntityId;
 
-const void* create_filament_viewer_ffi(void* const context, const ResourceLoaderWrapper* const loader);
+void* const create_filament_viewer_ffi(void* const context, const ResourceLoaderWrapper* const loader, void (*renderCallback)(void* const renderCallbackOwner), void* const renderCallbackOwner);
+void create_swap_chain_ffi(void* const viewer, void* const surface, uint32_t width, uint32_t height);
+void create_render_target_ffi(void* const viewer, uint32_t nativeTextureId, uint32_t width, uint32_t height);
 void destroy_filament_viewer_ffi(void* const viewer);
 void render_ffi(void* const viewer);
 void set_rendering_ffi(void* const viewer, bool rendering);
 void set_frame_interval_ffi(float frameInterval);
 void update_viewport_and_camera_projection_ffi(void* const viewer, const uint32_t width, const uint32_t height, const float scaleFactor);
-void create_render_target_ffi(void* const viewer, uint32_t textureId, uint32_t width, uint32_t height);
 void set_background_color_ffi(void* const viewer, const float r, const float g, const float b, const float a);
 void clear_background_image_ffi(void* const viewer);
 void set_background_image_ffi(void* const viewer, const char *path, bool fillHeight);
 void set_background_image_position_ffi(void* const viewer, float x, float y, bool clamp);
-void set_background_color_ffi(void* const viewer, const float r, const float g, const float b, const float a);
 void set_tone_mapping_ffi(void* const viewer, int toneMapping);
 void set_bloom_ffi(void* const viewer, float strength);
 void load_skybox_ffi(void* const viewer, const char *skyboxPath);
@@ -33,8 +33,8 @@ void remove_light_ffi(void* const viewer, EntityId entityId);
 void clear_lights_ffi(void* const viewer);
 EntityId load_glb_ffi(void* const assetManager, const char *assetPath, bool unlit);
 EntityId load_gltf_ffi(void* const assetManager, const char *assetPath, const char *relativePath);
-void remove_asset_ffi(const void* const viewer, EntityId asset);
-void clear_assets_ffi(const void* const viewer);
+void remove_asset_ffi(void* const const viewer, EntityId asset);
+void clear_assets_ffi(void* const const viewer);
 bool set_camera_ffi(void* const viewer, EntityId asset, const char *nodeName);
 void apply_weights_ffi(
     void* assetManager,

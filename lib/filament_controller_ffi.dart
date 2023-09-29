@@ -103,15 +103,34 @@ class FilamentControllerFFI extends FilamentController {
     }
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
-    _textureId =
+    var textures =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
+    var flutterTextureId = textures[0];
+    _textureId = flutterTextureId;
+    var pixelBuffer = textures[1] as int;
+    var nativeTexture = textures[2] as int;
+
+    var renderCallbackResult = await _channel.invokeMethod("getRenderCallback");
+    var renderCallback =
+        Pointer<NativeFunction<Void Function(Pointer<Void>)>>.fromAddress(
+            renderCallbackResult[0]);
+    var renderCallbackOwner =
+        Pointer<Void>.fromAddress(renderCallbackResult[1]);
 
     var sharedContext = await _channel.invokeMethod("getSharedContext");
     var loader = await _channel.invokeMethod("getResourceLoaderWrapper");
 
     _viewer = _lib.create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(sharedContext ?? 0),
-        Pointer<ResourceLoaderWrapper>.fromAddress(loader));
+        Pointer<ResourceLoaderWrapper>.fromAddress(loader),
+        renderCallback,
+        renderCallbackOwner);
+
+    _lib.create_swap_chain(
+        _viewer!, Pointer<Void>.fromAddress(pixelBuffer), width, height);
+
+    _lib.create_render_target(_viewer!, nativeTexture, width, height);
+
     _lib.update_viewport_and_camera_projection_ffi(
         _viewer!, width, height, 1.0);
 
