@@ -49,13 +49,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
 
         if(path != nil) {
           do {
-                print("Loading file at path \(path!)")
                 let data = try Data(contentsOf: URL(fileURLWithPath:path!))
                 let nsData = data as NSData 
                 let resId = UInt32(instance.resources.count)
                 instance.resources[resId] = nsData
                 let length = nsData.length
-                print("Got file of length \(length)")
+                print("Resolved asset to file of length \(length) at path \(path!)")
                 return ResourceBuffer(data:nsData.bytes, size:UInt32(nsData.count), id:UInt32(resId))
           } catch {
             print("ERROR LOADING RESOURCE")
@@ -146,6 +145,11 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
         switch methodName {
+        case "getSharedContext":
+            result(nil)
+        case "getResourceLoaderWrapper":
+            let resourceLoaderWrapper = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
+            result(unsafeBitCast(resourceLoaderWrapper, to:Int64.self))
         case "createTexture":
             let args = call.arguments as! Array<Int32>
             createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
@@ -181,7 +185,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "destroyViewer":
             if(viewer != nil) {
                 destroy_swap_chain(viewer)
-                delete_filament_viewer(viewer)
+                destroy_filament_viewer(viewer)
                 viewer = nil
             }
             result(true)
@@ -198,7 +202,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             resize(width:Int32(width), height:Int32(height))
             create_swap_chain(viewer, CVPixelBufferGetBaseAddress(pixelBuffer!), width, height)
             let metalTextureId = Int(bitPattern:Unmanaged.passUnretained(metalTexture!).toOpaque())
-            create_render_target(viewer, metalTextureId, width, height);
+            create_render_target(viewer, UInt32(metalTextureId), width, height);
             update_viewport_and_camera_projection(viewer, width, height, Float(args[2] as! Double))
             rendering = true
             print("Resized to \(args[0])x\(args[1])")
@@ -206,7 +210,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "createFilamentViewer":
             if(viewer != nil) {
                 destroy_swap_chain(viewer)
-                delete_filament_viewer(viewer)
+                destroy_filament_viewer(viewer)
                 viewer = nil
             }
             let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
@@ -219,7 +223,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
 
             let metalTextureId = Int(bitPattern:Unmanaged.passUnretained(metalTexture!).toOpaque())
             
-            create_render_target(viewer, metalTextureId, width,height);
+            create_render_target(viewer, UInt32(metalTextureId), width,height);
 
             update_viewport_and_camera_projection(viewer, width, height, 1.0)
             set_frame_interval(viewer, Float(frameInterval))
@@ -232,7 +236,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             clear_background_image(viewer)
             result(true)
         case "setBackgroundImage":
-            set_background_image(viewer, call.arguments as! String)
+            let args = call.arguments as! [Any]
+            set_background_image(viewer, args[0]  as! String, args[1] as! Bool)
             result(true)
         case "setBackgroundImagePosition":
             let args = call.arguments as! [Any]

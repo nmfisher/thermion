@@ -112,10 +112,8 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
   
   #if TARGET_OS_IPHONE
     _engine = Engine::create(Engine::Backend::METAL);
-  #elif TARGET_OS_MAC
-      _engine = Engine::create(Engine::Backend::METAL);
   #else
-    _engine = Engine::create(Engine::Backend::OPENGL, nullptr, (void*)context, nullptr);
+    _engine = Engine::create(Engine::Backend::OPENGL); //L, nullptr, (void*)context, nullptr);
   #endif
 
   _renderer = _engine->createRenderer();
@@ -153,7 +151,6 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
   const float aperture = _mainCamera->getAperture();
   const float shutterSpeed = _mainCamera->getShutterSpeed();
   const float sens = _mainCamera->getSensitivity();
-  // _mainCamera->setExposure(2.0f, 1.0f, 1.0f);
 
   Log("Camera aperture %f shutter %f sensitivity %f", aperture, shutterSpeed, sens);
 
@@ -173,10 +170,6 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
 
   _view->setAntiAliasing(AntiAliasing::NONE);
 
-  // auto materialRb = _resourceLoader->load("file:///mnt/hdd_2tb/home/hydroxide/projects/filament/unlit.filamat");
-  // Log("Loaded resource of size %d", materialRb.size);
-  // _materialProvider = new FileMaterialProvider(_engine, (void*) materialRb.data, (size_t)materialRb.size);
-  
   EntityManager &em = EntityManager::get();
 
   _ncm = new NameComponentManager(em);
@@ -377,7 +370,6 @@ void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb) {
 
   Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
                                                             void *data) {
-    Log("Deleting LinearImage");
     delete reinterpret_cast<LinearImage*>(data);
   };
 
@@ -423,14 +415,13 @@ void FilamentViewer::setBackgroundColor(const float r, const float g, const floa
 void FilamentViewer::clearBackgroundImage() {
   _imageMaterial->setDefaultParameter("showImage", 0);
   if (_imageTexture) {
-    Log("Destroying existing texture");
     _engine->destroy(_imageTexture);
-    Log("Destroyed.");
     _imageTexture = nullptr;
+    Log("Destroyed background image texture");
   }
 }
 
-void FilamentViewer::setBackgroundImage(const char *resourcePath) {
+void FilamentViewer::setBackgroundImage(const char *resourcePath, bool fillHeight) {
 
   string resourcePathString(resourcePath);
 
@@ -444,7 +435,18 @@ void FilamentViewer::setBackgroundImage(const char *resourcePath) {
   // TODO - implement stretch/etc
   const Viewport& vp = _view->getViewport();
   Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
-  _imageScale = mat4f { float(vp.width) / float(_imageWidth) , 0.0f, 0.0f, 0.0f, 0.0f, float(vp.height) / float(_imageHeight), 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+
+
+  float xScale = float(vp.width) / float(_imageWidth);
+  
+  float yScale;
+  if(fillHeight) {
+    yScale = 1.0f;
+  } else { 
+    yScale = float(vp.height) / float(_imageHeight);
+  }
+
+  _imageScale = mat4f { xScale , 0.0f, 0.0f, 0.0f, 0.0f, yScale , 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
   _imageMaterial->setDefaultParameter("transform", _imageScale);
   _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
@@ -550,14 +552,14 @@ FilamentViewer::~FilamentViewer() {
 
 Renderer *FilamentViewer::getRenderer() { return _renderer; }
 
-void FilamentViewer::createSwapChain(const void *surface, uint32_t width, uint32_t height) {
+void FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_t height) {
   #if TARGET_OS_IPHONE
-    _swapChain = _engine->createSwapChain((void*)surface, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
+    _swapChain = _engine->createSwapChain((void*)window, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
   #else
-    if(surface) {
-      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+    if(window) {
+      _swapChain = _engine->createSwapChain((void*)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
     } else {
-      _swapChain = _engine->createSwapChain((void*)surface, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
     }
   #endif
   Log("Swapchain created.");
@@ -588,7 +590,7 @@ void FilamentViewer::createRenderTarget(intptr_t textureId, uint32_t width, uint
   // Make a specific viewport just for our render target
   _view->setRenderTarget(_rt);
   
-  Log("Set render target for textureId %u %u x %u", textureId, width, height);
+  Log("Set render target for glTextureId %u %u x %u", textureId, width, height);
 
 }
 
@@ -861,8 +863,18 @@ void FilamentViewer::updateViewportAndCameraProjection(
       contentScaleFactor);
 }
 
-void FilamentViewer::moveCameraToAsset(EntityId entityId) {
+void FilamentViewer::setCameraPosition(float x, float y, float z) {
+  Camera& cam =_view->getCamera();
 
+  _cameraPosition = math::mat4f::translation(math::float3(x,y,z));
+  cam.setModelMatrix(_cameraPosition * _cameraRotation);
+}
+
+void FilamentViewer::setViewFrustumCulling(bool enabled) { 
+  _view->setFrustumCullingEnabled(enabled);
+}
+
+void FilamentViewer::moveCameraToAsset(EntityId entityId) {
   auto asset = _assetManager->getAssetByEntityId(entityId);
   if(!asset) {
       Log("Failed to find asset attached to specified entity id.");
@@ -878,20 +890,8 @@ void FilamentViewer::moveCameraToAsset(EntityId entityId) {
   Log("Moved camera to %f %f %f, lookAt %f %f %f, near %f far %f", eye[0], eye[1], eye[2], lookAt[0], lookAt[1], lookAt[2], cam.getNear(), cam.getCullingFar());
 }
 
-void FilamentViewer::setViewFrustumCulling(bool enabled) { 
-  _view->setFrustumCullingEnabled(enabled);
-}
-
-void FilamentViewer::setCameraPosition(float x, float y, float z) {
-  Camera& cam =_view->getCamera();
-
-  _cameraPosition = math::mat4f::translation(math::float3(x,y,z));
-  cam.setModelMatrix(_cameraPosition * _cameraRotation);
-}
-
 void FilamentViewer::setCameraRotation(float rads, float x, float y, float z) {
   Camera& cam =_view->getCamera();
-
   _cameraRotation = math::mat4f::rotation(rads, math::float3(x,y,z));
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }
@@ -936,7 +936,7 @@ void FilamentViewer::grabUpdate(float x, float y) {
         return;
     }
     Camera& cam =_view->getCamera();
-    auto eye =  cam.getPosition();
+    auto eye =  cam.getPosition();// math::float3  {0.0f, 0.5f, 50.0f } ;// ; //
     auto target = eye + cam.getForwardVector();
     auto upward = cam.getUpVector();
     Viewport const& vp = _view->getViewport();
@@ -945,7 +945,9 @@ void FilamentViewer::grabUpdate(float x, float y) {
         cam.setModelMatrix(trans);
     } else {
         auto trans = cam.getModelMatrix() * mat4::rotation(
-                                                   0.02,
+                                                   
+                                                          0.01,
+//                                                           math::float3 { 0.0f, 1.0f, 0.0f });
                                                            math::float3 { (y - _startY) / vp.height, (x - _startX) / vp.width, 0.0f });
         cam.setModelMatrix(trans);
     }

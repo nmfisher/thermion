@@ -17,10 +17,10 @@ extern "C" {
   #include "PolyvoxFilamentApi.h"
 
   FLUTTER_PLUGIN_EXPORT const void* create_filament_viewer(const void* context, const ResourceLoaderWrapper* const loader) {
-      return (void*) new FilamentViewer(context, loader);
+    return (const void*) new FilamentViewer(context, loader);
   }
-
-  FLUTTER_PLUGIN_EXPORT ResourceLoaderWrapper* make_resource_loader(LoadResourceFromOwner loadFn, FreeResourceFromOwner freeFn, void* const owner) {
+  
+  FLUTTER_PLUGIN_EXPORT ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* const owner) {
     return new ResourceLoaderWrapper(loadFn, freeFn, owner);
   }
 
@@ -28,12 +28,12 @@ extern "C" {
       ((FilamentViewer*)viewer)->createRenderTarget(textureId, width, height);
   }
   
-  FLUTTER_PLUGIN_EXPORT void delete_filament_viewer(const void* const viewer) {
+  FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer(const void* const viewer) {
     delete((FilamentViewer*)viewer);
   }
 
   FLUTTER_PLUGIN_EXPORT void set_background_color(const void* const viewer, const float r, const float g, const float b, const float a) {
-      ((FilamentViewer*)viewer)->setBackgroundColor(r, g, b, a);
+    ((FilamentViewer*)viewer)->setBackgroundColor(r, g, b, a);
   }
 
   FLUTTER_PLUGIN_EXPORT void clear_background_image(const void* const viewer) {
@@ -96,6 +96,10 @@ extern "C" {
   FLUTTER_PLUGIN_EXPORT bool set_camera(const void* const viewer, EntityId asset, const char* nodeName) {
       return ((FilamentViewer*)viewer)->setCamera(asset, nodeName);
   }
+
+  FLUTTER_PLUGIN_EXPORT void set_view_frustum_culling(const void* const viewer, bool enabled) {
+      ((FilamentViewer*)viewer)->setViewFrustumCulling(enabled);
+  }  
 
   FLUTTER_PLUGIN_EXPORT void move_camera_to_asset(const void* const viewer, EntityId asset) {
       ((FilamentViewer*)viewer)->moveCameraToAsset(asset);
@@ -344,14 +348,6 @@ extern "C" {
       ((FilamentViewer*)viewer)->clearAssets();
   }
 
-  FLUTTER_PLUGIN_EXPORT void load_texture(void* assetManager, EntityId asset, const char* assetPath, int renderableIndex) {
-    // ((AssetManager*)assetManager)->loadTexture(assetPath, renderableIndex);
-  }
-
-  FLUTTER_PLUGIN_EXPORT void set_texture(void* assetManager, EntityId asset) {
-    // ((AssetManager*)assetManager)->setTexture();
-  }
-
   bool set_material_color(void* assetManager, EntityId asset, const char* meshName, int materialIndex, const float r, const float g, const float b, const float a) {
     return ((AssetManager*)assetManager)->setMaterialColor(asset, meshName, materialIndex, r, g, b, a);
   }
@@ -366,7 +362,7 @@ extern "C" {
 
   FLUTTER_PLUGIN_EXPORT void set_rotation(void* assetManager, EntityId asset, float rads, float x, float y, float z) {
       ((AssetManager*)assetManager)->setRotation(asset, rads, x, y, z);
-   }
+  }
 
   FLUTTER_PLUGIN_EXPORT void set_scale(void* assetManager, EntityId asset, float scale) {
       ((AssetManager*)assetManager)->setScale(asset, scale);

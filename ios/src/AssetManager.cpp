@@ -54,12 +54,12 @@ _scene(scene) {
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
 
-    auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials_ios_arm64.uberz");
+    // auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials_ios_arm64.uberz");
 
-    _ubershaderProvider = gltfio::createUbershaderProvider(
-                                                            _engine, uberdata.data, uberdata.size);
     // _ubershaderProvider = gltfio::createUbershaderProvider(
-    //                                                         _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
+                                                            // _engine, uberdata.data, uberdata.size);
+    _ubershaderProvider = gltfio::createUbershaderProvider(
+                                                            _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
     // _ubershaderProvider = gltfio::createJitShaderProvider(_engine, true);
     EntityManager &em = EntityManager::get();
     

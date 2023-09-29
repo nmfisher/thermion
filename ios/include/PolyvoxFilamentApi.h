@@ -6,8 +6,8 @@
 typedef int32_t EntityId;
 
 const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader);
-ResourceLoaderWrapper* make_resource_loader(LoadResourceFromOwner loadFn, FreeResourceFromOwner freeFn, void* owner);
-void delete_filament_viewer(const void* const viewer);
+ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* owner);
+void destroy_filament_viewer(const void* const viewer);
 void* get_asset_manager(const void* const viewer);
 void create_render_target(const void* const viewer, uint32_t textureId, uint32_t width, uint32_t height);
 void clear_background_image(const void* const viewer);
@@ -26,6 +26,7 @@ void clear_lights(const void* const viewer);
 EntityId load_glb(void *assetManager, const char *assetPath, bool unlit);
 EntityId load_gltf(void *assetManager, const char *assetPath, const char *relativePath);
 bool set_camera(const void* const viewer, EntityId asset, const char *nodeName);
+void set_view_frustum_culling(const void* const viewer, bool enabled);
 void render(const void* const viewer, uint64_t frameTimeInNanos);
 void create_swap_chain(const void* const viewer, const void* const window, uint32_t width, uint32_t height);
 void destroy_swap_chain(const void* const viewer);
@@ -82,8 +83,6 @@ void get_morph_target_name(void* assetManager, EntityId asset, const char *meshN
 int get_morph_target_name_count(void* assetManager, EntityId asset, const char *meshName);
 void remove_asset(const void* const viewer, EntityId asset);
 void clear_assets(const void* const viewer);
-void load_texture(void* assetManager, EntityId asset, const char *assetPath, int renderableIndex);
-void set_texture(void* assetManager, EntityId asset);
 bool set_material_color(void* assetManager, EntityId asset, const char* meshName, int materialIndex, const float r, const float g, const float b, const float a);
 void transform_to_unit_cube(void* assetManager, EntityId asset);
 void set_position(void* assetManager, EntityId asset, float x, float y, float z);

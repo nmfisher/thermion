@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/animations/bone_animation_data.dart';
+import 'package:polyvox_filament/filament_controller_ffi.dart';
 import 'package:polyvox_filament/filament_gesture_detector.dart';
 import 'package:polyvox_filament/filament_widget.dart';
 import 'package:polyvox_filament/animations/animation_builder.dart';
@@ -36,7 +37,7 @@ class ExampleWidget extends StatefulWidget {
 }
 
 class _ExampleWidgetState extends State<ExampleWidget> {
-  final _filamentController = FilamentController();
+  final _filamentController = FilamentControllerFFI();
 
   FilamentEntity? _cube;
   FilamentEntity? _flightHelmet;
@@ -132,9 +133,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         _cube =
             await _filamentController.loadGltf('assets/cube.gltf', 'assets');
       }, 'load cube GLTF'),
-      _item(() async {
-        _filamentController.setTexture(_cube!, "assets/background.png");
-      }, 'swap cube texture'),
       _item(() async {
         _filamentController.transformToUnitCube(_cube!);
       }, 'transform to unit cube'),

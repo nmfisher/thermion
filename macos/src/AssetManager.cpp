@@ -1,5 +1,7 @@
-#include "AssetManager.hpp"
+#include <string>
+#include <sstream>
 #include <thread>
+
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
@@ -17,8 +19,8 @@
 #include "StreamBufferAdapter.hpp"
 #include "SceneAsset.hpp"
 #include "Log.hpp"
+#include "AssetManager.hpp"
 
-#include "material/StandardMaterialProvider.hpp"
 #include "material/UnlitMaterialProvider.hpp"
 #include "material/FileMaterialProvider.hpp"
 #include "gltfio/materials/uberarchive.h"
@@ -52,16 +54,13 @@ _scene(scene) {
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
 
-    // auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials.uberz");
+    // auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials_ios_arm64.uberz");
+
     // _ubershaderProvider = gltfio::createUbershaderProvider(
-    //                                                         _engine, uberdata.data, uberdata.size);
+                                                            // _engine, uberdata.data, uberdata.size);
     _ubershaderProvider = gltfio::createUbershaderProvider(
                                                             _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
-    
-
-                                                            
     // _ubershaderProvider = gltfio::createJitShaderProvider(_engine, true);
-    // _ubershaderProvider = new StandardMaterialProvider(_engine);
     EntityManager &em = EntityManager::get();
     
     //_unlitProvider = new UnlitMaterialProvider(_engine);
@@ -78,6 +77,7 @@ _scene(scene) {
 AssetManager::~AssetManager() { 
     _gltfResourceLoader->asyncCancelLoad();
     _ubershaderProvider->destroyMaterials();
+    //_unlitProvider->destroyMaterials();
     destroyAll();
     AssetLoader::destroy(&_assetLoader);
     
@@ -252,7 +252,8 @@ void AssetManager::updateAnimations() {
     
     for (auto& asset : _assets) {
         
-        vector<AnimationStatus> completed;
+        vector<int> completed;
+        int index = 0;
         for(auto& anim : asset.mAnimations) {
             
             auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
@@ -316,10 +317,14 @@ void AssetManager::updateAnimations() {
                 }
                 // animation has completed
             } else {
-                completed.push_back(anim);
+                completed.push_back(index);
                 asset.fadeGltfAnimationIndex = -1;
             }
             asset.mAnimator->updateBoneMatrices();
+            index++;
+        }
+        for(auto& it : completed) {
+            asset.mAnimations.erase(asset.mAnimations.begin() + it);
         }
     }
 }
@@ -657,6 +662,8 @@ void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse,
     animation.mDuration = asset.mAnimator->getAnimationDuration(index);
     
     asset.mAnimations.push_back(animation);
+
+    Log("Current animation count %d ", asset.mAnimations.size());
 }
 
 void AssetManager::stopAnimation(EntityId entityId, int index) {

@@ -204,7 +204,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         case "destroyViewer":
             if(viewer != nil) {
                 destroy_swap_chain(viewer)
-                delete_filament_viewer(viewer)
+                destroy_filament_viewer(viewer)
                 viewer = nil
             }
             result(true)
@@ -227,7 +227,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             print("createFilamentViewer")
             if(viewer != nil) {
                 destroy_swap_chain(viewer)
-                delete_filament_viewer(viewer)
+                destroy_filament_viewer(viewer)
                 viewer = nil
             }
             let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())

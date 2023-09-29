@@ -81,6 +81,8 @@ namespace polyvox {
             void setBackgroundImage(const char* resourcePath, bool fillHeight);
             void clearBackgroundImage();
             void setBackgroundImagePosition(float x, float y, bool clamp);
+
+            void setViewFrustumCulling(bool enabled);
             void moveCameraToAsset(EntityId entityId);
 
             void setCameraExposure(float aperture, float shutterSpeed, float sensitivity);

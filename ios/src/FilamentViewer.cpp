@@ -870,9 +870,12 @@ void FilamentViewer::setCameraPosition(float x, float y, float z) {
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
 }
 
-void FilamentViewer::moveCameraToAsset(EntityId entityId) {
+void FilamentViewer::setViewFrustumCulling(bool enabled) { 
+  _view->setFrustumCullingEnabled(enabled);
+}
 
-auto asset = _assetManager->getAssetByEntityId(entityId);
+void FilamentViewer::moveCameraToAsset(EntityId entityId) {
+  auto asset = _assetManager->getAssetByEntityId(entityId);
   if(!asset) {
       Log("Failed to find asset attached to specified entity id.");
       return;

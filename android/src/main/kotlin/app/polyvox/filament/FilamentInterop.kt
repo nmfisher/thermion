@@ -17,11 +17,11 @@ open class ResourceBuffer: Structure(), Structure.ByValue {
     }
 }
 
-interface LoadResourceFromOwner : Callback {
+interface LoadFilamentResourceFromOwner : Callback {
     fun loadResourceFromOwner(resourceName: String?, owner: Pointer?): ResourceBuffer
 }
 
-interface FreeResourceFromOwner : Callback {
+interface FreeFilamentResourceFromOwner : Callback {
     fun freeResourceFromOwner(rb: ResourceBuffer, owner: Pointer?)
 }
 interface FilamentInterop : Library {
@@ -29,7 +29,7 @@ interface FilamentInterop : Library {
 fun create_filament_viewer(context:Pointer, loader:Pointer) : Pointer;
 fun create_swap_chain(viewer: Pointer, window:Pointer?, width:Int, height:Int);
 fun get_native_window_from_surface(surface:Object, env:JNIEnv) : Pointer;
-fun delete_filament_viewer(viewer: Pointer)
+fun destroy_filament_viewer(viewer: Pointer)
 fun get_asset_manager(viewer: Pointer?): Pointer?
 fun create_render_target(viewer: Pointer, texture_id: Int, width: Int, height: Int)
 fun clear_background_image(viewer: Pointer)
@@ -89,6 +89,6 @@ fun set_camera_focus_distance(viewer: Pointer, focus_distance: Float)
 fun hide_mesh(asset_manager: Pointer, asset: EntityId, mesh_name: String): Int
 fun reveal_mesh(asset_manager: Pointer, asset: EntityId, mesh_name: String): Int
 fun ios_dummy()
-fun make_resource_loader(loadResourceFromOwner: LoadResourceFromOwner, freeResource: FreeResourceFromOwner, owner:Pointer?) : Pointer;
+fun make_resource_loader(loadResourceFromOwner: LoadFilamentResourceFromOwner, freeResource: FreeFilamentResourceFromOwner, owner:Pointer?) : Pointer;
 }
 

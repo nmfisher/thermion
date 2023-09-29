@@ -32,7 +32,7 @@ import java.util.concurrent.Executors
 typealias EntityId = Int
 
 /** PolyvoxFilamentPlugin */
-class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadResourceFromOwner, FreeResourceFromOwner {
+class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadFilamentResourceFromOwner, FreeFilamentResourceFromOwner {
 
   private val lock = Object()
 
@@ -221,7 +221,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         "destroyViewer" -> {
             if (_viewer != null) {
                 _lib.destroy_swap_chain(_viewer!!)
-                _lib.delete_filament_viewer(_viewer!!)
+                _lib.destroy_filament_viewer(_viewer!!)
                 _viewer = null
             }
             result.success(true)
@@ -249,7 +249,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         "createFilamentViewer" -> {
             if (_viewer != null) {
               _lib.destroy_swap_chain(_viewer!!)
-              _lib.delete_filament_viewer(_viewer!!)
+              _lib.destroy_filament_viewer(_viewer!!)
               _viewer = null
             }
             val resourceLoader = _lib.make_resource_loader(this, this, Pointer(0))

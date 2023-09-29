@@ -1,11 +1,10 @@
 //
-// Frame weights for the morph targets specified in [morphNames] attached to mesh [meshName].
-// morphData is laid out as numFrames x numMorphTargets
-// where the weights are in the same order as [morphNames].
-// [morphNames] must be provided but is not used directly; this is only used to check that the eventual asset being animated contains the same morph targets in the same order.
+// A wrapper for morph target animation data.
+// [data] is laid out as numFrames x numMorphTargets (where each morph target is ordered according to [animatedMorphNames]).
+// [data] frame data for the morph weights used to animate the morph targets [animatedMorphNames] in mesh [meshName].
+// the morph targets specified in [morphNames] attached to mesh [meshName].
+// [animatedMorphNames] must be provided but is not used directly; this is only used to check that the eventual asset being animated contains the same morph targets in the same order.
 //
-import 'dart:typed_data';
-
 class MorphAnimationData {
   final String meshName;
   final List<String> animatedMorphNames;

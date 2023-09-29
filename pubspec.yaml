@@ -15,19 +15,24 @@ dependencies:
   vector_math: ^2.1.2
   plugin_platform_interface: ^2.0.0
   tuple:
+  ffi:
   wasm_ffi:
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^1.0.0
-  ffigen: 
+  ffigen: ^9.0.1
 
 ffigen:
   output: 'lib/generated_bindings.dart'
   headers:
     entry-points:
       - 'ios/include/PolyvoxFilamentApi.h'
+      - 'ios/include/PolyvoxFilamentFFIApi.h'
+  compiler-opts-automatic:
+    macos:
+      include-c-standard-library: false
 
 flutter:
   assets:
