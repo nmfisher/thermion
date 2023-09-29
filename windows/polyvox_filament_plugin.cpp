@@ -169,6 +169,8 @@ void PolyvoxFilamentPlugin::CreateFilamentViewer(
 
   const ResourceLoaderWrapper *const resourceLoader =
       new ResourceLoaderWrapper(_loadResource, _freeResource, this);
+
+  std::packaged_task<void()> lambda([&]() mutable {
     _viewer = (void *)create_filament_viewer(nullptr, resourceLoader, _platform);
      
     // headless
@@ -176,21 +178,45 @@ void PolyvoxFilamentPlugin::CreateFilamentViewer(
    create_render_target(_viewer, _platform->glTextureId, width, height);
 
     result->Success(flutter::EncodableValue((int64_t)_viewer));
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
 
+  std::thread([&]() {
+    while (true)
+      {
+        if(_rendering) {
+          std::packaged_task<void()> renderLambda([&]() mutable  {
+            std::lock_guard<std::mutex> guard(_renderMutex);
+            render(_viewer, 0, nullptr, nullptr, nullptr);
+            _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
+                                          _internalD3DTexture2D.Get());
+            _D3D11DeviceContext->Flush();
+            _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
+          });
+          _tp->add_task(renderLambda);
+        }
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(_frameIntervalInMilliseconds));
+      }
+  }).detach();
 }
-    using namespace std::chrono_literals;
+using namespace std::chrono_literals;
 void PolyvoxFilamentPlugin::Render(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  
+    std::packaged_task<void()> lambda([&]() mutable {
+
     render(_viewer, 0, nullptr, nullptr, nullptr);
    
     _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
                                           _internalD3DTexture2D.Get());
     _D3D11DeviceContext->Flush();
     _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
-
-  result->Success(flutter::EncodableValue(true));
+    result->Success(flutter::EncodableValue(true));
+    });
+    auto fut = _tp->add_task(lambda);
+    fut.wait();
 }
 
 void PolyvoxFilamentPlugin::SetRendering(
@@ -445,11 +471,11 @@ void PolyvoxFilamentPlugin::LoadSkybox(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   const auto *args = std::get_if<std::string>(methodCall.arguments());
-  // std::packaged_task<void()> lambda([&]() mutable  {
+  std::packaged_task<void()> lambda([&]() mutable  {
     load_skybox(_viewer, (*args).c_str());
-  // });
-  // auto fut = _tp->add_task(lambda);
-  // fut.wait();
+  });
+  auto fut = _tp->add_task(lambda);
+  fut.wait();
   result->Success(flutter::EncodableValue("OK"));
 }
 
