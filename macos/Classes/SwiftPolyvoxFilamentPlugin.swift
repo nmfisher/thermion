@@ -18,13 +18,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     ] as CFDictionary
     
     var resources:[UInt32:NSData] = [:]
-    
-    var viewer:UnsafeRawPointer? = nil
-    var displayLink:CVDisplayLink? = nil
-    var rendering:Bool = false
-    
-    var frameInterval:Double = 1 / 60.0
-    
+  
     static var messenger : FlutterBinaryMessenger? = nil;
     
     var loadResource : @convention(c) (UnsafePointer<Int8>?, UnsafeMutableRawPointer?) -> ResourceBuffer = { uri, resourcesPtr in
@@ -74,35 +68,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         instance.registry.textureFrameAvailable(instance.flutterTextureId!)
     }
     
-   var displayLinkRenderCallback : @convention(c) (CVDisplayLink, UnsafePointer<CVTimeStamp>, UnsafePointer<CVTimeStamp>, CVOptionFlags, UnsafeMutablePointer<CVOptionFlags>, UnsafeMutableRawPointer?) -> CVReturn = { displayLink, ts1, ts2, options, optionsPtr, resourcesPtr in
-       let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
-
-       if(instance.viewer != nil && instance.rendering) {
-           instance.doRender()
-       }
-       return 0
-    }
-    
-    func doRender() {
-        DispatchQueue.main.async {
-            render(self.viewer, 0)
-            self.registry.textureFrameAvailable(self.flutterTextureId!)
-        }
-    }
-    
-    func createDisplayLink() {
-        let displayID = CGMainDisplayID()
-        let error = CVDisplayLinkCreateWithCGDisplay(displayID, &displayLink);
-        if (error != 0)
-        {
-            print("DisplayLink created with error \(error)");
-        }
-        CVDisplayLinkSetOutputCallback(displayLink!, displayLinkRenderCallback, unsafeBitCast(self, to:UnsafeMutableRawPointer.self))
-        
-        CVDisplayLinkStart(displayLink!);
-
-    }
-    
     public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
         if(pixelBuffer == nil) {
             return nil;
@@ -136,12 +101,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         self.flutterTextureId = self.registry.register(self)
     }
     
-    private func resize(width:Int32, height:Int32) {
-        if(self.flutterTextureId != nil) {
-            self.registry.unregisterTexture(self.flutterTextureId!)
-        }
-        createPixelBuffer(width: Int(width), height:Int(height))
-    }
     
     var cvMetalTextureCache:CVMetalTextureCache? = nil
     var cvMetalTexture:CVMetalTexture? = nil
@@ -185,7 +144,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                             0,
                             &cvMetalTexture);
             metalTexture = CVMetalTextureGetTexture(cvMetalTexture!);
-            // createDisplayLink()
             let pixelBufferPtr = CVPixelBufferGetBaseAddress(pixelBuffer!);
             let pixelBufferAddress = Int(bitPattern:pixelBufferPtr);
             let metalTexturePtr = Unmanaged.passUnretained(metalTexture!).toOpaque()
@@ -195,39 +153,21 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                                                                                             
             result([self.flutterTextureId as Any, nil, metalTextureAddress])
         case "destroyTexture":
-            if(viewer != nil) {
-                result(FlutterError(code: "INVALID_ARGUMENTS", message: "Destroy the viewer before destroying the texture", details: nil))
-            } else {
-                
-                if(self.flutterTextureId != nil) {
-                    self.registry.unregisterTexture(self.flutterTextureId!)
-                }
-                self.flutterTextureId = nil 
-                self.pixelBuffer = nil
+            if(self.flutterTextureId != nil) {
+                self.registry.unregisterTexture(self.flutterTextureId!)
             }
-        case "destroyViewer":
-            if(viewer != nil) {
-                destroy_swap_chain(viewer)
-                destroy_filament_viewer(viewer)
-                viewer = nil
-            }
-            result(true)
+            self.flutterTextureId = nil 
+            self.pixelBuffer = nil
+            self.metalTexture = nil
         case "resize":
-            if(viewer == nil) {
-                print("Error: cannot resize before a viewer has been created")
-                result(nil);
-            }
-            rendering = false
-            destroy_swap_chain(viewer)
             let args = call.arguments as! [Any]
             let width = UInt32(args[0] as! Int64)
             let height = UInt32(args[1] as! Int64)
-            resize(width:Int32(width), height:Int32(height))
-            create_swap_chain(viewer, CVPixelBufferGetBaseAddress(pixelBuffer!), width, height)
+            if(self.flutterTextureId != nil) {
+                self.registry.unregisterTexture(self.flutterTextureId!)
+            }
+            createPixelBuffer(width: Int(width), height:Int(height))
             let metalTextureId = Int(bitPattern:Unmanaged.passUnretained(metalTexture!).toOpaque())
-            create_render_target(viewer, metalTextureId, width, height);
-            update_viewport_and_camera_projection(viewer, width, height, Float(args[2] as! Double))
-            rendering = true
             print("Resized to \(args[0])x\(args[1])")
             result(self.flutterTextureId);
         default:

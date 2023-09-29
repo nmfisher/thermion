@@ -34,7 +34,7 @@ abstract class FilamentController {
   /// If you need to wait until a FilamentViewer has been created, [await] the [isReadyForScene] Future.
   ///
   Future createViewer(int width, int height);
-  Future resize(int width, int height, {double contentScaleFactor = 1.0});
+  Future resize(int width, int height, {double scaleFactor = 1.0});
 
   Future clearBackgroundImage();
   Future setBackgroundImage(String path, {bool fillHeight = false});

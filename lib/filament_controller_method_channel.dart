@@ -109,11 +109,10 @@ class FilamentControllerMethodChannel extends FilamentController {
 
   bool _resizing = false;
 
-  Future resize(int width, int height,
-      {double contentScaleFactor = 1.0}) async {
+  Future resize(int width, int height, {double scaleFactor = 1.0}) async {
     _resizing = true;
-    _textureId = await _channel.invokeMethod("resize",
-        [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
+    _textureId = await _channel.invokeMethod(
+        "resize", [width * _pixelRatio, height * _pixelRatio, scaleFactor]);
     _textureIdController.add(_textureId);
     _resizing = false;
   }

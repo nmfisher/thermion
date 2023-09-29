@@ -145,13 +145,16 @@ class FilamentControllerFFI extends FilamentController {
     _isReadyForScene.complete(true);
   }
 
-  Future resize(int width, int height,
-      {double contentScaleFactor = 1.0}) async {
+  Future resize(int width, int height, {double scaleFactor = 1.0}) async {
     _resizing = true;
-    _textureId = await _channel.invokeMethod("resize",
-        [width * _pixelRatio, height * _pixelRatio, contentScaleFactor]);
+    setRendering(false);
+    _textureId = await _channel.invokeMethod(
+        "resize", [width * _pixelRatio, height * _pixelRatio, scaleFactor]);
     _textureIdController.add(_textureId);
+    _lib.update_viewport_and_camera_projection_ffi(
+        _viewer!, width, height, scaleFactor);
     _resizing = false;
+    setRendering(true);
   }
 
   Future clearBackgroundImage() async {
