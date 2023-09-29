@@ -375,20 +375,20 @@ void PlatformANGLE::commit(Platform::SwapChain* swapChain) noexcept {
     }
     // glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
     // glClear(GL_COLOR_BUFFER_BIT);
-    glFinish();
+    // glFinish();
 
-    uint8_t* data = new uint8_t[1024*768*4];
-    memset(data, 0, 1024 * 768 * 4);
+    // uint8_t* data = new uint8_t[1024*768*4];
+    // memset(data, 0, 1024 * 768 * 4);
 
-    glReadPixels(	0, 0, 100, 100, GL_RGBA,GL_UNSIGNED_BYTE, data);
-    std::this_thread::sleep_for(200ms);
+    // glReadPixels(	0, 0, 100, 100, GL_RGBA,GL_UNSIGNED_BYTE, data);
+    // std::this_thread::sleep_for(200ms);
 
-    char c[10];
+    // char c[10];
 
-    for(int i =0; i < 10*10; i++) {
-        std::cout << itoa(data[i], c, 10) << " ";
-    }
-    std::cout << std::endl;
+    // for(int i =0; i < 10*10; i++) {
+    //     std::cout << itoa(data[i], c, 10) << " ";
+    // }
+    // std::cout << std::endl;
 
     
 }
