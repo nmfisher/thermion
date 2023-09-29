@@ -14,8 +14,7 @@ A new flutter plugin project.
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/*', 'src/*', 'src/ios/*', 'include/filament/*', 'include/*', 'include/material/*.c'
-  s.public_header_files = 'include/SwiftPolyvoxFilamentPlugin-Bridging-Header.h',  'include/PolyvoxFilamentApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
-#  s.header_mappings_dir = 'include'
+  s.public_header_files = 'include/SwiftPolyvoxFilamentPlugin-Bridging-Header.h',  'include/PolyvoxFilamentApi.h', 'include/PolyvoxFilamentFFIApi.h', 'include/ResourceBuffer.hpp' 
   s.dependency 'Flutter' 
   s.platform = :ios, '12.1'
   s.static_framework = true

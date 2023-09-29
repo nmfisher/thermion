@@ -109,8 +109,8 @@ class FilamentControllerFFI extends FilamentController {
     _textureId = flutterTextureId;
     var surfaceAddress = textures[1] as int? ?? 0;
 
-    // void* on iOS/MacOS, GLuid on Android/Windows/Linux
-    var nativeTexture = textures[2] as int;
+    // null on iOS, void* on MacOS, GLuid on Android/Windows/Linux
+    var nativeTexture = textures[2] as int? ?? 0;
 
     var renderCallbackResult = await _channel.invokeMethod("getRenderCallback");
     var renderCallback =

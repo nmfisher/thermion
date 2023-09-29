@@ -27,7 +27,7 @@ public:
 				{
 					std::unique_lock<std::mutex> lock(_access);
 					if(_tasks.empty()) {
-						_cond.wait_for(lock, std::chrono::duration<int, std::milli>(_frameIntervalInMilliseconds));
+						_cond.wait_for(lock, std::chrono::duration<float, std::milli>(_frameIntervalInMilliseconds));
 						continue;
 					}
 					task = std::move(_tasks.front());
@@ -65,7 +65,7 @@ public:
         _renderCallback(_renderCallbackOwner);
     }
 
-    void setFrameIntervalInMilliseconds(int frameIntervalInMilliseconds) {
+    void setFrameIntervalInMilliseconds(float frameIntervalInMilliseconds) {
         _frameIntervalInMilliseconds = frameIntervalInMilliseconds;
     }
 
@@ -83,7 +83,7 @@ public:
 private:
     bool _stop = false;
     bool _rendering = false;
-    int _frameIntervalInMilliseconds = 1000 / 60;
+    float _frameIntervalInMilliseconds = 1000.0 / 60.0;
     std::mutex _access;
     FilamentViewer *_viewer = nullptr;
     void (*_renderCallback)(void *const) = nullptr;
@@ -152,7 +152,7 @@ extern "C"
         }
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_frame_interval(double frameIntervalInMilliseconds) {
+    FLUTTER_PLUGIN_EXPORT void set_frame_interval_ffi(float frameIntervalInMilliseconds) {
         _rl->setFrameIntervalInMilliseconds(frameIntervalInMilliseconds);
     }
 
@@ -376,5 +376,9 @@ extern "C"
         });
         auto fut = _rl->add_task(lambda);
         fut.wait();
+    }
+
+    FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi() {
+        Log("Dummy called");
     }
 }

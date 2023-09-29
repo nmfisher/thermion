@@ -80,4 +80,6 @@ float get_animation_duration_ffi(void* const assetManager, EntityId asset, int i
 void get_morph_target_name_ffi(void* const assetManager, EntityId asset, const char *meshName, char *const outPtr, int index);
 int get_morph_target_name_count_ffi(void* const assetManager, EntityId asset, const char *meshName);
 
+void ios_dummy_ffi();
+
 #endif // _POLYVOX_FILAMENT_FFI_API_H
