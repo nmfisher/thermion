@@ -39,9 +39,13 @@ class FilamentControllerFFI extends FilamentController {
     _channel.setMethodCallHandler((call) async {
       throw Exception("Unknown method channel invocation ${call.method}");
     });
-    _lib = NativeLibrary(Platform.isIOS || Platform.isMacOS
-        ? DynamicLibrary.process()
-        : DynamicLibrary.open("libpolyvox_filament.so"));
+    late DynamicLibrary dl;
+    if(Platform.isIOS || Platform.isMacOS ||Platform.isWindows) {
+      dl = DynamicLibrary.process();
+    } else {
+      dl = DynamicLibrary.open("libpolyvox_filament.so");
+    }
+    _lib = NativeLibrary(dl);
   }
 
   Future setRendering(bool render) async {
@@ -112,6 +116,11 @@ class FilamentControllerFFI extends FilamentController {
     // null on iOS, void* on MacOS, GLuid on Android/Windows/Linux
     var nativeTexture = textures[2] as int? ?? 0;
 
+    var driver = nullptr.cast<Void>();
+    if(Platform.isWindows) {
+      driver = Pointer<Void>.fromAddress(await _channel.invokeMethod("getDriverPlatform"));
+    }
+
     var renderCallbackResult = await _channel.invokeMethod("getRenderCallback");
     var renderCallback =
         Pointer<NativeFunction<Void Function(Pointer<Void>)>>.fromAddress(
@@ -124,11 +133,12 @@ class FilamentControllerFFI extends FilamentController {
 
     _viewer = _lib.create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(sharedContext ?? 0),
+        driver,
         Pointer<ResourceLoaderWrapper>.fromAddress(loader),
         renderCallback,
         renderCallbackOwner);
 
-    _lib.create_swap_chain(
+    _lib.create_swap_chain_ffi(
         _viewer!, Pointer<Void>.fromAddress(surfaceAddress), width, height);
     if (nativeTexture != 0) {
       assert(surfaceAddress == 0);

@@ -17,7 +17,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  path_provider:
   polyvox_filament:
     path: ../
 

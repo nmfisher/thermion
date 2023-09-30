@@ -12,7 +12,7 @@
 #include <iostream>
 #include <vector>
 
-
+// This was just an experiment for copying pixel buffers to Flutter. This won't actually render anything from Filament.
 G_DEFINE_TYPE(FilamentPBTexture,
               filament_pb_texture,
               fl_pixel_buffer_texture_get_type())
@@ -24,8 +24,8 @@ static gboolean video_texture_copy_pixels (FlPixelBufferTexture* texture,
                                uint32_t* height,
                                GError** error) {
 
-    auto buffer = new std::vector<uint8_t>(400*200*4);
-    for (int i = 0; i < 400*200*4; i++)
+    auto buffer = new std::vector<uint8_t>(width*height*4);
+    for (int i = 0; i < width*height*4; i++)
     {
       if(i%4 == 1 || i % 4 == 3) {
         buffer->at(i) = (uint8_t)255;
@@ -33,10 +33,10 @@ static gboolean video_texture_copy_pixels (FlPixelBufferTexture* texture,
         buffer->at(i) = (uint8_t)0;
       }
     }
-  *width = 400;
-  *height = 200;
+  *width = width;
+  *height = height;
   *out_buffer = buffer->data();
-  std::cout << "COPY" << std::endl;
+  std::cout << "COPYING PIXEL BUFFER" << std::endl;
   return TRUE;
 }
 

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#if __cplusplus <= 199711L
+#if __cplusplus <= 199711L && !_WIN32
  #include <ctime>
 #else
  #include <chrono>
@@ -19,7 +19,7 @@ class Timer
 
  private:
 
-#if __cplusplus <= 199711L
+#if __cplusplus <= 199711L && !_WIN32
   timespec beg_, end_;
 #else
   typedef std::chrono::high_resolution_clock clock_;

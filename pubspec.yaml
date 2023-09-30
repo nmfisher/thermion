@@ -22,7 +22,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^1.0.0
-  ffigen: ^8.0.2
+  ffigen: ^9.0.1
 
 ffigen:
   output: 'lib/generated_bindings.dart'
@@ -32,8 +32,7 @@ ffigen:
 
 flutter:
   assets:
-    - assets/materials.uberz
-    - assets/materials_ios_arm64.uberz
+    - assets/
   plugin:
     platforms:
       android:
@@ -44,7 +43,7 @@ flutter:
       macos:
         pluginClass: SwiftPolyvoxFilamentPlugin
       windows:
-        pluginClass: PolyvoxFilamentPlugin
+        pluginClass: PolyvoxFilamentPluginCApi
       linux:
         pluginClass: PolyvoxFilamentPlugin
       web:

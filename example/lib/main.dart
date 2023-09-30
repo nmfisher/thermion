@@ -8,6 +8,8 @@ import 'package:polyvox_filament/filament_gesture_detector.dart';
 import 'package:polyvox_filament/filament_widget.dart';
 import 'package:polyvox_filament/animations/animation_builder.dart';
 
+import 'package:path_provider/path_provider.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -58,9 +60,12 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 
   @override
   void initState() {
+    getApplicationSupportDirectory().then((dir) {
+      print(dir);
+    });
     super.initState();
   }
-
+  
   Widget _item(void Function() onTap, String text) {
     return GestureDetector(
         onTap: onTap,
@@ -259,8 +264,9 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     }, "${_frustumCulling ? "Disable" : "Enable"} frustum culling"));
 
     return Stack(children: [
-      Positioned.fill(
+      Positioned(
           bottom: 100,
+          height:768, width:1024,
           child: FilamentGestureDetector(
               showControlOverlay: true,
               controller: _filamentController,

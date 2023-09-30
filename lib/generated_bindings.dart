@@ -22,20 +22,38 @@ class NativeLibrary {
   ffi.Pointer<ffi.Void> create_filament_viewer(
     ffi.Pointer<ffi.Void> context,
     ffi.Pointer<ResourceLoaderWrapper> loader,
+    ffi.Pointer<ffi.Void> platform,
   ) {
     return _create_filament_viewer(
       context,
       loader,
+      platform,
     );
   }
 
   late final _create_filament_viewerPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>,
-              ffi.Pointer<ResourceLoaderWrapper>)>>('create_filament_viewer');
+          ffi.Pointer<ffi.Void> Function(
+              ffi.Pointer<ffi.Void>,
+              ffi.Pointer<ResourceLoaderWrapper>,
+              ffi.Pointer<ffi.Void>)>>('create_filament_viewer');
   late final _create_filament_viewer = _create_filament_viewerPtr.asFunction<
-      ffi.Pointer<ffi.Void> Function(
-          ffi.Pointer<ffi.Void>, ffi.Pointer<ResourceLoaderWrapper>)>();
+      ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ResourceLoaderWrapper>, ffi.Pointer<ffi.Void>)>();
+
+  void destroy_filament_viewer(
+    ffi.Pointer<ffi.Void> viewer,
+  ) {
+    return _destroy_filament_viewer(
+      viewer,
+    );
+  }
+
+  late final _destroy_filament_viewerPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+          'destroy_filament_viewer');
+  late final _destroy_filament_viewer = _destroy_filament_viewerPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   ffi.Pointer<ResourceLoaderWrapper> make_resource_loader(
     LoadFilamentResourceFromOwner loadFn,
@@ -58,20 +76,6 @@ class NativeLibrary {
   late final _make_resource_loader = _make_resource_loaderPtr.asFunction<
       ffi.Pointer<ResourceLoaderWrapper> Function(LoadFilamentResourceFromOwner,
           FreeFilamentResourceFromOwner, ffi.Pointer<ffi.Void>)>();
-
-  void destroy_filament_viewer(
-    ffi.Pointer<ffi.Void> viewer,
-  ) {
-    return _destroy_filament_viewer(
-      viewer,
-    );
-  }
-
-  late final _destroy_filament_viewerPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-          'destroy_filament_viewer');
-  late final _destroy_filament_viewer = _destroy_filament_viewerPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   ffi.Pointer<ffi.Void> get_asset_manager(
     ffi.Pointer<ffi.Void> viewer,
@@ -104,8 +108,8 @@ class NativeLibrary {
 
   late final _create_render_targetPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.IntPtr, ffi.Uint32,
-              ffi.Uint32)>>('create_render_target');
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int,
+              ffi.Int)>>('create_render_target');
   late final _create_render_target = _create_render_targetPtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, int, int, int)>();
 
@@ -316,7 +320,7 @@ class NativeLibrary {
       ffi.NativeFunction<
           EntityId Function(
               ffi.Pointer<ffi.Void>,
-              ffi.Uint8,
+              ffi.Int,
               ffi.Float,
               ffi.Float,
               ffi.Float,
@@ -439,18 +443,44 @@ class NativeLibrary {
   void render(
     ffi.Pointer<ffi.Void> viewer,
     int frameTimeInNanos,
+    ffi.Pointer<ffi.Void> pixelBuffer,
+    ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
+                    ffi.Pointer<ffi.Void> data)>>
+        callback,
+    ffi.Pointer<ffi.Void> data,
   ) {
     return _render(
       viewer,
       frameTimeInNanos,
+      pixelBuffer,
+      callback,
+      data,
     );
   }
 
   late final _renderPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Uint64)>>('render');
-  late final _render =
-      _renderPtr.asFunction<void Function(ffi.Pointer<ffi.Void>, int)>();
+          ffi.Void Function(
+              ffi.Pointer<ffi.Void>,
+              ffi.Int,
+              ffi.Pointer<ffi.Void>,
+              ffi.Pointer<
+                  ffi.NativeFunction<
+                      ffi.Void Function(ffi.Pointer<ffi.Void> buf,
+                          ffi.Size size, ffi.Pointer<ffi.Void> data)>>,
+              ffi.Pointer<ffi.Void>)>>('render');
+  late final _render = _renderPtr.asFunction<
+      void Function(
+          ffi.Pointer<ffi.Void>,
+          int,
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<
+              ffi.NativeFunction<
+                  ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
+                      ffi.Pointer<ffi.Void> data)>>,
+          ffi.Pointer<ffi.Void>)>();
 
   void create_swap_chain(
     ffi.Pointer<ffi.Void> viewer,
@@ -469,7 +499,7 @@ class NativeLibrary {
   late final _create_swap_chainPtr = _lookup<
       ffi.NativeFunction<
           ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
-              ffi.Uint32, ffi.Uint32)>>('create_swap_chain');
+              ffi.Int, ffi.Int)>>('create_swap_chain');
   late final _create_swap_chain = _create_swap_chainPtr.asFunction<
       void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, int, int)>();
 
@@ -520,7 +550,7 @@ class NativeLibrary {
 
   late final _update_viewport_and_camera_projectionPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32,
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int,
               ffi.Float)>>('update_viewport_and_camera_projection');
   late final _update_viewport_and_camera_projection =
       _update_viewport_and_camera_projectionPtr
@@ -1278,6 +1308,7 @@ class NativeLibrary {
 
   ffi.Pointer<ffi.Void> create_filament_viewer_ffi(
     ffi.Pointer<ffi.Void> context,
+    ffi.Pointer<ffi.Void> platform,
     ffi.Pointer<ResourceLoaderWrapper> loader,
     ffi.Pointer<
             ffi.NativeFunction<
@@ -1287,6 +1318,7 @@ class NativeLibrary {
   ) {
     return _create_filament_viewer_ffi(
       context,
+      platform,
       loader,
       renderCallback,
       renderCallbackOwner,
@@ -1297,6 +1329,7 @@ class NativeLibrary {
       ffi.NativeFunction<
           ffi.Pointer<ffi.Void> Function(
               ffi.Pointer<ffi.Void>,
+              ffi.Pointer<ffi.Void>,
               ffi.Pointer<ResourceLoaderWrapper>,
               ffi.Pointer<
                   ffi.NativeFunction<
@@ -1306,6 +1339,7 @@ class NativeLibrary {
   late final _create_filament_viewer_ffi =
       _create_filament_viewer_ffiPtr.asFunction<
           ffi.Pointer<ffi.Void> Function(
+              ffi.Pointer<ffi.Void>,
               ffi.Pointer<ffi.Void>,
               ffi.Pointer<ResourceLoaderWrapper>,
               ffi.Pointer<
@@ -1331,7 +1365,7 @@ class NativeLibrary {
   late final _create_swap_chain_ffiPtr = _lookup<
       ffi.NativeFunction<
           ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
-              ffi.Uint32, ffi.Uint32)>>('create_swap_chain_ffi');
+              ffi.Int, ffi.Int)>>('create_swap_chain_ffi');
   late final _create_swap_chain_ffi = _create_swap_chain_ffiPtr.asFunction<
       void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, int, int)>();
 
@@ -1351,8 +1385,8 @@ class NativeLibrary {
 
   late final _create_render_target_ffiPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32,
-              ffi.Uint32)>>('create_render_target_ffi');
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int,
+              ffi.Int)>>('create_render_target_ffi');
   late final _create_render_target_ffi = _create_render_target_ffiPtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, int, int, int)>();
 
@@ -1431,7 +1465,7 @@ class NativeLibrary {
 
   late final _update_viewport_and_camera_projection_ffiPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32,
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int,
               ffi.Float)>>('update_viewport_and_camera_projection_ffi');
   late final _update_viewport_and_camera_projection_ffi =
       _update_viewport_and_camera_projection_ffiPtr
@@ -1648,7 +1682,7 @@ class NativeLibrary {
       ffi.NativeFunction<
           EntityId Function(
               ffi.Pointer<ffi.Void>,
-              ffi.Uint8,
+              ffi.Int,
               ffi.Float,
               ffi.Float,
               ffi.Float,
@@ -2097,107 +2131,23 @@ class NativeLibrary {
   late final _get_morph_target_name_count_ffi =
       _get_morph_target_name_count_ffiPtr.asFunction<
           int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>)>();
-}
 
-final class __mbstate_t extends ffi.Union {
-  @ffi.Array.multi([128])
-  external ffi.Array<ffi.Char> __mbstate8;
+  void ios_dummy_ffi() {
+    return _ios_dummy_ffi();
+  }
 
-  @ffi.LongLong()
-  external int _mbstateL;
-}
-
-final class __darwin_pthread_handler_rec extends ffi.Struct {
-  external ffi
-      .Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>
-      __routine;
-
-  external ffi.Pointer<ffi.Void> __arg;
-
-  external ffi.Pointer<__darwin_pthread_handler_rec> __next;
-}
-
-final class _opaque_pthread_attr_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  @ffi.Array.multi([56])
-  external ffi.Array<ffi.Char> __opaque;
-}
-
-final class _opaque_pthread_cond_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  @ffi.Array.multi([40])
-  external ffi.Array<ffi.Char> __opaque;
-}
-
-final class _opaque_pthread_condattr_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  @ffi.Array.multi([8])
-  external ffi.Array<ffi.Char> __opaque;
-}
-
-final class _opaque_pthread_mutex_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  @ffi.Array.multi([56])
-  external ffi.Array<ffi.Char> __opaque;
-}
-
-final class _opaque_pthread_mutexattr_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  @ffi.Array.multi([8])
-  external ffi.Array<ffi.Char> __opaque;
-}
-
-final class _opaque_pthread_once_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  @ffi.Array.multi([8])
-  external ffi.Array<ffi.Char> __opaque;
-}
-
-final class _opaque_pthread_rwlock_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  @ffi.Array.multi([192])
-  external ffi.Array<ffi.Char> __opaque;
-}
-
-final class _opaque_pthread_rwlockattr_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  @ffi.Array.multi([16])
-  external ffi.Array<ffi.Char> __opaque;
-}
-
-final class _opaque_pthread_t extends ffi.Struct {
-  @ffi.Long()
-  external int __sig;
-
-  external ffi.Pointer<__darwin_pthread_handler_rec> __cleanup_stack;
-
-  @ffi.Array.multi([8176])
-  external ffi.Array<ffi.Char> __opaque;
+  late final _ios_dummy_ffiPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('ios_dummy_ffi');
+  late final _ios_dummy_ffi = _ios_dummy_ffiPtr.asFunction<void Function()>();
 }
 
 final class ResourceBuffer extends ffi.Struct {
   external ffi.Pointer<ffi.Void> data;
 
-  @ffi.Int64()
+  @ffi.Int()
   external int size;
 
-  @ffi.Uint32()
+  @ffi.Int()
   external int id;
 }
 
@@ -2223,173 +2173,7 @@ typedef LoadFilamentResourceFromOwner = ffi.Pointer<
 typedef FreeFilamentResourceFromOwner = ffi.Pointer<
     ffi
     .NativeFunction<ffi.Void Function(ResourceBuffer, ffi.Pointer<ffi.Void>)>>;
-typedef EntityId = ffi.Int32;
-
-const int __WORDSIZE = 64;
-
-const int __DARWIN_ONLY_64_BIT_INO_T = 1;
-
-const int __DARWIN_ONLY_UNIX_CONFORMANCE = 1;
-
-const int __DARWIN_ONLY_VERS_1050 = 1;
-
-const int __DARWIN_UNIX03 = 1;
-
-const int __DARWIN_64_BIT_INO_T = 1;
-
-const int __DARWIN_VERS_1050 = 1;
-
-const int __DARWIN_NON_CANCELABLE = 0;
-
-const String __DARWIN_SUF_EXTSN = '\$DARWIN_EXTSN';
-
-const int __DARWIN_C_ANSI = 4096;
-
-const int __DARWIN_C_FULL = 900000;
-
-const int __DARWIN_C_LEVEL = 900000;
-
-const int __STDC_WANT_LIB_EXT1__ = 1;
-
-const int __DARWIN_NO_LONG_LONG = 0;
-
-const int _DARWIN_FEATURE_64_BIT_INODE = 1;
-
-const int _DARWIN_FEATURE_ONLY_64_BIT_INODE = 1;
-
-const int _DARWIN_FEATURE_ONLY_VERS_1050 = 1;
-
-const int _DARWIN_FEATURE_ONLY_UNIX_CONFORMANCE = 1;
-
-const int _DARWIN_FEATURE_UNIX_CONFORMANCE = 3;
-
-const int __has_ptrcheck = 0;
-
-const int __DARWIN_NULL = 0;
-
-const int __PTHREAD_SIZE__ = 8176;
-
-const int __PTHREAD_ATTR_SIZE__ = 56;
-
-const int __PTHREAD_MUTEXATTR_SIZE__ = 8;
-
-const int __PTHREAD_MUTEX_SIZE__ = 56;
-
-const int __PTHREAD_CONDATTR_SIZE__ = 8;
-
-const int __PTHREAD_COND_SIZE__ = 40;
-
-const int __PTHREAD_ONCE_SIZE__ = 8;
-
-const int __PTHREAD_RWLOCK_SIZE__ = 192;
-
-const int __PTHREAD_RWLOCKATTR_SIZE__ = 16;
-
-const int USER_ADDR_NULL = 0;
-
-const int INT8_MAX = 127;
-
-const int INT16_MAX = 32767;
-
-const int INT32_MAX = 2147483647;
-
-const int INT64_MAX = 9223372036854775807;
-
-const int INT8_MIN = -128;
-
-const int INT16_MIN = -32768;
-
-const int INT32_MIN = -2147483648;
-
-const int INT64_MIN = -9223372036854775808;
-
-const int UINT8_MAX = 255;
-
-const int UINT16_MAX = 65535;
-
-const int UINT32_MAX = 4294967295;
-
-const int UINT64_MAX = -1;
-
-const int INT_LEAST8_MIN = -128;
-
-const int INT_LEAST16_MIN = -32768;
-
-const int INT_LEAST32_MIN = -2147483648;
-
-const int INT_LEAST64_MIN = -9223372036854775808;
-
-const int INT_LEAST8_MAX = 127;
-
-const int INT_LEAST16_MAX = 32767;
-
-const int INT_LEAST32_MAX = 2147483647;
-
-const int INT_LEAST64_MAX = 9223372036854775807;
-
-const int UINT_LEAST8_MAX = 255;
-
-const int UINT_LEAST16_MAX = 65535;
-
-const int UINT_LEAST32_MAX = 4294967295;
-
-const int UINT_LEAST64_MAX = -1;
-
-const int INT_FAST8_MIN = -128;
-
-const int INT_FAST16_MIN = -32768;
-
-const int INT_FAST32_MIN = -2147483648;
-
-const int INT_FAST64_MIN = -9223372036854775808;
-
-const int INT_FAST8_MAX = 127;
-
-const int INT_FAST16_MAX = 32767;
-
-const int INT_FAST32_MAX = 2147483647;
-
-const int INT_FAST64_MAX = 9223372036854775807;
-
-const int UINT_FAST8_MAX = 255;
-
-const int UINT_FAST16_MAX = 65535;
-
-const int UINT_FAST32_MAX = 4294967295;
-
-const int UINT_FAST64_MAX = -1;
-
-const int INTPTR_MAX = 9223372036854775807;
-
-const int INTPTR_MIN = -9223372036854775808;
-
-const int UINTPTR_MAX = -1;
-
-const int INTMAX_MAX = 9223372036854775807;
-
-const int UINTMAX_MAX = -1;
-
-const int INTMAX_MIN = -9223372036854775808;
-
-const int PTRDIFF_MIN = -9223372036854775808;
-
-const int PTRDIFF_MAX = 9223372036854775807;
-
-const int SIZE_MAX = -1;
-
-const int RSIZE_MAX = 9223372036854775807;
-
-const int WCHAR_MAX = 2147483647;
-
-const int WCHAR_MIN = -2147483648;
-
-const int WINT_MIN = -2147483648;
-
-const int WINT_MAX = 2147483647;
-
-const int SIG_ATOMIC_MIN = -2147483648;
-
-const int SIG_ATOMIC_MAX = 2147483647;
+typedef EntityId = ffi.Int;
 
 const int __bool_true_false_are_defined = 1;
 

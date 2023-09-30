@@ -1,0 +1,31 @@
+{
+  "buildFiles": [
+    "F:\\Projects\\polyvox\\polyvox_filament\\android\\CMakeLists.txt",
+    "C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653\\build\\cmake\\android.toolchain.cmake",
+    "C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653\\build\\cmake\\android-legacy.toolchain.cmake",
+    "C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653\\build\\cmake\\platforms.cmake",
+    "C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\ndk\\25.2.9519653\\build\\cmake\\compiler_id.cmake"
+  ],
+  "cleanCommands": [
+    "C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\ninja.exe -C \"F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\" clean"
+  ],
+  "buildTargetsCommand": "C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\ninja.exe  -C \"F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\" {LIST_OF_TARGETS_TO_BUILD}",
+  "libraries": {
+    "polyvox_filament_android-Debug-arm64-v8a": {
+      "artifactName": "polyvox_filament_android",
+      "buildCommand": "C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\ninja.exe -C \"F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\" polyvox_filament_android",
+      "abi": "arm64-v8a",
+      "output": "F:\\Projects\\polyvox\\polyvox_filament\\example\\build\\polyvox_filament\\intermediates\\cmake\\debug\\obj\\arm64-v8a\\libpolyvox_filament_android.so",
+      "runtimeFiles": [
+        "F:\\Projects\\polyvox\\polyvox_filament\\example\\build\\polyvox_filament\\intermediates\\cmake\\debug\\obj\\arm64-v8a\\libFILAMENT_SHADERS.so"
+      ]
+    },
+    "FILAMENT_SHADERS-Debug-arm64-v8a": {
+      "artifactName": "FILAMENT_SHADERS",
+      "buildCommand": "C:\\Users\\Nick\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\ninja.exe -C \"F:\\Projects\\polyvox\\polyvox_filament\\android\\.cxx\\cmake\\debug\\arm64-v8a\" FILAMENT_SHADERS",
+      "abi": "arm64-v8a",
+      "output": "F:\\Projects\\polyvox\\polyvox_filament\\example\\build\\polyvox_filament\\intermediates\\cmake\\debug\\obj\\arm64-v8a\\libFILAMENT_SHADERS.so",
+      "runtimeFiles": []
+    }
+  }
+}

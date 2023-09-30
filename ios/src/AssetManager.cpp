@@ -21,13 +21,11 @@
 #include "Log.hpp"
 #include "AssetManager.hpp"
 
-#include "material/UnlitMaterialProvider.hpp"
 #include "material/FileMaterialProvider.hpp"
 #include "gltfio/materials/uberarchive.h"
 
 extern "C" {
 #include "material/image.h"
-#include "material/unlit_opaque.h"
 }
 
 namespace polyvox {
@@ -54,20 +52,19 @@ _scene(scene) {
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
 
-    // auto uberdata = resourceLoaderWrapper->load("packages/polyvox_filament/assets/materials_ios_arm64.uberz");
-
-    // _ubershaderProvider = gltfio::createUbershaderProvider(
-                                                            // _engine, uberdata.data, uberdata.size);
+    // TODO - allow passing uberz archive 
+    // e.g. auto uberArchivePath = "packages/polyvox_filament/assets/default.uberz"
+    // auto uberdata = resourceLoaderWrapper->load(uberArchivePath);
+    // if (!uberdata.data) {
+    //     Log("Failed to load ubershader material. This is fatal.");
+    // }
+    // _ubershaderProvider = gltfio::createUbershaderProvider(_engine, uberdata.data, uberdata.size);    
     _ubershaderProvider = gltfio::createUbershaderProvider(
-                                                            _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
-    // _ubershaderProvider = gltfio::createJitShaderProvider(_engine, true);
+                                                            _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);    
+    Log("Created ubershader provider.");
+
     EntityManager &em = EntityManager::get();
-    
-    //_unlitProvider = new UnlitMaterialProvider(_engine);
-    
-    // auto rb = _resourceLoaderWrapper->load("file:///mnt/hdd_2tb/home/hydroxide/projects/polyvox/flutter/polyvox_filament/materials/toon.filamat");
-    // auto toonProvider = new FileMaterialProvider(_engine, rb.data, (size_t) rb.size);
-    
+            
     _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em });
     _gltfResourceLoader->addTextureProvider("image/ktx2", _ktxDecoder);
     _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
@@ -77,7 +74,6 @@ _scene(scene) {
 AssetManager::~AssetManager() { 
     _gltfResourceLoader->asyncCancelLoad();
     _ubershaderProvider->destroyMaterials();
-    //_unlitProvider->destroyMaterials();
     destroyAll();
     AssetLoader::destroy(&_assetLoader);
     

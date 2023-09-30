@@ -6,9 +6,9 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <polyvox_filament/polyvox_filament_plugin.h>
+#include <polyvox_filament/polyvox_filament_plugin_c_api.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
-  PolyvoxFilamentPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("PolyvoxFilamentPlugin"));
+  PolyvoxFilamentPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("PolyvoxFilamentPluginCApi"));
 }

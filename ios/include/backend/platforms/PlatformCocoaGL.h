@@ -50,9 +50,6 @@ protected:
     // --------------------------------------------------------------------------------------------
     // OpenGLPlatform Interface
 
-    bool isExtraContextSupported() const noexcept override;
-    void createContext(bool shared) override;
-
     void terminate() noexcept override;
 
     SwapChain* createSwapChain(void* nativewindow, uint64_t flags) noexcept override;

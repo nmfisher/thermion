@@ -49,7 +49,7 @@ namespace polyvox {
     
     class FilamentViewer {
         public:
-            FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper);
+            FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform=nullptr);
             ~FilamentViewer();
 
             void setToneMapping(ToneMapping toneMapping);
@@ -65,10 +65,16 @@ namespace polyvox {
             void clearAssets();
 
             void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
-            void render(uint64_t frameTimeInNanos);
+            void render(
+                uint64_t frameTimeInNanos, 
+                void* pixelBuffer, 
+                void (*callback)(void *buf, size_t size, void *data),
+                void* data    
+            );
             void setFrameInterval(float interval);
             
             bool setCamera(EntityId asset, const char* nodeName);
+            
             
             void createSwapChain(const void* surface, uint32_t width, uint32_t height);
             void destroySwapChain();
@@ -81,10 +87,8 @@ namespace polyvox {
             void setBackgroundImage(const char* resourcePath, bool fillHeight);
             void clearBackgroundImage();
             void setBackgroundImagePosition(float x, float y, bool clamp);
-
-            void setViewFrustumCulling(bool enabled);
             void moveCameraToAsset(EntityId entityId);
-
+            void setViewFrustumCulling(bool enabled);
             void setCameraExposure(float aperture, float shutterSpeed, float sensitivity);
             void setCameraPosition(float x, float y, float z);
             void setCameraRotation(float rads, float x, float y, float z);
