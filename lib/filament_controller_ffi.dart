@@ -40,10 +40,10 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Unknown method channel invocation ${call.method}");
     });
     late DynamicLibrary dl;
-    if(Platform.isIOS || Platform.isMacOS ||Platform.isWindows) {
+    if (Platform.isIOS || Platform.isMacOS || Platform.isWindows) {
       dl = DynamicLibrary.process();
     } else {
-      dl = DynamicLibrary.open("libpolyvox_filament.so");
+      dl = DynamicLibrary.open("libpolyvox_filament_android.so");
     }
     _lib = NativeLibrary(dl);
   }
@@ -111,14 +111,17 @@ class FilamentControllerFFI extends FilamentController {
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
     var flutterTextureId = textures[0];
     _textureId = flutterTextureId;
+
+    // void* on iOS (pointer to pixel buffer), void* on Android (pointer to native window), null on Windows/macOS
     var surfaceAddress = textures[1] as int? ?? 0;
 
-    // null on iOS, void* on MacOS, GLuid on Android/Windows/Linux
+    // null on iOS/Android, void* on MacOS (pointer to metal texture), GLuid on Windows/Linux
     var nativeTexture = textures[2] as int? ?? 0;
 
     var driver = nullptr.cast<Void>();
-    if(Platform.isWindows) {
-      driver = Pointer<Void>.fromAddress(await _channel.invokeMethod("getDriverPlatform"));
+    if (Platform.isWindows) {
+      driver = Pointer<Void>.fromAddress(
+          await _channel.invokeMethod("getDriverPlatform"));
     }
 
     var renderCallbackResult = await _channel.invokeMethod("getRenderCallback");
@@ -129,6 +132,7 @@ class FilamentControllerFFI extends FilamentController {
         Pointer<Void>.fromAddress(renderCallbackResult[1]);
 
     var sharedContext = await _channel.invokeMethod("getSharedContext");
+    print("Got shared context : $sharedContext");
     var loader = await _channel.invokeMethod("getResourceLoaderWrapper");
 
     _viewer = _lib.create_filament_viewer_ffi(
