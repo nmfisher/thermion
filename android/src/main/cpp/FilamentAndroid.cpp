@@ -7,7 +7,13 @@ extern "C" {
     jobject surface,
     JNIEnv* env
   ) {
-    return ANativeWindow_fromSurface(env, surface);
+    void* window = ANativeWindow_fromSurface(env, surface);
+    return window;
+  }
+
+  // this does nothing, but we need it for JNA to return the correct pointer 
+  void* const make_render_callback_fn_pointer(void (*callback)(void*)) { 
+    return (void* const)callback;
   }
   
 }
