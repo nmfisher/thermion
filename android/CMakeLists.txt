@@ -8,7 +8,8 @@ link_directories(src/main/jniLibs/${ANDROID_ABI})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 add_library(polyvox_filament_android SHARED
-"${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentFFIApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/FilamentAndroid.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
@@ -18,7 +19,6 @@ add_library(polyvox_filament_android SHARED
 
 add_library(FILAMENT_SHADERS SHARED 
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/image.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/unlit_opaque.c"  
 )
 
 include_directories(../ios/include)
@@ -34,8 +34,7 @@ target_link_libraries(
   -lgeometry 
   -lfilameshio 
   -lfilamat 
-  -lfilabridge 
-  -lfilament-iblprefilter 
+  -lfilabridge
   -lcamutils 
   -lfilaflat 
   -ldracodec 
@@ -54,8 +53,8 @@ target_link_libraries(
   -lmeshoptimizer
   -lgeometry
   -lbasis_transcoder
-  -lEGL
   -lGLESv3
+  -lEGL
   -lpng
   -lz
   -lzstd
