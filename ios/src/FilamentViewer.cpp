@@ -2,7 +2,9 @@
   #include "TargetConditionals.h"
 #endif
 
+#ifdef _WIN32
 #pragma comment(lib, "Ws2_32.lib")
+#endif
 
 /*
  * Copyright (C) 2019 The Android Open Source Project
