@@ -17,8 +17,11 @@ class HotReloadPathHelper {
             }.sortedBy {
               it.lastModified()
             }.toList()
-            if(files.size > 0)
-                return files.last().path;
+            if(files.size > 0) {
+              Log.v("polyvox_filament", "Using hot reloaded asset at ${files.last().path}")
+              return files.last().path;
+            }
+            Log.v("polyvox_filament", "No hot reloaded asset found.")
             return null;
           }
     }

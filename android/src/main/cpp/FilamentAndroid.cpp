@@ -3,6 +3,8 @@
 
 extern "C" {
 
+  #include "PolyvoxFilamentFFIApi.h"
+
   void* get_native_window_from_surface(
     jobject surface,
     JNIEnv* env
@@ -12,8 +14,8 @@ extern "C" {
   }
 
   // this does nothing, but we need it for JNA to return the correct pointer 
-  void* const make_render_callback_fn_pointer(void (*callback)(void*)) { 
-    return (void* const)callback;
+  FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback callback) {
+    return callback;
   }
   
 }

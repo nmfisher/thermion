@@ -30,8 +30,29 @@ import java.util.concurrent.Executors
 
 typealias EntityId = Int
 
+class LoadFilamentResourceFromOwnerImpl(plugin:PolyvoxFilamentPlugin) : LoadFilamentResourceFromOwner {
+  var plugin = plugin
+  override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
+    return plugin.loadResourceFromOwner(path, owner)
+  }
+} 
+
+class FreeFilamentResourceFromOwnerImpl(plugin:PolyvoxFilamentPlugin) : FreeFilamentResourceFromOwner {
+  var plugin = plugin
+  override fun freeResourceFromOwner(rb: ResourceBuffer, owner: Pointer?) {
+    plugin.freeResourceFromOwner(rb, owner)
+  }
+} 
+
+class RenderCallbackImpl(plugin:PolyvoxFilamentPlugin) : RenderCallback {
+  var plugin = plugin
+  override fun renderCallback(owner:Pointer?) {
+    plugin.renderCallback();
+  }
+}
+
 /** PolyvoxFilamentPlugin */
-class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadFilamentResourceFromOwner, FreeFilamentResourceFromOwner, RenderCallback {
+class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadFilamentResourceFromOwner, FreeFilamentResourceFromOwner {
 
   companion object {
       const val CHANNEL_NAME = "app.polyvox.filament/event"
@@ -113,13 +134,12 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
   }
 
-
   override fun freeResourceFromOwner(rb: ResourceBuffer, owner: Pointer?) {
     _resources.remove(rb.id)
   }
 
-  override fun renderCallback(owner:Pointer?) {
-
+  fun renderCallback() {
+    Log.e("polyvox_filament", "Rdner callacbk", null)
   }
 
 
@@ -151,18 +171,34 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
           _surface = Surface(_surfaceTexture)
 
+        if(!_surface!!.isValid) {
+            Log.e("ERR", "ERR", null)
+        }
+
           val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
 
+          val resourceLoader = _lib.make_resource_loader(LoadFilamentResourceFromOwnerImpl(this), FreeFilamentResourceFromOwnerImpl(this), Pointer(0))
+          val renderCallbackFnPointer = _lib.make_render_callback_fn_pointer(RenderCallbackImpl(this))
+
+          val viewer = _lib.create_filament_viewer(nativeWindow, resourceLoader,Pointer(0),renderCallbackFnPointer,Pointer(0))
+          _lib.create_swap_chain(viewer, nativeWindow, width.toInt(),height.toInt())
+          _lib.update_viewport_and_camera_projection(viewer, width.toInt(), height.toInt(), 1.0f)
+          _lib.set_background_color(viewer, 1.0f, 1.0f, 0.0f, 1.0f)
+          _lib.render(viewer, 0, Pointer(0),Pointer(0),Pointer(0))
+          _lib.render(viewer, 0, Pointer(0),Pointer(0),Pointer(0))
+          _lib.render(viewer, 0, Pointer(0),Pointer(0),Pointer(0))
+          _lib.render(viewer, 0, Pointer(0),Pointer(0),Pointer(0))
+
           val resultList = listOf(_surfaceTextureEntry!!.id(), Pointer.nativeValue(nativeWindow), null )
-          val resourceLoader = _lib.make_resource_loader(this, this, Pointer(0))
+          
           result.success(resultList)
         }
         "getResourceLoaderWrapper" -> { 
-          val resourceLoader = _lib.make_resource_loader(this, this, Pointer(0))
+          val resourceLoader = _lib.make_resource_loader(LoadFilamentResourceFromOwnerImpl(this), FreeFilamentResourceFromOwnerImpl(this), Pointer(0))
           result.success(Pointer.nativeValue(resourceLoader))
         }
         "getRenderCallback" -> {
-          val renderCallbackFnPointer = _lib.make_render_callback_fn_pointer(this)
+          val renderCallbackFnPointer = _lib.make_render_callback_fn_pointer(RenderCallbackImpl(this))
           result.success(listOf(Pointer.nativeValue(renderCallbackFnPointer), 0))
         }
         "destroyTexture" -> {

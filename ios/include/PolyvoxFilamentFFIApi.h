@@ -9,12 +9,14 @@
 #include "PolyvoxFilamentApi.h"
 
 typedef int32_t EntityId;
+typedef void (*FilamentRenderCallback)(void* const owner);
 
 FLUTTER_PLUGIN_EXPORT void* const create_filament_viewer_ffi(void* const context, void* const platform, const ResourceLoaderWrapper* const loader, void (*renderCallback)(void* const renderCallbackOwner), void* const renderCallbackOwner);
 FLUTTER_PLUGIN_EXPORT void create_swap_chain_ffi(void* const viewer, void* const surface, uint32_t width, uint32_t height);
 FLUTTER_PLUGIN_EXPORT void create_render_target_ffi(void* const viewer, uint32_t nativeTextureId, uint32_t width, uint32_t height);
 FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer_ffi(void* const viewer);
 FLUTTER_PLUGIN_EXPORT void render_ffi(void* const viewer);
+FLUTTER_PLUGIN_EXPORT FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
 FLUTTER_PLUGIN_EXPORT void set_rendering_ffi(void* const viewer, bool rendering);
 FLUTTER_PLUGIN_EXPORT void set_frame_interval_ffi(float frameInterval);
 FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection_ffi(void* const viewer, const uint32_t width, const uint32_t height, const float scaleFactor);
