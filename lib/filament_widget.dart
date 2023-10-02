@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -127,6 +128,12 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      // when attaching a debugger via Android Studio on startup, this can delay presentation of the widget
+      // (meaning the widget may attempt to create a viewer with size 0x0).
+      // we just add a small delay here which should avoid this
+      if (!kReleaseMode) {
+        await Future.delayed(Duration(seconds: 2));
+      }
       var size = ((context.findRenderObject()) as RenderBox).size;
 
       widget.controller.createViewer(size.width.toInt(), size.height.toInt());
