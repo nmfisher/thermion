@@ -52,7 +52,9 @@ public:
         _renderCallback = renderCallback;
         _renderCallbackOwner = owner;
         std::packaged_task<FilamentViewer*()> lambda([&]() mutable
-                                                           { return new FilamentViewer(context, loader, platform); });
+                                                           { 
+                                                            return new FilamentViewer(context, loader, platform); 
+                                                            });
         auto fut = add_task(lambda);
         fut.wait();
         _viewer = fut.get();
@@ -118,8 +120,11 @@ extern "C"
 
     FLUTTER_PLUGIN_EXPORT void create_swap_chain_ffi(void* const viewer, void* const surface, uint32_t width, uint32_t height)
     {
+        Log("Creating swapchain %dx%d", width, height);
         std::packaged_task<void()> lambda([&]() mutable
-                                          { create_swap_chain(viewer, surface, width, height); });
+                                          { 
+                                            create_swap_chain(viewer, surface, width, height); 
+                                            });
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
@@ -134,8 +139,11 @@ extern "C"
 
     FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection_ffi(void* const viewer, const uint32_t width, const uint32_t height, const float scaleFactor)
     {
+        Log("Update viewport  %dx%d", width, height);
         std::packaged_task<void()> lambda([&]() mutable
-                                          { update_viewport_and_camera_projection(viewer, width, height, scaleFactor); });
+                                          { 
+                                            update_viewport_and_camera_projection(viewer, width, height, scaleFactor); 
+                                            });
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
@@ -167,7 +175,9 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void render_ffi(void* const viewer)
     {
         std::packaged_task<void()> lambda([&]() mutable
-                                          { _rl->doRender(); });
+                                          { 
+                                            _rl->doRender(); 
+                                            });
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
@@ -192,7 +202,9 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void clear_background_image_ffi(void* const viewer)
     {
         std::packaged_task<void()> lambda([&]
-                                          { clear_background_image(viewer); });
+                                          { 
+                                            clear_background_image(viewer); 
+                                            });
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
@@ -200,7 +212,9 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void set_background_image_ffi(void* const viewer, const char *path, bool fillHeight)
     {
         std::packaged_task<void()> lambda([&]
-                                          { set_background_image(viewer, path, fillHeight); });
+                                          { 
+                                            set_background_image(viewer, path, fillHeight); 
+                                            });
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
