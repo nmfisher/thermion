@@ -142,6 +142,10 @@ class FilamentControllerFFI extends FilamentController {
         renderCallback,
         renderCallbackOwner);
 
+    if (_viewer!.address == 0) {
+      throw Exception("Failed to create viewer. Check logs for details");
+    }
+
     _lib.create_swap_chain_ffi(
         _viewer!, Pointer<Void>.fromAddress(surfaceAddress), width, height);
     if (nativeTexture != 0) {
