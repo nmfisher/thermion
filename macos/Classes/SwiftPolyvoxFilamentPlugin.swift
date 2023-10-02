@@ -48,9 +48,8 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 let resId = UInt32(instance.resources.count)
                 instance.resources[resId] = nsData
                 let length = nsData.length
-                print("Resolved asset to file of length \(length) at path \(path!)")
-                        
-              return ResourceBuffer(data:nsData.bytes, size:Int64(nsData.length), id:UInt32(resId))
+                print("Resolved asset to file of length \(Int32(length)) at path \(path!)")
+                return ResourceBuffer(data:nsData.bytes, size:Int32(UInt32(nsData.length)), id:Int32(UInt32(resId)))
           } catch {
             print("ERROR LOADING RESOURCE")
           }
@@ -60,7 +59,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     
     var freeResource : @convention(c) (ResourceBuffer,UnsafeMutableRawPointer?) -> () = { rbuf, resourcesPtr in
         let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
-        instance.resources.removeValue(forKey:rbuf.id)
+        instance.resources.removeValue(forKey:UInt32(rbuf.id))
     }
 
     var markTextureFrameAvailable : @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in

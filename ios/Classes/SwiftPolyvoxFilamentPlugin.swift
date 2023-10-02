@@ -105,13 +105,15 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             }
         }
         do {
-            print("Opening data from path \(path)")
             let data = try Data(contentsOf: URL(fileURLWithPath:path!))
             let resId = instance.resources.count
             let nsData = data as NSData
             instance.resources[resId] = nsData
             let rawPtr = nsData.bytes
-            return ResourceBuffer(data:rawPtr, size:Int64(nsData.count), id:UInt32(resId))
+            let length = Int32(nsData.count)
+            print("Opened asset of length \(Int32(length)) at path \(path!)")
+
+            return ResourceBuffer(data:rawPtr, size:length, id:Int32(resId))
         } catch {
             print("Error opening file: \(error)")
         }
