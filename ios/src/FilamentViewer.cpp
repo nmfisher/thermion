@@ -115,9 +115,10 @@ FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWr
   : _resourceLoaderWrapper(resourceLoaderWrapper) {
   
   #if TARGET_OS_IPHONE
-    ASSERT_POSTCONDITION(platform == nullptr);
+    ASSERT_POSTCONDITION(platform == nullptr, "Custom Platform not supported on iOS");
     _engine = Engine::create(Engine::Backend::METAL);
   #elif TARGET_OS_OSX
+      ASSERT_POSTCONDITION(platform == nullptr, "Custom Platform not supported on macOS");
       _engine = Engine::create(Engine::Backend::METAL);
   #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform*)platform, (void*)sharedContext, nullptr);
@@ -346,11 +347,17 @@ void FilamentViewer::loadKtxTexture(string path, ResourceBuffer rb) {
     ktxreader::Ktx1Bundle *bundle =
           new ktxreader::Ktx1Bundle(static_cast<const uint8_t *>(rb.data),
                                 static_cast<uint32_t>(rb.size));
+
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, &rb};
+
     _imageTexture =
           ktxreader::Ktx1Reader::createTexture(_engine, *bundle, false, [](void* userdata) {
-          Ktx1Bundle* bundle = (Ktx1Bundle*) userdata;
-          delete bundle;
-      }, bundle);
+          std::vector<void*>* vec = (std::vector<void*>*)userdata;
+          ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
+          ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
+          loader->free(*rb);
+          delete vec;
+      }, callbackData);
 
     auto info = bundle->getInfo();
     _imageWidth = info.pixelWidth;
@@ -395,6 +402,7 @@ void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb) {
      Texture::Type::FLOAT, nullptr, freeCallback, image);
 
   _imageTexture->setImage(*_engine, 0, std::move(pbd));
+  _resourceLoaderWrapper->free(rb);
 }
 
 void FilamentViewer::loadTextureFromPath(string path) {
@@ -416,7 +424,6 @@ void FilamentViewer::loadTextureFromPath(string path) {
   } else if(endsWith(path, pngExt)) {
     loadPngTexture(path, rb);
   }
-  _resourceLoaderWrapper->free(rb);
 }
 
 void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a) {
@@ -735,45 +742,57 @@ bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
 }
 
 void FilamentViewer::loadSkybox(const char *const skyboxPath) {
-  Log("Loading skybox from %s", skyboxPath);
 
   removeSkybox();
  
-  if (skyboxPath) {
-    ResourceBuffer skyboxBuffer = _resourceLoaderWrapper->load(skyboxPath);
+  if (!skyboxPath) {
+    Log("No skybox path provided, removed skybox.");
+  }
 
+  Log("Loading skybox from path %s", skyboxPath);
+    
+    ResourceBuffer skyboxBuffer = _resourceLoaderWrapper->load(skyboxPath);
+    
     if(skyboxBuffer.size <= 0) {
       Log("Could not load skybox resource.");
       return;
     }
-    
+
+    Log("Loaded skybox data of length %d", skyboxBuffer.size);
+
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, &skyboxBuffer};
+
     image::Ktx1Bundle *skyboxBundle =
         new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data),
                               static_cast<uint32_t>(skyboxBuffer.size));
 
     _skyboxTexture =
         ktxreader::Ktx1Reader::createTexture(_engine, *skyboxBundle, false, [](void* userdata) {
-        image::Ktx1Bundle* bundle = (image::Ktx1Bundle*) userdata;
-        delete bundle;
-    }, skyboxBundle);
+        std::vector<void*>* vec = (std::vector<void*>*)userdata;
+        ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
+        ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
+        loader->free(*rb);
+        delete vec;
+        Log("Skybox load complete.");
+        }, callbackData);
     _skybox =
         filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
 
     _scene->setSkybox(_skybox);
-    _resourceLoaderWrapper->free(skyboxBuffer);
-  }
+
 }
 
 void FilamentViewer::removeSkybox() { 
   Log("Removing skybox");
+  _scene->setSkybox(nullptr);
   if(_skybox) {
-
     _engine->destroy(_skybox);
-    _engine->destroy(_skyboxTexture);
     _skybox = nullptr;
+  }
+  if(_skyboxTexture) {
+    _engine->destroy(_skyboxTexture);
     _skyboxTexture = nullptr;
-  } 
-  _scene->setSkybox(nullptr); 
+  }
 }
 
 void FilamentViewer::removeIbl() { 
@@ -804,11 +823,17 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
                               static_cast<uint32_t>(iblBuffer.size));
     math::float3 harmonics[9];
     iblBundle->getSphericalHarmonics(harmonics);
-    _iblTexture =
+
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, &iblBuffer};
+
+      _iblTexture =
         ktxreader::Ktx1Reader::createTexture(_engine, *iblBundle, false, [](void* userdata) {
-        image::Ktx1Bundle* bundle = (image::Ktx1Bundle*) userdata;
-        delete bundle;
-    }, iblBundle);
+            std::vector<void*>* vec = (std::vector<void*>*)userdata;
+            ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
+            ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
+            loader->free(*rb);
+            delete vec;
+    }, callbackData);
     _indirectLight = IndirectLight::Builder()
                          .reflections(_iblTexture)
                          .irradiance(3, harmonics)
@@ -818,7 +843,7 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
 
     _resourceLoaderWrapper->free(iblBuffer);
 
-    Log("Skybox/IBL load complete.");
+    Log("IBL loaded.");
   }
 }
 
