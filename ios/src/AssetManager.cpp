@@ -136,11 +136,11 @@ EntityId AssetManager::loadGltf(const char *uri,
 }
 
 EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
-    
-    Log("Loading GLB at URI %s", uri);
-    
+        
     ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
-    
+
+    Log("Loaded GLB of size %d at URI %s", rbuf.size, uri);
+
     FilamentAsset *asset = _assetLoader->createAsset(
                                                      (const uint8_t *)rbuf.data, rbuf.size);
     
