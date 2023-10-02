@@ -6,35 +6,22 @@
 extern "C" {
 #endif
     // 
-    // Pairs a memory buffer with an ID that can be used to unload the backing asset if needed.
-    // Use this when you want to load an asset from a resource that requires more than just `free` on the underlying buffer.
-    // e.g. 
-    // ```
-    // uint64_t id = get_next_resource_id();
-    // AAsset *asset = AAssetManager_open(am, name, AASSET_MODE_BUFFER);
-    // off_t length = AAsset_getLength(asset);
-    // const void * buffer = AAsset_getBuffer(asset);
-    // uint8_t *buf = new uint8_t[length ];
-    // memcpy(buf,buffer,  length);
-    // ResourceBuffer rb(buf, length, id);
-    // ...
-    // ...
-    // (elsewhere)
-    // AAsset* asset = get_asset_from_id(rb.id);
-    // AAsset_close(asset);
-    // free_asset_id(rb.id);
+    // Since different platforms expose different interfaces for loading assets, we want single interface to represent the binary data backing an asset (as well as an ID that can be passed back to the native platform to free the data and unload the asset).
     //
     struct ResourceBuffer {
-        #if defined(__cplusplus)
-        ResourceBuffer(const void* const data, const uint32_t size, const uint32_t id) : data(data), size(size), id(id) {};
+        const void* const data;
+        const int32_t size;
+        const int32_t id;
+
+        // These only need to be constructible from C++ on Linux & Windows.
+        // On iOS, MacOS & Android, this is constructed on the Swift/Kotlin side.
+        // These C++ constructors seem to interfere with that, so we omit them on those platforms.
+        #if defined(__cplusplus) && !defined(__ANDROID__) && !defined(__APPLE__)
+        ResourceBuffer(const void* const data, const int32_t size, const int32_t id) : data(data), size(size), id(id) {};
         ResourceBuffer(const ResourceBuffer& rb) : data(rb.data), size(rb.size), id(rb.id) { };
         ResourceBuffer(const ResourceBuffer&& rb) : data(rb.data), size(rb.size), id(rb.id) { };
         ResourceBuffer& operator=(const ResourceBuffer& other) = delete;
-
         #endif
-        const void * const data;
-        const int64_t size;
-        const uint32_t id;
     };
 
     typedef struct ResourceBuffer ResourceBuffer;
@@ -56,9 +43,11 @@ extern "C" {
 
         ResourceBuffer load(const char* uri) const {
           if(mLoadFilamentResourceFromOwner) {
-            return mLoadFilamentResourceFromOwner(uri, mOwner);
+            auto rb = mLoadFilamentResourceFromOwner(uri, mOwner);
+            return rb;
           }
-          return mLoadFilamentResource(uri);
+          auto rb =mLoadFilamentResource(uri);
+          return rb;
         }
 
         void free(ResourceBuffer rb) const {

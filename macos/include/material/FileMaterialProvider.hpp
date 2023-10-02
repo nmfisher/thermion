@@ -16,7 +16,6 @@ namespace polyvox {
       const Material* _ms[1];
       Texture* mDummyTexture = nullptr;
 
-
       public:
         FileMaterialProvider(Engine* engine, const void* const  data, const size_t size) {
           _m = Material::Builder()
@@ -48,13 +47,13 @@ namespace polyvox {
             instance->setParameter("baseColorIndex", getUvIndex(config->baseColorUV, config->hasBaseColorTexture));
             instance->setParameter("normalIndex", getUvIndex(config->normalUV, config->hasNormalTexture));
             if(config->hasNormalTexture) {
-              Log("HAS NORMAL TEXTURE");
+              TextureSampler sampler;
+              instance->setParameter("normalMap", mDummyTexture, sampler);
+              instance->setParameter("baseColorMap", mDummyTexture, sampler);
             } else {
-              Log("NO NORMAL TEXTURE?");
+              Log("No normal texture for specified material.");
             }
-            // TextureSampler sampler;
-            // instance->setParameter("normalMap", mDummyTexture, sampler);
-            // instance->setParameter("baseColorMap", mDummyTexture, sampler);
+            
             return instance;
         }
 

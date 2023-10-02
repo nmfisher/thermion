@@ -2,19 +2,23 @@
 #define RESOURCE_BUFFER_H
 
 #include <stdint.h>
+#include "Log.hpp"
 #if defined(__cplusplus)
 extern "C" {
 #endif
     // 
-    // Since different platforms expose different interfaces for loading assets, we want a single interface to represent the binary data backing an asset (as well as an ID that can be passed back to the native platform to free the data and unload the asset).
+    // Since different platforms expose different interfaces for loading assets, we want single interface to represent the binary data backing an asset (as well as an ID that can be passed back to the native platform to free the data and unload the asset).
     //
     struct ResourceBuffer {
-        void * const data;
-        const int size;
-        const int id;
+        const void* const data;
+        const int32_t size;
+        const int32_t id;
 
-        #if defined(__cplusplus) && !defined(__ANDROID__)
-        ResourceBuffer(void* const data, const int32_t size, const int32_t id) : data(data), size(size), id(id) {};
+        // These only need to be constructible from C++ on Linux & Windows.
+        // On iOS, MacOS & Android, this is constructed on the Swift/Kotlin side.
+        // These C++ constructors seem to interfere with that, so we omit them on those platforms.
+        #if defined(__cplusplus) && !defined(__ANDROID__) && !defined(__APPLE__)
+        ResourceBuffer(const void* const data, const int32_t size, const int32_t id) : data(data), size(size), id(id) {};
         ResourceBuffer(const ResourceBuffer& rb) : data(rb.data), size(rb.size), id(rb.id) { };
         ResourceBuffer(const ResourceBuffer&& rb) : data(rb.data), size(rb.size), id(rb.id) { };
         ResourceBuffer& operator=(const ResourceBuffer& other) = delete;
@@ -48,12 +52,15 @@ extern "C" {
         }
 
         void free(ResourceBuffer rb) const {
+          Log("Freeing rb %d of size %d", rb.id, rb.size);
           if(mFreeFilamentResourceFromOwner) {
             mFreeFilamentResourceFromOwner(rb, mOwner);
           } else {
             mFreeFilamentResource(rb);
           }
         }
+
+
       #endif
         LoadFilamentResource mLoadFilamentResource;
         FreeFilamentResource mFreeFilamentResource;
@@ -62,7 +69,6 @@ extern "C" {
         void* mOwner;
     };
     typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
-    
     
 #if defined(__cplusplus)
 }

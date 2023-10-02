@@ -40,6 +40,10 @@
 
 #endif /* __STDBOOL_H */
 
+#ifdef __APPLE__
+#include <stddef.h>
+#endif
+
 #include "ResourceBuffer.hpp"
 
 typedef int32_t EntityId;
