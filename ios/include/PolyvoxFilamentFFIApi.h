@@ -1,6 +1,10 @@
 #ifndef _POLYVOX_FILAMENT_FFI_API_H
 #define _POLYVOX_FILAMENT_FFI_API_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /// 
 /// This header replicates most of the methods in PolyvoxFilamentApi.h, and is only intended to be used to generate client FFI bindings.
 /// The intention is that calling one of these methods will call its respective method in PolyvoxFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety. 
@@ -39,39 +43,39 @@ FLUTTER_PLUGIN_EXPORT void remove_asset_ffi(void* const viewer, EntityId asset);
 FLUTTER_PLUGIN_EXPORT void clear_assets_ffi(void* const viewer);
 FLUTTER_PLUGIN_EXPORT bool set_camera_ffi(void* const viewer, EntityId asset, const char *nodeName);
 FLUTTER_PLUGIN_EXPORT void apply_weights_ffi(
-					     void* const assetManager,
-					     EntityId asset, 
-					     const char *const entityName, 
-					     float *const weights, 
-					     int count
-					 );
+                                             void* const assetManager,
+                                             EntityId asset,
+                                             const char *const entityName,
+                                             float *const weights,
+                                             int count
+                                             );
 FLUTTER_PLUGIN_EXPORT void set_morph_target_weights_ffi(
-					     void* const assetManager,
-					     EntityId asset,
-					     const char *const entityName,
-					     const float *const morphData,
-					     int numWeights
-					 );
+                                                        void* const assetManager,
+                                                        EntityId asset,
+                                                        const char *const entityName,
+                                                        const float *const morphData,
+                                                        int numWeights
+                                                        );
 FLUTTER_PLUGIN_EXPORT bool set_morph_animation_ffi(
-					     void* const assetManager,
-					     EntityId asset,
-					     const char *const entityName,
-					     const float *const morphData,
-					     const int* const morphIndices,
-					     int numMorphTargets,
-					     int numFrames,
-					     float frameLengthInMs);
+                                                   void* const assetManager,
+                                                   EntityId asset,
+                                                   const char *const entityName,
+                                                   const float *const morphData,
+                                                   const int* const morphIndices,
+                                                   int numMorphTargets,
+                                                   int numFrames,
+                                                   float frameLengthInMs);
 FLUTTER_PLUGIN_EXPORT 
 FLUTTER_PLUGIN_EXPORT void set_bone_animation_ffi(
-					     void* const assetManager,
-					     EntityId asset, 
-					     const float* const frameData,
-					     int numFrames, 
-					     int numBones,
-					     const char** const boneNames,
-					     const char** const meshName,
-					     int numMeshTargets,
-                         float frameLengthInMs);
+                                                  void* const assetManager,
+                                                  EntityId asset,
+                                                  const float* const frameData,
+                                                  int numFrames,
+                                                  int numBones,
+                                                  const char** const boneNames,
+                                                  const char** const meshName,
+                                                  int numMeshTargets,
+                                                  float frameLengthInMs);
 FLUTTER_PLUGIN_EXPORT void play_animation_ffi(void* const assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
 FLUTTER_PLUGIN_EXPORT void set_animation_frame_ffi(void* const assetManager, EntityId asset, int animationIndex, int animationFrame);
 FLUTTER_PLUGIN_EXPORT void stop_animation_ffi(void* const assetManager, EntityId asset, int index);
@@ -82,5 +86,9 @@ FLUTTER_PLUGIN_EXPORT void get_morph_target_name_ffi(void* const assetManager, E
 FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count_ffi(void* const assetManager, EntityId asset, const char *meshName);
 
 FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _POLYVOX_FILAMENT_FFI_API_H

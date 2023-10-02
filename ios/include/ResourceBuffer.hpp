@@ -2,7 +2,7 @@
 #define RESOURCE_BUFFER_H
 
 #include <stdint.h>
-#include "Log.hpp"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -52,7 +52,6 @@ extern "C" {
         }
 
         void free(ResourceBuffer rb) const {
-          Log("Freeing rb %d of size %d", rb.id, rb.size);
           if(mFreeFilamentResourceFromOwner) {
             mFreeFilamentResourceFromOwner(rb, mOwner);
           } else {

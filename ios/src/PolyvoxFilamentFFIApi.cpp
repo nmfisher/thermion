@@ -1,7 +1,5 @@
 
-extern "C" {
-    #include "PolyvoxFilamentFFIApi.h"
-}
+#include "PolyvoxFilamentFFIApi.h"
 
 #include "FilamentViewer.hpp"
 #include "filament/LightManager.h"
