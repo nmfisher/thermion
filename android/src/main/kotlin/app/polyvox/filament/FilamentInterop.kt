@@ -31,7 +31,7 @@ interface RenderCallback : Callback {
 
 interface FilamentInterop : Library {
 
-fun get_native_window_from_surface(surface:Object, env:JNIEnv) : Pointer;
+fun get_native_window_from_surface(surface:Object, env:JNIEnv) : Pointer?;
 fun make_render_callback_fn_pointer(renderCallback:RenderCallback) : Pointer
 fun make_resource_loader(loadResourceFromOwner: LoadFilamentResourceFromOwner, freeResource: FreeFilamentResourceFromOwner, owner:Pointer?) : Pointer;
 fun create_filament_viewer_ffi(context:Pointer, platform:Pointer, loader:Pointer, rc:Pointer, rco:Pointer) : Pointer;
@@ -39,7 +39,7 @@ fun create_swap_chain_ffi(vieer:Pointer?, surface:Pointer?, width:Int, height:In
 fun set_background_color_ffi(viewer: Pointer?, r: Float, g: Float, b: Float, a: Float)
 fun update_viewport_and_camera_projection_ffi(viewer: Pointer?, width: Int, height: Int, scale_factor: Float)
 fun render_ffi(viewer: Pointer?)
-fun create_filament_viewer(context:Pointer?, platform:Pointer?, loader:Pointer?, rc:Pointer?, rco:Pointer?) : Pointer;
+fun create_filament_viewer(context:Pointer?, platform:Pointer?, loader:Pointer?) : Pointer;
 fun create_swap_chain(vieer:Pointer?, surface:Pointer?, width:Int, height:Int)
 fun set_background_color(viewer: Pointer?, r: Float, g: Float, b: Float, a: Float)
 fun update_viewport_and_camera_projection(viewer: Pointer?, width: Int, height: Int, scale_factor: Float)

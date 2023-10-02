@@ -25,10 +25,6 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import java.io.File
 import java.util.*
-import java.util.concurrent.Executors
-
-
-typealias EntityId = Int
 
 class LoadFilamentResourceFromOwnerImpl(plugin:PolyvoxFilamentPlugin) : LoadFilamentResourceFromOwner {
   var plugin = plugin
@@ -48,6 +44,10 @@ class RenderCallbackImpl(plugin:PolyvoxFilamentPlugin) : RenderCallback {
   var plugin = plugin
   override fun renderCallback(owner:Pointer?) {
     plugin.renderCallback();
+
+    if(!plugin._surface!!.isValid) {
+      Log.e("ERR", "ERR", null)
+    }
   }
 }
 
@@ -67,13 +67,11 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
   private lateinit var _lib : FilamentInterop
   
-  private var _surfaceTexture: SurfaceTexture? = null
+  var _surfaceTexture: SurfaceTexture? = null
   private var _surfaceTextureEntry: SurfaceTextureEntry? = null
-  private var _surface: Surface? = null
+  var _surface: Surface? = null
       
   private lateinit var activity:Activity
-
-  private val executor = Executors.newFixedThreadPool(1);
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     this.flutterPluginBinding = flutterPluginBinding
@@ -103,9 +101,12 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           if (hotReloadPath != null) {
               data = File(hotReloadPath).readBytes()
           } else {
+              Log.i("polyvox_filament", "Loading resource from main asset bundle")
+
               val assetManager: AssetManager = activity.assets
               try {
                   data = assetManager.open(key).readBytes()
+                  Log.i("polyvox_filament", "Loaded ${data.size} bytes")
               } catch (e:Exception) {
                   Log.e("polyvox_filament", "Failed to open asset at ${path}", null)
               }
@@ -147,10 +148,9 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     Log.e("polyvox_filament", call.method, null)
     when (call.method) {
-      "getSharedContext" -> { 
-        val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
-        result.success(Pointer.nativeValue(nativeWindow))
-      }
+        "getSharedContext" -> { 
+          result.success(null)
+        }
         "createTexture" -> {
           if(_surfaceTextureEntry != null) {
             result.error("TEXTURE_EXISTS", "Texture already exist. Make sure you call destroyTexture first", null)
@@ -160,10 +160,10 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           val width = args[0] as Double
           val height = args[1] as Double
           if(width <1 || height < 1) {
-              result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero", null);
+              result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero (you provided $width x $height)", null);
               return;
           }
-          Log.i("polyvox_filament", "Creating texture of size ${width}x${height}");
+          Log.i("polyvox_filament", "Creating Surface Texture of size ${width}x${height}");
           
           _surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
           _surfaceTexture = _surfaceTextureEntry!!.surfaceTexture();
@@ -171,24 +171,12 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
           _surface = Surface(_surfaceTexture)
 
-        if(!_surface!!.isValid) {
-            Log.e("ERR", "ERR", null)
-        }
+          if(!_surface!!.isValid) {
+              Log.e("ERR", "ERR", null)
+          }
 
           val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
-
-          val resourceLoader = _lib.make_resource_loader(LoadFilamentResourceFromOwnerImpl(this), FreeFilamentResourceFromOwnerImpl(this), Pointer(0))
-          val renderCallbackFnPointer = _lib.make_render_callback_fn_pointer(RenderCallbackImpl(this))
-
-          val viewer = _lib.create_filament_viewer(nativeWindow, resourceLoader,Pointer(0),renderCallbackFnPointer,Pointer(0))
-          _lib.create_swap_chain(viewer, nativeWindow, width.toInt(),height.toInt())
-          _lib.update_viewport_and_camera_projection(viewer, width.toInt(), height.toInt(), 1.0f)
-          _lib.set_background_color(viewer, 1.0f, 1.0f, 0.0f, 1.0f)
-          _lib.render(viewer, 0, Pointer(0),Pointer(0),Pointer(0))
-          _lib.render(viewer, 0, Pointer(0),Pointer(0),Pointer(0))
-          _lib.render(viewer, 0, Pointer(0),Pointer(0),Pointer(0))
-          _lib.render(viewer, 0, Pointer(0),Pointer(0),Pointer(0))
-
+        
           val resultList = listOf(_surfaceTextureEntry!!.id(), Pointer.nativeValue(nativeWindow), null )
           
           result.success(resultList)

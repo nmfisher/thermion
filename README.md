@@ -12,6 +12,7 @@ All:
 (even though headers are under the iOS directory these are used across all platforms).
 
 Android:
+- IMPORTANT - current version only works on Flutter 3.15.0-15.2.pre
 - build from Filament repository on Linux (build native, then build Android). Reminder that NDK >= 24 required.
 - need to specifically move imageio/png/tinyexr 
 - if release build, then need to comment out -fno-exceptions
