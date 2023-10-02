@@ -15,7 +15,7 @@ A new Flutter plugin project.
 
   s.source           = { :path => '.' }
   s.source_files = 'Classes/*', 'src/*', 'include/filament/*', 'include/*', 'include/material/*.c'
-  s.public_header_files = 'include/SwiftPolyvoxFilamentPlugin-Bridging-Header.h',  'include/PolyvoxFilamentApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
+  s.public_header_files = 'include/SwiftPolyvoxFilamentPlugin-Bridging-Header.h',  'include/PolyvoxFilamentApi.h', 'include/PolyvoxFilamentFFIApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
   s.dependency 'FlutterMacOS'
 
   s.platform = :osx, '13'
@@ -36,7 +36,7 @@ A new Flutter plugin project.
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "$(inherited)"',
     'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
-    'USER_HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/include" "$(inherited)"',
+    'USER_HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/include" "${PODS_TARGET_SRCROOT}/include/filament" "$(inherited)"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',
     "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_core -lfilament-iblprefilter -limage -limageio -ltinyexr -lcamutils -lgltfio_core -lfilaflat -ldracodec -libl -lktxreader -lpng -lz -lstb -luberzlib -lsmol-v -luberarchive -lzstd -lvkshaders -lbluegl -lbluevk -lbasis_transcoder -lmeshoptimizer',
     'LIBRARY_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/lib" "$(inherited)"',
