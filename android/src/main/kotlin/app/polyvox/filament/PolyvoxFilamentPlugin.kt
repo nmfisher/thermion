@@ -73,6 +73,9 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
       
   private lateinit var activity:Activity
 
+  private var loadResourceWrapper:LoadFilamentResourceFromOwnerImpl = LoadFilamentResourceFromOwnerImpl(this)
+  private var freeResourceWrapper:FreeFilamentResourceFromOwnerImpl = FreeFilamentResourceFromOwnerImpl(this)
+
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     this.flutterPluginBinding = flutterPluginBinding
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
@@ -86,7 +89,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
     activity.window.setFormat(PixelFormat.RGBA_8888)
   }
 
-  val _resources:MutableMap<Int,Memory> = mutableMapOf();
+  val _resources:MutableMap<ResourceBuffer,Memory> = mutableMapOf();
   var _lastId = 1
 
   override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
@@ -120,7 +123,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
               rb.data = dataPtr
               rb.size = data.size
               rb.id = _lastId
-              _resources[rb.id] = dataPtr;
+              _resources[rb] = dataPtr;
               _lastId++
           } else {
               rb.id = 0
@@ -136,11 +139,11 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
   }
 
   override fun freeResourceFromOwner(rb: ResourceBuffer, owner: Pointer?) {
-    _resources.remove(rb.id)
+    _resources.remove(rb)
   }
 
   fun renderCallback() {
-    Log.e("polyvox_filament", "Rdner callacbk", null)
+    // noop, log or check surface.valid() is you want 
   }
 
 
@@ -182,7 +185,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           result.success(resultList)
         }
         "getResourceLoaderWrapper" -> { 
-          val resourceLoader = _lib.make_resource_loader(LoadFilamentResourceFromOwnerImpl(this), FreeFilamentResourceFromOwnerImpl(this), Pointer(0))
+          val resourceLoader = _lib.make_resource_loader(loadResourceWrapper, freeResourceWrapper, Pointer(0))
           result.success(Pointer.nativeValue(resourceLoader))
         }
         "getRenderCallback" -> {
