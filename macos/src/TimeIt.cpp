@@ -1,6 +1,6 @@
 #include "TimeIt.hpp"
 
-#if __cplusplus <= 199711L
+#if __cplusplus <= 199711L && !_WIN32
 
 void Timer::reset()
 {

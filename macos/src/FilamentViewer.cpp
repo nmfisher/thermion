@@ -2,6 +2,9 @@
   #include "TargetConditionals.h"
 #endif
 
+#ifdef _WIN32
+#pragma comment(lib, "Ws2_32.lib")
+#endif
 
 /*
  * Copyright (C) 2019 The Android Open Source Project
@@ -20,6 +23,7 @@
  */
 #include <filament/Camera.h>
 #include <backend/DriverEnums.h>
+#include <backend/platforms/OpenGLPlatform.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
 #include <filament/IndexBuffer.h>
@@ -107,15 +111,17 @@ static constexpr float4 sFullScreenTriangleVertices[3] = {
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
-FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper)
+FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform)
   : _resourceLoaderWrapper(resourceLoaderWrapper) {
   
   #if TARGET_OS_IPHONE
+    ASSERT_POSTCONDITION(platform == nullptr, "Custom Platform not supported on iOS");
     _engine = Engine::create(Engine::Backend::METAL);
   #elif TARGET_OS_OSX
+      ASSERT_POSTCONDITION(platform == nullptr, "Custom Platform not supported on macOS");
       _engine = Engine::create(Engine::Backend::METAL);
   #else
-    _engine = Engine::create(Engine::Backend::OPENGL); //L, nullptr, (void*)context, nullptr);
+    _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform*)platform, (void*)sharedContext, nullptr);
   #endif
 
   _renderer = _engine->createRenderer();
@@ -137,10 +143,15 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
 
   Log("Main camera created");
   _view = _engine->createView();
+  _view->setPostProcessingEnabled(false);
+  Log("View created");
 
   setToneMapping(ToneMapping::ACES);
 
+  Log("Set tone mapping");
+
   setBloom(0.6f);
+  Log("Set bloom");
 
   _view->setScene(_scene);
   _view->setCamera(_mainCamera);
@@ -149,7 +160,7 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
   _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
                                  kFarPlane);
   // _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
-  
+  Log("View created");
   const float aperture = _mainCamera->getAperture();
   const float shutterSpeed = _mainCamera->getShutterSpeed();
   const float sens = _mainCamera->getSensitivity();
@@ -189,14 +200,18 @@ FilamentViewer::FilamentViewer(const void* context, const ResourceLoaderWrapper*
                          .format(Texture::InternalFormat::RGB16F)
                          .sampler(Texture::Sampler::SAMPLER_2D)
                          .build(*_engine);
-    
-  _imageMaterial =
-       Material::Builder()
-           .package(IMAGE_PACKAGE, IMAGE_IMAGE_SIZE)
-           .build(*_engine);
-  _imageMaterial->setDefaultParameter("showImage",0);
-  _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(0.5f, 0.5f, 0.5f, 1.0f));
-  _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
+  try {
+    _imageMaterial =
+        Material::Builder()
+            .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
+            .build(*_engine);
+    _imageMaterial->setDefaultParameter("showImage",0);
+    _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(0.5f, 0.5f, 0.5f, 1.0f));
+    _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler); 
+  } catch(...) {
+    Log("Failed to load background image material provider");
+     std::rethrow_exception(std::current_exception());
+  }
   _imageScale = mat4f { 1.0f , 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 
   _imageMaterial->setDefaultParameter("transform", _imageScale);
@@ -402,16 +417,14 @@ void FilamentViewer::loadTextureFromPath(string path) {
   } else if(endsWith(path, pngExt)) {
     loadPngTexture(path, rb);
   }
-
   _resourceLoaderWrapper->free(rb);
-
 }
 
 void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a) {
   _imageMaterial->setDefaultParameter("showImage", 0);
   _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
   const Viewport& vp = _view->getViewport();
-  _imageMaterial->setDefaultParameter("transform", _imageScale);
+  _imageMaterial->setDefaultParameter("transform", _imageScale); 
 }
 
 void FilamentViewer::clearBackgroundImage() {
@@ -560,11 +573,12 @@ void FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_
   #else
     if(window) {
       _swapChain = _engine->createSwapChain((void*)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+      Log("Created window swapchain.");
     } else {
+      Log("Created headless swapchain.");
       _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
     }
-  #endif
-  Log("Swapchain created.");
+  #endif  
 }
 
 void FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32_t height) {
@@ -582,7 +596,7 @@ void FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32
     .height(height)
     .levels(1)
     .usage(filament::Texture::Usage::DEPTH_ATTACHMENT)
-    .format(filament::Texture::InternalFormat::DEPTH24)
+    .format(filament::Texture::InternalFormat::DEPTH32F)
     .build(*_engine);
   _rt = filament::RenderTarget::Builder()
     .texture(RenderTarget::AttachmentPoint::COLOR, _rtColor)
@@ -812,7 +826,11 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
 double _elapsed = 0;
 int _frameCount = 0;
 
-void FilamentViewer::render(uint64_t frameTimeInNanos) {
+void FilamentViewer::render(
+  uint64_t frameTimeInNanos, 
+  void* pixelBuffer, 
+  void (*callback)(void *buf, size_t size, void *data),
+  void* data) {
 
   if (!_view || !_mainCamera || !_swapChain) {
     Log("Not ready for rendering");
@@ -832,12 +850,24 @@ void FilamentViewer::render(uint64_t frameTimeInNanos) {
   _elapsed += tmr.elapsed();
   _frameCount++;
 
-  // Render the scene, unless the renderer wants to skip the frame.
-  if (_renderer->beginFrame(_swapChain, frameTimeInNanos)) {
+  if(pixelBuffer) {
+    auto pbd = Texture::PixelBufferDescriptor(
+     pixelBuffer, size_t(1024 * 768 * 4),
+     Texture::Format::RGBA,
+     Texture::Type::BYTE, nullptr, callback, data);
+
+    _renderer->beginFrame(_swapChain, 0);
     _renderer->render(_view);
+    _renderer->readPixels(0,0,1024,768, std::move(pbd));
     _renderer->endFrame();
   } else {
-    // skipped frame
+    // Render the scene, unless the renderer wants to skip the frame.
+    if (_renderer->beginFrame(_swapChain, frameTimeInNanos)) {
+      _renderer->render(_view);
+      _renderer->endFrame();
+    } else {
+      // skipped frame
+    }
   }
   
 }
@@ -865,15 +895,15 @@ void FilamentViewer::updateViewportAndCameraProjection(
       contentScaleFactor);
 }
 
+void FilamentViewer::setViewFrustumCulling(bool enabled) { 
+  _view->setFrustumCullingEnabled(enabled);
+}
+
 void FilamentViewer::setCameraPosition(float x, float y, float z) {
   Camera& cam =_view->getCamera();
 
   _cameraPosition = math::mat4f::translation(math::float3(x,y,z));
   cam.setModelMatrix(_cameraPosition * _cameraRotation);
-}
-
-void FilamentViewer::setViewFrustumCulling(bool enabled) { 
-  _view->setFrustumCullingEnabled(enabled);
 }
 
 void FilamentViewer::moveCameraToAsset(EntityId entityId) {
@@ -938,18 +968,15 @@ void FilamentViewer::grabUpdate(float x, float y) {
         return;
     }
     Camera& cam =_view->getCamera();
-    auto eye =  cam.getPosition();// math::float3  {0.0f, 0.5f, 50.0f } ;// ; //
+    auto eye =  cam.getPosition();
     auto target = eye + cam.getForwardVector();
     auto upward = cam.getUpVector();
     Viewport const& vp = _view->getViewport();
     if(_panning) {
-        auto trans = cam.getModelMatrix() * mat4::translation(math::float3 { 10 * (x - _startX) / vp.width, 10 * (y - _startY) / vp.height, 0.0f });
+        auto trans = cam.getModelMatrix() * mat4::translation(math::float3 { 50 * (x - _startX) / vp.width, 50 * (y - _startY) / vp.height, 0.0f });
         cam.setModelMatrix(trans);
     } else {
-        auto trans = cam.getModelMatrix() * mat4::rotation(
-                                                   
-                                                          0.01,
-//                                                           math::float3 { 0.0f, 1.0f, 0.0f });
+        auto trans = cam.getModelMatrix() * mat4::rotation(0.05,
                                                            math::float3 { (y - _startY) / vp.height, (x - _startX) / vp.width, 0.0f });
         cam.setModelMatrix(trans);
     }

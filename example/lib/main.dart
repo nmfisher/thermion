@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
@@ -318,7 +319,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 
 // case -1:
 
-
 //         break;
 //       case -2:
 //         _filamentController.render();
@@ -338,7 +338,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //       case -6:
 //         _filamentController.setBackgroundColor(Color(0xFF73C9FA));
 //         break;
-
 
 //       case 5:
 //         _flightHelmet ??= await _filamentController.loadGltf(
@@ -423,11 +422,11 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //         _filamentController.clearLights();
 //         break;
 //       case 32:
-      
+
 //         // break;
 //         break;
 //       case 33:
-        
+
 //         break;
 //       case 34:
 //         var duration =
