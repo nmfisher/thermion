@@ -2,7 +2,7 @@ group 'app.polyvox.filament'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.6.0'
+    ext.kotlin_version = '1.6.20'
     repositories {
         google()
         mavenCentral()
@@ -59,7 +59,7 @@ android {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    compile 'net.java.dev.jna:jna:5.10.0@aar'
+    implementation 'net.java.dev.jna:jna:5.10.0@aar'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2"
 }

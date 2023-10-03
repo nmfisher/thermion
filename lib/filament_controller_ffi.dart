@@ -14,7 +14,6 @@ class FilamentControllerFFI extends FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
   double _pixelRatio = 1.0;
-  ui.Size size = ui.Size.zero;
 
   int? _textureId;
   final _textureIdController = StreamController<int?>.broadcast();

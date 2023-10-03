@@ -13,6 +13,9 @@ const FilamentEntity FILAMENT_ASSET_ERROR = 0;
 enum ToneMapper { ACES, FILMIC, LINEAR }
 
 abstract class FilamentController {
+  // the current target size of the viewport, in logical pixels
+  ui.Size size = ui.Size.zero;
+
   Stream<int?> get textureId;
   Future get isReadyForScene;
   Future setRendering(bool render);
@@ -101,7 +104,7 @@ abstract class FilamentController {
   /// [morphWeights] is a list of doubles in frame-major format.
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   ///
-  void setMorphAnimationData(
+  Future setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation);
 
   ///
@@ -110,39 +113,39 @@ abstract class FilamentController {
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   /// for now we only allow animating a single bone (though multiple skinned targets are supported)
   ///
-  void setBoneAnimation(FilamentEntity asset, BoneAnimationData animation);
-  void removeAsset(FilamentEntity asset);
-  void clearAssets();
-  void zoomBegin();
-  void zoomUpdate(double z);
-  void zoomEnd();
-  void playAnimation(FilamentEntity asset, int index,
+  Future setBoneAnimation(FilamentEntity asset, BoneAnimationData animation);
+  Future removeAsset(FilamentEntity asset);
+  Future clearAssets();
+  Future zoomBegin();
+  Future zoomUpdate(double z);
+  Future zoomEnd();
+  Future playAnimation(FilamentEntity asset, int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0});
-  void setAnimationFrame(FilamentEntity asset, int index, int animationFrame);
-  void stopAnimation(FilamentEntity asset, int animationIndex);
-  void setCamera(FilamentEntity asset, String? name);
-  void setToneMapping(ToneMapper mapper);
-  void setBloom(double bloom);
-  void setCameraFocalLength(double focalLength);
-  void setCameraFocusDistance(double focusDistance);
-  void setCameraPosition(double x, double y, double z);
-  void moveCameraToAsset(FilamentEntity asset);
-  void setViewFrustumCulling(bool enabled);
-  void setCameraExposure(
+  Future setAnimationFrame(FilamentEntity asset, int index, int animationFrame);
+  Future stopAnimation(FilamentEntity asset, int animationIndex);
+  Future setCamera(FilamentEntity asset, String? name);
+  Future setToneMapping(ToneMapper mapper);
+  Future setBloom(double bloom);
+  Future setCameraFocalLength(double focalLength);
+  Future setCameraFocusDistance(double focusDistance);
+  Future setCameraPosition(double x, double y, double z);
+  Future moveCameraToAsset(FilamentEntity asset);
+  Future setViewFrustumCulling(bool enabled);
+  Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity);
-  void setCameraRotation(double rads, double x, double y, double z);
-  void setCameraModelMatrix(List<double> matrix);
+  Future setCameraRotation(double rads, double x, double y, double z);
+  Future setCameraModelMatrix(List<double> matrix);
 
-  void setMaterialColor(
+  Future setMaterialColor(
       FilamentEntity asset, String meshName, int materialIndex, Color color);
-  void transformToUnitCube(FilamentEntity asset);
-  void setPosition(FilamentEntity asset, double x, double y, double z);
-  void setScale(FilamentEntity asset, double scale);
-  void setRotation(
+  Future transformToUnitCube(FilamentEntity asset);
+  Future setPosition(FilamentEntity asset, double x, double y, double z);
+  Future setScale(FilamentEntity asset, double scale);
+  Future setRotation(
       FilamentEntity asset, double rads, double x, double y, double z);
-  void hide(FilamentEntity asset, String meshName);
-  void reveal(FilamentEntity asset, String meshName);
+  Future hide(FilamentEntity asset, String meshName);
+  Future reveal(FilamentEntity asset, String meshName);
 }

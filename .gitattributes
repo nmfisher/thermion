@@ -544,3 +544,4 @@ assets/materials.uberz filter=lfs diff=lfs merge=lfs -text
 assets/materials_ios_arm64.uberz filter=lfs diff=lfs merge=lfs -text
 example/assets/shapes/ filter=lfs diff=lfs merge=lfs -text
 example/assets/shapes/*.* filter=lfs diff=lfs merge=lfs -text
+ios/lib/libmikktspace.a filter=lfs diff=lfs merge=lfs -text
