@@ -123,6 +123,10 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         setState(() {});
       }, 'load shapes GLB'),
       _item(() async {
+        _animations = await _filamentController.setCamera(_shapes!, null);
+        setState(() {});
+      }, 'set camera to first camera in shapes GLB'),
+      _item(() async {
         if (_coneHidden) {
           _filamentController.reveal(_shapes!, "Cone");
         } else {
@@ -136,8 +140,8 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         if (_shapes != null) {
           _filamentController.removeAsset(_shapes!);
         }
-        _shapes =
-            await _filamentController.loadGltf('assets/shapes/shapes.gltf', 'assets/shapes');
+        _shapes = await _filamentController.loadGltf(
+            'assets/shapes/shapes.gltf', 'assets/shapes');
       }, 'load shapes GLTF'),
       _item(() async {
         _filamentController.transformToUnitCube(_shapes!);
@@ -232,7 +236,8 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         _filamentController.setMorphAnimationData(_shapes!, animation);
       }, "animate shapes morph weights #1 and #2"),
       _item(() {
-        _filamentController.setMaterialColor(_shapes!, "Cone", 0, Colors.purple);
+        _filamentController.setMaterialColor(
+            _shapes!, "Cone", 0, Colors.purple);
       }, "set cone material color to purple"),
       _item(() {
         _loop = !_loop;
