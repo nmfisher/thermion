@@ -699,11 +699,12 @@ bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
 
     auto asset = _assetManager->getAssetByEntityId(entityId);
     if(!asset) {
-        Log("Failed to find asset attached to specified entity id.");
+        Log("Failed to find asset under entity id %d.", entityId);
+        return false;
     }
     size_t count = asset->getCameraEntityCount();
     if (count == 0) {
-        Log("Failed, no cameras found in current asset.");
+        Log("No cameras found attached to specified entity.");
         return false;
     }
 
@@ -715,7 +716,7 @@ bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
         auto inst = _ncm->getInstance(cameras[0]);
         const char *name = _ncm->getName(inst);
         target = cameras[0];
-        Log("No camera specified, using first : %s", name);
+        Log("No camera specified, using first camera node found (%s)", name);
     } else {
         for (int j = 0; j < count; j++) {
             auto inst = _ncm->getInstance(cameras[j]);
@@ -734,18 +735,17 @@ bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
     Camera *camera = _engine->getCameraComponent(target);
     if(!camera) {
         Log("Failed to retrieve camera component for target");
+        return false;
     }
     _view->setCamera(camera);
 
     const Viewport &vp = _view->getViewport();
     const double aspect = (double)vp.width / vp.height;
 
-    // const float aperture = camera->getAperture();
-    // const float shutterSpeed = camera->getShutterSpeed();
-    // const float sens = camera->getSensitivity();
-    // camera->setExposure(1.0f);
-
     camera->setScaling({1.0 / aspect, 1.0});
+
+    Log("Successfully set view camera to target");
+
     return true;
 }
 
