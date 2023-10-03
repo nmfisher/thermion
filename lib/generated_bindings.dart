@@ -1418,6 +1418,22 @@ class NativeLibrary {
   late final _render_ffi =
       _render_ffiPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
+  FilamentRenderCallback make_render_callback_fn_pointer(
+    FilamentRenderCallback arg0,
+  ) {
+    return _make_render_callback_fn_pointer(
+      arg0,
+    );
+  }
+
+  late final _make_render_callback_fn_pointerPtr = _lookup<
+      ffi.NativeFunction<
+          FilamentRenderCallback Function(
+              FilamentRenderCallback)>>('make_render_callback_fn_pointer');
+  late final _make_render_callback_fn_pointer =
+      _make_render_callback_fn_pointerPtr.asFunction<
+          FilamentRenderCallback Function(FilamentRenderCallback)>();
+
   void set_rendering_ffi(
     ffi.Pointer<ffi.Void> viewer,
     bool rendering,
@@ -2174,6 +2190,8 @@ typedef FreeFilamentResourceFromOwner = ffi.Pointer<
     ffi
     .NativeFunction<ffi.Void Function(ResourceBuffer, ffi.Pointer<ffi.Void>)>>;
 typedef EntityId = ffi.Int;
+typedef FilamentRenderCallback = ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> owner)>>;
 
 const int __bool_true_false_are_defined = 1;
 
