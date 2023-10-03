@@ -87,7 +87,6 @@ ResourceBuffer PolyvoxFilamentPlugin::loadResource(const char *name) {
     targetFilePath = exeDir.wstring() + L"data/flutter_assets/" +
                             assetPath;
   }
-  std::wcout << "Loading from " << targetFilePath << std::endl;
   std::streampos length;
   
   std::ifstream is(targetFilePath.c_str(), std::ios::binary);
@@ -97,6 +96,7 @@ ResourceBuffer PolyvoxFilamentPlugin::loadResource(const char *name) {
   }
   is.seekg(0, std::ios::end);
   length = is.tellg();
+
   char *buffer;
   buffer = new char[length];
   is.seekg(0, std::ios::beg);
@@ -105,6 +105,9 @@ ResourceBuffer PolyvoxFilamentPlugin::loadResource(const char *name) {
   auto id = _resources.size();
   auto rb = ResourceBuffer(buffer, length, id);
   _resources.emplace(id, rb);
+
+  std::wcout << "Loaded resource of length " << length << " from path " << targetFilePath << std::endl;
+
   return rb;
 }
 
