@@ -301,7 +301,11 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future<FilamentEntity> loadGltf(
-      String path, String relativeResourcePath) async {
+      String path, String relativeResourcePath, { bool force=false}) async {
+
+    if(Platform.isWindows && !force) {
+      throw Exception("loadGltf has a race condition on Windows which is likely to crash your program. If you really want to try, pass force=true to loadGltf");
+    }
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
@@ -465,9 +469,9 @@ class FilamentControllerFFI extends FilamentController {
       dataPtr.elementAt(i).value = animation.data[i];
     }
 
-    var morphIndicesPtr = calloc<Int>(animation.animatedMorphIndices.length);
+    Pointer<Int> idxPtr = calloc<Int>(animation.animatedMorphIndices.length);
     for (int i = 0; i < animation.numMorphTargets; i++) {
-      morphIndicesPtr.elementAt(i) = animation.animatedMorphIndices[i];
+      idxPtr.elementAt(i).value = animation.animatedMorphIndices[i];
     }
 
     _lib.set_morph_animation(
@@ -475,12 +479,12 @@ class FilamentControllerFFI extends FilamentController {
         asset,
         animation.meshName.toNativeUtf8().cast<Char>(),
         dataPtr,
-        morphIndicesPtr,
+        idxPtr,
         animation.numMorphTargets,
         animation.numFrames,
         (animation.frameLengthInMs));
     calloc.free(dataPtr);
-    calloc.free(morphIndicesPtr);
+    calloc.free(idxPtr);
   }
 
   ///
@@ -529,6 +533,7 @@ class FilamentControllerFFI extends FilamentController {
 
   ///
   /// Removes/destroys the specified entity from the scene.
+  /// [asset] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
   /// 
   @override
   Future removeAsset(FilamentEntity asset) async {
@@ -540,6 +545,7 @@ class FilamentControllerFFI extends FilamentController {
 
   ///
   /// Removes/destroys all renderable entities from the scene (including cameras).
+  /// All [FilamentEntity] handles will no longer be valid after this method is called; ensure you immediately discard all references to all entities once this method is complete.
   ///
   @override
   Future clearAssets() async {
