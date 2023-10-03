@@ -119,13 +119,13 @@ a) the backing textures needed to insert a `Texture` widget into
 b) a rendering thread 
 c) a `FilamentViewer` and an `AssetManager`, which will allow you to load assets/cameras/lighting/etc via the `FilamentController`
 
-If this was successful, you should see a black screen
+If this was successful, the viewport should turn from red to black.
 
 ### Rendering
 
 By default, the FilamentController will only render into the viewport by manually calling `render()` on the FilamentController. This is to avoid needlessly running a render loop when there is nothing to display.
 
-If you want to render at 60fps, call `setRendering(true)` on `FilamentController`.
+To automatically render at 60fps, call `setRendering(true)` on `FilamentController`.
 
 ### Assets
 
@@ -142,7 +142,6 @@ Then you would call the following
 ```
 var entity = _filamentController.loadGlb("assets/models/bob.glb");
 ```
-
 You can also pass a URI to indicate that the glTF file should be loaded from the filesystem:
 ```
 var entity = _filamentController.loadGlb("file:///tmp/bob.glb");
@@ -170,14 +169,16 @@ class MyApp extends StatelessWidget {
         color: Colors.white,
         home: Scaffold(backgroundColor: Colors.white, body: Stack(children:[
             Container(color:Colors.green, height:100, width:100),
-            Positioned.fill(top:100, left:100child:FilamentWidget(controller:_filamentController)),
+            Positioned.fill(top:100, left:100,child:FilamentGestureDetector(
+                controller: _filamentController,
+                child:FilamentWidget(
+                    controller:_filamentController
+                ))),
             Positioned(right:0, bottom:0, child:Container(color:Colors.purple, height:100, width:100))
         ])));
     }
 }
 ```
-
-
 
 # Building Filament from source
 
@@ -239,7 +240,10 @@ filament/out/release/filament/bin/resgen -c -p image -x ios/include/material/ ma
 ```
 
 
- 
+# Known issues
 
+On Windows, loading a glTF (but NOT a glb) may crash due to a race condition between uploading resource data to GPU memory and being freed on the host side.
 
+This has been fixed in recent versions of Filament, but other bugs on Windows prevent upgrading.
 
+Only workaround is to load a .glb file.
