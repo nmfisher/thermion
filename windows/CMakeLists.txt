@@ -52,11 +52,6 @@ add_library(GLESv2 SHARED IMPORTED)
 set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libGLESv2.dll.lib")
 set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/libGLESv2.dll.lib")
 set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/libGLESv2.dll.lib")
-# add_library(d3d_compiler SHARED IMPORTED)
-# set_property(TARGET d3d_compiler PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE_INIT}/d3dcompiler_47.dll")
-# set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/bluegl.lib")
-# set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/bluegl.lib")
-# set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/bluegl.lib")
 
 add_library(geometry SHARED IMPORTED)
 set_property(TARGET geometry PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/geometry.lib")
@@ -206,16 +201,13 @@ include_directories(
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
 flutter
 flutter_wrapper_plugin 
-# bluegl
   gltfio
  gltfio_core 
  filament 
  backend 
  geometry 
-#  filameshio 
  filamat 
  filabridge 
-#  filament-iblprefilter 
  camutils 
  filaflat 
  dracodec 
@@ -238,8 +230,6 @@ flutter_wrapper_plugin
  Shlwapi
  EGL
  GLESv2
-#  d3d_compiler
-#  opengl32
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin
@@ -249,7 +239,6 @@ set(polyvox_filament_bundled_libraries
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libc++.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/third_party_abseil-cpp_absl.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/third_party_zlib.dll
-  # ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/d3dcompiler_47.dll
   PARENT_SCOPE
 )
 
