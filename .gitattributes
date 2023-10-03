@@ -542,3 +542,5 @@ web/lib/libimage.a filter=lfs diff=lfs merge=lfs -text
 web/lib/libshaders.a filter=lfs diff=lfs merge=lfs -text
 assets/materials.uberz filter=lfs diff=lfs merge=lfs -text
 assets/materials_ios_arm64.uberz filter=lfs diff=lfs merge=lfs -text
+example/assets/shapes/ filter=lfs diff=lfs merge=lfs -text
+example/assets/shapes/*.* filter=lfs diff=lfs merge=lfs -text
