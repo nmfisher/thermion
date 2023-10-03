@@ -48,6 +48,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib = NativeLibrary(dl);
   }
 
+  @override
   Future setRendering(bool render) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -55,6 +56,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_rendering_ffi(_viewer!, render);
   }
 
+  @override
   Future render() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -62,14 +64,17 @@ class FilamentControllerFFI extends FilamentController {
     _lib.render_ffi(_viewer!);
   }
 
+  @override
   Future setFrameRate(int framerate) async {
     _lib.set_frame_interval_ffi(1.0 / framerate);
   }
 
+  @override
   void setPixelRatio(double ratio) {
     _pixelRatio = ratio;
   }
 
+  @override
   Future destroyViewer() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -80,6 +85,7 @@ class FilamentControllerFFI extends FilamentController {
     _isReadyForScene = Completer();
   }
 
+  @override
   Future destroyTexture() async {
     await _channel.invokeMethod("destroyTexture");
     _textureId = null;
@@ -87,14 +93,7 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   ///
-  /// You can insert a Filament viewport into the Flutter rendering hierarchy as follows:
-  /// 1) Create a FilamentController
-  /// 2) Insert a FilamentWidget into the rendering tree, passing this instance of FilamentController
-  /// 3) Initially, the FilamentWidget will only contain an empty Container (by default, with a solid red background).
-  ///    This widget will render a single frame to get its actual size, then will itself call [createViewer]. You do not need to call [createViewer] yourself.
-  /// 4) The FilamentController
-  /// 4) The FilamentWidget will replace the empty Container with a Texture widget
-  /// If you need to wait
+  /// Called by `FilamentWidget`. You do not need to call this yourself. 
   ///
   Future createViewer(int width, int height) async {
     if (_viewer != null) {
@@ -163,6 +162,7 @@ class FilamentControllerFFI extends FilamentController {
     _isReadyForScene.complete(true);
   }
 
+  @override
   Future resize(int width, int height, {double scaleFactor = 1.0}) async {
     _resizing = true;
     setRendering(false);
@@ -175,13 +175,15 @@ class FilamentControllerFFI extends FilamentController {
     setRendering(true);
   }
 
+  @override
   Future clearBackgroundImage() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
     _lib.clear_background_image_ffi(_viewer!);
   }
-
+  
+  @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -190,6 +192,7 @@ class FilamentControllerFFI extends FilamentController {
         _viewer!, path.toNativeUtf8().cast<Char>(), fillHeight);
   }
 
+  @override
   Future setBackgroundColor(Color color) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -202,6 +205,7 @@ class FilamentControllerFFI extends FilamentController {
         color.alpha.toDouble() / 255.0);
   }
 
+  @override
   Future setBackgroundImagePosition(double x, double y,
       {bool clamp = false}) async {
     if (_viewer == null || _resizing) {
@@ -210,6 +214,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_background_image_position_ffi(_viewer!, x, y, clamp);
   }
 
+  @override
   Future loadSkybox(String skyboxPath) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -217,6 +222,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.load_skybox_ffi(_viewer!, skyboxPath.toNativeUtf8().cast<Char>());
   }
 
+  @override
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -225,6 +231,7 @@ class FilamentControllerFFI extends FilamentController {
         _viewer!, lightingPath.toNativeUtf8().cast<Char>(), intensity);
   }
 
+  @override
   Future removeSkybox() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -232,6 +239,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.remove_skybox_ffi(_viewer!);
   }
 
+  @override
   Future removeIbl() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -239,6 +247,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.remove_ibl_ffi(_viewer!);
   }
 
+  @override
   Future<FilamentEntity> addLight(
       int type,
       double colour,
@@ -258,6 +267,7 @@ class FilamentControllerFFI extends FilamentController {
     return entity;
   }
 
+  @override
   Future removeLight(FilamentEntity light) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -265,6 +275,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.remove_light_ffi(_viewer!, light);
   }
 
+  @override
   Future clearLights() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -272,6 +283,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.clear_lights_ffi(_viewer!);
   }
 
+  @override
   Future<FilamentEntity> loadGlb(String path, {bool unlit = false}) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -287,18 +299,26 @@ class FilamentControllerFFI extends FilamentController {
     return asset;
   }
 
+  @override
   Future<FilamentEntity> loadGltf(
       String path, String relativeResourcePath) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    var entity = _lib.load_gltf_ffi(
+    var asset = _lib.load_gltf_ffi(
         _assetManager!,
         path.toNativeUtf8().cast<Char>(),
         relativeResourcePath.toNativeUtf8().cast<Char>());
-    return entity;
+    if (asset == FILAMENT_ASSET_ERROR) {
+      throw Exception("An error occurred loading the asset at $path");
+    }
+    return asset;
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future panStart(double x, double y) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -306,6 +326,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, true);
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future panUpdate(double x, double y) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -313,6 +337,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future panEnd() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -320,6 +348,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_end(_viewer!);
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future rotateStart(double x, double y) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -327,6 +359,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, false);
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future rotateUpdate(double x, double y) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -334,6 +370,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future rotateEnd() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -341,6 +381,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_end(_viewer!);
   }
 
+  /// 
+  /// Set the weights for all morph targets under node [meshName] in [asset] to [weights].
+  /// 
+  @override
   Future setMorphTargetWeights(
       FilamentEntity asset, String meshName, List<double> weights) async {
     if (_viewer == null || _resizing) {
@@ -356,6 +400,7 @@ class FilamentControllerFFI extends FilamentController {
     calloc.free(weightsPtr);
   }
 
+  @override
   Future<List<String>> getMorphTargetNames(
       FilamentEntity asset, String meshName) async {
     if (_viewer == null || _resizing) {
@@ -374,6 +419,7 @@ class FilamentControllerFFI extends FilamentController {
     return names.cast<String>();
   }
 
+  @override
   Future<List<String>> getAnimationNames(FilamentEntity asset) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -392,6 +438,7 @@ class FilamentControllerFFI extends FilamentController {
   ///
   /// Returns the length (in seconds) of the animation at the given index.
   ///
+  @override
   Future<double> getAnimationDuration(
       FilamentEntity asset, int animationIndex) async {
     if (_viewer == null || _resizing) {
@@ -406,6 +453,7 @@ class FilamentControllerFFI extends FilamentController {
   ///
   /// Create/start a dynamic morph target animation for [asset].
   ///
+  @override
   Future setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation) async {
     if (_viewer == null || _resizing) {
@@ -419,7 +467,7 @@ class FilamentControllerFFI extends FilamentController {
 
     var morphIndicesPtr = calloc<Int>(animation.animatedMorphIndices.length);
     for (int i = 0; i < animation.numMorphTargets; i++) {
-      // morphIndicesPtr.elementAt(i) = animation.animatedMorphIndices[i];
+      morphIndicesPtr.elementAt(i) = animation.animatedMorphIndices[i];
     }
 
     _lib.set_morph_animation(
@@ -441,6 +489,7 @@ class FilamentControllerFFI extends FilamentController {
   /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
   /// for now we only allow animating a single bone (though multiple skinned targets are supported)
   ///
+  @override
   Future setBoneAnimation(
       FilamentEntity asset, BoneAnimationData animation) async {
     if (_viewer == null || _resizing) {
@@ -478,13 +527,21 @@ class FilamentControllerFFI extends FilamentController {
     // calloc.free(data);
   }
 
+  ///
+  /// Removes/destroys the specified entity from the scene.
+  /// 
+  @override
   Future removeAsset(FilamentEntity asset) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.remove_asset_ffi(_assetManager!, asset);
+    _lib.remove_asset_ffi(_viewer!, asset);
   }
 
+  ///
+  /// Removes/destroys all renderable entities from the scene (including cameras).
+  ///
+  @override
   Future clearAssets() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -492,6 +549,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.clear_assets_ffi(_viewer!);
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future zoomBegin() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -499,6 +560,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.scroll_begin(_viewer!);
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future zoomUpdate(double z) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -506,6 +571,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.scroll_update(_viewer!, 0.0, 0.0, z);
   }
 
+  /// 
+  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
+  /// 
+  @override
   Future zoomEnd() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -513,6 +582,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.scroll_end(_viewer!);
   }
 
+  /// 
+  /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.
+  /// 
+  @override
   Future playAnimation(FilamentEntity asset, int index,
       {bool loop = false,
       bool reverse = false,
@@ -540,6 +613,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.stop_animation(_assetManager!, asset, animationIndex);
   }
 
+  /// 
+  /// Sets the current scene camera to the glTF camera under [name] in [asset].
+  /// 
+  @override
   Future setCamera(FilamentEntity asset, String? name) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -551,6 +628,10 @@ class FilamentControllerFFI extends FilamentController {
     }
   }
 
+  /// 
+  /// Sets the tone mapping.
+  /// 
+  @override
   Future setToneMapping(ToneMapper mapper) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -559,6 +640,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_tone_mapping_ffi(_viewer!, mapper.index);
   }
 
+  /// 
+  /// Sets the strength of the bloom.
+  /// 
+  @override
   Future setBloom(double bloom) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
@@ -594,6 +679,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.move_camera_to_asset(_viewer!, asset);
   }
 
+  /// 
+  /// Enables/disables frustum culling. Currently we don't expose a method for manipulating the camera projection/culling matrices so this is your only option to deal with unwanted near/far clipping.
+  /// 
+  @override
   Future setViewFrustumCulling(bool enabled) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
