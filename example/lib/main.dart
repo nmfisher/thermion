@@ -42,7 +42,7 @@ class ExampleWidget extends StatefulWidget {
 class _ExampleWidgetState extends State<ExampleWidget> {
   final _filamentController = FilamentControllerFFI();
 
-  FilamentEntity? _cube;
+  FilamentEntity? _shapes;
   FilamentEntity? _flightHelmet;
   List<String>? _animations;
   FilamentEntity? _light;
@@ -118,36 +118,36 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         'remove skybox',
       ),
       _item(() async {
-        _cube = await _filamentController.loadGlb('assets/cube.glb');
-        _animations = await _filamentController.getAnimationNames(_cube!);
+        _shapes = await _filamentController.loadGlb('assets/shapes/shapes.glb');
+        _animations = await _filamentController.getAnimationNames(_shapes!);
         setState(() {});
-      }, 'load cube GLB'),
+      }, 'load shapes GLB'),
       _item(() async {
         if (_coneHidden) {
-          _filamentController.reveal(_cube!, "Cone");
+          _filamentController.reveal(_shapes!, "Cone");
         } else {
-          _filamentController.hide(_cube!, "Cone");
+          _filamentController.hide(_shapes!, "Cone");
         }
         setState(() {
           _coneHidden = !_coneHidden;
         });
       }, _coneHidden ? 'show cone' : 'hide cone'),
       _item(() async {
-        if (_cube != null) {
-          _filamentController.removeAsset(_cube!);
+        if (_shapes != null) {
+          _filamentController.removeAsset(_shapes!);
         }
-        _cube =
-            await _filamentController.loadGltf('assets/cube.gltf', 'assets');
-      }, 'load cube GLTF'),
+        _shapes =
+            await _filamentController.loadGltf('assets/shapes/shapes.gltf', 'assets/shapes');
+      }, 'load shapes GLTF'),
       _item(() async {
-        _filamentController.transformToUnitCube(_cube!);
+        _filamentController.transformToUnitCube(_shapes!);
       }, 'transform to unit cube'),
       _item(() async {
-        _filamentController.setPosition(_cube!, 1.0, 1.0, -1.0);
-      }, 'set cube position to 1, 1, -1'),
+        _filamentController.setPosition(_shapes!, 1.0, 1.0, -1.0);
+      }, 'set shapes position to 1, 1, -1'),
       _item(() async {
-        _filamentController.setPosition(_cube!, 1.0, 1.0, -1.0);
-      }, 'move camera to cube position'),
+        _filamentController.setPosition(_shapes!, 1.0, 1.0, -1.0);
+      }, 'move camera to shapes position'),
       _item(() async {
         var frameData = Float32List.fromList(
             List<double>.generate(120, (i) => i / 120).expand((x) {
@@ -160,7 +160,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         }).toList());
 
         _filamentController.setBoneAnimation(
-            _cube!,
+            _shapes!,
             BoneAnimationData(
                 "Bone.001", ["Cube.001"], frameData, 1000.0 / 60.0));
         //     ,
@@ -170,14 +170,16 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         //         [Quaternion(x: 1, y: 1, z: 1, w: 1)]));
       }, 'construct bone animation'),
       _item(() async {
-        _filamentController.removeAsset(_cube!);
-      }, 'remove cube'),
+        _filamentController.removeAsset(_shapes!);
+        _shapes = null;
+      }, 'remove shapes'),
       _item(() async {
         _filamentController.clearAssets();
+        _shapes = null;
       }, 'clear all assets'),
       _item(() async {
         var names =
-            await _filamentController.getMorphTargetNames(_cube!, "Cylinder");
+            await _filamentController.getMorphTargetNames(_shapes!, "Cylinder");
         await showDialog(
             context: context,
             builder: (ctx) {
@@ -190,47 +192,47 @@ class _ExampleWidgetState extends State<ExampleWidget> {
       }, "show morph target names for Cylinder"),
       _item(() {
         _filamentController.setMorphTargetWeights(
-            _cube!, "Cylinder", List.filled(4, 1.0));
+            _shapes!, "Cylinder", List.filled(4, 1.0));
       }, "set Cylinder morph weights to 1"),
       _item(() {
         _filamentController.setMorphTargetWeights(
-            _cube!, "Cylinder", List.filled(4, 0.0));
+            _shapes!, "Cylinder", List.filled(4, 0.0));
       }, "set Cylinder morph weights to 0.0"),
       _item(() async {
         var morphs =
-            await _filamentController.getMorphTargetNames(_cube!, "Cylinder");
+            await _filamentController.getMorphTargetNames(_shapes!, "Cylinder");
         final animation = AnimationBuilder(
                 availableMorphs: morphs, framerate: 30, meshName: "Cylinder")
             .setDuration(4)
             .setMorphTargets(["Key 1", "Key 2"])
             .interpolateMorphWeights(0, 4, 0, 1)
             .build();
-        _filamentController.setMorphAnimationData(_cube!, animation);
+        _filamentController.setMorphAnimationData(_shapes!, animation);
       }, "animate cylinder morph weights #1 and #2"),
       _item(() async {
         var morphs =
-            await _filamentController.getMorphTargetNames(_cube!, "Cylinder");
+            await _filamentController.getMorphTargetNames(_shapes!, "Cylinder");
         final animation = AnimationBuilder(
                 availableMorphs: morphs, framerate: 30, meshName: "Cylinder")
             .setDuration(4)
             .setMorphTargets(["Key 3", "Key 4"])
             .interpolateMorphWeights(0, 4, 0, 1)
             .build();
-        _filamentController.setMorphAnimationData(_cube!, animation);
+        _filamentController.setMorphAnimationData(_shapes!, animation);
       }, "animate cylinder morph weights #3 and #4"),
       _item(() async {
         var morphs =
-            await _filamentController.getMorphTargetNames(_cube!, "Cube");
+            await _filamentController.getMorphTargetNames(_shapes!, "Cube");
         final animation = AnimationBuilder(
                 availableMorphs: morphs, framerate: 30, meshName: "Cube")
             .setDuration(4)
             .setMorphTargets(["Key 1", "Key 2"])
             .interpolateMorphWeights(0, 4, 0, 1)
             .build();
-        _filamentController.setMorphAnimationData(_cube!, animation);
-      }, "animate cube morph weights #1 and #2"),
+        _filamentController.setMorphAnimationData(_shapes!, animation);
+      }, "animate shapes morph weights #1 and #2"),
       _item(() {
-        _filamentController.setMaterialColor(_cube!, "Cone", 0, Colors.purple);
+        _filamentController.setMaterialColor(_shapes!, "Cone", 0, Colors.purple);
       }, "set cone material color to purple"),
       _item(() {
         _loop = !_loop;
@@ -239,11 +241,11 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     ];
     if (_animations != null) {
       children.addAll(_animations!.map((a) => _item(() {
-            _filamentController.playAnimation(_cube!, _animations!.indexOf(a),
+            _filamentController.playAnimation(_shapes!, _animations!.indexOf(a),
                 replaceActive: true, crossfade: 0.5, loop: _loop);
           }, "play animation ${_animations!.indexOf(a)} (replace/fade)")));
       children.addAll(_animations!.map((a) => _item(() {
-            _filamentController.playAnimation(_cube!, _animations!.indexOf(a),
+            _filamentController.playAnimation(_shapes!, _animations!.indexOf(a),
                 replaceActive: false, loop: _loop);
           }, "play animation ${_animations!.indexOf(a)} (noreplace)")));
     }
@@ -253,7 +255,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     }, "Set tone mapping to linear"));
 
     children.add(_item(() {
-      _filamentController.moveCameraToAsset(_cube!);
+      _filamentController.moveCameraToAsset(_shapes!);
     }, "Move camera to asset"));
 
     children.add(_item(() {
@@ -350,14 +352,14 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //         });
 //         break;
 //       case 14:
-//         _filamentController.setCamera(_cube!, "Camera_Orientation");
+//         _filamentController.setCamera(_shapes!, "Camera_Orientation");
 //         break;
 //       case 15:
 
 //         break;
 //       case 17:
 //         var animationNames =
-//             await _filamentController.getAnimationNames(_cube!);
+//             await _filamentController.getAnimationNames(_shapes!);
 
 //         await showDialog(
 //             context: context,
@@ -390,7 +392,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //       case 23:
 //         break;
 //       case 24:
-//         _filamentController.setRotation(_cube!, pi / 2, 0.0, 1.0, 0.0);
+//         _filamentController.setRotation(_shapes!, pi / 2, 0.0, 1.0, 0.0);
 //         break;
 //       case 25:
 //         setState(() {
@@ -430,8 +432,8 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //         break;
 //       case 34:
 //         var duration =
-//             await _filamentController.getAnimationDuration(_cube!, 0);
-//         _filamentController.playAnimation(_cube!, 0,
+//             await _filamentController.getAnimationDuration(_shapes!, 0);
+//         _filamentController.playAnimation(_shapes!, 0,
 //             loop: false, crossfade: 0.5);
 //         await Future.delayed(
 //             Duration(milliseconds: (duration * 1000.0).toInt()));
@@ -447,13 +449,13 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //         //     });
 //         break;
 //       case 35:
-//         _filamentController.playAnimation(_cube!, 1,
+//         _filamentController.playAnimation(_shapes!, 1,
 //             loop: false, crossfade: 0.5);
 //         break;
 //       case 36:
-//         _filamentController.playAnimation(_cube!, 2,
+//         _filamentController.playAnimation(_shapes!, 2,
 //             loop: false, crossfade: 0.5);
 //         break;
 //       case 37:
-//         _filamentController.stopAnimation(_cube!, 0);
+//         _filamentController.stopAnimation(_shapes!, 0);
 //         break;
