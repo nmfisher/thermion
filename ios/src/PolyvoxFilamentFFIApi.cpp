@@ -188,6 +188,15 @@ extern "C"
         fut.wait();
     }
 
+    FLUTTER_PLUGIN_EXPORT EntityId load_gltf_ffi(void* const assetManager, const char *path, const char *relativeResourcePath)
+    {
+        std::packaged_task<EntityId()> lambda([&]() mutable
+                                              { return load_gltf(assetManager, path, relativeResourcePath); });
+        auto fut = _rl->add_task(lambda);
+        fut.wait();
+        return fut.get();
+    }
+
     FLUTTER_PLUGIN_EXPORT EntityId load_glb_ffi(void* const assetManager, const char *path, bool unlit)
     {
         std::packaged_task<EntityId()> lambda([&]() mutable
