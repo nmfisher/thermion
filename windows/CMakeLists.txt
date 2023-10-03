@@ -27,7 +27,7 @@ add_library(${PLUGIN_NAME} SHARED
   "include/polyvox_filament/polyvox_filament_plugin_c_api.h"
   "polyvox_filament_plugin_c_api.cpp"
   ${PLUGIN_SOURCES}
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/include/material/image.c"
+  "include/material/image.c"
 )
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -41,6 +41,8 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
+
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include/filament")
  
 add_library(EGL SHARED IMPORTED)
 set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libEGL.dll.lib")

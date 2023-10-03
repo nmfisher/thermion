@@ -348,7 +348,12 @@ void FilamentViewer::loadKtxTexture(string path, ResourceBuffer rb) {
           new ktxreader::Ktx1Bundle(static_cast<const uint8_t *>(rb.data),
                                 static_cast<uint32_t>(rb.size));
 
-    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, &rb};
+    
+    // because the ResourceBuffer will go out of scope before the texture callback is invoked, we need to make a copy to the heap
+    ResourceBuffer* rbCopy = new ResourceBuffer(rb);
+
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, rbCopy };
+    
 
     _imageTexture =
           ktxreader::Ktx1Reader::createTexture(_engine, *bundle, false, [](void* userdata) {
@@ -356,6 +361,7 @@ void FilamentViewer::loadKtxTexture(string path, ResourceBuffer rb) {
           ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
           ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
           loader->free(*rb);
+          delete rb;
           delete vec;
       }, callbackData);
 
@@ -402,6 +408,8 @@ void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb) {
      Texture::Type::FLOAT, nullptr, freeCallback, image);
 
   _imageTexture->setImage(*_engine, 0, std::move(pbd));
+  // we don't need to free the ResourceBuffer in the texture callback because LinearImage takes a copy
+  // (check if this is correct ? )
   _resourceLoaderWrapper->free(rb);
 }
 
@@ -752,6 +760,9 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
   Log("Loading skybox from path %s", skyboxPath);
     
     ResourceBuffer skyboxBuffer = _resourceLoaderWrapper->load(skyboxPath);
+
+    // because this will go out of scope before the texture callback is invoked, we need to make a copy to the heap
+    ResourceBuffer* skyboxBufferCopy = new ResourceBuffer(skyboxBuffer);
     
     if(skyboxBuffer.size <= 0) {
       Log("Could not load skybox resource.");
@@ -760,7 +771,7 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
 
     Log("Loaded skybox data of length %d", skyboxBuffer.size);
 
-    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, &skyboxBuffer};
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, skyboxBufferCopy };
 
     image::Ktx1Bundle *skyboxBundle =
         new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data),
@@ -772,6 +783,7 @@ void FilamentViewer::loadSkybox(const char *const skyboxPath) {
         ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
         ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
         loader->free(*rb);
+        delete rb;
         delete vec;
         Log("Skybox load complete.");
         }, callbackData);
@@ -812,6 +824,8 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
 
     // Load IBL.
     ResourceBuffer iblBuffer = _resourceLoaderWrapper->load(iblPath);
+    // because this will go out of scope before the texture callback is invoked, we need to make a copy to the heap
+    ResourceBuffer* iblBufferCopy = new ResourceBuffer(iblBuffer);
 
     if(iblBuffer.size == 0) {
       Log("Error loading IBL, resource could not be loaded.");
@@ -824,7 +838,7 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
     math::float3 harmonics[9];
     iblBundle->getSphericalHarmonics(harmonics);
 
-    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, &iblBuffer};
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, iblBufferCopy };
 
       _iblTexture =
         ktxreader::Ktx1Reader::createTexture(_engine, *iblBundle, false, [](void* userdata) {
@@ -832,6 +846,7 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
             ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
             ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
             loader->free(*rb);
+            delete rb;
             delete vec;
     }, callbackData);
     _indirectLight = IndirectLight::Builder()
@@ -840,8 +855,6 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
                          .intensity(intensity)
                          .build(*_engine);
     _scene->setIndirectLight(_indirectLight);
-
-    _resourceLoaderWrapper->free(iblBuffer);
 
     Log("IBL loaded.");
   }
