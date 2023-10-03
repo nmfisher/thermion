@@ -71,6 +71,7 @@ class FilamentControllerFFI extends FilamentController {
   @override
   void setPixelRatio(double ratio) {
     _pixelRatio = ratio;
+    print("Set pixel ratio to $ratio");
   }
 
   @override
@@ -104,6 +105,8 @@ class FilamentControllerFFI extends FilamentController {
           "Do not call createViewer when a viewer has already been created without calling destroyViewer");
     }
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
+
+    print("Creating viewer with size $size");
 
     var textures =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
@@ -145,14 +148,18 @@ class FilamentControllerFFI extends FilamentController {
     }
 
     _lib.create_swap_chain_ffi(
-        _viewer!, Pointer<Void>.fromAddress(surfaceAddress), width, height);
+        _viewer!,
+        Pointer<Void>.fromAddress(surfaceAddress),
+        size.width.toInt(),
+        size.height.toInt());
     if (nativeTexture != 0) {
       assert(surfaceAddress == 0);
-      _lib.create_render_target(_viewer!, nativeTexture, width, height);
+      _lib.create_render_target(
+          _viewer!, nativeTexture, size.width.toInt(), size.height.toInt());
     }
 
     _lib.update_viewport_and_camera_projection_ffi(
-        _viewer!, width, height, 1.0);
+        _viewer!, size.width.toInt(), size.height.toInt(), 1.0);
 
     _assetManager = _lib.get_asset_manager(_viewer!);
 
@@ -165,11 +172,12 @@ class FilamentControllerFFI extends FilamentController {
   Future resize(int width, int height, {double scaleFactor = 1.0}) async {
     _resizing = true;
     setRendering(false);
-    _textureId = await _channel.invokeMethod(
-        "resize", [width * _pixelRatio, height * _pixelRatio, scaleFactor]);
+    size = ui.Size(width * _pixelRatio, height * _pixelRatio);
+    _textureId = await _channel
+        .invokeMethod("resize", [size.width, size.height, scaleFactor]);
     _textureIdController.add(_textureId);
     _lib.update_viewport_and_camera_projection_ffi(
-        _viewer!, width, height, scaleFactor);
+        _viewer!, size.width.toInt(), size.height.toInt(), scaleFactor);
     _resizing = false;
     setRendering(true);
   }
@@ -448,7 +456,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     var duration =
-        _lib.get_animation_duration_ffi(_assetManager!, asset, animationIndex);
+        _lib.get_animation_duration(_assetManager!, asset, animationIndex);
 
     return duration;
   }

@@ -81,7 +81,6 @@ FLUTTER_PLUGIN_EXPORT void set_animation_frame_ffi(void* const assetManager, Ent
 FLUTTER_PLUGIN_EXPORT void stop_animation_ffi(void* const assetManager, EntityId asset, int index);
 FLUTTER_PLUGIN_EXPORT int get_animation_count_ffi(void* const assetManager, EntityId asset);
 FLUTTER_PLUGIN_EXPORT void get_animation_name_ffi(void* const assetManager, EntityId asset, char *const outPtr, int index);
-FLUTTER_PLUGIN_EXPORT float get_animation_duration_ffi(void* const assetManager, EntityId asset, int index);
 FLUTTER_PLUGIN_EXPORT void get_morph_target_name_ffi(void* const assetManager, EntityId asset, const char *meshName, char *const outPtr, int index);
 FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count_ffi(void* const assetManager, EntityId asset, const char *meshName);
 
