@@ -143,7 +143,6 @@ FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWr
 
   Log("Main camera created");
   _view = _engine->createView();
-  _view->setPostProcessingEnabled(false);
   Log("View created");
 
   setToneMapping(ToneMapping::ACES);
@@ -247,6 +246,10 @@ FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWr
   _scene->addEntity(imageEntity);
 }
 
+void FilamentViewer::setPostProcessing(bool enabled) {
+  _view->setPostProcessingEnabled(enabled);
+}
+
 void FilamentViewer::setBloom(float strength) {
   decltype(_view->getBloomOptions()) opts;
   opts.enabled = true;
@@ -259,14 +262,20 @@ void FilamentViewer::setToneMapping(ToneMapping toneMapping) {
   ToneMapper* tm;
   switch(toneMapping) {
     case ToneMapping::ACES:
+      Log("Setting tone mapping to ACES");
       tm = new ACESToneMapper();
       break;
     case ToneMapping::LINEAR:
+      Log("Setting tone mapping to Linear");
       tm = new LinearToneMapper();
       break;
     case ToneMapping::FILMIC:
+      Log("Setting tone mapping to Filmic");
       tm = new FilmicToneMapper();
       break;
+    default:
+      Log("ERROR: Unsupported tone mapping");
+      return;
   }
 
  
@@ -305,7 +314,7 @@ void FilamentViewer::removeLight(EntityId entityId) {
   if(entity.isNull()) {
     Log("Error: light entity not found under ID %d", entityId);
   } else {
-    auto removed = remove(_lights.begin(), _lights.end(), entity);
+    remove(_lights.begin(), _lights.end(), entity);
     _scene->remove(entity);
     EntityManager::get().destroy(1, &entity);
   }
@@ -437,7 +446,6 @@ void FilamentViewer::loadTextureFromPath(string path) {
 void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a) {
   _imageMaterial->setDefaultParameter("showImage", 0);
   _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
-  const Viewport& vp = _view->getViewport();
   _imageMaterial->setDefaultParameter("transform", _imageScale); 
 }
 

@@ -150,6 +150,7 @@ FLUTTER_PLUGIN_EXPORT void set_camera_focal_length(const void* const viewer, flo
 FLUTTER_PLUGIN_EXPORT void set_camera_focus_distance(const void* const viewer, float focusDistance);
 FLUTTER_PLUGIN_EXPORT int hide_mesh(void* assetManager, EntityId asset, const char* meshName);
 FLUTTER_PLUGIN_EXPORT int reveal_mesh(void* assetManager, EntityId asset, const char* meshName);
+FLUTTER_PLUGIN_EXPORT void set_post_processing(void* const viewer, bool enabled);
 FLUTTER_PLUGIN_EXPORT void ios_dummy();
 #ifdef __cplusplus
 }

@@ -143,7 +143,6 @@ FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWr
 
   Log("Main camera created");
   _view = _engine->createView();
-  _view->setPostProcessingEnabled(false);
   Log("View created");
 
   setToneMapping(ToneMapping::ACES);
@@ -247,6 +246,10 @@ FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWr
   _scene->addEntity(imageEntity);
 }
 
+void FilamentViewer::setPostProcessing(bool enabled) {
+  _view->setPostProcessingEnabled(enabled);
+}
+
 void FilamentViewer::setBloom(float strength) {
   decltype(_view->getBloomOptions()) opts;
   opts.enabled = true;
@@ -259,14 +262,20 @@ void FilamentViewer::setToneMapping(ToneMapping toneMapping) {
   ToneMapper* tm;
   switch(toneMapping) {
     case ToneMapping::ACES:
+      Log("Setting tone mapping to ACES");
       tm = new ACESToneMapper();
       break;
     case ToneMapping::LINEAR:
+      Log("Setting tone mapping to Linear");
       tm = new LinearToneMapper();
       break;
     case ToneMapping::FILMIC:
+      Log("Setting tone mapping to Filmic");
       tm = new FilmicToneMapper();
       break;
+    default:
+      Log("ERROR: Unsupported tone mapping");
+      return;
   }
 
  
@@ -305,7 +314,7 @@ void FilamentViewer::removeLight(EntityId entityId) {
   if(entity.isNull()) {
     Log("Error: light entity not found under ID %d", entityId);
   } else {
-    auto removed = remove(_lights.begin(), _lights.end(), entity);
+    remove(_lights.begin(), _lights.end(), entity);
     _scene->remove(entity);
     EntityManager::get().destroy(1, &entity);
   }
@@ -347,11 +356,23 @@ void FilamentViewer::loadKtxTexture(string path, ResourceBuffer rb) {
     ktxreader::Ktx1Bundle *bundle =
           new ktxreader::Ktx1Bundle(static_cast<const uint8_t *>(rb.data),
                                 static_cast<uint32_t>(rb.size));
+
+    
+    // because the ResourceBuffer will go out of scope before the texture callback is invoked, we need to make a copy to the heap
+    ResourceBuffer* rbCopy = new ResourceBuffer(rb);
+
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, rbCopy };
+    
+
     _imageTexture =
           ktxreader::Ktx1Reader::createTexture(_engine, *bundle, false, [](void* userdata) {
-          Ktx1Bundle* bundle = (Ktx1Bundle*) userdata;
-          delete bundle;
-      }, bundle);
+          std::vector<void*>* vec = (std::vector<void*>*)userdata;
+          ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
+          ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
+          loader->free(*rb);
+          delete rb;
+          delete vec;
+      }, callbackData);
 
     auto info = bundle->getInfo();
     _imageWidth = info.pixelWidth;
@@ -396,6 +417,9 @@ void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb) {
      Texture::Type::FLOAT, nullptr, freeCallback, image);
 
   _imageTexture->setImage(*_engine, 0, std::move(pbd));
+  // we don't need to free the ResourceBuffer in the texture callback because LinearImage takes a copy
+  // (check if this is correct ? )
+  _resourceLoaderWrapper->free(rb);
 }
 
 void FilamentViewer::loadTextureFromPath(string path) {
@@ -417,13 +441,11 @@ void FilamentViewer::loadTextureFromPath(string path) {
   } else if(endsWith(path, pngExt)) {
     loadPngTexture(path, rb);
   }
-  _resourceLoaderWrapper->free(rb);
 }
 
 void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a) {
   _imageMaterial->setDefaultParameter("showImage", 0);
   _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
-  const Viewport& vp = _view->getViewport();
   _imageMaterial->setDefaultParameter("transform", _imageScale); 
 }
 
@@ -685,11 +707,12 @@ bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
 
     auto asset = _assetManager->getAssetByEntityId(entityId);
     if(!asset) {
-        Log("Failed to find asset attached to specified entity id.");
+        Log("Failed to find asset under entity id %d.", entityId);
+        return false;
     }
     size_t count = asset->getCameraEntityCount();
     if (count == 0) {
-        Log("Failed, no cameras found in current asset.");
+        Log("No cameras found attached to specified entity.");
         return false;
     }
 
@@ -701,7 +724,7 @@ bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
         auto inst = _ncm->getInstance(cameras[0]);
         const char *name = _ncm->getName(inst);
         target = cameras[0];
-        Log("No camera specified, using first : %s", name);
+        Log("No camera specified, using first camera node found (%s)", name);
     } else {
         for (int j = 0; j < count; j++) {
             auto inst = _ncm->getInstance(cameras[j]);
@@ -720,61 +743,76 @@ bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName) {
     Camera *camera = _engine->getCameraComponent(target);
     if(!camera) {
         Log("Failed to retrieve camera component for target");
+        return false;
     }
     _view->setCamera(camera);
 
     const Viewport &vp = _view->getViewport();
     const double aspect = (double)vp.width / vp.height;
 
-    // const float aperture = camera->getAperture();
-    // const float shutterSpeed = camera->getShutterSpeed();
-    // const float sens = camera->getSensitivity();
-    // camera->setExposure(1.0f);
-
     camera->setScaling({1.0 / aspect, 1.0});
+
+    Log("Successfully set view camera to target");
+
     return true;
 }
 
 void FilamentViewer::loadSkybox(const char *const skyboxPath) {
-  Log("Loading skybox from %s", skyboxPath);
 
   removeSkybox();
  
-  if (skyboxPath) {
+  if (!skyboxPath) {
+    Log("No skybox path provided, removed skybox.");
+  }
+
+  Log("Loading skybox from path %s", skyboxPath);
+    
     ResourceBuffer skyboxBuffer = _resourceLoaderWrapper->load(skyboxPath);
 
+    // because this will go out of scope before the texture callback is invoked, we need to make a copy to the heap
+    ResourceBuffer* skyboxBufferCopy = new ResourceBuffer(skyboxBuffer);
+    
     if(skyboxBuffer.size <= 0) {
       Log("Could not load skybox resource.");
       return;
     }
-    
+
+    Log("Loaded skybox data of length %d", skyboxBuffer.size);
+
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, skyboxBufferCopy };
+
     image::Ktx1Bundle *skyboxBundle =
         new image::Ktx1Bundle(static_cast<const uint8_t *>(skyboxBuffer.data),
                               static_cast<uint32_t>(skyboxBuffer.size));
 
     _skyboxTexture =
         ktxreader::Ktx1Reader::createTexture(_engine, *skyboxBundle, false, [](void* userdata) {
-        image::Ktx1Bundle* bundle = (image::Ktx1Bundle*) userdata;
-        delete bundle;
-    }, skyboxBundle);
+        std::vector<void*>* vec = (std::vector<void*>*)userdata;
+        ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
+        ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
+        loader->free(*rb);
+        delete rb;
+        delete vec;
+        Log("Skybox load complete.");
+        }, callbackData);
     _skybox =
         filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
 
     _scene->setSkybox(_skybox);
-    _resourceLoaderWrapper->free(skyboxBuffer);
-  }
+
 }
 
 void FilamentViewer::removeSkybox() { 
   Log("Removing skybox");
+  _scene->setSkybox(nullptr);
   if(_skybox) {
-
     _engine->destroy(_skybox);
-    _engine->destroy(_skyboxTexture);
     _skybox = nullptr;
+  }
+  if(_skyboxTexture) {
+    _engine->destroy(_skyboxTexture);
     _skyboxTexture = nullptr;
-  } 
-  _scene->setSkybox(nullptr); 
+  }
 }
 
 void FilamentViewer::removeIbl() { 
@@ -794,6 +832,8 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
 
     // Load IBL.
     ResourceBuffer iblBuffer = _resourceLoaderWrapper->load(iblPath);
+    // because this will go out of scope before the texture callback is invoked, we need to make a copy to the heap
+    ResourceBuffer* iblBufferCopy = new ResourceBuffer(iblBuffer);
 
     if(iblBuffer.size == 0) {
       Log("Error loading IBL, resource could not be loaded.");
@@ -805,11 +845,18 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
                               static_cast<uint32_t>(iblBuffer.size));
     math::float3 harmonics[9];
     iblBundle->getSphericalHarmonics(harmonics);
-    _iblTexture =
+
+    std::vector<void*>* callbackData = new std::vector<void*> { (void*)_resourceLoaderWrapper, iblBufferCopy };
+
+      _iblTexture =
         ktxreader::Ktx1Reader::createTexture(_engine, *iblBundle, false, [](void* userdata) {
-        image::Ktx1Bundle* bundle = (image::Ktx1Bundle*) userdata;
-        delete bundle;
-    }, iblBundle);
+            std::vector<void*>* vec = (std::vector<void*>*)userdata;
+            ResourceLoaderWrapper* loader = (ResourceLoaderWrapper*)vec->at(0);
+            ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
+            loader->free(*rb);
+            delete rb;
+            delete vec;
+    }, callbackData);
     _indirectLight = IndirectLight::Builder()
                          .reflections(_iblTexture)
                          .irradiance(3, harmonics)
@@ -817,9 +864,7 @@ void FilamentViewer::loadIbl(const char *const iblPath, float intensity) {
                          .build(*_engine);
     _scene->setIndirectLight(_indirectLight);
 
-    _resourceLoaderWrapper->free(iblBuffer);
-
-    Log("Skybox/IBL load complete.");
+    Log("IBL loaded.");
   }
 }
 

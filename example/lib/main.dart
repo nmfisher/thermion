@@ -53,7 +53,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   bool _vertical = false;
   bool _rendering = false;
   int _framerate = 60;
-
+  bool _postProcessing = true;
   bool _initialized = false;
 
   bool _coneHidden = false;
@@ -111,6 +111,12 @@ class _ExampleWidgetState extends State<ExampleWidget> {
       _item(() {
         _filamentController.loadIbl('assets/default_env/default_env_ibl.ktx');
       }, 'load IBL'),
+      _item(() {
+        setState(() {
+          _postProcessing = !_postProcessing;
+        });
+        _filamentController.setPostProcessing(_postProcessing);
+      }, "${_postProcessing ? "Disable" : "Enable"} postprocessing"),
       _item(
         () {
           _filamentController.removeSkybox();

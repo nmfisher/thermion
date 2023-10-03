@@ -84,8 +84,7 @@ EntityId AssetManager::loadGltf(const char *uri,
     ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
     
     // Parse the glTF file and create Filament entities.
-    FilamentAsset *asset =
-    _assetLoader->createAsset((uint8_t *)rbuf.data, rbuf.size);
+    FilamentAsset *asset = _assetLoader->createAsset((uint8_t *)rbuf.data, rbuf.size);
     
     if (!asset) {
         Log("Unable to parse asset");
@@ -94,36 +93,40 @@ EntityId AssetManager::loadGltf(const char *uri,
     
     const char *const *const resourceUris = asset->getResourceUris();
     const size_t resourceUriCount = asset->getResourceUriCount();
+
+    std::vector<ResourceBuffer> resourceBuffers;
     
     for (size_t i = 0; i < resourceUriCount; i++) {
-        string uri =
-        string(relativeResourcePath) + string("/") + string(resourceUris[i]);
+        string uri = string(relativeResourcePath) + string("/") + string(resourceUris[i]);
+        Log("Loading resource URI from relative path %s", resourceUris[i], uri.c_str());
         ResourceBuffer buf = _resourceLoaderWrapper->load(uri.c_str());
+    
+        resourceBuffers.push_back(buf);
         
         ResourceLoader::BufferDescriptor b(buf.data, buf.size);
         _gltfResourceLoader->addResourceData(resourceUris[i], std::move(b));
-        _resourceLoaderWrapper->free(buf);
     }
     
-    _gltfResourceLoader->loadResources(asset);
+    // load resources synchronously
+    if (!_gltfResourceLoader->loadResources(asset)) {
+        Log("Unknown error loading glTF asset");
+        _resourceLoaderWrapper->free(rbuf);
+        for(auto& rb : resourceBuffers) {
+            _resourceLoaderWrapper->free(rb);
+        }
+        return 0;
+    }
     const utils::Entity *entities = asset->getEntities();
-    RenderableManager &rm = _engine->getRenderableManager();
-    for (int i = 0; i < asset->getEntityCount(); i++) {
-        auto inst = rm.getInstance(entities[i]);
-        rm.setCulling(inst, false);
-    }
-    
+        
+    _scene->addEntities(asset->getEntities(), asset->getEntityCount());
+
     FilamentInstance* inst = asset->getInstance();
     inst->getAnimator()->updateBoneMatrices();
     inst->recomputeBoundingBoxes();
     
-    _scene->addEntities(asset->getEntities(), asset->getEntityCount());
-    
     asset->releaseSourceData();
     
-    Log("Load complete for GLTF at URI %s", uri);
     SceneAsset sceneAsset(asset);
-    
     
     utils::Entity e = EntityManager::get().create();
     
@@ -131,16 +134,23 @@ EntityId AssetManager::loadGltf(const char *uri,
     
     _entityIdLookup.emplace(eid, _assets.size());
     _assets.push_back(sceneAsset);
+
+    for(auto& rb : resourceBuffers) {
+        _resourceLoaderWrapper->free(rb);
+    }
+    _resourceLoaderWrapper->free(rbuf);
     
+    Log("Finished loading glTF from %s", uri);
+
     return eid;
 }
 
 EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
-    
-    Log("Loading GLB at URI %s", uri);
-    
+        
     ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
-    
+
+    Log("Loaded GLB of size %d at URI %s", rbuf.size, uri);
+
     FilamentAsset *asset = _assetLoader->createAsset(
                                                      (const uint8_t *)rbuf.data, rbuf.size);
     
@@ -153,8 +163,12 @@ EntityId AssetManager::loadGlb(const char *uri, bool unlit) {
     
     _scene->addEntities(asset->getEntities(), entityCount);
     
-    _gltfResourceLoader->loadResources(asset);
-    
+    if (!_gltfResourceLoader->loadResources(asset)) {
+        Log("Unknown error loading glb asset");
+        _resourceLoaderWrapper->free(rbuf);
+        return 0;
+    }
+        
     const Entity *entities = asset->getEntities();
     
     auto lights = asset->getLightEntities();
@@ -220,12 +234,9 @@ bool AssetManager::reveal(EntityId entityId, const char* meshName) {
 void AssetManager::destroyAll() {
     for (auto& asset : _assets) {
         _scene->removeEntities(asset.mAsset->getEntities(),
-                               asset.mAsset->getEntityCount());
-        
+                                asset.mAsset->getEntityCount());
         _scene->removeEntities(asset.mAsset->getLightEntities(),
-                               asset.mAsset->getLightEntityCount());
-        
-        _gltfResourceLoader->evictResourceData();
+                                asset.mAsset->getLightEntityCount());
         _assetLoader->destroyAsset(asset.mAsset);
     }
     _assets.clear();
@@ -370,6 +381,10 @@ void AssetManager::remove(EntityId entityId) {
         return;
     }
     SceneAsset& sceneAsset = _assets[pos->second];
+
+    _assets.erase(std::remove_if(_assets.begin(), _assets.end(),
+                                           [=](SceneAsset& asset) { return asset.mAsset == sceneAsset.mAsset; }),
+                            _assets.end());
     
     _scene->removeEntities(sceneAsset.mAsset->getEntities(),
                            sceneAsset.mAsset->getEntityCount());
@@ -384,7 +399,8 @@ void AssetManager::remove(EntityId entityId) {
     }
     EntityManager& em = EntityManager::get();
     em.destroy(Entity::import(entityId));
-    sceneAsset.mAsset = nullptr; // still need to remove sceneAsset somewhere...
+
+
 }
 
 void AssetManager::setMorphTargetWeights(EntityId entityId, const char* const entityName, const float* const weights, const int count) {

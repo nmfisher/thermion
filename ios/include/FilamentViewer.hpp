@@ -106,6 +106,7 @@ namespace polyvox {
             int32_t addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
             void removeLight(EntityId entityId);
             void clearLights();
+            void setPostProcessing(bool enabled);
 
             AssetManager* const getAssetManager() {
                 return (AssetManager* const) _assetManager;

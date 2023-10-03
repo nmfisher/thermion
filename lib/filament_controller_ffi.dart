@@ -642,7 +642,7 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   ///
-  /// Sets the tone mapping.
+  /// Sets the tone mapping (requires postprocessing).
   ///
   @override
   Future setToneMapping(ToneMapper mapper) async {
@@ -651,6 +651,18 @@ class FilamentControllerFFI extends FilamentController {
     }
 
     _lib.set_tone_mapping_ffi(_viewer!, mapper.index);
+  }
+
+  ///
+  /// Enable/disable postprocessing.
+  ///
+  @override
+  Future setPostProcessing(bool enabled) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
+
+    _lib.set_post_processing_ffi(_viewer!, enabled);
   }
 
   ///

@@ -1,7 +1,5 @@
 
-extern "C" {
-    #include "PolyvoxFilamentFFIApi.h"
-}
+#include "PolyvoxFilamentFFIApi.h"
 
 #include "FilamentViewer.hpp"
 #include "filament/LightManager.h"
@@ -190,6 +188,15 @@ extern "C"
         fut.wait();
     }
 
+    FLUTTER_PLUGIN_EXPORT EntityId load_gltf_ffi(void* const assetManager, const char *path, const char *relativeResourcePath)
+    {
+        std::packaged_task<EntityId()> lambda([&]() mutable
+                                              { return load_gltf(assetManager, path, relativeResourcePath); });
+        auto fut = _rl->add_task(lambda);
+        fut.wait();
+        return fut.get();
+    }
+
     FLUTTER_PLUGIN_EXPORT EntityId load_glb_ffi(void* const assetManager, const char *path, bool unlit)
     {
         std::packaged_task<EntityId()> lambda([&]() mutable
@@ -362,28 +369,31 @@ extern "C"
         // TODO
     }
 
-    void play_animation_ffi(void* const assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade)
+    FLUTTER_PLUGIN_EXPORT void play_animation_ffi(void* const assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade)
     {
         std::packaged_task<void()> lambda([&]
                                           { play_animation(assetManager, asset, index, loop, reverse, replaceActive, crossfade); });
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
-    void set_animation_frame_ffi(void* const assetManager, EntityId asset, int animationIndex, int animationFrame)
+    
+    FLUTTER_PLUGIN_EXPORT void set_animation_frame_ffi(void* const assetManager, EntityId asset, int animationIndex, int animationFrame)
     {
         std::packaged_task<void()> lambda([&]
                                           { set_animation_frame(assetManager, asset, animationIndex, animationFrame); });
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
-    void stop_animation_ffi(void* const assetManager, EntityId asset, int index)
+    
+    FLUTTER_PLUGIN_EXPORT void stop_animation_ffi(void* const assetManager, EntityId asset, int index)
     {
         std::packaged_task<void()> lambda([&]
                                           { stop_animation(assetManager, asset, index); });
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
-    int get_animation_count_ffi(void* const assetManager, EntityId asset)
+    
+    FLUTTER_PLUGIN_EXPORT int get_animation_count_ffi(void* const assetManager, EntityId asset)
     {
         std::packaged_task<int()> lambda([&]
                                          { return get_animation_count(assetManager, asset); });
@@ -391,10 +401,18 @@ extern "C"
         fut.wait();
         return fut.get();
     }
-    void get_animation_name_ffi(void* const assetManager, EntityId asset, char *const outPtr, int index)
+    FLUTTER_PLUGIN_EXPORT void get_animation_name_ffi(void* const assetManager, EntityId asset, char *const outPtr, int index)
     {
         std::packaged_task<void()> lambda([&] {
             get_animation_name(assetManager, asset, outPtr, index);
+        });
+        auto fut = _rl->add_task(lambda);
+        fut.wait();
+    }
+
+    FLUTTER_PLUGIN_EXPORT void set_post_processing_ffi(void* const viewer, bool enabled) {
+        std::packaged_task<void()> lambda([&] {
+            set_post_processing(viewer, enabled);
         });
         auto fut = _rl->add_task(lambda);
         fut.wait();

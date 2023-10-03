@@ -232,7 +232,7 @@ extern "C" {
       );
   }
 
-  FLUTTER_PLUGIN_EXPORT void  set_bone_animation(
+  FLUTTER_PLUGIN_EXPORT void set_bone_animation(
     void* assetManager,
     EntityId asset, 
     const float* const frameData,
@@ -252,6 +252,10 @@ extern "C" {
         numMeshTargets,
         frameLengthInMs
       );
+    }
+
+    FLUTTER_PLUGIN_EXPORT void set_post_processing(void* const viewer, bool enabled) {
+        ((FilamentViewer*)viewer)->setPostProcessing(enabled);
     }
 
 

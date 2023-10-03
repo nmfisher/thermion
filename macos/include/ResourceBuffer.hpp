@@ -2,6 +2,7 @@
 #define RESOURCE_BUFFER_H
 
 #include <stdint.h>
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -57,6 +58,8 @@ extern "C" {
             mFreeFilamentResource(rb);
           }
         }
+
+
       #endif
         LoadFilamentResource mLoadFilamentResource;
         FreeFilamentResource mFreeFilamentResource;
@@ -65,7 +68,6 @@ extern "C" {
         void* mOwner;
     };
     typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
-    
     
 #if defined(__cplusplus)
 }
