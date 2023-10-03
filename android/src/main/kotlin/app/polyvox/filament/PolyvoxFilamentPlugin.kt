@@ -98,20 +98,24 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
       if(path!!.startsWith("file://")) {
           data = File(path!!.substring(6)).readBytes()
       } else {
+          var assetPath = path
+          if(assetPath.startsWith("asset://")) {
+            assetPath = assetPath!!.substring(8)
+          }
           val loader = FlutterInjector.instance().flutterLoader()
-          val key = loader.getLookupKeyForAsset(path)
+          val key = loader.getLookupKeyForAsset(assetPath)
           val hotReloadPath = HotReloadPathHelper.getAssetPath(key, activity.getPackageName())
           if (hotReloadPath != null) {
               data = File(hotReloadPath).readBytes()
           } else {
-              Log.i("polyvox_filament", "Loading resource from main asset bundle")
+              Log.i("polyvox_filament", "Loading resource from main asset bundle at ${assetPath}")
 
               val assetManager: AssetManager = activity.assets
               try {
                   data = assetManager.open(key).readBytes()
                   Log.i("polyvox_filament", "Loaded ${data.size} bytes")
               } catch (e:Exception) {
-                  Log.e("polyvox_filament", "Failed to open asset at ${path}", null)
+                  Log.e("polyvox_filament", "Failed to open asset at ${assetPath}", null)
               }
           }
       }
