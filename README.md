@@ -71,7 +71,7 @@ dependencies:
       path: <path where you cloned the repository>      
 ```
 
-# Usage
+# Basic Usage
 
 See the `example` project for a complete sample of the below steps.
 
@@ -179,6 +179,24 @@ class MyApp extends StatelessWidget {
     }
 }
 ```
+
+## Advanced Usage
+
+If you want to work with custom materials, you will need some (basic knowledge of the underlying Filament library)[https://google.github.io/filament/Materials.html#compilingmaterials].
+
+Things to keep in mind:
+- You must compile materials with the correct version of Filament (see the table above). Keep in mind that versions may not be identical across platforms so you may need multiple uberz files for multiple platforms.
+
+e.g. the lit_opaque.uberz file has been created from a Filament build:
+
+```
+cd out/cmake-android-release-aarch64/libs/gltfio
+uberz -TSHADINGMODEL=lit -TBLENDING=opaque -o lit_opaque_43.uberz lit_opaque 
+```
+
+(note that the number in the filename corresponds to the Material version, not the Filament version. Not every Filament version requires a new Material version).
+
+
 
 # Building Filament from source
 
