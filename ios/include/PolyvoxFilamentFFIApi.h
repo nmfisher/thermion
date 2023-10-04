@@ -1,6 +1,8 @@
 #ifndef _POLYVOX_FILAMENT_FFI_API_H
 #define _POLYVOX_FILAMENT_FFI_API_H
 
+#include "PolyvoxFilamentApi.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -9,8 +11,6 @@ extern "C" {
 /// This header replicates most of the methods in PolyvoxFilamentApi.h, and is only intended to be used to generate client FFI bindings.
 /// The intention is that calling one of these methods will call its respective method in PolyvoxFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety. 
 /// 
-
-#include "PolyvoxFilamentApi.h"
 
 typedef int32_t EntityId;
 typedef void (*FilamentRenderCallback)(void* const owner);
