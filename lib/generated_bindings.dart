@@ -23,11 +23,13 @@ class NativeLibrary {
     ffi.Pointer<ffi.Void> context,
     ffi.Pointer<ResourceLoaderWrapper> loader,
     ffi.Pointer<ffi.Void> platform,
+    ffi.Pointer<ffi.Char> uberArchivePath,
   ) {
     return _create_filament_viewer(
       context,
       loader,
       platform,
+      uberArchivePath,
     );
   }
 
@@ -36,10 +38,14 @@ class NativeLibrary {
           ffi.Pointer<ffi.Void> Function(
               ffi.Pointer<ffi.Void>,
               ffi.Pointer<ResourceLoaderWrapper>,
-              ffi.Pointer<ffi.Void>)>>('create_filament_viewer');
+              ffi.Pointer<ffi.Void>,
+              ffi.Pointer<ffi.Char>)>>('create_filament_viewer');
   late final _create_filament_viewer = _create_filament_viewerPtr.asFunction<
-      ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>,
-          ffi.Pointer<ResourceLoaderWrapper>, ffi.Pointer<ffi.Void>)>();
+      ffi.Pointer<ffi.Void> Function(
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ResourceLoaderWrapper>,
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ffi.Char>)>();
 
   void destroy_filament_viewer(
     ffi.Pointer<ffi.Void> viewer,
@@ -1326,6 +1332,7 @@ class NativeLibrary {
   ffi.Pointer<ffi.Void> create_filament_viewer_ffi(
     ffi.Pointer<ffi.Void> context,
     ffi.Pointer<ffi.Void> platform,
+    ffi.Pointer<ffi.Char> uberArchivePath,
     ffi.Pointer<ResourceLoaderWrapper> loader,
     ffi.Pointer<
             ffi.NativeFunction<
@@ -1336,6 +1343,7 @@ class NativeLibrary {
     return _create_filament_viewer_ffi(
       context,
       platform,
+      uberArchivePath,
       loader,
       renderCallback,
       renderCallbackOwner,
@@ -1347,6 +1355,7 @@ class NativeLibrary {
           ffi.Pointer<ffi.Void> Function(
               ffi.Pointer<ffi.Void>,
               ffi.Pointer<ffi.Void>,
+              ffi.Pointer<ffi.Char>,
               ffi.Pointer<ResourceLoaderWrapper>,
               ffi.Pointer<
                   ffi.NativeFunction<
@@ -1358,6 +1367,7 @@ class NativeLibrary {
           ffi.Pointer<ffi.Void> Function(
               ffi.Pointer<ffi.Void>,
               ffi.Pointer<ffi.Void>,
+              ffi.Pointer<ffi.Char>,
               ffi.Pointer<ResourceLoaderWrapper>,
               ffi.Pointer<
                   ffi.NativeFunction<
@@ -2146,7 +2156,7 @@ class NativeLibrary {
       _get_morph_target_name_count_ffiPtr.asFunction<
           int Function(ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>)>();
 
-  int set_post_processing_ffi(
+  void set_post_processing_ffi(
     ffi.Pointer<ffi.Void> viewer,
     bool enabled,
   ) {
@@ -2158,10 +2168,10 @@ class NativeLibrary {
 
   late final _set_post_processing_ffiPtr = _lookup<
           ffi
-          .NativeFunction<ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Bool)>>(
+          .NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>>(
       'set_post_processing_ffi');
   late final _set_post_processing_ffi = _set_post_processing_ffiPtr
-      .asFunction<int Function(ffi.Pointer<ffi.Void>, bool)>();
+      .asFunction<void Function(ffi.Pointer<ffi.Void>, bool)>();
 
   void ios_dummy_ffi() {
     return _ios_dummy_ffi();

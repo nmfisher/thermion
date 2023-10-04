@@ -30,11 +30,13 @@ class FilamentControllerFFI extends FilamentController {
 
   bool _resizing = false;
 
+  final String? uberArchivePath;
+
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
   /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in PolyvoxFilamentApi.h.
   ///
-  FilamentControllerFFI() {
+  FilamentControllerFFI({this.uberArchivePath}) {
     _channel.setMethodCallHandler((call) async {
       throw Exception("Unknown method channel invocation ${call.method}");
     });
@@ -75,13 +77,22 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
+  Future destroy() async {
+    await destroyViewer();
+    await destroyTexture();
+  }
+
+  @override
   Future destroyViewer() async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
+    var viewer = _viewer;
+
     _viewer = null;
+
     _assetManager = null;
-    _lib.destroy_filament_viewer_ffi(_viewer!);
+    _lib.destroy_filament_viewer_ffi(viewer!);
     _isReadyForScene = Completer();
   }
 
@@ -139,6 +150,7 @@ class FilamentControllerFFI extends FilamentController {
     _viewer = _lib.create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(sharedContext ?? 0),
         driver,
+        uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr,
         Pointer<ResourceLoaderWrapper>.fromAddress(loader),
         renderCallback,
         renderCallbackOwner);

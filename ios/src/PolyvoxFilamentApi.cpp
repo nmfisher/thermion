@@ -15,8 +15,8 @@ extern "C" {
 
   #include "PolyvoxFilamentApi.h"
   
-  FLUTTER_PLUGIN_EXPORT const void* create_filament_viewer(const void* context, const ResourceLoaderWrapper* const loader, void* const platform) {
-      return (const void*) new FilamentViewer(context, loader, platform);
+  FLUTTER_PLUGIN_EXPORT const void* create_filament_viewer(const void* context, const ResourceLoaderWrapper* const loader, void* const platform, const char* uberArchivePath) {
+      return (const void*) new FilamentViewer(context, loader, platform, uberArchivePath);
   }
 
   FLUTTER_PLUGIN_EXPORT ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* const owner) {

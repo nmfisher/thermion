@@ -44,6 +44,7 @@ public:
     void* const createViewer(
         void* const context, 
         void* const platform,
+        const char* uberArchivePath,
         const ResourceLoaderWrapper* const loader, 
         void (*renderCallback)(void*), void* const owner
     ) {
@@ -51,12 +52,22 @@ public:
         _renderCallbackOwner = owner;
         std::packaged_task<FilamentViewer*()> lambda([&]() mutable
                                                            { 
-                                                            return new FilamentViewer(context, loader, platform); 
+                                                            return new FilamentViewer(context, loader, platform, uberArchivePath); 
                                                             });
         auto fut = add_task(lambda);
         fut.wait();
         _viewer = fut.get();
         return (void* const)_viewer;
+    }
+
+    void destroyViewer() { 
+        std::packaged_task<void()> lambda([&]() mutable {
+            _rendering = false;
+            destroy_filament_viewer(_viewer);
+            _viewer = nullptr;       
+        });
+        auto fut = add_task(lambda);
+        fut.wait();
     }
 
     void setRendering(bool rendering)
@@ -106,6 +117,7 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void* const create_filament_viewer_ffi(
         void* const context,
         void* const platform,
+        const char* uberArchivePath,
         const ResourceLoaderWrapper* const loader, 
         void (*renderCallback)(void* const renderCallbackOwner), 
         void* const renderCallbackOwner) {
@@ -113,7 +125,11 @@ extern "C"
         {
             _rl = new RenderLoop();
         }
-        return _rl->createViewer(context, platform, loader, renderCallback, renderCallbackOwner);
+        return _rl->createViewer(context, platform,uberArchivePath, loader, renderCallback, renderCallbackOwner);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer_ffi(void* const viewer) {
+        _rl->destroyViewer();
     }
 
     FLUTTER_PLUGIN_EXPORT void create_swap_chain_ffi(void* const viewer, void* const surface, uint32_t width, uint32_t height)

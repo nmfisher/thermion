@@ -18,9 +18,10 @@ namespace polyvox {
     class AssetManager {
         public:
             AssetManager(const ResourceLoaderWrapper* const loader,
-                        NameComponentManager *ncm, 
-                        Engine *engine,
-                        Scene *scene);
+                        NameComponentManager* ncm, 
+                        Engine* engine,
+                        Scene* scene,
+                        const char* uberArchivePath);
             ~AssetManager();
             EntityId loadGltf(const char* uri, const char* relativeResourcePath);
             EntityId loadGlb(const char* uri, bool unlit);

@@ -22,7 +22,19 @@ abstract class FilamentController {
   Future render();
   Future setFrameRate(int framerate);
   void setPixelRatio(double ratio);
+
+  ///
+  /// Destroys the viewer and all backing textures. You can leave the FilamentWidget in the hierarchy after this is called, but
+  Future destroy();
+
+  ///
+  /// Destroys the viewer only, leaving the texture intact. You probably want to call [destroy] instead of this; [destroyViewer] is exposed mostly for lifecycle changes which are handled by FilamentWidget.
+  ///
   Future destroyViewer();
+
+  ///
+  /// Destroys the backing texture. You probably want to call [destroy] instead of this; this is exposed mostly for lifecycle changes which are handled by FilamentWidget.
+  ///
   Future destroyTexture();
 
   ///

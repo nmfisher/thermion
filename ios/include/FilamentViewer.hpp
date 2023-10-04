@@ -49,7 +49,7 @@ namespace polyvox {
     
     class FilamentViewer {
         public:
-            FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform=nullptr);
+            FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform=nullptr, const char* uberArchivePath=nullptr);
             ~FilamentViewer();
 
             void setToneMapping(ToneMapping toneMapping);

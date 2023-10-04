@@ -9,6 +9,10 @@ import 'filament_controller.dart';
 
 typedef AssetManager = int;
 
+///
+/// This is a previous iteration of FilamentController that used platform channels for every distinct platform.
+/// This is no longer used; currently kept only for reference/posterity.
+///
 class FilamentControllerMethodChannel extends FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
@@ -635,5 +639,11 @@ class FilamentControllerMethodChannel extends FilamentController {
         1) {
       throw Exception("Failed to reveal mesh $meshName");
     }
+  }
+
+  @override
+  Future destroy() {
+    // TODO: implement destroy
+    throw UnimplementedError();
   }
 }

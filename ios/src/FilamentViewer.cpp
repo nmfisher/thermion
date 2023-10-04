@@ -111,7 +111,7 @@ static constexpr float4 sFullScreenTriangleVertices[3] = {
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
-FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform)
+FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform, const char* uberArchivePath)
   : _resourceLoaderWrapper(resourceLoaderWrapper) {
   
   #if TARGET_OS_IPHONE
@@ -190,7 +190,9 @@ FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWr
     _resourceLoaderWrapper, 
     _ncm, 
     _engine,
-    _scene);
+    _scene,
+    uberArchivePath
+  );
   
  _imageTexture = Texture::Builder()
                          .width(1)

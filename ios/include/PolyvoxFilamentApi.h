@@ -53,7 +53,7 @@ extern "C" {
 #endif
 typedef int32_t EntityId;
 
-FLUTTER_PLUGIN_EXPORT const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader, void* const platform);
+FLUTTER_PLUGIN_EXPORT const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader, void* const platform, const char* uberArchivePath);
 FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer(const void* const viewer);
 FLUTTER_PLUGIN_EXPORT ResourceLoaderWrapper* make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* owner);
 FLUTTER_PLUGIN_EXPORT void* get_asset_manager(const void* const viewer);
