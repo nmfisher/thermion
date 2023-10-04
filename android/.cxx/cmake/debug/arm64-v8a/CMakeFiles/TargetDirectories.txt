@@ -1,4 +1,0 @@
-F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/polyvox_filament_android.dir
-F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/FILAMENT_SHADERS.dir
-F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/edit_cache.dir
-F:/Projects/polyvox/polyvox_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/rebuild_cache.dir
