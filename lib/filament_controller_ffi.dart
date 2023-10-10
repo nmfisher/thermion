@@ -166,7 +166,7 @@ class FilamentControllerFFI extends FilamentController {
         size.height.toInt());
     if (nativeTexture != 0) {
       assert(surfaceAddress == 0);
-      _lib.create_render_target(
+      _lib.create_render_target_ffi(
           _viewer!, nativeTexture, size.width.toInt(), size.height.toInt());
     }
 

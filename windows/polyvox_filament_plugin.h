@@ -25,10 +25,10 @@
 #include "EGL/eglplatform.h"
 #include "GLES2/gl2.h"
 #include "GLES2/gl2ext.h"
+#include "PlatformAngle.h"
 #endif 
 
 #include "PolyvoxFilamentApi.h"
-#include "PlatformAngle.h"
 
 namespace polyvox_filament {
 
@@ -73,11 +73,15 @@ public:
   HANDLE _externalD3DTextureHandle = nullptr;
   HANDLE _internalD3DTextureHandle = nullptr;
   filament::backend::PlatformANGLE* _platform = nullptr;
+
+  bool MakeD3DTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   #else
   // OpenGL
   HGLRC _context = NULL;
   GLuint _glTextureId = 0;
   std::mutex _renderMutex;
+
+  bool MakeOpenGLTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   #endif
 
   void CreateTexture(
@@ -88,11 +92,6 @@ public:
 
   ResourceBuffer loadResource(const char *path);
   void freeResource(ResourceBuffer rbuf);
-  #ifdef USE_ANGLE
-  bool MakeD3DTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-  #else
-  bool MakeOpenGLTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-  #endif
 };
 
 } // namespace polyvox_filament

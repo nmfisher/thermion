@@ -387,6 +387,7 @@ bool PolyvoxFilamentPlugin::MakeOpenGLTexture(uint32_t width, uint32_t height,st
     result->Error("ERROR", "Failed to generate texture, GL error was %d", err);
     return false;
   }
+  wglMakeCurrent(NULL, NULL);
 
   _pixelData.reset(new uint8_t[width * height * 4]);
   _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
@@ -431,6 +432,16 @@ bool PolyvoxFilamentPlugin::MakeOpenGLTexture(uint32_t width, uint32_t height,st
             return _pixelBuffer.get();
           }));
 
+  _flutterTextureId = _textureRegistrar->RegisterTexture(_texture.get());
+  std::cout << "Registered Flutter texture ID " << _flutterTextureId << std::endl;
+
+  std::vector<flutter::EncodableValue> resultList;
+  resultList.push_back(flutter::EncodableValue(_flutterTextureId));
+  resultList.push_back(flutter::EncodableValue((int64_t)nullptr));
+  resultList.push_back(flutter::EncodableValue(_glTextureId));
+  result->Success(resultList);
+  return true;
+
 }
 #endif 
 
@@ -448,11 +459,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
   bool success = MakeD3DTexture(width, height, std::move(result));
   #else
   bool success = MakeOpenGLTexture(width, height, std::move(result));
-  #endif
-  if(!success) {
-    return;
-  }
-      
+  #endif      
 }
 
 void PolyvoxFilamentPlugin::HandleMethodCall(
@@ -461,7 +468,11 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
 
   // std::cout << methodCall.method_name() << std::endl;
   if (methodCall.method_name() == "getSharedContext") {
+    #ifdef USE_ANGLE
     result->Success(flutter::EncodableValue((int64_t)nullptr));
+    #else
+    result->Success(flutter::EncodableValue((int64_t)_context));
+    #endif
   } else if (methodCall.method_name() == "getResourceLoaderWrapper") {
     const ResourceLoaderWrapper *const resourceLoader =
       new ResourceLoaderWrapper(_loadResource, _freeResource, this);
@@ -474,7 +485,11 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
     resultList.push_back(flutter::EncodableValue((int64_t)this));
     result->Success(resultList);
   } else if(methodCall.method_name() == "getDriverPlatform") { 
-    result->Success(flutter::EncodableValue((int64_t)_platform));
+    #ifdef USE_ANGLE
+      result->Success(flutter::EncodableValue((int64_t)_platform));
+    #else
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
+    #endif
   }
   else {
     result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());

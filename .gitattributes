@@ -594,3 +594,4 @@ windows/lib/Debug/angle/* filter=lfs diff=lfs merge=lfs -text
 windows/lib/Debug/opengl/* filter=lfs diff=lfs merge=lfs -text
 windows/lib/Release/opengl/* filter=lfs diff=lfs merge=lfs -text
 windows/lib/Release/angle/* filter=lfs diff=lfs merge=lfs -text
+windows/lib/**/* filter=lfs diff=lfs merge=lfs -text

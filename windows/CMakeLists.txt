@@ -20,11 +20,10 @@ list(APPEND PLUGIN_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/TimeIt.cpp"
 )
 
-set(USE_ANGLE TRUE)
-
-add_compile_definitions(USE_ANGLE=${USE_ANGLE})
+set(USE_ANGLE FALSE)
 
 if(USE_ANGLE)
+  add_compile_definitions(USE_ANGLE)
   list(APPEND PLUGIN_SOURCES "PlatformAngle.cpp")
 endif()
 
@@ -68,6 +67,8 @@ if(USE_ANGLE)
 else()
   list(APPEND GL_LIBS
     bluegl
+    bluevk
+    vkshaders
     opengl32
   )
   set(ANGLE_OR_OPENGL_DIR opengl)
@@ -88,9 +89,9 @@ set_property(TARGET geometry PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_S
 set_property(TARGET geometry PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/geometry.lib")
 
 add_library(filament SHARED IMPORTED)
-set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/filament.lib")
-set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/filament.lib")
-set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/filament.lib")
+set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/${ANGLE_OR_OPENGL_DIR}/filament.lib")
+set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/${ANGLE_OR_OPENGL_DIR}/filament.lib")
+set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/${ANGLE_OR_OPENGL_DIR}/filament.lib")
 
 add_library(filameshio SHARED IMPORTED)
 set_property(TARGET filameshio PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/filameshio.lib")
