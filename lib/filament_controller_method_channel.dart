@@ -40,6 +40,10 @@ class FilamentControllerMethodChannel extends FilamentController {
     });
   }
 
+  Future setPostProcessing(bool enabled) async {
+    throw Exception();
+  }
+
   Future setRendering(bool render) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");

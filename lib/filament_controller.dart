@@ -155,6 +155,7 @@ abstract class FilamentController {
       FilamentEntity asset, String meshName, int materialIndex, Color color);
   Future transformToUnitCube(FilamentEntity asset);
   Future setPosition(FilamentEntity asset, double x, double y, double z);
+  Future setPostProcessing(bool enabled);
   Future setScale(FilamentEntity asset, double scale);
   Future setRotation(
       FilamentEntity asset, double rads, double x, double y, double z);
