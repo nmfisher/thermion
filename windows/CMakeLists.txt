@@ -12,7 +12,6 @@ set(PLUGIN_NAME "polyvox_filament_plugin")
 list(APPEND PLUGIN_SOURCES
   "polyvox_filament_plugin.cpp"
   "polyvox_filament_plugin.h"
-  "PlatformAngle.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
@@ -20,6 +19,14 @@ list(APPEND PLUGIN_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/StreamBufferAdapter.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/TimeIt.cpp"
 )
+
+set(USE_ANGLE TRUE)
+
+add_compile_definitions(USE_ANGLE=${USE_ANGLE})
+
+if(USE_ANGLE)
+  list(APPEND PLUGIN_SOURCES "PlatformAngle.cpp")
+endif()
 
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
@@ -43,15 +50,37 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
 )
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include/filament")
- 
-add_library(EGL SHARED IMPORTED)
-set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libEGL.dll.lib")
-set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/libEGL.dll.lib")
-set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/libEGL.dll.lib")
-add_library(GLESv2 SHARED IMPORTED)
-set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libGLESv2.dll.lib")
-set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/libGLESv2.dll.lib")
-set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/libGLESv2.dll.lib")
+
+if(USE_ANGLE)
+  list(APPEND GL_LIBS
+    EGL
+    GLESv2
+  )
+  set(ANGLE_OR_OPENGL_DIR angle)
+  add_library(EGL SHARED IMPORTED)
+  set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libEGL.dll.lib")
+  set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/libEGL.dll.lib")
+  set_property(TARGET EGL PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/libEGL.dll.lib")
+  add_library(GLESv2 SHARED IMPORTED)
+  set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libGLESv2.dll.lib")
+  set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/libGLESv2.dll.lib")
+  set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/libGLESv2.dll.lib")
+else()
+  list(APPEND GL_LIBS
+    bluegl
+    opengl32
+  )
+  set(ANGLE_OR_OPENGL_DIR opengl)
+  add_library(bluegl SHARED IMPORTED)
+  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/opengl/bluegl.lib")
+  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/opengl/bluegl.lib")
+  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/opengl/bluegl.lib")
+endif()
+
+add_library(backend SHARED IMPORTED)
+set_property(TARGET backend PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/${ANGLE_OR_OPENGL_DIR}/backend.lib")
+set_property(TARGET backend PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/${ANGLE_OR_OPENGL_DIR}/backend.lib")
+set_property(TARGET backend PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/${ANGLE_OR_OPENGL_DIR}/backend.lib")
 
 add_library(geometry SHARED IMPORTED)
 set_property(TARGET geometry PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/geometry.lib")
@@ -62,11 +91,6 @@ add_library(filament SHARED IMPORTED)
 set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/filament.lib")
 set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/filament.lib")
 set_property(TARGET filament PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/filament.lib")
-
-add_library(backend SHARED IMPORTED)
-set_property(TARGET backend PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/backend.lib")
-set_property(TARGET backend PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/backend.lib")
-set_property(TARGET backend PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/backend.lib")
 
 add_library(filameshio SHARED IMPORTED)
 set_property(TARGET filameshio PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/filameshio.lib")
@@ -164,9 +188,9 @@ set_property(TARGET smol-v  PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SO
 set_property(TARGET smol-v  PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/smol-v.lib")
 
 add_library(uberarchive SHARED IMPORTED)
-set_property(TARGET uberarchive PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/uberarchive.lib")
-set_property(TARGET uberarchive PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/uberarchive.lib")
-set_property(TARGET uberarchive PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/uberarchive.lib")
+set_property(TARGET uberarchive PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/${ANGLE_OR_OPENGL_DIR}/uberarchive.lib")
+set_property(TARGET uberarchive PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/${ANGLE_OR_OPENGL_DIR}/uberarchive.lib")
+set_property(TARGET uberarchive PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/${ANGLE_OR_OPENGL_DIR}/uberarchive.lib")
 
 add_library(meshoptimizer SHARED IMPORTED)
 set_property(TARGET meshoptimizer PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/meshoptimizer.lib")
@@ -199,9 +223,9 @@ include_directories(
 )
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
-flutter
-flutter_wrapper_plugin 
-  gltfio
+ flutter
+ flutter_wrapper_plugin 
+ gltfio
  gltfio_core 
  filament 
  backend 
@@ -228,22 +252,18 @@ flutter_wrapper_plugin
  png
  tinyexr
  Shlwapi
- EGL
- GLESv2
+ ${GL_LIBS}
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin
+if(USE_ANGLE)
 set(polyvox_filament_bundled_libraries
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libEGL.dll
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libGLESv2.dll
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libEGL.dll
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libGLESv2.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libc++.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/third_party_abseil-cpp_absl.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/third_party_zlib.dll
   PARENT_SCOPE
 )
+endif()
 
-# get_cmake_property(_variableNames VARIABLES)
-# list (SORT _variableNames)
-# foreach (_variableName ${_variableNames})
-#     message(STATUS "${_variableName}FOO=BAR${${_variableName}}")
-# endforeach()

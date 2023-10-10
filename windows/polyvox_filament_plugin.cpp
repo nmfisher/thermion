@@ -29,7 +29,10 @@
 #include <future> 
 
 #include "PolyvoxFilamentApi.h"
+#ifdef USE_ANGLE
 #include "PlatformANGLE.h"
+#endif 
+
 #include "GL/GL.h"
 #include "GL/GLu.h"
 #include "GL/wglext.h"
@@ -137,21 +140,16 @@ void render_callback(void* owner) {
 
 // this is the method on PolyvoxFilamentPlugin that will copy between D3D textures
 void PolyvoxFilamentPlugin::RenderCallback() {
+  #ifdef USE_ANGLE
   _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
                                     _internalD3DTexture2D.Get());
   _D3D11DeviceContext->Flush();
+  #endif
   _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
 }
 
-void PolyvoxFilamentPlugin::CreateTexture(
-    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-
-   const auto *args =
-      std::get_if<flutter::EncodableList>(methodCall.arguments());
-
-  const auto width = (uint32_t)round(*(std::get_if<double>(&(args->at(0)))));
-  const auto height = (uint32_t)round(*(std::get_if<double>(&(args->at(1)))));
+#ifdef USE_ANGLE
+bool PolyvoxFilamentPlugin::MakeD3DTexture(uint32_t width, uint32_t height,std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
   // D3D starts here
   IDXGIAdapter* adapter_ = nullptr;
@@ -180,7 +178,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
   dxgi->Release();
   if (!adapter_) {
     result->Error("ERROR", "Failed to locate default D3D adapter", nullptr);
-    return;
+    return false;
   } 
   
   DXGI_ADAPTER_DESC adapter_desc_;
@@ -194,7 +192,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
 
   if (FAILED(hr)) {   
     result->Error("ERROR", "Failed to create D3D device", nullptr);
-    return;
+    return false;
   }
 
   Microsoft::WRL::ComPtr<IDXGIDevice> dxgi_device = nullptr;
@@ -227,19 +225,19 @@ void PolyvoxFilamentPlugin::CreateTexture(
   if FAILED(hr)
   {
     result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
+    return false;
   }
   auto resource = Microsoft::WRL::ComPtr<IDXGIResource>{};
   hr = _internalD3DTexture2D.As(&resource);
   
   if FAILED(hr) { 
     result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
+    return false;
   }
   hr = resource->GetSharedHandle(&_internalD3DTextureHandle);
   if FAILED(hr) { 
     result->Error("ERROR", "Failed to get shared handle to D3D texture", nullptr);
-    return;
+    return false;
   }
   _internalD3DTexture2D->AddRef();
 
@@ -250,25 +248,25 @@ void PolyvoxFilamentPlugin::CreateTexture(
   if FAILED(hr)
   {
     result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
+    return false;
   }
   hr = _externalD3DTexture2D.As(&resource);
   
   if FAILED(hr) { 
     result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
+    return false;
   }
   hr = resource->GetSharedHandle(&_externalD3DTextureHandle);
   if FAILED(hr) { 
     result->Error("ERROR", "Failed to get shared handle to external D3D texture", nullptr);
-    return;
+    return false;
   }
   _externalD3DTexture2D->AddRef();
 
   std::cout << "Created external D3D texture" << std::endl;
 
   _platform = new filament::backend::PlatformANGLE(_internalD3DTextureHandle, width, height);
-
+  
   _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
   _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
   _textureDescriptor->handle = _externalD3DTextureHandle;
@@ -286,17 +284,174 @@ void PolyvoxFilamentPlugin::CreateTexture(
   _flutterTextureId = _textureRegistrar->RegisterTexture(_texture.get());
   std::cout << "Registered Flutter texture ID " << _flutterTextureId << std::endl;
 
-  _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
-      _internalD3DTexture2D.Get());
-  _D3D11DeviceContext->Flush();
-
-  _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
-
   std::vector<flutter::EncodableValue> resultList;
   resultList.push_back(flutter::EncodableValue(_flutterTextureId));
   resultList.push_back(flutter::EncodableValue((int64_t)nullptr));
   resultList.push_back(flutter::EncodableValue(_platform->glTextureId));
   result->Success(resultList);
+  return true;
+}
+#else
+bool PolyvoxFilamentPlugin::MakeOpenGLTexture(uint32_t width, uint32_t height,std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  HWND hwnd = _pluginRegistrar->GetView()
+                  ->GetNativeWindow();;
+
+  HDC whdc = GetDC(hwnd);
+  if (whdc == NULL) {
+    result->Error("ERROR", "No device context for temporary window", nullptr);
+    return false;
+  }
+
+  PIXELFORMATDESCRIPTOR pfd = {
+        sizeof(PIXELFORMATDESCRIPTOR),
+        1,
+        PFD_DRAW_TO_BITMAP | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags
+        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+        32,                   // Colordepth of the framebuffer.
+        0, 0, 0, 0, 0, 0,
+        0,
+        0,
+        0,
+        0, 0, 0, 0,
+        32,                   // Number of bits for the depthbuffer
+        0,                    // Number of bits for the stencilbuffer
+        0,                    // Number of Aux buffers in the framebuffer.
+        PFD_MAIN_PLANE,
+        0,
+        0, 0, 0
+    };
+
+  int pixelFormat = ChoosePixelFormat(whdc, &pfd);
+  SetPixelFormat(whdc, pixelFormat, &pfd);
+
+  // We need a tmp context to retrieve and call wglCreateContextAttribsARB.
+  HGLRC tempContext = wglCreateContext(whdc);
+  if (!wglMakeCurrent(whdc, tempContext)) {
+    result->Error("ERROR", "Failed to acquire temporary context", nullptr);
+    return false;
+  }
+
+  GLenum err = glGetError();
+
+  if(err != GL_NO_ERROR) {
+    result->Error("ERROR", "GL Error @ 455 %d", err);
+    return false;
+  }
+
+  PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs = nullptr;
+
+  wglCreateContextAttribs =
+      (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress(
+          "wglCreateContextAttribsARB");
+
+  if (!wglCreateContextAttribs) {
+    result->Error("ERROR", "Failed to resolve wglCreateContextAttribsARB",
+                  nullptr);
+    return false;
+  }
+
+  for (int minor = 5; minor >= 1; minor--) {
+    std::vector<int> mAttribs = {WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+                                 WGL_CONTEXT_MINOR_VERSION_ARB, minor, 0};
+    _context = wglCreateContextAttribs(whdc, nullptr, mAttribs.data());
+    if (_context) {
+      break;
+    }
+  }
+
+  wglMakeCurrent(NULL, NULL);
+  wglDeleteContext(tempContext);
+
+
+  if (!_context || !wglMakeCurrent(whdc, _context)) {
+    result->Error("ERROR", "Failed to create OpenGL context.");
+    return false;
+  }
+
+  glGenTextures(1, &_glTextureId);
+
+  if(_glTextureId == 0) {
+    result->Error("ERROR", "Failed to generate texture, OpenGL err was %d", glGetError());
+    return false;
+  }
+
+  glBindTexture(GL_TEXTURE_2D, _glTextureId);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA,
+               GL_UNSIGNED_BYTE, 0);
+
+  err = glGetError();
+
+  if (err != GL_NO_ERROR) {
+    result->Error("ERROR", "Failed to generate texture, GL error was %d", err);
+    return false;
+  }
+
+  _pixelData.reset(new uint8_t[width * height * 4]);
+  _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
+  _pixelBuffer->buffer = _pixelData.get();
+
+  _pixelBuffer->width = size_t(width);
+  _pixelBuffer->height = size_t(height);
+ 
+  _texture = std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
+          [=](size_t width,
+              size_t height) -> const FlutterDesktopPixelBuffer * {
+            std::lock_guard<std::mutex> guard(_renderMutex);
+
+            if(!_context || !wglMakeCurrent(whdc, _context)) {
+              std::cout << "Failed to switch OpenGL context." << std::endl;
+            } else {
+              uint8_t* data = new uint8_t[width*height*4];
+              glBindTexture(GL_TEXTURE_2D, _glTextureId);
+              glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
+
+              GLenum err = glGetError();
+
+              if(err != GL_NO_ERROR) {
+                if(err == GL_INVALID_OPERATION) {
+                  std::cout << "Invalid op" << std::endl;
+                } else if(err == GL_INVALID_VALUE) {
+                std::cout << "Invalid value" << std::endl;
+                } else if(err == GL_OUT_OF_MEMORY) {
+                  std::cout << "Out of mem" << std::endl;
+                } else if(err == GL_INVALID_ENUM ) {
+                  std::cout << "Invalid enum" << std::endl;
+                } else {
+                  std::cout << "Unknown error" << std::endl;
+                }
+              }
+              glFinish();
+              _pixelData.reset(data);
+              wglMakeCurrent(NULL, NULL);
+            }
+            _pixelBuffer->buffer = _pixelData.get();
+
+            return _pixelBuffer.get();
+          }));
+
+}
+#endif 
+
+void PolyvoxFilamentPlugin::CreateTexture(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+
+   const auto *args =
+      std::get_if<flutter::EncodableList>(methodCall.arguments());
+
+  const auto width = (uint32_t)round(*(std::get_if<double>(&(args->at(0)))));
+  const auto height = (uint32_t)round(*(std::get_if<double>(&(args->at(1)))));
+
+  #ifdef USE_ANGLE
+  bool success = MakeD3DTexture(width, height, std::move(result));
+  #else
+  bool success = MakeOpenGLTexture(width, height, std::move(result));
+  #endif
+  if(!success) {
+    return;
+  }
       
 }
 
@@ -320,6 +475,9 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
     result->Success(resultList);
   } else if(methodCall.method_name() == "getDriverPlatform") { 
     result->Success(flutter::EncodableValue((int64_t)_platform));
+  }
+  else {
+    result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());
   }
 }
 

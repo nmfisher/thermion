@@ -11,17 +11,21 @@
 #include <Windows.h>
 #include <wrl.h>
 
+#ifdef USE_ANGLE
 #include <d3d.h>
 #include <d3d11.h>
+#endif
 
 #include "GL/GL.h"
 #include "GL/GLu.h"
 
+#ifdef USE_ANGLE
 #include "EGL/egl.h"
 #include "EGL/eglext.h"
 #include "EGL/eglplatform.h"
 #include "GLES2/gl2.h"
 #include "GLES2/gl2ext.h"
+#endif 
 
 #include "PolyvoxFilamentApi.h"
 #include "PlatformAngle.h"
@@ -59,9 +63,7 @@ public:
 
   int64_t _flutterTextureId;
 
-  GLuint _glTextureId = 0;
-
-  // D3D 
+  #ifdef USE_ANGLE
   // Device
   ID3D11Device* _D3D11Device = nullptr;
   ID3D11DeviceContext* _D3D11DeviceContext = nullptr;
@@ -71,6 +73,12 @@ public:
   HANDLE _externalD3DTextureHandle = nullptr;
   HANDLE _internalD3DTextureHandle = nullptr;
   filament::backend::PlatformANGLE* _platform = nullptr;
+  #else
+  // OpenGL
+  HGLRC _context = NULL;
+  GLuint _glTextureId = 0;
+  std::mutex _renderMutex;
+  #endif
 
   void CreateTexture(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
@@ -80,6 +88,11 @@ public:
 
   ResourceBuffer loadResource(const char *path);
   void freeResource(ResourceBuffer rbuf);
+  #ifdef USE_ANGLE
+  bool MakeD3DTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  #else
+  bool MakeOpenGLTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  #endif
 };
 
 } // namespace polyvox_filament

@@ -589,3 +589,8 @@ example/assets/BusterDrone/textures/body_metallicRoughness.jpg filter=lfs diff=l
 example/assets/FlightHelmet/FlightHelmet.bin filter=lfs diff=lfs merge=lfs -text
 example/assets/FlightHelmet/FlightHelmet_baseColor3.png filter=lfs diff=lfs merge=lfs -text
 assets/default.uberz filter=lfs diff=lfs merge=lfs -text
+windows/lib/**/*.* filter=lfs diff=lfs merge=lfs -text
+windows/lib/Debug/angle/* filter=lfs diff=lfs merge=lfs -text
+windows/lib/Debug/opengl/* filter=lfs diff=lfs merge=lfs -text
+windows/lib/Release/opengl/* filter=lfs diff=lfs merge=lfs -text
+windows/lib/Release/angle/* filter=lfs diff=lfs merge=lfs -text
