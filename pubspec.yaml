@@ -31,8 +31,6 @@ ffigen:
       - 'ios/include/PolyvoxFilamentFFIApi.h'
 
 flutter:
-  assets:
-    - assets/
   plugin:
     platforms:
       android:
