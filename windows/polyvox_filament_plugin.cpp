@@ -75,11 +75,16 @@ ResourceBuffer PolyvoxFilamentPlugin::loadResource(const char *name) {
   if (name_str.rfind("file://", 0) == 0) {
     targetFilePath = name_str.substr(7);
   } else {
+
+    if (name_str.rfind("asset://", 0) == 0) {
+      name_str = name_str.substr(8);
+    }
+
     TCHAR pBuf[256];
     size_t len = sizeof(pBuf);
     int bytes = GetModuleFileName(NULL, pBuf, len);
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring assetPath = converter.from_bytes(name);
+    std::wstring assetPath = converter.from_bytes(name_str.c_str());
 
     std::wstring exePathBuf(pBuf);
     std::filesystem::path exePath(exePathBuf);
