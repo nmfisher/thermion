@@ -49,7 +49,7 @@ namespace polyvox {
     
     class FilamentViewer {
         public:
-            FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform=nullptr);
+            FilamentViewer(const void* context, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform=nullptr, const char* uberArchivePath=nullptr);
             ~FilamentViewer();
 
             void setToneMapping(ToneMapping toneMapping);
@@ -107,6 +107,8 @@ namespace polyvox {
             void removeLight(EntityId entityId);
             void clearLights();
             void setPostProcessing(bool enabled);
+            
+            void pick(uint32_t x, uint32_t y, EntityId* entityId);
 
             AssetManager* const getAssetManager() {
                 return (AssetManager* const) _assetManager;

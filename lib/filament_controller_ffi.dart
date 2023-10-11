@@ -32,6 +32,9 @@ class FilamentControllerFFI extends FilamentController {
 
   final String? uberArchivePath;
 
+  Stream<FilamentEntity> get pickResult => _pickResultController.stream;
+  final _pickResultController = StreamController<FilamentEntity>.broadcast();
+
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
   /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in PolyvoxFilamentApi.h.
@@ -115,6 +118,14 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception(
           "Do not call createViewer when a viewer has already been created without calling destroyViewer");
     }
+    var loader = Pointer<ResourceLoaderWrapper>.fromAddress(
+        await _channel.invokeMethod("getResourceLoaderWrapper"));
+    if (loader == nullptr) {
+      throw Exception("Failed to get resource loader");
+    }
+
+    print("Using loader ${loader.address}");
+
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
     print("Creating viewer with size $size");
@@ -145,13 +156,12 @@ class FilamentControllerFFI extends FilamentController {
 
     var sharedContext = await _channel.invokeMethod("getSharedContext");
     print("Got shared context : $sharedContext");
-    var loader = await _channel.invokeMethod("getResourceLoaderWrapper");
 
     _viewer = _lib.create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(sharedContext ?? 0),
         driver,
         uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr,
-        Pointer<ResourceLoaderWrapper>.fromAddress(loader),
+        loader,
         renderCallback,
         renderCallbackOwner);
 
@@ -166,6 +176,7 @@ class FilamentControllerFFI extends FilamentController {
         size.height.toInt());
     if (nativeTexture != 0) {
       assert(surfaceAddress == 0);
+      print("Creating render target from native texture  $nativeTexture");
       _lib.create_render_target_ffi(
           _viewer!, nativeTexture, size.width.toInt(), size.height.toInt());
     }
@@ -338,9 +349,6 @@ class FilamentControllerFFI extends FilamentController {
     return asset;
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future panStart(double x, double y) async {
     if (_viewer == null || _resizing) {
@@ -349,9 +357,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, true);
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future panUpdate(double x, double y) async {
     if (_viewer == null || _resizing) {
@@ -360,9 +365,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future panEnd() async {
     if (_viewer == null || _resizing) {
@@ -371,9 +373,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_end(_viewer!);
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future rotateStart(double x, double y) async {
     if (_viewer == null || _resizing) {
@@ -382,9 +381,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, false);
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future rotateUpdate(double x, double y) async {
     if (_viewer == null || _resizing) {
@@ -393,9 +389,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future rotateEnd() async {
     if (_viewer == null || _resizing) {
@@ -404,9 +397,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.grab_end(_viewer!);
   }
 
-  ///
-  /// Set the weights for all morph targets under node [meshName] in [asset] to [weights].
-  ///
   @override
   Future setMorphTargetWeights(
       FilamentEntity asset, String meshName, List<double> weights) async {
@@ -458,9 +448,6 @@ class FilamentControllerFFI extends FilamentController {
     return names;
   }
 
-  ///
-  /// Returns the length (in seconds) of the animation at the given index.
-  ///
   @override
   Future<double> getAnimationDuration(
       FilamentEntity asset, int animationIndex) async {
@@ -473,9 +460,6 @@ class FilamentControllerFFI extends FilamentController {
     return duration;
   }
 
-  ///
-  /// Create/start a dynamic morph target animation for [asset].
-  ///
   @override
   Future setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation) async {
@@ -506,12 +490,6 @@ class FilamentControllerFFI extends FilamentController {
     calloc.free(idxPtr);
   }
 
-  ///
-  /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
-  /// [morphWeights] is a list of doubles in frame-major format.
-  /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
-  /// for now we only allow animating a single bone (though multiple skinned targets are supported)
-  ///
   @override
   Future setBoneAnimation(
       FilamentEntity asset, BoneAnimationData animation) async {
@@ -550,10 +528,6 @@ class FilamentControllerFFI extends FilamentController {
     // calloc.free(data);
   }
 
-  ///
-  /// Removes/destroys the specified entity from the scene.
-  /// [asset] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
-  ///
   @override
   Future removeAsset(FilamentEntity asset) async {
     if (_viewer == null || _resizing) {
@@ -562,10 +536,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.remove_asset_ffi(_viewer!, asset);
   }
 
-  ///
-  /// Removes/destroys all renderable entities from the scene (including cameras).
-  /// All [FilamentEntity] handles will no longer be valid after this method is called; ensure you immediately discard all references to all entities once this method is complete.
-  ///
   @override
   Future clearAssets() async {
     if (_viewer == null || _resizing) {
@@ -574,9 +544,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.clear_assets_ffi(_viewer!);
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future zoomBegin() async {
     if (_viewer == null || _resizing) {
@@ -585,9 +552,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.scroll_begin(_viewer!);
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future zoomUpdate(double z) async {
     if (_viewer == null || _resizing) {
@@ -596,9 +560,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.scroll_update(_viewer!, 0.0, 0.0, z);
   }
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
   @override
   Future zoomEnd() async {
     if (_viewer == null || _resizing) {
@@ -607,9 +568,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.scroll_end(_viewer!);
   }
 
-  ///
-  /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.
-  ///
   @override
   Future playAnimation(FilamentEntity asset, int index,
       {bool loop = false,
@@ -638,9 +596,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.stop_animation(_assetManager!, asset, animationIndex);
   }
 
-  ///
-  /// Sets the current scene camera to the glTF camera under [name] in [asset].
-  ///
   @override
   Future setCamera(FilamentEntity asset, String? name) async {
     if (_viewer == null || _resizing) {
@@ -653,9 +608,6 @@ class FilamentControllerFFI extends FilamentController {
     }
   }
 
-  ///
-  /// Sets the tone mapping (requires postprocessing).
-  ///
   @override
   Future setToneMapping(ToneMapper mapper) async {
     if (_viewer == null || _resizing) {
@@ -665,9 +617,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_tone_mapping_ffi(_viewer!, mapper.index);
   }
 
-  ///
-  /// Enable/disable postprocessing.
-  ///
   @override
   Future setPostProcessing(bool enabled) async {
     if (_viewer == null || _resizing) {
@@ -677,9 +626,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_post_processing_ffi(_viewer!, enabled);
   }
 
-  ///
-  /// Sets the strength of the bloom.
-  ///
   @override
   Future setBloom(double bloom) async {
     if (_viewer == null || _resizing) {
@@ -716,9 +662,6 @@ class FilamentControllerFFI extends FilamentController {
     _lib.move_camera_to_asset(_viewer!, asset);
   }
 
-  ///
-  /// Enables/disables frustum culling. Currently we don't expose a method for manipulating the camera projection/culling matrices so this is your only option to deal with unwanted near/far clipping.
-  ///
   @override
   Future setViewFrustumCulling(bool enabled) async {
     if (_viewer == null || _resizing) {
@@ -821,5 +764,32 @@ class FilamentControllerFFI extends FilamentController {
         1) {
       throw Exception("Failed to reveal mesh $meshName");
     }
+  }
+
+  String? getNameForEntity(FilamentEntity entity) {
+    final result = _lib.get_name_for_entity(_assetManager!, entity);
+    if (result == nullptr) {
+      return null;
+    }
+    return result.cast<Utf8>().toDartString();
+  }
+
+  void pick(int x, int y) async {
+    if (_viewer == null || _resizing) {
+      throw Exception("No viewer available, ignoring");
+    }
+    final outPtr = calloc<EntityId>(1);
+    outPtr.value = 0;
+    print("height ${size.height.toInt()} y $y");
+
+    _lib.pick_ffi(_viewer!, x, size.height.toInt() - y, outPtr);
+    while (outPtr.value == 0) {
+      await Future.delayed(Duration(milliseconds: 100));
+      print("Waiting");
+    }
+
+    var entityId = outPtr.value;
+    _pickResultController.add(entityId);
+    calloc.free(outPtr);
   }
 }

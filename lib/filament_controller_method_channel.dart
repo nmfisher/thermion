@@ -650,4 +650,13 @@ class FilamentControllerMethodChannel extends FilamentController {
     // TODO: implement destroy
     throw UnimplementedError();
   }
+
+  @override
+  void pick(int x, int y) {
+    // TODO: implement pick
+  }
+
+  @override
+  // TODO: implement pickResult
+  Stream<FilamentEntity?> get pickResult => throw UnimplementedError();
 }

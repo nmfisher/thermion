@@ -373,15 +373,24 @@ extern "C" {
       ((AssetManager*)assetManager)->stopAnimation(asset, index);
   }
 
-  int hide_mesh(void* assetManager, EntityId asset, const char* meshName) {
+  FLUTTER_PLUGIN_EXPORT int hide_mesh(void* assetManager, EntityId asset, const char* meshName) {
       return ((AssetManager*)assetManager)->hide(asset, meshName);
   }
 
-  int reveal_mesh(void* assetManager, EntityId asset, const char* meshName) {
+  FLUTTER_PLUGIN_EXPORT int reveal_mesh(void* assetManager, EntityId asset, const char* meshName) {
       return ((AssetManager*)assetManager)->reveal(asset, meshName);
   }
 
-  FLUTTER_PLUGIN_EXPORT void  ios_dummy() {
+  
+  FLUTTER_PLUGIN_EXPORT void pick(void* const viewer, int x, int y, EntityId* entityId) {
+    ((FilamentViewer*)viewer)->pick(static_cast<uint32_t>(x), static_cast<uint32_t>(y), static_cast<int32_t*>(entityId));
+  }
+
+  FLUTTER_PLUGIN_EXPORT const char* get_name_for_entity(void* const assetManager, const EntityId entityId) {
+    return ((AssetManager*)assetManager)->getNameForEntity(entityId);
+  }
+
+  FLUTTER_PLUGIN_EXPORT void ios_dummy() {
     Log("Dummy called");
   }
 }

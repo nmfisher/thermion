@@ -4,12 +4,10 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter/scheduler.dart';
+
 import 'package:polyvox_filament/filament_controller.dart';
 
 import 'dart:async';
-import 'filament_controller_method_channel.dart';
 
 typedef ResizeCallback = void Function(Size oldSize, Size newSize);
 

@@ -107,6 +107,8 @@ namespace polyvox {
             void removeLight(EntityId entityId);
             void clearLights();
             void setPostProcessing(bool enabled);
+            
+            void pick(uint32_t x, uint32_t y, EntityId* entityId);
 
             AssetManager* const getAssetManager() {
                 return (AssetManager* const) _assetManager;

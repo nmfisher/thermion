@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -5,11 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/animations/bone_animation_data.dart';
 import 'package:polyvox_filament/filament_controller_ffi.dart';
-import 'package:polyvox_filament/filament_gesture_detector.dart';
-import 'package:polyvox_filament/filament_widget.dart';
 import 'package:polyvox_filament/animations/animation_builder.dart';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:polyvox_filament/widgets/filament_gesture_detector.dart';
+import 'package:polyvox_filament/widgets/filament_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -47,6 +48,9 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   List<String>? _animations;
   FilamentEntity? _light;
 
+  late StreamSubscription _pickResultListener;
+  String? picked;
+
   final weights = List.filled(255, 0.0);
 
   bool _loop = false;
@@ -64,7 +68,14 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     getApplicationSupportDirectory().then((dir) {
       print(dir);
     });
+
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _pickResultListener.cancel();
   }
 
   Widget _item(void Function() onTap, String text) {
@@ -80,6 +91,16 @@ class _ExampleWidgetState extends State<ExampleWidget> {
             child: Text(text)));
   }
 
+  void _createController({String? uberArchivePath}) {
+    _filamentController =
+        FilamentControllerFFI(uberArchivePath: uberArchivePath);
+    _filamentController!.pickResult.listen((entityId) {
+      setState(() {
+        picked = _filamentController!.getNameForEntity(entityId);
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     var children = <Widget>[];
@@ -87,10 +108,10 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     if (_filamentController == null) {
       children.addAll([
         _item(() {
-          _filamentController = FilamentControllerFFI();
+          _createController();
         }, "create viewer (default ubershader)"),
         _item(() {
-          _filamentController = FilamentControllerFFI(
+          _createController(
               uberArchivePath: Platform.isWindows
                   ? "assets/lit_opaque_32.uberz"
                   : "assets/lit_opaque_43.uberz");
@@ -318,6 +339,11 @@ class _ExampleWidgetState extends State<ExampleWidget> {
                     controller: _filamentController!,
                   )))
           : Container(),
+      Positioned(
+          right: 50,
+          top: 50,
+          child: Text(picked ?? "",
+              style: TextStyle(color: Colors.green, fontSize: 24))),
       Positioned(
           bottom: 0,
           left: 0,

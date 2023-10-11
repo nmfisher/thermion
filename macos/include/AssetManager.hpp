@@ -18,9 +18,10 @@ namespace polyvox {
     class AssetManager {
         public:
             AssetManager(const ResourceLoaderWrapper* const loader,
-                        NameComponentManager *ncm, 
-                        Engine *engine,
-                        Scene *scene);
+                        NameComponentManager* ncm, 
+                        Engine* engine,
+                        Scene* scene,
+                        const char* uberArchivePath);
             ~AssetManager();
             EntityId loadGltf(const char* uri, const char* relativeResourcePath);
             EntityId loadGlb(const char* uri, bool unlit);
@@ -69,6 +70,7 @@ namespace polyvox {
             void setAnimationFrame(EntityId entity, int animationIndex, int animationFrame);
             bool hide(EntityId entity, const char* meshName);
             bool reveal(EntityId entity, const char* meshName);
+            const char* getNameForEntity(EntityId entityId);
             
         private:
             AssetLoader* _assetLoader = nullptr;

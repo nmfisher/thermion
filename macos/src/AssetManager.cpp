@@ -38,9 +38,10 @@ using namespace filament;
 using namespace filament::gltfio;
 
 AssetManager::AssetManager(const ResourceLoaderWrapper* const resourceLoaderWrapper,
-                           NameComponentManager *ncm,
-                           Engine *engine,
-                           Scene *scene)
+                           NameComponentManager* ncm,
+                           Engine* engine,
+                           Scene* scene,
+                           const char* uberArchivePath)
 : _resourceLoaderWrapper(resourceLoaderWrapper),
 _ncm(ncm),
 _engine(engine),
@@ -52,15 +53,17 @@ _scene(scene) {
     _gltfResourceLoader = new ResourceLoader({.engine = _engine,
         .normalizeSkinningWeights = true });
 
-    // TODO - allow passing uberz archive 
-    // e.g. auto uberArchivePath = "packages/polyvox_filament/assets/default.uberz"
-    // auto uberdata = resourceLoaderWrapper->load(uberArchivePath);
-    // if (!uberdata.data) {
-    //     Log("Failed to load ubershader material. This is fatal.");
-    // }
-    // _ubershaderProvider = gltfio::createUbershaderProvider(_engine, uberdata.data, uberdata.size);    
-    _ubershaderProvider = gltfio::createUbershaderProvider(
+    if(uberArchivePath) {
+        auto uberdata = resourceLoaderWrapper->load(uberArchivePath);
+        if (!uberdata.data) {
+            Log("Failed to load ubershader material. This is fatal.");
+        }
+        _ubershaderProvider = gltfio::createUbershaderProvider(_engine, uberdata.data, uberdata.size);    
+        resourceLoaderWrapper->free(uberdata);
+    } else { 
+        _ubershaderProvider = gltfio::createUbershaderProvider(
                                                             _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);    
+    }
     Log("Created ubershader provider.");
 
     EntityManager &em = EntityManager::get();
@@ -941,6 +944,16 @@ size_t AssetManager::getLightEntityCount(EntityId entity) const noexcept {
     }
     auto& asset = _assets[pos->second];
     return asset.mAsset->getLightEntityCount();
+}
+
+const char* AssetManager::getNameForEntity(EntityId entityId) {
+  const auto& entity = Entity::import(entityId);
+  auto nameInstance = _ncm->getInstance(entity);
+  if(!nameInstance.isValid()) {
+    Log("Failed to find name instance for entity ID %d", entityId);
+    return nullptr;
+  }
+  return _ncm->getName(nameInstance);
 }
 
 

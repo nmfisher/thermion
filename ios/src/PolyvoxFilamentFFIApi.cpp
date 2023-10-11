@@ -444,6 +444,16 @@ extern "C"
         fut.wait();
     }
 
+    FLUTTER_PLUGIN_EXPORT const char* get_name_for_entity_ffi(void* const assetManager, const EntityId entityId) { 
+        std::packaged_task<const char*()> lambda([&] {
+            return get_name_for_entity(assetManager, entityId);
+        });
+        auto fut = _rl->add_task(lambda);
+        fut.wait();
+        return fut.get();
+    }
+
+
     FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi() {
         Log("Dummy called");
     }

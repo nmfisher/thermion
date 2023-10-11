@@ -111,8 +111,10 @@ static constexpr float4 sFullScreenTriangleVertices[3] = {
 
 static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
-FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform)
+FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWrapper* const resourceLoaderWrapper, void* const platform, const char* uberArchivePath)
   : _resourceLoaderWrapper(resourceLoaderWrapper) {
+
+  ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
   
   #if TARGET_OS_IPHONE
     ASSERT_POSTCONDITION(platform == nullptr, "Custom Platform not supported on iOS");
@@ -190,7 +192,9 @@ FilamentViewer::FilamentViewer(const void* sharedContext, const ResourceLoaderWr
     _resourceLoaderWrapper, 
     _ncm, 
     _engine,
-    _scene);
+    _scene,
+    uberArchivePath
+  );
   
  _imageTexture = Texture::Builder()
                          .width(1)
@@ -628,7 +632,7 @@ void FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32
   // Make a specific viewport just for our render target
   _view->setRenderTarget(_rt);
   
-  Log("Set render target for glTextureId %u %u x %u", texture, width, height);
+  Log("Set render target for texture id %u to %u x %u", texture, width, height);
 
 }
 
@@ -1049,7 +1053,16 @@ void FilamentViewer::scrollUpdate(float x, float y, float delta) {
 }
 
 void FilamentViewer::scrollEnd() {
-  
+  // noop  
+}
+
+void FilamentViewer::pick(uint32_t x, uint32_t y, EntityId* entityId) {
+  Log("Picking at %d,%d", x, y);
+  _view->pick(x, y, [=](filament::View::PickingQueryResult const & result) {
+      
+        *entityId = Entity::smuggle(result.renderable);
+        Log("Got result %d", *entityId);
+  });
 }
 
 } // namespace polyvox

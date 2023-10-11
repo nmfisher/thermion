@@ -44,6 +44,7 @@ public:
     void* const createViewer(
         void* const context, 
         void* const platform,
+        const char* uberArchivePath,
         const ResourceLoaderWrapper* const loader, 
         void (*renderCallback)(void*), void* const owner
     ) {
@@ -51,12 +52,22 @@ public:
         _renderCallbackOwner = owner;
         std::packaged_task<FilamentViewer*()> lambda([&]() mutable
                                                            { 
-                                                            return new FilamentViewer(context, loader, platform); 
+                                                            return new FilamentViewer(context, loader, platform, uberArchivePath); 
                                                             });
         auto fut = add_task(lambda);
         fut.wait();
         _viewer = fut.get();
         return (void* const)_viewer;
+    }
+
+    void destroyViewer() { 
+        std::packaged_task<void()> lambda([&]() mutable {
+            _rendering = false;
+            destroy_filament_viewer(_viewer);
+            _viewer = nullptr;       
+        });
+        auto fut = add_task(lambda);
+        fut.wait();
     }
 
     void setRendering(bool rendering)
@@ -106,6 +117,7 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void* const create_filament_viewer_ffi(
         void* const context,
         void* const platform,
+        const char* uberArchivePath,
         const ResourceLoaderWrapper* const loader, 
         void (*renderCallback)(void* const renderCallbackOwner), 
         void* const renderCallbackOwner) {
@@ -113,7 +125,11 @@ extern "C"
         {
             _rl = new RenderLoop();
         }
-        return _rl->createViewer(context, platform, loader, renderCallback, renderCallbackOwner);
+        return _rl->createViewer(context, platform,uberArchivePath, loader, renderCallback, renderCallbackOwner);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer_ffi(void* const viewer) {
+        _rl->destroyViewer();
     }
 
     FLUTTER_PLUGIN_EXPORT void create_swap_chain_ffi(void* const viewer, void* const surface, uint32_t width, uint32_t height)
@@ -127,7 +143,7 @@ extern "C"
         fut.wait();
     }
 
-    FLUTTER_PLUGIN_EXPORT void create_render_target_ffi(void* const viewer, uint32_t nativeTextureId, uint32_t width, uint32_t height)
+    FLUTTER_PLUGIN_EXPORT void create_render_target_ffi(void* const viewer, intptr_t nativeTextureId, uint32_t width, uint32_t height)
     {
         std::packaged_task<void()> lambda([&]() mutable
                                           { create_render_target(viewer, nativeTextureId, width, height); });
@@ -267,6 +283,7 @@ extern "C"
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
+    
     FLUTTER_PLUGIN_EXPORT void remove_ibl_ffi(void* const viewer)
     {
         std::packaged_task<void()> lambda([&]
@@ -274,6 +291,7 @@ extern "C"
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
+
     EntityId add_light_ffi(void* const viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows)
     {
         std::packaged_task<EntityId()> lambda([&]
@@ -417,6 +435,24 @@ extern "C"
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
+
+    FLUTTER_PLUGIN_EXPORT void pick_ffi(void* const viewer, int x, int y, EntityId* entityId) {
+        std::packaged_task<void()> lambda([&] {
+            pick(viewer, x, y, entityId);
+        });
+        auto fut = _rl->add_task(lambda);
+        fut.wait();
+    }
+
+    FLUTTER_PLUGIN_EXPORT const char* get_name_for_entity_ffi(void* const assetManager, const EntityId entityId) { 
+        std::packaged_task<const char*()> lambda([&] {
+            return get_name_for_entity(assetManager, entityId);
+        });
+        auto fut = _rl->add_task(lambda);
+        fut.wait();
+        return fut.get();
+    }
+
 
     FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi() {
         Log("Dummy called");

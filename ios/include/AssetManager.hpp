@@ -70,6 +70,7 @@ namespace polyvox {
             void setAnimationFrame(EntityId entity, int animationIndex, int animationFrame);
             bool hide(EntityId entity, const char* meshName);
             bool reveal(EntityId entity, const char* meshName);
+            const char* getNameForEntity(EntityId entityId);
             
         private:
             AssetLoader* _assetLoader = nullptr;

@@ -1321,6 +1321,44 @@ class NativeLibrary {
   late final _set_post_processing = _set_post_processingPtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, bool)>();
 
+  void pick(
+    ffi.Pointer<ffi.Void> viewer,
+    int x,
+    int y,
+    ffi.Pointer<EntityId> entityId,
+  ) {
+    return _pick(
+      viewer,
+      x,
+      y,
+      entityId,
+    );
+  }
+
+  late final _pickPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int,
+              ffi.Pointer<EntityId>)>>('pick');
+  late final _pick = _pickPtr.asFunction<
+      void Function(ffi.Pointer<ffi.Void>, int, int, ffi.Pointer<EntityId>)>();
+
+  ffi.Pointer<ffi.Char> get_name_for_entity(
+    ffi.Pointer<ffi.Void> assetManager,
+    int entityId,
+  ) {
+    return _get_name_for_entity(
+      assetManager,
+      entityId,
+    );
+  }
+
+  late final _get_name_for_entityPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Void>, EntityId)>>('get_name_for_entity');
+  late final _get_name_for_entity = _get_name_for_entityPtr
+      .asFunction<ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Void>, int)>();
+
   void ios_dummy() {
     return _ios_dummy();
   }
@@ -1412,7 +1450,7 @@ class NativeLibrary {
 
   late final _create_render_target_ffiPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32,
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.IntPtr, ffi.Uint32,
               ffi.Uint32)>>('create_render_target_ffi');
   late final _create_render_target_ffi = _create_render_target_ffiPtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, int, int, int)>();
@@ -2173,6 +2211,27 @@ class NativeLibrary {
   late final _set_post_processing_ffi = _set_post_processing_ffiPtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, bool)>();
 
+  void pick_ffi(
+    ffi.Pointer<ffi.Void> viewer,
+    int x,
+    int y,
+    ffi.Pointer<EntityId> entityId,
+  ) {
+    return _pick_ffi(
+      viewer,
+      x,
+      y,
+      entityId,
+    );
+  }
+
+  late final _pick_ffiPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int,
+              ffi.Pointer<EntityId>)>>('pick_ffi');
+  late final _pick_ffi = _pick_ffiPtr.asFunction<
+      void Function(ffi.Pointer<ffi.Void>, int, int, ffi.Pointer<EntityId>)>();
+
   void ios_dummy_ffi() {
     return _ios_dummy_ffi();
   }
@@ -2306,6 +2365,9 @@ typedef LoadFilamentResourceFromOwner = ffi.Pointer<
 typedef FreeFilamentResourceFromOwner = ffi.Pointer<
     ffi
     .NativeFunction<ffi.Void Function(ResourceBuffer, ffi.Pointer<ffi.Void>)>>;
+
+/// This header replicates most of the methods in PolyvoxFilamentApi.h, and is only intended to be used to generate client FFI bindings.
+/// The intention is that calling one of these methods will call its respective method in PolyvoxFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety.
 typedef EntityId = ffi.Int32;
 typedef FilamentRenderCallback = ffi.Pointer<
     ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> owner)>>;

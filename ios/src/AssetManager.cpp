@@ -946,6 +946,16 @@ size_t AssetManager::getLightEntityCount(EntityId entity) const noexcept {
     return asset.mAsset->getLightEntityCount();
 }
 
+const char* AssetManager::getNameForEntity(EntityId entityId) {
+  const auto& entity = Entity::import(entityId);
+  auto nameInstance = _ncm->getInstance(entity);
+  if(!nameInstance.isValid()) {
+    Log("Failed to find name instance for entity ID %d", entityId);
+    return nullptr;
+  }
+  return _ncm->getName(nameInstance);
+}
+
 
 } // namespace polyvox
 
