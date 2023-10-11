@@ -309,14 +309,11 @@ EMCC_CFLAGS="-I/Users/nickfisher/Documents/filament/libs/utils/include -I/Users/
 
 ## Materials
 
-glTF assets The default 
-
-- there is a simple material (unlit/opaque) used for background images. This is created by:
+We use a single material (no lighting and no transparency) for background images:
 ```
 filament/out/release/filament/bin/matc -a opengl -a metal -o materials/image.filamat materials/image.mat
 filament/out/release/filament/bin/resgen -c -p image -x ios/include/material/ materials/image.filamat            
 ```
-
 
 # Known issues
 
