@@ -147,8 +147,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             let pixelBufferAddress = Int(bitPattern:pixelBufferPtr);
             let metalTexturePtr = Unmanaged.passUnretained(metalTexture!).toOpaque()
             let metalTextureAddress = Int(bitPattern:metalTexturePtr)
-
-            let callback = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
                                                                                             
             result([self.flutterTextureId as Any, nil, metalTextureAddress])
         case "destroyTexture":
