@@ -110,6 +110,7 @@ class _FilamentGestureDetectorMobileState
   }
 
   Timer? _scrollTimer;
+  double _lastScale = 0;
 
   // pinch zoom on mobile
   // couldn't find any equivalent for pointerCount in Listener so we use two widgets:
@@ -133,33 +134,26 @@ class _FilamentGestureDetectorMobileState
               onScaleStart: (d) async {
                 if (d.pointerCount == 2) {
                   _scaling = true;
-                  widget.controller.zoomBegin();
+                  await widget.controller.zoomBegin();
                 } else if (!_scaling) {
                   if (_rotateOnPointerMove) {
-                    widget.controller
-                        .rotateStart(d.focalPoint.dx, d.focalPoint.dy);
+                    widget.controller.rotateStart(
+                        d.localFocalPoint.dx, d.localFocalPoint.dy);
                   } else {
                     widget.controller
-                        .panStart(d.focalPoint.dx, d.focalPoint.dy);
-                  }
-                }
-              },
-              onScaleEnd: (d) async {
-                if (d.pointerCount == 2) {
-                  widget.controller.zoomEnd();
-                  _scaling = false;
-                } else if (!_scaling) {
-                  if (_rotateOnPointerMove) {
-                    widget.controller.rotateEnd();
-                  } else {
-                    widget.controller.panEnd();
+                        .panStart(d.localFocalPoint.dx, d.localFocalPoint.dy);
                   }
                 }
               },
               onScaleUpdate: (ScaleUpdateDetails d) async {
                 if (d.pointerCount == 2) {
-                  widget.controller.zoomUpdate(d.localFocalPoint.dx,
-                      d.localFocalPoint.dy, d.horizontalScale > 1 ? 0.1 : -0.1);
+                  if (d.horizontalScale != _lastScale) {
+                    widget.controller.zoomUpdate(
+                        d.localFocalPoint.dx,
+                        d.localFocalPoint.dy,
+                        d.horizontalScale > _lastScale ? 0.1 : -0.1);
+                    _lastScale = d.horizontalScale;
+                  }
                 } else if (!_scaling) {
                   if (_rotateOnPointerMove) {
                     widget.controller
@@ -169,6 +163,18 @@ class _FilamentGestureDetectorMobileState
                         .panUpdate(d.focalPoint.dx, d.focalPoint.dy);
                   }
                 }
+              },
+              onScaleEnd: (d) async {
+                if (d.pointerCount == 2) {
+                  widget.controller.zoomEnd();
+                } else if (!_scaling) {
+                  if (_rotateOnPointerMove) {
+                    widget.controller.rotateEnd();
+                  } else {
+                    widget.controller.panEnd();
+                  }
+                }
+                _scaling = false;
               },
               child: widget.child)),
       widget.showControlOverlay
