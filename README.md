@@ -119,7 +119,7 @@ a) the backing textures needed to insert a `Texture` widget into
 b) a rendering thread 
 c) a `FilamentViewer` and an `AssetManager`, which will allow you to load assets/cameras/lighting/etc via the `FilamentController`
 
-If this was successful, the viewport should turn from red to black.
+If this was successful, the viewport should turn from red to black/white (depending on your platform).
 
 ### Rendering
 
@@ -147,12 +147,21 @@ You can also pass a URI to indicate that the glTF file should be loaded from the
 var entity = _filamentController.loadGlb("file:///tmp/bob.glb");
 ```
 
-The returned value is an integer handle that be used to manipulate the asset (better referred to as the "entity") in the scene.
+The return type `FilamentEntity` is simply an integer handle that be used to manipulate the entity in the scene.
 
-E.g. to remove the asset:
+For example, to remove the asset:
 ```
 _filamentController.removeAsset(entity);
 ``` 
+
+To set the world space position of the asset:
+```
+_filamentController.setPositon(entity, 1.0, 1.0, 1.0);
+```
+
+On desktop, you can also click any renderable object in the viewport to retrieve its associated FilamentEntity (see below).
+
+Whenever an entity is removed from the scene (or you've called another method that clears all entities), the corresponding `FilamentEntity` handle(s) are invalidated and should not be used.
 
 ### Camera movement
 
@@ -168,13 +177,65 @@ class MyApp extends StatelessWidget {
      return MaterialApp(
         color: Colors.white,
         home: Scaffold(backgroundColor: Colors.white, body: Stack(children:[
-            Container(color:Colors.green, height:100, width:100),
-            Positioned.fill(top:100, left:100,child:FilamentGestureDetector(
+            Positioned.fill(child:FilamentGestureDetector(
                 controller: _filamentController,
                 child:FilamentWidget(
                     controller:_filamentController
                 ))),
             Positioned(right:0, bottom:0, child:Container(color:Colors.purple, height:100, width:100))
+        ])));
+    }
+}
+```
+
+On desktop:
+1) hold the middle mouse button and move the mouse to rotate the camera
+2) hold the left mouse button and move the mouse to pan the camera
+3) scroll up/down with the scrollwheel to zoom in/out.
+
+On mobile:
+1) swipe with your finger to pan the camera
+2) double tap the viewport, then swipe with your finger to rotate the camera (double-tap again to return to pan)
+3) pinch with two fingers in/out to zoom in/out.
+
+### Picking entities
+
+On desktop, left-clicking an object in the viewport will retrieve the FilamentEntity for the top-most renderable instance at that cursor position (if any).
+
+Note this is an asynchronous operation, so you will need to subscribe to the [pickResult] stream on your [FilamentController] to do something with the result.
+
+```
+class MyApp extends StatefulWidget {
+    ...
+}
+
+
+class _MyAppState extends State<MyApp> {
+    
+    final _filamentController = FilamentControllerFFI();
+
+    @override
+    void initState() { 
+        _filamentController.pickResult.listen((FilamentEntity filamentEntity) async {
+            if(filamentEntity != FILAMENT_ASSET_ERROR) {
+                var entityName = _filamentController.getNameForEntity(filamentEntity);
+                await showDialog(builder:(ctx) {
+                    return Container(child:Text("You clicked $entityName"));
+                });
+            }
+        });
+    }
+
+    @override
+    Widget build(BuildContext context) {
+     return MaterialApp(
+        color: Colors.white,
+        home: Scaffold(backgroundColor: Colors.white, body: Stack(children:[
+            Positioned.fill(child:FilamentGestureDetector(
+                controller: _filamentController,
+                child:FilamentWidget(
+                    controller:_filamentController
+                ))),
         ])));
     }
 }
@@ -214,7 +275,6 @@ Separately, we also force the Filament gltfio library to load assets via in-memo
 git checkout flutter-filament-windows
 mkdir out && cd out
 ```
-
 
 Building notes:
 On Android/iOS, we remove -fno-exceptions from CMakeLists.txt 
