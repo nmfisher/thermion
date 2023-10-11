@@ -809,12 +809,16 @@ class FilamentControllerFFI extends FilamentController {
     }
     final outPtr = calloc<EntityId>(1);
     outPtr.value = 0;
-    print("height ${size.height.toInt()} y $y");
 
     _lib.pick_ffi(_viewer!, x, size.height.toInt() - y, outPtr);
+    int wait = 0;
     while (outPtr.value == 0) {
-      await Future.delayed(Duration(milliseconds: 100));
-      print("Waiting");
+      await Future.delayed(Duration(milliseconds: 50));
+      wait++;
+      if (wait > 10) {
+        calloc.free(outPtr);
+        throw Exception("Failed to get picking result");
+      }
     }
 
     var entityId = outPtr.value;
