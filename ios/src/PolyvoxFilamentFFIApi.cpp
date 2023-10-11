@@ -143,7 +143,7 @@ extern "C"
         fut.wait();
     }
 
-    FLUTTER_PLUGIN_EXPORT void create_render_target_ffi(void* const viewer, uint32_t nativeTextureId, uint32_t width, uint32_t height)
+    FLUTTER_PLUGIN_EXPORT void create_render_target_ffi(void* const viewer, intptr_t nativeTextureId, uint32_t width, uint32_t height)
     {
         std::packaged_task<void()> lambda([&]() mutable
                                           { create_render_target(viewer, nativeTextureId, width, height); });
@@ -283,6 +283,7 @@ extern "C"
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
+    
     FLUTTER_PLUGIN_EXPORT void remove_ibl_ffi(void* const viewer)
     {
         std::packaged_task<void()> lambda([&]
@@ -290,6 +291,7 @@ extern "C"
         auto fut = _rl->add_task(lambda);
         fut.wait();
     }
+
     EntityId add_light_ffi(void* const viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows)
     {
         std::packaged_task<EntityId()> lambda([&]
@@ -429,6 +431,14 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void set_post_processing_ffi(void* const viewer, bool enabled) {
         std::packaged_task<void()> lambda([&] {
             set_post_processing(viewer, enabled);
+        });
+        auto fut = _rl->add_task(lambda);
+        fut.wait();
+    }
+
+    FLUTTER_PLUGIN_EXPORT void pick_ffi(void* const viewer, int x, int y, EntityId* entityId) {
+        std::packaged_task<void()> lambda([&] {
+            pick(viewer, x, y, entityId);
         });
         auto fut = _rl->add_task(lambda);
         fut.wait();
