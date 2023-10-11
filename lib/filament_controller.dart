@@ -277,4 +277,9 @@ abstract class FilamentController {
   /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the FilamentWidget).
   ///
   void pick(int x, int y);
+
+  ///
+  /// Retrieves the name assigned to the given FilamentEntity (usually corresponds to the glTF mesh name).
+  ///
+  String? getNameForEntity(FilamentEntity entity);
 }
