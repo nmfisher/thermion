@@ -197,7 +197,7 @@ abstract class FilamentController {
   ///
   /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
   ///
-  Future zoomUpdate(double z);
+  Future zoomUpdate(double x, double y, double z);
 
   ///
   /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.

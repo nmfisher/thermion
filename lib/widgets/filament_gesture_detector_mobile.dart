@@ -158,8 +158,8 @@ class _FilamentGestureDetectorMobileState
               },
               onScaleUpdate: (ScaleUpdateDetails d) async {
                 if (d.pointerCount == 2) {
-                  widget.controller
-                      .zoomUpdate(d.horizontalScale > 1 ? 0.1 : -0.1);
+                  widget.controller.zoomUpdate(d.localFocalPoint.dx,
+                      d.localFocalPoint.dy, d.horizontalScale > 1 ? 0.1 : -0.1);
                 } else if (!_scaling) {
                   if (_rotateOnPointerMove) {
                     widget.controller

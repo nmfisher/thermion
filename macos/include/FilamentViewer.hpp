@@ -177,7 +177,7 @@ namespace polyvox {
             void loadPngTexture(string path, ResourceBuffer data);
             void loadTextureFromPath(string path);
             
-            
+            Manipulator<double>* _manipulator = nullptr;
             void _createManipulator();
             uint32_t _lastFrameTimeInNanos;
     };

@@ -434,11 +434,11 @@ class FilamentControllerMethodChannel extends FilamentController {
     await _channel.invokeMethod("scrollBegin");
   }
 
-  Future zoomUpdate(double z) async {
+  Future zoomUpdate(double x, double y, double z) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    await _channel.invokeMethod("scrollUpdate", [0.0, 0.0, z]);
+    await _channel.invokeMethod("scrollUpdate", [x, y, z]);
   }
 
   Future zoomEnd() async {

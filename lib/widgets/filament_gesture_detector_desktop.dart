@@ -32,15 +32,12 @@ class FilamentGestureDetectorDesktop extends StatefulWidget {
   ///
   final bool listenerEnabled;
 
-  final double zoomDelta;
-
   const FilamentGestureDetectorDesktop(
       {Key? key,
       required this.controller,
       this.child,
       this.showControlOverlay = false,
-      this.listenerEnabled = true,
-      this.zoomDelta = 1})
+      this.listenerEnabled = true})
       : super(key: key);
 
   @override
@@ -71,15 +68,18 @@ class _FilamentGestureDetectorDesktopState
   ///
   /// Scroll-wheel on desktop, interpreted as zoom
   ///
-  void _zoom(PointerScrollEvent pointerSignal) {
+  void _zoom(PointerScrollEvent pointerSignal) async {
     _scrollTimer?.cancel();
-    widget.controller.zoomBegin();
-    widget.controller.zoomUpdate(pointerSignal.scrollDelta.dy > 0
-        ? widget.zoomDelta
-        : -widget.zoomDelta);
-    _scrollTimer = Timer(const Duration(milliseconds: 100), () {
-      widget.controller.zoomEnd();
-      _scrollTimer = null;
+    await widget.controller.zoomBegin();
+    await widget.controller.zoomUpdate(
+        pointerSignal.localPosition.dx,
+        pointerSignal.localPosition.dy,
+        pointerSignal.scrollDelta.dy > 0 ? 1 : -1);
+
+    // we don't want to end the zoom in the same frame, because this will destroy the camera manipulator (and cancel the zoom update).
+    // here, we just defer calling [zoomEnd] for 100ms to ensure the update is propagated through.
+    _scrollTimer = Timer(Duration(milliseconds: 100), () async {
+      await widget.controller.zoomEnd();
     });
   }
 
@@ -108,7 +108,8 @@ class _FilamentGestureDetectorDesktopState
           // if this is the first move event, we need to call rotateStart/panStart to set the first coordinates
           if (!_pointerMoving) {
             if (d.buttons == kTertiaryButton) {
-              widget.controller.rotateStart(d.position.dx, d.position.dy);
+              widget.controller
+                  .rotateStart(d.localPosition.dx, d.localPosition.dy);
             } else {
               widget.controller
                   .panStart(d.localPosition.dx, d.localPosition.dy);
@@ -117,7 +118,8 @@ class _FilamentGestureDetectorDesktopState
           // set the _pointerMoving flag so we don't call rotateStart/panStart on future move events
           _pointerMoving = true;
           if (d.buttons == kTertiaryButton) {
-            widget.controller.rotateUpdate(d.position.dx, d.position.dy);
+            widget.controller
+                .rotateUpdate(d.localPosition.dx, d.localPosition.dy);
           } else {
             widget.controller.panUpdate(d.localPosition.dx, d.localPosition.dy);
           }

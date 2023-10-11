@@ -38,15 +38,12 @@ class FilamentGestureDetector extends StatelessWidget {
   ///
   final bool listenerEnabled;
 
-  final double zoomDelta;
-
   const FilamentGestureDetector(
       {Key? key,
       required this.controller,
       this.child,
       this.showControlOverlay = false,
-      this.listenerEnabled = true,
-      this.zoomDelta = 1})
+      this.listenerEnabled = true})
       : super(key: key);
 
   @override

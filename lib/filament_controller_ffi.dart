@@ -191,16 +191,45 @@ class FilamentControllerFFI extends FilamentController {
     _isReadyForScene.complete(true);
   }
 
+  ///
+  /// I'm not exactly sure how to resize the backing textures on all platforms.
+  /// So for now, I'm sticking with the safe option when the widget is resized: destroying the swapchain, recreating the textures, and creating a new swapchain.
+  ///
   @override
   Future resize(int width, int height, {double scaleFactor = 1.0}) async {
     _resizing = true;
     setRendering(false);
+    _lib.destroy_swap_chain(_viewer!);
+    await destroyTexture();
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
-    _textureId = await _channel
-        .invokeMethod("resize", [size.width, size.height, scaleFactor]);
-    _textureIdController.add(_textureId);
+
+    var textures =
+        await _channel.invokeMethod("createTexture", [size.width, size.height]);
+    var flutterTextureId = textures[0];
+    _textureId = flutterTextureId;
+
+    // void* on iOS (pointer to pixel buffer), void* on Android (pointer to native window), null on Windows/macOS
+    var surfaceAddress = textures[1] as int? ?? 0;
+
+    // null on iOS/Android, void* on MacOS (pointer to metal texture), GLuid on Windows/Linux
+    var nativeTexture = textures[2] as int? ?? 0;
+
+    _lib.create_swap_chain_ffi(
+        _viewer!,
+        Pointer<Void>.fromAddress(surfaceAddress),
+        size.width.toInt(),
+        size.height.toInt());
+    if (nativeTexture != 0) {
+      assert(surfaceAddress == 0);
+      print("Creating render target from native texture  $nativeTexture");
+      _lib.create_render_target_ffi(
+          _viewer!, nativeTexture, size.width.toInt(), size.height.toInt());
+    }
+
     _lib.update_viewport_and_camera_projection_ffi(
-        _viewer!, size.width.toInt(), size.height.toInt(), scaleFactor);
+        _viewer!, size.width.toInt(), size.height.toInt(), 1.0);
+
+    _textureIdController.add(_textureId);
     _resizing = false;
     setRendering(true);
   }
@@ -553,11 +582,11 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future zoomUpdate(double z) async {
+  Future zoomUpdate(double x, double y, double z) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.scroll_update(_viewer!, 0.0, 0.0, z);
+    _lib.scroll_update(_viewer!, x, y, z);
   }
 
   @override

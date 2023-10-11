@@ -64,7 +64,9 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
 
     var markTextureFrameAvailable : @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
         let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
-        instance.registry.textureFrameAvailable(instance.flutterTextureId!)
+        if(instance.flutterTextureId != nil) {
+            instance.registry.textureFrameAvailable(instance.flutterTextureId!)
+        }
     }
     
     public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
@@ -142,6 +144,10 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                             Int(width), Int(height),
                             0,
                             &cvMetalTexture);
+            if(cvret != 0) { 
+                result(FlutterError())
+                return
+            }
             metalTexture = CVMetalTextureGetTexture(cvMetalTexture!);
             let pixelBufferPtr = CVPixelBufferGetBaseAddress(pixelBuffer!);
             let pixelBufferAddress = Int(bitPattern:pixelBufferPtr);
@@ -160,13 +166,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             let args = call.arguments as! [Any]
             let width = UInt32(args[0] as! Int64)
             let height = UInt32(args[1] as! Int64)
-            if(self.flutterTextureId != nil) {
-                self.registry.unregisterTexture(self.flutterTextureId!)
-            }
-            createPixelBuffer(width: Int(width), height:Int(height))
-            let metalTextureId = Int(bitPattern:Unmanaged.passUnretained(metalTexture!).toOpaque())
-            print("Resized to \(args[0])x\(args[1])")
-            result(self.flutterTextureId);
+            result(FlutterMethodNotImplemented)
         default:
             result(FlutterMethodNotImplemented)
         }
