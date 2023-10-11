@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
@@ -9,6 +8,8 @@ import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/animations/bone_animation_data.dart';
 import 'package:polyvox_filament/animations/morph_animation_data.dart';
 import 'package:polyvox_filament/generated_bindings.dart';
+
+const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 
 class FilamentControllerFFI extends FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
@@ -352,7 +353,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     var asset = _lib.load_glb_ffi(
         _assetManager!, path.toNativeUtf8().cast<Char>(), unlit);
-    if (asset == FILAMENT_ASSET_ERROR) {
+    if (asset == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
     return asset;
@@ -372,7 +373,7 @@ class FilamentControllerFFI extends FilamentController {
         _assetManager!,
         path.toNativeUtf8().cast<Char>(),
         relativeResourcePath.toNativeUtf8().cast<Char>());
-    if (asset == FILAMENT_ASSET_ERROR) {
+    if (asset == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
     return asset;

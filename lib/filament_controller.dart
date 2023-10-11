@@ -5,7 +5,6 @@ import 'package:polyvox_filament/animations/bone_animation_data.dart';
 import 'package:polyvox_filament/animations/morph_animation_data.dart';
 
 typedef FilamentEntity = int;
-const FilamentEntity FILAMENT_ASSET_ERROR = 0;
 
 enum ToneMapper { ACES, FILMIC, LINEAR }
 

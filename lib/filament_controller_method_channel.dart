@@ -9,6 +9,8 @@ import 'filament_controller.dart';
 
 typedef AssetManager = int;
 
+const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
+
 ///
 /// This is a previous iteration of FilamentController that used platform channels for every distinct platform.
 /// This is no longer used; currently kept only for reference/posterity.
@@ -245,7 +247,7 @@ class FilamentControllerMethodChannel extends FilamentController {
     }
     var asset =
         await _channel.invokeMethod("loadGlb", [_assetManager, path, unlit]);
-    if (asset == FILAMENT_ASSET_ERROR) {
+    if (asset == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
     return asset;
@@ -659,4 +661,10 @@ class FilamentControllerMethodChannel extends FilamentController {
   @override
   // TODO: implement pickResult
   Stream<FilamentEntity?> get pickResult => throw UnimplementedError();
+
+  @override
+  String? getNameForEntity(FilamentEntity entity) {
+    // TODO: implement getNameForEntity
+    throw UnimplementedError();
+  }
 }
