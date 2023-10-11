@@ -820,7 +820,6 @@ class FilamentControllerFFI extends FilamentController {
         throw Exception("Failed to get picking result");
       }
     }
-
     var entityId = outPtr.value;
     _pickResultController.add(entityId);
     calloc.free(outPtr);
