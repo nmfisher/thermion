@@ -198,9 +198,16 @@ class FilamentControllerFFI extends FilamentController {
   ///
   @override
   Future resize(int width, int height, {double scaleFactor = 1.0}) async {
+    if (_textureId == null) {
+      print("No texture created, ignoring call to resize.");
+      return;
+    }
     _resizing = true;
     setRendering(false);
-    _lib.destroy_swap_chain(_viewer!);
+    if (_viewer != null) {
+      _lib.destroy_swap_chain(_viewer!);
+    }
+
     await destroyTexture();
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 

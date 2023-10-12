@@ -1,46 +1,38 @@
 # Flutter Filament
 
-Cross-platform, Physically-based rendering inside Flutter applications.
+Cross-platform, 3D PBR rendering and animation for Flutter.
 
-Flutter plugin wrapping the Filament renderer https://github.com/google/filament.
+Wraps the [the Filament rendering library](https://github.com/google/filament).
 
 Powers the Polyvox and odd-io engines.
 
-# Sponsors
+|Feature|Supported|
+|---|---|
+|glTF|Partial - see Known Issues|
+|glb|✅|
+|Camera movement (mouse/finger gesture)|✅|
+|Skinning|✅|
+|Morph targets|✅|
+|Runtime material changes|Partial|
+|Viewport entity selection|✅|
+|Entity transform manipulation (mouse/finger gesture)|Partial|
+|Entity/transform parenting|Planned|
+|Entity material manipulation|Partial|
 
-Thank you to odd-io for sponsoring work on supporting Windows, raycasting, testing and documentation.
+Special thanks to odd-io for sponsoring work on supporting Windows, raycasting, testing and documentation.
 
-# Overview
+PRs are welcome but please create a placeholder PR to discuss before writing any code. This will help avoid   
 
-## Versioning
+## Getting Started
 
-Last tested on Flutter `3.15.0-15.2.pre`. This is on the Flutter beta channel, so run:
+This package is currently only tested on Flutter `3.15.0-15.2.pre`, so you will need to first switch to the `beta` channel: 
+
 ```
 flutter channel beta
 flutter upgrade
 ```
 
-||Android|iOS|MacOS|Windows|Linux|WebGL
-|---|---|---|---|---|---||
-|Filament|v1.43.1 (arm64/armeabi-v7a/x86/x86_64)|v1.43.1* (arm64)|v1.43.1 (arm64)|v1.32.4 (x86_64)|TODO**|TODO***|
-|Flutter||3.15.0-15.2.pre|3.15.0-15.2.pre|3.15.0-15.2.pre
-
-* iOS release build has a skybox bug so the debug versions are currently shipped on iOS
-** (Waiting for https://github.com/google/filament/issues/7078 to be resolved before upgrading, not sure exactly when the bug was introduced but it was somewhere between v1.32.4 and v1.40.0)
-*** Texture widget not currently supported on web in Flutter. 
-
-## Features
-
-|Feature|Supported|
-|---|---|
-|glTF|Y|
-|glb|Y|
-
-# Basic Setup
-
-## Clone flutter_filament 
-
-This plugin is not yet published to pub.dev. To use in your project, simply clone the repository and pull the latest binaries from Git LFS:
+Next, clone this repository and pull the latest binaries from Git LFS:
 
 ```
 cd $HOME
@@ -48,17 +40,17 @@ git clone <repo> && cd flutter_filament
 git lfs pull
 ```
 
-You *do not need to build Filament yourself*. The repository is bundled with all necessary headers/static libraries (`windows/lib`, `ios/lib`, `macos/lib` and `linux/lib`) and the Flutter plugin has been configured to link at build time.
+(these instructions will be updated after the plugin is published to pub.dev).
+> [!NOTE]  
+> You *do not need to build Filament yourself*. The repository is bundled with all necessary headers/static libraries (`windows/lib`, `ios/lib`, `macos/lib` and `linux/lib`) and the Flutter plugin has been configured to link at build time.
 
-If you want to run the example project to check:
+Run the example project to check:
 
 ```
 cd example && flutter run -d <macos/windows/Your iPhone/etc>
 ```
 
-## Add dependency
-
-Add the plugin as a dependency in the pubspec.yaml for your application:
+To use the plugin in your own project, add the plugin to your pubspec.yaml:
 
 ```
 name: your_project
@@ -71,11 +63,11 @@ dependencies:
       path: <path where you cloned the repository>      
 ```
 
-# Basic Usage
+## Basic Usage
 
 See the `example` project for a complete sample of the below steps.
 
-## Creating the viewport widget and controller
+### Creating the viewport widget and controller
 
 To embed a viewport in your app, create an instance of `FilamentControllerFFI` somewhere in your app:
 
@@ -147,12 +139,12 @@ You can also pass a URI to indicate that the glTF file should be loaded from the
 var entity = _filamentController.loadGlb("file:///tmp/bob.glb");
 ```
 
-The return type `FilamentEntity` is simply an integer handle that be used to manipulate the entity in the scene.
-
-For example, to remove the asset:
+The return type `FilamentEntity` is simply an integer handle that be used to manipulate the entity in the scene. For example, to remove the asset:
 ```
 _filamentController.removeAsset(entity);
+entity = null; // see note* below
 ``` 
+* Removing an entity from the scene will invalidate the corresponding `FilamentEntity` handle, so ensure you don't retain any references to it after calling `removeAsset` or `clearAssets`. Removing one `FilamentEntity` does not invalidate/change any other `FilamentEntity` handles; you can continue to safely manipulate these via the `FilamentController`.
 
 To set the world space position of the asset:
 ```
@@ -161,7 +153,6 @@ _filamentController.setPositon(entity, 1.0, 1.0, 1.0);
 
 On desktop, you can also click any renderable object in the viewport to retrieve its associated FilamentEntity (see below).
 
-Whenever an entity is removed from the scene (or you've called another method that clears all entities), the corresponding `FilamentEntity` handle(s) are invalidated and should not be used.
 
 ### Camera movement
 
@@ -257,7 +248,36 @@ uberz -TSHADINGMODEL=lit -TBLENDING=opaque -o lit_opaque_43.uberz lit_opaque
 
 (note that the number in the filename corresponds to the Material version, not the Filament version. Not every Filament version requires a new Material version).
 
+## Versioning
 
+||Android|iOS|MacOS|Windows|Linux|WebGL|
+|---|---|---|---|---|---||
+|Filament|v1.43.1 (arm64/armeabi-v7a/x86/x86_64)|v1.43.1* (arm64)|v1.43.1 (arm64)|v1.32.4 (x86_64)|TODO**|TODO***|
+|Flutter||3.15.0-15.2.pre|3.15.0-15.2.pre|3.15.0-15.2.pre
+
+* iOS release build has a skybox bug so the debug versions are currently shipped on iOS
+** (Waiting for https://github.com/google/filament/issues/7078 to be resolved before upgrading, not sure exactly when the bug was introduced but it was somewhere between v1.32.4 and v1.40.0)
+*** Texture widget not currently supported on web in Flutter. 
+
+## Testing
+
+We automate testing by running the example project on actual iOS/Android/MacOS/Windows devices and executing various operations.
+
+Eventually we want to compare screenshots after each operation to a set of goldens for every platform.
+
+Currently this is only possible on iOS (see https://github.com/flutter/flutter/issues/123063 and https://github.com/flutter/flutter/issues/127306).
+
+To re-generate the golden screenshots for a given device:
+
+```
+./regenerate_goldens.sh <your_device_id>
+```
+To run the tests and compare against those goldens:
+```
+./compare_goldens.sh <your_device_id>
+```
+
+The results will depend on the actual device used to generate the golden, therefore if you are using a different device (which is likely), your results may not be the same. This is expected.
 
 # Building Filament from source
 

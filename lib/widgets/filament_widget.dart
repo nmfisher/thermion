@@ -183,6 +183,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
                   _resizeTimer?.cancel();
 
                   _resizeTimer = Timer(Duration(milliseconds: 500), () async {
+                    print("Resizing to $newSize");
                     await widget.controller
                         .resize(newSize.width.toInt(), newSize.height.toInt());
                     WidgetsBinding.instance.addPostFrameCallback((_) async {

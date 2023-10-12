@@ -48,7 +48,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   List<String>? _animations;
   FilamentEntity? _light;
 
-  late StreamSubscription _pickResultListener;
+  StreamSubscription? _pickResultListener;
   String? picked;
 
   final weights = List.filled(255, 0.0);
@@ -64,18 +64,9 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   bool _frustumCulling = true;
 
   @override
-  void initState() {
-    getApplicationSupportDirectory().then((dir) {
-      print(dir);
-    });
-
-    super.initState();
-  }
-
-  @override
   void dispose() {
     super.dispose();
-    _pickResultListener.cancel();
+    _pickResultListener?.cancel();
   }
 
   Widget _item(void Function() onTap, String text) {
@@ -136,7 +127,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
             _rendering = !_rendering;
             _filamentController!.setRendering(_rendering);
           });
-        }, "Rendering: $_rendering "),
+        }, "Rendering: $_rendering"),
         _item(() {
           setState(() {
             _framerate = _framerate == 60 ? 30 : 60;
@@ -207,8 +198,8 @@ class _ExampleWidgetState extends State<ExampleWidget> {
           _filamentController!.setPosition(_shapes!, 1.0, 1.0, -1.0);
         }, 'set shapes position to 1, 1, -1'),
         _item(() async {
-          _filamentController!.setPosition(_shapes!, 1.0, 1.0, -1.0);
-        }, 'move camera to shapes position'),
+          _filamentController!.setCameraPosition(1.0, 1.0, -1.0);
+        }, 'move camera to 1, 1, -1'),
         _item(() async {
           var frameData = Float32List.fromList(
               List<double>.generate(120, (i) => i / 120).expand((x) {
@@ -350,7 +341,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
           right: 0,
           height: 200,
           child: Container(
-              color: Colors.white,
+              color: Colors.white.withOpacity(0.75),
               child: SingleChildScrollView(
                   child: Wrap(children: children
                       // _item(24 () async { 'rotate by pi around Y axis'),

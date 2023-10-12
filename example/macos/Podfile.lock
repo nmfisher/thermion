@@ -1,21 +1,28 @@
 PODS:
   - FlutterMacOS (1.0.0)
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - polyvox_filament (0.0.1):
     - FlutterMacOS
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
+  - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
   - polyvox_filament (from `Flutter/ephemeral/.symlinks/plugins/polyvox_filament/macos`)
 
 EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
+  path_provider_foundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
   polyvox_filament:
     :path: Flutter/ephemeral/.symlinks/plugins/polyvox_filament/macos
 
 SPEC CHECKSUMS:
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
-  polyvox_filament: 59a161de3df49c867bc2003d4ff73b8a304d2feb
+  path_provider_foundation: 29f094ae23ebbca9d3d0cec13889cd9060c0e943
+  polyvox_filament: 9aa36ae5e5654ff1576534086cbd618b239b75d6
 
 PODFILE CHECKSUM: 9cc8fc8fc62b1d9a89fd6f974ad4157b35254030
 
