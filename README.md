@@ -8,6 +8,10 @@ Powers the Polyvox and odd-io engines.
 
 This is still in beta: bugs/missing features are to be expected.
 
+
+https://github.com/nmfisher/polyvox_filament/assets/7238578/abaed1c8-c97b-4999-97b2-39e85e0fa7dd
+
+
 |Feature|Supported|
 |---|---|
 |Platforms|✅ iOS (arm64)<br/>✅ MacOS (arm64)<br/>✅ Android (arm64) <br/>✅ Windows (x64)<br/>⚠️ Linux (x64 - broken)<br/>⚠️ Web (planned)|
