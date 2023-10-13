@@ -41,7 +41,7 @@ class ExampleWidget extends StatefulWidget {
 }
 
 class _ExampleWidgetState extends State<ExampleWidget> {
-  FilamentControllerFFI? _filamentController;
+  FilamentController? _filamentController;
 
   FilamentEntity? _shapes;
   FilamentEntity? _flightHelmet;
@@ -54,11 +54,13 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   final weights = List.filled(255, 0.0);
 
   bool _loop = false;
-  bool _vertical = false;
+  EdgeInsets _viewportMargin = EdgeInsets.zero;
+
+  bool _readyForScene = false;
+
   bool _rendering = false;
   int _framerate = 60;
   bool _postProcessing = true;
-  bool _active = false;
 
   bool _coneHidden = false;
   bool _frustumCulling = true;
@@ -87,7 +89,12 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         FilamentControllerFFI(uberArchivePath: uberArchivePath);
     _filamentController!.pickResult.listen((entityId) {
       setState(() {
-        picked = _filamentController!.getNameForEntity(entityId);
+        picked = _filamentController!.getNameForEntity(entityId!);
+      });
+    });
+    _filamentController!.isReadyForScene.then((readyForScene) {
+      setState(() {
+        _readyForScene = readyForScene;
       });
     });
   }
@@ -108,17 +115,14 @@ class _ExampleWidgetState extends State<ExampleWidget> {
                   : "assets/lit_opaque_43.uberz");
         }, "create viewer (custom ubershader - lit opaque only)"),
       ]);
-    } else {
+    }
+
+    if (_readyForScene) {
       children.addAll([
         _item(() {
           _filamentController!.destroy();
           _filamentController = null;
-        }, "destroy viewer/texture")
-      ]);
-    }
-
-    if (_filamentController != null) {
-      children.addAll([
+        }, "destroy viewer/texture"),
         _item(() {
           _filamentController!.render();
         }, "render"),
@@ -152,6 +156,13 @@ class _ExampleWidgetState extends State<ExampleWidget> {
           _filamentController!
               .loadIbl('assets/default_env/default_env_ibl.ktx');
         }, 'load IBL'),
+        _item(() async {
+          _light = await _filamentController!
+              .addLight(1, 6500, 150000, 0, 1, 0, 0, -1, 0, true);
+        }, "add directional light"),
+        _item(() async {
+          await _filamentController!.clearLights();
+        }, "clear lights"),
         _item(() {
           setState(() {
             _postProcessing = !_postProcessing;
@@ -290,7 +301,14 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         _item(() {
           _loop = !_loop;
           setState(() {});
-        }, "toggle animation looping ${_loop ? "OFF" : "ON"}")
+        }, "toggle animation looping ${_loop ? "OFF" : "ON"}"),
+        _item(() {
+          setState(() {
+            _viewportMargin = _viewportMargin == EdgeInsets.zero
+                ? EdgeInsets.all(50)
+                : EdgeInsets.zero;
+          });
+        }, "resize")
       ]);
       if (_animations != null) {
         children.addAll(_animations!.map((a) => _item(() {
@@ -323,28 +341,34 @@ class _ExampleWidgetState extends State<ExampleWidget> {
     return Stack(children: [
       _filamentController != null
           ? Positioned.fill(
-              child: FilamentGestureDetector(
-                  showControlOverlay: true,
-                  controller: _filamentController!,
-                  child: FilamentWidget(
-                    controller: _filamentController!,
-                  )))
+              child: Padding(
+                  padding: _viewportMargin,
+                  child: FilamentGestureDetector(
+                      showControlOverlay: true,
+                      controller: _filamentController!,
+                      child: FilamentWidget(
+                        controller: _filamentController!,
+                      ))))
           : Container(),
       Positioned(
           right: 50,
           top: 50,
           child: Text(picked ?? "",
-              style: TextStyle(color: Colors.green, fontSize: 24))),
-      Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 200,
-          child: Container(
-              color: Colors.white.withOpacity(0.75),
-              child: SingleChildScrollView(
-                  child: Wrap(children: children
-                      // _item(24 () async { 'rotate by pi around Y axis'),
+              style: const TextStyle(color: Colors.green, fontSize: 24))),
+      Align(
+          alignment: Alignment.bottomCenter,
+          child: OrientationBuilder(builder: (ctx, orientation) {
+            return Container(
+                alignment: Alignment.bottomCenter,
+                height: orientation == Orientation.landscape ? 100 : 200,
+                color: Colors.white.withOpacity(0.75),
+                child: SingleChildScrollView(child: Wrap(children: children)));
+          }))
+    ]);
+  }
+}
+
+ // _item(24 () async { 'rotate by pi around Y axis'),
                       // _item(5 () async { 'load flight helmet'),
 
                       // _item(7 () async { 'set all weights to 1'),
@@ -375,10 +399,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
                       // _item(30 () async { 'remove light'),
                       // _item(31 () async { 'clear all lights'),
                       // _item(32 () async { 'set camera model matrix'),
-                      ))))
-    ]);
-  }
-}
 
 // case -1:
 
@@ -455,11 +475,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //       case 24:
 //         _filamentController!.setRotation(_shapes!, pi / 2, 0.0, 1.0, 0.0);
 //         break;
-//       case 25:
-//         setState(() {
-//           _vertical = !_vertical;
-//         });
-//         break;
 //       case 26:
 //         _filamentController!.setCameraPosition(0, 0, 3);
 //         _filamentController!.setCameraRotation(0, 0, 1, 0);
@@ -471,10 +486,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //       case 28:
 //         _filamentController!.setBackgroundImagePosition(25, 25);
 //         break;
-//       case 29:
-//         _light = await _filamentController!.addLight(
-//             1, 6500, 15000000, 0, 1, 0, 0, -1, 0, true);
-//         break;
+
 //       case 30:
 //         if (_light != null) {
 //           _filamentController!.removeLight(_light!);
@@ -482,7 +494,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //         }
 //         break;
 //       case 31:
-//         _filamentController!.clearLights();
+
 //         break;
 //       case 32:
 
