@@ -1434,6 +1434,20 @@ class NativeLibrary {
   late final _create_swap_chain_ffi = _create_swap_chain_ffiPtr.asFunction<
       void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, int, int)>();
 
+  void destroy_swap_chain_ffi(
+    ffi.Pointer<ffi.Void> viewer,
+  ) {
+    return _destroy_swap_chain_ffi(
+      viewer,
+    );
+  }
+
+  late final _destroy_swap_chain_ffiPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+          'destroy_swap_chain_ffi');
+  late final _destroy_swap_chain_ffi = _destroy_swap_chain_ffiPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
   void create_render_target_ffi(
     ffi.Pointer<ffi.Void> viewer,
     int nativeTextureId,
