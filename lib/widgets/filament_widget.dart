@@ -132,7 +132,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       var size = ((context.findRenderObject()) as RenderBox).size;
 
       try {
-        widget.controller.createViewer(size.width.toInt(), size.height.toInt());
+        await widget.controller.createViewer(size.width.toInt(), size.height.toInt());
       } catch (err) {
         setState(() {
           _error = err.toString();
@@ -188,21 +188,21 @@ class _FilamentWidgetState extends State<FilamentWidget> {
                   _resizeTimer?.cancel();
 
                   _resizeTimer = Timer(Duration(milliseconds: 500), () async {
-                    setState(() {
-                      _resizing = true;
-                    });
+                    // setState(() {
+                    //   _resizing = true;
+                    // });
 
                     // TODO - we could snapshot the widget to display while we resize?
 
                     print("Resizing to $newSize");
-                    await widget.controller
-                        .resize(newSize.width.toInt(), newSize.height.toInt());
-                    WidgetsBinding.instance.addPostFrameCallback((_) async {
-                      setState(() {
-                        _resizing = false;
-                        widget.onResize?.call();
-                      });
-                    });
+                    // await widget.controller
+                    //     .resize(newSize.width.toInt(), newSize.height.toInt());
+                    // WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    //   setState(() {
+                    //     _resizing = false;
+                    //     widget.onResize?.call();
+                    //   });
+                    // });
                   });
                 });
               },

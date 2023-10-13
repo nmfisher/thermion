@@ -403,8 +403,9 @@ bool PolyvoxFilamentPlugin::MakeOpenGLTexture(uint32_t width, uint32_t height,st
 
             if(!_context || !wglMakeCurrent(whdc, _context)) {
               std::cout << "Failed to switch OpenGL context." << std::endl;
-            } else {
-              uint8_t* data = (uint8_t*)_pixelData.get();
+            } else if (_glTextureId != 0) {
+              // uint8_t* data = (uint8_t*)_pixelData.get();
+              uint8_t* data = new uint8_t[width*height*4];
               glBindTexture(GL_TEXTURE_2D, _glTextureId);
               glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
 
@@ -470,6 +471,8 @@ void PolyvoxFilamentPlugin::DestroyTexture(
     // TODO
     result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());
   #else
+    std::lock_guard<std::mutex> guard(_renderMutex);
+
     HWND hwnd = _pluginRegistrar->GetView()
                   ->GetNativeWindow();
 
@@ -482,9 +485,11 @@ void PolyvoxFilamentPlugin::DestroyTexture(
     // for now we will just unregister the Flutter texture and delete the GL texture
     // we will leave the pixel data/PixelBufferTexture intact - these will be replaced on the next call to createTexture
     // if we wanted to be militant about cleaning up unused memory we could delete here first
-    _textureRegistrar->UnregisterTexture(_flutterTextureId);
-    _flutterTextureId = -1;    
-    glDeleteTextures(1, &_glTextureId);
+    // _textureRegistrar->UnregisterTexture(_flutterTextureId);
+    // _flutterTextureId = -1;    
+    // glDeleteTextures(1, &_glTextureId);
+    // _glTextureId = 0;
+    // wglMakeCurrent(NULL, NULL);
     result->Success(flutter::EncodableValue(true));
   #endif      
 }
