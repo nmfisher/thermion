@@ -6,9 +6,11 @@ Wraps the [the Filament rendering library](https://github.com/google/filament).
 
 Powers the Polyvox and odd-io engines.
 
+This is still in beta: bugs/missing features are to be expected.
+
 |Feature|Supported|
 |---|---|
-|Platforms|✅ iOS<br/>✅ MacOS<br/>✅ Android<br/>✅ Windows<br/>⚠️ Web (planned)|
+|Platforms|✅ iOS (arm64)<br/>✅ MacOS (arm64)<br/>✅ Android (arm64) <br/>✅ Windows (x64)<br/>⚠️ Linux (x64 - broken)<br/>⚠️ Web (planned)|
 |Formats|✅ glb <br/>⚠️ glTF (partial - see Known Issues)|
 |Texture support|✅ PNG <br/>✅ JPEG <br/>✅ KTX <br/>⚠️ KTX2 (planned)|
 |Camera movement|✅ Desktop (mouse)<br/>✅ Mobile (swipe/pinch)|
