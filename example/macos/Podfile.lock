@@ -22,7 +22,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   path_provider_foundation: 29f094ae23ebbca9d3d0cec13889cd9060c0e943
-  polyvox_filament: 9aa36ae5e5654ff1576534086cbd618b239b75d6
+  polyvox_filament: 410c2b06ba59f1182e2fa4338b583903631fb95f
 
 PODFILE CHECKSUM: 9cc8fc8fc62b1d9a89fd6f974ad4157b35254030
 
