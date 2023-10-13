@@ -53,11 +53,14 @@ class FilamentControllerFFI extends FilamentController {
     _lib = NativeLibrary(dl);
   }
 
+  bool _rendering = false;
+
   @override
   Future setRendering(bool render) async {
     if (_viewer == null || _resizing) {
       throw Exception("No viewer available, ignoring");
     }
+    _rendering = render;
     _lib.set_rendering_ffi(_viewer!, render);
   }
 
@@ -102,9 +105,14 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future destroyTexture() async {
-    await _channel.invokeMethod("destroyTexture");
+    print("Destroying texture");
+    // we need to flush all references to the previous texture ID before calling destroy, otherwise the Texture widget will attempt to render a non-existent texture and crash.
+    // however, this is not a synchronous stream, so we need to ensure the Texture widget has been removed from the hierarchy before destroying
     _textureId = null;
     _textureIdController.add(null);
+
+    await _channel.invokeMethod("destroyTexture");
+    print("Texture destroyed");
   }
 
   ///
@@ -202,17 +210,28 @@ class FilamentControllerFFI extends FilamentController {
       print("No texture created, ignoring call to resize.");
       return;
     }
-    _resizing = true;
-    setRendering(false);
-    if (_viewer != null) {
-      _lib.destroy_swap_chain(_viewer!);
+
+    if (_resizing) {
+      print("Resize currently underway, ignoring");
+      return;
     }
 
+    bool wasRendering = _rendering;
+    if (_viewer != null && _rendering) {
+      await setRendering(false);
+    }
+
+    _resizing = true;
+
+    if (_viewer != null) {
+      _lib.destroy_swap_chain_ffi(_viewer!);
+    }
     await destroyTexture();
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
     var textures =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
+    print("Created new texture");
     var flutterTextureId = textures[0];
     _textureId = flutterTextureId;
 
@@ -239,7 +258,9 @@ class FilamentControllerFFI extends FilamentController {
 
     _textureIdController.add(_textureId);
     _resizing = false;
-    setRendering(true);
+    if (wasRendering) {
+      setRendering(true);
+    }
   }
 
   @override
