@@ -301,6 +301,12 @@ uberz -TSHADINGMODEL=lit -TBLENDING=opaque -o lit_opaque_43.uberz lit_opaque
 
 (note that the number in the filename corresponds to the Material version, not the Filament version. Not every Filament version requires a new Material version).
 
+## Releasing your app
+
+If you build your app in release mode, you will need to ensure that "Dead Strip" is set to false.
+
+This is because we only invoke the library at runtime via FFI, so at link time these symbols are otherwise treated as redundant.
+
 ## Versioning
 
 ||Android|iOS|MacOS|Windows|Linux|WebGL|
@@ -311,6 +317,7 @@ uberz -TSHADINGMODEL=lit -TBLENDING=opaque -o lit_opaque_43.uberz lit_opaque
 * iOS release build has a skybox bug so the debug versions are currently shipped on iOS
 ** (Waiting for https://github.com/google/filament/issues/7078 to be resolved before upgrading, not sure exactly when the bug was introduced but it was somewhere between v1.32.4 and v1.40.0)
 *** Texture widget not currently supported on web in Flutter. 
+
 
 ## Testing
 
