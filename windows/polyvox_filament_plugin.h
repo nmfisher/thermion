@@ -61,7 +61,7 @@ public:
 
   std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> _textureDescriptor = nullptr;
 
-  int64_t _flutterTextureId;
+  int64_t _flutterTextureId = -1;
 
   #ifdef USE_ANGLE
   // Device
@@ -86,6 +86,9 @@ public:
 
   void CreateTexture(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void DestroyTexture(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   void RenderCallback();

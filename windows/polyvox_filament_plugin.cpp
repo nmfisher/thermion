@@ -404,7 +404,7 @@ bool PolyvoxFilamentPlugin::MakeOpenGLTexture(uint32_t width, uint32_t height,st
             if(!_context || !wglMakeCurrent(whdc, _context)) {
               std::cout << "Failed to switch OpenGL context." << std::endl;
             } else {
-              uint8_t* data = new uint8_t[width*height*4];
+              uint8_t* data = (uint8_t*)_pixelData.get();
               glBindTexture(GL_TEXTURE_2D, _glTextureId);
               glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
 
@@ -449,7 +449,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
-   const auto *args =
+  const auto *args =
       std::get_if<flutter::EncodableList>(methodCall.arguments());
 
   const auto width = (uint32_t)round(*(std::get_if<double>(&(args->at(0)))));
@@ -459,6 +459,33 @@ void PolyvoxFilamentPlugin::CreateTexture(
   bool success = MakeD3DTexture(width, height, std::move(result));
   #else
   bool success = MakeOpenGLTexture(width, height, std::move(result));
+  #endif      
+}
+
+void PolyvoxFilamentPlugin::DestroyTexture(
+    const flutter::MethodCall<flutter::EncodableValue> &methodCall,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+
+  #ifdef USE_ANGLE
+    // TODO
+    result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());
+  #else
+    HWND hwnd = _pluginRegistrar->GetView()
+                  ->GetNativeWindow();
+
+    HDC whdc = GetDC(hwnd);
+
+    if(!_context || !wglMakeCurrent(whdc, _context)) {
+      result->Error("CONTEXT", "Failed to switch OpenGL context.", nullptr);
+      return;
+    }
+    // for now we will just unregister the Flutter texture and delete the GL texture
+    // we will leave the pixel data/PixelBufferTexture intact - these will be replaced on the next call to createTexture
+    // if we wanted to be militant about cleaning up unused memory we could delete here first
+    _textureRegistrar->UnregisterTexture(_flutterTextureId);
+    _flutterTextureId = -1;    
+    glDeleteTextures(1, &_glTextureId);
+    result->Success(flutter::EncodableValue(true));
   #endif      
 }
 
@@ -480,7 +507,7 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
   } else if (methodCall.method_name() == "createTexture") {
     CreateTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "destroyTexture") {
-    result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());
+    DestroyTexture(methodCall, std::move(result));
   } else if(methodCall.method_name() == "getRenderCallback") {
     flutter::EncodableList resultList;
     resultList.push_back(flutter::EncodableValue((int64_t)&render_callback));
