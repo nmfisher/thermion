@@ -17,6 +17,7 @@ typedef void (*FilamentRenderCallback)(void* const owner);
 
 FLUTTER_PLUGIN_EXPORT void* const create_filament_viewer_ffi(void* const context, void* const platform, const char* uberArchivePath, const ResourceLoaderWrapper* const loader, void (*renderCallback)(void* const renderCallbackOwner), void* const renderCallbackOwner);
 FLUTTER_PLUGIN_EXPORT void create_swap_chain_ffi(void* const viewer, void* const surface, uint32_t width, uint32_t height);
+FLUTTER_PLUGIN_EXPORT void destroy_swap_chain_ffi(void* const viewer);
 FLUTTER_PLUGIN_EXPORT void create_render_target_ffi(void* const viewer, intptr_t nativeTextureId, uint32_t width, uint32_t height);
 FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer_ffi(void* const viewer);
 FLUTTER_PLUGIN_EXPORT void render_ffi(void* const viewer);

@@ -72,7 +72,12 @@ public:
 
     void setRendering(bool rendering)
     {
-        _rendering = rendering;
+        std::packaged_task<void()> lambda([&]() mutable
+                                                           { 
+                                                            this->_rendering = rendering;
+                                                            });
+        auto fut = add_task(lambda);
+        fut.wait();
     }
 
     void doRender()
@@ -138,6 +143,17 @@ extern "C"
         std::packaged_task<void()> lambda([&]() mutable
                                           { 
                                             create_swap_chain(viewer, surface, width, height); 
+                                            });
+        auto fut = _rl->add_task(lambda);
+        fut.wait();
+    }
+
+    FLUTTER_PLUGIN_EXPORT void destroy_swap_chain_ffi(void* const viewer)
+    {
+        Log("Destroying swapchain");
+        std::packaged_task<void()> lambda([&]() mutable
+                                          { 
+                                            destroy_swap_chain(viewer);
                                             });
         auto fut = _rl->add_task(lambda);
         fut.wait();

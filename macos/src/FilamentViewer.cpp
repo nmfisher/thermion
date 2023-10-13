@@ -1155,10 +1155,6 @@ namespace polyvox
       return;
     }
 
-
-    Log("Updating grab at %f %f", x, y);
-
-
     if (_manipulator)
     {
       _manipulator->grabUpdate(x, y);
