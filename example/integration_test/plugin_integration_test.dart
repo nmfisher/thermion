@@ -148,5 +148,7 @@ void main() {
     await tap(tester, "Move camera to asset");
     await tap(tester, "move camera to 1, 1, -1");
     await tap(tester, 'set camera to first camera in shapes GLB');
+
+    await tap(tester, 'resize');
   });
 }
