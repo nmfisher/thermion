@@ -75,10 +75,11 @@ class FilamentWidget extends StatefulWidget {
 class _FilamentWidgetState extends State<FilamentWidget> {
   StreamSubscription? _textureIdListener;
   int? _textureId;
-  bool _resizing = false;
 
   late final AppLifecycleListener _listener;
   AppLifecycleState? _lastState;
+
+  bool _resizing = false;
 
   Timer? _resizeTimer;
 
@@ -174,15 +175,15 @@ class _FilamentWidgetState extends State<FilamentWidget> {
           child: ResizeObserver(
               onResized: (Size oldSize, Size newSize) async {
                 WidgetsBinding.instance.addPostFrameCallback((_) async {
-                  if (!_resizing) {
-                    setState(() {
-                      _resizing = true;
-                    });
-                  }
-
                   _resizeTimer?.cancel();
 
                   _resizeTimer = Timer(Duration(milliseconds: 500), () async {
+                    setState(() {
+                      _resizing = true;
+                    });
+
+                    // TODO - we could snapshot the widget to display while we resize?
+
                     print("Resizing to $newSize");
                     await widget.controller
                         .resize(newSize.width.toInt(), newSize.height.toInt());
