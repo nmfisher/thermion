@@ -479,6 +479,8 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
     result->Success(flutter::EncodableValue((int64_t)resourceLoader));
   } else if (methodCall.method_name() == "createTexture") {
     CreateTexture(methodCall, std::move(result));
+  } else if (methodCall.method_name() == "destroyTexture") {
+    result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());
   } else if(methodCall.method_name() == "getRenderCallback") {
     flutter::EncodableList resultList;
     resultList.push_back(flutter::EncodableValue((int64_t)&render_callback));
