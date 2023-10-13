@@ -187,6 +187,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 }
                 self.flutterTextureId = nil 
                 self.pixelBuffer = nil
+                result(true)
             case "resize":
                 let args = call.arguments as! [Any]
                 let width = UInt32(args[0] as! Int64)

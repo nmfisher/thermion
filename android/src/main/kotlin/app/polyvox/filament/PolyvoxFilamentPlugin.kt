@@ -201,6 +201,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           _surfaceTextureEntry!!.release();
           _surface = null
           _surfaceTextureEntry = null
+          result.success(true)
         }
         "resize" -> {
             val args = call.arguments as List<Any>
