@@ -55,18 +55,12 @@ class FilamentWidget extends StatefulWidget {
   /// The content to render before the texture widget is available.
   /// The default is a solid red Container, intentionally chosen to make it clear that there will be at least one frame where the Texture widget is not being rendered.
   ///
-  late final Widget initial;
+  final Widget? initial;
   final void Function()? onResize;
 
-  FilamentWidget(
-      {Key? key, required this.controller, this.onResize, Widget? initial})
-      : super(key: key) {
-    if (initial != null) {
-      this.initial = initial;
-    } else {
-      this.initial = Container(color: Colors.red);
-    }
-  }
+  const FilamentWidget(
+      {Key? key, required this.controller, this.onResize, this.initial})
+      : super(key: key);
 
   @override
   _FilamentWidgetState createState() => _FilamentWidgetState();
@@ -80,6 +74,8 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   AppLifecycleState? _lastState;
 
   bool _resizing = false;
+
+  String? _error;
 
   Timer? _resizeTimer;
 
@@ -135,7 +131,13 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       }
       var size = ((context.findRenderObject()) as RenderBox).size;
 
-      widget.controller.createViewer(size.width.toInt(), size.height.toInt());
+      try {
+        widget.controller.createViewer(size.width.toInt(), size.height.toInt());
+      } catch (err) {
+        setState(() {
+          _error = err.toString();
+        });
+      }
     });
 
     _textureIdListener = widget.controller.textureId.listen((int? textureId) {
@@ -160,9 +162,17 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return Container(
+          color: Colors.white,
+          child: Column(children: [
+            const Text("A fatal error was encountered"),
+            Text(_error!)
+          ]));
+    }
     return LayoutBuilder(builder: ((context, constraints) {
       if (_textureId == null) {
-        return widget.initial;
+        return widget.initial ?? Container(color: Colors.red);
       }
       var texture = Texture(
         key: ObjectKey("texture_$_textureId"),
