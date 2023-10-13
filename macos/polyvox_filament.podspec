@@ -32,7 +32,7 @@ A new Flutter plugin project.
 
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES', 
-    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
+    'EXCLUDED_ARCHS' => 'x86_64', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "$(inherited)"',
     'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
