@@ -19,3 +19,12 @@ integration_test/goldens/ios/11_Disablefrustumculling.png filter=lfs diff=lfs me
 integration_test/goldens/ios/15_setcameratofirstcamerainshapesGLB.png filter=lfs diff=lfs merge=lfs -text
 integration_test/goldens/ios/1_createviewerdefaultubershader.png filter=lfs diff=lfs merge=lfs -text
 integration_test/goldens/ios/5_loadshapesGLB.png filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios/16_resize.png filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios/3_loadskybox.png filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios/4_loadIBL.png filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios/19_resize.png filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios/17_resize.png filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios/2_Renderingfalse.png filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios/18_resize.png filter=lfs diff=lfs merge=lfs -text
+integration_test/goldens/ios/diffs filter=lfs diff=lfs merge=lfs -text
