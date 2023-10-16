@@ -26,13 +26,13 @@ PRs are welcome but please create a placeholder PR to discuss before writing any
 
 ## Getting Started
 
-This package is currently only tested on Flutter >= `3.16.0-0.2.pre`, so you will need to first switch to the `beta` channel: 
+This package requires Flutter >= `3.16.0-0.2.pre`, so you will need to first switch to the `beta` channel: 
 
 ```
 flutter channel beta
 flutter upgrade
 ```
-Earlier versions have specific issues that will prevent them from working on Windows/MacOS!
+There are specific issues with earlier versions on Windows/MacOS (mobile should actually be fine, so if you want to experiment on your own you're free to remove the minimum version from `pubspec.yaml`).
 
 Next, clone this repository and pull the latest binaries from Git LFS:
 
