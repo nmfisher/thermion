@@ -670,4 +670,12 @@ class FilamentControllerMethodChannel extends FilamentController {
     // TODO: implement getNameForEntity
     throw UnimplementedError();
   }
+  
+  @override
+  // TODO: implement textureDetails
+  TextureDetails? get textureDetails => throw UnimplementedError();
+  
+  @override
+  // TODO: implement rendering
+  bool get rendering => throw UnimplementedError();
 }

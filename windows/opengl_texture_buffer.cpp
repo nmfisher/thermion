@@ -70,12 +70,14 @@ OpenGLTextureBuffer::OpenGLTextureBuffer(
       std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
           [=](size_t width,
               size_t height) -> const FlutterDesktopPixelBuffer * {
+
             if (width != this->_width || height != this->_height) {
-              std::cout << "Front-end widget has been resized, you need to "
-                           "teardown/rebuild the swapchain. This pixel buffer "
-                           "will be discarded."
-                        << std::endl;
-              return nullptr;
+              if(!this->logged) {
+                std::cout << "Front-end widget expects " << width << "x" << height << " but this is " << this->_width << "x" << this->_height 
+                          << std::endl;
+                this->logged = true;
+              }
+              return nullptr; 
             }
             uint8_t *data = (uint8_t *)pixelData.get();
 

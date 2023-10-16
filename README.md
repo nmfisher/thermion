@@ -33,6 +33,7 @@ This package is currently only tested on Flutter >= `3.16.0-0.2.pre`, so you wil
 flutter channel beta
 flutter upgrade
 ```
+Earlier versions have specific issues that will prevent them from working on Windows/MacOS!
 
 Next, clone this repository and pull the latest binaries from Git LFS:
 
@@ -358,6 +359,7 @@ Separately, we also force the Filament gltfio library to load assets via in-memo
 ```
 git checkout flutter-filament-windows
 mkdir out && cd out
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --build . --target gltf_viewer --config Debug
 ```
 
 Building notes:

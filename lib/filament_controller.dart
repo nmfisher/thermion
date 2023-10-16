@@ -17,10 +17,10 @@ class TextureDetails {
 }
 
 abstract class FilamentController {
-  // the current target size of the viewport, in logical pixels
-  ui.Size size = ui.Size.zero;
 
   Future get isReadyForScene;
+
+  TextureDetails? get textureDetails;
 
   ///
   /// The result(s) of calling [pick] (see below).
@@ -28,6 +28,11 @@ abstract class FilamentController {
   /// If [pick] is called without an active subscription to this stream, the results will be silently discarded.
   ///
   Stream<FilamentEntity?> get pickResult;
+
+  ///
+  /// Whether the controller is currently rendering at [framerate].
+  ///
+  bool get rendering;
 
   ///
   /// Set to true to continuously render the scene at the framerate specified by [setFrameRate] (60 fps by default).
@@ -63,7 +68,7 @@ abstract class FilamentController {
 
 
   ///
-  /// Destroys the backing texture. You probably want to call [destroy] instead of this; this is exposed mostly for lifecycle changes which are handled by FilamentWidget.
+  /// Destroys the specified backing texture. You probably want to call [destroy] instead of this; this is exposed mostly for lifecycle changes which are handled by FilamentWidget.
   ///
   Future destroyTexture();
 
@@ -79,13 +84,13 @@ abstract class FilamentController {
   /// 5) The FilamentWidget will replace the empty Container with a Texture widget
   /// If you need to wait until a FilamentViewer has been created, [await] the [isReadyForScene] Future.
   ///
-  Future<TextureDetails> createViewer(int width, int height);
+  void createViewer(int width, int height);
 
   ///
   /// Resize the viewport & backing texture.
   /// This is called by FilamentWidget; you shouldn't need to invoke this manually.
   ///
-  Future<TextureDetails> resize(int width, int height, {double scaleFactor = 1.0});
+  Future resize(int width, int height, {double scaleFactor = 1.0});
 
   ///
   /// Set the background image to [path] (which should have a file extension .png, .jpg, or .ktx).
