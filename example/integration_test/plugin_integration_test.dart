@@ -33,12 +33,12 @@ void main() {
 
   Future _snapshot(WidgetTester tester, Device device, String label,
       [int seconds = 0]) async {
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
     for (int i = 0; i < seconds; i++) {
       await Future.delayed(Duration(seconds: 1));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(Duration(milliseconds: 16));
     }
-    await Future.delayed(Duration(milliseconds: 100));
-    await tester.pumpAndSettle();
+    await tester.pumpAndSettle(Duration(milliseconds: 16));
     var screenshotPath = '$platformIdentifier/${_counter}_$label';
     if (Platform.isIOS) {
       // this is currently hanging on Android
@@ -88,13 +88,18 @@ void main() {
     app.main();
     await pumpUntilFound(tester, find.byType(app.ExampleWidget));
     device = Device(size: Size(800, 600), name: "desktop");
+
+    await tester.pumpAndSettle();
+
     await _snapshot(tester, device, "fresh");
+
     await tap(tester, "create viewer (default ubershader)", 4);
 
-    await tap(tester, "load skybox");
-    await tap(tester, "load IBL");
-    await tap(tester, "Rendering: false");
-    await tap(tester, "load shapes GLB");
+    await tap(tester, "Rendering: false", 2);
+
+    await tap(tester, "load skybox", 2);
+    await tap(tester, "load IBL", 2);
+    await tap(tester, "load shapes GLB", 2);
 
     final Offset pointerLocation =
         tester.getCenter(find.byType(FilamentWidget));
@@ -149,6 +154,9 @@ void main() {
     await tap(tester, "move camera to 1, 1, -1");
     await tap(tester, 'set camera to first camera in shapes GLB');
 
+    await tap(tester, 'resize');
+    await tap(tester, 'resize');
+    await tap(tester, 'resize');
     await tap(tester, 'resize');
   });
 }
