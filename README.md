@@ -116,6 +116,9 @@ When a `FilamentWidget` is added to the widget hierarchy:
 
 It's important to note that there *will* be a delay between adding a `FilamentWidget` and the actual rendering viewport becoming available. This is why we fill `FilamentWidget` with red - to make it abundantly clear that you need to handle this asynchronous delay appropriately.  You can call `await _filamentController.isReadyForScene` if you need to wait until the viewport is actually ready for rendering.
 
+> Currently, the `initial` widget will also be displayed whenever the viewport is resized (including changing orientation on mobile and drag-to-resize on desktop). You probably want to change this from the default red.
+
+
 Congratulations! You now have a scene. It's completely empty, so you probably want to add.
 
 ### Load a background
