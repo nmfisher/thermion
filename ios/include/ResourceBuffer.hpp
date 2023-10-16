@@ -20,7 +20,7 @@ extern "C" {
         #if defined(__cplusplus) && !defined(__ANDROID__) && !defined(__APPLE__)
         ResourceBuffer(const void* const data, const int32_t size, const int32_t id) : data(data), size(size), id(id) {};
         ResourceBuffer(const ResourceBuffer& rb) : data(rb.data), size(rb.size), id(rb.id) { };
-        ResourceBuffer(const ResourceBuffer&& rb) : data(rb.data), size(rb.size), id(rb.id) { };
+        ResourceBuffer(const ResourceBuffer&& rb) noexcept : data(rb.data), size(rb.size), id(rb.id) { };
         ResourceBuffer& operator=(const ResourceBuffer& other) = delete;
         #endif
     };
