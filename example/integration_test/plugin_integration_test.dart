@@ -6,7 +6,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:polyvox_filament/widgets/filament_widget.dart';
 import '../lib/main.dart' as app;
 
@@ -31,7 +30,7 @@ void main() {
 
   int _counter = 0;
 
-  Future _snapshot(WidgetTester tester, Device device, String label,
+  Future _snapshot(WidgetTester tester, String label,
       [int seconds = 0]) async {
     await tester.pumpAndSettle(Duration(milliseconds: 16));
     for (int i = 0; i < seconds; i++) {
@@ -50,8 +49,6 @@ void main() {
     _counter++;
   }
 
-  late Device device;
-
   Future tap(WidgetTester tester, String label, [int seconds = 0]) async {
     var target = find.text(label).first;
     await tester.dragUntilVisible(
@@ -62,7 +59,7 @@ void main() {
         duration: Duration(milliseconds: 10));
     await tester.tap(target);
     await _snapshot(
-        tester, device, label.replaceAll(RegExp("[ -:]"), ""), seconds);
+        tester, label.replaceAll(RegExp("[ -:]"), ""), seconds);
   }
 
   Future<void> pumpUntilFound(
@@ -84,14 +81,13 @@ void main() {
     timer.cancel();
   }
 
-  testGoldens('test', (WidgetTester tester) async {
+  testWidgets('test', (WidgetTester tester) async {
     app.main();
     await pumpUntilFound(tester, find.byType(app.ExampleWidget));
-    device = Device(size: Size(800, 600), name: "desktop");
 
     await tester.pumpAndSettle();
 
-    await _snapshot(tester, device, "fresh");
+    await _snapshot(tester, "fresh");
 
     await tap(tester, "create viewer (default ubershader)", 4);
 
@@ -111,7 +107,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendEventToBinding(testPointer.scroll(const Offset(0.0, 1.0)));
     await tester.pumpAndSettle();
-    await _snapshot(tester, device, "zoomin");
+    await _snapshot(tester, "zoomin");
 
     // rotate
     testPointer =
@@ -127,7 +123,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendEventToBinding(testPointer.up());
 
-    await _snapshot(tester, device, "rotate", 2);
+    await _snapshot(tester,  "rotate", 2);
 
     // pan
     testPointer = TestPointer(1, PointerDeviceKind.mouse, null, kPrimaryButton);
@@ -144,7 +140,7 @@ void main() {
     await tester.sendEventToBinding(testPointer.up());
     await tester.pumpAndSettle();
 
-    await _snapshot(tester, device, "pan");
+    await _snapshot(tester,  "pan");
 
     await tap(tester, "transform to unit cube");
     await tap(tester, "set shapes position to 1, 1, -1");
@@ -154,9 +150,9 @@ void main() {
     await tap(tester, "move camera to 1, 1, -1");
     await tap(tester, 'set camera to first camera in shapes GLB');
 
-    await tap(tester, 'resize');
-    await tap(tester, 'resize');
-    await tap(tester, 'resize');
-    await tap(tester, 'resize');
+    await tap(tester, 'resize', 1);
+    await tap(tester, 'resize', 1);
+    await tap(tester, 'resize', 1);
+    await tap(tester, 'resize', 1);
   });
 }
