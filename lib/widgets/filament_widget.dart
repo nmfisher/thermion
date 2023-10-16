@@ -106,8 +106,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
             print("Size after resuming : $size");
             _height = size.height.ceil();
             _width = size.width.ceil();
-            await widget.controller
-                .createViewer(_width!, _height!);
+            await widget.controller.createViewer(_width!, _height!);
             print("Created viewer Size after resuming");
           }
         }
@@ -133,9 +132,8 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       _width = size.width.ceil();
       _height = size.height.ceil();
       try {
-        _textureDetails = await widget.controller
-            .createViewer(_width!, _height!);
-        
+        _textureDetails =
+            await widget.controller.createViewer(_width!, _height!);
       } catch (err) {
         setState(() {
           _error = err.toString();
@@ -169,7 +167,9 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     // if no texture ID is available, display the [initial] widget (solid red by default)
     late Widget content;
 
-    if ( _textureDetails == null || _textureDetails!.height != _height || _textureDetails!.width != _width) {
+    if (_textureDetails == null ||
+        _textureDetails!.height != _height ||
+        _textureDetails!.width != _width) {
       content = widget.initial ?? Container(color: Colors.red);
     } else {
       content = Texture(
@@ -183,22 +183,21 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     // see [FilamentControllerFFI.resize] for an explanation of how we deal with resizing
     return ResizeObserver(
         onResized: (Size oldSize, Size newSize) async {
-
           _resizeTimer?.cancel();
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _resizeTimer = Timer(const Duration(milliseconds:50), () async {
-              var newWidth = newSize.width.ceil();
-              var newHeight = newSize.height.ceil();
-              _textureDetails = await widget.controller
-                  .resize(newWidth, newHeight);
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                setState(() {
-                  _width = newWidth;
-                  _height = newHeight;
-                });
+          _resizeTimer = Timer(const Duration(milliseconds: 50), () async {
+            var newWidth = newSize.width.ceil();
+            var newHeight = newSize.height.ceil();
+            try {
+              _textureDetails =
+                  await widget.controller.resize(newWidth, newHeight);
+              setState(() {
+                _width = newWidth;
+                _height = newHeight;
               });
-            });
+            } catch (err) {
+              print(err);
+            }
           });
         },
         child: Stack(children: [
