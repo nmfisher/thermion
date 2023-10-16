@@ -161,9 +161,17 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
 
   Future _resize() {
     final completer = Completer();
+    // resizing the window can be sluggish (particular in debug mode), exacerbated when simultaneously recreating the swapchain and resize the window.
+    // to address this, whenever the widget is resized, we set a timer for Xms in the future.
+    // this timer will call [resize] with the widget size at that point in time.
+    // any subsequent widget resizes will cancel the timer and replace with a new one.
+    // debug mode does need a longer timeout.
     _resizeTimer?.cancel();
 
-    _resizeTimer = Timer(Duration(milliseconds: 200), () async {
+    _resizeTimer = Timer(const Duration(milliseconds: kReleaseMode ? 20 : 100), () async {
+      if(!mounted) {
+        return;
+      }
       var size = ((context.findRenderObject()) as RenderBox).size;
       var width = size.width.ceil();
       var height = size.height.ceil();
