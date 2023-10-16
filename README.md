@@ -27,7 +27,7 @@ PRs are welcome but please create a placeholder PR to discuss before writing any
 
 ## Getting Started
 
-This package is currently only tested on Flutter >= `3.15.0-15.2.pre`, so you will need to first switch to the `beta` channel: 
+This package is currently only tested on Flutter >= `3.16.0-0.2.pre`, so you will need to first switch to the `beta` channel: 
 
 ```
 flutter channel beta
