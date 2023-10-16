@@ -8,11 +8,18 @@ typedef FilamentEntity = int;
 
 enum ToneMapper { ACES, FILMIC, LINEAR }
 
+class TextureDetails { 
+  final int textureId;
+  final int width;
+  final int height;
+
+  TextureDetails({required this.textureId, required this.width, required this.height});
+}
+
 abstract class FilamentController {
   // the current target size of the viewport, in logical pixels
   ui.Size size = ui.Size.zero;
 
-  Stream<int?> get textureId;
   Future get isReadyForScene;
 
   ///
@@ -54,6 +61,7 @@ abstract class FilamentController {
   ///
   Future destroyViewer();
 
+
   ///
   /// Destroys the backing texture. You probably want to call [destroy] instead of this; this is exposed mostly for lifecycle changes which are handled by FilamentWidget.
   ///
@@ -71,13 +79,13 @@ abstract class FilamentController {
   /// 5) The FilamentWidget will replace the empty Container with a Texture widget
   /// If you need to wait until a FilamentViewer has been created, [await] the [isReadyForScene] Future.
   ///
-  Future createViewer(int width, int height);
+  Future<TextureDetails> createViewer(int width, int height);
 
   ///
   /// Resize the viewport & backing texture.
   /// This is called by FilamentWidget; you shouldn't need to invoke this manually.
   ///
-  Future resize(int width, int height, {double scaleFactor = 1.0});
+  Future<TextureDetails> resize(int width, int height, {double scaleFactor = 1.0});
 
   ///
   /// Set the background image to [path] (which should have a file extension .png, .jpg, or .ktx).

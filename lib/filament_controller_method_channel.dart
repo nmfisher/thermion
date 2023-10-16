@@ -91,7 +91,8 @@ class FilamentControllerMethodChannel extends FilamentController {
   /// 3) Initially, this widget will only contain an empty Container. After the first frame is rendered, the widget itself will automatically call [createViewer] with the width/height from its constraints
   /// 4) The FilamentWidget will replace the empty Container with the Texture widget.
   ///
-  Future createViewer(int width, int height) async {
+  Future<TextureDetails> createViewer(int width, int height) async {
+    throw Exception();
     if (_viewer != null) {
       throw Exception(
           "Viewer already exists, make sure you call destroyViewer first");
@@ -119,7 +120,9 @@ class FilamentControllerMethodChannel extends FilamentController {
 
   bool _resizing = false;
 
-  Future resize(int width, int height, {double scaleFactor = 1.0}) async {
+
+  Future<TextureDetails> resize(int width, int height, {double scaleFactor = 1.0}) async {
+    throw Exception();
     _resizing = true;
     _textureId = await _channel.invokeMethod(
         "resize", [width * _pixelRatio, height * _pixelRatio, scaleFactor]);

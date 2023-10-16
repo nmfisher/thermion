@@ -26,6 +26,8 @@
 #include "GLES2/gl2.h"
 #include "GLES2/gl2ext.h"
 #include "PlatformAngle.h"
+#else
+#include "opengl_texture_buffer.h"
 #endif 
 
 #include "PolyvoxFilamentApi.h"
@@ -54,14 +56,7 @@ public:
 
   std::map<uint32_t, ResourceBuffer> _resources;
 
-  std::unique_ptr<flutter::TextureVariant> _texture = nullptr;
-
-  std::unique_ptr<FlutterDesktopPixelBuffer> _pixelBuffer = nullptr;
-  std::unique_ptr<uint8_t> _pixelData = nullptr;
-
   std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> _textureDescriptor = nullptr;
-
-  int64_t _flutterTextureId = -1;
 
   #ifdef USE_ANGLE
   // Device
@@ -75,12 +70,13 @@ public:
   filament::backend::PlatformANGLE* _platform = nullptr;
 
   bool MakeD3DTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-  #else
-  // OpenGL
-  HGLRC _context = NULL;
-  GLuint _glTextureId = 0;
-  std::mutex _renderMutex;
+  #else 
+  std::shared_ptr<std::mutex> _renderMutex;
+  std::unique_ptr<OpenGLTextureBuffer> _active = nullptr;
+  std::unique_ptr<OpenGLTextureBuffer> _inactive = nullptr;
 
+  // shared OpenGLContext
+  HGLRC _context = NULL;
   bool MakeOpenGLTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   #endif
 
@@ -90,7 +86,6 @@ public:
   void DestroyTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-
   void RenderCallback();
 
   ResourceBuffer loadResource(const char *path);

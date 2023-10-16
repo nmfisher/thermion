@@ -56,10 +56,8 @@ class FilamentWidget extends StatefulWidget {
   /// The default is a solid red Container, intentionally chosen to make it clear that there will be at least one frame where the Texture widget is not being rendered.
   ///
   final Widget? initial;
-  final void Function()? onResize;
 
-  const FilamentWidget(
-      {Key? key, required this.controller, this.onResize, this.initial})
+  const FilamentWidget({Key? key, required this.controller, this.initial})
       : super(key: key);
 
   @override
@@ -67,23 +65,21 @@ class FilamentWidget extends StatefulWidget {
 }
 
 class _FilamentWidgetState extends State<FilamentWidget> {
-  StreamSubscription? _textureIdListener;
-  int? _textureId;
+  TextureDetails? _textureDetails;
 
   late final AppLifecycleListener _listener;
   AppLifecycleState? _lastState;
 
-  bool _resizing = false;
-
   String? _error;
 
-  Timer? _resizeTimer;
+  int? _width;
+  int? _height;
 
   void _handleStateChange(AppLifecycleState state) async {
     switch (state) {
       case AppLifecycleState.detached:
         print("Detached");
-        _textureId = null;
+        _textureDetails = null;
 
         await widget.controller.destroyViewer();
         await widget.controller.destroyTexture();
@@ -91,7 +87,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       case AppLifecycleState.hidden:
         print("Hidden");
         if (Platform.isIOS) {
-          _textureId = null;
+          _textureDetails = null;
           await widget.controller.destroyViewer();
           await widget.controller.destroyTexture();
         }
@@ -104,12 +100,16 @@ class _FilamentWidgetState extends State<FilamentWidget> {
         break;
       case AppLifecycleState.resumed:
         print("Resumed");
-        if (_textureId == null) {
-          var size = ((context.findRenderObject()) as RenderBox).size;
-          print("Size after resuming : $size");
-          await widget.controller
-              .createViewer(size.width.toInt(), size.height.toInt());
-          print("Created viewer Size after resuming");
+        if (!Platform.isWindows) {
+          if (_textureDetails == null) {
+            var size = ((context.findRenderObject()) as RenderBox).size;
+            print("Size after resuming : $size");
+            _height = size.height.ceil();
+            _width = size.width.ceil();
+            await widget.controller
+                .createViewer(_width!, _height!);
+            print("Created viewer Size after resuming");
+          }
         }
         break;
     }
@@ -130,9 +130,12 @@ class _FilamentWidgetState extends State<FilamentWidget> {
         await Future.delayed(Duration(seconds: 2));
       }
       var size = ((context.findRenderObject()) as RenderBox).size;
-
+      _width = size.width.ceil();
+      _height = size.height.ceil();
       try {
-        await widget.controller.createViewer(size.width.toInt(), size.height.toInt());
+        _textureDetails = await widget.controller
+            .createViewer(_width!, _height!);
+        
       } catch (err) {
         setState(() {
           _error = err.toString();
@@ -140,28 +143,20 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       }
     });
 
-    _textureIdListener = widget.controller.textureId.listen((int? textureId) {
-      var size = ((context.findRenderObject()) as RenderBox).size;
-      print(
-          "Received new texture ID $textureId at size $size (current textureID  $_textureId)");
-      setState(() {
-        _textureId = textureId;
-      });
-    });
-
     super.initState();
   }
 
   @override
   void dispose() {
-    _textureIdListener?.cancel();
     _listener.dispose();
-    _resizeTimer?.cancel();
     super.dispose();
   }
 
+  Timer? _resizeTimer;
+
   @override
   Widget build(BuildContext context) {
+    // if an error was encountered in creating a viewer, display the error message and don't even try to display a Texture widget.
     if (_error != null) {
       return Container(
           color: Colors.white,
@@ -170,51 +165,51 @@ class _FilamentWidgetState extends State<FilamentWidget> {
             Text(_error!)
           ]));
     }
-    return LayoutBuilder(builder: ((context, constraints) {
-      if (_textureId == null) {
-        return widget.initial ?? Container(color: Colors.red);
-      }
-      var texture = Texture(
-        key: ObjectKey("texture_$_textureId"),
-        textureId: _textureId!,
+
+    // if no texture ID is available, display the [initial] widget (solid red by default)
+    late Widget content;
+
+    if ( _textureDetails == null || _textureDetails!.height != _height || _textureDetails!.width != _width) {
+      content = widget.initial ?? Container(color: Colors.red);
+    } else {
+      content = Texture(
+        key: ObjectKey("texture_${_textureDetails!.textureId}"),
+        textureId: _textureDetails!.textureId,
         filterQuality: FilterQuality.none,
+        freeze: false,
       );
-      return SizedBox(
-          height: constraints.maxHeight,
-          width: constraints.maxWidth,
-          child: ResizeObserver(
-              onResized: (Size oldSize, Size newSize) async {
-                WidgetsBinding.instance.addPostFrameCallback((_) async {
-                  _resizeTimer?.cancel();
+    }
 
-                  _resizeTimer = Timer(Duration(milliseconds: 500), () async {
-                    // setState(() {
-                    //   _resizing = true;
-                    // });
+    // see [FilamentControllerFFI.resize] for an explanation of how we deal with resizing
+    return ResizeObserver(
+        onResized: (Size oldSize, Size newSize) async {
 
-                    // TODO - we could snapshot the widget to display while we resize?
+          _resizeTimer?.cancel();
 
-                    print("Resizing to $newSize");
-                    // await widget.controller
-                    //     .resize(newSize.width.toInt(), newSize.height.toInt());
-                    // WidgetsBinding.instance.addPostFrameCallback((_) async {
-                    //   setState(() {
-                    //     _resizing = false;
-                    //     widget.onResize?.call();
-                    //   });
-                    // });
-                  });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _resizeTimer = Timer(const Duration(milliseconds:50), () async {
+              var newWidth = newSize.width.ceil();
+              var newHeight = newSize.height.ceil();
+              _textureDetails = await widget.controller
+                  .resize(newWidth, newHeight);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                setState(() {
+                  _width = newWidth;
+                  _height = newHeight;
                 });
-              },
-              child: _resizing
-                  ? Container()
-                  : Platform.isLinux || Platform.isWindows
-                      ? Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.rotationX(
-                              pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
-                          child: texture)
-                      : texture));
-    }));
+              });
+            });
+          });
+        },
+        child: Stack(children: [
+          Positioned.fill(
+              child: Platform.isLinux || Platform.isWindows
+                  ? Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.rotationX(
+                          pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
+                      child: content)
+                  : content)
+        ]));
   }
 }

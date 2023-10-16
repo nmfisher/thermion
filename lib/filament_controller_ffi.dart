@@ -11,14 +11,13 @@ import 'package:polyvox_filament/generated_bindings.dart';
 
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 
+
 class FilamentControllerFFI extends FilamentController {
   late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
 
   double _pixelRatio = 1.0;
 
   int? _textureId;
-  final _textureIdController = StreamController<int?>.broadcast();
-  Stream<int?> get textureId => _textureIdController.stream;
 
   Completer _isReadyForScene = Completer();
   Future get isReadyForScene => _isReadyForScene.future;
@@ -105,20 +104,21 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future destroyTexture() async {
+    if(_textureId != null) {
+      throw Exception("No texture available");
+    }
     print("Destroying texture");
     // we need to flush all references to the previous texture ID before calling destroy, otherwise the Texture widget will attempt to render a non-existent texture and crash.
     // however, this is not a synchronous stream, so we need to ensure the Texture widget has been removed from the hierarchy before destroying
     _textureId = null;
-    _textureIdController.add(null);
-
-    await _channel.invokeMethod("destroyTexture");
+    await _channel.invokeMethod("destroyTexture", _textureId!);
     print("Texture destroyed");
   }
 
   ///
   /// Called by `FilamentWidget`. You do not need to call this yourself.
   ///
-  Future createViewer(int width, int height) async {
+  Future<TextureDetails> createViewer(int width, int height) async {
     if (_viewer != null) {
       throw Exception(
           "Viewer already exists, make sure you call destroyViewer first");
@@ -132,8 +132,6 @@ class FilamentControllerFFI extends FilamentController {
     if (loader == nullptr) {
       throw Exception("Failed to get resource loader");
     }
-
-    print("Using loader ${loader.address}");
 
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
@@ -195,45 +193,99 @@ class FilamentControllerFFI extends FilamentController {
 
     _assetManager = _lib.get_asset_manager(_viewer!);
 
-    _textureIdController.add(_textureId);
-
     _isReadyForScene.complete(true);
+    return TextureDetails(textureId: _textureId!, width: width, height:height);
   }
 
   ///
-  /// I'm not exactly sure how to resize the backing textures on all platforms.
-  /// So for now, I'm sticking with the safe option when the widget is resized: destroying the swapchain, recreating the textures, and creating a new swapchain.
+  /// When a FilamentWidget is resized, it will call [resize]. This method will tear down/recreate the swapchain and propagate a new texture ID back to the FilamentWidget.
+  /// For "once-off" resizes, this is fine.
+  /// However, this can be problematic for consecutive resizes (e.g. dragging to expand/contract the parent window on desktop, or animating the size of the FilamentWidget itself).
+  /// It is too expensive to recreate the swapchain multiple times per second.
+  /// We therefore add a timer to FilamentWidget so that the call to [resize] is delayed (e.g. 50ms).
+  /// Any subsequent resizes before the delay window elapses will cancel the earlier call.
+  /// 
+  ///  The overall process looks like this:
+  /// 1) the window is resized
+  /// 2) (Windows only) PixelBufferTexture is requested to provide a new pixel buffer with a new size, and we return an empty texture
+  /// 3) After Xms, [resize] is invoked
+  /// 4) the viewer is instructed to stop rendering (synchronous)
+  /// 5) the existing Filament swapchain is destroyed (synchronous)
+  /// 6) the Flutter texture is unregistered
+  ///   a) this is asynchronous, but
+  ///   b) *** SEE NOTE BELOW ON WINDOWS *** by passing the method channel result through to the callback, we make this synchronous from the Flutter side,
+  //    c) in this async callback, the glTexture is destroyed
+  /// 7) a new Flutter/OpenGL texture is created (synchronous)
+  /// 8) a new swapchain is created (synchronous)
+  /// 9) if the viewer was rendering prior to the resize, the viewer is instructed to recommence rendering
+  /// 10) the new texture ID is pushed to the FilamentWidget
+  /// 11) the FilamentWidget updates the Texture widget with the new texture.
+  /// 
+  /// #### (Windows-only) ############################################################
+  /// # As soon as the widget/window is resized, the PixelBufferTexture will be 
+  /// # requested to provide a new pixel buffer for the new size.
+  /// # Even with zero delay to the call to [resize], this will be triggered *before* 
+  /// # we have had a chance to anything else (like tear down the swapchain).
+  /// # On the backend, we deal with this by simply returning an empty texture as soon 
+  /// # as the size changes, and will rely on the followup call to [resize] to actually
+  /// # destroy/recreate the pixel buffer and Flutter texture.
+  /// 
+  /// NOTE RE ASYNC CALLBACK
+  /// # The bigger problem is a race condition when resize is called multiple times in quick succession (e.g dragging to resize on Windows).
+  /// # It looks like occasionally, the backend OpenGL texture is being destroyed while its corresponding swapchain is still active, causing a crash.
+  /// # I'm not exactly sure how/where this is occurring, but something clearly isn't synchronized between destroy_swap_chain_ffi and 
+  /// # the asynchronous callback passed to FlutterTextureRegistrar::UnregisterTexture. 
+  /// # Theoretically this could occur if resize_2 starts before resize_1 completes, i.e.
+  /// # 1) resize_1 destroys swapchain/texture and creates new texture
+  /// # 2) resize_2 destroys swapchain/texture
+  /// # 3) resize_1 creates new swapchain but texture isn't available, ergo crash
+  /// # 
+  /// # I don't think this should happen if:
+  /// # 1) we add a flag on the Flutter side to ensure only one call to destroy/recreate the swapchain/texture is active at any given time, and
+  /// # 2) on the Flutter side, we are sure that calling destroyTexture only returns once the async callback on the native side has completed. 
+  /// # For (1), checking if textureId is null at the entrypoint should be sufficient.
+  /// # For (2), we invoke flutter::MethodResult<flutter::EncodableValue>->Success in the UnregisterTexture callback.
+  /// # 
+  /// # Maybe (2) doesn't actually make Flutter wait?
+  /// #
+  /// # The other possibility is that both (1) and (2) are fine and the issue is elsewhere.
+  /// #
+  /// # Either way, the current solution is to basically setup a double-buffer on resize.
+  /// # When destroyTexture is called, the active texture isn't destroyed yet, it's only marked as inactive.
+  /// # On subsequent calls to destroyTexture, the inactive texture is destroyed.
+  /// # This seems to work fine.
+  /// 
+  /// # Another option is to only use a single large (e.g. 4k) texture and simply crop whenever a resize is requested.
+  /// # This might be preferable for other reasons (e.g. don't need to destroy/recreate the pixel buffer or swapchain).
+  /// # Given we don't do this on other platforms, I'm OK to stick with the existing solution for the time being.
+  /// ############################################################################
+  /// 
+
   ///
+  ///
+  /// Other options:
+  /// 1) never destroy the texture, simply allocate a large (4k?) texture and crop as needed
+  /// 2) double-buffering?
   @override
-  Future resize(int width, int height, {double scaleFactor = 1.0}) async {
+  Future<TextureDetails> resize(int width, int height, {double scaleFactor = 1.0}) async {
     if (_textureId == null) {
-      print("No texture created, ignoring call to resize.");
-      return;
+      throw Exception("No texture created, ignoring call to resize.");
     }
-
-    if (_resizing) {
-      print("Resize currently underway, ignoring");
-      return;
-    }
-
-    bool wasRendering = _rendering;
-    if (_viewer != null && _rendering) {
-      await setRendering(false);
-    }
-
-    _resizing = true;
-
+    var textureId = _textureId;
+    _textureId = null;
+  
+    _lib.set_rendering_ffi(_viewer!, false);
+    
     if (_viewer != null) {
       _lib.destroy_swap_chain_ffi(_viewer!);
     }
-    await destroyTexture();
+
+    await _channel.invokeMethod("destroyTexture", textureId);
+
     size = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
     var textures =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
-    print("Created new texture");
-    var flutterTextureId = textures[0];
-    _textureId = flutterTextureId;
 
     // void* on iOS (pointer to pixel buffer), void* on Android (pointer to native window), null on Windows/macOS
     var surfaceAddress = textures[1] as int? ?? 0;
@@ -256,11 +308,10 @@ class FilamentControllerFFI extends FilamentController {
     _lib.update_viewport_and_camera_projection_ffi(
         _viewer!, size.width.toInt(), size.height.toInt(), 1.0);
 
-    _textureIdController.add(_textureId);
-    _resizing = false;
-    if (wasRendering) {
-      setRendering(true);
-    }
+    await setRendering(_rendering);
+    _textureId = textures[0];
+
+    return TextureDetails(textureId: _textureId!, width: width, height:height);
   }
 
   @override

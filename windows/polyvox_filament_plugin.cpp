@@ -33,10 +33,6 @@
 #include "PlatformANGLE.h"
 #endif 
 
-#include "GL/GL.h"
-#include "GL/GLu.h"
-#include "GL/wglext.h"
-
 #include <Windows.h>
 #include <wrl.h>
 
@@ -83,7 +79,7 @@ ResourceBuffer PolyvoxFilamentPlugin::loadResource(const char *name) {
       name_str = name_str.substr(8);
     }
 
-    TCHAR pBuf[256];
+    TCHAR pBuf[512];
     size_t len = sizeof(pBuf);
     int bytes = GetModuleFileName(NULL, pBuf, len);
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
@@ -145,7 +141,10 @@ void PolyvoxFilamentPlugin::RenderCallback() {
                                     _internalD3DTexture2D.Get());
   _D3D11DeviceContext->Flush();
   #endif
-  _textureRegistrar->MarkTextureFrameAvailable(_flutterTextureId);
+  std::lock_guard<std::mutex> guard(*(_renderMutex.get()));
+  if (_active) {
+      _textureRegistrar->MarkTextureFrameAvailable(_active->flutterTextureId);
+  }
 }
 
 #ifdef USE_ANGLE
@@ -293,8 +292,9 @@ bool PolyvoxFilamentPlugin::MakeD3DTexture(uint32_t width, uint32_t height,std::
 }
 #else
 bool PolyvoxFilamentPlugin::MakeOpenGLTexture(uint32_t width, uint32_t height,std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+
   HWND hwnd = _pluginRegistrar->GetView()
-                  ->GetNativeWindow();;
+                  ->GetNativeWindow();
 
   HDC whdc = GetDC(hwnd);
   if (whdc == NULL) {
@@ -302,146 +302,99 @@ bool PolyvoxFilamentPlugin::MakeOpenGLTexture(uint32_t width, uint32_t height,st
     return false;
   }
 
-  PIXELFORMATDESCRIPTOR pfd = {
-        sizeof(PIXELFORMATDESCRIPTOR),
-        1,
-        PFD_DRAW_TO_BITMAP | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags
-        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
-        32,                   // Colordepth of the framebuffer.
-        0, 0, 0, 0, 0, 0,
-        0,
-        0,
-        0,
-        0, 0, 0, 0,
-        32,                   // Number of bits for the depthbuffer
-        0,                    // Number of bits for the stencilbuffer
-        0,                    // Number of Aux buffers in the framebuffer.
-        PFD_MAIN_PLANE,
-        0,
-        0, 0, 0
-    };
+  if(!_renderMutex.get()) {
+    _renderMutex = std::make_shared<std::mutex>();
+  }
 
-  int pixelFormat = ChoosePixelFormat(whdc, &pfd);
-  SetPixelFormat(whdc, pixelFormat, &pfd);
 
-  // We need a tmp context to retrieve and call wglCreateContextAttribsARB.
-  HGLRC tempContext = wglCreateContext(whdc);
-  if (!wglMakeCurrent(whdc, tempContext)) {
-    result->Error("ERROR", "Failed to acquire temporary context", nullptr);
+  // we need a single context (since this will be passed to the renderer)
+  // if this is the first time we are attempting to create a texture, let's create the context
+  if(_context == NULL) {
+     
+      std::cout << "No GL context exists, creating" << std::endl;
+
+      PIXELFORMATDESCRIPTOR pfd = {
+            sizeof(PIXELFORMATDESCRIPTOR),
+            1,
+            PFD_DRAW_TO_BITMAP | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    // Flags
+            PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+            32,                   // Colordepth of the framebuffer.
+            0, 0, 0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0, 0, 0, 0,
+            32,                   // Number of bits for the depthbuffer
+            0,                    // Number of bits for the stencilbuffer
+            0,                    // Number of Aux buffers in the framebuffer.
+            PFD_MAIN_PLANE,
+            0,
+            0, 0, 0
+        };
+
+      int pixelFormat = ChoosePixelFormat(whdc, &pfd);
+      SetPixelFormat(whdc, pixelFormat, &pfd);
+
+      // We need a tmp context to retrieve and call wglCreateContextAttribsARB.
+      HGLRC tempContext = wglCreateContext(whdc);
+      if (!wglMakeCurrent(whdc, tempContext)) {
+        result->Error("ERROR", "Failed to acquire temporary context", nullptr);
+      }
+
+      GLenum err = glGetError();
+
+      if(err != GL_NO_ERROR) {
+        result->Error("ERROR", "GL Error @ 455 %d", err);
+        return false;
+      }
+
+      PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs = nullptr;
+
+      wglCreateContextAttribs =
+          (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress(
+              "wglCreateContextAttribsARB");
+
+      if (!wglCreateContextAttribs) {
+        result->Error("ERROR", "Failed to resolve wglCreateContextAttribsARB",
+                      nullptr);
+        return false;
+      }
+
+      for (int minor = 5; minor >= 1; minor--) {
+        std::vector<int> mAttribs = {WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+                                    WGL_CONTEXT_MINOR_VERSION_ARB, minor, 0};
+        _context = wglCreateContextAttribs(whdc, nullptr, mAttribs.data());
+        if (_context) {
+          break;
+        }
+      }
+
+      wglMakeCurrent(NULL, NULL);
+      wglDeleteContext(tempContext);
+
+      if (!_context || !wglMakeCurrent(whdc, _context)) {
+        result->Error("ERROR", "Failed to create OpenGL context.");
+        return false;
+      }
+
+  }
+  
+  if(_active.get()) {
+    result->Error("ERROR", "Texture already exists. You must call destroyTexture before attempting to create a new one.");
     return false;
-  }
+  } 
 
-  GLenum err = glGetError();
-
-  if(err != GL_NO_ERROR) {
-    result->Error("ERROR", "GL Error @ 455 %d", err);
-    return false;
-  }
-
-  PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs = nullptr;
-
-  wglCreateContextAttribs =
-      (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress(
-          "wglCreateContextAttribsARB");
-
-  if (!wglCreateContextAttribs) {
-    result->Error("ERROR", "Failed to resolve wglCreateContextAttribsARB",
-                  nullptr);
-    return false;
-  }
-
-  for (int minor = 5; minor >= 1; minor--) {
-    std::vector<int> mAttribs = {WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-                                 WGL_CONTEXT_MINOR_VERSION_ARB, minor, 0};
-    _context = wglCreateContextAttribs(whdc, nullptr, mAttribs.data());
-    if (_context) {
-      break;
-    }
-  }
-
-  wglMakeCurrent(NULL, NULL);
-  wglDeleteContext(tempContext);
-
-
-  if (!_context || !wglMakeCurrent(whdc, _context)) {
-    result->Error("ERROR", "Failed to create OpenGL context.");
-    return false;
-  }
-
-  glGenTextures(1, &_glTextureId);
-
-  if(_glTextureId == 0) {
-    result->Error("ERROR", "Failed to generate texture, OpenGL err was %d", glGetError());
-    return false;
-  }
-
-  glBindTexture(GL_TEXTURE_2D, _glTextureId);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA,
-               GL_UNSIGNED_BYTE, 0);
-
-  err = glGetError();
-
-  if (err != GL_NO_ERROR) {
-    result->Error("ERROR", "Failed to generate texture, GL error was %d", err);
-    return false;
-  }
-  wglMakeCurrent(NULL, NULL);
-
-  _pixelData.reset(new uint8_t[width * height * 4]);
-  _pixelBuffer = std::make_unique<FlutterDesktopPixelBuffer>();
-  _pixelBuffer->buffer = _pixelData.get();
-
-  _pixelBuffer->width = size_t(width);
-  _pixelBuffer->height = size_t(height);
- 
-  _texture = std::make_unique<flutter::TextureVariant>(flutter::PixelBufferTexture(
-          [=](size_t width,
-              size_t height) -> const FlutterDesktopPixelBuffer * {
-            std::lock_guard<std::mutex> guard(_renderMutex);
-
-            if(!_context || !wglMakeCurrent(whdc, _context)) {
-              std::cout << "Failed to switch OpenGL context." << std::endl;
-            } else if (_glTextureId != 0) {
-              // uint8_t* data = (uint8_t*)_pixelData.get();
-              uint8_t* data = new uint8_t[width*height*4];
-              glBindTexture(GL_TEXTURE_2D, _glTextureId);
-              glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
-
-              GLenum err = glGetError();
-
-              if(err != GL_NO_ERROR) {
-                if(err == GL_INVALID_OPERATION) {
-                  std::cout << "Invalid op" << std::endl;
-                } else if(err == GL_INVALID_VALUE) {
-                std::cout << "Invalid value" << std::endl;
-                } else if(err == GL_OUT_OF_MEMORY) {
-                  std::cout << "Out of mem" << std::endl;
-                } else if(err == GL_INVALID_ENUM ) {
-                  std::cout << "Invalid enum" << std::endl;
-                } else {
-                  std::cout << "Unknown error" << std::endl;
-                }
-              }
-              glFinish();
-              _pixelData.reset(data);
-              wglMakeCurrent(NULL, NULL);
-            }
-            _pixelBuffer->buffer = _pixelData.get();
-
-            return _pixelBuffer.get();
-          }));
-
-  _flutterTextureId = _textureRegistrar->RegisterTexture(_texture.get());
-  std::cout << "Registered Flutter texture ID " << _flutterTextureId << std::endl;
-
-  std::vector<flutter::EncodableValue> resultList;
-  resultList.push_back(flutter::EncodableValue(_flutterTextureId));
-  resultList.push_back(flutter::EncodableValue((int64_t)nullptr));
-  resultList.push_back(flutter::EncodableValue(_glTextureId));
-  result->Success(resultList);
-  return true;
+  _active = std::make_unique<OpenGLTextureBuffer>(
+    _pluginRegistrar, 
+    _textureRegistrar, 
+    std::move(result), 
+    width, 
+    height, 
+    _context, 
+    _renderMutex
+  );
+  
+  return _active->flutterTextureId != -1;
 
 }
 #endif 
@@ -467,30 +420,53 @@ void PolyvoxFilamentPlugin::DestroyTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
+  const auto *flutterTextureId =
+      std::get_if<int64_t>(methodCall.arguments());
+
+  if(!flutterTextureId) {
+    result->Error("NOT_IMPLEMENTED", "Flutter texture ID must be provided");
+    return;
+  }
+
   #ifdef USE_ANGLE
     // TODO
     result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());
   #else
-    std::lock_guard<std::mutex> guard(_renderMutex);
+    auto sh = std::make_shared<std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>>(std::move(result));
 
-    HWND hwnd = _pluginRegistrar->GetView()
-                  ->GetNativeWindow();
-
-    HDC whdc = GetDC(hwnd);
-
-    if(!_context || !wglMakeCurrent(whdc, _context)) {
-      result->Error("CONTEXT", "Failed to switch OpenGL context.", nullptr);
+    if(!_active) {
+      result->Success("Texture has already been detroyed, ignoring");
       return;
     }
-    // for now we will just unregister the Flutter texture and delete the GL texture
-    // we will leave the pixel data/PixelBufferTexture intact - these will be replaced on the next call to createTexture
-    // if we wanted to be militant about cleaning up unused memory we could delete here first
-    // _textureRegistrar->UnregisterTexture(_flutterTextureId);
-    // _flutterTextureId = -1;    
-    // glDeleteTextures(1, &_glTextureId);
-    // _glTextureId = 0;
-    // wglMakeCurrent(NULL, NULL);
-    result->Success(flutter::EncodableValue(true));
+
+    if(_active->flutterTextureId != *flutterTextureId) {
+      result->Error("TEXTURE_MISMATCH", "Specified texture ID is not active");
+      return;
+    }
+
+    _textureRegistrar->UnregisterTexture(_active->flutterTextureId, [=, 
+        sharedResult=std::move(sh)
+    ]() {
+
+        if(this->_inactive) {
+
+          HWND hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
+
+          HDC whdc = GetDC(hwnd);
+
+          if (!wglMakeCurrent(whdc, _context)) {
+              std::cout << "Failed to switch OpenGL context in destructor."                << std::endl;
+              // result->Error("CONTEXT", "Failed to switch OpenGL context.", nullptr);
+              return;
+          }
+          glDeleteTextures(1, &this->_inactive->glTextureId);
+          wglMakeCurrent(NULL, NULL);
+        }
+        this->_inactive = std::move(this->_active);
+        auto unique = std::move(*(sharedResult.get()));
+        unique->Success(flutter::EncodableValue(true));
+        std::cout << "Destroyed OpenGLTextureBuffer." << std::endl;
+    });    
   #endif      
 }
 
@@ -524,8 +500,7 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
     #else
       result->Success(flutter::EncodableValue((int64_t)nullptr));
     #endif
-  }
-  else {
+  } else {
     result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());
   }
 }

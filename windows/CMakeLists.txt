@@ -12,6 +12,7 @@ set(PLUGIN_NAME "polyvox_filament_plugin")
 list(APPEND PLUGIN_SOURCES
   "polyvox_filament_plugin.cpp"
   "polyvox_filament_plugin.h"
+  "opengl_texture_buffer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
@@ -69,8 +70,8 @@ if(USE_ANGLE)
 else()
   list(APPEND GL_LIBS
     bluegl
-    bluevk
-    vkshaders
+    # bluevk
+    # vkshaders
     opengl32
   )
   set(ANGLE_OR_OPENGL_DIR opengl)
