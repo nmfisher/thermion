@@ -16,7 +16,7 @@ Future<void> main() async {
 
       if (!golden.existsSync()) {
         throw Exception(
-            "Golden image doesn't exist yet. Make sure you have run integraton_test_update_goldens.dart first");
+            "Golden image ${golden.path} doesn't exist yet. Make sure you have run integraton_test_update_goldens.dart first");
       }
 
       var result = await compareImages(
