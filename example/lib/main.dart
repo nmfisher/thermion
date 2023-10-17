@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:polyvox_filament/filament_controller.dart';
 import 'package:polyvox_filament/animations/bone_animation_data.dart';
@@ -311,7 +312,10 @@ class _ExampleWidgetState extends State<ExampleWidget> {
                 ? EdgeInsets.all(50)
                 : EdgeInsets.zero;
           });
-        }, "resize")
+        }, "resize"),
+        _item(() async {
+          await Permission.microphone.request();
+        }, "request permissions (tests inactive->resume)")
       ]);
       if (_animations != null) {
         children.addAll(_animations!.map((a) => _item(() {
