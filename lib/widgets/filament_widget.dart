@@ -168,8 +168,9 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     // debug mode does need a longer timeout.
     _resizeTimer?.cancel();
 
-    _resizeTimer = Timer(const Duration(milliseconds: kReleaseMode ? 20 : 100), () async {
-      if(!mounted) {
+    _resizeTimer =
+        Timer(const Duration(milliseconds: kReleaseMode ? 20 : 100), () async {
+      if (!mounted) {
         return;
       }
       var size = ((context.findRenderObject()) as RenderBox).size;
@@ -209,41 +210,42 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     switch (state) {
       case AppLifecycleState.detached:
         print("Detached");
-
-        if (widget.controller.textureDetails != null) {
-          await widget.controller.destroyViewer();
-          await widget.controller.destroyTexture();
+        if (!_wasRenderingOnInactive) {
+          _wasRenderingOnInactive = widget.controller.rendering;
         }
+        await widget.controller.setRendering(false);
         break;
       case AppLifecycleState.hidden:
         print("Hidden");
-        if (Platform.isIOS && widget.controller.textureDetails != null) {
-          await widget.controller.destroyViewer();
-          await widget.controller.destroyTexture();
+        if (!_wasRenderingOnInactive) {
+          _wasRenderingOnInactive = widget.controller.rendering;
         }
+        await widget.controller.setRendering(false);
         break;
       case AppLifecycleState.inactive:
         print("Inactive");
+        if (!_wasRenderingOnInactive) {
+          _wasRenderingOnInactive = widget.controller.rendering;
+        }
         // on Windows in particular, restoring a window after minimizing stalls the renderer (and the whole application) for a considerable length of time.
         // disabling rendering on minimize seems to fix the issue (so I wonder if there's some kind of command buffer that's filling up while the window is minimized).
-        _wasRenderingOnInactive = widget.controller.rendering;
         await widget.controller.setRendering(false);
         break;
       case AppLifecycleState.paused:
         print("Paused");
+        if (!_wasRenderingOnInactive) {
+          _wasRenderingOnInactive = widget.controller.rendering;
+        }
+        await widget.controller.setRendering(false);
         break;
       case AppLifecycleState.resumed:
         print("Resumed");
-        if (!Platform.isWindows) {
-          if (widget.controller.textureDetails == null) {
-            var size = ((context.findRenderObject()) as RenderBox).size;
-            widget.controller
-                .createViewer(size.width.ceil(), size.height.ceil());
-          }
-        } else {
-          await _resize();
-        }
         await widget.controller.setRendering(_wasRenderingOnInactive);
+        await _resize();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          setState(() {});
+        });
+
         break;
     }
     _lastState = state;
@@ -274,7 +276,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
 
     return Stack(children: [
       Positioned.fill(
-        child: Platform.isLinux || Platform.isWindows
+          child: Platform.isLinux || Platform.isWindows
               ? Transform(
                   alignment: Alignment.center,
                   transform: Matrix4.rotationX(
