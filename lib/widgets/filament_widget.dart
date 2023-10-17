@@ -232,11 +232,6 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
       case AppLifecycleState.resumed:
         print("Resumed");
         await widget.controller.setRendering(_wasRenderingOnInactive);
-        await _resize();
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          setState(() {});
-        });
-
         break;
     }
     _lastState = state;
