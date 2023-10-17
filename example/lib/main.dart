@@ -42,7 +42,6 @@ class ExampleWidget extends StatefulWidget {
 
 class _ExampleWidgetState extends State<ExampleWidget> {
   FilamentController? _filamentController;
-
   FilamentEntity? _shapes;
   FilamentEntity? _flightHelmet;
   List<String>? _animations;
@@ -65,10 +64,13 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   bool _coneHidden = false;
   bool _frustumCulling = true;
 
+  StreamSubscription? _hasViewerListener;
+
   @override
   void dispose() {
     super.dispose();
     _pickResultListener?.cancel();
+    _hasViewerListener?.cancel();
   }
 
   Widget _item(void Function() onTap, String text) {
@@ -92,9 +94,10 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         picked = _filamentController!.getNameForEntity(entityId!);
       });
     });
-    _filamentController!.isReadyForScene.then((readyForScene) {
+    _hasViewerListener =
+        _filamentController!.hasViewer.listen((bool hasViewer) {
       setState(() {
-        _readyForScene = readyForScene;
+        _readyForScene = hasViewer;
       });
     });
   }

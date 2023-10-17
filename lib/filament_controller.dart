@@ -8,19 +8,31 @@ typedef FilamentEntity = int;
 
 enum ToneMapper { ACES, FILMIC, LINEAR }
 
-class TextureDetails { 
+class TextureDetails {
   final int textureId;
   final int width;
   final int height;
 
-  TextureDetails({required this.textureId, required this.width, required this.height});
+  TextureDetails(
+      {required this.textureId, required this.width, required this.height});
 }
 
 abstract class FilamentController {
-
-  Future get isReadyForScene;
-
+  ///
+  /// The Flutter texture ID and dimensions for current texture in use.
+  /// This is only used by [FilamentWidget]; you shouldn't need to access directly yourself.
+  ///
   TextureDetails? get textureDetails;
+
+  ///
+  /// A stream to indicate whether a FilamentViewer is available.
+  /// [FilamentWidget] will (asynchronously) create a [FilamentViewer] after being inserted into the widget hierarchy;
+  /// listen to this stream beforehand to perform any work necessary once the viewer is available.
+  /// [FilamentWidget] may also destroy/recreate the viewer on certain lifecycle events (e.g. backgrounding a mobile app);
+  /// listen for any corresponding [false]/[true] events to perform related work.
+  /// Note this is not a broadcast stream; only one listener can be registered and events will be buffered.
+  ///
+  Stream<bool> get hasViewer;
 
   ///
   /// The result(s) of calling [pick] (see below).
@@ -66,7 +78,6 @@ abstract class FilamentController {
   ///
   Future destroyViewer();
 
-
   ///
   /// Destroys the specified backing texture. You probably want to call [destroy] instead of this; this is exposed mostly for lifecycle changes which are handled by FilamentWidget.
   ///
@@ -82,7 +93,7 @@ abstract class FilamentController {
   ///    This will dispatch a request to the native platform to create a hardware texture (Metal on iOS, OpenGL on Linux, GLES on Android and Windows) and a FilamentViewer (the main interface for manipulating the 3D scene) .
   /// 4) The FilamentController will notify FilamentWidget that a texture is available
   /// 5) The FilamentWidget will replace the empty Container with a Texture widget
-  /// If you need to wait until a FilamentViewer has been created, [await] the [isReadyForScene] Future.
+  /// If you need to wait until a FilamentViewer has been created, listen to the [viewer] stream.
   ///
   void createViewer(int width, int height);
 

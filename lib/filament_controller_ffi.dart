@@ -16,17 +16,16 @@ class FilamentControllerFFI extends FilamentController {
 
   double _pixelRatio = 1.0;
 
-  Completer _isReadyForScene = Completer();
-  Future get isReadyForScene => _isReadyForScene.future;
-
   late Pointer<Void>? _assetManager;
 
   late NativeLibrary _lib;
 
   Pointer<Void>? _viewer;
 
-
   final String? uberArchivePath;
+
+  Stream<bool> get hasViewer => _hasViewerController.stream;
+  final _hasViewerController = StreamController<bool>();
 
   Stream<FilamentEntity> get pickResult => _pickResultController.stream;
   final _pickResultController = StreamController<FilamentEntity>.broadcast();
@@ -99,12 +98,12 @@ class FilamentControllerFFI extends FilamentController {
 
     _assetManager = null;
     _lib.destroy_filament_viewer_ffi(viewer!);
-    _isReadyForScene = Completer();
+    _hasViewerController.add(false);
   }
 
   @override
   Future destroyTexture() async {
-    if(textureDetails != null) {
+    if (textureDetails != null) {
       await _channel.invokeMethod("destroyTexture", textureDetails!.textureId);
     }
     print("Texture destroyed");
@@ -118,14 +117,11 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception(
           "Viewer already exists, make sure you call destroyViewer first");
     }
-    if(textureDetails != null) { 
+    if (textureDetails != null) {
       throw Exception(
           "Texture already exists, make sure you call destroyTexture first");
     }
-    if (_isReadyForScene.isCompleted) {
-      throw Exception(
-          "Do not call createViewer when a viewer has already been created without calling destroyViewer");
-    }
+
     var loader = Pointer<ResourceLoaderWrapper>.fromAddress(
         await _channel.invokeMethod("getResourceLoaderWrapper"));
     if (loader == nullptr) {
@@ -139,7 +135,6 @@ class FilamentControllerFFI extends FilamentController {
     var textures =
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
     var flutterTextureId = textures[0];
-
 
     // void* on iOS (pointer to pixel buffer), void* on Android (pointer to native window), null on Windows/macOS
     var surfaceAddress = textures[1] as int? ?? 0;
@@ -192,8 +187,9 @@ class FilamentControllerFFI extends FilamentController {
 
     _assetManager = _lib.get_asset_manager(_viewer!);
 
-    _isReadyForScene.complete(true);
-    textureDetails = TextureDetails(textureId: flutterTextureId!, width: width, height: height);
+    textureDetails = TextureDetails(
+        textureId: flutterTextureId!, width: width, height: height);
+    _hasViewerController.add(true);
   }
 
   ///
@@ -259,23 +255,22 @@ class FilamentControllerFFI extends FilamentController {
   /// # Given we don't do this on other platforms, I'm OK to stick with the existing solution for the time being.
   /// ############################################################################
   ///
- 
+
   @override
   Future resize(int width, int height, {double scaleFactor = 1.0}) async {
-
-    // we defer to the FilamentWidget to ensure that every call to [resize] is synchronized 
+    // we defer to the FilamentWidget to ensure that every call to [resize] is synchronized
     // so this exception should never be thrown (right?)
-    if(textureDetails == null) {
+    if (textureDetails == null) {
       throw Exception("Resize currently underway, ignoring");
     }
 
     var _textureDetails = textureDetails;
 
     textureDetails = null;
-    
+
     _lib.set_rendering_ffi(_viewer!, false);
 
-    if(_textureDetails != null) {
+    if (_textureDetails != null) {
       if (_viewer != null) {
         _lib.destroy_swap_chain_ffi(_viewer!);
       }
@@ -287,7 +282,6 @@ class FilamentControllerFFI extends FilamentController {
     var newSize = ui.Size(width * _pixelRatio, height * _pixelRatio);
 
     print("Size after pixel ratio : $width x $height ");
-
 
     var textures = await _channel
         .invokeMethod("createTexture", [newSize.width, newSize.height]);
@@ -306,18 +300,17 @@ class FilamentControllerFFI extends FilamentController {
     if (nativeTexture != 0) {
       assert(surfaceAddress == 0);
       print("Creating render target from native texture  $nativeTexture");
-      _lib.create_render_target_ffi(
-          _viewer!, nativeTexture, newSize.width.toInt(), newSize.height.toInt());
+      _lib.create_render_target_ffi(_viewer!, nativeTexture,
+          newSize.width.toInt(), newSize.height.toInt());
     }
 
     _lib.update_viewport_and_camera_projection_ffi(
         _viewer!, newSize.width.toInt(), newSize.height.toInt(), 1.0);
 
     await setRendering(_rendering);
-    textureDetails = TextureDetails(textureId: textures[0]!, width: width, height: height);
+    textureDetails =
+        TextureDetails(textureId: textures[0]!, width: width, height: height);
   }
-
-  
 
   @override
   Future clearBackgroundImage() async {

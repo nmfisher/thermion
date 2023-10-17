@@ -1,6 +1,6 @@
 name: polyvox_filament
 description: A Flutter plugin to wrap the Filament rendering engine.
-version: 0.0.1
+version: 0.5.0
 homepage:
 
 environment:

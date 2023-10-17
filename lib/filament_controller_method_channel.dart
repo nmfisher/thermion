@@ -120,8 +120,8 @@ class FilamentControllerMethodChannel extends FilamentController {
 
   bool _resizing = false;
 
-
-  Future<TextureDetails> resize(int width, int height, {double scaleFactor = 1.0}) async {
+  Future<TextureDetails> resize(int width, int height,
+      {double scaleFactor = 1.0}) async {
     throw Exception();
     _resizing = true;
     _textureId = await _channel.invokeMethod(
@@ -670,12 +670,16 @@ class FilamentControllerMethodChannel extends FilamentController {
     // TODO: implement getNameForEntity
     throw UnimplementedError();
   }
-  
+
   @override
   // TODO: implement textureDetails
   TextureDetails? get textureDetails => throw UnimplementedError();
-  
+
   @override
   // TODO: implement rendering
   bool get rendering => throw UnimplementedError();
+
+  @override
+  // TODO: implement hasViewer
+  Stream<bool> get hasViewer => throw UnimplementedError();
 }
