@@ -71,12 +71,6 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      // when attaching a debugger via Android Studio on startup, this can delay presentation of the widget
-      // (meaning the widget may attempt to create a viewer with size 0x0).
-      // we just add a small delay here which should avoid this
-      if (!kReleaseMode) {
-        await Future.delayed(Duration(seconds: 2));
-      }
       var size = ((context.findRenderObject()) as RenderBox).size;
       _width = size.width.ceil();
       _height = size.height.ceil();
@@ -139,14 +133,11 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      // when attaching a debugger via Android Studio on startup, this can delay presentation of the widget
-      // (meaning the widget may attempt to create a viewer with size 0x0).
-      // we just add a small delay here which should avoid this
       if (!kReleaseMode) {
         await Future.delayed(Duration(seconds: 2));
       }
       try {
-        widget.controller.createViewer(widget.width, widget.height);
+        await widget.controller.createViewer(widget.width, widget.height);
       } catch (err) {
         _error = err.toString();
       }
@@ -264,7 +255,9 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     }
 
     if (widget.controller.textureDetails == null || _resizeTimer != null) {
-      return widget.initial ?? Container(color: Colors.red);
+      return Stack(children: [
+        Positioned.fill(child: widget.initial ?? Container(color: Colors.red))
+      ]);
     }
     // see [FilamentControllerFFI.resize] for an explanation of how we deal with resizing
     var texture = Texture(

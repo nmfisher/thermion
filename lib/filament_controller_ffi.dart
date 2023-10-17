@@ -112,7 +112,8 @@ class FilamentControllerFFI extends FilamentController {
   ///
   /// Called by `FilamentWidget`. You do not need to call this yourself.
   ///
-  void createViewer(int width, int height) async {
+  @override
+  Future createViewer(int width, int height) async {
     if (_viewer != null) {
       throw Exception(
           "Viewer already exists, make sure you call destroyViewer first");
