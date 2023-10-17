@@ -188,17 +188,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 self.flutterTextureId = nil 
                 self.pixelBuffer = nil
                 result(true)
-            case "resize":
-                let args = call.arguments as! [Any]
-                let width = UInt32(args[0] as! Int64)
-                let height = UInt32(args[1] as! Int64)
-                if(self.flutterTextureId != nil) {
-                    self.registry.unregisterTexture(self.flutterTextureId!)
-                }
-                createPixelBuffer(width: Int(width), height:Int(height))
-                var pixelBufferTextureId = unsafeBitCast(pixelBuffer!, to: UnsafeRawPointer.self)
-                print("Resized to \(args[0])x\(args[1])")
-                result(self.flutterTextureId);
             case "dummy":
                 ios_dummy()
                 ios_dummy_ffi()

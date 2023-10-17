@@ -163,11 +163,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             self.pixelBuffer = nil
             self.metalTexture = nil
             result(true)
-        case "resize":
-            let args = call.arguments as! [Any]
-            let width = UInt32(args[0] as! Int64)
-            let height = UInt32(args[1] as! Int64)
-            result(FlutterMethodNotImplemented)
         default:
             result(FlutterMethodNotImplemented)
         }

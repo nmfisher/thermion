@@ -203,15 +203,6 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           _surfaceTextureEntry = null
           result.success(true)
         }
-        "resize" -> {
-            val args = call.arguments as List<Any>
-            val width = args[0] as Int
-            val height = args[1] as Int
-            val scale = args[2] as Double
-            _surfaceTexture!!.setDefaultBufferSize(width, height)
-            Log.i(TAG, "Resized to ${args[0]}x${args[1]}")
-            result.success(_surfaceTexture)
-        } 
         else -> {
           result.notImplemented()
         }
