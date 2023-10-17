@@ -4,10 +4,9 @@ Cross-platform, 3D PBR rendering and animation for [Flutter](https://github.com/
 
 Wraps the [the Filament rendering library](https://github.com/google/filament).
 
-Powers the Polyvox and odd-io engines.
+Powers the [Polyvox](https://polyvox.app) and [odd-io](https://github.com/odd-io/) engines.
 
 This is still in beta: bugs/missing features are to be expected.
-
 
 https://github.com/nmfisher/polyvox_filament/assets/7238578/abaed1c8-c97b-4999-97b2-39e85e0fa7dd
 
@@ -21,19 +20,19 @@ https://github.com/nmfisher/polyvox_filament/assets/7238578/abaed1c8-c97b-4999-9
 |Animation|✅ Embedded glTF skinning animations<br/>✅ Embedded glTF morph animations<br/> ✅ Runtime/dynamic morph animations<br/> ⚠️ Runtime/dynamic skinning animations <br/>
 |Entity manipulation|✅ Viewport selection<br/>⚠️ Entity/transform parenting (planned)<br/> ⚠️ Transform manipulation (mouse/gesture to rotate/translate/scale object) (partial)<br/>⚠️ Runtime material changes (planned)|
 
-Special thanks to odd-io for sponsoring work on supporting Windows, raycasting, testing and documentation.
+Special thanks to [odd-io](https://github.com/odd-io/) for sponsoring work on supporting Windows, raycasting, testing and documentation.
 
 PRs are welcome but please create a placeholder PR to discuss before writing any code. This will help with feature planning, avoid clashes with existing work and keep the project structure consistent.   
 
 ## Getting Started
 
-This package is currently only tested on Flutter >= `3.16.0-0.2.pre`, so you will need to first switch to the `beta` channel: 
+This package requires Flutter >= `3.16.0-0.2.pre`, so you will need to first switch to the `beta` channel: 
 
 ```
 flutter channel beta
 flutter upgrade
 ```
-Earlier versions have specific issues that will prevent them from working on Windows/MacOS!
+There are specific issues with earlier versions on Windows/MacOS (mobile should actually be fine, so if you want to experiment on your own you're free to remove the minimum version from `pubspec.yaml`).
 
 Next, clone this repository and pull the latest binaries from Git LFS:
 
