@@ -570,7 +570,7 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setMorphAnimationData(
-      FilamentEntity asset, MorphAnimationData animation) async {
+      FilamentEntity entity, MorphAnimationData animation) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
@@ -580,14 +580,27 @@ class FilamentControllerFFI extends FilamentController {
       dataPtr.elementAt(i).value = animation.data[i];
     }
 
-    Pointer<Int> idxPtr = calloc<Int>(animation.animatedMorphIndices.length);
+    // the morph targets in [animation] might be a subset of those that actually exist in the mesh (and might not have the same order)
+    // we don't want to reorder the data (?? or do we? this is probably more efficient for the backend?)
+    // so let's get the actual list of morph targets from the mesh and pass the relevant indices to the native side.
+    var meshMorphTargets =
+        await getMorphTargetNames(entity, animation.meshName);
+
+    Pointer<Int> idxPtr = calloc<Int>(animation.morphTargets.length);
     for (int i = 0; i < animation.numMorphTargets; i++) {
-      idxPtr.elementAt(i).value = animation.animatedMorphIndices[i];
+      var index = meshMorphTargets.indexOf(animation.morphTargets[i]);
+      if (index == -1) {
+        calloc.free(dataPtr);
+        calloc.free(idxPtr);
+        throw Exception(
+            "Morph target ${animation.morphTargets[i]} is specified in the animation but could not be found in the mesh ${animation.meshName} under entity ${entity}");
+      }
+      idxPtr.elementAt(i).value = index;
     }
 
     _lib.set_morph_animation(
         _assetManager!,
-        asset,
+        entity,
         animation.meshName.toNativeUtf8().cast<Char>(),
         dataPtr,
         idxPtr,

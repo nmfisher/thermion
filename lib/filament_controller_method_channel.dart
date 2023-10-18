@@ -360,19 +360,7 @@ class FilamentControllerMethodChannel extends FilamentController {
   ///
   Future setMorphAnimationData(
       FilamentEntity asset, MorphAnimationData animation) async {
-    if (_viewer == null || _resizing) {
-      throw Exception("No viewer available, ignoring");
-    }
-    await _channel.invokeMethod("setMorphAnimation", [
-      _assetManager,
-      asset,
-      animation.meshName,
-      animation.data,
-      animation.animatedMorphIndices,
-      animation.numMorphTargets,
-      animation.numFrames,
-      animation.frameLengthInMs
-    ]);
+    throw Exception("No viewer available, ignoring");
   }
 
   ///

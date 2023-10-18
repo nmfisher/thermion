@@ -49,7 +49,6 @@ class AnimationBuilder {
         meshName,
         morphData,
         _morphTargets.map((i) => availableMorphs[i]).toList(),
-        _morphTargets,
         _frameLengthInMs);
   }
 

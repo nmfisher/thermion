@@ -1,32 +1,30 @@
-//
-// A wrapper for morph target animation data.
-// [data] is laid out as numFrames x numMorphTargets (where each morph target is ordered according to [animatedMorphNames]).
-// [data] frame data for the morph weights used to animate the morph targets [animatedMorphNames] in mesh [meshName].
-// the morph targets specified in [morphNames] attached to mesh [meshName].
-// [animatedMorphNames] must be provided but is not used directly; this is only used to check that the eventual asset being animated contains the same morph targets in the same order.
-//
 import 'dart:typed_data';
 
+///
+/// Specifies frame data (i.e. weights) to animate the morph targets contained in [morphTargets] under a mesh named [mesh].
+/// [data] is laid out as numFrames x numMorphTargets.
+/// Each frame is [numMorphTargets] in length, where the index of each weight corresponds to the respective index in [morphTargets].
+/// [morphTargets] must be some subset of the actual morph targets under [mesh] (though the order of these does not need to match).
+///
 class MorphAnimationData {
   final String meshName;
-  final List<String> animatedMorphNames;
-  final List<int> animatedMorphIndices;
+  final List<String> morphTargets;
 
   final List<double> data;
 
-  MorphAnimationData(this.meshName, this.data, this.animatedMorphNames,
-      this.animatedMorphIndices, this.frameLengthInMs) {
-    assert(data.length == animatedMorphNames.length * numFrames);
+  MorphAnimationData(
+      this.meshName, this.data, this.morphTargets, this.frameLengthInMs) {
+    assert(data.length == morphTargets.length * numFrames);
   }
 
-  int get numMorphTargets => animatedMorphNames.length;
+  int get numMorphTargets => morphTargets.length;
 
   int get numFrames => data.length ~/ numMorphTargets;
 
   final double frameLengthInMs;
 
   Iterable<double> getData(String morphName) sync* {
-    int index = animatedMorphNames.indexOf(morphName);
+    int index = morphTargets.indexOf(morphName);
     for (int i = 0; i < numFrames; i++) {
       yield data[(i * numMorphTargets) + index];
     }

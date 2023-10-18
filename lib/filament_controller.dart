@@ -229,10 +229,10 @@ abstract class FilamentController {
       FilamentEntity entity, int animationIndex);
 
   ///
-  /// Create/start a dynamic morph target animation for [asset].
-  /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
-  /// [morphWeights] is a list of doubles in frame-major format.
-  /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
+  /// Animate the morph targets in [entity]. See [MorphTargetAnimation] for an explanation as to how to construct the animation frame data.
+  /// This method will check the morph target names specified in [animation] against the morph target names that actually exist exist under [meshName] in [entity],
+  /// throwing an exception if any cannot be found.
+  /// It is permissible for [animation] to omit any targets that do exist under [meshName]; these simply won't be animated.
   ///
   Future setMorphAnimationData(
       FilamentEntity entity, MorphAnimationData animation);
