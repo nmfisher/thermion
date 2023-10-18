@@ -1,6 +1,7 @@
 #include <string>
 #include <sstream>
 #include <thread>
+#include <vector> 
 
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
@@ -262,7 +263,7 @@ void AssetManager::updateAnimations() {
     
     for (auto& asset : _assets) {
         
-        vector<int> completed;
+        std::vector<int> completed;
         int index = 0;
         for(auto& anim : asset.mAnimations) {
             
@@ -333,8 +334,9 @@ void AssetManager::updateAnimations() {
             asset.mAnimator->updateBoneMatrices();
             index++;
         }
-        for(auto& it : completed) {
-            asset.mAnimations.erase(asset.mAnimations.begin() + it);
+
+        for(int i = completed.size() - 1; i >= 0; i--) {
+            asset.mAnimations.erase(asset.mAnimations.begin() + i);
         }
     }
 }
