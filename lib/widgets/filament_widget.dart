@@ -195,7 +195,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     super.dispose();
   }
 
-  bool _wasRenderingOnInactive = false;
+  bool _wasRenderingOnInactive = true;
 
   void _handleStateChange(AppLifecycleState state) async {
     switch (state) {
