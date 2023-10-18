@@ -3,9 +3,10 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:polyvox_filament/animations/animation_data.dart';
 
 import 'package:polyvox_filament/filament_controller.dart';
-import 'package:polyvox_filament/animations/bone_animation_data.dart';
+
 import 'package:polyvox_filament/filament_controller_ffi.dart';
 import 'package:polyvox_filament/animations/animation_builder.dart';
 

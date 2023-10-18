@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:polyvox_filament/filament_controller.dart';
-import 'package:polyvox_filament/animations/bone_animation_data.dart';
-import 'package:polyvox_filament/animations/morph_animation_data.dart';
+
+import 'package:polyvox_filament/animations/animation_data.dart';
 import 'package:polyvox_filament/generated_bindings_web.dart';
 import 'filament_controller.dart';
 

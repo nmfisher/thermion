@@ -1,7 +1,4 @@
-import 'package:polyvox_filament/animations/morph_animation_data.dart';
-import 'package:polyvox_filament/filament_controller_method_channel.dart';
-
-import 'package:flutter/foundation.dart';
+import 'package:polyvox_filament/animations/animation_data.dart';
 import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {
