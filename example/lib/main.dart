@@ -117,7 +117,11 @@ class _ExampleWidgetState extends State<ExampleWidget> {
           _createController(
               uberArchivePath: Platform.isWindows
                   ? "assets/lit_opaque_32.uberz"
-                  : "assets/lit_opaque_43.uberz");
+                  : Platform.isMacOS
+                      ? "assets/lit_opaque_43.uberz"
+                      : Platform.isIOS
+                          ? "assets/lit_opaque_43.uberz"
+                          : "assets/lit_opaque_43_gles.uberz");
         }, "create viewer (custom ubershader - lit opaque only)"),
       ]);
     }
