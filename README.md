@@ -308,11 +308,21 @@ uberz -TSHADINGMODEL=lit -TBLENDING=opaque -o lit_opaque_43.uberz lit_opaque
 
 (note that the number in the filename corresponds to the Material version, not the Filament version. Not every Filament version requires a new Material version).
 
-## Releasing your app
+## Footguns
+
+### Stripping in release mode
 
 If you build your app in release mode, you will need to ensure that "Dead Strip" is set to false.
 
 This is because we only invoke the library at runtime via FFI, so at link time these symbols are otherwise treated as redundant.
+
+### Animations when backgrounded
+
+Don't call playAnimation when the app is in the background  (i.e inactive/hidden). This will queue, but not start, an animation, and eventually this will overflow the command buffer when the app is foregrounded/resumed.
+
+If you have some kind of looping animation in your app code, make sure it pauses while the app is backgrounded.
+
+
 
 ## Versioning
 
@@ -350,6 +360,13 @@ The results will depend on the actual device used to generate the golden, theref
 
 ```
 git clone git@github.com:nmfisher/filament.git && cd filament
+```
+
+## Android/iOS/MacOS
+
+```
+git checkout flutter-filament-ios-android-macos
+./build.sh -p <platform> release
 ```
 
 ## Windows
