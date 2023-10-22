@@ -109,6 +109,9 @@ class FilamentControllerFFI extends FilamentController {
     print("Texture destroyed");
   }
 
+  Pointer<Void> _driver = nullptr.cast<Void>();
+
+
   ///
   /// Called by `FilamentWidget`. You do not need to call this yourself.
   ///
@@ -143,9 +146,10 @@ class FilamentControllerFFI extends FilamentController {
     // null on iOS/Android, void* on MacOS (pointer to metal texture), GLuid on Windows/Linux
     var nativeTexture = textures[2] as int? ?? 0;
 
-    var driver = nullptr.cast<Void>();
+    print("Using flutterTextureId $flutterTextureId, surface $surfaceAddress and nativeTexture $nativeTexture");
+
     if (Platform.isWindows) {
-      driver = Pointer<Void>.fromAddress(
+      _driver = Pointer<Void>.fromAddress(
           await _channel.invokeMethod("getDriverPlatform"));
     }
 
@@ -161,7 +165,7 @@ class FilamentControllerFFI extends FilamentController {
 
     _viewer = _lib.create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(sharedContext ?? 0),
-        driver,
+        _driver,
         uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr,
         loader,
         renderCallback,
@@ -275,7 +279,6 @@ class FilamentControllerFFI extends FilamentController {
       if (_viewer != null) {
         _lib.destroy_swap_chain_ffi(_viewer!);
       }
-
       await _channel.invokeMethod("destroyTexture", _textureDetails!.textureId);
       print("Destroyed texture ${_textureDetails!.textureId}");
     }
