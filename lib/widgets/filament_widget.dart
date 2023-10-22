@@ -249,7 +249,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
           ]));
     }
 
-    if (widget.controller.textureDetails == null || _resizeTimer != null) {
+    if (widget.controller.textureDetails == null) { 
       return Stack(children: [
         Positioned.fill(child: widget.initial ?? Container(color: Colors.red))
       ]);
