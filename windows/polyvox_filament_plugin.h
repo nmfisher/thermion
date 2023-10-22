@@ -16,6 +16,7 @@
 
 #ifdef USE_ANGLE
 #include "flutter_angle_texture.h"
+#include "backend/platforms/PlatformEGL.h"
 #else
 #include "opengl_texture_buffer.h"
 #endif 
@@ -59,14 +60,15 @@ public:
 
   private:
     #ifdef USE_ANGLE
+    bool CreateSharedEGLContext();
+    bool MakeD3DTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
     EGLContext _context = NULL;
     EGLConfig _eglConfig = NULL;
     EGLDisplay _eglDisplay = NULL;
     std::unique_ptr<FlutterAngleTexture> _active = nullptr;
     ID3D11Device* _D3D11Device = nullptr;
     ID3D11DeviceContext* _D3D11DeviceContext = nullptr;
-    bool CreateSharedEGLContext();
-    bool MakeD3DTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+    filament::backend::Platform* _platform = nullptr;
     #else 
     std::unique_ptr<OpenGLTextureBuffer> _active = nullptr;
     std::unique_ptr<OpenGLTextureBuffer> _inactive = nullptr;
