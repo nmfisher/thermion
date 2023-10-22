@@ -19,8 +19,6 @@
 #include "GLES2/gl2ext.h"
 #include <GLES3/gl31.h>
 
-#include "PlatformANGLE.h"
-
 #include <Windows.h>
 #include <wrl.h>
 
@@ -49,9 +47,7 @@ class FlutterAngleTexture {
     int64_t flutterTextureId = 0;
     GLuint glTextureId = 0;
     std::unique_ptr<flutter::TextureVariant> texture;
-    filament::backend::Platform* platform = nullptr;
-
-  
+      
   private:
     flutter::PluginRegistrarWindows* _pluginRegistrar;
     flutter::TextureRegistrar* _textureRegistrar;
