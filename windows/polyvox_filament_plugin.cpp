@@ -137,7 +137,7 @@ void render_callback(void* owner) {
 // this is the method on PolyvoxFilamentPlugin that will copy between D3D textures
 void PolyvoxFilamentPlugin::RenderCallback() {
   
-  std::lock_guard<std::mutex> guard(*(_renderMutex.get()));
+  // std::lock_guard<std::mutex> guard(*(_renderMutex.get()));
   if (_active) {
       #ifdef USE_ANGLE
         _active->RenderCallback();
@@ -148,6 +148,11 @@ void PolyvoxFilamentPlugin::RenderCallback() {
 
 #ifdef USE_ANGLE
 bool PolyvoxFilamentPlugin::CreateSharedEGLContext() { 
+  
+    //platform = new filament::backend::PlatformANGLE(_internalD3DTextureHandle,
+  // width, height);
+    _platform = new filament::backend::PlatformEGL(); 
+
     // D3D starts here
     IDXGIAdapter* adapter_ = nullptr;
 
@@ -222,11 +227,10 @@ bool PolyvoxFilamentPlugin::CreateSharedEGLContext() {
     assert_invariant(_eglDisplay != EGL_NO_DISPLAY);
 
     EGLint major, minor;
-    EGLBoolean initialized = false; // = eglInitialize(_eglDisplay, &major, &minor);
+    EGLBoolean initialized = false; 
 
-    // if (!initialized) {
-      EGLDeviceEXT eglDevice;
-      EGLint numDevices;
+    EGLDeviceEXT eglDevice;
+    EGLint numDevices;
 
     if(auto* getPlatformDisplay = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(
               eglGetProcAddress("eglGetPlatformDisplayEXT"))) {
@@ -442,6 +446,7 @@ void PolyvoxFilamentPlugin::DestroyTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
+
   const auto *flutterTextureId =
       std::get_if<int64_t>(methodCall.arguments());
 
@@ -450,7 +455,6 @@ void PolyvoxFilamentPlugin::DestroyTexture(
     return;
   }
 
-  
   if(!_active) {
     result->Success("Texture has already been detroyed, ignoring");
     return;
@@ -463,32 +467,31 @@ void PolyvoxFilamentPlugin::DestroyTexture(
 
   auto sh = std::make_shared<std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>>(std::move(result));
 
+  _textureRegistrar->UnregisterTexture(_active->flutterTextureId, [=, 
+      sharedResult=std::move(sh) 
+  ]() {
 
-    // result->Error("NOT_IMPLEMENTED", "Method is not implemented %s", methodCall.method_name());
-    _textureRegistrar->UnregisterTexture(_active->flutterTextureId, [=, 
-        sharedResult=std::move(sh)
-    ]() {
-        #ifdef USE_ANGLE
-        this->_active = nullptr;
-        #else 
-          if(this->_inactive) {
-            HWND hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
-            HDC whdc = GetDC(hwnd);
+      #ifdef USE_ANGLE
+      this->_active = nullptr;
+      #else 
+        if(this->_inactive) {
+          HWND hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
+          HDC whdc = GetDC(hwnd);
 
-            if (!wglMakeCurrent(whdc, _context)) {
-                std::cout << "Failed to switch OpenGL context in destructor."                << std::endl;
-                // result->Error("CONTEXT", "Failed to switch OpenGL context.", nullptr);
-                return;
-            }
-            glDeleteTextures(1, &this->_inactive->glTextureId);
-            wglMakeCurrent(NULL, NULL);
+          if (!wglMakeCurrent(whdc, _context)) {
+              std::cout << "Failed to switch OpenGL context in destructor."                << std::endl;
+              // result->Error("CONTEXT", "Failed to switch OpenGL context.", nullptr);
+              return;
           }
-          this->_inactive = std::move(this->_active);
-        #endif
-        auto unique = std::move(*(sharedResult.get()));
-        unique->Success(flutter::EncodableValue(true));
-        std::cout << "Unregistered/destroyed texture." << std::endl;
-    });    
+          glDeleteTextures(1, &this->_inactive->glTextureId);
+          wglMakeCurrent(NULL, NULL);
+        }
+        this->_inactive = std::move(this->_active);
+      #endif
+      auto unique = std::move(*(sharedResult.get()));
+      unique->Success(flutter::EncodableValue(true));
+      std::cout << "Unregistered/destroyed texture." << std::endl;
+  });    
  
 
 }
@@ -514,7 +517,7 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
     result->Success(resultList);
   } else if(methodCall.method_name() == "getDriverPlatform") { 
     #ifdef USE_ANGLE
-      result->Success(flutter::EncodableValue((int64_t)_active->platform));
+      result->Success(flutter::EncodableValue((int64_t)_platform));
     #else
       result->Success(flutter::EncodableValue((int64_t)nullptr));
     #endif
