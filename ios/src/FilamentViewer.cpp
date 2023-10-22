@@ -701,6 +701,7 @@ namespace polyvox
       _swapChain = nullptr;
       Log("Swapchain destroyed.");
     }
+    _engine->flushAndWait();
   }
 
   void FilamentViewer::clearAssets()
