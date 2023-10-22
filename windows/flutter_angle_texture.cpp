@@ -5,8 +5,6 @@
 #include <flutter/standard_method_codec.h>
 #include <flutter/texture_registrar.h>
 
-#include "backend/platforms/PlatformEGL.h"
-
 #include <thread>
 
 namespace polyvox_filament {
@@ -67,6 +65,10 @@ void FlutterAngleTexture::RenderCallback() {
   _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
                                     _internalD3DTexture2D.Get());
   _D3D11DeviceContext->Flush();
+}
+
+FlutterAngleTexture::~FlutterAngleTexture() {
+  
 }
 
 FlutterAngleTexture::FlutterAngleTexture(
@@ -193,11 +195,6 @@ FlutterAngleTexture::FlutterAngleTexture(
   glGetIntegerv(GL_MAJOR_VERSION, &major);
   glGetIntegerv(GL_MINOR_VERSION, &minor);
 
-  // platform = new filament::backend::PlatformANGLE(_internalD3DTextureHandle,
-  // width, height);
-  platform = new filament::backend::PlatformEGL(); //_internalD3DTextureHandle,
-                                                   //width, height);
-
   _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
   _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
   _textureDescriptor->handle = _externalD3DTextureHandle;
@@ -212,7 +209,9 @@ FlutterAngleTexture::FlutterAngleTexture(
   texture =
       std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
           kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
-          [&](auto, auto) { return _textureDescriptor.get(); }));
+          [&](size_t width, size_t height) { 
+              return _textureDescriptor.get(); 
+          }));
 
   flutterTextureId = _textureRegistrar->RegisterTexture(texture.get());
   std::cout << "Registered Flutter texture ID " << flutterTextureId
@@ -224,7 +223,5 @@ FlutterAngleTexture::FlutterAngleTexture(
   resultList.push_back(flutter::EncodableValue(glTextureId));
   result->Success(resultList);
 }
-
-FlutterAngleTexture::~FlutterAngleTexture() {}
 
 } // namespace polyvox_filament
