@@ -127,17 +127,17 @@ namespace polyvox {
 
             const ResourceLoaderWrapper* const _resourceLoaderWrapper;
       
-            Scene* _scene;
-            View* _view;  
-            Engine* _engine;
+            Scene* _scene = nullptr;
+            View* _view = nullptr;  
+            Engine* _engine = nullptr;
             
             // a default camera that we add to every scene
-            Camera* _mainCamera;
+            Camera* _mainCamera = nullptr;
 
-            Renderer* _renderer;
-            RenderTarget* _rt;
-            Texture* _rtColor;
-            Texture* _rtDepth;
+            Renderer* _renderer = nullptr;
+            RenderTarget* _rt = nullptr;
+            Texture* _rtColor = nullptr;
+            Texture* _rtDepth = nullptr;
     
             SwapChain* _swapChain = nullptr;
 
