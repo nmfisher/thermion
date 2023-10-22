@@ -271,8 +271,6 @@ class FilamentControllerFFI extends FilamentController {
 
     var _textureDetails = textureDetails;
 
-    textureDetails = null;
-
     _lib.set_rendering_ffi(_viewer!, false);
 
     if (_textureDetails != null) {
