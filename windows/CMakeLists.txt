@@ -61,8 +61,6 @@ if(USE_ANGLE)
   list(APPEND GL_LIBS
     EGL
     GLESv2
-    #bluegl
-    #opengl32
   )
   set(ANGLE_OR_OPENGL_DIR angle)
   add_library(EGL SHARED IMPORTED)
@@ -73,10 +71,6 @@ if(USE_ANGLE)
   set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libGLESv2.dll.lib")
   set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/libGLESv2.dll.lib")
   set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/libGLESv2.dll.lib")
-  add_library(bluegl SHARED IMPORTED)
-  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/bluegl.lib")
-  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/bluegl.lib")
-  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/bluegl.lib")
 else()
   list(APPEND GL_LIBS
     bluegl
