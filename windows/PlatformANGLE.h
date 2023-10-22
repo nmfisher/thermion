@@ -28,6 +28,7 @@ namespace filament::backend {
 class PlatformANGLE : public OpenGLPlatform {
 public:
     PlatformANGLE(HANDLE d3dTextureHandle, uint32_t width, uint32_t height) noexcept;
+    ~PlatformANGLE();
 
     Driver* createDriver(void* sharedContext,
             const Platform::DriverConfig& driverConfig) noexcept override;

@@ -12,7 +12,6 @@ set(PLUGIN_NAME "polyvox_filament_plugin")
 list(APPEND PLUGIN_SOURCES
   "polyvox_filament_plugin.cpp"
   "polyvox_filament_plugin.h"
-  "opengl_texture_buffer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
@@ -23,11 +22,16 @@ list(APPEND PLUGIN_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/camutils/Bookmark.cpp"
 )
 
-set(USE_ANGLE FALSE)
+set(USE_ANGLE TRUE)
 
 if(USE_ANGLE)
   add_compile_definitions(USE_ANGLE)
-  list(APPEND PLUGIN_SOURCES "PlatformAngle.cpp")
+  list(APPEND PLUGIN_SOURCES 
+  # "PlatformAngle.cpp" 
+  "flutter_angle_texture.cpp"
+  )
+else() 
+  list(APPEND PLUGIN_SOURCES "opengl_texture_buffer.cpp")
 endif()
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -57,6 +61,8 @@ if(USE_ANGLE)
   list(APPEND GL_LIBS
     EGL
     GLESv2
+    #bluegl
+    #opengl32
   )
   set(ANGLE_OR_OPENGL_DIR angle)
   add_library(EGL SHARED IMPORTED)
@@ -67,6 +73,10 @@ if(USE_ANGLE)
   set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libGLESv2.dll.lib")
   set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/libGLESv2.dll.lib")
   set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/libGLESv2.dll.lib")
+  add_library(bluegl SHARED IMPORTED)
+  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/bluegl.lib")
+  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/bluegl.lib")
+  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/Release/angle/bluegl.lib")
 else()
   list(APPEND GL_LIBS
     bluegl

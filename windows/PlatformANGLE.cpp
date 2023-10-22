@@ -35,10 +35,10 @@
 
 using namespace utils;
 
-PROC wglGetProcAddress(LPCSTR name) {
-    // PANIC
-    return nullptr;
-}
+// PROC wglGetProcAddress(LPCSTR name) {
+//     // PANIC
+//     return nullptr;
+// }
 
 namespace filament::backend::GLUtils {
     class unordered_string_set : public std::unordered_set<std::string_view> {
@@ -108,6 +108,9 @@ PlatformANGLE::PlatformANGLE(
 
 }
 
+PlatformANGLE::~PlatformANGLE()  {        
+
+}
 
 backend::Driver* PlatformANGLE::createDriver(void* sharedContext,
         const Platform::DriverConfig& driverConfig) noexcept {
@@ -258,6 +261,13 @@ backend::Driver* PlatformANGLE::createDriver(void* sharedContext,
     }
 
     glGenTextures(1, &glTextureId);
+    
+    if (glTextureId == 0) {
+        std::cout << "Failed to generate OpenGL texture for ANGLE, OpenGL err was %d",
+        glGetError();
+        return nullptr;
+    }
+
     glBindTexture(GL_TEXTURE_2D, glTextureId);
     eglBindTexImage(mEGLDisplay, mCurrentReadSurface, EGL_BACK_BUFFER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -437,10 +447,10 @@ bool PlatformANGLE::setExternalImage(void* externalImage,
     if (UTILS_LIKELY(ext.gl.OES_EGL_image_external_essl3)) {
         assert_invariant(texture->target == GL_TEXTURE_EXTERNAL_OES);
         // the texture is guaranteed to be bound here.
-#ifdef GL_OES_EGL_image
-        glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES,
-                static_cast<GLeglImageOES>(externalImage));
-#endif
+// #ifdef GL_OES_EGL_image
+//         glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES,
+//                 static_cast<GLeglImageOES>(externalImage));
+// #endif
     }
     return true;
 }
