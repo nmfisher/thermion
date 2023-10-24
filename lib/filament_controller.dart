@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:polyvox_filament/animations/animation_data.dart';
 
@@ -22,7 +23,8 @@ abstract class FilamentController {
   /// The Flutter texture ID and dimensions for current texture in use.
   /// This is only used by [FilamentWidget]; you shouldn't need to access directly yourself.
   ///
-  TextureDetails? get textureDetails;
+  final textureDetails = ValueNotifier<TextureDetails?>(null);
+
 
   ///
   /// A stream to indicate whether a FilamentViewer is available.

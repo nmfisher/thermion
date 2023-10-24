@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
+import 'package:flutter/widgets.dart';
 import 'package:polyvox_filament/filament_controller.dart';
 
 import 'package:polyvox_filament/animations/animation_data.dart';
@@ -30,8 +31,10 @@ class FilamentControllerFFI extends FilamentController {
   Stream<FilamentEntity> get pickResult => _pickResultController.stream;
   final _pickResultController = StreamController<FilamentEntity>.broadcast();
 
-  @override
-  TextureDetails? textureDetails;
+  int? _resizingWidth;
+  int? _resizingHeight;
+
+  Timer? _resizeTimer;
 
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
@@ -39,7 +42,16 @@ class FilamentControllerFFI extends FilamentController {
   ///
   FilamentControllerFFI({this.uberArchivePath}) {
     _channel.setMethodCallHandler((call) async {
-      throw Exception("Unknown method channel invocation ${call.method}");
+      if(call.arguments[0] == _resizingWidth && call.arguments[1] == _resizingHeight) {
+        return;
+      }
+      _resizeTimer?.cancel();
+      _resizingWidth = call.arguments[0];
+      _resizingHeight = call.arguments[1];
+      _resizeTimer = Timer(Duration(milliseconds: 500), () async {
+        await resize(_resizingWidth!, _resizingHeight!);
+      });
+      
     });
     late DynamicLibrary dl;
     if (Platform.isIOS || Platform.isMacOS || Platform.isWindows) {
@@ -103,8 +115,8 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future destroyTexture() async {
-    if (textureDetails != null) {
-      await _channel.invokeMethod("destroyTexture", textureDetails!.textureId);
+    if (textureDetails.value != null) {
+      await _channel.invokeMethod("destroyTexture", textureDetails.value!.textureId);
     }
     print("Texture destroyed");
   }
@@ -121,7 +133,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception(
           "Viewer already exists, make sure you call destroyViewer first");
     }
-    if (textureDetails != null) {
+    if (textureDetails.value != null) {
       throw Exception(
           "Texture already exists, make sure you call destroyTexture first");
     }
@@ -140,7 +152,7 @@ class FilamentControllerFFI extends FilamentController {
         await _channel.invokeMethod("createTexture", [size.width, size.height]);
     var flutterTextureId = textures[0];
 
-    // void* on iOS (pointer to pixel buffer), void* on Android (pointer to native window), null on Windows/macOS
+    // void* on iOS (pointer to pixel buffer), Android (pointer to native window), null on macOS/Windows
     var surfaceAddress = textures[1] as int? ?? 0;
 
     // null on iOS/Android, void* on MacOS (pointer to metal texture), GLuid on Windows/Linux
@@ -192,7 +204,7 @@ class FilamentControllerFFI extends FilamentController {
 
     _assetManager = _lib.get_asset_manager(_viewer!);
 
-    textureDetails = TextureDetails(
+    textureDetails.value = TextureDetails(
         textureId: flutterTextureId!, width: width, height: height);
     _hasViewerController.add(true);
   }
@@ -265,20 +277,18 @@ class FilamentControllerFFI extends FilamentController {
   Future resize(int width, int height, {double scaleFactor = 1.0}) async {
     // we defer to the FilamentWidget to ensure that every call to [resize] is synchronized
     // so this exception should never be thrown (right?)
-    if (textureDetails == null) {
+    if (textureDetails.value == null) {
       throw Exception("Resize currently underway, ignoring");
     }
 
-    var _textureDetails = textureDetails;
-
     _lib.set_rendering_ffi(_viewer!, false);
 
-    if (_textureDetails != null) {
+    if (textureDetails.value != null) {
       if (_viewer != null) {
         _lib.destroy_swap_chain_ffi(_viewer!);
       }
-      await _channel.invokeMethod("destroyTexture", _textureDetails!.textureId);
-      print("Destroyed texture ${_textureDetails!.textureId}");
+      await _channel.invokeMethod("destroyTexture", textureDetails.value!.textureId);
+      print("Destroyed texture ${textureDetails.value!.textureId}");
     }
 
     var newSize = ui.Size(width * _pixelRatio, height * _pixelRatio);
@@ -310,7 +320,7 @@ class FilamentControllerFFI extends FilamentController {
         _viewer!, newSize.width.toInt(), newSize.height.toInt(), 1.0);
 
     await setRendering(_rendering);
-    textureDetails =
+    textureDetails.value =
         TextureDetails(textureId: textures[0]!, width: width, height: height);
   }
 
@@ -903,7 +913,7 @@ class FilamentControllerFFI extends FilamentController {
     final outPtr = calloc<EntityId>(1);
     outPtr.value = 0;
 
-    _lib.pick_ffi(_viewer!, x, textureDetails!.height - y, outPtr);
+    _lib.pick_ffi(_viewer!, x, textureDetails.value!.height - y, outPtr);
     int wait = 0;
     while (outPtr.value == 0) {
       await Future.delayed(Duration(milliseconds: 50));
