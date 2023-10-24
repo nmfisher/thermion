@@ -62,13 +62,23 @@ static void logEglError(const char *name) noexcept {
 }
 
 void FlutterAngleTexture::RenderCallback() {
+  glFinish();
   _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
                                     _internalD3DTexture2D.Get());
   _D3D11DeviceContext->Flush();
 }
 
 FlutterAngleTexture::~FlutterAngleTexture() {
-  
+  if (_eglDisplay != EGL_NO_DISPLAY && _eglSurface != EGL_NO_SURFACE) {
+    eglReleaseTexImage(_eglDisplay, _eglSurface, EGL_BACK_BUFFER);
+  }
+  auto success = eglDestroySurface(this->_eglDisplay, this->_eglSurface);
+  if(success != EGL_TRUE) {
+    std::cout << "Failed to destroy EGL Surface" << std::endl;
+  }
+  _internalD3DTexture2D->Release();
+  _externalD3DTexture2D->Release();
+  glDeleteTextures(1, &this->glTextureId);
 }
 
 FlutterAngleTexture::FlutterAngleTexture(
@@ -77,11 +87,13 @@ FlutterAngleTexture::FlutterAngleTexture(
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result,
     uint32_t width, uint32_t height, ID3D11Device *D3D11Device,
     ID3D11DeviceContext *D3D11DeviceContext, EGLConfig eglConfig,
-    EGLDisplay eglDisplay, EGLContext eglContext)
+    EGLDisplay eglDisplay, EGLContext eglContext,
+    std::function<void(size_t, size_t)> onResizeRequested
+    )
     : _pluginRegistrar(pluginRegistrar), _textureRegistrar(textureRegistrar),
       _width(width), _height(height), _D3D11Device(D3D11Device),
       _D3D11DeviceContext(D3D11DeviceContext), _eglConfig(eglConfig),
-      _eglDisplay(eglDisplay), _eglContext(eglContext) {
+      _eglDisplay(eglDisplay), _eglContext(eglContext), _onResizeRequested(onResizeRequested) {
 
   auto d3d11_texture2D_desc = D3D11_TEXTURE2D_DESC{0};
   d3d11_texture2D_desc.Width = width;
@@ -157,11 +169,11 @@ FlutterAngleTexture::FlutterAngleTexture(
       EGL_NONE,
   };
 
-  auto surface = eglCreatePbufferFromClientBuffer(
+  _eglSurface = eglCreatePbufferFromClientBuffer(
       _eglDisplay, EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE,
       _internalD3DTextureHandle, _eglConfig, pbufferAttribs);
 
-  if (!eglMakeCurrent(_eglDisplay, surface, surface, _eglContext)) {
+  if (!eglMakeCurrent(_eglDisplay, _eglSurface, _eglSurface, _eglContext)) {
     // eglMakeCurrent failed
     logEglError("eglMakeCurrent");
     return;
@@ -177,7 +189,7 @@ FlutterAngleTexture::FlutterAngleTexture(
   }
 
   glBindTexture(GL_TEXTURE_2D, glTextureId);
-  eglBindTexImage(_eglDisplay, surface, EGL_BACK_BUFFER);
+  eglBindTexImage(_eglDisplay, _eglSurface, EGL_BACK_BUFFER);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -210,7 +222,10 @@ FlutterAngleTexture::FlutterAngleTexture(
       std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
           kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
           [&](size_t width, size_t height) { 
-              return _textureDescriptor.get(); 
+            if(width != this->_width || height != this->_height) {
+              this->_onResizeRequested(width, height);
+            }
+            return _textureDescriptor.get(); 
           }));
 
   flutterTextureId = _textureRegistrar->RegisterTexture(texture.get());

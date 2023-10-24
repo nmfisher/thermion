@@ -30,7 +30,8 @@ public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 
   PolyvoxFilamentPlugin(flutter::TextureRegistrar *textureRegistrar,
-                        flutter::PluginRegistrarWindows *registrar);
+                        flutter::PluginRegistrarWindows *registrar,
+                        std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>& channel);
   virtual ~PolyvoxFilamentPlugin();
 
   // Disallow copy and assign.
@@ -44,6 +45,7 @@ public:
 
   flutter::PluginRegistrarWindows *_pluginRegistrar;
   flutter::TextureRegistrar *_textureRegistrar;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> _channel;
   std::map<uint32_t, ResourceBuffer> _resources;
   std::shared_ptr<std::mutex> _renderMutex;
  
@@ -66,6 +68,7 @@ public:
     EGLConfig _eglConfig = NULL;
     EGLDisplay _eglDisplay = NULL;
     std::unique_ptr<FlutterAngleTexture> _active = nullptr;
+    std::unique_ptr<FlutterAngleTexture> _inactive = nullptr;
     ID3D11Device* _D3D11Device = nullptr;
     ID3D11DeviceContext* _D3D11DeviceContext = nullptr;
     filament::backend::Platform* _platform = nullptr;

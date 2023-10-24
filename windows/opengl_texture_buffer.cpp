@@ -126,6 +126,17 @@ OpenGLTextureBuffer::OpenGLTextureBuffer(
   result->Success(resultList);
 }
 
-OpenGLTextureBuffer::~OpenGLTextureBuffer() {}
+OpenGLTextureBuffer::~OpenGLTextureBuffer() {
+   HWND hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
+    HDC whdc = GetDC(hwnd);
+
+    if (!wglMakeCurrent(whdc, _context)) {
+        std::cout << "Failed to switch OpenGL context in destructor."                << std::endl;
+        // result->Error("CONTEXT", "Failed to switch OpenGL context.", nullptr);
+        return;
+    }
+    glDeleteTextures(1, &this->_inactive->glTextureId);
+    wglMakeCurrent(NULL, NULL);
+}
 
 } // namespace polyvox_filament

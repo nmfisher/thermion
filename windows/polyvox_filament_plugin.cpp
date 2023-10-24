@@ -49,20 +49,21 @@ void PolyvoxFilamentPlugin::RegisterWithRegistrar(
           &flutter::StandardMethodCodec::GetInstance());
 
   auto plugin = std::make_unique<PolyvoxFilamentPlugin>(
-      registrar->texture_registrar(), registrar);
-
-  channel->SetMethodCallHandler(
-      [plugin_pointer = plugin.get()](const auto &call, auto result) {
-        plugin_pointer->HandleMethodCall(call, std::move(result));
-      });
+      registrar->texture_registrar(), registrar, channel);
 
   registrar->AddPlugin(std::move(plugin));
 }
 
 PolyvoxFilamentPlugin::PolyvoxFilamentPlugin(
     flutter::TextureRegistrar *textureRegistrar,
-    flutter::PluginRegistrarWindows *pluginRegistrar)
-    : _textureRegistrar(textureRegistrar), _pluginRegistrar(pluginRegistrar) {}
+    flutter::PluginRegistrarWindows *pluginRegistrar,
+    std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>& channel)
+    : _textureRegistrar(textureRegistrar), _pluginRegistrar(pluginRegistrar), _channel(std::move(channel)) {
+      _channel->SetMethodCallHandler(
+      [=](const auto &call, auto result) {
+        this->HandleMethodCall(call, std::move(result));
+      });
+    }
 
 PolyvoxFilamentPlugin::~PolyvoxFilamentPlugin() {}
 
@@ -299,8 +300,13 @@ bool PolyvoxFilamentPlugin::MakeD3DTexture(uint32_t width, uint32_t height,std::
     _D3D11DeviceContext,
     _eglConfig,
     _eglDisplay,
-    _context
-    );
+    _context, [=](size_t width, size_t height) {
+      std::vector<int64_t> list;
+      list.push_back((int64_t)width);
+      list.push_back((int64_t)height);
+      auto val = std::make_unique<flutter::EncodableValue>(list);
+      this->_channel->InvokeMethod("resize", std::move(val), nullptr);
+    });
   
   return _active->flutterTextureId != -1;
 }
@@ -446,7 +452,6 @@ void PolyvoxFilamentPlugin::DestroyTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
-
   const auto *flutterTextureId =
       std::get_if<int64_t>(methodCall.arguments());
 
@@ -470,24 +475,7 @@ void PolyvoxFilamentPlugin::DestroyTexture(
   _textureRegistrar->UnregisterTexture(_active->flutterTextureId, [=, 
       sharedResult=std::move(sh) 
   ]() {
-
-      #ifdef USE_ANGLE
-      this->_active = nullptr;
-      #else 
-        if(this->_inactive) {
-          HWND hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
-          HDC whdc = GetDC(hwnd);
-
-          if (!wglMakeCurrent(whdc, _context)) {
-              std::cout << "Failed to switch OpenGL context in destructor."                << std::endl;
-              // result->Error("CONTEXT", "Failed to switch OpenGL context.", nullptr);
-              return;
-          }
-          glDeleteTextures(1, &this->_inactive->glTextureId);
-          wglMakeCurrent(NULL, NULL);
-        }
-        this->_inactive = std::move(this->_active);
-      #endif
+      this->_inactive = std::move(this->_active);      
       auto unique = std::move(*(sharedResult.get()));
       unique->Success(flutter::EncodableValue(true));
       std::cout << "Unregistered/destroyed texture." << std::endl;

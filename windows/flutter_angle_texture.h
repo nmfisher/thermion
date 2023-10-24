@@ -38,7 +38,8 @@ class FlutterAngleTexture {
         ID3D11DeviceContext* D3D11DeviceContext,
         EGLConfig eglConfig,
         EGLDisplay eglDisplay,
-        EGLContext eglContext
+        EGLContext eglContext,
+        std::function<void(size_t, size_t)> onResizeRequested
     );    
     ~FlutterAngleTexture();
 
@@ -55,6 +56,7 @@ class FlutterAngleTexture {
     uint32_t _height = 0;
     bool logged = false;
     std::shared_ptr<std::mutex> _renderMutex;
+    std::function<void(size_t, size_t)> _onResizeRequested;
 
     // Device
     ID3D11Device* _D3D11Device = nullptr;
@@ -68,6 +70,7 @@ class FlutterAngleTexture {
     EGLDisplay _eglDisplay = EGL_NO_DISPLAY;
     EGLContext _eglContext = EGL_NO_CONTEXT;
     EGLConfig _eglConfig = EGL_NO_CONFIG_KHR;
+    EGLSurface _eglSurface = EGL_NO_SURFACE;
     
     std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> _textureDescriptor = nullptr;
 
