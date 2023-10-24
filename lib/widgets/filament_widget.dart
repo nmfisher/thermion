@@ -42,7 +42,7 @@ class _RenderResizeObserver extends RenderProxyBox {
   void performLayout() async {
     super.performLayout();
     if (size.width != _oldSize.width || size.height != _oldSize.height) {
-      onLayoutChangedCallback(size);
+        onLayoutChangedCallback(size);
       _oldSize = Size(size.width, size.height);
     }
   }
@@ -87,6 +87,9 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
     return ResizeObserver(
         onResized: (newSize) {
+          if(!Platform.isWindows) {
+            return;
+          }
           WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
             setState(() {
               _width = newSize.width.ceil();
@@ -249,28 +252,31 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
           ]));
     }
 
-    if (widget.controller.textureDetails == null) { 
-      return Stack(children: [
-        Positioned.fill(child: widget.initial ?? Container(color: Colors.red))
-      ]);
-    }
-    // see [FilamentControllerFFI.resize] for an explanation of how we deal with resizing
-    var texture = Texture(
-      key: ObjectKey("texture_${widget.controller.textureDetails!.textureId}"),
-      textureId: widget.controller.textureDetails!.textureId,
-      filterQuality: FilterQuality.none,
-      freeze: false,
-    );
+    return ListenableBuilder(listenable: widget.controller.textureDetails, builder: (BuildContext ctx, Widget? wdgt) {
 
-    return Stack(children: [
-      Positioned.fill(
-          child: Platform.isLinux || Platform.isWindows
-              ? Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.rotationX(
-                      pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
-                  child: texture)
-              : texture)
-    ]);
+      if (widget.controller.textureDetails.value == null) { 
+        return Stack(children: [
+          Positioned.fill(child: widget.initial ?? Container(color: Colors.red))
+        ]);
+      }
+      // see [FilamentControllerFFI.resize] for an explanation of how we deal with resizing
+      var texture = Texture(
+        key: ObjectKey("texture_${widget.controller.textureDetails.value!.textureId}"),
+        textureId: widget.controller.textureDetails.value!.textureId,
+        filterQuality: FilterQuality.none,
+        freeze: false,
+      );
+
+      return Stack(children: [
+        Positioned.fill(
+            child: Platform.isLinux || Platform.isWindows
+                ? Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.rotationX(
+                        pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
+                    child: texture)
+                : texture)
+      ]);
+    });
   }
 }
