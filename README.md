@@ -427,3 +427,7 @@ On Windows, loading a glTF (but NOT a glb) may crash due to a race condition bet
 This has been fixed in recent versions of Filament, but other bugs on Windows prevent upgrading.
 
 Only workaround is to load a .glb file.
+
+# Thanks
+
+- https://github.com/alexmercerind/flutter-windows-ANGLE-OpenGL-ES
