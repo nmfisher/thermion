@@ -14,14 +14,13 @@
 #include "GL/GL.h"
 #include "GL/GLu.h"
 
-#ifdef USE_ANGLE
-#include "flutter_angle_texture.h"
-#include "backend/platforms/PlatformEGL.h"
-#else
-#include "opengl_texture_buffer.h"
-#endif 
-
 #include "PolyvoxFilamentApi.h"
+
+#if ANGLE
+#include "egl_context.h"
+#else
+#include "wgl_context.h"
+#endif
 
 namespace polyvox_filament {
 
@@ -47,7 +46,6 @@ public:
   flutter::TextureRegistrar *_textureRegistrar;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> _channel;
   std::map<uint32_t, ResourceBuffer> _resources;
-  std::shared_ptr<std::mutex> _renderMutex;
  
   void CreateTexture(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
@@ -62,23 +60,9 @@ public:
 
   private:
     #ifdef USE_ANGLE
-    bool CreateSharedEGLContext();
-    bool MakeD3DTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-    EGLContext _context = NULL;
-    EGLConfig _eglConfig = NULL;
-    EGLDisplay _eglDisplay = NULL;
-    std::unique_ptr<FlutterAngleTexture> _active = nullptr;
-    std::unique_ptr<FlutterAngleTexture> _inactive = nullptr;
-    ID3D11Device* _D3D11Device = nullptr;
-    ID3D11DeviceContext* _D3D11DeviceContext = nullptr;
-    filament::backend::Platform* _platform = nullptr;
+    std::unique_ptr<EGLContext> _context = nullptr;
     #else 
-    std::unique_ptr<OpenGLTextureBuffer> _active = nullptr;
-    std::unique_ptr<OpenGLTextureBuffer> _inactive = nullptr;
-    // shared OpenGLContext
-    HGLRC _context = NULL;
-    bool CreateSharedWGLContext();
-    bool MakeOpenGLTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+    std::unique_ptr<WGLContext> _context = nullptr;
     #endif
 };
 

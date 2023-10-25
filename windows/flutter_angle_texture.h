@@ -22,11 +22,13 @@
 #include <Windows.h>
 #include <wrl.h>
 
+#include "flutter_texture_buffer.h"
+
 typedef uint32_t GLuint;
 
 namespace polyvox_filament {
 
-class FlutterAngleTexture {
+class FlutterAngleTexture : FlutterTextureBuffer {
   public:
     FlutterAngleTexture(
         flutter::PluginRegistrarWindows* pluginRegistrar,
@@ -45,7 +47,6 @@ class FlutterAngleTexture {
 
     void RenderCallback();
     
-    int64_t flutterTextureId = 0;
     GLuint glTextureId = 0;
     std::unique_ptr<flutter::TextureVariant> texture;
       
@@ -55,7 +56,6 @@ class FlutterAngleTexture {
     uint32_t _width = 0;
     uint32_t _height = 0;
     bool logged = false;
-    std::shared_ptr<std::mutex> _renderMutex;
     std::function<void(size_t, size_t)> _onResizeRequested;
 
     // Device

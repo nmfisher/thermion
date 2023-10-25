@@ -17,11 +17,9 @@ OpenGLTextureBuffer::OpenGLTextureBuffer(
     flutter::PluginRegistrarWindows *pluginRegistrar,
     flutter::TextureRegistrar *textureRegistrar,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result,
-    uint32_t width, uint32_t height, HGLRC context,
-    std::shared_ptr<std::mutex> renderMutex)
+    uint32_t width, uint32_t height, HGLRC context)
     : _pluginRegistrar(pluginRegistrar), _textureRegistrar(textureRegistrar),
-      _width(width), _height(height), _context(context),
-      _renderMutex(renderMutex) {
+      _width(width), _height(height), _context(context) {
 
   HWND hwnd = _pluginRegistrar->GetView()->GetNativeWindow();
 
@@ -135,7 +133,7 @@ OpenGLTextureBuffer::~OpenGLTextureBuffer() {
         // result->Error("CONTEXT", "Failed to switch OpenGL context.", nullptr);
         return;
     }
-    glDeleteTextures(1, &this->_inactive->glTextureId);
+    glDeleteTextures(1, &this->glTextureId);
     wglMakeCurrent(NULL, NULL);
 }
 
