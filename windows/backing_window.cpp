@@ -360,14 +360,12 @@ void BackingWindow::Resize(int width, int height, int left, int top) {
   _left = left;
   _top = top;
   RECT flutterViewRect;
-  ::ShowWindow(_windowHandle, SW_HIDE);
   ::GetWindowRect(_flutterViewWindow, &flutterViewRect);
     std::cout << "Resizing to " << _width << " x " << _height << " with LT" << _left << " " << _top << " flutter view rect" << flutterViewRect.left << " " << flutterViewRect.top  << " " << flutterViewRect.right << " " << flutterViewRect.bottom << std::endl;
 
   ::SetWindowPos(_windowHandle, _flutterRootWindow, flutterViewRect.left + _left,
                  flutterViewRect.top + _top, _width, _height,
                  SWP_NOACTIVATE);
-  ::ShowWindow(_windowHandle, SW_SHOWNOACTIVATE);
 }
 
 HWND BackingWindow::GetHandle() { return _windowHandle; }
