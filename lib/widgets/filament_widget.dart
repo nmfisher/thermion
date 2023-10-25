@@ -42,7 +42,7 @@ class _RenderResizeObserver extends RenderProxyBox {
   void performLayout() async {
     super.performLayout();
     if (size.width != _oldSize.width || size.height != _oldSize.height) {
-        onLayoutChangedCallback(size);
+      onLayoutChangedCallback(size);
       _oldSize = Size(size.width, size.height);
     }
   }
@@ -87,7 +87,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
     return ResizeObserver(
         onResized: (newSize) {
-          if(!Platform.isWindows) {
+          if (!Platform.isWindows) {
             return;
           }
           WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -124,10 +124,10 @@ class _SizedFilamentWidget extends StatefulWidget {
 }
 
 class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
+
   String? _error;
 
   late final AppLifecycleListener _appLifecycleListener;
-  AppLifecycleState? _lastState;
 
   @override
   void initState() {
@@ -136,9 +136,6 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      if (!kReleaseMode) {
-        await Future.delayed(Duration(seconds: 2));
-      }
       try {
         await widget.controller.createViewer(widget.width, widget.height);
       } catch (err) {
@@ -171,7 +168,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
       var width = size.width.ceil();
       var height = size.height.ceil();
       while (_resizing) {
-        await Future.delayed(Duration(milliseconds: 20));
+        await Future.delayed(const Duration(milliseconds: 20));
       }
       _resizing = true;
       await widget.controller.resize(width, height);
@@ -237,7 +234,6 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
         await widget.controller.setRendering(_wasRenderingOnInactive);
         break;
     }
-    _lastState = state;
   }
 
   @override
@@ -252,31 +248,55 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
           ]));
     }
 
-    return ListenableBuilder(listenable: widget.controller.textureDetails, builder: (BuildContext ctx, Widget? wdgt) {
-
-      if (widget.controller.textureDetails.value == null) { 
-        return Stack(children: [
-          Positioned.fill(child: widget.initial ?? Container(color: Colors.red))
-        ]);
-      }
-      // see [FilamentControllerFFI.resize] for an explanation of how we deal with resizing
-      var texture = Texture(
-        key: ObjectKey("texture_${widget.controller.textureDetails.value!.textureId}"),
-        textureId: widget.controller.textureDetails.value!.textureId,
-        filterQuality: FilterQuality.none,
-        freeze: false,
-      );
-
+    if (!widget.controller.requiresTextureWidget) {
       return Stack(children: [
-        Positioned.fill(
-            child: Platform.isLinux || Platform.isWindows
-                ? Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.rotationX(
-                        pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
-                    child: texture)
-                : texture)
+        Positioned.fill(child: CustomPaint(painter: TransparencyPainter()))
       ]);
-    });
+    }
+
+    return ListenableBuilder(
+        listenable: widget.controller.textureDetails,
+        builder: (BuildContext ctx, Widget? wdgt) {
+          if (widget.controller.textureDetails.value == null) {
+            return Stack(children: [
+              Positioned.fill(
+                  child: widget.initial ?? Container(color: Colors.red))
+            ]);
+          }
+          // see [FilamentControllerFFI.resize] for an explanation of how we deal with resizing
+          var texture = Texture(
+            key: ObjectKey(
+                "texture_${widget.controller.textureDetails.value!.textureId}"),
+            textureId: widget.controller.textureDetails.value!.textureId,
+            filterQuality: FilterQuality.none,
+            freeze: false,
+          );
+
+          return Stack(children: [
+            Positioned.fill(
+                child: Platform.isLinux || Platform.isWindows
+                    ? Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.rotationX(
+                            pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
+                        child: texture)
+                    : texture)
+          ]);
+        });
   }
+}
+
+class TransparencyPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()
+        ..blendMode = BlendMode.clear
+        ..color = const Color(0x00000000),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

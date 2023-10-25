@@ -77,7 +77,9 @@ public:
 
   void doRender() {
     render(_viewer, 0, nullptr, nullptr, nullptr);
-    _renderCallback(_renderCallbackOwner);
+    if(_renderCallback) {
+      _renderCallback(_renderCallbackOwner);
+    }
   }
 
   void setFrameIntervalInMilliseconds(float frameIntervalInMilliseconds) {

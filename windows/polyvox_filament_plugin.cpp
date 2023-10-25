@@ -36,8 +36,6 @@
 #include <dwmapi.h>
 #include <wrl.h>
 
-#include "utils.h"
-
 #include "flutter_render_context.h"
 
 #if USE_ANGLE
@@ -181,7 +179,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
     _context = std::make_unique<WGLContext>(_pluginRegistrar, _textureRegistrar);
 #endif
   }
-  //_context->CreateTexture(width, height, std::move(result));
+  _context->CreateTexture(width, height, std::move(result));
 }
 
 void PolyvoxFilamentPlugin::DestroyTexture(
@@ -228,14 +226,15 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
   } else if (methodCall.method_name() == "destroyTexture") {
     DestroyTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "getRenderCallback") {
+    flutter::EncodableList resultList;
     #if !ANGLE && WGL_USE_BACKING_WINDOW
-      result->Success(nullptr);
+        resultList.push_back(flutter::EncodableValue((int64_t)nullptr));
+        resultList.push_back(flutter::EncodableValue((int64_t)nullptr));
     #else
-        flutter::EncodableList resultList;
         resultList.push_back(flutter::EncodableValue((int64_t)&render_callback));
         resultList.push_back(flutter::EncodableValue((int64_t)this));
-        result->Success(resultList);
     #endif
+    result->Success(resultList);
   } else if (methodCall.method_name() == "getDriverPlatform") {
 #ifdef USE_ANGLE
     result->Success(flutter::EncodableValue((int64_t)_platform));

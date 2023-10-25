@@ -15,6 +15,8 @@ namespace polyvox_filament {
         void CreateTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
         void* GetSharedContext();    
     private:
+        flutter::PluginRegistrarWindows* _pluginRegistrar = nullptr;
+        flutter::TextureRegistrar* _textureRegistrar = nullptr;
         HGLRC _context = NULL;
         #if WGL_USE_BACKING_WINDOW
         std::unique_ptr<BackingWindow> _backingWindow = nullptr;

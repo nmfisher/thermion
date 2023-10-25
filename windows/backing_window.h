@@ -17,7 +17,8 @@ class BackingWindow {
     private:
         HWND _windowHandle;
         HWND _flutterRootWindow;
-}
+        HWND _flutterViewWindow;
+};
 
 }
 #endif 

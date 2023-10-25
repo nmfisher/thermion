@@ -19,6 +19,14 @@ class TextureDetails {
 }
 
 abstract class FilamentController {
+  
+  /// 
+  /// Whether a Flutter Texture widget should be inserted into the widget hierarchy.
+  /// This will be false on certain platforms where we use a transparent window underlay.
+  /// Used internally by [FilamentWidget]; you probably don't need to access this property directly.
+  /// 
+  bool get requiresTextureWidget;
+
   ///
   /// The Flutter texture ID and dimensions for current texture in use.
   /// This is only used by [FilamentWidget]; you shouldn't need to access directly yourself.

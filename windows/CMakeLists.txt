@@ -23,21 +23,19 @@ list(APPEND PLUGIN_SOURCES
 )
 
 set(USE_ANGLE FALSE)
-
-if(!USE_ANGLE)
 set(WGL_USE_BACKING_WINDOW TRUE)
-endif()
 
 if(USE_ANGLE)
   add_compile_definitions(USE_ANGLE)
   list(APPEND PLUGIN_SOURCES    "flutter_angle_texture.cpp"   "egl_context.cpp"   )
 else() 
-  list(APPEND PLUGIN_SOURCES "wgl_context.cpp")
-  if(WGL_USE_BACKING_WINDOW)
-    list(APPEND PLUGIN_SOURCES "utils.cc" "backing_window.cpp")
-  else()
-    list(APPEND PLUGIN_SOURCES "opengl_texture_buffer.cpp")
-  endif()
+  add_compile_definitions(WGL_USE_BACKING_WINDOW)
+  list(APPEND PLUGIN_SOURCES "wgl_context.cpp" "opengl_texture_buffer.cpp" "backing_window.cpp")
+  # if(WGL_USE_BACKING_WINDOW)
+  #   list(APPEND PLUGIN_SOURCES )
+  # else()
+  #   list(APPEND PLUGIN_SOURCES )
+  # endif()
 endif()
 
 # Define the plugin library target. Its name must not be changed (see comment

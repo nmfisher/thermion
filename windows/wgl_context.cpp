@@ -9,7 +9,8 @@
 namespace polyvox_filament {
 
 WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
-                       flutter::TextureRegistrar *textureRegistrar) {
+                       flutter::TextureRegistrar *textureRegistrar)
+    : _pluginRegistrar(pluginRegistrar), _textureRegistrar(textureRegistrar) {
 
   auto hwnd = pluginRegistrar->GetView()->GetNativeWindow();
 
@@ -99,27 +100,24 @@ void WGLContext::CreateTexture(
     uint32_t width, uint32_t height,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
-#ifdef WGL_USE_BACKING_WINDOW
-  _backingWindow = std::make_unique<BackingWindow>()
-      : std::vector<flutter::EncodableValue> resultList;
+#if WGL_USE_BACKING_WINDOW
+  _backingWindow = std::make_unique<BackingWindow>(
+      _pluginRegistrar, static_cast<int>(width), static_cast<int>(height));
+  std::vector<flutter::EncodableValue> resultList;
   resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
   resultList.push_back(
       flutter::EncodableValue((int64_t)_backingWindow->GetHandle()));
   resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
   result->Success(resultList);
-}
-else {
-  result->Error("FOO", "ERROR", nullptr);
-}
 #else
   if (_active.get()) {
     result->Error("ERROR",
                   "Texture already exists. You must call destroyTexture before "
                   "attempting to create a new one.");
   } else {
-    _active = std::make_unique<OpenGLTextureBuffer>(_pluginRegistrar, _textureRegistrar,
-                                          std::move(result), width, height,
-                                          _context);
+    _active = std::make_unique<OpenGLTextureBuffer>(
+        _pluginRegistrar, _textureRegistrar, std::move(result), width, height,
+        _context);
 
     if (_active->flutterTextureId != -1) {
       std::vector<flutter::EncodableValue> resultList;

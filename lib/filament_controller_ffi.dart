@@ -4,16 +4,21 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
-import 'package:flutter/widgets.dart';
+
 import 'package:polyvox_filament/filament_controller.dart';
 
 import 'package:polyvox_filament/animations/animation_data.dart';
 import 'package:polyvox_filament/generated_bindings.dart';
 
+// ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 
 class FilamentControllerFFI extends FilamentController {
-  late MethodChannel _channel = MethodChannel("app.polyvox.filament/event");
+  
+  final _channel = const MethodChannel("app.polyvox.filament/event");
+
+  @override
+  bool get requiresTextureWidget => !Platform.isWindows;
 
   double _pixelRatio = 1.0;
 
@@ -25,9 +30,11 @@ class FilamentControllerFFI extends FilamentController {
 
   final String? uberArchivePath;
 
+  @override
   Stream<bool> get hasViewer => _hasViewerController.stream;
   final _hasViewerController = StreamController<bool>();
 
+  @override
   Stream<FilamentEntity> get pickResult => _pickResultController.stream;
   final _pickResultController = StreamController<FilamentEntity>.broadcast();
 
@@ -48,7 +55,7 @@ class FilamentControllerFFI extends FilamentController {
       _resizeTimer?.cancel();
       _resizingWidth = call.arguments[0];
       _resizingHeight = call.arguments[1];
-      _resizeTimer = Timer(Duration(milliseconds: 500), () async {
+      _resizeTimer = Timer(const Duration(milliseconds: 500), () async {
         await resize(_resizingWidth!, _resizingHeight!);
       });
       
@@ -160,7 +167,7 @@ class FilamentControllerFFI extends FilamentController {
 
     print("Using flutterTextureId $flutterTextureId, surface $surfaceAddress and nativeTexture $nativeTexture");
 
-    if (Platform.isWindows) {
+    if (Platform.isWindows && requiresTextureWidget) {
       _driver = Pointer<Void>.fromAddress(
           await _channel.invokeMethod("getDriverPlatform"));
     }
@@ -275,6 +282,10 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future resize(int width, int height, {double scaleFactor = 1.0}) async {
+
+    if(Platform.isWindows) {
+      return;
+    }
     // we defer to the FilamentWidget to ensure that every call to [resize] is synchronized
     // so this exception should never be thrown (right?)
     if (textureDetails.value == null) {
