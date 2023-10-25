@@ -9,16 +9,17 @@ import 'package:polyvox_filament/filament_controller.dart';
 
 import 'package:polyvox_filament/animations/animation_data.dart';
 import 'package:polyvox_filament/generated_bindings.dart';
+import 'package:polyvox_filament/rendering_surface.dart';
 
 // ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 
 class FilamentControllerFFI extends FilamentController {
-  
   final _channel = const MethodChannel("app.polyvox.filament/event");
 
+  bool _usesBackingWindow = false;
   @override
-  bool get requiresTextureWidget => !Platform.isWindows;
+  bool get requiresTextureWidget => !_usesBackingWindow;
 
   double _pixelRatio = 1.0;
 
@@ -48,17 +49,22 @@ class FilamentControllerFFI extends FilamentController {
   /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in PolyvoxFilamentApi.h.
   ///
   FilamentControllerFFI({this.uberArchivePath}) {
+    // on some platforms, we ignore the resize event raised by the Flutter RenderObserver
+    // in favour of a window-level event passed via the method channel.
+    // (this is because there is no apparent way to exactly synchronize resizing a Flutter widget and resizing a pixel buffer, so we need
+    // to handle the latter first and rebuild the swapchain appropriately).
     _channel.setMethodCallHandler((call) async {
-      if(call.arguments[0] == _resizingWidth && call.arguments[1] == _resizingHeight) {
+      if (call.arguments[0] == _resizingWidth &&
+          call.arguments[1] == _resizingHeight) {
         return;
       }
       _resizeTimer?.cancel();
       _resizingWidth = call.arguments[0];
       _resizingHeight = call.arguments[1];
       _resizeTimer = Timer(const Duration(milliseconds: 500), () async {
-        await resize(_resizingWidth!, _resizingHeight!);
+        await resize(Offset.zero &
+            ui.Size(_resizingWidth!.toDouble(), _resizingHeight!.toDouble()));
       });
-      
     });
     late DynamicLibrary dl;
     if (Platform.isIOS || Platform.isMacOS || Platform.isWindows) {
@@ -67,6 +73,12 @@ class FilamentControllerFFI extends FilamentController {
       dl = DynamicLibrary.open("libpolyvox_filament_android.so");
     }
     _lib = NativeLibrary(dl);
+    if(Platform.isWindows) {
+      _channel.invokeMethod("usesBackingWindow").then((result) {
+        _usesBackingWindow = result;
+      });
+    }
+    
   }
 
   bool _rendering = false;
@@ -123,19 +135,21 @@ class FilamentControllerFFI extends FilamentController {
   @override
   Future destroyTexture() async {
     if (textureDetails.value != null) {
-      await _channel.invokeMethod("destroyTexture", textureDetails.value!.textureId);
+      await _channel.invokeMethod(
+          "destroyTexture", textureDetails.value!.textureId);
     }
     print("Texture destroyed");
   }
 
   Pointer<Void> _driver = nullptr.cast<Void>();
 
-
   ///
   /// Called by `FilamentWidget`. You do not need to call this yourself.
   ///
   @override
-  Future createViewer(int width, int height) async {
+  Future createViewer(Rect rect) async {
+    double width = rect.width;
+    double height = rect.height;
     if (_viewer != null) {
       throw Exception(
           "Viewer already exists, make sure you call destroyViewer first");
@@ -155,18 +169,6 @@ class FilamentControllerFFI extends FilamentController {
 
     print("Creating viewer with size $size");
 
-    var textures =
-        await _channel.invokeMethod("createTexture", [size.width, size.height]);
-    var flutterTextureId = textures[0];
-
-    // void* on iOS (pointer to pixel buffer), Android (pointer to native window), null on macOS/Windows
-    var surfaceAddress = textures[1] as int? ?? 0;
-
-    // null on iOS/Android, void* on MacOS (pointer to metal texture), GLuid on Windows/Linux
-    var nativeTexture = textures[2] as int? ?? 0;
-
-    print("Using flutterTextureId $flutterTextureId, surface $surfaceAddress and nativeTexture $nativeTexture");
-
     if (Platform.isWindows && requiresTextureWidget) {
       _driver = Pointer<Void>.fromAddress(
           await _channel.invokeMethod("getDriverPlatform"));
@@ -179,11 +181,10 @@ class FilamentControllerFFI extends FilamentController {
     var renderCallbackOwner =
         Pointer<Void>.fromAddress(renderCallbackResult[1]);
 
-    var sharedContext = await _channel.invokeMethod("getSharedContext");
-    print("Got shared context : $sharedContext");
+    var renderingSurface = await _createRenderingSurface(rect);
 
     _viewer = _lib.create_filament_viewer_ffi(
-        Pointer<Void>.fromAddress(sharedContext ?? 0),
+        Pointer<Void>.fromAddress(renderingSurface.sharedContext ?? 0),
         _driver,
         uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr,
         loader,
@@ -194,50 +195,57 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Failed to create viewer. Check logs for details");
     }
 
-    _lib.create_swap_chain_ffi(
-        _viewer!,
-        Pointer<Void>.fromAddress(surfaceAddress),
-        size.width.toInt(),
-        size.height.toInt());
-    if (nativeTexture != 0) {
-      assert(surfaceAddress == 0);
-      print("Creating render target from native texture  $nativeTexture");
-      _lib.create_render_target_ffi(
-          _viewer!, nativeTexture, size.width.toInt(), size.height.toInt());
-    }
-
-    _lib.update_viewport_and_camera_projection_ffi(
-        _viewer!, size.width.toInt(), size.height.toInt(), 1.0);
-
     _assetManager = _lib.get_asset_manager(_viewer!);
 
+    _lib.create_swap_chain_ffi(_viewer!, renderingSurface.surface,
+        rect.width.toInt(), rect.height.toInt());
+    if (renderingSurface.textureHandle != 0) {
+      print(
+          "Creating render target from native texture  ${renderingSurface.textureHandle}");
+      _lib.create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
+          rect.width.toInt(), rect.height.toInt());
+    }
+
     textureDetails.value = TextureDetails(
-        textureId: flutterTextureId!, width: width, height: height);
+        textureId: renderingSurface.flutterTextureId!,
+        width: rect.width.toInt(),
+        height: rect.height.toInt());
+
+    _lib.update_viewport_and_camera_projection_ffi(
+        _viewer!, rect.width.toInt(), rect.height.toInt(), 1.0);
+
     _hasViewerController.add(true);
   }
 
+  Future<RenderingSurface> _createRenderingSurface(Rect rect) async { 
+    return RenderingSurface.from(await _channel.invokeMethod(
+        "createTexture",
+        [rect.width, rect.height, _pixelRatio, rect.left, rect.top]));
+  }
+
   ///
-  /// When a FilamentWidget is resized, it will call [resize]. This method will tear down/recreate the swapchain and propagate a new texture ID back to the FilamentWidget.
-  /// For "once-off" resizes, this is fine.
-  /// However, this can be problematic for consecutive resizes (e.g. dragging to expand/contract the parent window on desktop, or animating the size of the FilamentWidget itself).
+  /// When a FilamentWidget is resized, it will call the [resize] method below, which will tear down/recreate the swapchain.
+  /// For "once-off" resizes, this is fine; however, this can be problematic for consecutive resizes 
+  /// (e.g. dragging to expand/contract the parent window on desktop, or animating the size of the FilamentWidget itself).
   /// It is too expensive to recreate the swapchain multiple times per second.
-  /// We therefore add a timer to FilamentWidget so that the call to [resize] is delayed (e.g. 50ms).
+  /// We therefore add a timer to FilamentWidget so that the call to [resize] is delayed (e.g. 500ms).
   /// Any subsequent resizes before the delay window elapses will cancel the earlier call.
   ///
-  ///  The overall process looks like this:
+  /// The overall process looks like this:
   /// 1) the window is resized
-  /// 2) (Windows only) PixelBufferTexture is requested to provide a new pixel buffer with a new size, and we return an empty texture
+  /// 2) (Windows only) the Flutter engine requests PixelBufferTexture to provide a new pixel buffer with a new size (we return an empty texture, blanking the Texture widget)
   /// 3) After Xms, [resize] is invoked
   /// 4) the viewer is instructed to stop rendering (synchronous)
   /// 5) the existing Filament swapchain is destroyed (synchronous)
-  /// 6) the Flutter texture is unregistered
+  /// 6) (where a Texture widget is used), the Flutter texture is unregistered
   ///   a) this is asynchronous, but
   ///   b) *** SEE NOTE BELOW ON WINDOWS *** by passing the method channel result through to the callback, we make this synchronous from the Flutter side,
-  //    c) in this async callback, the glTexture is destroyed
-  /// 7) a new Flutter/OpenGL texture is created (synchronous)
+  ///    c) in this async callback, the glTexture is destroyed
+  /// 7) (where a backing window is used), the window is resized
+  /// 7) (where a Texture widget is used), a new Flutter/OpenGL texture is created (synchronous)
   /// 8) a new swapchain is created (synchronous)
   /// 9) if the viewer was rendering prior to the resize, the viewer is instructed to recommence rendering
-  /// 10) the new texture ID is pushed to the FilamentWidget
+  /// 10) (where a Texture widget is used) the new texture ID is pushed to the FilamentWidget
   /// 11) the FilamentWidget updates the Texture widget with the new texture.
   ///
   /// #### (Windows-only) ############################################################
@@ -279,60 +287,68 @@ class FilamentControllerFFI extends FilamentController {
   /// # Given we don't do this on other platforms, I'm OK to stick with the existing solution for the time being.
   /// ############################################################################
   ///
-
+  bool _resizing = false;
   @override
-  Future resize(int width, int height, {double scaleFactor = 1.0}) async {
+  Future resize(Rect rect) async {
 
-    if(Platform.isWindows) {
-      return;
+    if (_viewer == null) {
+      throw Exception("Cannot resize without active viewer");
     }
-    // we defer to the FilamentWidget to ensure that every call to [resize] is synchronized
-    // so this exception should never be thrown (right?)
-    if (textureDetails.value == null) {
+
+    if (_resizing) {
       throw Exception("Resize currently underway, ignoring");
     }
 
+    _resizing = true;
+
     _lib.set_rendering_ffi(_viewer!, false);
 
-    if (textureDetails.value != null) {
-      if (_viewer != null) {
-        _lib.destroy_swap_chain_ffi(_viewer!);
+    if(!_usesBackingWindow) {
+      _lib.destroy_swap_chain_ffi(_viewer!);
+    }
+    
+    if (requiresTextureWidget) {
+      if(textureDetails.value != null) {
+        await _channel.invokeMethod(
+            "destroyTexture", textureDetails.value!.textureId);
       }
-      await _channel.invokeMethod("destroyTexture", textureDetails.value!.textureId);
-      print("Destroyed texture ${textureDetails.value!.textureId}");
+    } else if(Platform.isWindows) { 
+        print("Resizing window with rect $rect");
+        await _channel.invokeMethod(
+            "resizeWindow", [rect.width, rect.height, _pixelRatio, rect.left, rect.top]);
     }
 
-    var newSize = ui.Size(width * _pixelRatio, height * _pixelRatio);
+    var renderingSurface = await _createRenderingSurface(rect);
 
-    print("Size after pixel ratio : $width x $height ");
-
-    var textures = await _channel
-        .invokeMethod("createTexture", [newSize.width, newSize.height]);
-
-    // void* on iOS (pointer to pixel buffer), void* on Android (pointer to native window), null on Windows/macOS
-    var surfaceAddress = textures[1] as int? ?? 0;
-
-    // null on iOS/Android, void* on MacOS (pointer to metal texture), GLuid on Windows/Linux
-    var nativeTexture = textures[2] as int? ?? 0;
-
-    _lib.create_swap_chain_ffi(
-        _viewer!,
-        Pointer<Void>.fromAddress(surfaceAddress),
-        newSize.width.toInt(),
-        newSize.height.toInt());
-    if (nativeTexture != 0) {
-      assert(surfaceAddress == 0);
-      print("Creating render target from native texture  $nativeTexture");
-      _lib.create_render_target_ffi(_viewer!, nativeTexture,
-          newSize.width.toInt(), newSize.height.toInt());
+    if (_viewer!.address == 0) {
+      throw Exception("Failed to create viewer. Check logs for details");
     }
+
+    _assetManager = _lib.get_asset_manager(_viewer!);
+    
+    if(!_usesBackingWindow) {
+      _lib.create_swap_chain_ffi(_viewer!, renderingSurface.surface,
+          rect.width.toInt(), rect.height.toInt());
+    }
+    
+    if (renderingSurface.textureHandle != 0) {
+      print(
+          "Creating render target from native texture  ${renderingSurface.textureHandle}");
+      _lib.create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
+          rect.width.toInt(), rect.height.toInt());
+    }
+
+    textureDetails.value = TextureDetails(
+        textureId: renderingSurface.flutterTextureId!,
+        width: rect.width.toInt(),
+        height: rect.height.toInt());
 
     _lib.update_viewport_and_camera_projection_ffi(
-        _viewer!, newSize.width.toInt(), newSize.height.toInt(), 1.0);
+        _viewer!, rect.width.toInt(), rect.height.toInt(), 1.0);
 
     await setRendering(_rendering);
-    textureDetails.value =
-        TextureDetails(textureId: textures[0]!, width: width, height: height);
+
+    _resizing = false;
   }
 
   @override

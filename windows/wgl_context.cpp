@@ -96,24 +96,37 @@ WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
   }
 }
 
-void WGLContext::CreateTexture(
+void WGLContext::ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
+  _backingWindow->Resize(width, height, left, top);
+}
+
+void WGLContext::CreateRenderingSurface(
     uint32_t width, uint32_t height,
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, uint32_t left, uint32_t top) {
 
 #if WGL_USE_BACKING_WINDOW
-  _backingWindow = std::make_unique<BackingWindow>(
-      _pluginRegistrar, static_cast<int>(width), static_cast<int>(height));
+  if(!_backingWindow) {
+    _backingWindow = std::make_unique<BackingWindow>(
+        _pluginRegistrar, static_cast<int>(width), static_cast<int>(height), static_cast<int>(left), static_cast<int>(top));
+  } else { 
+    ResizeRenderingSurface(width, height, left, top);
+  }
   std::vector<flutter::EncodableValue> resultList;
   resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
   resultList.push_back(
       flutter::EncodableValue((int64_t)_backingWindow->GetHandle()));
   resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
+  resultList.push_back(flutter::EncodableValue((int64_t)sharedContext));
   result->Success(resultList);
 #else
-  if (_active.get()) {
+  if(left != 0 || top != 0) {
+    result->Error("ERROR",
+                  "When WGL_USE_BACKING_WINDOW is false, rendering with WGL uses a Texture render target/Flutter widget and does not need a window offset.");
+  } else if (_active.get()) {
     result->Error("ERROR",
                   "Texture already exists. You must call destroyTexture before "
                   "attempting to create a new one.");
+    
   } else {
     _active = std::make_unique<OpenGLTextureBuffer>(
         _pluginRegistrar, _textureRegistrar, std::move(result), width, height,
@@ -124,9 +137,10 @@ void WGLContext::CreateTexture(
       resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
       resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
       resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
+      resultList.push_back(flutter::EncodableValue((int64_t)sharedContext));
       result->Success(resultList);
     } else {
-      result->Error("FOO", "ERROR", nullptr);
+      result->Error("NO_FLUTTER_TEXTURE", "Unknown error registering texture with Flutter.", nullptr);
     }
   }
 #endif

@@ -155,9 +155,6 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     Log.e("polyvox_filament", call.method, null)
     when (call.method) {
-        "getSharedContext" -> { 
-          result.success(null)
-        }
         "createTexture" -> {
           if(_surfaceTextureEntry != null) {
             result.error("TEXTURE_EXISTS", "Texture already exist. Make sure you call destroyTexture first", null)
@@ -184,7 +181,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
           val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
         
-          val resultList = listOf(_surfaceTextureEntry!!.id(), Pointer.nativeValue(nativeWindow), null )
+          val resultList = listOf(_surfaceTextureEntry!!.id(), Pointer.nativeValue(nativeWindow), null, null )
           
           result.success(resultList)
         }

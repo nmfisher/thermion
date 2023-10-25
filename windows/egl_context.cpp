@@ -137,10 +137,18 @@ EGLContext::EGLContext(flutter::PluginRegistrarWindows* pluginRegistrar, flutter
   }
 }
 
-EGLContext::CreateTexture(
+EGLContext::CreateRenderingSurface(
     uint32_t width, uint32_t height,
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, 
+    uint32_t left, uint32_t top
+    ) {
   importGLESExtensionsEntryPoints();
+
+  if(left != 0 || top != 0) {
+    result->Error("ERROR",
+                  "Rendering with EGL uses a Texture render target/Flutter widget and does not need a window offset.");
+    return false;
+  }
 
   if (_active.get()) {
     result->Error("ERROR",

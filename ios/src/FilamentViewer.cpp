@@ -991,22 +991,22 @@ namespace polyvox
       cam.lookAt(eye, target, upward);
     }
 
-    // TODO - this was an experiment but probably useful to keep for debugging
-    // if pixelBuffer is provided, we will copy the framebuffer into the pixelBuffer.
-    if (pixelBuffer)
-    {
-      auto pbd = Texture::PixelBufferDescriptor(
-          pixelBuffer, size_t(1024 * 768 * 4),
-          Texture::Format::RGBA,
-          Texture::Type::BYTE, nullptr, callback, data);
+    // // TODO - this was an experiment but probably useful to keep for debugging
+    // // if pixelBuffer is provided, we will copy the framebuffer into the pixelBuffer.
+    // if (pixelBuffer)
+    // {
+    //   auto pbd = Texture::PixelBufferDescriptor(
+    //       pixelBuffer, size_t(1024 * 768 * 4),
+    //       Texture::Format::RGBA,
+    //       Texture::Type::BYTE, nullptr, callback, data);
 
-      _renderer->beginFrame(_swapChain, 0);
-      _renderer->render(_view);
-      _renderer->readPixels(0, 0, 1024, 768, std::move(pbd));
-      _renderer->endFrame();
-    }
-    else
-    {
+    //   _renderer->beginFrame(_swapChain, 0);
+    //   _renderer->render(_view);
+    //   _renderer->readPixels(0, 0, 1024, 768, std::move(pbd));
+    //   _renderer->endFrame();
+    // }
+    // else
+    // {
       // Render the scene, unless the renderer wants to skip the frame.
       if (_renderer->beginFrame(_swapChain, frameTimeInNanos))
       {
@@ -1015,9 +1015,10 @@ namespace polyvox
       }
       else
       {
+        // std::cout << "Skipped" << std::endl;
         // skipped frame
       }
-    }
+    // }
   }
 
   void FilamentViewer::updateViewportAndCameraProjection(

@@ -111,8 +111,6 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
         switch methodName {
-        case "getSharedContext":
-            result(nil)
         case "getResourceLoaderWrapper":
             let resourceLoaderWrapper = make_resource_loader(loadResource, freeResource,  Unmanaged.passUnretained(self).toOpaque())
             result(unsafeBitCast(resourceLoaderWrapper, to:Int64.self))
@@ -154,7 +152,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             let metalTexturePtr = Unmanaged.passUnretained(metalTexture!).toOpaque()
             let metalTextureAddress = Int(bitPattern:metalTexturePtr)
                                                                                             
-            result([self.flutterTextureId as Any, nil, metalTextureAddress])
+            result([self.flutterTextureId as Any, nil, metalTextureAddress, nil])
         case "destroyTexture":
             if(self.flutterTextureId != nil) {
                 self.registry.unregisterTexture(self.flutterTextureId!)

@@ -87,9 +87,6 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
     return ResizeObserver(
         onResized: (newSize) {
-          if (!Platform.isWindows) {
-            return;
-          }
           WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
             setState(() {
               _width = newSize.width.ceil();
@@ -129,6 +126,13 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
 
   late final AppLifecycleListener _appLifecycleListener;
 
+  Rect get _rect { 
+      final renderBox =(context.findRenderObject()) as RenderBox;
+      final size = renderBox.size;
+      final translation = renderBox.getTransformTo(null).getTranslation();
+      return Rect.fromLTWH(translation.x, translation.y, size.width, size.height);
+  }
+
   @override
   void initState() {
     _appLifecycleListener = AppLifecycleListener(
@@ -137,7 +141,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       try {
-        await widget.controller.createViewer(widget.width, widget.height);
+        await widget.controller.createViewer(_rect);
       } catch (err) {
         _error = err.toString();
       }
@@ -151,6 +155,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
   bool _resizing = false;
 
   Future _resize() {
+    print("Resizing widget");
     final completer = Completer();
     // resizing the window can be sluggish (particular in debug mode), exacerbated when simultaneously recreating the swapchain and resize the window.
     // to address this, whenever the widget is resized, we set a timer for Xms in the future.
@@ -164,14 +169,13 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
       if (!mounted) {
         return;
       }
-      var size = ((context.findRenderObject()) as RenderBox).size;
-      var width = size.width.ceil();
-      var height = size.height.ceil();
       while (_resizing) {
         await Future.delayed(const Duration(milliseconds: 20));
       }
+    
       _resizing = true;
-      await widget.controller.resize(width, height);
+
+      await widget.controller.resize(_rect);
       _resizeTimer = null;
       setState(() {});
       _resizing = false;

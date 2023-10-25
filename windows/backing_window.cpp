@@ -132,35 +132,11 @@ void SetWindowComposition(HWND window, int32_t accent_state,
 }
 
 
-LRESULT NativeViewSubclassProc(HWND window, UINT message, WPARAM wparam,
-                               LPARAM lparam, UINT_PTR subclass_id,
-                               DWORD_PTR ref_data) noexcept {
-  switch (message) {
-  case WM_ERASEBKGND: {
-    // Prevent erasing of |window| when it is unfocused and minimized or
-    // moved out of screen etc.
-    return 1;
-    break;
-  }
-  case WM_SIZE: {
-    // Prevent unnecessary maxmize, minimize or restore messages for |window|.
-    return 1;
-    break;
-  }
-  default:
-    break;
-  }
-  return ::DefSubclassProc(window, message, wparam, lparam);
-}
-
 LRESULT CALLBACK FilamentWindowProc(HWND const window, UINT const message,
                                     WPARAM const wparam,
                                     LPARAM const lparam) noexcept {
-                                          // std::cout << "FILAMENT WINDOW EVENT " << message << std::endl;                                            
-
   switch (message) {
   case WM_MOUSEMOVE: {
-    std::cout << "FILAMENT MOUSE MOVE" << std::endl;
     TRACKMOUSEEVENT event;
     event.cbSize = sizeof(event);
     event.hwndTrack = window;
@@ -168,10 +144,8 @@ LRESULT CALLBACK FilamentWindowProc(HWND const window, UINT const message,
     event.dwHoverTime = 200;
     auto user_data = ::GetWindowLongPtr(window, GWLP_USERDATA);
     if (user_data) {
-      std::cout << "setting foreground in filamentwindwoproc" << std::endl;
       HWND flutterRootWindow = reinterpret_cast<HWND>(user_data);
       ::SetForegroundWindow(flutterRootWindow);
-      // NativeViewCore::GetInstance()->SetHitTestBehavior(0);
       LONG ex_style = ::GetWindowLong(flutterRootWindow, GWL_EXSTYLE);
       ex_style &= ~(WS_EX_TRANSPARENT | WS_EX_LAYERED);
       ::SetWindowLong(flutterRootWindow, GWL_EXSTYLE, ex_style);
@@ -179,7 +153,6 @@ LRESULT CALLBACK FilamentWindowProc(HWND const window, UINT const message,
     break;
   }
   case WM_ERASEBKGND: {
-    std::cout << "FILAMENT ERASE BKGND" << std::endl;
     // Prevent erasing of |window| when it is unfocused and minimized or
     // moved out of screen etc.
     break;
@@ -189,11 +162,9 @@ LRESULT CALLBACK FilamentWindowProc(HWND const window, UINT const message,
   case WM_MOVING:
   case WM_ACTIVATE:
   case WM_WINDOWPOSCHANGED: {
-    // std::cout << "FILAMENT POS CHANGED" << std::endl;
     // NativeViewCore::GetInstance()->SetHitTestBehavior(0);
     auto user_data = ::GetWindowLongPtr(window, GWLP_USERDATA);
     if (user_data) {
-      std::cout << "setting foreground in filamentwindwoproc" << std::endl;
       HWND flutterRootWindow = reinterpret_cast<HWND>(user_data);
       ::SetForegroundWindow(flutterRootWindow);
       // NativeViewCore::GetInstance()->SetHitTestBehavior(0);
@@ -210,7 +181,10 @@ LRESULT CALLBACK FilamentWindowProc(HWND const window, UINT const message,
 }
 
 BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
-                             int initialWidth, int initialHeight) {
+                            int width, 
+                            int height,
+                            int left,
+                            int top) : _width(width), _height(height), _left(left), _top(top) {
   // a Flutter application actually has two windows - the innner window contains the FlutterView.
   // although we will use the outer window for various events,  we always position things relative to the inner window.
   _flutterViewWindow = pluginRegistrar->GetView()->GetNativeWindow();
@@ -218,9 +192,6 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
 
   RECT flutterChildRect;
   ::GetWindowRect(_flutterViewWindow, &flutterChildRect);
-  // ::GetClientRect(flutterWindow, &flutterChildRect);
-
-  std::cout << "child rect " << flutterChildRect.left << " " << flutterChildRect.top << " " << flutterChildRect.right << " " << flutterChildRect.bottom << std::endl;
 
   // set composition to allow transparency
   SetWindowComposition(_flutterRootWindow, 6, 0);
@@ -230,26 +201,21 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
                                                           UINT message,
                                                           WPARAM wparam,
                                                           LPARAM lparam) {
-    // std::cout << "TOP LEVEL EVENT " << message << std::endl;    
     switch (message) {
     case WM_MOUSEMOVE: {
-        // std::cout << "FLUTTER MOUSE MOVE" << std::endl;
         break;
       }
     case WM_ACTIVATE: {
-      std::cout << "WM_ACTIVATE" << std::endl;
       RECT rootWindowRect;
       ::GetWindowRect(_flutterViewWindow, &rootWindowRect);
       // Position |native_view| such that it's z order is behind |window_| &
       // redraw aswell.
-      ::SetWindowPos(_windowHandle, _flutterRootWindow, rootWindowRect.left,
-                     rootWindowRect.top, rootWindowRect.right - rootWindowRect.left,
-                     rootWindowRect.bottom - rootWindowRect.top, SWP_NOACTIVATE);
+      ::SetWindowPos(_windowHandle, _flutterRootWindow, rootWindowRect.left + _left,
+                     rootWindowRect.top + _top, _width,
+                     _height, SWP_NOACTIVATE);
       break;
     }
     case WM_SIZE: {
-      std::cout << "WM_SIZE" << std::endl;
-
       // Handle Windows's minimize & maximize animations properly.
       // Since |SetWindowPos| & other Win32 APIs on |native_view_container_|
       // do not re-produce the same DWM animations like  actual user
@@ -289,6 +255,12 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
               if (wparam != SIZE_MINIMIZED) {
                 ::ShowWindow(_windowHandle, SW_SHOWNOACTIVATE);
               }
+
+              RECT flutterViewRect;
+              ::GetWindowRect(_flutterViewWindow, &flutterViewRect);
+              ::SetWindowPos(_windowHandle, _flutterRootWindow, flutterViewRect.left + _left,
+                            flutterViewRect.top + _top, _width, _height,
+                            SWP_NOACTIVATE);
             },
             last_thread_time_)
             .detach();
@@ -302,12 +274,11 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
     case WM_WINDOWPOSCHANGED: {
       RECT rootWindowRect;
       ::GetWindowRect(_flutterViewWindow, &rootWindowRect);
-      // std::cout << "FLUTTER WINDOWPOSCHANGED TO " << rootWindowRect.left << " " << rootWindowRect.top << " " << rootWindowRect.right << " " << rootWindowRect.bottom << std::endl;
       if (rootWindowRect.right - rootWindowRect.left > 0 &&
           rootWindowRect.bottom - rootWindowRect.top > 0) {
-        ::SetWindowPos(_windowHandle, _flutterRootWindow, rootWindowRect.left,
-                       rootWindowRect.top, rootWindowRect.right - rootWindowRect.left,
-                       rootWindowRect.bottom - rootWindowRect.top, SWP_NOACTIVATE);
+        ::SetWindowPos(_windowHandle, _flutterRootWindow, rootWindowRect.left + _left,
+                       rootWindowRect.top + _top, _width,
+                       _height, SWP_NOACTIVATE);
         // |window_| is minimized.
         if (rootWindowRect.left < 0 && rootWindowRect.top < 0 &&
             rootWindowRect.right < 0 && rootWindowRect.bottom < 0) {
@@ -343,7 +314,7 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
   window_class.hbrBackground = ::CreateSolidBrush(0);
   ::RegisterClassExW(&window_class);
   _windowHandle = ::CreateWindow(kClassName, kWindowName, WS_OVERLAPPEDWINDOW,
-                                 0, 0, initialWidth, initialHeight, nullptr,
+                                 0, 0, _width, _height, nullptr,
                                  nullptr, GetModuleHandle(nullptr), nullptr);
 
   // Disable DWM animations
@@ -352,22 +323,19 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
                         &disable_window_transitions,
                         sizeof(disable_window_transitions));
 
-  ::SetWindowSubclass(_windowHandle, NativeViewSubclassProc, 69420,
-                      NULL); // what does this do?
-
-  auto style = ::GetWindowLongPtr(_windowHandle, GWL_STYLE);
+  auto style = ::GetWindowLong(_windowHandle, GWL_STYLE);
   style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX |
              WS_EX_APPWINDOW);
-  ::SetWindowLongPtr(_windowHandle, GWL_STYLE, style);
-
-  RECT flutterViewRect;
-  ::GetClientRect(_flutterViewWindow, &flutterViewRect);
-
+  ::SetWindowLong(_windowHandle, GWL_STYLE, style);
+  
   ::SetWindowLongPtr(_windowHandle, GWLP_USERDATA,
                      reinterpret_cast<LONG>(_flutterRootWindow));
 
-  ::SetWindowPos(_windowHandle, _flutterRootWindow, flutterViewRect.left,
-                 flutterViewRect.top, flutterViewRect.right - flutterViewRect.left, flutterViewRect.bottom - flutterViewRect.top,
+  RECT flutterViewRect;
+  ::GetWindowRect(_flutterViewWindow, &flutterViewRect);
+
+  ::SetWindowPos(_windowHandle, _flutterRootWindow, flutterViewRect.left + _left,
+                 flutterViewRect.top + _top, _width, _height,
                  SWP_NOACTIVATE);
 
   // remove taskbar entry for the window we created
@@ -378,8 +346,28 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
   taskbar->Release();
 
   ::ShowWindow(_windowHandle, SW_SHOW);
-  ::ShowWindow(_flutterRootWindow, SW_SHOW);
-  ::SetFocus(_flutterRootWindow);
+  ::ShowWindow(_flutterViewWindow, SW_SHOW);
+  ::SetForegroundWindow(_flutterViewWindow);
+  ::SetFocus(_flutterViewWindow);
+  LONG ex_style = ::GetWindowLong(_flutterRootWindow, GWL_EXSTYLE);
+  ex_style &= ~(WS_EX_TRANSPARENT | WS_EX_LAYERED);
+  ::SetWindowLong(_flutterRootWindow, GWL_EXSTYLE, ex_style);
+}
+
+void BackingWindow::Resize(int width, int height, int left, int top) {
+  _width = width;
+  _height = height;
+  _left = left;
+  _top = top;
+  RECT flutterViewRect;
+  ::ShowWindow(_windowHandle, SW_HIDE);
+  ::GetWindowRect(_flutterViewWindow, &flutterViewRect);
+    std::cout << "Resizing to " << _width << " x " << _height << " with LT" << _left << " " << _top << " flutter view rect" << flutterViewRect.left << " " << flutterViewRect.top  << " " << flutterViewRect.right << " " << flutterViewRect.bottom << std::endl;
+
+  ::SetWindowPos(_windowHandle, _flutterRootWindow, flutterViewRect.left + _left,
+                 flutterViewRect.top + _top, _width, _height,
+                 SWP_NOACTIVATE);
+  ::ShowWindow(_windowHandle, SW_SHOWNOACTIVATE);
 }
 
 HWND BackingWindow::GetHandle() { return _windowHandle; }

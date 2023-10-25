@@ -105,13 +105,13 @@ abstract class FilamentController {
   /// 5) The FilamentWidget will replace the empty Container with a Texture widget
   /// If you need to wait until a FilamentViewer has been created, listen to the [viewer] stream.
   ///
-  Future createViewer(int width, int height);
+  Future createViewer(Rect rect);
 
   ///
   /// Resize the viewport & backing texture.
   /// This is called by FilamentWidget; you shouldn't need to invoke this manually.
   ///
-  Future resize(int width, int height, {double scaleFactor = 1.0});
+  Future resize(Rect rect);
 
   ///
   /// Set the background image to [path] (which should have a file extension .png, .jpg, or .ktx).

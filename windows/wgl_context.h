@@ -12,9 +12,15 @@ namespace polyvox_filament {
     class WGLContext : public FlutterRenderContext {
     public:
         WGLContext(flutter::PluginRegistrarWindows* pluginRegistrar, flutter::TextureRegistrar* textureRegistrar);
-        void CreateTexture(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
         void* GetSharedContext();    
+        void CreateRenderingSurface(
+            uint32_t width, uint32_t height,
+            std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, uint32_t left, uint32_t top);
+        void ResizeRenderingSurface(
+            uint32_t width, uint32_t height, uint32_t left, uint32_t top
+        );
     private:
+
         flutter::PluginRegistrarWindows* _pluginRegistrar = nullptr;
         flutter::TextureRegistrar* _textureRegistrar = nullptr;
         HGLRC _context = NULL;

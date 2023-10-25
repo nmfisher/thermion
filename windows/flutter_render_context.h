@@ -12,16 +12,13 @@ namespace polyvox_filament {
 
     class FlutterRenderContext {
     public:
+        void CreateRenderingSurface(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, uint32_t left, uint32_t top );
+
         void DestroyTexture(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
             if (!_active) {
                 result->Success("Texture has already been detroyed, ignoring");
                 return;
             }
-
-            // if (_active->flutterTextureId != *flutterTextureId) {
-            //     result->Error("TEXTURE_MISMATCH", "Specified texture ID is not active");
-            //     return;
-            // }
 
             auto sh = std::make_shared<
                 std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>>(

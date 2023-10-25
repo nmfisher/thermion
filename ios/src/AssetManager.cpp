@@ -257,15 +257,17 @@ FilamentAsset* AssetManager::getAssetByEntityId(EntityId entityId) {
 
 void AssetManager::updateAnimations() { 
     
-    auto now = high_resolution_clock::now();
     
     RenderableManager &rm = _engine->getRenderableManager();
     
     for (auto& asset : _assets) {
+
         
         std::vector<int> completed;
         int index = 0;
         for(auto& anim : asset.mAnimations) {
+
+            auto now = high_resolution_clock::now();
             
             auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - anim.mStart).count()) / 1000.0f;
             

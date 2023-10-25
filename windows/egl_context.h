@@ -9,9 +9,6 @@ namespace polyvox_filament {
 class EGLContext : public FlutterRenderingContext {
 public:
   EGLContext(flutter::PluginRegistrarWindows* pluginRegistrar, flutter::TextureRegistrar* textureRegistrar);
-  void CreateTexture(
-      uint32_t width, uint32_t height,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 private:
   EGLContext _context = NULL;
   EGLConfig _eglConfig = NULL;

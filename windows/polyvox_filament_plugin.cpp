@@ -167,9 +167,18 @@ void PolyvoxFilamentPlugin::CreateTexture(
   const auto *args =
       std::get_if<flutter::EncodableList>(methodCall.arguments());
 
-  const auto width = (uint32_t)round(*(std::get_if<double>(&(args->at(0)))));
-  const auto height = (uint32_t)round(*(std::get_if<double>(&(args->at(1)))));
+  double dWidth = *(std::get_if<double>(&(args->at(0))));
+  double dHeight = *(std::get_if<double>(&(args->at(1))));
+  double pixelRatio = *(std::get_if<double>(&(args->at(2))));
+  double dLeft = *(std::get_if<double>(&(args->at(3))));
+  double dTop = *(std::get_if<double>(&(args->at(4))));
+  auto width = (uint32_t)round(dWidth * pixelRatio);
+  auto height = (uint32_t)round(dHeight * pixelRatio);
+  auto left = (uint32_t)round(dLeft * pixelRatio);
+  auto top = (uint32_t)round(dTop * pixelRatio);
 
+  std::cout << "Using " << width << "x" << height << " (pixel ratio " << pixelRatio << ")" << std::endl;
+  
   // create a single shared context for the life of the application
   // this will be used to create a backing texture and passed to Filament
   if (!_context) {
@@ -179,7 +188,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
     _context = std::make_unique<WGLContext>(_pluginRegistrar, _textureRegistrar);
 #endif
   }
-  _context->CreateTexture(width, height, std::move(result));
+  _context->CreateRenderingSurface(width, height, std::move(result), left, top);
 }
 
 void PolyvoxFilamentPlugin::DestroyTexture(
@@ -207,7 +216,7 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
-  if (methodCall.method_name() == "useBackingWindow") {
+  if (methodCall.method_name() == "usesBackingWindow") {
     result->Success(flutter::EncodableValue(
       #ifdef WGL_USE_BACKING_WINDOW
       true
@@ -215,12 +224,28 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
       false
       #endif
     ));
-  } else if (methodCall.method_name() == "getSharedContext") {
-    result->Success(flutter::EncodableValue((int64_t)_context->sharedContext));
   } else if (methodCall.method_name() == "getResourceLoaderWrapper") {
     const ResourceLoaderWrapper *const resourceLoader =
         new ResourceLoaderWrapper(_loadResource, _freeResource, this);
     result->Success(flutter::EncodableValue((int64_t)resourceLoader));
+  } else if (methodCall.method_name() == "resizeWindow") {
+    #if WGL_USE_BACKING_WINDOW
+      const auto *args =
+      std::get_if<flutter::EncodableList>(methodCall.arguments());
+      double dWidth = *(std::get_if<double>(&(args->at(0))));
+      double dHeight = *(std::get_if<double>(&(args->at(1))));
+      double pixelRatio = *(std::get_if<double>(&(args->at(2))));
+      double dLeft = *(std::get_if<double>(&(args->at(3))));
+      double dTop = *(std::get_if<double>(&(args->at(4))));
+      auto width = (uint32_t)round(dWidth * pixelRatio);
+      auto height = (uint32_t)round(dHeight * pixelRatio);
+      auto left = (uint32_t)round(dLeft * pixelRatio);
+      auto top = (uint32_t)round(dTop * pixelRatio);
+      _context->ResizeRenderingSurface(width, height, left, top);
+      result->Success();
+    #else
+      result->Error("ERROR", "resizeWindow is only available when using a backing window");
+    #endif
   } else if (methodCall.method_name() == "createTexture") {
     CreateTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "destroyTexture") {
