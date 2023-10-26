@@ -168,7 +168,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     _resizeTimer?.cancel();
 
     _resizeTimer =
-        Timer(const Duration(milliseconds: kReleaseMode ? 20 : 100), () async {
+        Timer(Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100), () async {
       if (!mounted) {
         return;
       }

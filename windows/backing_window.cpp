@@ -158,6 +158,7 @@ LRESULT CALLBACK FilamentWindowProc(HWND const window, UINT const message,
     break;
   }
   case WM_SIZE:
+    break;
   case WM_MOVE:
   case WM_MOVING:
   case WM_ACTIVATE:
@@ -216,59 +217,8 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
       break;
     }
     case WM_SIZE: {
-      // Handle Windows's minimize & maximize animations properly.
-      // Since |SetWindowPos| & other Win32 APIs on |native_view_container_|
-      // do not re-produce the same DWM animations like  actual user
-      // interractions on the |window_| do (though both windows are overlapped
-      // tightly but maximize and minimze animations can't be mimiced for the
-      // both of them at the same time), the best solution is to make the
-      // |window_| opaque & hide |native_view_container_| & alter it's position.
-      // After that, finally make |native_view_container_| visible again &
-      // |window_| transparent again. This approach is not perfect, but it's the
-      // best we can do. The minimize & maximize animations on the |window_|
-      // look good with just a slight glitch on the visible native views. In
-      // future, maybe replacing the |NativeView| widget (Flutter-side) with
-      // equivalent window screenshot will result in a totally seamless
-      // experience.
-      if (wparam != SIZE_RESTORED || last_wm_size_wparam_ == SIZE_MINIMIZED ||
-          last_wm_size_wparam_ == SIZE_MAXIMIZED ||
-          was_window_hidden_due_to_minimize_) {
-        was_window_hidden_due_to_minimize_ = false;
-        // Minimize condition is handled separately inside |WM_WINDOWPOSCHANGED|
-        // case, since we don't want to cause unnecessary redraws (& show/hide)
-        // when user is resizing the window by dragging the window border.
-        SetWindowComposition(_flutterRootWindow, 0, 0);
-        ::ShowWindow(_windowHandle, SW_HIDE);
-        last_thread_time_ =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch())
-                .count();
-        std::thread(
-            [=](uint64_t time) {
-              if (time < last_thread_time_) {
-                return;
-              }
-              std::this_thread::sleep_for(
-                  std::chrono::milliseconds(kNativeViewPositionAndShowDelay));
-              SetWindowComposition(_flutterRootWindow, 6, 0);
-              // Handling SIZE_MINIMIZED separately.
-              if (wparam != SIZE_MINIMIZED) {
-                ::ShowWindow(_windowHandle, SW_SHOWNOACTIVATE);
-              }
-
-              RECT flutterViewRect;
-              ::GetWindowRect(_flutterViewWindow, &flutterViewRect);
-              ::SetWindowPos(_windowHandle, _flutterRootWindow, flutterViewRect.left + _left,
-                            flutterViewRect.top + _top, _width, _height,
-                            SWP_NOACTIVATE);
-            },
-            last_thread_time_)
-            .detach();
-      }
-      last_wm_size_wparam_ = wparam;
       break;
     }
-    // Keep |native_view_container_| behind the |window_|.
     case WM_MOVE:
     case WM_MOVING:
     case WM_WINDOWPOSCHANGED: {
