@@ -13,7 +13,7 @@ https://github.com/nmfisher/flutter_filament/assets/7238578/abaed1c8-c97b-4999-9
 
 |Feature|Supported|
 |---|---|
-|Platforms|✅ iOS (arm64)<br/>✅ MacOS (arm64)<br/>✅ Android (arm64) <br/>✅ Windows (x64)<br/>⚠️ Linux (x64 - broken)<br/>⚠️ Web (planned)|
+|Platforms|✅ iOS (arm64)<br/>✅ MacOS (arm64)<br/>✅ Android (arm64) <br/>✅ Windows (x64) (>= 10)<br/>⚠️ Linux (x64 - broken)<br/>⚠️ Web (planned)|
 |Formats|✅ glb <br/>⚠️ glTF (partial - see Known Issues)|
 |Texture support|✅ PNG <br/>✅ JPEG <br/>✅ KTX <br/>⚠️ KTX2 (planned)|
 |Camera movement|✅ Desktop (mouse)<br/>✅ Mobile (swipe/pinch)|
