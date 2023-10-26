@@ -11,7 +11,9 @@ enum ToneMapper { ACES, FILMIC, LINEAR }
 
 class TextureDetails {
   final int textureId;
-  final int width;
+  
+  // both width and height are in physical, not logical pixels
+  final int width;  
   final int height;
 
   TextureDetails(

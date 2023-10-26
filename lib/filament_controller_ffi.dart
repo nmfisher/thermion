@@ -148,8 +148,7 @@ class FilamentControllerFFI extends FilamentController {
   ///
   @override
   Future createViewer(Rect rect) async {
-    double width = rect.width;
-    double height = rect.height;
+
     if (_viewer != null) {
       throw Exception(
           "Viewer already exists, make sure you call destroyViewer first");
@@ -165,9 +164,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Failed to get resource loader");
     }
 
-    var size = ui.Size(width * _pixelRatio, height * _pixelRatio);
-
-    print("Creating viewer with size $size");
+    rect = rect.inflate(_pixelRatio);
 
     if (Platform.isWindows && requiresTextureWidget) {
       _driver = Pointer<Void>.fromAddress(
@@ -220,7 +217,7 @@ class FilamentControllerFFI extends FilamentController {
   Future<RenderingSurface> _createRenderingSurface(Rect rect) async { 
     return RenderingSurface.from(await _channel.invokeMethod(
         "createTexture",
-        [rect.width, rect.height, _pixelRatio, rect.left, rect.top]));
+        [rect.width, rect.height, rect.left, rect.top]));
   }
 
   ///
@@ -299,6 +296,8 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Resize currently underway, ignoring");
     }
 
+    rect = rect.inflate(_pixelRatio);
+
     _resizing = true;
 
     _lib.set_rendering_ffi(_viewer!, false);
@@ -315,7 +314,7 @@ class FilamentControllerFFI extends FilamentController {
     } else if(Platform.isWindows) { 
         print("Resizing window with rect $rect");
         await _channel.invokeMethod(
-            "resizeWindow", [rect.width, rect.height, _pixelRatio, rect.left, rect.top]);
+            "resizeWindow", [rect.width, rect.height, rect.left, rect.top]);
     }
 
     var renderingSurface = await _createRenderingSurface(rect);
@@ -330,7 +329,7 @@ class FilamentControllerFFI extends FilamentController {
       _lib.create_swap_chain_ffi(_viewer!, renderingSurface.surface,
           rect.width.toInt(), rect.height.toInt());
     }
-    
+
     if (renderingSurface.textureHandle != 0) {
       print(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");

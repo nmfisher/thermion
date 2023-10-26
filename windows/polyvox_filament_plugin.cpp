@@ -169,15 +169,14 @@ void PolyvoxFilamentPlugin::CreateTexture(
 
   double dWidth = *(std::get_if<double>(&(args->at(0))));
   double dHeight = *(std::get_if<double>(&(args->at(1))));
-  double pixelRatio = *(std::get_if<double>(&(args->at(2))));
-  double dLeft = *(std::get_if<double>(&(args->at(3))));
-  double dTop = *(std::get_if<double>(&(args->at(4))));
-  auto width = (uint32_t)round(dWidth * pixelRatio);
-  auto height = (uint32_t)round(dHeight * pixelRatio);
-  auto left = (uint32_t)round(dLeft * pixelRatio);
-  auto top = (uint32_t)round(dTop * pixelRatio);
+  double dLeft = *(std::get_if<double>(&(args->at(2))));
+  double dTop = *(std::get_if<double>(&(args->at(3))));
+  auto width = (uint32_t)round(dWidth );
+  auto height = (uint32_t)round(dHeight );
+  auto left = (uint32_t)round(dLeft );
+  auto top = (uint32_t)round(dTop );
 
-  std::cout << "Using " << width << "x" << height << " (pixel ratio " << pixelRatio << ")" << std::endl;
+  std::cout << "Using " << width << "x" << height << std::endl;
   
   // create a single shared context for the life of the application
   // this will be used to create a backing texture and passed to Filament
@@ -234,13 +233,12 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
       std::get_if<flutter::EncodableList>(methodCall.arguments());
       double dWidth = *(std::get_if<double>(&(args->at(0))));
       double dHeight = *(std::get_if<double>(&(args->at(1))));
-      double pixelRatio = *(std::get_if<double>(&(args->at(2))));
-      double dLeft = *(std::get_if<double>(&(args->at(3))));
-      double dTop = *(std::get_if<double>(&(args->at(4))));
-      auto width = (uint32_t)round(dWidth * pixelRatio);
-      auto height = (uint32_t)round(dHeight * pixelRatio);
-      auto left = (uint32_t)round(dLeft * pixelRatio);
-      auto top = (uint32_t)round(dTop * pixelRatio);
+      double dLeft = *(std::get_if<double>(&(args->at(2))));
+      double dTop = *(std::get_if<double>(&(args->at(3))));
+      auto width = (uint32_t)round(dWidth );
+      auto height = (uint32_t)round(dHeight );
+      auto left = (uint32_t)round(dLeft );
+      auto top = (uint32_t)round(dTop );
       _context->ResizeRenderingSurface(width, height, left, top);
       result->Success();
     #else
