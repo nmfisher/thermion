@@ -139,8 +139,11 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
       onStateChange: _handleStateChange,
     );
 
+    
+
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       try {
+        widget.controller.setPixelRatio(MediaQuery.of(context).devicePixelRatio);
         await widget.controller.createViewer(_rect);
       } catch (err) {
         _error = err.toString();
@@ -174,7 +177,6 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
       }
     
       _resizing = true;
-
       await widget.controller.resize(_rect);
       _resizeTimer = null;
       setState(() {});
