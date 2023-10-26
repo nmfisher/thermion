@@ -164,7 +164,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Failed to get resource loader");
     }
 
-    rect = rect.inflate(_pixelRatio);
+    rect = Rect.fromLTWH(rect.left, rect.top, rect.width * _pixelRatio, rect.height * _pixelRatio);
 
     if (Platform.isWindows && requiresTextureWidget) {
       _driver = Pointer<Void>.fromAddress(
@@ -296,7 +296,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Resize currently underway, ignoring");
     }
 
-    rect = rect.inflate(_pixelRatio);
+    rect = Rect.fromLTWH(rect.left, rect.top, rect.width * _pixelRatio, rect.height * _pixelRatio);
 
     _resizing = true;
 
