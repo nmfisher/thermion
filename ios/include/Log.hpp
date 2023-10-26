@@ -1,13 +1,13 @@
 #pragma once 
 
-#ifndef POLYVOX_FILAMENT_LOG_H
-#define POLYVOX_FILAMENT_LOG_H
+#ifndef FLUTTER_FILAMENT_LOG_H
+#define FLUTTER_FILAMENT_LOG_H
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 #elif defined __ANDROID__
 #include <android/log.h>
-#define LOGTAG "PolyvoxFilament"
+#define LOGTAG "FlutterFilament"
 #else
 #include <stdarg.h>
 #include <stdio.h>

@@ -57,10 +57,10 @@ RM = /opt/homebrew/Cellar/cmake/3.27.3/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Volumes/T7/polyvox/flutter/polyvox_filament/web
+CMAKE_SOURCE_DIR = /Volumes/T7/polyvox/flutter/flutter_filament/web
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Volumes/T7/polyvox/flutter/polyvox_filament/web/build
+CMAKE_BINARY_DIR = /Volumes/T7/polyvox/flutter/flutter_filament/web/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles /Volumes/T7/polyvox/flutter/polyvox_filament/web/build//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /Volumes/T7/polyvox/flutter/flutter_filament/web/build/CMakeFiles /Volumes/T7/polyvox/flutter/flutter_filament/web/build//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Volumes/T7/polyvox/flutter/flutter_filament/web/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -130,185 +130,185 @@ FILAMENT_SHADERS/fast:
 .PHONY : FILAMENT_SHADERS/fast
 
 #=============================================================================
-# Target rules for targets named polyvox_filament_plugin
+# Target rules for targets named flutter_filament_plugin
 
 # Build rule for target.
-polyvox_filament_plugin: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 polyvox_filament_plugin
-.PHONY : polyvox_filament_plugin
+flutter_filament_plugin: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 flutter_filament_plugin
+.PHONY : flutter_filament_plugin
 
 # fast build rule for target.
-polyvox_filament_plugin/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/build
-.PHONY : polyvox_filament_plugin/fast
+flutter_filament_plugin/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/build
+.PHONY : flutter_filament_plugin/fast
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.o: Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.o
-
-# target to build an object file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o
-
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.i: Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.i
-
-# target to preprocess a source file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.i
-
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.s: Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.s
-
-# target to generate assembly for a file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.s
-
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.o: Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.o: Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.o
 
 # target to build an object file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.i: Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.i: Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.i
 
 # target to preprocess a source file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.i
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.s: Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.s: Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.s
 
 # target to generate assembly for a file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.s
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.o: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.o: Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.o
 
 # target to build an object file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.i: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.i: Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.i
 
 # target to preprocess a source file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.i
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.s: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.s: Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.s
 
 # target to generate assembly for a file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FILAMENT_SHADERS.dir/build.make CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.s
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.o: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.o: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.o
 
 # target to build an object file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.o
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.i: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.i: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.i
 
 # target to preprocess a source file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.i
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.s: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.s: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.s
 
 # target to generate assembly for a file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.s
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.o: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.o: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.o
 
 # target to build an object file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.i: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.i: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.i
 
 # target to preprocess a source file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.i
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.s: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.s: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.s
 
 # target to generate assembly for a file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.s
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.o: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.o: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.o
 
 # target to build an object file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.i: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.i: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.i
 
 # target to preprocess a source file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.i
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.s: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.s: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.s
 
 # target to generate assembly for a file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.s
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.o: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.o: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.o
 
 # target to build an object file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.o
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.o
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.o
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.i: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.i: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.i
 
 # target to preprocess a source file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.i
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.i
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.i
 
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.s: Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.s: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.s
 
 # target to generate assembly for a file
-Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/polyvox_filament_plugin.dir/build.make CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.s
-.PHONY : Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.s
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.s
+
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.o: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.o
+
+# target to build an object file
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.o
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.o
+
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.i: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.i
+
+# target to preprocess a source file
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.i
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.i
+
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.s: Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.s
+
+# target to generate assembly for a file
+Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/flutter_filament_plugin.dir/build.make CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.s
+.PHONY : Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.s
 
 # Help Target
 help:
@@ -319,28 +319,28 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... FILAMENT_SHADERS"
-	@echo "... polyvox_filament_plugin"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.o"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.i"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.s"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.o"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.i"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.s"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.o"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.i"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.s"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.o"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.i"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.s"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.o"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.i"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.s"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.o"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.i"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.s"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.o"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.i"
-	@echo "... Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.s"
+	@echo "... flutter_filament_plugin"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.o"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.i"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.s"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.o"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.i"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.s"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.o"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.i"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.s"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.o"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.i"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.s"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.o"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.i"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.s"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.o"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.i"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.s"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.o"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.i"
+	@echo "... Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.s"
 .PHONY : help
 
 

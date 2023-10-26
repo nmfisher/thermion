@@ -2,8 +2,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "include/polyvox_filament/polyvox_filament_plugin.h"
-#include "polyvox_filament_plugin_private.h"
+#include "include/flutter_filament/flutter_filament_plugin.h"
+#include "flutter_filament_plugin_private.h"
 
 // This demonstrates a simple unit test of the C portion of this plugin's
 // implementation.
@@ -13,10 +13,10 @@
 // built for x64 debug, run:
 // $ build/linux/x64/debug/plugins/my_plugin/my_plugin_test
 
-namespace polyvox_filament {
+namespace flutter_filament {
 namespace test {
 
-TEST(PolyvoxFilamentPlugin, GetPlatformVersion) {
+TEST(FlutterFilamentPlugin, GetPlatformVersion) {
   g_autoptr(FlMethodResponse) response = get_platform_version();
   ASSERT_NE(response, nullptr);
   ASSERT_TRUE(FL_IS_METHOD_SUCCESS_RESPONSE(response));
@@ -28,4 +28,4 @@ TEST(PolyvoxFilamentPlugin, GetPlatformVersion) {
 }
 
 }  // namespace test
-}  // namespace polyvox_filament
+}  // namespace flutter_filament

@@ -1,4 +1,4 @@
 #import <Flutter/Flutter.h>
 
-@interface PolyvoxFilamentPlugin : NSObject<FlutterPlugin>
+@interface FlutterFilamentPlugin : NSObject<FlutterPlugin>
 @end

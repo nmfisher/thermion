@@ -2380,8 +2380,8 @@ typedef FreeFilamentResourceFromOwner = ffi.Pointer<
     ffi
     .NativeFunction<ffi.Void Function(ResourceBuffer, ffi.Pointer<ffi.Void>)>>;
 
-/// This header replicates most of the methods in PolyvoxFilamentApi.h, and is only intended to be used to generate client FFI bindings.
-/// The intention is that calling one of these methods will call its respective method in PolyvoxFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety.
+/// This header replicates most of the methods in FlutterFilamentApi.h, and is only intended to be used to generate client FFI bindings.
+/// The intention is that calling one of these methods will call its respective method in FlutterFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety.
 typedef EntityId = ffi.Int32;
 typedef FilamentRenderCallback = ffi.Pointer<
     ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> owner)>>;

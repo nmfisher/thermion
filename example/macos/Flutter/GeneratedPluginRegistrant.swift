@@ -5,10 +5,10 @@
 import FlutterMacOS
 import Foundation
 
+import flutter_filament
 import path_provider_foundation
-import polyvox_filament
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
+  SwiftFlutterFilamentPlugin.register(with: registry.registrar(forPlugin: "SwiftFlutterFilamentPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
-  SwiftPolyvoxFilamentPlugin.register(with: registry.registrar(forPlugin: "SwiftPolyvoxFilamentPlugin"))
 }

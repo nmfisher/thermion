@@ -1,11 +1,11 @@
 {
-    "name": "polyvox_filament_example",
-    "short_name": "polyvox_filament_example",
+    "name": "flutter_filament_example",
+    "short_name": "flutter_filament_example",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Demonstrates how to use the polyvox_filament plugin.",
+    "description": "Demonstrates how to use the flutter_filament plugin.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

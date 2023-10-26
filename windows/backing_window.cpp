@@ -13,7 +13,7 @@
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "comctl32.lib")
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
 static constexpr auto kClassName = L"FLUTTER_FILAMENT_WINDOW";
 static constexpr auto kWindowName = L"flutter_filament_window";
@@ -355,4 +355,4 @@ void BackingWindow::Resize(int width, int height, int left, int top) {
 }
 
 HWND BackingWindow::GetHandle() { return _windowHandle; }
-} // namespace polyvox_filament
+} // namespace flutter_filament

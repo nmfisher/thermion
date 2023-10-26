@@ -13,7 +13,7 @@ using namespace polyvox;
 
 extern "C" {
 
-  #include "PolyvoxFilamentApi.h"
+  #include "FlutterFilamentApi.h"
   
   FLUTTER_PLUGIN_EXPORT const void* create_filament_viewer(const void* context, const ResourceLoaderWrapper* const loader, void* const platform, const char* uberArchivePath) {
       return (const void*) new FilamentViewer(context, loader, platform, uberArchivePath);

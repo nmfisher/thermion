@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:polyvox_filament/widgets/filament_gesture_detector_desktop.dart';
-import 'package:polyvox_filament/widgets/filament_gesture_detector_mobile.dart';
+import 'package:flutter_filament/widgets/filament_gesture_detector_desktop.dart';
+import 'package:flutter_filament/widgets/filament_gesture_detector_mobile.dart';
 import '../filament_controller.dart';
 
 enum GestureType { RotateCamera, PanCamera, PanBackground }

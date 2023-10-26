@@ -1,6 +1,6 @@
-# polyvox_filament_example
+# flutter_filament_example
 
-Demonstrates how to use the polyvox_filament plugin.
+Demonstrates how to use the flutter_filament plugin.
 
 ## Linux
 

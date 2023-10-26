@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(PROJECT_NAME "polyvox_filament")
+set(PROJECT_NAME "flutter_filament")
 project(${PROJECT_NAME})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -fPIC -Wno-unused-variable -Wno-unused-function")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-unused-variable -Wno-unused-function")
 
-set(PLUGIN_NAME "polyvox_filament_plugin")
+set(PLUGIN_NAME "flutter_filament_plugin")
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib") 
 
@@ -18,7 +18,7 @@ add_library(FILAMENT_SHADERS STATIC
 add_library(${PLUGIN_NAME} STATIC
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/StreamBufferAdapter.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/TimeIt.cpp"
 )

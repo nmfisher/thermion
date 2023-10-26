@@ -45,7 +45,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "app.polyvox.filament_example"
+        applicationId "app.polyvox.flutter_filament_example"
         minSdkVersion 22
         targetSdkVersion 31
         versionCode flutterVersionCode.toInteger()

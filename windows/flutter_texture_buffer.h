@@ -7,7 +7,7 @@
 #include <flutter/texture_registrar.h>
 
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
     class FlutterTextureBuffer {
     public:

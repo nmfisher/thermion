@@ -4,16 +4,16 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:polyvox_filament/animations/animation_data.dart';
+import 'package:flutter_filament/animations/animation_data.dart';
 
-import 'package:polyvox_filament/filament_controller.dart';
+import 'package:flutter_filament/filament_controller.dart';
 
-import 'package:polyvox_filament/filament_controller_ffi.dart';
-import 'package:polyvox_filament/animations/animation_builder.dart';
+import 'package:flutter_filament/filament_controller_ffi.dart';
+import 'package:flutter_filament/animations/animation_builder.dart';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:polyvox_filament/widgets/filament_gesture_detector.dart';
-import 'package:polyvox_filament/widgets/filament_widget.dart';
+import 'package:flutter_filament/widgets/filament_gesture_detector.dart';
+import 'package:flutter_filament/widgets/filament_widget.dart';
 
 void main() async {
   runApp(const MyApp());

@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'package:polyvox_filament/animations/animation_data.dart';
+import 'package:flutter_filament/animations/animation_data.dart';
 
 typedef FilamentEntity = int;
 

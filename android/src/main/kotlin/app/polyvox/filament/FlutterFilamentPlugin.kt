@@ -26,21 +26,21 @@ import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import java.io.File
 import java.util.*
 
-class LoadFilamentResourceFromOwnerImpl(plugin:PolyvoxFilamentPlugin) : LoadFilamentResourceFromOwner {
+class LoadFilamentResourceFromOwnerImpl(plugin:FlutterFilamentPlugin) : LoadFilamentResourceFromOwner {
   var plugin = plugin
   override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
     return plugin.loadResourceFromOwner(path, owner)
   }
 } 
 
-class FreeFilamentResourceFromOwnerImpl(plugin:PolyvoxFilamentPlugin) : FreeFilamentResourceFromOwner {
+class FreeFilamentResourceFromOwnerImpl(plugin:FlutterFilamentPlugin) : FreeFilamentResourceFromOwner {
   var plugin = plugin
   override fun freeResourceFromOwner(rb: ResourceBuffer, owner: Pointer?) {
     plugin.freeResourceFromOwner(rb, owner)
   }
 } 
 
-class RenderCallbackImpl(plugin:PolyvoxFilamentPlugin) : RenderCallback {
+class RenderCallbackImpl(plugin:FlutterFilamentPlugin) : RenderCallback {
   var plugin = plugin
   override fun renderCallback(owner:Pointer?) {
     plugin.renderCallback();
@@ -51,8 +51,8 @@ class RenderCallbackImpl(plugin:PolyvoxFilamentPlugin) : RenderCallback {
   }
 }
 
-/** PolyvoxFilamentPlugin */
-class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadFilamentResourceFromOwner, FreeFilamentResourceFromOwner {
+/** FlutterFilamentPlugin */
+class FlutterFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadFilamentResourceFromOwner, FreeFilamentResourceFromOwner {
 
   companion object {
       const val CHANNEL_NAME = "app.polyvox.filament/event"
@@ -80,7 +80,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
     this.flutterPluginBinding = flutterPluginBinding
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
     channel.setMethodCallHandler(this)
-     _lib = Native.loadLibrary("polyvox_filament_android", FilamentInterop::class.java, Collections.singletonMap(Library.OPTION_ALLOW_OBJECTS, true))
+     _lib = Native.loadLibrary("flutter_filament_android", FilamentInterop::class.java, Collections.singletonMap(Library.OPTION_ALLOW_OBJECTS, true))
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -93,7 +93,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
   var _lastId = 1
 
   override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
-      Log.i("polyvox_filament", "Loading resource from path $path")
+      Log.i("flutter_filament", "Loading resource from path $path")
       var data:ByteArray? = null
       if(path!!.startsWith("file://")) {
           data = File(path!!.substring(6)).readBytes()
@@ -108,14 +108,14 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           if (hotReloadPath != null) {
               data = File(hotReloadPath).readBytes()
           } else {
-              Log.i("polyvox_filament", "Loading resource from main asset bundle at ${assetPath}")
+              Log.i("flutter_filament", "Loading resource from main asset bundle at ${assetPath}")
 
               val assetManager: AssetManager = activity.assets
               try {
                   data = assetManager.open(key).readBytes()
-                  Log.i("polyvox_filament", "Loaded ${data.size} bytes")
+                  Log.i("flutter_filament", "Loaded ${data.size} bytes")
               } catch (e:Exception) {
-                  Log.e("polyvox_filament", "Failed to open asset at ${assetPath}", null)
+                  Log.e("flutter_filament", "Failed to open asset at ${assetPath}", null)
               }
           }
       }
@@ -135,7 +135,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
               rb.data = Pointer(0)
           }
       } catch(e:Exception) {
-          Log.e("polyvox_filament", "Error setting resource buffer : $e", null);
+          Log.e("flutter_filament", "Error setting resource buffer : $e", null);
       }
       rb.write();
       return rb;
@@ -153,7 +153,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
   @RequiresApi(Build.VERSION_CODES.M)
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-    Log.e("polyvox_filament", call.method, null)
+    Log.e("flutter_filament", call.method, null)
     when (call.method) {
         "createTexture" -> {
           if(_surfaceTextureEntry != null) {
@@ -167,7 +167,7 @@ class PolyvoxFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
               result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero (you provided $width x $height)", null);
               return;
           }
-          Log.i("polyvox_filament", "Creating Surface Texture of size ${width}x${height}");
+          Log.i("flutter_filament", "Creating Surface Texture of size ${width}x${height}");
           
           _surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
           _surfaceTexture = _surfaceTextureEntry!!.surfaceTexture();

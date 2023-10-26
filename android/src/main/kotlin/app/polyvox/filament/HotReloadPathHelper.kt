@@ -11,17 +11,17 @@ class HotReloadPathHelper {
     companion object {
         fun getAssetPath(path: String, packageName: String): String? {
             val packagePath = "/data/user/0/${packageName}/code_cache/"
-            Log.v("polyvox_filament", "Looking for hot reloaded asset ${path} under package path ${packagePath}")
+            Log.v("flutter_filament", "Looking for hot reloaded asset ${path} under package path ${packagePath}")
             val files = File(packagePath).walkBottomUp().filter {
               it.path.endsWith(path)
             }.sortedBy {
               it.lastModified()
             }.toList()
             if(files.size > 0) {
-              Log.v("polyvox_filament", "Using hot reloaded asset at ${files.last().path}")
+              Log.v("flutter_filament", "Using hot reloaded asset at ${files.last().path}")
               return files.last().path;
             }
-            Log.v("polyvox_filament", "No hot reloaded asset found.")
+            Log.v("flutter_filament", "No hot reloaded asset found.")
             return null;
           }
     }

@@ -6,7 +6,7 @@
 
 #include "flutter_texture_buffer.h"
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
 WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
                        flutter::TextureRegistrar *textureRegistrar)
@@ -148,4 +148,4 @@ void WGLContext::CreateRenderingSurface(
 
 void *WGLContext::GetSharedContext() { return (void *)_context; }
 
-} // namespace polyvox_filament
+} // namespace flutter_filament

@@ -6,12 +6,12 @@
 
 #include "generated_plugin_registrant.h"
 
+#include <flutter_filament/flutter_filament_plugin_c_api.h>
 #include <permission_handler_windows/permission_handler_windows_plugin.h>
-#include <polyvox_filament/polyvox_filament_plugin_c_api.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
+  FlutterFilamentPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FlutterFilamentPluginCApi"));
   PermissionHandlerWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PermissionHandlerWindowsPlugin"));
-  PolyvoxFilamentPluginCApiRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("PolyvoxFilamentPluginCApi"));
 }

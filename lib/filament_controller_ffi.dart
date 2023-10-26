@@ -5,11 +5,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
 
-import 'package:polyvox_filament/filament_controller.dart';
+import 'package:flutter_filament/filament_controller.dart';
 
-import 'package:polyvox_filament/animations/animation_data.dart';
-import 'package:polyvox_filament/generated_bindings.dart';
-import 'package:polyvox_filament/rendering_surface.dart';
+import 'package:flutter_filament/animations/animation_data.dart';
+import 'package:flutter_filament/generated_bindings.dart';
+import 'package:flutter_filament/rendering_surface.dart';
 
 // ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
@@ -46,7 +46,7 @@ class FilamentControllerFFI extends FilamentController {
 
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
-  /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in PolyvoxFilamentApi.h.
+  /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in FlutterFilamentApi.h.
   ///
   FilamentControllerFFI({this.uberArchivePath}) {
     // on some platforms, we ignore the resize event raised by the Flutter RenderObserver
@@ -70,7 +70,7 @@ class FilamentControllerFFI extends FilamentController {
     if (Platform.isIOS || Platform.isMacOS || Platform.isWindows) {
       dl = DynamicLibrary.process();
     } else {
-      dl = DynamicLibrary.open("libpolyvox_filament_android.so");
+      dl = DynamicLibrary.open("libflutter_filament_android.so");
     }
     _lib = NativeLibrary(dl);
     if(Platform.isWindows) {

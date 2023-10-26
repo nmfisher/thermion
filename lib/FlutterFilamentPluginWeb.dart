@@ -11,15 +11,15 @@ import 'generated_bindings_web.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
-/// A web implementation of the PolyvoxFilamentPlatform of the PolyvoxFilament plugin.
-class PolyvoxFilamentPluginWeb {
+/// A web implementation of the FlutterFilamentPlatform of the FlutterFilament plugin.
+class FlutterFilamentPluginWeb {
   // late html.CanvasElement _canvas;
   late RenderingContext _gl;
   DynamicLibrary _nativeLib;
   dynamic _texture;
 
 
-  PolyvoxFilamentPluginWeb() {
+  FlutterFilamentPluginWeb() {
     var canvas = document.querySelector('#drawHere') as CanvasElement;
 
     _gl = canvas.getContext("webgl") as RenderingContext;
@@ -50,7 +50,7 @@ class PolyvoxFilamentPluginWeb {
   static void registerWith(Registrar registrar) {
     final MethodChannel channel = MethodChannel("app.polyvox.filament/event",
         const StandardMethodCodec(), registrar.messenger);
-    final PolyvoxFilamentPluginWeb instance = PolyvoxFilamentPluginWeb();
+    final FlutterFilamentPluginWeb instance = FlutterFilamentPluginWeb();
     channel.setMethodCallHandler(instance.handleMethodCall);
   }
 

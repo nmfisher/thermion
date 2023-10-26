@@ -3,8 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  flutter_filament
   permission_handler_windows
-  polyvox_filament
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

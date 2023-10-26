@@ -7,7 +7,7 @@ set(CMAKE_DEPENDS_GENERATOR "Unix Makefiles")
 # The top level Makefile was generated from the following files:
 set(CMAKE_MAKEFILE_DEPENDS
   "CMakeCache.txt"
-  "/Volumes/T7/polyvox/flutter/polyvox_filament/web/CMakeLists.txt"
+  "/Volumes/T7/polyvox/flutter/flutter_filament/web/CMakeLists.txt"
   "CMakeFiles/3.27.3/CMakeCCompiler.cmake"
   "CMakeFiles/3.27.3/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.27.3/CMakeSystem.cmake"
@@ -48,5 +48,5 @@ set(CMAKE_MAKEFILE_PRODUCTS
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/FILAMENT_SHADERS.dir/DependInfo.cmake"
-  "CMakeFiles/polyvox_filament_plugin.dir/DependInfo.cmake"
+  "CMakeFiles/flutter_filament_plugin.dir/DependInfo.cmake"
   )

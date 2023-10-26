@@ -7,7 +7,7 @@
 #if WGL_USE_BACKING_WINDOW
 #include "backing_window.h"
 #endif
-namespace polyvox_filament {
+namespace flutter_filament {
 
     class WGLContext : public FlutterRenderContext {
     public:

@@ -20,7 +20,7 @@
 #include <utils/NameComponentManager.h>
 
 extern "C" {
-    #include "PolyvoxFilamentApi.h"
+    #include "FlutterFilamentApi.h"
 }
 template class std::vector<float>;
 namespace polyvox {

@@ -3,7 +3,7 @@
 
 extern "C" {
 
-  #include "PolyvoxFilamentFFIApi.h"
+  #include "FlutterFilamentFFIApi.h"
 
   void* get_native_window_from_surface(
     jobject surface,

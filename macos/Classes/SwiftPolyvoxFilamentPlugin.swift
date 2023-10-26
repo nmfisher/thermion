@@ -1,7 +1,7 @@
 import FlutterMacOS
 import GLKit
 
-public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture {
+public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture {
     
     var registrar : FlutterPluginRegistrar
     var flutterTextureId: Int64?
@@ -23,7 +23,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     
     var loadResource : @convention(c) (UnsafePointer<Int8>?, UnsafeMutableRawPointer?) -> ResourceBuffer = { uri, resourcesPtr in
         
-        let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
+        let instance:SwiftFlutterFilamentPlugin = Unmanaged<SwiftFlutterFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
         
         var uriString = String(cString:uri!)
         
@@ -58,12 +58,12 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     }
     
     var freeResource : @convention(c) (ResourceBuffer,UnsafeMutableRawPointer?) -> () = { rbuf, resourcesPtr in
-        let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
+        let instance:SwiftFlutterFilamentPlugin = Unmanaged<SwiftFlutterFilamentPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
         instance.resources.removeValue(forKey:UInt32(rbuf.id))
     }
 
     var markTextureFrameAvailable : @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
-        let instance:SwiftPolyvoxFilamentPlugin = Unmanaged<SwiftPolyvoxFilamentPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
+        let instance:SwiftFlutterFilamentPlugin = Unmanaged<SwiftFlutterFilamentPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
         if(instance.flutterTextureId != nil) {
             instance.registry.textureFrameAvailable(instance.flutterTextureId!)
         }
@@ -84,7 +84,7 @@ public class SwiftPolyvoxFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         let _messenger = registrar.messenger;
         messenger = _messenger;
         let channel = FlutterMethodChannel(name: "app.polyvox.filament/event", binaryMessenger: _messenger)
-        let instance = SwiftPolyvoxFilamentPlugin(textureRegistry: registrar.textures, registrar:registrar)
+        let instance = SwiftFlutterFilamentPlugin(textureRegistry: registrar.textures, registrar:registrar)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
     

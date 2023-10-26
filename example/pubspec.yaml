@@ -1,5 +1,5 @@
-name: polyvox_filament_example
-description: Demonstrates how to use the polyvox_filament plugin.
+name: flutter_filament_example
+description: Demonstrates how to use the flutter_filament plugin.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -18,7 +18,7 @@ dependencies:
   flutter:
     sdk: flutter
   path_provider:
-  polyvox_filament:
+  flutter_filament:
     path: ../
   permission_handler:
   cupertino_icons: ^1.0.2

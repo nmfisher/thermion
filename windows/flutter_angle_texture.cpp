@@ -7,7 +7,7 @@
 
 #include <thread>
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
 static void logEglError(const char *name) noexcept {
   const char *err;
@@ -239,4 +239,4 @@ FlutterAngleTexture::FlutterAngleTexture(
   result->Success(resultList);
 }
 
-} // namespace polyvox_filament
+} // namespace flutter_filament

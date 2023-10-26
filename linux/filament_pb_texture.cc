@@ -7,7 +7,7 @@
 #include <sys/utsname.h>
 
 #include <epoxy/gl.h>
-#include "include/polyvox_filament/filament_pb_texture.h"
+#include "include/flutter_filament/filament_pb_texture.h"
 
 #include <iostream>
 #include <vector>

@@ -53,10 +53,10 @@ RM = /opt/homebrew/Cellar/cmake/3.27.3/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Volumes/T7/polyvox/flutter/polyvox_filament/web
+CMAKE_SOURCE_DIR = /Volumes/T7/polyvox/flutter/flutter_filament/web
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Volumes/T7/polyvox/flutter/polyvox_filament/web/build
+CMAKE_BINARY_DIR = /Volumes/T7/polyvox/flutter/flutter_filament/web/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/FILAMENT_SHADERS.dir/depend.make
@@ -69,47 +69,47 @@ include CMakeFiles/FILAMENT_SHADERS.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/FILAMENT_SHADERS.dir/flags.make
 
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o: CMakeFiles/FILAMENT_SHADERS.dir/flags.make
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o: /Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o: CMakeFiles/FILAMENT_SHADERS.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o -MF CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o.d -o CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o -c /Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o: CMakeFiles/FILAMENT_SHADERS.dir/flags.make
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o: /Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o: CMakeFiles/FILAMENT_SHADERS.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Volumes/T7/polyvox/flutter/flutter_filament/web/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o -MF CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o.d -o CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o -c /Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c
 
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c > CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.i
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.i"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c > CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.i
 
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c -o CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.s
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.s"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c -o CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.s
 
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o: CMakeFiles/FILAMENT_SHADERS.dir/flags.make
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o: /Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o: CMakeFiles/FILAMENT_SHADERS.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o -MF CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o.d -o CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o -c /Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o: CMakeFiles/FILAMENT_SHADERS.dir/flags.make
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o: /Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o: CMakeFiles/FILAMENT_SHADERS.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Volumes/T7/polyvox/flutter/flutter_filament/web/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o -MF CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o.d -o CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o -c /Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c
 
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c > CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.i
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.i"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c > CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.i
 
-CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c -o CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.s
+CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.s"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c -o CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.s
 
 # Object files for target FILAMENT_SHADERS
 FILAMENT_SHADERS_OBJECTS = \
-"CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o" \
-"CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o"
+"CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o" \
+"CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o"
 
 # External object files for target FILAMENT_SHADERS
 FILAMENT_SHADERS_EXTERNAL_OBJECTS =
 
-libFILAMENT_SHADERS.dylib: CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o
-libFILAMENT_SHADERS.dylib: CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o
+libFILAMENT_SHADERS.dylib: CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o
+libFILAMENT_SHADERS.dylib: CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o
 libFILAMENT_SHADERS.dylib: CMakeFiles/FILAMENT_SHADERS.dir/build.make
 libFILAMENT_SHADERS.dylib: CMakeFiles/FILAMENT_SHADERS.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking C shared library libFILAMENT_SHADERS.dylib"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Volumes/T7/polyvox/flutter/flutter_filament/web/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking C shared library libFILAMENT_SHADERS.dylib"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/FILAMENT_SHADERS.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -121,6 +121,6 @@ CMakeFiles/FILAMENT_SHADERS.dir/clean:
 .PHONY : CMakeFiles/FILAMENT_SHADERS.dir/clean
 
 CMakeFiles/FILAMENT_SHADERS.dir/depend:
-	cd /Volumes/T7/polyvox/flutter/polyvox_filament/web/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Volumes/T7/polyvox/flutter/polyvox_filament/web /Volumes/T7/polyvox/flutter/polyvox_filament/web /Volumes/T7/polyvox/flutter/polyvox_filament/web/build /Volumes/T7/polyvox/flutter/polyvox_filament/web/build /Volumes/T7/polyvox/flutter/polyvox_filament/web/build/CMakeFiles/FILAMENT_SHADERS.dir/DependInfo.cmake "--color=$(COLOR)"
+	cd /Volumes/T7/polyvox/flutter/flutter_filament/web/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Volumes/T7/polyvox/flutter/flutter_filament/web /Volumes/T7/polyvox/flutter/flutter_filament/web /Volumes/T7/polyvox/flutter/flutter_filament/web/build /Volumes/T7/polyvox/flutter/flutter_filament/web/build /Volumes/T7/polyvox/flutter/flutter_filament/web/build/CMakeFiles/FILAMENT_SHADERS.dir/DependInfo.cmake "--color=$(COLOR)"
 .PHONY : CMakeFiles/FILAMENT_SHADERS.dir/depend
 

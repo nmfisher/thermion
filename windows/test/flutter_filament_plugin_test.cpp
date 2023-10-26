@@ -8,9 +8,9 @@
 #include <string>
 #include <variant>
 
-#include "polyvox_filament_plugin.h"
+#include "flutter_filament_plugin.h"
 
-namespace polyvox_filament {
+namespace flutter_filament {
 namespace test {
 
 namespace {
@@ -22,8 +22,8 @@ using flutter::MethodResultFunctions;
 
 }  // namespace
 
-TEST(PolyvoxFilamentPlugin, GetPlatformVersion) {
-  PolyvoxFilamentPlugin plugin;
+TEST(FlutterFilamentPlugin, GetPlatformVersion) {
+  FlutterFilamentPlugin plugin;
   // Save the reply value from the success callback.
   std::string result_string;
   plugin.HandleMethodCall(
@@ -40,4 +40,4 @@ TEST(PolyvoxFilamentPlugin, GetPlatformVersion) {
 }
 
 }  // namespace test
-}  // namespace polyvox_filament
+}  // namespace flutter_filament

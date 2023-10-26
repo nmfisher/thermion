@@ -1,21 +1,21 @@
 cmake_minimum_required(VERSION 3.14)
-set(PROJECT_NAME "polyvox_filament")
+set(PROJECT_NAME "flutter_filament")
 project(${PROJECT_NAME} LANGUAGES C CXX)
 
 cmake_policy(VERSION 3.14...3.25)
 
 # This value is used when generating builds using this plugin, so it must
 # not be changed
-set(PLUGIN_NAME "polyvox_filament_plugin")
+set(PLUGIN_NAME "flutter_filament_plugin")
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
-  "polyvox_filament_plugin.cpp"
-  "polyvox_filament_plugin.h"
+  "flutter_filament_plugin.cpp"
+  "flutter_filament_plugin.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentFFIApi.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentApi.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentFFIApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/StreamBufferAdapter.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/TimeIt.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/camutils/Manipulator.cpp"
@@ -41,8 +41,8 @@ endif()
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
 add_library(${PLUGIN_NAME} SHARED
-  "include/polyvox_filament/polyvox_filament_plugin_c_api.h"
-  "polyvox_filament_plugin_c_api.cpp"
+  "include/flutter_filament/flutter_filament_plugin_c_api.h"
+  "flutter_filament_plugin_c_api.cpp"
   ${PLUGIN_SOURCES}
   "include/material/image.c"
 )
@@ -269,7 +269,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
 
 # List of absolute paths to libraries that should be bundled with the plugin
 if(USE_ANGLE)
-set(polyvox_filament_bundled_libraries
+set(flutter_filament_bundled_libraries
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libEGL.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libGLESv2.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libc++.dll

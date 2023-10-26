@@ -6,7 +6,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:polyvox_filament/widgets/filament_widget.dart';
+import 'package:flutter_filament/widgets/filament_widget.dart';
 import '../lib/main.dart' as app;
 
 void main() {

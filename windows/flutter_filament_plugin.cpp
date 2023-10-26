@@ -1,7 +1,7 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 
-#include "polyvox_filament_plugin.h"
+#include "flutter_filament_plugin.h"
 
 // This must be included before many other Windows headers.
 #include <windows.h>
@@ -29,7 +29,7 @@
 #include <vector>
 #include <thread>
 
-#include "PolyvoxFilamentApi.h"
+#include "FlutterFilamentApi.h"
 
 #include <Commctrl.h>
 #include <Windows.h>
@@ -46,22 +46,22 @@
 
 using namespace std::chrono_literals;
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
-void PolyvoxFilamentPlugin::RegisterWithRegistrar(
+void FlutterFilamentPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
           registrar->messenger(), "app.polyvox.filament/event",
           &flutter::StandardMethodCodec::GetInstance());
 
-  auto plugin = std::make_unique<PolyvoxFilamentPlugin>(
+  auto plugin = std::make_unique<FlutterFilamentPlugin>(
       registrar->texture_registrar(), registrar, channel);
 
   registrar->AddPlugin(std::move(plugin));
 }
 
-PolyvoxFilamentPlugin::PolyvoxFilamentPlugin(
+FlutterFilamentPlugin::FlutterFilamentPlugin(
     flutter::TextureRegistrar *textureRegistrar,
     flutter::PluginRegistrarWindows *pluginRegistrar,
     std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> &channel)
@@ -76,9 +76,9 @@ PolyvoxFilamentPlugin::PolyvoxFilamentPlugin(
 }
 
 
-PolyvoxFilamentPlugin::~PolyvoxFilamentPlugin() {}
+FlutterFilamentPlugin::~FlutterFilamentPlugin() {}
 
-ResourceBuffer PolyvoxFilamentPlugin::loadResource(const char *name) {
+ResourceBuffer FlutterFilamentPlugin::loadResource(const char *name) {
 
   std::string name_str(name);
   std::filesystem::path targetFilePath;
@@ -128,16 +128,16 @@ ResourceBuffer PolyvoxFilamentPlugin::loadResource(const char *name) {
   return rb;
 }
 
-void PolyvoxFilamentPlugin::freeResource(ResourceBuffer rbuf) {
+void FlutterFilamentPlugin::freeResource(ResourceBuffer rbuf) {
   free((void *)rbuf.data);
 }
 
 static ResourceBuffer _loadResource(const char *path, void *const plugin) {
-  return ((PolyvoxFilamentPlugin *)plugin)->loadResource(path);
+  return ((FlutterFilamentPlugin *)plugin)->loadResource(path);
 }
 
 static void _freeResource(ResourceBuffer rbf, void *const plugin) {
-  ((PolyvoxFilamentPlugin *)plugin)->freeResource(rbf);
+  ((FlutterFilamentPlugin *)plugin)->freeResource(rbf);
 }
 
 // this is the C-style function that will be returned via getRenderCallback
@@ -145,12 +145,12 @@ static void _freeResource(ResourceBuffer rbf, void *const plugin) {
 // this is just a convenient wrapper to call RenderCallback on the actual plugin
 // instance
 void render_callback(void *owner) {
-  ((PolyvoxFilamentPlugin *)owner)->RenderCallback();
+  ((FlutterFilamentPlugin *)owner)->RenderCallback();
 }
 
-// this is the method on PolyvoxFilamentPlugin that will copy between D3D
+// this is the method on FlutterFilamentPlugin that will copy between D3D
 // textures
-void PolyvoxFilamentPlugin::RenderCallback() {
+void FlutterFilamentPlugin::RenderCallback() {
   if (_context) {
       auto flutterTextureId = _context->GetFlutterTextureId();
 #ifdef USE_ANGLE
@@ -160,7 +160,7 @@ void PolyvoxFilamentPlugin::RenderCallback() {
   }
 }
 
-void PolyvoxFilamentPlugin::CreateTexture(
+void FlutterFilamentPlugin::CreateTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
@@ -190,7 +190,7 @@ void PolyvoxFilamentPlugin::CreateTexture(
   _context->CreateRenderingSurface(width, height, std::move(result), left, top);
 }
 
-void PolyvoxFilamentPlugin::DestroyTexture(
+void FlutterFilamentPlugin::DestroyTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
@@ -211,7 +211,7 @@ void PolyvoxFilamentPlugin::DestroyTexture(
 
 }
 
-void PolyvoxFilamentPlugin::HandleMethodCall(
+void FlutterFilamentPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
@@ -270,4 +270,4 @@ void PolyvoxFilamentPlugin::HandleMethodCall(
   }
 }
 
-} // namespace polyvox_filament
+} // namespace flutter_filament

@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
-import 'package:polyvox_filament/filament_controller.dart';
+import 'package:flutter_filament/filament_controller.dart';
 
-import 'package:polyvox_filament/animations/animation_data.dart';
-import 'package:polyvox_filament/generated_bindings_web.dart';
+import 'package:flutter_filament/animations/animation_data.dart';
+import 'package:flutter_filament/generated_bindings_web.dart';
 import 'filament_controller.dart';
 
 typedef AssetManager = int;
@@ -34,7 +34,7 @@ class FilamentControllerMethodChannel extends FilamentController {
 
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
-  /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in PolyvoxFilamentApi.h.
+  /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in FlutterFilamentApi.h.
   ///
   FilamentController() {
     _channel.setMethodCallHandler((call) async {

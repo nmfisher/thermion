@@ -5,14 +5,14 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - polyvox_filament (0.0.1):
+  - flutter_filament (0.0.1):
     - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
-  - polyvox_filament (from `.symlinks/plugins/polyvox_filament/ios`)
+  - flutter_filament (from `.symlinks/plugins/flutter_filament/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
@@ -21,14 +21,14 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/integration_test/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
-  polyvox_filament:
-    :path: ".symlinks/plugins/polyvox_filament/ios"
+  flutter_filament:
+    :path: ".symlinks/plugins/flutter_filament/ios"
 
 SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
   integration_test: 13825b8a9334a850581300559b8839134b124670
   path_provider_foundation: 29f094ae23ebbca9d3d0cec13889cd9060c0e943
-  polyvox_filament: 35fece7761e74c973afd80fe3aa0ca225eaace32
+  flutter_filament: 35fece7761e74c973afd80fe3aa0ca225eaace32
 
 PODFILE CHECKSUM: 7adbc9d59f05e1b01f554ea99b6c79e97f2214a2
 

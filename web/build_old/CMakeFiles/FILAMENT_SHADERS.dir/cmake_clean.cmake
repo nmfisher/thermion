@@ -1,8 +1,8 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o"
-  "CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/image.c.o.d"
-  "CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o"
-  "CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/include/material/unlit_opaque.c.o.d"
+  "CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o"
+  "CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/image.c.o.d"
+  "CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o"
+  "CMakeFiles/FILAMENT_SHADERS.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/include/material/unlit_opaque.c.o.d"
   "libFILAMENT_SHADERS.dylib"
   "libFILAMENT_SHADERS.pdb"
 )

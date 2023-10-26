@@ -1,9 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="app.polyvox.filament_example">
+    package="app.polyvox.flutter_filament_example">
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
    <application
         android:name="${applicationName}"
-        android:label="polyvox_filament_example"
+        android:label="flutter_filament_example"
         android:icon="@mipmap/ic_launcher"
         android:theme="@android:style/Theme.Translucent.NoTitleBar"
         >

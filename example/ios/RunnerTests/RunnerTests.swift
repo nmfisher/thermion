@@ -2,7 +2,7 @@ import Flutter
 import UIKit
 import XCTest
 
-@testable import polyvox_filament
+@testable import flutter_filament
 
 // This demonstrates a simple unit test of the Swift portion of this plugin's implementation.
 //
@@ -11,7 +11,7 @@ import XCTest
 class RunnerTests: XCTestCase {
 
   func testGetPlatformVersion() {
-    let plugin = PolyvoxFilamentPlugin()
+    let plugin = FlutterFilamentPlugin()
 
     let call = FlutterMethodCall(methodName: "getPlatformVersion", arguments: [])
 

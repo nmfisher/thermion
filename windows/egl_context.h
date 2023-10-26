@@ -4,7 +4,7 @@
 #include "flutter_angle_texture.h"
 #include "backend/platforms/PlatformEGL.h"
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
 class EGLContext : public FlutterRenderingContext {
 public:

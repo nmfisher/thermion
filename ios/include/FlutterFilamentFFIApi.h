@@ -1,15 +1,15 @@
-#ifndef _POLYVOX_FILAMENT_FFI_API_H
-#define _POLYVOX_FILAMENT_FFI_API_H
+#ifndef _FLUTTER_FILAMENT_FFI_API_H
+#define _FLUTTER_FILAMENT_FFI_API_H
 
-#include "PolyvoxFilamentApi.h"
+#include "FlutterFilamentApi.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /// 
-/// This header replicates most of the methods in PolyvoxFilamentApi.h, and is only intended to be used to generate client FFI bindings.
-/// The intention is that calling one of these methods will call its respective method in PolyvoxFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety. 
+/// This header replicates most of the methods in FlutterFilamentApi.h, and is only intended to be used to generate client FFI bindings.
+/// The intention is that calling one of these methods will call its respective method in FlutterFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety. 
 /// 
 
 typedef int32_t EntityId;
@@ -92,4 +92,4 @@ FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi();
 }
 #endif
 
-#endif // _POLYVOX_FILAMENT_FFI_API_H
+#endif // _FLUTTER_FILAMENT_FFI_API_H

@@ -1,6 +1,6 @@
 #include "egl_context.h"
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
 EGLContext::EGLContext(flutter::PluginRegistrarWindows* pluginRegistrar, flutter::TextureRegistrar* textureRegistrar); {
     

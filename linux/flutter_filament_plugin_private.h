@@ -1,6 +1,6 @@
 #include <flutter_linux/flutter_linux.h>
 
-#include "include/polyvox_filament/polyvox_filament_plugin.h"
+#include "include/flutter_filament/flutter_filament_plugin.h"
 
 // This file exposes some plugin internals for unit testing. See
 // https://github.com/flutter/flutter/issues/88724 for current limitations

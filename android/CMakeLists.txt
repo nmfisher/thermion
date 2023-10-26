@@ -7,9 +7,9 @@ include_directories(src/main/cpp)
 link_directories(src/main/jniLibs/${ANDROID_ABI}) 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
-add_library(polyvox_filament_android SHARED
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentApi.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/PolyvoxFilamentFFIApi.cpp"
+add_library(flutter_filament_android SHARED
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentApi.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentFFIApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/FilamentAndroid.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
@@ -24,7 +24,7 @@ add_library(FILAMENT_SHADERS SHARED
 )
 
 target_link_libraries(
-  polyvox_filament_android
+  flutter_filament_android
   FILAMENT_SHADERS
   -landroid
   -llog

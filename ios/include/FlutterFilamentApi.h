@@ -1,5 +1,5 @@
-#ifndef _POLYVOX_FILAMENT_API_H
-#define _POLYVOX_FILAMENT_API_H
+#ifndef _FLUTTER_FILAMENT_API_H
+#define _FLUTTER_FILAMENT_API_H
 
 #ifdef _WIN32 
 #ifdef IS_DLL

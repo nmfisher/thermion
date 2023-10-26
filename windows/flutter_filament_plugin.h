@@ -1,5 +1,5 @@
-#ifndef FLUTTER_PLUGIN_POLYVOX_FILAMENT_PLUGIN_H_
-#define FLUTTER_PLUGIN_POLYVOX_FILAMENT_PLUGIN_H_
+#ifndef FLUTTER_PLUGIN_FLUTTER_FILAMENT_PLUGIN_H_
+#define FLUTTER_PLUGIN_FLUTTER_FILAMENT_PLUGIN_H_
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
@@ -14,7 +14,7 @@
 #include "GL/GL.h"
 #include "GL/GLu.h"
 
-#include "PolyvoxFilamentApi.h"
+#include "FlutterFilamentApi.h"
 
 #if ANGLE
 #include "egl_context.h"
@@ -22,20 +22,20 @@
 #include "wgl_context.h"
 #endif
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
-class PolyvoxFilamentPlugin : public flutter::Plugin {
+class FlutterFilamentPlugin : public flutter::Plugin {
 public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 
-  PolyvoxFilamentPlugin(flutter::TextureRegistrar *textureRegistrar,
+  FlutterFilamentPlugin(flutter::TextureRegistrar *textureRegistrar,
                         flutter::PluginRegistrarWindows *registrar,
                         std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>& channel);
-  virtual ~PolyvoxFilamentPlugin();
+  virtual ~FlutterFilamentPlugin();
 
   // Disallow copy and assign.
-  PolyvoxFilamentPlugin(const PolyvoxFilamentPlugin &) = delete;
-  PolyvoxFilamentPlugin &operator=(const PolyvoxFilamentPlugin &) = delete;
+  FlutterFilamentPlugin(const FlutterFilamentPlugin &) = delete;
+  FlutterFilamentPlugin &operator=(const FlutterFilamentPlugin &) = delete;
 
   // Called when a method is called on this plugin's channel from Dart.
   void HandleMethodCall(
@@ -66,6 +66,6 @@ public:
     #endif
 };
 
-} // namespace polyvox_filament
+} // namespace flutter_filament
 
-#endif // FLUTTER_PLUGIN_POLYVOX_FILAMENT_PLUGIN_H_
+#endif // FLUTTER_PLUGIN_FLUTTER_FILAMENT_PLUGIN_H_

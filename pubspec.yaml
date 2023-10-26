@@ -1,4 +1,4 @@
-name: polyvox_filament
+name: flutter_filament
 description: A Flutter plugin to wrap the Filament rendering engine.
 version: 0.5.0
 homepage:
@@ -28,22 +28,22 @@ ffigen:
   output: 'lib/generated_bindings.dart'
   headers:
     entry-points:
-      - 'ios/include/PolyvoxFilamentFFIApi.h'
+      - 'ios/include/FlutterFilamentFFIApi.h'
 
 flutter:
   plugin:
     platforms:
       android:
-        pluginClass: PolyvoxFilamentPlugin
+        pluginClass: FlutterFilamentPlugin
         package: app.polyvox.filament
       ios:
-        pluginClass: SwiftPolyvoxFilamentPlugin
+        pluginClass: SwiftFlutterFilamentPlugin
       macos:
-        pluginClass: SwiftPolyvoxFilamentPlugin
+        pluginClass: SwiftFlutterFilamentPlugin
       windows:
-        pluginClass: PolyvoxFilamentPluginCApi
+        pluginClass: FlutterFilamentPluginCApi
       linux:
-        pluginClass: PolyvoxFilamentPlugin
+        pluginClass: FlutterFilamentPlugin
       web:
-        pluginClass: PolyvoxFilamentPluginWeb
-        fileName: PolyvoxFilamentPluginWeb.dart
+        pluginClass: FlutterFilamentPluginWeb
+        fileName: FlutterFilamentPluginWeb.dart

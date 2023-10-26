@@ -8,7 +8,7 @@
 
 #include "flutter_texture_buffer.h"
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
     class FlutterRenderContext {
     public:

@@ -1,4 +1,4 @@
-#include "include/polyvox_filament/polyvox_filament_plugin.h"
+#include "include/flutter_filament/flutter_filament_plugin.h"
 
 #include <flutter_linux/flutter_linux.h>
 #include <flutter_linux/fl_texture_registrar.h>
@@ -16,26 +16,26 @@
 #include <map>
 #include <unistd.h>
 
-#include "include/polyvox_filament/filament_texture.h"
-#include "include/polyvox_filament/filament_pb_texture.h"
-#include "include/polyvox_filament/resource_loader.hpp"
+#include "include/flutter_filament/filament_texture.h"
+#include "include/flutter_filament/filament_pb_texture.h"
+#include "include/flutter_filament/resource_loader.hpp"
 
 #include "FilamentViewer.hpp"
 #include "Log.hpp"
 
 extern "C" {
-#include "PolyvoxFilamentApi.h"
+#include "FlutterFilamentApi.h"
 }
 
 #include <epoxy/gl.h>
 #include <epoxy/glx.h>
 
-#define POLYVOX_FILAMENT_PLUGIN(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), polyvox_filament_plugin_get_type(), \
-                              PolyvoxFilamentPlugin))
+#define FLUTTER_FILAMENT_PLUGIN(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), flutter_filament_plugin_get_type(), \
+                              FlutterFilamentPlugin))
 
 
-struct _PolyvoxFilamentPlugin {
+struct _FlutterFilamentPlugin {
   GObject parent_instance;
   FlTextureRegistrar* texture_registrar;
   FlView* fl_view;
@@ -46,10 +46,10 @@ struct _PolyvoxFilamentPlugin {
   polyvox::FilamentViewer* viewer;
 };
 
-G_DEFINE_TYPE(PolyvoxFilamentPlugin, polyvox_filament_plugin, g_object_get_type())
+G_DEFINE_TYPE(FlutterFilamentPlugin, flutter_filament_plugin, g_object_get_type())
 
 static gboolean on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpointer self) {
-  PolyvoxFilamentPlugin* plugin = (PolyvoxFilamentPlugin*)self;
+  FlutterFilamentPlugin* plugin = (FlutterFilamentPlugin*)self;
   
  if(plugin->rendering) {
     render(plugin->viewer, 0);
@@ -59,7 +59,7 @@ static gboolean on_frame_tick(GtkWidget* widget, GdkFrameClock* frame_clock, gpo
   return TRUE; 
 }
 
-static FlMethodResponse* _create_filament_viewer(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _create_filament_viewer(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   auto callback = new ResourceLoaderWrapper(loadResource, freeResource);
 
   FlValue* args = fl_method_call_get_args(method_call);
@@ -89,7 +89,7 @@ static FlMethodResponse* _create_filament_viewer(PolyvoxFilamentPlugin* self, Fl
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
-static FlMethodResponse* _create_texture(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _create_texture(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
    if(self->texture) {
       Log("Error - create_texture called when texture exists.");
     } 
@@ -115,7 +115,7 @@ static FlMethodResponse* _create_texture(PolyvoxFilamentPlugin* self, FlMethodCa
 }
 
 
-static FlMethodResponse* _update_viewport_and_camera_projection(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _update_viewport_and_camera_projection(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
     FlValue* args = fl_method_call_get_args(method_call);
 
     auto width = fl_value_get_int(fl_value_get_list_value(args, 0));
@@ -128,12 +128,12 @@ static FlMethodResponse* _update_viewport_and_camera_projection(PolyvoxFilamentP
 }
 
 
-static FlMethodResponse* _get_asset_manager(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _get_asset_manager(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
     auto assetManager = get_asset_manager(self->viewer);
     return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_int(reinterpret_cast<int64_t>(assetManager))));
 }
 
-static FlMethodResponse* _resize(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _resize(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   
   const double width = fl_value_get_float(fl_value_get_list_value(args, 0));
@@ -154,7 +154,7 @@ static FlMethodResponse* _resize(PolyvoxFilamentPlugin* self, FlMethodCall* meth
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _loadSkybox(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _loadSkybox(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
 
   const gchar* path = fl_value_get_string(args);
@@ -165,13 +165,13 @@ static FlMethodResponse* _loadSkybox(PolyvoxFilamentPlugin* self, FlMethodCall* 
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
-static FlMethodResponse* _remove_ibl(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _remove_ibl(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   remove_ibl(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
-static FlMethodResponse* _loadIbl(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _loadIbl(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
 
   auto path = fl_value_get_string(fl_value_get_list_value(args, 0));
@@ -183,14 +183,14 @@ static FlMethodResponse* _loadIbl(PolyvoxFilamentPlugin* self, FlMethodCall* met
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
 }
 
-static FlMethodResponse* _removeSkybox(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _removeSkybox(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   std::cout << "Removing skybox" << std::endl;
   remove_skybox(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_background_image(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_background_image(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
 
   FlValue* args = fl_method_call_get_args(method_call);
 
@@ -202,7 +202,7 @@ static FlMethodResponse* _set_background_image(PolyvoxFilamentPlugin* self, FlMe
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_background_color(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_background_color(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   const float r = fl_value_get_float(fl_value_get_list_value(args, 0));
   const float g = fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -214,7 +214,7 @@ static FlMethodResponse* _set_background_color(PolyvoxFilamentPlugin* self, FlMe
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _add_light(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _add_light(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
 
   FlValue* args = fl_method_call_get_args(method_call);
   
@@ -235,7 +235,7 @@ static FlMethodResponse* _add_light(PolyvoxFilamentPlugin* self, FlMethodCall* m
 
 }
 
-static FlMethodResponse* _load_glb(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _load_glb(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
     FlValue* args = fl_method_call_get_args(method_call);
     auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
     auto path = fl_value_get_string(fl_value_get_list_value(args, 1));
@@ -245,7 +245,7 @@ static FlMethodResponse* _load_glb(PolyvoxFilamentPlugin* self, FlMethodCall* me
     return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _get_animation_names(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _get_animation_names(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
@@ -263,7 +263,7 @@ static FlMethodResponse* _get_animation_names(PolyvoxFilamentPlugin* self, FlMet
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _remove_asset(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _remove_asset(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
   remove_asset(self->viewer, asset);
@@ -271,7 +271,7 @@ static FlMethodResponse* _remove_asset(PolyvoxFilamentPlugin* self, FlMethodCall
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _transform_to_unit_cube(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _transform_to_unit_cube(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
@@ -280,7 +280,7 @@ static FlMethodResponse* _transform_to_unit_cube(PolyvoxFilamentPlugin* self, Fl
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _rotate_start(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _rotate_start(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
@@ -292,13 +292,13 @@ static FlMethodResponse* _rotate_start(PolyvoxFilamentPlugin* self, FlMethodCall
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _rotate_end(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _rotate_end(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   grab_end(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _rotate_update(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _rotate_update(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
   auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -309,7 +309,7 @@ static FlMethodResponse* _rotate_update(PolyvoxFilamentPlugin* self, FlMethodCal
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _pan_start(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _pan_start(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
 
   FlValue* args = fl_method_call_get_args(method_call);
 
@@ -321,7 +321,7 @@ static FlMethodResponse* _pan_start(PolyvoxFilamentPlugin* self, FlMethodCall* m
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _pan_update(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _pan_update(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
   auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -331,13 +331,13 @@ static FlMethodResponse* _pan_update(PolyvoxFilamentPlugin* self, FlMethodCall* 
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _pan_end(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _pan_end(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   grab_end(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_position(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_position(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
@@ -353,7 +353,7 @@ static FlMethodResponse* _set_position(PolyvoxFilamentPlugin* self, FlMethodCall
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_rotation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_rotation(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
 
@@ -373,7 +373,7 @@ static FlMethodResponse* _set_rotation(PolyvoxFilamentPlugin* self, FlMethodCall
 
 
 
-static FlMethodResponse* _set_bone_transform(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_bone_transform(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
    throw std::invalid_argument( "received negative value" );
   // FlValue* args = fl_method_call_get_args(method_call);
   // auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
@@ -396,7 +396,7 @@ static FlMethodResponse* _set_bone_transform(PolyvoxFilamentPlugin* self, FlMeth
   // return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_camera(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_camera(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto cameraName = fl_value_get_string(fl_value_get_list_value(args, 1)) ;
@@ -406,14 +406,14 @@ static FlMethodResponse* _set_camera(PolyvoxFilamentPlugin* self, FlMethodCall* 
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_camera_model_matrix(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_camera_model_matrix(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   set_camera_model_matrix(self->viewer, fl_value_get_float32_list(args));
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_camera_exposure(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_camera_exposure(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto aperture = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
   auto shutter_speed = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -423,7 +423,7 @@ static FlMethodResponse* _set_camera_exposure(PolyvoxFilamentPlugin* self, FlMet
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_camera_position(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_camera_position(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
   auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -433,7 +433,7 @@ static FlMethodResponse* _set_camera_position(PolyvoxFilamentPlugin* self, FlMet
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_camera_rotation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_camera_rotation(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto rads = (float)fl_value_get_float(fl_value_get_list_value(args,0 ));
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -445,14 +445,14 @@ static FlMethodResponse* _set_camera_rotation(PolyvoxFilamentPlugin* self, FlMet
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_rendering(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_rendering(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   self->rendering = (bool)fl_value_get_bool(args);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_frame_interval(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_frame_interval(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto val = (float) fl_value_get_float(args);
   set_frame_interval(self->viewer, val);
@@ -460,7 +460,7 @@ static FlMethodResponse* _set_frame_interval(PolyvoxFilamentPlugin* self, FlMeth
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _grab_begin(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _grab_begin(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
   auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -470,13 +470,13 @@ static FlMethodResponse* _grab_begin(PolyvoxFilamentPlugin* self, FlMethodCall* 
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _grab_end(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _grab_end(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   grab_end(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _grab_update(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _grab_update(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
   auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -486,19 +486,19 @@ static FlMethodResponse* _grab_update(PolyvoxFilamentPlugin* self, FlMethodCall*
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _scroll_begin(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _scroll_begin(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   scroll_begin(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _scroll_end(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _scroll_end(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   scroll_end(self->viewer);
   g_autoptr(FlValue) result = fl_value_new_string("OK");
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _scroll_update(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _scroll_update(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto x = (float)fl_value_get_float(fl_value_get_list_value(args, 0));
   auto y = (float)fl_value_get_float(fl_value_get_list_value(args, 1));
@@ -509,7 +509,7 @@ static FlMethodResponse* _scroll_update(PolyvoxFilamentPlugin* self, FlMethodCal
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _play_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _play_animation(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
@@ -524,7 +524,7 @@ static FlMethodResponse* _play_animation(PolyvoxFilamentPlugin* self, FlMethodCa
 }
 
 
-static FlMethodResponse* _stop_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _stop_animation(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
@@ -535,7 +535,7 @@ static FlMethodResponse* _stop_animation(PolyvoxFilamentPlugin* self, FlMethodCa
 }
 
 
-static FlMethodResponse* _set_morph_target_weights(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_morph_target_weights(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
@@ -557,7 +557,7 @@ static FlMethodResponse* _set_morph_target_weights(PolyvoxFilamentPlugin* self, 
 
 template class std::vector<int>;
 
-static FlMethodResponse* _set_morph_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_morph_animation(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
@@ -599,7 +599,7 @@ static FlMethodResponse* _set_morph_animation(PolyvoxFilamentPlugin* self, FlMet
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_animation(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _set_animation(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
    throw std::invalid_argument( "received negative value" );
   // FlValue* args = fl_method_call_get_args(method_call);
   // auto assetPtr = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
@@ -677,7 +677,7 @@ static FlMethodResponse* _set_animation(PolyvoxFilamentPlugin* self, FlMethodCal
   // return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _get_morph_target_names(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) { 
+static FlMethodResponse* _get_morph_target_names(FlutterFilamentPlugin* self, FlMethodCall* method_call) { 
   FlValue* args = fl_method_call_get_args(method_call);
   auto assetManager = (void*)fl_value_get_int(fl_value_get_list_value(args, 0));
   auto asset = (EntityId)fl_value_get_int(fl_value_get_list_value(args, 1));
@@ -696,22 +696,22 @@ static FlMethodResponse* _get_morph_target_names(PolyvoxFilamentPlugin* self, Fl
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));    
 }
 
-static FlMethodResponse* _set_tone_mapping(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) {
+static FlMethodResponse* _set_tone_mapping(FlutterFilamentPlugin* self, FlMethodCall* method_call) {
   FlValue* args = fl_method_call_get_args(method_call);
   polyvox::ToneMapping toneMapping = static_cast<polyvox::ToneMapping>(fl_value_get_int(args)); 
   set_tone_mapping(self->viewer, toneMapping);
   return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
 }
 
-static FlMethodResponse* _set_bloom(PolyvoxFilamentPlugin* self, FlMethodCall* method_call) {
+static FlMethodResponse* _set_bloom(FlutterFilamentPlugin* self, FlMethodCall* method_call) {
   FlValue* args = fl_method_call_get_args(method_call);
   set_bloom(self->viewer, fl_value_get_float(args));
   return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
 }
 
 // Called when a method call is received from Flutter.
-static void polyvox_filament_plugin_handle_method_call(
-    PolyvoxFilamentPlugin* self,
+static void flutter_filament_plugin_handle_method_call(
+    FlutterFilamentPlugin* self,
     FlMethodCall* method_call) {
 
   g_autoptr(FlMethodResponse) response = nullptr;
@@ -842,25 +842,25 @@ static void polyvox_filament_plugin_handle_method_call(
 
 }
 
-static void polyvox_filament_plugin_dispose(GObject* object) {
-  G_OBJECT_CLASS(polyvox_filament_plugin_parent_class)->dispose(object);
+static void flutter_filament_plugin_dispose(GObject* object) {
+  G_OBJECT_CLASS(flutter_filament_plugin_parent_class)->dispose(object);
 }
 
-static void polyvox_filament_plugin_class_init(PolyvoxFilamentPluginClass* klass) {
-  G_OBJECT_CLASS(klass)->dispose = polyvox_filament_plugin_dispose;
+static void flutter_filament_plugin_class_init(FlutterFilamentPluginClass* klass) {
+  G_OBJECT_CLASS(klass)->dispose = flutter_filament_plugin_dispose;
 }
 
-static void polyvox_filament_plugin_init(PolyvoxFilamentPlugin* self) {}
+static void flutter_filament_plugin_init(FlutterFilamentPlugin* self) {}
 
 static void method_call_cb(FlMethodChannel* channel, FlMethodCall* method_call,
                            gpointer user_data) {
-  PolyvoxFilamentPlugin* plugin = POLYVOX_FILAMENT_PLUGIN(user_data);
-  polyvox_filament_plugin_handle_method_call(plugin, method_call);
+  FlutterFilamentPlugin* plugin = FLUTTER_FILAMENT_PLUGIN(user_data);
+  flutter_filament_plugin_handle_method_call(plugin, method_call);
 }
 
-void polyvox_filament_plugin_register_with_registrar(FlPluginRegistrar* registrar) {
-  PolyvoxFilamentPlugin* plugin = POLYVOX_FILAMENT_PLUGIN(
-      g_object_new(polyvox_filament_plugin_get_type(), nullptr));
+void flutter_filament_plugin_register_with_registrar(FlPluginRegistrar* registrar) {
+  FlutterFilamentPlugin* plugin = FLUTTER_FILAMENT_PLUGIN(
+      g_object_new(flutter_filament_plugin_get_type(), nullptr));
 
   FlView* fl_view = fl_plugin_registrar_get_view(registrar);
   plugin->fl_view = fl_view;

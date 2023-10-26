@@ -1,19 +1,19 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.o"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/AssetManager.cpp.o.d"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.o"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/FilamentViewer.cpp.o.d"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.o"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/PolyvoxFilamentApi.cpp.o.d"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.o"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/StreamBufferAdapter.cpp.o.d"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.o"
-  "CMakeFiles/polyvox_filament_plugin.dir/Volumes/T7/polyvox/flutter/polyvox_filament/ios/src/TimeIt.cpp.o.d"
-  "libpolyvox_filament_plugin.dylib"
-  "libpolyvox_filament_plugin.pdb"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.o"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/AssetManager.cpp.o.d"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o.d"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o.d"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.o"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.o.d"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.o"
+  "CMakeFiles/flutter_filament_plugin.dir/Volumes/T7/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.o.d"
+  "libflutter_filament_plugin.dylib"
+  "libflutter_filament_plugin.pdb"
 )
 
 # Per-language clean rules from dependency scanning.
 foreach(lang CXX)
-  include(CMakeFiles/polyvox_filament_plugin.dir/cmake_clean_${lang}.cmake OPTIONAL)
+  include(CMakeFiles/flutter_filament_plugin.dir/cmake_clean_${lang}.cmake OPTIONAL)
 endforeach()

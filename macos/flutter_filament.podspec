@@ -1,9 +1,9 @@
 #
 # To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint polyvox_filament.podspec` to validate before publishing.
+# Run `pod lib lint flutter_filament.podspec` to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'polyvox_filament'
+  s.name             = 'flutter_filament'
   s.version          = '0.0.1'
   s.summary          = 'A new Flutter plugin project.'
   s.description      = <<-DESC
@@ -15,7 +15,7 @@ A new Flutter plugin project.
 
   s.source           = { :path => '.' }
   s.source_files = 'Classes/*', 'src/*', "src/camutils/*", 'include/filament/*', 'include/*', 'include/material/*.c'
-  s.public_header_files = 'include/SwiftPolyvoxFilamentPlugin-Bridging-Header.h',  'include/PolyvoxFilamentApi.h', 'include/PolyvoxFilamentFFIApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
+  s.public_header_files = 'include/SwiftFlutterFilamentPlugin-Bridging-Header.h',  'include/FlutterFilamentApi.h', 'include/FlutterFilamentFFIApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
   s.dependency 'FlutterMacOS'
 
   s.platform = :osx, '13'
@@ -24,10 +24,10 @@ A new Flutter plugin project.
   #   'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386', 
   #   "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
   #   'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
-  #   'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/macos/zzzinclude" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/macos/src" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/macos/src/image" "${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/macos/src/shaders"  "$(inherited)"',
+  #   'USER_HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/flutter_filament/macos/zzzinclude" "${PODS_ROOT}/../.symlinks/plugins/flutter_filament/macos/src" "${PODS_ROOT}/../.symlinks/plugins/flutter_filament/macos/src/image" "${PODS_ROOT}/../.symlinks/plugins/flutter_filament/macos/src/shaders"  "$(inherited)"',
   #   'ALWAYS_SEARCH_USER_PATHS' => 'YES',
   #   "OTHER_LDFLAGS" =>  '-lfilament -lbackend -lfilameshio -lviewer -lfilamat -lgeometry -lutils -lfilabridge -lgltfio_core -lfilament-iblprefilter -limage -limageio -ltinyexr -lcamutils -lgltfio_core -lfilaflat -ldracodec -libl -lktxreader -lpng -lpng16  -lz -lstb -luberzlib -lsmol-v -luberarchive -lzstd',
-  #   'LIBRARY_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/polyvox_filament/macos/lib" "$(inherited)"',
+  #   'LIBRARY_SEARCH_PATHS' => '"${PODS_ROOT}/../.symlinks/plugins/flutter_filament/macos/lib" "$(inherited)"',
   # }
 
   s.pod_target_xcconfig = { 

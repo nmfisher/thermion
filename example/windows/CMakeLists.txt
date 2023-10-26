@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
-project(polyvox_filament_example LANGUAGES CXX)
+project(flutter_filament_example LANGUAGES CXX)
 
-set(BINARY_NAME "polyvox_filament_example")
+set(BINARY_NAME "flutter_filament_example")
 
 cmake_policy(SET CMP0063 NEW)
 

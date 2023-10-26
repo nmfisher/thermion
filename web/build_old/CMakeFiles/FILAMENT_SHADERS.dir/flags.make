@@ -4,7 +4,7 @@
 # compile C with /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc
 C_DEFINES = -DFILAMENT_SHADERS_EXPORTS
 
-C_INCLUDES = -I/Volumes/T7/polyvox/flutter/polyvox_filament/web/../ios/src -I/Volumes/T7/polyvox/flutter/polyvox_filament/web/../ios/include -I/Volumes/T7/polyvox/flutter/polyvox_filament/web/../example/linux
+C_INCLUDES = -I/Volumes/T7/polyvox/flutter/flutter_filament/web/../ios/src -I/Volumes/T7/polyvox/flutter/flutter_filament/web/../ios/include -I/Volumes/T7/polyvox/flutter/flutter_filament/web/../example/linux
 
 C_FLAGSarm64 =  -fPIC -Wno-unused-variable -Wno-unused-function -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -fPIC
 

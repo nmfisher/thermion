@@ -8,7 +8,7 @@ Powers the [Polyvox](https://polyvox.app) and [odd-io](https://github.com/odd-io
 
 This is still in beta: bugs/missing features are to be expected.
 
-https://github.com/nmfisher/polyvox_filament/assets/7238578/abaed1c8-c97b-4999-97b2-39e85e0fa7dd
+https://github.com/nmfisher/flutter_filament/assets/7238578/abaed1c8-c97b-4999-97b2-39e85e0fa7dd
 
 
 |Feature|Supported|

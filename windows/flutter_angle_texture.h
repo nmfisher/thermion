@@ -26,7 +26,7 @@
 
 typedef uint32_t GLuint;
 
-namespace polyvox_filament {
+namespace flutter_filament {
 
 class FlutterAngleTexture : FlutterTextureBuffer {
   public:

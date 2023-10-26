@@ -3,7 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  polyvox_filament
+  flutter_filament
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
