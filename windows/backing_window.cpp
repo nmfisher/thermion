@@ -217,6 +217,42 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
       break;
     }
     case WM_SIZE: {
+      if (wparam != SIZE_RESTORED || last_wm_size_wparam_ == SIZE_MINIMIZED ||
+          last_wm_size_wparam_ == SIZE_MAXIMIZED ||
+          was_window_hidden_due_to_minimize_) {
+        was_window_hidden_due_to_minimize_ = false;
+        // Minimize condition is handled separately inside |WM_WINDOWPOSCHANGED|
+        // case, since we don't want to cause unnecessary redraws (& show/hide)
+        // when user is resizing the window by dragging the window border.
+        SetWindowComposition(_flutterRootWindow, 0, 0);
+        ::ShowWindow(_windowHandle, SW_HIDE);
+        last_thread_time_ =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count();
+        std::thread(
+            [=](uint64_t time) {
+              if (time < last_thread_time_) {
+                return;
+              }
+              std::this_thread::sleep_for(
+                  std::chrono::milliseconds(kNativeViewPositionAndShowDelay));
+              SetWindowComposition(_flutterRootWindow, 6, 0);
+              // Handling SIZE_MINIMIZED separately.
+              if (wparam != SIZE_MINIMIZED) {
+                ::ShowWindow(_windowHandle, SW_SHOWNOACTIVATE);
+              }
+
+              RECT flutterViewRect;
+              ::GetWindowRect(_flutterViewWindow, &flutterViewRect);
+              ::SetWindowPos(_windowHandle, _flutterRootWindow, flutterViewRect.left + _left,
+                            flutterViewRect.top + _top, _width, _height,
+                            SWP_NOACTIVATE);
+            },
+            last_thread_time_)
+            .detach();
+      }
+      last_wm_size_wparam_ = wparam;
       break;
     }
     case WM_MOVE:
