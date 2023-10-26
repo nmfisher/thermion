@@ -47,10 +47,14 @@ class ExampleWidget extends StatefulWidget {
 
 class _ExampleWidgetState extends State<ExampleWidget> {
   FilamentController? _filamentController;
+
   FilamentEntity? _shapes;
   FilamentEntity? _flightHelmet;
-  List<String>? _animations;
+  FilamentEntity? _buster;
   FilamentEntity? _light;
+  
+  List<String>? _animations;
+  
 
   StreamSubscription? _pickResultListener;
   String? picked;
@@ -323,7 +327,15 @@ class _ExampleWidgetState extends State<ExampleWidget> {
         }, "resize"),
         _item(() async {
           await Permission.microphone.request();
-        }, "request permissions (tests inactive->resume)")
+        }, "request permissions (tests inactive->resume)"),
+        _item(() async {
+          if(_buster != null) {
+            await _filamentController!.removeAsset(_buster!);
+          }
+          _buster = await (_filamentController as FilamentControllerFFI).loadGltf("assets/BusterDrone/scene.gltf", "assets/BusterDrone", force:true);
+          await _filamentController!.playAnimation(_buster!, 0, loop: true);
+
+        }, "load buster")
       ]);
       if (_animations != null) {
         children.addAll(_animations!.map((a) => _item(() {
