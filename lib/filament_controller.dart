@@ -21,6 +21,12 @@ class TextureDetails {
 
 abstract class FilamentController {
   ///
+  /// A [ValueNotifier] that holds the current dimensions (in physical pixels, after multiplying by pixel ratio) of the FilamentWidget.
+  /// If you need to perform work as early as possible, add a listener to this property before a [FilamentWidget] has been inserted into the widget hierarchy.
+  ///
+  ValueNotifier<Rect?> get rect;
+
+  ///
   /// Whether a Flutter Texture widget should be inserted into the widget hierarchy.
   /// This will be false on certain platforms where we use a transparent window underlay.
   /// Used internally by [FilamentWidget]; you probably don't need to access this property directly.
