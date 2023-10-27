@@ -371,7 +371,11 @@ Project structure:
 - most shared code/headers under ios/src (because I still can't get podspec to build a target with symlinks or relative paths)
 - building on MacOS, we currently just delete the macos/include and macos/src directories and copy from iOS  (for same reason), 
 e.g.
-`rm -r ../macos/include && cp -R ../ios/include ../macos && rm -r ../macos/src && cp -R ../ios/src ../macos && pushd macos && pod update && popd && flutter run -d macos`
+
+```
+make sync-libs-macos-and-update-pods
+```
+
 - Android keeps a separate copy of ALL headers (because it's currently running a different version of Filament, earlier versions have some texture filtering issues) 
 -- can't symlink either?
 --- IMPORTANT - current version only works on Flutter 3.15.0-15.2.pre / Filament v1.43.1
@@ -399,8 +403,7 @@ EMCC_CFLAGS="-I/Users/nickfisher/Documents/filament/libs/utils/include -I/Users/
 
 We use a single material (no lighting and no transparency) for background images:
 ```
-filament/out/release/filament/bin/matc -a opengl -a metal -o materials/image.filamat materials/image.mat
-filament/out/release/filament/bin/resgen -c -p image -x ios/include/material/ materials/image.filamat            
+make generate-background-material     
 ```
 
 # Known issues
