@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_filament/animations/animation_data.dart';
@@ -11,9 +10,9 @@ enum ToneMapper { ACES, FILMIC, LINEAR }
 
 class TextureDetails {
   final int textureId;
-  
+
   // both width and height are in physical, not logical pixels
-  final int width;  
+  final int width;
   final int height;
 
   TextureDetails(
@@ -21,12 +20,11 @@ class TextureDetails {
 }
 
 abstract class FilamentController {
-  
-  /// 
+  ///
   /// Whether a Flutter Texture widget should be inserted into the widget hierarchy.
   /// This will be false on certain platforms where we use a transparent window underlay.
   /// Used internally by [FilamentWidget]; you probably don't need to access this property directly.
-  /// 
+  ///
   bool get requiresTextureWidget;
 
   ///
@@ -34,17 +32,6 @@ abstract class FilamentController {
   /// This is only used by [FilamentWidget]; you shouldn't need to access directly yourself.
   ///
   final textureDetails = ValueNotifier<TextureDetails?>(null);
-
-
-  ///
-  /// A stream to indicate whether a FilamentViewer is available.
-  /// [FilamentWidget] will (asynchronously) create a [FilamentViewer] after being inserted into the widget hierarchy;
-  /// listen to this stream beforehand to perform any work necessary once the viewer is available.
-  /// [FilamentWidget] may also destroy/recreate the viewer on certain lifecycle events (e.g. backgrounding a mobile app);
-  /// listen for any corresponding [false]/[true] events to perform related work.
-  /// Note this is not a broadcast stream; only one listener can be registered and events will be buffered.
-  ///
-  Stream<bool> get hasViewer;
 
   ///
   /// The result(s) of calling [pick] (see below).
@@ -74,13 +61,6 @@ abstract class FilamentController {
   Future setFrameRate(int framerate);
 
   ///
-  /// Called by FilamentGestureDetector to set the pixel ratio (obtained from [MediaQuery]) before creating the texture/viewport.
-  /// You may call this yourself if you want to increase/decrease the pixel density of the viewport, but calling this method won't do anything on its own.
-  /// You will need to manually recreate the texture/viewer afterwards.
-  ///
-  void setPixelRatio(double ratio);
-
-  ///
   /// Destroys the viewer and all backing textures. You can leave the FilamentWidget in the hierarchy after this is called, but you will need to manually call [createViewer] to
   ///
   Future destroy();
@@ -96,24 +76,26 @@ abstract class FilamentController {
   Future destroyTexture();
 
   ///
-  /// Called by [FilamentWidget]; you generally will not need to call this yourself.
-  /// To recap, you can create a viewport is created in the Flutter rendering hierarchy by:
-  /// 1) Create a FilamentController
-  /// 2) Insert a FilamentWidget into the rendering tree, passing your FilamentController
-  /// 3) Initially, the FilamentWidget will only contain an empty Container (by default, with a solid red background).
-  ///    This widget will render a single frame to get its actual size, then will itself call [createViewer]. You do not need to call [createViewer] yourself.
-  ///    This will dispatch a request to the native platform to create a hardware texture (Metal on iOS, OpenGL on Linux, GLES on Android and Windows) and a FilamentViewer (the main interface for manipulating the 3D scene) .
-  /// 4) The FilamentController will notify FilamentWidget that a texture is available
-  /// 5) The FilamentWidget will replace the empty Container with a Texture widget
-  /// If you need to wait until a FilamentViewer has been created, listen to the [viewer] stream.
+  /// Create a FilamentViewer. Must be called at least one frame after a [FilamentWidget] has been inserted into the rendering hierarchy.
   ///
-  Future createViewer(Rect rect);
+  /// Before a FilamentViewer is created, the FilamentWidget will only contain an empty Container (by default, with a solid red background).
+  /// FilamentWidget will then call [setDimensions] with dimensions/pixel ratio of the viewport
+  /// Calling [createViewer] will then dispatch a request to the native platform to create a hardware texture (Metal on iOS, OpenGL on Linux, GLES on Android and Windows) and a FilamentViewer (the main interface for manipulating the 3D scene) .
+  /// [FilamentWidget] will be notified that a texture is available and will replace the empty Container with a Texture widget
+  ///
+  Future createViewer();
 
   ///
-  /// Resize the viewport & backing texture.
+  /// Sets the dimensions of the viewport and pixel ratio (obtained from [MediaQuery]) to be used the next time [resize] or [createViewer] is called.
   /// This is called by FilamentWidget; you shouldn't need to invoke this manually.
   ///
-  Future resize(Rect rect);
+  Future setDimensions(ui.Rect rect, double pixelRatio);
+
+  ///
+  /// Resize the viewport & backing texture to the current dimensions (as last set by [setDimensions]).
+  /// This is called by FilamentWidget; you shouldn't need to invoke this manually.
+  ///
+  Future resize();
 
   ///
   /// Set the background image to [path] (which should have a file extension .png, .jpg, or .ktx).

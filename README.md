@@ -84,7 +84,7 @@ class MyApp extends StatelessWidget {
 
 This is a relatively lightweight object, however its constructor will load/bind symbols from the native library. This may momentarily block the UI, so you may wish to structure your app so that this is hidden behind a static widget until it is available.
 
-Next, create an instance of `FilamentWidget` in the widget hierarchy where you want the rendering canvas to appear. This can be sized as large or as small as you want. Flutter widgets can be positioned above or below the `FilamentWidget`.
+Next, create an instance of `FilamentWidget` in the widget hierarchy where you want the rendering canvas to appear. This can be sized as large or as small as you want. On most platforms, Flutter widgets can be positioned above or below the `FilamentWidget`.
 
 ```
 class MyApp extends StatelessWidget {
@@ -105,20 +105,20 @@ class MyApp extends StatelessWidget {
 ```
 
 When a `FilamentWidget` is added to the widget hierarchy:
-1) on the first frame, by default a Container will be rendered with solid red. If you want to change this, pass a widget as the `initial` paramer to the `FilamentWidget` constructor.
-2) on the second frame, `FilamentWidget` will retrieve its actual size and request the `FilamentController` to create:
-    * the backing textures needed to insert a `Texture` widget into 
+1) by default a Container will be rendered with solid red. If you want to change this, pass a widget as the `initial` paramer to the `FilamentWidget` constructor.
+2) on the second frame, `FilamentWidget` will pass its dimensions/pixel ratio to the `FilamentController`
+3) You can then call `createViewer` to create:
+    * the rendering surface (on most platforms, a backing texture that will be registered with Flutter for use in a `Texture` widget) 
     * a rendering thread 
     * a `FilamentViewer` and an `AssetManager`, which will allow you to load assets/cameras/lighting/etc via the `FilamentController`
-3) after an indeterminate number of frames, `FilamentController` will notify `FilamentWidget` when a texture is available the viewport 
-4) `FilamentWidget` will replace the default `initial` Widget with the viewport (which will initially be solid black or white, depending on your platform).
+4) after an indeterminate number of frames, `FilamentController` will notify `FilamentWidget` when a rendering surface is available the viewport 
+5) `FilamentWidget` will replace the default `initial` Widget with the viewport (which will initially be solid black or white, depending on your platform).
 
-It's important to note that there *will* be a delay between adding a `FilamentWidget` and the actual rendering viewport becoming available. This is why we fill `FilamentWidget` with red - to make it abundantly clear that you need to handle this asynchronous delay appropriately.  You can call `await _filamentController.isReadyForScene` if you need to wait until the viewport is actually ready for rendering.
+IMPORTANT: there *will* be a delay between adding a `FilamentWidget`, calling `createViewer` and the actual rendering viewport becoming available. This is why we fill `FilamentWidget` with red - to make it abundantly clear that you need to handle this asynchronous delay appropriately.  Once `createViewer` has completed, the viewport is available for rendering.
 
 > Currently, the `initial` widget will also be displayed whenever the viewport is resized (including changing orientation on mobile and drag-to-resize on desktop). You probably want to change this from the default red.
 
-
-Congratulations! You now have a scene. It's completely empty, so you probably want to add.
+Congratulations! You now have a scene. It's completely empty, so you probably want to add something visible.
 
 ### Load a background
 

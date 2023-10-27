@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:flutter_filament/filament_controller.dart';
 
@@ -31,9 +32,10 @@ class FilamentControllerFFI extends FilamentController {
 
   final String? uberArchivePath;
 
+  Pointer<Void> _driver = nullptr.cast<Void>();
+
   @override
-  Stream<bool> get hasViewer => _hasViewerController.stream;
-  final _hasViewerController = StreamController<bool>();
+  final rect = ValueNotifier<Rect?>(null);
 
   @override
   Stream<FilamentEntity> get pickResult => _pickResultController.stream;
@@ -62,8 +64,9 @@ class FilamentControllerFFI extends FilamentController {
       _resizingWidth = call.arguments[0];
       _resizingHeight = call.arguments[1];
       _resizeTimer = Timer(const Duration(milliseconds: 500), () async {
-        await resize(Offset.zero &
-            ui.Size(_resizingWidth!.toDouble(), _resizingHeight!.toDouble()));
+        this.rect.value = Offset.zero &
+            ui.Size(_resizingWidth!.toDouble(), _resizingHeight!.toDouble());
+        await resize();
       });
     });
     late DynamicLibrary dl;
@@ -73,15 +76,15 @@ class FilamentControllerFFI extends FilamentController {
       dl = DynamicLibrary.open("libflutter_filament_android.so");
     }
     _lib = NativeLibrary(dl);
-    if(Platform.isWindows) {
+    if (Platform.isWindows) {
       _channel.invokeMethod("usesBackingWindow").then((result) {
         _usesBackingWindow = result;
       });
     }
-    
   }
 
   bool _rendering = false;
+  @override
   bool get rendering => _rendering;
 
   @override
@@ -107,9 +110,10 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  void setPixelRatio(double ratio) {
+  Future setDimensions(Rect rect, double ratio) async {
+    this.rect.value = Rect.fromLTWH(rect.left, rect.top,
+        rect.width * _pixelRatio, rect.height * _pixelRatio);
     _pixelRatio = ratio;
-    print("Set pixel ratio to $ratio");
   }
 
   @override
@@ -129,7 +133,6 @@ class FilamentControllerFFI extends FilamentController {
 
     _assetManager = null;
     _lib.destroy_filament_viewer_ffi(viewer!);
-    _hasViewerController.add(false);
   }
 
   @override
@@ -141,14 +144,15 @@ class FilamentControllerFFI extends FilamentController {
     print("Texture destroyed");
   }
 
-  Pointer<Void> _driver = nullptr.cast<Void>();
-
   ///
   /// Called by `FilamentWidget`. You do not need to call this yourself.
   ///
   @override
-  Future createViewer(Rect rect) async {
-
+  Future createViewer() async {
+    if (rect.value == null) {
+      throw Exception(
+          "Dimensions have not yet been set by FilamentWidget. You need to wait for at least one frame after FilamentWidget has been inserted into the hierarchy");
+    }
     if (_viewer != null) {
       throw Exception(
           "Viewer already exists, make sure you call destroyViewer first");
@@ -164,8 +168,6 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Failed to get resource loader");
     }
 
-    rect = Rect.fromLTWH(rect.left, rect.top, rect.width * _pixelRatio, rect.height * _pixelRatio);
-
     if (Platform.isWindows && requiresTextureWidget) {
       _driver = Pointer<Void>.fromAddress(
           await _channel.invokeMethod("getDriverPlatform"));
@@ -178,7 +180,9 @@ class FilamentControllerFFI extends FilamentController {
     var renderCallbackOwner =
         Pointer<Void>.fromAddress(renderCallbackResult[1]);
 
-    var renderingSurface = await _createRenderingSurface(rect);
+    var renderingSurface = await _createRenderingSurface();
+
+    print("Got rendering surface");
 
     _viewer = _lib.create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(renderingSurface.sharedContext ?? 0),
@@ -187,7 +191,7 @@ class FilamentControllerFFI extends FilamentController {
         loader,
         renderCallback,
         renderCallbackOwner);
-
+    print("Created viewer");
     if (_viewer!.address == 0) {
       throw Exception("Failed to create viewer. Check logs for details");
     }
@@ -195,34 +199,36 @@ class FilamentControllerFFI extends FilamentController {
     _assetManager = _lib.get_asset_manager(_viewer!);
 
     _lib.create_swap_chain_ffi(_viewer!, renderingSurface.surface,
-        rect.width.toInt(), rect.height.toInt());
+        rect.value!.width.toInt(), rect.value!.height.toInt());
+    print("Created swap chain");
     if (renderingSurface.textureHandle != 0) {
       print(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");
       _lib.create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
-          rect.width.toInt(), rect.height.toInt());
+          rect.value!.width.toInt(), rect.value!.height.toInt());
     }
 
     textureDetails.value = TextureDetails(
         textureId: renderingSurface.flutterTextureId!,
-        width: rect.width.toInt(),
-        height: rect.height.toInt());
-
+        width: rect.value!.width.toInt(),
+        height: rect.value!.height.toInt());
+    print("texture details ${textureDetails.value}");
     _lib.update_viewport_and_camera_projection_ffi(
-        _viewer!, rect.width.toInt(), rect.height.toInt(), 1.0);
-
-    _hasViewerController.add(true);
+        _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
   }
 
-  Future<RenderingSurface> _createRenderingSurface(Rect rect) async { 
-    return RenderingSurface.from(await _channel.invokeMethod(
-        "createTexture",
-        [rect.width, rect.height, rect.left, rect.top]));
+  Future<RenderingSurface> _createRenderingSurface() async {
+    return RenderingSurface.from(await _channel.invokeMethod("createTexture", [
+      rect.value!.width,
+      rect.value!.height,
+      rect.value!.left,
+      rect.value!.top
+    ]));
   }
 
   ///
   /// When a FilamentWidget is resized, it will call the [resize] method below, which will tear down/recreate the swapchain.
-  /// For "once-off" resizes, this is fine; however, this can be problematic for consecutive resizes 
+  /// For "once-off" resizes, this is fine; however, this can be problematic for consecutive resizes
   /// (e.g. dragging to expand/contract the parent window on desktop, or animating the size of the FilamentWidget itself).
   /// It is too expensive to recreate the swapchain multiple times per second.
   /// We therefore add a timer to FilamentWidget so that the call to [resize] is delayed (e.g. 500ms).
@@ -286,8 +292,7 @@ class FilamentControllerFFI extends FilamentController {
   ///
   bool _resizing = false;
   @override
-  Future resize(Rect rect) async {
-
+  Future resize() async {
     if (_viewer == null) {
       throw Exception("Cannot resize without active viewer");
     }
@@ -296,54 +301,56 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Resize currently underway, ignoring");
     }
 
-    rect = Rect.fromLTWH(rect.left, rect.top, rect.width * _pixelRatio, rect.height * _pixelRatio);
-
     _resizing = true;
 
     _lib.set_rendering_ffi(_viewer!, false);
 
-    if(!_usesBackingWindow) {
+    if (!_usesBackingWindow) {
       _lib.destroy_swap_chain_ffi(_viewer!);
     }
-    
+
     if (requiresTextureWidget) {
-      if(textureDetails.value != null) {
+      if (textureDetails.value != null) {
         await _channel.invokeMethod(
             "destroyTexture", textureDetails.value!.textureId);
       }
-    } else if(Platform.isWindows) { 
-        print("Resizing window with rect $rect");
-        await _channel.invokeMethod(
-            "resizeWindow", [rect.width, rect.height, rect.left, rect.top]);
+    } else if (Platform.isWindows) {
+      print("Resizing window with rect $rect");
+      await _channel.invokeMethod("resizeWindow", [
+        rect.value!.width,
+        rect.value!.height,
+        rect.value!.left,
+        rect.value!.top
+      ]);
     }
 
-    var renderingSurface = await _createRenderingSurface(rect);
+    var renderingSurface = await _createRenderingSurface();
 
     if (_viewer!.address == 0) {
       throw Exception("Failed to create viewer. Check logs for details");
     }
 
     _assetManager = _lib.get_asset_manager(_viewer!);
-    
-    if(!_usesBackingWindow) {
+
+    if (!_usesBackingWindow) {
       _lib.create_swap_chain_ffi(_viewer!, renderingSurface.surface,
-          rect.width.toInt(), rect.height.toInt());
+          rect.value!.width.toInt(), rect.value!.height.toInt());
     }
 
     if (renderingSurface.textureHandle != 0) {
       print(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");
       _lib.create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
-          rect.width.toInt(), rect.height.toInt());
+          rect.value!.width.toInt(), rect.value!.height.toInt());
     }
 
     textureDetails.value = TextureDetails(
         textureId: renderingSurface.flutterTextureId!,
-        width: rect.width.toInt(),
-        height: rect.height.toInt());
+        width: rect.value!.width.toInt(),
+        height: rect.value!.height.toInt());
 
     _lib.update_viewport_and_camera_projection_ffi(
-        _viewer!, rect.width.toInt(), rect.height.toInt(), 1.0);
+        _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
 
     await setRendering(_rendering);
 
@@ -739,6 +746,7 @@ class FilamentControllerFFI extends FilamentController {
         _assetManager!, asset, index, loop, reverse, replaceActive, crossfade);
   }
 
+  @override
   Future setAnimationFrame(
       FilamentEntity asset, int index, int animationFrame) async {
     if (_viewer == null) {
@@ -747,6 +755,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_animation_frame(_assetManager!, asset, index, animationFrame);
   }
 
+  @override
   Future stopAnimation(FilamentEntity asset, int animationIndex) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -792,6 +801,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_bloom_ffi(_viewer!, bloom);
   }
 
+  @override
   Future setCameraFocalLength(double focalLength) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -799,6 +809,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_camera_focal_length(_viewer!, focalLength);
   }
 
+  @override
   Future setCameraFocusDistance(double focusDistance) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -806,6 +817,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_camera_focus_distance(_viewer!, focusDistance);
   }
 
+  @override
   Future setCameraPosition(double x, double y, double z) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -813,6 +825,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_camera_position(_viewer!, x, y, z);
   }
 
+  @override
   Future moveCameraToAsset(FilamentEntity asset) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -828,6 +841,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_view_frustum_culling(_viewer!, enabled);
   }
 
+  @override
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
     if (_viewer == null) {
@@ -836,6 +850,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_camera_exposure(_viewer!, aperture, shutterSpeed, sensitivity);
   }
 
+  @override
   Future setCameraRotation(double rads, double x, double y, double z) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -843,6 +858,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_camera_rotation(_viewer!, rads, x, y, z);
   }
 
+  @override
   Future setCameraModelMatrix(List<double> matrix) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -856,6 +872,7 @@ class FilamentControllerFFI extends FilamentController {
     calloc.free(ptr);
   }
 
+  @override
   Future setMaterialColor(FilamentEntity asset, String meshName,
       int materialIndex, Color color) async {
     if (_viewer == null) {
@@ -875,6 +892,7 @@ class FilamentControllerFFI extends FilamentController {
     }
   }
 
+  @override
   Future transformToUnitCube(FilamentEntity asset) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -882,6 +900,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.transform_to_unit_cube(_assetManager!, asset);
   }
 
+  @override
   Future setPosition(FilamentEntity asset, double x, double y, double z) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -889,6 +908,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_position(_assetManager!, asset, x, y, z);
   }
 
+  @override
   Future setScale(FilamentEntity asset, double scale) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -896,6 +916,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_scale(_assetManager!, asset, scale);
   }
 
+  @override
   Future setRotation(
       FilamentEntity asset, double rads, double x, double y, double z) async {
     if (_viewer == null) {
@@ -904,6 +925,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.set_rotation(_assetManager!, asset, rads, x, y, z);
   }
 
+  @override
   Future hide(FilamentEntity asset, String meshName) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -913,6 +935,7 @@ class FilamentControllerFFI extends FilamentController {
         1) {}
   }
 
+  @override
   Future reveal(FilamentEntity asset, String meshName) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -924,6 +947,7 @@ class FilamentControllerFFI extends FilamentController {
     }
   }
 
+  @override
   String? getNameForEntity(FilamentEntity entity) {
     final result = _lib.get_name_for_entity(_assetManager!, entity);
     if (result == nullptr) {
@@ -932,6 +956,7 @@ class FilamentControllerFFI extends FilamentController {
     return result.cast<Utf8>().toDartString();
   }
 
+  @override
   void pick(int x, int y) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");

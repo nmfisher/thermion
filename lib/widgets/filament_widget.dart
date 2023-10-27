@@ -121,16 +121,17 @@ class _SizedFilamentWidget extends StatefulWidget {
 }
 
 class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
-
   String? _error;
 
   late final AppLifecycleListener _appLifecycleListener;
 
-  Rect get _rect { 
-      final renderBox =(context.findRenderObject()) as RenderBox;
-      final size = renderBox.size;
-      final translation = renderBox.getTransformTo(null).getTranslation();
-      return Rect.fromLTWH(translation.x, translation.y, size.width, size.height);
+  late double _pixelRatio;
+
+  Rect get _rect {
+    final renderBox = (context.findRenderObject()) as RenderBox;
+    final size = renderBox.size;
+    final translation = renderBox.getTransformTo(null).getTranslation();
+    return Rect.fromLTWH(translation.x, translation.y, size.width, size.height);
   }
 
   @override
@@ -139,13 +140,12 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
       onStateChange: _handleStateChange,
     );
 
-    
-
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       try {
-        widget.controller.setPixelRatio(MediaQuery.of(context).devicePixelRatio);
-        await widget.controller.createViewer(_rect);
+        _pixelRatio = MediaQuery.of(context).devicePixelRatio;
+        widget.controller.setDimensions(_rect, _pixelRatio);
       } catch (err) {
+        print("Fatal error : $err");
         _error = err.toString();
       }
       setState(() {});
@@ -167,17 +167,19 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     // debug mode does need a longer timeout.
     _resizeTimer?.cancel();
 
-    _resizeTimer =
-        Timer(Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100), () async {
+    _resizeTimer = Timer(
+        Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100),
+        () async {
       if (!mounted) {
         return;
       }
       while (_resizing) {
         await Future.delayed(const Duration(milliseconds: 20));
       }
-    
+
       _resizing = true;
-      await widget.controller.resize(_rect);
+      await widget.controller.setDimensions(_rect, _pixelRatio);
+      await widget.controller.resize();
       _resizeTimer = null;
       setState(() {});
       _resizing = false;

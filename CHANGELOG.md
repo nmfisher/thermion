@@ -1,3 +1,8 @@
+## 0.6.0
+
+* `createViewer` is no longer called by `FilamentWidget` and must be called manually at least one frame after a FilamentWidget has been inserted into the widget hierarchy.
+
+
 ## 0.5.0
 
 * Replaced `isReadyForScene` Future in `FilamentController` with the `Stream<bool>` `hasViewer`. 
