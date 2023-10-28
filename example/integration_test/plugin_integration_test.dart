@@ -30,8 +30,7 @@ void main() {
 
   int _counter = 0;
 
-  Future _snapshot(WidgetTester tester, String label,
-      [int seconds = 0]) async {
+  Future _snapshot(WidgetTester tester, String label, [int seconds = 0]) async {
     await tester.pumpAndSettle(Duration(milliseconds: 16));
     for (int i = 0; i < seconds; i++) {
       await Future.delayed(Duration(seconds: 1));
@@ -58,8 +57,7 @@ void main() {
         const Offset(0, 500), // delta to move
         duration: Duration(milliseconds: 10));
     await tester.tap(target);
-    await _snapshot(
-        tester, label.replaceAll(RegExp("[ -:]"), ""), seconds);
+    await _snapshot(tester, label.replaceAll(RegExp("[ -:]"), ""), seconds);
   }
 
   Future<void> pumpUntilFound(
@@ -89,7 +87,8 @@ void main() {
 
     await _snapshot(tester, "fresh");
 
-    await tap(tester, "create viewer (default ubershader)", 4);
+    await tap(tester, "create FilamentController (default ubershader)", 1);
+    await tap(tester, "create FilamentViewer", 4);
 
     await tap(tester, "Rendering: false", 2);
 
@@ -123,7 +122,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendEventToBinding(testPointer.up());
 
-    await _snapshot(tester,  "rotate", 2);
+    await _snapshot(tester, "rotate", 2);
 
     // pan
     testPointer = TestPointer(1, PointerDeviceKind.mouse, null, kPrimaryButton);
@@ -140,7 +139,7 @@ void main() {
     await tester.sendEventToBinding(testPointer.up());
     await tester.pumpAndSettle();
 
-    await _snapshot(tester,  "pan");
+    await _snapshot(tester, "pan");
 
     await tap(tester, "transform to unit cube");
     await tap(tester, "set shapes position to 1, 1, -1");
