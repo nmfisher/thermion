@@ -16,7 +16,6 @@ dependencies:
   plugin_platform_interface: ^2.0.0
   tuple:
   ffi:
-  wasm_ffi:
 
 dev_dependencies:
   flutter_test:
