@@ -171,20 +171,27 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
         Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100),
         () async {
       if (!mounted) {
+        completer.complete();
         return;
       }
-      while (_resizing) {
-        await Future.delayed(const Duration(milliseconds: 20));
-      }
+      try {
+        while (_resizing) {
+          await Future.delayed(const Duration(milliseconds: 20));
+        }
 
-      _resizing = true;
-      await widget.controller.setDimensions(_rect, _pixelRatio);
-      await widget.controller.resize();
-      _resizeTimer = null;
-      setState(() {});
-      _resizing = false;
-      completer.complete();
+        _resizing = true;
+        await widget.controller.setDimensions(_rect, _pixelRatio);
+        await widget.controller.resize();
+        _resizeTimer = null;
+        setState(() {});
+        _resizing = false;
+      } catch (err) {
+        print("Error resizing FilamentWidget: $err");
+      } finally {
+        completer.complete();
+      }
     });
+
     return completer.future;
   }
 
