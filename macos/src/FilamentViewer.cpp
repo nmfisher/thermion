@@ -984,9 +984,10 @@ namespace polyvox
     _frameCount++;
 
     // if a manipulator is active, update the active camera orientation
-    if(_manipulator) {
+    if (_manipulator)
+    {
       math::double3 eye, target, upward;
-      Camera& cam =_view->getCamera();
+      Camera &cam = _view->getCamera();
       _manipulator->getLookAt(&eye, &target, &upward);
       cam.lookAt(eye, target, upward);
     }
@@ -1007,17 +1008,17 @@ namespace polyvox
     // }
     // else
     // {
-      // Render the scene, unless the renderer wants to skip the frame.
-      if (_renderer->beginFrame(_swapChain, frameTimeInNanos))
-      {
-        _renderer->render(_view);
-        _renderer->endFrame();
-      }
-      else
-      {
-        // std::cout << "Skipped" << std::endl;
-        // skipped frame
-      }
+    // Render the scene, unless the renderer wants to skip the frame.
+    if (_renderer->beginFrame(_swapChain, frameTimeInNanos))
+    {
+      _renderer->render(_view);
+      _renderer->endFrame();
+    }
+    else
+    {
+      // std::cout << "Skipped" << std::endl;
+      // skipped frame
+    }
     // }
   }
 
@@ -1110,35 +1111,49 @@ namespace polyvox
 
   const math::mat4 FilamentViewer::getCameraModelMatrix()
   {
-    const auto& cam = _view->getCamera();
+    const auto &cam = _view->getCamera();
     return cam.getModelMatrix();
   }
 
   const math::mat4 FilamentViewer::getCameraViewMatrix()
   {
-    const auto& cam = _view->getCamera();
+    const auto &cam = _view->getCamera();
     return cam.getViewMatrix();
   }
 
   void FilamentViewer::_createManipulator()
   {
     Camera &cam = _view->getCamera();
+    auto &tm = _engine->getTransformManager();
+    auto transformInstance = tm.getInstance(cam.getEntity());
+    auto transform = tm.getTransform(transformInstance);
+    
     math::double3 home = cam.getPosition();
     math::double3 up = cam.getUpVector();
-    math::double3 target = home + cam.getForwardVector();
+    auto fv = cam.getForwardVector();
+    math::double3 target = home + fv;
     Viewport const &vp = _view->getViewport();
-    Log("Creating manipulator for viewport size %dx%d with camera norm %f", vp.width, vp.height, norm(home));
-    float zoomSpeed = norm(home) / 10;
-    zoomSpeed = math::clamp(zoomSpeed, 0.1f, 100000.0f);
+    Log("Creating manipulator for viewport size %dx%d at home %f %f %f, fv %f %f %f, up %f %f %f target %f %f %f (norm %f) with _zoomSpeed %f", vp.width, vp.height, home[0], home[1], home[2], fv[0], fv[1], fv[2], up[0], up[1], up[2], target[0], target[1], target[2], norm(home), _zoomSpeed);
 
     _manipulator = Manipulator<double>::Builder()
                        .viewport(vp.width, vp.height)
-                       .orbitHomePosition(home[0], home[1], home[2])
-                       .upVector(up.x, up.y, up.z)
-                       .zoomSpeed(zoomSpeed)
-                      //  .orbitSpeed(0.0001, 0.0001)
+                        .upVector(up.x, up.y, up.z)
+                       .zoomSpeed(_zoomSpeed)
                        .targetPosition(target[0], target[1], target[2])
-                       .build(Mode::ORBIT);
+                       // only applicable to Mode::ORBIT
+                       .orbitHomePosition(home[0], home[1], home[2])
+                       .orbitSpeed(_orbitSpeedX, _orbitSpeedY)
+                       // only applicable to Mode::FREE_FLIGHT
+                       .flightStartPosition(home[0], home[1], home[2])
+                       .build(_manipulatorMode);
+  }
+
+  void FilamentViewer::setCameraManipulatorOptions(filament::camutils::Mode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed)
+  {
+    _manipulatorMode = mode;
+    _orbitSpeedX = orbitSpeedX;
+    _orbitSpeedY = orbitSpeedY;
+    _zoomSpeed = zoomSpeed;
   }
 
   void FilamentViewer::grabBegin(float x, float y, bool pan)
@@ -1152,12 +1167,15 @@ namespace polyvox
     {
       _createManipulator();
     }
-    if(pan) {
+    if (pan)
+    {
       Log("Beginning pan at %f %f", x, y);
-    } else { 
+    }
+    else
+    {
       Log("Beginning rotate at %f %f", x, y);
     }
-    
+
     _manipulator->grabBegin(x, y, pan);
   }
 
@@ -1226,9 +1244,8 @@ namespace polyvox
 
   void FilamentViewer::pick(uint32_t x, uint32_t y, EntityId *entityId)
   {
-    _view->pick(x, y, [=](filament::View::PickingQueryResult const &result) {
-        *entityId = Entity::smuggle(result.renderable);
-    });
+    _view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
+                { *entityId = Entity::smuggle(result.renderable); });
   }
 
 } // namespace polyvox

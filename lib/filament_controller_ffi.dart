@@ -1012,8 +1012,11 @@ class FilamentControllerFFI extends FilamentController {
     var arrayPtr = _lib.get_camera_model_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
     var modelMatrix = Matrix4.fromFloat64List(doubleList);
+
+    var position = modelMatrix.getColumn(3).xyz;
+
     calloc.free(arrayPtr);
-    return modelMatrix.getColumn(3).xyz;
+    return position;
   }
 
   @override
@@ -1032,12 +1035,15 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setCameraManipulatorOptions(
-      {ManipulatorMode mode = ManipulatorMode.FREE_FLIGHT,
+      {ManipulatorMode mode = ManipulatorMode.ORBIT,
       double orbitSpeedX = 0.01,
       double orbitSpeedY = 0.01,
       double zoomSpeed = 0.01}) async {
     if (_viewer == null) {
       throw Exception("No viewer available");
+    }
+    if (mode != ManipulatorMode.ORBIT) {
+      throw Exception("Manipulator mode $mode not yet implemented");
     }
     _lib.set_camera_manipulator_options(
         _viewer!, mode.index, orbitSpeedX, orbitSpeedX, zoomSpeed);

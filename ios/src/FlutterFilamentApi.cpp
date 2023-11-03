@@ -130,7 +130,7 @@ extern "C"
         return modelMatrix.asArray();
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_camera_manipulator_options(const void *const viewer, ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed)
+    FLUTTER_PLUGIN_EXPORT void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed)
     {
         ((FilamentViewer *)viewer)->setCameraManipulatorOptions((filament::camutils::Mode)mode, orbitSpeedX, orbitSpeedY, zoomSpeed);
     }

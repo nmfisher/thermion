@@ -47,11 +47,11 @@
 #include "ResourceBuffer.hpp"
 
 typedef int32_t EntityId;
+typedef int32_t _ManipulatorMode;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef int32_t EntityId;
 
 FLUTTER_PLUGIN_EXPORT const void* create_filament_viewer(const void* const context, const ResourceLoaderWrapper* const loader, void* const platform, const char* uberArchivePath);
 FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer(const void* const viewer);
@@ -140,6 +140,8 @@ FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void* assetManager, EntityId a
 FLUTTER_PLUGIN_EXPORT void set_position(void* assetManager, EntityId asset, float x, float y, float z);
 FLUTTER_PLUGIN_EXPORT void set_rotation(void* assetManager, EntityId asset, float rads, float x, float y, float z);
 FLUTTER_PLUGIN_EXPORT void set_scale(void* assetManager, EntityId asset, float scale);
+
+// Camera methods
 FLUTTER_PLUGIN_EXPORT void move_camera_to_asset(const void* const viewer, EntityId asset);
 FLUTTER_PLUGIN_EXPORT void set_view_frustum_culling(const void* const viewer, bool enabled);
 FLUTTER_PLUGIN_EXPORT void set_camera_exposure(const void* const viewer, float aperture, float shutterSpeed, float sensitivity);
@@ -152,6 +154,9 @@ FLUTTER_PLUGIN_EXPORT const double* const get_camera_view_matrix(const void* con
 FLUTTER_PLUGIN_EXPORT const double* const get_camera_projection_matrix(const void* const viewer);
 FLUTTER_PLUGIN_EXPORT void set_camera_focal_length(const void* const viewer, float focalLength);
 FLUTTER_PLUGIN_EXPORT void set_camera_focus_distance(const void* const viewer, float focusDistance);
+FLUTTER_PLUGIN_EXPORT void set_camera_manipulator_options(const void* const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
+
+
 FLUTTER_PLUGIN_EXPORT int hide_mesh(void* assetManager, EntityId asset, const char* meshName);
 FLUTTER_PLUGIN_EXPORT int reveal_mesh(void* assetManager, EntityId asset, const char* meshName);
 FLUTTER_PLUGIN_EXPORT void set_post_processing(void* const viewer, bool enabled);

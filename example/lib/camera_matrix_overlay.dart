@@ -7,7 +7,7 @@ import 'package:flutter_filament/filament_controller.dart';
 class CameraMatrixOverlay extends StatefulWidget {
   final FilamentController controller;
 
-  CameraMatrixOverlay({super.key, required this.controller});
+  const CameraMatrixOverlay({super.key, required this.controller});
 
   @override
   State<StatefulWidget> createState() => _CameraMatrixOverlayState();
@@ -18,23 +18,37 @@ class _CameraMatrixOverlayState extends State<CameraMatrixOverlay> {
   String? _cameraPosition;
   String? _cameraRotation;
 
+  void _updateTimer() {
+    _cameraTimer?.cancel();
+    if (widget.controller.hasViewer.value) {
+      _cameraTimer =
+          Timer.periodic(const Duration(milliseconds: 50), (timer) async {
+        var cameraPosition = await widget.controller.getCameraPosition();
+        var cameraRotation = await widget.controller.getCameraRotation();
+
+        _cameraPosition =
+            "${cameraPosition.storage.map((v) => v.toStringAsFixed(2))}";
+        _cameraRotation =
+            "${cameraRotation.storage.map((v) => v.toStringAsFixed(2))}";
+
+        setState(() {});
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
 
-    _cameraTimer =
-        Timer.periodic(const Duration(milliseconds: 50), (timer) async {
-      var cameraPosition = await widget.controller.getCameraPosition();
-      var cameraRotation = await widget.controller.getCameraRotation();
-      _cameraPosition = cameraPosition.toString();
-      _cameraRotation = cameraRotation.toString();
-      setState(() {});
-    });
+    _updateTimer();
+
+    widget.controller.hasViewer.addListener(_updateTimer);
   }
 
   @override
   void dispose() {
     super.dispose();
+    widget.controller.hasViewer.removeListener(_updateTimer);
     _cameraTimer?.cancel();
   }
 

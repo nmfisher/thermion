@@ -6,11 +6,14 @@ import 'package:flutter_filament/filament_controller.dart';
 import 'package:flutter_filament/filament_controller_ffi.dart';
 
 class ControllerMenu extends StatefulWidget {
+  final FilamentController? controller;
   final void Function(FilamentController controller) onControllerCreated;
   final void Function() onControllerDestroyed;
 
   ControllerMenu(
-      {required this.onControllerCreated, required this.onControllerDestroyed});
+      {this.controller,
+      required this.onControllerCreated,
+      required this.onControllerDestroyed});
 
   @override
   State<StatefulWidget> createState() => _ControllerMenuState();
@@ -21,9 +24,28 @@ class _ControllerMenuState extends State<ControllerMenu> {
   final FocusNode _buttonFocusNode = FocusNode(debugLabel: 'Camera Menu');
 
   void _createController({String? uberArchivePath}) {
+    if (_filamentController != null) {
+      throw Exception("Controller already exists");
+    }
     _filamentController =
         FilamentControllerFFI(uberArchivePath: uberArchivePath);
     widget.onControllerCreated(_filamentController!);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _filamentController = widget.controller;
+  }
+
+  @override
+  void didUpdateWidget(ControllerMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != _filamentController) {
+      setState(() {
+        _filamentController = widget.controller;
+      });
+    }
   }
 
   @override

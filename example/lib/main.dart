@@ -1,27 +1,18 @@
-import 'dart:async';
-import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_filament/filament_controller_ffi.dart';
+import 'package:flutter_filament_example/camera_matrix_overlay.dart';
 import 'package:flutter_filament_example/controller_menu.dart';
 import 'package:flutter_filament_example/example_viewport.dart';
 import 'package:flutter_filament_example/picker_result_widget.dart';
 import 'package:flutter_filament_example/scene_menu.dart';
 
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_filament/animations/animation_data.dart';
-
 import 'package:flutter_filament/filament_controller.dart';
 
-import 'package:flutter_filament/filament_controller_ffi.dart';
-import 'package:flutter_filament/animations/animation_builder.dart';
-
-import 'package:flutter_filament/widgets/filament_gesture_detector.dart';
-import 'package:flutter_filament/widgets/filament_widget.dart';
-
-import 'camera_menu.dart';
+const loadDefaultScene = bool.hasEnvironment('--load-default-scene');
 
 void main() async {
-  runApp(const MyApp());
+  print(loadDefaultScene);
+  runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -42,6 +33,8 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
 }
 
 class ExampleWidget extends StatefulWidget {
+  const ExampleWidget({super.key});
+
   @override
   State<StatefulWidget> createState() {
     return _ExampleWidgetState();
@@ -53,25 +46,13 @@ enum MenuType { controller, assets, camera, misc }
 class _ExampleWidgetState extends State<ExampleWidget> {
   FilamentController? _filamentController;
 
-  FilamentEntity? _shapes;
   FilamentEntity? _flightHelmet;
   FilamentEntity? _buster;
   FilamentEntity? _light;
 
-  List<String>? _animations;
-
   final weights = List.filled(255, 0.0);
 
-  bool _loop = false;
   EdgeInsets _viewportMargin = EdgeInsets.zero;
-
-  bool _hasViewer = false;
-
-  bool _rendering = false;
-  int _framerate = 60;
-  bool _postProcessing = true;
-
-  bool _coneHidden = false;
 
   Widget _item(void Function() onTap, String text) {
     return GestureDetector(
@@ -86,7 +67,25 @@ class _ExampleWidgetState extends State<ExampleWidget> {
             child: Text(text)));
   }
 
-  final FocusNode _buttonFocusNode = FocusNode(debugLabel: 'Menu Button');
+  @override
+  void initState() {
+    super.initState();
+    if (loadDefaultScene) {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+        setState(() {
+          _filamentController = FilamentControllerFFI();
+        });
+        await Future.delayed(const Duration(milliseconds: 100));
+        WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+          await _filamentController!.createViewer();
+          await _filamentController!
+              .loadSkybox("assets/default_env/default_env_skybox.ktx");
+          await _filamentController!.setRendering(true);
+          await _filamentController!.loadGlb("assets/shapes/shapes.glb");
+        });
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +103,7 @@ class _ExampleWidgetState extends State<ExampleWidget> {
               color: Colors.white,
               child: Row(children: [
                 ControllerMenu(
+                    controller: _filamentController,
                     onControllerDestroyed: () {},
                     onControllerCreated: (controller) {
                       setState(() {
@@ -114,23 +114,21 @@ class _ExampleWidgetState extends State<ExampleWidget> {
                   controller: _filamentController,
                 )
               ]))),
+      _filamentController == null
+          ? Container()
+          : Align(
+              alignment: Alignment.topLeft,
+              child: CameraMatrixOverlay(controller: _filamentController!),
+            ),
+      _filamentController == null
+          ? Container()
+          : Align(
+              alignment: Alignment.topRight,
+              child: PickerResultWidget(controller: _filamentController!),
+            )
     ]);
 
 //           _item(() {
-
-//           _item(() async {
-//             _light = await _filamentController!
-//                 .addLight(1, 6500, 150000, 0, 1, 0, 0, -1, 0, true);
-//           }, "add directional light"),
-//           _item(() async {
-//             await _filamentController!.clearLights();
-//           }, "clear lights"),
-//           _item(() {
-//             setState(() {
-//               _postProcessing = !_postProcessing;
-//             });
-//             _filamentController!.setPostProcessing(_postProcessing);
-//           }, "${_postProcessing ? "Disable" : "Enable"} postprocessing"),
 
 //           _item(() async {
 //             _animations = await _filamentController!.setCamera(_shapes!, null);
@@ -281,21 +279,6 @@ class _ExampleWidgetState extends State<ExampleWidget> {
 //               }, "play animation ${_animations!.indexOf(a)} (noreplace)")));
 //         }
 
-//         children.add(_item(() {
-//           _filamentController!.setToneMapping(ToneMapper.LINEAR);
-//         }, "Set tone mapping to linear"));
-
-//         children.add(_item(() {
-//           _filamentController!.moveCameraToAsset(_shapes!);
-//         }, "Move camera to shapes asset"));
-
-//         children.add(_item(() {
-//           setState(() {
-//             _frustumCulling = !_frustumCulling;
-//           });
-//           _filamentController!.setViewFrustumCulling(_frustumCulling);
-//         }, "${_frustumCulling ? "Disable" : "Enable"} frustum culling"));
-
 //         children.addAll([
 //           _item(() async {
 //             await Permission.microphone.request();
@@ -350,37 +333,37 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   }
 }
 
- // _item(24 () async { 'rotate by pi around Y axis'),
-                      // _item(5 () async { 'load flight helmet'),
+// _item(24 () async { 'rotate by pi around Y axis'),
+// _item(5 () async { 'load flight helmet'),
 
-                      // _item(7 () async { 'set all weights to 1'),
-                      // _item(8 () async { 'set all weights to 0'),
-                      // _item(9 () async { 'play all animations'),
-                      // _item(34 () async { 'play animation 0'),
-                      // _item(34 () async { 'play animation 0 (noreplace)'),
-                      // _item(35 () async { 'play animation 1'),
-                      // _item(34 () async { 'play animation 0 (noreplace)'),
-                      // _item(36 () async { 'play animation 2'),
-                      // _item(34 () async { 'play animation 0 (noreplace)'),
-                      // _item(36 () async { 'play animation 3'),
-                      // _item(34 () async { 'play animation 3 (noreplace)'),
-                      // _item(37 () async { 'stop animation 0'),
+// _item(7 () async { 'set all weights to 1'),
+// _item(8 () async { 'set all weights to 0'),
+// _item(9 () async { 'play all animations'),
+// _item(34 () async { 'play animation 0'),
+// _item(34 () async { 'play animation 0 (noreplace)'),
+// _item(35 () async { 'play animation 1'),
+// _item(34 () async { 'play animation 0 (noreplace)'),
+// _item(36 () async { 'play animation 2'),
+// _item(34 () async { 'play animation 0 (noreplace)'),
+// _item(36 () async { 'play animation 3'),
+// _item(34 () async { 'play animation 3 (noreplace)'),
+// _item(37 () async { 'stop animation 0'),
 
-                      // _item(14 () async { 'set camera'),
-                      // _item(15 () async { 'animate weights'),
-                      // _item(16 () async { 'get target names'),
-                      // _item(17 () async { 'get animation names'),
-                      // _item(18 () async { 'pan left'),
-                      // _item(19 () async { 'pan right'),
-                      // _item(25 () async {
-                      //     Text(_vertical ? 'set horizontal' : 'set vertical')),
-                      // _item(26 () async { 'set camera pos to 0,0,3'),
-                      // _item(27 () async { 'toggle framerate'),
-                      // _item(28 () async { 'set bg image pos'),
-                      // _item(29 () async { 'add light'),
-                      // _item(30 () async { 'remove light'),
-                      // _item(31 () async { 'clear all lights'),
-                      // _item(32 () async { 'set camera model matrix'),
+// _item(14 () async { 'set camera'),
+// _item(15 () async { 'animate weights'),
+// _item(16 () async { 'get target names'),
+// _item(17 () async { 'get animation names'),
+// _item(18 () async { 'pan left'),
+// _item(19 () async { 'pan right'),
+// _item(25 () async {
+//     Text(_vertical ? 'set horizontal' : 'set vertical')),
+// _item(26 () async { 'set camera pos to 0,0,3'),
+// _item(27 () async { 'toggle framerate'),
+// _item(28 () async { 'set bg image pos'),
+// _item(29 () async { 'add light'),
+// _item(30 () async { 'remove light'),
+// _item(31 () async { 'clear all lights'),
+// _item(32 () async { 'set camera model matrix'),
 
 // case -1:
 

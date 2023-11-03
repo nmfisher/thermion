@@ -110,7 +110,7 @@ namespace polyvox
         void scrollUpdate(float x, float y, float delta);
         void scrollEnd();
         void pick(uint32_t x, uint32_t y, EntityId *entityId);
-
+        
         EntityId addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
         void removeLight(EntityId entityId);
         void clearLights();
@@ -163,6 +163,7 @@ namespace polyvox
         double _zoomSpeed = 0.01;
         math::mat4f _cameraPosition;
         math::mat4f _cameraRotation;
+        void _createManipulator();
 
         ColorGrading *colorGrading = nullptr;
 

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_filament/filament_controller.dart';
-import 'package:flutter_filament/generated_bindings.dart';
 
 class PickerResultWidget extends StatelessWidget {
   final FilamentController controller;
 
-  const PickerResultWidget({super.key, required this.controller});
+  const PickerResultWidget({required this.controller, super.key});
 
   @override
   Widget build(BuildContext context) {

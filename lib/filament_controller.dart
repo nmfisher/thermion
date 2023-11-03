@@ -440,9 +440,10 @@ abstract class FilamentController {
 
   ///
   /// Sets the options for manipulating the camera via the viewport.
+  /// ManipulatorMode.FREE_FLIGHT and ManipulatorMode.MAP are currently unsupported and will throw an exception.
   ///
   Future setCameraManipulatorOptions(
-      {ManipulatorMode mode = ManipulatorMode.FREE_FLIGHT,
+      {ManipulatorMode mode = ManipulatorMode.ORBIT,
       double orbitSpeedX = 0.01,
       double orbitSpeedY = 0.01,
       double zoomSpeed = 0.01});
