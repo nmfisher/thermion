@@ -246,7 +246,6 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
         break;
       case AppLifecycleState.resumed:
         print("Resumed");
-        await Future.delayed(const Duration(milliseconds: 500));
         await widget.controller.setRendering(_wasRenderingOnInactive);
         break;
     }
