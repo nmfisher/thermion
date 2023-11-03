@@ -992,7 +992,9 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available");
     }
     var arrayPtr = _lib.get_camera_view_matrix(_viewer!);
-    return Matrix4.fromList(arrayPtr.asTypedList(16));
+    var viewMatrix = Matrix4.fromList(arrayPtr.asTypedList(16));
+    calloc.free(arrayPtr);
+    return viewMatrix;
   }
 
   @override
@@ -1001,7 +1003,9 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available");
     }
     var arrayPtr = _lib.get_camera_model_matrix(_viewer!);
-    return Matrix4.fromList(arrayPtr.asTypedList(16));
+    var modelMatrix = Matrix4.fromList(arrayPtr.asTypedList(16));
+    calloc.free(arrayPtr);
+    return modelMatrix;
   }
 
   @override

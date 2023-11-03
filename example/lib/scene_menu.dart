@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'package:flutter_filament/filament_controller.dart';
@@ -104,6 +106,12 @@ class _SceneMenuState extends State<SceneMenu> {
           widget.controller!.moveCameraToAsset(_shapes!);
         },
         child: const Text("Move camera to shapes asset"),
+      ),
+      MenuItemButton(
+        onPressed: () {
+          widget.controller!.setCameraRotation(pi / 4, 0.0, 1.0, 0.0);
+        },
+        child: const Text("Rotate camera 45 degrees around y axis"),
       ),
       MenuItemButton(
         onPressed: () {

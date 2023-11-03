@@ -348,7 +348,7 @@ abstract class FilamentController {
   Future<Matrix4> getCameraViewMatrix();
 
   ///
-  /// Set the camera position in world space.
+  /// Set the camera position in world space. Note this is not persistent - any viewport navigation will reset the camera transform.
   ///
   Future setCameraPosition(double x, double y, double z);
 
@@ -374,7 +374,7 @@ abstract class FilamentController {
       double aperture, double shutterSpeed, double sensitivity);
 
   ///
-  /// Rotate the camera by [rads] around the given axis.
+  /// Rotate the camera by [rads] around the given axis. Note this is not persistent - any viewport navigation will reset the camera transform.
   ///
   Future setCameraRotation(double rads, double x, double y, double z);
 
