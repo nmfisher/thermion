@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_filament/animations/animation_data.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 typedef FilamentEntity = int;
 
@@ -280,6 +281,7 @@ abstract class FilamentController {
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0});
+
   Future setAnimationFrame(
       FilamentEntity entity, int index, int animationFrame);
   Future stopAnimation(FilamentEntity entity, int animationIndex);
@@ -298,8 +300,25 @@ abstract class FilamentController {
   /// Sets the strength of the bloom.
   ///
   Future setBloom(double bloom);
+
+  ///
+  /// Sets the focal length of the camera.
+  ///
   Future setCameraFocalLength(double focalLength);
+
+  ///
+  /// Sets the focus distance for the camera.
+  ///
   Future setCameraFocusDistance(double focusDistance);
+
+  ///
+  /// Get the camera position in world space.
+  ///
+  Future<Vector3> getCameraPosition(double x, double y, double z);
+
+  ///
+  /// Set the camera position in world space.
+  ///
   Future setCameraPosition(double x, double y, double z);
 
   ///
@@ -311,9 +330,21 @@ abstract class FilamentController {
   /// Enables/disables frustum culling. Currently we don't expose a method for manipulating the camera projection/culling matrices so this is your only option to deal with unwanted near/far clipping.
   ///
   Future setViewFrustumCulling(bool enabled);
+
+  ///
+  /// Sets the camera exposure.
+  ///
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity);
+
+  ///
+  /// Rotate the camera by [rads] around the given axis.
+  ///
   Future setCameraRotation(double rads, double x, double y, double z);
+
+  ///
+  /// Sets the camera model matrix.
+  ///
   Future setCameraModelMatrix(List<double> matrix);
 
   Future setMaterialColor(
