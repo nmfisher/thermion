@@ -257,7 +257,7 @@ FilamentAsset* AssetManager::getAssetByEntityId(EntityId entityId) {
 
 void AssetManager::updateAnimations() { 
     
-    
+    std::lock_guard lock(_animationMutex);
     RenderableManager &rm = _engine->getRenderableManager();
     
     for (auto& asset : _assets) {
@@ -467,7 +467,8 @@ bool AssetManager::setMorphAnimationBuffer(
                                            int numMorphTargets,
                                            int numFrames,
                                            float frameLengthInMs) {
-    
+    std::lock_guard lock(_animationMutex);
+
     const auto& pos = _entityIdLookup.find(entityId);
     if(pos == _entityIdLookup.end()) {
         Log("ERROR: asset not found for entity.");
@@ -543,7 +544,8 @@ bool AssetManager::setBoneAnimationBuffer(
                                           const char** const meshNames,
                                           int numMeshTargets,
                                           float frameLengthInMs) {
-    
+    std::lock_guard lock(_animationMutex);
+
     const auto& pos = _entityIdLookup.find(entityId);
     if(pos == _entityIdLookup.end()) {
         Log("ERROR: asset not found for entity.");
@@ -632,6 +634,8 @@ bool AssetManager::setBoneAnimationBuffer(
 
 
 void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade) {
+    std::lock_guard lock(_animationMutex);
+
     if(index < 0) {
         Log("ERROR: glTF animation index must be greater than zero.");
         return;
@@ -686,6 +690,8 @@ void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse,
 }
 
 void AssetManager::stopAnimation(EntityId entityId, int index) {
+    std::lock_guard lock(_animationMutex);
+
     const auto& pos = _entityIdLookup.find(entityId);
     if(pos == _entityIdLookup.end()) {
         Log("ERROR: asset not found for entity.");
