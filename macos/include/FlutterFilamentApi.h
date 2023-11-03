@@ -144,8 +144,12 @@ FLUTTER_PLUGIN_EXPORT void move_camera_to_asset(const void* const viewer, Entity
 FLUTTER_PLUGIN_EXPORT void set_view_frustum_culling(const void* const viewer, bool enabled);
 FLUTTER_PLUGIN_EXPORT void set_camera_exposure(const void* const viewer, float aperture, float shutterSpeed, float sensitivity);
 FLUTTER_PLUGIN_EXPORT void set_camera_position(const void* const viewer, float x, float y, float z);
+FLUTTER_PLUGIN_EXPORT void get_camera_position(const void* const viewer);
 FLUTTER_PLUGIN_EXPORT void set_camera_rotation(const void* const viewer, float rads, float x, float y, float z);
 FLUTTER_PLUGIN_EXPORT void set_camera_model_matrix(const void* const viewer, const float *const matrix);
+FLUTTER_PLUGIN_EXPORT const double* const get_camera_model_matrix(const void* const viewer);
+FLUTTER_PLUGIN_EXPORT const double* const get_camera_view_matrix(const void* const viewer);
+FLUTTER_PLUGIN_EXPORT const double* const get_camera_projection_matrix(const void* const viewer);
 FLUTTER_PLUGIN_EXPORT void set_camera_focal_length(const void* const viewer, float focalLength);
 FLUTTER_PLUGIN_EXPORT void set_camera_focus_distance(const void* const viewer, float focusDistance);
 FLUTTER_PLUGIN_EXPORT int hide_mesh(void* assetManager, EntityId asset, const char* meshName);

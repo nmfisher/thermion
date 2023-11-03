@@ -92,6 +92,8 @@ namespace polyvox {
             void setCameraExposure(float aperture, float shutterSpeed, float sensitivity);
             void setCameraPosition(float x, float y, float z);
             void setCameraRotation(float rads, float x, float y, float z);
+            const math::mat4 getCameraModelMatrix();
+            const math::mat4 getCameraViewMatrix();
             void setCameraModelMatrix(const float* const matrix);
             void setCameraFocalLength(float fl);
             void setCameraFocusDistance(float focusDistance);
@@ -103,7 +105,7 @@ namespace polyvox {
             void scrollUpdate(float x, float y, float delta);
             void scrollEnd();
 
-            int32_t addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
+            EntityId addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
             void removeLight(EntityId entityId);
             void clearLights();
             void setPostProcessing(bool enabled);

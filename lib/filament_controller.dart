@@ -178,8 +178,16 @@ abstract class FilamentController {
   ///
   Future clearLights();
 
+  ///
+  /// Load the .glb asset at the given path and insert into the scene.
+  ///
   Future<FilamentEntity> loadGlb(String path, {bool unlit = false});
 
+  ///
+  /// Load the .gltf asset at the given path and insert into the scene.
+  /// [relativeResourcePath] is the folder path where the glTF resources are stored;
+  /// this is usually the parent directory of the .gltf file itself.
+  ///
   Future<FilamentEntity> loadGltf(String path, String relativeResourcePath);
 
   ///
@@ -314,12 +322,27 @@ abstract class FilamentController {
   ///
   /// Get the camera position in world space.
   ///
-  Future<Vector3> getCameraPosition(double x, double y, double z);
+  Future<Vector3> getCameraPosition();
+
+  ///
+  /// Get the camera's model matrix.
+  ///
+  Future<Matrix4> getCameraModelMatrix();
+
+  ///
+  /// Get the camera's view matrix.
+  ///
+  Future<Matrix4> getCameraViewMatrix();
 
   ///
   /// Set the camera position in world space.
   ///
   Future setCameraPosition(double x, double y, double z);
+
+  ///
+  /// Get the camera rotation matrix.
+  ///
+  Future<Matrix3> getCameraRotation();
 
   ///
   /// Repositions the camera to the last vertex of the bounding box of [asset], looking at the penultimate vertex.
@@ -347,11 +370,14 @@ abstract class FilamentController {
   ///
   Future setCameraModelMatrix(List<double> matrix);
 
+  ///
+  /// Sets the `baseColorFactor` property for the material at index [materialIndex] in [entity] under node [meshName] to [color].
+  ///
   Future setMaterialColor(
       FilamentEntity entity, String meshName, int materialIndex, Color color);
 
   ///
-  /// Scales [asset] up/down so it fits within a unit cube.
+  /// Scale [asset] to fit within the unit cube.
   ///
   Future transformToUnitCube(FilamentEntity entity);
 
@@ -369,6 +395,10 @@ abstract class FilamentController {
   /// Sets the scale for the given entity.
   ///
   Future setScale(FilamentEntity entity, double scale);
+
+  ///
+  /// Sets the rotation for [entity] to [rads] around the axis {x,y,z}.
+  ///
   Future setRotation(
       FilamentEntity entity, double rads, double x, double y, double z);
 

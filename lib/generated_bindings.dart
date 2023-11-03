@@ -224,9 +224,8 @@ class NativeLibrary {
   }
 
   late final _set_bloomPtr = _lookup<
-          ffi
-          .NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>>(
-      'set_bloom');
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>>('set_bloom');
   late final _set_bloom =
       _set_bloomPtr.asFunction<void Function(ffi.Pointer<ffi.Void>, double)>();
 
@@ -351,9 +350,8 @@ class NativeLibrary {
   }
 
   late final _remove_lightPtr = _lookup<
-          ffi
-          .NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>>(
-      'remove_light');
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>>('remove_light');
   late final _remove_light =
       _remove_lightPtr.asFunction<void Function(ffi.Pointer<ffi.Void>, int)>();
 
@@ -991,9 +989,8 @@ class NativeLibrary {
   }
 
   late final _remove_assetPtr = _lookup<
-          ffi
-          .NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>>(
-      'remove_asset');
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>>('remove_asset');
   late final _remove_asset =
       _remove_assetPtr.asFunction<void Function(ffi.Pointer<ffi.Void>, int)>();
 
@@ -1192,6 +1189,20 @@ class NativeLibrary {
   late final _set_camera_position = _set_camera_positionPtr.asFunction<
       void Function(ffi.Pointer<ffi.Void>, double, double, double)>();
 
+  void get_camera_position(
+    ffi.Pointer<ffi.Void> viewer,
+  ) {
+    return _get_camera_position(
+      viewer,
+    );
+  }
+
+  late final _get_camera_positionPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+          'get_camera_position');
+  late final _get_camera_position = _get_camera_positionPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
   void set_camera_rotation(
     ffi.Pointer<ffi.Void> viewer,
     double rads,
@@ -1232,6 +1243,51 @@ class NativeLibrary {
   late final _set_camera_model_matrix = _set_camera_model_matrixPtr.asFunction<
       void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>)>();
 
+  ffi.Pointer<ffi.Double> get_camera_model_matrix(
+    ffi.Pointer<ffi.Void> viewer,
+  ) {
+    return _get_camera_model_matrix(
+      viewer,
+    );
+  }
+
+  late final _get_camera_model_matrixPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Double> Function(
+              ffi.Pointer<ffi.Void>)>>('get_camera_model_matrix');
+  late final _get_camera_model_matrix = _get_camera_model_matrixPtr
+      .asFunction<ffi.Pointer<ffi.Double> Function(ffi.Pointer<ffi.Void>)>();
+
+  ffi.Pointer<ffi.Double> get_camera_view_matrix(
+    ffi.Pointer<ffi.Void> viewer,
+  ) {
+    return _get_camera_view_matrix(
+      viewer,
+    );
+  }
+
+  late final _get_camera_view_matrixPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Double> Function(
+              ffi.Pointer<ffi.Void>)>>('get_camera_view_matrix');
+  late final _get_camera_view_matrix = _get_camera_view_matrixPtr
+      .asFunction<ffi.Pointer<ffi.Double> Function(ffi.Pointer<ffi.Void>)>();
+
+  ffi.Pointer<ffi.Double> get_camera_projection_matrix(
+    ffi.Pointer<ffi.Void> viewer,
+  ) {
+    return _get_camera_projection_matrix(
+      viewer,
+    );
+  }
+
+  late final _get_camera_projection_matrixPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Double> Function(
+              ffi.Pointer<ffi.Void>)>>('get_camera_projection_matrix');
+  late final _get_camera_projection_matrix = _get_camera_projection_matrixPtr
+      .asFunction<ffi.Pointer<ffi.Double> Function(ffi.Pointer<ffi.Void>)>();
+
   void set_camera_focal_length(
     ffi.Pointer<ffi.Void> viewer,
     double focalLength,
@@ -1265,6 +1321,23 @@ class NativeLibrary {
       'set_camera_focus_distance');
   late final _set_camera_focus_distance = _set_camera_focus_distancePtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, double)>();
+
+  void set_camera_manipulator_mode(
+    ffi.Pointer<ffi.Void> viewer,
+    int mode,
+  ) {
+    return _set_camera_manipulator_mode(
+      viewer,
+      mode,
+    );
+  }
+
+  late final _set_camera_manipulator_modePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Void>,
+              ManipulatorMode)>>('set_camera_manipulator_mode');
+  late final _set_camera_manipulator_mode = _set_camera_manipulator_modePtr
+      .asFunction<void Function(ffi.Pointer<ffi.Void>, int)>();
 
   int hide_mesh(
     ffi.Pointer<ffi.Void> assetManager,
@@ -2383,6 +2456,7 @@ typedef FreeFilamentResourceFromOwner = ffi.Pointer<
 /// This header replicates most of the methods in FlutterFilamentApi.h, and is only intended to be used to generate client FFI bindings.
 /// The intention is that calling one of these methods will call its respective method in FlutterFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety.
 typedef EntityId = ffi.Int32;
+typedef ManipulatorMode = ffi.Int32;
 typedef FilamentRenderCallback = ffi.Pointer<
     ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> owner)>>;
 

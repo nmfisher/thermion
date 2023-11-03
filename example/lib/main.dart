@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_filament/animations/animation_data.dart';
 
@@ -11,7 +11,6 @@ import 'package:flutter_filament/filament_controller.dart';
 import 'package:flutter_filament/filament_controller_ffi.dart';
 import 'package:flutter_filament/animations/animation_builder.dart';
 
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_filament/widgets/filament_gesture_detector.dart';
 import 'package:flutter_filament/widgets/filament_widget.dart';
 
@@ -44,6 +43,10 @@ class ExampleWidget extends StatefulWidget {
 
 class _ExampleWidgetState extends State<ExampleWidget> {
   FilamentController? _filamentController;
+
+  Timer? _cameraTimer;
+  String? _cameraPosition;
+  String? _cameraRotation;
 
   FilamentEntity? _shapes;
   FilamentEntity? _flightHelmet;
@@ -89,12 +92,29 @@ class _ExampleWidgetState extends State<ExampleWidget> {
   }
 
   void _createController({String? uberArchivePath}) {
+    _cameraTimer?.cancel();
     _filamentController =
         FilamentControllerFFI(uberArchivePath: uberArchivePath);
     _filamentController!.pickResult.listen((entityId) {
       setState(() {
         picked = _filamentController!.getNameForEntity(entityId!);
       });
+    });
+  }
+
+  void _createViewer() {
+    _filamentController!.createViewer();
+    setState(() {
+      _hasViewer = true;
+    });
+
+    _cameraTimer =
+        Timer.periodic(const Duration(milliseconds: 50), (timer) async {
+      var cameraPosition = await _filamentController!.getCameraPosition();
+      var cameraRotation = await _filamentController!.getCameraRotation();
+      _cameraPosition = cameraPosition.toString();
+      _cameraRotation = cameraRotation.toString();
+      setState(() {});
     });
   }
 
@@ -120,17 +140,11 @@ class _ExampleWidgetState extends State<ExampleWidget> {
       ]);
     } else {
       if (!_hasViewer) {
-        children.addAll([
-          _item(() {
-            _filamentController!.createViewer();
-            setState(() {
-              _hasViewer = true;
-            });
-          }, "create FilamentViewer")
-        ]);
+        children.addAll([_item(_createViewer, "create FilamentViewer")]);
       } else {
         children.addAll([
           _item(() {
+            _cameraTimer?.cancel();
             _filamentController!.destroy();
             _filamentController = null;
             setState(() {
@@ -406,6 +420,21 @@ class _ExampleWidgetState extends State<ExampleWidget> {
           top: 50,
           child: Text(picked ?? "",
               style: const TextStyle(color: Colors.green, fontSize: 24))),
+      _cameraTimer == null
+          ? Container()
+          : Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                  decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(29)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Text(
+                      "Camera position : $_cameraPosition $_cameraRotation",
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 12)))),
       Align(
           alignment: Alignment.bottomCenter,
           child: OrientationBuilder(builder: (ctx, orientation) {

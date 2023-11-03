@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_filament/filament_controller.dart';
 import 'package:flutter_filament/animations/animation_data.dart';
 import 'package:flutter_filament/generated_bindings.dart';
 import 'package:flutter_filament/rendering_surface.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 // ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
@@ -967,7 +969,7 @@ class FilamentControllerFFI extends FilamentController {
     _lib.pick_ffi(_viewer!, x, textureDetails.value!.height - y, outPtr);
     int wait = 0;
     while (outPtr.value == 0) {
-      await Future.delayed(Duration(milliseconds: 50));
+      await Future.delayed(const Duration(milliseconds: 32));
       wait++;
       if (wait > 10) {
         calloc.free(outPtr);
@@ -977,5 +979,49 @@ class FilamentControllerFFI extends FilamentController {
     var entityId = outPtr.value;
     _pickResultController.add(entityId);
     calloc.free(outPtr);
+  }
+
+  @override
+  Future<Matrix4> getCameraViewMatrix() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    var arrayPtr = _lib.get_camera_view_matrix(_viewer!);
+    return Matrix4.fromList(arrayPtr.asTypedList(16));
+  }
+
+  @override
+  Future<Matrix4> getCameraModelMatrix() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    var arrayPtr = _lib.get_camera_model_matrix(_viewer!);
+    return Matrix4.fromList(arrayPtr.asTypedList(16));
+  }
+
+  @override
+  Future<Vector3> getCameraPosition() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    var arrayPtr = _lib.get_camera_model_matrix(_viewer!);
+    var doubleList = arrayPtr.asTypedList(16);
+    var modelMatrix = Matrix4.fromFloat64List(doubleList);
+    calloc.free(arrayPtr);
+    return modelMatrix.getColumn(3).xyz;
+  }
+
+  @override
+  Future<Matrix3> getCameraRotation() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    var arrayPtr = _lib.get_camera_model_matrix(_viewer!);
+    var doubleList = arrayPtr.asTypedList(16);
+    var modelMatrix = Matrix4.fromFloat64List(doubleList);
+    var rotationMatrix = Matrix3.identity();
+    modelMatrix.copyRotation(rotationMatrix);
+    calloc.free(arrayPtr);
+    return rotationMatrix;
   }
 }

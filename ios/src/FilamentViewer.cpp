@@ -1108,6 +1108,18 @@ namespace polyvox
     cam.setModelMatrix(modelMatrix);
   }
 
+  const math::mat4 FilamentViewer::getCameraModelMatrix()
+  {
+    const auto& cam = _view->getCamera();
+    return cam.getModelMatrix();
+  }
+
+  const math::mat4 FilamentViewer::getCameraViewMatrix()
+  {
+    const auto& cam = _view->getCamera();
+    return cam.getViewMatrix();
+  }
+
   void FilamentViewer::_createManipulator()
   {
     Camera &cam = _view->getCamera();
@@ -1123,10 +1135,18 @@ namespace polyvox
                        .viewport(vp.width, vp.height)
                        .orbitHomePosition(home[0], home[1], home[2])
                        .upVector(up.x, up.y, up.z)
-                       .zoomSpeed(zoomSpeed)
-                      //  .orbitSpeed(0.0001, 0.0001)
+                       .zoomSpeed(_zoomSpeed)
+                       .orbitSpeed(_orbitSpeedX, _orbitSpeedY)
                        .targetPosition(target[0], target[1], target[2])
-                       .build(Mode::ORBIT);
+                       .build(_manipulatorMode);
+  }
+
+  void FilamentViewer::setCameraManipulatorOptions(filament::camutils::Mode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed)
+  {
+    _manipulatorMode = mode;
+    _orbitSpeedX = orbitSpeedX;
+    _orbitSpeedY = orbitSpeedY;
+    _zoomSpeed = zoomSpeedY;
   }
 
   void FilamentViewer::grabBegin(float x, float y, bool pan)

@@ -1108,6 +1108,18 @@ namespace polyvox
     cam.setModelMatrix(modelMatrix);
   }
 
+  const math::mat4 FilamentViewer::getCameraModelMatrix()
+  {
+    const auto& cam = _view->getCamera();
+    return cam.getModelMatrix();
+  }
+
+  const math::mat4 FilamentViewer::getCameraViewMatrix()
+  {
+    const auto& cam = _view->getCamera();
+    return cam.getViewMatrix();
+  }
+
   void FilamentViewer::_createManipulator()
   {
     Camera &cam = _view->getCamera();

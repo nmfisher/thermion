@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include <filament/Scene.h>
 
 #include <gltfio/AssetLoader.h>
@@ -82,6 +84,7 @@ namespace polyvox {
             gltfio::ResourceLoader* _gltfResourceLoader = nullptr;
             gltfio::TextureProvider* _stbDecoder = nullptr;
             gltfio::TextureProvider* _ktxDecoder = nullptr;
+            std::mutex _animationMutex;
         
             vector<SceneAsset> _assets;
             tsl::robin_map<EntityId, int> _entityIdLookup;

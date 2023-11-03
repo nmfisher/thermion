@@ -84,16 +84,28 @@ extern "C" {
       ((FilamentViewer*)viewer)->clearLights();
   }
 
-  EntityId load_glb(void* assetManager, const char* assetPath, bool unlit) {
+  FLUTTER_PLUGIN_EXPORT EntityId load_glb(void* assetManager, const char* assetPath, bool unlit) {
       return ((AssetManager*)assetManager)->loadGlb(assetPath, unlit);
   }
 
-  EntityId load_gltf(void* assetManager, const char* assetPath, const char* relativePath) {
+  FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void* assetManager, const char* assetPath, const char* relativePath) {
       return ((AssetManager*)assetManager)->loadGltf(assetPath, relativePath);
   }
 
-  bool set_camera(const void* const viewer, EntityId asset, const char* nodeName) {
+  FLUTTER_PLUGIN_EXPORT bool set_camera(const void* const viewer, EntityId asset, const char* nodeName) {
       return ((FilamentViewer*)viewer)->setCamera(asset, nodeName);
+  }
+
+  const double* const get_camera_model_matrix(const void* const viewer) {
+      const auto& modelMatrix = ((FilamentViewer*)viewer)->getCameraModelMatrix();
+      double* array = (double*)calloc(16, sizeof(double));
+      memcpy(array, modelMatrix.asArray(), 16 * sizeof(double));
+      return array;
+  }
+
+  const double* const get_camera_view_matrix(const void* const viewer) {
+      const auto& modelMatrix = ((FilamentViewer*)viewer)->getCameraViewMatrix();
+      return modelMatrix.asArray();
   }
 
   FLUTTER_PLUGIN_EXPORT void set_view_frustum_culling(const void* const viewer, bool enabled) {
