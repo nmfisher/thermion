@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
@@ -5,9 +7,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_filament/animations/animation_data.dart';
 import 'package:vector_math/vector_math_64.dart';
 
+// a handle that can be safely passed back to the rendering layer to manipulate an Entity
 typedef FilamentEntity = int;
 
 enum ToneMapper { ACES, FILMIC, LINEAR }
+
+// see filament Manipulator.h for more details
+enum ManipulatorMode { ORBIT, MAP, FREE_FLIGHT }
 
 class TextureDetails {
   final int textureId;
@@ -26,6 +32,13 @@ abstract class FilamentController {
   /// If you need to perform work as early as possible, add a listener to this property before a [FilamentWidget] has been inserted into the widget hierarchy.
   ///
   ValueNotifier<Rect?> get rect;
+
+  ///
+  /// A [ValueNotifier] to indicate whether a FilamentViewer is currently available.
+  /// (FilamentViewer is a C++ type, hence why it is not referenced) here.
+  /// Call [createViewer]/[destroyViewer] to create/destroy a FilamentViewer.
+  ///
+  ValueNotifier<bool> get hasViewer;
 
   ///
   /// Whether a Flutter Texture widget should be inserted into the widget hierarchy.
@@ -424,4 +437,13 @@ abstract class FilamentController {
   /// Retrieves the name assigned to the given FilamentEntity (usually corresponds to the glTF mesh name).
   ///
   String? getNameForEntity(FilamentEntity entity);
+
+  ///
+  /// Sets the options for manipulating the camera via the viewport.
+  ///
+  Future setCameraManipulatorOptions(
+      {ManipulatorMode mode = ManipulatorMode.FREE_FLIGHT,
+      double orbitSpeedX = 0.01,
+      double orbitSpeedY = 0.01,
+      double zoomSpeed = 0.01});
 }

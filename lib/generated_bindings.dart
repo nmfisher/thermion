@@ -1322,22 +1322,29 @@ class NativeLibrary {
   late final _set_camera_focus_distance = _set_camera_focus_distancePtr
       .asFunction<void Function(ffi.Pointer<ffi.Void>, double)>();
 
-  void set_camera_manipulator_mode(
+  void set_camera_manipulator_options(
     ffi.Pointer<ffi.Void> viewer,
     int mode,
+    double orbitSpeedX,
+    double orbitSpeedY,
+    double zoomSpeed,
   ) {
-    return _set_camera_manipulator_mode(
+    return _set_camera_manipulator_options(
       viewer,
       mode,
+      orbitSpeedX,
+      orbitSpeedY,
+      zoomSpeed,
     );
   }
 
-  late final _set_camera_manipulator_modePtr = _lookup<
+  late final _set_camera_manipulator_optionsPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<ffi.Void>,
-              ManipulatorMode)>>('set_camera_manipulator_mode');
-  late final _set_camera_manipulator_mode = _set_camera_manipulator_modePtr
-      .asFunction<void Function(ffi.Pointer<ffi.Void>, int)>();
+          ffi.Void Function(ffi.Pointer<ffi.Void>, _ManipulatorMode, ffi.Double,
+              ffi.Double, ffi.Double)>>('set_camera_manipulator_options');
+  late final _set_camera_manipulator_options =
+      _set_camera_manipulator_optionsPtr.asFunction<
+          void Function(ffi.Pointer<ffi.Void>, int, double, double, double)>();
 
   int hide_mesh(
     ffi.Pointer<ffi.Void> assetManager,
@@ -2456,7 +2463,7 @@ typedef FreeFilamentResourceFromOwner = ffi.Pointer<
 /// This header replicates most of the methods in FlutterFilamentApi.h, and is only intended to be used to generate client FFI bindings.
 /// The intention is that calling one of these methods will call its respective method in FlutterFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety.
 typedef EntityId = ffi.Int32;
-typedef ManipulatorMode = ffi.Int32;
+typedef _ManipulatorMode = ffi.Int32;
 typedef FilamentRenderCallback = ffi.Pointer<
     ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> owner)>>;
 

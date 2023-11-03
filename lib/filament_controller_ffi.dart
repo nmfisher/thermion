@@ -40,6 +40,9 @@ class FilamentControllerFFI extends FilamentController {
   final rect = ValueNotifier<Rect?>(null);
 
   @override
+  final hasViewer = ValueNotifier<bool>(false);
+
+  @override
   Stream<FilamentEntity> get pickResult => _pickResultController.stream;
   final _pickResultController = StreamController<FilamentEntity>.broadcast();
 
@@ -135,6 +138,7 @@ class FilamentControllerFFI extends FilamentController {
 
     _assetManager = null;
     _lib.destroy_filament_viewer_ffi(viewer!);
+    hasViewer.value = false;
   }
 
   @override
@@ -217,6 +221,7 @@ class FilamentControllerFFI extends FilamentController {
     print("texture details ${textureDetails.value}");
     _lib.update_viewport_and_camera_projection_ffi(
         _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
+    hasViewer.value = true;
   }
 
   Future<RenderingSurface> _createRenderingSurface() async {
@@ -1023,5 +1028,18 @@ class FilamentControllerFFI extends FilamentController {
     modelMatrix.copyRotation(rotationMatrix);
     calloc.free(arrayPtr);
     return rotationMatrix;
+  }
+
+  @override
+  Future setCameraManipulatorOptions(
+      {ManipulatorMode mode = ManipulatorMode.FREE_FLIGHT,
+      double orbitSpeedX = 0.01,
+      double orbitSpeedY = 0.01,
+      double zoomSpeed = 0.01}) async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    _lib.set_camera_manipulator_options(
+        _viewer!, mode.index, orbitSpeedX, orbitSpeedX, zoomSpeed);
   }
 }
