@@ -125,7 +125,7 @@ class AnimationBuilder {
 
     // _BoneAnimationDatas!.add(DartBoneAnimationData([boneName], [meshName], animData));
 
-    return this;
+    // return this;
   }
 }
 
