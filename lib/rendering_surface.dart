@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'dart:developer' as dev;
 
 class RenderingSurface {
   final int flutterTextureId;
@@ -15,22 +16,23 @@ class RenderingSurface {
     // null on iOS/Android, void* on MacOS (pointer to metal texture), GLuid on Windows/Linux
     var nativeTexture = platformMessage[2] as int? ?? 0;
 
-    if(nativeTexture != 0) {       
+    if (nativeTexture != 0) {
       assert(surfaceAddress == 0);
     }
 
     var sharedContext = platformMessage[3] as int? ?? 0;
 
-    print(
+    dev.log(
         "Using flutterTextureId $flutterTextureId, surface $surfaceAddress nativeTexture $nativeTexture and sharedContext $sharedContext");
     return RenderingSurface(
-      sharedContext: sharedContext,
+        sharedContext: sharedContext,
         flutterTextureId: flutterTextureId,
         surface: Pointer<Void>.fromAddress(surfaceAddress),
         textureHandle: nativeTexture);
   }
 
-  RenderingSurface({required this.sharedContext, 
+  RenderingSurface(
+      {required this.sharedContext,
       required this.flutterTextureId,
       required this.surface,
       required this.textureHandle});

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/widgets.dart';
@@ -146,7 +147,7 @@ class FilamentControllerFFI extends FilamentController {
       await _channel.invokeMethod(
           "destroyTexture", textureDetails.value!.textureId);
     }
-    print("Texture destroyed");
+    dev.log("Texture destroyed");
   }
 
   ///
@@ -187,7 +188,7 @@ class FilamentControllerFFI extends FilamentController {
 
     var renderingSurface = await _createRenderingSurface();
 
-    print("Got rendering surface");
+    dev.log("Got rendering surface");
 
     _viewer = _lib.create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(renderingSurface.sharedContext),
@@ -196,7 +197,7 @@ class FilamentControllerFFI extends FilamentController {
         loader,
         renderCallback,
         renderCallbackOwner);
-    print("Created viewer");
+    dev.log("Created viewer");
     if (_viewer!.address == 0) {
       throw Exception("Failed to create viewer. Check logs for details");
     }
@@ -205,9 +206,9 @@ class FilamentControllerFFI extends FilamentController {
 
     _lib.create_swap_chain_ffi(_viewer!, renderingSurface.surface,
         rect.value!.width.toInt(), rect.value!.height.toInt());
-    print("Created swap chain");
+    dev.log("Created swap chain");
     if (renderingSurface.textureHandle != 0) {
-      print(
+      dev.log(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");
       _lib.create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
           rect.value!.width.toInt(), rect.value!.height.toInt());
@@ -217,7 +218,7 @@ class FilamentControllerFFI extends FilamentController {
         textureId: renderingSurface.flutterTextureId,
         width: rect.value!.width.toInt(),
         height: rect.value!.height.toInt());
-    print("texture details ${textureDetails.value}");
+    dev.log("texture details ${textureDetails.value}");
     _lib.update_viewport_and_camera_projection_ffi(
         _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
     hasViewer.value = true;
@@ -321,7 +322,7 @@ class FilamentControllerFFI extends FilamentController {
             "destroyTexture", textureDetails.value!.textureId);
       }
     } else if (Platform.isWindows) {
-      print("Resizing window with rect $rect");
+      dev.log("Resizing window with rect $rect");
       await _channel.invokeMethod("resizeWindow", [
         rect.value!.width,
         rect.value!.height,
@@ -344,7 +345,7 @@ class FilamentControllerFFI extends FilamentController {
     }
 
     if (renderingSurface.textureHandle != 0) {
-      print(
+      dev.log(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");
       _lib.create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
           rect.value!.width.toInt(), rect.value!.height.toInt());
