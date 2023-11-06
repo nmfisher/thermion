@@ -6,7 +6,7 @@ import 'package:flutter_filament/widgets/filament_gesture_detector_desktop.dart'
 import 'package:flutter_filament/widgets/filament_gesture_detector_mobile.dart';
 import '../filament_controller.dart';
 
-enum GestureType { RotateCamera, PanCamera, PanBackground }
+enum GestureType { rotateCamera, panCamera, panBackground }
 
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
