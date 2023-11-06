@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
@@ -69,7 +68,7 @@ class FilamentControllerFFI extends FilamentController {
       _resizingWidth = call.arguments[0];
       _resizingHeight = call.arguments[1];
       _resizeTimer = Timer(const Duration(milliseconds: 500), () async {
-        this.rect.value = Offset.zero &
+        rect.value = Offset.zero &
             ui.Size(_resizingWidth!.toDouble(), _resizingHeight!.toDouble());
         await resize();
       });
@@ -215,7 +214,7 @@ class FilamentControllerFFI extends FilamentController {
     }
 
     textureDetails.value = TextureDetails(
-        textureId: renderingSurface.flutterTextureId!,
+        textureId: renderingSurface.flutterTextureId,
         width: rect.value!.width.toInt(),
         height: rect.value!.height.toInt());
     print("texture details ${textureDetails.value}");
@@ -352,7 +351,7 @@ class FilamentControllerFFI extends FilamentController {
     }
 
     textureDetails.value = TextureDetails(
-        textureId: renderingSurface.flutterTextureId!,
+        textureId: renderingSurface.flutterTextureId,
         width: rect.value!.width.toInt(),
         height: rect.value!.height.toInt());
 
@@ -644,7 +643,7 @@ class FilamentControllerFFI extends FilamentController {
         calloc.free(dataPtr);
         calloc.free(idxPtr);
         throw Exception(
-            "Morph target ${animation.morphTargets[i]} is specified in the animation but could not be found in the mesh ${animation.meshName} under entity ${entity}");
+            "Morph target ${animation.morphTargets[i]} is specified in the animation but could not be found in the mesh ${animation.meshName} under entity $entity");
       }
       idxPtr.elementAt(i).value = index;
     }
@@ -776,7 +775,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     var result = _lib.set_camera(
-        _viewer!, asset, name?.toNativeUtf8()?.cast<Char>() ?? nullptr);
+        _viewer!, asset, name?.toNativeUtf8().cast<Char>() ?? nullptr);
     if (!result) {
       throw Exception("Failed to set camera");
     }

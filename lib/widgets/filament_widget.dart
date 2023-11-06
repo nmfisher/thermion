@@ -110,8 +110,7 @@ class _SizedFilamentWidget extends StatefulWidget {
   final FilamentController controller;
 
   const _SizedFilamentWidget(
-      {super.key,
-      required this.width,
+      {required this.width,
       required this.height,
       this.initial,
       required this.controller});
