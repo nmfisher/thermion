@@ -609,12 +609,12 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future<double> getAnimationDuration(
-      FilamentEntity asset, int animationIndex) async {
+      FilamentEntity entity, int animationIndex) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
     var duration =
-        _lib.get_animation_duration(_assetManager!, asset, animationIndex);
+        _lib.get_animation_duration(_assetManager!, entity, animationIndex);
 
     return duration;
   }
@@ -926,20 +926,20 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setRotation(
-      FilamentEntity asset, double rads, double x, double y, double z) async {
+      FilamentEntity entity, double rads, double x, double y, double z) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_rotation(_assetManager!, asset, rads, x, y, z);
+    _lib.set_rotation(_assetManager!, entity, rads, x, y, z);
   }
 
   @override
-  Future hide(FilamentEntity asset, String meshName) async {
+  Future hide(FilamentEntity entity, String meshName) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
     if (_lib.hide_mesh(
-            _assetManager!, asset, meshName.toNativeUtf8().cast<Char>()) !=
+            _assetManager!, entity, meshName.toNativeUtf8().cast<Char>()) !=
         1) {}
   }
 
