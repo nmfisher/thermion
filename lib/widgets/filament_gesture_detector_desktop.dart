@@ -49,6 +49,7 @@ class _FilamentGestureDetectorDesktopState
   ///
   ///
   ///
+  // ignore: unused_field
   final bool _scaling = false;
 
   bool _pointerMoving = false;
