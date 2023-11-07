@@ -51,7 +51,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
   @override
   Widget build(BuildContext context) {
     var items = <Widget>[];
-    if (_filamentController?.hasViewer != true) {
+    if (_filamentController?.hasViewer.value != true) {
       items.addAll([
         MenuItemButton(
           child: const Text("create viewer"),
