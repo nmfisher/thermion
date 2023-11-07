@@ -28,8 +28,6 @@ class FilamentControllerFFI extends FilamentController {
 
   late Pointer<Void>? _assetManager;
 
-  late NativeLibrary _lib;
-
   Pointer<Void>? _viewer;
 
   final String? uberArchivePath;
@@ -80,7 +78,7 @@ class FilamentControllerFFI extends FilamentController {
     } else {
       dl = DynamicLibrary.open("libflutter_filament_android.so");
     }
-    _lib = NativeLibrary(dl);
+
     if (Platform.isWindows) {
       _channel.invokeMethod("usesBackingWindow").then((result) {
         _usesBackingWindow = result;
@@ -98,7 +96,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     _rendering = render;
-    _lib.set_rendering_ffi(_viewer!, render);
+    set_rendering_ffi(_viewer!, render);
   }
 
   @override
@@ -106,12 +104,12 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.render_ffi(_viewer!);
+    render_ffi(_viewer!);
   }
 
   @override
   Future setFrameRate(int framerate) async {
-    _lib.set_frame_interval_ffi(1.0 / framerate);
+    set_frame_interval_ffi(1.0 / framerate);
   }
 
   @override
@@ -137,7 +135,7 @@ class FilamentControllerFFI extends FilamentController {
     _viewer = null;
 
     _assetManager = null;
-    _lib.destroy_filament_viewer_ffi(viewer!);
+    destroy_filament_viewer_ffi(viewer!);
     hasViewer.value = false;
   }
 
@@ -190,7 +188,7 @@ class FilamentControllerFFI extends FilamentController {
 
     dev.log("Got rendering surface");
 
-    _viewer = _lib.create_filament_viewer_ffi(
+    _viewer = create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(renderingSurface.sharedContext),
         _driver,
         uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr,
@@ -202,15 +200,15 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Failed to create viewer. Check logs for details");
     }
 
-    _assetManager = _lib.get_asset_manager(_viewer!);
+    _assetManager = get_asset_manager(_viewer!);
 
-    _lib.create_swap_chain_ffi(_viewer!, renderingSurface.surface,
+    create_swap_chain_ffi(_viewer!, renderingSurface.surface,
         rect.value!.width.toInt(), rect.value!.height.toInt());
     dev.log("Created swap chain");
     if (renderingSurface.textureHandle != 0) {
       dev.log(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");
-      _lib.create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
+      create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
           rect.value!.width.toInt(), rect.value!.height.toInt());
     }
 
@@ -219,7 +217,7 @@ class FilamentControllerFFI extends FilamentController {
         width: rect.value!.width.toInt(),
         height: rect.value!.height.toInt());
     dev.log("texture details ${textureDetails.value}");
-    _lib.update_viewport_and_camera_projection_ffi(
+    update_viewport_and_camera_projection_ffi(
         _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
     hasViewer.value = true;
   }
@@ -310,10 +308,10 @@ class FilamentControllerFFI extends FilamentController {
 
     _resizing = true;
 
-    _lib.set_rendering_ffi(_viewer!, false);
+    set_rendering_ffi(_viewer!, false);
 
     if (!_usesBackingWindow) {
-      _lib.destroy_swap_chain_ffi(_viewer!);
+      destroy_swap_chain_ffi(_viewer!);
     }
 
     if (requiresTextureWidget) {
@@ -337,17 +335,17 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Failed to create viewer. Check logs for details");
     }
 
-    _assetManager = _lib.get_asset_manager(_viewer!);
+    _assetManager = get_asset_manager(_viewer!);
 
     if (!_usesBackingWindow) {
-      _lib.create_swap_chain_ffi(_viewer!, renderingSurface.surface,
+      create_swap_chain_ffi(_viewer!, renderingSurface.surface,
           rect.value!.width.toInt(), rect.value!.height.toInt());
     }
 
     if (renderingSurface.textureHandle != 0) {
       dev.log(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");
-      _lib.create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
+      create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
           rect.value!.width.toInt(), rect.value!.height.toInt());
     }
 
@@ -356,7 +354,7 @@ class FilamentControllerFFI extends FilamentController {
         width: rect.value!.width.toInt(),
         height: rect.value!.height.toInt());
 
-    _lib.update_viewport_and_camera_projection_ffi(
+    update_viewport_and_camera_projection_ffi(
         _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
 
     await setRendering(_rendering);
@@ -369,7 +367,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.clear_background_image_ffi(_viewer!);
+    clear_background_image_ffi(_viewer!);
   }
 
   @override
@@ -377,7 +375,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_background_image_ffi(
+    set_background_image_ffi(
         _viewer!, path.toNativeUtf8().cast<Char>(), fillHeight);
   }
 
@@ -386,7 +384,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_background_color_ffi(
+    set_background_color_ffi(
         _viewer!,
         color.red.toDouble() / 255.0,
         color.green.toDouble() / 255.0,
@@ -400,7 +398,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_background_image_position_ffi(_viewer!, x, y, clamp);
+    set_background_image_position_ffi(_viewer!, x, y, clamp);
   }
 
   @override
@@ -408,7 +406,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.load_skybox_ffi(_viewer!, skyboxPath.toNativeUtf8().cast<Char>());
+    load_skybox_ffi(_viewer!, skyboxPath.toNativeUtf8().cast<Char>());
   }
 
   @override
@@ -416,8 +414,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.load_ibl_ffi(
-        _viewer!, lightingPath.toNativeUtf8().cast<Char>(), intensity);
+    load_ibl_ffi(_viewer!, lightingPath.toNativeUtf8().cast<Char>(), intensity);
   }
 
   @override
@@ -425,7 +422,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.remove_skybox_ffi(_viewer!);
+    remove_skybox_ffi(_viewer!);
   }
 
   @override
@@ -433,7 +430,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.remove_ibl_ffi(_viewer!);
+    remove_ibl_ffi(_viewer!);
   }
 
   @override
@@ -451,8 +448,8 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var entity = _lib.add_light_ffi(_viewer!, type, colour, intensity, posX,
-        posY, posZ, dirX, dirY, dirZ, castShadows);
+    var entity = add_light_ffi(_viewer!, type, colour, intensity, posX, posY,
+        posZ, dirX, dirY, dirZ, castShadows);
     return entity;
   }
 
@@ -461,7 +458,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.remove_light_ffi(_viewer!, light);
+    remove_light_ffi(_viewer!, light);
   }
 
   @override
@@ -469,7 +466,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.clear_lights_ffi(_viewer!);
+    clear_lights_ffi(_viewer!);
   }
 
   @override
@@ -480,8 +477,8 @@ class FilamentControllerFFI extends FilamentController {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
-    var asset = _lib.load_glb_ffi(
-        _assetManager!, path.toNativeUtf8().cast<Char>(), unlit);
+    var asset =
+        load_glb_ffi(_assetManager!, path.toNativeUtf8().cast<Char>(), unlit);
     if (asset == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
@@ -498,9 +495,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var asset = _lib.load_gltf_ffi(
-        _assetManager!,
-        path.toNativeUtf8().cast<Char>(),
+    var asset = load_gltf_ffi(_assetManager!, path.toNativeUtf8().cast<Char>(),
         relativeResourcePath.toNativeUtf8().cast<Char>());
     if (asset == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
@@ -513,7 +508,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, true);
+    grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, true);
   }
 
   @override
@@ -521,7 +516,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
+    grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
   }
 
   @override
@@ -529,7 +524,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.grab_end(_viewer!);
+    grab_end(_viewer!);
   }
 
   @override
@@ -537,7 +532,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, false);
+    grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, false);
   }
 
   @override
@@ -545,7 +540,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
+    grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
   }
 
   @override
@@ -553,7 +548,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.grab_end(_viewer!);
+    grab_end(_viewer!);
   }
 
   @override
@@ -567,7 +562,7 @@ class FilamentControllerFFI extends FilamentController {
     for (int i = 0; i < weights.length; i++) {
       weightsPtr.elementAt(i).value = weights[i];
     }
-    _lib.set_morph_target_weights_ffi(_assetManager!, entity,
+    set_morph_target_weights_ffi(_assetManager!, entity,
         meshName.toNativeUtf8().cast<Char>(), weightsPtr, weights.length);
     calloc.free(weightsPtr);
   }
@@ -579,11 +574,11 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     var names = <String>[];
-    var count = _lib.get_morph_target_name_count_ffi(
+    var count = get_morph_target_name_count_ffi(
         _assetManager!, entity, meshName.toNativeUtf8().cast<Char>());
     var outPtr = calloc<Char>(255);
     for (int i = 0; i < count; i++) {
-      _lib.get_morph_target_name(_assetManager!, entity,
+      get_morph_target_name(_assetManager!, entity,
           meshName.toNativeUtf8().cast<Char>(), outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
@@ -596,11 +591,11 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var animationCount = _lib.get_animation_count(_assetManager!, entity);
+    var animationCount = get_animation_count(_assetManager!, entity);
     var names = <String>[];
     var outPtr = calloc<Char>(255);
     for (int i = 0; i < animationCount; i++) {
-      _lib.get_animation_name_ffi(_assetManager!, entity, outPtr, i);
+      get_animation_name_ffi(_assetManager!, entity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
 
@@ -614,7 +609,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     var duration =
-        _lib.get_animation_duration(_assetManager!, entity, animationIndex);
+        get_animation_duration(_assetManager!, entity, animationIndex);
 
     return duration;
   }
@@ -649,7 +644,7 @@ class FilamentControllerFFI extends FilamentController {
       idxPtr.elementAt(i).value = index;
     }
 
-    _lib.set_morph_animation(
+    set_morph_animation(
         _assetManager!,
         entity,
         animation.meshName.toNativeUtf8().cast<Char>(),
@@ -705,7 +700,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.remove_asset_ffi(_viewer!, entity);
+    remove_asset_ffi(_viewer!, entity);
   }
 
   @override
@@ -713,7 +708,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.clear_assets_ffi(_viewer!);
+    clear_assets_ffi(_viewer!);
   }
 
   @override
@@ -721,7 +716,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.scroll_begin(_viewer!);
+    scroll_begin(_viewer!);
   }
 
   @override
@@ -729,7 +724,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.scroll_update(_viewer!, x, y, z);
+    scroll_update(_viewer!, x, y, z);
   }
 
   @override
@@ -737,7 +732,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.scroll_end(_viewer!);
+    scroll_end(_viewer!);
   }
 
   @override
@@ -749,7 +744,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.play_animation_ffi(
+    play_animation_ffi(
         _assetManager!, entity, index, loop, reverse, replaceActive, crossfade);
   }
 
@@ -759,7 +754,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_animation_frame(_assetManager!, entity, index, animationFrame);
+    set_animation_frame(_assetManager!, entity, index, animationFrame);
   }
 
   @override
@@ -767,7 +762,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.stop_animation(_assetManager!, entity, animationIndex);
+    stop_animation(_assetManager!, entity, animationIndex);
   }
 
   @override
@@ -775,7 +770,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var result = _lib.set_camera(
+    var result = set_camera(
         _viewer!, entity, name?.toNativeUtf8().cast<Char>() ?? nullptr);
     if (!result) {
       throw Exception("Failed to set camera");
@@ -788,7 +783,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
 
-    _lib.set_tone_mapping_ffi(_viewer!, mapper.index);
+    set_tone_mapping_ffi(_viewer!, mapper.index);
   }
 
   @override
@@ -797,7 +792,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
 
-    _lib.set_post_processing_ffi(_viewer!, enabled);
+    set_post_processing_ffi(_viewer!, enabled);
   }
 
   @override
@@ -805,7 +800,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_bloom_ffi(_viewer!, bloom);
+    set_bloom_ffi(_viewer!, bloom);
   }
 
   @override
@@ -813,7 +808,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_camera_focal_length(_viewer!, focalLength);
+    set_camera_focal_length(_viewer!, focalLength);
   }
 
   @override
@@ -821,7 +816,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_camera_focus_distance(_viewer!, focusDistance);
+    set_camera_focus_distance(_viewer!, focusDistance);
   }
 
   @override
@@ -829,7 +824,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_camera_position(_viewer!, x, y, z);
+    set_camera_position(_viewer!, x, y, z);
   }
 
   @override
@@ -837,7 +832,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.move_camera_to_asset(_viewer!, entity);
+    move_camera_to_asset(_viewer!, entity);
   }
 
   @override
@@ -845,7 +840,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_view_frustum_culling(_viewer!, enabled);
+    set_view_frustum_culling(_viewer!, enabled);
   }
 
   @override
@@ -854,7 +849,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_camera_exposure(_viewer!, aperture, shutterSpeed, sensitivity);
+    set_camera_exposure(_viewer!, aperture, shutterSpeed, sensitivity);
   }
 
   @override
@@ -862,7 +857,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_camera_rotation(_viewer!, rads, x, y, z);
+    set_camera_rotation(_viewer!, rads, x, y, z);
   }
 
   @override
@@ -875,7 +870,7 @@ class FilamentControllerFFI extends FilamentController {
     for (int i = 0; i < 16; i++) {
       ptr.elementAt(i).value = matrix[i];
     }
-    _lib.set_camera_model_matrix(_viewer!, ptr);
+    set_camera_model_matrix(_viewer!, ptr);
     calloc.free(ptr);
   }
 
@@ -885,7 +880,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var result = _lib.set_material_color(
+    var result = set_material_color(
         _assetManager!,
         entity,
         meshName.toNativeUtf8().cast<Char>(),
@@ -904,7 +899,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.transform_to_unit_cube(_assetManager!, entity);
+    transform_to_unit_cube(_assetManager!, entity);
   }
 
   @override
@@ -913,7 +908,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_position(_assetManager!, entity, x, y, z);
+    set_position(_assetManager!, entity, x, y, z);
   }
 
   @override
@@ -921,7 +916,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_scale(_assetManager!, entity, scale);
+    set_scale(_assetManager!, entity, scale);
   }
 
   @override
@@ -930,7 +925,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lib.set_rotation(_assetManager!, entity, rads, x, y, z);
+    set_rotation(_assetManager!, entity, rads, x, y, z);
   }
 
   @override
@@ -938,7 +933,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    if (_lib.hide_mesh(
+    if (hide_mesh(
             _assetManager!, entity, meshName.toNativeUtf8().cast<Char>()) !=
         1) {}
   }
@@ -948,7 +943,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    if (_lib.reveal_mesh(
+    if (reveal_mesh(
             _assetManager!, entity, meshName.toNativeUtf8().cast<Char>()) !=
         1) {
       throw Exception("Failed to reveal mesh $meshName");
@@ -957,7 +952,7 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   String? getNameForEntity(FilamentEntity entity) {
-    final result = _lib.get_name_for_entity(_assetManager!, entity);
+    final result = get_name_for_entity(_assetManager!, entity);
     if (result == nullptr) {
       return null;
     }
@@ -972,7 +967,7 @@ class FilamentControllerFFI extends FilamentController {
     final outPtr = calloc<EntityId>(1);
     outPtr.value = 0;
 
-    _lib.pick_ffi(_viewer!, x, textureDetails.value!.height - y, outPtr);
+    pick_ffi(_viewer!, x, textureDetails.value!.height - y, outPtr);
     int wait = 0;
     while (outPtr.value == 0) {
       await Future.delayed(const Duration(milliseconds: 32));
@@ -992,7 +987,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = _lib.get_camera_view_matrix(_viewer!);
+    var arrayPtr = get_camera_view_matrix(_viewer!);
     var viewMatrix = Matrix4.fromList(arrayPtr.asTypedList(16));
     calloc.free(arrayPtr);
     return viewMatrix;
@@ -1003,7 +998,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = _lib.get_camera_model_matrix(_viewer!);
+    var arrayPtr = get_camera_model_matrix(_viewer!);
     var modelMatrix = Matrix4.fromList(arrayPtr.asTypedList(16));
     calloc.free(arrayPtr);
     return modelMatrix;
@@ -1014,7 +1009,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = _lib.get_camera_model_matrix(_viewer!);
+    var arrayPtr = get_camera_model_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
     var modelMatrix = Matrix4.fromFloat64List(doubleList);
 
@@ -1029,7 +1024,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = _lib.get_camera_model_matrix(_viewer!);
+    var arrayPtr = get_camera_model_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
     var modelMatrix = Matrix4.fromFloat64List(doubleList);
     var rotationMatrix = Matrix3.identity();
@@ -1050,7 +1045,7 @@ class FilamentControllerFFI extends FilamentController {
     if (mode != ManipulatorMode.ORBIT) {
       throw Exception("Manipulator mode $mode not yet implemented");
     }
-    _lib.set_camera_manipulator_options(
+    set_camera_manipulator_options(
         _viewer!, mode.index, orbitSpeedX, orbitSpeedX, zoomSpeed);
   }
 }

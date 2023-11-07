@@ -28,7 +28,8 @@ ffigen:
   headers:
     entry-points:
       - 'ios/include/FlutterFilamentFFIApi.h'
-
+  ffi-native:
+    asset: 'libflutter_filament'
 flutter:
   plugin:
     platforms:
