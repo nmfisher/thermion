@@ -23,7 +23,8 @@ class _SceneMenuState extends State<SceneMenu> {
   @override
   void didUpdateWidget(SceneMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.controller != oldWidget.controller ||
+    if (widget.controller != null &&
+            widget.controller != oldWidget.controller ||
         widget.controller!.hasViewer != oldWidget.controller!.hasViewer) {
       setState(() {});
     }

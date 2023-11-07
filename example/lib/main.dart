@@ -99,9 +99,11 @@ class _ExampleWidgetState extends State<ExampleWidget> {
       Align(
           alignment: Alignment.bottomCenter,
           child: Container(
-              height: 30,
+              padding: const EdgeInsets.only(bottom: 30),
+              height: 100,
               color: Colors.white,
-              child: Row(children: [
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 ControllerMenu(
                     controller: _filamentController,
                     onControllerDestroyed: () {},
@@ -116,8 +118,8 @@ class _ExampleWidgetState extends State<ExampleWidget> {
               ]))),
       _filamentController == null
           ? Container()
-          : Align(
-              alignment: Alignment.topLeft,
+          : Padding(
+              padding: const EdgeInsets.only(top: 40, left: 20, right: 20),
               child: CameraMatrixOverlay(controller: _filamentController!),
             ),
       _filamentController == null
