@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:developer' as dev;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -110,8 +111,7 @@ class _SizedFilamentWidget extends StatefulWidget {
   final FilamentController controller;
 
   const _SizedFilamentWidget(
-      {super.key,
-      required this.width,
+      {required this.width,
       required this.height,
       this.initial,
       required this.controller});
@@ -145,7 +145,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
         _pixelRatio = MediaQuery.of(context).devicePixelRatio;
         widget.controller.setDimensions(_rect, _pixelRatio);
       } catch (err) {
-        print("Fatal error : $err");
+        dev.log("Fatal error : $err");
         _error = err.toString();
       }
       setState(() {});
@@ -158,7 +158,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
   bool _resizing = false;
 
   Future _resize() {
-    print("Resizing widget");
+    dev.log("Resizing widget");
     final completer = Completer();
     // resizing the window can be sluggish (particular in debug mode), exacerbated when simultaneously recreating the swapchain and resize the window.
     // to address this, whenever the widget is resized, we set a timer for Xms in the future.
@@ -186,7 +186,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
         setState(() {});
         _resizing = false;
       } catch (err) {
-        print("Error resizing FilamentWidget: $err");
+        dev.log("Error resizing FilamentWidget: $err");
       } finally {
         completer.complete();
       }
@@ -215,21 +215,21 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
   void _handleStateChange(AppLifecycleState state) async {
     switch (state) {
       case AppLifecycleState.detached:
-        print("Detached");
+        dev.log("Detached");
         if (!_wasRenderingOnInactive) {
           _wasRenderingOnInactive = widget.controller.rendering;
         }
         await widget.controller.setRendering(false);
         break;
       case AppLifecycleState.hidden:
-        print("Hidden");
+        dev.log("Hidden");
         if (!_wasRenderingOnInactive) {
           _wasRenderingOnInactive = widget.controller.rendering;
         }
         await widget.controller.setRendering(false);
         break;
       case AppLifecycleState.inactive:
-        print("Inactive");
+        dev.log("Inactive");
         if (!_wasRenderingOnInactive) {
           _wasRenderingOnInactive = widget.controller.rendering;
         }
@@ -238,14 +238,14 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
         await widget.controller.setRendering(false);
         break;
       case AppLifecycleState.paused:
-        print("Paused");
+        dev.log("Paused");
         if (!_wasRenderingOnInactive) {
           _wasRenderingOnInactive = widget.controller.rendering;
         }
         await widget.controller.setRendering(false);
         break;
       case AppLifecycleState.resumed:
-        print("Resumed");
+        dev.log("Resumed");
         await widget.controller.setRendering(_wasRenderingOnInactive);
         break;
     }

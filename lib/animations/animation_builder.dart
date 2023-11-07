@@ -25,8 +25,9 @@ class AnimationBuilder {
   }
 
   MorphAnimationData build() {
-    if (availableMorphs.isEmpty == 0 || _duration == 0 || _frameLengthInMs == 0)
+    if (availableMorphs.isEmpty || _duration == 0 || _frameLengthInMs == 0) {
       throw Exception();
+    }
 
     int numFrames = _duration * 1000 ~/ _frameLengthInMs;
 
@@ -64,10 +65,10 @@ class AnimationBuilder {
 
   AnimationBuilder interpolateMorphWeights(
       double start, double end, double startValue, double endValue) {
-    this._interpMorphStart = start;
-    this._interpMorphEnd = end;
-    this._interpMorphStartValue = startValue;
-    this._interpMorphEndValue = endValue;
+    _interpMorphStart = start;
+    _interpMorphEnd = end;
+    _interpMorphStartValue = startValue;
+    _interpMorphEndValue = endValue;
     return this;
   }
 
@@ -124,7 +125,7 @@ class AnimationBuilder {
 
     // _BoneAnimationDatas!.add(DartBoneAnimationData([boneName], [meshName], animData));
 
-    return this;
+    // return this;
   }
 }
 

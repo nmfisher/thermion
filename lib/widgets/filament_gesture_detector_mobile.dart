@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../filament_controller.dart';
 
-enum GestureType { RotateCamera, PanCamera, PanBackground }
+enum GestureType { rotateCamera, panCamera, panBackground }
 
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
@@ -49,12 +49,12 @@ class FilamentGestureDetectorMobile extends StatefulWidget {
 
 class _FilamentGestureDetectorMobileState
     extends State<FilamentGestureDetectorMobile> {
-  GestureType gestureType = GestureType.PanCamera;
+  GestureType gestureType = GestureType.panCamera;
 
   final _icons = {
-    GestureType.PanBackground: Icons.image,
-    GestureType.PanCamera: Icons.pan_tool,
-    GestureType.RotateCamera: Icons.rotate_90_degrees_ccw
+    GestureType.panBackground: Icons.image,
+    GestureType.panCamera: Icons.pan_tool,
+    GestureType.rotateCamera: Icons.rotate_90_degrees_ccw
   };
 
   // on mobile, we can't differentiate between pointer down events like we do on desktop with primary/secondary/tertiary buttons
@@ -69,8 +69,11 @@ class _FilamentGestureDetectorMobileState
   // to avoid duplicating code for pan/rotate (panStart, panUpdate, panEnd, rotateStart, rotateUpdate etc)
   // we have only a single function for start/update/end.
   // when the gesture type is changed, these properties are updated to point to the correct function.
+  // ignore: unused_field
   late Function(double x, double y) _functionStart;
+  // ignore: unused_field
   late Function(double x, double y) _functionUpdate;
+  // ignore: unused_field
   late Function() _functionEnd;
 
   @override
@@ -81,18 +84,18 @@ class _FilamentGestureDetectorMobileState
 
   void _setFunction() {
     switch (gestureType) {
-      case GestureType.RotateCamera:
+      case GestureType.rotateCamera:
         _functionStart = widget.controller.rotateStart;
         _functionUpdate = widget.controller.rotateUpdate;
         _functionEnd = widget.controller.rotateEnd;
         break;
-      case GestureType.PanCamera:
+      case GestureType.panCamera:
         _functionStart = widget.controller.panStart;
         _functionUpdate = widget.controller.panUpdate;
         _functionEnd = widget.controller.panEnd;
         break;
       // TODO
-      case GestureType.PanBackground:
+      case GestureType.panBackground:
         _functionStart = (x, y) async {};
         _functionUpdate = (x, y) async {};
         _functionEnd = () async {};
@@ -109,6 +112,7 @@ class _FilamentGestureDetectorMobileState
     super.didUpdateWidget(oldWidget);
   }
 
+  // ignore: unused_field
   Timer? _scrollTimer;
   double _lastScale = 0;
 

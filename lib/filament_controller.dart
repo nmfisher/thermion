@@ -234,7 +234,7 @@ abstract class FilamentController {
   Future rotateEnd();
 
   ///
-  /// Set the weights for all morph targets under node [meshName] in [asset] to [weights].
+  /// Set the weights for all morph targets under node [meshName] in [entity] to [weights].
   ///
   Future setMorphTargetWeights(
       FilamentEntity entity, String meshName, List<double> weights);
@@ -269,7 +269,7 @@ abstract class FilamentController {
 
   ///
   /// Removes/destroys the specified entity from the scene.
-  /// [asset] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
+  /// [entity] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
   ///
   Future removeAsset(FilamentEntity entity);
 
@@ -295,7 +295,7 @@ abstract class FilamentController {
   Future zoomEnd();
 
   ///
-  /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.
+  /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
   ///
   Future playAnimation(FilamentEntity entity, int index,
       {bool loop = false,
@@ -308,7 +308,7 @@ abstract class FilamentController {
   Future stopAnimation(FilamentEntity entity, int animationIndex);
 
   ///
-  /// Sets the current scene camera to the glTF camera under [name] in [asset].
+  /// Sets the current scene camera to the glTF camera under [name] in [entity].
   ///
   Future setCamera(FilamentEntity entity, String? name);
 
@@ -358,7 +358,7 @@ abstract class FilamentController {
   Future<Matrix3> getCameraRotation();
 
   ///
-  /// Repositions the camera to the last vertex of the bounding box of [asset], looking at the penultimate vertex.
+  /// Repositions the camera to the last vertex of the bounding box of [entity], looking at the penultimate vertex.
   ///
   Future moveCameraToAsset(FilamentEntity entity);
 
@@ -390,12 +390,12 @@ abstract class FilamentController {
       FilamentEntity entity, String meshName, int materialIndex, Color color);
 
   ///
-  /// Scale [asset] to fit within the unit cube.
+  /// Scale [entity] to fit within the unit cube.
   ///
   Future transformToUnitCube(FilamentEntity entity);
 
   ///
-  /// Sets the world space position for [asset] to the given coordinates.
+  /// Sets the world space position for [entity] to the given coordinates.
   ///
   Future setPosition(FilamentEntity entity, double x, double y, double z);
 

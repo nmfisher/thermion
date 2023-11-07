@@ -49,7 +49,8 @@ class _FilamentGestureDetectorDesktopState
   ///
   ///
   ///
-  bool _scaling = false;
+  // ignore: unused_field
+  final bool _scaling = false;
 
   bool _pointerMoving = false;
 
@@ -78,7 +79,7 @@ class _FilamentGestureDetectorDesktopState
 
     // we don't want to end the zoom in the same frame, because this will destroy the camera manipulator (and cancel the zoom update).
     // here, we just defer calling [zoomEnd] for 100ms to ensure the update is propagated through.
-    _scrollTimer = Timer(Duration(milliseconds: 100), () async {
+    _scrollTimer = Timer(const Duration(milliseconds: 100), () async {
       await widget.controller.zoomEnd();
     });
   }
