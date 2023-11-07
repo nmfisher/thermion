@@ -157,7 +157,7 @@ namespace polyvox
         float _cameraFocalLength = 28.0f;
         float _cameraFocusDistance = 0.0f;
         Manipulator<double> *_manipulator = nullptr;
-        filament::camutils::Mode _manipulatorMode;
+        filament::camutils::Mode _manipulatorMode = filament::camutils::Mode::ORBIT;
         double _orbitSpeedX = 0.01;
         double _orbitSpeedY = 0.01;
         double _zoomSpeed = 0.01;
