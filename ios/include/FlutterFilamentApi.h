@@ -163,6 +163,7 @@ FLUTTER_PLUGIN_EXPORT void set_post_processing(void* const viewer, bool enabled)
 FLUTTER_PLUGIN_EXPORT void pick(void* const viewer, int x, int y, EntityId* entityId);
 FLUTTER_PLUGIN_EXPORT const char* get_name_for_entity(void* const assetManager, const EntityId entityId);
 FLUTTER_PLUGIN_EXPORT void ios_dummy();
+FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void* ptr);
 #ifdef __cplusplus
 }
 #endif

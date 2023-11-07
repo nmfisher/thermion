@@ -1015,7 +1015,7 @@ class FilamentControllerFFI extends FilamentController {
 
     var position = modelMatrix.getColumn(3).xyz;
 
-    calloc.free(arrayPtr);
+    flutter_filament_free(arrayPtr.cast<Void>());
     return position;
   }
 
@@ -1029,7 +1029,7 @@ class FilamentControllerFFI extends FilamentController {
     var modelMatrix = Matrix4.fromFloat64List(doubleList);
     var rotationMatrix = Matrix3.identity();
     modelMatrix.copyRotation(rotationMatrix);
-    calloc.free(arrayPtr);
+    flutter_filament_free(arrayPtr.cast<Void>());
     return rotationMatrix;
   }
 
