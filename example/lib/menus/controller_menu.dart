@@ -54,7 +54,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
     if (_filamentController?.hasViewer.value != true) {
       items.addAll([
         MenuItemButton(
-          child: const Text("create viewer"),
+          child: const Text("Create FilamentViewer"),
           onPressed: _filamentController == null
               ? null
               : () {
@@ -62,14 +62,14 @@ class _ControllerMenuState extends State<ControllerMenu> {
                 },
         ),
         MenuItemButton(
-          child: const Text("create FilamentController (default ubershader)"),
+          child: const Text("Create FilamentController (default ubershader)"),
           onPressed: () {
             _createController();
           },
         ),
         MenuItemButton(
           child: const Text(
-              "create FilamentController (custom ubershader - lit opaque only)"),
+              "Create FilamentController (custom ubershader - lit opaque only)"),
           onPressed: () {
             _createController(
                 uberArchivePath: Platform.isWindows
@@ -85,7 +85,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
     } else {
       items.addAll([
         MenuItemButton(
-          child: const Text("destroy viewer"),
+          child: const Text("Destroy viewer"),
           onPressed: () {
             _filamentController!.destroy();
             _filamentController = null;
