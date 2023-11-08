@@ -445,4 +445,11 @@ extern "C"
     {
         Log("Dummy called");
     }
+
+    FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void* ptr)
+    {
+        free(ptr);
+    }
+
+
 }
