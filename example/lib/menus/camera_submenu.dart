@@ -57,6 +57,46 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
         child: Text(
             "${ExampleWidgetState.frustumCulling ? "Disable" : "Enable"} frustum culling"),
       ),
+      MenuItemButton(
+          closeOnActivate: false,
+          onPressed: () async {
+            var projMatrix =
+                await widget.controller.getCameraProjectionMatrix();
+            await showDialog(
+                context: context,
+                builder: (ctx) {
+                  return Center(
+                      child: Container(
+                          height: 100,
+                          width: 300,
+                          color: Colors.white,
+                          child: Text(projMatrix.storage
+                              .map((v) => v.toStringAsFixed(2))
+                              .join(","))));
+                });
+          },
+          child: const Text("Get projection matrix")),
+      MenuItemButton(
+          closeOnActivate: false,
+          onPressed: () async {
+            var frustum = await widget.controller.getCameraFrustum();
+            await showDialog(
+                context: context,
+                builder: (ctx) {
+                  return Center(
+                      child: Container(
+                          height: 300,
+                          width: 300,
+                          color: Colors.white,
+                          child: Column(
+                              children: frustum
+                                  .map((vector) => Text(vector.storage
+                                      .map((v) => v.toStringAsFixed(2))
+                                      .join(",")))
+                                  .toList())));
+                });
+          },
+          child: const Text("Get frustum")),
       SubmenuButton(
           menuChildren: ManipulatorMode.values.map((mm) {
             return MenuItemButton(

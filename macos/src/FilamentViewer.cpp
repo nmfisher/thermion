@@ -1121,6 +1121,18 @@ namespace polyvox
     return cam.getViewMatrix();
   }
 
+  const math::mat4 FilamentViewer::getCameraProjectionMatrix()
+  {
+    const auto &cam = _view->getCamera();
+    return cam.getProjectionMatrix();
+  }
+
+  const filament::Frustum FilamentViewer::getCameraFrustum()
+  {
+    const auto &cam = _view->getCamera();
+    return cam.getFrustum();
+  }
+
   void FilamentViewer::_createManipulator()
   {
     Camera &cam = _view->getCamera();

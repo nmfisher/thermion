@@ -152,6 +152,7 @@ FLUTTER_PLUGIN_EXPORT void set_camera_model_matrix(const void* const viewer, con
 FLUTTER_PLUGIN_EXPORT const double* const get_camera_model_matrix(const void* const viewer);
 FLUTTER_PLUGIN_EXPORT const double* const get_camera_view_matrix(const void* const viewer);
 FLUTTER_PLUGIN_EXPORT const double* const get_camera_projection_matrix(const void* const viewer);
+FLUTTER_PLUGIN_EXPORT const double* const get_camera_frustum(const void* const viewer);
 FLUTTER_PLUGIN_EXPORT void set_camera_focal_length(const void* const viewer, float focalLength);
 FLUTTER_PLUGIN_EXPORT void set_camera_focus_distance(const void* const viewer, float focusDistance);
 FLUTTER_PLUGIN_EXPORT void set_camera_manipulator_options(const void* const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);

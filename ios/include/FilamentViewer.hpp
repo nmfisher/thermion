@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filament/Camera.h>
+#include <filament/Frustum.h>
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
 #include <filament/IndexBuffer.h>
@@ -99,6 +100,8 @@ namespace polyvox
         void setCameraRotation(float rads, float x, float y, float z);
         const math::mat4 getCameraModelMatrix();
         const math::mat4 getCameraViewMatrix();
+        const math::mat4 getCameraProjectionMatrix();
+        const filament::Frustum getCameraFrustum();
         void setCameraModelMatrix(const float *const matrix);
         void setCameraFocalLength(float fl);
         void setCameraFocusDistance(float focusDistance);

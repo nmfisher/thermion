@@ -1083,4 +1083,32 @@ class FilamentControllerFFI extends FilamentController {
     set_camera_manipulator_options(
         _viewer!, mode.index, orbitSpeedX, orbitSpeedX, zoomSpeed);
   }
+
+  @override
+  Future<Matrix4> getCameraProjectionMatrix() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    var arrayPtr = get_camera_projection_matrix(_viewer!);
+    var doubleList = arrayPtr.asTypedList(16);
+    var projectionMatrix = Matrix4.fromList(doubleList);
+    flutter_filament_free(arrayPtr.cast<Void>());
+    return projectionMatrix;
+  }
+
+  @override
+  Future<List<Vector4>> getCameraFrustum() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    var arrayPtr = get_camera_frustum(_viewer!);
+    var doubleList = arrayPtr.asTypedList(6 * 4);
+    var frustum = <Vector4>[];
+    for (int i = 0; i < 6; i++) {
+      var plane = Vector4.array(doubleList.sublist(i * 4, (i + 1) * 4));
+      frustum.add(plane);
+    }
+    flutter_filament_free(arrayPtr.cast<Void>());
+    return frustum;
+  }
 }

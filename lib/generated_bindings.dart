@@ -43,7 +43,8 @@ external ffi.Pointer<ffi.Void> get_asset_manager(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Int)>(
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, ffi.IntPtr, ffi.Uint32, ffi.Uint32)>(
     symbol: 'create_render_target', assetId: 'libflutter_filament')
 external void create_render_target(
   ffi.Pointer<ffi.Void> viewer,
@@ -59,8 +60,9 @@ external void clear_background_image(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>,
-        ffi.Bool)>(symbol: 'set_background_image', assetId: 'libflutter_filament')
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Bool)>(
+    symbol: 'set_background_image', assetId: 'libflutter_filament')
 external void set_background_image(
   ffi.Pointer<ffi.Void> viewer,
   ffi.Pointer<ffi.Char> path,
@@ -135,7 +137,7 @@ external void remove_ibl(
 @ffi.Native<
     EntityId Function(
         ffi.Pointer<ffi.Void>,
-        ffi.Int,
+        ffi.Uint8,
         ffi.Float,
         ffi.Float,
         ffi.Float,
@@ -209,15 +211,16 @@ external void set_view_frustum_culling(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
-        ffi.Int,
-        ffi.Pointer<ffi.Void>,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
-                    ffi.Pointer<ffi.Void> data)>>,
-        ffi.Pointer<ffi.Void>)>(symbol: 'render', assetId: 'libflutter_filament')
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            ffi.Uint64,
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<
+                ffi.NativeFunction<
+                    ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
+                        ffi.Pointer<ffi.Void> data)>>,
+            ffi.Pointer<ffi.Void>)>(
+    symbol: 'render', assetId: 'libflutter_filament')
 external void render(
   ffi.Pointer<ffi.Void> viewer,
   int frameTimeInNanos,
@@ -231,8 +234,9 @@ external void render(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Int,
-        ffi.Int)>(symbol: 'create_swap_chain', assetId: 'libflutter_filament')
+        ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
+            ffi.Uint32, ffi.Uint32)>(
+    symbol: 'create_swap_chain', assetId: 'libflutter_filament')
 external void create_swap_chain(
   ffi.Pointer<ffi.Void> viewer,
   ffi.Pointer<ffi.Void> window,
@@ -254,7 +258,8 @@ external void set_frame_interval(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Float)>(
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32, ffi.Float)>(
     symbol: 'update_viewport_and_camera_projection',
     assetId: 'libflutter_filament')
 external void update_viewport_and_camera_projection(
@@ -338,15 +343,16 @@ external void set_morph_target_weights(
 );
 
 @ffi.Native<
-    ffi.Bool Function(
-        ffi.Pointer<ffi.Void>,
-        EntityId,
-        ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Int>,
-        ffi.Int,
-        ffi.Int,
-        ffi.Float)>(symbol: 'set_morph_animation', assetId: 'libflutter_filament')
+        ffi.Bool Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<ffi.Char>,
+            ffi.Pointer<ffi.Float>,
+            ffi.Pointer<ffi.Int>,
+            ffi.Int,
+            ffi.Int,
+            ffi.Float)>(
+    symbol: 'set_morph_animation', assetId: 'libflutter_filament')
 external bool set_morph_animation(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
@@ -359,16 +365,17 @@ external bool set_morph_animation(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
-        EntityId,
-        ffi.Pointer<ffi.Float>,
-        ffi.Int,
-        ffi.Int,
-        ffi.Pointer<ffi.Pointer<ffi.Char>>,
-        ffi.Pointer<ffi.Pointer<ffi.Char>>,
-        ffi.Int,
-        ffi.Float)>(symbol: 'set_bone_animation', assetId: 'libflutter_filament')
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Int,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+            ffi.Int,
+            ffi.Float)>(
+    symbol: 'set_bone_animation', assetId: 'libflutter_filament')
 external void set_bone_animation(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
@@ -444,12 +451,9 @@ external double get_animation_duration(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
-        EntityId,
-        ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Char>,
-        ffi.Int)>(symbol: 'get_morph_target_name', assetId: 'libflutter_filament')
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+            ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>, ffi.Int)>(
+    symbol: 'get_morph_target_name', assetId: 'libflutter_filament')
 external void get_morph_target_name(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
@@ -482,15 +486,16 @@ external void clear_assets(
 );
 
 @ffi.Native<
-    ffi.Bool Function(
-        ffi.Pointer<ffi.Void>,
-        EntityId,
-        ffi.Pointer<ffi.Char>,
-        ffi.Int,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float)>(symbol: 'set_material_color', assetId: 'libflutter_filament')
+        ffi.Bool Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<ffi.Char>,
+            ffi.Int,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float)>(
+    symbol: 'set_material_color', assetId: 'libflutter_filament')
 external bool set_material_color(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
@@ -553,8 +558,9 @@ external void move_camera_to_asset(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float,
-        ffi.Float)>(symbol: 'set_camera_exposure', assetId: 'libflutter_filament')
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float)>(
+    symbol: 'set_camera_exposure', assetId: 'libflutter_filament')
 external void set_camera_exposure(
   ffi.Pointer<ffi.Void> viewer,
   double aperture,
@@ -563,8 +569,9 @@ external void set_camera_exposure(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float,
-        ffi.Float)>(symbol: 'set_camera_position', assetId: 'libflutter_filament')
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float)>(
+    symbol: 'set_camera_position', assetId: 'libflutter_filament')
 external void set_camera_position(
   ffi.Pointer<ffi.Void> viewer,
   double x,
@@ -579,8 +586,9 @@ external void get_camera_position(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float,
-        ffi.Float)>(symbol: 'set_camera_rotation', assetId: 'libflutter_filament')
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float, ffi.Float)>(
+    symbol: 'set_camera_rotation', assetId: 'libflutter_filament')
 external void set_camera_rotation(
   ffi.Pointer<ffi.Void> viewer,
   double rads,
@@ -611,6 +619,12 @@ external ffi.Pointer<ffi.Double> get_camera_view_matrix(
 @ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<ffi.Void>)>(
     symbol: 'get_camera_projection_matrix', assetId: 'libflutter_filament')
 external ffi.Pointer<ffi.Double> get_camera_projection_matrix(
+  ffi.Pointer<ffi.Void> viewer,
+);
+
+@ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<ffi.Void>)>(
+    symbol: 'get_camera_frustum', assetId: 'libflutter_filament')
+external ffi.Pointer<ffi.Double> get_camera_frustum(
   ffi.Pointer<ffi.Void> viewer,
 );
 
@@ -720,8 +734,9 @@ external ffi.Pointer<ffi.Void> create_filament_viewer_ffi(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Int,
-        ffi.Int)>(symbol: 'create_swap_chain_ffi', assetId: 'libflutter_filament')
+        ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
+            ffi.Uint32, ffi.Uint32)>(
+    symbol: 'create_swap_chain_ffi', assetId: 'libflutter_filament')
 external void create_swap_chain_ffi(
   ffi.Pointer<ffi.Void> viewer,
   ffi.Pointer<ffi.Void> surface,
@@ -736,7 +751,8 @@ external void destroy_swap_chain_ffi(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Int)>(
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, ffi.IntPtr, ffi.Uint32, ffi.Uint32)>(
     symbol: 'create_render_target_ffi', assetId: 'libflutter_filament')
 external void create_render_target_ffi(
   ffi.Pointer<ffi.Void> viewer,
@@ -777,7 +793,8 @@ external void set_frame_interval_ffi(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Float)>(
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32, ffi.Float)>(
     symbol: 'update_viewport_and_camera_projection_ffi',
     assetId: 'libflutter_filament')
 external void update_viewport_and_camera_projection_ffi(
@@ -871,7 +888,7 @@ external void remove_ibl_ffi(
 @ffi.Native<
     EntityId Function(
         ffi.Pointer<ffi.Void>,
-        ffi.Int,
+        ffi.Uint8,
         ffi.Float,
         ffi.Float,
         ffi.Float,
@@ -1024,14 +1041,9 @@ external void set_bone_animation_ffi(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
-        EntityId,
-        ffi.Int,
-        ffi.Bool,
-        ffi.Bool,
-        ffi.Bool,
-        ffi.Float)>(symbol: 'play_animation_ffi', assetId: 'libflutter_filament')
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool,
+            ffi.Bool, ffi.Bool, ffi.Float)>(
+    symbol: 'play_animation_ffi', assetId: 'libflutter_filament')
 external void play_animation_ffi(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
@@ -1122,13 +1134,105 @@ external void pick_ffi(
     symbol: 'ios_dummy_ffi', assetId: 'libflutter_filament')
 external void ios_dummy_ffi();
 
+final class __mbstate_t extends ffi.Union {
+  @ffi.Array.multi([128])
+  external ffi.Array<ffi.Char> __mbstate8;
+
+  @ffi.LongLong()
+  external int _mbstateL;
+}
+
+final class __darwin_pthread_handler_rec extends ffi.Struct {
+  external ffi
+      .Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>
+      __routine;
+
+  external ffi.Pointer<ffi.Void> __arg;
+
+  external ffi.Pointer<__darwin_pthread_handler_rec> __next;
+}
+
+final class _opaque_pthread_attr_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  @ffi.Array.multi([56])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
+final class _opaque_pthread_cond_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  @ffi.Array.multi([40])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
+final class _opaque_pthread_condattr_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  @ffi.Array.multi([8])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
+final class _opaque_pthread_mutex_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  @ffi.Array.multi([56])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
+final class _opaque_pthread_mutexattr_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  @ffi.Array.multi([8])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
+final class _opaque_pthread_once_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  @ffi.Array.multi([8])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
+final class _opaque_pthread_rwlock_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  @ffi.Array.multi([192])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
+final class _opaque_pthread_rwlockattr_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  @ffi.Array.multi([16])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
+final class _opaque_pthread_t extends ffi.Struct {
+  @ffi.Long()
+  external int __sig;
+
+  external ffi.Pointer<__darwin_pthread_handler_rec> __cleanup_stack;
+
+  @ffi.Array.multi([8176])
+  external ffi.Array<ffi.Char> __opaque;
+}
+
 final class ResourceBuffer extends ffi.Struct {
   external ffi.Pointer<ffi.Void> data;
 
-  @ffi.Int()
+  @ffi.Int32()
   external int size;
 
-  @ffi.Int()
+  @ffi.Int32()
   external int id;
 }
 
@@ -1154,8 +1258,11 @@ typedef LoadFilamentResourceFromOwner = ffi.Pointer<
 typedef FreeFilamentResourceFromOwner = ffi.Pointer<
     ffi
     .NativeFunction<ffi.Void Function(ResourceBuffer, ffi.Pointer<ffi.Void>)>>;
-typedef EntityId = ffi.Int;
-typedef _ManipulatorMode = ffi.Int;
+
+/// This header replicates most of the methods in FlutterFilamentApi.h, and is only intended to be used to generate client FFI bindings.
+/// The intention is that calling one of these methods will call its respective method in FlutterFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety.
+typedef EntityId = ffi.Int32;
+typedef _ManipulatorMode = ffi.Int32;
 typedef FilamentRenderCallback = ffi.Pointer<
     ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> owner)>>;
 
@@ -1164,3 +1271,179 @@ const int __bool_true_false_are_defined = 1;
 const int true1 = 1;
 
 const int false1 = 0;
+
+const int __DARWIN_ONLY_64_BIT_INO_T = 1;
+
+const int __DARWIN_ONLY_UNIX_CONFORMANCE = 1;
+
+const int __DARWIN_ONLY_VERS_1050 = 1;
+
+const int __DARWIN_UNIX03 = 1;
+
+const int __DARWIN_64_BIT_INO_T = 1;
+
+const int __DARWIN_VERS_1050 = 1;
+
+const int __DARWIN_NON_CANCELABLE = 0;
+
+const String __DARWIN_SUF_EXTSN = '\$DARWIN_EXTSN';
+
+const int __DARWIN_C_ANSI = 4096;
+
+const int __DARWIN_C_FULL = 900000;
+
+const int __DARWIN_C_LEVEL = 900000;
+
+const int __STDC_WANT_LIB_EXT1__ = 1;
+
+const int __DARWIN_NO_LONG_LONG = 0;
+
+const int _DARWIN_FEATURE_64_BIT_INODE = 1;
+
+const int _DARWIN_FEATURE_ONLY_64_BIT_INODE = 1;
+
+const int _DARWIN_FEATURE_ONLY_VERS_1050 = 1;
+
+const int _DARWIN_FEATURE_ONLY_UNIX_CONFORMANCE = 1;
+
+const int _DARWIN_FEATURE_UNIX_CONFORMANCE = 3;
+
+const int __has_ptrcheck = 0;
+
+const int __DARWIN_NULL = 0;
+
+const int __PTHREAD_SIZE__ = 8176;
+
+const int __PTHREAD_ATTR_SIZE__ = 56;
+
+const int __PTHREAD_MUTEXATTR_SIZE__ = 8;
+
+const int __PTHREAD_MUTEX_SIZE__ = 56;
+
+const int __PTHREAD_CONDATTR_SIZE__ = 8;
+
+const int __PTHREAD_COND_SIZE__ = 40;
+
+const int __PTHREAD_ONCE_SIZE__ = 8;
+
+const int __PTHREAD_RWLOCK_SIZE__ = 192;
+
+const int __PTHREAD_RWLOCKATTR_SIZE__ = 16;
+
+const int __DARWIN_WCHAR_MAX = 2147483647;
+
+const int __DARWIN_WCHAR_MIN = -2147483648;
+
+const int __DARWIN_WEOF = -1;
+
+const int _FORTIFY_SOURCE = 2;
+
+const int NULL = 0;
+
+const int USER_ADDR_NULL = 0;
+
+const int __WORDSIZE = 64;
+
+const int INT8_MAX = 127;
+
+const int INT16_MAX = 32767;
+
+const int INT32_MAX = 2147483647;
+
+const int INT64_MAX = 9223372036854775807;
+
+const int INT8_MIN = -128;
+
+const int INT16_MIN = -32768;
+
+const int INT32_MIN = -2147483648;
+
+const int INT64_MIN = -9223372036854775808;
+
+const int UINT8_MAX = 255;
+
+const int UINT16_MAX = 65535;
+
+const int UINT32_MAX = 4294967295;
+
+const int UINT64_MAX = -1;
+
+const int INT_LEAST8_MIN = -128;
+
+const int INT_LEAST16_MIN = -32768;
+
+const int INT_LEAST32_MIN = -2147483648;
+
+const int INT_LEAST64_MIN = -9223372036854775808;
+
+const int INT_LEAST8_MAX = 127;
+
+const int INT_LEAST16_MAX = 32767;
+
+const int INT_LEAST32_MAX = 2147483647;
+
+const int INT_LEAST64_MAX = 9223372036854775807;
+
+const int UINT_LEAST8_MAX = 255;
+
+const int UINT_LEAST16_MAX = 65535;
+
+const int UINT_LEAST32_MAX = 4294967295;
+
+const int UINT_LEAST64_MAX = -1;
+
+const int INT_FAST8_MIN = -128;
+
+const int INT_FAST16_MIN = -32768;
+
+const int INT_FAST32_MIN = -2147483648;
+
+const int INT_FAST64_MIN = -9223372036854775808;
+
+const int INT_FAST8_MAX = 127;
+
+const int INT_FAST16_MAX = 32767;
+
+const int INT_FAST32_MAX = 2147483647;
+
+const int INT_FAST64_MAX = 9223372036854775807;
+
+const int UINT_FAST8_MAX = 255;
+
+const int UINT_FAST16_MAX = 65535;
+
+const int UINT_FAST32_MAX = 4294967295;
+
+const int UINT_FAST64_MAX = -1;
+
+const int INTPTR_MAX = 9223372036854775807;
+
+const int INTPTR_MIN = -9223372036854775808;
+
+const int UINTPTR_MAX = -1;
+
+const int INTMAX_MAX = 9223372036854775807;
+
+const int UINTMAX_MAX = -1;
+
+const int INTMAX_MIN = -9223372036854775808;
+
+const int PTRDIFF_MIN = -9223372036854775808;
+
+const int PTRDIFF_MAX = 9223372036854775807;
+
+const int SIZE_MAX = -1;
+
+const int RSIZE_MAX = 9223372036854775807;
+
+const int WCHAR_MAX = 2147483647;
+
+const int WCHAR_MIN = -2147483648;
+
+const int WINT_MIN = -2147483648;
+
+const int WINT_MAX = 2147483647;
+
+const int SIG_ATOMIC_MIN = -2147483648;
+
+const int SIG_ATOMIC_MAX = 2147483647;

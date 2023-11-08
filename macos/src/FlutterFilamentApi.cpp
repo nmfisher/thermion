@@ -126,8 +126,33 @@ extern "C"
 
     const double *const get_camera_view_matrix(const void *const viewer)
     {
-        const auto &modelMatrix = ((FilamentViewer *)viewer)->getCameraViewMatrix();
-        return modelMatrix.asArray();
+        const auto &matrix = ((FilamentViewer *)viewer)->getCameraViewMatrix();
+        double *array = (double *)calloc(16, sizeof(double));
+        memcpy(array, matrix.asArray(), 16 * sizeof(double));
+        return array;
+    }
+
+    const double *const get_camera_projection_matrix(const void *const viewer)
+    {
+        const auto &matrix = ((FilamentViewer *)viewer)->getCameraProjectionMatrix();
+        double *array = (double *)calloc(16, sizeof(double));
+        memcpy(array, matrix.asArray(), 16 * sizeof(double));
+        return array;
+    }
+    
+    const double *const get_camera_frustum(const void *const viewer)
+    {
+        const auto frustum = ((FilamentViewer *)viewer)->getCameraFrustum();
+        const math::float4* planes = frustum.getNormalizedPlanes();
+        double *array = (double *)calloc(24, sizeof(double));
+        for(int i =0; i < 6; i++) {
+            array[i*4] = planes[i].x;
+            array[i*4+1] = planes[i].y;
+            array[i*4+2] = planes[i].z;
+            array[i*4+3] = planes[i].w;
+        }
+        
+        return array;
     }
 
     FLUTTER_PLUGIN_EXPORT void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed)
