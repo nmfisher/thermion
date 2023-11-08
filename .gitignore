@@ -1,0 +1,4 @@
+.vscode
+macos/src
+macos/include
+.DS_Store
