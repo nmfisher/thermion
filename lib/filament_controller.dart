@@ -28,6 +28,17 @@ class TextureDetails {
 
 abstract class FilamentController {
   ///
+  /// A Stream containing every FilamentEntity added to the scene (i.e. via [loadGlb], [loadGltf] or [addLight]).
+  /// This is provided for convenience so you can set listeners in front-end widgets that can respond to entity loads without manually passing around the FilamentEntity returned from those methods.
+  ///
+  Stream<FilamentEntity> get onLoad;
+
+  ///
+  /// A Stream containing every FilamentEntity removed from the scene (i.e. via [removeAsset], [clearAssets], [removeLight] or [clearLights]).
+
+  Stream<FilamentEntity> get onUnload;
+
+  ///
   /// A [ValueNotifier] that holds the current dimensions (in physical pixels, after multiplying by pixel ratio) of the FilamentWidget.
   /// If you need to perform work as early as possible, add a listener to this property before a [FilamentWidget] has been inserted into the widget hierarchy.
   ///
@@ -201,7 +212,8 @@ abstract class FilamentController {
   /// [relativeResourcePath] is the folder path where the glTF resources are stored;
   /// this is usually the parent directory of the .gltf file itself.
   ///
-  Future<FilamentEntity> loadGltf(String path, String relativeResourcePath);
+  Future<FilamentEntity> loadGltf(String path, String relativeResourcePath,
+      {bool force = false});
 
   ///
   /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.

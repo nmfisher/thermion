@@ -20,7 +20,14 @@ const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 class FilamentControllerFFI extends FilamentController {
   final _channel = const MethodChannel("app.polyvox.filament/event");
 
+  ///
+  /// This will be set on constructor invocation.
+  /// On Windows, this will be set to the value returned by the [usesBackingWindow] method call.
+  /// On Web, this will always be true;
+  /// On other platforms, this will always be false.
+  ///
   bool _usesBackingWindow = false;
+
   @override
   bool get requiresTextureWidget => !_usesBackingWindow;
 
@@ -48,6 +55,15 @@ class FilamentControllerFFI extends FilamentController {
   int? _resizingHeight;
 
   Timer? _resizeTimer;
+
+  final _lights = <FilamentEntity>{};
+  final _entities = <FilamentEntity>{};
+
+  final _onLoadController = StreamController<FilamentEntity>.broadcast();
+  Stream<FilamentEntity> get onLoad => _onLoadController.stream;
+
+  final _onUnloadController = StreamController<FilamentEntity>.broadcast();
+  Stream<FilamentEntity> get onUnload => _onUnloadController.stream;
 
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
@@ -450,15 +466,19 @@ class FilamentControllerFFI extends FilamentController {
     }
     var entity = add_light_ffi(_viewer!, type, colour, intensity, posX, posY,
         posZ, dirX, dirY, dirZ, castShadows);
+    _onLoadController.sink.add(entity);
+    _lights.add(entity);
     return entity;
   }
 
   @override
-  Future removeLight(FilamentEntity light) async {
+  Future removeLight(FilamentEntity entity) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    remove_light_ffi(_viewer!, light);
+    _lights.remove(entity);
+    remove_light_ffi(_viewer!, entity);
+    _onUnloadController.add(entity);
   }
 
   @override
@@ -467,6 +487,10 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     clear_lights_ffi(_viewer!);
+    for (final entity in _lights) {
+      _onUnloadController.add(entity);
+    }
+    _lights.clear();
   }
 
   @override
@@ -477,12 +501,14 @@ class FilamentControllerFFI extends FilamentController {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
-    var asset =
+    var entity =
         load_glb_ffi(_assetManager!, path.toNativeUtf8().cast<Char>(), unlit);
-    if (asset == _FILAMENT_ASSET_ERROR) {
+    if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    return asset;
+    _entities.add(entity);
+    _onLoadController.sink.add(entity);
+    return entity;
   }
 
   @override
@@ -495,12 +521,14 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var asset = load_gltf_ffi(_assetManager!, path.toNativeUtf8().cast<Char>(),
+    var entity = load_gltf_ffi(_assetManager!, path.toNativeUtf8().cast<Char>(),
         relativeResourcePath.toNativeUtf8().cast<Char>());
-    if (asset == _FILAMENT_ASSET_ERROR) {
+    if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    return asset;
+    _entities.add(entity);
+    _onLoadController.sink.add(entity);
+    return entity;
   }
 
   @override
@@ -700,7 +728,9 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
+    _entities.remove(entity);
     remove_asset_ffi(_viewer!, entity);
+    _onUnloadController.add(entity);
   }
 
   @override
@@ -709,6 +739,11 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     clear_assets_ffi(_viewer!);
+
+    for (final entity in _entities) {
+      _onUnloadController.add(entity);
+    }
+    _entities.clear();
   }
 
   @override
