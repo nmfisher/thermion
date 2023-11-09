@@ -390,7 +390,7 @@ Project structure:
 e.g.
 
 ```
-make sync-libs-macos-and-update-pods
+cd macos && make
 ```
 
 - Android keeps a separate copy of ALL headers (because it's currently running a different version of Filament, earlier versions have some texture filtering issues) 
