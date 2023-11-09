@@ -1109,6 +1109,30 @@ namespace polyvox
     cam.setModelMatrix(modelMatrix);
   }
 
+  void FilamentViewer::setCameraProjectionMatrix(const double *const matrix, double near, double far)
+  {
+    Camera &cam = _view->getCamera();
+
+    mat4 projectionMatrix(
+        matrix[0],
+        matrix[1],
+        matrix[2],
+        matrix[3],
+        matrix[4],
+        matrix[5],
+        matrix[6],
+        matrix[7],
+        matrix[8],
+        matrix[9],
+        matrix[10],
+        matrix[11],
+        matrix[12],
+        matrix[13],
+        matrix[14],
+        matrix[15]);
+    cam.setCustomProjection(projectionMatrix, near, far);
+  }
+
   const math::mat4 FilamentViewer::getCameraModelMatrix()
   {
     const auto &cam = _view->getCamera();
@@ -1125,6 +1149,12 @@ namespace polyvox
   {
     const auto &cam = _view->getCamera();
     return cam.getProjectionMatrix();
+  }
+
+  const math::mat4 FilamentViewer::getCameraCullingProjectionMatrix()
+  {
+    const auto &cam = _view->getCamera();
+    return cam.getCullingProjectionMatrix();
   }
 
   const filament::Frustum FilamentViewer::getCameraFrustum()

@@ -1097,18 +1097,25 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future<List<Vector4>> getCameraFrustum() async {
+  Future<Matrix4> getCameraCullingProjectionMatrix() async {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = get_camera_frustum(_viewer!);
-    var doubleList = arrayPtr.asTypedList(6 * 4);
-    var frustum = <Vector4>[];
-    for (int i = 0; i < 6; i++) {
-      var plane = Vector4.array(doubleList.sublist(i * 4, (i + 1) * 4));
-      frustum.add(plane);
-    }
+    var arrayPtr = get_camera_culling_projection_matrix(_viewer!);
+    var doubleList = arrayPtr.asTypedList(16);
+    var projectionMatrix = Matrix4.fromList(doubleList);
     flutter_filament_free(arrayPtr.cast<Void>());
-    return frustum;
+    return projectionMatrix;
+  }
+
+  @override
+  Future<Frustum> getCameraFrustum() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+
+    var projectionMatrix = await getCameraProjectionMatrix();
+
+    return Frustum.matrix(projectionMatrix);
   }
 }

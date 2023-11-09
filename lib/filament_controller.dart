@@ -365,9 +365,14 @@ abstract class FilamentController {
   Future<Matrix4> getCameraProjectionMatrix();
 
   ///
+  /// Get the camera's culling projection matrix. See Camera.h for more details.
+  ///
+  Future<Matrix4> getCameraCullingProjectionMatrix();
+
+  ///
   /// Get the camera's culling frustum in world space. Returns six Vector4s defining the left, right, bottom, top, far and near planes respectively. See Camera.h and Frustum.h for more details.
   ///
-  Future<List<Vector4>> getCameraFrustum();
+  Future<Frustum> getCameraFrustum();
 
   ///
   /// Set the camera position in world space. Note this is not persistent - any viewport navigation will reset the camera transform.

@@ -101,8 +101,10 @@ namespace polyvox
         const math::mat4 getCameraModelMatrix();
         const math::mat4 getCameraViewMatrix();
         const math::mat4 getCameraProjectionMatrix();
+        const math::mat4 getCameraCullingProjectionMatrix();
         const filament::Frustum getCameraFrustum();
         void setCameraModelMatrix(const float *const matrix);
+        void setCameraProjectionMatrix(const double *const matrix, double near, double far);
         void setCameraFocalLength(float fl);
         void setCameraFocusDistance(float focusDistance);
         void setCameraManipulatorOptions(filament::camutils::Mode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);

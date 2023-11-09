@@ -112,13 +112,16 @@ EntityId AssetManager::loadGltf(const char *uri,
     }
     
     // load resources synchronously
-    if (!_gltfResourceLoader->loadResources(asset)) {
-        Log("Unknown error loading glTF asset");
+    if (!_gltfResourceLoader->asyncBeginLoad(asset)) {
+        Log("Possible error loading glTF asset");
         _resourceLoaderWrapper->free(rbuf);
         for(auto& rb : resourceBuffers) {
             _resourceLoaderWrapper->free(rb);
         }
         return 0;
+    }
+    while(_gltfResourceLoader->asyncGetLoadProgress() < 1.0) {
+        // noop
     }
     const utils::Entity *entities = asset->getEntities();
         

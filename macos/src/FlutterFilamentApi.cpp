@@ -139,6 +139,19 @@ extern "C"
         memcpy(array, matrix.asArray(), 16 * sizeof(double));
         return array;
     }
+
+    const double *const get_camera_culling_projection_matrix(const void *const viewer)
+    {
+        const auto &matrix = ((FilamentViewer *)viewer)->getCameraCullingProjectionMatrix();
+        double *array = (double *)calloc(16, sizeof(double));
+        memcpy(array, matrix.asArray(), 16 * sizeof(double));
+        return array;
+    }
+
+    void set_camera_projection_matrix(const void *const viewer, const double* const matrix, double near, double far)
+    {
+        ((FilamentViewer *)viewer)->setCameraProjectionMatrix(matrix, near, far);
+    }
     
     const double *const get_camera_frustum(const void *const viewer)
     {
