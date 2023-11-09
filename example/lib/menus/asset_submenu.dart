@@ -173,7 +173,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 ExampleWidgetState.buster = null;
               }
             },
-            child: Text(ExampleWidgetState.shapes == null
+            child: Text(ExampleWidgetState.buster == null
                 ? 'Load buster'
                 : 'Remove buster')),
         MenuItemButton(
@@ -189,7 +189,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 ExampleWidgetState.flightHelmet = null;
               }
             },
-            child: Text(ExampleWidgetState.shapes == null
+            child: Text(ExampleWidgetState.flightHelmet == null
                 ? 'Load flight helmet'
                 : 'Remove flight helmet')),
         MenuItemButton(

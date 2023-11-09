@@ -88,12 +88,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
                           height: 300,
                           width: 300,
                           color: Colors.white,
-                          child: Column(
-                              children: frustum
-                                  .map((vector) => Text(vector.storage
-                                      .map((v) => v.toStringAsFixed(2))
-                                      .join(",")))
-                                  .toList())));
+                          child: Text(frustum.toString())));
                 });
           },
           child: const Text("Get frustum")),
