@@ -1,17 +1,18 @@
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 current_dir := $(dir $(mkfile_path))
-parent_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
+parent_dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 
 filament_build_out := $(parent_dir)/filament/out/cmake-release
 
 # building on MacOS, we currently just delete the macos/include 
 # and macos/src directories and copy from iOS
 
-macos:
-	rm -rf ${current_dir}include
-	cp -R ${current_dir}../ios/include ${current_dir}
-	rm -rf ${current_dir}macos/src 
-	cp -R ${current_dir}../ios/src ${current_dir}
+sync-macos: FORCE
+	rm -rf ${current_dir}macos/include ${current_dir}macos/src 
+	cp -R ${current_dir}ios/include ${current_dir}macos
+	cp -R ${current_dir}ios/src ${current_dir}macos
+
+FORCE: ;
 
 # We use a single material (no lighting and no transparency) for background images
 # 

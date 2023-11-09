@@ -390,12 +390,8 @@ Project structure:
 e.g.
 
 ```
-cd macos && make
+make sync-macos
 ```
-
-- Android keeps a separate copy of ALL headers (because it's currently running a different version of Filament, earlier versions have some texture filtering issues) 
--- can't symlink either?
---- IMPORTANT - current version only works on Flutter 3.15.0-15.2.pre / Filament v1.43.1
 
 - Note also need to specifically build imageio/png/tinyexr 
 - if release build, then need to comment out -fno-exceptions
