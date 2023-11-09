@@ -15,8 +15,66 @@ class CameraSubmenu extends StatefulWidget {
 }
 
 class _CameraSubmenuState extends State<CameraSubmenu> {
+  double _near = 0.05;
+  double _far = 1000.0;
+
+  final _menuController = MenuController();
+
   List<Widget> _cameraMenu() {
     return [
+      MenuItemButton(
+        closeOnActivate: false,
+        onPressed: () async {
+          ExampleWidgetState.showProjectionMatrices.value =
+              !ExampleWidgetState.showProjectionMatrices.value;
+          print("Set to ${ExampleWidgetState.showProjectionMatrices}");
+        },
+        child: Text(
+          '${ExampleWidgetState.showProjectionMatrices.value ? "Hide" : "Display"} camera projection/culling projection matrices',
+          style: TextStyle(
+              fontWeight: ExampleWidgetState.showProjectionMatrices.value
+                  ? FontWeight.bold
+                  : FontWeight.normal),
+        ),
+      ),
+      SubmenuButton(
+          menuChildren: [1.0, 7.0, 14.0, 28.0, 56.0]
+              .map((v) => MenuItemButton(
+                    onPressed: () {
+                      widget.controller.setCameraFocalLength(v);
+                    },
+                    child: Text(
+                      v.toStringAsFixed(2),
+                    ),
+                  ))
+              .toList(),
+          child: const Text("Set camera focal length")),
+      SubmenuButton(
+          menuChildren: [0.05, 0.1, 1.0, 10.0, 100.0]
+              .map((v) => MenuItemButton(
+                    onPressed: () {
+                      _near = v;
+                      widget.controller.setCameraCulling(_near, _far);
+                    },
+                    child: Text(
+                      v.toStringAsFixed(2),
+                    ),
+                  ))
+              .toList(),
+          child: const Text("Set near")),
+      SubmenuButton(
+          menuChildren: [5.0, 50.0, 500.0, 1000.0, 100000.0]
+              .map((v) => MenuItemButton(
+                    onPressed: () {
+                      _far = v;
+                      widget.controller.setCameraCulling(_near, _far);
+                    },
+                    child: Text(
+                      v.toStringAsFixed(2),
+                    ),
+                  ))
+              .toList(),
+          child: const Text("Set far")),
       MenuItemButton(
         onPressed: () async {
           widget.controller.setCameraPosition(1.0, 1.0, -1.0);
@@ -80,7 +138,21 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
           closeOnActivate: false,
           onPressed: () async {
             var frustum = await widget.controller.getCameraFrustum();
-            await showDialog(
+            var normalString = [
+              frustum.plane0,
+              frustum.plane1,
+              frustum.plane2,
+              frustum.plane3,
+              frustum.plane4,
+              frustum.plane5
+            ]
+                .map((plane) =>
+                    plane.normal.storage
+                        .map((v) => v.toStringAsFixed(2))
+                        .join(",") +
+                    ",${plane.constant}")
+                .join("\n");
+            showDialog(
                 context: context,
                 builder: (ctx) {
                   return Center(
@@ -88,8 +160,10 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
                           height: 300,
                           width: 300,
                           color: Colors.white,
-                          child: Text(frustum.toString())));
+                          child:
+                              Text("Frustum plane normals : $normalString ")));
                 });
+            _menuController.close();
           },
           child: const Text("Get frustum")),
       SubmenuButton(
@@ -164,6 +238,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
   @override
   Widget build(BuildContext context) {
     return SubmenuButton(
+      controller: _menuController,
       menuChildren: _cameraMenu(),
       child: const Text("Camera"),
     );

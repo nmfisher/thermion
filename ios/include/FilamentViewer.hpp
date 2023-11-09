@@ -105,7 +105,8 @@ namespace polyvox
         const filament::Frustum getCameraFrustum();
         void setCameraModelMatrix(const float *const matrix);
         void setCameraProjectionMatrix(const double *const matrix, double near, double far);
-        void setCameraFocalLength(float fl);
+        void setCameraFocalLength(float focalLength);
+        void setCameraCulling(double near, double far);
         void setCameraFocusDistance(float focusDistance);
         void setCameraManipulatorOptions(filament::camutils::Mode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
         void grabBegin(float x, float y, bool pan);
@@ -169,6 +170,8 @@ namespace polyvox
         math::mat4f _cameraPosition;
         math::mat4f _cameraRotation;
         void _createManipulator();
+        double _near = 0.05;  
+        double _far = 1000.0; 
 
         ColorGrading *colorGrading = nullptr;
 

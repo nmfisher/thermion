@@ -335,9 +335,14 @@ abstract class FilamentController {
   Future setBloom(double bloom);
 
   ///
-  /// Sets the focal length of the camera.
+  /// Sets the focal length of the camera. Default value is 28.0.
   ///
   Future setCameraFocalLength(double focalLength);
+
+  ///
+  /// Sets the near/far culling planes for the active camera. Default values are 0.05/1000.0. See Camera.h for details.
+  ///
+  Future setCameraCulling(double near, double far);
 
   ///
   /// Sets the focus distance for the camera.
@@ -370,7 +375,8 @@ abstract class FilamentController {
   Future<Matrix4> getCameraCullingProjectionMatrix();
 
   ///
-  /// Get the camera's culling frustum in world space. Returns six Vector4s defining the left, right, bottom, top, far and near planes respectively. See Camera.h and Frustum.h for more details.
+  /// Get the camera's culling frustum in world space. Returns a (vector_math) [Frustum] instance where plane0-plane6 define the left, right, bottom, top, far and near planes respectively.
+  /// See Camera.h and (filament) Frustum.h for more details.
   ///
   Future<Frustum> getCameraFrustum();
 

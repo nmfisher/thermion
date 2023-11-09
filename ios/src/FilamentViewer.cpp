@@ -96,9 +96,6 @@ namespace filament
 namespace polyvox
 {
 
-  const double kNearPlane = 0.05;  // 5 cm
-  const double kFarPlane = 1000.0; // 1 km
-
   // const float kAperture = 1.0f;
   // const float kShutterSpeed = 1.0f;
   // const float kSensitivity = 50.0f;
@@ -163,8 +160,8 @@ namespace polyvox
     _view->setCamera(_mainCamera);
 
     _cameraFocalLength = 28.0f;
-    _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
-                                   kFarPlane);
+    _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, _near,
+                                   _far);
     // _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
     Log("View created");
     const float aperture = _mainCamera->getAperture();
@@ -743,8 +740,20 @@ namespace polyvox
   {
     Camera &cam = _view->getCamera();
     _cameraFocalLength = focalLength;
-    cam.setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
-                          kFarPlane);
+    cam.setLensProjection(_cameraFocalLength, 1.0f, _near,
+                          _far);
+  }
+
+  ///
+  /// Set the focal length of the active camera.
+  ///
+  void FilamentViewer::setCameraCulling(double near, double far)
+  {
+    Camera &cam = _view->getCamera();
+    _near = near;
+    _far = far;
+    cam.setLensProjection(_cameraFocalLength, 1.0f, _near,
+                          _far);
   }
 
   ///
@@ -1036,8 +1045,8 @@ namespace polyvox
     const double aspect = (double)width / height;
 
     Camera &cam = _view->getCamera();
-    cam.setLensProjection(_cameraFocalLength, 1.0f, kNearPlane,
-                          kFarPlane);
+    cam.setLensProjection(_cameraFocalLength, 1.0f, _near,
+                          _far);
 
     cam.setScaling({1.0 / aspect, 1.0});
 
@@ -1128,7 +1137,7 @@ namespace polyvox
         matrix[13],
         matrix[14],
         matrix[15]);
-    cam.setCustomProjection(projectionMatrix, near, far);
+    cam.setCustomProjection(projectionMatrix,projectionMatrix, near, far);
   }
 
   const math::mat4 FilamentViewer::getCameraModelMatrix()

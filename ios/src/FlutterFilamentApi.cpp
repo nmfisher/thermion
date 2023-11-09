@@ -152,6 +152,11 @@ extern "C"
     {
         ((FilamentViewer *)viewer)->setCameraProjectionMatrix(matrix, near, far);
     }
+
+    void set_camera_culling(const void *const viewer, double near, double far)
+    {
+        ((FilamentViewer *)viewer)->setCameraCulling(near, far);
+    }
     
     const double *const get_camera_frustum(const void *const viewer)
     {

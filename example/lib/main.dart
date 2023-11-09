@@ -76,6 +76,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
   static FilamentEntity? directionalLight;
 
   static bool loop = false;
+  static final showProjectionMatrices = ValueNotifier<bool>(false);
 
   late StreamSubscription _listener;
 
@@ -158,7 +159,11 @@ class ExampleWidgetState extends State<ExampleWidget> {
           ? Container()
           : Padding(
               padding: const EdgeInsets.only(top: 40, left: 20, right: 20),
-              child: CameraMatrixOverlay(controller: _filamentController!),
+              child: ValueListenableBuilder(
+                  valueListenable: showProjectionMatrices,
+                  builder: (ctx, value, child) => CameraMatrixOverlay(
+                      controller: _filamentController!,
+                      showProjectionMatrices: value)),
             ),
       _filamentController == null
           ? Container()

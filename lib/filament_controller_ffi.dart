@@ -847,6 +847,14 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
+  Future setCameraCulling(double near, double far) async {
+    if (_viewer == null) {
+      throw Exception("No viewer available, ignoring");
+    }
+    set_camera_culling(_viewer!, near, far);
+  }
+
+  @override
   Future setCameraFocusDistance(double focusDistance) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -1084,11 +1092,20 @@ class FilamentControllerFFI extends FilamentController {
         _viewer!, mode.index, orbitSpeedX, orbitSpeedX, zoomSpeed);
   }
 
+  ///
+  /// I don't think these two methods are accurate - don't rely on them, use the Frustum values instead.
+  /// I think because we use [setLensProjection] and [setScaling] together, this projection matrix doesn't accurately reflect the field of view (because it's using an additional scaling matrix).
+  /// Also, the near/far planes never seem to get updated (which is what I would expect to see when calling [getCameraCullingProjectionMatrix])
+  ///
   @override
   Future<Matrix4> getCameraProjectionMatrix() async {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
+
+    print(
+        "WARNING: getCameraProjectionMatrix and getCameraCullingProjectionMatrix are not reliable. Consider these broken");
+
     var arrayPtr = get_camera_projection_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
     var projectionMatrix = Matrix4.fromList(doubleList);
@@ -1101,6 +1118,8 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
+    print(
+        "WARNING: getCameraProjectionMatrix and getCameraCullingProjectionMatrix are not reliable. Consider these broken");
     var arrayPtr = get_camera_culling_projection_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
     var projectionMatrix = Matrix4.fromList(doubleList);
@@ -1113,9 +1132,27 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
+    var arrayPtr = get_camera_frustum(_viewer!);
+    var doubleList = arrayPtr.asTypedList(24);
+    var planeNormals = [];
+    for (int i = 0; i < 6; i++) {
+      planeNormals.add(Vector3.array(doubleList.sublist(i * 3, (i + 1) * 3)));
+    }
 
-    var projectionMatrix = await getCameraProjectionMatrix();
+    var frustum = Frustum();
+    frustum.plane0.setFromComponents(
+        doubleList[0], doubleList[1], doubleList[2], doubleList[3]);
+    frustum.plane1.setFromComponents(
+        doubleList[4], doubleList[5], doubleList[6], doubleList[7]);
+    frustum.plane2.setFromComponents(
+        doubleList[8], doubleList[9], doubleList[10], doubleList[11]);
+    frustum.plane3.setFromComponents(
+        doubleList[12], doubleList[13], doubleList[14], doubleList[15]);
+    frustum.plane4.setFromComponents(
+        doubleList[16], doubleList[17], doubleList[18], doubleList[19]);
+    frustum.plane5.setFromComponents(
+        doubleList[20], doubleList[21], doubleList[22], doubleList[23]);
 
-    return Frustum.matrix(projectionMatrix);
+    return frustum;
   }
 }
