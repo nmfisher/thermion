@@ -164,6 +164,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     _resizeTimer?.cancel();
     _resizeTimer = Timer(Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100), () async {
       try {
+
         while(_resizing) {
           await Future.delayed(const Duration(milliseconds: 20));
         }
@@ -172,10 +173,10 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
         await widget.controller.resize();
         _resizeTimer = null;
         setState(() {});
-        _resizing = false;
       } catch (err) {
         dev.log("Error resizing FilamentWidget: $err");
       } finally { 
+        _resizing = false;
         completer.complete();
       }
     });
