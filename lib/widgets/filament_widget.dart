@@ -125,8 +125,6 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
 
   late final AppLifecycleListener _appLifecycleListener;
 
-  late double _pixelRatio;
-
   Rect get _rect {
     final renderBox = (context.findRenderObject()) as RenderBox;
     final size = renderBox.size;
@@ -141,24 +139,22 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      try {
-        _pixelRatio = MediaQuery.of(context).devicePixelRatio;
-        widget.controller.setDimensions(_rect, _pixelRatio);
+        try {
+        widget.controller.setDimensions(_rect, MediaQuery.of(context).devicePixelRatio);
       } catch (err) {
         dev.log("Fatal error : $err");
         _error = err.toString();
       }
-      setState(() {});
-    });
+      });
 
     super.initState();
   }
 
+
   Timer? _resizeTimer;
   bool _resizing = false;
 
-  Future _resize() {
-    dev.log("Resizing widget");
+  Future _resize() async {
     final completer = Completer();
     // resizing the window can be sluggish (particular in debug mode), exacerbated when simultaneously recreating the swapchain and resize the window.
     // to address this, whenever the widget is resized, we set a timer for Xms in the future.
@@ -166,42 +162,31 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     // any subsequent widget resizes will cancel the timer and replace with a new one.
     // debug mode does need a longer timeout.
     _resizeTimer?.cancel();
-
-    _resizeTimer = Timer(
-        Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100),
-        () async {
-      if (!mounted) {
-        completer.complete();
-        return;
-      }
+    _resizeTimer = Timer(Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100), () async {
       try {
-        while (_resizing) {
+        while(_resizing) {
           await Future.delayed(const Duration(milliseconds: 20));
         }
-
         _resizing = true;
-        await widget.controller.setDimensions(_rect, _pixelRatio);
+        await widget.controller.setDimensions(_rect, MediaQuery.of(context).devicePixelRatio);
         await widget.controller.resize();
         _resizeTimer = null;
         setState(() {});
         _resizing = false;
       } catch (err) {
         dev.log("Error resizing FilamentWidget: $err");
-      } finally {
+      } finally { 
         completer.complete();
       }
     });
-
     return completer.future;
+
   }
 
   @override
   void didUpdateWidget(_SizedFilamentWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.height != widget.height || oldWidget.width != widget.width) {
-      _resize();
-    }
+    _resize();
   }
 
   @override

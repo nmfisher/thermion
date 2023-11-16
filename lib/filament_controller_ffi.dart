@@ -130,8 +130,11 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setDimensions(Rect rect, double pixelRatio) async {
-    this.rect.value = Rect.fromLTWH(rect.left, rect.top,
-        rect.width * _pixelRatio, rect.height * _pixelRatio);
+    this.rect.value = Rect.fromLTWH(
+        (rect.left * _pixelRatio).floor().toDouble(),
+        rect.top * _pixelRatio.floor().toDouble(),
+        (rect.width * _pixelRatio).ceil().toDouble(),
+        (rect.height * _pixelRatio).ceil().toDouble());
     _pixelRatio = pixelRatio;
   }
 
@@ -318,64 +321,66 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Cannot resize without active viewer");
     }
 
-    if (_resizing) {
-      throw Exception("Resize currently underway, ignoring");
+    while (_resizing) {
+      await Future.delayed(Duration(milliseconds: 100));
     }
 
-    _resizing = true;
+    try {
+      _resizing = true;
 
-    set_rendering_ffi(_viewer!, false);
+      set_rendering_ffi(_viewer!, false);
 
-    if (!_usesBackingWindow) {
-      destroy_swap_chain_ffi(_viewer!);
-    }
-
-    if (requiresTextureWidget) {
-      if (textureDetails.value != null) {
-        await _channel.invokeMethod(
-            "destroyTexture", textureDetails.value!.textureId);
+      if (!_usesBackingWindow) {
+        destroy_swap_chain_ffi(_viewer!);
       }
-    } else if (Platform.isWindows) {
-      dev.log("Resizing window with rect $rect");
-      await _channel.invokeMethod("resizeWindow", [
-        rect.value!.width,
-        rect.value!.height,
-        rect.value!.left,
-        rect.value!.top
-      ]);
+
+      if (requiresTextureWidget) {
+        if (textureDetails.value != null) {
+          await _channel.invokeMethod(
+              "destroyTexture", textureDetails.value!.textureId);
+        }
+      } else if (Platform.isWindows) {
+        dev.log("Resizing window with rect $rect");
+        await _channel.invokeMethod("resizeWindow", [
+          rect.value!.width,
+          rect.value!.height,
+          rect.value!.left,
+          rect.value!.top
+        ]);
+      }
+
+      var renderingSurface = await _createRenderingSurface();
+
+      if (_viewer!.address == 0) {
+        throw Exception("Failed to create viewer. Check logs for details");
+      }
+
+      _assetManager = get_asset_manager(_viewer!);
+
+      if (!_usesBackingWindow) {
+        create_swap_chain_ffi(_viewer!, renderingSurface.surface,
+            rect.value!.width.toInt(), rect.value!.height.toInt());
+      }
+
+      if (renderingSurface.textureHandle != 0) {
+        dev.log(
+            "Creating render target from native texture  ${renderingSurface.textureHandle}");
+        create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
+            rect.value!.width.toInt(), rect.value!.height.toInt());
+      }
+
+      textureDetails.value = TextureDetails(
+          textureId: renderingSurface.flutterTextureId,
+          width: rect.value!.width.toInt(),
+          height: rect.value!.height.toInt());
+
+      update_viewport_and_camera_projection_ffi(
+          _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
+
+      await setRendering(_rendering);
+    } finally {
+      _resizing = false;
     }
-
-    var renderingSurface = await _createRenderingSurface();
-
-    if (_viewer!.address == 0) {
-      throw Exception("Failed to create viewer. Check logs for details");
-    }
-
-    _assetManager = get_asset_manager(_viewer!);
-
-    if (!_usesBackingWindow) {
-      create_swap_chain_ffi(_viewer!, renderingSurface.surface,
-          rect.value!.width.toInt(), rect.value!.height.toInt());
-    }
-
-    if (renderingSurface.textureHandle != 0) {
-      dev.log(
-          "Creating render target from native texture  ${renderingSurface.textureHandle}");
-      create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
-          rect.value!.width.toInt(), rect.value!.height.toInt());
-    }
-
-    textureDetails.value = TextureDetails(
-        textureId: renderingSurface.flutterTextureId,
-        width: rect.value!.width.toInt(),
-        height: rect.value!.height.toInt());
-
-    update_viewport_and_camera_projection_ffi(
-        _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
-
-    await setRendering(_rendering);
-
-    _resizing = false;
   }
 
   @override
