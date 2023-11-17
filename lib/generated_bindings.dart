@@ -370,20 +370,18 @@ external bool set_morph_animation(
             EntityId,
             ffi.Pointer<ffi.Float>,
             ffi.Int,
-            ffi.Int,
-            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+            ffi.Pointer<ffi.Char>,
             ffi.Pointer<ffi.Pointer<ffi.Char>>,
             ffi.Int,
             ffi.Float)>(
-    symbol: 'set_bone_animation', assetId: 'flutter_filament_plugin')
-external void set_bone_animation(
+    symbol: 'add_bone_animation', assetId: 'flutter_filament_plugin')
+external void add_bone_animation(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
   ffi.Pointer<ffi.Float> frameData,
   int numFrames,
-  int numBones,
-  ffi.Pointer<ffi.Pointer<ffi.Char>> boneNames,
-  ffi.Pointer<ffi.Pointer<ffi.Char>> meshName,
+  ffi.Pointer<ffi.Char> boneName,
+  ffi.Pointer<ffi.Pointer<ffi.Char>> meshNames,
   int numMeshTargets,
   double frameLengthInMs,
 );

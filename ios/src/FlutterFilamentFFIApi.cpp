@@ -331,18 +331,6 @@ FLUTTER_PLUGIN_EXPORT bool set_camera_ffi(void *const viewer, EntityId asset,
   return fut.get();
 }
 
-FLUTTER_PLUGIN_EXPORT void set_bone_animation_ffi(
-    void *assetManager, EntityId asset, const float *const frameData,
-    int numFrames, int numBones, const char **const boneNames,
-    const char **const meshName, int numMeshTargets, float frameLengthInMs) {
-  std::packaged_task<void()> lambda([&] {
-    set_bone_animation(assetManager, asset, frameData, numFrames, numBones,
-                       boneNames, meshName, numMeshTargets, frameLengthInMs);
-  });
-  auto fut = _rl->add_task(lambda);
-  fut.wait();
-}
-
 FLUTTER_PLUGIN_EXPORT void
 get_morph_target_name_ffi(void *assetManager, EntityId asset,
                           const char *meshName, char *const outPtr, int index) {

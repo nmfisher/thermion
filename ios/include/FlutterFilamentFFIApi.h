@@ -66,17 +66,6 @@ FLUTTER_PLUGIN_EXPORT bool set_morph_animation_ffi(
                                                    int numMorphTargets,
                                                    int numFrames,
                                                    float frameLengthInMs);
-FLUTTER_PLUGIN_EXPORT 
-FLUTTER_PLUGIN_EXPORT void set_bone_animation_ffi(
-                                                  void* const assetManager,
-                                                  EntityId asset,
-                                                  const float* const frameData,
-                                                  int numFrames,
-                                                  int numBones,
-                                                  const char** const boneNames,
-                                                  const char** const meshName,
-                                                  int numMeshTargets,
-                                                  float frameLengthInMs);
 FLUTTER_PLUGIN_EXPORT void play_animation_ffi(void* const assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
 FLUTTER_PLUGIN_EXPORT void set_animation_frame_ffi(void* const assetManager, EntityId asset, int animationIndex, int animationFrame);
 FLUTTER_PLUGIN_EXPORT void stop_animation_ffi(void* const assetManager, EntityId asset, int index);

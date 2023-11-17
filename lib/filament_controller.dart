@@ -272,12 +272,9 @@ abstract class FilamentController {
       FilamentEntity entity, MorphAnimationData animation);
 
   ///
-  /// Animates morph target weights/bone transforms (where each frame requires a duration of [frameLengthInMs].
-  /// [morphWeights] is a list of doubles in frame-major format.
-  /// Each frame is [numWeights] in length, and each entry is the weight to be applied to the morph target located at that index in the mesh primitive at that frame.
-  /// for now we only allow animating a single bone (though multiple skinned targets are supported)
+  /// Starts animating a bone (joint) according to the specified [animation].
   ///
-  Future setBoneAnimation(FilamentEntity entity, BoneAnimationData animation);
+  Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation);
 
   ///
   /// Sets the local joint transform for the bone at the given index in [entity] for the mesh under [meshName].

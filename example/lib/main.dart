@@ -97,6 +97,8 @@ class ExampleWidgetState extends State<ExampleWidget> {
           await _filamentController!.setRendering(true);
           shapes =
               await _filamentController!.loadGlb("assets/shapes/shapes.glb");
+          ExampleWidgetState.animations = await _filamentController!
+              .getAnimationNames(ExampleWidgetState.shapes!);
           hasSkybox = true;
           rendering = true;
         });

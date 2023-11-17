@@ -2,9 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_filament/animations/animation_data.dart';
 import 'package:flutter_filament/filament_controller.dart';
 import 'package:flutter_filament_example/main.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import 'package:vector_math/vector_math_64.dart' as v;
 
 class AssetSubmenu extends StatefulWidget {
   final FilamentController controller;
@@ -65,7 +68,25 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                       0,
                       Matrix4.rotationX(pi / 2));
                 },
-          child: const Text('Set bone tranform to identity for Cylinder')),
+          child:
+              const Text('Set bone transform for Cylinder (pi/2 rotation X)')),
+      MenuItemButton(
+          onPressed: ExampleWidgetState.shapes == null
+              ? null
+              : () async {
+                  await widget.controller.addBoneAnimation(
+                      ExampleWidgetState.shapes!,
+                      BoneAnimationData(
+                          "Bone",
+                          ["Cylinder"],
+                          List.generate(
+                              60,
+                              (idx) => v.Quaternion.axisAngle(
+                                      v.Vector3(0, 0, 1), pi * (idx / 60))
+                                  .normalized()),
+                          1000.0 / 30.0));
+                },
+          child: const Text('Set bone transform animation for Cylinder')),
       MenuItemButton(
           onPressed: () async {
             var names = await widget.controller

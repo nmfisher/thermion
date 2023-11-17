@@ -691,41 +691,40 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future setBoneAnimation(
+  Future addBoneAnimation(
       FilamentEntity entity, BoneAnimationData animation) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    // var data = calloc<Float>(animation.frameData.length);
-    // int offset = 0;
-    // var numFrames = animation.frameData.length ~/ 7;
-    // var boneNames = calloc<Pointer<Char>>(1);
-    // boneNames.elementAt(0).value =
-    //     animation.boneName.toNativeUtf8().cast<Char>();
 
-    // var meshNames = calloc<Pointer<Char>>(animation.meshNames.length);
-    // for (int i = 0; i < animation.meshNames.length; i++) {
-    //   meshNames.elementAt(i).value =
-    //       animation.meshNames[i].toNativeUtf8().cast<Char>();
-    // }
+    var numFrames = animation.frameData.length;
 
-    // for (int i = 0; i < animation.frameData.length; i++) {
-    //   data.elementAt(offset).value = animation.frameData[i];
-    //   offset += 1;
-    // }
+    var meshNames = calloc<Pointer<Char>>(animation.meshNames.length);
+    for (int i = 0; i < animation.meshNames.length; i++) {
+      meshNames.elementAt(i).value =
+          animation.meshNames[i].toNativeUtf8().cast<Char>();
+    }
 
-    // await _channel.invokeMethod("setBoneAnimation", [
-    //   _assetManager!,
-    //   asset,
-    //   data,
-    //   numFrames,
-    //   1,
-    //   boneNames,
-    //   meshNames,
-    //   animation.meshNames.length,
-    //   animation.frameLengthInMs
-    // ]);
-    // calloc.free(data);
+    var data = calloc<Float>(numFrames * 4);
+
+    for (int i = 0; i < numFrames; i++) {
+      data.elementAt(i * 4).value = animation.frameData[i].w;
+      data.elementAt((i * 4) + 1).value = animation.frameData[i].x;
+      data.elementAt((i * 4) + 2).value = animation.frameData[i].y;
+      data.elementAt((i * 4) + 3).value = animation.frameData[i].z;
+    }
+
+    add_bone_animation(
+        _assetManager!,
+        entity,
+        data,
+        numFrames,
+        animation.boneName.toNativeUtf8().cast<Char>(),
+        meshNames,
+        animation.meshNames.length,
+        animation.frameLengthInMs);
+    calloc.free(data);
+    calloc.free(meshNames);
   }
 
   @override

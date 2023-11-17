@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:vector_math/vector_math_64.dart';
+
 ///
 /// Specifies frame data (i.e. weights) to animate the morph targets contained in [morphTargets] under a mesh named [mesh].
 /// [data] is laid out as numFrames x numMorphTargets.
@@ -40,7 +42,7 @@ class MorphAnimationData {
 class BoneAnimationData {
   final String boneName;
   final List<String> meshNames;
-  final Float32List frameData;
+  final List<Quaternion> frameData;
   double frameLengthInMs;
   BoneAnimationData(
       this.boneName, this.meshNames, this.frameData, this.frameLengthInMs);

@@ -321,18 +321,17 @@ extern "C"
         return ((AssetManager *)assetManager)->setMorphAnimationBuffer(asset, entityName, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_bone_animation(
+    FLUTTER_PLUGIN_EXPORT void add_bone_animation(
         void *assetManager,
         EntityId asset,
         const float *const frameData,
         int numFrames,
-        int numBones,
-        const char **const boneNames,
+        const char *const boneName,
         const char **const meshNames,
         int numMeshTargets,
         float frameLengthInMs)
     {
-        ((AssetManager *)assetManager)->setBoneAnimationBuffer(asset, frameData, numFrames, numBones, boneNames, meshNames, numMeshTargets, frameLengthInMs);
+        ((AssetManager *)assetManager)->addBoneAnimation(asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_post_processing(void *const viewer, bool enabled)
@@ -365,33 +364,6 @@ extern "C"
             transform[15]);
         return ((AssetManager *)assetManager)->setBoneTransform(entityId, entityName, 0, boneIndex, matrix);
     }
-
-    //   void set_bone_transform(
-    //     EntityId asset,
-    //     const char* boneName,
-    //     const char* entityName,
-    //     float transX,
-    //     float transY,
-    //     float transZ,
-    //     float quatX,
-    //     float quatY,
-    //     float quatZ,
-    //     float quatW
-    // ) {
-    //     ((AssetManager*)assetManager)->setBoneTransform(
-    //         boneName,
-    //         entityName,
-    //         transX,
-    //         transY,
-    //         transZ,
-    //         quatX,
-    //         quatY,
-    //         quatZ,
-    //         quatW,
-    //         false
-    //     );
-
-    //   }
 
     FLUTTER_PLUGIN_EXPORT void play_animation(
         void *assetManager,
