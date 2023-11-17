@@ -127,7 +127,7 @@ extern "C"
 		EntityId asset,
 		const char *entityName,
 		const float *const transform,
-		int boneIndex);
+		const char *boneName);
 	FLUTTER_PLUGIN_EXPORT void play_animation(void *assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
 	FLUTTER_PLUGIN_EXPORT void set_animation_frame(void *assetManager, EntityId asset, int animationIndex, int animationFrame);
 	FLUTTER_PLUGIN_EXPORT void stop_animation(void *assetManager, EntityId asset, int index);

@@ -389,10 +389,10 @@ namespace polyvox
         }
     }
 
-    bool AssetManager::setBoneTransform(EntityId entityId, const char *entityName, int32_t skinIndex, int32_t boneIndex, math::mat4f localTransform)
+    bool AssetManager::setBoneTransform(EntityId entityId, const char *entityName, int32_t skinIndex, const char* boneName, math::mat4f localTransform)
     {
 
-        Log("Setting transform for bone %d/skin %d for mesh target %s", boneIndex, skinIndex, entityName);
+        Log("Setting transform for bone %s/skin %d for mesh target %s", boneName, skinIndex, entityName);
 
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -411,6 +411,25 @@ namespace polyvox
         TransformManager &transformManager = _engine->getTransformManager();
 
         const auto &filamentInstance = sceneAsset.asset->getInstance();
+
+        int numJoints = filamentInstance->getJointCountAt(skinIndex);
+        auto joints = filamentInstance->getJointsAt(skinIndex);
+        int boneIndex = -1;
+        for (int i = 0; i < numJoints; i++)
+        {
+            const char *jointName = _ncm->getName(_ncm->getInstance(joints[i]));
+            if (strcmp(jointName, boneName) == 0)
+            {
+                boneIndex = i;
+                break;
+            }
+        }
+        if(boneIndex == -1) {
+            Log("Failed to find bone %s", boneName);
+            return false;
+        }
+
+
         utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[boneIndex];
 
         if (joint.isNull())

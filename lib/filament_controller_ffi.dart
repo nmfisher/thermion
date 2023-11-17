@@ -1161,16 +1161,20 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future setBoneTransform(FilamentEntity entity, String meshName, int boneIndex,
-      Matrix4 data) async {
+  Future setBoneTransform(FilamentEntity entity, String meshName,
+      String boneName, Matrix4 data) async {
     var ptr = calloc<Float>(16);
     for (int i = 0; i < 16; i++) {
       ptr.elementAt(i).value = data.storage[i];
     }
 
-    set_bone_transform(_assetManager!, entity,
-        meshName.toNativeUtf8().cast<Char>(), ptr, boneIndex);
+    var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
+    var boneNamePtr = boneName.toNativeUtf8(allocator: calloc).cast<Char>();
+
+    set_bone_transform(_assetManager!, entity, meshNamePtr, ptr, boneNamePtr);
 
     calloc.free(ptr);
+    calloc.free(meshNamePtr);
+    calloc.free(boneNamePtr);
   }
 }

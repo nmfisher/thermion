@@ -344,7 +344,7 @@ extern "C"
         EntityId entityId,
         const char *entityName,
         const float *const transform,
-        int boneIndex)
+        const char* boneName)
     {
 
         auto matrix = math::mat4f(
@@ -362,7 +362,7 @@ extern "C"
             transform[13],
             transform[14],
             transform[15]);
-        return ((AssetManager *)assetManager)->setBoneTransform(entityId, entityName, 0, boneIndex, matrix);
+        return ((AssetManager *)assetManager)->setBoneTransform(entityId, entityName, 0, boneName, matrix);
     }
 
     FLUTTER_PLUGIN_EXPORT void play_animation(

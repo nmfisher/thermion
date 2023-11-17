@@ -27,6 +27,9 @@ class MorphAnimationData {
 
   Iterable<double> getData(String morphName) sync* {
     int index = morphTargets.indexOf(morphName);
+    if (index == -1) {
+      throw Exception("No data for morph $morphName");
+    }
     for (int i = 0; i < numFrames; i++) {
       yield data[(i * numMorphTargets) + index];
     }

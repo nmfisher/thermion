@@ -62,10 +62,10 @@ namespace polyvox
         /// @param entityId
         /// @param entityName
         /// @param skinIndex
-        /// @param boneIndex
+        /// @param boneName
         /// @param transform
         /// @return
-        bool setBoneTransform(EntityId entityId, const char *entityName, int skinIndex, int boneIndex, math::mat4f transform);
+        bool setBoneTransform(EntityId entityId, const char *entityName, int skinIndex, const char* boneName, math::mat4f transform);
 
         /// @brief Set frame data to animate the given bones/entities.
         /// @param entity

@@ -387,15 +387,19 @@ external void add_bone_animation(
 );
 
 @ffi.Native<
-        ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId,
-            ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(
+        ffi.Bool Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<ffi.Char>,
+            ffi.Pointer<ffi.Float>,
+            ffi.Pointer<ffi.Char>)>(
     symbol: 'set_bone_transform', assetId: 'flutter_filament_plugin')
 external bool set_bone_transform(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> transform,
-  int boneIndex,
+  ffi.Pointer<ffi.Char> boneName,
 );
 
 @ffi.Native<
@@ -1046,30 +1050,6 @@ external bool set_morph_animation_ffi(
   ffi.Pointer<ffi.Int> morphIndices,
   int numMorphTargets,
   int numFrames,
-  double frameLengthInMs,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
-            EntityId,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Int,
-            ffi.Pointer<ffi.Pointer<ffi.Char>>,
-            ffi.Pointer<ffi.Pointer<ffi.Char>>,
-            ffi.Int,
-            ffi.Float)>(
-    symbol: 'set_bone_animation_ffi', assetId: 'flutter_filament_plugin')
-external void set_bone_animation_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
-  int asset,
-  ffi.Pointer<ffi.Float> frameData,
-  int numFrames,
-  int numBones,
-  ffi.Pointer<ffi.Pointer<ffi.Char>> boneNames,
-  ffi.Pointer<ffi.Pointer<ffi.Char>> meshName,
-  int numMeshTargets,
   double frameLengthInMs,
 );
 
