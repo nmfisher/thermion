@@ -148,7 +148,7 @@ extern "C"
         return array;
     }
 
-    void set_camera_projection_matrix(const void *const viewer, const double* const matrix, double near, double far)
+    void set_camera_projection_matrix(const void *const viewer, const double *const matrix, double near, double far)
     {
         ((FilamentViewer *)viewer)->setCameraProjectionMatrix(matrix, near, far);
     }
@@ -157,19 +157,20 @@ extern "C"
     {
         ((FilamentViewer *)viewer)->setCameraCulling(near, far);
     }
-    
+
     const double *const get_camera_frustum(const void *const viewer)
     {
         const auto frustum = ((FilamentViewer *)viewer)->getCameraFrustum();
-        const math::float4* planes = frustum.getNormalizedPlanes();
+        const math::float4 *planes = frustum.getNormalizedPlanes();
         double *array = (double *)calloc(24, sizeof(double));
-        for(int i =0; i < 6; i++) {
-            array[i*4] = planes[i].x;
-            array[i*4+1] = planes[i].y;
-            array[i*4+2] = planes[i].z;
-            array[i*4+3] = planes[i].w;
+        for (int i = 0; i < 6; i++)
+        {
+            array[i * 4] = planes[i].x;
+            array[i * 4 + 1] = planes[i].y;
+            array[i * 4 + 2] = planes[i].z;
+            array[i * 4 + 3] = planes[i].w;
         }
-        
+
         return array;
     }
 
@@ -339,6 +340,32 @@ extern "C"
         ((FilamentViewer *)viewer)->setPostProcessing(enabled);
     }
 
+    FLUTTER_PLUGIN_EXPORT bool set_bone_transform(
+        void *assetManager,
+        EntityId entityId,
+        const char *entityName,
+        const float *const transform,
+        int boneIndex)
+    {
+
+        auto matrix = math::mat4f(
+            transform[0], transform[1], transform[2],
+            transform[3],
+            transform[4],
+            transform[5],
+            transform[6],
+            transform[7],
+            transform[8],
+            transform[9],
+            transform[10],
+            transform[11],
+            transform[12],
+            transform[13],
+            transform[14],
+            transform[15]);
+        return ((AssetManager *)assetManager)->setBoneTransform(entityId, entityName, 0, boneIndex, matrix);
+    }
+
     //   void set_bone_transform(
     //     EntityId asset,
     //     const char* boneName,
@@ -489,10 +516,8 @@ extern "C"
         Log("Dummy called");
     }
 
-    FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void* ptr)
+    FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void *ptr)
     {
         free(ptr);
     }
-
-
 }

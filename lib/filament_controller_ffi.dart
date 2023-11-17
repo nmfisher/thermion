@@ -1160,4 +1160,18 @@ class FilamentControllerFFI extends FilamentController {
 
     return frustum;
   }
+
+  @override
+  Future setBoneTransform(FilamentEntity entity, String meshName, int boneIndex,
+      Matrix4 data) async {
+    var ptr = calloc<Float>(16);
+    for (int i = 0; i < 16; i++) {
+      ptr.elementAt(i).value = data.storage[i];
+    }
+
+    set_bone_transform(_assetManager!, entity,
+        meshName.toNativeUtf8().cast<Char>(), ptr, boneIndex);
+
+    calloc.free(ptr);
+  }
 }

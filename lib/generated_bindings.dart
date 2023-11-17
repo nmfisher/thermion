@@ -389,6 +389,18 @@ external void set_bone_animation(
 );
 
 @ffi.Native<
+        ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId,
+            ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(
+    symbol: 'set_bone_transform', assetId: 'flutter_filament_plugin')
+external bool set_bone_transform(
+  ffi.Pointer<ffi.Void> assetManager,
+  int asset,
+  ffi.Pointer<ffi.Char> entityName,
+  ffi.Pointer<ffi.Float> transform,
+  int boneIndex,
+);
+
+@ffi.Native<
         ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool,
             ffi.Bool, ffi.Bool, ffi.Float)>(
     symbol: 'play_animation', assetId: 'flutter_filament_plugin')

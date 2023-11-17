@@ -56,6 +56,17 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 },
           child: const Text('Transform to unit cube')),
       MenuItemButton(
+          onPressed: ExampleWidgetState.shapes == null
+              ? null
+              : () async {
+                  await widget.controller.setBoneTransform(
+                      ExampleWidgetState.shapes!,
+                      "Cylinder",
+                      0,
+                      Matrix4.rotationX(pi / 2));
+                },
+          child: const Text('Set bone tranform to identity for Cylinder')),
+      MenuItemButton(
           onPressed: () async {
             var names = await widget.controller
                 .getMorphTargetNames(ExampleWidgetState.shapes!, "Cylinder");

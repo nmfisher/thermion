@@ -318,7 +318,7 @@ void AssetManager::updateAnimations() {
                         if(anim.mReverse) {
                             frameNumber = lengthInFrames - frameNumber;
                         }
-                        setBoneTransform(
+                        setBoneTransformFromAnimation(
                                          asset,
                                          frameNumber
                                          );
@@ -343,7 +343,73 @@ void AssetManager::updateAnimations() {
     }
 }
 
-void AssetManager::setBoneTransform(SceneAsset& asset, int frameNumber) {
+bool AssetManager::setBoneTransform(EntityId entityId, const char* entityName, int32_t skinIndex, int32_t boneIndex, math::mat4f localTransform) {
+
+    Log("Setting transform for bone %d/skin %d for mesh target %s", boneIndex, skinIndex,  entityName);
+
+    const auto& pos = _entityIdLookup.find(entityId);
+    if(pos == _entityIdLookup.end()) {
+        Log("Couldn't find asset under specified entity id.");
+        return false;
+    }
+    SceneAsset& sceneAsset = _assets[pos->second];
+
+    const auto& entity = findEntityByName(sceneAsset, entityName);
+    
+    RenderableManager& rm = _engine->getRenderableManager();
+    
+    const auto& renderableInstance = rm.getInstance(entity);
+    
+    TransformManager &transformManager = _engine->getTransformManager();
+
+    const auto& filamentInstance = sceneAsset.mAsset->getInstance();
+    utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[boneIndex];
+    
+    if(joint.isNull()) {
+        Log("ERROR : joint not found");
+        return false;
+    }
+
+    rm.setBones(
+          renderableInstance,
+          &localTransform,
+          1,
+          boneIndex
+      );
+
+    return true;
+
+    // auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[boneIndex];
+        
+    // auto jointInstance = transformManager.getInstance(joint);
+
+    // auto globalJointTransform = transformManager.getWorldTransform(jointInstance);
+                
+    // transformManager.setTransform(jointInstance, xform * localTransform);
+
+    // auto inverseGlobalTransform = inverse(
+    //   transformManager.getWorldTransform(
+    //       transformManager.getInstance(target)
+    //       )
+    //   );
+
+    // auto boneTransform = inverseGlobalTransform * globalJointTransform  * localTransform * inverseBindMatrix;
+    // auto renderable = rm.getInstance(target);
+
+    //   1.0f, 0.0f, 0.0f, 0.0f,
+    //   0.0f, 0.0f, 1.0f, 0.0f,
+    //   0.0f, -1.0f, 0.0f, 0.0f,
+    //   0.0f, 0.0f, 0.0f, 1.0f
+    // };
+    // Log("TRANSFORM");
+    // Log("%f %f %f %f", localTransform[0][0], localTransform[1][0], localTransform[2][0], localTransform[3][0] ) ;
+    // Log("%f %f %f %f", localTransform[0][1], localTransform[1][1], localTransform[2][1], localTransform[3][1] ) ;
+    // Log("%f %f %f %f", localTransform[0][2], localTransform[1][2], localTransform[2][2], localTransform[3][2] ) ;
+    // Log("%f %f %f %f", localTransform[0][3], localTransform[1][3], localTransform[2][3], localTransform[3][3] ) ;
+    // }
+}
+
+void AssetManager::setBoneTransformFromAnimation(SceneAsset& asset, int frameNumber) {
     
     RenderableManager& rm = _engine->getRenderableManager();
     
@@ -969,39 +1035,3 @@ const char* AssetManager::getNameForEntity(EntityId entityId) {
 
 } // namespace polyvox
 
-
-// auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[mBoneIndex];
-
-// auto globalJointTransform = transformManager.getWorldTransform(jointInstance);
-
-// for(auto& target : asset.mBoneAnimationBuffer.mMeshTargets) {
-
-// auto inverseGlobalTransform = inverse(
-//   transformManager.getWorldTransform(
-//       transformManager.getInstance(target)
-//       )
-//   );
-
-// auto boneTransform = inverseGlobalTransform * globalJointTransform  * localTransform * inverseBindMatrix;
-// auto renderable = rm.getInstance(target);
-// rm.setBones(
-//       renderable,
-//       &boneTransform,
-//       1,
-//       mBoneIndex
-//   );
-// }
-
-
-
-//   1.0f, 0.0f, 0.0f, 0.0f,
-//   0.0f, 0.0f, 1.0f, 0.0f,
-//   0.0f, -1.0f, 0.0f, 0.0f,
-//   0.0f, 0.0f, 0.0f, 1.0f
-// };
-// Log("TRANSFORM");
-// Log("%f %f %f %f", localTransform[0][0], localTransform[1][0], localTransform[2][0], localTransform[3][0] ) ;
-// Log("%f %f %f %f", localTransform[0][1], localTransform[1][1], localTransform[2][1], localTransform[3][1] ) ;
-// Log("%f %f %f %f", localTransform[0][2], localTransform[1][2], localTransform[2][2], localTransform[3][2] ) ;
-// Log("%f %f %f %f", localTransform[0][3], localTransform[1][3], localTransform[2][3], localTransform[3][3] ) ;
-//  transformManager.getTransform(jointInstance);

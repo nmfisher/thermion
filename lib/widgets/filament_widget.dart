@@ -139,17 +139,17 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-        try {
-        widget.controller.setDimensions(_rect, MediaQuery.of(context).devicePixelRatio);
+      try {
+        widget.controller
+            .setDimensions(_rect, MediaQuery.of(context).devicePixelRatio);
       } catch (err) {
         dev.log("Fatal error : $err");
         _error = err.toString();
       }
-      });
+    });
 
     super.initState();
   }
-
 
   Timer? _resizeTimer;
   bool _resizing = false;
@@ -162,26 +162,29 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
     // any subsequent widget resizes will cancel the timer and replace with a new one.
     // debug mode does need a longer timeout.
     _resizeTimer?.cancel();
-    _resizeTimer = Timer(Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100), () async {
+    await widget.controller
+        .setDimensions(_rect, MediaQuery.of(context).devicePixelRatio);
+    _resizeTimer = Timer(
+        Duration(milliseconds: (kReleaseMode || Platform.isWindows) ? 10 : 100),
+        () async {
       try {
-
-        while(_resizing) {
+        while (_resizing) {
           await Future.delayed(const Duration(milliseconds: 20));
         }
         _resizing = true;
-        await widget.controller.setDimensions(_rect, MediaQuery.of(context).devicePixelRatio);
+        await widget.controller
+            .setDimensions(_rect, MediaQuery.of(context).devicePixelRatio);
         await widget.controller.resize();
         _resizeTimer = null;
         setState(() {});
       } catch (err) {
         dev.log("Error resizing FilamentWidget: $err");
-      } finally { 
+      } finally {
         _resizing = false;
         completer.complete();
       }
     });
     return completer.future;
-
   }
 
   @override

@@ -73,6 +73,8 @@ namespace polyvox {
             bool hide(EntityId entity, const char* meshName);
             bool reveal(EntityId entity, const char* meshName);
             const char* getNameForEntity(EntityId entityId);
+
+            bool setBoneTransform(EntityId entityId, const char* entityName, int skinIndex, int boneIndex, math::mat4f transform);
             
         private:
             AssetLoader* _assetLoader = nullptr;
@@ -96,9 +98,7 @@ namespace polyvox {
             
             inline void updateTransform(SceneAsset& asset);
 
-            inline void setBoneTransform(SceneAsset& asset, int frameNumber);
-
-
+            inline void setBoneTransformFromAnimation(SceneAsset& asset, int frameNumber);
 
     };
 }

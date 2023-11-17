@@ -280,6 +280,12 @@ abstract class FilamentController {
   Future setBoneAnimation(FilamentEntity entity, BoneAnimationData animation);
 
   ///
+  /// Sets the local joint transform for the bone at the given index in [entity] for the mesh under [meshName].
+  ///
+  Future setBoneTransform(
+      FilamentEntity entity, String meshName, int boneIndex, Matrix4 data);
+
+  ///
   /// Removes/destroys the specified entity from the scene.
   /// [entity] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
   ///

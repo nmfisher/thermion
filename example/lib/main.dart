@@ -93,8 +93,12 @@ class ExampleWidgetState extends State<ExampleWidget> {
           await _filamentController!.createViewer();
           await _filamentController!
               .loadSkybox("assets/default_env/default_env_skybox.ktx");
+
           await _filamentController!.setRendering(true);
-          await _filamentController!.loadGlb("assets/shapes/shapes.glb");
+          shapes =
+              await _filamentController!.loadGlb("assets/shapes/shapes.glb");
+          hasSkybox = true;
+          rendering = true;
         });
       });
     }

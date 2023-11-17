@@ -125,6 +125,13 @@ FLUTTER_PLUGIN_EXPORT void set_bone_animation(
                             const char** const meshName,
                             int numMeshTargets,
                             float frameLengthInMs);
+FLUTTER_PLUGIN_EXPORT bool set_bone_transform(
+                            void* assetManager,
+                            EntityId asset, 
+							const char* entityName,
+                            const float* const transform,
+							int boneIndex
+                            );
 FLUTTER_PLUGIN_EXPORT void play_animation(void* assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
 FLUTTER_PLUGIN_EXPORT void set_animation_frame(void* assetManager, EntityId asset, int animationIndex, int animationFrame);
 FLUTTER_PLUGIN_EXPORT void stop_animation(void* assetManager, EntityId asset, int index);
