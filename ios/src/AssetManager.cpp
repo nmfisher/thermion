@@ -379,7 +379,8 @@ namespace polyvox
                 }
                 updateBoneTransformFromAnimationBuffer(
                     animationStatus,
-                    frameNumber);
+                    frameNumber,
+                    asset.asset);
             
                 if (animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
                 {
@@ -404,6 +405,11 @@ namespace polyvox
 
         const auto &entity = findEntityByName(sceneAsset, entityName);
 
+        if(entity.isNull()) {
+            Log("Failed to find entity %s.", entityName);
+            return false;
+        }
+
         RenderableManager &rm = _engine->getRenderableManager();
 
         const auto &renderableInstance = rm.getInstance(entity);
@@ -411,6 +417,13 @@ namespace polyvox
         TransformManager &transformManager = _engine->getTransformManager();
 
         const auto &filamentInstance = sceneAsset.asset->getInstance();
+
+        size_t skinCount = filamentInstance->getSkinCount();
+
+        if (skinCount > 1)
+        {
+            Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
+        }
 
         int numJoints = filamentInstance->getJointCountAt(skinIndex);
         auto joints = filamentInstance->getJointsAt(skinIndex);
@@ -429,7 +442,6 @@ namespace polyvox
             return false;
         }
 
-
         utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[boneIndex];
 
         if (joint.isNull())
@@ -438,27 +450,62 @@ namespace polyvox
             return false;
         }
 
+        const auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[boneIndex];
+
+        auto jointTransformInstance = transformManager.getInstance(joint);
+        auto globalJointTransform = transformManager.getWorldTransform(jointTransformInstance);
+
+        auto inverseGlobalTransform = inverse(
+            transformManager.getWorldTransform(
+            transformManager.getInstance(entity)
+            )
+        );
+
+        const auto boneTransform = inverseGlobalTransform * globalJointTransform * 
+        localTransform * inverseBindMatrix;
+
         rm.setBones(
             renderableInstance,
-            &localTransform,
+            &boneTransform,
             1,
             boneIndex);
         return true;
-    }
+    }   
 
-    void AssetManager::updateBoneTransformFromAnimationBuffer(const BoneAnimation& animation, int frameNumber)
+    void AssetManager::updateBoneTransformFromAnimationBuffer(
+        const BoneAnimation& animation, 
+        int frameNumber,
+        FilamentAsset *asset)
     {
+        auto filamentInstance = asset->getInstance();
+        TransformManager &transformManager = _engine->getTransformManager();
 
         RenderableManager &rm = _engine->getRenderableManager();
 
         auto boneIndex = animation.boneIndex;
-        math::mat4f transform(animation.frameData[frameNumber]);
+
+        math::mat4f localTransform(animation.frameData[frameNumber]);
+
+        const auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(animation.skinIndex)[boneIndex];
 
         for(const auto& meshTarget : animation.meshTargets) {
+
+            const Entity joint = filamentInstance->getJointsAt(animation.skinIndex)[animation.boneIndex];
+
+            auto jointInstance = transformManager.getInstance(joint);
+            auto globalJointTransform = transformManager.getWorldTransform(jointInstance);
+            
+        
+            auto inverseGlobalTransform = inverse(
+                transformManager.getWorldTransform(
+                transformManager.getInstance(meshTarget)
+                )
+            );
+            const auto boneTransform = inverseGlobalTransform * globalJointTransform * localTransform * inverseBindMatrix;
             const auto &renderableInstance = rm.getInstance(meshTarget);
             rm.setBones(
                 renderableInstance,
-                &transform,
+                &boneTransform,
                 1,
                 boneIndex
             );

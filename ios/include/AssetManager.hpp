@@ -114,7 +114,11 @@ namespace polyvox
 
         inline void updateTransform(SceneAsset &asset);
 
-        void updateBoneTransformFromAnimationBuffer(const BoneAnimation& animation, int frameNumber);
+        void updateBoneTransformFromAnimationBuffer(
+            const BoneAnimation& animation, 
+            int frameNumber,
+            FilamentAsset *asset
+        );
 
     };
 }
