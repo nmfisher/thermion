@@ -659,33 +659,38 @@ class FilamentControllerFFI extends FilamentController {
       dataPtr.elementAt(i).value = animation.data[i];
     }
 
-    // the morph targets in [animation] might be a subset of those that actually exist in the mesh (and might not have the same order)
-    // we don't want to reorder the data (?? or do we? this is probably more efficient for the backend?)
-    // so let's get the actual list of morph targets from the mesh and pass the relevant indices to the native side.
-    var meshMorphTargets =
-        await getMorphTargetNames(entity, animation.meshName);
-
     Pointer<Int> idxPtr = calloc<Int>(animation.morphTargets.length);
-    for (int i = 0; i < animation.numMorphTargets; i++) {
-      var index = meshMorphTargets.indexOf(animation.morphTargets[i]);
-      if (index == -1) {
-        calloc.free(dataPtr);
-        calloc.free(idxPtr);
-        throw Exception(
-            "Morph target ${animation.morphTargets[i]} is specified in the animation but could not be found in the mesh ${animation.meshName} under entity $entity");
-      }
-      idxPtr.elementAt(i).value = index;
-    }
 
-    set_morph_animation(
-        _assetManager!,
-        entity,
-        animation.meshName.toNativeUtf8().cast<Char>(),
-        dataPtr,
-        idxPtr,
-        animation.numMorphTargets,
-        animation.numFrames,
-        (animation.frameLengthInMs));
+    for (var meshName in animation.meshNames) {
+      // the morph targets in [animation] might be a subset of those that actually exist in the mesh (and might not have the same order)
+      // we don't want to reorder the data (?? or do we? this is probably more efficient for the backend?)
+      // so let's get the actual list of morph targets from the mesh and pass the relevant indices to the native side.
+      var meshMorphTargets = await getMorphTargetNames(entity, meshName);
+
+      for (int i = 0; i < animation.numMorphTargets; i++) {
+        var index = meshMorphTargets.indexOf(animation.morphTargets[i]);
+        if (index == -1) {
+          calloc.free(dataPtr);
+          calloc.free(idxPtr);
+          throw Exception(
+              "Morph target ${animation.morphTargets[i]} is specified in the animation but could not be found in the mesh $meshName under entity $entity");
+        }
+        idxPtr.elementAt(i).value = index;
+      }
+
+      var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
+
+      set_morph_animation(
+          _assetManager!,
+          entity,
+          meshNamePtr,
+          dataPtr,
+          idxPtr,
+          animation.numMorphTargets,
+          animation.numFrames,
+          (animation.frameLengthInMs));
+      calloc.free(meshNamePtr);
+    }
     calloc.free(dataPtr);
     calloc.free(idxPtr);
   }
@@ -1171,10 +1176,14 @@ class FilamentControllerFFI extends FilamentController {
     var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
     var boneNamePtr = boneName.toNativeUtf8(allocator: calloc).cast<Char>();
 
-    set_bone_transform(_assetManager!, entity, meshNamePtr, ptr, boneNamePtr);
+    var result = set_bone_transform(
+        _assetManager!, entity, meshNamePtr, ptr, boneNamePtr);
 
     calloc.free(ptr);
     calloc.free(meshNamePtr);
     calloc.free(boneNamePtr);
+    if (!result) {
+      throw Exception("Failed to set bone transform. See logs for details");
+    }
   }
 }
