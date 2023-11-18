@@ -65,7 +65,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                   await widget.controller.setBoneTransform(
                       ExampleWidgetState.shapes!,
                       "Cylinder",
-                      0,
+                      "Bone",
                       Matrix4.rotationX(pi / 2));
                 },
           child:
