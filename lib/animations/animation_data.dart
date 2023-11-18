@@ -9,13 +9,13 @@ import 'package:vector_math/vector_math_64.dart';
 /// [morphTargets] must be some subset of the actual morph targets under [mesh] (though the order of these does not need to match).
 ///
 class MorphAnimationData {
-  final String meshName;
+  final List<String> meshNames;
   final List<String> morphTargets;
 
   final List<double> data;
 
   MorphAnimationData(
-      this.meshName, this.data, this.morphTargets, this.frameLengthInMs) {
+      this.meshNames, this.data, this.morphTargets, this.frameLengthInMs) {
     assert(data.length == morphTargets.length * numFrames);
   }
 
