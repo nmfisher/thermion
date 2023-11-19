@@ -595,9 +595,11 @@ class FilamentControllerFFI extends FilamentController {
     for (int i = 0; i < weights.length; i++) {
       weightsPtr.elementAt(i).value = weights[i];
     }
-    set_morph_target_weights_ffi(_assetManager!, entity,
-        meshName.toNativeUtf8().cast<Char>(), weightsPtr, weights.length);
+    var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
+    set_morph_target_weights(
+        _assetManager!, entity, meshNamePtr, weightsPtr, weights.length);
     calloc.free(weightsPtr);
+    calloc.free(meshNamePtr);
   }
 
   @override

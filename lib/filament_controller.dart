@@ -247,6 +247,8 @@ abstract class FilamentController {
 
   ///
   /// Set the weights for all morph targets under node [meshName] in [entity] to [weights].
+  /// Note that [weights] must contain values for ALL morph targets, but no exception will be thrown if you don't do so (you'll just get incorrect results).
+  /// If you only want to set one value, set all others to zero (check [getMorphTargetNames] if you need the get a list of all morph targets.)
   ///
   Future setMorphTargetWeights(
       FilamentEntity entity, String meshName, List<double> weights);

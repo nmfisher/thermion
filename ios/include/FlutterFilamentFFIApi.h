@@ -50,22 +50,7 @@ FLUTTER_PLUGIN_EXPORT void apply_weights_ffi(
                                              float *const weights,
                                              int count
                                              );
-FLUTTER_PLUGIN_EXPORT void set_morph_target_weights_ffi(
-                                                        void* const assetManager,
-                                                        EntityId asset,
-                                                        const char *const entityName,
-                                                        const float *const morphData,
-                                                        int numWeights
-                                                        );
-FLUTTER_PLUGIN_EXPORT bool set_morph_animation_ffi(
-                                                   void* const assetManager,
-                                                   EntityId asset,
-                                                   const char *const entityName,
-                                                   const float *const morphData,
-                                                   const int* const morphIndices,
-                                                   int numMorphTargets,
-                                                   int numFrames,
-                                                   float frameLengthInMs);
+
 FLUTTER_PLUGIN_EXPORT void play_animation_ffi(void* const assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
 FLUTTER_PLUGIN_EXPORT void set_animation_frame_ffi(void* const assetManager, EntityId asset, int animationIndex, int animationFrame);
 FLUTTER_PLUGIN_EXPORT void stop_animation_ffi(void* const assetManager, EntityId asset, int index);

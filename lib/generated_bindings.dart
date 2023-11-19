@@ -1020,40 +1020,6 @@ external void apply_weights_ffi(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
-            ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(
-    symbol: 'set_morph_target_weights_ffi', assetId: 'flutter_filament_plugin')
-external void set_morph_target_weights_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
-  int asset,
-  ffi.Pointer<ffi.Char> entityName,
-  ffi.Pointer<ffi.Float> morphData,
-  int numWeights,
-);
-
-@ffi.Native<
-        ffi.Bool Function(
-            ffi.Pointer<ffi.Void>,
-            EntityId,
-            ffi.Pointer<ffi.Char>,
-            ffi.Pointer<ffi.Float>,
-            ffi.Pointer<ffi.Int>,
-            ffi.Int,
-            ffi.Int,
-            ffi.Float)>(
-    symbol: 'set_morph_animation_ffi', assetId: 'flutter_filament_plugin')
-external bool set_morph_animation_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
-  int asset,
-  ffi.Pointer<ffi.Char> entityName,
-  ffi.Pointer<ffi.Float> morphData,
-  ffi.Pointer<ffi.Int> morphIndices,
-  int numMorphTargets,
-  int numFrames,
-  double frameLengthInMs,
-);
-
-@ffi.Native<
         ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool,
             ffi.Bool, ffi.Bool, ffi.Float)>(
     symbol: 'play_animation_ffi', assetId: 'flutter_filament_plugin')

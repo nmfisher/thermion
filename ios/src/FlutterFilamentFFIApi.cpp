@@ -352,12 +352,7 @@ get_morph_target_name_count_ffi(void *assetManager, EntityId asset,
   return fut.get();
 }
 
-void set_morph_target_weights_ffi(void *const assetManager, EntityId asset,
-                                  const char *const entityName,
-                                  const float *const morphData,
-                                  int numWeights) {
-  // TODO
-}
+
 
 FLUTTER_PLUGIN_EXPORT void play_animation_ffi(void *const assetManager,
                                               EntityId asset, int index,
