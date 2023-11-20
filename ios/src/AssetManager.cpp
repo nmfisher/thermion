@@ -132,7 +132,6 @@ namespace polyvox
             }
             return 0;
         }
-        const utils::Entity *entities = asset->getEntities();
 
         _scene->addEntities(asset->getEntities(), asset->getEntityCount());
 
@@ -178,7 +177,7 @@ namespace polyvox
             return 0;
         }
 
-        int entityCount = asset->getEntityCount();
+        size_t entityCount = asset->getEntityCount();
 
         _scene->addEntities(asset->getEntities(), entityCount);
 
@@ -188,8 +187,6 @@ namespace polyvox
             _resourceLoaderWrapper->free(rbuf);
             return 0;
         }
-
-        const Entity *entities = asset->getEntities();
 
         auto lights = asset->getLightEntities();
         _scene->addEntities(lights, asset->getLightEntityCount());
@@ -246,7 +243,6 @@ namespace polyvox
 
         auto entity = findEntityByName(asset, meshName);
 
-        RenderableManager &rm = _engine->getRenderableManager();
 
         if (entity.isNull())
         {
