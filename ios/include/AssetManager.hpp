@@ -59,22 +59,22 @@ namespace polyvox
         void setMorphTargetWeights(EntityId entityId, const char *const entityName, const float *const weights, int count);
 
         /// @brief Set the local transform for the bone at boneIndex/skinIndex in the given entity.
-        /// @param entityId
-        /// @param entityName
-        /// @param skinIndex
-        /// @param boneName
-        /// @param transform
-        /// @return
+        /// @param entityId the parent entity 
+        /// @param entityName the name of the mesh under entityId for which the bone will be set.
+        /// @param skinIndex the index of the joint skin. Currently only 0 is supported.
+        /// @param boneName the name of the bone
+        /// @param transform the 4x4 matrix representing the local transform for the bone
+        /// @return true if the transform was successfully set, false otherwise
         bool setBoneTransform(EntityId entityId, const char *entityName, int skinIndex, const char* boneName, math::mat4f transform);
 
         /// @brief Set frame data to animate the given bones/entities.
-        /// @param entity
+        /// @param entity the parent entity
         /// @param frameData frame data as quaternions
-        /// @param numFrames
-        /// @param boneName
-        /// @param meshName
-        /// @param numMeshTargets
-        /// @param frameLengthInMs
+        /// @param numFrames the number of frames
+        /// @param boneName the name of the bone to animate
+        /// @param meshName an array of mesh names under [entity] that should be animated
+        /// @param numMeshTargets the number of meshes under [meshName] 
+        /// @param frameLengthInMs the length of each frame in ms
         /// @return
         bool addBoneAnimation(
             EntityId entity,
