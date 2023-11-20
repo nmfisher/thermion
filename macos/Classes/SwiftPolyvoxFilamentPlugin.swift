@@ -14,7 +14,7 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     var pixelBufferAttrs = [
         kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32ABGR ),
        kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue!,
-        kCVPixelBufferIOSurfacePropertiesKey: [:]
+        kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary
     ] as CFDictionary
     
     var resources:[UInt32:NSData] = [:]
@@ -116,8 +116,9 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
             result(unsafeBitCast(resourceLoaderWrapper, to:Int64.self))
         case "getRenderCallback":
             let renderCallback = markTextureFrameAvailable
-            result([
-                unsafeBitCast(renderCallback, to:Int64.self), unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self)])
+            let resultArray:[Any] = [
+                unsafeBitCast(renderCallback, to:Int64.self), unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self)]
+            result(resultArray)
         case "createTexture":
             let args = call.arguments as! [Any]
             let width = UInt32(args[0] as! Int64)
@@ -147,8 +148,7 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 return
             }
             metalTexture = CVMetalTextureGetTexture(cvMetalTexture!);
-            let pixelBufferPtr = CVPixelBufferGetBaseAddress(pixelBuffer!);
-            let pixelBufferAddress = Int(bitPattern:pixelBufferPtr);
+            
             let metalTexturePtr = Unmanaged.passUnretained(metalTexture!).toOpaque()
             let metalTextureAddress = Int(bitPattern:metalTexturePtr)
                                                                                             
