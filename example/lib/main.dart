@@ -53,6 +53,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
   // these are all the options that can be set via the menu
   // we store them here
   static bool rendering = false;
+  static bool recording = false;
   static int framerate = 60;
   static bool postProcessing = true;
   static bool frustumCulling = true;

@@ -55,6 +55,9 @@
 #include <utils/NameComponentManager.h>
 
 #include <imageio/ImageDecoder.h>
+#include <imageio/ImageEncoder.h>
+#include <image/ColorTransform.h>
+
 
 #include "math.h"
 
@@ -70,6 +73,9 @@
 #include <ktxreader/Ktx2Reader.h>
 
 #include <iostream>
+#include <streambuf>
+#include <sstream>
+#include <istream>
 #include <fstream>
 
 #include <mutex>
@@ -80,6 +86,7 @@
 #include "StreamBufferAdapter.hpp"
 #include "material/image.h"
 #include "TimeIt.hpp"
+#include "ThreadPool.hpp"
 
 using namespace filament;
 using namespace filament::math;
@@ -115,6 +122,8 @@ namespace polyvox
   FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapper *const resourceLoaderWrapper, void *const platform, const char *uberArchivePath)
       : _resourceLoaderWrapper(resourceLoaderWrapper)
   {
+
+    _tp = new flutter_filament::ThreadPool(1);
 
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
@@ -1001,36 +1010,76 @@ namespace polyvox
       cam.lookAt(eye, target, upward);
     }
 
-    // // TODO - this was an experiment but probably useful to keep for debugging
-    // // if pixelBuffer is provided, we will copy the framebuffer into the pixelBuffer.
-    // if (pixelBuffer)
-    // {
-    //   auto pbd = Texture::PixelBufferDescriptor(
-    //       pixelBuffer, size_t(1024 * 768 * 4),
-    //       Texture::Format::RGBA,
-    //       Texture::Type::BYTE, nullptr, callback, data);
-
-    //   _renderer->beginFrame(_swapChain, 0);
-    //   _renderer->render(_view);
-    //   _renderer->readPixels(0, 0, 1024, 768, std::move(pbd));
-    //   _renderer->endFrame();
-    // }
-    // else
-    // {
     // Render the scene, unless the renderer wants to skip the frame.
     if (_renderer->beginFrame(_swapChain, frameTimeInNanos))
     {
       _renderer->render(_view);
+
+      if(_recording) {
+        Viewport const &vp = _view->getViewport();
+        size_t pixelBufferSize = vp.width * vp.height * 4;
+        auto* pixelBuffer = new uint8_t[pixelBufferSize];
+        auto callback = [](void *buf, size_t size, void *data) {
+          ((FilamentViewer*)data)->savePng(buf, size);
+        };
+
+        auto pbd = Texture::PixelBufferDescriptor(
+            pixelBuffer, pixelBufferSize,
+            Texture::Format::RGBA,
+            Texture::Type::UBYTE, nullptr, callback, this);
+    
+        _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
+      }
+      
       _renderer->endFrame();
     }
     else
     {
       _skippedFrames++;
-
-      // std::cout << "Skipped" << std::endl;
-      // skipped frame
     }
-    // }
+  }
+
+  void FilamentViewer::savePng(void* buf, size_t size) {
+
+     std::packaged_task<void()> lambda([=]() mutable {
+      
+      Viewport const &vp = _view->getViewport();
+
+      int digits = 6;
+      std::ostringstream stringStream;
+      stringStream << "/tmp/output_";
+      stringStream << std::setfill('0') << std::setw(digits);
+      stringStream << std::to_string(_frameNumber);
+      stringStream << ".png";
+
+      std::string filename = stringStream.str();
+
+      ofstream wf(filename, ios::out | ios::binary);
+      // Log("%d %d %d", vp.width, vp.height, size);
+      LinearImage image(toLinearWithAlpha<uint8_t>(vp.width, vp.height, vp.width * 4,
+                              static_cast<uint8_t*>(buf)));
+
+      auto result = image::ImageEncoder::encode(
+        wf, image::ImageEncoder::Format::PNG, image, std::string(""), std::string("")
+      );
+
+      delete[] static_cast<uint8_t*>(buf);
+      _frameNumber++;
+
+      if(!result) {
+        Log("Failed to encode");
+      }
+      
+      wf.close();
+      if(!wf.good()) {
+        Log("Write failed!");
+      }
+     });
+     _tp->add_task(lambda);
+  }
+
+  void FilamentViewer::setRecording(bool recording) {
+    this->_recording = recording;
   }
 
   void FilamentViewer::updateViewportAndCameraProjection(
@@ -1177,16 +1226,13 @@ namespace polyvox
   void FilamentViewer::_createManipulator()
   {
     Camera &cam = _view->getCamera();
-    auto &tm = _engine->getTransformManager();
-    auto transformInstance = tm.getInstance(cam.getEntity());
-    auto transform = tm.getTransform(transformInstance);
     
     math::double3 home = cam.getPosition();
     math::double3 up = cam.getUpVector();
     auto fv = cam.getForwardVector();
     math::double3 target = home + fv;
     Viewport const &vp = _view->getViewport();
-    Log("Creating manipulator for viewport size %dx%d at home %f %f %f, fv %f %f %f, up %f %f %f target %f %f %f (norm %f) with _zoomSpeed %f", vp.width, vp.height, home[0], home[1], home[2], fv[0], fv[1], fv[2], up[0], up[1], up[2], target[0], target[1], target[2], norm(home), _zoomSpeed);
+    // Log("Creating manipulator for viewport size %dx%d at home %f %f %f, fv %f %f %f, up %f %f %f target %f %f %f (norm %f) with _zoomSpeed %f", vp.width, vp.height, home[0], home[1], home[2], fv[0], fv[1], fv[2], up[0], up[1], up[2], target[0], target[1], target[2], norm(home), _zoomSpeed);
 
     _manipulator = Manipulator<double>::Builder()
                        .viewport(vp.width, vp.height)

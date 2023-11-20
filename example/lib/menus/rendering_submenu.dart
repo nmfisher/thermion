@@ -38,7 +38,7 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
             widget.controller.setFrameRate(ExampleWidgetState.framerate);
           },
           child: Text(
-              "Toggle framerate (currently $ExampleWidgetState.framerate) "),
+              "Toggle framerate (currently ${ExampleWidgetState.framerate}) "),
         ),
         MenuItemButton(
           onPressed: () {
@@ -55,6 +55,14 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           },
           child: Text(
               "${ExampleWidgetState.postProcessing ? "Disable" : "Enable"} postprocessing"),
+        ),
+        MenuItemButton(
+          onPressed: () {
+            ExampleWidgetState.recording = !ExampleWidgetState.recording;
+            widget.controller.setRecording(ExampleWidgetState.recording);
+          },
+          child: Text(
+              "Turn recording ${ExampleWidgetState.recording ? "OFF" : "ON"}) "),
         ),
       ],
       child: const Text("Rendering"),

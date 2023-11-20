@@ -746,6 +746,13 @@ external int find_child_entity_by_name(
   ffi.Pointer<ffi.Char> name,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(
+    symbol: 'set_recording', assetId: 'flutter_filament_plugin')
+external void set_recording(
+  ffi.Pointer<ffi.Void> viewer,
+  bool recording,
+);
+
 @ffi.Native<ffi.Void Function()>(
     symbol: 'ios_dummy', assetId: 'flutter_filament_plugin')
 external void ios_dummy();

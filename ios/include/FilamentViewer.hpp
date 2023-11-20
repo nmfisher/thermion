@@ -33,6 +33,7 @@
 #include <chrono>
 
 #include "AssetManager.hpp"
+#include "ThreadPool.hpp"
 
 using namespace std;
 using namespace filament;
@@ -122,6 +123,8 @@ namespace polyvox
         void clearLights();
         void setPostProcessing(bool enabled);
 
+        void setRecording(bool recording);
+
 
         AssetManager *const getAssetManager()
         {
@@ -134,7 +137,7 @@ namespace polyvox
         Scene *_scene = nullptr;
         View *_view = nullptr;
         Engine *_engine = nullptr;
-
+        flutter_filament::ThreadPool* _tp = nullptr;
         Renderer *_renderer = nullptr;
         RenderTarget *_rt = nullptr;
         Texture *_rtColor = nullptr;
@@ -189,9 +192,13 @@ namespace polyvox
         void loadKtxTexture(string path, ResourceBuffer data);
         void loadPngTexture(string path, ResourceBuffer data);
         void loadTextureFromPath(string path);
-       
+        void savePng(void* data, size_t size);
 
+        int _frameNumber = 0;
+    
         uint32_t _lastFrameTimeInNanos;
+
+        bool _recording = false; 
     };
 
 }

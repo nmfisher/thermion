@@ -1207,4 +1207,9 @@ class FilamentControllerFFI extends FilamentController {
       calloc.free(childNamePtr);
     }
   }
+
+  @override
+  Future setRecording(bool recording) async {
+    set_recording(_viewer!, recording);
+  }
 }

@@ -492,4 +492,10 @@ abstract class FilamentController {
   ///
   Future<FilamentEntity> getChildEntity(
       FilamentEntity parent, String childName);
+
+  ///
+  /// If [recording] is set to true, each frame the framebuffer/texture will be written to /tmp/output_*.png.
+  /// This will impact performance; handle with care.
+  ///
+  Future setRecording(bool recording);
 }

@@ -483,6 +483,10 @@ extern "C"
         return ((AssetManager *)assetManager)->getNameForEntity(entityId);
     }
 
+    FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording) {
+        ((FilamentViewer*)viewer)->setRecording(recording);
+    }
+
     FLUTTER_PLUGIN_EXPORT void ios_dummy()
     {
         Log("Dummy called");
