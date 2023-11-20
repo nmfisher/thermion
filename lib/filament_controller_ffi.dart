@@ -125,7 +125,9 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setFrameRate(int framerate) async {
-    set_frame_interval_ffi(1.0 / framerate);
+    final interval = 1000.0 / framerate;
+    set_frame_interval_ffi(interval);
+    dev.log("Set frame interval to $interval");
   }
 
   @override
@@ -596,7 +598,7 @@ class FilamentControllerFFI extends FilamentController {
       weightsPtr.elementAt(i).value = weights[i];
     }
     var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
-    set_morph_target_weights(
+    set_morph_target_weights_ffi(
         _assetManager!, entity, meshNamePtr, weightsPtr, weights.length);
     calloc.free(weightsPtr);
     calloc.free(meshNamePtr);
@@ -1178,7 +1180,7 @@ class FilamentControllerFFI extends FilamentController {
     var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
     var boneNamePtr = boneName.toNativeUtf8(allocator: calloc).cast<Char>();
 
-    var result = set_bone_transform(
+    var result = set_bone_transform_ffi(
         _assetManager!, entity, meshNamePtr, ptr, boneNamePtr);
 
     calloc.free(ptr);
@@ -1186,6 +1188,23 @@ class FilamentControllerFFI extends FilamentController {
     calloc.free(boneNamePtr);
     if (!result) {
       throw Exception("Failed to set bone transform. See logs for details");
+    }
+  }
+
+  @override
+  Future<FilamentEntity> getChildEntity(
+      FilamentEntity parent, String childName) async {
+    var childNamePtr = childName.toNativeUtf8(allocator: calloc).cast<Char>();
+    try {
+      var childEntity =
+          find_child_entity_by_name(_assetManager!, parent, childNamePtr);
+      if (childEntity == _FILAMENT_ASSET_ERROR) {
+        throw Exception(
+            "Could not find child ${childName} under the specified entity");
+      }
+      return childEntity;
+    } finally {
+      calloc.free(childNamePtr);
     }
   }
 }

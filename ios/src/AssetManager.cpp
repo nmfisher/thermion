@@ -280,16 +280,6 @@ namespace polyvox
         return _assets[pos->second].asset;
     }
 
-    // vector<int> completedBoneAnimations;
-
-    //         for (int i = completed.size() - 1; i >= 0; i--) {
-    //             auto completedAnimationIndex = completed[i];
-    //             if(asset.animations.mType == AnimationType::BONE) {
-    //                 completedBoneAnimations.push_back()
-    //             }
-    //             (completedAnimationIndex);
-    //         }
-
     void AssetManager::updateAnimations()
     {
 
@@ -390,10 +380,13 @@ namespace polyvox
         }
     }
 
+    // TODO - we really don't want to be looking up the bone index/entity by name every single frame
+    // - could use findChildEntityByName 
+    // - or is it better to add an option for "streaming" mode where we can just return a reference to a mat4 and then update the values directly?
     bool AssetManager::setBoneTransform(EntityId entityId, const char *entityName, int32_t skinIndex, const char* boneName, math::mat4f localTransform)
     {
 
-        Log("Setting transform for bone %s/skin %d for mesh target %s", boneName, skinIndex, entityName);
+        std::lock_guard lock(_animationMutex);
 
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -413,6 +406,11 @@ namespace polyvox
         RenderableManager &rm = _engine->getRenderableManager();
 
         const auto &renderableInstance = rm.getInstance(entity);
+
+        if(!renderableInstance.isValid()) {
+            Log("Invalid renderable");
+            return false;
+        }
 
         TransformManager &transformManager = _engine->getTransformManager();
 
@@ -441,6 +439,7 @@ namespace polyvox
             Log("Failed to find bone %s", boneName);
             return false;
         }
+
 
         utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[boneIndex];
 
@@ -576,6 +575,28 @@ namespace polyvox
             weights,
             count);
     }
+
+    utils::Entity AssetManager::findChildEntityByName(EntityId entityId, const char *entityName) {
+        std::lock_guard lock(_animationMutex);
+
+        const auto &pos = _entityIdLookup.find(entityId);
+        if (pos == _entityIdLookup.end())
+        {
+            Log("Couldn't find asset under specified entity id.");
+            return utils::Entity();
+        }
+        SceneAsset &sceneAsset = _assets[pos->second];
+
+        const auto entity = findEntityByName(sceneAsset, entityName);
+
+        if(entity.isNull()) {
+            Log("Failed to find entity %s.", entityName);
+        }
+        
+        return entity;
+
+    }
+
 
     utils::Entity AssetManager::findEntityByName(SceneAsset asset, const char *entityName)
     {

@@ -962,6 +962,7 @@ namespace polyvox
 
   double _elapsed = 0;
   int _frameCount = 0;
+  int _skippedFrames = 0;
 
   void FilamentViewer::render(
       uint64_t frameTimeInNanos,
@@ -981,6 +982,7 @@ namespace polyvox
       // Log("1 sec average for asset animation update %f", _elapsed / 60);
       _elapsed = 0;
       _frameCount = 0;
+      Log("Skipped frames : %d", _skippedFrames);
     }
 
     Timer tmr;
@@ -1023,6 +1025,8 @@ namespace polyvox
     }
     else
     {
+      _skippedFrames++;
+
       // std::cout << "Skipped" << std::endl;
       // skipped frame
     }

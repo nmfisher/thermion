@@ -92,6 +92,9 @@ namespace polyvox
         bool hide(EntityId entity, const char *meshName);
         bool reveal(EntityId entity, const char *meshName);
         const char *getNameForEntity(EntityId entityId);
+        utils::Entity findChildEntityByName(
+            EntityId entityId,
+            const char *entityName);
 
     private:
         AssetLoader *_assetLoader = nullptr;
@@ -107,6 +110,8 @@ namespace polyvox
 
         vector<SceneAsset> _assets;
         tsl::robin_map<EntityId, int> _entityIdLookup;
+
+        
 
         utils::Entity findEntityByName(
             SceneAsset asset,

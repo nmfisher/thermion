@@ -485,4 +485,11 @@ abstract class FilamentController {
       double orbitSpeedX = 0.01,
       double orbitSpeedY = 0.01,
       double zoomSpeed = 0.01});
+
+  ///
+  /// Finds the child entity named [childName] associated with the given parent.
+  /// Usually, [parent] will be the return value from [loadGlb]/[loadGltf] and [childName] will be the name of a node/mesh.
+  ///
+  Future<FilamentEntity> getChildEntity(
+      FilamentEntity parent, String childName);
 }

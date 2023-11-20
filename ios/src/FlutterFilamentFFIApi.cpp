@@ -16,24 +16,36 @@ class RenderLoop {
 public:
   explicit RenderLoop() {
     _t = new std::thread([this]() {
+      auto last = std::chrono::high_resolution_clock::now();
       while (!_stop) {
-        {
-          if (_rendering) {
-            doRender();
-          }
-        }
-        std::function<void()> task;
-        {
+
+        auto now = std::chrono::high_resolution_clock::now();
+
+        float elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
+
+        while(elapsed < 3 * _frameIntervalInMilliseconds / 4) {
+          
+          std::function<void()> task;
           std::unique_lock<std::mutex> lock(_access);
           if (_tasks.empty()) {
-            _cond.wait_for(lock, std::chrono::duration<float, std::milli>(
-                                     _frameIntervalInMilliseconds));
+            _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
+            now = std::chrono::high_resolution_clock::now();
+            elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
             continue;
           }
           task = std::move(_tasks.front());
           _tasks.pop_front();
+          task();
+          
+          now = std::chrono::high_resolution_clock::now();
+          elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
         }
-        task();
+
+        if (_rendering) {
+          doRender();
+        }
+
+        last = now;
       }
     });
   }
@@ -426,6 +438,30 @@ get_name_for_entity_ffi(void *const assetManager, const EntityId entityId) {
   auto fut = _rl->add_task(lambda);
   fut.wait();
   return fut.get();
+}
+
+void set_morph_target_weights_ffi(void *const assetManager, 
+                                  EntityId asset,
+                                  const char *const entityName,
+                                  const float *const morphData,
+                                  int numWeights) {
+    std::packaged_task<void()> lambda(
+      [&] { return set_morph_target_weights(assetManager, asset, entityName, morphData, numWeights); });
+      auto fut = _rl->add_task(lambda);
+      fut.wait();
+}
+
+FLUTTER_PLUGIN_EXPORT bool set_bone_transform_ffi(
+		void *assetManager,
+		EntityId asset,
+		const char *entityName,
+		const float *const transform,
+		const char *boneName) {
+      std::packaged_task<bool()> lambda(
+      [&] { return set_bone_transform(assetManager, asset, entityName, transform, boneName); });
+      auto fut = _rl->add_task(lambda);
+      fut.wait();
+      return fut.get();
 }
 
 FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi() { Log("Dummy called"); }

@@ -736,6 +736,16 @@ external ffi.Pointer<ffi.Char> get_name_for_entity(
   int entityId,
 );
 
+@ffi.Native<
+        EntityId Function(
+            ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>(
+    symbol: 'find_child_entity_by_name', assetId: 'flutter_filament_plugin')
+external int find_child_entity_by_name(
+  ffi.Pointer<ffi.Void> assetManager,
+  int parent,
+  ffi.Pointer<ffi.Char> name,
+);
+
 @ffi.Native<ffi.Void Function()>(
     symbol: 'ios_dummy', assetId: 'flutter_filament_plugin')
 external void ios_dummy();
@@ -1090,6 +1100,34 @@ external int get_morph_target_name_count_ffi(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
   ffi.Pointer<ffi.Char> meshName,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+            ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(
+    symbol: 'set_morph_target_weights_ffi', assetId: 'flutter_filament_plugin')
+external void set_morph_target_weights_ffi(
+  ffi.Pointer<ffi.Void> assetManager,
+  int asset,
+  ffi.Pointer<ffi.Char> entityName,
+  ffi.Pointer<ffi.Float> morphData,
+  int numWeights,
+);
+
+@ffi.Native<
+        ffi.Bool Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<ffi.Char>,
+            ffi.Pointer<ffi.Float>,
+            ffi.Pointer<ffi.Char>)>(
+    symbol: 'set_bone_transform_ffi', assetId: 'flutter_filament_plugin')
+external bool set_bone_transform_ffi(
+  ffi.Pointer<ffi.Void> assetManager,
+  int asset,
+  ffi.Pointer<ffi.Char> entityName,
+  ffi.Pointer<ffi.Float> transform,
+  ffi.Pointer<ffi.Char> boneName,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(
