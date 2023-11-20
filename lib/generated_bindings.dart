@@ -753,6 +753,14 @@ external void set_recording(
   bool recording,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(
+    symbol: 'set_recording_output_directory',
+    assetId: 'flutter_filament_plugin')
+external void set_recording_output_directory(
+  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<ffi.Char> outputDirectory,
+);
+
 @ffi.Native<ffi.Void Function()>(
     symbol: 'ios_dummy', assetId: 'flutter_filament_plugin')
 external void ios_dummy();

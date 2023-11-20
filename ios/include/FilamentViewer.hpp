@@ -46,6 +46,7 @@ typedef int32_t EntityId;
 namespace polyvox
 {
 
+
     enum ToneMapping
     {
         ACES,
@@ -124,6 +125,7 @@ namespace polyvox
         void setPostProcessing(bool enabled);
 
         void setRecording(bool recording);
+        void setRecordingOutputDirectory(const char* path);
 
 
         AssetManager *const getAssetManager()
@@ -156,10 +158,10 @@ namespace polyvox
         Skybox *_skybox = nullptr;
         Texture *_iblTexture = nullptr;
         IndirectLight *_indirectLight = nullptr;
-
         bool _recomputeAabb = false;
-
         bool _actualSize = false;
+
+        float _frameInterval = 1000.0 / 60.0;
 
         // Camera properties
         Camera *_mainCamera = nullptr; // the default camera added to every scene. If you want the *active* camera, access via View. 
@@ -192,13 +194,18 @@ namespace polyvox
         void loadKtxTexture(string path, ResourceBuffer data);
         void loadPngTexture(string path, ResourceBuffer data);
         void loadTextureFromPath(string path);
-        void savePng(void* data, size_t size);
-
-        int _frameNumber = 0;
+        void savePng(void* data, size_t size, int frameNumber);
     
-        uint32_t _lastFrameTimeInNanos;
+        time_point_t _startTime = std::chrono::high_resolution_clock::now();
 
         bool _recording = false; 
+        std::string _recordingOutputDirectory = std::string("/tmp");
+        std::mutex _recordingMutex;
+    };
+
+    struct FrameCallbackData { 
+        FilamentViewer* viewer;
+        uint32_t frameNumber;
     };
 
 }

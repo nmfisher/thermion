@@ -54,7 +54,7 @@ public:
 private:
 	void add_worker() {
 		std::thread t([this]() {
-			while(!stop) {
+			while(!stop || tasks.size() > 0) {
 				std::function<void()> task;
 				{
 					std::unique_lock<std::mutex> lock(access);

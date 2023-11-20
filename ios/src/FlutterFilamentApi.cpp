@@ -487,6 +487,10 @@ extern "C"
         ((FilamentViewer*)viewer)->setRecording(recording);
     }
 
+    FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory) {
+        ((FilamentViewer*)viewer)->setRecordingOutputDirectory(outputDirectory);
+    }
+
     FLUTTER_PLUGIN_EXPORT void ios_dummy()
     {
         Log("Dummy called");

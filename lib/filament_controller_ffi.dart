@@ -1212,4 +1212,11 @@ class FilamentControllerFFI extends FilamentController {
   Future setRecording(bool recording) async {
     set_recording(_viewer!, recording);
   }
+
+  @override
+  Future setRecordingOutputDirectory(String outputDir) async {
+    var pathPtr = outputDir.toNativeUtf8(allocator: calloc);
+    set_recording_output_directory(_viewer!, pathPtr.cast<Char>());
+    calloc.free(pathPtr);
+  }
 }

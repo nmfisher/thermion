@@ -498,4 +498,9 @@ abstract class FilamentController {
   /// This will impact performance; handle with care.
   ///
   Future setRecording(bool recording);
+
+  ///
+  /// Sets the output directory where recorded PNGs will be placed.
+  ///
+  Future setRecordingOutputDirectory(String outputDirectory);
 }

@@ -123,8 +123,6 @@ namespace polyvox
       : _resourceLoaderWrapper(resourceLoaderWrapper)
   {
 
-    _tp = new flutter_filament::ThreadPool(1);
-
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
 #if TARGET_OS_IPHONE
@@ -139,12 +137,9 @@ namespace polyvox
 
     _renderer = _engine->createRenderer();
 
-    float fr = 60.0f;
-    _renderer->setDisplayInfo({.refreshRate = fr});
+    _frameInterval = 1000.0f / 60.0f;
 
-    Renderer::FrameRateOptions fro;
-    fro.interval = 1 / fr;
-    _renderer->setFrameRateOptions(fro);
+    setFrameInterval(_frameInterval);
 
     _scene = _engine->createScene();
 
@@ -307,6 +302,7 @@ namespace polyvox
 
   void FilamentViewer::setFrameInterval(float frameInterval)
   {
+    _frameInterval = frameInterval;
     Renderer::FrameRateOptions fro;
     fro.interval = frameInterval;
     _renderer->setFrameRateOptions(fro);
@@ -1020,13 +1016,23 @@ namespace polyvox
         size_t pixelBufferSize = vp.width * vp.height * 4;
         auto* pixelBuffer = new uint8_t[pixelBufferSize];
         auto callback = [](void *buf, size_t size, void *data) {
-          ((FilamentViewer*)data)->savePng(buf, size);
+          auto frameCallbackData = (FrameCallbackData*)data;
+          auto viewer = (FilamentViewer*)frameCallbackData->viewer;
+          viewer->savePng(buf, size, frameCallbackData->frameNumber);
+          delete frameCallbackData;
         };
+
+        auto now = std::chrono::high_resolution_clock::now();
+        auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - _startTime).count());
+
+        auto frameNumber = uint32_t(floor(elapsed / _frameInterval));
+
+        auto userData = new FrameCallbackData { this, frameNumber };
 
         auto pbd = Texture::PixelBufferDescriptor(
             pixelBuffer, pixelBufferSize,
             Texture::Format::RGBA,
-            Texture::Type::UBYTE, nullptr, callback, this);
+            Texture::Type::UBYTE, nullptr, callback, userData);
     
         _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
       }
@@ -1039,23 +1045,28 @@ namespace polyvox
     }
   }
 
-  void FilamentViewer::savePng(void* buf, size_t size) {
+  void FilamentViewer::savePng(void* buf, size_t size, int frameNumber) {
+    std::lock_guard lock(_recordingMutex);
+    if(!_recording) {
+      delete[] static_cast<uint8_t*>(buf);
+      return;
+    }
 
-     std::packaged_task<void()> lambda([=]() mutable {
-      
-      Viewport const &vp = _view->getViewport();
+    Viewport const &vp = _view->getViewport();
+
+    std::packaged_task<void()> lambda([=]() mutable {
 
       int digits = 6;
       std::ostringstream stringStream;
-      stringStream << "/tmp/output_";
+      stringStream << _recordingOutputDirectory << "/output_";
       stringStream << std::setfill('0') << std::setw(digits);
-      stringStream << std::to_string(_frameNumber);
+      stringStream << std::to_string(frameNumber);
       stringStream << ".png";
 
       std::string filename = stringStream.str();
 
       ofstream wf(filename, ios::out | ios::binary);
-      // Log("%d %d %d", vp.width, vp.height, size);
+
       LinearImage image(toLinearWithAlpha<uint8_t>(vp.width, vp.height, vp.width * 4,
                               static_cast<uint8_t*>(buf)));
 
@@ -1064,7 +1075,6 @@ namespace polyvox
       );
 
       delete[] static_cast<uint8_t*>(buf);
-      _frameNumber++;
 
       if(!result) {
         Log("Failed to encode");
@@ -1073,13 +1083,29 @@ namespace polyvox
       wf.close();
       if(!wf.good()) {
         Log("Write failed!");
-      }
+      } 
+
      });
      _tp->add_task(lambda);
   }
 
+  void FilamentViewer::setRecordingOutputDirectory(const char* path) {
+    _recordingOutputDirectory = std::string(path);
+    auto outputDirAsPath = std::filesystem::path(path);
+    if(!std::filesystem::is_directory(outputDirAsPath)) {
+      std::filesystem::create_directories(outputDirAsPath);
+    }
+  }
+
   void FilamentViewer::setRecording(bool recording) {
+    std::lock_guard lock(_recordingMutex);
     this->_recording = recording;
+    if(recording) {
+      _tp = new flutter_filament::ThreadPool(8);
+      _startTime = std::chrono::high_resolution_clock::now();
+    } else { 
+      delete _tp;
+    }
   }
 
   void FilamentViewer::updateViewportAndCameraProjection(
