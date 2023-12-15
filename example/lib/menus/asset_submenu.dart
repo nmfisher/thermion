@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -62,11 +63,13 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
           onPressed: ExampleWidgetState.shapes == null
               ? null
               : () async {
-                  await widget.controller.setBoneTransform(
-                      ExampleWidgetState.shapes!,
-                      "Cylinder",
-                      "Bone",
-                      Matrix4.rotationX(pi / 2));
+                  Timer.periodic(Duration(milliseconds: 50), (_) async {
+                    await widget.controller.setBoneTransform(
+                        ExampleWidgetState.shapes!,
+                        "Cylinder",
+                        "Bone",
+                        Matrix4.rotationX(pi / 2));
+                  });
                 },
           child:
               const Text('Set bone transform for Cylinder (pi/2 rotation X)')),
@@ -82,9 +85,9 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                           List.generate(
                               60,
                               (idx) => v.Quaternion.axisAngle(
-                                      v.Vector3(0, 0, 1), pi * (idx / 60))
+                                      v.Vector3(0, 0, 1), pi * 8 * (idx / 60))
                                   .normalized()),
-                          1000.0 / 30.0));
+                          1000.0 / 60.0));
                 },
           child: const Text('Set bone transform animation for Cylinder')),
       MenuItemButton(
