@@ -42,7 +42,10 @@ public:
         }
 
         if (_rendering) {
+          auto frameStart = std::chrono::high_resolution_clock::now();
           doRender();
+          auto frameEnd = std::chrono::high_resolution_clock::now();
+          // Log("Took %f milliseconds for render",           float(std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count()));
         }
 
         last = now;
@@ -61,7 +64,6 @@ public:
     _renderCallback = renderCallback;
     _renderCallbackOwner = owner;
     std::packaged_task<FilamentViewer *()> lambda([&]() mutable {
-      std::thread::id this_id = std::this_thread::get_id();
       return new FilamentViewer(context, loader, platform, uberArchivePath);
     });
     auto fut = add_task(lambda);
