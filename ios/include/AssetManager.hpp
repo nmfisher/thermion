@@ -111,8 +111,6 @@ namespace polyvox
         vector<SceneAsset> _assets;
         tsl::robin_map<EntityId, int> _entityIdLookup;
 
-        
-
         utils::Entity findEntityByName(
             SceneAsset asset,
             const char *entityName);

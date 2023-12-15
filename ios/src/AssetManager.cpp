@@ -510,6 +510,7 @@ namespace polyvox
 
     void AssetManager::remove(EntityId entityId)
     {
+        std::lock_guard lock(_animationMutex);
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
         {
@@ -518,10 +519,14 @@ namespace polyvox
         }
         SceneAsset &sceneAsset = _assets[pos->second];
 
-        _assets.erase(std::remove_if(_assets.begin(), _assets.end(),
-                                     [=](SceneAsset &asset)
-                                     { return asset.asset == sceneAsset.asset; }),
-                      _assets.end());
+     
+        _entityIdLookup.erase(entityId);
+
+        for(auto entityPos : _entityIdLookup) {
+            if(entityPos.second > pos->second) {
+                _entityIdLookup[entityPos.first] = entityPos.second-1;
+            }
+        }
 
         _scene->removeEntities(sceneAsset.asset->getEntities(),
                                sceneAsset.asset->getEntityCount());
@@ -537,6 +542,10 @@ namespace polyvox
         }
         EntityManager &em = EntityManager::get();
         em.destroy(Entity::import(entityId));
+        _assets.erase(std::remove_if(_assets.begin(), _assets.end(),
+                                     [=](SceneAsset &asset)
+                                     { return asset.asset == sceneAsset.asset; }),
+                      _assets.end());
     }
 
     void AssetManager::setMorphTargetWeights(EntityId entityId, const char *const entityName, const float *const weights, const int count)
