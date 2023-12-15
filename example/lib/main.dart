@@ -14,7 +14,7 @@ const loadDefaultScene = bool.hasEnvironment('--load-default-scene');
 
 void main() async {
   print(loadDefaultScene);
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -63,12 +63,10 @@ class ExampleWidgetState extends State<ExampleWidget> {
   static double orbitSpeedX = 0.01;
   static double orbitSpeedY = 0.01;
 
-  static FilamentEntity? last;
-
   static bool hasSkybox = false;
   static bool coneHidden = false;
 
-  static FilamentEntity? shapes;
+  static final assets = <FilamentEntity>[];
   static FilamentEntity? flightHelmet;
   static FilamentEntity? buster;
 
@@ -90,16 +88,17 @@ class ExampleWidgetState extends State<ExampleWidget> {
           _filamentController = FilamentControllerFFI();
         });
         await Future.delayed(const Duration(milliseconds: 100));
+
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
           await _filamentController!.createViewer();
           await _filamentController!
               .loadSkybox("assets/default_env/default_env_skybox.ktx");
 
           await _filamentController!.setRendering(true);
-          shapes =
-              await _filamentController!.loadGlb("assets/shapes/shapes.glb");
-          ExampleWidgetState.animations = await _filamentController!
-              .getAnimationNames(ExampleWidgetState.shapes!);
+          assets.add(
+              await _filamentController!.loadGlb("assets/shapes/shapes.glb"));
+          ExampleWidgetState.animations =
+              await _filamentController!.getAnimationNames(assets.first);
           hasSkybox = true;
           rendering = true;
         });
@@ -113,6 +112,26 @@ class ExampleWidgetState extends State<ExampleWidget> {
     _listener.cancel();
   }
 
+  Widget _assetEntry(FilamentEntity entity) {
+    return Row(children: [
+      Text("Asset ${entity}"),
+      IconButton(
+          tooltip: "Transform to unit cube",
+          onPressed: () async {
+            await _filamentController!.transformToUnitCube(entity);
+          },
+          icon: const Icon(Icons.settings_overscan_outlined)),
+      IconButton(
+          onPressed: () async {
+            await _filamentController!.removeAsset(entity);
+            assets.remove(entity);
+            setState(() {});
+          },
+          icon: const Icon(Icons.cancel_sharp))
+    ]);
+    ;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(children: [
@@ -122,13 +141,33 @@ class ExampleWidgetState extends State<ExampleWidget> {
           padding: _viewportMargin,
         ),
       ),
-      Align(
-          alignment: Alignment.bottomCenter,
+      Positioned(
+          bottom: 80,
+          left: 10,
+          height: 200,
+          width: 300,
           child: Container(
-              padding: const EdgeInsets.only(bottom: 30),
+              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 10),
               height: 100,
-              color: Colors.white,
-              child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                color: Colors.white.withOpacity(0.25),
+              ),
+              child: ListView(children: assets.map(_assetEntry).toList()))),
+      Positioned(
+          bottom: 10,
+          left: 10,
+          right: 10,
+          height: 60,
+          child: Container(
+              height: 60,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                color: Colors.white.withOpacity(0.25),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                 ControllerMenu(
                     controller: _filamentController,
                     onControllerDestroyed: () {},
@@ -136,9 +175,10 @@ class ExampleWidgetState extends State<ExampleWidget> {
                       setState(() {
                         _filamentController = controller;
                         _listener = _filamentController!.onLoad
-                            .listen((FilamentEntity entity) {
-                          print("Set last to $entity");
-                          last = entity;
+                            .listen((FilamentEntity entity) async {
+                          assets.add(entity);
+                          animations = await _filamentController!
+                              .getAnimationNames(entity);
                           if (mounted) {
                             setState(() {});
                           }
@@ -150,6 +190,35 @@ class ExampleWidgetState extends State<ExampleWidget> {
                 SceneMenu(
                   controller: _filamentController,
                 ),
+                GestureDetector(
+                    onTap: () async {
+                      await _filamentController!
+                          .loadGlb('assets/shapes/shapes.glb');
+                    },
+                    child: Container(
+                        color: Colors.transparent,
+                        child: const Text("shapes.glb"))),
+                SizedBox(width: 5),
+                GestureDetector(
+                    onTap: () async {
+                      await _filamentController!.loadGlb('assets/1.glb');
+                    },
+                    child: Container(
+                        color: Colors.transparent, child: const Text("1.glb"))),
+                SizedBox(width: 5),
+                GestureDetector(
+                    onTap: () async {
+                      await _filamentController!.loadGlb('assets/2.glb');
+                    },
+                    child: Container(
+                        color: Colors.transparent, child: const Text("2.glb"))),
+                SizedBox(width: 5),
+                GestureDetector(
+                    onTap: () async {
+                      await _filamentController!.loadGlb('assets/3.glb');
+                    },
+                    child: Container(
+                        color: Colors.transparent, child: const Text("3.glb"))),
                 Expanded(child: Container()),
                 TextButton(
                   child: const Text("Toggle viewport size"),

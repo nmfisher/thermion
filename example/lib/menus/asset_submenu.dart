@@ -28,72 +28,35 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
     var children = [
       MenuItemButton(
           onPressed: () async {
-            if (ExampleWidgetState.shapes == null) {
-              ExampleWidgetState.shapes =
-                  await widget.controller.loadGlb('assets/shapes/shapes.glb');
-              ExampleWidgetState.animations = await widget.controller
-                  .getAnimationNames(ExampleWidgetState.shapes!);
-            } else {
-              await widget.controller.removeAsset(ExampleWidgetState.shapes!);
-              ExampleWidgetState.shapes = null;
-              ExampleWidgetState.animations = null;
-            }
+            Timer.periodic(Duration(milliseconds: 50), (_) async {
+              await widget.controller.setBoneTransform(
+                  ExampleWidgetState.assets.last,
+                  "Cylinder",
+                  "Bone",
+                  Matrix4.rotationX(pi / 2));
+            });
           },
-          child: const Text('Load GLB')),
-      MenuItemButton(
-          onPressed: ExampleWidgetState.shapes != null
-              ? null
-              : () async {
-                  if (ExampleWidgetState.shapes != null) {
-                    widget.controller.removeAsset(ExampleWidgetState.shapes!);
-                  }
-                  ExampleWidgetState.shapes = await widget.controller
-                      .loadGltf('assets/shapes/shapes.gltf', 'assets/shapes');
-                },
-          child: const Text('Load GLTF')),
-      MenuItemButton(
-          onPressed: ExampleWidgetState.shapes == null
-              ? null
-              : () async {
-                  await widget.controller
-                      .transformToUnitCube(ExampleWidgetState.shapes!);
-                },
-          child: const Text('Transform to unit cube')),
-      MenuItemButton(
-          onPressed: ExampleWidgetState.shapes == null
-              ? null
-              : () async {
-                  Timer.periodic(Duration(milliseconds: 50), (_) async {
-                    await widget.controller.setBoneTransform(
-                        ExampleWidgetState.shapes!,
-                        "Cylinder",
-                        "Bone",
-                        Matrix4.rotationX(pi / 2));
-                  });
-                },
           child:
               const Text('Set bone transform for Cylinder (pi/2 rotation X)')),
       MenuItemButton(
-          onPressed: ExampleWidgetState.shapes == null
-              ? null
-              : () async {
-                  await widget.controller.addBoneAnimation(
-                      ExampleWidgetState.shapes!,
-                      BoneAnimationData(
-                          "Bone",
-                          ["Cylinder"],
-                          List.generate(
-                              60,
-                              (idx) => v.Quaternion.axisAngle(
-                                      v.Vector3(0, 0, 1), pi * 8 * (idx / 60))
-                                  .normalized()),
-                          1000.0 / 60.0));
-                },
+          onPressed: () async {
+            await widget.controller.addBoneAnimation(
+                ExampleWidgetState.assets.last,
+                BoneAnimationData(
+                    "Bone",
+                    ["Cylinder"],
+                    List.generate(
+                        60,
+                        (idx) => v.Quaternion.axisAngle(
+                                v.Vector3(0, 0, 1), pi * 8 * (idx / 60))
+                            .normalized()),
+                    1000.0 / 60.0));
+          },
           child: const Text('Set bone transform animation for Cylinder')),
       MenuItemButton(
           onPressed: () async {
-            var names = await widget.controller
-                .getMorphTargetNames(ExampleWidgetState.shapes!, "Cylinder");
+            var names = await widget.controller.getMorphTargetNames(
+                ExampleWidgetState.assets.last, "Cylinder");
             await showDialog(
                 context: context,
                 builder: (ctx) {
@@ -108,28 +71,32 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
       MenuItemButton(
           onPressed: () async {
             widget.controller.setMorphTargetWeights(
-                ExampleWidgetState.shapes!, "Cylinder", List.filled(4, 1.0));
+                ExampleWidgetState.assets.last,
+                "Cylinder",
+                List.filled(4, 1.0));
           },
           child: const Text("set Cylinder morph weights to 1")),
       MenuItemButton(
           onPressed: () async {
             widget.controller.setMorphTargetWeights(
-                ExampleWidgetState.shapes!, "Cylinder", List.filled(4, 0.0));
+                ExampleWidgetState.assets.last,
+                "Cylinder",
+                List.filled(4, 0.0));
           },
           child: const Text("Set Cylinder morph weights to 0")),
       MenuItemButton(
         onPressed: () async {
           widget.controller
-              .setPosition(ExampleWidgetState.shapes!, 1.0, 1.0, -1.0);
+              .setPosition(ExampleWidgetState.assets.last, 1.0, 1.0, -1.0);
         },
         child: const Text('Set position to 1, 1, -1'),
       ),
       MenuItemButton(
           onPressed: () async {
             if (ExampleWidgetState.coneHidden) {
-              widget.controller.reveal(ExampleWidgetState.shapes!, "Cone");
+              widget.controller.reveal(ExampleWidgetState.assets.last, "Cone");
             } else {
-              widget.controller.hide(ExampleWidgetState.shapes!, "Cone");
+              widget.controller.hide(ExampleWidgetState.assets.last, "Cone");
             }
 
             ExampleWidgetState.coneHidden = !ExampleWidgetState.coneHidden;
@@ -137,12 +104,10 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
           child:
               Text(ExampleWidgetState.coneHidden ? 'show cone' : 'hide cone')),
       MenuItemButton(
-          onPressed: ExampleWidgetState.shapes == null
-              ? null
-              : () async {
-                  widget.controller.setMaterialColor(
-                      ExampleWidgetState.shapes!, "Cone", 0, Colors.purple);
-                },
+          onPressed: () async {
+            widget.controller.setMaterialColor(
+                ExampleWidgetState.assets.last, "Cone", 0, Colors.purple);
+          },
           child: const Text("Set cone material color to purple")),
       MenuItemButton(
           onPressed: () async {
@@ -154,7 +119,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
     if (ExampleWidgetState.animations != null) {
       children.addAll(ExampleWidgetState.animations!.map((a) => MenuItemButton(
           onPressed: () {
-            widget.controller.playAnimation(ExampleWidgetState.shapes!,
+            widget.controller.playAnimation(ExampleWidgetState.assets.last,
                 ExampleWidgetState.animations!.indexOf(a),
                 replaceActive: true,
                 crossfade: 0.5,
@@ -164,7 +129,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
               "play animation ${ExampleWidgetState.animations!.indexOf(a)} (replace/fade)"))));
       children.addAll(ExampleWidgetState.animations!.map((a) => MenuItemButton(
           onPressed: () {
-            widget.controller.playAnimation(ExampleWidgetState.shapes!,
+            widget.controller.playAnimation(ExampleWidgetState.assets.last,
                 ExampleWidgetState.animations!.indexOf(a),
                 replaceActive: false, loop: ExampleWidgetState.loop);
           },
@@ -202,7 +167,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 await widget.controller
                     .playAnimation(ExampleWidgetState.buster!, 0, loop: true);
                 ExampleWidgetState.animations = await widget.controller
-                    .getAnimationNames(ExampleWidgetState.shapes!);
+                    .getAnimationNames(ExampleWidgetState.assets.last);
               } else {
                 await widget.controller.removeAsset(ExampleWidgetState.buster!);
                 ExampleWidgetState.buster = null;
@@ -272,7 +237,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
               await widget.controller.clearAssets();
               ExampleWidgetState.flightHelmet = null;
               ExampleWidgetState.buster = null;
-              ExampleWidgetState.shapes = null;
+              ExampleWidgetState.assets.clear();
             },
             child: const Text('Clear assets')),
       ],

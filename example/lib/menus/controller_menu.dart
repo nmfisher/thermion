@@ -100,18 +100,16 @@ class _ControllerMenuState extends State<ControllerMenu> {
         menuChildren: items,
         builder:
             (BuildContext context, MenuController controller, Widget? child) {
-          return Align(
-              alignment: Alignment.bottomLeft,
-              child: TextButton(
-                onPressed: () {
-                  if (controller.isOpen) {
-                    controller.close();
-                  } else {
-                    controller.open();
-                  }
-                },
-                child: const Text("Controller / Viewer"),
-              ));
+          return TextButton(
+            onPressed: () {
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            child: const Text("Controller / Viewer"),
+          );
         });
   }
 }

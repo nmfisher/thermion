@@ -21,8 +21,8 @@ class _SceneMenuState extends State<SceneMenu> {
   void didUpdateWidget(SceneMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != null &&
-            widget.controller != oldWidget.controller ||
-        widget.controller!.hasViewer != oldWidget.controller!.hasViewer) {
+        (widget.controller != oldWidget.controller ||
+            widget.controller!.hasViewer != oldWidget.controller!.hasViewer)) {
       setState(() {});
     }
   }
@@ -47,20 +47,18 @@ class _SceneMenuState extends State<SceneMenu> {
                   ],
             builder: (BuildContext context, MenuController controller,
                 Widget? child) {
-              return Align(
-                  alignment: Alignment.bottomLeft,
-                  child: TextButton(
-                    onPressed: !hasViewer
-                        ? null
-                        : () {
-                            if (controller.isOpen) {
-                              controller.close();
-                            } else {
-                              controller.open();
-                            }
-                          },
-                    child: const Text("Scene"),
-                  ));
+              return TextButton(
+                onPressed: !hasViewer
+                    ? null
+                    : () {
+                        if (controller.isOpen) {
+                          controller.close();
+                        } else {
+                          controller.open();
+                        }
+                      },
+                child: const Text("Scene"),
+              );
             },
           );
         });

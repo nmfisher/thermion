@@ -82,21 +82,17 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
         child: const Text('Move to 1, 1, -1'),
       ),
       MenuItemButton(
-        onPressed: ExampleWidgetState.last == null
-            ? null
-            : () async {
-                await widget.controller
-                    .setCamera(ExampleWidgetState.last!, null);
-              },
+        onPressed: () async {
+          await widget.controller
+              .setCamera(ExampleWidgetState.assets.last!, null);
+        },
         child: const Text('Set to first camera in last added asset'),
       ),
       MenuItemButton(
-        onPressed: ExampleWidgetState.last == null
-            ? null
-            : () async {
-                await widget.controller
-                    .moveCameraToAsset(ExampleWidgetState.last!);
-              },
+        onPressed: () async {
+          await widget.controller
+              .moveCameraToAsset(ExampleWidgetState.assets.last!);
+        },
         child: const Text("Move to last added asset"),
       ),
       MenuItemButton(
