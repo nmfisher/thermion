@@ -757,8 +757,17 @@ namespace polyvox
     Camera &cam = _view->getCamera();
     _near = near;
     _far = far;
-    cam.setLensProjection(_cameraFocalLength, 1.0f, _near,
-                          _far);
+    cam.setLensProjection(_cameraFocalLength, 1.0f, _near, _far);
+    Log("Set lens projection to focal length %f, near %f and far %f", _cameraFocalLength, _near, _far);
+  }
+
+  double FilamentViewer::getCameraCullingNear() {
+    Camera &cam = _view->getCamera();
+    return cam.getNear();
+  }
+  double FilamentViewer::getCameraCullingFar() {
+    Camera &cam = _view->getCamera();
+    return cam.getCullingFar();
   }
 
   ///

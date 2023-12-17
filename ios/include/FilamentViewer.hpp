@@ -109,6 +109,8 @@ namespace polyvox
         void setCameraProjectionMatrix(const double *const matrix, double near, double far);
         void setCameraFocalLength(float focalLength);
         void setCameraCulling(double near, double far);
+        double getCameraCullingNear();
+        double getCameraCullingFar();
         void setCameraFocusDistance(float focusDistance);
         void setCameraManipulatorOptions(filament::camutils::Mode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
         void grabBegin(float x, float y, bool pan);

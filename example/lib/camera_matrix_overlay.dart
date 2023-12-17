@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_filament/filament_controller.dart';
+import 'package:vector_math/vector_math_64.dart' as v;
 
 class CameraMatrixOverlay extends StatefulWidget {
   final FilamentController controller;
@@ -43,6 +44,7 @@ class _CameraMatrixOverlayState extends State<CameraMatrixOverlay> {
           projMatrix.storage.map((v) => v.toStringAsFixed(2)).join(",");
       _cameraCullingProjectionMatrix =
           cullingMatrix.storage.map((v) => v.toStringAsFixed(2)).join(",");
+      _getFrustum();
     }
 
     setState(() {});
@@ -53,6 +55,12 @@ class _CameraMatrixOverlayState extends State<CameraMatrixOverlay> {
     if (widget.controller.hasViewer.value) {
       _cameraTimer = Timer.periodic(const Duration(milliseconds: 50), _tick);
     }
+  }
+
+  v.Frustum? _frustum;
+
+  void _getFrustum() async {
+    _frustum = await widget.controller.getCameraFrustum();
   }
 
   @override
@@ -87,17 +95,50 @@ class _CameraMatrixOverlayState extends State<CameraMatrixOverlay> {
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Camera position : $_cameraPosition $_cameraRotation",
-                  style: const TextStyle(color: Colors.white, fontSize: 12)),
-              widget.showProjectionMatrices
-                  ? Text("Projection matrix : $_cameraProjectionMatrix",
-                      style: const TextStyle(color: Colors.white, fontSize: 12))
-                  : Container(),
-              widget.showProjectionMatrices
-                  ? Text("Culling matrix : $_cameraCullingProjectionMatrix",
-                      style: const TextStyle(color: Colors.white, fontSize: 12))
-                  : Container(),
-            ]));
+            children: <Widget>[
+                  Text("Camera position : $_cameraPosition $_cameraRotation",
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 10)),
+                  // widget.showProjectionMatrices
+                  //     ? Text("Projection matrix : $_cameraProjectionMatrix",
+                  //         style: const TextStyle(color: Colors.white, fontSize: 12))
+                  //     : Container(),
+                  // widget.showProjectionMatrices
+                  //     ? Text("Culling matrix : $_cameraCullingProjectionMatrix",
+                  //         style: const TextStyle(color: Colors.white, fontSize: 12))
+                  //     : Container(),
+                  widget.showProjectionMatrices
+                      ? const Text("Frustum matrix",
+                          style: TextStyle(color: Colors.white, fontSize: 10))
+                      : Container()
+                ] +
+                (_frustum == null
+                    ? []
+                    : [
+                        _frustum!.plane0,
+                        _frustum!.plane1,
+                        _frustum!.plane2,
+                        _frustum!.plane3,
+                        _frustum!.plane4,
+                        _frustum!.plane5
+                      ]
+                        .map((plane) => Row(
+                                children: [
+                              plane.normal.x,
+                              plane.normal.y,
+                              plane.normal.z,
+                              plane.constant
+                            ]
+                                    .map((v) => Text(
+                                          v.toStringAsFixed(2) + " ",
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10),
+                                          textAlign: TextAlign.center,
+                                        ))
+                                    .cast<Widget>()
+                                    .toList()))
+                        .cast<Widget>()
+                        .toList())));
   }
 }

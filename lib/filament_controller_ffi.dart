@@ -868,6 +868,16 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
+  Future<double> getCameraCullingNear() async {
+    return get_camera_culling_near(_viewer!);
+  }
+
+  @override
+  Future<double> getCameraCullingFar() async {
+    return get_camera_culling_far(_viewer!);
+  }
+
+  @override
   Future setCameraFocusDistance(double focusDistance) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -1147,10 +1157,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     var arrayPtr = get_camera_frustum(_viewer!);
     var doubleList = arrayPtr.asTypedList(24);
-    var planeNormals = [];
-    for (int i = 0; i < 6; i++) {
-      planeNormals.add(Vector3.array(doubleList.sublist(i * 3, (i + 1) * 3)));
-    }
+    print(doubleList);
 
     var frustum = Frustum();
     frustum.plane0.setFromComponents(
@@ -1165,7 +1172,7 @@ class FilamentControllerFFI extends FilamentController {
         doubleList[16], doubleList[17], doubleList[18], doubleList[19]);
     frustum.plane5.setFromComponents(
         doubleList[20], doubleList[21], doubleList[22], doubleList[23]);
-
+    flutter_filament_free(arrayPtr.cast<Void>());
     return frustum;
   }
 

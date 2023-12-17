@@ -158,6 +158,14 @@ extern "C"
         ((FilamentViewer *)viewer)->setCameraCulling(near, far);
     }
 
+    double get_camera_culling_near(const void *const viewer) {
+        return ((FilamentViewer*)viewer)->getCameraCullingNear();
+    }
+    
+    double get_camera_culling_far(const void *const viewer) {
+        return ((FilamentViewer*)viewer)->getCameraCullingFar();
+    }
+
     const double *const get_camera_frustum(const void *const viewer)
     {
         const auto frustum = ((FilamentViewer *)viewer)->getCameraFrustum();
@@ -165,10 +173,11 @@ extern "C"
         double *array = (double *)calloc(24, sizeof(double));
         for (int i = 0; i < 6; i++)
         {
-            array[i * 4] = planes[i].x;
-            array[i * 4 + 1] = planes[i].y;
-            array[i * 4 + 2] = planes[i].z;
-            array[i * 4 + 3] = planes[i].w;
+            auto plane = planes[i];
+            array[i * 4] = double(plane.x);
+            array[i * 4 + 1] = double(plane.y);
+            array[i * 4 + 2] = double(plane.z);
+            array[i * 4 + 3] = double(plane.w);
         }
 
         return array;

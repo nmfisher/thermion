@@ -651,6 +651,18 @@ external void set_camera_culling(
   double far,
 );
 
+@ffi.Native<ffi.Double Function(ffi.Pointer<ffi.Void>)>(
+    symbol: 'get_camera_culling_near', assetId: 'flutter_filament_plugin')
+external double get_camera_culling_near(
+  ffi.Pointer<ffi.Void> viewer,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<ffi.Void>)>(
+    symbol: 'get_camera_culling_far', assetId: 'flutter_filament_plugin')
+external double get_camera_culling_far(
+  ffi.Pointer<ffi.Void> viewer,
+);
+
 @ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<ffi.Void>)>(
     symbol: 'get_camera_culling_projection_matrix',
     assetId: 'flutter_filament_plugin')

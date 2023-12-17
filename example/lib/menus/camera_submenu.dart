@@ -15,8 +15,20 @@ class CameraSubmenu extends StatefulWidget {
 }
 
 class _CameraSubmenuState extends State<CameraSubmenu> {
-  double _near = 0.05;
-  double _far = 1000.0;
+  double? _near;
+  double? _far;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.getCameraCullingNear().then((v) {
+      _near = v;
+      widget.controller.getCameraCullingFar().then((v) {
+        _far = v;
+        setState(() {});
+      });
+    });
+  }
 
   final _menuController = MenuController();
 
@@ -30,7 +42,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
           print("Set to ${ExampleWidgetState.showProjectionMatrices}");
         },
         child: Text(
-          '${ExampleWidgetState.showProjectionMatrices.value ? "Hide" : "Display"} camera projection/culling projection matrices',
+          '${ExampleWidgetState.showProjectionMatrices.value ? "Hide" : "Display"} camera frustum',
           style: TextStyle(
               fontWeight: ExampleWidgetState.showProjectionMatrices.value
                   ? FontWeight.bold
@@ -54,7 +66,9 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
               .map((v) => MenuItemButton(
                     onPressed: () {
                       _near = v;
-                      widget.controller.setCameraCulling(_near, _far);
+                      print("Setting camera culling to $_near $_far!");
+
+                      widget.controller.setCameraCulling(_near!, _far!);
                     },
                     child: Text(
                       v.toStringAsFixed(2),
@@ -67,7 +81,8 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
               .map((v) => MenuItemButton(
                     onPressed: () {
                       _far = v;
-                      widget.controller.setCameraCulling(_near, _far);
+                      print("Setting camera culling to $_near! $_far");
+                      widget.controller.setCameraCulling(_near!, _far!);
                     },
                     child: Text(
                       v.toStringAsFixed(2),
@@ -79,7 +94,14 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
         onPressed: () async {
           widget.controller.setCameraPosition(1.0, 1.0, -1.0);
         },
-        child: const Text('Move to 1, 1, -1'),
+        child: const Text('Set position to 1, 1, -1 (leave rotation as-is)'),
+      ),
+      MenuItemButton(
+        onPressed: () async {
+          widget.controller.setCameraPosition(0.0, 0.0, 0.0);
+          widget.controller.setCameraRotation(0, 0.0, 1.0, 0.0);
+        },
+        child: const Text('Move to 0,0,0, facing towards 0,0,-1'),
       ),
       MenuItemButton(
         onPressed: () async {
@@ -130,38 +152,6 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
                 });
           },
           child: const Text("Get projection matrix")),
-      MenuItemButton(
-          closeOnActivate: false,
-          onPressed: () async {
-            var frustum = await widget.controller.getCameraFrustum();
-            var normalString = [
-              frustum.plane0,
-              frustum.plane1,
-              frustum.plane2,
-              frustum.plane3,
-              frustum.plane4,
-              frustum.plane5
-            ]
-                .map((plane) =>
-                    plane.normal.storage
-                        .map((v) => v.toStringAsFixed(2))
-                        .join(",") +
-                    ",${plane.constant}")
-                .join("\n");
-            showDialog(
-                context: context,
-                builder: (ctx) {
-                  return Center(
-                      child: Container(
-                          height: 300,
-                          width: 300,
-                          color: Colors.white,
-                          child:
-                              Text("Frustum plane normals : $normalString ")));
-                });
-            _menuController.close();
-          },
-          child: const Text("Get frustum")),
       SubmenuButton(
           menuChildren: ManipulatorMode.values.map((mm) {
             return MenuItemButton(
@@ -233,6 +223,9 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
 
   @override
   Widget build(BuildContext context) {
+    if (_near == null || _far == null) {
+      return Container();
+    }
     return SubmenuButton(
       controller: _menuController,
       menuChildren: _cameraMenu(),

@@ -345,9 +345,19 @@ abstract class FilamentController {
   Future setCameraFocalLength(double focalLength);
 
   ///
-  /// Sets the near/far culling planes for the active camera. Default values are 0.05/1000.0. See Camera.h for details.
+  /// Sets the distance (in world units) to the near/far planes for the active camera. Default values are 0.05/1000.0. See Camera.h for details.
   ///
   Future setCameraCulling(double near, double far);
+
+  ///
+  /// Get the distance (in world units) to the near culling plane for the active camera.
+  ///
+  Future<double> getCameraCullingNear();
+
+  ///
+  /// Get the distance (in world units) to the far culling plane for the active camera.
+  ///
+  Future<double> getCameraCullingFar();
 
   ///
   /// Sets the focus distance for the camera.
