@@ -517,22 +517,26 @@ namespace polyvox
             Log("Couldn't find asset under specified entity id.");
             return;
         }
-        SceneAsset &sceneAsset = _assets[pos->second];
+        auto assetIndex = pos->second;
+        SceneAsset &sceneAsset = _assets[assetIndex];
 
-     
-        _entityIdLookup.erase(entityId);
+        Log("Removing entity %d at asset index %d", entityId, assetIndex);
 
         for(auto entityPos : _entityIdLookup) {
             if(entityPos.second > pos->second) {
                 _entityIdLookup[entityPos.first] = entityPos.second-1;
             }
         }
+        
+        _entityIdLookup.erase(entityId);
+
 
         _scene->removeEntities(sceneAsset.asset->getEntities(),
                                sceneAsset.asset->getEntityCount());
-
-        _scene->removeEntities(sceneAsset.asset->getLightEntities(),
-                               sceneAsset.asset->getLightEntityCount());
+        auto lightCount =sceneAsset.asset->getLightEntityCount();
+        if(lightCount > 0) {        _scene->removeEntities(sceneAsset.asset->getLightEntities(),
+                                                           sceneAsset.asset->getLightEntityCount());
+        }
 
         _assetLoader->destroyAsset(sceneAsset.asset);
 
