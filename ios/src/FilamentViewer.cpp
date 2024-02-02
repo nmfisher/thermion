@@ -25,6 +25,9 @@
 
 #include <backend/DriverEnums.h>
 #include <backend/platforms/OpenGLPlatform.h>
+#ifdef __EMSCRIPTEN__
+#include <backend/platforms/PlatformWebGL.h>
+#endif
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
 #include <filament/IndexBuffer.h>
@@ -131,6 +134,8 @@ namespace polyvox
 #elif TARGET_OS_OSX
     ASSERT_POSTCONDITION(platform == nullptr, "Custom Platform not supported on macOS");
     _engine = Engine::create(Engine::Backend::METAL);
+#elif defined(__EMSCRIPTEN__)
+    _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)new filament::backend::PlatformWebGL(), (void *)sharedContext, nullptr);
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
 #endif
@@ -154,11 +159,27 @@ namespace polyvox
     Log("View created");
 
     setToneMapping(ToneMapping::ACES);
-
     Log("Set tone mapping");
 
-    setBloom(0.6f);
-    Log("Set bloom");
+    #ifdef __EMSCRIPTEN__
+      Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers");
+      decltype(_view->getBloomOptions()) opts;
+      opts.enabled = false;
+      _view->setBloomOptions(opts);
+
+      _view->setAmbientOcclusionOptions({.enabled=false});
+
+      _view->setDynamicResolutionOptions({.enabled=false});
+
+      _view->setDithering(filament::Dithering::NONE);
+      _view->setAntiAliasing(filament::AntiAliasing::NONE);
+      _view->setShadowingEnabled(false);
+      _view->setScreenSpaceRefractionEnabled(false);
+
+    #else
+      setBloom(0.6f);
+      Log("Set bloom");
+    #endif
 
     _view->setScene(_scene);
     _view->setCamera(_mainCamera);
@@ -215,7 +236,7 @@ namespace polyvox
               .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
               .build(*_engine);
       _imageMaterial->setDefaultParameter("showImage", 0);
-      _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(0.5f, 0.5f, 0.5f, 1.0f));
+      _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(1.0f, 1.0f, 1.0f, 0.0f));
       _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
     }
     catch (...)
@@ -265,10 +286,14 @@ namespace polyvox
 
   void FilamentViewer::setBloom(float strength)
   {
-    decltype(_view->getBloomOptions()) opts;
-    opts.enabled = true;
-    opts.strength = strength;
-    _view->setBloomOptions(opts);
+    #ifdef __EMSCRIPTEN__
+      Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers. setBloom will be ignored");
+    #else
+      decltype(_view->getBloomOptions()) opts;
+      opts.enabled = true;
+      opts.strength = strength;
+      _view->setBloomOptions(opts);
+    #endif
   }
 
   void FilamentViewer::setToneMapping(ToneMapping toneMapping)
@@ -481,6 +506,7 @@ namespace polyvox
 
   void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a)
   {
+    Log("Setting background color to rgba(%f,%f,%f,%f)", r, g, b, a);
     _imageMaterial->setDefaultParameter("showImage", 0);
     _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
     _imageMaterial->setDefaultParameter("transform", _imageScale);
@@ -926,6 +952,11 @@ namespace polyvox
     _scene->setIndirectLight(nullptr);
   }
 
+  void FilamentViewer::rotateIbl(const math::mat3f & matrix) {
+      _indirectLight->setRotation(matrix);
+  }
+
+
   void FilamentViewer::loadIbl(const char *const iblPath, float intensity)
   {
     removeIbl();
@@ -994,9 +1025,10 @@ namespace polyvox
     if (_frameCount == 60)
     {
       // Log("1 sec average for asset animation update %f", _elapsed / 60);
+      Log("Skipped frames : %d", _skippedFrames);
       _elapsed = 0;
       _frameCount = 0;
-      Log("Skipped frames : %d", _skippedFrames);
+      _skippedFrames = 0;
     }
 
     Timer tmr;
@@ -1007,52 +1039,70 @@ namespace polyvox
     _frameCount++;
 
     // if a manipulator is active, update the active camera orientation
-    if (_manipulator)
-    {
+    if(_manipulator) {
       math::double3 eye, target, upward;
-      Camera &cam = _view->getCamera();
+      Camera& cam =_view->getCamera();
       _manipulator->getLookAt(&eye, &target, &upward);
       cam.lookAt(eye, target, upward);
     }
 
-    // Render the scene, unless the renderer wants to skip the frame.
-    if (_renderer->beginFrame(_swapChain, frameTimeInNanos))
-    {
-      _renderer->render(_view);
+    // // TODO - this was an experiment but probably useful to keep for debugging
+    // // if pixelBuffer is provided, we will copy the framebuffer into the pixelBuffer.
+    // if (pixelBuffer)
+    // {
+    //   auto pbd = Texture::PixelBufferDescriptor(
+    //       pixelBuffer, size_t(1024 * 768 * 4),
+    //       Texture::Format::RGBA,
+    //       Texture::Type::BYTE, nullptr, callback, data);
 
-      if(_recording) {
-        Viewport const &vp = _view->getViewport();
-        size_t pixelBufferSize = vp.width * vp.height * 4;
-        auto* pixelBuffer = new uint8_t[pixelBufferSize];
-        auto callback = [](void *buf, size_t size, void *data) {
-          auto frameCallbackData = (FrameCallbackData*)data;
-          auto viewer = (FilamentViewer*)frameCallbackData->viewer;
-          viewer->savePng(buf, size, frameCallbackData->frameNumber);
-          delete frameCallbackData;
-        };
-
-        auto now = std::chrono::high_resolution_clock::now();
-        auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - _startTime).count());
-
-        auto frameNumber = uint32_t(floor(elapsed / _frameInterval));
-
-        auto userData = new FrameCallbackData { this, frameNumber };
-
-        auto pbd = Texture::PixelBufferDescriptor(
-            pixelBuffer, pixelBufferSize,
-            Texture::Format::RGBA,
-            Texture::Type::UBYTE, nullptr, callback, userData);
-    
-        _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
-      }
+    //   _renderer->beginFrame(_swapChain, 0);
+    //   _renderer->render(_view);
+    //   _renderer->readPixels(0, 0, 1024, 768, std::move(pbd));
+    //   _renderer->endFrame();
+    // }
+    // else
+    // {
+      // Render the scene, unless the renderer wants to skip the frame.
+      bool beginFrame = _renderer->beginFrame(_swapChain, frameTimeInNanos);
       
-      _renderer->endFrame();
-    }
-    else
-    {
-      _skippedFrames++;
-    }
+      if (beginFrame)
+      {
+        _renderer->render(_view);
+
+        if(_recording) {
+          Viewport const &vp = _view->getViewport();
+          size_t pixelBufferSize = vp.width * vp.height * 4;
+          auto* pixelBuffer = new uint8_t[pixelBufferSize];
+          auto callback = [](void *buf, size_t size, void *data) {
+            auto frameCallbackData = (FrameCallbackData*)data;
+            auto viewer = (FilamentViewer*)frameCallbackData->viewer;
+            viewer->savePng(buf, size, frameCallbackData->frameNumber);
+            delete frameCallbackData;
+          };
+
+          auto now = std::chrono::high_resolution_clock::now();
+          auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - _startTime).count());
+
+          auto frameNumber = uint32_t(floor(elapsed / _frameInterval));
+
+          auto userData = new FrameCallbackData { this, frameNumber };
+
+          auto pbd = Texture::PixelBufferDescriptor(
+              pixelBuffer, pixelBufferSize,
+              Texture::Format::RGBA,
+              Texture::Type::UBYTE, nullptr, callback, userData);
+      
+          _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
+        }
+        _renderer->endFrame();
+        #ifdef __EMSCRIPTEN__
+        _engine->execute();
+        #endif
+      } else {
+        _skippedFrames++;
+      }
   }
+
 
   void FilamentViewer::savePng(void* buf, size_t size, int frameNumber) {
     std::lock_guard lock(_recordingMutex);

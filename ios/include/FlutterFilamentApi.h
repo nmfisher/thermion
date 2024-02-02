@@ -40,7 +40,7 @@
 
 #endif /* __STDBOOL_H */
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__EMSCRIPTEN__) 
 #include <stddef.h>
 #endif
 
@@ -67,6 +67,7 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void set_bloom(const void *const viewer, float strength);
 	FLUTTER_PLUGIN_EXPORT void load_skybox(const void *const viewer, const char *skyboxPath);
 	FLUTTER_PLUGIN_EXPORT void load_ibl(const void *const viewer, const char *iblPath, float intensity);
+	FLUTTER_PLUGIN_EXPORT void rotate_ibl(const void *const viewer, float* rotationMatrix);
 	FLUTTER_PLUGIN_EXPORT void remove_skybox(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT void remove_ibl(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT EntityId add_light(const void *const viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
@@ -113,6 +114,10 @@ extern "C"
 		int numMorphTargets,
 		int numFrames,
 		float frameLengthInMs);
+	
+	FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose(
+		void *assetManager,
+		EntityId asset);
 	FLUTTER_PLUGIN_EXPORT void add_bone_animation(
 		void *assetManager,
 		EntityId asset,
@@ -121,7 +126,8 @@ extern "C"
 		const char *const boneName,
 		const char **const meshNames,
 		int numMeshTargets,
-		float frameLengthInMs);
+		float frameLengthInMs,
+		bool isModelSpace);
 	FLUTTER_PLUGIN_EXPORT bool set_bone_transform(
 		void *assetManager,
 		EntityId asset,
@@ -171,6 +177,8 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, EntityId *entityId);
 	FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const assetManager, const EntityId entityId);
 	FLUTTER_PLUGIN_EXPORT const EntityId find_child_entity_by_name(void *const assetManager, const EntityId parent, const char* name);
+	FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const assetManager, const EntityId target, bool renderableOnly);
+	FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const assetManager, const EntityId target, int index, bool renderableOnly);
 	FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording);
 	FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory);
 	FLUTTER_PLUGIN_EXPORT void ios_dummy();

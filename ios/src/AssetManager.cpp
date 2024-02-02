@@ -77,7 +77,7 @@ namespace polyvox
         EntityManager &em = EntityManager::get();
 
         _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em});
-        _gltfResourceLoader->addTextureProvider("image/ktx2", _ktxDecoder);
+        _gltfResourceLoader->addTextureProvider ("image/ktx2", _ktxDecoder);
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
     }
@@ -121,17 +121,31 @@ namespace polyvox
             _gltfResourceLoader->addResourceData(resourceUris[i], std::move(b));
         }
 
-        // load resources synchronously
-        if (!_gltfResourceLoader->loadResources(asset))
-        {
-            Log("Unknown error loading glTF asset");
-            _resourceLoaderWrapper->free(rbuf);
-            for (auto &rb : resourceBuffers)
-            {
-                _resourceLoaderWrapper->free(rb);
+        #ifdef __EMSCRIPTEN__
+            if (!_gltfResourceLoader->asyncBeginLoad(asset)) {
+                Log("Unknown error loading glTF asset");
+                _resourceLoaderWrapper->free(rbuf);
+                for(auto& rb : resourceBuffers) {
+                    _resourceLoaderWrapper->free(rb);
+                }
+                return 0;
             }
-            return 0;
-        }
+            while(_gltfResourceLoader->asyncGetLoadProgress() < 1.0f) {
+                _gltfResourceLoader->asyncUpdateLoad();
+            }
+        #else
+            // load resources synchronously
+            if (!_gltfResourceLoader->loadResources(asset))
+            {
+                Log("Unknown error loading glTF asset");
+                _resourceLoaderWrapper->free(rbuf);
+                for (auto &rb : resourceBuffers)
+                {
+                    _resourceLoaderWrapper->free(rb);
+                }
+                return 0;
+            }
+        #endif
 
         _scene->addEntities(asset->getEntities(), asset->getEntityCount());
 
@@ -142,7 +156,18 @@ namespace polyvox
         asset->releaseSourceData();
 
         SceneAsset sceneAsset(asset);
+        
+        const auto joints = inst->getJointsAt(0);
 
+        TransformManager &transformManager = _engine->getTransformManager();
+
+        for(int i = 0; i < inst->getJointCountAt(0); i++) {
+            const auto joint = joints[i];
+            const auto& jointTransformInstance = transformManager.getInstance(joint);
+            const auto& jointTransform = transformManager.getTransform(jointTransformInstance);
+            sceneAsset.initialJointTransforms.push_back(jointTransform);
+        }
+        
         utils::Entity e = EntityManager::get().create();
 
         EntityId eid = Entity::smuggle(e);
@@ -166,7 +191,7 @@ namespace polyvox
 
         ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
 
-        Log("Loaded GLB of size %d at URI %s", rbuf.size, uri);
+        Log("Loaded GLB data (%d bytes) from URI %s", rbuf.size, uri);
 
         FilamentAsset *asset = _assetLoader->createAsset(
             (const uint8_t *)rbuf.data, rbuf.size);
@@ -181,12 +206,23 @@ namespace polyvox
 
         _scene->addEntities(asset->getEntities(), entityCount);
 
-        if (!_gltfResourceLoader->loadResources(asset))
-        {
-            Log("Unknown error loading glb asset");
-            _resourceLoaderWrapper->free(rbuf);
-            return 0;
-        }
+        #ifdef __EMSCRIPTEN__ 
+            if (!_gltfResourceLoader->asyncBeginLoad(asset)) {
+                Log("Unknown error loading glb asset");
+                _resourceLoaderWrapper->free(rbuf);
+                return 0;
+            }
+            while(_gltfResourceLoader->asyncGetLoadProgress() < 1.0f) {
+                _gltfResourceLoader->asyncUpdateLoad();
+            }
+        #else 
+            if (!_gltfResourceLoader->loadResources(asset))
+            {
+                Log("Unknown error loading glb asset");
+                _resourceLoaderWrapper->free(rbuf);
+                return 0;
+            }
+        #endif
 
         auto lights = asset->getLightEntities();
         _scene->addEntities(lights, asset->getLightEntityCount());
@@ -202,6 +238,17 @@ namespace polyvox
         _resourceLoaderWrapper->free(rbuf);
 
         SceneAsset sceneAsset(asset);
+        
+        const auto joints = inst->getJointsAt(0);
+
+        TransformManager &transformManager = _engine->getTransformManager();
+
+        for(int i = 0; i < inst->getJointCountAt(0); i++) {
+            const auto joint = joints[i];
+            const auto& jointTransformInstance = transformManager.getInstance(joint);
+            const auto& jointTransform = transformManager.getTransform(jointTransformInstance);
+            sceneAsset.initialJointTransforms.push_back(jointTransform);
+        }
 
         utils::Entity e = EntityManager::get().create();
         EntityId eid = Entity::smuggle(e);
@@ -278,7 +325,6 @@ namespace polyvox
 
     void AssetManager::updateAnimations()
     {
-
         std::lock_guard lock(_animationMutex);
         RenderableManager &rm = _engine->getRenderableManager();
 
@@ -287,7 +333,7 @@ namespace polyvox
         for (auto &asset : _assets)
         {
             
-            for (int i = asset.gltfAnimations.size() - 1; i >= 0; i--) {
+            for (int i = ((int)asset.gltfAnimations.size()) - 1; i >= 0; i--) {
                 
                 auto animationStatus = asset.gltfAnimations[i];
 
@@ -295,12 +341,15 @@ namespace polyvox
 
                 if (!animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
                 {
+                    asset.asset->getInstance()->getAnimator()->applyAnimation(animationStatus.index, animationStatus.durationInSecs - 0.001);
+                    asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
                     asset.gltfAnimations.erase(asset.gltfAnimations.begin() + i);
                     asset.fadeGltfAnimationIndex = -1;
                     continue;
                 }
-
+                
                 asset.asset->getInstance()->getAnimator()->applyAnimation(animationStatus.index, elapsedInSecs);
+
                 if (asset.fadeGltfAnimationIndex != -1 && elapsedInSecs < asset.fadeDuration)
                 {
                     // cross-fade
@@ -353,21 +402,47 @@ namespace polyvox
                     asset.boneAnimations.erase(asset.boneAnimations.begin() + i);
                     continue;
                 }
-
-                float frameLengthInMs = animationStatus.frameLengthInMs;
                 
-                int frameNumber = static_cast<int>(elapsedInSecs * 1000.0f / frameLengthInMs) % animationStatus.lengthInFrames;
+                float elapsedFrames = elapsedInSecs * 1000.0f / animationStatus.frameLengthInMs;
+                
+                int currFrame = static_cast<int>(elapsedFrames) % animationStatus.lengthInFrames;
+                float delta = elapsedFrames - currFrame;
+                int nextFrame = currFrame;
+                auto restLocalTransform = asset.initialJointTransforms[animationStatus.boneIndex];
 
                 // offset from the end if reverse
                 if (animationStatus.reverse)
                 {
-                    frameNumber = animationStatus.lengthInFrames - frameNumber;
+                    currFrame = animationStatus.lengthInFrames - currFrame;
+                    if(currFrame > 0) {
+                        nextFrame = currFrame - 1;
+                    } else { 
+                        nextFrame = 0;
+                    }
+                } else { 
+                    if(currFrame < animationStatus.lengthInFrames - 1) {
+                        nextFrame = currFrame + 1;
+                    } else { 
+                        nextFrame = currFrame;
+                    }
                 }
-                updateBoneTransformFromAnimationBuffer(
-                    animationStatus,
-                    frameNumber,
-                    asset.asset);
-            
+                
+                // simple linear interpolation
+                math::mat4f curr = (1 - delta) * (restLocalTransform * animationStatus.frameData[currFrame]);
+                math::mat4f next = delta * (restLocalTransform * animationStatus.frameData[nextFrame]);
+                math::mat4f localTransform = curr + next;
+
+                auto filamentInstance = asset.asset->getInstance();
+                TransformManager &transformManager = _engine->getTransformManager();
+
+                const Entity joint = filamentInstance->getJointsAt(animationStatus.skinIndex)[animationStatus.boneIndex];
+
+                auto jointTransform = transformManager.getInstance(joint);
+        
+                transformManager.setTransform(jointTransform, localTransform);
+        
+                asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
+
                 if (animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
                 {
                     animationStatus.start = now;
@@ -381,7 +456,6 @@ namespace polyvox
     // - or is it better to add an option for "streaming" mode where we can just return a reference to a mat4 and then update the values directly?
     bool AssetManager::setBoneTransform(EntityId entityId, const char *entityName, int32_t skinIndex, const char* boneName, math::mat4f localTransform)
     {
-
         std::lock_guard lock(_animationMutex);
 
         const auto &pos = _entityIdLookup.find(entityId);
@@ -436,7 +510,6 @@ namespace polyvox
             return false;
         }
 
-
         utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[boneIndex];
 
         if (joint.isNull())
@@ -447,8 +520,8 @@ namespace polyvox
 
         const auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[boneIndex];
 
-        auto jointTransformInstance = transformManager.getInstance(joint);
-        auto globalJointTransform = transformManager.getWorldTransform(jointTransformInstance);
+        auto jointTransform = transformManager.getInstance(joint);
+        auto globalJointTransform = transformManager.getWorldTransform(jointTransform);
 
         auto inverseGlobalTransform = inverse(
             transformManager.getWorldTransform(
@@ -466,47 +539,6 @@ namespace polyvox
             boneIndex);
         return true;
     }   
-
-    void AssetManager::updateBoneTransformFromAnimationBuffer(
-        const BoneAnimation& animation, 
-        int frameNumber,
-        FilamentAsset *asset)
-    {
-        auto filamentInstance = asset->getInstance();
-        TransformManager &transformManager = _engine->getTransformManager();
-
-        RenderableManager &rm = _engine->getRenderableManager();
-
-        auto boneIndex = animation.boneIndex;
-
-        math::mat4f localTransform(animation.frameData[frameNumber]);
-
-        const auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(animation.skinIndex)[boneIndex];
-
-        for(const auto& meshTarget : animation.meshTargets) {
-
-            const Entity joint = filamentInstance->getJointsAt(animation.skinIndex)[animation.boneIndex];
-
-            auto jointInstance = transformManager.getInstance(joint);
-            auto globalJointTransform = transformManager.getWorldTransform(jointInstance);
-            
-        
-            auto inverseGlobalTransform = inverse(
-                transformManager.getWorldTransform(
-                transformManager.getInstance(meshTarget)
-                )
-            );
-            const auto boneTransform = inverseGlobalTransform * globalJointTransform * localTransform * inverseBindMatrix;
-            const auto &renderableInstance = rm.getInstance(meshTarget);
-            rm.setBones(
-                renderableInstance,
-                &boneTransform,
-                1,
-                boneIndex
-            );
-        }
-        
-    }
 
     void AssetManager::remove(EntityId entityId)
     {
@@ -716,13 +748,45 @@ namespace polyvox
         return true;
     }
 
+    void AssetManager::resetBones(EntityId entityId) {
+        std::lock_guard lock(_animationMutex);
+
+        const auto &pos = _entityIdLookup.find(entityId);
+        if (pos == _entityIdLookup.end())
+        {
+            Log("ERROR: asset not found for entity.");
+            return;
+        }
+        auto &asset = _assets[pos->second];
+        
+        auto filamentInstance = asset.asset->getInstance();
+        filamentInstance->getAnimator()->resetBoneMatrices();
+        
+        auto skinCount = filamentInstance->getSkinCount();
+
+        TransformManager &transformManager = _engine->getTransformManager();
+        
+        for(int skinIndex = 0; skinIndex < skinCount; skinIndex++) {
+            for(int i =0; i < filamentInstance->getJointCountAt(skinIndex);i++) {
+                const Entity joint = filamentInstance->getJointsAt(skinIndex)[i];
+                auto restLocalTransform = asset.initialJointTransforms[i];
+                auto jointTransform = transformManager.getInstance(joint);
+                transformManager.setTransform(jointTransform, restLocalTransform);
+            }
+        }
+        filamentInstance->getAnimator()->updateBoneMatrices();
+        filamentInstance->getAnimator()->resetBoneMatrices();
+
+    }
+
     bool AssetManager::addBoneAnimation(EntityId entityId,
                                         const float *const frameData,
                                         int numFrames,
                                         const char *const boneName,
                                         const char **const meshNames,
                                         int numMeshTargets,
-                                        float frameLengthInMs)
+                                        float frameLengthInMs,
+                                        bool isModelSpace)
     {
         std::lock_guard lock(_animationMutex);
 
@@ -734,8 +798,6 @@ namespace polyvox
         }
         auto &asset = _assets[pos->second];
         
-        asset.asset->getInstance()->getAnimator()->resetBoneMatrices();
-
         auto filamentInstance = asset.asset->getInstance();
 
         size_t skinCount = filamentInstance->getSkinCount();
@@ -768,15 +830,51 @@ namespace polyvox
         }
         
         animation.frameData.clear();
+        const auto& tm = _engine->getTransformManager();
+        const auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[animation.boneIndex];
+        const auto& bindMatrix = inverse(inverseBindMatrix);
+        math::float3 trans;
+        math::quatf rot;
+        math::float3 scale;
+        decomposeMatrix(inverseBindMatrix, &trans, &rot, &scale);
+        math::float3 btrans;
+        math::quatf brot;
+        math::float3 bscale;
+        decomposeMatrix(bindMatrix, &btrans, &brot, &bscale);
+        // Log("Bind matrix for bone %s is \n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n", boneName, bindMatrix[0][0],bindMatrix[1][0],bindMatrix[2][0],bindMatrix[3][0],
+        //     bindMatrix[0][1],bindMatrix[1][1],bindMatrix[2][1],bindMatrix[3][1],
+        //     bindMatrix[0][2],bindMatrix[1][2],bindMatrix[2][2],bindMatrix[3][2],
+        //     bindMatrix[0][3],bindMatrix[1][3],bindMatrix[2][3],bindMatrix[3][3]);
         for(int i = 0; i < numFrames; i++) {
-            animation.frameData.push_back(math::quatf( 
-                frameData[i*4],
-                frameData[(i*4)+1],
-                frameData[(i*4)+2],
-                frameData[(i*4)+3]
-            ));
-
-        }
+            math::mat4f frame( 
+                frameData[i*16],
+                frameData[(i*16)+1],
+                frameData[(i*16)+2],
+                frameData[(i*16)+3],
+                frameData[(i*16)+4],
+                frameData[(i*16)+5],
+                frameData[(i*16)+6],
+                frameData[(i*16)+7],
+                frameData[(i*16)+8],
+                frameData[(i*16)+9],
+                frameData[(i*16)+10],
+                frameData[(i*16)+11],
+                frameData[(i*16)+12],
+                frameData[(i*16)+13],
+                frameData[(i*16)+14],
+                frameData[(i*16)+15]);
+            // if(i == numFrames - 1) {            Log("Model transform for bone %s is \n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n", boneName,
+            //                             frame[0][0],frame[1][0],frame[2][0],frame[3][0],
+            //                             frame[0][1],frame[1][1],frame[2][1],frame[3][1],
+            //                             frame[0][2],frame[1][2],frame[2][2],frame[3][2],
+            //                             frame[0][3],frame[1][3],frame[2][3],frame[3][3]);
+            // }
+                
+                if(isModelSpace) {
+                    frame = (math::mat4f(rot) * frame) * math::mat4f(brot);
+                }
+                animation.frameData.push_back(frame);
+       }
 
         animation.frameLengthInMs = frameLengthInMs;
 
@@ -789,7 +887,6 @@ namespace polyvox
                 Log("Mesh target %s for bone animation could not be found", meshNames[i]);
                 return false;
             }
-            Log("Added mesh target %s", meshNames[i]);
             animation.meshTargets.push_back(entity);
         }
 
@@ -798,6 +895,7 @@ namespace polyvox
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
         animation.lengthInFrames = numFrames;
         animation.frameLengthInMs = frameLengthInMs;
+        animation.skinIndex = 0;
         asset.boneAnimations.push_back(animation);
 
         return true;
@@ -1170,6 +1268,65 @@ namespace polyvox
             return nullptr;
         }
         return _ncm->getName(nameInstance);
+    }
+
+    int AssetManager::getEntityCount(EntityId entityId, bool renderableOnly) {
+        const auto &pos = _entityIdLookup.find(entityId);
+        if (pos == _entityIdLookup.end())
+        {
+            Log("ERROR: asset not found for entity.");
+            return 0;
+        }
+        auto &asset = _assets[pos->second];
+        if(renderableOnly) {
+            int count = 0;
+            const auto& rm = _engine->getRenderableManager();
+            const Entity *entities = asset.asset->getEntities();
+            for(int i=0; i < asset.asset->getEntityCount(); i++) {
+                if(rm.hasComponent(entities[i])) { 
+                    count++;
+                }
+            }
+            return count;
+        } 
+        return asset.asset->getEntityCount();
+    }
+
+    const char* AssetManager::getEntityNameAt(EntityId entityId, int index, bool renderableOnly) {
+        const auto &pos = _entityIdLookup.find(entityId);
+        if (pos == _entityIdLookup.end())
+        {
+            Log("ERROR: asset not found for entity.");
+            return nullptr;
+        }
+        auto &asset = _assets[pos->second];
+        int found = -1;
+
+        if(renderableOnly) {
+            int count = 0;
+            const auto& rm = _engine->getRenderableManager();
+            const Entity *entities = asset.asset->getEntities();
+            for(int i=0; i < asset.asset->getEntityCount(); i++) {
+                if(rm.hasComponent(entities[i])) { 
+                    if(count == index) {
+                        found = i;
+                        break;
+                    }
+                    count++;
+                }
+            }
+        } else { 
+            found = index;
+        }
+
+        if(found >= asset.asset->getEntityCount()) { 
+            Log("ERROR: index %d greater than number of child entities.", found);
+            return nullptr;
+        }
+        
+        const utils::Entity entity = asset.asset->getEntities()[found];    
+        auto inst = _ncm->getInstance(entity);
+        return _ncm->getName(inst);
     }
 
 } // namespace polyvox

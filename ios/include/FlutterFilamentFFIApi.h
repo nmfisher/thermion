@@ -64,14 +64,34 @@ FLUTTER_PLUGIN_EXPORT void set_morph_target_weights_ffi(void* const assetManager
                                                         const float *const morphData,
                                                         int numWeights
                                                         );
+FLUTTER_PLUGIN_EXPORT bool set_morph_animation_ffi(
+               void *assetManager,
+               EntityId asset,
+               const char *const entityName,
+               const float *const morphData,
+               const int *const morphIndices,
+               int numMorphTargets,
+               int numFrames,
+               float frameLengthInMs);
 FLUTTER_PLUGIN_EXPORT bool set_bone_transform_ffi(
 		void *assetManager,
 		EntityId asset,
 		const char *entityName,
 		const float *const transform,
 		const char *boneName);
+FLUTTER_PLUGIN_EXPORT void add_bone_animation_ffi(
+               void *assetManager,
+               EntityId asset,
+               const float *const frameData,
+               int numFrames,
+               const char *const boneName,
+               const char **const meshNames,
+               int numMeshTargets,
+               float frameLengthInMs,
+               bool isModelSpace);
 FLUTTER_PLUGIN_EXPORT void set_post_processing_ffi(void* const viewer, bool enabled);
 FLUTTER_PLUGIN_EXPORT void pick_ffi(void* const viewer, int x, int y, EntityId* entityId);
+FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose_ffi(void* const assetManager, EntityId entityId);
 FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi();
 
 #ifdef __cplusplus

@@ -76,6 +76,19 @@ extern "C"
         ((FilamentViewer *)viewer)->loadIbl(iblPath, intensity);
     }
 
+    FLUTTER_PLUGIN_EXPORT void rotate_ibl(const void *const viewer, float* rotationMatrix) {
+        math::mat3f matrix(rotationMatrix[0], rotationMatrix[1],
+         rotationMatrix[2],
+         rotationMatrix[3],
+         rotationMatrix[4],
+         rotationMatrix[5],
+         rotationMatrix[6],
+         rotationMatrix[7],
+         rotationMatrix[8]);
+        
+        ((FilamentViewer*)viewer)->rotateIbl(matrix);
+    }
+
     FLUTTER_PLUGIN_EXPORT void remove_skybox(const void *const viewer)
     {
         ((FilamentViewer *)viewer)->removeSkybox();
@@ -330,6 +343,10 @@ extern "C"
         return ((AssetManager *)assetManager)->setMorphAnimationBuffer(asset, entityName, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
     }
 
+    FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose(void *assetManager, EntityId entityId) {
+        ((AssetManager*)assetManager)->resetBones(entityId);
+    }
+
     FLUTTER_PLUGIN_EXPORT void add_bone_animation(
         void *assetManager,
         EntityId asset,
@@ -338,9 +355,10 @@ extern "C"
         const char *const boneName,
         const char **const meshNames,
         int numMeshTargets,
-        float frameLengthInMs)
+        float frameLengthInMs,
+        bool isModelSpace)
     {
-        ((AssetManager *)assetManager)->addBoneAnimation(asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs);
+        ((AssetManager *)assetManager)->addBoneAnimation(asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs, isModelSpace);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_post_processing(void *const viewer, bool enabled)
@@ -491,6 +509,15 @@ extern "C"
     {
         return ((AssetManager *)assetManager)->getNameForEntity(entityId);
     }
+
+    FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const assetManager, const EntityId target, bool renderableOnly) {
+        return ((AssetManager *)assetManager)->getEntityCount(target, renderableOnly);
+    }
+
+    FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const assetManager, const EntityId target, int index, bool renderableOnly) {
+        return ((AssetManager *)assetManager)->getEntityNameAt(target, index, renderableOnly);
+    }
+
 
     FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording) {
         ((FilamentViewer*)viewer)->setRecording(recording);

@@ -9,8 +9,31 @@
 #include <functional>
 #include <mutex>
 #include <thread>
+#include <stdlib.h>
+
+#ifdef __EMSCRIPTEN__
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
+
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#include <emscripten/threading.h>
+#include <emscripten/val.h>
 
 using namespace polyvox;
+using namespace std::chrono_literals;
+
+#include <emscripten/threading.h>
+#include <emscripten/val.h>
+
+extern "C"
+{
+  extern FLUTTER_PLUGIN_EXPORT EMSCRIPTEN_WEBGL_CONTEXT_HANDLE flutter_filament_web_create_gl_context();
+}
+
+#endif 
+#include <pthread.h>
 
 class RenderLoop {
 public:
@@ -63,8 +86,20 @@ public:
                            void (*renderCallback)(void *), void *const owner) {
     _renderCallback = renderCallback;
     _renderCallbackOwner = owner;
-    std::packaged_task<FilamentViewer *()> lambda([&]() mutable {
-      return new FilamentViewer(context, loader, platform, uberArchivePath);
+    std::packaged_task<FilamentViewer *()> lambda([=]() mutable {
+      #ifdef __EMSCRIPTEN__     
+        auto emContext = flutter_filament_web_create_gl_context();
+
+        auto success = emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)emContext);
+        if(success != EMSCRIPTEN_RESULT_SUCCESS) {
+          std::cout << "Failed to make context current." << std::endl;
+          return (FilamentViewer*)nullptr;
+        }
+        _viewer = new FilamentViewer((void* const) emContext, loader, platform, uberArchivePath);
+      #else
+        _viewer = new FilamentViewer(context, loader, platform, uberArchivePath);
+      #endif
+      return _viewer;
     });
     auto fut = add_task(lambda);
     fut.wait();
@@ -90,10 +125,17 @@ public:
   }
 
   void doRender() {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
     render(_viewer, 0, nullptr, nullptr, nullptr);
+    _lastRenderTime = std::chrono::high_resolution_clock::now();
     if(_renderCallback) {
       _renderCallback(_renderCallbackOwner);
     }
+    #ifdef __EMSCRIPTEN__
+      emscripten_webgl_commit_frame();
+    #endif
+        
   }
 
   void setFrameIntervalInMilliseconds(float frameIntervalInMilliseconds) {
@@ -121,6 +163,7 @@ private:
   std::thread *_t = nullptr;
   std::condition_variable _cond;
   std::deque<std::function<void()>> _tasks;
+  std::chrono::steady_clock::time_point _lastRenderTime = std::chrono::high_resolution_clock::now();
 };
 
 extern "C" {
@@ -453,6 +496,25 @@ void set_morph_target_weights_ffi(void *const assetManager,
       fut.wait();
 }
 
+bool set_morph_animation_ffi(
+               void *assetManager,
+               EntityId asset,
+               const char *const entityName,
+               const float *const morphData,
+               const int *const morphIndices,
+               int numMorphTargets,
+               int numFrames,
+               float frameLengthInMs) {
+      std::packaged_task<bool()> lambda(
+      [&] { 
+        return set_morph_animation(assetManager, asset, entityName, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs); 
+        });
+    auto fut = _rl->add_task(lambda);
+    fut.wait();
+    return fut.get();
+}
+
+
 FLUTTER_PLUGIN_EXPORT bool set_bone_transform_ffi(
 		void *assetManager,
 		EntityId asset,
@@ -464,6 +526,32 @@ FLUTTER_PLUGIN_EXPORT bool set_bone_transform_ffi(
       auto fut = _rl->add_task(lambda);
       fut.wait();
       return fut.get();
+}
+
+FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose_ffi(void* const assetManager, EntityId entityId) {
+  std::packaged_task<void()> lambda(
+      [&] { return reset_to_rest_pose(assetManager, entityId); });
+  auto fut = _rl->add_task(lambda);
+  fut.wait();
+}
+
+FLUTTER_PLUGIN_EXPORT void add_bone_animation_ffi(
+               void *assetManager,
+               EntityId asset,
+               const float *const frameData,
+               int numFrames,
+               const char *const boneName,
+               const char **const meshNames,
+               int numMeshTargets,
+               float frameLengthInMs,
+               bool isModelSpace) {
+
+        std::packaged_task<void()> lambda(
+      [=] { 
+        add_bone_animation(assetManager, asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs, isModelSpace); 
+        });
+      auto fut = _rl->add_task(lambda);
+      fut.wait();
 }
 
 FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi() { Log("Dummy called"); }

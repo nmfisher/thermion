@@ -67,6 +67,8 @@ namespace polyvox
 
         void loadIbl(const char *const iblUri, float intensity);
         void removeIbl();
+        void rotateIbl(const math::mat3f & matrix);
+
 
         void removeAsset(EntityId asset);
         void clearAssets();

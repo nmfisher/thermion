@@ -83,7 +83,9 @@ namespace polyvox
             const char *const boneName,
             const char **const meshName,
             int numMeshTargets,
-            float frameLengthInMs);
+            float frameLengthInMs, 
+            bool isModelSpace);
+        void resetBones(EntityId entityId);
         void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f);
         void stopAnimation(EntityId e, int index);
         void setMorphTargetWeights(const char *const entityName, float *weights, int count);
@@ -95,6 +97,8 @@ namespace polyvox
         utils::Entity findChildEntityByName(
             EntityId entityId,
             const char *entityName);
+        int getEntityCount(EntityId entity, bool renderableOnly);
+        const char* getEntityNameAt(EntityId entity, int index, bool renderableOnly);
 
     private:
         AssetLoader *_assetLoader = nullptr;
@@ -116,12 +120,6 @@ namespace polyvox
             const char *entityName);
 
         inline void updateTransform(SceneAsset &asset);
-
-        void updateBoneTransformFromAnimationBuffer(
-            const BoneAnimation& animation, 
-            int frameNumber,
-            FilamentAsset *asset
-        );
 
     };
 }
