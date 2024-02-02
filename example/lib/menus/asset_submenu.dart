@@ -43,13 +43,16 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
             await widget.controller.addBoneAnimation(
                 ExampleWidgetState.assets.last,
                 BoneAnimationData(
-                    "Bone",
+                    ["Bone"],
                     ["Cylinder"],
                     List.generate(
                         60,
-                        (idx) => v.Quaternion.axisAngle(
-                                v.Vector3(0, 0, 1), pi * 8 * (idx / 60))
-                            .normalized()),
+                        (idx) => [
+                              v.Quaternion.axisAngle(
+                                      v.Vector3(0, 0, 1), pi * 8 * (idx / 60))
+                                  .normalized()
+                            ]),
+                    List.generate(60, (idx) => [v.Vector3.zero()]),
                     1000.0 / 60.0));
           },
           child: const Text('Set bone transform animation for Cylinder')),

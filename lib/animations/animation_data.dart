@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:vector_math/vector_math_64.dart';
 
 ///
@@ -43,10 +41,21 @@ class MorphAnimationData {
 /// [frameData] is laid out as [locX, locY, locZ, rotW, rotX, rotY, rotZ]
 ///
 class BoneAnimationData {
-  final String boneName;
+  final List<String> bones;
   final List<String> meshNames;
-  final List<Quaternion> frameData;
+  final List<List<Quaternion>> rotationFrameData;
+  final List<List<Vector3>> translationFrameData;
   double frameLengthInMs;
-  BoneAnimationData(
-      this.boneName, this.meshNames, this.frameData, this.frameLengthInMs);
+  final bool isModelSpace;
+  BoneAnimationData(this.bones, this.meshNames, this.rotationFrameData,
+      this.translationFrameData, this.frameLengthInMs,
+      {this.isModelSpace = false});
+
+  int get numFrames => rotationFrameData.length;
+
+  BoneAnimationData frame(int frame) {
+    return BoneAnimationData(bones, meshNames, [rotationFrameData[frame]],
+        [translationFrameData[frame]], frameLengthInMs,
+        isModelSpace: isModelSpace);
+  }
 }

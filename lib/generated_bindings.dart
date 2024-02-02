@@ -122,6 +122,13 @@ external void load_ibl(
   double intensity,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>)>(
+    symbol: 'rotate_ibl', assetId: 'flutter_filament_plugin')
+external void rotate_ibl(
+  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<ffi.Float> rotationMatrix,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(
     symbol: 'remove_skybox', assetId: 'flutter_filament_plugin')
 external void remove_skybox(
@@ -364,6 +371,13 @@ external bool set_morph_animation(
   double frameLengthInMs,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'reset_to_rest_pose', assetId: 'flutter_filament_plugin')
+external void reset_to_rest_pose(
+  ffi.Pointer<ffi.Void> assetManager,
+  int asset,
+);
+
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<ffi.Void>,
@@ -373,7 +387,8 @@ external bool set_morph_animation(
             ffi.Pointer<ffi.Char>,
             ffi.Pointer<ffi.Pointer<ffi.Char>>,
             ffi.Int,
-            ffi.Float)>(
+            ffi.Float,
+            ffi.Bool)>(
     symbol: 'add_bone_animation', assetId: 'flutter_filament_plugin')
 external void add_bone_animation(
   ffi.Pointer<ffi.Void> assetManager,
@@ -384,6 +399,7 @@ external void add_bone_animation(
   ffi.Pointer<ffi.Pointer<ffi.Char>> meshNames,
   int numMeshTargets,
   double frameLengthInMs,
+  bool isModelSpace,
 );
 
 @ffi.Native<
@@ -756,6 +772,25 @@ external int find_child_entity_by_name(
   ffi.Pointer<ffi.Void> assetManager,
   int parent,
   ffi.Pointer<ffi.Char> name,
+);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Bool)>(
+    symbol: 'get_entity_count', assetId: 'flutter_filament_plugin')
+external int get_entity_count(
+  ffi.Pointer<ffi.Void> assetManager,
+  int target,
+  bool renderableOnly,
+);
+
+@ffi.Native<
+        ffi.Pointer<ffi.Char> Function(
+            ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool)>(
+    symbol: 'get_entity_name_at', assetId: 'flutter_filament_plugin')
+external ffi.Pointer<ffi.Char> get_entity_name_at(
+  ffi.Pointer<ffi.Void> assetManager,
+  int target,
+  int index,
+  bool renderableOnly,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(
@@ -1147,6 +1182,28 @@ external void set_morph_target_weights_ffi(
             EntityId,
             ffi.Pointer<ffi.Char>,
             ffi.Pointer<ffi.Float>,
+            ffi.Pointer<ffi.Int>,
+            ffi.Int,
+            ffi.Int,
+            ffi.Float)>(
+    symbol: 'set_morph_animation_ffi', assetId: 'flutter_filament_plugin')
+external bool set_morph_animation_ffi(
+  ffi.Pointer<ffi.Void> assetManager,
+  int asset,
+  ffi.Pointer<ffi.Char> entityName,
+  ffi.Pointer<ffi.Float> morphData,
+  ffi.Pointer<ffi.Int> morphIndices,
+  int numMorphTargets,
+  int numFrames,
+  double frameLengthInMs,
+);
+
+@ffi.Native<
+        ffi.Bool Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<ffi.Char>,
+            ffi.Pointer<ffi.Float>,
             ffi.Pointer<ffi.Char>)>(
     symbol: 'set_bone_transform_ffi', assetId: 'flutter_filament_plugin')
 external bool set_bone_transform_ffi(
@@ -1155,6 +1212,30 @@ external bool set_bone_transform_ffi(
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> transform,
   ffi.Pointer<ffi.Char> boneName,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Pointer<ffi.Char>,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+            ffi.Int,
+            ffi.Float,
+            ffi.Bool)>(
+    symbol: 'add_bone_animation_ffi', assetId: 'flutter_filament_plugin')
+external void add_bone_animation_ffi(
+  ffi.Pointer<ffi.Void> assetManager,
+  int asset,
+  ffi.Pointer<ffi.Float> frameData,
+  int numFrames,
+  ffi.Pointer<ffi.Char> boneName,
+  ffi.Pointer<ffi.Pointer<ffi.Char>> meshNames,
+  int numMeshTargets,
+  double frameLengthInMs,
+  bool isModelSpace,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(
@@ -1173,6 +1254,13 @@ external void pick_ffi(
   int x,
   int y,
   ffi.Pointer<EntityId> entityId,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'reset_to_rest_pose_ffi', assetId: 'flutter_filament_plugin')
+external void reset_to_rest_pose_ffi(
+  ffi.Pointer<ffi.Void> assetManager,
+  int entityId,
 );
 
 @ffi.Native<ffi.Void Function()>(

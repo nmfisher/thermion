@@ -21,9 +21,6 @@
 #include <emscripten/threading.h>
 #include <emscripten/val.h>
 
-using namespace polyvox;
-using namespace std::chrono_literals;
-
 #include <emscripten/threading.h>
 #include <emscripten/val.h>
 
@@ -31,9 +28,11 @@ extern "C"
 {
   extern FLUTTER_PLUGIN_EXPORT EMSCRIPTEN_WEBGL_CONTEXT_HANDLE flutter_filament_web_create_gl_context();
 }
-
-#endif 
 #include <pthread.h>
+#endif 
+
+using namespace polyvox;
+using namespace std::chrono_literals;
 
 class RenderLoop {
 public:

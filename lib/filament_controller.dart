@@ -39,12 +39,6 @@ abstract class FilamentController {
   Stream<FilamentEntity> get onUnload;
 
   ///
-  /// A [ValueNotifier] that holds the current dimensions (in physical pixels, after multiplying by pixel ratio) of the FilamentWidget.
-  /// If you need to perform work as early as possible, add a listener to this property before a [FilamentWidget] has been inserted into the widget hierarchy.
-  ///
-  ValueNotifier<Rect?> get rect;
-
-  ///
   /// A [ValueNotifier] to indicate whether a FilamentViewer is currently available.
   /// (FilamentViewer is a C++ type, hence why it is not referenced) here.
   /// Call [createViewer]/[destroyViewer] to create/destroy a FilamentViewer.
@@ -169,6 +163,11 @@ abstract class FilamentController {
   Future loadIbl(String lightingPath, {double intensity = 30000});
 
   ///
+  /// Rotates the IBL & skybox.
+  ///
+  Future rotateIbl(Matrix3 rotation);
+
+  ///
   /// Removes the image-based light from the scene.
   ///
   Future removeIbl();
@@ -272,6 +271,12 @@ abstract class FilamentController {
   ///
   Future setMorphAnimationData(
       FilamentEntity entity, MorphAnimationData animation);
+
+  ///
+  /// Resets all bones in the given entity to their rest pose.
+  /// This should be done before every call to addBoneAnimation.
+  ///
+  Future resetBones(FilamentEntity entity);
 
   ///
   /// Starts animating a bone (joint) according to the specified [animation].
@@ -502,6 +507,11 @@ abstract class FilamentController {
   ///
   Future<FilamentEntity> getChildEntity(
       FilamentEntity parent, String childName);
+
+  ///
+  /// Lists all child meshes under the given entity.
+  ///
+  Future<List<String>> getMeshNames(FilamentEntity entity, {bool async = true});
 
   ///
   /// If [recording] is set to true, each frame the framebuffer/texture will be written to /tmp/output_*.png.

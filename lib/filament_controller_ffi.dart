@@ -42,7 +42,8 @@ class FilamentControllerFFI extends FilamentController {
   Pointer<Void> _driver = nullptr.cast<Void>();
 
   @override
-  final rect = ValueNotifier<Rect?>(null);
+  final _rect = ValueNotifier<Rect?>(null);
+  final _rectCompleter = Completer<Rect?>();
 
   @override
   final hasViewer = ValueNotifier<bool>(false);
@@ -65,6 +66,13 @@ class FilamentControllerFFI extends FilamentController {
   final _onUnloadController = StreamController<FilamentEntity>.broadcast();
   Stream<FilamentEntity> get onUnload => _onUnloadController.stream;
 
+  final allocator = calloc;
+
+  void _using(Pointer ptr, Future Function(Pointer ptr) function) async {
+    await function.call(ptr);
+    allocator.free(ptr);
+  }
+
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
   /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in FlutterFilamentApi.h.
@@ -83,7 +91,7 @@ class FilamentControllerFFI extends FilamentController {
       _resizingWidth = call.arguments[0];
       _resizingHeight = call.arguments[1];
       _resizeTimer = Timer(const Duration(milliseconds: 500), () async {
-        rect.value = Offset.zero &
+        _rect.value = Offset.zero &
             ui.Size(_resizingWidth!.toDouble(), _resizingHeight!.toDouble());
         await resize();
       });
@@ -132,12 +140,15 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setDimensions(Rect rect, double pixelRatio) async {
-    this.rect.value = Rect.fromLTWH(
+    this._rect.value = Rect.fromLTWH(
         (rect.left * _pixelRatio).floor().toDouble(),
         rect.top * _pixelRatio.floor().toDouble(),
         (rect.width * _pixelRatio).ceil().toDouble(),
         (rect.height * _pixelRatio).ceil().toDouble());
     _pixelRatio = pixelRatio;
+    if (!_rectCompleter.isCompleted) {
+      _rectCompleter.complete(this._rect.value);
+    }
   }
 
   @override
@@ -169,12 +180,23 @@ class FilamentControllerFFI extends FilamentController {
     dev.log("Texture destroyed");
   }
 
+  bool _creating = false;
+
   ///
   /// Called by `FilamentWidget`. You do not need to call this yourself.
   ///
   @override
   Future createViewer() async {
-    if (rect.value == null) {
+    if (_creating) {
+      throw Exception(
+          "An existing call to createViewer is pending completion.");
+    }
+    _creating = true;
+    print("Waiting for widget dimensions to become available..");
+    await _rectCompleter.future;
+    print("Got widget dimensions : ${_rect.value}");
+
+    if (_rect.value == null) {
       throw Exception(
           "Dimensions have not yet been set by FilamentWidget. You need to wait for at least one frame after FilamentWidget has been inserted into the hierarchy");
     }
@@ -209,13 +231,17 @@ class FilamentControllerFFI extends FilamentController {
 
     dev.log("Got rendering surface");
 
+    final uberarchivePtr =
+        uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr;
+
     _viewer = create_filament_viewer_ffi(
         Pointer<Void>.fromAddress(renderingSurface.sharedContext),
         _driver,
-        uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr,
+        uberarchivePtr,
         loader,
         renderCallback,
         renderCallbackOwner);
+    allocator.free(uberarchivePtr);
     dev.log("Created viewer");
     if (_viewer!.address == 0) {
       throw Exception("Failed to create viewer. Check logs for details");
@@ -224,31 +250,32 @@ class FilamentControllerFFI extends FilamentController {
     _assetManager = get_asset_manager(_viewer!);
 
     create_swap_chain_ffi(_viewer!, renderingSurface.surface,
-        rect.value!.width.toInt(), rect.value!.height.toInt());
+        _rect.value!.width.toInt(), _rect.value!.height.toInt());
     dev.log("Created swap chain");
     if (renderingSurface.textureHandle != 0) {
       dev.log(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");
       create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
-          rect.value!.width.toInt(), rect.value!.height.toInt());
+          _rect.value!.width.toInt(), _rect.value!.height.toInt());
     }
 
     textureDetails.value = TextureDetails(
         textureId: renderingSurface.flutterTextureId,
-        width: rect.value!.width.toInt(),
-        height: rect.value!.height.toInt());
+        width: _rect.value!.width.toInt(),
+        height: _rect.value!.height.toInt());
     dev.log("texture details ${textureDetails.value}");
     update_viewport_and_camera_projection_ffi(
-        _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
+        _viewer!, _rect.value!.width.toInt(), _rect.value!.height.toInt(), 1.0);
     hasViewer.value = true;
+    _creating = false;
   }
 
   Future<RenderingSurface> _createRenderingSurface() async {
     return RenderingSurface.from(await _channel.invokeMethod("createTexture", [
-      rect.value!.width,
-      rect.value!.height,
-      rect.value!.left,
-      rect.value!.top
+      _rect.value!.width,
+      _rect.value!.height,
+      _rect.value!.left,
+      _rect.value!.top
     ]));
   }
 
@@ -342,12 +369,12 @@ class FilamentControllerFFI extends FilamentController {
               "destroyTexture", textureDetails.value!.textureId);
         }
       } else if (Platform.isWindows) {
-        dev.log("Resizing window with rect $rect");
+        dev.log("Resizing window with rect ${_rect.value}");
         await _channel.invokeMethod("resizeWindow", [
-          rect.value!.width,
-          rect.value!.height,
-          rect.value!.left,
-          rect.value!.top
+          _rect.value!.width,
+          _rect.value!.height,
+          _rect.value!.left,
+          _rect.value!.top
         ]);
       }
 
@@ -361,23 +388,23 @@ class FilamentControllerFFI extends FilamentController {
 
       if (!_usesBackingWindow) {
         create_swap_chain_ffi(_viewer!, renderingSurface.surface,
-            rect.value!.width.toInt(), rect.value!.height.toInt());
+            _rect.value!.width.toInt(), _rect.value!.height.toInt());
       }
 
       if (renderingSurface.textureHandle != 0) {
         dev.log(
             "Creating render target from native texture  ${renderingSurface.textureHandle}");
         create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
-            rect.value!.width.toInt(), rect.value!.height.toInt());
+            _rect.value!.width.toInt(), _rect.value!.height.toInt());
       }
 
       textureDetails.value = TextureDetails(
           textureId: renderingSurface.flutterTextureId,
-          width: rect.value!.width.toInt(),
-          height: rect.value!.height.toInt());
+          width: _rect.value!.width.toInt(),
+          height: _rect.value!.height.toInt());
 
-      update_viewport_and_camera_projection_ffi(
-          _viewer!, rect.value!.width.toInt(), rect.value!.height.toInt(), 1.0);
+      update_viewport_and_camera_projection_ffi(_viewer!,
+          _rect.value!.width.toInt(), _rect.value!.height.toInt(), 1.0);
 
       await setRendering(_rendering);
     } finally {
@@ -398,8 +425,10 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    set_background_image_ffi(
-        _viewer!, path.toNativeUtf8().cast<Char>(), fillHeight);
+    final pathPtr = path.toNativeUtf8().cast<Char>();
+
+    set_background_image_ffi(_viewer!, pathPtr, fillHeight);
+    allocator.free(pathPtr);
   }
 
   @override
@@ -429,7 +458,8 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    load_skybox_ffi(_viewer!, skyboxPath.toNativeUtf8().cast<Char>());
+    final pathPtr = skyboxPath.toNativeUtf8().cast<Char>();
+    load_skybox_ffi(_viewer!, pathPtr);
   }
 
   @override
@@ -437,7 +467,21 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    load_ibl_ffi(_viewer!, lightingPath.toNativeUtf8().cast<Char>(), intensity);
+    final pathPtr = lightingPath.toNativeUtf8().cast<Char>();
+    load_ibl_ffi(_viewer!, pathPtr, intensity);
+  }
+
+  @override
+  Future rotateIbl(Matrix3 rotationMatrix) async {
+    if (_viewer == nullptr) {
+      throw Exception("No viewer available, ignoring");
+    }
+    var floatPtr = allocator<Float>(9);
+    for (int i = 0; i < 9; i++) {
+      floatPtr.elementAt(i).value = rotationMatrix.storage[i];
+    }
+    rotate_ibl(_viewer!, floatPtr);
+    allocator.free(floatPtr);
   }
 
   @override
@@ -508,8 +552,9 @@ class FilamentControllerFFI extends FilamentController {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
-    var entity =
-        load_glb_ffi(_assetManager!, path.toNativeUtf8().cast<Char>(), unlit);
+    final pathPtr = path.toNativeUtf8().cast<Char>();
+    var entity = load_glb_ffi(_assetManager!, pathPtr, unlit);
+    allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
@@ -528,8 +573,13 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var entity = load_gltf_ffi(_assetManager!, path.toNativeUtf8().cast<Char>(),
-        relativeResourcePath.toNativeUtf8().cast<Char>());
+    final pathPtr = path.toNativeUtf8().cast<Char>();
+    final relativeResourcePathPtr =
+        relativeResourcePath.toNativeUtf8().cast<Char>();
+    var entity =
+        load_gltf_ffi(_assetManager!, pathPtr, relativeResourcePathPtr);
+    allocator.free(pathPtr);
+    allocator.free(relativeResourcePathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
@@ -592,16 +642,16 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var weightsPtr = calloc<Float>(weights.length);
+    var weightsPtr = allocator<Float>(weights.length);
 
     for (int i = 0; i < weights.length; i++) {
       weightsPtr.elementAt(i).value = weights[i];
     }
-    var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
+    var meshNamePtr = meshName.toNativeUtf8(allocator: allocator).cast<Char>();
     set_morph_target_weights_ffi(
         _assetManager!, entity, meshNamePtr, weightsPtr, weights.length);
-    calloc.free(weightsPtr);
-    calloc.free(meshNamePtr);
+    allocator.free(weightsPtr);
+    allocator.free(meshNamePtr);
   }
 
   @override
@@ -611,15 +661,16 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     var names = <String>[];
-    var count = get_morph_target_name_count_ffi(
-        _assetManager!, entity, meshName.toNativeUtf8().cast<Char>());
-    var outPtr = calloc<Char>(255);
+    var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
+    var count =
+        get_morph_target_name_count_ffi(_assetManager!, entity, meshNamePtr);
+    var outPtr = allocator<Char>(255);
     for (int i = 0; i < count; i++) {
-      get_morph_target_name(_assetManager!, entity,
-          meshName.toNativeUtf8().cast<Char>(), outPtr, i);
+      get_morph_target_name(_assetManager!, entity, meshNamePtr, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
-    calloc.free(outPtr);
+    allocator.free(outPtr);
+    allocator.free(meshNamePtr);
     return names.cast<String>();
   }
 
@@ -630,7 +681,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     var animationCount = get_animation_count(_assetManager!, entity);
     var names = <String>[];
-    var outPtr = calloc<Char>(255);
+    var outPtr = allocator<Char>(255);
     for (int i = 0; i < animationCount; i++) {
       get_animation_name_ffi(_assetManager!, entity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
@@ -658,12 +709,12 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
 
-    var dataPtr = calloc<Float>(animation.data.length);
+    var dataPtr = allocator<Float>(animation.data.length);
     for (int i = 0; i < animation.data.length; i++) {
       dataPtr.elementAt(i).value = animation.data[i];
     }
 
-    Pointer<Int> idxPtr = calloc<Int>(animation.morphTargets.length);
+    Pointer<Int> idxPtr = allocator<Int>(animation.morphTargets.length);
 
     for (var meshName in animation.meshNames) {
       // the morph targets in [animation] might be a subset of those that actually exist in the mesh (and might not have the same order)
@@ -674,15 +725,16 @@ class FilamentControllerFFI extends FilamentController {
       for (int i = 0; i < animation.numMorphTargets; i++) {
         var index = meshMorphTargets.indexOf(animation.morphTargets[i]);
         if (index == -1) {
-          calloc.free(dataPtr);
-          calloc.free(idxPtr);
+          allocator.free(dataPtr);
+          allocator.free(idxPtr);
           throw Exception(
               "Morph target ${animation.morphTargets[i]} is specified in the animation but could not be found in the mesh $meshName under entity $entity");
         }
         idxPtr.elementAt(i).value = index;
       }
 
-      var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
+      var meshNamePtr =
+          meshName.toNativeUtf8(allocator: allocator).cast<Char>();
 
       set_morph_animation(
           _assetManager!,
@@ -693,47 +745,72 @@ class FilamentControllerFFI extends FilamentController {
           animation.numMorphTargets,
           animation.numFrames,
           (animation.frameLengthInMs));
-      calloc.free(meshNamePtr);
+      allocator.free(meshNamePtr);
     }
-    calloc.free(dataPtr);
-    calloc.free(idxPtr);
+    allocator.free(dataPtr);
+    allocator.free(idxPtr);
   }
 
   @override
   Future addBoneAnimation(
-      FilamentEntity entity, BoneAnimationData animation) async {
+    FilamentEntity entity,
+    BoneAnimationData animation,
+  ) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
 
-    var numFrames = animation.frameData.length;
+    var numFrames = animation.rotationFrameData.length;
 
-    var meshNames = calloc<Pointer<Char>>(animation.meshNames.length);
+    var meshNames = allocator<Pointer<Char>>(animation.meshNames.length);
     for (int i = 0; i < animation.meshNames.length; i++) {
-      meshNames.elementAt(i).value =
-          animation.meshNames[i].toNativeUtf8().cast<Char>();
+      meshNames.elementAt(i).value = animation.meshNames[i]
+          .toNativeUtf8(allocator: allocator)
+          .cast<Char>();
     }
 
-    var data = calloc<Float>(numFrames * 4);
+    var data = allocator<Float>(numFrames * 16);
+    DateTime start = DateTime.now();
 
-    for (int i = 0; i < numFrames; i++) {
-      data.elementAt(i * 4).value = animation.frameData[i].w;
-      data.elementAt((i * 4) + 1).value = animation.frameData[i].x;
-      data.elementAt((i * 4) + 2).value = animation.frameData[i].y;
-      data.elementAt((i * 4) + 3).value = animation.frameData[i].z;
+    for (var boneIndex = 0; boneIndex < animation.bones.length; boneIndex++) {
+      var bone = animation.bones[boneIndex];
+      var boneNamePtr = bone.toNativeUtf8(allocator: allocator).cast<Char>();
+
+      for (int i = 0; i < numFrames; i++) {
+        var rotation = animation.rotationFrameData[i][boneIndex];
+        var translation = animation.translationFrameData[i][boneIndex];
+        var mat4 = Matrix4.compose(translation, rotation, Vector3.all(1.0));
+        for (int j = 0; j < 16; j++) {
+          data.elementAt((i * 16) + j).value = mat4.storage[j];
+        }
+      }
+
+      add_bone_animation_ffi(
+          _assetManager!,
+          entity,
+          data,
+          numFrames,
+          boneNamePtr,
+          meshNames,
+          animation.meshNames.length,
+          animation.frameLengthInMs,
+          animation.isModelSpace);
+
+      allocator.free(boneNamePtr);
     }
+    allocator.free(data);
+    for (int i = 0; i < animation.meshNames.length; i++) {
+      allocator.free(meshNames.elementAt(i).value);
+    }
+    allocator.free(meshNames);
+  }
 
-    add_bone_animation(
-        _assetManager!,
-        entity,
-        data,
-        numFrames,
-        animation.boneName.toNativeUtf8().cast<Char>(),
-        meshNames,
-        animation.meshNames.length,
-        animation.frameLengthInMs);
-    calloc.free(data);
-    calloc.free(meshNames);
+  @override
+  Future resetBones(FilamentEntity entity) async {
+    if (_viewer == nullptr) {
+      throw Exception("No viewer available, ignoring");
+    }
+    reset_to_rest_pose_ffi(_assetManager!, entity);
   }
 
   @override
@@ -818,8 +895,9 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var result = set_camera(
-        _viewer!, entity, name?.toNativeUtf8().cast<Char>() ?? nullptr);
+    var cameraNamePtr = name?.toNativeUtf8().cast<Char>() ?? nullptr;
+    var result = set_camera(_viewer!, entity, cameraNamePtr);
+    allocator.free(cameraNamePtr);
     if (!result) {
       throw Exception("Failed to set camera");
     }
@@ -932,12 +1010,12 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     assert(matrix.length == 16);
-    var ptr = calloc<Float>(16);
+    var ptr = allocator<Float>(16);
     for (int i = 0; i < 16; i++) {
       ptr.elementAt(i).value = matrix[i];
     }
     set_camera_model_matrix(_viewer!, ptr);
-    calloc.free(ptr);
+    allocator.free(ptr);
   }
 
   @override
@@ -946,15 +1024,17 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
+    var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
     var result = set_material_color(
         _assetManager!,
         entity,
-        meshName.toNativeUtf8().cast<Char>(),
+        meshNamePtr,
         materialIndex,
         color.red.toDouble() / 255.0,
         color.green.toDouble() / 255.0,
         color.blue.toDouble() / 255.0,
         color.alpha.toDouble() / 255.0);
+    allocator.free(meshNamePtr);
     if (!result) {
       throw Exception("Failed to set material color");
     }
@@ -999,9 +1079,9 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    if (hide_mesh(
-            _assetManager!, entity, meshName.toNativeUtf8().cast<Char>()) !=
-        1) {}
+    final meshNamePtr = meshName.toNativeUtf8().cast<Char>();
+    if (hide_mesh(_assetManager!, entity, meshNamePtr) != 1) {}
+    allocator.free(meshNamePtr);
   }
 
   @override
@@ -1009,9 +1089,11 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    if (reveal_mesh(
-            _assetManager!, entity, meshName.toNativeUtf8().cast<Char>()) !=
-        1) {
+
+    final meshNamePtr = meshName.toNativeUtf8().cast<Char>();
+    final result = reveal_mesh(_assetManager!, entity, meshNamePtr) != 1;
+    allocator.free(meshNamePtr);
+    if (!result) {
       throw Exception("Failed to reveal mesh $meshName");
     }
   }
@@ -1030,7 +1112,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    final outPtr = calloc<EntityId>(1);
+    final outPtr = allocator<EntityId>(1);
     outPtr.value = 0;
 
     pick_ffi(_viewer!, x, textureDetails.value!.height - y, outPtr);
@@ -1039,13 +1121,13 @@ class FilamentControllerFFI extends FilamentController {
       await Future.delayed(const Duration(milliseconds: 32));
       wait++;
       if (wait > 10) {
-        calloc.free(outPtr);
+        allocator.free(outPtr);
         throw Exception("Failed to get picking result");
       }
     }
     var entityId = outPtr.value;
     _pickResultController.add(entityId);
-    calloc.free(outPtr);
+    allocator.free(outPtr);
   }
 
   @override
@@ -1055,7 +1137,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     var arrayPtr = get_camera_view_matrix(_viewer!);
     var viewMatrix = Matrix4.fromList(arrayPtr.asTypedList(16));
-    calloc.free(arrayPtr);
+    allocator.free(arrayPtr);
     return viewMatrix;
   }
 
@@ -1066,7 +1148,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     var arrayPtr = get_camera_model_matrix(_viewer!);
     var modelMatrix = Matrix4.fromList(arrayPtr.asTypedList(16));
-    calloc.free(arrayPtr);
+    allocator.free(arrayPtr);
     return modelMatrix;
   }
 
@@ -1179,20 +1261,20 @@ class FilamentControllerFFI extends FilamentController {
   @override
   Future setBoneTransform(FilamentEntity entity, String meshName,
       String boneName, Matrix4 data) async {
-    var ptr = calloc<Float>(16);
+    var ptr = allocator<Float>(16);
     for (int i = 0; i < 16; i++) {
       ptr.elementAt(i).value = data.storage[i];
     }
 
-    var meshNamePtr = meshName.toNativeUtf8(allocator: calloc).cast<Char>();
-    var boneNamePtr = boneName.toNativeUtf8(allocator: calloc).cast<Char>();
+    var meshNamePtr = meshName.toNativeUtf8(allocator: allocator).cast<Char>();
+    var boneNamePtr = boneName.toNativeUtf8(allocator: allocator).cast<Char>();
 
     var result = set_bone_transform_ffi(
         _assetManager!, entity, meshNamePtr, ptr, boneNamePtr);
 
-    calloc.free(ptr);
-    calloc.free(meshNamePtr);
-    calloc.free(boneNamePtr);
+    allocator.free(ptr);
+    allocator.free(meshNamePtr);
+    allocator.free(boneNamePtr);
     if (!result) {
       throw Exception("Failed to set bone transform. See logs for details");
     }
@@ -1201,18 +1283,31 @@ class FilamentControllerFFI extends FilamentController {
   @override
   Future<FilamentEntity> getChildEntity(
       FilamentEntity parent, String childName) async {
-    var childNamePtr = childName.toNativeUtf8(allocator: calloc).cast<Char>();
-    try {
-      var childEntity =
-          find_child_entity_by_name(_assetManager!, parent, childNamePtr);
-      if (childEntity == _FILAMENT_ASSET_ERROR) {
-        throw Exception(
-            "Could not find child ${childName} under the specified entity");
-      }
-      return childEntity;
-    } finally {
-      calloc.free(childNamePtr);
+    var childNamePtr =
+        childName.toNativeUtf8(allocator: allocator).cast<Char>();
+
+    var childEntity =
+        find_child_entity_by_name(_assetManager!, parent, childNamePtr);
+    allocator.free(childNamePtr);
+    if (childEntity == _FILAMENT_ASSET_ERROR) {
+      throw Exception(
+          "Could not find child ${childName} under the specified entity");
     }
+    return childEntity;
+  }
+
+  Future<List<String>> getMeshNames(FilamentEntity entity,
+      {bool async = false}) async {
+    var count = get_entity_count(_assetManager!, entity, true);
+    var names = <String>[];
+    for (int i = 0; i < count; i++) {
+      var name = get_entity_name_at(_assetManager!, entity, i, true);
+      if (name == nullptr) {
+        throw Exception("Failed to find mesh at index $i");
+      }
+      names.add(name.cast<Utf8>().toDartString());
+    }
+    return names;
   }
 
   @override
@@ -1222,8 +1317,8 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setRecordingOutputDirectory(String outputDir) async {
-    var pathPtr = outputDir.toNativeUtf8(allocator: calloc);
+    var pathPtr = outputDir.toNativeUtf8(allocator: allocator);
     set_recording_output_directory(_viewer!, pathPtr.cast<Char>());
-    calloc.free(pathPtr);
+    allocator.free(pathPtr);
   }
 }
