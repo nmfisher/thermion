@@ -39,7 +39,7 @@ namespace polyvox
         inline void updateTransform(EntityId e);
         void setScale(EntityId e, float scale);
         void setPosition(EntityId e, float x, float y, float z, bool relative);
-        void setRotation(EntityId e, float rads, float x, float y, float z);
+        void setRotation(EntityId e, float rads, float x, float y, float z, float w, bool relative);
         const utils::Entity *getCameraEntities(EntityId e);
         size_t getCameraEntityCount(EntityId e);
         const utils::Entity *getLightEntities(EntityId e) const noexcept;
@@ -118,8 +118,6 @@ namespace polyvox
         utils::Entity findEntityByName(
             SceneAsset asset,
             const char *entityName);
-
-        inline void updateTransform(SceneAsset &asset);
 
     };
 }

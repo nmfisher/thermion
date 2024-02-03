@@ -1069,11 +1069,23 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setRotation(
-      FilamentEntity entity, double rads, double x, double y, double z) async {
+      FilamentEntity entity, double rads, double x, double y, double z,
+      {bool relative = false}) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    set_rotation(_assetManager!, entity, rads, x, y, z);
+    var quat = Quaternion.axisAngle(Vector3(x, y, z), rads);
+    await setRotationQuat(entity, quat, relative: relative);
+  }
+
+  @override
+  Future setRotationQuat(FilamentEntity entity, Quaternion rotation,
+      {bool relative = false}) async {
+    if (_viewer == null) {
+      throw Exception("No viewer available, ignoring");
+    }
+    set_rotation(_assetManager!, entity, rotation.radians, rotation.x,
+        rotation.y, rotation.z, rotation.w, relative);
   }
 
   @override
@@ -1325,10 +1337,23 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   HardwareKeyboardListener? _keyboardListener;
-  void control(FilamentEntity entity, {double? translationSpeed}) {
+  Future<EntityTransformController> control(FilamentEntity entity,
+      {double? translationSpeed, String? forwardAnimation}) async {
+    int? forwardAnimationIndex;
+    if (forwardAnimation != null) {
+      final animationNames = await getAnimationNames(entity);
+      forwardAnimationIndex = animationNames.indexOf(forwardAnimation);
+    }
+
+    if (forwardAnimationIndex == -1) {
+      throw Exception("Invalid animation : $forwardAnimation");
+    }
+
     _keyboardListener?.dispose();
-    _keyboardListener = HardwareKeyboardListener(EntityTransformController(
-        this, entity,
-        translationSpeed: translationSpeed ?? 1.0));
+    var transformController = EntityTransformController(this, entity,
+        translationSpeed: translationSpeed ?? 1.0,
+        forwardAnimationIndex: forwardAnimationIndex);
+    _keyboardListener = HardwareKeyboardListener(transformController);
+    return transformController;
   }
 }

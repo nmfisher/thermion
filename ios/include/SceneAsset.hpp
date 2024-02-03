@@ -86,14 +86,6 @@ namespace polyvox {
         // a slot to preload textures
         filament::Texture* texture = nullptr;
 
-        // initialized to identity
-        math::mat4f position;
-        
-        // initialized to identity
-        math::mat4f rotation;
-            
-        float mScale = 1;
-
       SceneAsset(
             FilamentAsset* asset
         ) : asset(asset) {}

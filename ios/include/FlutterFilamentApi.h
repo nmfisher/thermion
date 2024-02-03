@@ -147,7 +147,7 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT bool set_material_color(void *assetManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
 	FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void *assetManager, EntityId asset);
 	FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z, bool relative);
-	FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z);
+	FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative);
 	FLUTTER_PLUGIN_EXPORT void set_scale(void *assetManager, EntityId asset, float scale);
 
 	// Camera methods

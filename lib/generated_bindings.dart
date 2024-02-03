@@ -564,7 +564,9 @@ external void set_position(
         ffi.Float,
         ffi.Float,
         ffi.Float,
-        ffi.Float)>(symbol: 'set_rotation', assetId: 'flutter_filament_plugin')
+        ffi.Float,
+        ffi.Float,
+        ffi.Bool)>(symbol: 'set_rotation', assetId: 'flutter_filament_plugin')
 external void set_rotation(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
@@ -572,6 +574,8 @@ external void set_rotation(
   double x,
   double y,
   double z,
+  double w,
+  bool relative,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float)>(

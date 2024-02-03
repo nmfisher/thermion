@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_filament/animations/animation_data.dart';
+import 'package:flutter_filament/entities/entity_transform_controller.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 // a handle that can be safely passed back to the rendering layer to manipulate an Entity
@@ -467,7 +468,14 @@ abstract class FilamentController {
   /// Sets the rotation for [entity] to [rads] around the axis {x,y,z}.
   ///
   Future setRotation(
-      FilamentEntity entity, double rads, double x, double y, double z);
+      FilamentEntity entity, double rads, double x, double y, double z,
+      {bool relative = false});
+
+  ///
+  /// Sets the rotation for [entity] to the specified quaternion.
+  ///
+  Future setRotationQuat(FilamentEntity entity, Quaternion rotation,
+      {bool relative = false});
 
   ///
   /// Reveal the node [meshName] under [entity]. Only applicable if [hide] had previously been called; this is a no-op otherwise.
@@ -528,5 +536,6 @@ abstract class FilamentController {
   // Stream get keyboardFocusRequested;
   // void requestKeyboardFocus();
 
-  void control(FilamentEntity entity, {double? translationSpeed});
+  Future<EntityTransformController> control(FilamentEntity entity,
+      {double? translationSpeed, String? forwardAnimation});
 }

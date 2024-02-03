@@ -475,9 +475,9 @@ extern "C"
         ((AssetManager *)assetManager)->setPosition(asset, x, y, z, relative);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z)
+    FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
     {
-        ((AssetManager *)assetManager)->setRotation(asset, rads, x, y, z);
+        ((AssetManager *)assetManager)->setRotation(asset, rads, x, y, z, w, relative);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_scale(void *assetManager, EntityId asset, float scale)

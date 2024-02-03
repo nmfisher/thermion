@@ -19,54 +19,103 @@ class EntityTransformController {
   bool _back = false;
   bool _rotateLeft = false;
   bool _rotateRight = false;
+  double _rotY = 0;
+
+  int? forwardAnimationIndex;
+  int? backwardAnimationIndex;
+  int? strafeLeftAnimationIndex;
+  int? strafeRightAnimationIndex;
 
   EntityTransformController(this.controller, this._entity,
-      {this.translationSpeed = 1, this.rotationRadsPerSecond = pi / 2}) {
+      {this.translationSpeed = 1,
+      this.rotationRadsPerSecond = pi / 2,
+      this.forwardAnimationIndex,
+      this.backwardAnimationIndex,
+      this.strafeLeftAnimationIndex,
+      this.strafeRightAnimationIndex}) {
     var translationSpeedPerTick = translationSpeed / (1000 / 16.667);
+    var rotationRadsPerTick = rotationRadsPerSecond / (1000 / 16.667);
     _ticker = Timer.periodic(const Duration(milliseconds: 16), (timer) {
-      _update(translationSpeedPerTick);
+      _update(translationSpeedPerTick, rotationRadsPerTick);
     });
   }
 
-  void _update(double translationSpeedPerTick) async {
+  bool _enabled = true;
+  void enable() {
+    _enabled = true;
+  }
+
+  void disable() {
+    _enabled = false;
+  }
+
+  void _update(
+      double translationSpeedPerTick, double rotationRadsPerTick) async {
+    if (!_enabled) {
+      return;
+    }
     var _position = v.Vector3.zero();
-    var _rotation = v.Quaternion.identity();
-    bool requiresUpdate = false;
+    bool updateTranslation = false;
     if (_forward) {
       _position.add(v.Vector3(0, 0, -translationSpeedPerTick));
-      requiresUpdate = true;
+      updateTranslation = true;
     }
     if (_back) {
       _position.add(v.Vector3(0, 0, translationSpeedPerTick));
-      requiresUpdate = true;
+      updateTranslation = true;
     }
     if (_strafeLeft) {
       _position.add(v.Vector3(-translationSpeedPerTick, 0, 0));
-      requiresUpdate = true;
+      updateTranslation = true;
     }
     if (_strafeRight) {
       _position.add(v.Vector3(translationSpeedPerTick, 0, 0));
-      requiresUpdate = true;
+      updateTranslation = true;
     }
 
     // todo - better to use pitch/yaw/roll
-    if (_rotateLeft) {}
-    if (_rotateRight) {}
+    bool updateRotation = false;
+    var _rotation = v.Quaternion.identity();
 
-    if (requiresUpdate) {
+    double rads = 0.0;
+    if (_rotY != 0) {
+      rads = _rotY! * pi / 1000;
+      var rotY = v.Quaternion.axisAngle(v.Vector3(0, 1, 0), rads).normalized();
+      _rotation = rotY;
+      updateRotation = true;
+      _rotY = 0;
+    }
+
+    if (updateTranslation) {
       await controller.setPosition(
           _entity, _position.x, _position.y, _position.z,
           relative: true);
     }
+    if (updateRotation) {
+      var axis = _rotation.axis;
+      await controller.setRotationQuat(_entity, _rotation, relative: true);
+    }
+  }
+
+  void look(double deltaX) async {
+    _rotY -= deltaX;
   }
 
   void dispose() {
     _ticker.cancel();
   }
 
-  void forwardPressed() {
-    print("forward");
+  bool _playingForwardAnimation = false;
+
+  void forwardPressed() async {
     _forward = true;
+    if (forwardAnimationIndex != null) {
+      if (!_playingForwardAnimation) {
+        await controller.playAnimation(_entity, forwardAnimationIndex!,
+            loop: true);
+        _playingForwardAnimation = true;
+      }
+    }
   }
 
   Timer? _forwardTimer;
@@ -76,8 +125,12 @@ class EntityTransformController {
 
   void forwardReleased() async {
     _forwardTimer?.cancel();
-    _forwardTimer = Timer(Duration(milliseconds: 50), () {
+    _forwardTimer = Timer(Duration(milliseconds: 50), () async {
       _forward = false;
+      _playingForwardAnimation = false;
+      if (forwardAnimationIndex != null) {
+        await controller.stopAnimation(_entity, forwardAnimationIndex!);
+      }
     });
   }
 

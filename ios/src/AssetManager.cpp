@@ -360,7 +360,7 @@ namespace polyvox
                 asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
             }
 
-            for (int i = asset.morphAnimations.size() - 1; i >= 0; i--) {
+            for (int i = (int)asset.morphAnimations.size() - 1; i >= 0; i--) {
                 
                 auto animationStatus = asset.morphAnimations[i];
 
@@ -392,7 +392,7 @@ namespace polyvox
                 }
             }
 
-            for (int i = asset.boneAnimations.size() - 1; i >= 0; i--) {
+            for (int i = (int)asset.boneAnimations.size() - 1; i >= 0; i--) {
                 auto animationStatus = asset.boneAnimations[i];
 
                 auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count()) / 1000.0f;
@@ -493,7 +493,7 @@ namespace polyvox
             Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
         }
 
-        int numJoints = filamentInstance->getJointCountAt(skinIndex);
+        size_t numJoints = filamentInstance->getJointCountAt(skinIndex);
         auto joints = filamentInstance->getJointsAt(skinIndex);
         int boneIndex = -1;
         for (int i = 0; i < numJoints; i++)
@@ -830,7 +830,7 @@ namespace polyvox
         }
         
         animation.frameData.clear();
-        const auto& tm = _engine->getTransformManager();
+
         const auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[animation.boneIndex];
         const auto& bindMatrix = inverse(inverseBindMatrix);
         math::float3 trans;
@@ -1163,15 +1163,7 @@ namespace polyvox
         tm.setTransform(tm.getInstance(inst->getRoot()), transform);
     }
 
-    void AssetManager::updateTransform(SceneAsset &asset)
-    {
-        auto &tm = _engine->getTransformManager();
-        auto transform =
-            asset.position * asset.rotation * math::mat4f::scaling(asset.mScale);
-        tm.setTransform(tm.getInstance(asset.asset->getRoot()), transform);
-    }
-
-    void AssetManager::setScale(EntityId entity, float scale)
+    void AssetManager::setScale(EntityId entity, float newScale)
     {
         const auto &pos = _entityIdLookup.find(entity);
         if (pos == _entityIdLookup.end())
@@ -1180,8 +1172,22 @@ namespace polyvox
             return;
         }
         auto &asset = _assets[pos->second];
-        asset.mScale = scale;
-        updateTransform(asset);
+        
+        auto &tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(asset.asset->getRoot());
+
+        auto transform = tm.getTransform(transformInstance);
+
+        math::float3 translation;
+        math::quatf rotation;
+        math::float3 scale;
+        
+        decomposeMatrix(transform, &translation, &rotation, &scale);
+        scale = { newScale, newScale, newScale};
+        
+        transform = composeMatrix(translation, rotation, scale);
+        tm.setTransform(transformInstance, transform);
+        
     }
 
     void AssetManager::setPosition(EntityId entity, float x, float y, float z, bool relative)
@@ -1193,18 +1199,29 @@ namespace polyvox
             return;
         }
         auto &asset = _assets[pos->second];
-        if(relative) {
-            asset.position[3][0] += x;
-            asset.position[3][1] += y;
-            asset.position[3][2] += z;   
-        } else { 
-            asset.position = math::mat4f::translation(math::float3(x, y, z));
-        }
         
-        updateTransform(asset);
+        auto &tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(asset.asset->getRoot());
+
+        auto transform = tm.getTransform(transformInstance);
+
+        math::float3 translation;
+        math::quatf rotation;
+        math::float3 scale;
+        
+        decomposeMatrix(transform, &translation, &rotation, &scale);
+        if(relative) {
+            translation += math::float3( x, y, z ); 
+        } else { 
+            translation = math::float3(x,y,z);
+        }
+       
+        transform = composeMatrix(translation, rotation, scale);
+        tm.setTransform(transformInstance, transform);
+        
     }
 
-    void AssetManager::setRotation(EntityId entity, float rads, float x, float y, float z)
+    void AssetManager::setRotation(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
     {
         const auto &pos = _entityIdLookup.find(entity);
         if (pos == _entityIdLookup.end())
@@ -1213,8 +1230,27 @@ namespace polyvox
             return;
         }
         auto &asset = _assets[pos->second];
-        asset.rotation = math::mat4f::rotation(rads, math::float3(x, y, z));
-        updateTransform(asset);
+
+        auto &tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(asset.asset->getRoot());
+
+        auto transform = tm.getTransform(transformInstance);
+
+        math::float3 translation;
+        math::quatf rotation;
+        math::float3 scale;
+        
+        decomposeMatrix(transform, &translation, &rotation, &scale);
+       
+        if(relative) {
+            rotation = normalize(rotation * math::quatf(w,x,y,z));
+        } else {
+            rotation = math::quatf(w,x,y,z);
+        }
+        
+        transform = composeMatrix(translation, rotation, scale);
+        tm.setTransform(transformInstance, transform);
+        
     }
 
     const utils::Entity *AssetManager::getCameraEntities(EntityId entity)
