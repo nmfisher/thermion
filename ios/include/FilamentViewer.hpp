@@ -200,11 +200,15 @@ namespace polyvox
         void loadTextureFromPath(string path);
         void savePng(void* data, size_t size, int frameNumber);
     
-        time_point_t _startTime = std::chrono::high_resolution_clock::now();
-
+        time_point_t _recordingStartTime = std::chrono::high_resolution_clock::now();
+        time_point_t _fpsCounterStartTime = std::chrono::high_resolution_clock::now();
+        
         bool _recording = false; 
         std::string _recordingOutputDirectory = std::string("/tmp");
         std::mutex _recordingMutex;
+        double _cumulativeAnimationUpdateTime = 0;
+        int _frameCount = 0;
+        int _skippedFrames = 0;
     };
 
     struct FrameCallbackData { 

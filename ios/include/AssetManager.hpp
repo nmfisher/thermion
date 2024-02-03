@@ -38,7 +38,7 @@ namespace polyvox
         void transformToUnitCube(EntityId e);
         inline void updateTransform(EntityId e);
         void setScale(EntityId e, float scale);
-        void setPosition(EntityId e, float x, float y, float z);
+        void setPosition(EntityId e, float x, float y, float z, bool relative);
         void setRotation(EntityId e, float rads, float x, float y, float z);
         const utils::Entity *getCameraEntities(EntityId e);
         size_t getCameraEntityCount(EntityId e);

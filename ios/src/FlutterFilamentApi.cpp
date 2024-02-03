@@ -470,9 +470,9 @@ extern "C"
         ((AssetManager *)assetManager)->transformToUnitCube(asset);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z)
+    FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z, bool relative)
     {
-        ((AssetManager *)assetManager)->setPosition(asset, x, y, z);
+        ((AssetManager *)assetManager)->setPosition(asset, x, y, z, relative);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z)

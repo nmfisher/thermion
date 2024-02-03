@@ -1005,9 +1005,6 @@ namespace polyvox
     }
   }
 
-  double _elapsed = 0;
-  int _frameCount = 0;
-  int _skippedFrames = 0;
 
   void FilamentViewer::render(
       uint64_t frameTimeInNanos,
@@ -1022,21 +1019,30 @@ namespace polyvox
       return;
     }
 
-    if (_frameCount == 60)
-    {
-      // Log("1 sec average for asset animation update %f", _elapsed / 60);
-      Log("Skipped frames : %d", _skippedFrames);
-      _elapsed = 0;
+    // if (_frameCount == 60)
+    // {
+    //   Log("Skipped frames : %d", _skippedFrames);
+    //   _elapsed = 0;
+    //   _frameCount = 0;
+    //   _skippedFrames = 0;
+    // }
+    auto now = std::chrono::high_resolution_clock::now();
+    auto secsSinceLastFpsCheck = float(std::chrono::duration_cast<std::chrono::seconds>(now - _fpsCounterStartTime).count());
+
+    if(secsSinceLastFpsCheck >= 1) {
+      auto fps = _frameCount / secsSinceLastFpsCheck;
+      Log("%ffps (_frameCount %d, secs since last check %f)", fps, _frameCount, secsSinceLastFpsCheck);
+      // Log("1 sec average for asset animation update %f", _elapsed / _frameCount);
       _frameCount = 0;
       _skippedFrames = 0;
+      _fpsCounterStartTime = now;
     }
 
     Timer tmr;
 
     _assetManager->updateAnimations();
 
-    _elapsed += tmr.elapsed();
-    _frameCount++;
+    _cumulativeAnimationUpdateTime += tmr.elapsed();
 
     // if a manipulator is active, update the active camera orientation
     if(_manipulator) {
@@ -1068,6 +1074,8 @@ namespace polyvox
       if (beginFrame)
       {
         _renderer->render(_view);
+            _frameCount++;
+
 
         if(_recording) {
           Viewport const &vp = _view->getViewport();
@@ -1081,7 +1089,7 @@ namespace polyvox
           };
 
           auto now = std::chrono::high_resolution_clock::now();
-          auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - _startTime).count());
+          auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - _recordingStartTime).count());
 
           auto frameNumber = uint32_t(floor(elapsed / _frameInterval));
 
@@ -1161,7 +1169,7 @@ namespace polyvox
     this->_recording = recording;
     if(recording) {
       _tp = new flutter_filament::ThreadPool(8);
-      _startTime = std::chrono::high_resolution_clock::now();
+      _recordingStartTime = std::chrono::high_resolution_clock::now();
     } else { 
       delete _tp;
     }

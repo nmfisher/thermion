@@ -541,14 +541,20 @@ external void transform_to_unit_cube(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float)>(symbol: 'set_position', assetId: 'flutter_filament_plugin')
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
+        EntityId,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Bool)>(symbol: 'set_position', assetId: 'flutter_filament_plugin')
 external void set_position(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
   double x,
   double y,
   double z,
+  bool relative,
 );
 
 @ffi.Native<

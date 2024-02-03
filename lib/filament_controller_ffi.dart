@@ -6,11 +6,13 @@ import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_filament/entities/entity_transform_controller.dart';
 
 import 'package:flutter_filament/filament_controller.dart';
 
 import 'package:flutter_filament/animations/animation_data.dart';
 import 'package:flutter_filament/generated_bindings.dart';
+import 'package:flutter_filament/hardware/hardware_keyboard_listener.dart';
 import 'package:flutter_filament/rendering_surface.dart';
 import 'package:vector_math/vector_math_64.dart';
 
@@ -1049,12 +1051,12 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future setPosition(
-      FilamentEntity entity, double x, double y, double z) async {
+  Future setPosition(FilamentEntity entity, double x, double y, double z,
+      {bool relative = false}) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    set_position(_assetManager!, entity, x, y, z);
+    set_position(_assetManager!, entity, x, y, z, relative);
   }
 
   @override
@@ -1320,5 +1322,13 @@ class FilamentControllerFFI extends FilamentController {
     var pathPtr = outputDir.toNativeUtf8(allocator: allocator);
     set_recording_output_directory(_viewer!, pathPtr.cast<Char>());
     allocator.free(pathPtr);
+  }
+
+  HardwareKeyboardListener? _keyboardListener;
+  void control(FilamentEntity entity, {double? translationSpeed}) {
+    _keyboardListener?.dispose();
+    _keyboardListener = HardwareKeyboardListener(EntityTransformController(
+        this, entity,
+        translationSpeed: translationSpeed ?? 1.0));
   }
 }

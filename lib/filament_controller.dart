@@ -450,7 +450,8 @@ abstract class FilamentController {
   ///
   /// Sets the world space position for [entity] to the given coordinates.
   ///
-  Future setPosition(FilamentEntity entity, double x, double y, double z);
+  Future setPosition(FilamentEntity entity, double x, double y, double z,
+      {bool relative = false});
 
   ///
   /// Enable/disable postprocessing.
@@ -523,4 +524,9 @@ abstract class FilamentController {
   /// Sets the output directory where recorded PNGs will be placed.
   ///
   Future setRecordingOutputDirectory(String outputDirectory);
+
+  // Stream get keyboardFocusRequested;
+  // void requestKeyboardFocus();
+
+  void control(FilamentEntity entity, {double? translationSpeed});
 }

@@ -1184,7 +1184,7 @@ namespace polyvox
         updateTransform(asset);
     }
 
-    void AssetManager::setPosition(EntityId entity, float x, float y, float z)
+    void AssetManager::setPosition(EntityId entity, float x, float y, float z, bool relative)
     {
         const auto &pos = _entityIdLookup.find(entity);
         if (pos == _entityIdLookup.end())
@@ -1193,7 +1193,14 @@ namespace polyvox
             return;
         }
         auto &asset = _assets[pos->second];
-        asset.position = math::mat4f::translation(math::float3(x, y, z));
+        if(relative) {
+            asset.position[3][0] += x;
+            asset.position[3][1] += y;
+            asset.position[3][2] += z;   
+        } else { 
+            asset.position = math::mat4f::translation(math::float3(x, y, z));
+        }
+        
         updateTransform(asset);
     }
 
