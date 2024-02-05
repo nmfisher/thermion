@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui' as ui;
 import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
@@ -1056,6 +1057,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
+
     set_position(_assetManager!, entity, x, y, z, relative);
   }
 

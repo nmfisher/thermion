@@ -73,7 +73,7 @@ class EntityTransformController {
       updateTranslation = true;
     }
 
-    // todo - better to use pitch/yaw/roll
+    // TODO - use pitch/yaw/roll
     bool updateRotation = false;
     var _rotation = v.Quaternion.identity();
 
@@ -92,7 +92,6 @@ class EntityTransformController {
           relative: true);
     }
     if (updateRotation) {
-      var axis = _rotation.axis;
       await controller.setRotationQuat(_entity, _rotation, relative: true);
     }
   }

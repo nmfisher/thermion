@@ -1211,7 +1211,9 @@ namespace polyvox
         
         decomposeMatrix(transform, &translation, &rotation, &scale);
         if(relative) {
-            translation += math::float3( x, y, z ); 
+            math::mat3f rotationMatrix(rotation);
+            math::float3 relativeTranslation = rotationMatrix * math::float3( x, y, z );
+            translation += relativeTranslation; 
         } else { 
             translation = math::float3(x,y,z);
         }
@@ -1250,6 +1252,7 @@ namespace polyvox
         
         transform = composeMatrix(translation, rotation, scale);
         tm.setTransform(transformInstance, transform);
+
         
     }
 
