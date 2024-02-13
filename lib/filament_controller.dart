@@ -538,4 +538,11 @@ abstract class FilamentController {
 
   Future<EntityTransformController> control(FilamentEntity entity,
       {double? translationSpeed, String? forwardAnimation});
+
+  ///
+  /// Make [collidableEntity] collidable.
+  /// At the moment, this is only relevant when controlling a different entity's transform.
+  /// If there is a collision between the controlled entity and [collidableEntity], the transform will not be updated.
+  ///
+  Future addCollisionComponent(FilamentEntity collidableEntity);
 }

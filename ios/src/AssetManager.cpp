@@ -80,6 +80,10 @@ namespace polyvox
         _gltfResourceLoader->addTextureProvider ("image/ktx2", _ktxDecoder);
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
+
+        const auto& tm = _engine->getTransformManager();
+
+        _collisionComponentManager = new CollisionComponentManager(tm);
     }
 
     AssetManager::~AssetManager()
@@ -325,7 +329,7 @@ namespace polyvox
 
     void AssetManager::updateAnimations()
     {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
         RenderableManager &rm = _engine->getRenderableManager();
 
         auto now = high_resolution_clock::now();
@@ -456,7 +460,7 @@ namespace polyvox
     // - or is it better to add an option for "streaming" mode where we can just return a reference to a mat4 and then update the values directly?
     bool AssetManager::setBoneTransform(EntityId entityId, const char *entityName, int32_t skinIndex, const char* boneName, math::mat4f localTransform)
     {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
 
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -542,7 +546,7 @@ namespace polyvox
 
     void AssetManager::remove(EntityId entityId)
     {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
         {
@@ -618,7 +622,7 @@ namespace polyvox
     }
 
     utils::Entity AssetManager::findChildEntityByName(EntityId entityId, const char *entityName) {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
 
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -672,7 +676,7 @@ namespace polyvox
         int numFrames,
         float frameLengthInMs)
     {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
 
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -749,7 +753,7 @@ namespace polyvox
     }
 
     void AssetManager::resetBones(EntityId entityId) {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
 
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -788,7 +792,7 @@ namespace polyvox
                                         float frameLengthInMs,
                                         bool isModelSpace)
     {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
 
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -903,7 +907,7 @@ namespace polyvox
 
     void AssetManager::playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade)
     {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
 
         if (index < 0)
         {
@@ -960,7 +964,7 @@ namespace polyvox
 
     void AssetManager::stopAnimation(EntityId entityId, int index)
     {
-        std::lock_guard lock(_animationMutex);
+        std::lock_guard lock(_mutex);
 
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -1149,8 +1153,6 @@ namespace polyvox
             return;
         }
         auto &asset = _assets[pos->second];
-
-        Log("Transforming asset to unit cube.");
         auto &tm = _engine->getTransformManager();
         FilamentInstance *inst = asset.asset->getInstance();
         auto aabb = inst->getBoundingBox();
@@ -1163,97 +1165,120 @@ namespace polyvox
         tm.setTransform(tm.getInstance(inst->getRoot()), transform);
     }
 
-    void AssetManager::setScale(EntityId entity, float newScale)
-    {
-        const auto &pos = _entityIdLookup.find(entity);
+    void AssetManager::addCollisionComponent(EntityId entityId) {
+        std::lock_guard lock(_mutex);
+        const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
         {
             Log("ERROR: asset not found for entity.");
             return;
         }
-        auto &asset = _assets[pos->second];
-        
+        auto &asset = _assets[pos->second];   
+        auto collisionInstance = _collisionComponentManager->addComponent(asset.asset->getRoot());
+        _collisionComponentManager->elementAt<0>(collisionInstance) = asset.asset->getInstance();
+    }
+
+    void AssetManager::updateTransforms() { 
+        std::lock_guard lock(_mutex);
+
         auto &tm = _engine->getTransformManager();
-        auto transformInstance = tm.getInstance(asset.asset->getRoot());
+        for ( const auto &[entityId, transformUpdate]: _transformUpdates ) {
+            const auto &pos = _entityIdLookup.find(entityId);
+            if (pos == _entityIdLookup.end())
+            {
+                Log("ERROR: asset not found for entity.");
+                continue;
+            }
+            auto &asset = _assets[pos->second];   
+            auto transformInstance = tm.getInstance(asset.asset->getRoot());
+            auto transform = tm.getTransform(transformInstance);
 
-        auto transform = tm.getTransform(transformInstance);
+            math::float3 newTranslation = std::get<0>(transformUpdate);
+            bool newTranslationRelative = std::get<1>(transformUpdate);
+            math::quatf newRotation = std::get<2>(transformUpdate);
+            bool newRotationRelative = std::get<3>(transformUpdate);
+            float newScale = std::get<4>(transformUpdate);
 
-        math::float3 translation;
-        math::quatf rotation;
-        math::float3 scale;
+            math::float3 translation;
+            math::quatf rotation;
+            math::float3 scale;
         
-        decomposeMatrix(transform, &translation, &rotation, &scale);
-        scale = { newScale, newScale, newScale};
-        
-        transform = composeMatrix(translation, rotation, scale);
-        tm.setTransform(transformInstance, transform);
-        
+            decomposeMatrix(transform, &translation, &rotation, &scale);
+
+            if(newRotationRelative) {
+                rotation = normalize(rotation * newRotation);
+            } else {
+                rotation = newRotation;
+            }
+
+            if(newTranslationRelative) {
+                math::mat3f rotationMatrix(rotation);
+                math::float3 relativeTranslation = rotationMatrix * newTranslation;
+                translation += relativeTranslation; 
+            } else { 
+                translation = newTranslation;
+            }
+
+            transform = composeMatrix(translation, rotation, scale);
+            auto bb = asset.asset->getBoundingBox();
+            auto transformedBB = bb.transform(transform);
+            if(!_collisionComponentManager->collides(transformedBB)) {
+                tm.setTransform(transformInstance, transform);
+            }
+        }
+        _transformUpdates.clear();
+    }
+
+    void AssetManager::setScale(EntityId entity, float newScale)
+    {
+        std::lock_guard lock(_mutex);
+        const auto &pos = _transformUpdates.find(entity);
+        if (pos == _transformUpdates.end())
+        {
+            _transformUpdates[entity] = make_tuple(math::float3(), true, math::quatf(1.0f), true, newScale);
+        } 
+        auto curr = _transformUpdates[entity];
+        auto& scale = get<4>(curr);
+        scale = newScale;
+        _transformUpdates[entity] = curr;
     }
 
     void AssetManager::setPosition(EntityId entity, float x, float y, float z, bool relative)
     {
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
+        std::lock_guard lock(_mutex);
+        const auto &pos = _transformUpdates.find(entity);
+        if (pos == _transformUpdates.end())
         {
-            Log("ERROR: asset not found for entity.");
-            return;
-        }
-        auto &asset = _assets[pos->second];
-        
-        auto &tm = _engine->getTransformManager();
-        auto transformInstance = tm.getInstance(asset.asset->getRoot());
-
-        auto transform = tm.getTransform(transformInstance);
-
-        math::float3 translation;
-        math::quatf rotation;
-        math::float3 scale;
-        
-        decomposeMatrix(transform, &translation, &rotation, &scale);
-        if(relative) {
-            math::mat3f rotationMatrix(rotation);
-            math::float3 relativeTranslation = rotationMatrix * math::float3( x, y, z );
-            translation += relativeTranslation; 
-        } else { 
-            translation = math::float3(x,y,z);
-        }
-       
-        transform = composeMatrix(translation, rotation, scale);
-        tm.setTransform(transformInstance, transform);
-        
+            _transformUpdates.emplace(entity, make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
+        } 
+        auto curr = _transformUpdates[entity];
+        auto& trans = get<0>(curr);
+        trans.x = x;
+        trans.y = y;
+        trans.z = z;
+         
+        auto& isRelative = get<1>(curr);
+        isRelative = relative;
+        _transformUpdates[entity] = curr;        
     }
 
     void AssetManager::setRotation(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
     {
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
+        std::lock_guard lock(_mutex);
+        const auto &pos = _transformUpdates.find(entity);
+        if (pos == _transformUpdates.end())
         {
-            Log("ERROR: asset not found for entity.");
-            return;
-        }
-        auto &asset = _assets[pos->second];
-
-        auto &tm = _engine->getTransformManager();
-        auto transformInstance = tm.getInstance(asset.asset->getRoot());
-
-        auto transform = tm.getTransform(transformInstance);
-
-        math::float3 translation;
-        math::quatf rotation;
-        math::float3 scale;
-        
-        decomposeMatrix(transform, &translation, &rotation, &scale);
-       
-        if(relative) {
-            rotation = normalize(rotation * math::quatf(w,x,y,z));
-        } else {
-            rotation = math::quatf(w,x,y,z);
-        }
-        
-        transform = composeMatrix(translation, rotation, scale);
-        tm.setTransform(transformInstance, transform);
-
-        
+            _transformUpdates.emplace(entity, make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
+        } 
+        auto curr = _transformUpdates[entity];
+        auto& rot = std::get<2>(curr);
+        rot.w = w;
+        rot.x = x;
+        rot.y = y;
+        rot.z = z;
+        auto& isRelative = get<3>(curr);
+        isRelative = relative;
+        _transformUpdates[entity] = curr;
     }
 
     const utils::Entity *AssetManager::getCameraEntities(EntityId entity)

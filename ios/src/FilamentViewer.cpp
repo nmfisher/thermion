@@ -1040,6 +1040,7 @@ namespace polyvox
 
     Timer tmr;
 
+    _assetManager->updateTransforms();
     _assetManager->updateAnimations();
 
     _cumulativeAnimationUpdateTime += tmr.elapsed();

@@ -1358,4 +1358,13 @@ class FilamentControllerFFI extends FilamentController {
     _keyboardListener = HardwareKeyboardListener(transformController);
     return transformController;
   }
+
+  @override
+  Future addCollisionComponent(FilamentEntity entity) async {
+    if (_assetManager == null) {
+      throw Exception("AssetManager must be non-null");
+    }
+
+    add_collision_component(_assetManager!, entity);
+  }
 }

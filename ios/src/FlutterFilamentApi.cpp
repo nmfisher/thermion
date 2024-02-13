@@ -536,4 +536,8 @@ extern "C"
     {
         free(ptr);
     }
+
+    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId) {
+        ((AssetManager*)assetManager)->addCollisionComponent(entityId);
+    }
 }

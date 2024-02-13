@@ -828,6 +828,13 @@ external void flutter_filament_free(
   ffi.Pointer<ffi.Void> ptr,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'add_collision_component', assetId: 'flutter_filament_plugin')
+external void add_collision_component(
+  ffi.Pointer<ffi.Void> assetManager,
+  int entityId,
+);
+
 @ffi.Native<
         ffi.Pointer<ffi.Void> Function(
             ffi.Pointer<ffi.Void>,

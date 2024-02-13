@@ -10,6 +10,7 @@
 
 #include "SceneAsset.hpp"
 #include "ResourceBuffer.hpp"
+#include "components/StandardComponents.h"
 
 typedef int32_t EntityId;
 
@@ -45,6 +46,7 @@ namespace polyvox
         const utils::Entity *getLightEntities(EntityId e) const noexcept;
         size_t getLightEntityCount(EntityId e) const noexcept;
         void updateAnimations();
+        void updateTransforms();
         bool setMaterialColor(EntityId e, const char *meshName, int materialInstance, const float r, const float g, const float b, const float a);
 
         bool setMorphAnimationBuffer(
@@ -99,6 +101,7 @@ namespace polyvox
             const char *entityName);
         int getEntityCount(EntityId entity, bool renderableOnly);
         const char* getEntityNameAt(EntityId entity, int index, bool renderableOnly);
+        void addCollisionComponent(EntityId entity);
 
     private:
         AssetLoader *_assetLoader = nullptr;
@@ -110,10 +113,13 @@ namespace polyvox
         gltfio::ResourceLoader *_gltfResourceLoader = nullptr;
         gltfio::TextureProvider *_stbDecoder = nullptr;
         gltfio::TextureProvider *_ktxDecoder = nullptr;
-        std::mutex _animationMutex;
+        std::mutex _mutex;
 
         vector<SceneAsset> _assets;
         tsl::robin_map<EntityId, int> _entityIdLookup;
+        tsl::robin_map<EntityId, std::tuple<math::float3,bool,math::quatf,bool,float>> _transformUpdates;
+
+        CollisionComponentManager* _collisionComponentManager = nullptr;
 
         utils::Entity findEntityByName(
             SceneAsset asset,

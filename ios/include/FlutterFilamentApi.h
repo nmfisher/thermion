@@ -183,7 +183,7 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory);
 	FLUTTER_PLUGIN_EXPORT void ios_dummy();
 	FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void *ptr);
-	
+	FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId);
 #ifdef __cplusplus
 }
 #endif
