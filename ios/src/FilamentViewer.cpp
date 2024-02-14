@@ -41,6 +41,7 @@
 #include <filament/Skybox.h>
 #include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
+#include <filament/IndexBuffer.h>
 #include <filament/View.h>
 #include <filament/Viewport.h>
 
@@ -60,7 +61,6 @@
 #include <imageio/ImageDecoder.h>
 #include <imageio/ImageEncoder.h>
 #include <image/ColorTransform.h>
-
 
 #include "math.h"
 
@@ -109,11 +109,6 @@ namespace polyvox
   // const float kAperture = 1.0f;
   // const float kShutterSpeed = 1.0f;
   // const float kSensitivity = 50.0f;
-  struct Vertex
-  {
-    filament::math::float2 position;
-    uint32_t color;
-  };
 
   static constexpr float4 sFullScreenTriangleVertices[3] = {
       {-1.0f, -1.0f, 1.0f, 1.0f},
@@ -161,25 +156,25 @@ namespace polyvox
     setToneMapping(ToneMapping::ACES);
     Log("Set tone mapping");
 
-    #ifdef __EMSCRIPTEN__
-      Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers");
-      decltype(_view->getBloomOptions()) opts;
-      opts.enabled = false;
-      _view->setBloomOptions(opts);
+#ifdef __EMSCRIPTEN__
+    Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers");
+    decltype(_view->getBloomOptions()) opts;
+    opts.enabled = false;
+    _view->setBloomOptions(opts);
 
-      _view->setAmbientOcclusionOptions({.enabled=false});
+    _view->setAmbientOcclusionOptions({.enabled = false});
 
-      _view->setDynamicResolutionOptions({.enabled=false});
+    _view->setDynamicResolutionOptions({.enabled = false});
 
-      _view->setDithering(filament::Dithering::NONE);
-      _view->setAntiAliasing(filament::AntiAliasing::NONE);
-      _view->setShadowingEnabled(false);
-      _view->setScreenSpaceRefractionEnabled(false);
+    _view->setDithering(filament::Dithering::NONE);
+    _view->setAntiAliasing(filament::AntiAliasing::NONE);
+    _view->setShadowingEnabled(false);
+    _view->setScreenSpaceRefractionEnabled(false);
 
-    #else
-      setBloom(0.6f);
-      Log("Set bloom");
-    #endif
+#else
+    setBloom(0.6f);
+    Log("Set bloom");
+#endif
 
     _view->setScene(_scene);
     _view->setCamera(_mainCamera);
@@ -276,7 +271,7 @@ namespace polyvox
         .culling(false)
         .build(*_engine, imageEntity);
     _imageEntity = &imageEntity;
-    _scene->addEntity(imageEntity);
+    // _scene->addEntity(imageEntity);
   }
 
   void FilamentViewer::setPostProcessing(bool enabled)
@@ -286,14 +281,14 @@ namespace polyvox
 
   void FilamentViewer::setBloom(float strength)
   {
-    #ifdef __EMSCRIPTEN__
-      Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers. setBloom will be ignored");
-    #else
-      decltype(_view->getBloomOptions()) opts;
-      opts.enabled = true;
-      opts.strength = strength;
-      _view->setBloomOptions(opts);
-    #endif
+#ifdef __EMSCRIPTEN__
+    Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers. setBloom will be ignored");
+#else
+    decltype(_view->getBloomOptions()) opts;
+    opts.enabled = true;
+    opts.strength = strength;
+    _view->setBloomOptions(opts);
+#endif
   }
 
   void FilamentViewer::setToneMapping(ToneMapping toneMapping)
@@ -787,11 +782,13 @@ namespace polyvox
     Log("Set lens projection to focal length %f, near %f and far %f", _cameraFocalLength, _near, _far);
   }
 
-  double FilamentViewer::getCameraCullingNear() {
+  double FilamentViewer::getCameraCullingNear()
+  {
     Camera &cam = _view->getCamera();
     return cam.getNear();
   }
-  double FilamentViewer::getCameraCullingFar() {
+  double FilamentViewer::getCameraCullingFar()
+  {
     Camera &cam = _view->getCamera();
     return cam.getCullingFar();
   }
@@ -952,10 +949,10 @@ namespace polyvox
     _scene->setIndirectLight(nullptr);
   }
 
-  void FilamentViewer::rotateIbl(const math::mat3f & matrix) {
-      _indirectLight->setRotation(matrix);
+  void FilamentViewer::rotateIbl(const math::mat3f &matrix)
+  {
+    _indirectLight->setRotation(matrix);
   }
-
 
   void FilamentViewer::loadIbl(const char *const iblPath, float intensity)
   {
@@ -1005,7 +1002,6 @@ namespace polyvox
     }
   }
 
-
   void FilamentViewer::render(
       uint64_t frameTimeInNanos,
       void *pixelBuffer,
@@ -1029,7 +1025,8 @@ namespace polyvox
     auto now = std::chrono::high_resolution_clock::now();
     auto secsSinceLastFpsCheck = float(std::chrono::duration_cast<std::chrono::seconds>(now - _fpsCounterStartTime).count());
 
-    if(secsSinceLastFpsCheck >= 1) {
+    if (secsSinceLastFpsCheck >= 1)
+    {
       auto fps = _frameCount / secsSinceLastFpsCheck;
       Log("%ffps (_frameCount %d, secs since last check %f)", fps, _frameCount, secsSinceLastFpsCheck);
       // Log("1 sec average for asset animation update %f", _elapsed / _frameCount);
@@ -1046,9 +1043,10 @@ namespace polyvox
     _cumulativeAnimationUpdateTime += tmr.elapsed();
 
     // if a manipulator is active, update the active camera orientation
-    if(_manipulator) {
+    if (_manipulator)
+    {
       math::double3 eye, target, upward;
-      Camera& cam =_view->getCamera();
+      Camera &cam = _view->getCamera();
       _manipulator->getLookAt(&eye, &target, &upward);
       cam.lookAt(eye, target, upward);
     }
@@ -1069,109 +1067,119 @@ namespace polyvox
     // }
     // else
     // {
-      // Render the scene, unless the renderer wants to skip the frame.
-      bool beginFrame = _renderer->beginFrame(_swapChain, frameTimeInNanos);
-      
-      if (beginFrame)
+    // Render the scene, unless the renderer wants to skip the frame.
+    bool beginFrame = _renderer->beginFrame(_swapChain, frameTimeInNanos);
+
+    if (beginFrame)
+    {
+      _renderer->render(_view);
+      _frameCount++;
+
+      if (_recording)
       {
-        _renderer->render(_view);
-            _frameCount++;
+        Viewport const &vp = _view->getViewport();
+        size_t pixelBufferSize = vp.width * vp.height * 4;
+        auto *pixelBuffer = new uint8_t[pixelBufferSize];
+        auto callback = [](void *buf, size_t size, void *data)
+        {
+          auto frameCallbackData = (FrameCallbackData *)data;
+          auto viewer = (FilamentViewer *)frameCallbackData->viewer;
+          viewer->savePng(buf, size, frameCallbackData->frameNumber);
+          delete frameCallbackData;
+        };
 
+        auto now = std::chrono::high_resolution_clock::now();
+        auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - _recordingStartTime).count());
 
-        if(_recording) {
-          Viewport const &vp = _view->getViewport();
-          size_t pixelBufferSize = vp.width * vp.height * 4;
-          auto* pixelBuffer = new uint8_t[pixelBufferSize];
-          auto callback = [](void *buf, size_t size, void *data) {
-            auto frameCallbackData = (FrameCallbackData*)data;
-            auto viewer = (FilamentViewer*)frameCallbackData->viewer;
-            viewer->savePng(buf, size, frameCallbackData->frameNumber);
-            delete frameCallbackData;
-          };
+        auto frameNumber = uint32_t(floor(elapsed / _frameInterval));
 
-          auto now = std::chrono::high_resolution_clock::now();
-          auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - _recordingStartTime).count());
+        auto userData = new FrameCallbackData{this, frameNumber};
 
-          auto frameNumber = uint32_t(floor(elapsed / _frameInterval));
+        auto pbd = Texture::PixelBufferDescriptor(
+            pixelBuffer, pixelBufferSize,
+            Texture::Format::RGBA,
+            Texture::Type::UBYTE, nullptr, callback, userData);
 
-          auto userData = new FrameCallbackData { this, frameNumber };
-
-          auto pbd = Texture::PixelBufferDescriptor(
-              pixelBuffer, pixelBufferSize,
-              Texture::Format::RGBA,
-              Texture::Type::UBYTE, nullptr, callback, userData);
-      
-          _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
-        }
-        _renderer->endFrame();
-        #ifdef __EMSCRIPTEN__
-        _engine->execute();
-        #endif
-      } else {
-        _skippedFrames++;
+        _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
       }
+      _renderer->endFrame();
+#ifdef __EMSCRIPTEN__
+      _engine->execute();
+#endif
+    }
+    else
+    {
+      _skippedFrames++;
+    }
   }
 
-
-  void FilamentViewer::savePng(void* buf, size_t size, int frameNumber) {
+  void FilamentViewer::savePng(void *buf, size_t size, int frameNumber)
+  {
     std::lock_guard lock(_recordingMutex);
-    if(!_recording) {
-      delete[] static_cast<uint8_t*>(buf);
+    if (!_recording)
+    {
+      delete[] static_cast<uint8_t *>(buf);
       return;
     }
 
     Viewport const &vp = _view->getViewport();
 
-    std::packaged_task<void()> lambda([=]() mutable {
+    std::packaged_task<void()> lambda([=]() mutable
+                                      {
+                                        int digits = 6;
+                                        std::ostringstream stringStream;
+                                        stringStream << _recordingOutputDirectory << "/output_";
+                                        stringStream << std::setfill('0') << std::setw(digits);
+                                        stringStream << std::to_string(frameNumber);
+                                        stringStream << ".png";
 
-      int digits = 6;
-      std::ostringstream stringStream;
-      stringStream << _recordingOutputDirectory << "/output_";
-      stringStream << std::setfill('0') << std::setw(digits);
-      stringStream << std::to_string(frameNumber);
-      stringStream << ".png";
+                                        std::string filename = stringStream.str();
 
-      std::string filename = stringStream.str();
+                                        ofstream wf(filename, ios::out | ios::binary);
 
-      ofstream wf(filename, ios::out | ios::binary);
+                                        LinearImage image(toLinearWithAlpha<uint8_t>(vp.width, vp.height, vp.width * 4,
+                                                                                     static_cast<uint8_t *>(buf)));
 
-      LinearImage image(toLinearWithAlpha<uint8_t>(vp.width, vp.height, vp.width * 4,
-                              static_cast<uint8_t*>(buf)));
+                                        auto result = image::ImageEncoder::encode(
+                                            wf, image::ImageEncoder::Format::PNG, image, std::string(""), std::string(""));
 
-      auto result = image::ImageEncoder::encode(
-        wf, image::ImageEncoder::Format::PNG, image, std::string(""), std::string("")
-      );
+                                        delete[] static_cast<uint8_t *>(buf);
 
-      delete[] static_cast<uint8_t*>(buf);
+                                        if (!result)
+                                        {
+                                          Log("Failed to encode");
+                                        }
 
-      if(!result) {
-        Log("Failed to encode");
-      }
-      
-      wf.close();
-      if(!wf.good()) {
-        Log("Write failed!");
-      } 
-
-     });
-     _tp->add_task(lambda);
+                                        wf.close();
+                                        if (!wf.good())
+                                        {
+                                          Log("Write failed!");
+                                        }
+                                      });
+    _tp->add_task(lambda);
   }
 
-  void FilamentViewer::setRecordingOutputDirectory(const char* path) {
+  void FilamentViewer::setRecordingOutputDirectory(const char *path)
+  {
     _recordingOutputDirectory = std::string(path);
     auto outputDirAsPath = std::filesystem::path(path);
-    if(!std::filesystem::is_directory(outputDirAsPath)) {
+    if (!std::filesystem::is_directory(outputDirAsPath))
+    {
       std::filesystem::create_directories(outputDirAsPath);
     }
   }
 
-  void FilamentViewer::setRecording(bool recording) {
+  void FilamentViewer::setRecording(bool recording)
+  {
     std::lock_guard lock(_recordingMutex);
     this->_recording = recording;
-    if(recording) {
+    if (recording)
+    {
       _tp = new flutter_filament::ThreadPool(8);
       _recordingStartTime = std::chrono::high_resolution_clock::now();
-    } else { 
+    }
+    else
+    {
       delete _tp;
     }
   }
@@ -1284,7 +1292,7 @@ namespace polyvox
         matrix[13],
         matrix[14],
         matrix[15]);
-    cam.setCustomProjection(projectionMatrix,projectionMatrix, near, far);
+    cam.setCustomProjection(projectionMatrix, projectionMatrix, near, far);
   }
 
   const math::mat4 FilamentViewer::getCameraModelMatrix()
@@ -1320,7 +1328,7 @@ namespace polyvox
   void FilamentViewer::_createManipulator()
   {
     Camera &cam = _view->getCamera();
-    
+
     math::double3 home = cam.getPosition();
     math::double3 up = cam.getUpVector();
     auto fv = cam.getForwardVector();
@@ -1330,7 +1338,7 @@ namespace polyvox
 
     _manipulator = Manipulator<double>::Builder()
                        .viewport(vp.width, vp.height)
-                        .upVector(up.x, up.y, up.z)
+                       .upVector(up.x, up.y, up.z)
                        .zoomSpeed(_zoomSpeed)
                        .targetPosition(target[0], target[1], target[2])
                        // only applicable to Mode::ORBIT
@@ -1439,6 +1447,71 @@ namespace polyvox
   {
     _view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
                 { *entityId = Entity::smuggle(result.renderable); });
+  }
+
+  EntityId FilamentViewer::createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, const char* materialPath)
+  {
+
+    float *verticesCopy = (float*)malloc(numVertices * sizeof(float));
+    memcpy(verticesCopy, vertices, numVertices * sizeof(float));
+    VertexBuffer::BufferDescriptor::Callback vertexCallback = [](void *buf, size_t,
+                                                               void *data)
+    {
+      free((void*)buf);
+    };
+
+    uint16_t *indicesCopy = (uint16_t*)malloc(numIndices * sizeof(uint16_t));
+    memcpy(indicesCopy, indices, numIndices * sizeof(uint16_t));
+    IndexBuffer::BufferDescriptor::Callback indexCallback = [](void *buf, size_t,
+                                                               void *data)
+    {
+      free((void*)buf);
+    };
+
+    auto vb = VertexBuffer::Builder().vertexCount(numVertices).bufferCount(1).attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3).build(*_engine);
+
+    vb->setBufferAt(*_engine, 0, VertexBuffer::BufferDescriptor(verticesCopy, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback));
+    
+    auto ib = IndexBuffer::Builder().indexCount(numIndices).bufferType(IndexBuffer::IndexType::USHORT).build(*_engine);
+    ib->setBuffer(*_engine, IndexBuffer::BufferDescriptor(indicesCopy, ib->getIndexCount() * sizeof(uint16_t), 0, indexCallback));
+
+    filament::Material* mat = nullptr;
+    if(materialPath) {
+      auto matData = _resourceLoaderWrapper->load(materialPath);
+      auto mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
+      _resourceLoaderWrapper->free(matData);
+    }
+
+    float minX, minY, minZ = 0.0f;
+    float maxX, maxY, maxZ = 0.0f;
+
+    for(int i = 0; i < numVertices; i+=3) {
+      minX = std::min(vertices[i], minX);
+      minY = std::min(vertices[i+1], minY);
+      minZ = std::min(vertices[i+2], minZ);
+      maxX = std::max(vertices[i], maxX);
+      maxY = std::max(vertices[i+1], maxY);
+      maxZ = std::max(vertices[i+2], maxZ);
+    }
+
+    auto renderable = utils::EntityManager::get().create();
+    RenderableManager::Builder builder = RenderableManager::Builder(1);
+    builder
+        .boundingBox({{minX, minY, minZ}, {maxX, maxY, maxZ}})
+        .geometry(0, RenderableManager::PrimitiveType::TRIANGLES,
+                      vb, ib, 0, numIndices)
+        .culling(false)
+        .receiveShadows(false)
+        .castShadows(false);
+    if(mat) {
+      builder.material(0, mat->getDefaultInstance()).build(*_engine, renderable);
+    }
+    auto result = builder.build(*_engine, renderable);
+
+    _scene->addEntity(renderable);
+    Log("Created geometry with result %d", result);
+
+    return Entity::smuggle(renderable);
   }
 
 } // namespace polyvox

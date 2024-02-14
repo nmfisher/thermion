@@ -131,6 +131,7 @@ namespace polyvox
         void setRecording(bool recording);
         void setRecordingOutputDirectory(const char* path);
 
+        EntityId createGeometry(float* vertices, uint32_t numVertices, uint16_t* indices, uint32_t numIndices, const char* materialPath);
 
         AssetManager *const getAssetManager()
         {

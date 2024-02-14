@@ -540,4 +540,10 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId) {
         ((AssetManager*)assetManager)->addCollisionComponent(entityId);
     }
+
+    FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
+        return ((FilamentViewer*)viewer)->createGeometry(vertices, (size_t)numVertices, indices, numIndices, materialPath);
+    }
+    
+
 }

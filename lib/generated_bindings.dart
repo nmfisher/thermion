@@ -836,6 +836,19 @@ external void add_collision_component(
 );
 
 @ffi.Native<
+        EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>,
+            ffi.Int, ffi.Pointer<ffi.Uint16>, ffi.Int, ffi.Pointer<ffi.Char>)>(
+    symbol: 'create_geometry', assetId: 'flutter_filament_plugin')
+external int create_geometry(
+  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<ffi.Float> vertices,
+  int numVertices,
+  ffi.Pointer<ffi.Uint16> indices,
+  int numIndices,
+  ffi.Pointer<ffi.Char> materialPath,
+);
+
+@ffi.Native<
         ffi.Pointer<ffi.Void> Function(
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Void>,
@@ -1283,6 +1296,19 @@ external void reset_to_rest_pose_ffi(
 @ffi.Native<ffi.Void Function()>(
     symbol: 'ios_dummy_ffi', assetId: 'flutter_filament_plugin')
 external void ios_dummy_ffi();
+
+@ffi.Native<
+        EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>,
+            ffi.Int, ffi.Pointer<ffi.Uint16>, ffi.Int, ffi.Pointer<ffi.Char>)>(
+    symbol: 'create_geometry_ffi', assetId: 'flutter_filament_plugin')
+external int create_geometry_ffi(
+  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<ffi.Float> vertices,
+  int numVertices,
+  ffi.Pointer<ffi.Uint16> indices,
+  int numIndices,
+  ffi.Pointer<ffi.Char> materialPath,
+);
 
 final class __mbstate_t extends ffi.Union {
   @ffi.Array.multi([128])

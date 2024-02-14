@@ -554,4 +554,15 @@ FLUTTER_PLUGIN_EXPORT void add_bone_animation_ffi(
 }
 
 FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi() { Log("Dummy called"); }
+
+FLUTTER_PLUGIN_EXPORT EntityId create_geometry_ffi(void* const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
+      std::packaged_task<EntityId()> lambda(
+      [=] { 
+        return create_geometry(viewer, vertices, numVertices, indices, numIndices, materialPath);
+      });
+      auto fut = _rl->add_task(lambda);
+      fut.wait();
+      return fut.get();
+}
+
 }

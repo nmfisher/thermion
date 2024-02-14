@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:math';
 import 'dart:ui' as ui;
 import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
@@ -1366,5 +1365,40 @@ class FilamentControllerFFI extends FilamentController {
     }
 
     add_collision_component(_assetManager!, entity);
+  }
+
+  @override
+  Future<FilamentEntity> createGeometry(
+      List<double> vertices, List<int> indices, String? materialPath) async {
+    if (_viewer == null) {
+      throw Exception("Viewer must not be null");
+    }
+
+    final materialPathPtr =
+        materialPath?.toNativeUtf8(allocator: allocator) ?? nullptr;
+    final vertexPtr = allocator<Float>(vertices.length);
+    final indicesPtr = allocator<Uint16>(indices.length);
+    for (int i = 0; i < vertices.length; i++) {
+      vertexPtr.elementAt(i).value = vertices[i];
+    }
+
+    for (int i = 0; i < indices.length; i++) {
+      indicesPtr.elementAt(i).value = indices[i];
+    }
+
+    var entity = create_geometry_ffi(_viewer!, vertexPtr, vertices.length,
+        indicesPtr, indices.length, materialPathPtr.cast<Char>());
+    if (entity == _FILAMENT_ASSET_ERROR) {
+      throw Exception("Failed to create geometry");
+    }
+
+    _entities.add(entity);
+    _onLoadController.sink.add(entity);
+
+    allocator.free(materialPathPtr);
+    allocator.free(vertexPtr);
+    allocator.free(indicesPtr);
+
+    return entity;
   }
 }
