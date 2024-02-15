@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_filament/animations/animation_data.dart';
+
 import 'package:flutter_filament/filament_controller.dart';
 import 'package:flutter_filament_example/main.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -27,8 +28,22 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
   Widget _shapesSubmenu() {
     var children = [
       MenuItemButton(
+          closeOnActivate: false,
           onPressed: () async {
-            Timer.periodic(Duration(milliseconds: 50), (_) async {
+            var entity = await widget.controller
+                .getChildEntity(ExampleWidgetState.assets.last, "Cylinder");
+            await showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return Center(
+                      child: Container(
+                          color: Colors.white, child: Text(entity.toString())));
+                });
+          },
+          child: const Text('Find Cylinder entity by name')),
+      MenuItemButton(
+          onPressed: () async {
+            Timer.periodic(const Duration(milliseconds: 50), (_) async {
               await widget.controller.setBoneTransform(
                   ExampleWidgetState.assets.last,
                   "Cylinder",
@@ -143,11 +158,40 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
     return SubmenuButton(menuChildren: children, child: const Text("Shapes"));
   }
 
+  Widget _geometrySubmenu() {
+    return MenuItemButton(
+        onPressed: () async {
+          await widget.controller.createGeometry([
+            -1,
+            0,
+            -1,
+            -1,
+            0,
+            1,
+            1,
+            0,
+            1,
+            1,
+            0,
+            -1,
+          ], [
+            0,
+            1,
+            2,
+            2,
+            3,
+            0
+          ], "asset://assets/solidcolor.filamat");
+        },
+        child: const Text("Custom geometry"));
+  }
+
   @override
   Widget build(BuildContext context) {
     return SubmenuButton(
       menuChildren: [
         _shapesSubmenu(),
+        _geometrySubmenu(),
         MenuItemButton(
           onPressed: () async {
             ExampleWidgetState.directionalLight = await widget.controller

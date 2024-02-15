@@ -9,11 +9,13 @@ class ControllerMenu extends StatefulWidget {
   final FilamentController? controller;
   final void Function(FilamentController controller) onControllerCreated;
   final void Function() onControllerDestroyed;
+  final FocusNode sharedFocusNode;
 
   ControllerMenu(
       {this.controller,
       required this.onControllerCreated,
-      required this.onControllerDestroyed});
+      required this.onControllerDestroyed,
+      required this.sharedFocusNode});
 
   @override
   State<StatefulWidget> createState() => _ControllerMenuState();
@@ -21,7 +23,6 @@ class ControllerMenu extends StatefulWidget {
 
 class _ControllerMenuState extends State<ControllerMenu> {
   FilamentController? _filamentController;
-  final FocusNode _buttonFocusNode = FocusNode(debugLabel: 'Camera Menu');
 
   void _createController({String? uberArchivePath}) {
     if (_filamentController != null) {
@@ -57,8 +58,10 @@ class _ControllerMenuState extends State<ControllerMenu> {
           child: const Text("Create FilamentViewer"),
           onPressed: _filamentController == null
               ? null
-              : () {
-                  _filamentController!.createViewer();
+              : () async {
+                  await _filamentController!.createViewer();
+                  await _filamentController!
+                      .setCameraManipulatorOptions(zoomSpeed: 1.0);
                 },
         ),
         MenuItemButton(
@@ -96,7 +99,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
       ]);
     }
     return MenuAnchor(
-        childFocusNode: _buttonFocusNode,
+        childFocusNode: widget.sharedFocusNode,
         menuChildren: items,
         builder:
             (BuildContext context, MenuController controller, Widget? child) {

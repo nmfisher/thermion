@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_filament/entities/entity_transform_controller.dart';
 import 'package:flutter_filament/filament_controller_ffi.dart';
 import 'package:flutter_filament_example/camera_matrix_overlay.dart';
 import 'package:flutter_filament_example/menus/controller_menu.dart';
@@ -11,9 +12,11 @@ import 'package:flutter_filament_example/menus/scene_menu.dart';
 import 'package:flutter_filament/filament_controller.dart';
 
 const loadDefaultScene = bool.hasEnvironment('--load-default-scene');
+const foo = String.fromEnvironment('foo');
 
 void main() async {
   print(loadDefaultScene);
+  print(foo);
   runApp(const MyApp());
 }
 
@@ -99,6 +102,9 @@ class ExampleWidgetState extends State<ExampleWidget> {
               await _filamentController!.loadGlb("assets/shapes/shapes.glb"));
           ExampleWidgetState.animations =
               await _filamentController!.getAnimationNames(assets.first);
+          await _filamentController!
+              .setCameraManipulatorOptions(zoomSpeed: 1.0);
+
           hasSkybox = true;
           rendering = true;
         });
@@ -112,6 +118,10 @@ class ExampleWidgetState extends State<ExampleWidget> {
     _listener.cancel();
   }
 
+  EntityTransformController? _transformController;
+  FilamentEntity? _controlled;
+  final _sharedFocusNode = FocusNode();
+
   Widget _assetEntry(FilamentEntity entity) {
     return Row(children: [
       Text("Asset ${entity}"),
@@ -123,11 +133,26 @@ class ExampleWidgetState extends State<ExampleWidget> {
           icon: const Icon(Icons.settings_overscan_outlined)),
       IconButton(
           onPressed: () async {
+            _transformController?.dispose();
+            if (_controlled == entity) {
+              _controlled = null;
+            } else {
+              _controlled = entity;
+              _transformController?.dispose();
+              _transformController =
+                  EntityTransformController(_filamentController!, entity);
+            }
+            setState(() {});
+          },
+          icon: Icon(Icons.control_camera,
+              color: _controlled == entity ? Colors.green : Colors.black)),
+      IconButton(
+          onPressed: () async {
             await _filamentController!.removeAsset(entity);
             assets.remove(entity);
             setState(() {});
           },
-          icon: const Icon(Icons.cancel_sharp))
+          icon: const Icon(Icons.cancel_sharp)),
     ]);
     ;
   }
@@ -137,9 +162,10 @@ class ExampleWidgetState extends State<ExampleWidget> {
     return Stack(children: [
       Positioned.fill(
         child: ExampleViewport(
-          controller: _filamentController,
-          padding: _viewportMargin,
-        ),
+            controller: _filamentController,
+            entityTransformController: _transformController,
+            padding: _viewportMargin,
+            keyboardFocusNode: _sharedFocusNode),
       ),
       Positioned(
           bottom: 80,
@@ -147,7 +173,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
           height: 200,
           width: 300,
           child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
               height: 100,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(30),
@@ -169,6 +195,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
               child:
                   Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                 ControllerMenu(
+                    sharedFocusNode: _sharedFocusNode,
                     controller: _filamentController,
                     onControllerDestroyed: () {},
                     onControllerCreated: (controller) {
@@ -188,6 +215,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
                       });
                     }),
                 SceneMenu(
+                  sharedFocusNode: _sharedFocusNode,
                   controller: _filamentController,
                 ),
                 GestureDetector(

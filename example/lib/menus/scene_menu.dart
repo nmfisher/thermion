@@ -7,8 +7,10 @@ import 'package:flutter_filament_example/menus/rendering_submenu.dart';
 
 class SceneMenu extends StatefulWidget {
   final FilamentController? controller;
+  final FocusNode sharedFocusNode;
 
-  const SceneMenu({super.key, required this.controller});
+  const SceneMenu(
+      {super.key, required this.controller, required this.sharedFocusNode});
 
   @override
   State<StatefulWidget> createState() {
@@ -34,6 +36,8 @@ class _SceneMenuState extends State<SceneMenu> {
             widget.controller?.hasViewer ?? ValueNotifier<bool>(false),
         builder: (BuildContext ctx, bool hasViewer, Widget? child) {
           return MenuAnchor(
+            onClose: () {},
+            childFocusNode: widget.sharedFocusNode,
             menuChildren: widget.controller == null
                 ? []
                 : <Widget>[
