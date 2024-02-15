@@ -146,8 +146,10 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void clear_assets(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT bool set_material_color(void *assetManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
 	FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void *assetManager, EntityId asset);
-	FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z, bool relative);
-	FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative);
+	FLUTTER_PLUGIN_EXPORT void queue_position_update(void *assetManager, EntityId asset, float x, float y, float z, bool relative);
+	FLUTTER_PLUGIN_EXPORT void queue_rotation_update(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative);
+	FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z);
+	FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w);
 	FLUTTER_PLUGIN_EXPORT void set_scale(void *assetManager, EntityId asset, float scale);
 
 	// Camera methods
@@ -176,14 +178,14 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void set_post_processing(void *const viewer, bool enabled);
 	FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, EntityId *entityId);
 	FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const assetManager, const EntityId entityId);
-	FLUTTER_PLUGIN_EXPORT const EntityId find_child_entity_by_name(void *const assetManager, const EntityId parent, const char* name);
+	FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const assetManager, const EntityId parent, const char* name);
 	FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const assetManager, const EntityId target, bool renderableOnly);
 	FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const assetManager, const EntityId target, int index, bool renderableOnly);
 	FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording);
 	FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory);
 	FLUTTER_PLUGIN_EXPORT void ios_dummy();
 	FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void *ptr);
-	FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId);
+	FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId, void (*callback)(const EntityId entityId));
 	FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath);
 
 #ifdef __cplusplus

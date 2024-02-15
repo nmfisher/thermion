@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_filament/filament_controller.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 
@@ -79,7 +80,7 @@ class EntityTransformController {
 
     double rads = 0.0;
     if (_rotY != 0) {
-      rads = _rotY! * pi / 1000;
+      rads = _rotY * pi / 1000;
       var rotY = v.Quaternion.axisAngle(v.Vector3(0, 1, 0), rads).normalized();
       _rotation = rotY;
       updateRotation = true;
@@ -87,12 +88,13 @@ class EntityTransformController {
     }
 
     if (updateTranslation) {
-      await controller.setPosition(
+      await controller.queuePositionUpdate(
           _entity, _position.x, _position.y, _position.z,
           relative: true);
     }
     if (updateRotation) {
-      await controller.setRotationQuat(_entity, _rotation, relative: true);
+      await controller.queueRotationUpdateQuat(_entity, _rotation,
+          relative: true);
     }
   }
 
@@ -105,43 +107,45 @@ class EntityTransformController {
   }
 
   bool _playingForwardAnimation = false;
+  bool _playingBackwardAnimation = false;
 
   void forwardPressed() async {
     _forward = true;
-    if (forwardAnimationIndex != null) {
-      if (!_playingForwardAnimation) {
-        await controller.playAnimation(_entity, forwardAnimationIndex!,
-            loop: true);
-        _playingForwardAnimation = true;
-      }
+    if (forwardAnimationIndex != null && !_playingForwardAnimation) {
+      await controller.playAnimation(_entity, forwardAnimationIndex!,
+          loop: true, replaceActive: false);
+      _playingForwardAnimation = true;
     }
   }
 
-  Timer? _forwardTimer;
-  Timer? _backwardsTimer;
-  Timer? _strafeLeftTimer;
-  Timer? _strafeRightTimer;
-
   void forwardReleased() async {
-    _forwardTimer?.cancel();
-    _forwardTimer = Timer(Duration(milliseconds: 50), () async {
-      _forward = false;
+    _forward = false;
+    await Future.delayed(Duration(milliseconds: 50));
+    if (!_forward) {
       _playingForwardAnimation = false;
       if (forwardAnimationIndex != null) {
         await controller.stopAnimation(_entity, forwardAnimationIndex!);
       }
-    });
+    }
   }
 
-  void backPressed() {
+  void backPressed() async {
     _back = true;
+    if (forwardAnimationIndex != null) {
+      if (!_playingBackwardAnimation) {
+        await controller.playAnimation(_entity, forwardAnimationIndex!,
+            loop: true, replaceActive: false, reverse: true);
+        _playingBackwardAnimation = true;
+      }
+    }
   }
 
   void backReleased() async {
-    _backwardsTimer?.cancel();
-    _backwardsTimer = Timer(Duration(milliseconds: 50), () {
-      _back = false;
-    });
+    _back = false;
+    if (forwardAnimationIndex != null) {
+      await controller.stopAnimation(_entity, forwardAnimationIndex!);
+    }
+    _playingBackwardAnimation = false;
   }
 
   void strafeLeftPressed() {
@@ -149,10 +153,7 @@ class EntityTransformController {
   }
 
   void strafeLeftReleased() async {
-    _strafeLeftTimer?.cancel();
-    _strafeLeftTimer = Timer(Duration(milliseconds: 50), () {
-      _strafeLeft = false;
-    });
+    _strafeLeft = false;
   }
 
   void strafeRightPressed() {
@@ -160,9 +161,21 @@ class EntityTransformController {
   }
 
   void strafeRightReleased() async {
-    _strafeRightTimer?.cancel();
-    _strafeRightTimer = Timer(Duration(milliseconds: 50), () {
-      _strafeRight = false;
-    });
+    _strafeRight = false;
   }
+
+  void Function()? _mouse1DownCallback;
+  void onMouse1Down(void Function() callback) {
+    _mouse1DownCallback = callback;
+  }
+
+  void mouse1Down() async {
+    _mouse1DownCallback?.call();
+  }
+
+  void mouse1Up() async {}
+
+  void mouse2Up() async {}
+
+  void mouse2Down() async {}
 }

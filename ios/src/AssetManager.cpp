@@ -172,9 +172,7 @@ namespace polyvox
             sceneAsset.initialJointTransforms.push_back(jointTransform);
         }
         
-        utils::Entity e = EntityManager::get().create();
-
-        EntityId eid = Entity::smuggle(e);
+        EntityId eid = Entity::smuggle(asset->getRoot());
 
         _entityIdLookup.emplace(eid, _assets.size());
         _assets.push_back(sceneAsset);
@@ -254,8 +252,7 @@ namespace polyvox
             sceneAsset.initialJointTransforms.push_back(jointTransform);
         }
 
-        utils::Entity e = EntityManager::get().create();
-        EntityId eid = Entity::smuggle(e);
+        EntityId eid = Entity::smuggle(asset->getRoot());
 
         _entityIdLookup.emplace(eid, _assets.size());
         _assets.push_back(sceneAsset);
@@ -351,7 +348,6 @@ namespace polyvox
                     asset.fadeGltfAnimationIndex = -1;
                     continue;
                 }
-                
                 asset.asset->getInstance()->getAnimator()->applyAnimation(animationStatus.index, elapsedInSecs);
 
                 if (asset.fadeGltfAnimationIndex != -1 && elapsedInSecs < asset.fadeDuration)
@@ -361,8 +357,10 @@ namespace polyvox
                     auto alpha = elapsedInSecs / asset.fadeDuration;
                     asset.asset->getInstance()->getAnimator()->applyCrossFade(asset.fadeGltfAnimationIndex, fadeFromTime, alpha);
                 }
-                asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
             }
+
+            asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
+
 
             for (int i = (int)asset.morphAnimations.size() - 1; i >= 0; i--) {
                 
@@ -1165,17 +1163,20 @@ namespace polyvox
         tm.setTransform(tm.getInstance(inst->getRoot()), transform);
     }
 
-    void AssetManager::addCollisionComponent(EntityId entityId) {
+    void AssetManager::addCollisionComponent(EntityId entityId, void(*onCollisionCallback)(EntityId entityId)) {
         std::lock_guard lock(_mutex);
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
         {
             Log("ERROR: asset not found for entity.");
             return;
-        }
+        } 
         auto &asset = _assets[pos->second];   
+        asset.asset->getAssetInstances();
         auto collisionInstance = _collisionComponentManager->addComponent(asset.asset->getRoot());
-        _collisionComponentManager->elementAt<0>(collisionInstance) = asset.asset->getInstance();
+        _collisionComponentManager->elementAt<0>(collisionInstance) = asset.asset->getInstance()->getBoundingBox();
+        _collisionComponentManager->elementAt<1>(collisionInstance) = onCollisionCallback;
+        
     }
 
     void AssetManager::updateTransforms() { 
@@ -1211,20 +1212,37 @@ namespace polyvox
                 rotation = newRotation;
             }
 
+            math::float3 relativeTranslation;
+
             if(newTranslationRelative) {
                 math::mat3f rotationMatrix(rotation);
-                math::float3 relativeTranslation = rotationMatrix * newTranslation;
+                relativeTranslation = rotationMatrix * newTranslation;
                 translation += relativeTranslation; 
             } else { 
+                relativeTranslation = newTranslation - translation;
                 translation = newTranslation;
             }
 
             transform = composeMatrix(translation, rotation, scale);
             auto bb = asset.asset->getBoundingBox();
             auto transformedBB = bb.transform(transform);
-            if(!_collisionComponentManager->collides(transformedBB)) {
-                tm.setTransform(transformInstance, transform);
+            
+            auto collisions = _collisionComponentManager->collides(transformedBB, relativeTranslation);
+
+            Log("%d collisions", collisions.size());
+            if(collisions.size() == 1) {
+                auto globalAxis = collisions[0];
+                globalAxis *= norm(relativeTranslation);
+                auto newRelativeTranslation = relativeTranslation + globalAxis;
+                // Log("Collision axis global : %f %f %f relativeTranslation %f %f %f relativeTranslation (after subtracting global collision vector) %f %f %f", globalAxis.x, globalAxis.y, globalAxis.z, relativeTranslation.x, relativeTranslation.y, relativeTranslation.z, newRelativeTranslation.x, newRelativeTranslation.y, newRelativeTranslation.z);
+                translation -= relativeTranslation;
+                translation += newRelativeTranslation;
+                transform = composeMatrix(translation, rotation, scale);
+            } else if(collisions.size() > 1) {
+                translation -= relativeTranslation;
+                transform = composeMatrix(translation, rotation, scale);
             }
+            tm.setTransform(transformInstance, transform);
         }
         _transformUpdates.clear();
     }
@@ -1243,9 +1261,59 @@ namespace polyvox
         _transformUpdates[entity] = curr;
     }
 
-    void AssetManager::setPosition(EntityId entity, float x, float y, float z, bool relative)
+    void AssetManager::setPosition(EntityId entityId, float x, float y, float z)
     {
         std::lock_guard lock(_mutex);
+
+        auto entity = Entity::import(entityId);
+        if(entity.isNull()) {
+            Log("Failed to find entity under ID %d", entityId);
+            return;
+        }
+        auto &tm = _engine->getTransformManager();
+        
+        auto transformInstance = tm.getInstance(entity);
+        auto transform = tm.getTransform(transformInstance);
+        math::float3 translation;
+        math::quatf rotation;
+        math::float3 scale;
+        
+        decomposeMatrix(transform, &translation, &rotation, &scale);
+        translation = math::float3(x,y,z);
+        auto newTransform = composeMatrix(translation, rotation, scale);
+        tm.setTransform(transformInstance, newTransform);
+    }
+
+    void AssetManager::setRotation(EntityId entityId, float rads, float x, float y, float z, float w)
+    {
+        std::lock_guard lock(_mutex);
+
+        auto entity = Entity::import(entityId);
+        if(entity.isNull()) {
+            Log("Failed to find entity under ID %d", entityId);
+            return;
+        }
+        auto &tm = _engine->getTransformManager();
+        
+        auto transformInstance = tm.getInstance(entity);
+        auto transform = tm.getTransform(transformInstance);
+        math::float3 translation;
+        math::quatf rotation;
+        math::float3 scale;
+        
+        decomposeMatrix(transform, &translation, &rotation, &scale);
+        rotation = math::quatf(w,x,y,z);
+        auto newTransform = composeMatrix(translation, rotation, scale);
+        tm.setTransform(transformInstance, newTransform);
+    }
+
+    void AssetManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
+    {
+        std::lock_guard lock(_mutex);
+
+        if(!relative) {
+            
+        }
         const auto &pos = _transformUpdates.find(entity);
         if (pos == _transformUpdates.end())
         {
@@ -1262,7 +1330,7 @@ namespace polyvox
         _transformUpdates[entity] = curr;        
     }
 
-    void AssetManager::setRotation(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
+    void AssetManager::queueRotationUpdate(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
     {
         std::lock_guard lock(_mutex);
         const auto &pos = _transformUpdates.find(entity);

@@ -470,19 +470,29 @@ extern "C"
         ((AssetManager *)assetManager)->transformToUnitCube(asset);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z, bool relative)
+    FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z)
     {
-        ((AssetManager *)assetManager)->setPosition(asset, x, y, z, relative);
+        ((AssetManager *)assetManager)->setPosition(asset, x, y, z);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
+    FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w)
     {
-        ((AssetManager *)assetManager)->setRotation(asset, rads, x, y, z, w, relative);
+        ((AssetManager *)assetManager)->setRotation(asset, rads, x, y, z, w);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_scale(void *assetManager, EntityId asset, float scale)
     {
         ((AssetManager *)assetManager)->setScale(asset, scale);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void queue_position_update(void *assetManager, EntityId asset, float x, float y, float z, bool relative)
+    {
+        ((AssetManager *)assetManager)->queuePositionUpdate(asset, x, y, z, relative);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void queue_rotation_update(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
+    {
+        ((AssetManager *)assetManager)->queueRotationUpdate(asset, rads, x, y, z, w, relative);
     }
 
     FLUTTER_PLUGIN_EXPORT void stop_animation(void *assetManager, EntityId asset, int index)
@@ -537,13 +547,17 @@ extern "C"
         free(ptr);
     }
 
-    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId) {
-        ((AssetManager*)assetManager)->addCollisionComponent(entityId);
+    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId)) {
+        ((AssetManager*)assetManager)->addCollisionComponent(entityId, onCollisionCallback);
     }
 
     FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
         return ((FilamentViewer*)viewer)->createGeometry(vertices, (size_t)numVertices, indices, numIndices, materialPath);
     }
-    
+
+    FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const assetManager, const EntityId parent, const char* name) {
+        auto entity = ((AssetManager*)assetManager)->findChildEntityByName(parent, name);
+        return Entity::smuggle(entity);
+    }
 
 }

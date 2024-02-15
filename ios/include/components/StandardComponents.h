@@ -7,54 +7,71 @@
 #include "filament/TransformManager.h"
 #include "gltfio/FilamentAsset.h"
 #include "gltfio/FilamentInstance.h"
+#include "Log.hpp"
 
 namespace polyvox
 {
 
-class FloatComponentManager : public utils::SingleInstanceComponentManager<float, float, float, float> {
-
-    static constexpr size_t DIRECTION = 0;
-    static constexpr size_t POSITION = 1;
-    static constexpr size_t MAX = 2;
-    static constexpr size_t SPEED = 2;
-    
-    // void update() { 
-    //     const auto* entities = getEntities();
-    //     for(int i = 0; i < getComponentCount(); i++) {
-    //         // const auto instance = getInstance();
-    //         // elementAt<POSITION> 
-    //         // const auto component = get
-    //         // const auto entity = entities[i];
-            
-    //     }
-    // }
-};
-
-class CollisionComponentManager : public utils::SingleInstanceComponentManager<filament::gltfio::FilamentInstance*> {
-
-    static constexpr size_t INSTANCE = 0;
+typedef void(*CollisionCallback)(int32_t entityId) ;
+class CollisionComponentManager : public utils::SingleInstanceComponentManager<filament::Aabb, CollisionCallback> {
 
     const filament::TransformManager& _transformManager;
     public:
         CollisionComponentManager(const filament::TransformManager& transformManager) : _transformManager(transformManager) {}
     
-        bool collides(filament::Aabb sourceBox) { 
+        std::vector<filament::math::float3> collides(filament::Aabb sourceBox, filament::math::float3 direction) { 
             auto sourceCorners = sourceBox.getCorners();
-            const auto& entities = getEntities();
+            std::vector<filament::math::float3> collision_axes;
             for(auto it = begin(); it < end(); it++) {
-                auto entity = entities[it];
-                
-                auto targetInstance = elementAt<INSTANCE>(it);    
+                auto entity = getEntity(it);
                 auto targetXformInstance = _transformManager.getInstance(entity);
                 auto targetXform = _transformManager.getWorldTransform(targetXformInstance);
-                auto targetBox = targetInstance->getBoundingBox().transform(targetXform);
+                auto targetBox = elementAt<0>(it).transform(targetXform);
+
+                // iterate over every vertex in the source AABB
                 for(int i = 0; i < 8; i++) {
+                    // if the vertex has insersected with the target AABB
                     if(targetBox.contains(sourceCorners.vertices[i]) < 0) {
-                        return true;
+
+                        auto intersecting = sourceCorners.vertices[i];
+                        auto min = targetBox.min;
+                        auto max = targetBox.max;
+
+                        float xmin = min.x - intersecting.x;
+                        float ymin = min.y - intersecting.y;
+                        float zmin = min.z - intersecting.z;
+                        float xmax = intersecting.x - max.x;
+                        float ymax = intersecting.y - max.y;
+                        float zmax = intersecting.z - max.z;
+
+                        auto maxD = std::max(xmin,std::max(ymin,std::max(zmin,std::max(xmax,std::max(ymax,zmax)))));
+                        filament::math::float3 axis;
+                        if(maxD == xmin) {
+                            axis = {-1.0f,0.0f, 0.0f};
+                        } else if(maxD == ymin) {
+                            axis = {0.0f,-1.0f, 0.0f};
+                        } else if(maxD == zmin) {
+                            axis = {0.0f,0.0f, -1.0f};
+                        } else if(maxD == xmax) {
+                            axis = {1.0f,0.0f, 0.0f};
+                        } else if(maxD == ymax) {
+                          axis = {0.0f,1.0f, 0.0f};  
+                        } else { 
+                          axis = { 0.0f, 0.0f, 1.0f};
+                        }
+                        collision_axes.push_back(axis);                      
+                        break;
+                    }
+                }
+                if(collision_axes.size() > 0) {
+                    auto callback = elementAt<1>(it);
+                    if(callback) {
+                        callback(utils::Entity::smuggle(entity));
                     }
                 }
             }
-            return false;
+            
+            return collision_axes;
         }
 };
 

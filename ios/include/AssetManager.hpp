@@ -39,8 +39,10 @@ namespace polyvox
         void transformToUnitCube(EntityId e);
         inline void updateTransform(EntityId e);
         void setScale(EntityId e, float scale);
-        void setPosition(EntityId e, float x, float y, float z, bool relative);
-        void setRotation(EntityId e, float rads, float x, float y, float z, float w, bool relative);
+        void setPosition(EntityId e, float x, float y, float z);
+        void setRotation(EntityId e, float rads, float x, float y, float z, float w);
+        void queuePositionUpdate(EntityId e, float x, float y, float z, bool relative);
+        void queueRotationUpdate(EntityId e, float rads, float x, float y, float z, float w, bool relative);
         const utils::Entity *getCameraEntities(EntityId e);
         size_t getCameraEntityCount(EntityId e);
         const utils::Entity *getLightEntities(EntityId e) const noexcept;
@@ -101,7 +103,7 @@ namespace polyvox
             const char *entityName);
         int getEntityCount(EntityId entity, bool renderableOnly);
         const char* getEntityNameAt(EntityId entity, int index, bool renderableOnly);
-        void addCollisionComponent(EntityId entity);
+        void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(EntityId entityId));
 
     private:
         AssetLoader *_assetLoader = nullptr;

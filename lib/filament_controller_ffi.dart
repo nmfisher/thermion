@@ -13,6 +13,7 @@ import 'package:flutter_filament/filament_controller.dart';
 import 'package:flutter_filament/animations/animation_data.dart';
 import 'package:flutter_filament/generated_bindings.dart';
 import 'package:flutter_filament/hardware/hardware_keyboard_listener.dart';
+import 'package:flutter_filament/hardware/hardware_keyboard_poll.dart';
 import 'package:flutter_filament/rendering_surface.dart';
 import 'package:vector_math/vector_math_64.dart';
 
@@ -1051,13 +1052,33 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future setPosition(FilamentEntity entity, double x, double y, double z,
-      {bool relative = false}) async {
+  Future setPosition(
+      FilamentEntity entity, double x, double y, double z) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
 
-    set_position(_assetManager!, entity, x, y, z, relative);
+    set_position(_assetManager!, entity, x, y, z);
+  }
+
+  @override
+  Future setRotation(
+      FilamentEntity entity, double rads, double x, double y, double z) async {
+    if (_viewer == null) {
+      throw Exception("No viewer available, ignoring");
+    }
+    var quat = Quaternion.axisAngle(Vector3(x, y, z), rads);
+    await setRotationQuat(entity, quat);
+  }
+
+  @override
+  Future setRotationQuat(FilamentEntity entity, Quaternion rotation,
+      {bool relative = false}) async {
+    if (_viewer == null) {
+      throw Exception("No viewer available, ignoring");
+    }
+    set_rotation(_assetManager!, entity, rotation.radians, rotation.x,
+        rotation.y, rotation.z, rotation.w);
   }
 
   @override
@@ -1069,23 +1090,33 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future setRotation(
+  Future queuePositionUpdate(
+      FilamentEntity entity, double x, double y, double z,
+      {bool relative = false}) async {
+    if (_viewer == null) {
+      throw Exception("No viewer available, ignoring");
+    }
+
+    queue_position_update(_assetManager!, entity, x, y, z, relative);
+  }
+
+  @override
+  Future queueRotationUpdate(
       FilamentEntity entity, double rads, double x, double y, double z,
       {bool relative = false}) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
     var quat = Quaternion.axisAngle(Vector3(x, y, z), rads);
-    await setRotationQuat(entity, quat, relative: relative);
+    await queueRotationUpdateQuat(entity, quat, relative: relative);
   }
 
-  @override
-  Future setRotationQuat(FilamentEntity entity, Quaternion rotation,
+  Future queueRotationUpdateQuat(FilamentEntity entity, Quaternion rotation,
       {bool relative = false}) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    set_rotation(_assetManager!, entity, rotation.radians, rotation.x,
+    queue_rotation_update(_assetManager!, entity, rotation.radians, rotation.x,
         rotation.y, rotation.z, rotation.w, relative);
   }
 
@@ -1359,12 +1390,20 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future addCollisionComponent(FilamentEntity entity) async {
+  Future addCollisionComponent(FilamentEntity entity,
+      {void Function(int entityId)? callback}) async {
     if (_assetManager == null) {
       throw Exception("AssetManager must be non-null");
     }
+    // ignore: sdk_version_since
 
-    add_collision_component(_assetManager!, entity);
+    if (callback != null) {
+      var ptr =
+          NativeCallable<Void Function(Int32 entityId)>.listener(callback);
+      add_collision_component(_assetManager!, entity, ptr.nativeFunction);
+    } else {
+      add_collision_component(_assetManager!, entity, nullptr);
+    }
   }
 
   @override

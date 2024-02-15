@@ -449,9 +449,41 @@ abstract class FilamentController {
   Future transformToUnitCube(FilamentEntity entity);
 
   ///
-  /// Sets the world space position for [entity] to the given coordinates.
+  /// Directly sets the world space position for [entity] to the given coordinates, skipping all collision detection.
   ///
-  Future setPosition(FilamentEntity entity, double x, double y, double z,
+  Future setPosition(FilamentEntity entity, double x, double y, double z);
+
+  ///
+  /// Directly sets the scale for [entity], skipping all collision detection.
+  ///
+  Future setScale(FilamentEntity entity, double scale);
+
+  ///
+  /// Directly sets the rotation for [entity] to [rads] around the axis {x,y,z}, skipping all collision detection.
+  ///
+  Future setRotation(
+      FilamentEntity entity, double rads, double x, double y, double z);
+
+  ///
+  /// Queues an update to the worldspace position for [entity] to {x,y,z}.
+  /// The actual update will occur on the next frame, and will be subject to collision detection.
+  ///
+  Future queuePositionUpdate(
+      FilamentEntity entity, double x, double y, double z,
+      {bool relative = false});
+
+  ///
+  /// Queues an update to the worldspace rotation for [entity].
+  /// The actual update will occur on the next frame, and will be subject to collision detection.
+  ///
+  Future queueRotationUpdate(
+      FilamentEntity entity, double rads, double x, double y, double z,
+      {bool relative = false});
+
+  ///
+  /// Same as [queueRotationUpdate].
+  ///
+  Future queueRotationUpdateQuat(FilamentEntity entity, Quaternion quat,
       {bool relative = false});
 
   ///
@@ -460,22 +492,9 @@ abstract class FilamentController {
   Future setPostProcessing(bool enabled);
 
   ///
-  /// Sets the scale for the given entity.
-  ///
-  Future setScale(FilamentEntity entity, double scale);
-
-  ///
-  /// Sets the rotation for [entity] to [rads] around the axis {x,y,z}.
-  ///
-  Future setRotation(
-      FilamentEntity entity, double rads, double x, double y, double z,
-      {bool relative = false});
-
-  ///
   /// Sets the rotation for [entity] to the specified quaternion.
   ///
-  Future setRotationQuat(FilamentEntity entity, Quaternion rotation,
-      {bool relative = false});
+  Future setRotationQuat(FilamentEntity entity, Quaternion rotation);
 
   ///
   /// Reveal the node [meshName] under [entity]. Only applicable if [hide] had previously been called; this is a no-op otherwise.
@@ -544,7 +563,8 @@ abstract class FilamentController {
   /// At the moment, this is only relevant when controlling a different entity's transform.
   /// If there is a collision between the controlled entity and [collidableEntity], the transform will not be updated.
   ///
-  Future addCollisionComponent(FilamentEntity collidableEntity);
+  Future addCollisionComponent(FilamentEntity collidableEntity,
+      {void Function(int entityId)? callback});
 
   ///
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
