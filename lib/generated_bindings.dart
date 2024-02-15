@@ -541,20 +541,42 @@ external void transform_to_unit_cube(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
-        EntityId,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Bool)>(symbol: 'set_position', assetId: 'flutter_filament_plugin')
-external void set_position(
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
+            ffi.Float, ffi.Bool)>(
+    symbol: 'queue_position_update', assetId: 'flutter_filament_plugin')
+external void queue_position_update(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
   double x,
   double y,
   double z,
   bool relative,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
+            ffi.Float, ffi.Float, ffi.Float, ffi.Bool)>(
+    symbol: 'queue_rotation_update', assetId: 'flutter_filament_plugin')
+external void queue_rotation_update(
+  ffi.Pointer<ffi.Void> assetManager,
+  int asset,
+  double rads,
+  double x,
+  double y,
+  double z,
+  double w,
+  bool relative,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
+        ffi.Float)>(symbol: 'set_position', assetId: 'flutter_filament_plugin')
+external void set_position(
+  ffi.Pointer<ffi.Void> assetManager,
+  int asset,
+  double x,
+  double y,
+  double z,
 );
 
 @ffi.Native<
@@ -565,8 +587,7 @@ external void set_position(
         ffi.Float,
         ffi.Float,
         ffi.Float,
-        ffi.Float,
-        ffi.Bool)>(symbol: 'set_rotation', assetId: 'flutter_filament_plugin')
+        ffi.Float)>(symbol: 'set_rotation', assetId: 'flutter_filament_plugin')
 external void set_rotation(
   ffi.Pointer<ffi.Void> assetManager,
   int asset,
@@ -575,7 +596,6 @@ external void set_rotation(
   double y,
   double z,
   double w,
-  bool relative,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float)>(
@@ -828,11 +848,18 @@ external void flutter_filament_free(
   ffi.Pointer<ffi.Void> ptr,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(EntityId entityId)>>)>(
     symbol: 'add_collision_component', assetId: 'flutter_filament_plugin')
 external void add_collision_component(
   ffi.Pointer<ffi.Void> assetManager,
   int entityId,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId entityId)>>
+      callback,
 );
 
 @ffi.Native<
