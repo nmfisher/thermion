@@ -564,11 +564,17 @@ abstract class FilamentController {
   /// If there is a collision between the controlled entity and [collidableEntity], the transform will not be updated.
   ///
   Future addCollisionComponent(FilamentEntity collidableEntity,
-      {void Function(int entityId)? callback});
+      {void Function(int entityId)? callback,
+      bool affectsCollingTransform = false});
 
   ///
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
   ///
   Future createGeometry(
       List<double> vertices, List<int> indices, String? materialPath);
+
+  ///
+  /// Sets the parent transform of [child] to the transform of [parent].
+  ///
+  Future setParent(FilamentEntity child, FilamentEntity parent);
 }

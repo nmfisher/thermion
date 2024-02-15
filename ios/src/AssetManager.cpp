@@ -1163,7 +1163,19 @@ namespace polyvox
         tm.setTransform(tm.getInstance(inst->getRoot()), transform);
     }
 
-    void AssetManager::addCollisionComponent(EntityId entityId, void(*onCollisionCallback)(EntityId entityId)) {
+    void AssetManager::setParent(EntityId childEntityId, EntityId parentEntityId) {
+        auto& tm = _engine->getTransformManager();
+        const auto child = Entity::import(childEntityId);
+        const auto parent = Entity::import(parentEntityId);
+
+        const auto& parentInstance = tm.getInstance(parent);
+        const auto& childInstance = tm.getInstance(child);
+        tm.setParent(childInstance, parentInstance);
+        
+
+    }
+
+    void AssetManager::addCollisionComponent(EntityId entityId, void(*onCollisionCallback)(EntityId entityId), bool affectsCollidingTransform) {
         std::lock_guard lock(_mutex);
         const auto &pos = _entityIdLookup.find(entityId);
         if (pos == _entityIdLookup.end())
@@ -1176,6 +1188,7 @@ namespace polyvox
         auto collisionInstance = _collisionComponentManager->addComponent(asset.asset->getRoot());
         _collisionComponentManager->elementAt<0>(collisionInstance) = asset.asset->getInstance()->getBoundingBox();
         _collisionComponentManager->elementAt<1>(collisionInstance) = onCollisionCallback;
+        _collisionComponentManager->elementAt<2>(collisionInstance) = affectsCollidingTransform;
         
     }
 
@@ -1227,18 +1240,16 @@ namespace polyvox
             auto bb = asset.asset->getBoundingBox();
             auto transformedBB = bb.transform(transform);
             
-            auto collisions = _collisionComponentManager->collides(transformedBB, relativeTranslation);
+            auto collisionAxes = _collisionComponentManager->collides(transformedBB);
 
-            Log("%d collisions", collisions.size());
-            if(collisions.size() == 1) {
-                auto globalAxis = collisions[0];
+            if(collisionAxes.size() == 1) {
+                auto globalAxis = collisionAxes[0];
                 globalAxis *= norm(relativeTranslation);
                 auto newRelativeTranslation = relativeTranslation + globalAxis;
-                // Log("Collision axis global : %f %f %f relativeTranslation %f %f %f relativeTranslation (after subtracting global collision vector) %f %f %f", globalAxis.x, globalAxis.y, globalAxis.z, relativeTranslation.x, relativeTranslation.y, relativeTranslation.z, newRelativeTranslation.x, newRelativeTranslation.y, newRelativeTranslation.z);
                 translation -= relativeTranslation;
                 translation += newRelativeTranslation;
                 transform = composeMatrix(translation, rotation, scale);
-            } else if(collisions.size() > 1) {
+            } else if(collisionAxes.size() > 1) {
                 translation -= relativeTranslation;
                 transform = composeMatrix(translation, rotation, scale);
             }

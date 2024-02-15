@@ -547,8 +547,8 @@ extern "C"
         free(ptr);
     }
 
-    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId)) {
-        ((AssetManager*)assetManager)->addCollisionComponent(entityId, onCollisionCallback);
+    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId), bool affectsCollidingTransform) {
+        ((AssetManager*)assetManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
     }
 
     FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
@@ -558,6 +558,10 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const assetManager, const EntityId parent, const char* name) {
         auto entity = ((AssetManager*)assetManager)->findChildEntityByName(parent, name);
         return Entity::smuggle(entity);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void set_parent(void *const assetManager, EntityId child, EntityId parent) {
+        ((AssetManager*)assetManager)->setParent(child, parent);
     }
 
 }

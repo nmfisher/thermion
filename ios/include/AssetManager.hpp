@@ -103,7 +103,9 @@ namespace polyvox
             const char *entityName);
         int getEntityCount(EntityId entity, bool renderableOnly);
         const char* getEntityNameAt(EntityId entity, int index, bool renderableOnly);
-        void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(EntityId entityId));
+        void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(EntityId entityId), bool affectsCollidingTransform);
+        void removeCollisionComponent(EntityId entityId);
+        void setParent(EntityId child, EntityId parent);
 
     private:
         AssetLoader *_assetLoader = nullptr;

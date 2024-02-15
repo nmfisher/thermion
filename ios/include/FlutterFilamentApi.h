@@ -185,8 +185,9 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory);
 	FLUTTER_PLUGIN_EXPORT void ios_dummy();
 	FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void *ptr);
-	FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId, void (*callback)(const EntityId entityId));
+	FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId, void (*callback)(const EntityId entityId), bool affectsCollidingTransform);
 	FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath);
+	FLUTTER_PLUGIN_EXPORT void set_parent(void *const assetManager, EntityId child, EntityId parent);
 
 #ifdef __cplusplus
 }

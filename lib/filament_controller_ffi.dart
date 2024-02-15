@@ -13,7 +13,7 @@ import 'package:flutter_filament/filament_controller.dart';
 import 'package:flutter_filament/animations/animation_data.dart';
 import 'package:flutter_filament/generated_bindings.dart';
 import 'package:flutter_filament/hardware/hardware_keyboard_listener.dart';
-import 'package:flutter_filament/hardware/hardware_keyboard_poll.dart';
+
 import 'package:flutter_filament/rendering_surface.dart';
 import 'package:vector_math/vector_math_64.dart';
 
@@ -1391,7 +1391,8 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future addCollisionComponent(FilamentEntity entity,
-      {void Function(int entityId)? callback}) async {
+      {void Function(int entityId)? callback,
+      bool affectsCollingTransform = false}) async {
     if (_assetManager == null) {
       throw Exception("AssetManager must be non-null");
     }
@@ -1400,9 +1401,11 @@ class FilamentControllerFFI extends FilamentController {
     if (callback != null) {
       var ptr =
           NativeCallable<Void Function(Int32 entityId)>.listener(callback);
-      add_collision_component(_assetManager!, entity, ptr.nativeFunction);
+      add_collision_component(
+          _assetManager!, entity, ptr.nativeFunction, affectsCollingTransform);
     } else {
-      add_collision_component(_assetManager!, entity, nullptr);
+      add_collision_component(
+          _assetManager!, entity, nullptr, affectsCollingTransform);
     }
   }
 
@@ -1439,5 +1442,13 @@ class FilamentControllerFFI extends FilamentController {
     allocator.free(indicesPtr);
 
     return entity;
+  }
+
+  @override
+  Future setParent(FilamentEntity child, FilamentEntity parent) async {
+    if (_assetManager == null) {
+      throw Exception("Asset manager must be non-null");
+    }
+    set_parent(_assetManager!, child, parent);
   }
 }
