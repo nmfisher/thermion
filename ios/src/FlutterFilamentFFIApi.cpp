@@ -366,14 +366,14 @@ FLUTTER_PLUGIN_EXPORT void clear_lights_ffi(void *const viewer) {
   fut.wait();
 }
 
-FLUTTER_PLUGIN_EXPORT void remove_asset_ffi(void *const viewer,
+FLUTTER_PLUGIN_EXPORT void remove_entity_ffi(void *const viewer,
                                             EntityId asset) {
-  std::packaged_task<void()> lambda([&] { remove_asset(viewer, asset); });
+  std::packaged_task<void()> lambda([&] { remove_entity(viewer, asset); });
   auto fut = _rl->add_task(lambda);
   fut.wait();
 }
-FLUTTER_PLUGIN_EXPORT void clear_assets_ffi(void *const viewer) {
-  std::packaged_task<void()> lambda([&] { clear_assets(viewer); });
+FLUTTER_PLUGIN_EXPORT void clear_entities_ffi(void *const viewer) {
+  std::packaged_task<void()> lambda([&] { clear_entities(viewer); });
   auto fut = _rl->add_task(lambda);
   fut.wait();
 }

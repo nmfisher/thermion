@@ -216,7 +216,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 ExampleWidgetState.animations = await widget.controller
                     .getAnimationNames(ExampleWidgetState.assets.last);
               } else {
-                await widget.controller.removeAsset(ExampleWidgetState.buster!);
+                await widget.controller
+                    .removeEntity(ExampleWidgetState.buster!);
                 ExampleWidgetState.buster = null;
               }
             },
@@ -232,7 +233,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                         force: true);
               } else {
                 await widget.controller
-                    .removeAsset(ExampleWidgetState.flightHelmet!);
+                    .removeEntity(ExampleWidgetState.flightHelmet!);
                 ExampleWidgetState.flightHelmet = null;
               }
             },
@@ -281,7 +282,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
             child: const Text("Request permissions (tests inactive->resume)")),
         MenuItemButton(
             onPressed: () async {
-              await widget.controller.clearAssets();
+              await widget.controller.clearEntities();
               ExampleWidgetState.flightHelmet = null;
               ExampleWidgetState.buster = null;
               ExampleWidgetState.assets.clear();

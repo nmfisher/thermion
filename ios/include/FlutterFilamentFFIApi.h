@@ -40,8 +40,8 @@ FLUTTER_PLUGIN_EXPORT void remove_light_ffi(void* const viewer, EntityId entityI
 FLUTTER_PLUGIN_EXPORT void clear_lights_ffi(void* const viewer);
 FLUTTER_PLUGIN_EXPORT EntityId load_glb_ffi(void* const assetManager, const char *assetPath, bool unlit);
 FLUTTER_PLUGIN_EXPORT EntityId load_gltf_ffi(void* const assetManager, const char *assetPath, const char *relativePath);
-FLUTTER_PLUGIN_EXPORT void remove_asset_ffi(void* const viewer, EntityId asset);
-FLUTTER_PLUGIN_EXPORT void clear_assets_ffi(void* const viewer);
+FLUTTER_PLUGIN_EXPORT void remove_entity_ffi(void* const viewer, EntityId asset);
+FLUTTER_PLUGIN_EXPORT void clear_entities_ffi(void* const viewer);
 FLUTTER_PLUGIN_EXPORT bool set_camera_ffi(void* const viewer, EntityId asset, const char *nodeName);
 FLUTTER_PLUGIN_EXPORT void apply_weights_ffi(
                                              void* const assetManager,

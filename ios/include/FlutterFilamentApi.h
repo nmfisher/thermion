@@ -142,8 +142,8 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT float get_animation_duration(void *assetManager, EntityId asset, int index);
 	FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void *assetManager, EntityId asset, const char *meshName, char *const outPtr, int index);
 	FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void *assetManager, EntityId asset, const char *meshName);
-	FLUTTER_PLUGIN_EXPORT void remove_asset(const void *const viewer, EntityId asset);
-	FLUTTER_PLUGIN_EXPORT void clear_assets(const void *const viewer);
+	FLUTTER_PLUGIN_EXPORT void remove_entity(const void *const viewer, EntityId asset);
+	FLUTTER_PLUGIN_EXPORT void clear_entities(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT bool set_material_color(void *assetManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
 	FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void *assetManager, EntityId asset);
 	FLUTTER_PLUGIN_EXPORT void queue_position_update(void *assetManager, EntityId asset, float x, float y, float z, bool relative);

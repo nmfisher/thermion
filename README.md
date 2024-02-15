@@ -174,10 +174,10 @@ var entity = await _filamentController.loadGlb("file:///tmp/bob.glb");
 
 The return type `FilamentEntity` is simply an integer handle that be used to manipulate the entity in the scene. For example, to remove the asset:
 ```
-await _filamentController.removeAsset(entity);
+await _filamentController.removeEntity(entity);
 entity = null; 
 ``` 
-> Removing an entity from the scene will invalidate the corresponding `FilamentEntity` handle, so ensure you don't retain any references to it after calling `removeAsset` or `clearAssets`. Removing one `FilamentEntity` does not invalidate/change any other `FilamentEntity` handles; you can continue to safely manipulate these via the `FilamentController`.
+> Removing an entity from the scene will invalidate the corresponding `FilamentEntity` handle, so ensure you don't retain any references to it after calling `removeEntity` or `clearEntities`. Removing one `FilamentEntity` does not invalidate/change any other `FilamentEntity` handles; you can continue to safely manipulate these via the `FilamentController`.
 
 ### Lighting
 

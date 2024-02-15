@@ -639,7 +639,7 @@ namespace polyvox
 
   FilamentViewer::~FilamentViewer()
   {
-    clearAssets();
+    clearEntities();
     delete _assetManager;
 
     for (auto it : _lights)
@@ -725,7 +725,7 @@ namespace polyvox
     _engine->flushAndWait();
   }
 
-  void FilamentViewer::clearAssets()
+  void FilamentViewer::clearEntities()
   {
     Log("Clearing all assets");
     if (_mainCamera)
@@ -738,7 +738,7 @@ namespace polyvox
     Log("Cleared all assets");
   }
 
-  void FilamentViewer::removeAsset(EntityId asset)
+  void FilamentViewer::removeEntity(EntityId asset)
   {
     Log("Removing asset from scene");
 

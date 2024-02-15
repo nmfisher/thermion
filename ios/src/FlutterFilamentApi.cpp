@@ -450,14 +450,14 @@ extern "C"
         strcpy(outPtr, name.c_str());
     }
 
-    FLUTTER_PLUGIN_EXPORT void remove_asset(const void *const viewer, EntityId asset)
+    FLUTTER_PLUGIN_EXPORT void remove_entity(const void *const viewer, EntityId asset)
     {
-        ((FilamentViewer *)viewer)->removeAsset(asset);
+        ((FilamentViewer *)viewer)->removeEntity(asset);
     }
 
-    FLUTTER_PLUGIN_EXPORT void clear_assets(const void *const viewer)
+    FLUTTER_PLUGIN_EXPORT void clear_entities(const void *const viewer)
     {
-        ((FilamentViewer *)viewer)->clearAssets();
+        ((FilamentViewer *)viewer)->clearEntities();
     }
 
     bool set_material_color(void *assetManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)

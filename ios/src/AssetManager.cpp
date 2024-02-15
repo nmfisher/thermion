@@ -234,6 +234,9 @@ namespace polyvox
         inst->getAnimator()->updateBoneMatrices();
 
         inst->recomputeBoundingBoxes();
+        auto box = inst->getBoundingBox();
+        auto verts = box.extent();
+        Log("AABB extent for %s is %f %f %f", uri, verts.x, verts.y, verts.z);
 
         asset->releaseSourceData();
 

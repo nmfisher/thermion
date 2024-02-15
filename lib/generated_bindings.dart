@@ -499,15 +499,15 @@ external int get_morph_target_name_count(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
-    symbol: 'remove_asset', assetId: 'flutter_filament_plugin')
-external void remove_asset(
+    symbol: 'remove_entity', assetId: 'flutter_filament_plugin')
+external void remove_entity(
   ffi.Pointer<ffi.Void> viewer,
   int asset,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(
-    symbol: 'clear_assets', assetId: 'flutter_filament_plugin')
-external void clear_assets(
+    symbol: 'clear_entities', assetId: 'flutter_filament_plugin')
+external void clear_entities(
   ffi.Pointer<ffi.Void> viewer,
 );
 
@@ -852,14 +852,15 @@ external void flutter_filament_free(
         ffi.Void Function(
             ffi.Pointer<ffi.Void>,
             EntityId,
-            ffi.Pointer<
-                ffi.NativeFunction<ffi.Void Function(EntityId entityId)>>)>(
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId entityId)>>,
+            ffi.Bool)>(
     symbol: 'add_collision_component', assetId: 'flutter_filament_plugin')
 external void add_collision_component(
   ffi.Pointer<ffi.Void> assetManager,
   int entityId,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId entityId)>>
       callback,
+  bool affectsCollidingTransform,
 );
 
 @ffi.Native<
@@ -873,6 +874,14 @@ external int create_geometry(
   ffi.Pointer<ffi.Uint16> indices,
   int numIndices,
   ffi.Pointer<ffi.Char> materialPath,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId)>(
+    symbol: 'set_parent', assetId: 'flutter_filament_plugin')
+external void set_parent(
+  ffi.Pointer<ffi.Void> assetManager,
+  int child,
+  int parent,
 );
 
 @ffi.Native<
@@ -1114,15 +1123,15 @@ external int load_gltf_ffi(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
-    symbol: 'remove_asset_ffi', assetId: 'flutter_filament_plugin')
-external void remove_asset_ffi(
+    symbol: 'remove_entity_ffi', assetId: 'flutter_filament_plugin')
+external void remove_entity_ffi(
   ffi.Pointer<ffi.Void> viewer,
   int asset,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(
-    symbol: 'clear_assets_ffi', assetId: 'flutter_filament_plugin')
-external void clear_assets_ffi(
+    symbol: 'clear_entities_ffi', assetId: 'flutter_filament_plugin')
+external void clear_entities_ffi(
   ffi.Pointer<ffi.Void> viewer,
 );
 

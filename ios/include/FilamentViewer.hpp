@@ -70,8 +70,8 @@ namespace polyvox
         void rotateIbl(const math::mat3f & matrix);
 
 
-        void removeAsset(EntityId asset);
-        void clearAssets();
+        void removeEntity(EntityId asset);
+        void clearEntities();
 
         void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
         void render(

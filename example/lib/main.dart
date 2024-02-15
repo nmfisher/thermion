@@ -148,7 +148,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
               color: _controlled == entity ? Colors.green : Colors.black)),
       IconButton(
           onPressed: () async {
-            await _filamentController!.removeAsset(entity);
+            await _filamentController!.removeEntity(entity);
             assets.remove(entity);
             setState(() {});
           },

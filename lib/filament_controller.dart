@@ -35,7 +35,7 @@ abstract class FilamentController {
   Stream<FilamentEntity> get onLoad;
 
   ///
-  /// A Stream containing every FilamentEntity removed from the scene (i.e. via [removeAsset], [clearAssets], [removeLight] or [clearLights]).
+  /// A Stream containing every FilamentEntity removed from the scene (i.e. via [removeEntity], [clearEntities], [removeLight] or [clearLights]).
 
   Stream<FilamentEntity> get onUnload;
 
@@ -294,13 +294,13 @@ abstract class FilamentController {
   /// Removes/destroys the specified entity from the scene.
   /// [entity] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
   ///
-  Future removeAsset(FilamentEntity entity);
+  Future removeEntity(FilamentEntity entity);
 
   ///
   /// Removes/destroys all renderable entities from the scene (including cameras).
   /// All [FilamentEntity] handles will no longer be valid after this method is called; ensure you immediately discard all references to all entities once this method is complete.
   ///
-  Future clearAssets();
+  Future clearEntities();
 
   ///
   /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.

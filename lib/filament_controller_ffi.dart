@@ -817,21 +817,21 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future removeAsset(FilamentEntity entity) async {
+  Future removeEntity(FilamentEntity entity) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
     _entities.remove(entity);
-    remove_asset_ffi(_viewer!, entity);
+    remove_entity_ffi(_viewer!, entity);
     _onUnloadController.add(entity);
   }
 
   @override
-  Future clearAssets() async {
+  Future clearEntities() async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    clear_assets_ffi(_viewer!);
+    clear_entities_ffi(_viewer!);
 
     for (final entity in _entities) {
       _onUnloadController.add(entity);

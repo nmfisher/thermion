@@ -103,7 +103,7 @@ public:
      *
      * This removes all the asset entities from the Scene, but does not destroy them.
      */
-    void removeAsset();
+    void removeEntity();
 
     /**
      * Sets or changes the current scene's IBL to allow the UI manipulate it.
