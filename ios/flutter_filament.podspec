@@ -16,7 +16,7 @@ A new flutter plugin project.
   s.source_files = 'Classes/*', 'src/*', "src/camutils/*", 'src/ios/*', 'include/filament/*', 'include/*', 'include/material/*.c'
   s.public_header_files = 'include/SwiftFlutterFilamentPlugin-Bridging-Header.h',  'include/FlutterFilamentApi.h', 'include/FlutterFilamentFFIApi.h', 'include/ResourceBuffer.hpp', 'include/Log.hpp'
   s.dependency 'Flutter' 
-  s.platform = :ios, '12.1'
+  s.platform = :ios, '13.0'
   s.static_framework = true
   s.vendored_libraries = "lib/*.a"
   s.user_target_xcconfig = { 
