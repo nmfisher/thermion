@@ -11,7 +11,7 @@ add_library(flutter_filament_android SHARED
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentFFIApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/FilamentAndroid.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/SceneManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/StreamBufferAdapter.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/TimeIt.cpp"

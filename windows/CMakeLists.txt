@@ -12,7 +12,7 @@ set(PLUGIN_NAME "flutter_filament_plugin")
 list(APPEND PLUGIN_SOURCES
   "flutter_filament_plugin.cpp"
   "flutter_filament_plugin.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/SceneManager.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentFFIApi.cpp"

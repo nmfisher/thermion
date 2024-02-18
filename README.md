@@ -110,7 +110,7 @@ When a `FilamentWidget` is added to the widget hierarchy:
 3) You can then call `createViewer` to create:
     * the rendering surface (on most platforms, a backing texture that will be registered with Flutter for use in a `Texture` widget) 
     * a rendering thread 
-    * a `FilamentViewer` and an `AssetManager`, which will allow you to load assets/cameras/lighting/etc via the `FilamentController`
+    * a `FilamentViewer` and an `SceneManager`, which will allow you to load assets/cameras/lighting/etc via the `FilamentController`
 4) after an indeterminate number of frames, `FilamentController` will notify `FilamentWidget` when a rendering surface is available the viewport 
 5) `FilamentWidget` will replace the default `initial` Widget with the viewport (which will initially be solid black or white, depending on your platform).
 
