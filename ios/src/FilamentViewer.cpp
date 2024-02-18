@@ -199,18 +199,14 @@ namespace polyvox
     // options.quality = View::QualityLevel::ULTRA;
     _view->setDynamicResolutionOptions(options);
 
-    View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
-    multiSampleAntiAliasingOptions.enabled = true;
+    setAntiAliasing(false, true, false);
 
-    _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
-
-    _view->setAntiAliasing(AntiAliasing::NONE);
-
+  
     EntityManager &em = EntityManager::get();
 
     _ncm = new NameComponentManager(em);
 
-    _assetManager = new AssetManager(
+    _sceneManager = new SceneManager(
         _resourceLoaderWrapper,
         _ncm,
         _engine,
@@ -271,7 +267,18 @@ namespace polyvox
         .culling(false)
         .build(*_engine, imageEntity);
     _imageEntity = &imageEntity;
-    // _scene->addEntity(imageEntity);
+    _scene->addEntity(imageEntity);
+  }
+
+  void FilamentViewer::setAntiAliasing(bool msaa, bool fxaa, bool taa) {
+    View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
+    multiSampleAntiAliasingOptions.enabled = msaa;
+
+    _view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
+    TemporalAntiAliasingOptions taaOpts;
+    taaOpts.enabled = taa;
+    _view->setTemporalAntiAliasingOptions(taaOpts);
+    _view->setAntiAliasing(fxaa ? AntiAliasing::FXAA : AntiAliasing::NONE);
   }
 
   void FilamentViewer::setPostProcessing(bool enabled)
@@ -640,7 +647,7 @@ namespace polyvox
   FilamentViewer::~FilamentViewer()
   {
     clearEntities();
-    delete _assetManager;
+    delete _sceneManager;
 
     for (auto it : _lights)
     {
@@ -727,15 +734,8 @@ namespace polyvox
 
   void FilamentViewer::clearEntities()
   {
-    Log("Clearing all assets");
-    if (_mainCamera)
-    {
-      _view->setCamera(_mainCamera);
-    }
-
-    _assetManager->destroyAll();
-
-    Log("Cleared all assets");
+    _view->setCamera(_mainCamera);
+    _sceneManager->destroyAll();
   }
 
   void FilamentViewer::removeEntity(EntityId asset)
@@ -744,8 +744,7 @@ namespace polyvox
 
     mtx.lock();
     // todo - what if we are using a camera from this asset?
-    _view->setCamera(_mainCamera);
-    _assetManager->remove(asset);
+    _sceneManager->remove(asset);
     mtx.unlock();
   }
 
@@ -803,6 +802,10 @@ namespace polyvox
     cam.setFocusDistance(_cameraFocusDistance);
   }
 
+  void FilamentViewer::setMainCamera() {
+    _view->setCamera(_mainCamera);
+  }
+
   ///
   /// Sets the active camera to the GLTF camera node specified by [name] (or if null, the first camera found under that node).
   /// N.B. Blender will generally export a three-node hierarchy -
@@ -811,7 +814,7 @@ namespace polyvox
   bool FilamentViewer::setCamera(EntityId entityId, const char *cameraName)
   {
 
-    auto asset = _assetManager->getAssetByEntityId(entityId);
+    auto asset = _sceneManager->getAssetByEntityId(entityId);
     if (!asset)
     {
       Log("Failed to find asset under entity id %d.", entityId);
@@ -1037,8 +1040,9 @@ namespace polyvox
 
     Timer tmr;
 
-    _assetManager->updateTransforms();
-    _assetManager->updateAnimations();
+    _sceneManager->updateTransforms();
+    _sceneManager->updateAnimations();
+    _sceneManager->checkNonTransformableCollisions();
 
     _cumulativeAnimationUpdateTime += tmr.elapsed();
 
@@ -1214,6 +1218,12 @@ namespace polyvox
     _view->setFrustumCullingEnabled(enabled);
   }
 
+  void FilamentViewer::setCameraFov(double fovInDegrees, double aspect) {
+    Camera &cam = _view->getCamera();
+    cam.setProjection(fovInDegrees, aspect, _near, _far, Camera::Fov::HORIZONTAL);
+    Log("Set camera projection fov to %f", fovInDegrees);
+  }
+
   void FilamentViewer::setCameraPosition(float x, float y, float z)
   {
     Camera &cam = _view->getCamera();
@@ -1224,7 +1234,7 @@ namespace polyvox
 
   void FilamentViewer::moveCameraToAsset(EntityId entityId)
   {
-    auto asset = _assetManager->getAssetByEntityId(entityId);
+    auto asset = _sceneManager->getAssetByEntityId(entityId);
     if (!asset)
     {
       Log("Failed to find asset attached to specified entity id.");

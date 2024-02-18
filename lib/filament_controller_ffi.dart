@@ -36,7 +36,7 @@ class FilamentControllerFFI extends FilamentController {
 
   double _pixelRatio = 1.0;
 
-  late Pointer<Void>? _assetManager;
+  late Pointer<Void>? _sceneManager;
 
   Pointer<Void>? _viewer;
 
@@ -169,7 +169,7 @@ class FilamentControllerFFI extends FilamentController {
 
     _viewer = null;
 
-    _assetManager = null;
+    _sceneManager = null;
     destroy_filament_viewer_ffi(viewer!);
     hasViewer.value = false;
   }
@@ -250,7 +250,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Failed to create viewer. Check logs for details");
     }
 
-    _assetManager = get_asset_manager(_viewer!);
+    _sceneManager = get_scene_manager(_viewer!);
 
     create_swap_chain_ffi(_viewer!, renderingSurface.surface,
         _rect.value!.width.toInt(), _rect.value!.height.toInt());
@@ -386,8 +386,6 @@ class FilamentControllerFFI extends FilamentController {
       if (_viewer!.address == 0) {
         throw Exception("Failed to create viewer. Check logs for details");
       }
-
-      _assetManager = get_asset_manager(_viewer!);
 
       if (!_usesBackingWindow) {
         create_swap_chain_ffi(_viewer!, renderingSurface.surface,
@@ -556,7 +554,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Not yet implemented");
     }
     final pathPtr = path.toNativeUtf8().cast<Char>();
-    var entity = load_glb_ffi(_assetManager!, pathPtr, unlit);
+    var entity = load_glb_ffi(_sceneManager!, pathPtr, unlit);
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
@@ -580,7 +578,7 @@ class FilamentControllerFFI extends FilamentController {
     final relativeResourcePathPtr =
         relativeResourcePath.toNativeUtf8().cast<Char>();
     var entity =
-        load_gltf_ffi(_assetManager!, pathPtr, relativeResourcePathPtr);
+        load_gltf_ffi(_sceneManager!, pathPtr, relativeResourcePathPtr);
     allocator.free(pathPtr);
     allocator.free(relativeResourcePathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
@@ -652,7 +650,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     var meshNamePtr = meshName.toNativeUtf8(allocator: allocator).cast<Char>();
     set_morph_target_weights_ffi(
-        _assetManager!, entity, meshNamePtr, weightsPtr, weights.length);
+        _sceneManager!, entity, meshNamePtr, weightsPtr, weights.length);
     allocator.free(weightsPtr);
     allocator.free(meshNamePtr);
   }
@@ -666,10 +664,10 @@ class FilamentControllerFFI extends FilamentController {
     var names = <String>[];
     var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
     var count =
-        get_morph_target_name_count_ffi(_assetManager!, entity, meshNamePtr);
+        get_morph_target_name_count_ffi(_sceneManager!, entity, meshNamePtr);
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < count; i++) {
-      get_morph_target_name(_assetManager!, entity, meshNamePtr, outPtr, i);
+      get_morph_target_name(_sceneManager!, entity, meshNamePtr, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     allocator.free(outPtr);
@@ -682,11 +680,11 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var animationCount = get_animation_count(_assetManager!, entity);
+    var animationCount = get_animation_count(_sceneManager!, entity);
     var names = <String>[];
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < animationCount; i++) {
-      get_animation_name_ffi(_assetManager!, entity, outPtr, i);
+      get_animation_name_ffi(_sceneManager!, entity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
 
@@ -700,7 +698,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     var duration =
-        get_animation_duration(_assetManager!, entity, animationIndex);
+        get_animation_duration(_sceneManager!, entity, animationIndex);
 
     return duration;
   }
@@ -740,7 +738,7 @@ class FilamentControllerFFI extends FilamentController {
           meshName.toNativeUtf8(allocator: allocator).cast<Char>();
 
       set_morph_animation(
-          _assetManager!,
+          _sceneManager!,
           entity,
           meshNamePtr,
           dataPtr,
@@ -789,7 +787,7 @@ class FilamentControllerFFI extends FilamentController {
       }
 
       add_bone_animation_ffi(
-          _assetManager!,
+          _sceneManager!,
           entity,
           data,
           numFrames,
@@ -813,7 +811,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == nullptr) {
       throw Exception("No viewer available, ignoring");
     }
-    reset_to_rest_pose_ffi(_assetManager!, entity);
+    reset_to_rest_pose_ffi(_sceneManager!, entity);
   }
 
   @override
@@ -873,7 +871,21 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     play_animation_ffi(
-        _assetManager!, entity, index, loop, reverse, replaceActive, crossfade);
+        _sceneManager!, entity, index, loop, reverse, replaceActive, crossfade);
+  }
+
+  @override
+  Future playAnimationByName(FilamentEntity entity, String name,
+      {bool loop = false,
+      bool reverse = false,
+      bool replaceActive = true,
+      double crossfade = 0.0}) async {
+    var animations = await getAnimationNames(entity);
+    await playAnimation(entity, animations.indexOf(name),
+        loop: loop,
+        reverse: reverse,
+        replaceActive: replaceActive,
+        crossfade: crossfade);
   }
 
   @override
@@ -882,7 +894,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    set_animation_frame(_assetManager!, entity, index, animationFrame);
+    set_animation_frame(_sceneManager!, entity, index, animationFrame);
   }
 
   @override
@@ -890,7 +902,12 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    stop_animation(_assetManager!, entity, animationIndex);
+    stop_animation(_sceneManager!, entity, animationIndex);
+  }
+
+  @override
+  Future setMainCamera() async {
+    set_main_camera(_viewer!);
   }
 
   @override
@@ -925,6 +942,11 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
+  Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
+    set_antialiasing(_viewer!, msaa, fxaa, taa);
+  }
+
+  @override
   Future setBloom(double bloom) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -938,6 +960,11 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     set_camera_focal_length(_viewer!, focalLength);
+  }
+
+  @override
+  Future setCameraFov(double degrees) async {
+    set_camera_fov(_viewer!, degrees, _rect.value!.width / _rect.value!.height);
   }
 
   @override
@@ -1029,7 +1056,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
     var result = set_material_color(
-        _assetManager!,
+        _sceneManager!,
         entity,
         meshNamePtr,
         materialIndex,
@@ -1048,7 +1075,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    transform_to_unit_cube(_assetManager!, entity);
+    transform_to_unit_cube(_sceneManager!, entity);
   }
 
   @override
@@ -1058,7 +1085,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
 
-    set_position(_assetManager!, entity, x, y, z);
+    set_position(_sceneManager!, entity, x, y, z);
   }
 
   @override
@@ -1077,7 +1104,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    set_rotation(_assetManager!, entity, rotation.radians, rotation.x,
+    set_rotation(_sceneManager!, entity, rotation.radians, rotation.x,
         rotation.y, rotation.z, rotation.w);
   }
 
@@ -1086,7 +1113,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    set_scale(_assetManager!, entity, scale);
+    set_scale(_sceneManager!, entity, scale);
   }
 
   @override
@@ -1097,7 +1124,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
 
-    queue_position_update(_assetManager!, entity, x, y, z, relative);
+    queue_position_update(_sceneManager!, entity, x, y, z, relative);
   }
 
   @override
@@ -1116,17 +1143,17 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    queue_rotation_update(_assetManager!, entity, rotation.radians, rotation.x,
+    queue_rotation_update(_sceneManager!, entity, rotation.radians, rotation.x,
         rotation.y, rotation.z, rotation.w, relative);
   }
 
   @override
-  Future hide(FilamentEntity entity, String meshName) async {
+  Future hide(FilamentEntity entity, String? meshName) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    final meshNamePtr = meshName.toNativeUtf8().cast<Char>();
-    if (hide_mesh(_assetManager!, entity, meshNamePtr) != 1) {}
+    final meshNamePtr = meshName?.toNativeUtf8().cast<Char>() ?? nullptr;
+    if (hide_mesh(_sceneManager!, entity, meshNamePtr) != 1) {}
     allocator.free(meshNamePtr);
   }
 
@@ -1137,7 +1164,7 @@ class FilamentControllerFFI extends FilamentController {
     }
 
     final meshNamePtr = meshName.toNativeUtf8().cast<Char>();
-    final result = reveal_mesh(_assetManager!, entity, meshNamePtr) != 1;
+    final result = reveal_mesh(_sceneManager!, entity, meshNamePtr) != 1;
     allocator.free(meshNamePtr);
     if (!result) {
       throw Exception("Failed to reveal mesh $meshName");
@@ -1146,7 +1173,7 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   String? getNameForEntity(FilamentEntity entity) {
-    final result = get_name_for_entity(_assetManager!, entity);
+    final result = get_name_for_entity(_sceneManager!, entity);
     if (result == nullptr) {
       return null;
     }
@@ -1316,7 +1343,7 @@ class FilamentControllerFFI extends FilamentController {
     var boneNamePtr = boneName.toNativeUtf8(allocator: allocator).cast<Char>();
 
     var result = set_bone_transform_ffi(
-        _assetManager!, entity, meshNamePtr, ptr, boneNamePtr);
+        _sceneManager!, entity, meshNamePtr, ptr, boneNamePtr);
 
     allocator.free(ptr);
     allocator.free(meshNamePtr);
@@ -1333,7 +1360,7 @@ class FilamentControllerFFI extends FilamentController {
         childName.toNativeUtf8(allocator: allocator).cast<Char>();
 
     var childEntity =
-        find_child_entity_by_name(_assetManager!, parent, childNamePtr);
+        find_child_entity_by_name(_sceneManager!, parent, childNamePtr);
     allocator.free(childNamePtr);
     if (childEntity == _FILAMENT_ASSET_ERROR) {
       throw Exception(
@@ -1344,10 +1371,10 @@ class FilamentControllerFFI extends FilamentController {
 
   Future<List<String>> getMeshNames(FilamentEntity entity,
       {bool async = false}) async {
-    var count = get_entity_count(_assetManager!, entity, true);
+    var count = get_entity_count(_sceneManager!, entity, true);
     var names = <String>[];
     for (int i = 0; i < count; i++) {
-      var name = get_entity_name_at(_assetManager!, entity, i, true);
+      var name = get_entity_name_at(_sceneManager!, entity, i, true);
       if (name == nullptr) {
         throw Exception("Failed to find mesh at index $i");
       }
@@ -1369,6 +1396,7 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   HardwareKeyboardListener? _keyboardListener;
+  @override
   Future<EntityTransformController> control(FilamentEntity entity,
       {double? translationSpeed, String? forwardAnimation}) async {
     int? forwardAnimationIndex;
@@ -1390,23 +1418,33 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future addCollisionComponent(FilamentEntity entity,
-      {void Function(int entityId)? callback,
+  Future addCollisionComponent(FilamentEntity collidableEntity,
+      {void Function(int entityId1, int entityId2)? callback,
       bool affectsCollingTransform = false}) async {
-    if (_assetManager == null) {
-      throw Exception("AssetManager must be non-null");
+    if (_sceneManager == null) {
+      throw Exception("SceneManager must be non-null");
     }
     // ignore: sdk_version_since
 
     if (callback != null) {
-      var ptr =
-          NativeCallable<Void Function(Int32 entityId)>.listener(callback);
-      add_collision_component(
-          _assetManager!, entity, ptr.nativeFunction, affectsCollingTransform);
+      var ptr = NativeCallable<
+          Void Function(Int32 entityId1, Int32 entityId2)>.listener(callback);
+      add_collision_component(_sceneManager!, collidableEntity,
+          ptr.nativeFunction, affectsCollingTransform);
     } else {
       add_collision_component(
-          _assetManager!, entity, nullptr, affectsCollingTransform);
+          _sceneManager!, collidableEntity, nullptr, affectsCollingTransform);
     }
+  }
+
+  @override
+  Future markNonTransformableCollidable(FilamentEntity entity) async {
+    mark_nontransformable_collidable(_sceneManager!, entity);
+  }
+
+  @override
+  Future unmarkNonTransformableCollidable(FilamentEntity entity) async {
+    unmark_nontransformable_collidable(_sceneManager!, entity);
   }
 
   @override
@@ -1446,9 +1484,9 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setParent(FilamentEntity child, FilamentEntity parent) async {
-    if (_assetManager == null) {
+    if (_sceneManager == null) {
       throw Exception("Asset manager must be non-null");
     }
-    set_parent(_assetManager!, child, parent);
+    set_parent(_sceneManager!, child, parent);
   }
 }

@@ -57,7 +57,7 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT const void *create_filament_viewer(const void *const context, const ResourceLoaderWrapper *const loader, void *const platform, const char *uberArchivePath);
 	FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT ResourceLoaderWrapper *make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void *owner);
-	FLUTTER_PLUGIN_EXPORT void *get_asset_manager(const void *const viewer);
+	FLUTTER_PLUGIN_EXPORT void *get_scene_manager(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT void create_render_target(const void *const viewer, intptr_t texture, uint32_t width, uint32_t height);
 	FLUTTER_PLUGIN_EXPORT void clear_background_image(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT void set_background_image(const void *const viewer, const char *path, bool fillHeight);
@@ -73,8 +73,9 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT EntityId add_light(const void *const viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
 	FLUTTER_PLUGIN_EXPORT void remove_light(const void *const viewer, EntityId entityId);
 	FLUTTER_PLUGIN_EXPORT void clear_lights(const void *const viewer);
-	FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *assetManager, const char *assetPath, bool unlit);
-	FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void *assetManager, const char *assetPath, const char *relativePath);
+	FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *sceneManager, const char *assetPath, bool unlit);
+	FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath);
+	FLUTTER_PLUGIN_EXPORT void set_main_camera(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT bool set_camera(const void *const viewer, EntityId asset, const char *nodeName);
 	FLUTTER_PLUGIN_EXPORT void set_view_frustum_culling(const void *const viewer, bool enabled);
 	FLUTTER_PLUGIN_EXPORT void render(
@@ -94,19 +95,19 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void grab_update(const void *const viewer, float x, float y);
 	FLUTTER_PLUGIN_EXPORT void grab_end(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT void apply_weights(
-		void *assetManager,
+		void *sceneManager,
 		EntityId asset,
 		const char *const entityName,
 		float *const weights,
 		int count);
 	FLUTTER_PLUGIN_EXPORT void set_morph_target_weights(
-		void *assetManager,
+		void *sceneManager,
 		EntityId asset,
 		const char *const entityName,
 		const float *const morphData,
 		int numWeights);
 	FLUTTER_PLUGIN_EXPORT bool set_morph_animation(
-		void *assetManager,
+		void *sceneManager,
 		EntityId asset,
 		const char *const entityName,
 		const float *const morphData,
@@ -116,10 +117,10 @@ extern "C"
 		float frameLengthInMs);
 	
 	FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose(
-		void *assetManager,
+		void *sceneManager,
 		EntityId asset);
 	FLUTTER_PLUGIN_EXPORT void add_bone_animation(
-		void *assetManager,
+		void *sceneManager,
 		EntityId asset,
 		const float *const frameData,
 		int numFrames,
@@ -129,28 +130,28 @@ extern "C"
 		float frameLengthInMs,
 		bool isModelSpace);
 	FLUTTER_PLUGIN_EXPORT bool set_bone_transform(
-		void *assetManager,
+		void *sceneManager,
 		EntityId asset,
 		const char *entityName,
 		const float *const transform,
 		const char *boneName);
-	FLUTTER_PLUGIN_EXPORT void play_animation(void *assetManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
-	FLUTTER_PLUGIN_EXPORT void set_animation_frame(void *assetManager, EntityId asset, int animationIndex, int animationFrame);
-	FLUTTER_PLUGIN_EXPORT void stop_animation(void *assetManager, EntityId asset, int index);
-	FLUTTER_PLUGIN_EXPORT int get_animation_count(void *assetManager, EntityId asset);
-	FLUTTER_PLUGIN_EXPORT void get_animation_name(void *assetManager, EntityId asset, char *const outPtr, int index);
-	FLUTTER_PLUGIN_EXPORT float get_animation_duration(void *assetManager, EntityId asset, int index);
-	FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void *assetManager, EntityId asset, const char *meshName, char *const outPtr, int index);
-	FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void *assetManager, EntityId asset, const char *meshName);
+	FLUTTER_PLUGIN_EXPORT void play_animation(void *sceneManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
+	FLUTTER_PLUGIN_EXPORT void set_animation_frame(void *sceneManager, EntityId asset, int animationIndex, int animationFrame);
+	FLUTTER_PLUGIN_EXPORT void stop_animation(void *sceneManager, EntityId asset, int index);
+	FLUTTER_PLUGIN_EXPORT int get_animation_count(void *sceneManager, EntityId asset);
+	FLUTTER_PLUGIN_EXPORT void get_animation_name(void *sceneManager, EntityId asset, char *const outPtr, int index);
+	FLUTTER_PLUGIN_EXPORT float get_animation_duration(void *sceneManager, EntityId asset, int index);
+	FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void *sceneManager, EntityId asset, const char *meshName, char *const outPtr, int index);
+	FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void *sceneManager, EntityId asset, const char *meshName);
 	FLUTTER_PLUGIN_EXPORT void remove_entity(const void *const viewer, EntityId asset);
 	FLUTTER_PLUGIN_EXPORT void clear_entities(const void *const viewer);
-	FLUTTER_PLUGIN_EXPORT bool set_material_color(void *assetManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
-	FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void *assetManager, EntityId asset);
-	FLUTTER_PLUGIN_EXPORT void queue_position_update(void *assetManager, EntityId asset, float x, float y, float z, bool relative);
-	FLUTTER_PLUGIN_EXPORT void queue_rotation_update(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative);
-	FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z);
-	FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w);
-	FLUTTER_PLUGIN_EXPORT void set_scale(void *assetManager, EntityId asset, float scale);
+	FLUTTER_PLUGIN_EXPORT bool set_material_color(void *sceneManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
+	FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void *sceneManager, EntityId asset);
+	FLUTTER_PLUGIN_EXPORT void queue_position_update(void *sceneManager, EntityId asset, float x, float y, float z, bool relative);
+	FLUTTER_PLUGIN_EXPORT void queue_rotation_update(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative);
+	FLUTTER_PLUGIN_EXPORT void set_position(void *sceneManager, EntityId asset, float x, float y, float z);
+	FLUTTER_PLUGIN_EXPORT void set_rotation(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w);
+	FLUTTER_PLUGIN_EXPORT void set_scale(void *sceneManager, EntityId asset, float scale);
 
 	// Camera methods
 	FLUTTER_PLUGIN_EXPORT void move_camera_to_asset(const void *const viewer, EntityId asset);
@@ -169,25 +170,29 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT double get_camera_culling_far(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT const double *const get_camera_culling_projection_matrix(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT const double *const get_camera_frustum(const void *const viewer);
+	FLUTTER_PLUGIN_EXPORT void set_camera_fov(const void *const viewer, float fovInDegrees, float aspect);
 	FLUTTER_PLUGIN_EXPORT void set_camera_focal_length(const void *const viewer, float focalLength);
 	FLUTTER_PLUGIN_EXPORT void set_camera_focus_distance(const void *const viewer, float focusDistance);
 	FLUTTER_PLUGIN_EXPORT void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
 
-	FLUTTER_PLUGIN_EXPORT int hide_mesh(void *assetManager, EntityId asset, const char *meshName);
-	FLUTTER_PLUGIN_EXPORT int reveal_mesh(void *assetManager, EntityId asset, const char *meshName);
+	FLUTTER_PLUGIN_EXPORT int hide_mesh(void *sceneManager, EntityId asset, const char *meshName);
+	FLUTTER_PLUGIN_EXPORT int reveal_mesh(void *sceneManager, EntityId asset, const char *meshName);
 	FLUTTER_PLUGIN_EXPORT void set_post_processing(void *const viewer, bool enabled);
+	FLUTTER_PLUGIN_EXPORT void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa);
 	FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, EntityId *entityId);
-	FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const assetManager, const EntityId entityId);
-	FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const assetManager, const EntityId parent, const char* name);
-	FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const assetManager, const EntityId target, bool renderableOnly);
-	FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const assetManager, const EntityId target, int index, bool renderableOnly);
+	FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const sceneManager, const EntityId entityId);
+	FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name);
+	FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const sceneManager, const EntityId target, bool renderableOnly);
+	FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly);
 	FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording);
 	FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory);
 	FLUTTER_PLUGIN_EXPORT void ios_dummy();
 	FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void *ptr);
-	FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId, void (*callback)(const EntityId entityId), bool affectsCollidingTransform);
+	FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const sceneManager, EntityId entityId, void (*callback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
+	FLUTTER_PLUGIN_EXPORT void mark_nontransformable_collidable(void *const sceneManager, EntityId entityId);
+	FLUTTER_PLUGIN_EXPORT void unmark_nontransformable_collidable(void *const sceneManager, EntityId entityId);
 	FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath);
-	FLUTTER_PLUGIN_EXPORT void set_parent(void *const assetManager, EntityId child, EntityId parent);
+	FLUTTER_PLUGIN_EXPORT void set_parent(void *const sceneManager, EntityId child, EntityId parent);
 
 #ifdef __cplusplus
 }

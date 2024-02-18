@@ -32,7 +32,7 @@
 #include <string>
 #include <chrono>
 
-#include "AssetManager.hpp"
+#include "SceneManager.hpp"
 #include "ThreadPool.hpp"
 
 using namespace std;
@@ -82,6 +82,8 @@ namespace polyvox
         void setFrameInterval(float interval);
 
         bool setCamera(EntityId asset, const char *nodeName);
+        void setMainCamera();
+        void setCameraFov(double fovDegrees, double aspect);
 
         void createSwapChain(const void *surface, uint32_t width, uint32_t height);
         void destroySwapChain();
@@ -131,11 +133,13 @@ namespace polyvox
         void setRecording(bool recording);
         void setRecordingOutputDirectory(const char* path);
 
+        void setAntiAliasing(bool msaaEnabled, bool fxaaEnabled, bool taaEnabled);
+
         EntityId createGeometry(float* vertices, uint32_t numVertices, uint16_t* indices, uint32_t numIndices, const char* materialPath);
 
-        AssetManager *const getAssetManager()
+        SceneManager *const getSceneManager()
         {
-            return (AssetManager *const)_assetManager;
+            return (SceneManager *const)_sceneManager;
         }
 
     private:
@@ -152,7 +156,7 @@ namespace polyvox
 
         SwapChain *_swapChain = nullptr;
 
-        AssetManager *_assetManager = nullptr;
+        SceneManager *_sceneManager = nullptr;
 
         NameComponentManager *_ncm = nullptr;
 

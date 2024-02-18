@@ -19,15 +19,15 @@ namespace polyvox
     using namespace filament;
     using namespace filament::gltfio;
 
-    class AssetManager
+    class SceneManager
     {
     public:
-        AssetManager(const ResourceLoaderWrapper *const loader,
+        SceneManager(const ResourceLoaderWrapper *const loader,
                      NameComponentManager *ncm,
                      Engine *engine,
                      Scene *scene,
                      const char *uberArchivePath);
-        ~AssetManager();
+        ~SceneManager();
         EntityId loadGltf(const char *uri, const char *relativeResourcePath);
         EntityId loadGlb(const char *uri, bool unlit);
         FilamentAsset *getAssetByEntityId(EntityId entityId);
@@ -103,8 +103,11 @@ namespace polyvox
             const char *entityName);
         int getEntityCount(EntityId entity, bool renderableOnly);
         const char* getEntityNameAt(EntityId entity, int index, bool renderableOnly);
-        void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(EntityId entityId), bool affectsCollidingTransform);
+        void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
+        void markNonTransformableCollidable(EntityId entity);
+        void unmarkNonTransformableCollidable(EntityId entity);
+        void checkNonTransformableCollisions();
         void setParent(EntityId child, EntityId parent);
 
     private:
@@ -122,6 +125,7 @@ namespace polyvox
         vector<SceneAsset> _assets;
         tsl::robin_map<EntityId, int> _entityIdLookup;
         tsl::robin_map<EntityId, std::tuple<math::float3,bool,math::quatf,bool,float>> _transformUpdates;
+        std::vector<EntityId> _nonTransformableCollidableEntities;
 
         CollisionComponentManager* _collisionComponentManager = nullptr;
 

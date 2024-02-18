@@ -326,6 +326,15 @@ abstract class FilamentController {
       bool replaceActive = true,
       double crossfade = 0.0});
 
+  ///
+  /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
+  ///
+  Future playAnimationByName(FilamentEntity entity, String name,
+      {bool loop = false,
+      bool reverse = false,
+      bool replaceActive = true,
+      double crossfade = 0.0});
+
   Future setAnimationFrame(
       FilamentEntity entity, int index, int animationFrame);
   Future stopAnimation(FilamentEntity entity, int animationIndex);
@@ -334,6 +343,16 @@ abstract class FilamentController {
   /// Sets the current scene camera to the glTF camera under [name] in [entity].
   ///
   Future setCamera(FilamentEntity entity, String? name);
+
+  ///
+  /// Sets the current scene camera to the main camera (which is always available and added to every scene by default).
+  ///
+  Future setMainCamera();
+
+  ///
+  /// Sets the current scene camera to the glTF camera under [name] in [entity].
+  ///
+  Future setCameraFov(double degrees);
 
   ///
   /// Sets the tone mapping (requires postprocessing).
@@ -492,6 +511,11 @@ abstract class FilamentController {
   Future setPostProcessing(bool enabled);
 
   ///
+  /// Set antialiasing options.
+  ///
+  Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
+
+  ///
   /// Sets the rotation for [entity] to the specified quaternion.
   ///
   Future setRotationQuat(FilamentEntity entity, Quaternion rotation);
@@ -502,9 +526,10 @@ abstract class FilamentController {
   Future reveal(FilamentEntity entity, String meshName);
 
   ///
-  /// Hide the node [meshName] under [entity]. The node is still loaded, but is no longer being rendered into the scene. Call [reveal] to re-commence rendering.
+  /// If [meshName] is provided, hide the node [meshName] under [entity], otherwise hide the root node for [entity].
+  /// The entity still exists in memory, but is no longer being rendered into the scene. Call [reveal] to re-commence rendering.
   ///
-  Future hide(FilamentEntity entity, String meshName);
+  Future hide(FilamentEntity entity, String? meshName);
 
   ///
   /// Used to select the entity in the scene at the given viewport coordinates.
@@ -559,13 +584,25 @@ abstract class FilamentController {
       {double? translationSpeed, String? forwardAnimation});
 
   ///
-  /// Make [collidableEntity] collidable.
-  /// At the moment, this is only relevant when controlling a different entity's transform.
-  /// If there is a collision between the controlled entity and [collidableEntity], the transform will not be updated.
+  /// Makes [collidableEntity] collidable with
+  ///   (a) any entity whose transform is being controlled (via [control]) or
+  ///   (b) any entity that has been marked as non-transformable but collidable (via [markNonTransformableCollidable])
+  /// These are differentiated because a collision will affect the transform for controlled entities
+  /// (e.g. if a controlled entity collides with a wall, we ignore the control update to the transform so it doesn't go through the wall)
   ///
   Future addCollisionComponent(FilamentEntity collidableEntity,
-      {void Function(int entityId)? callback,
+      {void Function(int entityId1, int entityId2)? callback,
       bool affectsCollingTransform = false});
+
+  ///
+  /// Make [entity] collidable, without affecting its transform.
+  ///
+  Future markNonTransformableCollidable(FilamentEntity entity);
+
+  ///
+  /// Make [entity] no longer collidable.
+  ///
+  Future unmarkNonTransformableCollidable(FilamentEntity entity);
 
   ///
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
