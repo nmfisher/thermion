@@ -34,14 +34,14 @@ class FilamentGestureDetector extends StatelessWidget {
   ///
   /// If false, all gestures will be ignored.
   ///
-  final bool listenerEnabled;
+  final bool enabled;
 
   const FilamentGestureDetector(
       {Key? key,
       required this.controller,
       this.child,
       this.showControlOverlay = false,
-      this.listenerEnabled = true})
+      this.enabled = true})
       : super(key: key);
 
   @override
@@ -53,14 +53,14 @@ class FilamentGestureDetector extends StatelessWidget {
         controller: controller,
         child: child,
         showControlOverlay: showControlOverlay,
-        listenerEnabled: listenerEnabled,
+        listenerEnabled: enabled,
       );
     } else {
       return FilamentGestureDetectorMobile(
         controller: controller,
         child: child,
         showControlOverlay: showControlOverlay,
-        listenerEnabled: listenerEnabled,
+        listenerEnabled: enabled,
       );
     }
   }
