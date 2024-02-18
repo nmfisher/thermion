@@ -114,19 +114,29 @@ extern "C"
         ((FilamentViewer *)viewer)->clearLights();
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *assetManager, const char *assetPath, bool unlit)
+    FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *sceneManager, const char *assetPath, bool unlit)
     {
-        return ((AssetManager *)assetManager)->loadGlb(assetPath, unlit);
+        return ((SceneManager *)sceneManager)->loadGlb(assetPath, unlit);
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void *assetManager, const char *assetPath, const char *relativePath)
+    FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath)
     {
-        return ((AssetManager *)assetManager)->loadGltf(assetPath, relativePath);
+        return ((SceneManager *)sceneManager)->loadGltf(assetPath, relativePath);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void set_main_camera(const void *const viewer)
+    {
+        return ((FilamentViewer *)viewer)->setMainCamera();
     }
 
     FLUTTER_PLUGIN_EXPORT bool set_camera(const void *const viewer, EntityId asset, const char *nodeName)
     {
         return ((FilamentViewer *)viewer)->setCamera(asset, nodeName);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void set_camera_fov(const void *const viewer, float fovInDegrees, float aspect)
+    {
+        return ((FilamentViewer *)viewer)->setCameraFov(double(fovInDegrees), double(aspect));
     }
 
     const double *const get_camera_model_matrix(const void *const viewer)
@@ -303,34 +313,34 @@ extern "C"
         ((FilamentViewer *)viewer)->grabEnd();
     }
 
-    FLUTTER_PLUGIN_EXPORT void *get_asset_manager(const void *const viewer)
+    FLUTTER_PLUGIN_EXPORT void *get_scene_manager(const void *const viewer)
     {
-        return (void *)((FilamentViewer *)viewer)->getAssetManager();
+        return (void *)((FilamentViewer *)viewer)->getSceneManager();
     }
 
     FLUTTER_PLUGIN_EXPORT void apply_weights(
-        void *assetManager,
+        void *sceneManager,
         EntityId asset,
         const char *const entityName,
         float *const weights,
         int count)
     {
-        // ((AssetManager*)assetManager)->setMorphTargetWeights(asset, entityName, weights, count);
+        // ((SceneManager*)sceneManager)->setMorphTargetWeights(asset, entityName, weights, count);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_morph_target_weights(
-        void *assetManager,
+        void *sceneManager,
         EntityId asset,
         const char *const entityName,
         const float *const weights,
         const int numWeights)
     {
 
-        return ((AssetManager *)assetManager)->setMorphTargetWeights(asset, entityName, weights, numWeights);
+        return ((SceneManager *)sceneManager)->setMorphTargetWeights(asset, entityName, weights, numWeights);
     }
 
     bool set_morph_animation(
-        void *assetManager,
+        void *sceneManager,
         EntityId asset,
         const char *const entityName,
         const float *const morphData,
@@ -340,15 +350,15 @@ extern "C"
         float frameLengthInMs)
     {
 
-        return ((AssetManager *)assetManager)->setMorphAnimationBuffer(asset, entityName, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
+        return ((SceneManager *)sceneManager)->setMorphAnimationBuffer(asset, entityName, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
     }
 
-    FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose(void *assetManager, EntityId entityId) {
-        ((AssetManager*)assetManager)->resetBones(entityId);
+    FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose(void *sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->resetBones(entityId);
     }
 
     FLUTTER_PLUGIN_EXPORT void add_bone_animation(
-        void *assetManager,
+        void *sceneManager,
         EntityId asset,
         const float *const frameData,
         int numFrames,
@@ -358,7 +368,7 @@ extern "C"
         float frameLengthInMs,
         bool isModelSpace)
     {
-        ((AssetManager *)assetManager)->addBoneAnimation(asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs, isModelSpace);
+        ((SceneManager *)sceneManager)->addBoneAnimation(asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs, isModelSpace);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_post_processing(void *const viewer, bool enabled)
@@ -366,8 +376,13 @@ extern "C"
         ((FilamentViewer *)viewer)->setPostProcessing(enabled);
     }
 
+    FLUTTER_PLUGIN_EXPORT void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa) {
+        ((FilamentViewer *)viewer)->setAntiAliasing(msaa, fxaa, taa);
+    }
+
+
     FLUTTER_PLUGIN_EXPORT bool set_bone_transform(
-        void *assetManager,
+        void *sceneManager,
         EntityId entityId,
         const char *entityName,
         const float *const transform,
@@ -389,11 +404,11 @@ extern "C"
             transform[13],
             transform[14],
             transform[15]);
-        return ((AssetManager *)assetManager)->setBoneTransform(entityId, entityName, 0, boneName, matrix);
+        return ((SceneManager *)sceneManager)->setBoneTransform(entityId, entityName, 0, boneName, matrix);
     }
 
     FLUTTER_PLUGIN_EXPORT void play_animation(
-        void *assetManager,
+        void *sceneManager,
         EntityId asset,
         int index,
         bool loop,
@@ -401,51 +416,51 @@ extern "C"
         bool replaceActive,
         float crossfade)
     {
-        ((AssetManager *)assetManager)->playAnimation(asset, index, loop, reverse, replaceActive, crossfade);
+        ((SceneManager *)sceneManager)->playAnimation(asset, index, loop, reverse, replaceActive, crossfade);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_animation_frame(
-        void *assetManager,
+        void *sceneManager,
         EntityId asset,
         int animationIndex,
         int animationFrame)
     {
-        // ((AssetManager*)assetManager)->setAnimationFrame(asset, animationIndex, animationFrame);
+        // ((SceneManager*)sceneManager)->setAnimationFrame(asset, animationIndex, animationFrame);
     }
 
-    float get_animation_duration(void *assetManager, EntityId asset, int animationIndex)
+    float get_animation_duration(void *sceneManager, EntityId asset, int animationIndex)
     {
-        return ((AssetManager *)assetManager)->getAnimationDuration(asset, animationIndex);
+        return ((SceneManager *)sceneManager)->getAnimationDuration(asset, animationIndex);
     }
 
     int get_animation_count(
-        void *assetManager,
+        void *sceneManager,
         EntityId asset)
     {
-        auto names = ((AssetManager *)assetManager)->getAnimationNames(asset);
+        auto names = ((SceneManager *)sceneManager)->getAnimationNames(asset);
         return (int)names->size();
     }
 
     FLUTTER_PLUGIN_EXPORT void get_animation_name(
-        void *assetManager,
+        void *sceneManager,
         EntityId asset,
         char *const outPtr,
         int index)
     {
-        auto names = ((AssetManager *)assetManager)->getAnimationNames(asset);
+        auto names = ((SceneManager *)sceneManager)->getAnimationNames(asset);
         string name = names->at(index);
         strcpy(outPtr, name.c_str());
     }
 
-    FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void *assetManager, EntityId asset, const char *meshName)
+    FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void *sceneManager, EntityId asset, const char *meshName)
     {
-        unique_ptr<vector<string>> names = ((AssetManager *)assetManager)->getMorphTargetNames(asset, meshName);
+        unique_ptr<vector<string>> names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
         return (int)names->size();
     }
 
-    FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void *assetManager, EntityId asset, const char *meshName, char *const outPtr, int index)
+    FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void *sceneManager, EntityId asset, const char *meshName, char *const outPtr, int index)
     {
-        unique_ptr<vector<string>> names = ((AssetManager *)assetManager)->getMorphTargetNames(asset, meshName);
+        unique_ptr<vector<string>> names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
         string name = names->at(index);
         strcpy(outPtr, name.c_str());
     }
@@ -460,54 +475,54 @@ extern "C"
         ((FilamentViewer *)viewer)->clearEntities();
     }
 
-    bool set_material_color(void *assetManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)
+    bool set_material_color(void *sceneManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)
     {
-        return ((AssetManager *)assetManager)->setMaterialColor(asset, meshName, materialIndex, r, g, b, a);
+        return ((SceneManager *)sceneManager)->setMaterialColor(asset, meshName, materialIndex, r, g, b, a);
     }
 
-    FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void *assetManager, EntityId asset)
+    FLUTTER_PLUGIN_EXPORT void transform_to_unit_cube(void *sceneManager, EntityId asset)
     {
-        ((AssetManager *)assetManager)->transformToUnitCube(asset);
+        ((SceneManager *)sceneManager)->transformToUnitCube(asset);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_position(void *assetManager, EntityId asset, float x, float y, float z)
+    FLUTTER_PLUGIN_EXPORT void set_position(void *sceneManager, EntityId asset, float x, float y, float z)
     {
-        ((AssetManager *)assetManager)->setPosition(asset, x, y, z);
+        ((SceneManager *)sceneManager)->setPosition(asset, x, y, z);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_rotation(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w)
+    FLUTTER_PLUGIN_EXPORT void set_rotation(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w)
     {
-        ((AssetManager *)assetManager)->setRotation(asset, rads, x, y, z, w);
+        ((SceneManager *)sceneManager)->setRotation(asset, rads, x, y, z, w);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_scale(void *assetManager, EntityId asset, float scale)
+    FLUTTER_PLUGIN_EXPORT void set_scale(void *sceneManager, EntityId asset, float scale)
     {
-        ((AssetManager *)assetManager)->setScale(asset, scale);
+        ((SceneManager *)sceneManager)->setScale(asset, scale);
     }
 
-    FLUTTER_PLUGIN_EXPORT void queue_position_update(void *assetManager, EntityId asset, float x, float y, float z, bool relative)
+    FLUTTER_PLUGIN_EXPORT void queue_position_update(void *sceneManager, EntityId asset, float x, float y, float z, bool relative)
     {
-        ((AssetManager *)assetManager)->queuePositionUpdate(asset, x, y, z, relative);
+        ((SceneManager *)sceneManager)->queuePositionUpdate(asset, x, y, z, relative);
     }
 
-    FLUTTER_PLUGIN_EXPORT void queue_rotation_update(void *assetManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
+    FLUTTER_PLUGIN_EXPORT void queue_rotation_update(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
     {
-        ((AssetManager *)assetManager)->queueRotationUpdate(asset, rads, x, y, z, w, relative);
+        ((SceneManager *)sceneManager)->queueRotationUpdate(asset, rads, x, y, z, w, relative);
     }
 
-    FLUTTER_PLUGIN_EXPORT void stop_animation(void *assetManager, EntityId asset, int index)
+    FLUTTER_PLUGIN_EXPORT void stop_animation(void *sceneManager, EntityId asset, int index)
     {
-        ((AssetManager *)assetManager)->stopAnimation(asset, index);
+        ((SceneManager *)sceneManager)->stopAnimation(asset, index);
     }
 
-    FLUTTER_PLUGIN_EXPORT int hide_mesh(void *assetManager, EntityId asset, const char *meshName)
+    FLUTTER_PLUGIN_EXPORT int hide_mesh(void *sceneManager, EntityId asset, const char *meshName)
     {
-        return ((AssetManager *)assetManager)->hide(asset, meshName);
+        return ((SceneManager *)sceneManager)->hide(asset, meshName);
     }
 
-    FLUTTER_PLUGIN_EXPORT int reveal_mesh(void *assetManager, EntityId asset, const char *meshName)
+    FLUTTER_PLUGIN_EXPORT int reveal_mesh(void *sceneManager, EntityId asset, const char *meshName)
     {
-        return ((AssetManager *)assetManager)->reveal(asset, meshName);
+        return ((SceneManager *)sceneManager)->reveal(asset, meshName);
     }
 
     FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, EntityId *entityId)
@@ -515,17 +530,17 @@ extern "C"
         ((FilamentViewer *)viewer)->pick(static_cast<uint32_t>(x), static_cast<uint32_t>(y), static_cast<int32_t *>(entityId));
     }
 
-    FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const assetManager, const EntityId entityId)
+    FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const sceneManager, const EntityId entityId)
     {
-        return ((AssetManager *)assetManager)->getNameForEntity(entityId);
+        return ((SceneManager *)sceneManager)->getNameForEntity(entityId);
     }
 
-    FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const assetManager, const EntityId target, bool renderableOnly) {
-        return ((AssetManager *)assetManager)->getEntityCount(target, renderableOnly);
+    FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const sceneManager, const EntityId target, bool renderableOnly) {
+        return ((SceneManager *)sceneManager)->getEntityCount(target, renderableOnly);
     }
 
-    FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const assetManager, const EntityId target, int index, bool renderableOnly) {
-        return ((AssetManager *)assetManager)->getEntityNameAt(target, index, renderableOnly);
+    FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly) {
+        return ((SceneManager *)sceneManager)->getEntityNameAt(target, index, renderableOnly);
     }
 
 
@@ -547,21 +562,30 @@ extern "C"
         free(ptr);
     }
 
-    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const assetManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId), bool affectsCollidingTransform) {
-        ((AssetManager*)assetManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
+    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const sceneManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform) {
+        ((SceneManager*)sceneManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
     }
+
+    FLUTTER_PLUGIN_EXPORT void mark_nontransformable_collidable(void *const sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->markNonTransformableCollidable(entityId);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void unmark_nontransformable_collidable(void *const sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->unmarkNonTransformableCollidable(entityId);
+    }
+
 
     FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
         return ((FilamentViewer*)viewer)->createGeometry(vertices, (size_t)numVertices, indices, numIndices, materialPath);
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const assetManager, const EntityId parent, const char* name) {
-        auto entity = ((AssetManager*)assetManager)->findChildEntityByName(parent, name);
+    FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name) {
+        auto entity = ((SceneManager*)sceneManager)->findChildEntityByName(parent, name);
         return Entity::smuggle(entity);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_parent(void *const assetManager, EntityId child, EntityId parent) {
-        ((AssetManager*)assetManager)->setParent(child, parent);
+    FLUTTER_PLUGIN_EXPORT void set_parent(void *const sceneManager, EntityId child, EntityId parent) {
+        ((SceneManager*)sceneManager)->setParent(child, parent);
     }
 
 }
