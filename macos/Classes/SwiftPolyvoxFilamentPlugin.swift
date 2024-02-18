@@ -13,7 +13,7 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
     
     var pixelBufferAttrs = [
         kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32ABGR ),
-       kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue!,
+    //    kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue!,
         kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary
     ] as CFDictionary
     

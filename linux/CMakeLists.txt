@@ -29,7 +29,7 @@ add_library(${PLUGIN_NAME} SHARED
  "flutter_filament_plugin.cc"
  "filament_texture.cc"
  "filament_pb_texture.cc"
- "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/AssetManager.cpp"
+ "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/SceneManager.cpp"
  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FlutterFilamentApi.cpp"
  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/StreamBufferAdapter.cpp"
