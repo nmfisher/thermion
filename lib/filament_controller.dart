@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:flutter_filament/animations/animation_data.dart';
 import 'package:flutter_filament/entities/entity_transform_controller.dart';
+import 'package:flutter_filament/generated_bindings.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 // a handle that can be safely passed back to the rendering layer to manipulate an Entity
@@ -595,16 +596,6 @@ abstract class FilamentController {
       bool affectsCollingTransform = false});
 
   ///
-  /// Make [entity] collidable, without affecting its transform.
-  ///
-  Future markNonTransformableCollidable(FilamentEntity entity);
-
-  ///
-  /// Make [entity] no longer collidable.
-  ///
-  Future unmarkNonTransformableCollidable(FilamentEntity entity);
-
-  ///
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
   ///
   Future createGeometry(
@@ -614,4 +605,10 @@ abstract class FilamentController {
   /// Sets the parent transform of [child] to the transform of [parent].
   ///
   Future setParent(FilamentEntity child, FilamentEntity parent);
+
+  ///
+  /// Test all collidable entities against this entity to see if any have collided.
+  /// This method returns void; the relevant callback passed to [addCollisionComponent] will be fired if a collision is detected.
+  ///
+  Future testCollisions(FilamentEntity entity);
 }

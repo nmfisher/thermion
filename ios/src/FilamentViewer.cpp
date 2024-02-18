@@ -1042,7 +1042,6 @@ namespace polyvox
 
     _sceneManager->updateTransforms();
     _sceneManager->updateAnimations();
-    _sceneManager->checkNonTransformableCollisions();
 
     _cumulativeAnimationUpdateTime += tmr.elapsed();
 

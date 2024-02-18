@@ -1438,16 +1438,6 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future markNonTransformableCollidable(FilamentEntity entity) async {
-    mark_nontransformable_collidable(_sceneManager!, entity);
-  }
-
-  @override
-  Future unmarkNonTransformableCollidable(FilamentEntity entity) async {
-    unmark_nontransformable_collidable(_sceneManager!, entity);
-  }
-
-  @override
   Future<FilamentEntity> createGeometry(
       List<double> vertices, List<int> indices, String? materialPath) async {
     if (_viewer == null) {
@@ -1488,5 +1478,10 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Asset manager must be non-null");
     }
     set_parent(_sceneManager!, child, parent);
+  }
+
+  @override
+  Future testCollisions(FilamentEntity entity) async {
+    test_collisions(_sceneManager!, entity);
   }
 }

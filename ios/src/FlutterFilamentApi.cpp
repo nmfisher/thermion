@@ -566,15 +566,6 @@ extern "C"
         ((SceneManager*)sceneManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
     }
 
-    FLUTTER_PLUGIN_EXPORT void mark_nontransformable_collidable(void *const sceneManager, EntityId entityId) {
-        ((SceneManager*)sceneManager)->markNonTransformableCollidable(entityId);
-    }
-
-    FLUTTER_PLUGIN_EXPORT void unmark_nontransformable_collidable(void *const sceneManager, EntityId entityId) {
-        ((SceneManager*)sceneManager)->unmarkNonTransformableCollidable(entityId);
-    }
-
-
     FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
         return ((FilamentViewer*)viewer)->createGeometry(vertices, (size_t)numVertices, indices, numIndices, materialPath);
     }
@@ -586,6 +577,10 @@ extern "C"
 
     FLUTTER_PLUGIN_EXPORT void set_parent(void *const sceneManager, EntityId child, EntityId parent) {
         ((SceneManager*)sceneManager)->setParent(child, parent);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void test_collisions(void *const sceneManager, EntityId entity) {
+        ((SceneManager*)sceneManager)->testCollisions(entity);
     }
 
 }

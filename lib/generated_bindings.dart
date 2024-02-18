@@ -891,22 +891,6 @@ external void add_collision_component(
   bool affectsCollidingTransform,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
-    symbol: 'mark_nontransformable_collidable',
-    assetId: 'flutter_filament_plugin')
-external void mark_nontransformable_collidable(
-  ffi.Pointer<ffi.Void> sceneManager,
-  int entityId,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
-    symbol: 'unmark_nontransformable_collidable',
-    assetId: 'flutter_filament_plugin')
-external void unmark_nontransformable_collidable(
-  ffi.Pointer<ffi.Void> sceneManager,
-  int entityId,
-);
-
 @ffi.Native<
         EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>,
             ffi.Int, ffi.Pointer<ffi.Uint16>, ffi.Int, ffi.Pointer<ffi.Char>)>(
@@ -926,6 +910,13 @@ external void set_parent(
   ffi.Pointer<ffi.Void> sceneManager,
   int child,
   int parent,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'test_collisions', assetId: 'flutter_filament_plugin')
+external void test_collisions(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
 );
 
 @ffi.Native<

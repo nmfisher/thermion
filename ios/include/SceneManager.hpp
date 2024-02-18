@@ -49,6 +49,7 @@ namespace polyvox
         size_t getLightEntityCount(EntityId e) const noexcept;
         void updateAnimations();
         void updateTransforms();
+        void testCollisions(EntityId entity);
         bool setMaterialColor(EntityId e, const char *meshName, int materialInstance, const float r, const float g, const float b, const float a);
 
         bool setMorphAnimationBuffer(
@@ -105,10 +106,8 @@ namespace polyvox
         const char* getEntityNameAt(EntityId entity, int index, bool renderableOnly);
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
-        void markNonTransformableCollidable(EntityId entity);
-        void unmarkNonTransformableCollidable(EntityId entity);
-        void checkNonTransformableCollisions();
         void setParent(EntityId child, EntityId parent);
+        
 
     private:
         AssetLoader *_assetLoader = nullptr;

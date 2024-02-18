@@ -1237,67 +1237,24 @@ namespace polyvox
         _collisionComponentManager->elementAt<0>(collisionInstance) = asset.asset->getInstance()->getBoundingBox();
         _collisionComponentManager->elementAt<1>(collisionInstance) = onCollisionCallback;
         _collisionComponentManager->elementAt<2>(collisionInstance) = affectsTransform;
-        
     }
 
-    void SceneManager::markNonTransformableCollidable(EntityId entityId) {
-        // Log("Marking entity %d as non-transforming collidable", entityId);
-        std::lock_guard lock(_mutex);
-        for(auto& existing : _nonTransformableCollidableEntities) {
-            if(existing == entityId) {
-                Log("Collision already exists");
-                return;
-            }
+    void SceneManager::testCollisions(EntityId entityId) { 
+        const auto &pos = _entityIdLookup.find(entityId);
+        if (pos == _entityIdLookup.end())
+        {
+            Log("ERROR: asset not found for entity.");
+            return;
         }
-        _nonTransformableCollidableEntities.push_back(entityId);
-        Log("Mark complete.");
-    }
-    void SceneManager::unmarkNonTransformableCollidable(EntityId entityId) {
-        // Log("Removing non-transformable collidable from entity %d", entityId);
+        auto &asset = _assets[pos->second];   
 
-        std::lock_guard lock(_mutex);
-        auto begin = _nonTransformableCollidableEntities.begin();
-        auto end = _nonTransformableCollidableEntities.end();
-        auto removed = std::remove_if(begin, end, [=](EntityId id) { return id == entityId; });
-        _nonTransformableCollidableEntities.erase(removed);
-    }
-
-    void SceneManager::checkNonTransformableCollisions() { 
-        // Log("checkNonTransformableCollisions %d ", _nonTransformableCollidableEntities.size());
-        std::lock_guard lock(_mutex);
         const auto& tm = _engine->getTransformManager();
-        for(const auto& entityId : _nonTransformableCollidableEntities) { 
 
-            const auto &pos = _entityIdLookup.find(entityId);
-            if (pos == _entityIdLookup.end())
-            {
-                Log("ERROR: asset not found for entity.");
-                continue;
-            }
-            auto &asset = _assets[pos->second];   
-            auto root = asset.asset->getRoot();
-            auto rootId = Entity::smuggle(root);
-            
-            auto transformInstance = tm.getInstance(root);
-
-            if(!transformInstance.isValid()) {
-                Log("Invalid transform, skipping.");
-                continue;
-            }
-            auto parent = tm.getParent(transformInstance);
-
-            if(!parent.isNull()) {
-                transformInstance = tm.getInstance(parent);
-            }
-            auto transform = tm.getTransform(transformInstance);
-            auto worldTransform = tm.getWorldTransform(transformInstance);
-
-            Log("Entity id %d, Local Transform : %f %f %f World transform %f %f %f", rootId, transform[3][0],transform[3][1],transform[3][2], worldTransform[0], worldTransform[1], worldTransform[2]);
-            auto boundingBox = asset.asset->getInstance()->getBoundingBox();
-            auto worldBoundingBox = boundingBox.transform(worldTransform);
-            Log("Checking bounding box at center %f %f %f (world transformed centger %f %f %f)", boundingBox.center().x,boundingBox.center().y, boundingBox.center().z, worldBoundingBox.center().x, worldBoundingBox.center().y, worldBoundingBox.center().z);
-            _collisionComponentManager->collides(entityId, worldBoundingBox);
-        }
+        auto transformInstance = tm.getInstance(asset.asset->getRoot());
+        auto worldTransform = tm.getWorldTransform(transformInstance);
+        auto aabb = asset.asset->getInstance()->getBoundingBox();
+        aabb = aabb.transform(worldTransform);
+        _collisionComponentManager->collides(entityId, aabb);
     }
 
 
@@ -1305,6 +1262,7 @@ namespace polyvox
         std::lock_guard lock(_mutex);
 
         auto &tm = _engine->getTransformManager();
+
         for ( const auto &[entityId, transformUpdate]: _transformUpdates ) {
             const auto &pos = _entityIdLookup.find(entityId);
             if (pos == _entityIdLookup.end())
