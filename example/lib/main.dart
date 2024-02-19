@@ -94,6 +94,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
 
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
           await _filamentController!.createViewer();
+          _createEntityLoadListener();
           await _filamentController!
               .loadSkybox("assets/default_env/default_env_skybox.ktx");
 
@@ -116,6 +117,18 @@ class ExampleWidgetState extends State<ExampleWidget> {
   void dispose() {
     super.dispose();
     _listener.cancel();
+  }
+
+  void _createEntityLoadListener() {
+    _listener =
+        _filamentController!.onLoad.listen((FilamentEntity entity) async {
+      assets.add(entity);
+      animations = await _filamentController!.getAnimationNames(entity);
+      if (mounted) {
+        setState(() {});
+      }
+      print(_filamentController!.getNameForEntity(entity) ?? "NAME NOT FOUND");
+    });
   }
 
   EntityTransformController? _transformController;
@@ -154,7 +167,6 @@ class ExampleWidgetState extends State<ExampleWidget> {
           },
           icon: const Icon(Icons.cancel_sharp)),
     ]);
-    ;
   }
 
   @override
@@ -201,17 +213,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
                     onControllerCreated: (controller) {
                       setState(() {
                         _filamentController = controller;
-                        _listener = _filamentController!.onLoad
-                            .listen((FilamentEntity entity) async {
-                          assets.add(entity);
-                          animations = await _filamentController!
-                              .getAnimationNames(entity);
-                          if (mounted) {
-                            setState(() {});
-                          }
-                          print(_filamentController!.getNameForEntity(entity) ??
-                              "NAME NOT FOUND");
-                        });
+                        _createEntityLoadListener();
                       });
                     }),
                 SceneMenu(
