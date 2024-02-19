@@ -68,8 +68,7 @@ class _IblRotationSliderWidgetState extends State<LightSliderWidget> {
         lightDir.x,
         lightDir.y,
         lightDir.z,
-        castShadows,
-        async: false);
+        castShadows);
 
     setState(() {});
   }
@@ -83,100 +82,114 @@ class _IblRotationSliderWidgetState extends State<LightSliderWidget> {
         data: ThemeData(platform: TargetPlatform.android),
         child: Container(
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.5)),
-            child: Column(children: [
-              Slider(
-                  label: "POSX",
-                  value: lightPos.x,
-                  min: -10.0,
-                  max: 10.0,
-                  onChanged: (value) {
-                    lightPos.x = value;
-                    _set();
-                  }),
-              Slider(
-                  label: "POSY",
-                  value: lightPos.y,
-                  min: -10.0,
-                  max: 10.0,
-                  onChanged: (value) {
-                    lightPos.y = value;
-                    _set();
-                  }),
-              Slider(
-                  label: "POSZ",
-                  value: lightPos.z,
-                  min: -10.0,
-                  max: 10.0,
-                  onChanged: (value) {
-                    lightPos.z = value;
-                    _set();
-                  }),
-              Slider(
-                  label: "DIRX",
-                  value: lightDir.x,
-                  min: -10.0,
-                  max: 10.0,
-                  onChanged: (value) {
-                    lightDir.x = value;
-                    _set();
-                  }),
-              Slider(
-                  label: "DIRY",
-                  value: lightDir.y,
-                  min: -10.0,
-                  max: 10.0,
-                  onChanged: (value) {
-                    lightDir.y = value;
-                    _set();
-                  }),
-              Slider(
-                  label: "DIRZ",
-                  value: lightDir.z,
-                  min: -10.0,
-                  max: 10.0,
-                  onChanged: (value) {
-                    lightDir.z = value;
-                    _set();
-                  }),
-              Slider(
-                  label: "Color",
-                  value: color,
-                  min: 0,
-                  max: 16000,
-                  onChanged: (value) {
-                    color = value;
-                    _set();
-                  }),
-              Slider(
-                  label: "Intensity",
-                  value: intensity,
-                  min: 0,
-                  max: 1000000,
-                  onChanged: (value) {
-                    intensity = value;
-                    _set();
-                  }),
-              DropdownButton(
-                  onChanged: (v) {
-                    this.type = v;
-                    _set();
-                  },
-                  value: type,
-                  items: List<DropdownMenuItem>.generate(
-                      5,
-                      (idx) => DropdownMenuItem(
-                            value: idx,
-                            child: Text("$idx"),
-                          ))),
-              Row(children: [
-                Text("Shadows: $castShadows"),
-                Checkbox(
-                    value: castShadows,
-                    onChanged: (v) {
-                      this.castShadows = v!;
-                      _set();
-                    })
-              ])
-            ])));
+            child: SliderTheme(
+                data: SliderThemeData(
+                    showValueIndicator: ShowValueIndicator.always,
+                    valueIndicatorTextStyle: TextStyle(color: Colors.black)),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Row(children: [
+                    Expanded(
+                        child: Slider(
+                            label: "POSX",
+                            value: lightPos.x,
+                            min: -10.0,
+                            max: 10.0,
+                            onChanged: (value) {
+                              lightPos.x = value;
+                              _set();
+                            })),
+                    Expanded(
+                        child: Slider(
+                            label: "POSY",
+                            value: lightPos.y,
+                            min: -10.0,
+                            max: 10.0,
+                            onChanged: (value) {
+                              lightPos.y = value;
+                              _set();
+                            })),
+                    Expanded(
+                        child: Slider(
+                            label: "POSZ",
+                            value: lightPos.z,
+                            min: -10.0,
+                            max: 10.0,
+                            onChanged: (value) {
+                              lightPos.z = value;
+                              _set();
+                            }))
+                  ]),
+                  Row(children: [
+                    Expanded(
+                        child: Slider(
+                            label: "DIRX",
+                            value: lightDir.x,
+                            min: -10.0,
+                            max: 10.0,
+                            onChanged: (value) {
+                              lightDir.x = value;
+                              _set();
+                            })),
+                    Expanded(
+                        child: Slider(
+                            label: "DIRY",
+                            value: lightDir.y,
+                            min: -10.0,
+                            max: 10.0,
+                            onChanged: (value) {
+                              lightDir.y = value;
+                              _set();
+                            })),
+                    Expanded(
+                        child: Slider(
+                            label: "DIRZ",
+                            value: lightDir.z,
+                            min: -10.0,
+                            max: 10.0,
+                            onChanged: (value) {
+                              lightDir.z = value;
+                              _set();
+                            }))
+                  ]),
+                  Slider(
+                      label: "Color",
+                      value: color,
+                      min: 0,
+                      max: 16000,
+                      onChanged: (value) {
+                        color = value;
+                        _set();
+                      }),
+                  Slider(
+                      label: "Intensity",
+                      value: intensity,
+                      min: 0,
+                      max: 1000000,
+                      onChanged: (value) {
+                        intensity = value;
+                        _set();
+                      }),
+                  DropdownButton(
+                      onChanged: (v) {
+                        this.type = v;
+                        _set();
+                      },
+                      value: type,
+                      items: List<DropdownMenuItem>.generate(
+                          5,
+                          (idx) => DropdownMenuItem(
+                                value: idx,
+                                child: Text("$idx"),
+                              ))),
+                  Row(children: [
+                    Text("Shadows: $castShadows"),
+                    Checkbox(
+                        value: castShadows,
+                        onChanged: (v) {
+                          this.castShadows = v!;
+                          _set();
+                        })
+                  ])
+                ]))));
   }
 }
