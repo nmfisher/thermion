@@ -4,6 +4,7 @@ import 'package:flutter_filament/filament_controller.dart';
 
 class HardwareKeyboardListener {
   final EntityTransformController _controller;
+  var _listening = true;
   HardwareKeyboardListener(this._controller) {
     // Get the global handler.
     final KeyMessageHandler? existing =
@@ -18,8 +19,14 @@ class HardwareKeyboardListener {
       if (keyMessage.rawEvent == null) {
         return false;
       }
+      if (!_listening) {
+        return false;
+      }
       var event = keyMessage.rawEvent!;
       switch (event.logicalKey) {
+        case LogicalKeyboardKey.escape:
+          _listening = false;
+          break;
         case LogicalKeyboardKey.keyW:
           (event is RawKeyDownEvent)
               ? _controller.forwardPressed()
