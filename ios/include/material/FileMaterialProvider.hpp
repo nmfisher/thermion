@@ -1,6 +1,7 @@
 #ifndef FILE_MATERIAL_PROVIDER
 #define FILE_MATERIAL_PROVIDER
 
+#include <filament/gltfio/MaterialProvider.h>
 #include <filament/Texture.h>
 #include <filament/TextureSampler.h>
 #include <math/mat4.h>
@@ -8,31 +9,34 @@
 #include <math/vec4.h>
 #include <math/mat3.h>
 #include <math/norm.h>
+#include "Log.hpp"
 
-namespace polyvox {
-  class FileMaterialProvider : public MaterialProvider {
+namespace flutter_filament {
 
-      Material* _m;
-      const Material* _ms[1];
-      Texture* mDummyTexture = nullptr;
+
+  class FileMaterialProvider : public filament::gltfio::MaterialProvider {
+
+      filament::Material* _m;
+      const filament::Material* _ms[1];
+      filament::Texture* mDummyTexture = nullptr;
 
       public:
-        FileMaterialProvider(Engine* engine, const void* const  data, const size_t size) {
-          _m = Material::Builder()
+        FileMaterialProvider(filament::Engine* engine, const void* const  data, const size_t size) {
+          _m = filament::Material::Builder()
             .package(data, size)
             .build(*engine);
           _ms[0] = _m;
           unsigned char texels[4] = {};
-          mDummyTexture = Texture::Builder()
+          mDummyTexture = filament::Texture::Builder()
             .width(1).height(1)
-            .format(Texture::InternalFormat::RGBA8)
+            .format(filament::Texture::InternalFormat::RGBA8)
             .build(*engine);
-          Texture::PixelBufferDescriptor pbd(texels, sizeof(texels), Texture::Format::RGBA,
-            Texture::Type::UBYTE);
+          filament::Texture::PixelBufferDescriptor pbd(texels, sizeof(texels), filament::Texture::Format::RGBA,
+            filament::Texture::Type::UBYTE);
             mDummyTexture->setImage(*engine, 0, std::move(pbd));
         }
 
-        filament::MaterialInstance* createMaterialInstance(MaterialKey* config, UvMap* uvmap,
+        filament::MaterialInstance* createMaterialInstance(filament::gltfio::MaterialKey* config, filament::gltfio::UvMap* uvmap,
                 const char* label = "material", const char* extras = nullptr) {
 
             auto getUvIndex = [uvmap](uint8_t srcIndex, bool hasTexture) -> int {
@@ -40,14 +44,14 @@ namespace polyvox {
             };
 
             auto instance = _m->createInstance();
-            math::mat3f identity;
+            filament::math::mat3f identity;
             instance->setParameter("baseColorUvMatrix", identity);
             instance->setParameter("normalUvMatrix", identity);
 
             instance->setParameter("baseColorIndex", getUvIndex(config->baseColorUV, config->hasBaseColorTexture));
             instance->setParameter("normalIndex", getUvIndex(config->normalUV, config->hasNormalTexture));
             if(config->hasNormalTexture) {
-              TextureSampler sampler;
+              filament::TextureSampler sampler;
               instance->setParameter("normalMap", mDummyTexture, sampler);
               instance->setParameter("baseColorMap", mDummyTexture, sampler);
             } else {
@@ -60,7 +64,7 @@ namespace polyvox {
         /**
         * Creates or fetches a compiled Filament material corresponding to the given config.
         */
-        virtual Material* getMaterial(MaterialKey* config, UvMap* uvmap, const char* label = "material") { 
+        virtual filament::Material* getMaterial(filament::gltfio::MaterialKey* config, filament::gltfio::UvMap* uvmap, const char* label = "material") { 
           return _m;
         }
 
