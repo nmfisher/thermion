@@ -35,17 +35,16 @@
 #include "SceneManager.hpp"
 #include "ThreadPool.hpp"
 
-using namespace std;
-using namespace filament;
-using namespace filament::math;
-using namespace gltfio;
-using namespace camutils;
-
-typedef int32_t EntityId;
-
-namespace polyvox
+namespace flutter_filament
 {
 
+    typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;   
+
+    using namespace std::chrono;
+    using namespace filament;
+    using namespace filament::math;
+    using namespace gltfio;
+    using namespace camutils;
 
     enum ToneMapping
     {
@@ -56,6 +55,8 @@ namespace polyvox
 
     class FilamentViewer
     {
+    
+        typedef int32_t EntityId;
     public:
         FilamentViewer(const void *context, const ResourceLoaderWrapper *const resourceLoaderWrapper, void *const platform = nullptr, const char *uberArchivePath = nullptr);
         ~FilamentViewer();
@@ -83,6 +84,7 @@ namespace polyvox
 
         bool setCamera(EntityId asset, const char *nodeName);
         void setMainCamera();
+        EntityId getMainCamera();
         void setCameraFov(double fovDegrees, double aspect);
 
         void createSwapChain(const void *surface, uint32_t width, uint32_t height);
@@ -103,7 +105,7 @@ namespace polyvox
         void setViewFrustumCulling(bool enabled);
         void setCameraExposure(float aperture, float shutterSpeed, float sensitivity);
         void setCameraPosition(float x, float y, float z);
-        void setCameraRotation(float rads, float x, float y, float z);
+        void setCameraRotation(float w, float x, float y, float z);
         const math::mat4 getCameraModelMatrix();
         const math::mat4 getCameraViewMatrix();
         const math::mat4 getCameraProjectionMatrix();
@@ -134,6 +136,7 @@ namespace polyvox
         void setRecordingOutputDirectory(const char* path);
 
         void setAntiAliasing(bool msaaEnabled, bool fxaaEnabled, bool taaEnabled);
+        void setDepthOfField();
 
         EntityId createGeometry(float* vertices, uint32_t numVertices, uint16_t* indices, uint32_t numIndices, const char* materialPath);
 
@@ -158,11 +161,9 @@ namespace polyvox
 
         SceneManager *_sceneManager = nullptr;
 
-        NameComponentManager *_ncm = nullptr;
-
         std::mutex mtx; // mutex to ensure thread safety when removing assets
 
-        vector<utils::Entity> _lights;
+        std::vector<utils::Entity> _lights;
         Texture *_skyboxTexture = nullptr;
         Skybox *_skybox = nullptr;
         Texture *_iblTexture = nullptr;
@@ -199,10 +200,10 @@ namespace polyvox
         IndexBuffer *_imageIb = nullptr;
         Material *_imageMaterial = nullptr;
         TextureSampler _imageSampler;
-        void loadKtx2Texture(string path, ResourceBuffer data);
-        void loadKtxTexture(string path, ResourceBuffer data);
-        void loadPngTexture(string path, ResourceBuffer data);
-        void loadTextureFromPath(string path);
+        void loadKtx2Texture(std::string path, ResourceBuffer data);
+        void loadKtxTexture(std::string path, ResourceBuffer data);
+        void loadPngTexture(std::string path, ResourceBuffer data);
+        void loadTextureFromPath(std::string path);
         void savePng(void* data, size_t size, int frameNumber);
     
         time_point_t _recordingStartTime = std::chrono::high_resolution_clock::now();
