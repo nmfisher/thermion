@@ -1,5 +1,4 @@
-#ifndef _STANDARD_COMPONENTS_H
-#define _STANDARD_COMPONENTS_H
+#pragma once
 
 #include "utils/Entity.h"
 #include "utils/EntityInstance.h"
@@ -9,7 +8,7 @@
 #include "gltfio/FilamentInstance.h"
 #include "Log.hpp"
 
-namespace polyvox
+namespace flutter_filament
 {
 
 typedef void(*CollisionCallback)(int32_t entityId1, int32_t entityId2) ;
@@ -19,11 +18,15 @@ class CollisionComponentManager : public utils::SingleInstanceComponentManager<f
     public:
         CollisionComponentManager(const filament::TransformManager& transformManager) : _transformManager(transformManager) {}
     
-        std::vector<filament::math::float3> collides(EntityId transformingEntityId, filament::Aabb sourceBox) { 
+        std::vector<filament::math::float3> collides(utils::Entity transformingEntity, filament::Aabb sourceBox) { 
             auto sourceCorners = sourceBox.getCorners();
             std::vector<filament::math::float3> collisionAxes;
             for(auto it = begin(); it < end(); it++) {
                 auto entity = getEntity(it);
+
+                if(entity == transformingEntity) {
+                    continue;
+                }
                 auto targetXformInstance = _transformManager.getInstance(entity);
                 auto targetXform = _transformManager.getWorldTransform(targetXformInstance);
                 auto targetBox = elementAt<0>(it).transform(targetXform);
@@ -40,10 +43,10 @@ class CollisionComponentManager : public utils::SingleInstanceComponentManager<f
                     auto max = targetBox.max;
                     
                     // if the vertex has insersected with the target/source AABB
-                    if(targetBox.contains(sourceCorners.vertices[i]) < 0) {
+                    if(targetBox.contains(sourceCorners.vertices[i]) <= 0) {
                         collided = true;
                         // Log("targetBox %f %f %f contains source vertex %f %f %f", targetBox.extent().x, targetBox.extent().y, targetBox.extent().z, sourceCorners.vertices[i].x, sourceCorners.vertices[i].y, sourceCorners.vertices[i].z);
-                    } else if(sourceBox.contains(targetCorners.vertices[i]) < 0) {
+                    } else if(sourceBox.contains(targetCorners.vertices[i]) <= 0) {
                         // Log("sourceBox %f %f %f contains target vertex %f %f %f", sourceBox.extent().x, sourceBox.extent().y, sourceBox.extent().z, targetCorners.vertices[i].x, targetCorners.vertices[i].y, targetCorners.vertices[i].z);
                         collided = true;
                         intersecting = targetCorners.vertices[i];
@@ -83,7 +86,7 @@ class CollisionComponentManager : public utils::SingleInstanceComponentManager<f
                 if(collided) {
                     auto callback = elementAt<1>(it);
                     if(callback) {
-                        callback(utils::Entity::smuggle(entity), transformingEntityId);
+                        callback(utils::Entity::smuggle(entity), utils::Entity::smuggle(transformingEntity));
                     }
                 }
             }
@@ -92,7 +95,6 @@ class CollisionComponentManager : public utils::SingleInstanceComponentManager<f
         }
 };
 
-
 }
 
-#endif
+
