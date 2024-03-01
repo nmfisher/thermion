@@ -44,9 +44,10 @@
 #include "wgl_context.h"
 #endif
 
-using namespace std::chrono_literals;
-
 namespace flutter_filament {
+
+  using namespace std::chrono_literals;
+
 
 void FlutterFilamentPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
