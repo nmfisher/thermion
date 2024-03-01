@@ -3,72 +3,52 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/lights/light_options.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 
 class LightSliderWidget extends StatefulWidget {
   final FilamentController controller;
 
-  late final v.Vector3 initialPosition;
-  late final v.Vector3 initialDirection;
-  final int initialType;
-  final double initialColor;
-  final double initialIntensity;
-  final bool initialCastShadows;
+  final LightOptions options;
   final bool showControls;
 
   LightSliderWidget(
       {super.key,
       required this.controller,
-      this.initialType = 0,
-      this.initialColor = 6500,
-      this.initialIntensity = 100000,
-      this.initialCastShadows = true,
       this.showControls = false,
-      v.Vector3? initialDirection,
-      v.Vector3? initialPosition}) {
-    this.initialDirection = initialDirection ?? v.Vector3(0, 0.5, -1);
-    this.initialPosition = initialPosition ?? v.Vector3(0, 0.5, 1);
-  }
-
+      required this.options});
   @override
-  State<StatefulWidget> createState() => _IblRotationSliderWidgetState();
+  State<StatefulWidget> createState() => _LightSliderWidgetState();
 }
 
-class _IblRotationSliderWidgetState extends State<LightSliderWidget> {
-  v.Vector3 lightPos = v.Vector3(1, 0.1, 1);
-  v.Vector3 lightDir = v.Vector3(-1, 0.1, 0);
-  bool castShadows = true;
-  int type = 0;
-  double color = 6500;
-  double intensity = 100000;
+class _LightSliderWidgetState extends State<LightSliderWidget> {
   FilamentEntity? _light;
 
   @override
   void initState() {
-    type = widget.initialType;
-    castShadows = widget.initialCastShadows;
-    color = widget.initialColor;
-    lightPos = widget.initialPosition;
-    lightDir = widget.initialDirection;
-    intensity = widget.initialIntensity;
     _set();
     super.initState();
   }
 
   Future _set() async {
-    if (_light != null) await widget.controller.removeLight(_light!);
+    await widget.controller.clearLights();
+
+    if (widget.options.iblPath != null) {
+      _light = await widget.controller.loadIbl(widget.options.iblPath!,
+          intensity: widget.options.iblIntensity);
+    }
 
     _light = await widget.controller.addLight(
-        type,
-        color,
-        intensity,
-        lightPos.x,
-        lightPos.y,
-        lightPos.z,
-        lightDir.x,
-        lightDir.y,
-        lightDir.z,
-        castShadows);
+        widget.options.directionalType,
+        widget.options.directionalColor,
+        widget.options.directionalIntensity,
+        widget.options.directionalPosition.x,
+        widget.options.directionalPosition.y,
+        widget.options.directionalPosition.z,
+        widget.options.directionalDirection.x,
+        widget.options.directionalDirection.y,
+        widget.options.directionalDirection.z,
+        widget.options.directionalCastShadows);
 
     setState(() {});
   }
@@ -87,35 +67,39 @@ class _IblRotationSliderWidgetState extends State<LightSliderWidget> {
                     showValueIndicator: ShowValueIndicator.always,
                     valueIndicatorTextStyle: TextStyle(color: Colors.black)),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text("Directional"),
                   Row(children: [
                     Expanded(
                         child: Slider(
-                            label: "POSX",
-                            value: lightPos.x,
+                            label:
+                                "POSX ${widget.options.directionalPosition.x}",
+                            value: widget.options.directionalPosition.x,
                             min: -10.0,
                             max: 10.0,
                             onChanged: (value) {
-                              lightPos.x = value;
+                              widget.options.directionalPosition.x = value;
                               _set();
                             })),
                     Expanded(
                         child: Slider(
-                            label: "POSY",
-                            value: lightPos.y,
-                            min: -10.0,
-                            max: 10.0,
+                            label:
+                                "POSY ${widget.options.directionalPosition.y}",
+                            value: widget.options.directionalPosition.y,
+                            min: -100.0,
+                            max: 100.0,
                             onChanged: (value) {
-                              lightPos.y = value;
+                              widget.options.directionalPosition.y = value;
                               _set();
                             })),
                     Expanded(
                         child: Slider(
-                            label: "POSZ",
-                            value: lightPos.z,
-                            min: -10.0,
-                            max: 10.0,
+                            label:
+                                "POSZ ${widget.options.directionalPosition.z}",
+                            value: widget.options.directionalPosition.z,
+                            min: -100.0,
+                            max: 100.0,
                             onChanged: (value) {
-                              lightPos.z = value;
+                              widget.options.directionalPosition.z = value;
                               _set();
                             }))
                   ]),
@@ -123,58 +107,58 @@ class _IblRotationSliderWidgetState extends State<LightSliderWidget> {
                     Expanded(
                         child: Slider(
                             label: "DIRX",
-                            value: lightDir.x,
-                            min: -10.0,
-                            max: 10.0,
+                            value: widget.options.directionalDirection.x,
+                            min: -1.0,
+                            max: 1.0,
                             onChanged: (value) {
-                              lightDir.x = value;
+                              widget.options.directionalDirection.x = value;
                               _set();
                             })),
                     Expanded(
                         child: Slider(
                             label: "DIRY",
-                            value: lightDir.y,
-                            min: -10.0,
-                            max: 10.0,
+                            value: widget.options.directionalDirection.y,
+                            min: -1.0,
+                            max: 1.0,
                             onChanged: (value) {
-                              lightDir.y = value;
+                              widget.options.directionalDirection.y = value;
                               _set();
                             })),
                     Expanded(
                         child: Slider(
                             label: "DIRZ",
-                            value: lightDir.z,
-                            min: -10.0,
-                            max: 10.0,
+                            value: widget.options.directionalDirection.z,
+                            min: -1.0,
+                            max: 1.0,
                             onChanged: (value) {
-                              lightDir.z = value;
+                              widget.options.directionalDirection.z = value;
                               _set();
                             }))
                   ]),
                   Slider(
                       label: "Color",
-                      value: color,
+                      value: widget.options.directionalColor,
                       min: 0,
                       max: 16000,
                       onChanged: (value) {
-                        color = value;
+                        widget.options.directionalColor = value;
                         _set();
                       }),
                   Slider(
-                      label: "Intensity",
-                      value: intensity,
+                      label: "Intensity ${widget.options.directionalIntensity}",
+                      value: widget.options.directionalIntensity,
                       min: 0,
                       max: 1000000,
                       onChanged: (value) {
-                        intensity = value;
+                        widget.options.directionalIntensity = value;
                         _set();
                       }),
                   DropdownButton(
                       onChanged: (v) {
-                        this.type = v;
+                        this.widget.options.directionalType = v;
                         _set();
                       },
-                      value: type,
+                      value: this.widget.options.directionalType,
                       items: List<DropdownMenuItem>.generate(
                           5,
                           (idx) => DropdownMenuItem(
@@ -182,13 +166,27 @@ class _IblRotationSliderWidgetState extends State<LightSliderWidget> {
                                 child: Text("$idx"),
                               ))),
                   Row(children: [
-                    Text("Shadows: $castShadows"),
+                    Text(
+                        "Shadows: ${this.widget.options.directionalCastShadows}"),
                     Checkbox(
-                        value: castShadows,
+                        value: widget.options.directionalCastShadows,
                         onChanged: (v) {
-                          this.castShadows = v!;
+                          this.widget.options.directionalCastShadows = v!;
                           _set();
                         })
+                  ]),
+                  Text("Indirect"),
+                  Row(children: [
+                    Expanded(
+                        child: Slider(
+                            label: "Intensity ${widget.options.iblIntensity}",
+                            value: widget.options.iblIntensity,
+                            min: 0.0,
+                            max: 200000,
+                            onChanged: (value) {
+                              widget.options.iblIntensity = value;
+                              _set();
+                            })),
                   ])
                 ]))));
   }

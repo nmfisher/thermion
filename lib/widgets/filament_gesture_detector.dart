@@ -32,16 +32,22 @@ class FilamentGestureDetector extends StatelessWidget {
   final bool showControlOverlay;
 
   ///
-  /// If false, all gestures will be ignored.
+  /// If false, gestures will not manipulate the active camera.
   ///
-  final bool enabled;
+  final bool enableCamera;
+
+  ///
+  /// If false, pointer down events will not trigger hit-testing (picking).
+  ///
+  final bool enablePicking;
 
   const FilamentGestureDetector(
       {Key? key,
       required this.controller,
       this.child,
       this.showControlOverlay = false,
-      this.enabled = true})
+      this.enableCamera = true,
+      this.enablePicking = true})
       : super(key: key);
 
   @override
@@ -53,14 +59,16 @@ class FilamentGestureDetector extends StatelessWidget {
         controller: controller,
         child: child,
         showControlOverlay: showControlOverlay,
-        listenerEnabled: enabled,
+        enableCamera: enableCamera,
+        enablePicking: enablePicking,
       );
     } else {
       return FilamentGestureDetectorMobile(
         controller: controller,
         child: child,
         showControlOverlay: showControlOverlay,
-        listenerEnabled: enabled,
+        enableCamera: enableCamera,
+        enablePicking: enablePicking,
       );
     }
   }

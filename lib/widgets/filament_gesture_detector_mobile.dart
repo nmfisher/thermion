@@ -28,9 +28,14 @@ class FilamentGestureDetectorMobile extends StatefulWidget {
   final bool showControlOverlay;
 
   ///
-  /// If false, all gestures will be ignored.
+  /// If false, gestures will not manipulate the active camera.
   ///
-  final bool listenerEnabled;
+  final bool enableCamera;
+
+  ///
+  /// If false, pointer down events will not trigger hit-testing (picking).
+  ///
+  final bool enablePicking;
 
   final double zoomDelta;
 
@@ -39,7 +44,8 @@ class FilamentGestureDetectorMobile extends StatefulWidget {
       required this.controller,
       this.child,
       this.showControlOverlay = false,
-      this.listenerEnabled = true,
+      this.enableCamera = true,
+      this.enablePicking = true,
       this.zoomDelta = 1})
       : super(key: key);
 
@@ -105,7 +111,8 @@ class _FilamentGestureDetectorMobileState
   @override
   void didUpdateWidget(FilamentGestureDetectorMobile oldWidget) {
     if (widget.showControlOverlay != oldWidget.showControlOverlay ||
-        widget.listenerEnabled != oldWidget.listenerEnabled) {
+        widget.enableCamera != oldWidget.enableCamera ||
+        widget.enablePicking != oldWidget.enablePicking) {
       setState(() {});
     }
 
@@ -122,10 +129,6 @@ class _FilamentGestureDetectorMobileState
   // - inner is a Listener for all other gestures (including scroll zoom on desktop)
   @override
   Widget build(BuildContext context) {
-    if (!widget.listenerEnabled) {
-      return widget.child ?? Container();
-    }
-
     return Stack(children: [
       Positioned.fill(
           child: GestureDetector(
@@ -136,10 +139,10 @@ class _FilamentGestureDetectorMobileState
                 });
               },
               onScaleStart: (d) async {
-                if (d.pointerCount == 2) {
+                if (d.pointerCount == 2 && widget.enableCamera) {
                   _scaling = true;
                   await widget.controller.zoomBegin();
-                } else if (!_scaling) {
+                } else if (!_scaling && widget.enableCamera) {
                   if (_rotateOnPointerMove) {
                     widget.controller.rotateStart(
                         d.localFocalPoint.dx, d.localFocalPoint.dy);
@@ -150,7 +153,7 @@ class _FilamentGestureDetectorMobileState
                 }
               },
               onScaleUpdate: (ScaleUpdateDetails d) async {
-                if (d.pointerCount == 2) {
+                if (d.pointerCount == 2 && widget.enableCamera) {
                   if (d.horizontalScale != _lastScale) {
                     widget.controller.zoomUpdate(
                         d.localFocalPoint.dx,
@@ -158,7 +161,7 @@ class _FilamentGestureDetectorMobileState
                         d.horizontalScale > _lastScale ? 0.1 : -0.1);
                     _lastScale = d.horizontalScale;
                   }
-                } else if (!_scaling) {
+                } else if (!_scaling && widget.enableCamera) {
                   if (_rotateOnPointerMove) {
                     widget.controller
                         .rotateUpdate(d.focalPoint.dx, d.focalPoint.dy);
@@ -169,9 +172,9 @@ class _FilamentGestureDetectorMobileState
                 }
               },
               onScaleEnd: (d) async {
-                if (d.pointerCount == 2) {
+                if (d.pointerCount == 2 && widget.enableCamera) {
                   widget.controller.zoomEnd();
-                } else if (!_scaling) {
+                } else if (!_scaling && widget.enableCamera) {
                   if (_rotateOnPointerMove) {
                     widget.controller.rotateEnd();
                   } else {

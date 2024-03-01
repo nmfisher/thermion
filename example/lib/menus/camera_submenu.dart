@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-
+import 'package:vector_math/vector_math_64.dart' as v;
 import 'package:flutter_filament/filament_controller.dart';
 import 'package:flutter_filament_example/main.dart';
 
@@ -99,7 +99,8 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
       MenuItemButton(
         onPressed: () async {
           widget.controller.setCameraPosition(0.0, 0.0, 0.0);
-          widget.controller.setCameraRotation(0, 0.0, 1.0, 0.0);
+          widget.controller.setCameraRotation(
+              v.Quaternion.axisAngle(v.Vector3(0, 0.0, 1.0), 0.0));
         },
         child: const Text('Move to 0,0,0, facing towards 0,0,-1'),
       ),
@@ -119,7 +120,8 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
       ),
       MenuItemButton(
         onPressed: () {
-          widget.controller.setCameraRotation(pi / 4, 0.0, 1.0, 0.0);
+          widget.controller.setCameraRotation(
+              v.Quaternion.axisAngle(v.Vector3(0, 1, 0), pi / 4));
         },
         child: const Text("Rotate camera 45 degrees around y axis"),
       ),

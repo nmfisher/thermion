@@ -73,9 +73,14 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT EntityId add_light(const void *const viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
 	FLUTTER_PLUGIN_EXPORT void remove_light(const void *const viewer, EntityId entityId);
 	FLUTTER_PLUGIN_EXPORT void clear_lights(const void *const viewer);
-	FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *sceneManager, const char *assetPath, bool unlit);
+	FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances);
+	FLUTTER_PLUGIN_EXPORT EntityId load_glb_from_buffer(void *sceneManager, const void* const data, size_t length);
 	FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath);
+	FLUTTER_PLUGIN_EXPORT EntityId create_instance(void *sceneManager, EntityId id);
+	FLUTTER_PLUGIN_EXPORT int get_instance_count(void *sceneManager, EntityId entityId);
+	FLUTTER_PLUGIN_EXPORT void get_instances(void *sceneManager, EntityId entityId, EntityId *out);
 	FLUTTER_PLUGIN_EXPORT void set_main_camera(const void *const viewer);
+	FLUTTER_PLUGIN_EXPORT EntityId get_main_camera(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT bool set_camera(const void *const viewer, EntityId asset, const char *nodeName);
 	FLUTTER_PLUGIN_EXPORT void set_view_frustum_culling(const void *const viewer, bool enabled);
 	FLUTTER_PLUGIN_EXPORT void render(
@@ -159,7 +164,7 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void set_camera_exposure(const void *const viewer, float aperture, float shutterSpeed, float sensitivity);
 	FLUTTER_PLUGIN_EXPORT void set_camera_position(const void *const viewer, float x, float y, float z);
 	FLUTTER_PLUGIN_EXPORT void get_camera_position(const void *const viewer);
-	FLUTTER_PLUGIN_EXPORT void set_camera_rotation(const void *const viewer, float rads, float x, float y, float z);
+	FLUTTER_PLUGIN_EXPORT void set_camera_rotation(const void *const viewer, float w, float x, float y, float z);
 	FLUTTER_PLUGIN_EXPORT void set_camera_model_matrix(const void *const viewer, const float *const matrix);
 	FLUTTER_PLUGIN_EXPORT const double *const get_camera_model_matrix(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT const double *const get_camera_view_matrix(const void *const viewer);

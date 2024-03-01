@@ -14,7 +14,7 @@ A new Flutter plugin project.
   s.author           = { 'Your Company' => 'email@example.com' }
 
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/*', 'src/*', "src/camutils/*", 'include/filament/*', 'include/*', 'include/material/*.c'
+  s.source_files = 'Classes/*', 'src/*', "src/camutils/*", 'include/filament/*', 'include/*', 'include/components/*', 'include/material/*.c'
   s.public_header_files = 'include/SwiftFlutterFilamentPlugin-Bridging-Header.h',  'include/FlutterFilamentApi.h', 'include/FlutterFilamentFFIApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
   s.dependency 'FlutterMacOS'
 

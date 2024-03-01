@@ -28,16 +28,22 @@ class FilamentGestureDetectorDesktop extends StatefulWidget {
   final bool showControlOverlay;
 
   ///
-  /// If false, all gestures will be ignored.
+  /// If false, gestures will not manipulate the active camera.
   ///
-  final bool listenerEnabled;
+  final bool enableCamera;
+
+  ///
+  /// If false, pointer down events will not trigger hit-testing (picking).
+  ///
+  final bool enablePicking;
 
   const FilamentGestureDetectorDesktop(
       {Key? key,
       required this.controller,
       this.child,
       this.showControlOverlay = false,
-      this.listenerEnabled = true})
+      this.enableCamera = true,
+      this.enablePicking = true})
       : super(key: key);
 
   @override
@@ -57,7 +63,8 @@ class _FilamentGestureDetectorDesktopState
   @override
   void didUpdateWidget(FilamentGestureDetectorDesktop oldWidget) {
     if (widget.showControlOverlay != oldWidget.showControlOverlay ||
-        widget.listenerEnabled != oldWidget.listenerEnabled) {
+        widget.enableCamera != oldWidget.enableCamera ||
+        widget.enablePicking != oldWidget.enablePicking) {
       setState(() {});
     }
 
@@ -86,12 +93,9 @@ class _FilamentGestureDetectorDesktopState
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.listenerEnabled) {
-      return widget.child ?? Container();
-    }
     return Listener(
         onPointerSignal: (PointerSignalEvent pointerSignal) async {
-          if (pointerSignal is PointerScrollEvent) {
+          if (pointerSignal is PointerScrollEvent && widget.enableCamera) {
             _zoom(pointerSignal);
           } else {
             throw Exception("TODO");
@@ -108,20 +112,20 @@ class _FilamentGestureDetectorDesktopState
         onPointerMove: (PointerMoveEvent d) async {
           // if this is the first move event, we need to call rotateStart/panStart to set the first coordinates
           if (!_pointerMoving) {
-            if (d.buttons == kTertiaryButton) {
+            if (d.buttons == kTertiaryButton && widget.enableCamera) {
               widget.controller
                   .rotateStart(d.localPosition.dx, d.localPosition.dy);
-            } else {
+            } else if (widget.enableCamera) {
               widget.controller
                   .panStart(d.localPosition.dx, d.localPosition.dy);
             }
           }
           // set the _pointerMoving flag so we don't call rotateStart/panStart on future move events
           _pointerMoving = true;
-          if (d.buttons == kTertiaryButton) {
+          if (d.buttons == kTertiaryButton && widget.enableCamera) {
             widget.controller
                 .rotateUpdate(d.localPosition.dx, d.localPosition.dy);
-          } else {
+          } else if (widget.enableCamera) {
             widget.controller.panUpdate(d.localPosition.dx, d.localPosition.dy);
           }
         },
@@ -130,12 +134,12 @@ class _FilamentGestureDetectorDesktopState
         // 2) if _pointerMoving is false, this is interpreted as a pick
         // same applies to middle mouse button, but this is ignored as a pick
         onPointerUp: (PointerUpEvent d) async {
-          if (d.buttons == kTertiaryButton) {
+          if (d.buttons == kTertiaryButton && widget.enableCamera) {
             widget.controller.rotateEnd();
           } else {
-            if (_pointerMoving) {
+            if (_pointerMoving && widget.enableCamera) {
               widget.controller.panEnd();
-            } else {
+            } else if (widget.enablePicking) {
               widget.controller
                   .pick(d.localPosition.dx.toInt(), d.localPosition.dy.toInt());
             }

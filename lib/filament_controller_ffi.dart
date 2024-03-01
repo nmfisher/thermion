@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
@@ -52,8 +53,9 @@ class FilamentControllerFFI extends FilamentController {
   final hasViewer = ValueNotifier<bool>(false);
 
   @override
-  Stream<FilamentEntity> get pickResult => _pickResultController.stream;
-  final _pickResultController = StreamController<FilamentEntity>.broadcast();
+  Stream<FilamentPickResult> get pickResult => _pickResultController.stream;
+  final _pickResultController =
+      StreamController<FilamentPickResult>.broadcast();
 
   int? _resizingWidth;
   int? _resizingHeight;
@@ -545,8 +547,82 @@ class FilamentControllerFFI extends FilamentController {
     _lights.clear();
   }
 
+  final _assetCache = <String, (Pointer<Void>, int)>{};
+
   @override
-  Future<FilamentEntity> loadGlb(String path, {bool unlit = false}) async {
+  Future<FilamentEntity> loadGlbFromBuffer(String path,
+      {bool cache = false, int numInstances = 1}) async {
+    late (Pointer<Void>, int) data;
+
+    if (cache && _assetCache.containsKey(path)) {
+      data = _assetCache[path]!;
+    } else {
+      late ByteData asset;
+      if (path.startsWith("file://")) {
+        var raw = File(path.replaceAll("file://", "")).readAsBytesSync();
+        asset = raw.buffer.asByteData(raw.offsetInBytes);
+      } else {
+        asset = await rootBundle.load(path.replaceAll("asset://", ""));
+      }
+
+      var ptr = allocator<Char>(asset.lengthInBytes);
+      for (int i = 0; i < asset.lengthInBytes; i++) {
+        ptr[i] = asset.getUint8(i);
+      }
+
+      data = (ptr.cast<Void>(), asset.lengthInBytes);
+    }
+    var entity = load_glb_from_buffer_ffi(
+        _sceneManager!, data.$1, data.$2, numInstances);
+    if (!cache) {
+      allocator.free(data.$1);
+    } else {
+      _assetCache[path] = data;
+    }
+    if (entity == _FILAMENT_ASSET_ERROR) {
+      throw Exception("Failed to load GLB from path $path");
+    }
+    return entity;
+  }
+
+  @override
+  Future<FilamentEntity> createInstance(FilamentEntity entity) async {
+    var created = create_instance(_sceneManager!, entity);
+    if (created == _FILAMENT_ASSET_ERROR) {
+      throw Exception("Failed to create instance");
+    }
+    return created;
+  }
+
+  @override
+  Future<int> getInstanceCount(FilamentEntity entity) async {
+    return get_instance_count(_sceneManager!, entity);
+  }
+
+  @override
+  Future<List<FilamentEntity>> getInstances(FilamentEntity entity) async {
+    var count = await getInstanceCount(entity);
+    var out = allocator<Int32>(count);
+    get_instances(_sceneManager!, entity, out);
+    var instances = <FilamentEntity>[];
+    for (int i = 0; i < count; i++) {
+      instances.add(out[i]);
+    }
+    allocator.free(out);
+    return instances;
+  }
+
+  @override
+  Future evictCache() async {
+    for (final value in _assetCache.values) {
+      allocator.free(value.$1);
+    }
+    _assetCache.clear();
+  }
+
+  @override
+  Future<FilamentEntity> loadGlb(String path,
+      {bool unlit = false, int numInstances = 1}) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
@@ -554,7 +630,7 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Not yet implemented");
     }
     final pathPtr = path.toNativeUtf8().cast<Char>();
-    var entity = load_glb_ffi(_sceneManager!, pathPtr, unlit);
+    var entity = load_glb_ffi(_sceneManager!, pathPtr, numInstances);
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
@@ -910,6 +986,10 @@ class FilamentControllerFFI extends FilamentController {
     set_main_camera(_viewer!);
   }
 
+  Future<FilamentEntity> getMainCamera() async {
+    return get_main_camera(_viewer!);
+  }
+
   @override
   Future setCamera(FilamentEntity entity, String? name) async {
     if (_viewer == null) {
@@ -1027,11 +1107,12 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future setCameraRotation(double rads, double x, double y, double z) async {
+  Future setCameraRotation(Quaternion quaternion) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    set_camera_rotation(_viewer!, rads, x, y, z);
+    set_camera_rotation(
+        _viewer!, quaternion.w, quaternion.x, quaternion.y, quaternion.z);
   }
 
   @override
@@ -1158,13 +1239,13 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future reveal(FilamentEntity entity, String meshName) async {
+  Future reveal(FilamentEntity entity, String? meshName) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
 
-    final meshNamePtr = meshName.toNativeUtf8().cast<Char>();
-    final result = reveal_mesh(_sceneManager!, entity, meshNamePtr) != 1;
+    final meshNamePtr = meshName?.toNativeUtf8().cast<Char>() ?? nullptr;
+    final result = reveal_mesh(_sceneManager!, entity, meshNamePtr) == 1;
     allocator.free(meshNamePtr);
     if (!result) {
       throw Exception("Failed to reveal mesh $meshName");
@@ -1199,7 +1280,8 @@ class FilamentControllerFFI extends FilamentController {
       }
     }
     var entityId = outPtr.value;
-    _pickResultController.add(entityId);
+    _pickResultController
+        .add((entity: entityId, x: x.toDouble(), y: y.toDouble()));
     allocator.free(outPtr);
   }
 
@@ -1329,28 +1411,6 @@ class FilamentControllerFFI extends FilamentController {
         doubleList[20], doubleList[21], doubleList[22], doubleList[23]);
     flutter_filament_free(arrayPtr.cast<Void>());
     return frustum;
-  }
-
-  @override
-  Future setBoneTransform(FilamentEntity entity, String meshName,
-      String boneName, Matrix4 data) async {
-    var ptr = allocator<Float>(16);
-    for (int i = 0; i < 16; i++) {
-      ptr.elementAt(i).value = data.storage[i];
-    }
-
-    var meshNamePtr = meshName.toNativeUtf8(allocator: allocator).cast<Char>();
-    var boneNamePtr = boneName.toNativeUtf8(allocator: allocator).cast<Char>();
-
-    var result = set_bone_transform_ffi(
-        _sceneManager!, entity, meshNamePtr, ptr, boneNamePtr);
-
-    allocator.free(ptr);
-    allocator.free(meshNamePtr);
-    allocator.free(boneNamePtr);
-    if (!result) {
-      throw Exception("Failed to set bone transform. See logs for details");
-    }
   }
 
   @override

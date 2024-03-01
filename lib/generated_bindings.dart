@@ -183,11 +183,21 @@ external void clear_lights(
 
 @ffi.Native<
     EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>,
-        ffi.Bool)>(symbol: 'load_glb', assetId: 'flutter_filament_plugin')
+        ffi.Int)>(symbol: 'load_glb', assetId: 'flutter_filament_plugin')
 external int load_glb(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
-  bool unlit,
+  int numInstances,
+);
+
+@ffi.Native<
+        EntityId Function(
+            ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size)>(
+    symbol: 'load_glb_from_buffer', assetId: 'flutter_filament_plugin')
+external int load_glb_from_buffer(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<ffi.Void> data,
+  int length,
 );
 
 @ffi.Native<
@@ -200,9 +210,39 @@ external int load_gltf(
   ffi.Pointer<ffi.Char> relativePath,
 );
 
+@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'create_instance', assetId: 'flutter_filament_plugin')
+external int create_instance(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int id,
+);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'get_instance_count', assetId: 'flutter_filament_plugin')
+external int get_instance_count(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+);
+
+@ffi.Native<
+        ffi.Int Function(
+            ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<EntityId>)>(
+    symbol: 'get_instances', assetId: 'flutter_filament_plugin')
+external int get_instances(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+  ffi.Pointer<EntityId> out,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(
     symbol: 'set_main_camera', assetId: 'flutter_filament_plugin')
 external void set_main_camera(
+  ffi.Pointer<ffi.Void> viewer,
+);
+
+@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>)>(
+    symbol: 'get_main_camera', assetId: 'flutter_filament_plugin')
+external int get_main_camera(
   ffi.Pointer<ffi.Void> viewer,
 );
 
@@ -653,7 +693,7 @@ external void get_camera_position(
     symbol: 'set_camera_rotation', assetId: 'flutter_filament_plugin')
 external void set_camera_rotation(
   ffi.Pointer<ffi.Void> viewer,
-  double rads,
+  double w,
   double x,
   double y,
   double z,
@@ -1140,11 +1180,22 @@ external void clear_lights_ffi(
 
 @ffi.Native<
     EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>,
-        ffi.Bool)>(symbol: 'load_glb_ffi', assetId: 'flutter_filament_plugin')
+        ffi.Int)>(symbol: 'load_glb_ffi', assetId: 'flutter_filament_plugin')
 external int load_glb_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
-  bool unlit,
+  int numInstances,
+);
+
+@ffi.Native<
+        EntityId Function(
+            ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size, ffi.Int)>(
+    symbol: 'load_glb_from_buffer_ffi', assetId: 'flutter_filament_plugin')
+external int load_glb_from_buffer_ffi(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<ffi.Void> data,
+  int length,
+  int numInstances,
 );
 
 @ffi.Native<
@@ -1152,9 +1203,16 @@ external int load_glb_ffi(
             ffi.Pointer<ffi.Char>)>(
     symbol: 'load_gltf_ffi', assetId: 'flutter_filament_plugin')
 external int load_gltf_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   ffi.Pointer<ffi.Char> relativePath,
+);
+
+@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'create_instance_ffi', assetId: 'flutter_filament_plugin')
+external int create_instance_ffi(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
@@ -1185,7 +1243,7 @@ external bool set_camera_ffi(
             ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(
     symbol: 'apply_weights_ffi', assetId: 'flutter_filament_plugin')
 external void apply_weights_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> weights,
@@ -1197,7 +1255,7 @@ external void apply_weights_ffi(
             ffi.Bool, ffi.Bool, ffi.Float)>(
     symbol: 'play_animation_ffi', assetId: 'flutter_filament_plugin')
 external void play_animation_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   int index,
   bool loop,
@@ -1210,7 +1268,7 @@ external void play_animation_ffi(
         ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int)>(
     symbol: 'set_animation_frame_ffi', assetId: 'flutter_filament_plugin')
 external void set_animation_frame_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   int animationIndex,
   int animationFrame,
@@ -1219,7 +1277,7 @@ external void set_animation_frame_ffi(
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
     symbol: 'stop_animation_ffi', assetId: 'flutter_filament_plugin')
 external void stop_animation_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   int index,
 );
@@ -1227,7 +1285,7 @@ external void stop_animation_ffi(
 @ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId)>(
     symbol: 'get_animation_count_ffi', assetId: 'flutter_filament_plugin')
 external int get_animation_count_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
 );
 
@@ -1236,7 +1294,7 @@ external int get_animation_count_ffi(
             ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>, ffi.Int)>(
     symbol: 'get_animation_name_ffi', assetId: 'flutter_filament_plugin')
 external void get_animation_name_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
@@ -1247,7 +1305,7 @@ external void get_animation_name_ffi(
             ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>, ffi.Int)>(
     symbol: 'get_morph_target_name_ffi', assetId: 'flutter_filament_plugin')
 external void get_morph_target_name_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> meshName,
   ffi.Pointer<ffi.Char> outPtr,
@@ -1260,7 +1318,7 @@ external void get_morph_target_name_ffi(
     symbol: 'get_morph_target_name_count_ffi',
     assetId: 'flutter_filament_plugin')
 external int get_morph_target_name_count_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> meshName,
 );
@@ -1270,7 +1328,7 @@ external int get_morph_target_name_count_ffi(
             ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(
     symbol: 'set_morph_target_weights_ffi', assetId: 'flutter_filament_plugin')
 external void set_morph_target_weights_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> morphData,
@@ -1289,7 +1347,7 @@ external void set_morph_target_weights_ffi(
             ffi.Float)>(
     symbol: 'set_morph_animation_ffi', assetId: 'flutter_filament_plugin')
 external bool set_morph_animation_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> morphData,
@@ -1308,7 +1366,7 @@ external bool set_morph_animation_ffi(
             ffi.Pointer<ffi.Char>)>(
     symbol: 'set_bone_transform_ffi', assetId: 'flutter_filament_plugin')
 external bool set_bone_transform_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> transform,
@@ -1328,7 +1386,7 @@ external bool set_bone_transform_ffi(
             ffi.Bool)>(
     symbol: 'add_bone_animation_ffi', assetId: 'flutter_filament_plugin')
 external void add_bone_animation_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int asset,
   ffi.Pointer<ffi.Float> frameData,
   int numFrames,
@@ -1360,7 +1418,7 @@ external void pick_ffi(
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
     symbol: 'reset_to_rest_pose_ffi', assetId: 'flutter_filament_plugin')
 external void reset_to_rest_pose_ffi(
-  ffi.Pointer<ffi.Void> assetManager,
+  ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
 );
 

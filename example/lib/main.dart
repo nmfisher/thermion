@@ -73,8 +73,6 @@ class ExampleWidgetState extends State<ExampleWidget> {
   static FilamentEntity? flightHelmet;
   static FilamentEntity? buster;
 
-  static List<String>? animations;
-
   static FilamentEntity? directionalLight;
 
   static bool loop = false;
@@ -90,8 +88,6 @@ class ExampleWidgetState extends State<ExampleWidget> {
         setState(() {
           _filamentController = FilamentControllerFFI();
         });
-        await Future.delayed(const Duration(milliseconds: 100));
-
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
           await _filamentController!.createViewer();
           _createEntityLoadListener();
@@ -101,8 +97,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
           await _filamentController!.setRendering(true);
           assets.add(
               await _filamentController!.loadGlb("assets/shapes/shapes.glb"));
-          ExampleWidgetState.animations =
-              await _filamentController!.getAnimationNames(assets.first);
+
           await _filamentController!
               .setCameraManipulatorOptions(zoomSpeed: 1.0);
 
@@ -123,7 +118,6 @@ class ExampleWidgetState extends State<ExampleWidget> {
     _listener =
         _filamentController!.onLoad.listen((FilamentEntity entity) async {
       assets.add(entity);
-      animations = await _filamentController!.getAnimationNames(entity);
       if (mounted) {
         setState(() {});
       }
@@ -136,37 +130,65 @@ class ExampleWidgetState extends State<ExampleWidget> {
   final _sharedFocusNode = FocusNode();
 
   Widget _assetEntry(FilamentEntity entity) {
-    return Row(children: [
-      Text("Asset ${entity}"),
-      IconButton(
-          tooltip: "Transform to unit cube",
-          onPressed: () async {
-            await _filamentController!.transformToUnitCube(entity);
-          },
-          icon: const Icon(Icons.settings_overscan_outlined)),
-      IconButton(
-          onPressed: () async {
-            _transformController?.dispose();
-            if (_controlled == entity) {
-              _controlled = null;
-            } else {
-              _controlled = entity;
-              _transformController?.dispose();
-              _transformController =
-                  EntityTransformController(_filamentController!, entity);
-            }
-            setState(() {});
-          },
-          icon: Icon(Icons.control_camera,
-              color: _controlled == entity ? Colors.green : Colors.black)),
-      IconButton(
-          onPressed: () async {
-            await _filamentController!.removeEntity(entity);
-            assets.remove(entity);
-            setState(() {});
-          },
-          icon: const Icon(Icons.cancel_sharp)),
-    ]);
+    return FutureBuilder(
+        future: _filamentController!.getAnimationNames(entity),
+        builder: (_, animations) {
+          if (animations.data == null) {
+            return Container();
+          }
+          return Row(children: [
+            Text("Asset ${entity}"),
+            IconButton(
+                iconSize: 14,
+                tooltip: "Transform to unit cube",
+                onPressed: () async {
+                  await _filamentController!.transformToUnitCube(entity);
+                },
+                icon: const Icon(Icons.settings_overscan_outlined)),
+            IconButton(
+                iconSize: 14,
+                tooltip: "Attach mouse control",
+                onPressed: () async {
+                  _transformController?.dispose();
+                  if (_controlled == entity) {
+                    _controlled = null;
+                  } else {
+                    _controlled = entity;
+                    _transformController?.dispose();
+                    _transformController =
+                        EntityTransformController(_filamentController!, entity);
+                  }
+                  setState(() {});
+                },
+                icon: Icon(Icons.control_camera,
+                    color:
+                        _controlled == entity ? Colors.green : Colors.black)),
+            IconButton(
+                iconSize: 14,
+                tooltip: "Remove",
+                onPressed: () async {
+                  await _filamentController!.removeEntity(entity);
+                  assets.remove(entity);
+                  setState(() {});
+                },
+                icon: const Icon(Icons.cancel_sharp)),
+            if (animations.data!.isNotEmpty)
+              PopupMenuButton(
+                tooltip: "Animations",
+                itemBuilder: (_) => animations.data!
+                    .map((a) => PopupMenuItem<String>(
+                          value: a,
+                          child: Text(a),
+                        ))
+                    .toList(),
+                onSelected: (value) async {
+                  print("Playing animation $value");
+                  await _filamentController!
+                      .playAnimation(entity, animations.data!.indexOf(value!));
+                },
+              )
+          ]);
+        });
   }
 
   @override
@@ -222,8 +244,9 @@ class ExampleWidgetState extends State<ExampleWidget> {
                 ),
                 GestureDetector(
                     onTap: () async {
-                      await _filamentController!
-                          .loadGlb('assets/shapes/shapes.glb');
+                      await _filamentController!.loadGlb(
+                          'assets/shapes/shapes.glb',
+                          numInstances: 10);
                     },
                     child: Container(
                         color: Colors.transparent,

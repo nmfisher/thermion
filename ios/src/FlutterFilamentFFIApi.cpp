@@ -31,7 +31,7 @@ extern "C"
 #include <pthread.h>
 #endif 
 
-using namespace polyvox;
+using namespace flutter_filament;
 using namespace std::chrono_literals;
 
 class RenderLoop {
@@ -262,21 +262,30 @@ set_background_color_ffi(void *const viewer, const float r, const float g,
   fut.wait();
 }
 
-FLUTTER_PLUGIN_EXPORT EntityId load_gltf_ffi(void *const assetManager,
+FLUTTER_PLUGIN_EXPORT EntityId load_gltf_ffi(void *const sceneManager,
                                              const char *path,
                                              const char *relativeResourcePath) {
   std::packaged_task<EntityId()> lambda([&]() mutable {
-    return load_gltf(assetManager, path, relativeResourcePath);
+    return load_gltf(sceneManager, path, relativeResourcePath);
   });
   auto fut = _rl->add_task(lambda);
   fut.wait();
   return fut.get();
 }
 
-FLUTTER_PLUGIN_EXPORT EntityId load_glb_ffi(void *const assetManager,
-                                            const char *path, bool unlit) {
+FLUTTER_PLUGIN_EXPORT EntityId load_glb_ffi(void *const sceneManager,
+                                            const char *path, int numInstances) {
   std::packaged_task<EntityId()> lambda(
-      [&]() mutable { return load_glb(assetManager, path, unlit); });
+      [&]() mutable { return load_glb(sceneManager, path, numInstances); });
+  auto fut = _rl->add_task(lambda);
+  fut.wait();
+  return fut.get();
+}
+
+FLUTTER_PLUGIN_EXPORT EntityId load_glb_from_buffer_ffi(void *const sceneManager,
+                                            const void *const data, size_t length, int numInstances) {
+  std::packaged_task<EntityId()> lambda(
+      [&]() mutable { return load_glb_from_buffer(sceneManager, data, length); });
   auto fut = _rl->add_task(lambda);
   fut.wait();
   return fut.get();
@@ -388,20 +397,20 @@ FLUTTER_PLUGIN_EXPORT bool set_camera_ffi(void *const viewer, EntityId asset,
 }
 
 FLUTTER_PLUGIN_EXPORT void
-get_morph_target_name_ffi(void *assetManager, EntityId asset,
+get_morph_target_name_ffi(void *sceneManager, EntityId asset,
                           const char *meshName, char *const outPtr, int index) {
   std::packaged_task<void()> lambda([&] {
-    get_morph_target_name(assetManager, asset, meshName, outPtr, index);
+    get_morph_target_name(sceneManager, asset, meshName, outPtr, index);
   });
   auto fut = _rl->add_task(lambda);
   fut.wait();
 }
 
 FLUTTER_PLUGIN_EXPORT int
-get_morph_target_name_count_ffi(void *assetManager, EntityId asset,
+get_morph_target_name_count_ffi(void *sceneManager, EntityId asset,
                                 const char *meshName) {
   std::packaged_task<int()> lambda([&] {
-    return get_morph_target_name_count(assetManager, asset, meshName);
+    return get_morph_target_name_count(sceneManager, asset, meshName);
   });
   auto fut = _rl->add_task(lambda);
   fut.wait();
@@ -410,52 +419,52 @@ get_morph_target_name_count_ffi(void *assetManager, EntityId asset,
 
 
 
-FLUTTER_PLUGIN_EXPORT void play_animation_ffi(void *const assetManager,
+FLUTTER_PLUGIN_EXPORT void play_animation_ffi(void *const sceneManager,
                                               EntityId asset, int index,
                                               bool loop, bool reverse,
                                               bool replaceActive,
                                               float crossfade) {
   std::packaged_task<void()> lambda([&] {
-    play_animation(assetManager, asset, index, loop, reverse, replaceActive,
+    play_animation(sceneManager, asset, index, loop, reverse, replaceActive,
                    crossfade);
   });
   auto fut = _rl->add_task(lambda);
   fut.wait();
 }
 
-FLUTTER_PLUGIN_EXPORT void set_animation_frame_ffi(void *const assetManager,
+FLUTTER_PLUGIN_EXPORT void set_animation_frame_ffi(void *const sceneManager,
                                                    EntityId asset,
                                                    int animationIndex,
                                                    int animationFrame) {
   std::packaged_task<void()> lambda([&] {
-    set_animation_frame(assetManager, asset, animationIndex, animationFrame);
+    set_animation_frame(sceneManager, asset, animationIndex, animationFrame);
   });
   auto fut = _rl->add_task(lambda);
   fut.wait();
 }
 
-FLUTTER_PLUGIN_EXPORT void stop_animation_ffi(void *const assetManager,
+FLUTTER_PLUGIN_EXPORT void stop_animation_ffi(void *const sceneManager,
                                               EntityId asset, int index) {
   std::packaged_task<void()> lambda(
-      [&] { stop_animation(assetManager, asset, index); });
+      [&] { stop_animation(sceneManager, asset, index); });
   auto fut = _rl->add_task(lambda);
   fut.wait();
 }
 
-FLUTTER_PLUGIN_EXPORT int get_animation_count_ffi(void *const assetManager,
+FLUTTER_PLUGIN_EXPORT int get_animation_count_ffi(void *const sceneManager,
                                                   EntityId asset) {
   std::packaged_task<int()> lambda(
-      [&] { return get_animation_count(assetManager, asset); });
+      [&] { return get_animation_count(sceneManager, asset); });
   auto fut = _rl->add_task(lambda);
   fut.wait();
   return fut.get();
 }
-FLUTTER_PLUGIN_EXPORT void get_animation_name_ffi(void *const assetManager,
+FLUTTER_PLUGIN_EXPORT void get_animation_name_ffi(void *const sceneManager,
                                                   EntityId asset,
                                                   char *const outPtr,
                                                   int index) {
   std::packaged_task<void()> lambda(
-      [&] { get_animation_name(assetManager, asset, outPtr, index); });
+      [&] { get_animation_name(sceneManager, asset, outPtr, index); });
   auto fut = _rl->add_task(lambda);
   fut.wait();
 }
@@ -476,27 +485,27 @@ FLUTTER_PLUGIN_EXPORT void pick_ffi(void *const viewer, int x, int y,
 }
 
 FLUTTER_PLUGIN_EXPORT const char *
-get_name_for_entity_ffi(void *const assetManager, const EntityId entityId) {
+get_name_for_entity_ffi(void *const sceneManager, const EntityId entityId) {
   std::packaged_task<const char *()> lambda(
-      [&] { return get_name_for_entity(assetManager, entityId); });
+      [&] { return get_name_for_entity(sceneManager, entityId); });
   auto fut = _rl->add_task(lambda);
   fut.wait();
   return fut.get();
 }
 
-void set_morph_target_weights_ffi(void *const assetManager, 
+void set_morph_target_weights_ffi(void *const sceneManager, 
                                   EntityId asset,
                                   const char *const entityName,
                                   const float *const morphData,
                                   int numWeights) {
     std::packaged_task<void()> lambda(
-      [&] { return set_morph_target_weights(assetManager, asset, entityName, morphData, numWeights); });
+      [&] { return set_morph_target_weights(sceneManager, asset, entityName, morphData, numWeights); });
       auto fut = _rl->add_task(lambda);
       fut.wait();
 }
 
 bool set_morph_animation_ffi(
-               void *assetManager,
+               void *sceneManager,
                EntityId asset,
                const char *const entityName,
                const float *const morphData,
@@ -506,7 +515,7 @@ bool set_morph_animation_ffi(
                float frameLengthInMs) {
       std::packaged_task<bool()> lambda(
       [&] { 
-        return set_morph_animation(assetManager, asset, entityName, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs); 
+        return set_morph_animation(sceneManager, asset, entityName, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs); 
         });
     auto fut = _rl->add_task(lambda);
     fut.wait();
@@ -515,27 +524,27 @@ bool set_morph_animation_ffi(
 
 
 FLUTTER_PLUGIN_EXPORT bool set_bone_transform_ffi(
-		void *assetManager,
+		void *sceneManager,
 		EntityId asset,
 		const char *entityName,
 		const float *const transform,
 		const char *boneName) {
       std::packaged_task<bool()> lambda(
-      [&] { return set_bone_transform(assetManager, asset, entityName, transform, boneName); });
+      [&] { return set_bone_transform(sceneManager, asset, entityName, transform, boneName); });
       auto fut = _rl->add_task(lambda);
       fut.wait();
       return fut.get();
 }
 
-FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose_ffi(void* const assetManager, EntityId entityId) {
+FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose_ffi(void* const sceneManager, EntityId entityId) {
   std::packaged_task<void()> lambda(
-      [&] { return reset_to_rest_pose(assetManager, entityId); });
+      [&] { return reset_to_rest_pose(sceneManager, entityId); });
   auto fut = _rl->add_task(lambda);
   fut.wait();
 }
 
 FLUTTER_PLUGIN_EXPORT void add_bone_animation_ffi(
-               void *assetManager,
+               void *sceneManager,
                EntityId asset,
                const float *const frameData,
                int numFrames,
@@ -547,7 +556,7 @@ FLUTTER_PLUGIN_EXPORT void add_bone_animation_ffi(
 
         std::packaged_task<void()> lambda(
       [=] { 
-        add_bone_animation(assetManager, asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs, isModelSpace); 
+        add_bone_animation(sceneManager, asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs, isModelSpace); 
         });
       auto fut = _rl->add_task(lambda);
       fut.wait();

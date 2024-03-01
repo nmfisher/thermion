@@ -5,9 +5,8 @@
 #include <cassert>
 #include <cstring>
 
-namespace polyvox {
+namespace flutter_filament {
 
-  using namespace std;
 
   // 
   // A generic adapter to expose any contiguous section of memory as a std::streambuf.
@@ -20,15 +19,15 @@ namespace polyvox {
           ~StreamBufferAdapter() {
             
           }
-          streamsize size();
+          std::streamsize size();
           
       private:
           int_type uflow() override;
           int_type underflow() override;
           int_type pbackfail(int_type ch) override;
-          streampos seekoff(streamoff off, ios_base::seekdir way, ios_base::openmode which) override;
-          streampos seekpos(streampos sp, ios_base::openmode which) override;
-          streamsize showmanyc() override;
+          std::streampos seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which) override;
+          std::streampos seekpos(std::streampos sp, std::ios_base::openmode which) override;
+          std::streamsize showmanyc() override;
           
   };
 

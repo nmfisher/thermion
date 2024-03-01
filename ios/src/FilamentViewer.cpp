@@ -91,11 +91,6 @@
 #include "TimeIt.hpp"
 #include "ThreadPool.hpp"
 
-using namespace filament;
-using namespace filament::math;
-using namespace gltfio;
-using namespace utils;
-using namespace image;
 
 namespace filament
 {
@@ -103,8 +98,17 @@ namespace filament
   class LightManager;
 } // namespace filament
 
-namespace polyvox
+namespace flutter_filament
 {
+
+  using namespace filament;
+  using namespace filament::math;
+  using namespace gltfio;
+  using namespace utils;
+  using namespace image;
+  using namespace std::chrono;
+
+  using std::string;
 
   // const float kAperture = 1.0f;
   // const float kShutterSpeed = 1.0f;
@@ -135,6 +139,8 @@ namespace polyvox
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
 #endif
 
+    _engine->setAutomaticInstancingEnabled(true);
+
     _renderer = _engine->createRenderer();
 
     _frameInterval = 1000.0f / 60.0f;
@@ -151,6 +157,7 @@ namespace polyvox
 
     Log("Main camera created");
     _view = _engine->createView();
+
     Log("View created");
 
     setToneMapping(ToneMapping::ACES);
@@ -200,15 +207,11 @@ namespace polyvox
     _view->setDynamicResolutionOptions(options);
 
     setAntiAliasing(false, true, false);
-
   
     EntityManager &em = EntityManager::get();
 
-    _ncm = new NameComponentManager(em);
-
     _sceneManager = new SceneManager(
         _resourceLoaderWrapper,
-        _ncm,
         _engine,
         _scene,
         uberArchivePath);
@@ -339,7 +342,7 @@ namespace polyvox
   int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows)
   {
     auto light = EntityManager::get().create();
-    LightManager::Builder(t)
+    auto builder = LightManager::Builder(t)
         .color(Color::cct(colour))
         .intensity(intensity)
         .position(math::float3(posX, posY, posZ))
@@ -377,7 +380,7 @@ namespace polyvox
     _lights.clear();
   }
 
-  static bool endsWith(string path, string ending)
+  static bool endsWith(std::string path, std::string ending)
   {
     return path.compare(path.length() - ending.length(), ending.length(), ending) == 0;
   }
@@ -435,7 +438,7 @@ namespace polyvox
   void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb)
   {
 
-    polyvox::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
+    flutter_filament::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
 
     std::istream inputStream(&sb);
 
@@ -480,7 +483,7 @@ namespace polyvox
 
   void FilamentViewer::loadTextureFromPath(string path)
   {
-    string ktxExt(".ktx");
+    std::string ktxExt(".ktx");
     string ktx2Ext(".ktx2");
     string pngExt(".png");
 
@@ -802,9 +805,21 @@ namespace polyvox
     cam.setFocusDistance(_cameraFocusDistance);
   }
 
+  ///
+  /// 
+  ///
   void FilamentViewer::setMainCamera() {
     _view->setCamera(_mainCamera);
   }
+
+  ///
+  /// 
+  ///
+  EntityId FilamentViewer::getMainCamera() {
+    return Entity::smuggle(_mainCamera->getEntity());
+  }
+
+
 
   ///
   /// Sets the active camera to the GLTF camera node specified by [name] (or if null, the first camera found under that node).
@@ -832,18 +847,16 @@ namespace polyvox
     utils::Entity target;
 
     if (!cameraName)
-    {
-      auto inst = _ncm->getInstance(cameras[0]);
-      const char *name = _ncm->getName(inst);
+    {      
       target = cameras[0];
+      const char *name = asset->getName(target);
       Log("No camera specified, using first camera node found (%s)", name);
     }
     else
     {
       for (int j = 0; j < count; j++)
       {
-        auto inst = _ncm->getInstance(cameras[j]);
-        const char *name = _ncm->getName(inst);
+        const char *name = asset->getName(cameras[j]);
         if (strcmp(name, cameraName) == 0)
         {
           target = cameras[j];
@@ -1138,7 +1151,7 @@ namespace polyvox
 
                                         std::string filename = stringStream.str();
 
-                                        ofstream wf(filename, ios::out | ios::binary);
+                                        std::ofstream wf(filename, std::ios::out | std::ios::binary);
 
                                         LinearImage image(toLinearWithAlpha<uint8_t>(vp.width, vp.height, vp.width * 4,
                                                                                      static_cast<uint8_t *>(buf)));
@@ -1228,7 +1241,7 @@ namespace polyvox
     Camera &cam = _view->getCamera();
 
     _cameraPosition = math::mat4f::translation(math::float3(x, y, z));
-    cam.setModelMatrix(_cameraPosition * _cameraRotation);
+    cam.setModelMatrix(_cameraRotation * _cameraPosition);
   }
 
   void FilamentViewer::moveCameraToAsset(EntityId entityId)
@@ -1249,11 +1262,11 @@ namespace polyvox
     Log("Moved camera to %f %f %f, lookAt %f %f %f, near %f far %f", eye[0], eye[1], eye[2], lookAt[0], lookAt[1], lookAt[2], cam.getNear(), cam.getCullingFar());
   }
 
-  void FilamentViewer::setCameraRotation(float rads, float x, float y, float z)
+  void FilamentViewer::setCameraRotation(float w, float x, float y, float z)
   {
     Camera &cam = _view->getCamera();
-    _cameraRotation = math::mat4f::rotation(rads, math::float3(x, y, z));
-    cam.setModelMatrix(_cameraPosition * _cameraRotation);
+    _cameraRotation = math::mat4f(math::quatf(w, x, y, z));
+    cam.setModelMatrix(_cameraRotation * _cameraPosition);
   }
 
   void FilamentViewer::setCameraModelMatrix(const float *const matrix)
@@ -1455,7 +1468,10 @@ namespace polyvox
   void FilamentViewer::pick(uint32_t x, uint32_t y, EntityId *entityId)
   {
     _view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
-                { *entityId = Entity::smuggle(result.renderable); });
+                { 
+                  
+                  *entityId = Entity::smuggle(result.renderable); 
+                  });
   }
 
   EntityId FilamentViewer::createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, const char* materialPath)
@@ -1523,4 +1539,4 @@ namespace polyvox
     return Entity::smuggle(renderable);
   }
 
-} // namespace polyvox
+} // namespace flutter_filament

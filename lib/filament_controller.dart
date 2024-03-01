@@ -1,6 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 
@@ -11,6 +12,9 @@ import 'package:vector_math/vector_math_64.dart';
 
 // a handle that can be safely passed back to the rendering layer to manipulate an Entity
 typedef FilamentEntity = int;
+
+// "picking" means clicking/tapping on the viewport, and unprojecting the X/Y coordinate to determine whether any renderable entities were present at those coordinates.
+typedef FilamentPickResult = ({FilamentEntity entity, double x, double y});
 
 enum ToneMapper { ACES, FILMIC, LINEAR }
 
@@ -65,7 +69,7 @@ abstract class FilamentController {
   /// This may be a broadcast stream, so you should ensure you have subscribed to this stream before calling [pick].
   /// If [pick] is called without an active subscription to this stream, the results will be silently discarded.
   ///
-  Stream<FilamentEntity?> get pickResult;
+  Stream<FilamentPickResult> get pickResult;
 
   ///
   /// Whether the controller is currently rendering at [framerate].
@@ -206,7 +210,35 @@ abstract class FilamentController {
   ///
   /// Load the .glb asset at the given path and insert into the scene.
   ///
-  Future<FilamentEntity> loadGlb(String path, {bool unlit = false});
+  Future<FilamentEntity> loadGlb(String path, {int numInstances = 1});
+
+  ///
+  /// Load the .glb asset from the specified path (either Flutter asset URI or filepath) and insert into the scene.
+  /// If [cache] is true, the contents of the path will be cached locally and re-used for any future calls to load that asset.
+  /// See also [evictCache].
+  ///
+  Future<FilamentEntity> loadGlbFromBuffer(String path,
+      {bool cache = false, int numInstances = 1});
+
+  ///
+  /// Create a new instance of [entity].
+  ///
+  Future<FilamentEntity> createInstance(FilamentEntity entity);
+
+  ///
+  /// Returns the number of instances of the asset associated with [entity].
+  ///
+  Future<int> getInstanceCount(FilamentEntity entity);
+
+  ///
+  /// Returns all instances of [entity].
+  ///
+  Future<List<FilamentEntity>> getInstances(FilamentEntity entity);
+
+  ///
+  /// Frees all cached resources loaded via [loadGlbFromBuffer].
+  ///
+  Future evictCache();
 
   ///
   /// Load the .gltf asset at the given path and insert into the scene.
@@ -281,15 +313,10 @@ abstract class FilamentController {
   Future resetBones(FilamentEntity entity);
 
   ///
-  /// Starts animating a bone (joint) according to the specified [animation].
+  /// Transforms the bone(s)/joint(s) according [animation].
+  /// To set the instantaneous transform, just use a single frame.
   ///
   Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation);
-
-  ///
-  /// Sets the local joint transform for the bone at the given index in [entity] for the mesh under [meshName].
-  ///
-  Future setBoneTransform(
-      FilamentEntity entity, String meshName, String boneName, Matrix4 data);
 
   ///
   /// Removes/destroys the specified entity from the scene.
@@ -349,6 +376,11 @@ abstract class FilamentController {
   /// Sets the current scene camera to the main camera (which is always available and added to every scene by default).
   ///
   Future setMainCamera();
+
+  ///
+  /// Returns the entity associated with the main camera.
+  ///
+  Future<FilamentEntity> getMainCamera();
 
   ///
   /// Sets the current scene camera to the glTF camera under [name] in [entity].
@@ -450,7 +482,7 @@ abstract class FilamentController {
   ///
   /// Rotate the camera by [rads] around the given axis. Note this is not persistent - any viewport navigation will reset the camera transform.
   ///
-  Future setCameraRotation(double rads, double x, double y, double z);
+  Future setCameraRotation(Quaternion quaternion);
 
   ///
   /// Sets the camera model matrix.
