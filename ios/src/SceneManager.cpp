@@ -1424,9 +1424,11 @@ namespace flutter_filament
         const auto *instance = getInstanceByEntityId(entityId);
          if(!instance) {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if(asset) {
                 instance = asset->getInstance();
-            }            
+            } else { 
+                return nullptr;
+            }         
         }
         return instance->getAsset()->getCameraEntities();
     }
@@ -1436,9 +1438,11 @@ namespace flutter_filament
         const auto *instance = getInstanceByEntityId(entityId);
          if(!instance) {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if(asset) {
                 instance = asset->getInstance();
-            }            
+            } else { 
+                return -1;
+            }          
         }
         return instance->getAsset()->getCameraEntityCount();
     }
@@ -1448,9 +1452,11 @@ namespace flutter_filament
         const auto *instance = getInstanceByEntityId(entityId);
         if(!instance) {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if(asset) {
                 instance = asset->getInstance();
-            }            
+            } else {
+                return nullptr;
+            }          
         }
         return instance->getAsset()->getLightEntities();
     }
@@ -1460,9 +1466,11 @@ namespace flutter_filament
         const auto *instance = getInstanceByEntityId(entityId);
         if(!instance) {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if(asset) {
                 instance = asset->getInstance();
-            }            
+            } else {
+                return -1;
+            }         
         }
         return instance->getAsset()->getLightEntityCount();
     }
@@ -1483,7 +1491,7 @@ namespace flutter_filament
         const auto *instance = getInstanceByEntityId(entityId);
         if(!instance) {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if(asset) {
                 instance = asset->getInstance();
             } else {
                 return 0;
@@ -1507,7 +1515,7 @@ namespace flutter_filament
         const auto *instance = getInstanceByEntityId(entityId);
         if(!instance) {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if(asset) {
                 instance = asset->getInstance();
             } else {
                 return nullptr;
