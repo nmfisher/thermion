@@ -1044,8 +1044,7 @@ namespace flutter_filament
     if (secsSinceLastFpsCheck >= 1)
     {
       auto fps = _frameCount / secsSinceLastFpsCheck;
-      Log("%ffps (_frameCount %d, secs since last check %f)", fps, _frameCount, secsSinceLastFpsCheck);
-      // Log("1 sec average for asset animation update %f", _elapsed / _frameCount);
+      Log("%ffps", fps);
       _frameCount = 0;
       _skippedFrames = 0;
       _fpsCounterStartTime = now;
