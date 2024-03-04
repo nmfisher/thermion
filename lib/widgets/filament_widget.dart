@@ -182,6 +182,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
       } finally {
         _resizing = false;
         completer.complete();
+        _resizeTimer?.cancel();
       }
     });
     return completer.future;
@@ -190,7 +191,9 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
   @override
   void didUpdateWidget(_SizedFilamentWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _resize();
+    if (widget.height != oldWidget.height || widget.width != oldWidget.width) {
+      _resize();
+    }
   }
 
   @override
