@@ -45,7 +45,7 @@ public:
 
         float elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
 
-        while(elapsed < 3 * _frameIntervalInMilliseconds / 4) {
+        while(elapsed < _frameIntervalInMilliseconds - 5) {
           
           std::function<void()> task;
           std::unique_lock<std::mutex> lock(_access);
@@ -68,6 +68,25 @@ public:
           doRender();
           auto frameEnd = std::chrono::high_resolution_clock::now();
           // Log("Took %f milliseconds for render",           float(std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart).count()));
+        }
+
+        elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
+
+        while(elapsed < _frameIntervalInMilliseconds) {
+          std::function<void()> task;
+          std::unique_lock<std::mutex> lock(_access);
+          if (_tasks.empty()) {
+            _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
+            now = std::chrono::high_resolution_clock::now();
+            elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
+            continue;
+          }
+          task = std::move(_tasks.front());
+          _tasks.pop_front();
+          task();
+          
+          now = std::chrono::high_resolution_clock::now();
+          elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
         }
 
         last = now;
@@ -139,6 +158,7 @@ public:
 
   void setFrameIntervalInMilliseconds(float frameIntervalInMilliseconds) {
     _frameIntervalInMilliseconds = frameIntervalInMilliseconds;
+    Log("Set _frameIntervalInMilliseconds to %f", _frameIntervalInMilliseconds);
   }
 
   template <class Rt>
