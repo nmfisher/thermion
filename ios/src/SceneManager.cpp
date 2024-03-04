@@ -315,14 +315,14 @@ namespace flutter_filament
 
         if(meshName) {
             entity = findEntityByName(instance, meshName);
-            Log("Hiding child entity under name %s ", meshName);
+            // Log("Hiding child entity under name %s ", meshName);
             if (entity.isNull()) {
                 Log("Failed to hide entity; specified mesh name does not exist under the target entity, or the target entity itself is no longer valid.");
                 return false;
             }
             _scene->remove(entity);
         } else { 
-            Log("Hiding all child entities");
+            // Log("Hiding all child entities");
             auto* entities = instance->getEntities();
             for(int i =0; i < instance->getEntityCount(); i++) { 
                 auto entity = entities[i];
@@ -357,7 +357,7 @@ namespace flutter_filament
             }
             _scene->addEntity(entity);
         } else { 
-            Log("Revealing all child entities");
+            // Log("Revealing all child entities");
             auto* entities = instance->getEntities();
             for(int i =0; i < instance->getEntityCount(); i++) { 
                 auto entity = entities[i];
@@ -1075,17 +1075,16 @@ namespace flutter_filament
 
     float SceneManager::getAnimationDuration(EntityId entity, int animationIndex)
     {
-        const auto &pos = _instances.find(entity);
+        auto* instance = getInstanceByEntityId(entity);
 
-        unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
-
-        if (pos == _instances.end())
+        if (!instance)
         {
-            Log("ERROR: asset not found for entity id.");
-            return -1.0f;
+            auto* asset = getAssetByEntityId(entity);
+            if(!asset) {
+                return -1.0f;
+            }
+            instance = asset->getInstance();
         }
-
-        auto *instance = pos->second;
         return instance->getAnimator()->getAnimationDuration(animationIndex);
     }
 
@@ -1182,7 +1181,7 @@ namespace flutter_filament
     }
 
     void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId) {
-        Log("Parenting child %d to %d", childEntityId, parentEntityId);
+        // Log("Parenting child %d to %d", childEntityId, parentEntityId);
         auto& tm = _engine->getTransformManager();
         const auto child = Entity::import(childEntityId);
         const auto parent = Entity::import(parentEntityId);
