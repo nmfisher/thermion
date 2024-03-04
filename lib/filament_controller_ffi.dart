@@ -1436,12 +1436,13 @@ class FilamentControllerFFI extends FilamentController {
     return childEntity;
   }
 
-  Future<List<String>> getMeshNames(FilamentEntity entity,
-      {bool async = false}) async {
-    var count = get_entity_count(_sceneManager!, entity, true);
+  @override
+  Future<List<String>> getChildEntities(FilamentEntity entity,
+      {bool renderableOnly = false}) async {
+    var count = get_entity_count(_sceneManager!, entity, renderableOnly);
     var names = <String>[];
     for (int i = 0; i < count; i++) {
-      var name = get_entity_name_at(_sceneManager!, entity, i, true);
+      var name = get_entity_name_at(_sceneManager!, entity, i, renderableOnly);
       if (name == nullptr) {
         throw Exception("Failed to find mesh at index $i");
       }

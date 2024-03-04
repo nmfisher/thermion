@@ -597,9 +597,10 @@ abstract class FilamentController {
       FilamentEntity parent, String childName);
 
   ///
-  /// Lists all child meshes under the given entity.
+  /// List all child entities under the given entity.
   ///
-  Future<List<String>> getMeshNames(FilamentEntity entity, {bool async = true});
+  Future<List<String>> getChildEntities(FilamentEntity entity,
+      {bool renderableOnly = true});
 
   ///
   /// If [recording] is set to true, each frame the framebuffer/texture will be written to /tmp/output_*.png.
