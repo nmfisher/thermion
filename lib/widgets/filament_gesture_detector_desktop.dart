@@ -95,8 +95,10 @@ class _FilamentGestureDetectorDesktopState
   Widget build(BuildContext context) {
     return Listener(
         onPointerSignal: (PointerSignalEvent pointerSignal) async {
-          if (pointerSignal is PointerScrollEvent && widget.enableCamera) {
-            _zoom(pointerSignal);
+          if (pointerSignal is PointerScrollEvent) {
+            if (widget.enableCamera) {
+              _zoom(pointerSignal);
+            }
           } else {
             throw Exception("TODO");
           }
@@ -107,7 +109,13 @@ class _FilamentGestureDetectorDesktopState
         // ignore all pointer down events
         // so we can wait to see if the pointer will be held/moved (interpreted as rotate/pan),
         // or if this is a single mousedown event (interpreted as viewport pick)
-        onPointerDown: (d) async {},
+        onPointerDown: (d) async {
+          if (d.buttons != kTertiaryButton && widget.enablePicking) {
+            widget.controller
+                .pick(d.localPosition.dx.toInt(), d.localPosition.dy.toInt());
+          }
+          _pointerMoving = false;
+        },
         // holding/moving the left mouse button is interpreted as a pan, middle mouse button as a rotate
         onPointerMove: (PointerMoveEvent d) async {
           // if this is the first move event, we need to call rotateStart/panStart to set the first coordinates
@@ -139,9 +147,6 @@ class _FilamentGestureDetectorDesktopState
           } else {
             if (_pointerMoving && widget.enableCamera) {
               widget.controller.panEnd();
-            } else if (widget.enablePicking) {
-              widget.controller
-                  .pick(d.localPosition.dx.toInt(), d.localPosition.dy.toInt());
             }
           }
           _pointerMoving = false;
