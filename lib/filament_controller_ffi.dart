@@ -951,6 +951,12 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
+  Future stopAnimationByName(FilamentEntity entity, String name) async {
+    var animations = await getAnimationNames(entity);
+    await stopAnimation(entity, animations.indexOf(name));
+  }
+
+  @override
   Future playAnimationByName(FilamentEntity entity, String name,
       {bool loop = false,
       bool reverse = false,

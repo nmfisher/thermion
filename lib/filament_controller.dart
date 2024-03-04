@@ -365,7 +365,9 @@ abstract class FilamentController {
 
   Future setAnimationFrame(
       FilamentEntity entity, int index, int animationFrame);
+
   Future stopAnimation(FilamentEntity entity, int animationIndex);
+  Future stopAnimationByName(FilamentEntity entity, String name);
 
   ///
   /// Sets the current scene camera to the glTF camera under [name] in [entity].
