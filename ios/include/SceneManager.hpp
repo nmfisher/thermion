@@ -130,7 +130,7 @@ namespace flutter_filament
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
         void setParent(EntityId child, EntityId parent);
-        void addAnimatableComponent(EntityId entity);
+        void addAnimationComponent(EntityId entity);
 
         /// @brief returns the number of instances of the FilamentAsset represented by the given entity.
         /// @param entityId 

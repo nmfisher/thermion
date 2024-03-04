@@ -1269,7 +1269,8 @@ class FilamentControllerFFI extends FilamentController {
     final outPtr = allocator<EntityId>(1);
     outPtr.value = 0;
 
-    pick_ffi(_viewer!, x, textureDetails.value!.height - y, outPtr);
+    pick_ffi(_viewer!, (x * _pixelRatio).toInt(),
+        textureDetails.value!.height - (y * _pixelRatio).toInt(), outPtr);
     int wait = 0;
     while (outPtr.value == 0) {
       await Future.delayed(const Duration(milliseconds: 32));
@@ -1495,6 +1496,11 @@ class FilamentControllerFFI extends FilamentController {
       add_collision_component(
           _sceneManager!, collidableEntity, nullptr, affectsCollingTransform);
     }
+  }
+
+  @override
+  Future addAnimationComponent(FilamentEntity entity) async {
+    add_animation_component(_sceneManager!, entity);
   }
 
   @override

@@ -589,6 +589,10 @@ extern "C"
         ((SceneManager*)sceneManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
     }
 
+    FLUTTER_PLUGIN_EXPORT void add_animation_component(void *const sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->addAnimationComponent(entityId);
+    }
+
     FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
         return ((FilamentViewer*)viewer)->createGeometry(vertices, (size_t)numVertices, indices, numIndices, materialPath);
     }

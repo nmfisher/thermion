@@ -250,7 +250,6 @@ namespace flutter_filament
             auto instanceEntity = inst->getRoot();
             auto instanceEntityId = Entity::smuggle(instanceEntity);
             _instances.emplace(instanceEntityId, inst);
-            addAnimatableComponent(instanceEntityId);
         }
 
         asset->releaseSourceData();
@@ -260,7 +259,7 @@ namespace flutter_filament
         return eid;
     }
 
-    void SceneManager::addAnimatableComponent(EntityId entityId) {
+    void SceneManager::addAnimationComponent(EntityId entityId) {
 
         auto* instance = getInstanceByEntityId(entityId);
         if (!instance)
@@ -387,7 +386,7 @@ namespace flutter_filament
         const auto &pos = _instances.find(entityId);
         if (pos == _instances.end())
         {
-            Log("Failed to find FilamentInstance for entity %d", entityId);
+            // Log("Failed to find FilamentInstance for entity %d", entityId);
             return nullptr;
         }
         return pos->second;
@@ -398,7 +397,7 @@ namespace flutter_filament
         const auto &pos = _assets.find(entityId);
         if (pos == _assets.end())
         {
-            Log("Failed to find FilamentAsset for entity %d", entityId);
+            // Log("Failed to find FilamentAsset for entity %d", entityId);
             return nullptr;
         }
         return pos->second;
@@ -561,9 +560,9 @@ namespace flutter_filament
         // {
         //     _engine->destroy(sceneAsset.texture);
         // }
-
-        utils::EntityManager &em = utils::EntityManager::get();
-        em.destroy(entity);
+//
+//        utils::EntityManager &em = utils::EntityManager::get();
+//        em.destroy(entity);
     }
 
     void SceneManager::setMorphTargetWeights(EntityId entityId, const char *const entityName, const float *const weights, const int count)
@@ -604,13 +603,16 @@ namespace flutter_filament
     utils::Entity SceneManager::findChildEntityByName(EntityId entityId, const char *entityName) {
         std::lock_guard lock(_mutex);
 
-        const auto &pos = _instances.find(entityId);
-        if (pos == _instances.end())
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("Couldn't find asset under specified entity id.");
-            return utils::Entity();
+            auto* asset = getAssetByEntityId(entityId);
+            if(!asset) {
+                return utils::Entity();
+            }
+            instance = asset->getInstance();
         }
-        const auto* instance = pos->second;
+        
 
         const auto entity = findEntityByName(instance, entityName);
 
@@ -1199,7 +1201,6 @@ namespace flutter_filament
                 return;
             } else {
                 instance = asset->getInstance();
-                
             }         
         }
         auto collisionInstance = _collisionComponentManager->addComponent(instance->getRoot());
@@ -1212,20 +1213,20 @@ namespace flutter_filament
         const auto *instance = getInstanceByEntityId(entityId);
          if(!instance) {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if(asset) {
                 instance = asset->getInstance();
-            }            
+            } else { 
+                return;
+            }          
         }
-        const auto entity = Entity::import(entityId);
 
         const auto& tm = _engine->getTransformManager();
 
         auto transformInstance = tm.getInstance(instance->getRoot());
         auto worldTransform = tm.getWorldTransform(transformInstance);
-        // Log("World transform for %d is %f %f %f", entityId, worldTransform[3][0], worldTransform[3][1], worldTransform[3][2]);
         auto aabb = instance->getBoundingBox();
         aabb = aabb.transform(worldTransform);
-        _collisionComponentManager->collides(entity, aabb);
+        _collisionComponentManager->collides(instance->getRoot(), aabb);
     }
 
     void SceneManager::updateAnimations() { 
@@ -1248,7 +1249,6 @@ namespace flutter_filament
             Aabb boundingBox;
             if (pos == _instances.end())
             {
-                Log("WARNING: SceneAsset not found for entity.");
                 isCollidable = false;
                 entity = Entity::import(entityId);
             } else { 

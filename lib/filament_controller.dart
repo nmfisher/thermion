@@ -610,11 +610,17 @@ abstract class FilamentController {
   ///
   Future setRecordingOutputDirectory(String outputDirectory);
 
-  // Stream get keyboardFocusRequested;
-  // void requestKeyboardFocus();
-
+  ///
+  /// Attach the keyboard/mouse to [entity].
+  ///
   Future<EntityTransformController> control(FilamentEntity entity,
       {double? translationSpeed, String? forwardAnimation});
+
+  ///
+  /// An [entity] will only be animatable after an animation component is attached.
+  /// Any calls to [playAnimation]/[setBoneAnimation]/[setMorphAnimation] will have no visual effect until [addAnimationComponent] has been called on the instance.
+  ///
+  Future addAnimationComponent(FilamentEntity entity);
 
   ///
   /// Makes [collidableEntity] collidable with

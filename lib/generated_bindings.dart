@@ -225,10 +225,10 @@ external int get_instance_count(
 );
 
 @ffi.Native<
-        ffi.Int Function(
+        ffi.Void Function(
             ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<EntityId>)>(
     symbol: 'get_instances', assetId: 'flutter_filament_plugin')
-external int get_instances(
+external void get_instances(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
   ffi.Pointer<EntityId> out,
@@ -929,6 +929,13 @@ external void add_collision_component(
               ffi.Void Function(EntityId entityId1, EntityId entityId2)>>
       callback,
   bool affectsCollidingTransform,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'add_animation_component', assetId: 'flutter_filament_plugin')
+external void add_animation_component(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
 );
 
 @ffi.Native<
