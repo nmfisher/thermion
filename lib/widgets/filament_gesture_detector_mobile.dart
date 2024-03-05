@@ -124,15 +124,20 @@ class _FilamentGestureDetectorMobileState
   double _lastScale = 0;
 
   // pinch zoom on mobile
-  // couldn't find any equivalent for pointerCount in Listener so we use two widgets:
-  // - outer is a GestureDetector only for pinch zoom
-  // - inner is a Listener for all other gestures (including scroll zoom on desktop)
+  // couldn't find any equivalent for pointerCount in Listener (?) so we use a GestureDetector
   @override
   Widget build(BuildContext context) {
     return Stack(children: [
       Positioned.fill(
           child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (d) {
+                if (widget.enablePicking) {
+                  print("PICK");
+                  widget.controller.pick(
+                      d.globalPosition.dx.toInt(), d.globalPosition.dy.toInt());
+                }
+              },
               onDoubleTap: () {
                 setState(() {
                   _rotateOnPointerMove = !_rotateOnPointerMove;

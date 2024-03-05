@@ -598,7 +598,7 @@ extern "C"
     }
 
     FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
-        return ((FilamentViewer*)viewer)->createGeometry(vertices, (size_t)numVertices, indices, numIndices, materialPath);
+        return ((FilamentViewer*)viewer)->createGeometry(vertices, (uint32_t)numVertices, indices, numIndices, materialPath);
     }
 
     FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name) {

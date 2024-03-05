@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:developer' as dev;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/widgets.dart';
@@ -140,7 +141,7 @@ class FilamentControllerFFI extends FilamentController {
   Future setFrameRate(int framerate) async {
     final interval = 1000.0 / framerate;
     set_frame_interval_ffi(interval);
-    dev.log("Set frame interval to $interval");
+    print("Set frame interval to $interval");
   }
 
   @override
@@ -182,13 +183,89 @@ class FilamentControllerFFI extends FilamentController {
       await _channel.invokeMethod(
           "destroyTexture", textureDetails.value!.textureId);
     }
-    dev.log("Texture destroyed");
+    print("Texture destroyed");
+  }
+
+  Future<void> _withVoidCallback(
+      Function(Pointer<NativeFunction<Void Function()>>) func) async {
+    final completer = Completer();
+    // ignore: prefer_function_declarations_over_variables
+    void Function() callback = () {
+      completer.complete();
+    };
+    final nativeCallable = NativeCallable<Void Function()>.listener(callback);
+    func.call(nativeCallable.nativeFunction);
+    await completer.future;
+    nativeCallable.close();
+  }
+
+  Future<Pointer<Void>> _withVoidPointerCallback(
+      Function(Pointer<NativeFunction<Void Function(Pointer<Void>)>>)
+          func) async {
+    final completer = Completer<Pointer<Void>>();
+    // ignore: prefer_function_declarations_over_variables
+    void Function(Pointer<Void>) callback = (Pointer<Void> ptr) {
+      completer.complete(ptr);
+    };
+    final nativeCallable =
+        NativeCallable<Void Function(Pointer<Void>)>.listener(callback);
+    func.call(nativeCallable.nativeFunction);
+    await completer.future;
+    nativeCallable.close();
+    return completer.future;
+  }
+
+  Future<bool> _withBoolCallback(
+      Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
+    final completer = Completer<bool>();
+    // ignore: prefer_function_declarations_over_variables
+    void Function(bool) callback = (bool result) {
+      completer.complete(result);
+    };
+    final nativeCallable =
+        NativeCallable<Void Function(Bool)>.listener(callback);
+    func.call(nativeCallable.nativeFunction);
+    await completer.future;
+    nativeCallable.close();
+    return completer.future;
+  }
+
+  Future<int> _withIntCallback(
+      Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
+    final completer = Completer<int>();
+    // ignore: prefer_function_declarations_over_variables
+    void Function(int) callback = (int result) {
+      completer.complete(result);
+    };
+    final nativeCallable =
+        NativeCallable<Void Function(Int32)>.listener(callback);
+    func.call(nativeCallable.nativeFunction);
+    await completer.future;
+    nativeCallable.close();
+    return completer.future;
+  }
+
+  Future<String> _withCharPtrCallback(
+      Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>)
+          func) async {
+    final completer = Completer<String>();
+    // ignore: prefer_function_declarations_over_variables
+    void Function(Pointer<Char>) callback = (Pointer<Char> result) {
+      completer.complete(result.cast<Utf8>().toDartString());
+    };
+    final nativeCallable =
+        NativeCallable<Void Function(Pointer<Char>)>.listener(callback);
+    func.call(nativeCallable.nativeFunction);
+    await completer.future;
+    nativeCallable.close();
+    return completer.future;
   }
 
   bool _creating = false;
 
   ///
   /// Called by `FilamentWidget`. You do not need to call this yourself.
+  ///
   ///
   @override
   Future createViewer() async {
@@ -234,43 +311,60 @@ class FilamentControllerFFI extends FilamentController {
 
     var renderingSurface = await _createRenderingSurface();
 
-    dev.log("Got rendering surface");
+    print("Got rendering surface");
 
     final uberarchivePtr =
         uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr;
 
-    _viewer = create_filament_viewer_ffi(
-        Pointer<Void>.fromAddress(renderingSurface.sharedContext),
-        _driver,
-        uberarchivePtr,
-        loader,
-        renderCallback,
-        renderCallbackOwner);
+    _viewer = await _withVoidPointerCallback((callback) =>
+        create_filament_viewer_ffi(
+            Pointer<Void>.fromAddress(renderingSurface.sharedContext),
+            _driver,
+            uberarchivePtr,
+            loader,
+            renderCallback,
+            renderCallbackOwner,
+            callback));
+
     allocator.free(uberarchivePtr);
-    dev.log("Created viewer");
+
+    print("Created viewer ${_viewer!.address}");
     if (_viewer!.address == 0) {
       throw Exception("Failed to create viewer. Check logs for details");
     }
 
     _sceneManager = get_scene_manager(_viewer!);
 
-    create_swap_chain_ffi(_viewer!, renderingSurface.surface,
-        _rect.value!.width.toInt(), _rect.value!.height.toInt());
-    dev.log("Created swap chain");
+    await _withVoidCallback((callback) {
+      create_swap_chain_ffi(_viewer!, renderingSurface.surface,
+          _rect.value!.width.toInt(), _rect.value!.height.toInt(), callback);
+    });
+
+    print("Created swap chain");
     if (renderingSurface.textureHandle != 0) {
-      dev.log(
+      print(
           "Creating render target from native texture  ${renderingSurface.textureHandle}");
-      create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
-          _rect.value!.width.toInt(), _rect.value!.height.toInt());
+      await _withVoidCallback((callback) => create_render_target_ffi(
+          _viewer!,
+          renderingSurface.textureHandle,
+          _rect.value!.width.toInt(),
+          _rect.value!.height.toInt(),
+          callback));
     }
 
     textureDetails.value = TextureDetails(
         textureId: renderingSurface.flutterTextureId,
         width: _rect.value!.width.toInt(),
         height: _rect.value!.height.toInt());
-    dev.log("texture details ${textureDetails.value}");
-    update_viewport_and_camera_projection_ffi(
-        _viewer!, _rect.value!.width.toInt(), _rect.value!.height.toInt(), 1.0);
+    print("texture details ${textureDetails.value}");
+    await _withVoidCallback((callback) {
+      update_viewport_and_camera_projection_ffi(
+          _viewer!,
+          _rect.value!.width.toInt(),
+          _rect.value!.height.toInt(),
+          1.0,
+          callback);
+    });
     hasViewer.value = true;
     _creating = false;
   }
@@ -365,7 +459,8 @@ class FilamentControllerFFI extends FilamentController {
       set_rendering_ffi(_viewer!, false);
 
       if (!_usesBackingWindow) {
-        destroy_swap_chain_ffi(_viewer!);
+        await _withVoidCallback(
+            (callback) => destroy_swap_chain_ffi(_viewer!, callback));
       }
 
       if (requiresTextureWidget) {
@@ -374,7 +469,7 @@ class FilamentControllerFFI extends FilamentController {
               "destroyTexture", textureDetails.value!.textureId);
         }
       } else if (Platform.isWindows) {
-        dev.log("Resizing window with rect ${_rect.value}");
+        print("Resizing window with rect ${_rect.value}");
         await _channel.invokeMethod("resizeWindow", [
           _rect.value!.width,
           _rect.value!.height,
@@ -390,15 +485,23 @@ class FilamentControllerFFI extends FilamentController {
       }
 
       if (!_usesBackingWindow) {
-        create_swap_chain_ffi(_viewer!, renderingSurface.surface,
-            _rect.value!.width.toInt(), _rect.value!.height.toInt());
+        _withVoidCallback((callback) => create_swap_chain_ffi(
+            _viewer!,
+            renderingSurface.surface,
+            _rect.value!.width.toInt(),
+            _rect.value!.height.toInt(),
+            callback));
       }
 
       if (renderingSurface.textureHandle != 0) {
-        dev.log(
+        print(
             "Creating render target from native texture  ${renderingSurface.textureHandle}");
-        create_render_target_ffi(_viewer!, renderingSurface.textureHandle,
-            _rect.value!.width.toInt(), _rect.value!.height.toInt());
+        _withVoidCallback((callback) => create_render_target_ffi(
+            _viewer!,
+            renderingSurface.textureHandle,
+            _rect.value!.width.toInt(),
+            _rect.value!.height.toInt(),
+            callback));
       }
 
       textureDetails.value = TextureDetails(
@@ -406,8 +509,12 @@ class FilamentControllerFFI extends FilamentController {
           width: _rect.value!.width.toInt(),
           height: _rect.value!.height.toInt());
 
-      update_viewport_and_camera_projection_ffi(_viewer!,
-          _rect.value!.width.toInt(), _rect.value!.height.toInt(), 1.0);
+      _withVoidCallback((callback) => update_viewport_and_camera_projection_ffi(
+          _viewer!,
+          _rect.value!.width.toInt(),
+          _rect.value!.height.toInt(),
+          1.0,
+          callback));
 
       await setRendering(_rendering);
     } finally {
@@ -518,8 +625,19 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    var entity = add_light_ffi(_viewer!, type, colour, intensity, posX, posY,
-        posZ, dirX, dirY, dirZ, castShadows);
+    var entity = await _withIntCallback((callback) => add_light_ffi(
+        _viewer!,
+        type,
+        colour,
+        intensity,
+        posX,
+        posY,
+        posZ,
+        dirX,
+        dirY,
+        dirZ,
+        castShadows,
+        callback));
     _onLoadController.sink.add(entity);
     _lights.add(entity);
     return entity;
@@ -572,8 +690,8 @@ class FilamentControllerFFI extends FilamentController {
 
       data = (ptr.cast<Void>(), asset.lengthInBytes);
     }
-    var entity = load_glb_from_buffer_ffi(
-        _sceneManager!, data.$1, data.$2, numInstances);
+    var entity = await _withIntCallback((callback) => load_glb_from_buffer_ffi(
+        _sceneManager!, data.$1, data.$2, numInstances, callback));
     if (!cache) {
       allocator.free(data.$1);
     } else {
@@ -587,7 +705,8 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future<FilamentEntity> createInstance(FilamentEntity entity) async {
-    var created = create_instance(_sceneManager!, entity);
+    var created = await _withIntCallback(
+        (callback) => create_instance(_sceneManager!, entity));
     if (created == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create instance");
     }
@@ -630,7 +749,8 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Not yet implemented");
     }
     final pathPtr = path.toNativeUtf8().cast<Char>();
-    var entity = load_glb_ffi(_sceneManager!, pathPtr, numInstances);
+    var entity = await _withIntCallback((callback) =>
+        load_glb_ffi(_sceneManager!, pathPtr, numInstances, callback));
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
@@ -653,8 +773,8 @@ class FilamentControllerFFI extends FilamentController {
     final pathPtr = path.toNativeUtf8().cast<Char>();
     final relativeResourcePathPtr =
         relativeResourcePath.toNativeUtf8().cast<Char>();
-    var entity =
-        load_gltf_ffi(_sceneManager!, pathPtr, relativeResourcePathPtr);
+    var entity = await _withIntCallback((callback) => load_gltf_ffi(
+        _sceneManager!, pathPtr, relativeResourcePathPtr, callback));
     allocator.free(pathPtr);
     allocator.free(relativeResourcePathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
@@ -739,8 +859,9 @@ class FilamentControllerFFI extends FilamentController {
     }
     var names = <String>[];
     var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
-    var count =
-        get_morph_target_name_count_ffi(_sceneManager!, entity, meshNamePtr);
+    var count = await _withIntCallback((callback) =>
+        get_morph_target_name_count_ffi(
+            _sceneManager!, entity, meshNamePtr, callback));
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < count; i++) {
       get_morph_target_name(_sceneManager!, entity, meshNamePtr, outPtr, i);
@@ -760,9 +881,11 @@ class FilamentControllerFFI extends FilamentController {
     var names = <String>[];
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < animationCount; i++) {
-      get_animation_name_ffi(_sceneManager!, entity, outPtr, i);
+      await _withVoidCallback((callback) =>
+          get_animation_name_ffi(_sceneManager!, entity, outPtr, i, callback));
       names.add(outPtr.cast<Utf8>().toDartString());
     }
+    allocator.free(outPtr);
 
     return names;
   }
@@ -896,7 +1019,8 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     _entities.remove(entity);
-    remove_entity_ffi(_viewer!, entity);
+    await _withVoidCallback(
+        (callback) => remove_entity_ffi(_viewer!, entity, callback));
     _onUnloadController.add(entity);
   }
 
@@ -905,7 +1029,8 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    clear_entities_ffi(_viewer!);
+    await _withVoidCallback(
+        (callback) => clear_entities_ffi(_viewer!, callback));
 
     for (final entity in _entities) {
       _onUnloadController.add(entity);
@@ -1537,8 +1662,14 @@ class FilamentControllerFFI extends FilamentController {
       indicesPtr.elementAt(i).value = indices[i];
     }
 
-    var entity = create_geometry_ffi(_viewer!, vertexPtr, vertices.length,
-        indicesPtr, indices.length, materialPathPtr.cast<Char>());
+    var entity = await _withIntCallback((callback) => create_geometry_ffi(
+        _viewer!,
+        vertexPtr,
+        vertices.length,
+        indicesPtr,
+        indices.length,
+        materialPathPtr.cast<Char>(),
+        callback));
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create geometry");
     }

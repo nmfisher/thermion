@@ -33,7 +33,7 @@ A new Flutter plugin project.
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "$(inherited)"',
+    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "-Wno-documentation-deprecated-sync" "$(inherited)"',
     'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
     'USER_HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/include" "${PODS_TARGET_SRCROOT}/include/filament" "$(inherited)"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',

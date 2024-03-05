@@ -68,7 +68,7 @@ std::streampos StreamBufferAdapter::seekoff(std::streamoff off, std::ios_base::s
   if(way == std::ios_base::beg) {
     setg(eback(), eback()+off, egptr());
   } else if(way == std::ios_base::cur) {
-    gbump(off);
+    gbump((int)off);
   } else {
     setg(eback(), egptr()-off, egptr());
   }

@@ -1208,6 +1208,20 @@ namespace flutter_filament
         _collisionComponentManager->elementAt<2>(collisionInstance) = affectsTransform;
     }
 
+    void SceneManager::removeCollisionComponent(EntityId entityId) {
+        std::lock_guard lock(_mutex);
+        const auto *instance = getInstanceByEntityId(entityId);
+         if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(!asset) {
+                return;
+            } else {
+                instance = asset->getInstance();
+            }         
+        }
+        _collisionComponentManager->removeComponent(instance->getRoot());
+    }
+
     void SceneManager::testCollisions(EntityId entityId) { 
         const auto *instance = getInstanceByEntityId(entityId);
          if(!instance) {

@@ -44,9 +44,9 @@ namespace flutter_filament
         EntityId loadGltf(const char *uri, const char *relativeResourcePath);
         
         ////
-        /// @brief  
-        /// @param uri 
-        /// @param numInstances 
+        /// @brief Load the GLB from the specified path, optionally creating multiple instances.
+        /// @param uri the path to the asset. Should be either asset:// (representing a Flutter asset), or file:// (representing a filesystem file).
+        /// @param numInstances the number of instances to create. 
         /// @return an Entity representing the FilamentAsset associated with the loaded FilamentAsset.
         ///  
         EntityId loadGlb(const char *uri, int numInstances);
@@ -103,7 +103,7 @@ namespace flutter_filament
         /// @param meshName an array of mesh names under [entity] that should be animated
         /// @param numMeshTargets the number of meshes under [meshName] 
         /// @param frameLengthInMs the length of each frame in ms
-        /// @return
+        /// @return true if the bone animation was successfully enqueued
         bool addBoneAnimation(
             EntityId entity,
             const float *const frameData,
@@ -134,12 +134,11 @@ namespace flutter_filament
 
         /// @brief returns the number of instances of the FilamentAsset represented by the given entity.
         /// @param entityId 
-        /// @return 
+        /// @return the number of instances
         int getInstanceCount(EntityId entityId);
         
         /// @brief returns an array containing all instances of the FilamentAsset represented by the given entity.
         /// @param entityId 
-        /// @return 
         void getInstances(EntityId entityId, EntityId* out);
 
         friend class FilamentViewer;
