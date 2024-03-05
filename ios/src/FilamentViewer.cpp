@@ -82,6 +82,7 @@
 #include <fstream>
 #include <filesystem>
 #include <mutex>
+#include <iomanip>
 
 #include "Log.hpp"
 
