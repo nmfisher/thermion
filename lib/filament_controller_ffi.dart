@@ -1485,10 +1485,12 @@ class FilamentControllerFFI extends FilamentController {
     return transformController;
   }
 
+  final _collisions = <FilamentEntity, NativeCallable>{};
+
   @override
-  Future addCollisionComponent(FilamentEntity collidableEntity,
+  Future addCollisionComponent(FilamentEntity entity,
       {void Function(int entityId1, int entityId2)? callback,
-      bool affectsCollingTransform = false}) async {
+      bool affectsTransform = false}) async {
     if (_sceneManager == null) {
       throw Exception("SceneManager must be non-null");
     }
@@ -1497,12 +1499,18 @@ class FilamentControllerFFI extends FilamentController {
     if (callback != null) {
       var ptr = NativeCallable<
           Void Function(Int32 entityId1, Int32 entityId2)>.listener(callback);
-      add_collision_component(_sceneManager!, collidableEntity,
-          ptr.nativeFunction, affectsCollingTransform);
+      add_collision_component(
+          _sceneManager!, entity, ptr.nativeFunction, affectsTransform);
+      _collisions[entity] = ptr;
     } else {
       add_collision_component(
-          _sceneManager!, collidableEntity, nullptr, affectsCollingTransform);
+          _sceneManager!, entity, nullptr, affectsTransform);
     }
+  }
+
+  @override
+  Future removeCollisionComponent(FilamentEntity entity) async {
+    remove_collision_component(_sceneManager!, entity);
   }
 
   @override

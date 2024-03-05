@@ -932,6 +932,13 @@ external void add_collision_component(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: 'remove_collision_component', assetId: 'flutter_filament_plugin')
+external void remove_collision_component(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
     symbol: 'add_animation_component', assetId: 'flutter_filament_plugin')
 external void add_animation_component(
   ffi.Pointer<ffi.Void> sceneManager,

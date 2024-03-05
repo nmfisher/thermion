@@ -626,15 +626,18 @@ abstract class FilamentController {
   Future addAnimationComponent(FilamentEntity entity);
 
   ///
-  /// Makes [collidableEntity] collidable with
-  ///   (a) any entity whose transform is being controlled (via [control]) or
-  ///   (b) any entity that has been marked as non-transformable but collidable (via [markNonTransformableCollidable])
-  /// These are differentiated because a collision will affect the transform for controlled entities
-  /// (e.g. if a controlled entity collides with a wall, we ignore the control update to the transform so it doesn't go through the wall)
+  /// Makes [entity] collidable.
+  /// This allows you to call [testCollisions] with any other entity ("entity B") to see if [entity] has collided with entity B. The callback will be invoked if so.
+  /// Alternatively, if [affectsTransform] is true and this entity collides with another entity, any queued position updates to the latter entity will be ignored.
   ///
-  Future addCollisionComponent(FilamentEntity collidableEntity,
+  Future addCollisionComponent(FilamentEntity entity,
       {void Function(int entityId1, int entityId2)? callback,
-      bool affectsCollingTransform = false});
+      bool affectsTransform = false});
+
+  ///
+  /// Removes the collision component from [entity], meaning this will no longer be tested when [testCollisions] or [queuePositionUpdate] is called with another entity.
+  ///
+  Future removeCollisionComponent(FilamentEntity entity);
 
   ///
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.

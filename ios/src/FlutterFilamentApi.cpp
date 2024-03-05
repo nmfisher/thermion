@@ -589,6 +589,10 @@ extern "C"
         ((SceneManager*)sceneManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
     }
 
+    FLUTTER_PLUGIN_EXPORT void remove_collision_component(void *const sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->removeCollisionComponent(entityId);
+    }
+
     FLUTTER_PLUGIN_EXPORT void add_animation_component(void *const sceneManager, EntityId entityId) {
         ((SceneManager*)sceneManager)->addAnimationComponent(entityId);
     }
