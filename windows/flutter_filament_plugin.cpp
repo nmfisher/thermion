@@ -157,7 +157,9 @@ void FlutterFilamentPlugin::RenderCallback() {
 #ifdef USE_ANGLE
     _active->RenderCallback();
 #endif
+#if !WGL_USE_BACKING_WINDOW
     _textureRegistrar->MarkTextureFrameAvailable(flutterTextureId);
+#endif
   }
 }
 
