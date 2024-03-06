@@ -25,9 +25,9 @@ WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
   PIXELFORMATDESCRIPTOR pfd = {
       sizeof(PIXELFORMATDESCRIPTOR),
       1,
-      PFD_DRAW_TO_BITMAP | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, // Flags
+      PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, // Flags
       PFD_TYPE_RGBA, // The kind of framebuffer. RGBA or palette.
-      32,            // Colordepth of the framebuffer.
+      24,            // Colordepth of the framebuffer.
       0,
       0,
       0,
@@ -41,7 +41,7 @@ WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
       0,
       0,
       0,
-      32, // Number of bits for the depthbuffer
+      16, // Number of bits for the depthbuffer
       0,  // Number of bits for the stencilbuffer
       0,  // Number of Aux buffers in the framebuffer.
       PFD_MAIN_PLANE,
@@ -97,7 +97,9 @@ WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
 }
 
 void WGLContext::ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
+  #if WGL_USE_BACKING_WINDOW
   _backingWindow->Resize(width, height, left, top);
+  #endif
 }
 
 void WGLContext::CreateRenderingSurface(
@@ -128,20 +130,10 @@ void WGLContext::CreateRenderingSurface(
                   "attempting to create a new one.");
     
   } else {
-    _active = std::make_unique<OpenGLTextureBuffer>(
+    auto active = std::make_unique<OpenGLTextureBuffer>(
         _pluginRegistrar, _textureRegistrar, std::move(result), width, height,
         _context);
-
-    if (_active->flutterTextureId != -1) {
-      std::vector<flutter::EncodableValue> resultList;
-      resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
-      resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
-      resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
-      resultList.push_back(flutter::EncodableValue((int64_t)sharedContext));
-      result->Success(resultList);
-    } else {
-      result->Error("NO_FLUTTER_TEXTURE", "Unknown error registering texture with Flutter.", nullptr);
-    }
+    _active = std::move(active);
   }
 #endif
 }
