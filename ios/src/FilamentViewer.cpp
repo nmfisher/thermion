@@ -335,7 +335,7 @@ namespace flutter_filament
   {
     _frameInterval = frameInterval;
     Renderer::FrameRateOptions fro;
-    fro.interval = frameInterval;
+    fro.interval = 1; //frameInterval;
     _renderer->setFrameRateOptions(fro);
     Log("Set framerate interval to %f", frameInterval);
   }
@@ -1045,7 +1045,7 @@ namespace flutter_filament
     if (secsSinceLastFpsCheck >= 1)
     {
       auto fps = _frameCount / secsSinceLastFpsCheck;
-      Log("%ffps", fps);
+      Log("%ffps (%d skipped)", fps, _skippedFrames);
       _frameCount = 0;
       _skippedFrames = 0;
       _fpsCounterStartTime = now;
