@@ -206,8 +206,8 @@ namespace flutter_filament
 
         FilamentAsset *asset = nullptr;
         if(numInstances > 1) {
-            FilamentInstance* instances[numInstances];
-            asset = _assetLoader->createInstancedAsset((const uint8_t *)data, length, instances, numInstances);
+            std::vector<FilamentInstance*> instances(numInstances);
+            asset = _assetLoader->createInstancedAsset((const uint8_t *)data, length, instances.data(), numInstances);
         } else {
             asset = _assetLoader->createAsset(
             (const uint8_t *)data, length);
