@@ -117,11 +117,15 @@ OpenGLTextureBuffer::OpenGLTextureBuffer(
   flutterTextureId = textureRegistrar->RegisterTexture(texture.get());
   std::cout << "Registered Flutter texture ID " << flutterTextureId
             << std::endl;
-  std::vector<flutter::EncodableValue> resultList;
-  resultList.push_back(flutter::EncodableValue(flutterTextureId));
-  resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
-  resultList.push_back(flutter::EncodableValue(glTextureId));
-  result->Success(resultList);
+
+  if (flutterTextureId != -1) {
+    std::vector<flutter::EncodableValue> resultList;
+    resultList.push_back(flutter::EncodableValue(flutterTextureId));
+    resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
+    resultList.push_back(flutter::EncodableValue(glTextureId));
+    resultList.push_back(flutter::EncodableValue((int64_t)_context));
+    result->Success(resultList);      
+  }
 }
 
 OpenGLTextureBuffer::~OpenGLTextureBuffer() {
