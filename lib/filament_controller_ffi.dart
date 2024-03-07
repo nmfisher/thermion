@@ -146,12 +146,13 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setDimensions(Rect rect, double pixelRatio) async {
+    _pixelRatio = pixelRatio;
     this._rect.value = Rect.fromLTWH(
         (rect.left * _pixelRatio).floor().toDouble(),
         rect.top * _pixelRatio.floor().toDouble(),
         (rect.width * _pixelRatio).ceil().toDouble(),
         (rect.height * _pixelRatio).ceil().toDouble());
-    _pixelRatio = pixelRatio;
+
     if (!_rectCompleter.isCompleted) {
       _rectCompleter.complete(this._rect.value);
     }
