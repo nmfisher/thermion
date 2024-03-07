@@ -39,8 +39,7 @@ namespace flutter_filament {
             }
             return _active->flutterTextureId;
         }
-        void* sharedContext = nullptr;
-        
+       
     protected:
         FlutterRenderContext( flutter::PluginRegistrarWindows* pluginRegistrar, flutter::TextureRegistrar* textureRegistrar) : _pluginRegistrar(pluginRegistrar), _textureRegistrar(textureRegistrar) {};
 
