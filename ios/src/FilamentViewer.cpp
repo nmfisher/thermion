@@ -158,9 +158,9 @@ namespace flutter_filament
 
     setToneMapping(ToneMapping::ACES);
 
-    decltype(_view->getBloomOptions()) opts;
-    opts.enabled = false;
-    _view->setBloomOptions(opts);
+    // there's a glitch on certain iGPUs where nothing will render when postprocessing is enabled and bloom is disabled
+    // set bloom to a small value here
+    setBloom(0.01);
 
     _view->setAmbientOcclusionOptions({.enabled = false});
     _view->setDynamicResolutionOptions({.enabled = false});
@@ -170,7 +170,7 @@ namespace flutter_filament
     _view->setShadowingEnabled(false);
     _view->setScreenSpaceRefractionEnabled(false);
     setPostProcessing(false);
-    
+
     _view->setScene(_scene);
     _view->setCamera(_mainCamera);
 
@@ -268,14 +268,15 @@ namespace flutter_filament
 
   void FilamentViewer::setBloom(float strength)
   {
+    decltype(_view->getBloomOptions()) opts;
 #ifdef __EMSCRIPTEN__
+    opts.enabled = false;
     Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers. setBloom will be ignored");
 #else
-    decltype(_view->getBloomOptions()) opts;
     opts.enabled = true;
     opts.strength = strength;
-    _view->setBloomOptions(opts);
 #endif
+    _view->setBloomOptions(opts);
   }
 
   void FilamentViewer::setToneMapping(ToneMapping toneMapping)
