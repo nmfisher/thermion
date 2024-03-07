@@ -5,7 +5,6 @@
 #include <chrono> 
 #include <thread>
 
-#include <Commctrl.h>
 #include <Windows.h>
 #include <dwmapi.h>
 #include <ShObjIdl.h>

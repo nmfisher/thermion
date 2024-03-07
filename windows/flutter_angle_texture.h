@@ -28,7 +28,7 @@ typedef uint32_t GLuint;
 
 namespace flutter_filament {
 
-class FlutterAngleTexture : FlutterTextureBuffer {
+class FlutterAngleTexture : public FlutterTextureBuffer {
   public:
     FlutterAngleTexture(
         flutter::PluginRegistrarWindows* pluginRegistrar,
@@ -49,6 +49,7 @@ class FlutterAngleTexture : FlutterTextureBuffer {
     
     GLuint glTextureId = 0;
     std::unique_ptr<flutter::TextureVariant> texture;
+    int64_t flutterTextureId = 0;
       
   private:
     flutter::PluginRegistrarWindows* _pluginRegistrar;

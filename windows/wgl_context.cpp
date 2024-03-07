@@ -10,7 +10,7 @@ namespace flutter_filament {
 
 WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
                        flutter::TextureRegistrar *textureRegistrar)
-    : _pluginRegistrar(pluginRegistrar), _textureRegistrar(textureRegistrar) {
+    : FlutterRenderContext(pluginRegistrar, textureRegistrar) {
 
   auto hwnd = pluginRegistrar->GetView()->GetNativeWindow();
 

@@ -20,9 +20,6 @@ namespace flutter_filament {
             uint32_t width, uint32_t height, uint32_t left, uint32_t top
         );
     private:
-
-        flutter::PluginRegistrarWindows* _pluginRegistrar = nullptr;
-        flutter::TextureRegistrar* _textureRegistrar = nullptr;
         HGLRC _context = NULL;
         #if WGL_USE_BACKING_WINDOW
         std::unique_ptr<BackingWindow> _backingWindow = nullptr;
