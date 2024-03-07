@@ -49,7 +49,6 @@ class FlutterAngleTexture : public FlutterTextureBuffer {
     
     GLuint glTextureId = 0;
     std::unique_ptr<flutter::TextureVariant> texture;
-    int64_t flutterTextureId = 0;
       
   private:
     flutter::PluginRegistrarWindows* _pluginRegistrar;
