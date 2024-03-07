@@ -150,40 +150,27 @@ namespace flutter_filament
 
     _scene = _engine->createScene();
 
-    Log("Scene created");
-
     utils::Entity camera = EntityManager::get().create();
 
     _mainCamera = _engine->createCamera(camera);
 
-    Log("Main camera created");
     _view = _engine->createView();
 
-    Log("View created");
-
     setToneMapping(ToneMapping::ACES);
-    Log("Set tone mapping");
 
-#ifdef __EMSCRIPTEN__
-    Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers");
     decltype(_view->getBloomOptions()) opts;
     opts.enabled = false;
     _view->setBloomOptions(opts);
 
     _view->setAmbientOcclusionOptions({.enabled = false});
-
     _view->setDynamicResolutionOptions({.enabled = false});
 
     _view->setDithering(filament::Dithering::NONE);
-    _view->setAntiAliasing(filament::AntiAliasing::NONE);
+    setAntiAliasing(false, false, false);
     _view->setShadowingEnabled(false);
     _view->setScreenSpaceRefractionEnabled(false);
-
-#else
-    setBloom(0.6f);
-    Log("Set bloom");
-#endif
-
+    setPostProcessing(false);
+    
     _view->setScene(_scene);
     _view->setCamera(_mainCamera);
 
@@ -197,17 +184,6 @@ namespace flutter_filament
     const float sens = _mainCamera->getSensitivity();
 
     Log("Camera aperture %f shutter %f sensitivity %f", aperture, shutterSpeed, sens);
-
-    View::DynamicResolutionOptions options;
-    options.enabled = false;
-    // options.homogeneousScaling = homogeneousScaling;
-    // options.minScale = filament::math::float2{ minScale };
-    // options.maxScale = filament::math::float2{ maxScale };
-    // options.sharpness = sharpness;
-    // options.quality = View::QualityLevel::ULTRA;
-    _view->setDynamicResolutionOptions(options);
-
-    setAntiAliasing(false, true, false);
   
     EntityManager &em = EntityManager::get();
 
