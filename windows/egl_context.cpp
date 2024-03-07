@@ -135,6 +135,7 @@ FlutterEGLContext::FlutterEGLContext(
   // find an opaque config
   if (!eglChooseConfig(_eglDisplay, configAttribs, &_eglConfig, 1,
                        &configsCount)) {
+    std::cout << "Failed to find EGL config" << std::endl;
     return;
   }
 
