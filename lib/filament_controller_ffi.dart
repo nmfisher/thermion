@@ -146,12 +146,13 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setDimensions(Rect rect, double pixelRatio) async {
+    _pixelRatio = pixelRatio;
     this._rect.value = Rect.fromLTWH(
         (rect.left * _pixelRatio).floor().toDouble(),
         rect.top * _pixelRatio.floor().toDouble(),
         (rect.width * _pixelRatio).ceil().toDouble(),
         (rect.height * _pixelRatio).ceil().toDouble());
-    _pixelRatio = pixelRatio;
+    print("Using dimensions ${_rect.value} (pixel ratio : $_pixelRatio)");
     if (!_rectCompleter.isCompleted) {
       _rectCompleter.complete(this._rect.value);
     }
@@ -1404,7 +1405,7 @@ class FilamentControllerFFI extends FilamentController {
         textureDetails.value!.height - (y * _pixelRatio).toInt(), outPtr);
     int wait = 0;
     while (outPtr.value == 0) {
-      await Future.delayed(const Duration(milliseconds: 32));
+      await Future.delayed(const Duration(milliseconds: 16));
       wait++;
       if (wait > 10) {
         allocator.free(outPtr);

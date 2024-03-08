@@ -41,13 +41,20 @@ class FilamentGestureDetector extends StatelessWidget {
   ///
   final bool enablePicking;
 
+  final void Function(ScaleStartDetails)? onScaleStart;
+  final void Function(ScaleUpdateDetails)? onScaleUpdate;
+  final void Function(ScaleEndDetails)? onScaleEnd;
+
   const FilamentGestureDetector(
       {Key? key,
       required this.controller,
       this.child,
       this.showControlOverlay = false,
       this.enableCamera = true,
-      this.enablePicking = true})
+      this.enablePicking = true,
+      this.onScaleStart,
+      this.onScaleUpdate,
+      this.onScaleEnd})
       : super(key: key);
 
   @override
@@ -64,12 +71,14 @@ class FilamentGestureDetector extends StatelessWidget {
       );
     } else {
       return FilamentGestureDetectorMobile(
-        controller: controller,
-        child: child,
-        showControlOverlay: showControlOverlay,
-        enableCamera: enableCamera,
-        enablePicking: enablePicking,
-      );
+          controller: controller,
+          child: child,
+          showControlOverlay: showControlOverlay,
+          enableCamera: enableCamera,
+          enablePicking: enablePicking,
+          onScaleStart: onScaleStart,
+          onScaleUpdate: onScaleUpdate,
+          onScaleEnd: onScaleEnd);
     }
   }
 }

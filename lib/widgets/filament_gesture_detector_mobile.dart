@@ -39,6 +39,10 @@ class FilamentGestureDetectorMobile extends StatefulWidget {
 
   final double zoomDelta;
 
+  final void Function(ScaleStartDetails)? onScaleStart;
+  final void Function(ScaleUpdateDetails)? onScaleUpdate;
+  final void Function(ScaleEndDetails)? onScaleEnd;
+
   const FilamentGestureDetectorMobile(
       {Key? key,
       required this.controller,
@@ -46,6 +50,9 @@ class FilamentGestureDetectorMobile extends StatefulWidget {
       this.showControlOverlay = false,
       this.enableCamera = true,
       this.enablePicking = true,
+      this.onScaleStart,
+      this.onScaleUpdate,
+      this.onScaleEnd,
       this.zoomDelta = 1})
       : super(key: key);
 
@@ -132,11 +139,12 @@ class _FilamentGestureDetectorMobileState
           child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onTapDown: (d) {
-                if (widget.enablePicking) {
-                  print("PICK");
-                  widget.controller.pick(
-                      d.globalPosition.dx.toInt(), d.globalPosition.dy.toInt());
+                if (!widget.enablePicking) {
+                  return;
                 }
+
+                widget.controller.pick(
+                    d.globalPosition.dx.toInt(), d.globalPosition.dy.toInt());
               },
               onDoubleTap: () {
                 setState(() {
@@ -144,6 +152,10 @@ class _FilamentGestureDetectorMobileState
                 });
               },
               onScaleStart: (d) async {
+                if (widget.onScaleStart != null) {
+                  widget.onScaleStart!.call(d);
+                  return;
+                }
                 if (d.pointerCount == 2 && widget.enableCamera) {
                   _scaling = true;
                   await widget.controller.zoomBegin();
@@ -158,6 +170,10 @@ class _FilamentGestureDetectorMobileState
                 }
               },
               onScaleUpdate: (ScaleUpdateDetails d) async {
+                if (widget.onScaleUpdate != null) {
+                  widget.onScaleUpdate!.call(d);
+                  return;
+                }
                 if (d.pointerCount == 2 && widget.enableCamera) {
                   if (d.horizontalScale != _lastScale) {
                     widget.controller.zoomUpdate(
@@ -177,6 +193,11 @@ class _FilamentGestureDetectorMobileState
                 }
               },
               onScaleEnd: (d) async {
+                if (widget.onScaleEnd != null) {
+                  widget.onScaleEnd!.call(d);
+                  return;
+                }
+
                 if (d.pointerCount == 2 && widget.enableCamera) {
                   widget.controller.zoomEnd();
                 } else if (!_scaling && widget.enableCamera) {
