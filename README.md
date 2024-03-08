@@ -422,11 +422,27 @@ make generate-background-material
 
 # Known issues
 
-On Windows, loading a glTF (but NOT a glb) may crash due to a race condition between uploading resource data to GPU memory and being freed on the host side.
+## Windows
 
-This has been fixed in recent versions of Filament, but other bugs on Windows prevent upgrading.
+Loading a glTF (but NOT a glb) may crash due to a race condition between uploading resource data to GPU memory and being freed on the host side. This has been fixed in recent versions of Filament, but other bugs on Windows prevent upgrading. Only workaround is to load a .glb file.
 
-Only workaround is to load a .glb file.
+## Android
+In release mode, you must add the following to your `app/build.gradle`:
+
+```
+    buildTypes {
+        release {
+            ...
+            shrinkResources false
+            minifyEnabled false
+        }
+    }
+...
+dependencies {
+    ....
+    implementation 'net.java.dev.jna:jna:5.10.0@aar'
+}
+```
 
 # Thanks
 
