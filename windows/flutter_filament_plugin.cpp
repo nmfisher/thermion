@@ -3,11 +3,7 @@
 
 #include "flutter_filament_plugin.h"
 
-// This must be included before many other Windows headers.
-#include <windows.h>
-
-// For getPlatformVersion; remove unless needed for your plugin implementation.
-#include <VersionHelpers.h>
+#include <Windows.h>
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
@@ -18,7 +14,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <future>
+
 #include <iostream>
 #include <locale>
 #include <map>
@@ -30,11 +26,6 @@
 #include <thread>
 
 #include "FlutterFilamentApi.h"
-
-#include <Commctrl.h>
-#include <Windows.h>
-#include <dwmapi.h>
-#include <wrl.h>
 
 #include "flutter_render_context.h"
 
@@ -154,10 +145,16 @@ void render_callback(void *owner) {
 void FlutterFilamentPlugin::RenderCallback() {
   if (_context) {
       auto flutterTextureId = _context->GetFlutterTextureId();
+      if(flutterTextureId == -1) {
+        std::cout << "Bad texture" << std::endl;
+        return;
+      }
 #ifdef USE_ANGLE
-    _active->RenderCallback();
+    _context->RenderCallback();
 #endif
+#if !WGL_USE_BACKING_WINDOW
     _textureRegistrar->MarkTextureFrameAvailable(flutterTextureId);
+#endif
   }
 }
 
@@ -183,7 +180,7 @@ void FlutterFilamentPlugin::CreateTexture(
   // this will be used to create a backing texture and passed to Filament
   if (!_context) {
 #ifdef USE_ANGLE
-    _context = std::make_unique<EGLContext>(_pluginRegistrar);
+    _context = std::make_unique<FlutterEGLContext>(_pluginRegistrar, _textureRegistrar);
 #else
     _context = std::make_unique<WGLContext>(_pluginRegistrar, _textureRegistrar);
 #endif
@@ -194,7 +191,6 @@ void FlutterFilamentPlugin::CreateTexture(
 void FlutterFilamentPlugin::DestroyTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-
 
   const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
 
@@ -261,7 +257,7 @@ void FlutterFilamentPlugin::HandleMethodCall(
     result->Success(resultList);
   } else if (methodCall.method_name() == "getDriverPlatform") {
 #ifdef USE_ANGLE
-    result->Success(flutter::EncodableValue((int64_t)_platform));
+    result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));
 #else
     result->Success(flutter::EncodableValue((int64_t) nullptr));
 #endif

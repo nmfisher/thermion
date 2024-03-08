@@ -12,6 +12,7 @@ namespace flutter_filament {
 
     class FlutterRenderContext {
     public:
+
         void CreateRenderingSurface(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, uint32_t left, uint32_t top );
 
         void DestroyTexture(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
@@ -33,11 +34,15 @@ namespace flutter_filament {
                 });
         }
         int64_t GetFlutterTextureId() {
+            if(!_active) {
+                return -1;
+            }
             return _active->flutterTextureId;
         }
-        void* sharedContext = nullptr;
-        
+       
     protected:
+        FlutterRenderContext( flutter::PluginRegistrarWindows* pluginRegistrar, flutter::TextureRegistrar* textureRegistrar) : _pluginRegistrar(pluginRegistrar), _textureRegistrar(textureRegistrar) {};
+
         flutter::PluginRegistrarWindows* _pluginRegistrar;
         flutter::TextureRegistrar* _textureRegistrar;
         std::unique_ptr<FlutterTextureBuffer> _active = nullptr;

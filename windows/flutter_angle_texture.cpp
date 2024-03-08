@@ -236,6 +236,7 @@ FlutterAngleTexture::FlutterAngleTexture(
   resultList.push_back(flutter::EncodableValue(flutterTextureId));
   resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
   resultList.push_back(flutter::EncodableValue(glTextureId));
+  resultList.push_back(flutter::EncodableValue((int64_t) eglContext));
   result->Success(resultList);
 }
 

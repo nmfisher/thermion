@@ -298,6 +298,8 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("Failed to get resource loader");
     }
 
+    var renderingSurface = await _createRenderingSurface();
+
     if (Platform.isWindows && requiresTextureWidget) {
       _driver = Pointer<Void>.fromAddress(
           await _channel.invokeMethod("getDriverPlatform"));
@@ -310,7 +312,6 @@ class FilamentControllerFFI extends FilamentController {
     var renderCallbackOwner =
         Pointer<Void>.fromAddress(renderCallbackResult[1]);
 
-    var renderingSurface = await _createRenderingSurface();
 
     print("Got rendering surface");
 

@@ -150,39 +150,26 @@ namespace flutter_filament
 
     _scene = _engine->createScene();
 
-    Log("Scene created");
-
     utils::Entity camera = EntityManager::get().create();
 
     _mainCamera = _engine->createCamera(camera);
 
-    Log("Main camera created");
     _view = _engine->createView();
 
-    Log("View created");
-
     setToneMapping(ToneMapping::ACES);
-    Log("Set tone mapping");
 
-#ifdef __EMSCRIPTEN__
-    Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers");
-    decltype(_view->getBloomOptions()) opts;
-    opts.enabled = false;
-    _view->setBloomOptions(opts);
+    // there's a glitch on certain iGPUs where nothing will render when postprocessing is enabled and bloom is disabled
+    // set bloom to a small value here
+    setBloom(0.01);
 
     _view->setAmbientOcclusionOptions({.enabled = false});
-
     _view->setDynamicResolutionOptions({.enabled = false});
 
     _view->setDithering(filament::Dithering::NONE);
-    _view->setAntiAliasing(filament::AntiAliasing::NONE);
+    setAntiAliasing(false, false, false);
     _view->setShadowingEnabled(false);
     _view->setScreenSpaceRefractionEnabled(false);
-
-#else
-    setBloom(0.6f);
-    Log("Set bloom");
-#endif
+    setPostProcessing(false);
 
     _view->setScene(_scene);
     _view->setCamera(_mainCamera);
@@ -197,17 +184,6 @@ namespace flutter_filament
     const float sens = _mainCamera->getSensitivity();
 
     Log("Camera aperture %f shutter %f sensitivity %f", aperture, shutterSpeed, sens);
-
-    View::DynamicResolutionOptions options;
-    options.enabled = false;
-    // options.homogeneousScaling = homogeneousScaling;
-    // options.minScale = filament::math::float2{ minScale };
-    // options.maxScale = filament::math::float2{ maxScale };
-    // options.sharpness = sharpness;
-    // options.quality = View::QualityLevel::ULTRA;
-    _view->setDynamicResolutionOptions(options);
-
-    setAntiAliasing(false, true, false);
   
     EntityManager &em = EntityManager::get();
 
@@ -292,14 +268,15 @@ namespace flutter_filament
 
   void FilamentViewer::setBloom(float strength)
   {
+    decltype(_view->getBloomOptions()) opts;
 #ifdef __EMSCRIPTEN__
+    opts.enabled = false;
     Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers. setBloom will be ignored");
 #else
-    decltype(_view->getBloomOptions()) opts;
     opts.enabled = true;
     opts.strength = strength;
-    _view->setBloomOptions(opts);
 #endif
+    _view->setBloomOptions(opts);
   }
 
   void FilamentViewer::setToneMapping(ToneMapping toneMapping)
@@ -335,7 +312,7 @@ namespace flutter_filament
   {
     _frameInterval = frameInterval;
     Renderer::FrameRateOptions fro;
-    fro.interval = frameInterval;
+    fro.interval = 1; //frameInterval;
     _renderer->setFrameRateOptions(fro);
     Log("Set framerate interval to %f", frameInterval);
   }
@@ -1045,7 +1022,7 @@ namespace flutter_filament
     if (secsSinceLastFpsCheck >= 1)
     {
       auto fps = _frameCount / secsSinceLastFpsCheck;
-      Log("%ffps", fps);
+      Log("%ffps (%d skipped)", fps, _skippedFrames);
       _frameCount = 0;
       _skippedFrames = 0;
       _fpsCounterStartTime = now;
