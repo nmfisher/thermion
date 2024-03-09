@@ -842,13 +842,22 @@ external void set_antialiasing(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Pointer<EntityId>)>(
+            ffi.Pointer<ffi.Void>,
+            ffi.Int,
+            ffi.Int,
+            ffi.Pointer<
+                ffi.NativeFunction<
+                    ffi.Void Function(
+                        EntityId entityId, ffi.Int x, ffi.Int y)>>)>(
     symbol: 'pick', assetId: 'flutter_filament_plugin')
 external void pick(
   ffi.Pointer<ffi.Void> viewer,
   int x,
   int y,
-  ffi.Pointer<EntityId> entityId,
+  ffi.Pointer<
+          ffi.NativeFunction<
+              ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y)>>
+      callback,
 );
 
 @ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Void>, EntityId)>(
@@ -974,7 +983,7 @@ external void test_collisions(
 );
 
 @ffi.Native<
-        ffi.Pointer<ffi.Void> Function(
+        ffi.Void Function(
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Char>,
@@ -989,7 +998,7 @@ external void test_collisions(
                 ffi.NativeFunction<
                     ffi.Void Function(ffi.Pointer<ffi.Void> viewer)>>)>(
     symbol: 'create_filament_viewer_ffi', assetId: 'flutter_filament_plugin')
-external ffi.Pointer<ffi.Void> create_filament_viewer_ffi(
+external void create_filament_viewer_ffi(
   ffi.Pointer<ffi.Void> context,
   ffi.Pointer<ffi.Void> platform,
   ffi.Pointer<ffi.Char> uberArchivePath,
@@ -1282,17 +1291,17 @@ external void clear_entities_ffi(
 );
 
 @ffi.Native<
-        ffi.Bool Function(
+        ffi.Void Function(
             ffi.Pointer<ffi.Void>,
             EntityId,
             ffi.Pointer<ffi.Char>,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     symbol: 'set_camera_ffi', assetId: 'flutter_filament_plugin')
-external bool set_camera_ffi(
+external void set_camera_ffi(
   ffi.Pointer<ffi.Void> viewer,
   int asset,
   ffi.Pointer<ffi.Char> nodeName,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
 @ffi.Native<
@@ -1481,17 +1490,6 @@ external void add_bone_animation_ffi(
 external void set_post_processing_ffi(
   ffi.Pointer<ffi.Void> viewer,
   bool enabled,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Pointer<EntityId>)>(
-    symbol: 'pick_ffi', assetId: 'flutter_filament_plugin')
-external void pick_ffi(
-  ffi.Pointer<ffi.Void> viewer,
-  int x,
-  int y,
-  ffi.Pointer<EntityId> entityId,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
