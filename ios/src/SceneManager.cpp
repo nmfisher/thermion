@@ -1181,7 +1181,6 @@ namespace flutter_filament
     }
 
     void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId) {
-        // Log("Parenting child %d to %d", childEntityId, parentEntityId);
         auto& tm = _engine->getTransformManager();
         const auto child = Entity::import(childEntityId);
         const auto parent = Entity::import(parentEntityId);
