@@ -40,28 +40,7 @@ public:
     _t = new std::thread([this]() {
       auto last = std::chrono::high_resolution_clock::now();
       while (!_stop) {
-
-        auto now = std::chrono::high_resolution_clock::now();
-
-        float elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
-
-        while(elapsed < _frameIntervalInMilliseconds - 5) {
-          
-          std::function<void()> task;
-          std::unique_lock<std::mutex> lock(_access);
-          if (_tasks.empty()) {
-            _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
-            now = std::chrono::high_resolution_clock::now();
-            elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
-            continue;
-          }
-          task = std::move(_tasks.front());
-          _tasks.pop_front();
-          task();
-          
-          now = std::chrono::high_resolution_clock::now();
-          elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
-        }
+        last = std::chrono::high_resolution_clock::now();
 
         if (_rendering) {
           // auto frameStart = std::chrono::high_resolution_clock::now();
@@ -69,26 +48,30 @@ public:
           // auto frameEnd = std::chrono::high_resolution_clock::now();
         }
 
-        elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
+        auto now = std::chrono::high_resolution_clock::now();
 
-        while(elapsed < _frameIntervalInMilliseconds) {
-          std::function<void()> task;
-          std::unique_lock<std::mutex> lock(_access);
-          if (_tasks.empty()) {
-            _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
-            now = std::chrono::high_resolution_clock::now();
-            elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
-            continue;
-          }
+        float elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
+
+        std::function<void()> task;
+
+        std::unique_lock<std::mutex> lock(_access);
+
+        if(_tasks.empty()) {
+          _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
+          continue;
+        }
+        while(!_tasks.empty()) {
           task = std::move(_tasks.front());
           _tasks.pop_front();
           task();
-          
-          now = std::chrono::high_resolution_clock::now();
-          elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
         }
 
-        last = now;
+        now = std::chrono::high_resolution_clock::now();
+        elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
+        if(elapsed < _frameIntervalInMilliseconds) {
+          auto sleepFor = std::chrono::microseconds(int(_frameIntervalInMilliseconds - elapsed) * 1000);
+          std::this_thread::sleep_for(sleepFor);
+        }
       }
     });
   }
@@ -500,12 +483,6 @@ FLUTTER_PLUGIN_EXPORT void set_post_processing_ffi(void *const viewer,
                                                    bool enabled) {
   std::packaged_task<void()> lambda(
       [=] { set_post_processing(viewer, enabled); });
-  auto fut = _rl->add_task(lambda);
-}
-
-FLUTTER_PLUGIN_EXPORT void pick_ffi(void *const viewer, int x, int y,
-                                    EntityId *entityId) {
-  std::packaged_task<void()> lambda([=] { pick(viewer, x, y, entityId); });
   auto fut = _rl->add_task(lambda);
 }
 
