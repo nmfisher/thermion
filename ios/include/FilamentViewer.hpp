@@ -125,7 +125,7 @@ namespace flutter_filament
         void scrollBegin();
         void scrollUpdate(float x, float y, float delta);
         void scrollEnd();
-        void pick(uint32_t x, uint32_t y, EntityId *entityId);
+        void pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y));
         
         EntityId addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
         void removeLight(EntityId entityId);

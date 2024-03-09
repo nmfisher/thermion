@@ -1442,12 +1442,11 @@ namespace flutter_filament
     _manipulator = nullptr;
   }
 
-  void FilamentViewer::pick(uint32_t x, uint32_t y, EntityId *entityId)
+  void FilamentViewer::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
   {
     _view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
                 { 
-                  
-                  *entityId = Entity::smuggle(result.renderable); 
+                  callback(Entity::smuggle(result.renderable), x, y); 
                   });
   }
 

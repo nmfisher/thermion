@@ -184,7 +184,7 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT int reveal_mesh(void *sceneManager, EntityId asset, const char *meshName);
 	FLUTTER_PLUGIN_EXPORT void set_post_processing(void *const viewer, bool enabled);
 	FLUTTER_PLUGIN_EXPORT void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa);
-	FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, EntityId *entityId);
+	FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y));
 	FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const sceneManager, const EntityId entityId);
 	FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name);
 	FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const sceneManager, const EntityId target, bool renderableOnly);
