@@ -14,6 +14,7 @@ import 'package:flutter_filament/filament_controller.dart';
 
 import 'package:flutter_filament/animations/animation_data.dart';
 import 'package:flutter_filament/generated_bindings.dart';
+import 'package:flutter_filament/generated_bindings.dart' as gb;
 import 'package:flutter_filament/hardware/hardware_keyboard_listener.dart';
 
 import 'package:flutter_filament/rendering_surface.dart';
@@ -114,6 +115,9 @@ class FilamentControllerFFI extends FilamentController {
         _usesBackingWindow = result;
       });
     }
+    _onPickResultCallable =
+        NativeCallable<Void Function(Int32 entityId, Int x, Int y)>.listener(
+            _onPickResult);
   }
 
   bool _rendering = false;
@@ -311,7 +315,6 @@ class FilamentControllerFFI extends FilamentController {
             renderCallbackResult[0]);
     var renderCallbackOwner =
         Pointer<Void>.fromAddress(renderCallbackResult[1]);
-
 
     print("Got rendering surface");
 
@@ -883,8 +886,7 @@ class FilamentControllerFFI extends FilamentController {
     var names = <String>[];
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < animationCount; i++) {
-      await _withVoidCallback((callback) =>
-          get_animation_name_ffi(_sceneManager!, entity, outPtr, i, callback));
+      get_animation_name(_sceneManager!, entity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     allocator.free(outPtr);
@@ -1073,7 +1075,7 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    play_animation_ffi(
+    play_animation(
         _sceneManager!, entity, index, loop, reverse, replaceActive, crossfade);
   }
 
@@ -1394,29 +1396,30 @@ class FilamentControllerFFI extends FilamentController {
     return result.cast<Utf8>().toDartString();
   }
 
+  final _pick = <int, Completer<int>>{};
+
+  void _onPickResult(FilamentEntity entityId, int x, int y) {
+    _pickResultController.add((
+      entity: entityId,
+      x: (x / _pixelRatio).toDouble(),
+      y: (textureDetails.value!.height - y) / _pixelRatio
+    ));
+  }
+
+  late NativeCallable<Void Function(Int32 entityId, Int x, Int y)>
+      _onPickResultCallable;
+
   @override
   void pick(int x, int y) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    final outPtr = allocator<EntityId>(1);
-    outPtr.value = 0;
 
-    pick_ffi(_viewer!, (x * _pixelRatio).toInt(),
-        textureDetails.value!.height - (y * _pixelRatio).toInt(), outPtr);
-    int wait = 0;
-    while (outPtr.value == 0) {
-      await Future.delayed(const Duration(milliseconds: 16));
-      wait++;
-      if (wait > 10) {
-        allocator.free(outPtr);
-        throw Exception("Failed to get picking result");
-      }
-    }
-    var entityId = outPtr.value;
-    _pickResultController
-        .add((entity: entityId, x: x.toDouble(), y: y.toDouble()));
-    allocator.free(outPtr);
+    gb.pick(
+        _viewer!,
+        (x * _pixelRatio).toInt(),
+        textureDetails.value!.height - (y * _pixelRatio).toInt(),
+        _onPickResultCallable.nativeFunction);
   }
 
   @override
