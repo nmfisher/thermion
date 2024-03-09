@@ -156,7 +156,6 @@ class FilamentControllerFFI extends FilamentController {
         rect.top * _pixelRatio.floor().toDouble(),
         (rect.width * _pixelRatio).ceil().toDouble(),
         (rect.height * _pixelRatio).ceil().toDouble());
-    print("Using dimensions ${_rect.value} (pixel ratio : $_pixelRatio)");
     if (!_rectCompleter.isCompleted) {
       _rectCompleter.complete(this._rect.value);
     }
