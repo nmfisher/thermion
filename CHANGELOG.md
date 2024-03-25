@@ -9,6 +9,7 @@
 * `setBoneTransform` has been removed. To set the transform for a bone, just `addBoneAnimation` with a single frame.
 * the Dart library has been restructured to expose a cleaner API surface. Import `package:flutter_filament/flutter_filament.dart`
 * created a separate `Scene` class to hold lights/entities. For now, this is simply a singleton that holds all `getScene`
+* `getChildEntities` now returns the actual entities. The previous method has been renamed to `getChildEntityNames`.
 
 ## 0.6.0
 
