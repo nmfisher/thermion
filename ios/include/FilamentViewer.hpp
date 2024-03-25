@@ -138,7 +138,7 @@ namespace flutter_filament
         void setAntiAliasing(bool msaaEnabled, bool fxaaEnabled, bool taaEnabled);
         void setDepthOfField();
 
-        EntityId createGeometry(float* vertices, uint32_t numVertices, uint16_t* indices, uint32_t numIndices, const char* materialPath);
+        EntityId createGeometry(float* vertices, uint32_t numVertices, uint16_t* indices, uint32_t numIndices, filament::RenderableManager::PrimitiveType primitiveType  = RenderableManager::PrimitiveType::TRIANGLES, const char* materialPath = nullptr);
 
         SceneManager *const getSceneManager()
         {

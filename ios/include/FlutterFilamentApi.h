@@ -197,9 +197,11 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void remove_collision_component(void *const sceneManager, EntityId entityId);
 	FLUTTER_PLUGIN_EXPORT void add_animation_component(void *const sceneManager, EntityId entityId);
 
-	FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath);
+	FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, int primitiveType, const char* materialPath);
 	FLUTTER_PLUGIN_EXPORT void set_parent(void *const sceneManager, EntityId child, EntityId parent);
 	FLUTTER_PLUGIN_EXPORT void test_collisions(void *const sceneManager, EntityId entity);
+	FLUTTER_PLUGIN_EXPORT void set_priority(void *const sceneManager, EntityId entityId, int priority);
+	FLUTTER_PLUGIN_EXPORT void get_gizmo(void *const sceneManager, EntityId* out);
 
 #ifdef __cplusplus
 }

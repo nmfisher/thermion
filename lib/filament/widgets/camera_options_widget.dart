@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_filament/camera/camera_orientation.dart';
-import 'package:flutter_filament/filament_controller.dart';
+
+import 'package:flutter_filament/filament/filament_controller.dart';
+import 'package:flutter_filament/filament/utils/camera_orientation.dart';
 import 'dart:math';
 import 'package:vector_math/vector_math_64.dart' as v64;
 

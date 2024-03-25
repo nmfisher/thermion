@@ -40,13 +40,14 @@ public:
     _t = new std::thread([this]() {
       auto last = std::chrono::high_resolution_clock::now();
       while (!_stop) {
-        last = std::chrono::high_resolution_clock::now();
 
         if (_rendering) {
           // auto frameStart = std::chrono::high_resolution_clock::now();
           doRender();
           // auto frameEnd = std::chrono::high_resolution_clock::now();
         }
+
+        last = std::chrono::high_resolution_clock::now();
 
         auto now = std::chrono::high_resolution_clock::now();
 
@@ -58,7 +59,6 @@ public:
 
         if(_tasks.empty()) {
           _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
-          continue;
         }
         while(!_tasks.empty()) {
           task = std::move(_tasks.front());
@@ -571,10 +571,10 @@ FLUTTER_PLUGIN_EXPORT void add_bone_animation_ffi(
 
 FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi() { Log("Dummy called"); }
 
-FLUTTER_PLUGIN_EXPORT void create_geometry_ffi(void* const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath, void (*callback)(EntityId) ) {
+FLUTTER_PLUGIN_EXPORT void create_geometry_ffi(void* const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, int primitiveType, const char* materialPath, void (*callback)(EntityId) ) {
       std::packaged_task<EntityId()> lambda(
       [=] { 
-        auto entity = create_geometry(viewer, vertices, numVertices, indices, numIndices, materialPath);
+        auto entity = create_geometry(viewer, vertices, numVertices, indices, numIndices, primitiveType, materialPath);
         callback(entity);
         return entity;
       });

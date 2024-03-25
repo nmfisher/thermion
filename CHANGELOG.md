@@ -7,6 +7,8 @@
 * `setCameraRotation` now accepts a quaternion instead of an axis/angle
 * instancing is now supported.
 * `setBoneTransform` has been removed. To set the transform for a bone, just `addBoneAnimation` with a single frame.
+* the Dart library has been restructured to expose a cleaner API surface. Import `package:flutter_filament/flutter_filament.dart`
+* created a separate `Scene` class to hold lights/entities. For now, this is simply a singleton that holds all `getScene`
 
 ## 0.6.0
 

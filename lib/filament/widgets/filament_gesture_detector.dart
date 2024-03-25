@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_filament/widgets/filament_gesture_detector_desktop.dart';
-import 'package:flutter_filament/widgets/filament_gesture_detector_mobile.dart';
+import 'package:flutter_filament/filament/widgets/filament_gesture_detector_desktop.dart';
+import 'package:flutter_filament/filament/widgets/filament_gesture_detector_mobile.dart';
 import '../filament_controller.dart';
 
 enum GestureType { rotateCamera, panCamera, panBackground }
@@ -59,26 +59,35 @@ class FilamentGestureDetector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
-      throw Exception("TODO");
-    } else if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-      return FilamentGestureDetectorDesktop(
-        controller: controller,
-        child: child,
-        showControlOverlay: showControlOverlay,
-        enableCamera: enableCamera,
-        enablePicking: enablePicking,
-      );
-    } else {
-      return FilamentGestureDetectorMobile(
-          controller: controller,
-          child: child,
-          showControlOverlay: showControlOverlay,
-          enableCamera: enableCamera,
-          enablePicking: enablePicking,
-          onScaleStart: onScaleStart,
-          onScaleUpdate: onScaleUpdate,
-          onScaleEnd: onScaleEnd);
-    }
+    return ValueListenableBuilder(
+        valueListenable: controller.hasViewer,
+        builder: (_, bool hasViewer, __) {
+          if (!hasViewer) {
+            return Container(child: child);
+          }
+          if (kIsWeb) {
+            throw Exception("TODO");
+          } else if (Platform.isLinux ||
+              Platform.isWindows ||
+              Platform.isMacOS) {
+            return FilamentGestureDetectorDesktop(
+              controller: controller,
+              child: child,
+              showControlOverlay: showControlOverlay,
+              enableCamera: enableCamera,
+              enablePicking: enablePicking,
+            );
+          } else {
+            return FilamentGestureDetectorMobile(
+                controller: controller,
+                child: child,
+                showControlOverlay: showControlOverlay,
+                enableCamera: enableCamera,
+                enablePicking: enablePicking,
+                onScaleStart: onScaleStart,
+                onScaleUpdate: onScaleUpdate,
+                onScaleEnd: onScaleEnd);
+          }
+        });
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/flutter_filament.dart';
 import 'package:flutter_filament_example/main.dart';
 
 class RenderingSubmenu extends StatefulWidget {
@@ -63,6 +63,13 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           },
           child: Text(
               "Turn recording ${ExampleWidgetState.recording ? "OFF" : "ON"}) "),
+        ),
+        MenuItemButton(
+          onPressed: () async {
+            await widget.controller
+                .addLight(2, 6000, 100000, 0, 0, 0, 0, 1, 0, false);
+          },
+          child: Text("Add light"),
         ),
       ],
       child: const Text("Rendering"),

@@ -1,15 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_filament/entities/entity_transform_controller.dart';
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/filament/entities/entity_transform_controller.dart';
 
 class HardwareKeyboardPoll {
   final EntityTransformController _controller;
   late Timer _timer;
   HardwareKeyboardPoll(this._controller) {
     _timer = Timer.periodic(const Duration(milliseconds: 16), (_) {
-      print(RawKeyboard.instance.keysPressed);
       if (RawKeyboard.instance.keysPressed.contains(LogicalKeyboardKey.keyW)) {
         _controller.forwardPressed();
       } else {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/flutter_filament.dart';
 import 'package:flutter_filament_example/menus/asset_submenu.dart';
 import 'package:flutter_filament_example/menus/camera_submenu.dart';
 import 'package:flutter_filament_example/menus/rendering_submenu.dart';

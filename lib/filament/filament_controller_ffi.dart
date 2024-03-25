@@ -1,30 +1,29 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_filament/entities/entity_transform_controller.dart';
-
-import 'package:flutter_filament/filament_controller.dart';
-
-import 'package:flutter_filament/animations/animation_data.dart';
-import 'package:flutter_filament/generated_bindings.dart';
-import 'package:flutter_filament/generated_bindings.dart' as gb;
-import 'package:flutter_filament/hardware/hardware_keyboard_listener.dart';
-
-import 'package:flutter_filament/rendering_surface.dart';
+import 'package:flutter_filament/filament/animations/animation_data.dart';
+import 'package:flutter_filament/filament/entities/gizmo.dart';
+import 'package:flutter_filament/filament/filament_controller.dart';
+import 'package:flutter_filament/filament/generated_bindings.dart';
+import 'package:flutter_filament/filament/generated_bindings.dart' as gb;
+import 'package:flutter_filament/filament/rendering_surface.dart';
 import 'package:vector_math/vector_math_64.dart';
+import 'scene.dart';
 
 // ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 
 class FilamentControllerFFI extends FilamentController {
   final _channel = const MethodChannel("app.polyvox.filament/event");
+
+  late SceneImpl _scene;
+  Scene get scene => _scene;
 
   ///
   /// This will be set on constructor invocation.
@@ -64,21 +63,7 @@ class FilamentControllerFFI extends FilamentController {
 
   Timer? _resizeTimer;
 
-  final _lights = <FilamentEntity>{};
-  final _entities = <FilamentEntity>{};
-
-  final _onLoadController = StreamController<FilamentEntity>.broadcast();
-  Stream<FilamentEntity> get onLoad => _onLoadController.stream;
-
-  final _onUnloadController = StreamController<FilamentEntity>.broadcast();
-  Stream<FilamentEntity> get onUnload => _onUnloadController.stream;
-
   final allocator = calloc;
-
-  void _using(Pointer ptr, Future Function(Pointer ptr) function) async {
-    await function.call(ptr);
-    allocator.free(ptr);
-  }
 
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
@@ -145,7 +130,6 @@ class FilamentControllerFFI extends FilamentController {
   Future setFrameRate(int framerate) async {
     final interval = 1000.0 / framerate;
     set_frame_interval_ffi(interval);
-    print("Set frame interval to $interval");
   }
 
   @override
@@ -360,7 +344,7 @@ class FilamentControllerFFI extends FilamentController {
         textureId: renderingSurface.flutterTextureId,
         width: _rect.value!.width.toInt(),
         height: _rect.value!.height.toInt());
-    print("texture details ${textureDetails.value}");
+
     await _withVoidCallback((callback) {
       update_viewport_and_camera_projection_ffi(
           _viewer!,
@@ -369,6 +353,13 @@ class FilamentControllerFFI extends FilamentController {
           1.0,
           callback);
     });
+
+    final out = allocator<Int32>(3);
+    get_gizmo(_sceneManager!, out);
+    var gizmo = Gizmo(out[0], out[1], out[2], this);
+    allocator.free(out);
+    _scene = SceneImpl(gizmo);
+
     hasViewer.value = true;
     _creating = false;
   }
@@ -642,8 +633,8 @@ class FilamentControllerFFI extends FilamentController {
         dirZ,
         castShadows,
         callback));
-    _onLoadController.sink.add(entity);
-    _lights.add(entity);
+
+    _scene.registerLight(entity);
     return entity;
   }
 
@@ -652,9 +643,8 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _lights.remove(entity);
+    _scene.unregisterLight(entity);
     remove_light_ffi(_viewer!, entity);
-    _onUnloadController.add(entity);
   }
 
   @override
@@ -663,48 +653,8 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     clear_lights_ffi(_viewer!);
-    for (final entity in _lights) {
-      _onUnloadController.add(entity);
-    }
-    _lights.clear();
-  }
 
-  final _assetCache = <String, (Pointer<Void>, int)>{};
-
-  @override
-  Future<FilamentEntity> loadGlbFromBuffer(String path,
-      {bool cache = false, int numInstances = 1}) async {
-    late (Pointer<Void>, int) data;
-
-    if (cache && _assetCache.containsKey(path)) {
-      data = _assetCache[path]!;
-    } else {
-      late ByteData asset;
-      if (path.startsWith("file://")) {
-        var raw = File(path.replaceAll("file://", "")).readAsBytesSync();
-        asset = raw.buffer.asByteData(raw.offsetInBytes);
-      } else {
-        asset = await rootBundle.load(path.replaceAll("asset://", ""));
-      }
-
-      var ptr = allocator<Char>(asset.lengthInBytes);
-      for (int i = 0; i < asset.lengthInBytes; i++) {
-        ptr[i] = asset.getUint8(i);
-      }
-
-      data = (ptr.cast<Void>(), asset.lengthInBytes);
-    }
-    var entity = await _withIntCallback((callback) => load_glb_from_buffer_ffi(
-        _sceneManager!, data.$1, data.$2, numInstances, callback));
-    if (!cache) {
-      allocator.free(data.$1);
-    } else {
-      _assetCache[path] = data;
-    }
-    if (entity == _FILAMENT_ASSET_ERROR) {
-      throw Exception("Failed to load GLB from path $path");
-    }
-    return entity;
+    _scene.clearLights();
   }
 
   @override
@@ -736,14 +686,6 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future evictCache() async {
-    for (final value in _assetCache.values) {
-      allocator.free(value.$1);
-    }
-    _assetCache.clear();
-  }
-
-  @override
   Future<FilamentEntity> loadGlb(String path,
       {bool unlit = false, int numInstances = 1}) async {
     if (_viewer == null) {
@@ -759,8 +701,8 @@ class FilamentControllerFFI extends FilamentController {
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    _entities.add(entity);
-    _onLoadController.sink.add(entity);
+    _scene.registerEntity(entity);
+
     return entity;
   }
 
@@ -784,8 +726,8 @@ class FilamentControllerFFI extends FilamentController {
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    _entities.add(entity);
-    _onLoadController.sink.add(entity);
+    _scene.registerEntity(entity);
+
     return entity;
   }
 
@@ -1021,10 +963,10 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    _entities.remove(entity);
+    _scene.unregisterEntity(entity);
+
     await _withVoidCallback(
         (callback) => remove_entity_ffi(_viewer!, entity, callback));
-    _onUnloadController.add(entity);
   }
 
   @override
@@ -1034,11 +976,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     await _withVoidCallback(
         (callback) => clear_entities_ffi(_viewer!, callback));
-
-    for (final entity in _entities) {
-      _onUnloadController.add(entity);
-    }
-    _entities.clear();
+    _scene.clearEntities();
   }
 
   @override
@@ -1079,6 +1017,14 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
+  Future stopAnimation(FilamentEntity entity, int animationIndex) async {
+    if (_viewer == null) {
+      throw Exception("No viewer available, ignoring");
+    }
+    stop_animation(_sceneManager!, entity, animationIndex);
+  }
+
+  @override
   Future stopAnimationByName(FilamentEntity entity, String name) async {
     var animations = await getAnimationNames(entity);
     await stopAnimation(entity, animations.indexOf(name));
@@ -1105,14 +1051,6 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     set_animation_frame(_sceneManager!, entity, index, animationFrame);
-  }
-
-  @override
-  Future stopAnimation(FilamentEntity entity, int animationIndex) async {
-    if (_viewer == null) {
-      throw Exception("No viewer available, ignoring");
-    }
-    stop_animation(_sceneManager!, entity, animationIndex);
   }
 
   @override
@@ -1304,16 +1242,6 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
-  Future setRotation(
-      FilamentEntity entity, double rads, double x, double y, double z) async {
-    if (_viewer == null) {
-      throw Exception("No viewer available, ignoring");
-    }
-    var quat = Quaternion.axisAngle(Vector3(x, y, z), rads);
-    await setRotationQuat(entity, quat);
-  }
-
-  @override
   Future setRotationQuat(FilamentEntity entity, Quaternion rotation,
       {bool relative = false}) async {
     if (_viewer == null) {
@@ -1324,6 +1252,16 @@ class FilamentControllerFFI extends FilamentController {
   }
 
   @override
+  Future setRotation(
+      FilamentEntity entity, double rads, double x, double y, double z) async {
+    if (_viewer == null) {
+      throw Exception("No viewer available, ignoring");
+    }
+    var quat = Quaternion.axisAngle(Vector3(x, y, z), rads);
+    await setRotationQuat(entity, quat);
+  }
+
+  @override
   Future setScale(FilamentEntity entity, double scale) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
@@ -1331,15 +1269,13 @@ class FilamentControllerFFI extends FilamentController {
     set_scale(_sceneManager!, entity, scale);
   }
 
-  @override
-  Future queuePositionUpdate(
-      FilamentEntity entity, double x, double y, double z,
+  Future queueRotationUpdateQuat(FilamentEntity entity, Quaternion rotation,
       {bool relative = false}) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-
-    queue_position_update(_sceneManager!, entity, x, y, z, relative);
+    queue_rotation_update(_sceneManager!, entity, rotation.radians, rotation.x,
+        rotation.y, rotation.z, rotation.w, relative);
   }
 
   @override
@@ -1353,13 +1289,15 @@ class FilamentControllerFFI extends FilamentController {
     await queueRotationUpdateQuat(entity, quat, relative: relative);
   }
 
-  Future queueRotationUpdateQuat(FilamentEntity entity, Quaternion rotation,
+  @override
+  Future queuePositionUpdate(
+      FilamentEntity entity, double x, double y, double z,
       {bool relative = false}) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
-    queue_rotation_update(_sceneManager!, entity, rotation.radians, rotation.x,
-        rotation.y, rotation.z, rotation.w, relative);
+
+    queue_position_update(_sceneManager!, entity, x, y, z, relative);
   }
 
   @override
@@ -1395,14 +1333,13 @@ class FilamentControllerFFI extends FilamentController {
     return result.cast<Utf8>().toDartString();
   }
 
-  final _pick = <int, Completer<int>>{};
-
   void _onPickResult(FilamentEntity entityId, int x, int y) {
     _pickResultController.add((
       entity: entityId,
       x: (x / _pixelRatio).toDouble(),
       y: (textureDetails.value!.height - y) / _pixelRatio
     ));
+    _scene.registerSelected(entityId);
   }
 
   late NativeCallable<Void Function(Int32 entityId, Int x, Int y)>
@@ -1413,6 +1350,8 @@ class FilamentControllerFFI extends FilamentController {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
+
+    _scene.unregisterSelected();
 
     gb.pick(
         _viewer!,
@@ -1592,28 +1531,6 @@ class FilamentControllerFFI extends FilamentController {
     allocator.free(pathPtr);
   }
 
-  HardwareKeyboardListener? _keyboardListener;
-  @override
-  Future<EntityTransformController> control(FilamentEntity entity,
-      {double? translationSpeed, String? forwardAnimation}) async {
-    int? forwardAnimationIndex;
-    if (forwardAnimation != null) {
-      final animationNames = await getAnimationNames(entity);
-      forwardAnimationIndex = animationNames.indexOf(forwardAnimation);
-    }
-
-    if (forwardAnimationIndex == -1) {
-      throw Exception("Invalid animation : $forwardAnimation");
-    }
-
-    _keyboardListener?.dispose();
-    var transformController = EntityTransformController(this, entity,
-        translationSpeed: translationSpeed ?? 1.0,
-        forwardAnimationIndex: forwardAnimationIndex);
-    _keyboardListener = HardwareKeyboardListener(transformController);
-    return transformController;
-  }
-
   final _collisions = <FilamentEntity, NativeCallable>{};
 
   @override
@@ -1649,7 +1566,9 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future<FilamentEntity> createGeometry(
-      List<double> vertices, List<int> indices, String? materialPath) async {
+      List<double> vertices, List<int> indices,
+      {String? materialPath,
+      PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) async {
     if (_viewer == null) {
       throw Exception("Viewer must not be null");
     }
@@ -1672,14 +1591,14 @@ class FilamentControllerFFI extends FilamentController {
         vertices.length,
         indicesPtr,
         indices.length,
+        primitiveType.index,
         materialPathPtr.cast<Char>(),
         callback));
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create geometry");
     }
 
-    _entities.add(entity);
-    _onLoadController.sink.add(entity);
+    _scene.registerEntity(entity);
 
     allocator.free(materialPathPtr);
     allocator.free(vertexPtr);
@@ -1699,5 +1618,10 @@ class FilamentControllerFFI extends FilamentController {
   @override
   Future testCollisions(FilamentEntity entity) async {
     test_collisions(_sceneManager!, entity);
+  }
+
+  @override
+  Future setPriority(FilamentEntity entityId, int priority) async {
+    set_priority(_sceneManager!, entityId, priority);
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_filament/filament/entities/gizmo.dart';
 import '../filament_controller.dart';
 
 ///
@@ -60,6 +61,13 @@ class _FilamentGestureDetectorDesktopState
 
   bool _pointerMoving = false;
 
+  Gizmo get _gizmo => widget.controller.scene.gizmo;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   void didUpdateWidget(FilamentGestureDetectorDesktop oldWidget) {
     if (widget.showControlOverlay != oldWidget.showControlOverlay ||
@@ -91,9 +99,21 @@ class _FilamentGestureDetectorDesktopState
     });
   }
 
+  Timer? _pickTimer;
+
   @override
   Widget build(BuildContext context) {
     return Listener(
+        // onPointerHover: (event) async {
+        //   if (_gizmo.isActive) {
+        //     return;
+        //   }
+        //   _pickTimer?.cancel();
+        //   _pickTimer = Timer(const Duration(milliseconds: 100), () async {
+        //     widget.controller
+        //         .pick(event.position.dx.toInt(), event.position.dy.toInt());
+        //   });
+        // },
         onPointerSignal: (PointerSignalEvent pointerSignal) async {
           if (pointerSignal is PointerScrollEvent) {
             if (widget.enableCamera) {
@@ -106,10 +126,10 @@ class _FilamentGestureDetectorDesktopState
         onPointerPanZoomStart: (pzs) {
           throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
         },
-        // ignore all pointer down events
-        // so we can wait to see if the pointer will be held/moved (interpreted as rotate/pan),
-        // or if this is a single mousedown event (interpreted as viewport pick)
         onPointerDown: (d) async {
+          if (_gizmo.isActive) {
+            return;
+          }
           if (d.buttons != kTertiaryButton && widget.enablePicking) {
             widget.controller
                 .pick(d.localPosition.dx.toInt(), d.localPosition.dy.toInt());
@@ -118,6 +138,10 @@ class _FilamentGestureDetectorDesktopState
         },
         // holding/moving the left mouse button is interpreted as a pan, middle mouse button as a rotate
         onPointerMove: (PointerMoveEvent d) async {
+          if (_gizmo.isActive) {
+            _gizmo.translate(d.delta);
+            return;
+          }
           // if this is the first move event, we need to call rotateStart/panStart to set the first coordinates
           if (!_pointerMoving) {
             if (d.buttons == kTertiaryButton && widget.enableCamera) {
@@ -142,6 +166,11 @@ class _FilamentGestureDetectorDesktopState
         // 2) if _pointerMoving is false, this is interpreted as a pick
         // same applies to middle mouse button, but this is ignored as a pick
         onPointerUp: (PointerUpEvent d) async {
+          if (_gizmo.isActive) {
+            _gizmo.reset();
+            return;
+          }
+
           if (d.buttons == kTertiaryButton && widget.enableCamera) {
             widget.controller.rotateEnd();
           } else {

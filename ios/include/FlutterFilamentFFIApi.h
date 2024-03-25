@@ -115,7 +115,7 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void set_post_processing_ffi(void *const viewer, bool enabled);
     FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose_ffi(void *const sceneManager, EntityId entityId);
     FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi();
-    FLUTTER_PLUGIN_EXPORT void create_geometry_ffi(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, const char *materialPath, void (*callback)(EntityId));
+    FLUTTER_PLUGIN_EXPORT void create_geometry_ffi(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath, void (*callback)(EntityId));
 
 #ifdef __cplusplus
 }

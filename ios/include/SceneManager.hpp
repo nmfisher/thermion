@@ -12,6 +12,10 @@
 #include <gltfio/FilamentInstance.h>
 #include <gltfio/ResourceLoader.h>
 
+#include <filament/IndexBuffer.h>
+#include <filament/InstanceBuffer.h>
+
+#include "material/gizmo.h"
 #include "utils/NameComponentManager.h"
 #include "ResourceBuffer.hpp"
 #include "components/CollisionComponentManager.hpp"
@@ -141,6 +145,19 @@ namespace flutter_filament
         /// @param entityId 
         void getInstances(EntityId entityId, EntityId* out);
 
+        ///
+        /// Sets the draw priority for the given entity. See RenderableManager.h for more details.
+        ///
+        void setPriority(EntityId entity, int priority);
+
+        
+        /// @brief returns the gizmo entity, used to manipulate the global transform for entities
+        /// @param out a pointer to an array of three EntityId {x, y, z}
+        /// @return 
+        ///
+        void getGizmo(EntityId* out);
+
+
         friend class FilamentViewer;
         
 
@@ -154,6 +171,7 @@ namespace flutter_filament
         gltfio::TextureProvider *_stbDecoder = nullptr;
         gltfio::TextureProvider *_ktxDecoder = nullptr;
         std::mutex _mutex;
+        Material* _gizmoMaterial;
 
         utils::NameComponentManager* _ncm;
 
@@ -172,6 +190,11 @@ namespace flutter_filament
         utils::Entity findEntityByName(
             const gltfio::FilamentInstance* instance,
             const char *entityName);
+
+        EntityId addGizmo();
+        utils::Entity _gizmoX;
+        utils::Entity _gizmoY;
+        utils::Entity _gizmoZ;
 
     };
 }

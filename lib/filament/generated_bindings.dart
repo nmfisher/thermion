@@ -955,8 +955,14 @@ external void add_animation_component(
 );
 
 @ffi.Native<
-        EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>,
-            ffi.Int, ffi.Pointer<ffi.Uint16>, ffi.Int, ffi.Pointer<ffi.Char>)>(
+        EntityId Function(
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Pointer<ffi.Uint16>,
+            ffi.Int,
+            ffi.Int,
+            ffi.Pointer<ffi.Char>)>(
     symbol: 'create_geometry', assetId: 'flutter_filament_plugin')
 external int create_geometry(
   ffi.Pointer<ffi.Void> viewer,
@@ -964,6 +970,7 @@ external int create_geometry(
   int numVertices,
   ffi.Pointer<ffi.Uint16> indices,
   int numIndices,
+  int primitiveType,
   ffi.Pointer<ffi.Char> materialPath,
 );
 
@@ -980,6 +987,21 @@ external void set_parent(
 external void test_collisions(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+    symbol: 'set_priority', assetId: 'flutter_filament_plugin')
+external void set_priority(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+  int priority,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<EntityId>)>(
+    symbol: 'get_gizmo', assetId: 'flutter_filament_plugin')
+external void get_gizmo(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<EntityId> out,
 );
 
 @ffi.Native<
@@ -1510,6 +1532,7 @@ external void ios_dummy_ffi();
             ffi.Int,
             ffi.Pointer<ffi.Uint16>,
             ffi.Int,
+            ffi.Int,
             ffi.Pointer<ffi.Char>,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     symbol: 'create_geometry_ffi', assetId: 'flutter_filament_plugin')
@@ -1519,6 +1542,7 @@ external void create_geometry_ffi(
   int numVertices,
   ffi.Pointer<ffi.Uint16> indices,
   int numIndices,
+  int primitiveType,
   ffi.Pointer<ffi.Char> materialPath,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );

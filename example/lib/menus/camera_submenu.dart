@@ -3,7 +3,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/flutter_filament.dart';
+
 import 'package:flutter_filament_example/main.dart';
 
 class CameraSubmenu extends StatefulWidget {
@@ -103,20 +104,6 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
               v.Quaternion.axisAngle(v.Vector3(0, 0.0, 1.0), 0.0));
         },
         child: const Text('Move to 0,0,0, facing towards 0,0,-1'),
-      ),
-      MenuItemButton(
-        onPressed: () async {
-          await widget.controller
-              .setCamera(ExampleWidgetState.assets.last!, null);
-        },
-        child: const Text('Set to first camera in last added asset'),
-      ),
-      MenuItemButton(
-        onPressed: () async {
-          await widget.controller
-              .moveCameraToAsset(ExampleWidgetState.assets.last!);
-        },
-        child: const Text("Move to last added asset"),
       ),
       MenuItemButton(
         onPressed: () {

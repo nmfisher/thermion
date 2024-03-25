@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/filament/filament_controller.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 
 class IblRotationSliderWidget extends StatefulWidget {

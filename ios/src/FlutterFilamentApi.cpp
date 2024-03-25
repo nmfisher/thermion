@@ -597,8 +597,15 @@ extern "C"
         ((SceneManager*)sceneManager)->addAnimationComponent(entityId);
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
-        return ((FilamentViewer*)viewer)->createGeometry(vertices, (uint32_t)numVertices, indices, numIndices, materialPath);
+    FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, int primitiveType, const char* materialPath) {
+        return ((FilamentViewer*)viewer)->createGeometry(
+            vertices, 
+            (uint32_t)numVertices, 
+            indices, 
+            numIndices, 
+            (filament::RenderableManager::PrimitiveType)primitiveType, 
+            materialPath
+        );
     }
 
     FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name) {
@@ -612,6 +619,14 @@ extern "C"
 
     FLUTTER_PLUGIN_EXPORT void test_collisions(void *const sceneManager, EntityId entity) {
         ((SceneManager*)sceneManager)->testCollisions(entity);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void set_priority(void *const sceneManager, EntityId entity, int priority) {
+        ((SceneManager*)sceneManager)->setPriority(entity, priority);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void get_gizmo(void *const sceneManager, EntityId* out) {
+        return ((SceneManager*)sceneManager)->getGizmo(out);
     }
 
 }

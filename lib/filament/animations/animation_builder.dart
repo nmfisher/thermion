@@ -1,4 +1,4 @@
-import 'package:flutter_filament/animations/animation_data.dart';
+import 'package:flutter_filament/filament/animations/animation_data.dart';
 import 'package:vector_math/vector_math.dart';
 
 class AnimationBuilder {

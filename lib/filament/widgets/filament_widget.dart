@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/filament/filament_controller.dart';
 
 import 'dart:async';
 

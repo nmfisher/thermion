@@ -115,6 +115,8 @@ namespace flutter_filament {
             {
                 auto now = high_resolution_clock::now();
 
+                // Log("animation component count : %d", )
+
                 for(auto it = begin(); it < end(); it++) {
                     const auto& entity = getEntity(it);
                     

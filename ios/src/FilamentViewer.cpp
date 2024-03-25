@@ -248,6 +248,7 @@ namespace flutter_filament
         .build(*_engine, imageEntity);
     _imageEntity = &imageEntity;
     _scene->addEntity(imageEntity);
+    Log("Added imageEntity %d", imageEntity);
   }
 
   void FilamentViewer::setAntiAliasing(bool msaa, bool fxaa, bool taa) {
@@ -320,6 +321,9 @@ namespace flutter_filament
   int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows)
   {
     auto light = EntityManager::get().create();
+    auto& transformManager = _engine->getTransformManager();
+    transformManager.create(light);
+    auto parent = transformManager.getInstance(light);
     auto builder = LightManager::Builder(t)
         .color(Color::cct(colour))
         .intensity(intensity)
@@ -329,6 +333,7 @@ namespace flutter_filament
         .build(*_engine, light);
     _scene->addEntity(light);
     _lights.push_back(light);
+    
     auto entityId = Entity::smuggle(light);
     Log("Added light under entity ID %d of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", entityId, t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
     return entityId;
@@ -1450,7 +1455,7 @@ namespace flutter_filament
                   });
   }
 
-  EntityId FilamentViewer::createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, const char* materialPath)
+  EntityId FilamentViewer::createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, RenderableManager::PrimitiveType primitiveType, const char* materialPath)
   {
 
     float *verticesCopy = (float*)malloc(numVertices * sizeof(float));
@@ -1499,7 +1504,7 @@ namespace flutter_filament
     RenderableManager::Builder builder = RenderableManager::Builder(1);
     builder
         .boundingBox({{minX, minY, minZ}, {maxX, maxY, maxZ}})
-        .geometry(0, RenderableManager::PrimitiveType::TRIANGLES,
+        .geometry(0, primitiveType,
                       vb, ib, 0, numIndices)
         .culling(false)
         .receiveShadows(false)
@@ -1510,7 +1515,8 @@ namespace flutter_filament
     auto result = builder.build(*_engine, renderable);
 
     _scene->addEntity(renderable);
-    Log("Created geometry with result %d", result);
+
+    Log("Created geometry with primitive type %d (result %d)", primitiveType, result);
 
     return Entity::smuggle(renderable);
   }

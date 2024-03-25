@@ -23,7 +23,6 @@
 #include "Log.hpp"
 #include "SceneManager.hpp"
 
-#include "material/FileMaterialProvider.hpp"
 #include "gltfio/materials/uberarchive.h"
 
 extern "C"
@@ -87,6 +86,8 @@ namespace flutter_filament
 
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
+
+        addGizmo();
 
     }
 
@@ -307,8 +308,10 @@ namespace flutter_filament
             if(asset) {
                 instance = asset->getInstance();
             } else {
-                return false;
-            }
+                // Log("Failed to find glTF instance under entityID %d, hiding as regular entity", entityId);
+                _scene->remove(Entity::import(entityId));
+                return true;
+            }   
         }
 
         utils::Entity entity;
@@ -342,7 +345,9 @@ namespace flutter_filament
             if(asset) {
                 instance = asset->getInstance();
             } else {
-                return false;
+                // Log("Failed to find glTF instance under entityID %d, revealing as regular entity", entityId);
+                _scene->addEntity(Entity::import(entityId));
+                return true;
             }
         }
 
@@ -1561,6 +1566,163 @@ namespace flutter_filament
         const utils::Entity entity = instance->getEntities()[found];    
         auto inst = _ncm->getInstance(entity);
         return _ncm->getName(inst);
+    }
+
+    void SceneManager::setPriority(EntityId entityId, int priority) {
+        auto& rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(Entity::import(entityId));
+        if(!renderableInstance.isValid()) {
+            Log("Error: invalid renderable, did you pass the correct entity?", priority);    
+            return;
+        }
+        rm.setPriority(renderableInstance, priority); 
+        Log("Set instance renderable priority to %d", priority);
+    }
+
+    EntityId SceneManager::addGizmo() {
+        auto mat = _resourceLoaderWrapper->load("file:///Users/nickfisher/Documents/polyvox/flutter/flutter_filament/materials/gizmo.filamat");
+        _gizmoMaterial =
+          Material::Builder()
+             .package(mat.data, mat.size)
+            //   .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
+              .build(*_engine);
+
+        auto vertexCount = 9;
+
+        float* vertices = new float[vertexCount * 3] { 
+            -0.05, 0.0f, 0.05f, 
+            0.05f, 0.0f, 0.05f, 
+            0.05f, 0.0f, -0.05f,
+            -0.05f, 0.0f, -0.05f,
+            -0.05f, 1.0f, 0.05f,
+            0.05f, 1.0f, 0.05f,
+            0.05f, 1.0f, -0.05f,
+            -0.05f, 1.0f, -0.05f,
+            0.00f, 1.1f, 0.0f
+        };
+           
+        VertexBuffer::BufferDescriptor::Callback vertexCallback = [](void *buf, size_t,
+                                                                void *data)
+        {
+        free((void*)buf);
+        };
+
+        auto indexCount = 42;
+        uint16_t* indices = new uint16_t[indexCount] { 
+            //bottom quad
+            0,1,2,
+            0,2,3,
+            // top "cone"
+            4,5,8,
+            5,6,8,
+            4,7,8,
+            6,7,8,
+            // front 
+            0,1,4,
+            1,5,4,
+            // right
+            1,2,5,
+            2,6,5,
+            // back
+            2,6,7,
+            7,3,2,
+            // left
+            0,4,7,
+            7,3,0
+            
+        };
+        
+        IndexBuffer::BufferDescriptor::Callback indexCallback = [](void *buf, size_t,
+                                                                void *data)
+        {
+        free((void*)buf);
+        };
+
+        auto vb = VertexBuffer::Builder()
+            .vertexCount(vertexCount)
+            .bufferCount(1)
+            .attribute(
+                VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
+            .build(*_engine);
+
+        vb->setBufferAt(
+            *_engine, 
+            0, 
+            VertexBuffer::BufferDescriptor(vertices, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback)
+        );
+        
+        auto ib = IndexBuffer::Builder().indexCount(indexCount).bufferType(IndexBuffer::IndexType::USHORT).build(*_engine);
+        ib->setBuffer(*_engine, IndexBuffer::BufferDescriptor(indices, ib->getIndexCount() * sizeof(uint16_t), 0, indexCallback));
+        
+        auto &entityManager = EntityManager::get();
+
+        _gizmoY = entityManager.create();
+        auto materialY = _gizmoMaterial->createInstance();
+        materialY->setParameter("color", math::float3 { 1.0f, 0.0f, 0.0f });
+        RenderableManager::Builder(1)
+            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+            .material(0, materialY)
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
+                    ib, 0, indexCount)
+            .culling(false)
+            .build(*_engine, _gizmoY);   
+
+        _gizmoX = entityManager.create();
+        auto materialX = _gizmoMaterial->createInstance();
+        materialX->setParameter("color", math::float3 { 0.0f, 1.0f, 0.0f });
+        auto xTransform  = math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(-math::F_PI_2, math::float3 { 0, 0, 1 });
+        auto* instanceBufferX = InstanceBuffer::Builder(1).localTransforms(&xTransform).build(*_engine);
+        RenderableManager::Builder(1)
+            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+            .instances(1, instanceBufferX)
+            .material(0, materialX)
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
+                    ib, 0, indexCount)
+            .culling(false)
+            .build(*_engine, _gizmoX);   
+
+        _gizmoZ = entityManager.create();
+        auto materialZ = _gizmoMaterial->createInstance();
+        materialZ->setParameter("color", math::float3 { 0.0f, 0.0f, 1.0f });
+        auto zTransform = math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3 { 1, 0, 0 });
+        auto* instanceBufferZ = InstanceBuffer::Builder(1).localTransforms(&zTransform).build(*_engine);
+        RenderableManager::Builder(1)
+            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+            .instances(1, instanceBufferZ)
+            .material(0, materialZ)
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
+                    ib, 0, indexCount)
+            .culling(false)
+            .build(*_engine, _gizmoZ);   
+        
+        
+        // auto localTransforms = math::mat4f[3] {
+        //     math::mat4f(),
+        //     math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3 { 1, 0, 0 }) ,
+        //     math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(math::F_PI_2, math::float3 { 0, 0, 1 })
+        // };
+
+
+        // RenderableManager::Builder(1)
+        //     .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+        //     .instances(3, instanceBuffer)
+        //     .material(0, _gizmoMaterial->getDefaultInstance())
+        //     .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
+        //             ib, 0, indexCount)
+        //     .culling(false)
+        //     .build(*_engine, _gizmo);   
+            
+        auto& rm = _engine->getRenderableManager();
+        rm.setPriority(rm.getInstance(_gizmoX), 7);
+        rm.setPriority(rm.getInstance(_gizmoY), 7);
+        rm.setPriority(rm.getInstance(_gizmoZ), 7);
+        return Entity::smuggle(_gizmoX);
+    }
+
+    void SceneManager::getGizmo(EntityId* out) { 
+        out[0] = Entity::smuggle(_gizmoX);
+        out[1] = Entity::smuggle(_gizmoY);
+        out[2] = Entity::smuggle(_gizmoZ);    
     }
 
 } // namespace flutter_filament

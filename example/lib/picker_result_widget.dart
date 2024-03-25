@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/flutter_filament.dart';
 
 class PickerResultWidget extends StatelessWidget {
   final FilamentController controller;
