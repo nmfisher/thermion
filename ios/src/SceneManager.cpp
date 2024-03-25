@@ -1580,11 +1580,9 @@ namespace flutter_filament
     }
 
     EntityId SceneManager::addGizmo() {
-        auto mat = _resourceLoaderWrapper->load("file:///Users/nickfisher/Documents/polyvox/flutter/flutter_filament/materials/gizmo.filamat");
         _gizmoMaterial =
           Material::Builder()
-             .package(mat.data, mat.size)
-            //   .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
+              .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
               .build(*_engine);
 
         auto vertexCount = 9;
