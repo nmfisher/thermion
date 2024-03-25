@@ -82,6 +82,7 @@
 #include <fstream>
 #include <filesystem>
 #include <mutex>
+#include <iomanip>
 
 #include "Log.hpp"
 
@@ -91,11 +92,6 @@
 #include "TimeIt.hpp"
 #include "ThreadPool.hpp"
 
-using namespace filament;
-using namespace filament::math;
-using namespace gltfio;
-using namespace utils;
-using namespace image;
 
 namespace filament
 {
@@ -103,8 +99,17 @@ namespace filament
   class LightManager;
 } // namespace filament
 
-namespace polyvox
+namespace flutter_filament
 {
+
+  using namespace filament;
+  using namespace filament::math;
+  using namespace gltfio;
+  using namespace utils;
+  using namespace image;
+  using namespace std::chrono;
+
+  using std::string;
 
   // const float kAperture = 1.0f;
   // const float kShutterSpeed = 1.0f;
@@ -135,6 +140,8 @@ namespace polyvox
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
 #endif
 
+    _engine->setAutomaticInstancingEnabled(true);
+
     _renderer = _engine->createRenderer();
 
     _frameInterval = 1000.0f / 60.0f;
@@ -143,38 +150,26 @@ namespace polyvox
 
     _scene = _engine->createScene();
 
-    Log("Scene created");
-
     utils::Entity camera = EntityManager::get().create();
 
     _mainCamera = _engine->createCamera(camera);
 
-    Log("Main camera created");
     _view = _engine->createView();
-    Log("View created");
 
     setToneMapping(ToneMapping::ACES);
-    Log("Set tone mapping");
 
-#ifdef __EMSCRIPTEN__
-    Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers");
-    decltype(_view->getBloomOptions()) opts;
-    opts.enabled = false;
-    _view->setBloomOptions(opts);
+    // there's a glitch on certain iGPUs where nothing will render when postprocessing is enabled and bloom is disabled
+    // set bloom to a small value here
+    setBloom(0.01);
 
     _view->setAmbientOcclusionOptions({.enabled = false});
-
     _view->setDynamicResolutionOptions({.enabled = false});
 
     _view->setDithering(filament::Dithering::NONE);
-    _view->setAntiAliasing(filament::AntiAliasing::NONE);
+    setAntiAliasing(false, false, false);
     _view->setShadowingEnabled(false);
     _view->setScreenSpaceRefractionEnabled(false);
-
-#else
-    setBloom(0.6f);
-    Log("Set bloom");
-#endif
+    setPostProcessing(false);
 
     _view->setScene(_scene);
     _view->setCamera(_mainCamera);
@@ -189,26 +184,11 @@ namespace polyvox
     const float sens = _mainCamera->getSensitivity();
 
     Log("Camera aperture %f shutter %f sensitivity %f", aperture, shutterSpeed, sens);
-
-    View::DynamicResolutionOptions options;
-    options.enabled = false;
-    // options.homogeneousScaling = homogeneousScaling;
-    // options.minScale = filament::math::float2{ minScale };
-    // options.maxScale = filament::math::float2{ maxScale };
-    // options.sharpness = sharpness;
-    // options.quality = View::QualityLevel::ULTRA;
-    _view->setDynamicResolutionOptions(options);
-
-    setAntiAliasing(false, true, false);
-
   
     EntityManager &em = EntityManager::get();
 
-    _ncm = new NameComponentManager(em);
-
     _sceneManager = new SceneManager(
         _resourceLoaderWrapper,
-        _ncm,
         _engine,
         _scene,
         uberArchivePath);
@@ -268,6 +248,7 @@ namespace polyvox
         .build(*_engine, imageEntity);
     _imageEntity = &imageEntity;
     _scene->addEntity(imageEntity);
+    Log("Added imageEntity %d", imageEntity);
   }
 
   void FilamentViewer::setAntiAliasing(bool msaa, bool fxaa, bool taa) {
@@ -288,14 +269,15 @@ namespace polyvox
 
   void FilamentViewer::setBloom(float strength)
   {
+    decltype(_view->getBloomOptions()) opts;
 #ifdef __EMSCRIPTEN__
+    opts.enabled = false;
     Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers. setBloom will be ignored");
 #else
-    decltype(_view->getBloomOptions()) opts;
     opts.enabled = true;
     opts.strength = strength;
-    _view->setBloomOptions(opts);
 #endif
+    _view->setBloomOptions(opts);
   }
 
   void FilamentViewer::setToneMapping(ToneMapping toneMapping)
@@ -331,7 +313,7 @@ namespace polyvox
   {
     _frameInterval = frameInterval;
     Renderer::FrameRateOptions fro;
-    fro.interval = frameInterval;
+    fro.interval = 1; //frameInterval;
     _renderer->setFrameRateOptions(fro);
     Log("Set framerate interval to %f", frameInterval);
   }
@@ -339,7 +321,10 @@ namespace polyvox
   int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows)
   {
     auto light = EntityManager::get().create();
-    LightManager::Builder(t)
+    auto& transformManager = _engine->getTransformManager();
+    transformManager.create(light);
+    auto parent = transformManager.getInstance(light);
+    auto builder = LightManager::Builder(t)
         .color(Color::cct(colour))
         .intensity(intensity)
         .position(math::float3(posX, posY, posZ))
@@ -348,6 +333,7 @@ namespace polyvox
         .build(*_engine, light);
     _scene->addEntity(light);
     _lights.push_back(light);
+    
     auto entityId = Entity::smuggle(light);
     Log("Added light under entity ID %d of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", entityId, t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
     return entityId;
@@ -377,7 +363,7 @@ namespace polyvox
     _lights.clear();
   }
 
-  static bool endsWith(string path, string ending)
+  static bool endsWith(std::string path, std::string ending)
   {
     return path.compare(path.length() - ending.length(), ending.length(), ending) == 0;
   }
@@ -435,7 +421,7 @@ namespace polyvox
   void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb)
   {
 
-    polyvox::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
+    flutter_filament::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
 
     std::istream inputStream(&sb);
 
@@ -480,7 +466,7 @@ namespace polyvox
 
   void FilamentViewer::loadTextureFromPath(string path)
   {
-    string ktxExt(".ktx");
+    std::string ktxExt(".ktx");
     string ktx2Ext(".ktx2");
     string pngExt(".png");
 
@@ -802,9 +788,21 @@ namespace polyvox
     cam.setFocusDistance(_cameraFocusDistance);
   }
 
+  ///
+  /// 
+  ///
   void FilamentViewer::setMainCamera() {
     _view->setCamera(_mainCamera);
   }
+
+  ///
+  /// 
+  ///
+  EntityId FilamentViewer::getMainCamera() {
+    return Entity::smuggle(_mainCamera->getEntity());
+  }
+
+
 
   ///
   /// Sets the active camera to the GLTF camera node specified by [name] (or if null, the first camera found under that node).
@@ -832,18 +830,16 @@ namespace polyvox
     utils::Entity target;
 
     if (!cameraName)
-    {
-      auto inst = _ncm->getInstance(cameras[0]);
-      const char *name = _ncm->getName(inst);
+    {      
       target = cameras[0];
+      const char *name = asset->getName(target);
       Log("No camera specified, using first camera node found (%s)", name);
     }
     else
     {
       for (int j = 0; j < count; j++)
       {
-        auto inst = _ncm->getInstance(cameras[j]);
-        const char *name = _ncm->getName(inst);
+        const char *name = asset->getName(cameras[j]);
         if (strcmp(name, cameraName) == 0)
         {
           target = cameras[j];
@@ -1031,8 +1027,7 @@ namespace polyvox
     if (secsSinceLastFpsCheck >= 1)
     {
       auto fps = _frameCount / secsSinceLastFpsCheck;
-      Log("%ffps (_frameCount %d, secs since last check %f)", fps, _frameCount, secsSinceLastFpsCheck);
-      // Log("1 sec average for asset animation update %f", _elapsed / _frameCount);
+      Log("%ffps (%d skipped)", fps, _skippedFrames);
       _frameCount = 0;
       _skippedFrames = 0;
       _fpsCounterStartTime = now;
@@ -1138,7 +1133,7 @@ namespace polyvox
 
                                         std::string filename = stringStream.str();
 
-                                        ofstream wf(filename, ios::out | ios::binary);
+                                        std::ofstream wf(filename, std::ios::out | std::ios::binary);
 
                                         LinearImage image(toLinearWithAlpha<uint8_t>(vp.width, vp.height, vp.width * 4,
                                                                                      static_cast<uint8_t *>(buf)));
@@ -1228,7 +1223,7 @@ namespace polyvox
     Camera &cam = _view->getCamera();
 
     _cameraPosition = math::mat4f::translation(math::float3(x, y, z));
-    cam.setModelMatrix(_cameraPosition * _cameraRotation);
+    cam.setModelMatrix(_cameraRotation * _cameraPosition);
   }
 
   void FilamentViewer::moveCameraToAsset(EntityId entityId)
@@ -1249,11 +1244,11 @@ namespace polyvox
     Log("Moved camera to %f %f %f, lookAt %f %f %f, near %f far %f", eye[0], eye[1], eye[2], lookAt[0], lookAt[1], lookAt[2], cam.getNear(), cam.getCullingFar());
   }
 
-  void FilamentViewer::setCameraRotation(float rads, float x, float y, float z)
+  void FilamentViewer::setCameraRotation(float w, float x, float y, float z)
   {
     Camera &cam = _view->getCamera();
-    _cameraRotation = math::mat4f::rotation(rads, math::float3(x, y, z));
-    cam.setModelMatrix(_cameraPosition * _cameraRotation);
+    _cameraRotation = math::mat4f(math::quatf(w, x, y, z));
+    cam.setModelMatrix(_cameraRotation * _cameraPosition);
   }
 
   void FilamentViewer::setCameraModelMatrix(const float *const matrix)
@@ -1452,13 +1447,15 @@ namespace polyvox
     _manipulator = nullptr;
   }
 
-  void FilamentViewer::pick(uint32_t x, uint32_t y, EntityId *entityId)
+  void FilamentViewer::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
   {
     _view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
-                { *entityId = Entity::smuggle(result.renderable); });
+                { 
+                  callback(Entity::smuggle(result.renderable), x, y); 
+                  });
   }
 
-  EntityId FilamentViewer::createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, const char* materialPath)
+  EntityId FilamentViewer::createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, RenderableManager::PrimitiveType primitiveType, const char* materialPath)
   {
 
     float *verticesCopy = (float*)malloc(numVertices * sizeof(float));
@@ -1507,7 +1504,7 @@ namespace polyvox
     RenderableManager::Builder builder = RenderableManager::Builder(1);
     builder
         .boundingBox({{minX, minY, minZ}, {maxX, maxY, maxZ}})
-        .geometry(0, RenderableManager::PrimitiveType::TRIANGLES,
+        .geometry(0, primitiveType,
                       vb, ib, 0, numIndices)
         .culling(false)
         .receiveShadows(false)
@@ -1518,9 +1515,10 @@ namespace polyvox
     auto result = builder.build(*_engine, renderable);
 
     _scene->addEntity(renderable);
-    Log("Created geometry with result %d", result);
+
+    Log("Created geometry with primitive type %d (result %d)", primitiveType, result);
 
     return Entity::smuggle(renderable);
   }
 
-} // namespace polyvox
+} // namespace flutter_filament

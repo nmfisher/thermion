@@ -14,7 +14,7 @@ A new Flutter plugin project.
   s.author           = { 'Your Company' => 'email@example.com' }
 
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/*', 'src/*', "src/camutils/*", 'include/filament/*', 'include/*', 'include/material/*.c'
+  s.source_files = 'Classes/*', 'src/*', "src/camutils/*", 'include/filament/*', 'include/*', 'include/components/*', 'include/material/*.c'
   s.public_header_files = 'include/SwiftFlutterFilamentPlugin-Bridging-Header.h',  'include/FlutterFilamentApi.h', 'include/FlutterFilamentFFIApi.h', 'include/ResourceBuffer.hpp' #, 'include/filament/*'
   s.dependency 'FlutterMacOS'
 
@@ -33,7 +33,7 @@ A new Flutter plugin project.
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES', 
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "$(inherited)"',
+    'OTHER_CXXFLAGS' => '"--std=c++17" "-fmodules" "-fcxx-modules" "-fvisibility=default" "-Wno-documentation-deprecated-sync" "$(inherited)"',
     'OTHER_CFLAGS' => '"-fvisibility=default" "$(inherited)"',
     'USER_HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/include" "${PODS_TARGET_SRCROOT}/include/filament" "$(inherited)"',
     'ALWAYS_SEARCH_USER_PATHS' => 'YES',

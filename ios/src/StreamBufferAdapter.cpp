@@ -3,9 +3,7 @@
 #include <cassert>
 #include <cstring>
 
-using namespace std;
-
-namespace polyvox {
+namespace flutter_filament {
 
 class StreamBufferAdapter : public std::streambuf
 {
@@ -14,14 +12,14 @@ class StreamBufferAdapter : public std::streambuf
         ~StreamBufferAdapter() {
           
         }
-        streamsize size();
+        std::streamsize size();
         
     private:
         int_type uflow() override;
         int_type underflow() override;
         int_type pbackfail(int_type ch) override;
-        streampos seekoff(streamoff off, ios_base::seekdir way, ios_base::openmode which) override;
-        streampos seekpos(streampos sp, ios_base::openmode which) override;
+        std::streampos seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which) override;
+        std::streampos seekpos(std::streampos sp, std::ios_base::openmode which) override;
         std::streamsize showmanyc() override;
         
 };
@@ -31,11 +29,11 @@ StreamBufferAdapter::StreamBufferAdapter(const char *begin, const char *end)
     setg((char*)begin, (char*)begin, (char*)end);
 }
 
-streamsize StreamBufferAdapter::size() {
+std::streamsize StreamBufferAdapter::size() {
   return egptr() - eback();
 }
 
-streambuf::int_type StreamBufferAdapter::underflow()
+std::streambuf::int_type StreamBufferAdapter::underflow()
 {
     if (gptr() == egptr()) {
         return traits_type::eof();
@@ -43,7 +41,7 @@ streambuf::int_type StreamBufferAdapter::underflow()
     return *(gptr());
 }
 
-streambuf::int_type StreamBufferAdapter::uflow()
+std::streambuf::int_type StreamBufferAdapter::uflow()
 {
     if (gptr() == egptr()) {
         return traits_type::eof();
@@ -53,7 +51,7 @@ streambuf::int_type StreamBufferAdapter::uflow()
     return *(gptr());
 }
 
-streambuf::int_type StreamBufferAdapter::pbackfail(int_type ch)
+std::streambuf::int_type StreamBufferAdapter::pbackfail(int_type ch)
 {
     if (gptr() ==  eback() || (ch != traits_type::eof() && ch != gptr()[-1]))
         return traits_type::eof();
@@ -61,23 +59,23 @@ streambuf::int_type StreamBufferAdapter::pbackfail(int_type ch)
     return *(gptr());
 }
 
-streamsize StreamBufferAdapter::showmanyc()
+std::streamsize StreamBufferAdapter::showmanyc()
 {
     return egptr() - gptr();
 }
 
-streampos StreamBufferAdapter::seekoff(streamoff off, ios_base::seekdir way, ios_base::openmode which = ios_base::in) {
-  if(way == ios_base::beg) {
+std::streampos StreamBufferAdapter::seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which = std::ios_base::in) {
+  if(way == std::ios_base::beg) {
     setg(eback(), eback()+off, egptr());
-  } else if(way == ios_base::cur) {
-    gbump(off);
+  } else if(way == std::ios_base::cur) {
+    gbump((int)off);
   } else {
     setg(eback(), egptr()-off, egptr());
   }
   return gptr() - eback();
 }
 
-streampos StreamBufferAdapter::seekpos(streampos sp, ios_base::openmode which = ios_base::in) {
+std::streampos StreamBufferAdapter::seekpos(std::streampos sp, std::ios_base::openmode which = std::ios_base::in) {
     return seekoff(sp - pos_type(off_type(0)), std::ios_base::beg, which);
 }
 }

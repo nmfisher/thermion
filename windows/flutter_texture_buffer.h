@@ -11,7 +11,7 @@ namespace flutter_filament {
 
     class FlutterTextureBuffer {
     public:
-        int64_t flutterTextureId = 0;
+        int64_t flutterTextureId = -1;
     };
 }
 

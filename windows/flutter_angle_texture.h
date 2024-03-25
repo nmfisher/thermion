@@ -28,7 +28,7 @@ typedef uint32_t GLuint;
 
 namespace flutter_filament {
 
-class FlutterAngleTexture : FlutterTextureBuffer {
+class FlutterAngleTexture : public FlutterTextureBuffer {
   public:
     FlutterAngleTexture(
         flutter::PluginRegistrarWindows* pluginRegistrar,

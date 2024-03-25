@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/filament/filament_controller.dart';
 
 import 'dart:async';
 
@@ -182,6 +182,7 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
       } finally {
         _resizing = false;
         completer.complete();
+        _resizeTimer?.cancel();
       }
     });
     return completer.future;
@@ -190,7 +191,9 @@ class _SizedFilamentWidgetState extends State<_SizedFilamentWidget> {
   @override
   void didUpdateWidget(_SizedFilamentWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _resize();
+    if (widget.height != oldWidget.height || widget.width != oldWidget.width) {
+      _resize();
+    }
   }
 
   @override
@@ -302,5 +305,5 @@ class TransparencyPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_filament/entities/entity_transform_controller.dart';
+
 import 'dart:async';
+
+import 'package:flutter_filament/filament/entities/entity_transform_controller.dart';
 
 ///
 /// A widget that translates mouse gestures to zoom/pan/rotate actions.

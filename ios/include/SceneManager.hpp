@@ -1,41 +1,68 @@
 #pragma once
 
 #include <mutex>
+#include <vector>
+#include <memory>
+#include <map>
 
 #include <filament/Scene.h>
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
+#include <gltfio/FilamentInstance.h>
 #include <gltfio/ResourceLoader.h>
 
-#include "SceneAsset.hpp"
+#include <filament/IndexBuffer.h>
+#include <filament/InstanceBuffer.h>
+
+#include "material/gizmo.h"
+#include "utils/NameComponentManager.h"
 #include "ResourceBuffer.hpp"
-#include "components/StandardComponents.h"
+#include "components/CollisionComponentManager.hpp"
+#include "components/AnimationComponentManager.hpp"
 
-typedef int32_t EntityId;
+#include "tsl/robin_map.h"
 
-namespace polyvox
+namespace flutter_filament
 {
+    typedef int32_t EntityId;
+
     using namespace filament;
     using namespace filament::gltfio;
+    using namespace utils;
+    using std::vector;
+    using std::unique_ptr;
+    using std::string;
+
 
     class SceneManager
     {
     public:
         SceneManager(const ResourceLoaderWrapper *const loader,
-                     NameComponentManager *ncm,
                      Engine *engine,
                      Scene *scene,
                      const char *uberArchivePath);
         ~SceneManager();
+        
+        
         EntityId loadGltf(const char *uri, const char *relativeResourcePath);
-        EntityId loadGlb(const char *uri, bool unlit);
-        FilamentAsset *getAssetByEntityId(EntityId entityId);
+        
+        ////
+        /// @brief Load the GLB from the specified path, optionally creating multiple instances.
+        /// @param uri the path to the asset. Should be either asset:// (representing a Flutter asset), or file:// (representing a filesystem file).
+        /// @param numInstances the number of instances to create. 
+        /// @return an Entity representing the FilamentAsset associated with the loaded FilamentAsset.
+        ///  
+        EntityId loadGlb(const char *uri, int numInstances);
+        EntityId loadGlbFromBuffer(const uint8_t* data, size_t length, int numInstances=1);
+        EntityId createInstance(EntityId entityId);
+        
         void remove(EntityId entity);
         void destroyAll();
         unique_ptr<vector<string>> getAnimationNames(EntityId entity);
         float getAnimationDuration(EntityId entity, int animationIndex);
-        unique_ptr<vector<string>> getMorphTargetNames(EntityId entity, const char *meshName);
+        
+        unique_ptr<vector<string>> getMorphTargetNames(EntityId entity, const char *name);
         void transformToUnitCube(EntityId e);
         inline void updateTransform(EntityId e);
         void setScale(EntityId e, float scale);
@@ -45,8 +72,8 @@ namespace polyvox
         void queueRotationUpdate(EntityId e, float rads, float x, float y, float z, float w, bool relative);
         const utils::Entity *getCameraEntities(EntityId e);
         size_t getCameraEntityCount(EntityId e);
-        const utils::Entity *getLightEntities(EntityId e) const noexcept;
-        size_t getLightEntityCount(EntityId e) const noexcept;
+        const utils::Entity *getLightEntities(EntityId e) noexcept;
+        size_t getLightEntityCount(EntityId e) noexcept;
         void updateAnimations();
         void updateTransforms();
         void testCollisions(EntityId entity);
@@ -80,7 +107,7 @@ namespace polyvox
         /// @param meshName an array of mesh names under [entity] that should be animated
         /// @param numMeshTargets the number of meshes under [meshName] 
         /// @param frameLengthInMs the length of each frame in ms
-        /// @return
+        /// @return true if the bone animation was successfully enqueued
         bool addBoneAnimation(
             EntityId entity,
             const float *const frameData,
@@ -107,30 +134,67 @@ namespace polyvox
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
         void setParent(EntityId child, EntityId parent);
+        void addAnimationComponent(EntityId entity);
+
+        /// @brief returns the number of instances of the FilamentAsset represented by the given entity.
+        /// @param entityId 
+        /// @return the number of instances
+        int getInstanceCount(EntityId entityId);
+        
+        /// @brief returns an array containing all instances of the FilamentAsset represented by the given entity.
+        /// @param entityId 
+        void getInstances(EntityId entityId, EntityId* out);
+
+        ///
+        /// Sets the draw priority for the given entity. See RenderableManager.h for more details.
+        ///
+        void setPriority(EntityId entity, int priority);
+
+        
+        /// @brief returns the gizmo entity, used to manipulate the global transform for entities
+        /// @param out a pointer to an array of three EntityId {x, y, z}
+        /// @return 
+        ///
+        void getGizmo(EntityId* out);
+
+
+        friend class FilamentViewer;
         
 
     private:
-        AssetLoader *_assetLoader = nullptr;
+        gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapper *const _resourceLoaderWrapper;
-        NameComponentManager *_ncm = nullptr;
         Engine *_engine;
         Scene *_scene;
-        MaterialProvider *_ubershaderProvider = nullptr;
+        gltfio::MaterialProvider *_ubershaderProvider = nullptr;
         gltfio::ResourceLoader *_gltfResourceLoader = nullptr;
         gltfio::TextureProvider *_stbDecoder = nullptr;
         gltfio::TextureProvider *_ktxDecoder = nullptr;
         std::mutex _mutex;
+        Material* _gizmoMaterial;
 
-        vector<SceneAsset> _assets;
-        tsl::robin_map<EntityId, int> _entityIdLookup;
+        utils::NameComponentManager* _ncm;
+
+        tsl::robin_map<
+            EntityId, 
+            gltfio::FilamentInstance*> _instances;
+        tsl::robin_map<EntityId, gltfio::FilamentAsset*> _assets;
         tsl::robin_map<EntityId, std::tuple<math::float3,bool,math::quatf,bool,float>> _transformUpdates;
-        std::vector<EntityId> _nonTransformableCollidableEntities;
 
+        AnimationComponentManager* _animationComponentManager = nullptr;
         CollisionComponentManager* _collisionComponentManager = nullptr;
 
+        gltfio::FilamentInstance* getInstanceByEntityId(EntityId entityId);
+        gltfio::FilamentAsset* getAssetByEntityId(EntityId entityId);
+
         utils::Entity findEntityByName(
-            SceneAsset asset,
+            const gltfio::FilamentInstance* instance,
             const char *entityName);
+
+        EntityId addGizmo();
+        utils::Entity _gizmoX;
+        utils::Entity _gizmoY;
+        utils::Entity _gizmoZ;
 
     };
 }

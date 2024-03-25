@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/services.dart';
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/filament/filament_controller.dart';
+import 'package:flutter_filament/filament/utils/hardware_keyboard_listener.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 
 class EntityTransformController {
@@ -178,4 +178,26 @@ class EntityTransformController {
   void mouse2Up() async {}
 
   void mouse2Down() async {}
+  static HardwareKeyboardListener? _keyboardListener;
+
+  static Future<EntityTransformController> create(
+      FilamentController controller, FilamentEntity entity,
+      {double? translationSpeed, String? forwardAnimation}) async {
+    int? forwardAnimationIndex;
+    if (forwardAnimation != null) {
+      final animationNames = await controller.getAnimationNames(entity);
+      forwardAnimationIndex = animationNames.indexOf(forwardAnimation);
+    }
+
+    if (forwardAnimationIndex == -1) {
+      throw Exception("Invalid animation : $forwardAnimation");
+    }
+
+    _keyboardListener?.dispose();
+    var transformController = EntityTransformController(controller, entity,
+        translationSpeed: translationSpeed ?? 1.0,
+        forwardAnimationIndex: forwardAnimationIndex);
+    _keyboardListener = HardwareKeyboardListener(transformController);
+    return transformController;
+  }
 }

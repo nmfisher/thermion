@@ -1,9 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_filament/entities/entity_transform_controller.dart';
-import 'package:flutter_filament/filament_controller.dart';
-import 'package:flutter_filament/widgets/entity_controller_mouse_widget.dart';
-import 'package:flutter_filament/widgets/filament_gesture_detector.dart';
-import 'package:flutter_filament/widgets/filament_widget.dart';
+import 'package:flutter_filament/flutter_filament.dart';
 
 class ExampleViewport extends StatelessWidget {
   final FilamentController? controller;

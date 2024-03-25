@@ -16,7 +16,7 @@
 
 #include "FlutterFilamentApi.h"
 
-#if ANGLE
+#if USE_ANGLE
 #include "egl_context.h"
 #else
 #include "wgl_context.h"
@@ -60,7 +60,7 @@ public:
 
   private:
     #ifdef USE_ANGLE
-    std::unique_ptr<EGLContext> _context = nullptr;
+    std::unique_ptr<FlutterEGLContext> _context = nullptr;
     #else 
     std::unique_ptr<WGLContext> _context = nullptr;
     #endif

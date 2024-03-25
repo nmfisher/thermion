@@ -8,6 +8,8 @@
 #include <filament/Texture.h>
 #include <filament/RenderableManager.h>
 
+#include <utils/EntityManager.h>
+
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -18,11 +20,9 @@
 #include <imageio/ImageDecoder.h>
 
 #include "StreamBufferAdapter.hpp"
-#include "SceneAsset.hpp"
 #include "Log.hpp"
 #include "SceneManager.hpp"
 
-#include "material/FileMaterialProvider.hpp"
 #include "gltfio/materials/uberarchive.h"
 
 extern "C"
@@ -30,23 +30,22 @@ extern "C"
 #include "material/image.h"
 }
 
-namespace polyvox
+
+namespace flutter_filament
 {
 
-    using namespace std;
     using namespace std::chrono;
     using namespace image;
     using namespace utils;
     using namespace filament;
     using namespace filament::gltfio;
+    using std::unique_ptr;
 
     SceneManager::SceneManager(const ResourceLoaderWrapper *const resourceLoaderWrapper,
-                               NameComponentManager *ncm,
                                Engine *engine,
                                Scene *scene,
                                const char *uberArchivePath)
         : _resourceLoaderWrapper(resourceLoaderWrapper),
-          _ncm(ncm),
           _engine(engine),
           _scene(scene)
     {
@@ -74,16 +73,22 @@ namespace polyvox
         }
         Log("Created ubershader provider.");
 
-        EntityManager &em = EntityManager::get();
+        utils::EntityManager &em = utils::EntityManager::get();
+
+        _ncm = new NameComponentManager(em);
 
         _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em});
         _gltfResourceLoader->addTextureProvider ("image/ktx2", _ktxDecoder);
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
 
-        const auto& tm = _engine->getTransformManager();
+        auto& tm = _engine->getTransformManager();
 
         _collisionComponentManager = new CollisionComponentManager(tm);
+        _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
+
+        addGizmo();
+
     }
 
     SceneManager::~SceneManager()
@@ -94,12 +99,32 @@ namespace polyvox
         AssetLoader::destroy(&_assetLoader);
     }
 
+    int SceneManager::getInstanceCount(EntityId entityId) {
+        auto* asset = getAssetByEntityId(entityId);
+        if(!asset) {
+            return -1;
+        }
+
+        return asset->getAssetInstanceCount();
+    }
+
+    void SceneManager::getInstances(EntityId entityId, EntityId* out) {
+        auto* asset = getAssetByEntityId(entityId);
+        if(!asset) {
+            return;
+        }
+        auto* instances = asset->getAssetInstances();
+        for(int i=0; i < asset->getAssetInstanceCount(); i++) {
+            auto instanceEntity = instances[i]->getRoot();
+            out[i] = Entity::smuggle(instanceEntity);
+        }
+    }
+
     EntityId SceneManager::loadGltf(const char *uri,
                                     const char *relativeResourcePath)
     {
         ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
 
-        // Parse the glTF file and create Filament entities.
         FilamentAsset *asset = _assetLoader->createAsset((uint8_t *)rbuf.data, rbuf.size);
 
         if (!asset)
@@ -115,7 +140,7 @@ namespace polyvox
 
         for (size_t i = 0; i < resourceUriCount; i++)
         {
-            string uri = string(relativeResourcePath) + string("/") + string(resourceUris[i]);
+            std::string uri = std::string(relativeResourcePath) + std::string("/") + std::string(resourceUris[i]);
             Log("Loading resource URI from relative path %s", resourceUris[i], uri.c_str());
             ResourceBuffer buf = _resourceLoaderWrapper->load(uri.c_str());
 
@@ -157,25 +182,13 @@ namespace polyvox
         inst->getAnimator()->updateBoneMatrices();
         inst->recomputeBoundingBoxes();
 
+        _animationComponentManager->addAnimationComponent(inst);
+
         asset->releaseSourceData();
-
-        SceneAsset sceneAsset(asset);
-        
-        const auto joints = inst->getJointsAt(0);
-
-        TransformManager &transformManager = _engine->getTransformManager();
-
-        for(int i = 0; i < inst->getJointCountAt(0); i++) {
-            const auto joint = joints[i];
-            const auto& jointTransformInstance = transformManager.getInstance(joint);
-            const auto& jointTransform = transformManager.getTransform(jointTransformInstance);
-            sceneAsset.initialJointTransforms.push_back(jointTransform);
-        }
-        
+                
         EntityId eid = Entity::smuggle(asset->getRoot());
 
-        _entityIdLookup.emplace(eid, _assets.size());
-        _assets.push_back(sceneAsset);
+        _assets.emplace(eid, asset);
 
         for (auto &rb : resourceBuffers)
         {
@@ -188,15 +201,18 @@ namespace polyvox
         return eid;
     }
 
-    EntityId SceneManager::loadGlb(const char *uri, bool unlit)
-    {
+    EntityId SceneManager::loadGlbFromBuffer(const uint8_t* data, size_t length, int numInstances) {
 
-        ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
+        Log("Loading GLB from buffer of length %d", length);
 
-        Log("Loaded GLB data (%d bytes) from URI %s", rbuf.size, uri);
-
-        FilamentAsset *asset = _assetLoader->createAsset(
-            (const uint8_t *)rbuf.data, rbuf.size);
+        FilamentAsset *asset = nullptr;
+        if(numInstances > 1) {
+            std::vector<FilamentInstance*> instances(numInstances);
+            asset = _assetLoader->createInstancedAsset((const uint8_t *)data, length, instances.data(), numInstances);
+        } else {
+            asset = _assetLoader->createAsset(
+            (const uint8_t *)data, length);
+        }
 
         if (!asset)
         {
@@ -221,7 +237,6 @@ namespace polyvox
             if (!_gltfResourceLoader->loadResources(asset))
             {
                 Log("Unknown error loading glb asset");
-                _resourceLoaderWrapper->free(rbuf);
                 return 0;
             }
         #endif
@@ -229,63 +244,90 @@ namespace polyvox
         auto lights = asset->getLightEntities();
         _scene->addEntities(lights, asset->getLightEntityCount());
 
-        FilamentInstance *inst = asset->getInstance();
-
-        inst->getAnimator()->updateBoneMatrices();
-
-        inst->recomputeBoundingBoxes();
-        auto box = inst->getBoundingBox();
-        auto verts = box.extent();
-        Log("AABB extent for %s is %f %f %f", uri, verts.x, verts.y, verts.z);
-
-        asset->releaseSourceData();
-
-        _resourceLoaderWrapper->free(rbuf);
-
-        SceneAsset sceneAsset(asset);
-        
-        const auto joints = inst->getJointsAt(0);
-
-        TransformManager &transformManager = _engine->getTransformManager();
-
-        for(int i = 0; i < inst->getJointCountAt(0); i++) {
-            const auto joint = joints[i];
-            const auto& jointTransformInstance = transformManager.getInstance(joint);
-            const auto& jointTransform = transformManager.getTransform(jointTransformInstance);
-            sceneAsset.initialJointTransforms.push_back(jointTransform);
+        for(int i =0; i < asset->getAssetInstanceCount(); i++) { 
+            FilamentInstance *inst = asset->getAssetInstances()[i];
+            inst->getAnimator()->updateBoneMatrices();
+            inst->recomputeBoundingBoxes();
+            auto instanceEntity = inst->getRoot();
+            auto instanceEntityId = Entity::smuggle(instanceEntity);
+            _instances.emplace(instanceEntityId, inst);
         }
 
+        asset->releaseSourceData();
+    
         EntityId eid = Entity::smuggle(asset->getRoot());
-
-        _entityIdLookup.emplace(eid, _assets.size());
-        _assets.push_back(sceneAsset);
-
+        _assets.emplace(eid, asset);
         return eid;
+    }
+
+    void SceneManager::addAnimationComponent(EntityId entityId) {
+
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
+        {
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return;
+            }
+        }
+
+        _animationComponentManager->addAnimationComponent(instance);
+    }
+
+    EntityId SceneManager::createInstance(EntityId entityId) {
+        std::lock_guard lock(_mutex);
+
+        const auto &pos = _assets.find(entityId);
+        if (pos == _assets.end())
+        {
+            Log("Couldn't find asset under specified entity id.");
+            return false;
+        }
+        const auto asset = pos->second;
+        auto instance = _assetLoader->createInstance(asset);
+
+        return Entity::smuggle(instance->getRoot());
+    }
+
+    EntityId SceneManager::loadGlb(const char *uri, int numInstances)
+    {
+        ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
+        auto entity = loadGlbFromBuffer((const uint8_t*)rbuf.data, rbuf.size, numInstances);
+        _resourceLoaderWrapper->free(rbuf);
+        return entity;
     }
 
     bool SceneManager::hide(EntityId entityId, const char *meshName)
     {
-
-        auto asset = getAssetByEntityId(entityId);
-        if (!asset)
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            return false;
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                // Log("Failed to find glTF instance under entityID %d, hiding as regular entity", entityId);
+                _scene->remove(Entity::import(entityId));
+                return true;
+            }   
         }
 
         utils::Entity entity;
 
         if(meshName) {
-            entity = findEntityByName(asset, meshName);
-            Log("Hiding child entity under name %s ", meshName);
+            entity = findEntityByName(instance, meshName);
+            // Log("Hiding child entity under name %s ", meshName);
             if (entity.isNull()) {
                 Log("Failed to hide entity; specified mesh name does not exist under the target entity, or the target entity itself is no longer valid.");
                 return false;
             }
             _scene->remove(entity);
         } else { 
-            Log("Hiding all child entities");
-            auto* entities = asset->getEntities();
-            for(int i =0; i < asset->getEntityCount(); i++) { 
+            // Log("Hiding all child entities");
+            auto* entities = instance->getEntities();
+            for(int i =0; i < instance->getEntityCount(); i++) { 
                 auto entity = entities[i];
                 _scene->remove(entity);
             }
@@ -296,17 +338,23 @@ namespace polyvox
 
     bool SceneManager::reveal(EntityId entityId, const char *meshName)
     {
-        auto asset = getAssetByEntityId(entityId);
-        if (!asset)
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("No asset found under entity ID");
-            return false;
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                // Log("Failed to find glTF instance under entityID %d, revealing as regular entity", entityId);
+                _scene->addEntity(Entity::import(entityId));
+                return true;
+            }
         }
 
         utils::Entity entity;
 
         if(meshName) {
-            entity = findEntityByName(asset, meshName);
+            entity = findEntityByName(instance, meshName);
             if (entity.isNull())
             {
                 Log("Failed to reveal entity; specified mesh name does not exist under the target entity, or the target entity itself is no longer valid.");
@@ -314,14 +362,13 @@ namespace polyvox
             }
             _scene->addEntity(entity);
         } else { 
-            Log("Revealing all child entities");
-            auto* entities = asset->getEntities();
-            for(int i =0; i < asset->getEntityCount(); i++) { 
+            // Log("Revealing all child entities");
+            auto* entities = instance->getEntities();
+            for(int i =0; i < instance->getEntityCount(); i++) { 
                 auto entity = entities[i];
                 _scene->addEntity(entity);
             }
         }
-
 
         return true;
     }
@@ -330,154 +377,38 @@ namespace polyvox
     {
         for (auto &asset : _assets)
         {
-            _scene->removeEntities(asset.asset->getEntities(),
-                                   asset.asset->getEntityCount());
-            _scene->removeEntities(asset.asset->getLightEntities(),
-                                   asset.asset->getLightEntityCount());
-            _assetLoader->destroyAsset(asset.asset);
+            _scene->removeEntities(asset.second->getEntities(),
+                                   asset.second->getEntityCount());
+            _scene->removeEntities(asset.second->getLightEntities(),
+                                   asset.second->getLightEntityCount());
+            _assetLoader->destroyAsset(asset.second);
         }
         _assets.clear();
     }
 
-    FilamentAsset *SceneManager::getAssetByEntityId(EntityId entityId)
+    FilamentInstance *SceneManager::getInstanceByEntityId(EntityId entityId)
     {
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
+        const auto &pos = _instances.find(entityId);
+        if (pos == _instances.end())
         {
+            // Log("Failed to find FilamentInstance for entity %d", entityId);
             return nullptr;
         }
-        return _assets[pos->second].asset;
+        return pos->second;
     }
 
-    void SceneManager::updateAnimations()
+    FilamentAsset *SceneManager::getAssetByEntityId(EntityId entityId)
     {
-        std::lock_guard lock(_mutex);
-        RenderableManager &rm = _engine->getRenderableManager();
-
-        auto now = high_resolution_clock::now();
-
-        for (auto &asset : _assets)
+        const auto &pos = _assets.find(entityId);
+        if (pos == _assets.end())
         {
-            
-            for (int i = ((int)asset.gltfAnimations.size()) - 1; i >= 0; i--) {
-                
-                auto animationStatus = asset.gltfAnimations[i];
-
-                auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count()) / 1000.0f;
-
-                if (!animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
-                {
-                    asset.asset->getInstance()->getAnimator()->applyAnimation(animationStatus.index, animationStatus.durationInSecs - 0.001);
-                    asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
-                    asset.gltfAnimations.erase(asset.gltfAnimations.begin() + i);
-                    asset.fadeGltfAnimationIndex = -1;
-                    continue;
-                }
-                asset.asset->getInstance()->getAnimator()->applyAnimation(animationStatus.index, elapsedInSecs);
-
-                if (asset.fadeGltfAnimationIndex != -1 && elapsedInSecs < asset.fadeDuration)
-                {
-                    // cross-fade
-                    auto fadeFromTime = asset.fadeOutAnimationStart + elapsedInSecs;
-                    auto alpha = elapsedInSecs / asset.fadeDuration;
-                    asset.asset->getInstance()->getAnimator()->applyCrossFade(asset.fadeGltfAnimationIndex, fadeFromTime, alpha);
-                }
-            }
-
-            asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
-
-
-            for (int i = (int)asset.morphAnimations.size() - 1; i >= 0; i--) {
-                
-                auto animationStatus = asset.morphAnimations[i];
-
-                auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count()) / 1000.0f;
-
-                if (!animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
-                {
-                    asset.morphAnimations.erase(asset.morphAnimations.begin() + i);
-                    continue;
-                }
-
-                
-                int frameNumber = static_cast<int>(elapsedInSecs * 1000.0f / animationStatus.frameLengthInMs) % animationStatus.lengthInFrames;
-                // offset from the end if reverse
-                if (animationStatus.reverse)
-                {
-                    frameNumber = animationStatus.lengthInFrames - frameNumber;
-                }
-                auto baseOffset = frameNumber * animationStatus.morphIndices.size();
-                for (int i = 0; i < animationStatus.morphIndices.size(); i++)
-                {
-                    auto morphIndex = animationStatus.morphIndices[i];
-                    // set the weights appropriately
-                    rm.setMorphWeights(
-                        rm.getInstance(animationStatus.meshTarget),
-                        animationStatus.frameData.data() + baseOffset + i,
-                        1,
-                        morphIndex);
-                }
-            }
-
-            for (int i = (int)asset.boneAnimations.size() - 1; i >= 0; i--) {
-                auto animationStatus = asset.boneAnimations[i];
-
-                auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count()) / 1000.0f;
-
-                if (!animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
-                {
-                    asset.boneAnimations.erase(asset.boneAnimations.begin() + i);
-                    continue;
-                }
-                
-                float elapsedFrames = elapsedInSecs * 1000.0f / animationStatus.frameLengthInMs;
-                
-                int currFrame = static_cast<int>(elapsedFrames) % animationStatus.lengthInFrames;
-                float delta = elapsedFrames - currFrame;
-                int nextFrame = currFrame;
-                auto restLocalTransform = asset.initialJointTransforms[animationStatus.boneIndex];
-
-                // offset from the end if reverse
-                if (animationStatus.reverse)
-                {
-                    currFrame = animationStatus.lengthInFrames - currFrame;
-                    if(currFrame > 0) {
-                        nextFrame = currFrame - 1;
-                    } else { 
-                        nextFrame = 0;
-                    }
-                } else { 
-                    if(currFrame < animationStatus.lengthInFrames - 1) {
-                        nextFrame = currFrame + 1;
-                    } else { 
-                        nextFrame = currFrame;
-                    }
-                }
-                
-                // simple linear interpolation
-                math::mat4f curr = (1 - delta) * (restLocalTransform * animationStatus.frameData[currFrame]);
-                math::mat4f next = delta * (restLocalTransform * animationStatus.frameData[nextFrame]);
-                math::mat4f localTransform = curr + next;
-
-                auto filamentInstance = asset.asset->getInstance();
-                TransformManager &transformManager = _engine->getTransformManager();
-
-                const Entity joint = filamentInstance->getJointsAt(animationStatus.skinIndex)[animationStatus.boneIndex];
-
-                auto jointTransform = transformManager.getInstance(joint);
-        
-                transformManager.setTransform(jointTransform, localTransform);
-        
-                asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
-
-                if (animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
-                {
-                    animationStatus.start = now;
-                }
-            }
+            // Log("Failed to find FilamentAsset for entity %d", entityId);
+            return nullptr;
         }
+        return pos->second;
     }
 
+    
     // TODO - we really don't want to be looking up the bone index/entity by name every single frame
     // - could use findChildEntityByName 
     // - or is it better to add an option for "streaming" mode where we can just return a reference to a mat4 and then update the values directly?
@@ -485,15 +416,18 @@ namespace polyvox
     {
         std::lock_guard lock(_mutex);
 
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("Couldn't find asset under specified entity id.");
-            return false;
-        }
-        SceneAsset &sceneAsset = _assets[pos->second];
+        auto* instance = getInstanceByEntityId(entityId);
 
-        const auto &entity = findEntityByName(sceneAsset, entityName);
+        if(!instance) {
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return false;
+            }
+        }
+
+        const auto &entity = findEntityByName(instance, entityName);
 
         if(entity.isNull()) {
             Log("Failed to find entity %s.", entityName);
@@ -511,17 +445,15 @@ namespace polyvox
 
         TransformManager &transformManager = _engine->getTransformManager();
 
-        const auto &filamentInstance = sceneAsset.asset->getInstance();
-
-        size_t skinCount = filamentInstance->getSkinCount();
+        size_t skinCount = instance->getSkinCount();
 
         if (skinCount > 1)
         {
             Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
         }
 
-        size_t numJoints = filamentInstance->getJointCountAt(skinIndex);
-        auto joints = filamentInstance->getJointsAt(skinIndex);
+        size_t numJoints = instance->getJointCountAt(skinIndex);
+        auto joints = instance->getJointsAt(skinIndex);
         int boneIndex = -1;
         for (int i = 0; i < numJoints; i++)
         {
@@ -537,7 +469,7 @@ namespace polyvox
             return false;
         }
 
-        utils::Entity joint = filamentInstance->getJointsAt(skinIndex)[boneIndex];
+        utils::Entity joint = instance->getJointsAt(skinIndex)[boneIndex];
 
         if (joint.isNull())
         {
@@ -545,7 +477,7 @@ namespace polyvox
             return false;
         }
 
-        const auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[boneIndex];
+        const auto& inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[boneIndex];
 
         auto jointTransform = transformManager.getInstance(joint);
         auto globalJointTransform = transformManager.getWorldTransform(jointTransform);
@@ -570,83 +502,87 @@ namespace polyvox
     void SceneManager::remove(EntityId entityId)
     {
         std::lock_guard lock(_mutex);
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("Couldn't find asset under specified entity id.");
-            return;
-        }
-        auto assetIndex = pos->second;
-        SceneAsset &sceneAsset = _assets[assetIndex];
-
-        Log("Removing entity %d at asset index %d", entityId, assetIndex);
-
-        for(auto entityPos : _entityIdLookup) {
-            if(entityPos.second > pos->second) {
-                _entityIdLookup[entityPos.first] = entityPos.second-1;
-            }
-        }
-        
-        _entityIdLookup.erase(entityId);
-
-        auto entityCount = sceneAsset.asset->getEntityCount();
-        const auto* entities = sceneAsset.asset->getEntities();
 
         auto entity = Entity::import(entityId);
+
+        if(_animationComponentManager->hasComponent(entity)) {
+            _animationComponentManager->removeComponent(entity);
+        }
 
         if(_collisionComponentManager->hasComponent(entity)) {
             _collisionComponentManager->removeComponent(entity);
         }
-
-        for(int i = 0; i < entityCount; i++) {
-            auto entity = entities[i];
-            if(_collisionComponentManager->hasComponent(entity)) {
-                _collisionComponentManager->removeComponent(entity);
-            }
-        }
-        auto root = sceneAsset.asset->getRoot();
-        if(_collisionComponentManager->hasComponent(root)) {
-            _collisionComponentManager->removeComponent(root);
-        }
-        _nonTransformableCollidableEntities.erase(std::remove_if(_nonTransformableCollidableEntities.begin(), _nonTransformableCollidableEntities.end(),
-                                     [=](EntityId entityId2)
-                                     { return entityId == entityId2; }),
-        _nonTransformableCollidableEntities.end());
-
-        _scene->removeEntities(entities, entityCount);
-                               
-        auto lightCount =sceneAsset.asset->getLightEntityCount();
-        if(lightCount > 0) {        
-            _scene->removeEntities(sceneAsset.asset->getLightEntities(),
-                                                           sceneAsset.asset->getLightEntityCount());
-        }
+    
         _scene->remove(entity);
 
-        _assetLoader->destroyAsset(sceneAsset.asset);
+        const auto* instance = getInstanceByEntityId(entityId);       
+    
+        if(instance) {
+            _instances.erase(entityId);
+            _scene->removeEntities(instance->getEntities(), instance->getEntityCount());
+            for(int i = 0; i < instance->getEntityCount(); i++) {
+                auto childEntity = instance->getEntities()[i];
+                if(_collisionComponentManager->hasComponent(childEntity)) {
+                    _collisionComponentManager->removeComponent(childEntity);
+                }
+                if(_animationComponentManager->hasComponent(childEntity)) {
+                    _animationComponentManager->removeComponent(childEntity);
+                }
+            }
+        // if this a FilamentAsset Entity
+        } else { 
+            auto* asset = getAssetByEntityId(entityId);
 
-        if (sceneAsset.texture)
-        {
-            _engine->destroy(sceneAsset.texture);
+            if(!asset) {
+                Log("ERROR: could not find FilamentInstance or FilamentAsset associated with the given entity id");
+                return;
+            }
+            _assets.erase(entityId);
+
+            _scene->removeEntities(asset->getEntities(), asset->getEntityCount());
+
+            _animationComponentManager->removeComponent(asset->getInstance()->getRoot());
+
+             for(int i = 0; i < asset->getEntityCount(); i++) {
+                auto childEntity = asset->getEntities()[i];
+                if(_collisionComponentManager->hasComponent(childEntity)) {
+                    _collisionComponentManager->removeComponent(childEntity);
+                }
+                if(_animationComponentManager->hasComponent(childEntity)) {
+                    _animationComponentManager->removeComponent(childEntity);
+                }
+            }
+
+            auto lightCount = asset->getLightEntityCount();
+            if(lightCount > 0) {        
+                _scene->removeEntities(asset->getLightEntities(),
+                                                           asset->getLightEntityCount());
+            }
+            _assetLoader->destroyAsset(asset);
         }
-        EntityManager &em = EntityManager::get();
-        em.destroy(entity);
-        _assets.erase(std::remove_if(_assets.begin(), _assets.end(),
-                                     [=](SceneAsset &asset)
-                                     { return asset.asset == sceneAsset.asset; }),
-                      _assets.end());
+
+        // if (sceneAsset.texture)
+        // {
+        //     _engine->destroy(sceneAsset.texture);
+        // }
+//
+//        utils::EntityManager &em = utils::EntityManager::get();
+//        em.destroy(entity);
     }
 
     void SceneManager::setMorphTargetWeights(EntityId entityId, const char *const entityName, const float *const weights, const int count)
     {
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return;
-        }
-        auto &asset = _assets[pos->second];
+        auto* instance = getInstanceByEntityId(entityId);
 
-        auto entity = findEntityByName(asset, entityName);
+        if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(!asset) {
+                return;
+            }
+            instance = asset->getInstance();
+        }
+
+        auto entity = findEntityByName(instance, entityName);
         if (!entity)
         {
             Log("Warning: failed to find entity %s", entityName);
@@ -672,15 +608,18 @@ namespace polyvox
     utils::Entity SceneManager::findChildEntityByName(EntityId entityId, const char *entityName) {
         std::lock_guard lock(_mutex);
 
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("Couldn't find asset under specified entity id.");
-            return utils::Entity();
+            auto* asset = getAssetByEntityId(entityId);
+            if(!asset) {
+                return utils::Entity();
+            }
+            instance = asset->getInstance();
         }
-        SceneAsset &sceneAsset = _assets[pos->second];
+        
 
-        const auto entity = findEntityByName(sceneAsset, entityName);
+        const auto entity = findEntityByName(instance, entityName);
 
         if(entity.isNull()) {
             Log("Failed to find entity %s.", entityName);
@@ -691,12 +630,12 @@ namespace polyvox
     }
 
 
-    utils::Entity SceneManager::findEntityByName(SceneAsset asset, const char *entityName)
-    {
+    utils::Entity SceneManager::findEntityByName(const FilamentInstance *instance, const char *entityName)
+    {       
         utils::Entity entity;
-        for (size_t i = 0, c = asset.asset->getEntityCount(); i != c; ++i)
+        for (size_t i = 0, c = instance->getEntityCount(); i != c; ++i)
         {
-            auto entity = asset.asset->getEntities()[i];
+            auto entity = instance->getEntities()[i];
             auto nameInstance = _ncm->getInstance(entity);
             if (!nameInstance.isValid())
             {
@@ -726,18 +665,21 @@ namespace polyvox
     {
         std::lock_guard lock(_mutex);
 
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("ERROR: asset not found for entity.");
-            return false;
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return false;
+            }
         }
-        auto &asset = _assets[pos->second];
 
-        auto entity = findEntityByName(asset, entityName);
+        auto entity = findEntityByName(instance, entityName);
         if (!entity)
         {
-            Log("Warning: failed to find entity %s", entityName);
+            Log("ERROR: failed to find entity %s", entityName);
             return false;
         }
 
@@ -761,21 +703,30 @@ namespace polyvox
                     morphAnimation.durationInSecs * 1000.0f /
                     frameLengthInMs
                     );
-        asset.morphAnimations.emplace_back(morphAnimation);
+
+        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
+        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto& morphAnimations = animationComponent.morphAnimations;
+        
+        morphAnimations.emplace_back(morphAnimation);
         return true;
     }
 
     bool SceneManager::setMaterialColor(EntityId entityId, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)
     {
 
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
+         auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("ERROR: asset not found for entity.");
-            return false;
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return false;
+            }
         }
-        auto &asset = _assets[pos->second];
-        auto entity = findEntityByName(asset, meshName);
+
+        auto entity = findEntityByName(instance, meshName);
 
         RenderableManager &rm = _engine->getRenderableManager();
 
@@ -803,31 +754,36 @@ namespace polyvox
     void SceneManager::resetBones(EntityId entityId) {
         std::lock_guard lock(_mutex);
 
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("ERROR: asset not found for entity.");
-            return;
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return;
+            }
         }
-        auto &asset = _assets[pos->second];
         
-        auto filamentInstance = asset.asset->getInstance();
-        filamentInstance->getAnimator()->resetBoneMatrices();
+        instance->getAnimator()->resetBoneMatrices();
         
-        auto skinCount = filamentInstance->getSkinCount();
+        auto skinCount = instance->getSkinCount();
 
         TransformManager &transformManager = _engine->getTransformManager();
-        
+
+        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
+        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+
         for(int skinIndex = 0; skinIndex < skinCount; skinIndex++) {
-            for(int i =0; i < filamentInstance->getJointCountAt(skinIndex);i++) {
-                const Entity joint = filamentInstance->getJointsAt(skinIndex)[i];
-                auto restLocalTransform = asset.initialJointTransforms[i];
+            for(int i =0; i < instance->getJointCountAt(skinIndex);i++) {
+                const Entity joint = instance->getJointsAt(skinIndex)[i];
+                auto restLocalTransform = animationComponent.initialJointTransforms[i];
                 auto jointTransform = transformManager.getInstance(joint);
                 transformManager.setTransform(jointTransform, restLocalTransform);
             }
         }
-        filamentInstance->getAnimator()->updateBoneMatrices();
-        filamentInstance->getAnimator()->resetBoneMatrices();
+        instance->getAnimator()->updateBoneMatrices();
+        instance->getAnimator()->resetBoneMatrices();
 
     }
 
@@ -842,17 +798,18 @@ namespace polyvox
     {
         std::lock_guard lock(_mutex);
 
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("ERROR: asset not found for entity.");
-            return false;
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return false;
+            }
         }
-        auto &asset = _assets[pos->second];
-        
-        auto filamentInstance = asset.asset->getInstance();
 
-        size_t skinCount = filamentInstance->getSkinCount();
+        size_t skinCount = instance->getSkinCount();
 
         if (skinCount > 1)
         {
@@ -860,8 +817,8 @@ namespace polyvox
         }
 
         int skinIndex = 0;
-        const utils::Entity *joints = filamentInstance->getJointsAt(skinIndex);
-        size_t numJoints = filamentInstance->getJointCountAt(skinIndex);
+        const utils::Entity *joints = instance->getJointsAt(skinIndex);
+        size_t numJoints = instance->getJointCountAt(skinIndex);
 
         BoneAnimation animation;
         bool found = false;
@@ -883,7 +840,7 @@ namespace polyvox
         
         animation.frameData.clear();
 
-        const auto& inverseBindMatrix = filamentInstance->getInverseBindMatricesAt(skinIndex)[animation.boneIndex];
+        const auto& inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[animation.boneIndex];
         const auto& bindMatrix = inverse(inverseBindMatrix);
         math::float3 trans;
         math::quatf rot;
@@ -912,13 +869,7 @@ namespace polyvox
                 frameData[(i*16)+13],
                 frameData[(i*16)+14],
                 frameData[(i*16)+15]);
-            // if(i == numFrames - 1) {            Log("Model transform for bone %s is \n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n", boneName,
-            //                             frame[0][0],frame[1][0],frame[2][0],frame[3][0],
-            //                             frame[0][1],frame[1][1],frame[2][1],frame[3][1],
-            //                             frame[0][2],frame[1][2],frame[2][2],frame[3][2],
-            //                             frame[0][3],frame[1][3],frame[2][3],frame[3][3]);
-            // }
-                
+               
                 if(isModelSpace) {
                     frame = (math::mat4f(rot) * frame) * math::mat4f(brot);
                 }
@@ -930,7 +881,7 @@ namespace polyvox
         animation.meshTargets.clear();
         for (int i = 0; i < numMeshTargets; i++)
         {
-            auto entity = findEntityByName(asset, meshNames[i]);
+            auto entity = findEntityByName(instance, meshNames[i]);
             if (!entity)
             {
                 Log("Mesh target %s for bone animation could not be found", meshNames[i]);
@@ -945,12 +896,18 @@ namespace polyvox
         animation.lengthInFrames = numFrames;
         animation.frameLengthInMs = frameLengthInMs;
         animation.skinIndex = 0;
-        asset.boneAnimations.push_back(animation);
+
+
+        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
+        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto& boneAnimations = animationComponent.boneAnimations;
+        
+        boneAnimations.emplace_back(animation);
 
         return true;
     }
 
-    void SceneManager::playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade)
+    void SceneManager::playAnimation(EntityId entityId, int index, bool loop, bool reverse, bool replaceActive, float crossfade)
     {
         std::lock_guard lock(_mutex);
 
@@ -959,30 +916,44 @@ namespace polyvox
             Log("ERROR: glTF animation index must be greater than zero.");
             return;
         }
-        const auto &pos = _entityIdLookup.find(e);
-        if (pos == _entityIdLookup.end())
+        
+        auto* instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("ERROR: asset not found for entity.");
+            auto* asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return;
+            }
+        }
+
+        if(!_animationComponentManager->hasComponent(instance->getRoot())) {
+            Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return;
         }
-        auto &asset = _assets[pos->second];
+
+        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
+
+
+        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
 
         if (replaceActive)
         {
-            if (asset.gltfAnimations.size() > 0)
+            if (animationComponent.gltfAnimations.size() > 0)
             {
-                auto &last = asset.gltfAnimations.back();
-                asset.fadeGltfAnimationIndex = last.index;
-                asset.fadeDuration = crossfade;
+                auto &last = animationComponent.gltfAnimations.back();
+                animationComponent.fadeGltfAnimationIndex = last.index;
+                animationComponent.fadeDuration = crossfade;
                 auto now = high_resolution_clock::now();
                 auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last.start).count()) / 1000.0f;
-                asset.fadeOutAnimationStart = elapsedInSecs;
-                asset.gltfAnimations.clear();
+                animationComponent.fadeOutAnimationStart = elapsedInSecs;
+                animationComponent.gltfAnimations.clear();
             }
             else
             {
-                asset.fadeGltfAnimationIndex = -1;
-                asset.fadeDuration = 0.0f;
+                animationComponent.fadeGltfAnimationIndex = -1;
+                animationComponent.fadeDuration = 0.0f;
             }
         }
         else if (crossfade > 0)
@@ -992,8 +963,8 @@ namespace polyvox
         }
         else
         {
-            asset.fadeGltfAnimationIndex = -1;
-            asset.fadeDuration = 0.0f;
+            animationComponent.fadeGltfAnimationIndex = -1;
+            animationComponent.fadeDuration = 0.0f;
         }
 
         GltfAnimation animation;
@@ -1001,186 +972,188 @@ namespace polyvox
         animation.start = std::chrono::high_resolution_clock::now();
         animation.loop = loop;
         animation.reverse = reverse;
-        animation.durationInSecs = asset.asset->getInstance()->getAnimator()->getAnimationDuration(index);
+        animation.durationInSecs = instance->getAnimator()->getAnimationDuration(index);
 
-        asset.gltfAnimations.push_back(animation);
+        animationComponent.gltfAnimations.push_back(animation);
 
     }
 
-    void SceneManager::stopAnimation(EntityId entityId, int index)
-    {
+    void SceneManager::stopAnimation(EntityId entityId, int index) {
         std::lock_guard lock(_mutex);
 
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
+        const auto *instance = getInstanceByEntityId(entityId);
+        if(!instance) {
             return;
         }
-        auto &asset = _assets[pos->second];
 
-        asset.gltfAnimations.erase(std::remove_if(asset.gltfAnimations.begin(),
-                                               asset.gltfAnimations.end(),
+        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
+        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+
+        animationComponent.gltfAnimations.erase(std::remove_if(animationComponent.gltfAnimations.begin(),
+                                               animationComponent.gltfAnimations.end(),
                                                [=](GltfAnimation &anim)
                                                { return anim.index == index; }),
-                                asset.gltfAnimations.end());
+                                animationComponent.gltfAnimations.end());
     }
 
     void SceneManager::loadTexture(EntityId entity, const char *resourcePath, int renderableIndex)
     {
 
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return;
-        }
-        auto &asset = _assets[pos->second];
+        // const auto &pos = _instances.find(entity);
+        // if (pos == _instances.end())
+        // {
+        //     Log("ERROR: asset not found for entity.");
+        //     return;
+        // }
+        // const auto *instance = pos->second;
 
-        Log("Loading texture at %s for renderableIndex %d", resourcePath, renderableIndex);
+        // Log("Loading texture at %s for renderableIndex %d", resourcePath, renderableIndex);
 
-        string rp(resourcePath);
+        // string rp(resourcePath);
 
-        if (asset.texture)
-        {
-            _engine->destroy(asset.texture);
-            asset.texture = nullptr;
-        }
+        // if (asset.texture)
+        // {
+        //     _engine->destroy(asset.texture);
+        //     asset.texture = nullptr;
+        // }
 
-        ResourceBuffer imageResource = _resourceLoaderWrapper->load(rp.c_str());
+        // ResourceBuffer imageResource = _resourceLoaderWrapper->load(rp.c_str());
 
-        StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
+        // StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
 
-        istream *inputStream = new std::istream(&sb);
+        // istream *inputStream = new std::istream(&sb);
 
-        LinearImage *image = new LinearImage(ImageDecoder::decode(
-            *inputStream, rp.c_str(), ImageDecoder::ColorSpace::SRGB));
+        // LinearImage *image = new LinearImage(ImageDecoder::decode(
+        //     *inputStream, rp.c_str(), ImageDecoder::ColorSpace::SRGB));
 
-        if (!image->isValid())
-        {
-            Log("Invalid image : %s", rp.c_str());
-            delete inputStream;
-            _resourceLoaderWrapper->free(imageResource);
-            return;
-        }
+        // if (!image->isValid())
+        // {
+        //     Log("Invalid image : %s", rp.c_str());
+        //     delete inputStream;
+        //     _resourceLoaderWrapper->free(imageResource);
+        //     return;
+        // }
 
-        uint32_t channels = image->getChannels();
-        uint32_t w = image->getWidth();
-        uint32_t h = image->getHeight();
-        asset.texture = Texture::Builder()
-                             .width(w)
-                             .height(h)
-                             .levels(0xff)
-                             .format(channels == 3 ? Texture::InternalFormat::RGB16F
-                                                   : Texture::InternalFormat::RGBA16F)
-                             .sampler(Texture::Sampler::SAMPLER_2D)
-                             .build(*_engine);
+        // uint32_t channels = image->getChannels();
+        // uint32_t w = image->getWidth();
+        // uint32_t h = image->getHeight();
+        // asset.texture = Texture::Builder()
+        //                      .width(w)
+        //                      .height(h)
+        //                      .levels(0xff)
+        //                      .format(channels == 3 ? Texture::InternalFormat::RGB16F
+        //                                            : Texture::InternalFormat::RGBA16F)
+        //                      .sampler(Texture::Sampler::SAMPLER_2D)
+        //                      .build(*_engine);
 
-        Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-                                                                   void *data)
-        {
-            delete reinterpret_cast<LinearImage *>(data);
-        };
+        // Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
+        //                                                            void *data)
+        // {
+        //     delete reinterpret_cast<LinearImage *>(data);
+        // };
 
-        Texture::PixelBufferDescriptor buffer(
-            image->getPixelRef(), size_t(w * h * channels * sizeof(float)),
-            channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
-            Texture::Type::FLOAT, freeCallback);
+        // Texture::PixelBufferDescriptor buffer(
+        //     image->getPixelRef(), size_t(w * h * channels * sizeof(float)),
+        //     channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
+        //     Texture::Type::FLOAT, freeCallback);
 
-        asset.texture->setImage(*_engine, 0, std::move(buffer));
-        MaterialInstance *const *inst = asset.asset->getInstance()->getMaterialInstances();
-        size_t mic = asset.asset->getInstance()->getMaterialInstanceCount();
-        Log("Material instance count : %d", mic);
+        // asset.texture->setImage(*_engine, 0, std::move(buffer));
+        // MaterialInstance *const *inst = instance->getMaterialInstances();
+        // size_t mic = instance->getMaterialInstanceCount();
+        // Log("Material instance count : %d", mic);
 
-        auto sampler = TextureSampler();
-        inst[0]->setParameter("baseColorIndex", 0);
-        inst[0]->setParameter("baseColorMap", asset.texture, sampler);
-        delete inputStream;
+        // auto sampler = TextureSampler();
+        // inst[0]->setParameter("baseColorIndex", 0);
+        // inst[0]->setParameter("baseColorMap", asset.texture, sampler);
+        // delete inputStream;
 
-        _resourceLoaderWrapper->free(imageResource);
+        // _resourceLoaderWrapper->free(imageResource);
     }
 
-    void SceneManager::setAnimationFrame(EntityId entity, int animationIndex, int animationFrame)
+    void SceneManager::setAnimationFrame(EntityId entityId, int animationIndex, int animationFrame)
     {
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return;
-        }
-        auto &asset = _assets[pos->second];
+        auto* instance = getInstanceByEntityId(entityId);
         auto offset = 60 * animationFrame * 1000; // TODO - don't hardcore 60fps framerate
-        asset.asset->getInstance()->getAnimator()->applyAnimation(animationIndex, offset);
-        asset.asset->getInstance()->getAnimator()->updateBoneMatrices();
+        instance->getAnimator()->applyAnimation(animationIndex, offset);
+        instance->getAnimator()->updateBoneMatrices();
     }
 
     float SceneManager::getAnimationDuration(EntityId entity, int animationIndex)
     {
-        const auto &pos = _entityIdLookup.find(entity);
+        auto* instance = getInstanceByEntityId(entity);
 
-        unique_ptr<vector<string>> names = make_unique<vector<string>>();
-
-        if (pos == _entityIdLookup.end())
+        if (!instance)
         {
-            Log("ERROR: asset not found for entity id.");
-            return -1.0f;
+            auto* asset = getAssetByEntityId(entity);
+            if(!asset) {
+                return -1.0f;
+            }
+            instance = asset->getInstance();
         }
-
-        auto &asset = _assets[pos->second];
-        return asset.asset->getInstance()->getAnimator()->getAnimationDuration(animationIndex);
+        return instance->getAnimator()->getAnimationDuration(animationIndex);
     }
 
-    unique_ptr<vector<string>> SceneManager::getAnimationNames(EntityId entity)
+    unique_ptr<std::vector<std::string>> SceneManager::getAnimationNames(EntityId entity)
     {
 
-        const auto &pos = _entityIdLookup.find(entity);
+        const auto &pos = _instances.find(entity);
 
-        unique_ptr<vector<string>> names = make_unique<vector<string>>();
+        unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
-        if (pos == _entityIdLookup.end())
+        FilamentInstance* instance;
+
+        if (pos != _instances.end())
         {
-            Log("ERROR: asset not found for entity id.");
-            return names;
+            instance = pos->second;
+        } else {
+            const auto& assetPos = _assets.find(entity);
+            if(assetPos != _assets.end()) {
+                instance = assetPos->second->getInstance();
+            } else {
+                Log("Could not resolve entity ID %d to FilamentInstance or FilamentAsset");
+                return names;
+            }
         }
-        auto &asset = _assets[pos->second];
 
-        size_t count = asset.asset->getInstance()->getAnimator()->getAnimationCount();
+        size_t count = instance->getAnimator()->getAnimationCount();
 
         for (size_t i = 0; i < count; i++)
         {
-            names->push_back(asset.asset->getInstance()->getAnimator()->getAnimationName(i));
+            names->push_back(instance->getAnimator()->getAnimationName(i));
         }
 
         return names;
     }
 
-    unique_ptr<vector<string>> SceneManager::getMorphTargetNames(EntityId entity, const char *meshName)
+    unique_ptr<std::vector<std::string>> SceneManager::getMorphTargetNames(EntityId entityId, const char *meshName)
     {
 
-        unique_ptr<vector<string>> names = make_unique<vector<string>>();
+        unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return names;
+        const auto *instance = getInstanceByEntityId(entityId);
+         if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(!asset) {         
+                return names;
+            } 
+            instance = asset->getInstance();
         }
-        auto &asset = _assets[pos->second];
 
-        const utils::Entity *entities = asset.asset->getEntities();
+        const auto *asset = instance->getAsset();
 
-        for (int i = 0; i < asset.asset->getEntityCount(); i++)
+        const utils::Entity *entities = asset->getEntities();
+
+        for (int i = 0; i < asset->getEntityCount(); i++)
         {
             utils::Entity e = entities[i];
-            auto inst = _ncm->getInstance(e);
-            const char *name = _ncm->getName(inst);
+            const char *name = asset->getName(e);
 
             if (name && strcmp(name, meshName) == 0)
             {
-                size_t count = asset.asset->getMorphTargetCountAt(e);
+                size_t count = asset->getMorphTargetCountAt(e);
                 for (int j = 0; j < count; j++)
                 {
-                    const char *morphName = asset.asset->getMorphTargetNameAt(e, j);
+                    const char *morphName = asset->getMorphTargetNameAt(e, j);
                     names->push_back(morphName);
                 }
                 break;
@@ -1189,29 +1162,30 @@ namespace polyvox
         return names;
     }
 
-    void SceneManager::transformToUnitCube(EntityId entity)
+    void SceneManager::transformToUnitCube(EntityId entityId)
     {
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return;
+        const auto *instance = getInstanceByEntityId(entityId);
+         if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else { 
+                return;
+            }          
         }
-        auto &asset = _assets[pos->second];
         auto &tm = _engine->getTransformManager();
-        FilamentInstance *inst = asset.asset->getInstance();
-        auto aabb = inst->getBoundingBox();
+
+        auto aabb = instance->getBoundingBox();
         auto center = aabb.center();
         auto halfExtent = aabb.extent();
         auto maxExtent = max(halfExtent) * 2;
         auto scaleFactor = 2.0f / maxExtent;
         auto transform =
             math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
-        tm.setTransform(tm.getInstance(inst->getRoot()), transform);
+        tm.setTransform(tm.getInstance(instance->getRoot()), transform);
     }
 
     void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId) {
-        Log("Parenting child %d to %d", childEntityId, parentEntityId);
         auto& tm = _engine->getTransformManager();
         const auto child = Entity::import(childEntityId);
         const auto parent = Entity::import(parentEntityId);
@@ -1219,44 +1193,63 @@ namespace polyvox
         const auto& parentInstance = tm.getInstance(parent);
         const auto& childInstance = tm.getInstance(child);
         tm.setParent(childInstance, parentInstance);
-        
-
     }
 
     void SceneManager::addCollisionComponent(EntityId entityId, void(*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsTransform) {
         std::lock_guard lock(_mutex);
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return;
-        } 
-        auto &asset = _assets[pos->second];   
-        asset.asset->getAssetInstances();
-        auto collisionInstance = _collisionComponentManager->addComponent(asset.asset->getRoot());
-        _collisionComponentManager->elementAt<0>(collisionInstance) = asset.asset->getInstance()->getBoundingBox();
+        const auto *instance = getInstanceByEntityId(entityId);
+         if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(!asset) {
+                return;
+            } else {
+                instance = asset->getInstance();
+            }         
+        }
+        auto collisionInstance = _collisionComponentManager->addComponent(instance->getRoot());
+        _collisionComponentManager->elementAt<0>(collisionInstance) = instance->getBoundingBox();
         _collisionComponentManager->elementAt<1>(collisionInstance) = onCollisionCallback;
         _collisionComponentManager->elementAt<2>(collisionInstance) = affectsTransform;
     }
 
-    void SceneManager::testCollisions(EntityId entityId) { 
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return;
+    void SceneManager::removeCollisionComponent(EntityId entityId) {
+        std::lock_guard lock(_mutex);
+        const auto *instance = getInstanceByEntityId(entityId);
+         if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(!asset) {
+                return;
+            } else {
+                instance = asset->getInstance();
+            }         
         }
-        auto &asset = _assets[pos->second];   
+        _collisionComponentManager->removeComponent(instance->getRoot());
+    }
+
+    void SceneManager::testCollisions(EntityId entityId) { 
+        const auto *instance = getInstanceByEntityId(entityId);
+         if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else { 
+                return;
+            }          
+        }
 
         const auto& tm = _engine->getTransformManager();
 
-        auto transformInstance = tm.getInstance(asset.asset->getRoot());
+        auto transformInstance = tm.getInstance(instance->getRoot());
         auto worldTransform = tm.getWorldTransform(transformInstance);
-        auto aabb = asset.asset->getInstance()->getBoundingBox();
+        auto aabb = instance->getBoundingBox();
         aabb = aabb.transform(worldTransform);
-        _collisionComponentManager->collides(entityId, aabb);
+        _collisionComponentManager->collides(instance->getRoot(), aabb);
     }
 
+    void SceneManager::updateAnimations() { 
+        std::lock_guard lock(_mutex);
+        _animationComponentManager->update();
+    }
 
     void SceneManager::updateTransforms() { 
         std::lock_guard lock(_mutex);
@@ -1264,15 +1257,25 @@ namespace polyvox
         auto &tm = _engine->getTransformManager();
 
         for ( const auto &[entityId, transformUpdate]: _transformUpdates ) {
-            const auto &pos = _entityIdLookup.find(entityId);
-            if (pos == _entityIdLookup.end())
+            const auto &pos = _instances.find(entityId);
+
+            bool isCollidable = true;
+            Entity entity;
+            filament::TransformManager::Instance transformInstance;
+            filament::math::mat4f transform;
+            Aabb boundingBox;
+            if (pos == _instances.end())
             {
-                Log("ERROR: asset not found for entity.");
-                continue;
+                isCollidable = false;
+                entity = Entity::import(entityId);
+            } else { 
+                const auto *instance = pos->second;  
+                entity =  instance->getRoot();
+                boundingBox = instance->getBoundingBox();
             }
-            auto &asset = _assets[pos->second];   
-            auto transformInstance = tm.getInstance(asset.asset->getRoot());
-            auto transform = tm.getTransform(transformInstance);
+
+            transformInstance = tm.getInstance(entity);
+            transform = tm.getTransform(transformInstance);
 
             math::float3 newTranslation = std::get<0>(transformUpdate);
             bool newTranslationRelative = std::get<1>(transformUpdate);
@@ -1304,21 +1307,23 @@ namespace polyvox
             }
 
             transform = composeMatrix(translation, rotation, scale);
-            auto bb = asset.asset->getBoundingBox();
-            auto transformedBB = bb.transform(transform);
-            
-            auto collisionAxes = _collisionComponentManager->collides(entityId, transformedBB);
 
-            if(collisionAxes.size() == 1) {
-                auto globalAxis = collisionAxes[0];
-                globalAxis *= norm(relativeTranslation);
-                auto newRelativeTranslation = relativeTranslation + globalAxis;
-                translation -= relativeTranslation;
-                translation += newRelativeTranslation;
-                transform = composeMatrix(translation, rotation, scale);
-            } else if(collisionAxes.size() > 1) {
-                translation -= relativeTranslation;
-                transform = composeMatrix(translation, rotation, scale);
+            if(isCollidable) {
+                auto transformedBB = boundingBox.transform(transform);
+                
+                auto collisionAxes = _collisionComponentManager->collides(entity, transformedBB);
+
+                if(collisionAxes.size() == 1) {
+                    auto globalAxis = collisionAxes[0];
+                    globalAxis *= norm(relativeTranslation);
+                    auto newRelativeTranslation = relativeTranslation + globalAxis;
+                    translation -= relativeTranslation;
+                    translation += newRelativeTranslation;
+                    transform = composeMatrix(translation, rotation, scale);
+                } else if(collisionAxes.size() > 1) {
+                    translation -= relativeTranslation;
+                    transform = composeMatrix(translation, rotation, scale);
+                }
             }
             tm.setTransform(transformInstance, transform);
         }
@@ -1400,15 +1405,15 @@ namespace polyvox
         const auto &pos = _transformUpdates.find(entity);
         if (pos == _transformUpdates.end())
         {
-            _transformUpdates.emplace(entity, make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
+            _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
         } 
         auto curr = _transformUpdates[entity];
-        auto& trans = get<0>(curr);
+        auto& trans = std::get<0>(curr);
         trans.x = x;
         trans.y = y;
         trans.z = z;
          
-        auto& isRelative = get<1>(curr);
+        auto& isRelative = std::get<1>(curr);
         isRelative = relative;
         _transformUpdates[entity] = curr;        
     }
@@ -1419,7 +1424,7 @@ namespace polyvox
         const auto &pos = _transformUpdates.find(entity);
         if (pos == _transformUpdates.end())
         {
-            _transformUpdates.emplace(entity, make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
+            _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
         } 
         auto curr = _transformUpdates[entity];
         auto& rot = std::get<2>(curr);
@@ -1427,57 +1432,65 @@ namespace polyvox
         rot.x = x;
         rot.y = y;
         rot.z = z;
-        auto& isRelative = get<3>(curr);
+        auto& isRelative = std::get<3>(curr);
         isRelative = relative;
         _transformUpdates[entity] = curr;
     }
 
-    const utils::Entity *SceneManager::getCameraEntities(EntityId entity)
+    const utils::Entity *SceneManager::getCameraEntities(EntityId entityId)
     {
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return nullptr;
+        const auto *instance = getInstanceByEntityId(entityId);
+         if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else { 
+                return nullptr;
+            }         
         }
-        auto &asset = _assets[pos->second];
-        return asset.asset->getCameraEntities();
+        return instance->getAsset()->getCameraEntities();
     }
 
-    size_t SceneManager::getCameraEntityCount(EntityId entity)
+    size_t SceneManager::getCameraEntityCount(EntityId entityId)
     {
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return 0;
+        const auto *instance = getInstanceByEntityId(entityId);
+         if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else { 
+                return -1;
+            }          
         }
-        auto &asset = _assets[pos->second];
-        return asset.asset->getCameraEntityCount();
+        return instance->getAsset()->getCameraEntityCount();
     }
 
-    const utils::Entity *SceneManager::getLightEntities(EntityId entity) const noexcept
+    const utils::Entity *SceneManager::getLightEntities(EntityId entityId) noexcept
     {
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return nullptr;
+        const auto *instance = getInstanceByEntityId(entityId);
+        if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return nullptr;
+            }          
         }
-        auto &asset = _assets[pos->second];
-        return asset.asset->getLightEntities();
+        return instance->getAsset()->getLightEntities();
     }
 
-    size_t SceneManager::getLightEntityCount(EntityId entity) const noexcept
+    size_t SceneManager::getLightEntityCount(EntityId entityId) noexcept
     {
-        const auto &pos = _entityIdLookup.find(entity);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return 0;
+        const auto *instance = getInstanceByEntityId(entityId);
+        if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return -1;
+            }         
         }
-        auto &asset = _assets[pos->second];
-        return asset.asset->getLightEntityCount();
+        return instance->getAsset()->getLightEntityCount();
     }
 
     const char *SceneManager::getNameForEntity(EntityId entityId)
@@ -1493,42 +1506,46 @@ namespace polyvox
     }
 
     int SceneManager::getEntityCount(EntityId entityId, bool renderableOnly) {
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return 0;
+        const auto *instance = getInstanceByEntityId(entityId);
+        if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return 0;
+            }
         }
-        auto &asset = _assets[pos->second];
         if(renderableOnly) {
             int count = 0;
             const auto& rm = _engine->getRenderableManager();
-            const Entity *entities = asset.asset->getEntities();
-            for(int i=0; i < asset.asset->getEntityCount(); i++) {
+            const Entity *entities = instance->getEntities();
+            for(int i=0; i < instance->getEntityCount(); i++) {
                 if(rm.hasComponent(entities[i])) { 
                     count++;
                 }
             }
             return count;
         } 
-        return asset.asset->getEntityCount();
+        return instance->getEntityCount();
     }
 
     const char* SceneManager::getEntityNameAt(EntityId entityId, int index, bool renderableOnly) {
-        const auto &pos = _entityIdLookup.find(entityId);
-        if (pos == _entityIdLookup.end())
-        {
-            Log("ERROR: asset not found for entity.");
-            return nullptr;
+        const auto *instance = getInstanceByEntityId(entityId);
+        if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return nullptr;
+            }
         }
-        auto &asset = _assets[pos->second];
         int found = -1;
 
         if(renderableOnly) {
             int count = 0;
             const auto& rm = _engine->getRenderableManager();
-            const Entity *entities = asset.asset->getEntities();
-            for(int i=0; i < asset.asset->getEntityCount(); i++) {
+            const Entity *entities = instance->getEntities();
+            for(int i=0; i < instance->getEntityCount(); i++) {
                 if(rm.hasComponent(entities[i])) { 
                     if(count == index) {
                         found = i;
@@ -1541,14 +1558,171 @@ namespace polyvox
             found = index;
         }
 
-        if(found >= asset.asset->getEntityCount()) { 
+        if(found >= instance->getEntityCount()) { 
             Log("ERROR: index %d greater than number of child entities.", found);
             return nullptr;
         }
         
-        const utils::Entity entity = asset.asset->getEntities()[found];    
+        const utils::Entity entity = instance->getEntities()[found];    
         auto inst = _ncm->getInstance(entity);
         return _ncm->getName(inst);
     }
 
-} // namespace polyvox
+    void SceneManager::setPriority(EntityId entityId, int priority) {
+        auto& rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(Entity::import(entityId));
+        if(!renderableInstance.isValid()) {
+            Log("Error: invalid renderable, did you pass the correct entity?", priority);    
+            return;
+        }
+        rm.setPriority(renderableInstance, priority); 
+        Log("Set instance renderable priority to %d", priority);
+    }
+
+    EntityId SceneManager::addGizmo() {
+        auto mat = _resourceLoaderWrapper->load("file:///Users/nickfisher/Documents/polyvox/flutter/flutter_filament/materials/gizmo.filamat");
+        _gizmoMaterial =
+          Material::Builder()
+             .package(mat.data, mat.size)
+            //   .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
+              .build(*_engine);
+
+        auto vertexCount = 9;
+
+        float* vertices = new float[vertexCount * 3] { 
+            -0.05, 0.0f, 0.05f, 
+            0.05f, 0.0f, 0.05f, 
+            0.05f, 0.0f, -0.05f,
+            -0.05f, 0.0f, -0.05f,
+            -0.05f, 1.0f, 0.05f,
+            0.05f, 1.0f, 0.05f,
+            0.05f, 1.0f, -0.05f,
+            -0.05f, 1.0f, -0.05f,
+            0.00f, 1.1f, 0.0f
+        };
+           
+        VertexBuffer::BufferDescriptor::Callback vertexCallback = [](void *buf, size_t,
+                                                                void *data)
+        {
+        free((void*)buf);
+        };
+
+        auto indexCount = 42;
+        uint16_t* indices = new uint16_t[indexCount] { 
+            //bottom quad
+            0,1,2,
+            0,2,3,
+            // top "cone"
+            4,5,8,
+            5,6,8,
+            4,7,8,
+            6,7,8,
+            // front 
+            0,1,4,
+            1,5,4,
+            // right
+            1,2,5,
+            2,6,5,
+            // back
+            2,6,7,
+            7,3,2,
+            // left
+            0,4,7,
+            7,3,0
+            
+        };
+        
+        IndexBuffer::BufferDescriptor::Callback indexCallback = [](void *buf, size_t,
+                                                                void *data)
+        {
+        free((void*)buf);
+        };
+
+        auto vb = VertexBuffer::Builder()
+            .vertexCount(vertexCount)
+            .bufferCount(1)
+            .attribute(
+                VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
+            .build(*_engine);
+
+        vb->setBufferAt(
+            *_engine, 
+            0, 
+            VertexBuffer::BufferDescriptor(vertices, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback)
+        );
+        
+        auto ib = IndexBuffer::Builder().indexCount(indexCount).bufferType(IndexBuffer::IndexType::USHORT).build(*_engine);
+        ib->setBuffer(*_engine, IndexBuffer::BufferDescriptor(indices, ib->getIndexCount() * sizeof(uint16_t), 0, indexCallback));
+        
+        auto &entityManager = EntityManager::get();
+
+        _gizmoY = entityManager.create();
+        auto materialY = _gizmoMaterial->createInstance();
+        materialY->setParameter("color", math::float3 { 1.0f, 0.0f, 0.0f });
+        RenderableManager::Builder(1)
+            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+            .material(0, materialY)
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
+                    ib, 0, indexCount)
+            .culling(false)
+            .build(*_engine, _gizmoY);   
+
+        _gizmoX = entityManager.create();
+        auto materialX = _gizmoMaterial->createInstance();
+        materialX->setParameter("color", math::float3 { 0.0f, 1.0f, 0.0f });
+        auto xTransform  = math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(-math::F_PI_2, math::float3 { 0, 0, 1 });
+        auto* instanceBufferX = InstanceBuffer::Builder(1).localTransforms(&xTransform).build(*_engine);
+        RenderableManager::Builder(1)
+            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+            .instances(1, instanceBufferX)
+            .material(0, materialX)
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
+                    ib, 0, indexCount)
+            .culling(false)
+            .build(*_engine, _gizmoX);   
+
+        _gizmoZ = entityManager.create();
+        auto materialZ = _gizmoMaterial->createInstance();
+        materialZ->setParameter("color", math::float3 { 0.0f, 0.0f, 1.0f });
+        auto zTransform = math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3 { 1, 0, 0 });
+        auto* instanceBufferZ = InstanceBuffer::Builder(1).localTransforms(&zTransform).build(*_engine);
+        RenderableManager::Builder(1)
+            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+            .instances(1, instanceBufferZ)
+            .material(0, materialZ)
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
+                    ib, 0, indexCount)
+            .culling(false)
+            .build(*_engine, _gizmoZ);   
+        
+        
+        // auto localTransforms = math::mat4f[3] {
+        //     math::mat4f(),
+        //     math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3 { 1, 0, 0 }) ,
+        //     math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(math::F_PI_2, math::float3 { 0, 0, 1 })
+        // };
+
+
+        // RenderableManager::Builder(1)
+        //     .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+        //     .instances(3, instanceBuffer)
+        //     .material(0, _gizmoMaterial->getDefaultInstance())
+        //     .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
+        //             ib, 0, indexCount)
+        //     .culling(false)
+        //     .build(*_engine, _gizmo);   
+            
+        auto& rm = _engine->getRenderableManager();
+        rm.setPriority(rm.getInstance(_gizmoX), 7);
+        rm.setPriority(rm.getInstance(_gizmoY), 7);
+        rm.setPriority(rm.getInstance(_gizmoZ), 7);
+        return Entity::smuggle(_gizmoX);
+    }
+
+    void SceneManager::getGizmo(EntityId* out) { 
+        out[0] = Entity::smuggle(_gizmoX);
+        out[1] = Entity::smuggle(_gizmoY);
+        out[2] = Entity::smuggle(_gizmoZ);    
+    }
+
+} // namespace flutter_filament

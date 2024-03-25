@@ -43,7 +43,7 @@ struct _FlutterFilamentPlugin {
   double width = 0;
   double height = 0;
   bool rendering = false;
-  polyvox::FilamentViewer* viewer;
+  flutter_filament::FilamentViewer* viewer;
 };
 
 G_DEFINE_TYPE(FlutterFilamentPlugin, flutter_filament_plugin, g_object_get_type())
@@ -71,7 +71,7 @@ static FlMethodResponse* _create_filament_viewer(FlutterFilamentPlugin* self, Fl
   self->height = height;
 
   auto context = glXGetCurrentContext();   
-  self->viewer = (polyvox::FilamentViewer*)create_filament_viewer(
+  self->viewer = (flutter_filament::FilamentViewer*)create_filament_viewer(
     (void*)context,
     callback
   );
@@ -698,7 +698,7 @@ static FlMethodResponse* _get_morph_target_names(FlutterFilamentPlugin* self, Fl
 
 static FlMethodResponse* _set_tone_mapping(FlutterFilamentPlugin* self, FlMethodCall* method_call) {
   FlValue* args = fl_method_call_get_args(method_call);
-  polyvox::ToneMapping toneMapping = static_cast<polyvox::ToneMapping>(fl_value_get_int(args)); 
+  flutter_filament::ToneMapping toneMapping = static_cast<flutter_filament::ToneMapping>(fl_value_get_int(args)); 
   set_tone_mapping(self->viewer, toneMapping);
   return FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_bool(true)));      
 }

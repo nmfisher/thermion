@@ -6,7 +6,7 @@ import 'dart:html';
 import 'dart:ui';
 import 'dart:web_gl';
 import 'package:wasm_ffi/wasm_ffi.dart';
-import 'generated_bindings_web.dart';
+import 'filament/generated_bindings_web.dart';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';

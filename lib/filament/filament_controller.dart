@@ -1,16 +1,31 @@
 // ignore_for_file: constant_identifier_names
 
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 
-import 'package:flutter_filament/animations/animation_data.dart';
-import 'package:flutter_filament/entities/entity_transform_controller.dart';
-import 'package:flutter_filament/generated_bindings.dart';
+import 'package:flutter_filament/filament/entities/gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
+
+import 'animations/animation_data.dart';
 
 // a handle that can be safely passed back to the rendering layer to manipulate an Entity
 typedef FilamentEntity = int;
+
+// "picking" means clicking/tapping on the viewport, and unprojecting the X/Y coordinate to determine whether any renderable entities were present at those coordinates.
+typedef FilamentPickResult = ({FilamentEntity entity, double x, double y});
+
+// copied from filament/backened/DriverEnums.h
+enum PrimitiveType {
+  // don't change the enums values (made to match GL)
+  POINTS, //!< points
+  LINES, //!< lines
+  UNUSED1,
+  LINE_STRIP, //!< line strip
+  TRIANGLES, //!< triangles
+  TRIANGLE_STRIP, //!< triangle strip
+}
 
 enum ToneMapper { ACES, FILMIC, LINEAR }
 
@@ -29,17 +44,6 @@ class TextureDetails {
 }
 
 abstract class FilamentController {
-  ///
-  /// A Stream containing every FilamentEntity added to the scene (i.e. via [loadGlb], [loadGltf] or [addLight]).
-  /// This is provided for convenience so you can set listeners in front-end widgets that can respond to entity loads without manually passing around the FilamentEntity returned from those methods.
-  ///
-  Stream<FilamentEntity> get onLoad;
-
-  ///
-  /// A Stream containing every FilamentEntity removed from the scene (i.e. via [removeEntity], [clearEntities], [removeLight] or [clearLights]).
-
-  Stream<FilamentEntity> get onUnload;
-
   ///
   /// A [ValueNotifier] to indicate whether a FilamentViewer is currently available.
   /// (FilamentViewer is a C++ type, hence why it is not referenced) here.
@@ -65,7 +69,7 @@ abstract class FilamentController {
   /// This may be a broadcast stream, so you should ensure you have subscribed to this stream before calling [pick].
   /// If [pick] is called without an active subscription to this stream, the results will be silently discarded.
   ///
-  Stream<FilamentEntity?> get pickResult;
+  Stream<FilamentPickResult> get pickResult;
 
   ///
   /// Whether the controller is currently rendering at [framerate].
@@ -206,7 +210,22 @@ abstract class FilamentController {
   ///
   /// Load the .glb asset at the given path and insert into the scene.
   ///
-  Future<FilamentEntity> loadGlb(String path, {bool unlit = false});
+  Future<FilamentEntity> loadGlb(String path, {int numInstances = 1});
+
+  ///
+  /// Create a new instance of [entity].
+  ///
+  Future<FilamentEntity> createInstance(FilamentEntity entity);
+
+  ///
+  /// Returns the number of instances of the asset associated with [entity].
+  ///
+  Future<int> getInstanceCount(FilamentEntity entity);
+
+  ///
+  /// Returns all instances of [entity].
+  ///
+  Future<List<FilamentEntity>> getInstances(FilamentEntity entity);
 
   ///
   /// Load the .gltf asset at the given path and insert into the scene.
@@ -281,15 +300,10 @@ abstract class FilamentController {
   Future resetBones(FilamentEntity entity);
 
   ///
-  /// Starts animating a bone (joint) according to the specified [animation].
+  /// Transforms the bone(s)/joint(s) according [animation].
+  /// To set the instantaneous transform, just use a single frame.
   ///
   Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation);
-
-  ///
-  /// Sets the local joint transform for the bone at the given index in [entity] for the mesh under [meshName].
-  ///
-  Future setBoneTransform(
-      FilamentEntity entity, String meshName, String boneName, Matrix4 data);
 
   ///
   /// Removes/destroys the specified entity from the scene.
@@ -338,7 +352,9 @@ abstract class FilamentController {
 
   Future setAnimationFrame(
       FilamentEntity entity, int index, int animationFrame);
+
   Future stopAnimation(FilamentEntity entity, int animationIndex);
+  Future stopAnimationByName(FilamentEntity entity, String name);
 
   ///
   /// Sets the current scene camera to the glTF camera under [name] in [entity].
@@ -349,6 +365,11 @@ abstract class FilamentController {
   /// Sets the current scene camera to the main camera (which is always available and added to every scene by default).
   ///
   Future setMainCamera();
+
+  ///
+  /// Returns the entity associated with the main camera.
+  ///
+  Future<FilamentEntity> getMainCamera();
 
   ///
   /// Sets the current scene camera to the glTF camera under [name] in [entity].
@@ -450,7 +471,7 @@ abstract class FilamentController {
   ///
   /// Rotate the camera by [rads] around the given axis. Note this is not persistent - any viewport navigation will reset the camera transform.
   ///
-  Future setCameraRotation(double rads, double x, double y, double z);
+  Future setCameraRotation(Quaternion quaternion);
 
   ///
   /// Sets the camera model matrix.
@@ -524,7 +545,7 @@ abstract class FilamentController {
   ///
   /// Reveal the node [meshName] under [entity]. Only applicable if [hide] had previously been called; this is a no-op otherwise.
   ///
-  Future reveal(FilamentEntity entity, String meshName);
+  Future reveal(FilamentEntity entity, String? meshName);
 
   ///
   /// If [meshName] is provided, hide the node [meshName] under [entity], otherwise hide the root node for [entity].
@@ -563,9 +584,10 @@ abstract class FilamentController {
       FilamentEntity parent, String childName);
 
   ///
-  /// Lists all child meshes under the given entity.
+  /// List all child entities under the given entity.
   ///
-  Future<List<String>> getMeshNames(FilamentEntity entity, {bool async = true});
+  Future<List<String>> getChildEntities(FilamentEntity entity,
+      {bool renderableOnly = true});
 
   ///
   /// If [recording] is set to true, each frame the framebuffer/texture will be written to /tmp/output_*.png.
@@ -578,28 +600,32 @@ abstract class FilamentController {
   ///
   Future setRecordingOutputDirectory(String outputDirectory);
 
-  // Stream get keyboardFocusRequested;
-  // void requestKeyboardFocus();
-
-  Future<EntityTransformController> control(FilamentEntity entity,
-      {double? translationSpeed, String? forwardAnimation});
+  ///
+  /// An [entity] will only be animatable after an animation component is attached.
+  /// Any calls to [playAnimation]/[setBoneAnimation]/[setMorphAnimation] will have no visual effect until [addAnimationComponent] has been called on the instance.
+  ///
+  Future addAnimationComponent(FilamentEntity entity);
 
   ///
-  /// Makes [collidableEntity] collidable with
-  ///   (a) any entity whose transform is being controlled (via [control]) or
-  ///   (b) any entity that has been marked as non-transformable but collidable (via [markNonTransformableCollidable])
-  /// These are differentiated because a collision will affect the transform for controlled entities
-  /// (e.g. if a controlled entity collides with a wall, we ignore the control update to the transform so it doesn't go through the wall)
+  /// Makes [entity] collidable.
+  /// This allows you to call [testCollisions] with any other entity ("entity B") to see if [entity] has collided with entity B. The callback will be invoked if so.
+  /// Alternatively, if [affectsTransform] is true and this entity collides with another entity, any queued position updates to the latter entity will be ignored.
   ///
-  Future addCollisionComponent(FilamentEntity collidableEntity,
+  Future addCollisionComponent(FilamentEntity entity,
       {void Function(int entityId1, int entityId2)? callback,
-      bool affectsCollingTransform = false});
+      bool affectsTransform = false});
+
+  ///
+  /// Removes the collision component from [entity], meaning this will no longer be tested when [testCollisions] or [queuePositionUpdate] is called with another entity.
+  ///
+  Future removeCollisionComponent(FilamentEntity entity);
 
   ///
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
   ///
-  Future createGeometry(
-      List<double> vertices, List<int> indices, String? materialPath);
+  Future createGeometry(List<double> vertices, List<int> indices,
+      {String? materialPath,
+      PrimitiveType primitiveType = PrimitiveType.TRIANGLES});
 
   ///
   /// Sets the parent transform of [child] to the transform of [parent].
@@ -611,4 +637,59 @@ abstract class FilamentController {
   /// This method returns void; the relevant callback passed to [addCollisionComponent] will be fired if a collision is detected.
   ///
   Future testCollisions(FilamentEntity entity);
+
+  ///
+  /// Sets the draw priority for the given entity. See RenderableManager.h for more details.
+  ///
+  Future setPriority(FilamentEntity entityId, int priority);
+
+  ///
+  /// The Scene holds the transform gizmo and all loaded entities/lights.
+  ///
+  Scene get scene;
+}
+
+///
+/// For now, this class just holds the entities that have been loaded (though not necessarily visible in the Filament Scene).
+///
+abstract class Scene {
+  ///
+  /// The last entity clicked/tapped in the viewport (internally, the result of calling pick);
+  FilamentEntity? selected;
+
+  ///
+  /// A Stream updated whenever an entity is added/removed from the scene.
+  ///
+  Stream<bool> get onUpdated;
+
+  ///
+  /// A Stream containing every FilamentEntity added to the scene (i.e. via [loadGlb], [loadGltf] or [addLight]).
+  /// This is provided for convenience so you can set listeners in front-end widgets that can respond to entity loads without manually passing around the FilamentEntity returned from those methods.
+  ///
+  Stream<FilamentEntity> get onLoad;
+
+  ///
+  /// A Stream containing every FilamentEntity removed from the scene (i.e. via [removeEntity], [clearEntities], [removeLight] or [clearLights]).
+
+  Stream<FilamentEntity> get onUnload;
+
+  ///
+  /// Lists all light entities currently loaded (not necessarily active in the scene). Does not account for instances.
+  ///
+  Iterable<FilamentEntity> listLights();
+
+  ///
+  /// Lists all entities currently loaded (not necessarily active in the scene). Does not account for instances.
+  ///
+  Iterable<FilamentEntity> listEntities();
+
+  ///
+  /// Attach the gizmo to the specified entity.
+  ///
+  void select(FilamentEntity entity);
+
+  ///
+  /// The transform gizmo.
+  ///
+  Gizmo get gizmo;
 }

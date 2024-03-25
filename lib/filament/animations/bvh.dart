@@ -1,7 +1,6 @@
-import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
-import 'package:flutter_filament/animations/animation_data.dart';
+
+import 'package:flutter_filament/filament/animations/animation_data.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 enum RotationMode { ZYX, XYZ }

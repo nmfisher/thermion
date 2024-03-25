@@ -2,11 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_filament/filament_controller.dart';
-import 'package:flutter_filament/filament_controller_ffi.dart';
+
+import 'package:flutter_filament/flutter_filament.dart';
 
 class ControllerMenu extends StatefulWidget {
   final FilamentController? controller;
+  final void Function() onToggleViewport;
   final void Function(FilamentController controller) onControllerCreated;
   final void Function() onControllerDestroyed;
   final FocusNode sharedFocusNode;
@@ -15,7 +16,8 @@ class ControllerMenu extends StatefulWidget {
       {this.controller,
       required this.onControllerCreated,
       required this.onControllerDestroyed,
-      required this.sharedFocusNode});
+      required this.sharedFocusNode,
+      required this.onToggleViewport});
 
   @override
   State<StatefulWidget> createState() => _ControllerMenuState();
@@ -60,6 +62,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
               ? null
               : () async {
                   await _filamentController!.createViewer();
+
                   await _filamentController!
                       .setCameraManipulatorOptions(zoomSpeed: 1.0);
                 },
@@ -100,7 +103,13 @@ class _ControllerMenuState extends State<ControllerMenu> {
     }
     return MenuAnchor(
         childFocusNode: widget.sharedFocusNode,
-        menuChildren: items,
+        menuChildren: items +
+            [
+              TextButton(
+                child: const Text("Toggle viewport size"),
+                onPressed: widget.onToggleViewport,
+              )
+            ],
         builder:
             (BuildContext context, MenuController controller, Widget? child) {
           return TextButton(

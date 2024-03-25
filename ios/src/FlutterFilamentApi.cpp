@@ -8,7 +8,7 @@
 #include <thread>
 #include <functional>
 
-using namespace polyvox;
+using namespace flutter_filament;
 
 extern "C"
 {
@@ -114,9 +114,26 @@ extern "C"
         ((FilamentViewer *)viewer)->clearLights();
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *sceneManager, const char *assetPath, bool unlit)
+    FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances)
     {
-        return ((SceneManager *)sceneManager)->loadGlb(assetPath, unlit);
+        return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances);
+    }
+
+    FLUTTER_PLUGIN_EXPORT EntityId load_glb_from_buffer(void *sceneManager, const void* const data, size_t length)
+    {
+        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t*)data, length);
+    }
+
+    FLUTTER_PLUGIN_EXPORT EntityId create_instance(void *sceneManager, EntityId entityId) {
+        return ((SceneManager *)sceneManager)->createInstance(entityId);
+    }
+
+    FLUTTER_PLUGIN_EXPORT int get_instance_count(void *sceneManager, EntityId entityId) {
+        return ((SceneManager*)sceneManager)->getInstanceCount(entityId);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void get_instances(void *sceneManager, EntityId entityId, EntityId *out) {
+        return ((SceneManager*)sceneManager)->getInstances(entityId, out);
     }
 
     FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath)
@@ -127,6 +144,12 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void set_main_camera(const void *const viewer)
     {
         return ((FilamentViewer *)viewer)->setMainCamera();
+    }
+
+
+    FLUTTER_PLUGIN_EXPORT EntityId get_main_camera(const void *const viewer)
+    {
+        return ((FilamentViewer *)viewer)->getMainCamera();
     }
 
     FLUTTER_PLUGIN_EXPORT bool set_camera(const void *const viewer, EntityId asset, const char *nodeName)
@@ -236,9 +259,9 @@ extern "C"
         ((FilamentViewer *)viewer)->setCameraPosition(x, y, z);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_camera_rotation(const void *const viewer, float rads, float x, float y, float z)
+    FLUTTER_PLUGIN_EXPORT void set_camera_rotation(const void *const viewer, float w, float x, float y, float z)
     {
-        ((FilamentViewer *)viewer)->setCameraRotation(rads, x, y, z);
+        ((FilamentViewer *)viewer)->setCameraRotation(w, x, y, z);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_camera_model_matrix(const void *const viewer, const float *const matrix)
@@ -448,20 +471,20 @@ extern "C"
         int index)
     {
         auto names = ((SceneManager *)sceneManager)->getAnimationNames(asset);
-        string name = names->at(index);
+        std::string name = names->at(index);
         strcpy(outPtr, name.c_str());
     }
 
     FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void *sceneManager, EntityId asset, const char *meshName)
     {
-        unique_ptr<vector<string>> names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
+        std::unique_ptr<std::vector<std::string>> names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
         return (int)names->size();
     }
 
     FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void *sceneManager, EntityId asset, const char *meshName, char *const outPtr, int index)
     {
-        unique_ptr<vector<string>> names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
-        string name = names->at(index);
+        std::unique_ptr<std::vector<std::string>> names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
+        std::string name = names->at(index);
         strcpy(outPtr, name.c_str());
     }
 
@@ -525,9 +548,9 @@ extern "C"
         return ((SceneManager *)sceneManager)->reveal(asset, meshName);
     }
 
-    FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, EntityId *entityId)
+    FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y))
     {
-        ((FilamentViewer *)viewer)->pick(static_cast<uint32_t>(x), static_cast<uint32_t>(y), static_cast<int32_t *>(entityId));
+        ((FilamentViewer *)viewer)->pick(static_cast<uint32_t>(x), static_cast<uint32_t>(y), callback);
     }
 
     FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const sceneManager, const EntityId entityId)
@@ -566,13 +589,28 @@ extern "C"
         ((SceneManager*)sceneManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, const char* materialPath) {
-        return ((FilamentViewer*)viewer)->createGeometry(vertices, (size_t)numVertices, indices, numIndices, materialPath);
+    FLUTTER_PLUGIN_EXPORT void remove_collision_component(void *const sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->removeCollisionComponent(entityId);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void add_animation_component(void *const sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->addAnimationComponent(entityId);
+    }
+
+    FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, int primitiveType, const char* materialPath) {
+        return ((FilamentViewer*)viewer)->createGeometry(
+            vertices, 
+            (uint32_t)numVertices, 
+            indices, 
+            numIndices, 
+            (filament::RenderableManager::PrimitiveType)primitiveType, 
+            materialPath
+        );
     }
 
     FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name) {
         auto entity = ((SceneManager*)sceneManager)->findChildEntityByName(parent, name);
-        return Entity::smuggle(entity);
+        return utils::Entity::smuggle(entity);
     }
 
     FLUTTER_PLUGIN_EXPORT void set_parent(void *const sceneManager, EntityId child, EntityId parent) {
@@ -581,6 +619,14 @@ extern "C"
 
     FLUTTER_PLUGIN_EXPORT void test_collisions(void *const sceneManager, EntityId entity) {
         ((SceneManager*)sceneManager)->testCollisions(entity);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void set_priority(void *const sceneManager, EntityId entity, int priority) {
+        ((SceneManager*)sceneManager)->setPriority(entity, priority);
+    }
+
+    FLUTTER_PLUGIN_EXPORT void get_gizmo(void *const sceneManager, EntityId* out) {
+        return ((SceneManager*)sceneManager)->getGizmo(out);
     }
 
 }

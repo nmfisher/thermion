@@ -63,7 +63,20 @@ int main(int argc, char** argv) {
 
     auto sceneManager = SceneManager(&loader, engine, scene, nullptr);
 
-    auto shapes = sceneManager.loadGlb("../example/assets/shapes/shapes.glb", 1);
+    auto shapes = sceneManager.loadGlb("../example/assets/shapes/shapes.glb", 2);
+
+    sceneManager.remove(shapes);
+     
+     shapes = sceneManager.loadGlb("../example/assets/shapes/shapes.glb", 2);
+
+    auto instanceCount = sceneManager.getInstanceCount(shapes);
+    assert(instanceCount == 2);
+
+    EntityId instances[instanceCount];
+
+    sceneManager.getInstances(shapes, instances);
+
+    sceneManager.transformToUnitCube(shapes);
 
     auto morphTargetNames = sceneManager.getMorphTargetNames(shapes, "Cylinder");
     assert(morphTargetNames->size() == 4);
@@ -73,5 +86,9 @@ int main(int argc, char** argv) {
 
     morphTargetNames = sceneManager.getMorphTargetNames(shapes, "Cone");
     assert(morphTargetNames->size() == 8);
+    math::mat4f boneTransform;
+    sceneManager.setBoneTransform(shapes, "Cylinder", 0, "Bone", boneTransform);
+
+
     sceneManager.destroyAll();
 }

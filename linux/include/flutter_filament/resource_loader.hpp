@@ -12,14 +12,13 @@
 
 #include "ResourceBuffer.hpp"
 
-using namespace std;
 
-static map<uint32_t, void*> _file_assets;
+static std::map<uint32_t, void*> _file_assets;
 static uint32_t _i = 0;
 
 ResourceBuffer loadResource(const char* name) {
 
-  std::cout << "LOADING RESOURCE" << std::endl;
+    std::cout << "LOADING RESOURCE" << std::endl;
 
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {

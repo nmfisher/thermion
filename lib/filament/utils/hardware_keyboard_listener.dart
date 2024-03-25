@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_filament/entities/entity_transform_controller.dart';
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/filament/entities/entity_transform_controller.dart';
 
 class HardwareKeyboardListener {
   final EntityTransformController _controller;

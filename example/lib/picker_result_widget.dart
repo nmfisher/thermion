@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_filament/filament_controller.dart';
+import 'package:flutter_filament/flutter_filament.dart';
 
 class PickerResultWidget extends StatelessWidget {
   final FilamentController controller;
@@ -9,11 +9,8 @@ class PickerResultWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-        stream: controller.pickResult.map((FilamentEntity? entityId) {
-          if (entityId == null) {
-            return null;
-          }
-          return controller.getNameForEntity(entityId);
+        stream: controller.pickResult.map((result) {
+          return controller.getNameForEntity(result.entity);
         }),
         builder: (ctx, snapshot) => snapshot.data == null
             ? Container()
