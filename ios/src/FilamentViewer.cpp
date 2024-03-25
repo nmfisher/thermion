@@ -238,17 +238,16 @@ namespace flutter_filament
     _imageIb->setBuffer(*_engine, {sFullScreenTriangleIndices,
                                    sizeof(sFullScreenTriangleIndices)});
 
-    utils::Entity imageEntity = em.create();
+    _imageEntity = em.create();
     RenderableManager::Builder(1)
         .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
         .material(0, _imageMaterial->getDefaultInstance())
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, _imageVb,
                   _imageIb, 0, 3)
         .culling(false)
-        .build(*_engine, imageEntity);
-    _imageEntity = &imageEntity;
-    _scene->addEntity(imageEntity);
-    Log("Added imageEntity %d", imageEntity);
+        .build(*_engine, _imageEntity);
+    _scene->addEntity(_imageEntity);
+    Log("Added imageEntity %d", _imageEntity);
   }
 
   void FilamentViewer::setAntiAliasing(bool msaa, bool fxaa, bool taa) {
@@ -335,6 +334,8 @@ namespace flutter_filament
     _lights.push_back(light);
     
     auto entityId = Entity::smuggle(light);
+    auto transformInstance = transformManager.getInstance(light);
+    transformManager.setTransform(transformInstance, math::mat4::translation(math::float3 { posX, posY, posZ}));
     Log("Added light under entity ID %d of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", entityId, t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
     return entityId;
   }
@@ -885,7 +886,7 @@ namespace flutter_filament
 
     ResourceBuffer skyboxBuffer = _resourceLoaderWrapper->load(skyboxPath);
 
-    // because this will go out of scope before the texture callback is invoked, we need to make a copy to the heap
+    // because this will go out of scope before the texture callback is invoked, we need to make a copy of the variable itself (not its contents)
     ResourceBuffer *skyboxBufferCopy = new ResourceBuffer(skyboxBuffer);
 
     if (skyboxBuffer.size <= 0)
@@ -1449,9 +1450,12 @@ namespace flutter_filament
 
   void FilamentViewer::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
   {
+
     _view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
                 { 
-                  callback(Entity::smuggle(result.renderable), x, y); 
+                  if(result.renderable != _imageEntity) {
+                    callback(Entity::smuggle(result.renderable), x, y); 
+                  }
                   });
   }
 

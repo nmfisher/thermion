@@ -1529,6 +1529,34 @@ namespace flutter_filament
         return instance->getEntityCount();
     }
 
+    void SceneManager::getEntities(EntityId entityId, bool renderableOnly, EntityId* out) {
+        const auto *instance = getInstanceByEntityId(entityId);
+        if(!instance) {
+            auto asset = getAssetByEntityId(entityId);
+            if(asset) {
+                instance = asset->getInstance();
+            } else {
+                return;
+            }
+        }
+
+         if(renderableOnly) {
+            int count = 0;
+            const auto& rm = _engine->getRenderableManager();
+            const Entity *entities = instance->getEntities();
+            int offset = 0;
+            for(int i=0; i < instance->getEntityCount(); i++) {
+                if(rm.hasComponent(entities[i])) { 
+                    out[offset] = Entity::smuggle(entities[i]);
+                }
+            }
+        } else {
+            for(int i=0;i < instance->getEntityCount(); i++) {
+                out[i] = Entity::smuggle(instance->getEntities()[i]);
+            }
+        }
+    }
+
     const char* SceneManager::getEntityNameAt(EntityId entityId, int index, bool renderableOnly) {
         const auto *instance = getInstanceByEntityId(entityId);
         if(!instance) {

@@ -886,6 +886,17 @@ external int get_entity_count(
 );
 
 @ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, EntityId, ffi.Bool, ffi.Pointer<EntityId>)>(
+    symbol: 'get_entities', assetId: 'flutter_filament_plugin')
+external void get_entities(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int target,
+  bool renderableOnly,
+  ffi.Pointer<EntityId> out,
+);
+
+@ffi.Native<
         ffi.Pointer<ffi.Char> Function(
             ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool)>(
     symbol: 'get_entity_name_at', assetId: 'flutter_filament_plugin')

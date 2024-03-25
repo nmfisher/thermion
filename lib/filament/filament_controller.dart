@@ -577,6 +577,12 @@ abstract class FilamentController {
       double zoomSpeed = 0.01});
 
   ///
+  /// Returns all child entities under [parent].
+  ///
+  Future<List<FilamentEntity>> getChildEntities(
+      FilamentEntity parent, bool renderableOnly);
+
+  ///
   /// Finds the child entity named [childName] associated with the given parent.
   /// Usually, [parent] will be the return value from [loadGlb]/[loadGltf] and [childName] will be the name of a node/mesh.
   ///
@@ -584,9 +590,9 @@ abstract class FilamentController {
       FilamentEntity parent, String childName);
 
   ///
-  /// List all child entities under the given entity.
+  /// List the name of all child entities under the given entity.
   ///
-  Future<List<String>> getChildEntities(FilamentEntity entity,
+  Future<List<String>> getChildEntityNames(FilamentEntity entity,
       {bool renderableOnly = true});
 
   ///

@@ -217,6 +217,13 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
         ),
         MenuItemButton(
           onPressed: () async {
+            await widget.controller
+                .addLight(3, 6500, 15000000, 0, 1, 0, 0, -1, 0, true);
+          },
+          child: const Text("Add spot light"),
+        ),
+        MenuItemButton(
+          onPressed: () async {
             await widget.controller.clearLights();
           },
           child: const Text("Clear lights"),

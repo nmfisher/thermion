@@ -130,6 +130,7 @@ namespace flutter_filament
             EntityId entityId,
             const char *entityName);
         int getEntityCount(EntityId entity, bool renderableOnly);
+        void getEntities(EntityId entity, bool renderableOnly, EntityId *out);
         const char* getEntityNameAt(EntityId entity, int index, bool renderableOnly);
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);

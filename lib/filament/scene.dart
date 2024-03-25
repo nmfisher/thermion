@@ -9,7 +9,9 @@ class SceneImpl extends Scene {
   final Gizmo _gizmo;
   Gizmo get gizmo => _gizmo;
 
-  SceneImpl(this._gizmo);
+  FilamentController controller;
+
+  SceneImpl(this._gizmo, this.controller);
 
   @override
   FilamentEntity? selected;
@@ -35,8 +37,9 @@ class SceneImpl extends Scene {
     _onUpdatedController.add(true);
   }
 
-  void unregisterLight(FilamentEntity entity) {
-    if (selected == entity) {
+  void unregisterLight(FilamentEntity entity) async {
+    var children = await controller.getChildEntities(entity, true);
+    if (selected == entity || children.contains(selected)) {
       selected = null;
       _gizmo.detach();
     }
@@ -45,8 +48,9 @@ class SceneImpl extends Scene {
     _onUpdatedController.add(true);
   }
 
-  void unregisterEntity(FilamentEntity entity) {
-    if (selected == entity) {
+  void unregisterEntity(FilamentEntity entity) async {
+    var children = await controller.getChildEntities(entity, true);
+    if (selected == entity || children.contains(selected)) {
       selected = null;
       _gizmo.detach();
     }

@@ -358,7 +358,7 @@ class FilamentControllerFFI extends FilamentController {
     get_gizmo(_sceneManager!, out);
     var gizmo = Gizmo(out[0], out[1], out[2], this);
     allocator.free(out);
-    _scene = SceneImpl(gizmo);
+    _scene = SceneImpl(gizmo, this);
 
     hasViewer.value = true;
     _creating = false;
@@ -1504,8 +1504,19 @@ class FilamentControllerFFI extends FilamentController {
     return childEntity;
   }
 
+  Future<List<FilamentEntity>> getChildEntities(
+      FilamentEntity parent, bool renderableOnly) async {
+    var count = get_entity_count(_sceneManager!, parent, renderableOnly);
+    var out = allocator<Int32>(count);
+    get_entities(_sceneManager!, parent, renderableOnly, out);
+    var outList =
+        List.generate(count, (index) => out[index]).cast<FilamentEntity>();
+    allocator.free(out);
+    return outList;
+  }
+
   @override
-  Future<List<String>> getChildEntities(FilamentEntity entity,
+  Future<List<String>> getChildEntityNames(FilamentEntity entity,
       {bool renderableOnly = false}) async {
     var count = get_entity_count(_sceneManager!, entity, renderableOnly);
     var names = <String>[];

@@ -562,6 +562,10 @@ extern "C"
         return ((SceneManager *)sceneManager)->getEntityCount(target, renderableOnly);
     }
 
+    FLUTTER_PLUGIN_EXPORT void get_entities(void *const sceneManager, const EntityId target, bool renderableOnly, EntityId* out) {
+        ((SceneManager *)sceneManager)->getEntities(target, renderableOnly, out);
+    }
+
     FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly) {
         return ((SceneManager *)sceneManager)->getEntityNameAt(target, index, renderableOnly);
     }

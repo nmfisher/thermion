@@ -195,7 +195,7 @@ namespace flutter_filament
         uint32_t _imageWidth = 0;
         mat4f _imageScale;
         Texture *_imageTexture = nullptr;
-        utils::Entity *_imageEntity = nullptr;
+        utils::Entity _imageEntity;
         VertexBuffer *_imageVb = nullptr;
         IndexBuffer *_imageIb = nullptr;
         Material *_imageMaterial = nullptr;

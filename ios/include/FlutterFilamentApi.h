@@ -188,6 +188,7 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const sceneManager, const EntityId entityId);
 	FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name);
 	FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const sceneManager, const EntityId target, bool renderableOnly);
+	FLUTTER_PLUGIN_EXPORT void get_entities(void *const sceneManager, const EntityId target, bool renderableOnly, EntityId* out);
 	FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly);
 	FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording);
 	FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory);

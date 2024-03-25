@@ -65,6 +65,9 @@ class Gizmo {
   }
 
   void detach() async {
+    await controller.setParent(x, 0);
+    await controller.setParent(y, 0);
+    await controller.setParent(z, 0);
     await controller.hide(x, null);
     await controller.hide(y, null);
     await controller.hide(z, null);

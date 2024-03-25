@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
@@ -129,7 +130,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
       ),
       EntityListWidget(controller: _filamentController),
       Positioned(
-          bottom: 0,
+          bottom: Platform.isIOS ? 30 : 0,
           left: 0,
           right: 10,
           height: 30,
@@ -164,9 +165,8 @@ class ExampleWidgetState extends State<ExampleWidget> {
                 ),
                 GestureDetector(
                     onTap: () async {
-                      await _filamentController!.loadGlb(
-                          'assets/shapes/shapes.glb',
-                          numInstances: 10);
+                      await _filamentController!
+                          .loadGlb('assets/shapes/shapes.glb', numInstances: 1);
                     },
                     child: Container(
                         color: Colors.transparent,
