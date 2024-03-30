@@ -58,6 +58,30 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
         ),
         MenuItemButton(
           onPressed: () {
+            ExampleWidgetState.antiAliasingMsaa =
+                !ExampleWidgetState.antiAliasingMsaa;
+            widget.controller.setAntiAliasing(
+                ExampleWidgetState.antiAliasingMsaa,
+                ExampleWidgetState.antiAliasingFxaa,
+                ExampleWidgetState.antiAliasingTaa);
+          },
+          child: Text(
+              "${ExampleWidgetState.antiAliasingMsaa ? "Disable" : "Enable"} MSAA antialiasing"),
+        ),
+        MenuItemButton(
+          onPressed: () {
+            ExampleWidgetState.antiAliasingFxaa =
+                !ExampleWidgetState.antiAliasingFxaa;
+            widget.controller.setAntiAliasing(
+                ExampleWidgetState.antiAliasingMsaa,
+                ExampleWidgetState.antiAliasingFxaa,
+                ExampleWidgetState.antiAliasingTaa);
+          },
+          child: Text(
+              "${ExampleWidgetState.antiAliasingFxaa ? "Disable" : "Enable"} FXAA antialiasing"),
+        ),
+        MenuItemButton(
+          onPressed: () {
             ExampleWidgetState.recording = !ExampleWidgetState.recording;
             widget.controller.setRecording(ExampleWidgetState.recording);
           },
