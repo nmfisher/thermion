@@ -64,7 +64,10 @@ class ExampleWidgetState extends State<ExampleWidget> {
   static bool rendering = false;
   static bool recording = false;
   static int framerate = 60;
-  static bool postProcessing = true;
+  static bool postProcessing = false;
+  static bool antiAliasingMsaa = false;
+  static bool antiAliasingTaa = false;
+  static bool antiAliasingFxaa = false;
   static bool frustumCulling = true;
   static ManipulatorMode cameraManipulatorMode = ManipulatorMode.ORBIT;
 

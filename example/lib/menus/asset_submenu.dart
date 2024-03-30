@@ -264,6 +264,11 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
             },
             child: const Text('Load IBL')),
         MenuItemButton(
+            onPressed: () {
+              widget.controller.removeIbl();
+            },
+            child: const Text('Remove IBL')),
+        MenuItemButton(
             onPressed: () async {
               await Permission.microphone.request();
             },
