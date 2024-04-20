@@ -19,6 +19,7 @@
 
 #include <imageio/ImageDecoder.h>
 
+#include "material/FileMaterialProvider.hpp"
 #include "StreamBufferAdapter.hpp"
 #include "Log.hpp"
 #include "SceneManager.hpp"
