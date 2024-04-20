@@ -307,9 +307,12 @@ FLUTTER_PLUGIN_EXPORT void clear_background_image_ffi(void *const viewer) {
 
 FLUTTER_PLUGIN_EXPORT void set_background_image_ffi(void *const viewer,
                                                     const char *path,
-                                                    bool fillHeight) {
+                                                    bool fillHeight, void (*callback)()) {
   std::packaged_task<void()> lambda(
-      [=] { set_background_image(viewer, path, fillHeight); });
+      [=] { 
+        set_background_image(viewer, path, fillHeight); 
+        callback();
+      });
   auto fut = _rl->add_task(lambda);
 }
 FLUTTER_PLUGIN_EXPORT void set_background_image_position_ffi(void *const viewer,

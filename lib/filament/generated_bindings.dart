@@ -1147,13 +1147,14 @@ external void clear_background_image_ffi(
 );
 
 @ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Bool)>(
+        ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>,
+            ffi.Bool, ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
     symbol: 'set_background_image_ffi', assetId: 'flutter_filament_plugin')
 external void set_background_image_ffi(
   ffi.Pointer<ffi.Void> viewer,
   ffi.Pointer<ffi.Char> path,
   bool fillHeight,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<

@@ -531,8 +531,10 @@ class FilamentControllerFFI extends FilamentController {
       throw Exception("No viewer available, ignoring");
     }
     final pathPtr = path.toNativeUtf8().cast<Char>();
+    await _withVoidCallback((cb) {
+      set_background_image_ffi(_viewer!, pathPtr, fillHeight, cb);
+    });
 
-    set_background_image_ffi(_viewer!, pathPtr, fillHeight);
     allocator.free(pathPtr);
   }
 

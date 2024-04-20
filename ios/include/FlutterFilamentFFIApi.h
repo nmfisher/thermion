@@ -36,7 +36,7 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection_ffi(void *const viewer, const uint32_t width, const uint32_t height, const float scaleFactor, void (*onComplete)());
     FLUTTER_PLUGIN_EXPORT void set_background_color_ffi(void *const viewer, const float r, const float g, const float b, const float a);
     FLUTTER_PLUGIN_EXPORT void clear_background_image_ffi(void *const viewer);
-    FLUTTER_PLUGIN_EXPORT void set_background_image_ffi(void *const viewer, const char *path, bool fillHeight);
+    FLUTTER_PLUGIN_EXPORT void set_background_image_ffi(void *const viewer, const char *path, bool fillHeight, void (*onComplete)());
     FLUTTER_PLUGIN_EXPORT void set_background_image_position_ffi(void *const viewer, float x, float y, bool clamp);
     FLUTTER_PLUGIN_EXPORT void set_tone_mapping_ffi(void *const viewer, int toneMapping);
     FLUTTER_PLUGIN_EXPORT void set_bloom_ffi(void *const viewer, float strength);
