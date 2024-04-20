@@ -127,7 +127,7 @@ public:
 
 protected:
     // Looks at platform and target API, then decides on shader models and output formats.
-    void prepare(bool vulkanSemantics);
+    void prepare(bool vulkanSemantics, filament::backend::FeatureLevel featureLevel);
 
     using ShaderModel = filament::backend::ShaderModel;
     Platform mPlatform = Platform::DESKTOP;
@@ -135,11 +135,13 @@ protected:
     Optimization mOptimization = Optimization::PERFORMANCE;
     bool mPrintShaders = false;
     bool mGenerateDebugInfo = false;
+    bool mIncludeEssl1 = true;
     utils::bitset32 mShaderModels;
     struct CodeGenParams {
         ShaderModel shaderModel;
         TargetApi targetApi;
         TargetLanguage targetLanguage;
+        filament::backend::FeatureLevel featureLevel;
     };
     std::vector<CodeGenParams> mCodeGenPermutations;
 
@@ -241,6 +243,7 @@ public:
     using Precision = filament::backend::Precision;
     using CullingMode = filament::backend::CullingMode;
     using FeatureLevel = filament::backend::FeatureLevel;
+    using StereoscopicType = filament::backend::StereoscopicType;
 
     enum class VariableQualifier : uint8_t {
         OUT
@@ -269,6 +272,9 @@ public:
 
 
     MaterialBuilder& noSamplerValidation(bool enabled) noexcept;
+
+    //! Enable generation of ESSL 1.0 code in FL0 materials.
+    MaterialBuilder& includeEssl1(bool enabled) noexcept;
 
     //! Set the name of this material.
     MaterialBuilder& name(const char* name) noexcept;
@@ -306,12 +312,8 @@ public:
      */
     MaterialBuilder& parameter(const char* name, SamplerType samplerType,
             SamplerFormat format = SamplerFormat::FLOAT,
-            ParameterPrecision precision = ParameterPrecision::DEFAULT) noexcept;
-
-    /// @copydoc parameter(SamplerType, SamplerFormat, ParameterPrecision, const char*)
-    MaterialBuilder& parameter(const char* name, SamplerType samplerType,
-            ParameterPrecision precision) noexcept;
-
+            ParameterPrecision precision = ParameterPrecision::DEFAULT,
+            bool multisample = false) noexcept;
 
     MaterialBuilder& buffer(filament::BufferInterfaceBlock bib) noexcept;
 
@@ -408,7 +410,8 @@ public:
     /**
      * Set the blending mode of the post-lighting color for this material.
      * Only OPAQUE, TRANSPARENT and ADD are supported, the default is TRANSPARENT.
-     * This setting requires the material property "postLightingColor" to be set.
+     * This setting requires the material properties "postLightingColor" and
+     * "postLightingMixFactor" to be set.
      */
     MaterialBuilder& postLightingBlending(BlendingMode blending) noexcept;
 
@@ -520,6 +523,12 @@ public:
     //! Specifies how transparent objects should be rendered (default is DEFAULT).
     MaterialBuilder& transparencyMode(TransparencyMode mode) noexcept;
 
+    //! Specify the stereoscopic type (default is INSTANCED)
+    MaterialBuilder& stereoscopicType(StereoscopicType stereoscopicType) noexcept;
+
+    //! Specify the number of eyes for stereoscopic rendering
+    MaterialBuilder& stereoscopicEyeCount(uint8_t eyeCount) noexcept;
+
     /**
      * Enable / disable custom surface shading. Custom surface shading requires the LIT
      * shading model. In addition, the following function must be defined in the fragment
@@ -617,8 +626,8 @@ public:
         Parameter() noexcept: parameterType(INVALID) {}
 
         // Sampler
-        Parameter(const char* paramName, SamplerType t, SamplerFormat f, ParameterPrecision p)
-                : name(paramName), size(1), precision(p), samplerType(t), format(f), parameterType(SAMPLER) { }
+        Parameter(const char* paramName, SamplerType t, SamplerFormat f, ParameterPrecision p, bool ms)
+                : name(paramName), size(1), precision(p), samplerType(t), format(f), parameterType(SAMPLER), multisample(ms) { }
 
         // Uniform
         Parameter(const char* paramName, UniformType t, size_t typeSize, ParameterPrecision p)
@@ -635,6 +644,7 @@ public:
         SamplerType samplerType;
         SubpassType subpassType;
         SamplerFormat format;
+        bool multisample;
         enum {
             INVALID,
             UNIFORM,
@@ -690,8 +700,8 @@ public:
     std::string peek(filament::backend::ShaderStage type,
             const CodeGenParams& params, const PropertyList& properties) noexcept;
 
-    // Returns true if any of the parameter samplers is of type samplerExternal
-    bool hasExternalSampler() const noexcept;
+    // Returns true if any of the parameter samplers matches the specified type.
+    bool hasSamplerType(SamplerType samplerType) const noexcept;
 
     static constexpr size_t MAX_PARAMETERS_COUNT = 48;
     static constexpr size_t MAX_SUBPASS_COUNT = 1;
@@ -754,7 +764,7 @@ private:
             MaterialBuilder::PropertyList& allProperties,
             CodeGenParams const& semanticCodeGenParams) noexcept;
 
-    bool runSemanticAnalysis(MaterialInfo const& info,
+    bool runSemanticAnalysis(MaterialInfo* inOutInfo,
             CodeGenParams const& semanticCodeGenParams) noexcept;
 
     bool checkLiteRequirements() noexcept;
@@ -827,6 +837,8 @@ private:
     Interpolation mInterpolation = Interpolation::SMOOTH;
     VertexDomain mVertexDomain = VertexDomain::OBJECT;
     TransparencyMode mTransparencyMode = TransparencyMode::DEFAULT;
+    StereoscopicType mStereoscopicType = StereoscopicType::INSTANCED;
+    uint8_t mStereoscopicEyeCount = 2;
 
     filament::AttributeBitset mRequiredAttributes;
 

@@ -103,7 +103,7 @@ public:
      *
      * This removes all the asset entities from the Scene, but does not destroy them.
      */
-    void removeEntity();
+    void removeAsset();
 
     /**
      * Sets or changes the current scene's IBL to allow the UI manipulate it.
@@ -227,11 +227,9 @@ public:
      */
     Settings& getSettings() { return mSettings; }
 
-    void stopAnimation() { mCurrentAnimation = 0; }
+    void stopAnimation() { mCurrentAnimation = -1; }
 
     int getCurrentCamera() const { return mCurrentCamera; }
-
-    float getOcularDistance() const { return mOcularDistance; }
 
 private:
     using SceneMask = gltfio::NodeManager::SceneMask;
@@ -256,7 +254,7 @@ private:
     std::function<void()> mCustomUI;
 
     // Properties that can be changed from the UI.
-    int mCurrentAnimation = 1; // It is a 1-based index and 0 means not playing animation
+    int mCurrentAnimation = 0; // -1 means not playing animation and count means plays all of them (0-based index)
     int mCurrentVariant = 0;
     bool mEnableWireframe = false;
     int mVsmMsaaSamplesLog2 = 1;
@@ -268,15 +266,12 @@ private:
     SceneMask mVisibleScenes;
     bool mShowingRestPose = false;
 
-    // Stereoscopic debugging
-    float mOcularDistance = 0.0f;
-
     // 0 is the default "free camera". Additional cameras come from the gltf file (1-based index).
     int mCurrentCamera = 0;
 
     // Cross fade animation parameters.
     float mCrossFadeDuration = 0.5f;  // number of seconds to transition between animations
-    int mPreviousAnimation = 0;       // one-based index of the previous animation
+    int mPreviousAnimation = -1;      // zero-based index of the previous animation
     double mCurrentStartTime = 0.0f;  // start time of most recent cross-fade (seconds)
     double mPreviousStartTime = 0.0f; // start time of previous cross-fade (seconds)
     bool mResetAnimation = true;      // set when building ImGui widgets, honored in applyAnimation

@@ -57,8 +57,10 @@ enum class ToneMapping : uint8_t {
     ACES_LEGACY   = 1,
     ACES          = 2,
     FILMIC        = 3,
-    GENERIC       = 4,
-    DISPLAY_RANGE = 5,
+    AGX           = 4,
+    GENERIC       = 5,
+    PBR_NEUTRAL   = 6,
+    DISPLAY_RANGE = 7,
 };
 
 using AmbientOcclusionOptions = filament::View::AmbientOcclusionOptions;
@@ -76,6 +78,7 @@ using TemporalAntiAliasingOptions = filament::View::TemporalAntiAliasingOptions;
 using VignetteOptions = filament::View::VignetteOptions;
 using VsmShadowOptions = filament::View::VsmShadowOptions;
 using GuardBandOptions = filament::View::GuardBandOptions;
+using StereoscopicOptions = filament::View::StereoscopicOptions;
 using LightManager = filament::LightManager;
 
 // These functions push all editable property values to their respective Filament objects.
@@ -114,8 +117,14 @@ struct GenericToneMapperSettings {
     float midGrayIn = 0.18f;
     float midGrayOut = 0.215f;
     float hdrMax = 10.0f;
-    bool operator!=(const GenericToneMapperSettings &rhs) const { return !(rhs == *this); }
-    bool operator==(const GenericToneMapperSettings &rhs) const;
+    bool operator!=(const GenericToneMapperSettings& rhs) const { return !(rhs == *this); }
+    bool operator==(const GenericToneMapperSettings& rhs) const;
+};
+
+struct AgxToneMapperSettings {
+    AgxToneMapper::AgxLook look = AgxToneMapper::AgxLook::NONE;
+    bool operator!=(const AgxToneMapperSettings& rhs) const { return !(rhs == *this); }
+    bool operator==(const AgxToneMapperSettings& rhs) const;
 };
 
 struct ColorGradingSettings {
@@ -127,7 +136,7 @@ struct ColorGradingSettings {
     filament::ColorGrading::QualityLevel quality = filament::ColorGrading::QualityLevel::MEDIUM;
     ToneMapping toneMapping = ToneMapping::ACES_LEGACY;
     bool padding0{};
-    bool padding1{};
+    AgxToneMapperSettings agxToneMapper;
     color::ColorSpace colorspace = Rec709-sRGB-D65;
     GenericToneMapperSettings genericToneMapper;
     math::float4 shadows{1.0f, 1.0f, 1.0f, 0.0f};
@@ -185,6 +194,7 @@ struct ViewSettings {
     VignetteOptions vignette;
     VsmShadowOptions vsmShadowOptions;
     GuardBandOptions guardBand;
+    StereoscopicOptions stereoscopicOptions;
 
     // Custom View Options
     ColorGradingSettings colorGrading;
@@ -224,6 +234,8 @@ struct ViewerOptions {
     float cameraISO = 100.0f;
     float cameraNear = 0.1f;
     float cameraFar = 100.0f;
+    float cameraEyeOcularDistance = 0.0f;
+    float cameraEyeToeIn = 0.0f;
     float groundShadowStrength = 0.75f;
     bool groundPlaneEnabled = false;
     bool skyboxEnabled = true;

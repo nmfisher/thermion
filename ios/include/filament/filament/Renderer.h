@@ -23,9 +23,6 @@
 
 #include <utils/compiler.h>
 
-#include <backend/PresentCallable.h>
-#include <backend/DriverEnums.h>
-
 #include <math/vec4.h>
 
 #include <stdint.h>
@@ -174,18 +171,24 @@ public:
     void setClearOptions(const ClearOptions& options);
 
     /**
+     * Returns the ClearOptions currently set.
+     * @return A reference to a ClearOptions structure.
+     */
+    ClearOptions const& getClearOptions() const noexcept;
+
+    /**
      * Get the Engine that created this Renderer.
      *
      * @return A pointer to the Engine instance this Renderer is associated to.
      */
-    Engine* getEngine() noexcept;
+    Engine* UTILS_NONNULL getEngine() noexcept;
 
     /**
      * Get the Engine that created this Renderer.
      *
      * @return A constant pointer to the Engine instance this Renderer is associated to.
      */
-    inline Engine const* getEngine() const noexcept {
+    inline Engine const* UTILS_NONNULL getEngine() const noexcept {
         return const_cast<Renderer *>(this)->getEngine();
     }
 
@@ -261,7 +264,7 @@ public:
      * @see
      * endFrame()
      */
-    bool beginFrame(SwapChain* swapChain,
+    bool beginFrame(SwapChain* UTILS_NONNULL swapChain,
             uint64_t vsyncSteadyClockTimeNano = 0u);
 
     /**
@@ -332,7 +335,7 @@ public:
      * beginFrame(), endFrame(), View
      *
      */
-    void render(View const* view);
+    void render(View const* UTILS_NONNULL view);
 
     /**
      * Copy the currently rendered view to the indicated swap chain, using the
@@ -347,7 +350,7 @@ public:
      * copyFrame() should be called after a frame is rendered using render()
      * but before endFrame() is called.
      */
-    void copyFrame(SwapChain* dstSwapChain, Viewport const& dstViewport,
+    void copyFrame(SwapChain* UTILS_NONNULL dstSwapChain, Viewport const& dstViewport,
             Viewport const& srcViewport, uint32_t flags = 0);
 
     /**
@@ -487,7 +490,7 @@ public:
      * readPixels() is intended for debugging and testing. It will impact performance significantly.
      *
      */
-    void readPixels(RenderTarget* renderTarget,
+    void readPixels(RenderTarget* UTILS_NONNULL renderTarget,
             uint32_t xoffset, uint32_t yoffset, uint32_t width, uint32_t height,
             backend::PixelBufferDescriptor&& buffer);
 
@@ -514,7 +517,7 @@ public:
      * However, internally, renderStandaloneView() is highly multi-threaded to both improve
      * performance in mitigate the call's latency.
      */
-    void renderStandaloneView(View const* view);
+    void renderStandaloneView(View const* UTILS_NONNULL view);
 
 
     /**
@@ -573,6 +576,10 @@ public:
      * getUserTime()
      */
     void resetUserTime();
+
+protected:
+    // prevent heap allocation
+    ~Renderer() = default;
 };
 
 } // namespace filament

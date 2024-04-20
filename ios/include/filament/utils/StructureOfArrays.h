@@ -17,8 +17,10 @@
 #ifndef TNT_UTILS_STRUCTUREOFARRAYS_H
 #define TNT_UTILS_STRUCTUREOFARRAYS_H
 
+#include <type_traits>
 #include <utils/Allocator.h>
 #include <utils/compiler.h>
+#include <utils/debug.h>
 #include <utils/Slice.h>
 
 #include <stddef.h>
@@ -352,33 +354,55 @@ public:
         return push_back_unsafe(std::forward<Elements>(args)...);
     }
 
-    // in C++20 we could use a lambda with explicit template parameter instead
-    struct PushBackUnsafeClosure {
-        size_t last;
-        std::tuple<Elements...> args;
-        inline explicit PushBackUnsafeClosure(size_t last, Structure&& args)
-                : last(last), args(std::forward<Structure>(args)) {}
-        template<size_t I>
-        inline void operator()(TypeAt<I>* p) {
-            new(p + last) TypeAt<I>{ std::get<I>(args) };
-        }
-    };
+    template <std::size_t... Indices>
+    struct ElementIndices {};
+ 
+    template <std::size_t N, std::size_t... Indices>
+    struct BuildElementIndices : BuildElementIndices<N - 1, N - 1, Indices...> {};
+
+    template <std::size_t... Indices>
+    struct BuildElementIndices<0, Indices...> : ElementIndices<Indices...> {};
+
+    template<std::size_t... Indices>
+    void push_back_unsafe(Structure&& args, ElementIndices<Indices...>){
+        size_t last = mSize++;
+        // Fold expression on the comma operator
+        ([&]{
+            new(std::get<Indices>(mArrays) + last) Elements{std::get<Indices>(args)};
+        }() , ...);
+    }
+
+    template<std::size_t... Indices>
+    void push_back_unsafe(Elements const& ... args, ElementIndices<Indices...>){
+        size_t last = mSize++;
+        // Fold expression on the comma operator
+        ([&]{
+            new(std::get<Indices>(mArrays) + last) Elements{args};
+        }() , ...);
+    }
+
+    template<std::size_t... Indices>
+    void push_back_unsafe(Elements && ... args, ElementIndices<Indices...>){
+        size_t last = mSize++;
+        // Fold expression on the comma operator
+        ([&]{
+            new(std::get<Indices>(mArrays) + last) Elements{std::forward<Elements>(args)};
+        }() , ...);
+    }
 
     StructureOfArraysBase& push_back_unsafe(Structure&& args) noexcept {
-        for_each_index(mArrays,
-                PushBackUnsafeClosure{ mSize++, std::forward<Structure>(args) });
+        push_back_unsafe(std::forward<Structure>(args), BuildElementIndices<sizeof...(Elements)>{});
         return *this;
     }
 
     StructureOfArraysBase& push_back_unsafe(Elements const& ... args) noexcept {
-        for_each_index(mArrays,
-                PushBackUnsafeClosure{ mSize++, { args... } });
+        push_back_unsafe(args..., BuildElementIndices<sizeof...(Elements)>{});
+
         return *this;
     }
 
     StructureOfArraysBase& push_back_unsafe(Elements&& ... args) noexcept {
-        for_each_index(mArrays,
-                PushBackUnsafeClosure{ mSize++, { std::forward<Elements>(args)... }});
+        push_back_unsafe(std::forward<Elements>(args)..., BuildElementIndices<sizeof...(Elements)>{});
         return *this;
     }
 
@@ -533,7 +557,7 @@ private:
     }
 
     inline void resizeNoCheck(size_t needed) noexcept {
-        assert(mCapacity >= needed);
+        assert_invariant(mCapacity >= needed);
         if (needed < mSize) {
             // we shrink the arrays
             destroy_each(needed, mSize);

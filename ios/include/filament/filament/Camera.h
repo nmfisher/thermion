@@ -26,6 +26,12 @@
 #include <math/mathfwd.h>
 #include <math/vec2.h>
 #include <math/vec4.h>
+#include <math/mat4.h>
+
+#include <math.h>
+
+#include <stdint.h>
+#include <stddef.h>
 
 namespace utils {
 class Entity;
@@ -172,6 +178,30 @@ public:
         HORIZONTAL      //!< the field-of-view angle is defined on the horizontal axis
     };
 
+    /** Returns the projection matrix from the field-of-view.
+     *
+     * @param fovInDegrees full field-of-view in degrees. 0 < \p fov < 180.
+     * @param aspect       aspect ratio \f$ \frac{width}{height} \f$. \p aspect > 0.
+     * @param near         distance in world units from the camera to the near plane. \p near > 0.
+     * @param far          distance in world units from the camera to the far plane. \p far > \p near.
+     * @param direction    direction of the \p fovInDegrees parameter.
+     *
+     * @see Fov.
+     */
+    static math::mat4 projection(Fov direction, double fovInDegrees,
+            double aspect, double near, double far = INFINITY);
+
+    /** Returns the projection matrix from the focal length.
+     *
+     * @param focalLengthInMillimeters lens's focal length in millimeters. \p focalLength > 0.
+     * @param aspect      aspect ratio \f$ \frac{width}{height} \f$. \p aspect > 0.
+     * @param near        distance in world units from the camera to the near plane. \p near > 0.
+     * @param far         distance in world units from the camera to the far plane. \p far > \p near.
+     */
+    static math::mat4 projection(double focalLengthInMillimeters,
+            double aspect, double near, double far = INFINITY);
+
+
     /** Sets the projection matrix from a frustum defined by six planes.
      *
      * @param projection    type of #Projection to use.
@@ -209,7 +239,8 @@ public:
             double bottom, double top,
             double near, double far);
 
-    /** Sets the projection matrix from the field-of-view.
+
+    /** Utility to set the projection matrix from the field-of-view.
      *
      * @param fovInDegrees full field-of-view in degrees. 0 < \p fov < 180.
      * @param aspect       aspect ratio \f$ \frac{width}{height} \f$. \p aspect > 0.
@@ -222,7 +253,7 @@ public:
     void setProjection(double fovInDegrees, double aspect, double near, double far,
                        Fov direction = Fov::VERTICAL);
 
-    /** Sets the projection matrix from the focal length.
+    /** Utility to set the projection matrix from the focal length.
      *
      * @param focalLengthInMillimeters lens's focal length in millimeters. \p focalLength > 0.
      * @param aspect      aspect ratio \f$ \frac{width}{height} \f$. \p aspect > 0.
@@ -232,13 +263,8 @@ public:
     void setLensProjection(double focalLengthInMillimeters,
             double aspect, double near, double far);
 
+
     /** Sets a custom projection matrix.
-     *
-     * The projection matrix must be of one of the following form:
-     *       a 0 tx 0              a 0 0 tx
-     *       0 b ty 0              0 b 0 ty
-     *       0 0 tz c              0 0 c tz
-     *       0 0 -1 0              0 0 0 1
      *
      * The projection matrix must define an NDC system that must match the OpenGL convention,
      * that is all 3 axis are mapped to [-1, 1].
@@ -249,31 +275,7 @@ public:
      */
     void setCustomProjection(math::mat4 const& projection, double near, double far) noexcept;
 
-    /** Sets a custom projection matrix for each eye.
-     *
-     * The projectionForCulling, near, and far parameters establish a "culling frustum" which must
-     * encompass anything either eye can see.
-     *
-     * @param projection an array of projection matrices, only the first
-     *                   CONFIG_STEREOSCOPIC_EYES (2) are read
-     * @param count size of the projection matrix array to set, must be
-     *              >= CONFIG_STEREOSCOPIC_EYES (2)
-     * @param projectionForCulling custom projection matrix for culling, must encompass both eyes
-     * @param near distance in world units from the camera to the culling near plane. \p near > 0.
-     * @param far distance in world units from the camera to the culling far plane. \p far > \p
-     * near.
-     * @see setCustomProjection
-     */
-    void setCustomEyeProjection(math::mat4 const* projection, size_t count,
-            math::mat4 const& projectionForCulling, double near, double far);
-
     /** Sets the projection matrix.
-     *
-     * The projection matrices must be of one of the following form:
-     *       a 0 tx 0              a 0 0 tx
-     *       0 b ty 0              0 b 0 ty
-     *       0 0 tz c              0 0 c tz
-     *       0 0 -1 0              0 0 0 1
      *
      * The projection matrices must define an NDC system that must match the OpenGL convention,
      * that is all 3 axis are mapped to [-1, 1].
@@ -285,6 +287,27 @@ public:
      */
     void setCustomProjection(math::mat4 const& projection, math::mat4 const& projectionForCulling,
             double near, double far) noexcept;
+
+    /** Sets a custom projection matrix for each eye.
+     *
+     * The projectionForCulling, near, and far parameters establish a "culling frustum" which must
+     * encompass anything any eye can see. All projection matrices must be set simultaneously. The
+     * number of stereoscopic eyes is controlled by the stereoscopicEyeCount setting inside of
+     * Engine::Config.
+     *
+     * @param projection an array of projection matrices, only the first config.stereoscopicEyeCount
+     *                   are read
+     * @param count size of the projection matrix array to set, must be
+     *              >= config.stereoscopicEyeCount
+     * @param projectionForCulling custom projection matrix for culling, must encompass both eyes
+     * @param near distance in world units from the camera to the culling near plane. \p near > 0.
+     * @param far distance in world units from the camera to the culling far plane. \p far > \p
+     * near.
+     * @see setCustomProjection
+     * @see Engine::Config::stereoscopicEyeCount
+     */
+    void setCustomEyeProjection(math::mat4 const* UTILS_NONNULL projection, size_t count,
+            math::mat4 const& projectionForCulling, double near, double far);
 
     /** Sets an additional matrix that scales the projection matrix.
      *
@@ -342,8 +365,8 @@ public:
      * The projection matrix used for rendering always has its far plane set to infinity. This
      * is why it may differ from the matrix set through setProjection() or setLensProjection().
      *
-     * @param eyeId the index of the eye to return the projection matrix for, must be <
-     *              CONFIG_STEREOSCOPIC_EYES (2)
+     * @param eyeId the index of the eye to return the projection matrix for, must be
+     *              < config.stereoscopicEyeCount
      * @return The projection matrix used for rendering
      *
      * @see setProjection, setLensProjection, setCustomProjection, getCullingProjectionMatrix,
@@ -401,7 +424,7 @@ public:
      * This method is not intended to be called every frame. Instead, to update the position of the
      * head, use Camera::setModelMatrix.
      *
-     * @param eyeId the index of the eye to set, must be < CONFIG_STEREOSCOPIC_EYES (2)
+     * @param eyeId the index of the eye to set, must be < config.stereoscopicEyeCount
      * @param model the model matrix for an individual eye
      */
     void setEyeModelMatrix(uint8_t eyeId, math::mat4 const& model);
@@ -524,33 +547,6 @@ public:
      *
      * \param p the projection matrix to inverse
      * \returns the inverse of the projection matrix \p p
-     *
-     * \warning the projection matrix to invert must have one of the form below:
-     * - perspective projection
-     *
-     *      \f$
-     *      \left(
-     *      \begin{array}{cccc}
-     *      a & 0 & tx & 0 \\
-     *      0 & b & ty & 0 \\
-     *      0 & 0 & tz & c \\
-     *      0 & 0 & -1 & 0 \\
-     *      \end{array}
-     *      \right)
-     *      \f$
-     *
-     * - orthographic projection
-     *
-     *      \f$
-     *      \left(
-     *      \begin{array}{cccc}
-     *      a & 0 & 0 & tx \\
-     *      0 & b & 0 & ty \\
-     *      0 & 0 & c & tz \\
-     *      0 & 0 & 0 & 1  \\
-     *      \end{array}
-     *      \right)
-     *      \f$
      */
     static math::mat4 inverseProjection(const math::mat4& p) noexcept;
 
@@ -577,6 +573,10 @@ public:
      * @return                  effective full field of view in degrees
      */
     static double computeEffectiveFov(double fovInDegrees, double focusDistance) noexcept;
+
+protected:
+    // prevent heap allocation
+    ~Camera() = default;
 };
 
 } // namespace filament

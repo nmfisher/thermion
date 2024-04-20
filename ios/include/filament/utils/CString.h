@@ -35,7 +35,7 @@ struct hashCStrings {
     typedef size_t result_type;
     result_type operator()(argument_type cstr) const noexcept {
         size_t hash = 5381;
-        while (int c = *cstr++) {
+        while (int const c = *cstr++) {
             hash = (hash * 33u) ^ size_t(c);
         }
         return hash;
@@ -192,8 +192,8 @@ private:
     };
 
     int compare(const CString& rhs) const noexcept {
-        size_type lhs_size = size();
-        size_type rhs_size = rhs.size();
+        size_type const lhs_size = size();
+        size_type const rhs_size = rhs.size();
         if (lhs_size < rhs_size) return -1;
         if (lhs_size > rhs_size) return 1;
         return strncmp(data(), rhs.data(), size());
@@ -224,6 +224,28 @@ private:
 // to a compile-time failure.
 template<typename T>
 CString to_string(T value) noexcept;
+
+// ------------------------------------------------------------------------------------------------
+
+template <size_t N>
+class UTILS_PUBLIC FixedSizeString {
+public:
+    using value_type      = char;
+    using pointer         = value_type*;
+    using const_pointer   = const value_type*;
+    static_assert(N > 0);
+
+    FixedSizeString() noexcept = default;
+    explicit FixedSizeString(const char* str) noexcept {
+        strncpy(mData, str, N - 1); // leave room for the null terminator
+    }
+
+    const_pointer c_str() const noexcept { return mData; }
+    pointer c_str() noexcept { return mData; }
+
+private:
+    value_type mData[N] = {0};
+};
 
 } // namespace utils
 

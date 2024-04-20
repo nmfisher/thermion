@@ -97,8 +97,8 @@ struct AssetConfiguration {
  *
  * // Load buffers and textures from disk.
  * ResourceLoader resourceLoader({engine, ".", true});
- * resourceLoader.addTextureProvider("image/png", decoder)
- * resourceLoader.addTextureProvider("image/jpeg", decoder)
+ * resourceLoader.addTextureProvider("image/png", decoder);
+ * resourceLoader.addTextureProvider("image/jpeg", decoder);
  * resourceLoader.loadResources(asset);
  *
  * // Free the glTF hierarchy as it is no longer needed.
@@ -197,7 +197,7 @@ public:
      * This cannot be called after FilamentAsset::releaseSourceData().
      * See also AssetLoader::createInstancedAsset().
      */
-    FilamentInstance* createInstance(FilamentAsset* primary);
+    FilamentInstance* createInstance(FilamentAsset* asset);
 
     /**
      * Allows clients to enable diagnostic shading on newly-loaded assets.

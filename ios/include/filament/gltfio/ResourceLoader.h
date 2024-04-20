@@ -69,8 +69,11 @@ class UTILS_PUBLIC ResourceLoader {
 public:
     using BufferDescriptor = filament::backend::BufferDescriptor;
 
-    ResourceLoader(const ResourceConfiguration& config);
+    explicit ResourceLoader(const ResourceConfiguration& config);
     ~ResourceLoader();
+
+
+    void setConfiguration(const ResourceConfiguration& config);
 
     /**
      * Feeds the binary content of an external resource into the loader's URI cache.
@@ -90,7 +93,8 @@ public:
     /**
      * Register a plugin that can consume PNG / JPEG content and produce filament::Texture objects.
      *
-     * Destruction of the given provider is the client's responsibility.
+     * Destruction of the given provider is the client's responsibility and must be done after the
+     * destruction of this ResourceLoader.
      */
     void addTextureProvider(const char* mimeType, TextureProvider* provider);
 
@@ -153,8 +157,6 @@ public:
 
 private:
     bool loadResources(FFilamentAsset* asset, bool async);
-    void normalizeSkinningWeights(FFilamentAsset* asset) const;
-    AssetPool* mPool;
     struct Impl;
     Impl* pImpl;
 };
