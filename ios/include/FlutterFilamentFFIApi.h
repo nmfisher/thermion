@@ -17,14 +17,13 @@ extern "C"
     typedef void (*FilamentRenderCallback)(void *const owner);
 
     FLUTTER_PLUGIN_EXPORT void create_filament_viewer_ffi(
-        void *const context, 
-        void *const platform, 
-        const char *uberArchivePath, 
-        const ResourceLoaderWrapper *const loader, 
-        void (*renderCallback)(void *const renderCallbackOwner), 
+        void *const context,
+        void *const platform,
+        const char *uberArchivePath,
+        const ResourceLoaderWrapper *const loader,
+        void (*renderCallback)(void *const renderCallbackOwner),
         void *const renderCallbackOwner,
-        void (*callback)(void* const viewer)
-        );
+        void (*callback)(void *const viewer));
     FLUTTER_PLUGIN_EXPORT void create_swap_chain_ffi(void *const viewer, void *const surface, uint32_t width, uint32_t height, void (*onComplete)());
     FLUTTER_PLUGIN_EXPORT void destroy_swap_chain_ffi(void *const viewer, void (*onComplete)());
     FLUTTER_PLUGIN_EXPORT void create_render_target_ffi(void *const viewer, intptr_t nativeTextureId, uint32_t width, uint32_t height, void (*onComplete)());
@@ -45,16 +44,16 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void remove_skybox_ffi(void *const viewer);
     FLUTTER_PLUGIN_EXPORT void remove_ibl_ffi(void *const viewer);
     FLUTTER_PLUGIN_EXPORT void add_light_ffi(
-        void *const viewer, 
-        uint8_t type, 
-        float colour, 
-        float intensity, 
-        float posX, 
-        float posY, 
-        float posZ, 
-        float dirX, 
-        float dirY, 
-        float dirZ, 
+        void *const viewer,
+        uint8_t type,
+        float colour,
+        float intensity,
+        float posX,
+        float posY,
+        float posZ,
+        float dirX,
+        float dirY,
+        float dirZ,
         bool shadows,
         void (*callback)(EntityId));
     FLUTTER_PLUGIN_EXPORT void remove_light_ffi(void *const viewer, EntityId entityId);
@@ -82,19 +81,10 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void get_morph_target_name_count_ffi(void *const sceneManager, EntityId asset, const char *meshName, void (*callback)(int32_t));
     FLUTTER_PLUGIN_EXPORT void set_morph_target_weights_ffi(void *const sceneManager,
                                                             EntityId asset,
-                                                            const char *const entityName,
                                                             const float *const morphData,
-                                                            int numWeights);
-    FLUTTER_PLUGIN_EXPORT void set_morph_animation_ffi(
-        void *sceneManager,
-        EntityId asset,
-        const char *const entityName,
-        const float *const morphData,
-        const int *const morphIndices,
-        int numMorphTargets,
-        int numFrames,
-        float frameLengthInMs,
-        void (*callback)(bool));
+                                                            int numWeights,
+                                                            void (*callback)(bool));
+
     FLUTTER_PLUGIN_EXPORT void set_bone_transform_ffi(
         void *sceneManager,
         EntityId asset,
