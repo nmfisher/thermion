@@ -30,10 +30,9 @@ namespace flutter_filament
     using namespace filament;
     using namespace filament::gltfio;
     using namespace utils;
-    using std::vector;
-    using std::unique_ptr;
     using std::string;
-
+    using std::unique_ptr;
+    using std::vector;
 
     class SceneManager
     {
@@ -43,25 +42,24 @@ namespace flutter_filament
                      Scene *scene,
                      const char *uberArchivePath);
         ~SceneManager();
-        
-        
+
         EntityId loadGltf(const char *uri, const char *relativeResourcePath);
-        
+
         ////
         /// @brief Load the GLB from the specified path, optionally creating multiple instances.
         /// @param uri the path to the asset. Should be either asset:// (representing a Flutter asset), or file:// (representing a filesystem file).
-        /// @param numInstances the number of instances to create. 
+        /// @param numInstances the number of instances to create.
         /// @return an Entity representing the FilamentAsset associated with the loaded FilamentAsset.
-        ///  
+        ///
         EntityId loadGlb(const char *uri, int numInstances);
-        EntityId loadGlbFromBuffer(const uint8_t* data, size_t length, int numInstances=1);
+        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1);
         EntityId createInstance(EntityId entityId);
-        
+
         void remove(EntityId entity);
         void destroyAll();
         unique_ptr<vector<string>> getAnimationNames(EntityId entity);
         float getAnimationDuration(EntityId entity, int animationIndex);
-        
+
         unique_ptr<vector<string>> getMorphTargetNames(EntityId entity, const char *name);
         void transformToUnitCube(EntityId e);
         inline void updateTransform(EntityId e);
@@ -81,23 +79,22 @@ namespace flutter_filament
 
         bool setMorphAnimationBuffer(
             EntityId entityId,
-            const char *entityName,
             const float *const morphData,
             const int *const morphIndices,
             int numMorphTargets,
             int numFrames,
             float frameLengthInMs);
 
-        void setMorphTargetWeights(EntityId entityId, const char *const entityName, const float *const weights, int count);
+        bool setMorphTargetWeights(EntityId entityId, const float *const weights, int count);
 
         /// @brief Set the local transform for the bone at boneIndex/skinIndex in the given entity.
-        /// @param entityId the parent entity 
+        /// @param entityId the parent entity
         /// @param entityName the name of the mesh under entityId for which the bone will be set.
         /// @param skinIndex the index of the joint skin. Currently only 0 is supported.
         /// @param boneName the name of the bone
         /// @param transform the 4x4 matrix representing the local transform for the bone
         /// @return true if the transform was successfully set, false otherwise
-        bool setBoneTransform(EntityId entityId, const char *entityName, int skinIndex, const char* boneName, math::mat4f transform);
+        bool setBoneTransform(EntityId entityId, const char *entityName, int skinIndex, const char *boneName, math::mat4f transform);
 
         /// @brief Set frame data to animate the given bones/entities.
         /// @param entity the parent entity
@@ -105,7 +102,7 @@ namespace flutter_filament
         /// @param numFrames the number of frames
         /// @param boneName the name of the bone to animate
         /// @param meshName an array of mesh names under [entity] that should be animated
-        /// @param numMeshTargets the number of meshes under [meshName] 
+        /// @param numMeshTargets the number of meshes under [meshName]
         /// @param frameLengthInMs the length of each frame in ms
         /// @return true if the bone animation was successfully enqueued
         bool addBoneAnimation(
@@ -115,7 +112,7 @@ namespace flutter_filament
             const char *const boneName,
             const char **const meshName,
             int numMeshTargets,
-            float frameLengthInMs, 
+            float frameLengthInMs,
             bool isModelSpace);
         void resetBones(EntityId entityId);
         void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f);
@@ -131,36 +128,33 @@ namespace flutter_filament
             const char *entityName);
         int getEntityCount(EntityId entity, bool renderableOnly);
         void getEntities(EntityId entity, bool renderableOnly, EntityId *out);
-        const char* getEntityNameAt(EntityId entity, int index, bool renderableOnly);
+        const char *getEntityNameAt(EntityId entity, int index, bool renderableOnly);
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
         void setParent(EntityId child, EntityId parent);
-        void addAnimationComponent(EntityId entity);
+        bool addAnimationComponent(EntityId entity);
 
         /// @brief returns the number of instances of the FilamentAsset represented by the given entity.
-        /// @param entityId 
+        /// @param entityId
         /// @return the number of instances
         int getInstanceCount(EntityId entityId);
-        
+
         /// @brief returns an array containing all instances of the FilamentAsset represented by the given entity.
-        /// @param entityId 
-        void getInstances(EntityId entityId, EntityId* out);
+        /// @param entityId
+        void getInstances(EntityId entityId, EntityId *out);
 
         ///
         /// Sets the draw priority for the given entity. See RenderableManager.h for more details.
         ///
         void setPriority(EntityId entity, int priority);
 
-        
         /// @brief returns the gizmo entity, used to manipulate the global transform for entities
         /// @param out a pointer to an array of three EntityId {x, y, z}
-        /// @return 
+        /// @return
         ///
-        void getGizmo(EntityId* out);
-
+        void getGizmo(EntityId *out);
 
         friend class FilamentViewer;
-        
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
@@ -172,30 +166,30 @@ namespace flutter_filament
         gltfio::TextureProvider *_stbDecoder = nullptr;
         gltfio::TextureProvider *_ktxDecoder = nullptr;
         std::mutex _mutex;
-        Material* _gizmoMaterial;
+        Material *_gizmoMaterial;
 
-        utils::NameComponentManager* _ncm;
+        utils::NameComponentManager *_ncm;
 
         tsl::robin_map<
-            EntityId, 
-            gltfio::FilamentInstance*> _instances;
-        tsl::robin_map<EntityId, gltfio::FilamentAsset*> _assets;
-        tsl::robin_map<EntityId, std::tuple<math::float3,bool,math::quatf,bool,float>> _transformUpdates;
+            EntityId,
+            gltfio::FilamentInstance *>
+            _instances;
+        tsl::robin_map<EntityId, gltfio::FilamentAsset *> _assets;
+        tsl::robin_map<EntityId, std::tuple<math::float3, bool, math::quatf, bool, float>> _transformUpdates;
 
-        AnimationComponentManager* _animationComponentManager = nullptr;
-        CollisionComponentManager* _collisionComponentManager = nullptr;
+        AnimationComponentManager *_animationComponentManager = nullptr;
+        CollisionComponentManager *_collisionComponentManager = nullptr;
 
-        gltfio::FilamentInstance* getInstanceByEntityId(EntityId entityId);
-        gltfio::FilamentAsset* getAssetByEntityId(EntityId entityId);
+        gltfio::FilamentInstance *getInstanceByEntityId(EntityId entityId);
+        gltfio::FilamentAsset *getAssetByEntityId(EntityId entityId);
 
         utils::Entity findEntityByName(
-            const gltfio::FilamentInstance* instance,
+            const gltfio::FilamentInstance *instance,
             const char *entityName);
 
         EntityId addGizmo();
         utils::Entity _gizmoX;
         utils::Entity _gizmoY;
         utils::Entity _gizmoZ;
-
     };
 }

@@ -31,7 +31,6 @@ extern "C"
 #include "material/image.h"
 }
 
-
 namespace flutter_filament
 {
 
@@ -79,17 +78,16 @@ namespace flutter_filament
         _ncm = new NameComponentManager(em);
 
         _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em});
-        _gltfResourceLoader->addTextureProvider ("image/ktx2", _ktxDecoder);
+        _gltfResourceLoader->addTextureProvider("image/ktx2", _ktxDecoder);
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
 
-        auto& tm = _engine->getTransformManager();
+        auto &tm = _engine->getTransformManager();
 
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
 
         addGizmo();
-
     }
 
     SceneManager::~SceneManager()
@@ -100,22 +98,27 @@ namespace flutter_filament
         AssetLoader::destroy(&_assetLoader);
     }
 
-    int SceneManager::getInstanceCount(EntityId entityId) {
-        auto* asset = getAssetByEntityId(entityId);
-        if(!asset) {
+    int SceneManager::getInstanceCount(EntityId entityId)
+    {
+        auto *asset = getAssetByEntityId(entityId);
+        if (!asset)
+        {
             return -1;
         }
 
         return asset->getAssetInstanceCount();
     }
 
-    void SceneManager::getInstances(EntityId entityId, EntityId* out) {
-        auto* asset = getAssetByEntityId(entityId);
-        if(!asset) {
+    void SceneManager::getInstances(EntityId entityId, EntityId *out)
+    {
+        auto *asset = getAssetByEntityId(entityId);
+        if (!asset)
+        {
             return;
         }
-        auto* instances = asset->getAssetInstances();
-        for(int i=0; i < asset->getAssetInstanceCount(); i++) {
+        auto *instances = asset->getAssetInstances();
+        for (int i = 0; i < asset->getAssetInstanceCount(); i++)
+        {
             auto instanceEntity = instances[i]->getRoot();
             out[i] = Entity::smuggle(instanceEntity);
         }
@@ -151,31 +154,34 @@ namespace flutter_filament
             _gltfResourceLoader->addResourceData(resourceUris[i], std::move(b));
         }
 
-        #ifdef __EMSCRIPTEN__
-            if (!_gltfResourceLoader->asyncBeginLoad(asset)) {
-                Log("Unknown error loading glTF asset");
-                _resourceLoaderWrapper->free(rbuf);
-                for(auto& rb : resourceBuffers) {
-                    _resourceLoaderWrapper->free(rb);
-                }
-                return 0;
-            }
-            while(_gltfResourceLoader->asyncGetLoadProgress() < 1.0f) {
-                _gltfResourceLoader->asyncUpdateLoad();
-            }
-        #else
-            // load resources synchronously
-            if (!_gltfResourceLoader->loadResources(asset))
+#ifdef __EMSCRIPTEN__
+        if (!_gltfResourceLoader->asyncBeginLoad(asset))
+        {
+            Log("Unknown error loading glTF asset");
+            _resourceLoaderWrapper->free(rbuf);
+            for (auto &rb : resourceBuffers)
             {
-                Log("Unknown error loading glTF asset");
-                _resourceLoaderWrapper->free(rbuf);
-                for (auto &rb : resourceBuffers)
-                {
-                    _resourceLoaderWrapper->free(rb);
-                }
-                return 0;
+                _resourceLoaderWrapper->free(rb);
             }
-        #endif
+            return 0;
+        }
+        while (_gltfResourceLoader->asyncGetLoadProgress() < 1.0f)
+        {
+            _gltfResourceLoader->asyncUpdateLoad();
+        }
+#else
+        // load resources synchronously
+        if (!_gltfResourceLoader->loadResources(asset))
+        {
+            Log("Unknown error loading glTF asset");
+            _resourceLoaderWrapper->free(rbuf);
+            for (auto &rb : resourceBuffers)
+            {
+                _resourceLoaderWrapper->free(rb);
+            }
+            return 0;
+        }
+#endif
 
         _scene->addEntities(asset->getEntities(), asset->getEntityCount());
 
@@ -186,7 +192,7 @@ namespace flutter_filament
         _animationComponentManager->addAnimationComponent(inst);
 
         asset->releaseSourceData();
-                
+
         EntityId eid = Entity::smuggle(asset->getRoot());
 
         _assets.emplace(eid, asset);
@@ -202,17 +208,21 @@ namespace flutter_filament
         return eid;
     }
 
-    EntityId SceneManager::loadGlbFromBuffer(const uint8_t* data, size_t length, int numInstances) {
+    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances)
+    {
 
         Log("Loading GLB from buffer of length %d", length);
 
         FilamentAsset *asset = nullptr;
-        if(numInstances > 1) {
-            std::vector<FilamentInstance*> instances(numInstances);
+        if (numInstances > 1)
+        {
+            std::vector<FilamentInstance *> instances(numInstances);
             asset = _assetLoader->createInstancedAsset((const uint8_t *)data, length, instances.data(), numInstances);
-        } else {
+        }
+        else
+        {
             asset = _assetLoader->createAsset(
-            (const uint8_t *)data, length);
+                (const uint8_t *)data, length);
         }
 
         if (!asset)
@@ -225,27 +235,30 @@ namespace flutter_filament
 
         _scene->addEntities(asset->getEntities(), entityCount);
 
-        #ifdef __EMSCRIPTEN__ 
-            if (!_gltfResourceLoader->asyncBeginLoad(asset)) {
-                Log("Unknown error loading glb asset");
-                _resourceLoaderWrapper->free(rbuf);
-                return 0;
-            }
-            while(_gltfResourceLoader->asyncGetLoadProgress() < 1.0f) {
-                _gltfResourceLoader->asyncUpdateLoad();
-            }
-        #else 
-            if (!_gltfResourceLoader->loadResources(asset))
-            {
-                Log("Unknown error loading glb asset");
-                return 0;
-            }
-        #endif
+#ifdef __EMSCRIPTEN__
+        if (!_gltfResourceLoader->asyncBeginLoad(asset))
+        {
+            Log("Unknown error loading glb asset");
+            _resourceLoaderWrapper->free(rbuf);
+            return 0;
+        }
+        while (_gltfResourceLoader->asyncGetLoadProgress() < 1.0f)
+        {
+            _gltfResourceLoader->asyncUpdateLoad();
+        }
+#else
+        if (!_gltfResourceLoader->loadResources(asset))
+        {
+            Log("Unknown error loading glb asset");
+            return 0;
+        }
+#endif
 
         auto lights = asset->getLightEntities();
         _scene->addEntities(lights, asset->getLightEntityCount());
 
-        for(int i =0; i < asset->getAssetInstanceCount(); i++) { 
+        for (int i = 0; i < asset->getAssetInstanceCount(); i++)
+        {
             FilamentInstance *inst = asset->getAssetInstances()[i];
             inst->getAnimator()->updateBoneMatrices();
             inst->recomputeBoundingBoxes();
@@ -255,29 +268,38 @@ namespace flutter_filament
         }
 
         asset->releaseSourceData();
-    
+
         EntityId eid = Entity::smuggle(asset->getRoot());
         _assets.emplace(eid, asset);
         return eid;
     }
 
-    void SceneManager::addAnimationComponent(EntityId entityId) {
+    bool SceneManager::addAnimationComponent(EntityId entityId)
+    {
 
-        auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
-                return;
             }
         }
 
-        _animationComponentManager->addAnimationComponent(instance);
+        if (instance)
+        {
+            _animationComponentManager->addAnimationComponent(instance);
+        }
+        else
+        {
+            _animationComponentManager->addAnimationComponent(Entity::import(entityId));
+        }
+        return true;
     }
 
-    EntityId SceneManager::createInstance(EntityId entityId) {
+    EntityId SceneManager::createInstance(EntityId entityId)
+    {
         std::lock_guard lock(_mutex);
 
         const auto &pos = _assets.find(entityId);
@@ -295,57 +317,66 @@ namespace flutter_filament
     EntityId SceneManager::loadGlb(const char *uri, int numInstances)
     {
         ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
-        auto entity = loadGlbFromBuffer((const uint8_t*)rbuf.data, rbuf.size, numInstances);
+        auto entity = loadGlbFromBuffer((const uint8_t *)rbuf.data, rbuf.size, numInstances);
         _resourceLoaderWrapper->free(rbuf);
         return entity;
     }
 
     bool SceneManager::hide(EntityId entityId, const char *meshName)
     {
-        auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 // Log("Failed to find glTF instance under entityID %d, hiding as regular entity", entityId);
                 _scene->remove(Entity::import(entityId));
                 return true;
-            }   
+            }
         }
 
         utils::Entity entity;
 
-        if(meshName) {
+        if (meshName)
+        {
             entity = findEntityByName(instance, meshName);
-            // Log("Hiding child entity under name %s ", meshName);
-            if (entity.isNull()) {
+            if (entity.isNull())
+            {
                 Log("Failed to hide entity; specified mesh name does not exist under the target entity, or the target entity itself is no longer valid.");
                 return false;
             }
             _scene->remove(entity);
-        } else { 
-            // Log("Hiding all child entities");
-            auto* entities = instance->getEntities();
-            for(int i =0; i < instance->getEntityCount(); i++) { 
+        }
+        else
+        {
+            auto *entities = instance->getEntities();
+            for (int i = 0; i < instance->getEntityCount(); i++)
+            {
                 auto entity = entities[i];
                 _scene->remove(entity);
             }
         }
-        
+
         return true;
     }
 
     bool SceneManager::reveal(EntityId entityId, const char *meshName)
     {
-        auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 // Log("Failed to find glTF instance under entityID %d, revealing as regular entity", entityId);
                 _scene->addEntity(Entity::import(entityId));
                 return true;
@@ -354,7 +385,8 @@ namespace flutter_filament
 
         utils::Entity entity;
 
-        if(meshName) {
+        if (meshName)
+        {
             entity = findEntityByName(instance, meshName);
             if (entity.isNull())
             {
@@ -362,10 +394,13 @@ namespace flutter_filament
                 return false;
             }
             _scene->addEntity(entity);
-        } else { 
+        }
+        else
+        {
             // Log("Revealing all child entities");
-            auto* entities = instance->getEntities();
-            for(int i =0; i < instance->getEntityCount(); i++) { 
+            auto *entities = instance->getEntities();
+            for (int i = 0; i < instance->getEntityCount(); i++)
+            {
                 auto entity = entities[i];
                 _scene->addEntity(entity);
             }
@@ -403,34 +438,37 @@ namespace flutter_filament
         const auto &pos = _assets.find(entityId);
         if (pos == _assets.end())
         {
-            // Log("Failed to find FilamentAsset for entity %d", entityId);
             return nullptr;
         }
         return pos->second;
     }
 
-    
     // TODO - we really don't want to be looking up the bone index/entity by name every single frame
-    // - could use findChildEntityByName 
+    // - could use findChildEntityByName
     // - or is it better to add an option for "streaming" mode where we can just return a reference to a mat4 and then update the values directly?
-    bool SceneManager::setBoneTransform(EntityId entityId, const char *entityName, int32_t skinIndex, const char* boneName, math::mat4f localTransform)
+    bool SceneManager::setBoneTransform(EntityId entityId, const char *entityName, int32_t skinIndex, const char *boneName, math::mat4f localTransform)
     {
         std::lock_guard lock(_mutex);
 
-        auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
 
-        if(!instance) {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
+        if (!instance)
+        {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return false;
             }
         }
 
         const auto &entity = findEntityByName(instance, entityName);
 
-        if(entity.isNull()) {
+        if (entity.isNull())
+        {
             Log("Failed to find entity %s.", entityName);
             return false;
         }
@@ -439,7 +477,8 @@ namespace flutter_filament
 
         const auto &renderableInstance = rm.getInstance(entity);
 
-        if(!renderableInstance.isValid()) {
+        if (!renderableInstance.isValid())
+        {
             Log("Invalid renderable");
             return false;
         }
@@ -465,7 +504,8 @@ namespace flutter_filament
                 break;
             }
         }
-        if(boneIndex == -1) {
+        if (boneIndex == -1)
+        {
             Log("Failed to find bone %s", boneName);
             return false;
         }
@@ -478,19 +518,17 @@ namespace flutter_filament
             return false;
         }
 
-        const auto& inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[boneIndex];
+        const auto &inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[boneIndex];
 
         auto jointTransform = transformManager.getInstance(joint);
         auto globalJointTransform = transformManager.getWorldTransform(jointTransform);
 
         auto inverseGlobalTransform = inverse(
             transformManager.getWorldTransform(
-            transformManager.getInstance(entity)
-            )
-        );
+                transformManager.getInstance(entity)));
 
-        const auto boneTransform = inverseGlobalTransform * globalJointTransform * 
-        localTransform * inverseBindMatrix;
+        const auto boneTransform = inverseGlobalTransform * globalJointTransform *
+                                   localTransform * inverseBindMatrix;
 
         rm.setBones(
             renderableInstance,
@@ -498,7 +536,7 @@ namespace flutter_filament
             1,
             boneIndex);
         return true;
-    }   
+    }
 
     void SceneManager::remove(EntityId entityId)
     {
@@ -506,35 +544,44 @@ namespace flutter_filament
 
         auto entity = Entity::import(entityId);
 
-        if(_animationComponentManager->hasComponent(entity)) {
+        if (_animationComponentManager->hasComponent(entity))
+        {
             _animationComponentManager->removeComponent(entity);
         }
 
-        if(_collisionComponentManager->hasComponent(entity)) {
+        if (_collisionComponentManager->hasComponent(entity))
+        {
             _collisionComponentManager->removeComponent(entity);
         }
-    
+
         _scene->remove(entity);
 
-        const auto* instance = getInstanceByEntityId(entityId);       
-    
-        if(instance) {
+        const auto *instance = getInstanceByEntityId(entityId);
+
+        if (instance)
+        {
             _instances.erase(entityId);
             _scene->removeEntities(instance->getEntities(), instance->getEntityCount());
-            for(int i = 0; i < instance->getEntityCount(); i++) {
+            for (int i = 0; i < instance->getEntityCount(); i++)
+            {
                 auto childEntity = instance->getEntities()[i];
-                if(_collisionComponentManager->hasComponent(childEntity)) {
+                if (_collisionComponentManager->hasComponent(childEntity))
+                {
                     _collisionComponentManager->removeComponent(childEntity);
                 }
-                if(_animationComponentManager->hasComponent(childEntity)) {
+                if (_animationComponentManager->hasComponent(childEntity))
+                {
                     _animationComponentManager->removeComponent(childEntity);
                 }
             }
-        // if this a FilamentAsset Entity
-        } else { 
-            auto* asset = getAssetByEntityId(entityId);
+            // if this a FilamentAsset Entity
+        }
+        else
+        {
+            auto *asset = getAssetByEntityId(entityId);
 
-            if(!asset) {
+            if (!asset)
+            {
                 Log("ERROR: could not find FilamentInstance or FilamentAsset associated with the given entity id");
                 return;
             }
@@ -544,20 +591,24 @@ namespace flutter_filament
 
             _animationComponentManager->removeComponent(asset->getInstance()->getRoot());
 
-             for(int i = 0; i < asset->getEntityCount(); i++) {
+            for (int i = 0; i < asset->getEntityCount(); i++)
+            {
                 auto childEntity = asset->getEntities()[i];
-                if(_collisionComponentManager->hasComponent(childEntity)) {
+                if (_collisionComponentManager->hasComponent(childEntity))
+                {
                     _collisionComponentManager->removeComponent(childEntity);
                 }
-                if(_animationComponentManager->hasComponent(childEntity)) {
+                if (_animationComponentManager->hasComponent(childEntity))
+                {
                     _animationComponentManager->removeComponent(childEntity);
                 }
             }
 
             auto lightCount = asset->getLightEntityCount();
-            if(lightCount > 0) {        
+            if (lightCount > 0)
+            {
                 _scene->removeEntities(asset->getLightEntities(),
-                                                           asset->getLightEntityCount());
+                                       asset->getLightEntityCount());
             }
             _assetLoader->destroyAsset(asset);
         }
@@ -566,28 +617,20 @@ namespace flutter_filament
         // {
         //     _engine->destroy(sceneAsset.texture);
         // }
-//
-//        utils::EntityManager &em = utils::EntityManager::get();
-//        em.destroy(entity);
+        //
+        //        utils::EntityManager &em = utils::EntityManager::get();
+        //        em.destroy(entity);
     }
 
-    void SceneManager::setMorphTargetWeights(EntityId entityId, const char *const entityName, const float *const weights, const int count)
+    bool SceneManager::setMorphTargetWeights(EntityId entityId, const float *const weights, const int count)
     {
-        auto* instance = getInstanceByEntityId(entityId);
+        std::lock_guard lock(_mutex);
 
-        if(!instance) {
-            auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
-                return;
-            }
-            instance = asset->getInstance();
-        }
-
-        auto entity = findEntityByName(instance, entityName);
-        if (!entity)
+        auto entity = Entity::import(entityId);
+        if (entity.isNull())
         {
-            Log("Warning: failed to find entity %s", entityName);
-            return;
+            Log("Warning: null entity %d", entityId);
+            return false;
         }
 
         RenderableManager &rm = _engine->getRenderableManager();
@@ -596,43 +639,44 @@ namespace flutter_filament
 
         if (!renderableInstance.isValid())
         {
-            Log("Warning: failed to find renderable instance for entity %s", entityName);
-            return;
+            Log("Warning: failed to find a valid renderable instance for child entity %d", entityId);
+            return false;
         }
 
         rm.setMorphWeights(
             renderableInstance,
             weights,
             count);
+        return true;
     }
 
-    utils::Entity SceneManager::findChildEntityByName(EntityId entityId, const char *entityName) {
+    utils::Entity SceneManager::findChildEntityByName(EntityId entityId, const char *entityName)
+    {
         std::lock_guard lock(_mutex);
 
-        auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            auto *asset = getAssetByEntityId(entityId);
+            if (!asset)
+            {
                 return utils::Entity();
             }
             instance = asset->getInstance();
         }
-        
 
         const auto entity = findEntityByName(instance, entityName);
 
-        if(entity.isNull()) {
+        if (entity.isNull())
+        {
             Log("Failed to find entity %s.", entityName);
         }
-        
-        return entity;
 
+        return entity;
     }
 
-
     utils::Entity SceneManager::findEntityByName(const FilamentInstance *instance, const char *entityName)
-    {       
+    {
         utils::Entity entity;
         for (size_t i = 0, c = instance->getEntityCount(); i != c; ++i)
         {
@@ -657,7 +701,6 @@ namespace flutter_filament
 
     bool SceneManager::setMorphAnimationBuffer(
         EntityId entityId,
-        const char *entityName,
         const float *const morphData,
         const int *const morphIndices,
         int numMorphTargets,
@@ -666,22 +709,18 @@ namespace flutter_filament
     {
         std::lock_guard lock(_mutex);
 
-        auto* instance = getInstanceByEntityId(entityId);
-        if (!instance)
+        auto entity = Entity::import(entityId);
+
+        if (entity.isNull())
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
-                instance = asset->getInstance();
-            } else {
-                return false;
-            }
+            Log("ERROR: invalid entity %d.", entityId);
+            return false;
         }
 
-        auto entity = findEntityByName(instance, entityName);
-        if (!entity)
+        if (!_animationComponentManager->hasComponent(entity))
         {
-            Log("ERROR: failed to find entity %s", entityName);
-            return false;
+
+            _animationComponentManager->addAnimationComponent(entity);
         }
 
         MorphAnimation morphAnimation;
@@ -699,30 +738,34 @@ namespace flutter_filament
             morphAnimation.morphIndices[i] = morphIndices[i];
         }
         morphAnimation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
+
         morphAnimation.start = high_resolution_clock::now();
         morphAnimation.lengthInFrames = static_cast<int>(
-                    morphAnimation.durationInSecs * 1000.0f /
-                    frameLengthInMs
-                    );
+            morphAnimation.durationInSecs * 1000.0f /
+            frameLengthInMs);
 
-        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
-        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
-        auto& morphAnimations = animationComponent.morphAnimations;
-        
+        auto animationComponentInstance = _animationComponentManager->getInstance(entity);
+        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &morphAnimations = animationComponent.morphAnimations;
+
         morphAnimations.emplace_back(morphAnimation);
+        Log("Created morph animation for %d", entityId);
         return true;
     }
 
     bool SceneManager::setMaterialColor(EntityId entityId, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)
     {
 
-         auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return false;
             }
         }
@@ -752,31 +795,37 @@ namespace flutter_filament
         return true;
     }
 
-    void SceneManager::resetBones(EntityId entityId) {
+    void SceneManager::resetBones(EntityId entityId)
+    {
         std::lock_guard lock(_mutex);
 
-        auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return;
             }
         }
-        
+
         instance->getAnimator()->resetBoneMatrices();
-        
+
         auto skinCount = instance->getSkinCount();
 
         TransformManager &transformManager = _engine->getTransformManager();
 
         auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
-        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
 
-        for(int skinIndex = 0; skinIndex < skinCount; skinIndex++) {
-            for(int i =0; i < instance->getJointCountAt(skinIndex);i++) {
+        for (int skinIndex = 0; skinIndex < skinCount; skinIndex++)
+        {
+            for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
+            {
                 const Entity joint = instance->getJointsAt(skinIndex)[i];
                 auto restLocalTransform = animationComponent.initialJointTransforms[i];
                 auto jointTransform = transformManager.getInstance(joint);
@@ -785,7 +834,6 @@ namespace flutter_filament
         }
         instance->getAnimator()->updateBoneMatrices();
         instance->getAnimator()->resetBoneMatrices();
-
     }
 
     bool SceneManager::addBoneAnimation(EntityId entityId,
@@ -799,13 +847,16 @@ namespace flutter_filament
     {
         std::lock_guard lock(_mutex);
 
-        auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return false;
             }
         }
@@ -834,15 +885,16 @@ namespace flutter_filament
                 break;
             }
         }
-        if(!found) {
+        if (!found)
+        {
             Log("Failed to find bone %s", boneName);
             return false;
         }
-        
+
         animation.frameData.clear();
 
-        const auto& inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[animation.boneIndex];
-        const auto& bindMatrix = inverse(inverseBindMatrix);
+        const auto &inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[animation.boneIndex];
+        const auto &bindMatrix = inverse(inverseBindMatrix);
         math::float3 trans;
         math::quatf rot;
         math::float3 scale;
@@ -852,30 +904,32 @@ namespace flutter_filament
         math::float3 bscale;
         decomposeMatrix(bindMatrix, &btrans, &brot, &bscale);
 
-        for(int i = 0; i < numFrames; i++) {
-            math::mat4f frame( 
-                frameData[i*16],
-                frameData[(i*16)+1],
-                frameData[(i*16)+2],
-                frameData[(i*16)+3],
-                frameData[(i*16)+4],
-                frameData[(i*16)+5],
-                frameData[(i*16)+6],
-                frameData[(i*16)+7],
-                frameData[(i*16)+8],
-                frameData[(i*16)+9],
-                frameData[(i*16)+10],
-                frameData[(i*16)+11],
-                frameData[(i*16)+12],
-                frameData[(i*16)+13],
-                frameData[(i*16)+14],
-                frameData[(i*16)+15]);
-               
-                if(isModelSpace) {
-                    frame = (math::mat4f(rot) * frame) * math::mat4f(brot);
-                }
-                animation.frameData.push_back(frame);
-       }
+        for (int i = 0; i < numFrames; i++)
+        {
+            math::mat4f frame(
+                frameData[i * 16],
+                frameData[(i * 16) + 1],
+                frameData[(i * 16) + 2],
+                frameData[(i * 16) + 3],
+                frameData[(i * 16) + 4],
+                frameData[(i * 16) + 5],
+                frameData[(i * 16) + 6],
+                frameData[(i * 16) + 7],
+                frameData[(i * 16) + 8],
+                frameData[(i * 16) + 9],
+                frameData[(i * 16) + 10],
+                frameData[(i * 16) + 11],
+                frameData[(i * 16) + 12],
+                frameData[(i * 16) + 13],
+                frameData[(i * 16) + 14],
+                frameData[(i * 16) + 15]);
+
+            if (isModelSpace)
+            {
+                frame = (math::mat4f(rot) * frame) * math::mat4f(brot);
+            }
+            animation.frameData.push_back(frame);
+        }
 
         animation.frameLengthInMs = frameLengthInMs;
 
@@ -898,11 +952,10 @@ namespace flutter_filament
         animation.frameLengthInMs = frameLengthInMs;
         animation.skinIndex = 0;
 
-
         auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
-        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
-        auto& boneAnimations = animationComponent.boneAnimations;
-        
+        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &boneAnimations = animationComponent.boneAnimations;
+
         boneAnimations.emplace_back(animation);
 
         return true;
@@ -917,27 +970,30 @@ namespace flutter_filament
             Log("ERROR: glTF animation index must be greater than zero.");
             return;
         }
-        
-        auto* instance = getInstanceByEntityId(entityId);
+
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entityId);
-            if(asset) {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return;
             }
         }
 
-        if(!_animationComponentManager->hasComponent(instance->getRoot())) {
+        if (!_animationComponentManager->hasComponent(instance->getRoot()))
+        {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return;
         }
 
         auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
 
-
-        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
 
         if (replaceActive)
         {
@@ -976,25 +1032,26 @@ namespace flutter_filament
         animation.durationInSecs = instance->getAnimator()->getAnimationDuration(index);
 
         animationComponent.gltfAnimations.push_back(animation);
-
     }
 
-    void SceneManager::stopAnimation(EntityId entityId, int index) {
+    void SceneManager::stopAnimation(EntityId entityId, int index)
+    {
         std::lock_guard lock(_mutex);
 
         const auto *instance = getInstanceByEntityId(entityId);
-        if(!instance) {
+        if (!instance)
+        {
             return;
         }
 
         auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
-        auto& animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
 
         animationComponent.gltfAnimations.erase(std::remove_if(animationComponent.gltfAnimations.begin(),
-                                               animationComponent.gltfAnimations.end(),
-                                               [=](GltfAnimation &anim)
-                                               { return anim.index == index; }),
-                                animationComponent.gltfAnimations.end());
+                                                               animationComponent.gltfAnimations.end(),
+                                                               [=](GltfAnimation &anim)
+                                                               { return anim.index == index; }),
+                                                animationComponent.gltfAnimations.end());
     }
 
     void SceneManager::loadTexture(EntityId entity, const char *resourcePath, int renderableIndex)
@@ -1073,7 +1130,7 @@ namespace flutter_filament
 
     void SceneManager::setAnimationFrame(EntityId entityId, int animationIndex, int animationFrame)
     {
-        auto* instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         auto offset = 60 * animationFrame * 1000; // TODO - don't hardcore 60fps framerate
         instance->getAnimator()->applyAnimation(animationIndex, offset);
         instance->getAnimator()->updateBoneMatrices();
@@ -1081,12 +1138,13 @@ namespace flutter_filament
 
     float SceneManager::getAnimationDuration(EntityId entity, int animationIndex)
     {
-        auto* instance = getInstanceByEntityId(entity);
+        auto *instance = getInstanceByEntityId(entity);
 
         if (!instance)
         {
-            auto* asset = getAssetByEntityId(entity);
-            if(!asset) {
+            auto *asset = getAssetByEntityId(entity);
+            if (!asset)
+            {
                 return -1.0f;
             }
             instance = asset->getInstance();
@@ -1101,16 +1159,21 @@ namespace flutter_filament
 
         unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
-        FilamentInstance* instance;
+        FilamentInstance *instance;
 
         if (pos != _instances.end())
         {
             instance = pos->second;
-        } else {
-            const auto& assetPos = _assets.find(entity);
-            if(assetPos != _assets.end()) {
+        }
+        else
+        {
+            const auto &assetPos = _assets.find(entity);
+            if (assetPos != _assets.end())
+            {
                 instance = assetPos->second->getInstance();
-            } else {
+            }
+            else
+            {
                 Log("Could not resolve entity ID %d to FilamentInstance or FilamentAsset");
                 return names;
             }
@@ -1132,11 +1195,13 @@ namespace flutter_filament
         unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
         const auto *instance = getInstanceByEntityId(entityId);
-         if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {         
+            if (!asset)
+            {
                 return names;
-            } 
+            }
             instance = asset->getInstance();
         }
 
@@ -1166,13 +1231,17 @@ namespace flutter_filament
     void SceneManager::transformToUnitCube(EntityId entityId)
     {
         const auto *instance = getInstanceByEntityId(entityId);
-         if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else { 
+            }
+            else
+            {
                 return;
-            }          
+            }
         }
         auto &tm = _engine->getTransformManager();
 
@@ -1186,26 +1255,32 @@ namespace flutter_filament
         tm.setTransform(tm.getInstance(instance->getRoot()), transform);
     }
 
-    void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId) {
-        auto& tm = _engine->getTransformManager();
+    void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId)
+    {
+        auto &tm = _engine->getTransformManager();
         const auto child = Entity::import(childEntityId);
         const auto parent = Entity::import(parentEntityId);
 
-        const auto& parentInstance = tm.getInstance(parent);
-        const auto& childInstance = tm.getInstance(child);
+        const auto &parentInstance = tm.getInstance(parent);
+        const auto &childInstance = tm.getInstance(child);
         tm.setParent(childInstance, parentInstance);
     }
 
-    void SceneManager::addCollisionComponent(EntityId entityId, void(*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsTransform) {
+    void SceneManager::addCollisionComponent(EntityId entityId, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsTransform)
+    {
         std::lock_guard lock(_mutex);
         const auto *instance = getInstanceByEntityId(entityId);
-         if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if (!asset)
+            {
                 return;
-            } else {
+            }
+            else
+            {
                 instance = asset->getInstance();
-            }         
+            }
         }
         auto collisionInstance = _collisionComponentManager->addComponent(instance->getRoot());
         _collisionComponentManager->elementAt<0>(collisionInstance) = instance->getBoundingBox();
@@ -1213,32 +1288,42 @@ namespace flutter_filament
         _collisionComponentManager->elementAt<2>(collisionInstance) = affectsTransform;
     }
 
-    void SceneManager::removeCollisionComponent(EntityId entityId) {
+    void SceneManager::removeCollisionComponent(EntityId entityId)
+    {
         std::lock_guard lock(_mutex);
         const auto *instance = getInstanceByEntityId(entityId);
-         if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(!asset) {
+            if (!asset)
+            {
                 return;
-            } else {
+            }
+            else
+            {
                 instance = asset->getInstance();
-            }         
+            }
         }
         _collisionComponentManager->removeComponent(instance->getRoot());
     }
 
-    void SceneManager::testCollisions(EntityId entityId) { 
+    void SceneManager::testCollisions(EntityId entityId)
+    {
         const auto *instance = getInstanceByEntityId(entityId);
-         if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else { 
+            }
+            else
+            {
                 return;
-            }          
+            }
         }
 
-        const auto& tm = _engine->getTransformManager();
+        const auto &tm = _engine->getTransformManager();
 
         auto transformInstance = tm.getInstance(instance->getRoot());
         auto worldTransform = tm.getWorldTransform(transformInstance);
@@ -1247,17 +1332,20 @@ namespace flutter_filament
         _collisionComponentManager->collides(instance->getRoot(), aabb);
     }
 
-    void SceneManager::updateAnimations() { 
+    void SceneManager::updateAnimations()
+    {
         std::lock_guard lock(_mutex);
         _animationComponentManager->update();
     }
 
-    void SceneManager::updateTransforms() { 
+    void SceneManager::updateTransforms()
+    {
         std::lock_guard lock(_mutex);
 
         auto &tm = _engine->getTransformManager();
 
-        for ( const auto &[entityId, transformUpdate]: _transformUpdates ) {
+        for (const auto &[entityId, transformUpdate] : _transformUpdates)
+        {
             const auto &pos = _instances.find(entityId);
 
             bool isCollidable = true;
@@ -1269,9 +1357,11 @@ namespace flutter_filament
             {
                 isCollidable = false;
                 entity = Entity::import(entityId);
-            } else { 
-                const auto *instance = pos->second;  
-                entity =  instance->getRoot();
+            }
+            else
+            {
+                const auto *instance = pos->second;
+                entity = instance->getRoot();
                 boundingBox = instance->getBoundingBox();
             }
 
@@ -1287,41 +1377,51 @@ namespace flutter_filament
             math::float3 translation;
             math::quatf rotation;
             math::float3 scale;
-        
+
             decomposeMatrix(transform, &translation, &rotation, &scale);
 
-            if(newRotationRelative) {
+            if (newRotationRelative)
+            {
                 rotation = normalize(rotation * newRotation);
-            } else {
+            }
+            else
+            {
                 rotation = newRotation;
             }
 
             math::float3 relativeTranslation;
 
-            if(newTranslationRelative) {
+            if (newTranslationRelative)
+            {
                 math::mat3f rotationMatrix(rotation);
                 relativeTranslation = rotationMatrix * newTranslation;
-                translation += relativeTranslation; 
-            } else { 
+                translation += relativeTranslation;
+            }
+            else
+            {
                 relativeTranslation = newTranslation - translation;
                 translation = newTranslation;
             }
 
             transform = composeMatrix(translation, rotation, scale);
 
-            if(isCollidable) {
+            if (isCollidable)
+            {
                 auto transformedBB = boundingBox.transform(transform);
-                
+
                 auto collisionAxes = _collisionComponentManager->collides(entity, transformedBB);
 
-                if(collisionAxes.size() == 1) {
+                if (collisionAxes.size() == 1)
+                {
                     auto globalAxis = collisionAxes[0];
                     globalAxis *= norm(relativeTranslation);
                     auto newRelativeTranslation = relativeTranslation + globalAxis;
                     translation -= relativeTranslation;
                     translation += newRelativeTranslation;
                     transform = composeMatrix(translation, rotation, scale);
-                } else if(collisionAxes.size() > 1) {
+                }
+                else if (collisionAxes.size() > 1)
+                {
                     translation -= relativeTranslation;
                     transform = composeMatrix(translation, rotation, scale);
                 }
@@ -1336,18 +1436,19 @@ namespace flutter_filament
         std::lock_guard lock(_mutex);
 
         auto entity = Entity::import(entityId);
-        if(entity.isNull()) {
+        if (entity.isNull())
+        {
             Log("Failed to find entity under ID %d", entityId);
             return;
         }
         auto &tm = _engine->getTransformManager();
-        
+
         auto transformInstance = tm.getInstance(entity);
         auto transform = tm.getTransform(transformInstance);
         math::float3 translation;
         math::quatf rotation;
         math::float3 scale;
-        
+
         decomposeMatrix(transform, &translation, &rotation, &scale);
         auto newTransform = composeMatrix(translation, rotation, newScale);
         tm.setTransform(transformInstance, newTransform);
@@ -1358,20 +1459,21 @@ namespace flutter_filament
         std::lock_guard lock(_mutex);
 
         auto entity = Entity::import(entityId);
-        if(entity.isNull()) {
+        if (entity.isNull())
+        {
             Log("Failed to find entity under ID %d", entityId);
             return;
         }
         auto &tm = _engine->getTransformManager();
-        
+
         auto transformInstance = tm.getInstance(entity);
         auto transform = tm.getTransform(transformInstance);
         math::float3 translation;
         math::quatf rotation;
         math::float3 scale;
-        
+
         decomposeMatrix(transform, &translation, &rotation, &scale);
-        translation = math::float3(x,y,z);
+        translation = math::float3(x, y, z);
         auto newTransform = composeMatrix(translation, rotation, scale);
         tm.setTransform(transformInstance, newTransform);
     }
@@ -1381,20 +1483,21 @@ namespace flutter_filament
         std::lock_guard lock(_mutex);
 
         auto entity = Entity::import(entityId);
-        if(entity.isNull()) {
+        if (entity.isNull())
+        {
             Log("Failed to find entity under ID %d", entityId);
             return;
         }
         auto &tm = _engine->getTransformManager();
-        
+
         auto transformInstance = tm.getInstance(entity);
         auto transform = tm.getTransform(transformInstance);
         math::float3 translation;
         math::quatf rotation;
         math::float3 scale;
-        
+
         decomposeMatrix(transform, &translation, &rotation, &scale);
-        rotation = math::quatf(w,x,y,z);
+        rotation = math::quatf(w, x, y, z);
         auto newTransform = composeMatrix(translation, rotation, scale);
         tm.setTransform(transformInstance, newTransform);
     }
@@ -1407,16 +1510,16 @@ namespace flutter_filament
         if (pos == _transformUpdates.end())
         {
             _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
-        } 
+        }
         auto curr = _transformUpdates[entity];
-        auto& trans = std::get<0>(curr);
+        auto &trans = std::get<0>(curr);
         trans.x = x;
         trans.y = y;
         trans.z = z;
-         
-        auto& isRelative = std::get<1>(curr);
+
+        auto &isRelative = std::get<1>(curr);
         isRelative = relative;
-        _transformUpdates[entity] = curr;        
+        _transformUpdates[entity] = curr;
     }
 
     void SceneManager::queueRotationUpdate(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
@@ -1426,14 +1529,14 @@ namespace flutter_filament
         if (pos == _transformUpdates.end())
         {
             _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
-        } 
+        }
         auto curr = _transformUpdates[entity];
-        auto& rot = std::get<2>(curr);
+        auto &rot = std::get<2>(curr);
         rot.w = w;
         rot.x = x;
         rot.y = y;
         rot.z = z;
-        auto& isRelative = std::get<3>(curr);
+        auto &isRelative = std::get<3>(curr);
         isRelative = relative;
         _transformUpdates[entity] = curr;
     }
@@ -1441,13 +1544,17 @@ namespace flutter_filament
     const utils::Entity *SceneManager::getCameraEntities(EntityId entityId)
     {
         const auto *instance = getInstanceByEntityId(entityId);
-         if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else { 
+            }
+            else
+            {
                 return nullptr;
-            }         
+            }
         }
         return instance->getAsset()->getCameraEntities();
     }
@@ -1455,13 +1562,17 @@ namespace flutter_filament
     size_t SceneManager::getCameraEntityCount(EntityId entityId)
     {
         const auto *instance = getInstanceByEntityId(entityId);
-         if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else { 
+            }
+            else
+            {
                 return -1;
-            }          
+            }
         }
         return instance->getAsset()->getCameraEntityCount();
     }
@@ -1469,13 +1580,17 @@ namespace flutter_filament
     const utils::Entity *SceneManager::getLightEntities(EntityId entityId) noexcept
     {
         const auto *instance = getInstanceByEntityId(entityId);
-        if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return nullptr;
-            }          
+            }
         }
         return instance->getAsset()->getLightEntities();
     }
@@ -1483,13 +1598,17 @@ namespace flutter_filament
     size_t SceneManager::getLightEntityCount(EntityId entityId) noexcept
     {
         const auto *instance = getInstanceByEntityId(entityId);
-        if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return -1;
-            }         
+            }
         }
         return instance->getAsset()->getLightEntityCount();
     }
@@ -1506,229 +1625,260 @@ namespace flutter_filament
         return _ncm->getName(nameInstance);
     }
 
-    int SceneManager::getEntityCount(EntityId entityId, bool renderableOnly) {
+    int SceneManager::getEntityCount(EntityId entityId, bool renderableOnly)
+    {
         const auto *instance = getInstanceByEntityId(entityId);
-        if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return 0;
             }
         }
-        if(renderableOnly) {
+        if (renderableOnly)
+        {
             int count = 0;
-            const auto& rm = _engine->getRenderableManager();
+            const auto &rm = _engine->getRenderableManager();
             const Entity *entities = instance->getEntities();
-            for(int i=0; i < instance->getEntityCount(); i++) {
-                if(rm.hasComponent(entities[i])) { 
+            for (int i = 0; i < instance->getEntityCount(); i++)
+            {
+                if (rm.hasComponent(entities[i]))
+                {
                     count++;
                 }
             }
             return count;
-        } 
+        }
         return instance->getEntityCount();
     }
 
-    void SceneManager::getEntities(EntityId entityId, bool renderableOnly, EntityId* out) {
+    void SceneManager::getEntities(EntityId entityId, bool renderableOnly, EntityId *out)
+    {
         const auto *instance = getInstanceByEntityId(entityId);
-        if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return;
             }
         }
 
-         if(renderableOnly) {
+        if (renderableOnly)
+        {
             int count = 0;
-            const auto& rm = _engine->getRenderableManager();
+            const auto &rm = _engine->getRenderableManager();
             const Entity *entities = instance->getEntities();
             int offset = 0;
-            for(int i=0; i < instance->getEntityCount(); i++) {
-                if(rm.hasComponent(entities[i])) { 
+            for (int i = 0; i < instance->getEntityCount(); i++)
+            {
+                if (rm.hasComponent(entities[i]))
+                {
                     out[offset] = Entity::smuggle(entities[i]);
+                    offset++;
                 }
             }
-        } else {
-            for(int i=0;i < instance->getEntityCount(); i++) {
+        }
+        else
+        {
+            for (int i = 0; i < instance->getEntityCount(); i++)
+            {
                 out[i] = Entity::smuggle(instance->getEntities()[i]);
             }
         }
     }
 
-    const char* SceneManager::getEntityNameAt(EntityId entityId, int index, bool renderableOnly) {
+    const char *SceneManager::getEntityNameAt(EntityId entityId, int index, bool renderableOnly)
+    {
         const auto *instance = getInstanceByEntityId(entityId);
-        if(!instance) {
+        if (!instance)
+        {
             auto asset = getAssetByEntityId(entityId);
-            if(asset) {
+            if (asset)
+            {
                 instance = asset->getInstance();
-            } else {
+            }
+            else
+            {
                 return nullptr;
             }
         }
         int found = -1;
 
-        if(renderableOnly) {
+        if (renderableOnly)
+        {
             int count = 0;
-            const auto& rm = _engine->getRenderableManager();
+            const auto &rm = _engine->getRenderableManager();
             const Entity *entities = instance->getEntities();
-            for(int i=0; i < instance->getEntityCount(); i++) {
-                if(rm.hasComponent(entities[i])) { 
-                    if(count == index) {
+            for (int i = 0; i < instance->getEntityCount(); i++)
+            {
+                if (rm.hasComponent(entities[i]))
+                {
+                    if (count == index)
+                    {
                         found = i;
                         break;
                     }
                     count++;
                 }
             }
-        } else { 
+        }
+        else
+        {
             found = index;
         }
 
-        if(found >= instance->getEntityCount()) { 
+        if (found >= instance->getEntityCount())
+        {
             Log("ERROR: index %d greater than number of child entities.", found);
             return nullptr;
         }
-        
-        const utils::Entity entity = instance->getEntities()[found];    
+
+        const utils::Entity entity = instance->getEntities()[found];
         auto inst = _ncm->getInstance(entity);
         return _ncm->getName(inst);
     }
 
-    void SceneManager::setPriority(EntityId entityId, int priority) {
-        auto& rm = _engine->getRenderableManager();
+    void SceneManager::setPriority(EntityId entityId, int priority)
+    {
+        auto &rm = _engine->getRenderableManager();
         auto renderableInstance = rm.getInstance(Entity::import(entityId));
-        if(!renderableInstance.isValid()) {
-            Log("Error: invalid renderable, did you pass the correct entity?", priority);    
+        if (!renderableInstance.isValid())
+        {
+            Log("Error: invalid renderable, did you pass the correct entity?", priority);
             return;
         }
-        rm.setPriority(renderableInstance, priority); 
+        rm.setPriority(renderableInstance, priority);
         Log("Set instance renderable priority to %d", priority);
     }
 
-    EntityId SceneManager::addGizmo() {
+    EntityId SceneManager::addGizmo()
+    {
         _gizmoMaterial =
-          Material::Builder()
-              .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
-              .build(*_engine);
+            Material::Builder()
+                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
+                .build(*_engine);
 
         auto vertexCount = 9;
 
-        float* vertices = new float[vertexCount * 3] { 
-            -0.05, 0.0f, 0.05f, 
-            0.05f, 0.0f, 0.05f, 
+        float *vertices = new float[vertexCount * 3]{
+            -0.05, 0.0f, 0.05f,
+            0.05f, 0.0f, 0.05f,
             0.05f, 0.0f, -0.05f,
             -0.05f, 0.0f, -0.05f,
             -0.05f, 1.0f, 0.05f,
             0.05f, 1.0f, 0.05f,
             0.05f, 1.0f, -0.05f,
             -0.05f, 1.0f, -0.05f,
-            0.00f, 1.1f, 0.0f
-        };
-           
+            0.00f, 1.1f, 0.0f};
+
         VertexBuffer::BufferDescriptor::Callback vertexCallback = [](void *buf, size_t,
-                                                                void *data)
+                                                                     void *data)
         {
-        free((void*)buf);
+            free((void *)buf);
         };
 
         auto indexCount = 42;
-        uint16_t* indices = new uint16_t[indexCount] { 
-            //bottom quad
-            0,1,2,
-            0,2,3,
+        uint16_t *indices = new uint16_t[indexCount]{
+            // bottom quad
+            0, 1, 2,
+            0, 2, 3,
             // top "cone"
-            4,5,8,
-            5,6,8,
-            4,7,8,
-            6,7,8,
-            // front 
-            0,1,4,
-            1,5,4,
+            4, 5, 8,
+            5, 6, 8,
+            4, 7, 8,
+            6, 7, 8,
+            // front
+            0, 1, 4,
+            1, 5, 4,
             // right
-            1,2,5,
-            2,6,5,
+            1, 2, 5,
+            2, 6, 5,
             // back
-            2,6,7,
-            7,3,2,
+            2, 6, 7,
+            7, 3, 2,
             // left
-            0,4,7,
-            7,3,0
-            
+            0, 4, 7,
+            7, 3, 0
+
         };
-        
+
         IndexBuffer::BufferDescriptor::Callback indexCallback = [](void *buf, size_t,
-                                                                void *data)
+                                                                   void *data)
         {
-        free((void*)buf);
+            free((void *)buf);
         };
 
         auto vb = VertexBuffer::Builder()
-            .vertexCount(vertexCount)
-            .bufferCount(1)
-            .attribute(
-                VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-            .build(*_engine);
+                      .vertexCount(vertexCount)
+                      .bufferCount(1)
+                      .attribute(
+                          VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
+                      .build(*_engine);
 
         vb->setBufferAt(
-            *_engine, 
-            0, 
-            VertexBuffer::BufferDescriptor(vertices, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback)
-        );
-        
+            *_engine,
+            0,
+            VertexBuffer::BufferDescriptor(vertices, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback));
+
         auto ib = IndexBuffer::Builder().indexCount(indexCount).bufferType(IndexBuffer::IndexType::USHORT).build(*_engine);
         ib->setBuffer(*_engine, IndexBuffer::BufferDescriptor(indices, ib->getIndexCount() * sizeof(uint16_t), 0, indexCallback));
-        
+
         auto &entityManager = EntityManager::get();
 
         _gizmoY = entityManager.create();
         auto materialY = _gizmoMaterial->createInstance();
-        materialY->setParameter("color", math::float3 { 1.0f, 0.0f, 0.0f });
+        materialY->setParameter("color", math::float3{1.0f, 0.0f, 0.0f});
         RenderableManager::Builder(1)
             .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
             .material(0, materialY)
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                    ib, 0, indexCount)
+                      ib, 0, indexCount)
             .culling(false)
-            .build(*_engine, _gizmoY);   
+            .build(*_engine, _gizmoY);
 
         _gizmoX = entityManager.create();
         auto materialX = _gizmoMaterial->createInstance();
-        materialX->setParameter("color", math::float3 { 0.0f, 1.0f, 0.0f });
-        auto xTransform  = math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(-math::F_PI_2, math::float3 { 0, 0, 1 });
-        auto* instanceBufferX = InstanceBuffer::Builder(1).localTransforms(&xTransform).build(*_engine);
+        materialX->setParameter("color", math::float3{0.0f, 1.0f, 0.0f});
+        auto xTransform = math::mat4f::translation(math::float3{0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(-math::F_PI_2, math::float3{0, 0, 1});
+        auto *instanceBufferX = InstanceBuffer::Builder(1).localTransforms(&xTransform).build(*_engine);
         RenderableManager::Builder(1)
             .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
             .instances(1, instanceBufferX)
             .material(0, materialX)
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                    ib, 0, indexCount)
+                      ib, 0, indexCount)
             .culling(false)
-            .build(*_engine, _gizmoX);   
+            .build(*_engine, _gizmoX);
 
         _gizmoZ = entityManager.create();
         auto materialZ = _gizmoMaterial->createInstance();
-        materialZ->setParameter("color", math::float3 { 0.0f, 0.0f, 1.0f });
-        auto zTransform = math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3 { 1, 0, 0 });
-        auto* instanceBufferZ = InstanceBuffer::Builder(1).localTransforms(&zTransform).build(*_engine);
+        materialZ->setParameter("color", math::float3{0.0f, 0.0f, 1.0f});
+        auto zTransform = math::mat4f::translation(math::float3{0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3{1, 0, 0});
+        auto *instanceBufferZ = InstanceBuffer::Builder(1).localTransforms(&zTransform).build(*_engine);
         RenderableManager::Builder(1)
             .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
             .instances(1, instanceBufferZ)
             .material(0, materialZ)
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                    ib, 0, indexCount)
+                      ib, 0, indexCount)
             .culling(false)
-            .build(*_engine, _gizmoZ);   
-        
-        
+            .build(*_engine, _gizmoZ);
+
         // auto localTransforms = math::mat4f[3] {
         //     math::mat4f(),
         //     math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3 { 1, 0, 0 }) ,
         //     math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(math::F_PI_2, math::float3 { 0, 0, 1 })
         // };
-
 
         // RenderableManager::Builder(1)
         //     .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
@@ -1737,19 +1887,20 @@ namespace flutter_filament
         //     .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
         //             ib, 0, indexCount)
         //     .culling(false)
-        //     .build(*_engine, _gizmo);   
-            
-        auto& rm = _engine->getRenderableManager();
+        //     .build(*_engine, _gizmo);
+
+        auto &rm = _engine->getRenderableManager();
         rm.setPriority(rm.getInstance(_gizmoX), 7);
         rm.setPriority(rm.getInstance(_gizmoY), 7);
         rm.setPriority(rm.getInstance(_gizmoZ), 7);
         return Entity::smuggle(_gizmoX);
     }
 
-    void SceneManager::getGizmo(EntityId* out) { 
+    void SceneManager::getGizmo(EntityId *out)
+    {
         out[0] = Entity::smuggle(_gizmoX);
         out[1] = Entity::smuggle(_gizmoY);
-        out[2] = Entity::smuggle(_gizmoZ);    
+        out[2] = Entity::smuggle(_gizmoZ);
     }
 
 } // namespace flutter_filament
