@@ -40,7 +40,7 @@
 
 #endif /* __STDBOOL_H */
 
-#if defined(__APPLE__) || defined(__EMSCRIPTEN__) 
+#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
 #include <stddef.h>
 #endif
 
@@ -67,14 +67,14 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void set_bloom(const void *const viewer, float strength);
 	FLUTTER_PLUGIN_EXPORT void load_skybox(const void *const viewer, const char *skyboxPath);
 	FLUTTER_PLUGIN_EXPORT void load_ibl(const void *const viewer, const char *iblPath, float intensity);
-	FLUTTER_PLUGIN_EXPORT void rotate_ibl(const void *const viewer, float* rotationMatrix);
+	FLUTTER_PLUGIN_EXPORT void rotate_ibl(const void *const viewer, float *rotationMatrix);
 	FLUTTER_PLUGIN_EXPORT void remove_skybox(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT void remove_ibl(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT EntityId add_light(const void *const viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
 	FLUTTER_PLUGIN_EXPORT void remove_light(const void *const viewer, EntityId entityId);
 	FLUTTER_PLUGIN_EXPORT void clear_lights(const void *const viewer);
 	FLUTTER_PLUGIN_EXPORT EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances);
-	FLUTTER_PLUGIN_EXPORT EntityId load_glb_from_buffer(void *sceneManager, const void* const data, size_t length);
+	FLUTTER_PLUGIN_EXPORT EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length);
 	FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath);
 	FLUTTER_PLUGIN_EXPORT EntityId create_instance(void *sceneManager, EntityId id);
 	FLUTTER_PLUGIN_EXPORT int get_instance_count(void *sceneManager, EntityId entityId);
@@ -105,22 +105,20 @@ extern "C"
 		const char *const entityName,
 		float *const weights,
 		int count);
-	FLUTTER_PLUGIN_EXPORT void set_morph_target_weights(
+	FLUTTER_PLUGIN_EXPORT bool set_morph_target_weights(
 		void *sceneManager,
 		EntityId asset,
-		const char *const entityName,
 		const float *const morphData,
 		int numWeights);
 	FLUTTER_PLUGIN_EXPORT bool set_morph_animation(
 		void *sceneManager,
 		EntityId asset,
-		const char *const entityName,
 		const float *const morphData,
 		const int *const morphIndices,
 		int numMorphTargets,
 		int numFrames,
 		float frameLengthInMs);
-	
+
 	FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose(
 		void *sceneManager,
 		EntityId asset);
@@ -186,23 +184,23 @@ extern "C"
 	FLUTTER_PLUGIN_EXPORT void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa);
 	FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y));
 	FLUTTER_PLUGIN_EXPORT const char *get_name_for_entity(void *const sceneManager, const EntityId entityId);
-	FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name);
+	FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char *name);
 	FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const sceneManager, const EntityId target, bool renderableOnly);
-	FLUTTER_PLUGIN_EXPORT void get_entities(void *const sceneManager, const EntityId target, bool renderableOnly, EntityId* out);
-	FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly);
+	FLUTTER_PLUGIN_EXPORT void get_entities(void *const sceneManager, const EntityId target, bool renderableOnly, EntityId *out);
+	FLUTTER_PLUGIN_EXPORT const char *get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly);
 	FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording);
-	FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory);
+	FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char *outputDirectory);
 	FLUTTER_PLUGIN_EXPORT void ios_dummy();
 	FLUTTER_PLUGIN_EXPORT void flutter_filament_free(void *ptr);
 	FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const sceneManager, EntityId entityId, void (*callback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
 	FLUTTER_PLUGIN_EXPORT void remove_collision_component(void *const sceneManager, EntityId entityId);
-	FLUTTER_PLUGIN_EXPORT void add_animation_component(void *const sceneManager, EntityId entityId);
+	FLUTTER_PLUGIN_EXPORT bool add_animation_component(void *const sceneManager, EntityId entityId);
 
-	FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, int primitiveType, const char* materialPath);
+	FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
 	FLUTTER_PLUGIN_EXPORT void set_parent(void *const sceneManager, EntityId child, EntityId parent);
 	FLUTTER_PLUGIN_EXPORT void test_collisions(void *const sceneManager, EntityId entity);
 	FLUTTER_PLUGIN_EXPORT void set_priority(void *const sceneManager, EntityId entityId, int priority);
-	FLUTTER_PLUGIN_EXPORT void get_gizmo(void *const sceneManager, EntityId* out);
+	FLUTTER_PLUGIN_EXPORT void get_gizmo(void *const sceneManager, EntityId *out);
 
 #ifdef __cplusplus
 }
