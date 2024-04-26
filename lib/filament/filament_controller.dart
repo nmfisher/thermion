@@ -9,7 +9,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_filament/filament/entities/gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
 
-import 'animations/animation_data.dart';
+import 'package:animation_tools_dart/animation_tools_dart.dart';
 
 // a handle that can be safely passed back to the rendering layer to manipulate an Entity
 typedef FilamentEntity = int;

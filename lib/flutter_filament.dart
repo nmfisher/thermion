@@ -2,8 +2,7 @@ library flutter_filament;
 
 export 'filament/filament_controller.dart';
 export 'filament/filament_controller_ffi.dart';
-export 'filament/animations/animation_builder.dart';
-export 'filament/animations/animation_data.dart';
+
 export 'filament/widgets/camera_options_widget.dart';
 export 'filament/widgets/filament_gesture_detector.dart';
 export 'filament/widgets/filament_widget.dart';
