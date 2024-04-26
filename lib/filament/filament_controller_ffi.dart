@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:developer' as dev;
+import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:ffi/ffi.dart';
@@ -783,20 +784,31 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setMorphTargetWeights(
-      FilamentEntity entity, String meshName, List<double> weights) async {
+      FilamentEntity entity, List<double> weights) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
+    }
+
+    if (weights.isEmpty) {
+      throw Exception("Weights must not be empty");
     }
     var weightsPtr = allocator<Float>(weights.length);
 
     for (int i = 0; i < weights.length; i++) {
-      weightsPtr.elementAt(i).value = weights[i];
+      weightsPtr[i] = weights[i];
     }
-    var meshNamePtr = meshName.toNativeUtf8(allocator: allocator).cast<Char>();
-    set_morph_target_weights_ffi(
-        _sceneManager!, entity, meshNamePtr, weightsPtr, weights.length);
+
+    var success = await _withBoolCallback((cb) {
+      set_morph_target_weights_ffi(
+          _sceneManager!, entity, weightsPtr, weights.length, cb);
+    });
+
     allocator.free(weightsPtr);
-    allocator.free(meshNamePtr);
+
+    if (!success) {
+      throw Exception(
+          "Failed to set morph target weights, check logs for details");
+    }
   }
 
   @override
@@ -807,6 +819,7 @@ class FilamentControllerFFI extends FilamentController {
     }
     var names = <String>[];
     var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
+
     var count = await _withIntCallback((callback) =>
         get_morph_target_name_count_ffi(
             _sceneManager!, entity, meshNamePtr, callback));
@@ -851,51 +864,73 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future setMorphAnimationData(
-      FilamentEntity entity, MorphAnimationData animation) async {
+      FilamentEntity entity, MorphAnimationData animation,
+      {List<String>? targetMeshNames}) async {
     if (_viewer == null) {
       throw Exception("No viewer available, ignoring");
     }
 
-    var dataPtr = allocator<Float>(animation.data.length);
-    for (int i = 0; i < animation.data.length; i++) {
-      dataPtr.elementAt(i).value = animation.data[i];
-    }
+    var meshNames = await getChildEntityNames(entity, renderableOnly: true);
+    var meshEntities = await getChildEntities(entity, true);
 
-    Pointer<Int> idxPtr = allocator<Int>(animation.morphTargets.length);
+    // Entities are not guaranteed to have the same morph targets (or share the same order),
+    // either from each other, or from those specified in [animation].
+    // We therefore set morph targets separately for each mesh.
+    // For each mesh, allocate enough memory to hold FxM 32-bit floats
+    // (where F is the number of Frames, and M is the number of morph targets in the mesh).
+    // we call [extract] on [animation] to return frame data only for morph targets that present in both the mesh and the animation
+    for (int i = 0; i < meshNames.length; i++) {
+      var meshName = meshNames[i];
+      var meshEntity = meshEntities[i];
 
-    for (var meshName in animation.meshNames) {
-      // the morph targets in [animation] might be a subset of those that actually exist in the mesh (and might not have the same order)
-      // we don't want to reorder the data (?? or do we? this is probably more efficient for the backend?)
-      // so let's get the actual list of morph targets from the mesh and pass the relevant indices to the native side.
+      if (targetMeshNames?.contains(meshName) == false) {
+        continue;
+      }
       var meshMorphTargets = await getMorphTargetNames(entity, meshName);
 
-      for (int i = 0; i < animation.numMorphTargets; i++) {
-        var index = meshMorphTargets.indexOf(animation.morphTargets[i]);
-        if (index == -1) {
-          allocator.free(dataPtr);
-          allocator.free(idxPtr);
-          throw Exception(
-              "Morph target ${animation.morphTargets[i]} is specified in the animation but could not be found in the mesh $meshName under entity $entity");
-        }
-        idxPtr.elementAt(i).value = index;
+      var intersection = animation.morphTargets
+          .toSet()
+          .intersection(meshMorphTargets.toSet())
+          .toList();
+
+      if (intersection.isEmpty) {
+        throw Exception(
+            "No morph targets specified in animation are present on targeted mesh");
       }
 
-      var meshNamePtr =
-          meshName.toNativeUtf8(allocator: allocator).cast<Char>();
+      var indices =
+          intersection.map((m) => meshMorphTargets.indexOf(m)).toList();
 
-      set_morph_animation(
+      var frameData = animation.extract(morphTargets: intersection);
+
+      assert(frameData.length == animation.numFrames * intersection.length);
+
+      var dataPtr = allocator<Float>(frameData.length);
+
+      dataPtr
+          .asTypedList(frameData.length)
+          .setRange(0, frameData.length, frameData);
+
+      final idxPtr = allocator<Int>(indices.length);
+
+      for (int i = 0; i < indices.length; i++) {
+        idxPtr[i] = indices[i];
+      }
+
+      var result = set_morph_animation(
           _sceneManager!,
-          entity,
-          meshNamePtr,
+          meshEntity,
           dataPtr,
           idxPtr,
-          animation.numMorphTargets,
+          indices.length,
           animation.numFrames,
           (animation.frameLengthInMs));
-      allocator.free(meshNamePtr);
+      allocator.free(dataPtr);
+      allocator.free(idxPtr);
+      if (!result) {
+        throw Exception("Failed to set morph animation data for ${meshName}");
+      }
     }
-    allocator.free(dataPtr);
-    allocator.free(idxPtr);
   }
 
   @override
@@ -1574,7 +1609,9 @@ class FilamentControllerFFI extends FilamentController {
 
   @override
   Future addAnimationComponent(FilamentEntity entity) async {
-    add_animation_component(_sceneManager!, entity);
+    if (!add_animation_component(_sceneManager!, entity)) {
+      throw Exception("Failed to add animation component");
+    }
   }
 
   @override

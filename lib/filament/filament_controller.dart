@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_filament/filament/entities/gizmo.dart';
@@ -266,13 +267,17 @@ abstract class FilamentController {
   Future rotateEnd();
 
   ///
-  /// Set the weights for all morph targets under node [meshName] in [entity] to [weights].
+  /// Set the weights for all morph targets in [entity] to [weights].
   /// Note that [weights] must contain values for ALL morph targets, but no exception will be thrown if you don't do so (you'll just get incorrect results).
-  /// If you only want to set one value, set all others to zero (check [getMorphTargetNames] if you need the get a list of all morph targets.)
+  /// If you only want to set one value, set all others to zero (check [getMorphTargetNames] if you need the get a list of all morph targets).
+  /// IMPORTANT - this accepts the actual FilamentEntity with the relevant morph targets (unlike [getMorphTargetNames], which uses the parent entity and the child mesh name).
+  /// Use [getChildEntityByName] if you are setting the weights for a child mesh.
   ///
-  Future setMorphTargetWeights(
-      FilamentEntity entity, String meshName, List<double> weights);
+  Future setMorphTargetWeights(FilamentEntity entity, List<double> weights);
 
+  ///
+  /// Gets the names of all morph targets for the mesh [meshName] under [entity].
+  ///
   Future<List<String>> getMorphTargetNames(
       FilamentEntity entity, String meshName);
 
@@ -291,7 +296,8 @@ abstract class FilamentController {
   /// It is permissible for [animation] to omit any targets that do exist under [meshName]; these simply won't be animated.
   ///
   Future setMorphAnimationData(
-      FilamentEntity entity, MorphAnimationData animation);
+      FilamentEntity entity, MorphAnimationData animation,
+      {List<String>? targetMeshNames});
 
   ///
   /// Resets all bones in the given entity to their rest pose.
