@@ -384,13 +384,12 @@ external void apply_weights(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
-            ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(
+        ffi.Bool Function(
+            ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>, ffi.Int)>(
     symbol: 'set_morph_target_weights', assetId: 'flutter_filament_plugin')
-external void set_morph_target_weights(
+external bool set_morph_target_weights(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,
-  ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> morphData,
   int numWeights,
 );
@@ -399,7 +398,6 @@ external void set_morph_target_weights(
         ffi.Bool Function(
             ffi.Pointer<ffi.Void>,
             EntityId,
-            ffi.Pointer<ffi.Char>,
             ffi.Pointer<ffi.Float>,
             ffi.Pointer<ffi.Int>,
             ffi.Int,
@@ -409,7 +407,6 @@ external void set_morph_target_weights(
 external bool set_morph_animation(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,
-  ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> morphData,
   ffi.Pointer<ffi.Int> morphIndices,
   int numMorphTargets,
@@ -958,9 +955,9 @@ external void remove_collision_component(
   int entityId,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+@ffi.Native<ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId)>(
     symbol: 'add_animation_component', assetId: 'flutter_filament_plugin')
-external void add_animation_component(
+external bool add_animation_component(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
 );
@@ -1442,15 +1439,19 @@ external void get_morph_target_name_count_ffi(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
-            ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     symbol: 'set_morph_target_weights_ffi', assetId: 'flutter_filament_plugin')
 external void set_morph_target_weights_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,
-  ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> morphData,
   int numWeights,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
 @ffi.Native<
