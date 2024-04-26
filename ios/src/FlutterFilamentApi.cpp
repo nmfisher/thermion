@@ -76,17 +76,18 @@ extern "C"
         ((FilamentViewer *)viewer)->loadIbl(iblPath, intensity);
     }
 
-    FLUTTER_PLUGIN_EXPORT void rotate_ibl(const void *const viewer, float* rotationMatrix) {
+    FLUTTER_PLUGIN_EXPORT void rotate_ibl(const void *const viewer, float *rotationMatrix)
+    {
         math::mat3f matrix(rotationMatrix[0], rotationMatrix[1],
-         rotationMatrix[2],
-         rotationMatrix[3],
-         rotationMatrix[4],
-         rotationMatrix[5],
-         rotationMatrix[6],
-         rotationMatrix[7],
-         rotationMatrix[8]);
-        
-        ((FilamentViewer*)viewer)->rotateIbl(matrix);
+                           rotationMatrix[2],
+                           rotationMatrix[3],
+                           rotationMatrix[4],
+                           rotationMatrix[5],
+                           rotationMatrix[6],
+                           rotationMatrix[7],
+                           rotationMatrix[8]);
+
+        ((FilamentViewer *)viewer)->rotateIbl(matrix);
     }
 
     FLUTTER_PLUGIN_EXPORT void remove_skybox(const void *const viewer)
@@ -119,21 +120,24 @@ extern "C"
         return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances);
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId load_glb_from_buffer(void *sceneManager, const void* const data, size_t length)
+    FLUTTER_PLUGIN_EXPORT EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length)
     {
-        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t*)data, length);
+        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length);
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId create_instance(void *sceneManager, EntityId entityId) {
+    FLUTTER_PLUGIN_EXPORT EntityId create_instance(void *sceneManager, EntityId entityId)
+    {
         return ((SceneManager *)sceneManager)->createInstance(entityId);
     }
 
-    FLUTTER_PLUGIN_EXPORT int get_instance_count(void *sceneManager, EntityId entityId) {
-        return ((SceneManager*)sceneManager)->getInstanceCount(entityId);
+    FLUTTER_PLUGIN_EXPORT int get_instance_count(void *sceneManager, EntityId entityId)
+    {
+        return ((SceneManager *)sceneManager)->getInstanceCount(entityId);
     }
 
-    FLUTTER_PLUGIN_EXPORT void get_instances(void *sceneManager, EntityId entityId, EntityId *out) {
-        return ((SceneManager*)sceneManager)->getInstances(entityId, out);
+    FLUTTER_PLUGIN_EXPORT void get_instances(void *sceneManager, EntityId entityId, EntityId *out)
+    {
+        return ((SceneManager *)sceneManager)->getInstances(entityId, out);
     }
 
     FLUTTER_PLUGIN_EXPORT EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath)
@@ -145,7 +149,6 @@ extern "C"
     {
         return ((FilamentViewer *)viewer)->setMainCamera();
     }
-
 
     FLUTTER_PLUGIN_EXPORT EntityId get_main_camera(const void *const viewer)
     {
@@ -204,12 +207,14 @@ extern "C"
         ((FilamentViewer *)viewer)->setCameraCulling(near, far);
     }
 
-    double get_camera_culling_near(const void *const viewer) {
-        return ((FilamentViewer*)viewer)->getCameraCullingNear();
+    double get_camera_culling_near(const void *const viewer)
+    {
+        return ((FilamentViewer *)viewer)->getCameraCullingNear();
     }
-    
-    double get_camera_culling_far(const void *const viewer) {
-        return ((FilamentViewer*)viewer)->getCameraCullingFar();
+
+    double get_camera_culling_far(const void *const viewer)
+    {
+        return ((FilamentViewer *)viewer)->getCameraCullingFar();
     }
 
     const double *const get_camera_frustum(const void *const viewer)
@@ -351,21 +356,18 @@ extern "C"
         // ((SceneManager*)sceneManager)->setMorphTargetWeights(asset, entityName, weights, count);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_morph_target_weights(
+    FLUTTER_PLUGIN_EXPORT bool set_morph_target_weights(
         void *sceneManager,
         EntityId asset,
-        const char *const entityName,
         const float *const weights,
         const int numWeights)
     {
-
-        return ((SceneManager *)sceneManager)->setMorphTargetWeights(asset, entityName, weights, numWeights);
+        return ((SceneManager *)sceneManager)->setMorphTargetWeights(asset, weights, numWeights);
     }
 
     bool set_morph_animation(
         void *sceneManager,
         EntityId asset,
-        const char *const entityName,
         const float *const morphData,
         const int *const morphIndices,
         int numMorphTargets,
@@ -373,11 +375,12 @@ extern "C"
         float frameLengthInMs)
     {
 
-        return ((SceneManager *)sceneManager)->setMorphAnimationBuffer(asset, entityName, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
+        return ((SceneManager *)sceneManager)->setMorphAnimationBuffer(asset, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
     }
 
-    FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose(void *sceneManager, EntityId entityId) {
-        ((SceneManager*)sceneManager)->resetBones(entityId);
+    FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose(void *sceneManager, EntityId entityId)
+    {
+        ((SceneManager *)sceneManager)->resetBones(entityId);
     }
 
     FLUTTER_PLUGIN_EXPORT void add_bone_animation(
@@ -399,17 +402,17 @@ extern "C"
         ((FilamentViewer *)viewer)->setPostProcessing(enabled);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa) {
+    FLUTTER_PLUGIN_EXPORT void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa)
+    {
         ((FilamentViewer *)viewer)->setAntiAliasing(msaa, fxaa, taa);
     }
-
 
     FLUTTER_PLUGIN_EXPORT bool set_bone_transform(
         void *sceneManager,
         EntityId entityId,
         const char *entityName,
         const float *const transform,
-        const char* boneName)
+        const char *boneName)
     {
 
         auto matrix = math::mat4f(
@@ -477,13 +480,13 @@ extern "C"
 
     FLUTTER_PLUGIN_EXPORT int get_morph_target_name_count(void *sceneManager, EntityId asset, const char *meshName)
     {
-        std::unique_ptr<std::vector<std::string>> names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
+        auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
         return (int)names->size();
     }
 
     FLUTTER_PLUGIN_EXPORT void get_morph_target_name(void *sceneManager, EntityId asset, const char *meshName, char *const outPtr, int index)
     {
-        std::unique_ptr<std::vector<std::string>> names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
+        auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
         std::string name = names->at(index);
         strcpy(outPtr, name.c_str());
     }
@@ -558,25 +561,29 @@ extern "C"
         return ((SceneManager *)sceneManager)->getNameForEntity(entityId);
     }
 
-    FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const sceneManager, const EntityId target, bool renderableOnly) {
+    FLUTTER_PLUGIN_EXPORT int get_entity_count(void *const sceneManager, const EntityId target, bool renderableOnly)
+    {
         return ((SceneManager *)sceneManager)->getEntityCount(target, renderableOnly);
     }
 
-    FLUTTER_PLUGIN_EXPORT void get_entities(void *const sceneManager, const EntityId target, bool renderableOnly, EntityId* out) {
+    FLUTTER_PLUGIN_EXPORT void get_entities(void *const sceneManager, const EntityId target, bool renderableOnly, EntityId *out)
+    {
         ((SceneManager *)sceneManager)->getEntities(target, renderableOnly, out);
     }
 
-    FLUTTER_PLUGIN_EXPORT const char* get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly) {
+    FLUTTER_PLUGIN_EXPORT const char *get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly)
+    {
         return ((SceneManager *)sceneManager)->getEntityNameAt(target, index, renderableOnly);
     }
 
-
-    FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording) {
-        ((FilamentViewer*)viewer)->setRecording(recording);
+    FLUTTER_PLUGIN_EXPORT void set_recording(void *const viewer, bool recording)
+    {
+        ((FilamentViewer *)viewer)->setRecording(recording);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char* outputDirectory) {
-        ((FilamentViewer*)viewer)->setRecordingOutputDirectory(outputDirectory);
+    FLUTTER_PLUGIN_EXPORT void set_recording_output_directory(void *const viewer, const char *outputDirectory)
+    {
+        ((FilamentViewer *)viewer)->setRecordingOutputDirectory(outputDirectory);
     }
 
     FLUTTER_PLUGIN_EXPORT void ios_dummy()
@@ -589,48 +596,49 @@ extern "C"
         free(ptr);
     }
 
-    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const sceneManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform) {
-        ((SceneManager*)sceneManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
+    FLUTTER_PLUGIN_EXPORT void add_collision_component(void *const sceneManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform)
+    {
+        ((SceneManager *)sceneManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
     }
 
-    FLUTTER_PLUGIN_EXPORT void remove_collision_component(void *const sceneManager, EntityId entityId) {
-        ((SceneManager*)sceneManager)->removeCollisionComponent(entityId);
+    FLUTTER_PLUGIN_EXPORT void remove_collision_component(void *const sceneManager, EntityId entityId)
+    {
+        ((SceneManager *)sceneManager)->removeCollisionComponent(entityId);
     }
 
-    FLUTTER_PLUGIN_EXPORT void add_animation_component(void *const sceneManager, EntityId entityId) {
-        ((SceneManager*)sceneManager)->addAnimationComponent(entityId);
+    FLUTTER_PLUGIN_EXPORT bool add_animation_component(void *const sceneManager, EntityId entityId)
+    {
+        return ((SceneManager *)sceneManager)->addAnimationComponent(entityId);
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float* vertices, int numVertices, uint16_t* indices, int numIndices, int primitiveType, const char* materialPath) {
-        return ((FilamentViewer*)viewer)->createGeometry(
-            vertices, 
-            (uint32_t)numVertices, 
-            indices, 
-            numIndices, 
-            (filament::RenderableManager::PrimitiveType)primitiveType, 
-            materialPath
-        );
+    FLUTTER_PLUGIN_EXPORT EntityId create_geometry(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
+    {
+        return ((FilamentViewer *)viewer)->createGeometry(vertices, (uint32_t)numVertices, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, materialPath);
     }
 
-    FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char* name) {
-        auto entity = ((SceneManager*)sceneManager)->findChildEntityByName(parent, name);
+    FLUTTER_PLUGIN_EXPORT EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char *name)
+    {
+        auto entity = ((SceneManager *)sceneManager)->findChildEntityByName(parent, name);
         return utils::Entity::smuggle(entity);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_parent(void *const sceneManager, EntityId child, EntityId parent) {
-        ((SceneManager*)sceneManager)->setParent(child, parent);
+    FLUTTER_PLUGIN_EXPORT void set_parent(void *const sceneManager, EntityId child, EntityId parent)
+    {
+        ((SceneManager *)sceneManager)->setParent(child, parent);
     }
 
-    FLUTTER_PLUGIN_EXPORT void test_collisions(void *const sceneManager, EntityId entity) {
-        ((SceneManager*)sceneManager)->testCollisions(entity);
+    FLUTTER_PLUGIN_EXPORT void test_collisions(void *const sceneManager, EntityId entity)
+    {
+        ((SceneManager *)sceneManager)->testCollisions(entity);
     }
 
-    FLUTTER_PLUGIN_EXPORT void set_priority(void *const sceneManager, EntityId entity, int priority) {
-        ((SceneManager*)sceneManager)->setPriority(entity, priority);
+    FLUTTER_PLUGIN_EXPORT void set_priority(void *const sceneManager, EntityId entity, int priority)
+    {
+        ((SceneManager *)sceneManager)->setPriority(entity, priority);
     }
 
-    FLUTTER_PLUGIN_EXPORT void get_gizmo(void *const sceneManager, EntityId* out) {
-        return ((SceneManager*)sceneManager)->getGizmo(out);
+    FLUTTER_PLUGIN_EXPORT void get_gizmo(void *const sceneManager, EntityId *out)
+    {
+        return ((SceneManager *)sceneManager)->getGizmo(out);
     }
-
 }
