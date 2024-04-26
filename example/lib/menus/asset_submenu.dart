@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_filament/flutter_filament.dart';
 import 'package:flutter_filament_example/main.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 
 class AssetSubmenu extends StatefulWidget {
@@ -96,20 +96,38 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
           child: const Text("Show morph target names for Cylinder")),
       MenuItemButton(
           onPressed: () async {
-            widget.controller.setMorphTargetWeights(
-                widget.controller.scene.listEntities().last,
-                "Cylinder",
-                List.filled(4, 1.0));
+            var cylinder = await widget.controller.getChildEntity(
+                widget.controller.scene.listEntities().last, "Cylinder");
+            widget.controller
+                .setMorphTargetWeights(cylinder, List.filled(4, 1.0));
           },
           child: const Text("set Cylinder morph weights to 1")),
       MenuItemButton(
           onPressed: () async {
-            widget.controller.setMorphTargetWeights(
-                widget.controller.scene.listEntities().last,
-                "Cylinder",
-                List.filled(4, 0.0));
+            var cylinder = await widget.controller.getChildEntity(
+                widget.controller.scene.listEntities().last, "Cylinder");
+            widget.controller
+                .setMorphTargetWeights(cylinder, List.filled(4, 0.0));
           },
           child: const Text("Set Cylinder morph weights to 0")),
+      MenuItemButton(
+          onPressed: () async {
+            var morphTargets = await widget.controller.getMorphTargetNames(
+                widget.controller.scene.listEntities().last, "Cylinder");
+
+            var morphData = MorphAnimationData(
+                List.generate(
+                    60,
+                    (frameNum) =>
+                        List.generate(4, (morphIndex) => frameNum / 60)),
+                morphTargets);
+            await widget.controller.setMorphAnimationData(
+                widget.controller.scene.listEntities().last, morphData,
+                targetMeshNames: [
+                  "Cylinder",
+                ]);
+          },
+          child: const Text("create manual morph animation for Cylinder")),
       MenuItemButton(
         onPressed: () async {
           widget.controller.setPosition(
