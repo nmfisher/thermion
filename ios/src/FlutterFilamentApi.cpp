@@ -374,7 +374,6 @@ extern "C"
         int numFrames,
         float frameLengthInMs)
     {
-
         return ((SceneManager *)sceneManager)->setMorphAnimationBuffer(asset, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
     }
 
