@@ -922,7 +922,7 @@ class FilamentControllerFFI extends FilamentController {
           idxPtr,
           indices.length,
           animation.numFrames,
-          (animation.frameLengthInMs));
+          animation.frameLengthInMs);
       allocator.free(dataPtr);
       allocator.free(idxPtr);
       if (!result) {
