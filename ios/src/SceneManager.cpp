@@ -749,7 +749,6 @@ namespace flutter_filament
         auto &morphAnimations = animationComponent.morphAnimations;
 
         morphAnimations.emplace_back(morphAnimation);
-        Log("Created morph animation for %d", entityId);
         return true;
     }
 
