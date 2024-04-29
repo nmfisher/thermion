@@ -140,8 +140,6 @@ namespace flutter_filament
             {
                 const auto &entity = getEntity(it);
 
-                Log("Updating anim for entity %d", entity);
-
                 auto componentInstance = getInstance(entity);
                 auto &animationComponent = elementAt<0>(componentInstance);
 
