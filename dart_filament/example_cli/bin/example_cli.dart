@@ -31,7 +31,9 @@ void main() async {
   await viewer.updateViewportAndCameraProjection(500, 500);
 
   var outDir = Directory("$testDir/skybox");
+  outDir.deleteSync(recursive: true);
   outDir.createSync();
+
   await viewer.setRecordingOutputDirectory(outDir.path);
   await viewer.setRecording(true);
   await viewer.loadSkybox(
