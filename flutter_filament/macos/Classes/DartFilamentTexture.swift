@@ -1,16 +1,15 @@
 import Foundation
-import Foundation
 import GLKit
 
 @objc public class DartFilamentTexture : NSObject {
 
-    var pixelBuffer: CVPixelBuffer?
+    public var pixelBuffer: CVPixelBuffer?
     
     var pixelBufferAttrs = [
         kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32ABGR ),
-    //    kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue!,
-        kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary
-    ] as CFDictionary
+        kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanFalse!,
+//        kCVPixelBufferIOSurfacePropertiesKey: [Any:Any] as CFDictionary
+    ] as [CFString : Any] as CFDictionary
 
     @objc public var cvMetalTextureCache:CVMetalTextureCache?
     @objc public var cvMetalTexture:CVMetalTexture?
@@ -19,7 +18,7 @@ import GLKit
     @objc public var metalTextureAddress:Int = -1
 
     @objc override public init() {
-        print("VAnilla init")
+        
     }
 
     @objc public init(width:Int64, height:Int64) { 

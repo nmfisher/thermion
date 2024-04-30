@@ -1,36 +1,6 @@
 import FlutterMacOS
 import GLKit
 
-public class FlutterFilamentTexture : NSObject, FlutterTexture {
-    
-    var texture:DartFilamentTexture
-    var flutterTextureId: Int64 = -1
-    var registry: FlutterTextureRegistry
-    
-    init(registry:FlutterTextureRegistry, texture:DartFilamentTexture) {
-        self.texture = texture
-        self.registry = registry
-        super.init()
-
-        self.flutterTextureId = registry.register(self)
-
-    }
-    
-    public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
-        return Unmanaged.passRetained(texture.pixelBuffer!);
-    }
-    
-    public func onTextureUnregistered(_ texture:FlutterTexture) {
-        print("Texture unregistered")
-    }
-    
-    public func destroy() {
-        self.registry.unregisterTexture(self.flutterTextureId)
-        self.texture.destroyTexture()
-    }
-    
-}
-
 public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin {
     
     var registrar : FlutterPluginRegistrar
@@ -121,8 +91,6 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin {
                 result(nil)
             case "getSharedContext":
                 result(nil)
-            case "getWindow":
-                result(nil)
             case "createTexture":
                 let args = call.arguments as! [Any]
                 let width = args[0] as! Int64
@@ -131,7 +99,7 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin {
                 let texture = DartFilamentTexture(width: width, height: height)
                 self.texture = FlutterFilamentTexture(registry: registry, texture: texture)
 
-                result([self.texture!.flutterTextureId as Any, texture.metalTextureAddress])
+                result([self.texture!.flutterTextureId as Any, texture.metalTextureAddress, nil])
             case "destroyTexture":
                 self.texture?.destroy()
                 self.texture = nil

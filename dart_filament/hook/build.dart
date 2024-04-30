@@ -25,6 +25,29 @@ void main(List<String> args) async {
       "${config.packageRoot.toFilePath()}/native/include/material/image.c",
     ]);
 
+    var frameworks = [];
+
+    if (platform == "ios") {
+      frameworks.addAll([
+        'Foundation',
+        'CoreGraphics',
+        'QuartzCore',
+        'GLKit',
+        "Metal",
+        'CoreVideo',
+        'OpenGLES'
+      ]);
+    } else if (platform == "macos") {
+      frameworks.addAll([
+        'Foundation',
+        'CoreVideo',
+        'Cocoa',
+        "Metal",
+      ]);
+    }
+
+    frameworks = frameworks.expand((f) => ["-framework", f]).toList();
+
     final cbuilder = CBuilder.library(
       name: packageName,
       language: Language.cpp,
@@ -32,16 +55,10 @@ void main(List<String> args) async {
       sources: sources,
       includes: ['native/include', 'native/include/filament'],
       flags: [
-        '-mmacosx-version-min=13.0',
+        if (platform == "macos") '-mmacosx-version-min=13.0',
+        if (platform == "ios") '-mios-version-min=13.0',
+        ...frameworks,
         '-std=c++17',
-        '-framework',
-        'Foundation',
-        '-framework',
-        'CoreVideo',
-        '-framework',
-        'Cocoa',
-        '-framework',
-        'Metal',
         "-lfilament",
         "-lbackend",
         "-lfilameshio",
@@ -68,8 +85,8 @@ void main(List<String> args) async {
         "-luberarchive",
         "-lzstd",
         "-lstdc++",
-        "-lbluegl",
-        "-lbluevk",
+        if (platform == "macos") "-lbluegl",
+        if (platform == "macos") "-lbluevk",
         "-lbasis_transcoder",
         "-L$libDir",
         "-force_load",

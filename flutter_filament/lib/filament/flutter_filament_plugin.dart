@@ -10,14 +10,12 @@ import 'package:flutter_filament/filament/flutter_filament_texture.dart';
 /// A subclass of [FilamentViewer] that uses Flutter platform channels
 /// to create rendering contexts, callbacks and surfaces (either backing texture(s).
 ///
-///
 class FlutterFilamentPlugin extends FilamentViewer {
   final MethodChannel _channel;
 
   FlutterFilamentPlugin._(this._channel,
       {super.renderCallback,
       super.renderCallbackOwner,
-      super.surface,
       required super.resourceLoader,
       super.driver,
       super.sharedContext,
@@ -50,14 +48,9 @@ class FlutterFilamentPlugin extends FilamentViewer {
         ? nullptr
         : Pointer<Void>.fromAddress(sharedContext);
 
-    var window = await channel.invokeMethod("getWindow");
-    var windowPtr =
-        window == null ? nullptr : Pointer<Void>.fromAddress(window);
-
     return FlutterFilamentPlugin._(channel,
         renderCallback: renderCallback,
         renderCallbackOwner: renderCallbackOwner,
-        surface: windowPtr,
         resourceLoader: resourceLoader,
         driver: driverPtr,
         sharedContext: sharedContextPtr,
@@ -69,14 +62,22 @@ class FlutterFilamentPlugin extends FilamentViewer {
     var result = await _channel
         .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
     if (result == null) {
-      return null;
+      throw Exception("Failed to create texture");
     }
     viewportDimensions = (width.toDouble(), height.toDouble());
-    var texture = FlutterFilamentTexture(result[0], result[1], width, height);
-    await createSwapChain(width.toDouble(), height.toDouble());
+    var texture =
+        FlutterFilamentTexture(result[0], result[1], width, height, result[2]);
 
-    var renderTarget = await createRenderTarget(
-        width.toDouble(), height.toDouble(), texture.hardwareTextureId);
+    await createSwapChain(width.toDouble(), height.toDouble(),
+        surface: texture.surface);
+
+    if (texture.hardwareTextureId != null) {
+      var renderTarget = await createRenderTarget(
+          width.toDouble(), height.toDouble(), texture.hardwareTextureId!);
+    }
+    await updateViewportAndCameraProjection(
+        width.toDouble(), height.toDouble());
+    this.render();
     return texture;
   }
 
@@ -85,19 +86,35 @@ class FlutterFilamentPlugin extends FilamentViewer {
   }
 
   @override
-  Future resizeTexture(FlutterFilamentTexture texture, int width, int height,
-      int offsetLeft, int offsetRight) async {
+  Future<FlutterFilamentTexture?> resizeTexture(FlutterFilamentTexture texture,
+      int width, int height, int offsetLeft, int offsetRight) async {
+    if ((width - viewportDimensions.$1).abs() < 0.001 ||
+        (height - viewportDimensions.$2).abs() < 0.001) {
+      return texture;
+    }
+    bool wasRendering = rendering;
+    await setRendering(false);
     await destroySwapChain();
     await destroyTexture(texture);
-    await createSwapChain(width.toDouble(), height.toDouble());
 
     var newTexture =
         await createTexture(width, height, offsetLeft, offsetRight);
-    await createRenderTarget(
-        width.toDouble(), height.toDouble(), newTexture!.hardwareTextureId);
+    if (newTexture == null) {
+      throw Exception("Failed to create texture");
+    }
+    await createSwapChain(width.toDouble(), height.toDouble(),
+        surface: newTexture.surface!);
+
+    if (newTexture!.hardwareTextureId != null) {
+      await createRenderTarget(
+          width.toDouble(), height.toDouble(), newTexture!.hardwareTextureId!);
+    }
     await updateViewportAndCameraProjection(
         width.toDouble(), height.toDouble());
     viewportDimensions = (width.toDouble(), height.toDouble());
+    if (wasRendering) {
+      await setRendering(true);
+    }
     return newTexture;
     // await _channel.invokeMethod("resizeTexture",
     //     [texture.flutterTextureId, width, height, offsetLeft, offsetRight]);

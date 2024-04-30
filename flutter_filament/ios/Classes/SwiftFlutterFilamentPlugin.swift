@@ -2,23 +2,14 @@ import Flutter
 import UIKit
 import GLKit
 
-public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture {
+public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin {
     
     var registrar : FlutterPluginRegistrar
-    var flutterTextureId: Int64?
     var registry: FlutterTextureRegistry
-    
-    var pixelBuffer: CVPixelBuffer?;
-    
+    var texture: FlutterFilamentTexture?
+        
     var createdAt = Date()
-    
-    var pixelBufferAttrs = [
-        kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32BGRA),
-        kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanTrue,
-        kCVPixelBufferOpenGLESCompatibilityKey: kCFBooleanTrue,
-        kCVPixelBufferIOSurfacePropertiesKey: [:]
-    ] as CFDictionary
-    
+        
     var resources:NSMutableDictionary = [:]
 
     static var messenger : FlutterBinaryMessenger? = nil;
@@ -127,19 +118,11 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
 
     var markTextureFrameAvailable : @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
         let instance:SwiftFlutterFilamentPlugin = Unmanaged<SwiftFlutterFilamentPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
-        instance.registry.textureFrameAvailable(instance.flutterTextureId!)
-    }
-    
-    public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
-        if(pixelBuffer == nil) {
-            return nil;
+        if(instance.texture != nil) {
+            instance.registry.textureFrameAvailable(instance.texture!.flutterTextureId)
         }
-        return Unmanaged.passRetained(pixelBuffer!);
     }
-    
-    public func onTextureUnregistered(_ texture:FlutterTexture) {
-        print("Texture unregistered")
-    }
+
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let _messenger = registrar.messenger();
@@ -153,15 +136,6 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
         self.registry = textureRegistry;
         self.registrar = registrar
     }
-    
-    private func createPixelBuffer(width:Int, height:Int) {
-        if(CVPixelBufferCreate(kCFAllocatorDefault, Int(width), Int(height),
-                               kCVPixelFormatType_32BGRA, pixelBufferAttrs, &pixelBuffer) != kCVReturnSuccess) {
-            print("Error allocating pixel buffer")
-        }
-        self.flutterTextureId = self.registry.register(self)
-    }
-    
         
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
@@ -173,20 +147,25 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin, FlutterTexture
                 let renderCallback = markTextureFrameAvailable
                 result([
                     unsafeBitCast(renderCallback, to:Int64.self), unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self)])
-            case "getDriverPlatfrom":
+            case "getDriverPlatform":
+                result(nil)
+            case "getSharedContext":
                 result(nil)
             case "createTexture":
-                let args = call.arguments as! Array<Int32>
-                createPixelBuffer(width:Int(args[0]), height:Int(args[1]))
-                let pixelBufferPtr = unsafeBitCast(pixelBuffer!, to:UnsafeRawPointer.self)
+                let args = call.arguments as! [Any]
+                let width = args[0] as! Int64
+                let height = args[1] as! Int64
+                
+                self.texture = FlutterFilamentTexture(width: width, height: height, registry: registry)
+                let pixelBufferPtr = unsafeBitCast(self.texture!.pixelBuffer, to:UnsafeRawPointer.self)
                 let pixelBufferAddress = Int(bitPattern:pixelBufferPtr);
-                result([self.flutterTextureId, pixelBufferAddress, nil, nil])
+
+                result([self.texture!.flutterTextureId as Any, nil, pixelBufferAddress])
             case "destroyTexture":
-                if(self.flutterTextureId != nil) {
-                    self.registry.unregisterTexture(self.flutterTextureId!)
-                }
-                self.flutterTextureId = nil 
-                self.pixelBuffer = nil
+                let texture = self.texture
+                self.texture = nil
+                texture?.destroy()
+                
                 result(true)
             default:
                 result(FlutterMethodNotImplemented)

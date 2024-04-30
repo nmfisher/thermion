@@ -48,8 +48,6 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   var _sharedContext = nullptr.cast<Void>();
 
-  late final Pointer<Void> _surface;
-
   ///
   /// This controller uses platform channels to bridge Dart with the C/C++ code for the Filament API.
   /// Setting up the context/texture (since this is platform-specific) and the render ticker are platform-specific; all other methods are passed through by the platform channel to the methods specified in FlutterFilamentApi.h.
@@ -57,14 +55,12 @@ class FilamentViewer extends AbstractFilamentViewer {
   FilamentViewer(
       {RenderCallback? renderCallback,
       Pointer<Void>? renderCallbackOwner,
-      Pointer<Void>? surface,
       required this.resourceLoader,
       Pointer<Void>? driver,
       Pointer<Void>? sharedContext,
       this.uberArchivePath}) {
     this._renderCallbackOwner = renderCallbackOwner ?? nullptr;
     this._renderCallback = renderCallback ?? nullptr;
-    this._surface = surface ?? nullptr;
     this._driver = driver ?? nullptr;
     this._sharedContext = sharedContext ?? nullptr;
 
@@ -87,11 +83,11 @@ class FilamentViewer extends AbstractFilamentViewer {
     });
   }
 
-  Future createSwapChain(double width, double height) async {
+  Future createSwapChain(double width, double height,
+      {Pointer<Void>? surface}) async {
     await _withVoidCallback((callback) {
-      print("VIEWER IS $_viewer");
-      create_swap_chain_ffi(
-          _viewer!, _surface, width.toInt(), height.toInt(), callback);
+      create_swap_chain_ffi(_viewer!, surface ?? nullptr, width.toInt(),
+          height.toInt(), callback);
     });
   }
 
