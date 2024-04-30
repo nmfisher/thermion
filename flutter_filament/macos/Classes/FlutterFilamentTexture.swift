@@ -2,23 +2,20 @@ import Foundation
 import GLKit
 import FlutterMacOS
 
-public class FlutterFilamentTexture : NSObject, FlutterTexture {
+public class FlutterFilamentTexture : DartFilamentTexture,  FlutterTexture {
     
-    var texture:DartFilamentTexture
     var flutterTextureId: Int64 = -1
     var registry: FlutterTextureRegistry
     
-    init(registry:FlutterTextureRegistry, texture:DartFilamentTexture) {
-        self.texture = texture
+    init(registry:FlutterTextureRegistry, width:Int64, height:Int64) {
         self.registry = registry
-        super.init()
-
+        super.init(width:width, height:height)    
         self.flutterTextureId = registry.register(self)
-
+            
     }
     
     public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
-        return Unmanaged.passRetained(texture.pixelBuffer!);
+        return Unmanaged.passRetained(pixelBuffer!);
     }
     
     public func onTextureUnregistered(_ texture:FlutterTexture) {
@@ -27,7 +24,7 @@ public class FlutterFilamentTexture : NSObject, FlutterTexture {
     
     public func destroy() {
         self.registry.unregisterTexture(self.flutterTextureId)
-        self.texture.destroyTexture()
+        self.destroyTexture()
     }
     
 }

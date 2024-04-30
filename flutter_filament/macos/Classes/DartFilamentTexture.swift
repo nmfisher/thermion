@@ -7,8 +7,7 @@ import GLKit
     
     var pixelBufferAttrs = [
         kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32ABGR ),
-        kCVPixelBufferOpenGLCompatibilityKey: kCFBooleanFalse!,
-//        kCVPixelBufferIOSurfacePropertiesKey: [Any:Any] as CFDictionary
+        kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary
     ] as [CFString : Any] as CFDictionary
 
     @objc public var cvMetalTextureCache:CVMetalTextureCache?
@@ -22,6 +21,7 @@ import GLKit
     }
 
     @objc public init(width:Int64, height:Int64) { 
+        
         self.metalDevice = MTLCreateSystemDefaultDevice()!
 
         // create pixel buffer
@@ -39,6 +39,7 @@ import GLKit
             nil,
             &cvMetalTextureCache);
         if(cvret != 0) { 
+            print("Error creating Metal texture cache")
             metalTextureAddress = -1
             return
         }
@@ -51,6 +52,7 @@ import GLKit
                         0,
                         &cvMetalTexture)
         if(cvret != 0) { 
+            print("Error creating texture from image")
             metalTextureAddress = -1
             return
         }
@@ -60,35 +62,35 @@ import GLKit
         
         print("Created metal texture @ \(metalTextureAddress)")
         
-        CVPixelBufferLockBaseAddress(pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
-               let bufferWidth = Int(CVPixelBufferGetWidth(pixelBuffer!))
-               let bufferHeight = Int(CVPixelBufferGetHeight(pixelBuffer!))
-               let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer!)
+        // CVPixelBufferLockBaseAddress(pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
+        //        let bufferWidth = Int(CVPixelBufferGetWidth(pixelBuffer!))
+        //        let bufferHeight = Int(CVPixelBufferGetHeight(pixelBuffer!))
+        //        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer!)
 
-               guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer!) else {
-                       return
-               }
+        //        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer!) else {
+        //                return
+        //        }
 
-               for row in 0..<bufferHeight {
-                   var pixel = baseAddress + row * bytesPerRow
-                   for col in 0..<bufferWidth {
-                       let blue = pixel
-                       blue.storeBytes(of: 255, as: UInt8.self)
+        //        for row in 0..<bufferHeight {
+        //            var pixel = baseAddress + row * bytesPerRow
+        //            for col in 0..<bufferWidth {
+        //                let blue = pixel
+        //                blue.storeBytes(of: 255, as: UInt8.self)
 
-                       let red = pixel + 1
-                       red.storeBytes(of: 0, as: UInt8.self)
+        //                let red = pixel + 1
+        //                red.storeBytes(of: 0, as: UInt8.self)
 
-                       let green = pixel + 2
-                       green.storeBytes(of: 0, as: UInt8.self)
+        //                let green = pixel + 2
+        //                green.storeBytes(of: 0, as: UInt8.self)
                     
-                       let alpha = pixel + 3
-                       alpha.storeBytes(of: 255, as: UInt8.self)
+        //                let alpha = pixel + 3
+        //                alpha.storeBytes(of: 255, as: UInt8.self)
                        
-                       pixel += 4;
-                   }
-               }
+        //                pixel += 4;
+        //            }
+        //        }
 
-               CVPixelBufferUnlockBaseAddress(pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
+        //        CVPixelBufferUnlockBaseAddress(pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
 
     }
 

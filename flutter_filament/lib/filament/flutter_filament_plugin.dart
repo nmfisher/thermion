@@ -61,7 +61,8 @@ class FlutterFilamentPlugin extends FilamentViewer {
       int width, int height, int offsetLeft, int offsetRight) async {
     var result = await _channel
         .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
-    if (result == null) {
+    
+    if (result == null || result[0] == -1) {
       throw Exception("Failed to create texture");
     }
     viewportDimensions = (width.toDouble(), height.toDouble());
@@ -99,7 +100,7 @@ class FlutterFilamentPlugin extends FilamentViewer {
 
     var newTexture =
         await createTexture(width, height, offsetLeft, offsetRight);
-    if (newTexture == null) {
+    if (newTexture == null || newTexture.flutterTextureId == -1) {
       throw Exception("Failed to create texture");
     }
     await createSwapChain(width.toDouble(), height.toDouble(),

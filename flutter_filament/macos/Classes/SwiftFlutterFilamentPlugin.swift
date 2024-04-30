@@ -96,10 +96,13 @@ public class SwiftFlutterFilamentPlugin: NSObject, FlutterPlugin {
                 let width = args[0] as! Int64
                 let height = args[1] as! Int64
             
-                let texture = DartFilamentTexture(width: width, height: height)
-                self.texture = FlutterFilamentTexture(registry: registry, texture: texture)
+                self.texture = FlutterFilamentTexture(registry: registry, width: width, height: height)
 
-                result([self.texture!.flutterTextureId as Any, texture.metalTextureAddress, nil])
+                if(self.texture?.metalTextureAddress == -1) {
+                    result(nil)
+                } else {
+                    result([self.texture!.flutterTextureId as Any, self.texture?.metalTextureAddress, nil])
+                }
             case "destroyTexture":
                 self.texture?.destroy()
                 self.texture = nil

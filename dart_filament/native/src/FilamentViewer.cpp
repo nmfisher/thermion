@@ -1017,6 +1017,7 @@ namespace flutter_filament
     else if (!_swapChain)
     {
       Log("No swapchain");
+      return;
     }
 
     // if (_frameCount == 60)
