@@ -1,0 +1,15 @@
+name: DartFilamentTexture
+description: Bindings for DartFilamentTexture.
+language: objc
+output: 'lib/dart_filament/swift/swift_bindings.g.dart'
+exclude-all-by-default: true
+objc-interfaces:
+  include:
+    - 'DartFilamentTexture'
+  module:
+    'DartFilamentTexture': 'dart_filament_texture'
+headers:
+  entry-points:
+    - 'native/lib/macos/swift/DartFilamentTexture.h'
+preamble: |
+  // ignore_for_file: camel_case_types, non_constant_identifier_names, unused_element, unused_field, return_of_invalid_type, void_checks, annotate_overrides, no_leading_underscores_for_local_identifiers, library_private_types_in_public_apia

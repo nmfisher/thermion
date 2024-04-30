@@ -1,0 +1,15 @@
+# ninja log v5
+1	97	1709619800	CMakeFiles/flutter_filament_android.dir/src/main/cpp/FilamentAndroid.cpp.o	8c297f6afbcc6413
+0	104	1709619800	CMakeFiles/FILAMENT_SHADERS.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/include/material/image.c.o	480fc24924f84a01
+2	132	1709619800	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.o	ee7301f634f98e2b
+3	149	1709619800	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/camutils/Bookmark.cpp.o	1e73e5ee9df868cc
+104	186	1709619800	/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/example/build/flutter_filament/intermediates/cmake/debug/obj/arm64-v8a/libFILAMENT_SHADERS.so	b5a04db24a91de2d
+2	348	1709619800	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.o	169c2653a3d22c87
+3	521	1709619800	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/camutils/Manipulator.cpp.o	e99382668bb7073b
+0	1008	1709619801	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o	3db5a671c608c7bd
+2	1430	1709619801	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o	94b56297fe30211f
+1	1620	1709619801	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/SceneManager.cpp.o	f0e6941895b3d7c9
+1	2007	1709619802	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentFFIApi.cpp.o	df8570bb6bc80f8
+2007	2240	1709619802	/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/example/build/flutter_filament/intermediates/cmake/debug/obj/arm64-v8a/libflutter_filament_android.so	d8c45a88a4c06dd9
+4	273	1709802923	/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/example/build/flutter_filament/intermediates/cmake/debug/obj/arm64-v8a/libFILAMENT_SHADERS.so	b5a04db24a91de2d
+273	684	1709802924	/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/example/build/flutter_filament/intermediates/cmake/debug/obj/arm64-v8a/libflutter_filament_android.so	d8c45a88a4c06dd9

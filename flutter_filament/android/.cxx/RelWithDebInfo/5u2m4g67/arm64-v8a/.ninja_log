@@ -1,0 +1,19 @@
+# ninja log v5
+2	113	1709803366	CMakeFiles/flutter_filament_android.dir/src/main/cpp/FilamentAndroid.cpp.o	b0f61e8e66b2b296
+1	137	1709803366	CMakeFiles/FILAMENT_SHADERS.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/include/material/image.c.o	bbaa5a1d24d86844
+3	152	1709803366	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/TimeIt.cpp.o	9f5ff34a7fcfbace
+4	188	1709803366	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/camutils/Bookmark.cpp.o	8cc43849ca398d30
+137	232	1709803366	/Users/nickfisher/Documents/untitled_flutter_game_project/build/flutter_filament/intermediates/cxx/RelWithDebInfo/5u2m4g67/obj/arm64-v8a/libFILAMENT_SHADERS.so	7c8a759fad04259f
+3	391	1709803366	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/StreamBufferAdapter.cpp.o	52b15ca39a68567b
+3	753	1709803367	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/camutils/Manipulator.cpp.o	60e1f2b8bca813b1
+1	1111	1709803367	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o	54876479e4ca20ee
+2	1889	1709803368	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o	ca5110dcbdf1fe0b
+1	2457	1709803369	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentFFIApi.cpp.o	7cd244716e28ba59
+2	2798	1709803369	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/SceneManager.cpp.o	3b81e25031b3fda5
+2798	3007	1709803369	/Users/nickfisher/Documents/untitled_flutter_game_project/build/flutter_filament/intermediates/cxx/RelWithDebInfo/5u2m4g67/obj/arm64-v8a/libflutter_filament_android.so	7b71f84a6bd50393
+15	5818	1709952367	CMakeFiles/flutter_filament_android.dir/src/main/cpp/FilamentAndroid.cpp.o	b0f61e8e66b2b296
+15	6904	1709952369	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentApi.cpp.o	54876479e4ca20ee
+16	7762	1709952369	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FilamentViewer.cpp.o	ca5110dcbdf1fe0b
+15	8401	1709952370	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/FlutterFilamentFFIApi.cpp.o	7cd244716e28ba59
+16	8910	1709952371	CMakeFiles/flutter_filament_android.dir/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/ios/src/SceneManager.cpp.o	3b81e25031b3fda5
+8910	12584	1709952374	/Users/nickfisher/Documents/untitled_flutter_game_project/build/flutter_filament/intermediates/cxx/RelWithDebInfo/5u2m4g67/obj/arm64-v8a/libflutter_filament_android.so	7b71f84a6bd50393
