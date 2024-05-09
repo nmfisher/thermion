@@ -28,7 +28,7 @@ class Gizmo {
     await controller.reveal(z, null);
   }
 
-  void translate(double x, double y) async {
+  void translate(double transX, double transY) async {
     late Vector3 vec;
     if (_activeAxis == x) {
       vec = _x;
@@ -38,7 +38,7 @@ class Gizmo {
       vec = _z;
     }
     await controller.queuePositionUpdate(
-        _activeEntity!, x * vec.x, -y * vec.y, -x * vec.z,
+        _activeEntity!, transX * vec.x, -transY * vec.y, -transX * vec.z,
         relative: true);
   }
 
