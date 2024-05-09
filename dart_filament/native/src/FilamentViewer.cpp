@@ -314,7 +314,7 @@ namespace flutter_filament
     Renderer::FrameRateOptions fro;
     fro.interval = 1; // frameInterval;
     _renderer->setFrameRateOptions(fro);
-    Log("Set framerate interval to %f", frameInterval);
+    Log("Set frame interval to %f", frameInterval);
   }
 
   int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows)
@@ -656,7 +656,7 @@ namespace flutter_filament
   void FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_t height)
   {
 #if TARGET_OS_IPHONE
-    _swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
+    _swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
 #else
     if (window)
     {
@@ -1103,12 +1103,12 @@ namespace flutter_filament
 
   void FilamentViewer::savePng(void *buf, size_t size, int frameNumber)
   {
-    std::lock_guard lock(_recordingMutex);
-    if (!_recording)
-    {
-      delete[] static_cast<uint8_t *>(buf);
-      return;
-    }
+    // std::lock_guard lock(_recordingMutex);
+    // if (!_recording)
+    // {
+    //   delete[] static_cast<uint8_t *>(buf);
+    //   return;
+    // }
 
     Viewport const &vp = _view->getViewport();
 
@@ -1158,17 +1158,17 @@ namespace flutter_filament
 
   void FilamentViewer::setRecording(bool recording)
   {
-    std::lock_guard lock(_recordingMutex);
-    this->_recording = recording;
+    // std::lock_guard lock(_recordingMutex);
     if (recording)
     {
-      _tp = new flutter_filament::ThreadPool(8);
+      _tp = new flutter_filament::ThreadPool(16);
       _recordingStartTime = std::chrono::high_resolution_clock::now();
     }
     else
     {
       delete _tp;
     }
+    this->_recording = recording;
   }
 
   void FilamentViewer::updateViewportAndCameraProjection(
