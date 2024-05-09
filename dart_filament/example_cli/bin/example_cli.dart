@@ -9,7 +9,7 @@ import 'package:dart_filament/dart_filament/dart_filament.g.dart';
 void main() async {
   var testDir = File(Platform.script.toFilePath()).parent.path;
   final lib = DartFilamentTexture1(DynamicLibrary.open(
-      '../native/lib/macos/swift/libdartfilamenttexture.dylib'));
+      "$testDir/../../native/lib/macos/swift/libdartfilamenttexture.dylib"));
   final object = DartFilamentTexture.new1(lib);
   object.initWithWidth_height_(500, 500);
 
