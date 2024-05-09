@@ -38,9 +38,10 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      var dpr = MediaQuery.of(context).devicePixelRatio;
       var size = ((context.findRenderObject()) as RenderBox).size;
-      var width = size.width.ceil();
-      var height = size.height.ceil();
+      var width = (dpr * size.width).ceil();
+      var height = (dpr * size.height).ceil();
       _texture = await widget.plugin.createTexture(width, height, 0, 0);
       _appLifecycleListener = AppLifecycleListener(
         onStateChange: _handleStateChange,
@@ -103,8 +104,10 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   }
 
   Future _resizeTexture(Size newSize) async {
+    var dpr = MediaQuery.of(context).devicePixelRatio;
+
     _texture = await widget.plugin.resizeTexture(
-        _texture!, newSize.width.toInt(), newSize.height.toInt(), 0, 0);
+        _texture!, (dpr * newSize.width).ceil(), (dpr * newSize.height).ceil(), 0, 0);
     print(
         "Resized texture, new flutter ID is ${_texture!.flutterTextureId} (hardware ID ${_texture!.hardwareTextureId})");
     setState(() {});
