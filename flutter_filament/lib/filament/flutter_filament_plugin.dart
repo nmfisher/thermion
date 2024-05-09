@@ -48,20 +48,22 @@ class FlutterFilamentPlugin extends FilamentViewer {
         ? nullptr
         : Pointer<Void>.fromAddress(sharedContext);
 
-    return FlutterFilamentPlugin._(channel,
+    var plugin = FlutterFilamentPlugin._(channel,
         renderCallback: renderCallback,
         renderCallbackOwner: renderCallbackOwner,
         resourceLoader: resourceLoader,
         driver: driverPtr,
         sharedContext: sharedContextPtr,
         uberArchivePath: uberArchivePath);
+    await plugin.initialized;
+    return plugin;
   }
 
   Future<FlutterFilamentTexture?> createTexture(
       int width, int height, int offsetLeft, int offsetRight) async {
     var result = await _channel
         .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
-    
+
     if (result == null || result[0] == -1) {
       throw Exception("Failed to create texture");
     }
