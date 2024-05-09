@@ -138,7 +138,7 @@ class FilamentViewer extends AbstractFilamentViewer {
   @override
   Future setFrameRate(int framerate) async {
     final interval = 1000.0 / framerate;
-    set_frame_interval_ffi(interval);
+    set_frame_interval_ffi(_viewer!, interval);
   }
 
   @override
@@ -495,6 +495,17 @@ class FilamentViewer extends AbstractFilamentViewer {
   }
 
   @override
+  Future<double> getAnimationDurationByName(
+      FilamentEntity entity, String name) async {
+    var animations = await getAnimationNames(entity);
+    var index = animations.indexOf(name);
+    if (index == -1) {
+      throw Exception("Failed to find animation $name");
+    }
+    return getAnimationDuration(entity, index);
+  }
+
+  @override
   Future setMorphAnimationData(
       FilamentEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
@@ -523,7 +534,7 @@ class FilamentViewer extends AbstractFilamentViewer {
 
       if (intersection.isEmpty) {
         throw Exception(
-            "No morph targets specified in animation are present on targeted mesh");
+            "No morph targets specified in animation are present on mesh $meshName. If you weren't intending to animate every mesh, specify [targetMeshNames] when invoking this method.\nAnimation morph targets: ${animation.morphTargets}\nMesh morph targets ${meshMorphTargets}");
       }
 
       var indices =
@@ -675,13 +686,20 @@ class FilamentViewer extends AbstractFilamentViewer {
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
-      double crossfade = 0.0}) async {
+      double crossfade = 0.0,
+      bool wait = false}) async {
     var animations = await getAnimationNames(entity);
-    await playAnimation(entity, animations.indexOf(name),
+    var index = animations.indexOf(name);
+    var duration = await getAnimationDuration(entity, index);
+    print("Duration for $name : $duration");
+    await playAnimation(entity, index,
         loop: loop,
         reverse: reverse,
         replaceActive: replaceActive,
         crossfade: crossfade);
+    if (wait) {
+      await Future.delayed(Duration(milliseconds: (duration * 1000).toInt()));
+    }
   }
 
   @override
