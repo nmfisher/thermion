@@ -411,8 +411,27 @@ namespace flutter_filament
 
     void SceneManager::destroyAll()
     {
+        std::lock_guard lock(_mutex);
+
         for (auto &asset : _assets)
         {
+            auto numInstances = asset.second->getAssetInstanceCount();
+            for(int i = 0; i < numInstances; i++) {
+                auto instance = asset.second->getAssetInstances()[i];
+                for (int j = 0; j < instance->getEntityCount(); j++)
+                {
+                    auto childEntity = instance->getEntities()[j];
+                    if (_collisionComponentManager->hasComponent(childEntity))
+                    {
+                        _collisionComponentManager->removeComponent(childEntity);
+                    }
+                    if (_animationComponentManager->hasComponent(childEntity))
+                    {
+                        _animationComponentManager->removeComponent(childEntity);
+                    }
+                }
+            }
+
             _scene->removeEntities(asset.second->getEntities(),
                                    asset.second->getEntityCount());
             _scene->removeEntities(asset.second->getLightEntities(),
@@ -574,7 +593,6 @@ namespace flutter_filament
                     _animationComponentManager->removeComponent(childEntity);
                 }
             }
-            // if this a FilamentAsset Entity
         }
         else
         {
@@ -612,14 +630,6 @@ namespace flutter_filament
             }
             _assetLoader->destroyAsset(asset);
         }
-
-        // if (sceneAsset.texture)
-        // {
-        //     _engine->destroy(sceneAsset.texture);
-        // }
-        //
-        //        utils::EntityManager &em = utils::EntityManager::get();
-        //        em.destroy(entity);
     }
 
     bool SceneManager::setMorphTargetWeights(EntityId entityId, const float *const weights, const int count)
