@@ -31,7 +31,7 @@ extern "C"
     FLUTTER_PLUGIN_EXPORT void render_ffi(void *const viewer);
     FLUTTER_PLUGIN_EXPORT FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
     FLUTTER_PLUGIN_EXPORT void set_rendering_ffi(void *const viewer, bool rendering);
-    FLUTTER_PLUGIN_EXPORT void set_frame_interval_ffi(float frameInterval);
+    FLUTTER_PLUGIN_EXPORT void set_frame_interval_ffi(void *const viewer, float frameInterval);
     FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection_ffi(void *const viewer, const uint32_t width, const uint32_t height, const float scaleFactor, void (*onComplete)());
     FLUTTER_PLUGIN_EXPORT void set_background_color_ffi(void *const viewer, const float r, const float g, const float b, const float a);
     FLUTTER_PLUGIN_EXPORT void clear_background_image_ffi(void *const viewer);

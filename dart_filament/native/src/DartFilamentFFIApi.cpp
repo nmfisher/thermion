@@ -277,9 +277,12 @@ extern "C"
   }
 
   FLUTTER_PLUGIN_EXPORT void
-  set_frame_interval_ffi(float frameIntervalInMilliseconds)
+  set_frame_interval_ffi(void* const viewer, float frameIntervalInMilliseconds)
   {
     _rl->setFrameIntervalInMilliseconds(frameIntervalInMilliseconds);
+    std::packaged_task<void()> lambda([=]() mutable
+                                      { ((FilamentViewer*)viewer)->setFrameInterval(frameIntervalInMilliseconds); });
+    auto fut = _rl->add_task(lambda);
   }
 
   FLUTTER_PLUGIN_EXPORT void render_ffi(void *const viewer)
