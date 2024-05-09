@@ -1169,10 +1169,11 @@ external void set_rendering_ffi(
   bool rendering,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Float)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>(
     symbol: 'set_frame_interval_ffi',
     assetId: 'package:dart_filament/dart_filament.dart')
 external void set_frame_interval_ffi(
+  ffi.Pointer<ffi.Void> viewer,
   double frameInterval,
 );
 
