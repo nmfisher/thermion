@@ -103,14 +103,26 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     }
   }
 
+  bool _resizing = false;
+
   Future _resizeTexture(Size newSize) async {
+    if (_resizing) {
+      return;
+    }
+    await Future.delayed(Duration.zero);
+    if (_resizing) {
+      return;
+    }
+    _resizing = true;
+
     var dpr = MediaQuery.of(context).devicePixelRatio;
 
-    _texture = await widget.plugin.resizeTexture(
-        _texture!, (dpr * newSize.width).ceil(), (dpr * newSize.height).ceil(), 0, 0);
+    _texture = await widget.plugin.resizeTexture(_texture!,
+        (dpr * newSize.width).ceil(), (dpr * newSize.height).ceil(), 0, 0);
     print(
         "Resized texture, new flutter ID is ${_texture!.flutterTextureId} (hardware ID ${_texture!.hardwareTextureId})");
     setState(() {});
+    _resizing = false;
   }
 
   @override
