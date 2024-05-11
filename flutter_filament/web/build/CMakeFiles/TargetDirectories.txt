@@ -1,4 +1,0 @@
-/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/web/build/CMakeFiles/filament_shaders.dir
-/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/web/build/CMakeFiles/flutter_filament_plugin.dir
-/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/web/build/CMakeFiles/edit_cache.dir
-/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/web/build/CMakeFiles/rebuild_cache.dir
