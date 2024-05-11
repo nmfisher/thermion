@@ -12,7 +12,7 @@
 // 2) the length of the data
 // 3) an ID that can be passed back to the native platform to release the underlying asset when needed.
 //
-struct ResourceBuffer
+typedef struct ResourceBuffer
 {
   const void *const data;
   const int32_t size;
@@ -21,16 +21,15 @@ struct ResourceBuffer
 #if defined(__cplusplus)
   ResourceBuffer(void *const data, int32_t size, int32_t id) : data(data), size(size), id(id) {}
 #endif
-};
+} ResourceBuffer;
 
-typedef struct ResourceBuffer ResourceBuffer;
 typedef void (*LoadFilamentResourceIntoOutPointer)(const char *uri, ResourceBuffer *out);
 typedef ResourceBuffer (*LoadFilamentResource)(const char *uri);
 typedef ResourceBuffer (*LoadFilamentResourceFromOwner)(const char *const, void *const owner);
 typedef void (*FreeFilamentResource)(ResourceBuffer);
 typedef void (*FreeFilamentResourceFromOwner)(ResourceBuffer, void *const owner);
 
-struct ResourceLoaderWrapper
+typedef struct ResourceLoaderWrapper
 {
   LoadFilamentResource loadResource;
   FreeFilamentResource freeResource;
@@ -38,9 +37,8 @@ struct ResourceLoaderWrapper
   FreeFilamentResourceFromOwner freeFromOwner;
   void *owner;
   LoadFilamentResourceIntoOutPointer loadToOut;
-};
-typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
+} ResourceLoaderWrapper;
 
-ResourceLoaderWrapper *make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void *const owner);
+void *make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void *const owner);
 
 #endif
