@@ -4,21 +4,25 @@ headers:
     - '../native/web/include/FlutterFilamentWebApi.h'
     - '../native/include/DartFilamentFFIApi.h'
     - '../native/include/DartFilamentApi.h'
+    - '../native/include/ResourceBuffer.h'
   include-directives:
     - '../native/web/include/FlutterFilamentWebApi.h'
     - '../native/include/DartFilamentFFIApi.h'
     - '../native/include/DartFilamentApi.h'
+    - '../native/include/ResourceBuffer.h'
 compiler-opts:
   - "-D__EMSCRIPTEN__"
 structs:
+  dependency-only: opaque
   exclude: 
     - '.*'
 unions:
+  dependency-only: opaque
   exclude: 
     - '.*'
 globals:
   exclude: 
     - '.*'
 ffi-native:
-  assetId: package:dart_filament/dart_filament.dart
+  assetId: dart_filament
 ignore-source-errors: true
