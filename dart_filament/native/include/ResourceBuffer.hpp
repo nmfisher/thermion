@@ -4,9 +4,11 @@
 #include "ResourceBuffer.h"
 
 #if defined(__cplusplus)
-
+#ifndef __EMSCRIPTEN__
 #include <thread>
 using namespace std::chrono_literals;
+#endif
+
 namespace flutter_filament
 {
 
@@ -39,7 +41,9 @@ namespace flutter_filament
         loadToOut(uri, &rb);
         while (rb.size == 0)
         {
+          #if! __EMSCRIPTEN__
           std::this_thread::sleep_for(100ms);
+          #endif
         }
 
         return rb;
