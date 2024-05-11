@@ -239,7 +239,6 @@ namespace flutter_filament
         if (!_gltfResourceLoader->asyncBeginLoad(asset))
         {
             Log("Unknown error loading glb asset");
-            _resourceLoaderWrapper->free(rbuf);
             return 0;
         }
         while (_gltfResourceLoader->asyncGetLoadProgress() < 1.0f)
