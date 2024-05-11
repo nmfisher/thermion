@@ -53,3 +53,4 @@ native/web/lib/release/libOSDependent.a filter=lfs diff=lfs merge=lfs -text
 native/web/lib/release/libcivetweb.a filter=lfs diff=lfs merge=lfs -text
 native/web/lib/release/libmatlang.a filter=lfs diff=lfs merge=lfs -text
 native/web/lib/release/libmikktspace.a filter=lfs diff=lfs merge=lfs -text
+native/web/lib/**/*.a filter=lfs diff=lfs merge=lfs -text
