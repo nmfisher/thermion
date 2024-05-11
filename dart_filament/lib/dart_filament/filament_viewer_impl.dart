@@ -2,20 +2,21 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:dart_filament/dart_filament/dart_filament.g.dart';
-import 'package:dart_filament/dart_filament/dart_filament.g.dart' as gb;
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
-
-import 'package:ffi/ffi.dart';
 
 import 'package:vector_math/vector_math_64.dart';
 import 'abstract_filament_viewer.dart';
 import 'scene.dart';
+import 'compatibility/compatibility.dart';
+
+import 'dart:ffi';
 
 // ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 
 class FilamentViewer extends AbstractFilamentViewer {
+  final _compat = Compatibility();
+
   late SceneImpl _scene;
   Scene get scene => _scene;
 
@@ -36,8 +37,6 @@ class FilamentViewer extends AbstractFilamentViewer {
   Stream<FilamentPickResult> get pickResult => _pickResultController.stream;
   final _pickResultController =
       StreamController<FilamentPickResult>.broadcast();
-
-  final allocator = calloc;
 
   final Pointer<ResourceLoaderWrapper> resourceLoader;
 
@@ -920,7 +919,7 @@ class FilamentViewer extends AbstractFilamentViewer {
   void pick(int x, int y) async {
     _scene.unregisterSelected();
 
-    gb.pick(
+    filament_pick(
         _viewer!,
         (x * _pixelRatio).toInt(),
         (viewportDimensions.$2 - (y * _pixelRatio)).toInt(),
