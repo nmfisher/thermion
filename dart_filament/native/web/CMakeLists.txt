@@ -15,32 +15,33 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_MEMORY_GROWTH=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_ALL=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sLINKABLE=1)
-# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAIN_MODULE)
+#set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSIDE_MODULE)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_create_filament_viewer_ffi)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFULL_ES3)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASSERTIONS)
-# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=1)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_BLOCKING_ON_MAIN_THREAD=0)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREEN_FRAMEBUFFER)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREEN_FRAMEBUFFER=1)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREENCANVAS_SUPPORT=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sNO_DISABLE_EXCEPTION_CATCHING)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASYNCIFY=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_WEBGL2=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMIN_WEBGL_VERSION=2)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_WORKER=1)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} --js-library ../foo.js)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -pthread -O3")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -O3 -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pthread")
 
 add_link_options(${EMCC_CFLAGS})
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib") 
-
-add_library(filament_shaders STATIC 
-  "${CMAKE_CURRENT_SOURCE_DIR}/../web/include/material/image.c"
-)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
@@ -53,7 +54,7 @@ add_executable(${MODULE_NAME}
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/TimeIt.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Manipulator.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Bookmark.cpp"
-  # "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/image.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/image.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/gizmo.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/DartFilamentWebApi.cpp"
 )
@@ -194,7 +195,6 @@ set_property(TARGET png PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_CURRENT_SOURCE
 set_property(TARGET png PROPERTY IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/lib/release/libpng.a")
 
 target_link_libraries(${MODULE_NAME}  
- filament_shaders
  gltfio_core 
  filament 
  backend 
