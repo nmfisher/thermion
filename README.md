@@ -31,7 +31,7 @@ PRs are welcome but please create a placeholder PR to discuss before writing any
 
 This package requires Flutter >= `3.16.0-0.2.pre`, so you will need to first switch to the `beta` channel: 
 
-```
+```bash
 flutter channel beta
 flutter upgrade
 ```
@@ -39,7 +39,7 @@ There are specific issues with earlier versions on Windows/MacOS (mobile should 
 
 Next, clone this repository and pull the latest binaries from Git LFS:
 
-```
+```bash
 cd $HOME
 git clone <repo> && cd flutter_filament
 git lfs pull
@@ -51,16 +51,16 @@ git lfs pull
 
 Run the example project to check:
 
-```
-cd example && flutter run -d <macos/windows/Your iPhone/etc>
+```bash
+cd example && flutter run -d <macos/windows/Your_iPhone/etc>
 ```
 
 To use the plugin in your own project, add the plugin to your pubspec.yaml:
 
-```
+```yaml
 name: your_project
 description: Your project
-...
+#...
 dependencies:
   flutter:
     sdk: flutter
@@ -76,11 +76,11 @@ See the `example` project for a complete sample that incorporates many of the be
 
 Create an instance of `FilamentControllerFFI` somewhere in your app where it will not be garbage collected until you no longer need a rendering canvas:
 
-```
+```dart
 class MyApp extends StatelessWidget {
 
     final _filamentController = FilamentControllerFFI();
-    ...
+    //...
 }
 
 ```
@@ -89,7 +89,7 @@ This is a relatively lightweight object, however its constructor will load/bind 
 
 Next, create an instance of `FilamentWidget` in the widget hierarchy where you want the rendering canvas to appear. This can be sized as large or as small as you want. On most platforms, Flutter widgets can be positioned above or below the `FilamentWidget`.
 
-```
+```dart
 class MyApp extends StatelessWidget {
     
     final _filamentController = FilamentControllerFFI();
@@ -126,19 +126,19 @@ Congratulations! You now have a scene. It's completely empty, so you probably wa
 ### Load a background
 
 You probably want to set a background for your scene. You can load a skybox:
-```
+```dart
 await _filamentController.loadSkybox("assets/default_env/default_env_skybox.ktx)
 ```
 
 or a static background image:
 
-```
+```dart
 await _filamentController.setBackgroundImage("assets/background.ktx)
 ```
 
 or a solid background color:
 
-```
+```dart
 await _filamentController.setBackgroundColor(0.0, 1.0, 0.0, 1.0); // solid green
 ```
 
@@ -146,12 +146,12 @@ At this point, you might not see any change in the viewport. This is because the
 
 By default, the FilamentController will only render into the viewport by manually calling `render()` on the FilamentController. This is to avoid needlessly running a render loop when there is nothing to display.
 
-```
+```dart
 await _filamentController.render()
 ```
 
 You should now see your background displayed in the scene. To automatically render at 60fps, call `setRendering`:
-```
+```dart
 await _filamentController.setRendering(true);
 ```
 
@@ -160,26 +160,26 @@ await _filamentController.setRendering(true);
 To add a glTF asset to the scene, call `loadGlb()` on `FilamentController` with the Flutter asset path to your .glb file.
 
 For example, if your `pubspec.yaml` looks like this:
-```
+```yaml
 flutter:
   assets:
     - assets/models/bob.glb
 ```
 
 Then you would call the following
-```
+```dart
 var entity = await _filamentController.loadGlb("assets/models/bob.glb");
 ```
 You can also pass a URI to indicate that the glTF file should be loaded from the filesystem:
-```
+```dart
 var entity = await _filamentController.loadGlb("file:///tmp/bob.glb");
 ```
 
 The return type `FilamentEntity` is simply an integer handle that be used to manipulate the entity in the scene. For example, to remove the asset:
-```
+```dart
 await _filamentController.removeAsset(entity);
 entity = null; 
-``` 
+```
 > Removing an entity from the scene will invalidate the corresponding `FilamentEntity` handle, so ensure you don't retain any references to it after calling `removeAsset` or `clearAssets`. Removing one `FilamentEntity` does not invalidate/change any other `FilamentEntity` handles; you can continue to safely manipulate these via the `FilamentController`.
 
 ### Lighting
@@ -188,20 +188,20 @@ You should now see your object in the viewport, but since we haven't added a lig
 
 Add an image-based light from a KTX file:
 
-```
+```dart
 await _filamentController.loadIbl("assets/default_env/default_env_ibl.ktx");
 ```
 
 You can also add dynamic lights:
 
-```
+```dart
 var sun = await _filamentController.addLight(
 ```
 
 ### Manipulating entity transforms
 
 To set the world space position of the asset:
-```
+```dart
 _filamentController.setPositon(entity, 1.0, 1.0, 1.0);
 ```
 
@@ -211,7 +211,7 @@ On desktop, you can also click any renderable object in the viewport to retrieve
 
 To enable mouse/swipe navigation through the scene, wrap the `FilamentWidget` inside a `FilamentGestureDetector`:
 
-```
+```dart
 class MyApp extends StatelessWidget {
     
     final _filamentController = FilamentControllerFFI();
@@ -248,7 +248,7 @@ Every scene has a default camera. Whenever you rotate/pan/zoom the viewport, you
 
 If you have added an entity to the scene that contains one or more camera nodes, you can change the active scene camera to one of those camera nodes.
 
-```
+```dart
 var asset = await _filamentController.loadGlb("assets/some_asset_with_camera.glb");
 await _filamentController.setCamera(asset, "Camera.002"); // pass the node name to load a specific camera under that entity node
 await _filamentController.setCamera(asset, null); // pass null to load the first camera found under that entity
@@ -260,9 +260,9 @@ On desktop, left-clicking an object in the viewport will retrieve the FilamentEn
 
 Note this is an asynchronous operation, so you will need to subscribe to the [pickResult] stream on your [FilamentController] to do something with the result.
 
-```
+```dart
 class MyApp extends StatefulWidget {
-    ...
+    //...
 }
 
 
@@ -304,7 +304,7 @@ Things to keep in mind:
 
 e.g. the lit_opaque.uberz file has been created from a Filament build:
 
-```
+```bash
 cd out/cmake-android-release-aarch64/libs/gltfio
 uberz -TSHADINGMODEL=lit -TBLENDING=opaque -o lit_opaque_43.uberz lit_opaque 
 ```
@@ -349,7 +349,7 @@ Currently this is only possible on iOS (see https://github.com/flutter/flutter/i
 
 To re-generate the golden screenshots for a given device:
 
-```
+```bash
 ./regenerate_goldens.sh <your_device_id>
 ```
 To run the tests and compare against those goldens:
@@ -361,13 +361,13 @@ The results will depend on the actual device used to generate the golden, theref
 
 # Building Filament from source
 
-```
+```bash
 git clone git@github.com:nmfisher/filament.git && cd filament
 ```
 
 ## Android/iOS/MacOS
 
-```
+```bash
 git checkout flutter-filament-ios-android-macos
 ./build.sh -p <platform> release
 ```
@@ -378,7 +378,7 @@ To support embedding GPU textures in Flutter (rather than copying to a CPU pixel
 
 Separately, we also force the Filament gltfio library to load assets via in-memory buffers, rather than the filesystem. This is simply a convenience so we don't have to use different logic for gltf resource loading across platforms.
 
-```
+```bash
 git checkout flutter-filament-windows
 mkdir out && cd out
 "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --build . --target gltf_viewer --config Debug
@@ -392,7 +392,7 @@ Project structure:
 - building on MacOS, we currently just delete the macos/include and macos/src directories and copy from iOS  (for same reason), 
 e.g.
 
-```
+```bash
 make sync-macos
 ```
 
@@ -419,7 +419,7 @@ EMCC_CFLAGS="-I/Users/nickfisher/Documents/filament/libs/utils/include -I/Users/
 
 We use a single material (no lighting and no transparency) for background images:
 
-```
+```bash
 make generate-background-material     
 ```
 
