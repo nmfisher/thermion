@@ -1,16 +1,3 @@
-
-#include "DartFilamentFFIApi.h"
-
-#include "FilamentViewer.hpp"
-#include "Log.hpp"
-#include "ThreadPool.hpp"
-#include "filament/LightManager.h"
-
-#include <functional>
-#include <mutex>
-#include <thread>
-#include <stdlib.h>
-
 #ifdef __EMSCRIPTEN__
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
@@ -29,10 +16,28 @@ extern "C"
   extern EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE flutter_filament_web_create_gl_context();
 }
 #include <pthread.h>
+
+
 #endif
+
+#include "DartFilamentFFIApi.h"
+
+#include "FilamentViewer.hpp"
+#include "Log.hpp"
+#include "ThreadPool.hpp"
+#include "filament/LightManager.h"
+
+#include <functional>
+#include <mutex>
+#include <thread>
+#include <stdlib.h>
 
 using namespace flutter_filament;
 using namespace std::chrono_literals;
+
+void doSomeStuff(void* ptr) { 
+  std::cout << "DOING SOME STUFF ON MAIN THREDA" << std::endl;
+}
 
 class RenderLoop
 {
@@ -102,11 +107,18 @@ public:
           std::cout << "Failed to make context current." << std::endl;
           return (FilamentViewer*)nullptr;
         }
+        glClearColor(0.0, 1.0, 0.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        emscripten_webgl_commit_frame();
+
         _viewer = new FilamentViewer((void* const) emContext, loader, platform, uberArchivePath);
+        MAIN_THREAD_EM_ASM({
+          window.resolveCallback($0, $1);
+        }, callback, _viewer);
 #else
         _viewer = new FilamentViewer(context, loader, platform, uberArchivePath);
+        callback(_viewer);
 #endif
-      callback(_viewer);
       return _viewer; });
     auto fut = add_task(lambda);
   }
@@ -188,6 +200,7 @@ extern "C"
       void *const renderCallbackOwner,
       void (*callback)(void *const))
   {
+
     if (!_rl)
     {
       _rl = new RenderLoop();
@@ -212,7 +225,13 @@ extern "C"
         [=]() mutable
         {
           create_swap_chain(viewer, surface, width, height);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, onComplete);
+          #else
           onComplete();
+          #endif
         });
     auto fut = _rl->add_task(lambda);
   }
@@ -251,7 +270,14 @@ extern "C"
     std::packaged_task<void()> lambda([=]() mutable
                                       {
     update_viewport_and_camera_projection(viewer, width, height, scaleFactor);
-    onComplete(); });
+    #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, onComplete);
+    #else
+    onComplete(); 
+    #endif
+    });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -310,7 +336,13 @@ extern "C"
     std::packaged_task<EntityId()> lambda([=]() mutable
                                           {
     auto entity = load_gltf(sceneManager, path, relativeResourcePath);
-    callback(entity);
+    #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0, $1);
+          }, callback, entity);
+    #else
+      callback(entity);
+    #endif
     return entity; });
     auto fut = _rl->add_task(lambda);
   }
@@ -322,7 +354,13 @@ extern "C"
         [=]() mutable
         {
           auto entity = load_glb(sceneManager, path, numInstances);
-          callback(entity);
+           #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0, $1);
+          }, callback, entity);
+          #else
+            callback(entity);
+          #endif
           return entity;
         });
     auto fut = _rl->add_task(lambda);
@@ -390,7 +428,14 @@ extern "C"
     std::packaged_task<void()> lambda([=]
                                       { 
         load_skybox(viewer, skyboxPath); 
-        onComplete(); });
+        #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, onComplete);
+        #else
+        onComplete(); 
+        #endif
+    });
     auto fut = _rl->add_task(lambda);
   }
 
