@@ -1,0 +1,27 @@
+<html>
+<script type="module">
+    
+    import { dart_filament } from "./dart_filament.js";
+    
+    let dart2wasm_runtime;
+    let moduleInstance;
+
+    const dartFilamentModulePromise = await WebAssembly.compileStreaming(fetch('dart_filament.wasm'));
+    var df = await dart_filament(dartFilamentModulePromise);
+    console.log(df);
+
+    const dartModulePromise = WebAssembly.compileStreaming(fetch('example_web.wasm'));
+    const imports = {"dart_filament":df};
+    dart2wasm_runtime = await import('./example_web.mjs');
+    moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, imports);
+
+    if (moduleInstance) {
+        try {
+            await dart2wasm_runtime.invoke(moduleInstance);
+        } catch (exception) {
+            console.error(`Exception while invoking test: ${exception}`);
+        }
+    }
+
+  </script>
+</html>

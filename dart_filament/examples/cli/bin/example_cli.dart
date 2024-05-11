@@ -1,12 +1,13 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'package:dart_filament/dart_filament/compatibility/compatibility.dart';
 import 'package:dart_filament/dart_filament/swift/swift_bindings.g.dart';
 import 'package:dart_filament/dart_filament/utils/dart_resources.dart';
 import 'package:ffi/ffi.dart';
 import 'package:dart_filament/dart_filament.dart';
-import 'package:dart_filament/dart_filament/dart_filament.g.dart';
 
 void main() async {
+  var fc = FooChar();
   var testDir = File(Platform.script.toFilePath()).parent.path;
   final lib = DartFilamentTexture1(DynamicLibrary.open(
       "$testDir/../../native/lib/macos/swift/libdartfilamenttexture.dylib"));

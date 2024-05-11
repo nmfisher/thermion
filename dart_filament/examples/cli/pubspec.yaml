@@ -9,7 +9,7 @@ environment:
 # Add regular dependencies here.
 dependencies:
   dart_filament:
-    path: ../
+    path: ../../
   ffi:
 
 dev_dependencies:
