@@ -26,7 +26,7 @@
 
 extern "C"
 {
-  extern FLUTTER_PLUGIN_EXPORT EMSCRIPTEN_WEBGL_CONTEXT_HANDLE flutter_filament_web_create_gl_context();
+  extern EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE flutter_filament_web_create_gl_context();
 }
 #include <pthread.h>
 #endif
@@ -181,9 +181,9 @@ extern "C"
 
   static RenderLoop *_rl;
 
-  FLUTTER_PLUGIN_EXPORT void create_filament_viewer_ffi(
+  EMSCRIPTEN_KEEPALIVE void create_filament_viewer_ffi(
       void *const context, void *const platform, const char *uberArchivePath,
-      const ResourceLoaderWrapper *const loader,
+      const void *const loader,
       void (*renderCallback)(void *const renderCallbackOwner),
       void *const renderCallbackOwner,
       void (*callback)(void *const))
@@ -196,12 +196,12 @@ extern "C"
                       renderCallback, renderCallbackOwner, callback);
   }
 
-  FLUTTER_PLUGIN_EXPORT void destroy_filament_viewer_ffi(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_ffi(void *const viewer)
   {
     _rl->destroyViewer();
   }
 
-  FLUTTER_PLUGIN_EXPORT void create_swap_chain_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void create_swap_chain_ffi(void *const viewer,
                                                    void *const surface,
                                                    uint32_t width,
                                                    uint32_t height,
@@ -217,7 +217,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void destroy_swap_chain_ffi(void *const viewer, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void destroy_swap_chain_ffi(void *const viewer, void (*onComplete)())
   {
     Log("Destroying swapchain");
     std::packaged_task<void()> lambda(
@@ -229,7 +229,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void create_render_target_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void create_render_target_ffi(void *const viewer,
                                                       intptr_t nativeTextureId,
                                                       uint32_t width,
                                                       uint32_t height,
@@ -242,7 +242,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void update_viewport_and_camera_projection_ffi(
+  EMSCRIPTEN_KEEPALIVE void update_viewport_and_camera_projection_ffi(
       void *const viewer, const uint32_t width, const uint32_t height,
       const float scaleFactor,
       void (*onComplete)())
@@ -255,7 +255,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void set_rendering_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_rendering_ffi(void *const viewer,
                                                bool rendering)
   {
     if (!_rl)
@@ -276,7 +276,7 @@ extern "C"
     }
   }
 
-  FLUTTER_PLUGIN_EXPORT void
+  EMSCRIPTEN_KEEPALIVE void
   set_frame_interval_ffi(void* const viewer, float frameIntervalInMilliseconds)
   {
     _rl->setFrameIntervalInMilliseconds(frameIntervalInMilliseconds);
@@ -285,14 +285,14 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void render_ffi(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void render_ffi(void *const viewer)
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { _rl->doRender(); });
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void
+  EMSCRIPTEN_KEEPALIVE void
   set_background_color_ffi(void *const viewer, const float r, const float g,
                            const float b, const float a)
   {
@@ -302,7 +302,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void load_gltf_ffi(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void load_gltf_ffi(void *const sceneManager,
                                            const char *path,
                                            const char *relativeResourcePath,
                                            void (*callback)(EntityId))
@@ -315,7 +315,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void load_glb_ffi(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void load_glb_ffi(void *const sceneManager,
                                           const char *path, int numInstances, void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
@@ -328,7 +328,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void load_glb_from_buffer_ffi(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_ffi(void *const sceneManager,
                                                       const void *const data, size_t length, int numInstances, void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
@@ -341,14 +341,14 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void clear_background_image_ffi(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void clear_background_image_ffi(void *const viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { clear_background_image(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void set_background_image_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_background_image_ffi(void *const viewer,
                                                       const char *path,
                                                       bool fillHeight, void (*callback)())
   {
@@ -360,7 +360,7 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
-  FLUTTER_PLUGIN_EXPORT void set_background_image_position_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_background_image_position_ffi(void *const viewer,
                                                                float x, float y,
                                                                bool clamp)
   {
@@ -369,7 +369,7 @@ extern "C"
         { set_background_image_position(viewer, x, y, clamp); });
     auto fut = _rl->add_task(lambda);
   }
-  FLUTTER_PLUGIN_EXPORT void set_tone_mapping_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_tone_mapping_ffi(void *const viewer,
                                                   int toneMapping)
   {
     std::packaged_task<void()> lambda(
@@ -377,13 +377,13 @@ extern "C"
         { set_tone_mapping(viewer, toneMapping); });
     auto fut = _rl->add_task(lambda);
   }
-  FLUTTER_PLUGIN_EXPORT void set_bloom_ffi(void *const viewer, float strength)
+  EMSCRIPTEN_KEEPALIVE void set_bloom_ffi(void *const viewer, float strength)
   {
     std::packaged_task<void()> lambda([=]
                                       { set_bloom(viewer, strength); });
     auto fut = _rl->add_task(lambda);
   }
-  FLUTTER_PLUGIN_EXPORT void load_skybox_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void load_skybox_ffi(void *const viewer,
                                              const char *skyboxPath,
                                              void (*onComplete)())
   {
@@ -394,7 +394,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void load_ibl_ffi(void *const viewer, const char *iblPath,
+  EMSCRIPTEN_KEEPALIVE void load_ibl_ffi(void *const viewer, const char *iblPath,
                                           float intensity)
   {
     std::packaged_task<void()> lambda(
@@ -402,14 +402,14 @@ extern "C"
         { load_ibl(viewer, iblPath, intensity); });
     auto fut = _rl->add_task(lambda);
   }
-  FLUTTER_PLUGIN_EXPORT void remove_skybox_ffi(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void remove_skybox_ffi(void *const viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_skybox(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void remove_ibl_ffi(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void remove_ibl_ffi(void *const viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_ibl(viewer); });
@@ -429,7 +429,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void remove_light_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void remove_light_ffi(void *const viewer,
                                               EntityId entityId)
   {
     std::packaged_task<void()> lambda([=]
@@ -437,14 +437,14 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void clear_lights_ffi(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void clear_lights_ffi(void *const viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { clear_lights(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void remove_entity_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void remove_entity_ffi(void *const viewer,
                                                EntityId asset, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
@@ -454,7 +454,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void clear_entities_ffi(void *const viewer, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void clear_entities_ffi(void *const viewer, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
                                       { 
@@ -463,7 +463,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void set_camera_ffi(void *const viewer, EntityId asset,
+  EMSCRIPTEN_KEEPALIVE void set_camera_ffi(void *const viewer, EntityId asset,
                                             const char *nodeName, void (*callback)(bool))
   {
     std::packaged_task<bool()> lambda(
@@ -476,7 +476,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void
+  EMSCRIPTEN_KEEPALIVE void
   get_morph_target_name_ffi(void *sceneManager, EntityId asset,
                             const char *meshName, char *const outPtr, int index, void (*callback)())
   {
@@ -487,7 +487,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void
+  EMSCRIPTEN_KEEPALIVE void
   get_morph_target_name_count_ffi(void *sceneManager, EntityId asset,
                                   const char *meshName, void (*callback)(int))
   {
@@ -499,7 +499,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void play_animation_ffi(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void play_animation_ffi(void *const sceneManager,
                                                 EntityId asset, int index,
                                                 bool loop, bool reverse,
                                                 bool replaceActive,
@@ -511,7 +511,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void set_animation_frame_ffi(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void set_animation_frame_ffi(void *const sceneManager,
                                                      EntityId asset,
                                                      int animationIndex,
                                                      int animationFrame)
@@ -521,7 +521,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void stop_animation_ffi(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void stop_animation_ffi(void *const sceneManager,
                                                 EntityId asset, int index)
   {
     std::packaged_task<void()> lambda(
@@ -530,7 +530,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void get_animation_count_ffi(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void get_animation_count_ffi(void *const sceneManager,
                                                      EntityId asset,
                                                      void (*callback)(int))
   {
@@ -544,7 +544,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void get_animation_name_ffi(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void get_animation_name_ffi(void *const sceneManager,
                                                     EntityId asset,
                                                     char *const outPtr,
                                                     int index,
@@ -559,7 +559,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void set_post_processing_ffi(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_post_processing_ffi(void *const viewer,
                                                      bool enabled)
   {
     std::packaged_task<void()> lambda(
@@ -568,7 +568,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void
+  EMSCRIPTEN_KEEPALIVE void
   get_name_for_entity_ffi(void *const sceneManager, const EntityId entityId, void (*callback)(const char *))
   {
     std::packaged_task<const char *()> lambda(
@@ -596,7 +596,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void set_bone_transform_ffi(
+  EMSCRIPTEN_KEEPALIVE void set_bone_transform_ffi(
       void *sceneManager,
       EntityId asset,
       const char *entityName,
@@ -614,7 +614,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void reset_to_rest_pose_ffi(void *const sceneManager, EntityId entityId)
+  EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_ffi(void *const sceneManager, EntityId entityId)
   {
     std::packaged_task<void()> lambda(
         [=]
@@ -622,7 +622,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void add_bone_animation_ffi(
+  EMSCRIPTEN_KEEPALIVE void add_bone_animation_ffi(
       void *sceneManager,
       EntityId asset,
       const float *const frameData,
@@ -642,9 +642,9 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  FLUTTER_PLUGIN_EXPORT void ios_dummy_ffi() { Log("Dummy called"); }
+  EMSCRIPTEN_KEEPALIVE void ios_dummy_ffi() { Log("Dummy called"); }
 
-  FLUTTER_PLUGIN_EXPORT void create_geometry_ffi(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath, void (*callback)(EntityId))
+  EMSCRIPTEN_KEEPALIVE void create_geometry_ffi(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath, void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
         [=]
