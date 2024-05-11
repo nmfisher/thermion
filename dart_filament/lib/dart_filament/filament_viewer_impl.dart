@@ -9,7 +9,6 @@ import 'abstract_filament_viewer.dart';
 import 'scene.dart';
 import 'compatibility/compatibility.dart';
 
-import 'dart:ffi';
 
 // ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;

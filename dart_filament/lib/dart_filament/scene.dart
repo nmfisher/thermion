@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:ffi';
-import 'package:dart_filament/dart_filament/dart_filament.g.dart';
+
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:dart_filament/dart_filament/filament_viewer_impl.dart';
-import 'package:ffi/ffi.dart';
+
+import 'compatibility/compatibility.dart';
 
 import 'entities/gizmo.dart';
 import 'abstract_filament_viewer.dart';

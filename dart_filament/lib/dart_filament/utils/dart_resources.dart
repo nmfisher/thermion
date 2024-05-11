@@ -1,7 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
 
-import 'package:dart_filament/dart_filament/dart_filament.g.dart';
+import '../compatibility/compatibility.dart';
 import 'package:ffi/ffi.dart';
 
 class DartResourceLoader {
