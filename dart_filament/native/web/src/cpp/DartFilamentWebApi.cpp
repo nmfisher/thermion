@@ -50,8 +50,6 @@ using emscripten::val;
 
 extern "C"
 {
-
-  extern void loadFlutterAsset(const char* path, void* context); 
   
   // 
   // Since are using -sMAIN_MODULE with -sPTHREAD_POOL_SIZE=1, main will be called when the first worker is spawned
@@ -124,11 +122,11 @@ extern "C"
     attr.depth = EM_TRUE;
     attr.stencil = EM_FALSE;
     attr.antialias = EM_FALSE;
-    attr.explicitSwapControl = EM_FALSE;
+    attr.explicitSwapControl = EM_TRUE;
     attr.preserveDrawingBuffer = EM_FALSE;
     attr.proxyContextToMainThread = EMSCRIPTEN_WEBGL_CONTEXT_PROXY_ALWAYS;
     attr.enableExtensionsByDefault = EM_TRUE;
-    attr.renderViaOffscreenBackBuffer = EM_TRUE;
+    attr.renderViaOffscreenBackBuffer = EM_FALSE;
     attr.majorVersion = 2;
     
     auto context = emscripten_webgl_create_context("#canvas", &attr);
@@ -137,6 +135,11 @@ extern "C"
     auto success = emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context);
     if(success != EMSCRIPTEN_RESULT_SUCCESS) {
       std::cout << "Failed to make WebGL context current"<< std::endl;
+    } else { 
+      std::cout << "Made WebGL context current"<< std::endl;
+      glClearColor(1.0, 0.0, 0.0, 1.0);
+      glClear(GL_COLOR_BUFFER_BIT);
+      emscripten_webgl_commit_frame();
     }
     emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)NULL);
     return context;
@@ -174,11 +177,11 @@ extern "C"
     // attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | EMSCRIPTEN_FETCH_SYNCHRONOUS | EMSCRIPTEN_FETCH_PERSIST_FILE;
 
     auto pathString = std::string(path);
-    if(pathString.rfind("https://",0) != 0) {
-      pathString = std::string("../../") + pathString;
-    }
+    // if(pathString.rfind("https://",0) != 0) {
+    //   pathString = std::string("../../") + pathString;
+    // }
     
-    std::cout << "Fetching from path " << pathString.c_str() << std::endl;
+    // std::cout << "Fetching from path " << pathString.c_str() << std::endl;
 
     // auto request = emscripten_fetch(&attr, pathString.c_str());
     // if(!request) {
@@ -200,7 +203,6 @@ extern "C"
     free(pBuffer);
     free(pNum);
     free(pError);
-    
     return ResourceBuffer { data, numBytes, _lastResourceId  } ;   
   }
 
@@ -215,7 +217,10 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void* flutter_filament_web_get_resource_loader_wrapper() {
     ResourceLoaderWrapper *rlw = (ResourceLoaderWrapper *)malloc(sizeof(ResourceLoaderWrapper));
     rlw->loadResource = flutter_filament_web_load_resource;
+    rlw->loadFromOwner = nullptr;
     rlw->freeResource = flutter_filament_web_free_resource;
+    rlw->freeFromOwner = nullptr;
+    rlw->loadToOut = nullptr;
     rlw->owner = nullptr;
     return rlw;
   }
