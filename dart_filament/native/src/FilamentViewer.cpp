@@ -907,13 +907,13 @@ namespace flutter_filament
         ktxreader::Ktx1Reader::createTexture(
             _engine, *skyboxBundle, false, [](void *userdata)
             {
-        std::vector<void*>* vec = (std::vector<void*>*)userdata;
-        ResourceLoaderWrapperImpl* loader = (ResourceLoaderWrapperImpl*)vec->at(0);
-        ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
-        loader->free(*rb);
-        delete rb;
-        delete vec;
-        Log("Skybox load complete."); },
+                std::vector<void*>* vec = (std::vector<void*>*)userdata;
+                ResourceLoaderWrapperImpl* loader = (ResourceLoaderWrapperImpl*)vec->at(0);
+                ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
+                loader->free(*rb);
+                delete rb;
+                delete vec;
+        },
             callbackData);
     _skybox =
         filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
