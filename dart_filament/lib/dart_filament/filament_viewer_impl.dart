@@ -9,7 +9,6 @@ import 'abstract_filament_viewer.dart';
 import 'scene.dart';
 import 'compatibility/compatibility.dart';
 
-
 // ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 
@@ -37,7 +36,7 @@ class FilamentViewer extends AbstractFilamentViewer {
   final _pickResultController =
       StreamController<FilamentPickResult>.broadcast();
 
-  final Pointer<ResourceLoaderWrapper> resourceLoader;
+  final Pointer<Void> resourceLoader;
 
   var _driver = nullptr.cast<Void>();
 
@@ -62,20 +61,20 @@ class FilamentViewer extends AbstractFilamentViewer {
     this._driver = driver ?? nullptr;
     this._sharedContext = sharedContext ?? nullptr;
 
-    _onPickResultCallable =
-        NativeCallable<Void Function(Int32 entityId, Int x, Int y)>.listener(
-            _onPickResult);
+    // _onPickResultCallable =
+    //     NativeCallable<Void Function(Int32 entityId, Int x, Int y)>.listener(
+    //         _onPickResult);
     _initialize();
   }
 
   Future createRenderTarget(
       double width, double height, int textureHandle) async {
-    await _withVoidCallback((callback) => create_render_target_ffi(
+    await withVoidCallback((callback) => create_render_target_ffi(
         _viewer!, textureHandle, width.toInt(), height.toInt(), callback));
   }
 
   Future updateViewportAndCameraProjection(double width, double height) async {
-    await _withVoidCallback((callback) {
+    await withVoidCallback((callback) {
       update_viewport_and_camera_projection_ffi(
           _viewer!, width.toInt(), height.toInt(), 1.0, callback);
     });
@@ -83,27 +82,36 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   Future createSwapChain(double width, double height,
       {Pointer<Void>? surface}) async {
-    await _withVoidCallback((callback) {
+    await withVoidCallback((callback) {
       create_swap_chain_ffi(_viewer!, surface ?? nullptr, width.toInt(),
           height.toInt(), callback);
     });
   }
 
   Future destroySwapChain() async {
-    await _withVoidCallback((callback) {
+    await withVoidCallback((callback) {
       destroy_swap_chain_ffi(_viewer!, callback);
     });
   }
 
   Future _initialize() async {
     final uberarchivePtr =
-        uberArchivePath?.toNativeUtf8().cast<Char>() ?? nullptr;
+        uberArchivePath?.toNativeUtf8(allocator:allocator).cast<Char>() ?? nullptr;
 
-    _viewer = await _withVoidPointerCallback((callback) =>
-        create_filament_viewer_ffi(_sharedContext, _driver, uberarchivePtr,
-            resourceLoader, _renderCallback, _renderCallbackOwner, callback));
-    print("Set viewer to $_viewer");
+    var viewer = await withVoidPointerCallback(
+        (Pointer<NativeFunction<Void Function(Pointer<Void>)>> callback) {
+      create_filament_viewer_ffi(_sharedContext, _driver, uberarchivePtr,
+          resourceLoader, _renderCallback, _renderCallbackOwner, callback);
+    });
+    print(viewer);
+    if (viewer is int) {
+      _viewer = Pointer.fromAddress(viewer);
+    } else {
+      _viewer = (viewer as Pointer<Void>);
+    }
+
     allocator.free(uberarchivePtr);
+    print("Set viewer to $_viewer");
 
     print("Created viewer ${_viewer!.address}");
     if (_viewer!.address == 0) {
@@ -146,81 +154,6 @@ class FilamentViewer extends AbstractFilamentViewer {
     _viewer = null;
   }
 
-  Future<void> _withVoidCallback(
-      Function(Pointer<NativeFunction<Void Function()>>) func) async {
-    final completer = Completer();
-    // ignore: prefer_function_declarations_over_variables
-    void Function() callback = () {
-      completer.complete();
-    };
-    final nativeCallable = NativeCallable<Void Function()>.listener(callback);
-    func.call(nativeCallable.nativeFunction);
-    await completer.future;
-    nativeCallable.close();
-  }
-
-  Future<Pointer<Void>> _withVoidPointerCallback(
-      Function(Pointer<NativeFunction<Void Function(Pointer<Void>)>>)
-          func) async {
-    final completer = Completer<Pointer<Void>>();
-    // ignore: prefer_function_declarations_over_variables
-    void Function(Pointer<Void>) callback = (Pointer<Void> ptr) {
-      completer.complete(ptr);
-    };
-    final nativeCallable =
-        NativeCallable<Void Function(Pointer<Void>)>.listener(callback);
-    func.call(nativeCallable.nativeFunction);
-    await completer.future;
-    nativeCallable.close();
-    return completer.future;
-  }
-
-  Future<bool> _withBoolCallback(
-      Function(Pointer<NativeFunction<Void Function(Bool)>>) func) async {
-    final completer = Completer<bool>();
-    // ignore: prefer_function_declarations_over_variables
-    void Function(bool) callback = (bool result) {
-      completer.complete(result);
-    };
-    final nativeCallable =
-        NativeCallable<Void Function(Bool)>.listener(callback);
-    func.call(nativeCallable.nativeFunction);
-    await completer.future;
-    nativeCallable.close();
-    return completer.future;
-  }
-
-  Future<int> _withIntCallback(
-      Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
-    final completer = Completer<int>();
-    // ignore: prefer_function_declarations_over_variables
-    void Function(int) callback = (int result) {
-      completer.complete(result);
-    };
-    final nativeCallable =
-        NativeCallable<Void Function(Int32)>.listener(callback);
-    func.call(nativeCallable.nativeFunction);
-    await completer.future;
-    nativeCallable.close();
-    return completer.future;
-  }
-
-  Future<String> _withCharPtrCallback(
-      Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>)
-          func) async {
-    final completer = Completer<String>();
-    // ignore: prefer_function_declarations_over_variables
-    void Function(Pointer<Char>) callback = (Pointer<Char> result) {
-      completer.complete(result.cast<Utf8>().toDartString());
-    };
-    final nativeCallable =
-        NativeCallable<Void Function(Pointer<Char>)>.listener(callback);
-    func.call(nativeCallable.nativeFunction);
-    await completer.future;
-    nativeCallable.close();
-    return completer.future;
-  }
-
   @override
   Future clearBackgroundImage() async {
     clear_background_image_ffi(_viewer!);
@@ -228,8 +161,8 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
-    final pathPtr = path.toNativeUtf8().cast<Char>();
-    await _withVoidCallback((cb) {
+    final pathPtr = path.toNativeUtf8(allocator:allocator).cast<Char>();
+    await withVoidCallback((cb) {
       set_background_image_ffi(_viewer!, pathPtr, fillHeight, cb);
     });
 
@@ -249,8 +182,10 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future loadSkybox(String skyboxPath) async {
-    final pathPtr = skyboxPath.toNativeUtf8().cast<Char>();
-    await _withVoidCallback((cb) {
+    
+    final pathPtr = skyboxPath.toNativeUtf8(allocator: allocator).cast<Char>();
+    
+    await withVoidCallback((cb) {
       load_skybox_ffi(_viewer!, pathPtr, cb);
     });
 
@@ -259,7 +194,7 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
-    final pathPtr = lightingPath.toNativeUtf8().cast<Char>();
+    final pathPtr = lightingPath.toNativeUtf8(allocator:allocator).cast<Char>();
     load_ibl_ffi(_viewer!, pathPtr, intensity);
   }
 
@@ -295,7 +230,7 @@ class FilamentViewer extends AbstractFilamentViewer {
       double dirY,
       double dirZ,
       bool castShadows) async {
-    var entity = await _withIntCallback((callback) => add_light_ffi(
+    var entity = await withIntCallback((callback) => add_light_ffi(
         _viewer!,
         type,
         colour,
@@ -328,7 +263,7 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future<FilamentEntity> createInstance(FilamentEntity entity) async {
-    var created = await _withIntCallback(
+    var created = await withIntCallback(
         (callback) => create_instance(_sceneManager!, entity));
     if (created == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create instance");
@@ -360,8 +295,8 @@ class FilamentViewer extends AbstractFilamentViewer {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
-    final pathPtr = path.toNativeUtf8().cast<Char>();
-    var entity = await _withIntCallback((callback) =>
+    final pathPtr = path.toNativeUtf8(allocator:allocator).cast<Char>();
+    var entity = await withIntCallback((callback) =>
         load_glb_ffi(_sceneManager!, pathPtr, numInstances, callback));
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
@@ -375,15 +310,15 @@ class FilamentViewer extends AbstractFilamentViewer {
   @override
   Future<FilamentEntity> loadGltf(String path, String relativeResourcePath,
       {bool force = false}) async {
-    if (Platform.isWindows && !force) {
-      throw Exception(
-          "loadGltf has a race condition on Windows which is likely to crash your program. If you really want to try, pass force=true to loadGltf");
-    }
+    // if (Platform.isWindows && !force) {
+    //   throw Exception(
+    //       "loadGltf has a race condition on Windows which is likely to crash your program. If you really want to try, pass force=true to loadGltf");
+    // }
 
-    final pathPtr = path.toNativeUtf8().cast<Char>();
+    final pathPtr = path.toNativeUtf8(allocator:allocator).cast<Char>();
     final relativeResourcePathPtr =
-        relativeResourcePath.toNativeUtf8().cast<Char>();
-    var entity = await _withIntCallback((callback) => load_gltf_ffi(
+        relativeResourcePath.toNativeUtf8(allocator:allocator).cast<Char>();
+    var entity = await withIntCallback((callback) => load_gltf_ffi(
         _sceneManager!, pathPtr, relativeResourcePathPtr, callback));
     allocator.free(pathPtr);
     allocator.free(relativeResourcePathPtr);
@@ -437,7 +372,7 @@ class FilamentViewer extends AbstractFilamentViewer {
       weightsPtr[i] = weights[i];
     }
 
-    var success = await _withBoolCallback((cb) {
+    var success = await withBoolCallback((cb) {
       set_morph_target_weights_ffi(
           _sceneManager!, entity, weightsPtr, weights.length, cb);
     });
@@ -454,9 +389,9 @@ class FilamentViewer extends AbstractFilamentViewer {
   Future<List<String>> getMorphTargetNames(
       FilamentEntity entity, String meshName) async {
     var names = <String>[];
-    var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
+    var meshNamePtr = meshName.toNativeUtf8(allocator:allocator).cast<Char>();
 
-    var count = await _withIntCallback((callback) =>
+    var count = await withIntCallback((callback) =>
         get_morph_target_name_count_ffi(
             _sceneManager!, entity, meshNamePtr, callback));
     var outPtr = allocator<Char>(255);
@@ -632,13 +567,13 @@ class FilamentViewer extends AbstractFilamentViewer {
   Future removeEntity(FilamentEntity entity) async {
     _scene.unregisterEntity(entity);
 
-    await _withVoidCallback(
+    await withVoidCallback(
         (callback) => remove_entity_ffi(_viewer!, entity, callback));
   }
 
   @override
   Future clearEntities() async {
-    await _withVoidCallback(
+    await withVoidCallback(
         (callback) => clear_entities_ffi(_viewer!, callback));
     _scene.clearEntities();
   }
@@ -717,7 +652,7 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future setCamera(FilamentEntity entity, String? name) async {
-    var cameraNamePtr = name?.toNativeUtf8().cast<Char>() ?? nullptr;
+    var cameraNamePtr = name?.toNativeUtf8(allocator:allocator).cast<Char>() ?? nullptr;
     var result = set_camera(_viewer!, entity, cameraNamePtr);
     allocator.free(cameraNamePtr);
     if (!result) {
@@ -816,7 +751,7 @@ class FilamentViewer extends AbstractFilamentViewer {
   @override
   Future setMaterialColor(FilamentEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a) async {
-    var meshNamePtr = meshName.toNativeUtf8().cast<Char>();
+    var meshNamePtr = meshName.toNativeUtf8(allocator:allocator).cast<Char>();
     var result = set_material_color(
         _sceneManager!, entity, meshNamePtr, materialIndex, r, g, b, a);
     allocator.free(meshNamePtr);
@@ -878,14 +813,14 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future hide(FilamentEntity entity, String? meshName) async {
-    final meshNamePtr = meshName?.toNativeUtf8().cast<Char>() ?? nullptr;
+    final meshNamePtr = meshName?.toNativeUtf8(allocator:allocator).cast<Char>() ?? nullptr;
     if (hide_mesh(_sceneManager!, entity, meshNamePtr) != 1) {}
     allocator.free(meshNamePtr);
   }
 
   @override
   Future reveal(FilamentEntity entity, String? meshName) async {
-    final meshNamePtr = meshName?.toNativeUtf8().cast<Char>() ?? nullptr;
+    final meshNamePtr = meshName?.toNativeUtf8(allocator:allocator).cast<Char>() ?? nullptr;
     final result = reveal_mesh(_sceneManager!, entity, meshNamePtr) == 1;
     allocator.free(meshNamePtr);
     if (!result) {
@@ -1165,7 +1100,7 @@ class FilamentViewer extends AbstractFilamentViewer {
       indicesPtr.elementAt(i).value = indices[i];
     }
 
-    var entity = await _withIntCallback((callback) => create_geometry_ffi(
+    var entity = await withIntCallback((callback) => create_geometry_ffi(
         _viewer!,
         vertexPtr,
         vertices.length,
