@@ -545,7 +545,7 @@ extern "C"
         return ((SceneManager *)sceneManager)->reveal(asset, meshName);
     }
 
-    FLUTTER_PLUGIN_EXPORT void pick(void *const viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y))
+    FLUTTER_PLUGIN_EXPORT void filament_pick(void *const viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y))
     {
         ((FilamentViewer *)viewer)->pick(static_cast<uint32_t>(x), static_cast<uint32_t>(y), callback);
     }
