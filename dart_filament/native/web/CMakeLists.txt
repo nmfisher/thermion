@@ -13,8 +13,10 @@ set(EMCC_CFLAGS --bind)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_TABLE_GROWTH=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_MEMORY_GROWTH=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_ALL=1)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sLINKABLE=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAIN_MODULE)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_flutter_filament_web_allocate)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_create_filament_viewer_ffi)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable)
@@ -51,6 +53,8 @@ add_executable(${MODULE_NAME}
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/TimeIt.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Manipulator.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Bookmark.cpp"
+  # "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/image.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/gizmo.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/DartFilamentWebApi.cpp"
 )
 set_target_properties(${MODULE_NAME} PROPERTIES
