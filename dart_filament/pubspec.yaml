@@ -18,15 +18,3 @@ dev_dependencies:
   native_assets_cli: ^0.5.0
   native_toolchain_c: ^0.4.0
   test:
-
-ffigen:
-  output: 'lib/dart_filament/dart_filament.g.dart'
-  headers:
-    entry-points:
-      - 'native/include/DartFilamentFFIApi.h'
-      - 'native/include/DartFilamentApi.h'
-    include-directives:
-      - 'native/include/DartFilamentFFIApi.h'
-      - 'native/include/DartFilamentApi.h'
-  ffi-native:
-    assetId: package:dart_filament/dart_filament.dart

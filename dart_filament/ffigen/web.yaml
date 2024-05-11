@@ -1,0 +1,24 @@
+output: '../lib/dart_filament/compatibility/web/dart_filament.g.dart'
+headers:
+  entry-points:
+    - '../native/web/include/FlutterFilamentWebApi.h'
+    - '../native/include/DartFilamentFFIApi.h'
+    - '../native/include/DartFilamentApi.h'
+  include-directives:
+    - '../native/web/include/FlutterFilamentWebApi.h'
+    - '../native/include/DartFilamentFFIApi.h'
+    - '../native/include/DartFilamentApi.h'
+compiler-opts:
+  - "-D__EMSCRIPTEN__"
+structs:
+  exclude: 
+    - '.*'
+unions:
+  exclude: 
+    - '.*'
+globals:
+  exclude: 
+    - '.*'
+ffi-native:
+  assetId: package:dart_filament/dart_filament.dart
+ignore-source-errors: true
