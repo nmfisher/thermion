@@ -273,10 +273,10 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
       FilamentEntity entity, JSArray<JSNumber> quat,
       bool relative);
   @JS('setPostProcessing')
-  external JSPromise setPostProcessing(JSBoolean enabled);
+  external JSPromise setPostProcessing(bool enabled);
   @JS('setAntiAliasing')
   external JSPromise setAntiAliasing(
-      JSBoolean msaa, JSBoolean fxaa, JSBoolean taa);
+      bool msaa, bool fxaa, bool taa);
   @JS('setRotationQuat')
   external JSPromise setRotationQuat(
       FilamentEntity entity, JSArray<JSNumber> rotation);
