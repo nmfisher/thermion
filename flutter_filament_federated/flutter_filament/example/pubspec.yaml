@@ -1,0 +1,51 @@
+name: flutter_filament_example
+description: Demonstrates how to use the flutter_filament plugin.
+
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  path_provider:
+  flutter_filament:
+    path: ../
+  permission_handler:
+  cupertino_icons: ^1.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^1.0.0
+  crypto:
+  image_compare: ^1.1.2
+  native_assets_cli: ^0.5.0
+  native_toolchain_c: ^0.4.0
+
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter.
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+    - assets/shapes/
+    - assets/default_env/
+    - assets/BusterDrone/
+    - assets/BusterDrone/textures/
+    - assets/FlightHelmet/
+  

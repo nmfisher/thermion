@@ -1,0 +1,33 @@
+name: flutter_filament_web
+description: A web platform interface for the flutter_filament plugin.
+repository: https://github.com/nmfisher/flutter_filament/flutter_filament
+version: 0.0.1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+flutter:
+  plugin:
+    implements: flutter_filament_platform_interface
+    platforms:
+      web:
+        pluginClass: FlutterFilamentWebPlugin
+        fileName: flutter_filament_web.dart
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.0
+  web:
+  dart_filament:
+    path: ../../dart_filament
+  flutter_filament_platform_interface:
+    path: ../flutter_filament_platform_interface
+  flutter_web_plugins:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mockito: ^5.0.0
