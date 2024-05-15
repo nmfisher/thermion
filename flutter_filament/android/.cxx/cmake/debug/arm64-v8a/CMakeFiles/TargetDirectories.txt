@@ -1,4 +1,0 @@
-/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/rebuild_cache.dir
-/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/edit_cache.dir
-/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/FILAMENT_SHADERS.dir
-/Users/nickfisher/Documents/polyvox/flutter/flutter_filament/android/.cxx/cmake/debug/arm64-v8a/CMakeFiles/flutter_filament_android.dir
