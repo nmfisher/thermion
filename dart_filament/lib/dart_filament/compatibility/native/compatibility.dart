@@ -3,6 +3,7 @@ import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
 export 'package:ffi/ffi.dart';
+export 'dart:ffi';
 export 'dart_filament.g.dart';
 
 final allocator = calloc;
@@ -20,7 +21,7 @@ Future<void> withVoidCallback(
   nativeCallable.close();
 }
 
-Future<Pointer<Void>> withVoidPointerCallback(
+Future<int> withVoidPointerCallback(
     Function(Pointer<NativeFunction<Void Function(Pointer<Void>)>>)
         func) async {
   final completer = Completer<Pointer<Void>>();
@@ -31,9 +32,9 @@ Future<Pointer<Void>> withVoidPointerCallback(
   final nativeCallable =
       NativeCallable<Void Function(Pointer<Void>)>.listener(callback);
   func.call(nativeCallable.nativeFunction);
-  await completer.future;
+  var ptr = await completer.future;
   nativeCallable.close();
-  return completer.future;
+  return ptr.address;
 }
 
 Future<bool> withBoolCallback(

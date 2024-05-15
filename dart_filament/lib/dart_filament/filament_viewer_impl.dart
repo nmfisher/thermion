@@ -12,6 +12,8 @@ import 'compatibility/compatibility.dart';
 // ignore: constant_identifier_names
 const FilamentEntity _FILAMENT_ASSET_ERROR = 0;
 
+typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
+
 class FilamentViewer extends AbstractFilamentViewer {
   final _compat = Compatibility();
 
@@ -103,23 +105,16 @@ class FilamentViewer extends AbstractFilamentViewer {
       create_filament_viewer_ffi(_sharedContext, _driver, uberarchivePtr,
           resourceLoader, _renderCallback, _renderCallbackOwner, callback);
     });
-    print(viewer);
-    if (viewer is int) {
-      _viewer = Pointer.fromAddress(viewer);
-    } else {
-      _viewer = (viewer as Pointer<Void>);
-    }
-
+    _viewer = Pointer.fromAddress(viewer);
     allocator.free(uberarchivePtr);
     print("Set viewer to $_viewer");
-
     print("Created viewer ${_viewer!.address}");
     if (_viewer!.address == 0) {
       throw Exception("Failed to create viewer. Check logs for details");
     }
 
     _sceneManager = get_scene_manager(_viewer!);
-    _scene = SceneImpl(null, this, _sceneManager!);
+    _scene = SceneImpl(this);
 
     await setCameraManipulatorOptions(zoomSpeed: 10.0);
 
@@ -1139,4 +1134,7 @@ class FilamentViewer extends AbstractFilamentViewer {
   Future setPriority(FilamentEntity entityId, int priority) async {
     set_priority(_sceneManager!, entityId, priority);
   }
+  
+  @override
+  AbstractGizmo? get gizmo => null;
 }

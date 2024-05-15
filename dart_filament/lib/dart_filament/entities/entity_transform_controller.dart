@@ -3,11 +3,10 @@ import 'dart:math';
 
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
-import 'package:dart_filament/dart_filament/filament_viewer_impl.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 
 class EntityTransformController {
-  final FilamentViewer controller;
+  final AbstractFilamentViewer controller;
   final FilamentEntity _entity;
 
   late Timer _ticker;

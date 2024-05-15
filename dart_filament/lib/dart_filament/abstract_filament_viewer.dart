@@ -1,12 +1,7 @@
+import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
-import 'dart:ffi';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
-import 'package:dart_filament/dart_filament/entities/gizmo.dart';
-
-import 'package:vector_math/vector_math_64.dart';
-
-typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
 // "picking" means clicking/tapping on the viewport, and unprojecting the X/Y coordinate to determine whether any renderable entities were present at those coordinates.
 typedef FilamentPickResult = ({FilamentEntity entity, double x, double y});
@@ -39,6 +34,8 @@ class TextureDetails {
 }
 
 abstract class AbstractFilamentViewer {
+  Future<bool> get initialized;
+
   ///
   /// The result(s) of calling [pick] (see below).
   /// This may be a broadcast stream, so you should ensure you have subscribed to this stream before calling [pick].
@@ -598,9 +595,14 @@ abstract class AbstractFilamentViewer {
   Future setPriority(FilamentEntity entityId, int priority);
 
   ///
-  /// The Scene holds the transform gizmo and all loaded entities/lights.
+  /// The Scene holds all loaded entities/lights.
   ///
   Scene get scene;
+
+  ///
+  ///
+  ///
+  AbstractGizmo? get gizmo;
 }
 
 ///
@@ -641,9 +643,16 @@ abstract class Scene {
   /// Attach the gizmo to the specified entity.
   ///
   void select(FilamentEntity entity);
+}
 
-  ///
-  /// The transform gizmo.
-  ///
-  Future<Gizmo> get gizmo;
+abstract class AbstractGizmo {
+  bool get isActive;
+
+  void translate(double transX, double transY);
+
+  void reset();
+
+  void attach(FilamentEntity entity);
+
+  void detach();
 }

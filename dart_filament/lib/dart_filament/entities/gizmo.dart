@@ -1,10 +1,8 @@
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
-import 'package:dart_filament/dart_filament/filament_viewer_impl.dart';
 import 'package:vector_math/vector_math_64.dart';
-
 import '../abstract_filament_viewer.dart';
 
-class Gizmo {
+class Gizmo extends AbstractGizmo {
   final FilamentEntity x;
   Vector3 _x = Vector3(0.1, 0, 0);
   final FilamentEntity y;
@@ -12,7 +10,7 @@ class Gizmo {
   final FilamentEntity z;
   Vector3 _z = Vector3(0.0, 0.0, 0.1);
 
-  final FilamentViewer controller;
+  final AbstractFilamentViewer controller;
 
   FilamentEntity? _activeAxis;
   FilamentEntity? _activeEntity;
