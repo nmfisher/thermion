@@ -222,7 +222,9 @@ class DartFilamentJSExportViewer {
       viewer.removeEntity(entity).toJS;
 
   @JSExport()
-  JSPromise clearEntities() => viewer.clearEntities().toJS;
+  JSPromise clearEntities() {
+    return viewer.clearEntities().toJS;
+  }
 
   @JSExport()
   JSPromise zoomBegin() => viewer.zoomBegin().toJS;
