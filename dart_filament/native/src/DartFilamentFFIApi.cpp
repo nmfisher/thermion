@@ -243,7 +243,13 @@ extern "C"
         [=]() mutable
         {
           destroy_swap_chain(viewer);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, onComplete);
+          #else
           onComplete();
+          #endif
         });
     auto fut = _rl->add_task(lambda);
   }
@@ -257,7 +263,14 @@ extern "C"
     std::packaged_task<void()> lambda([=]() mutable
                                       {
     create_render_target(viewer, nativeTextureId, width, height);
-    onComplete(); });
+    #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, onComplete);
+    #else
+    onComplete(); 
+    #endif
+    });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -394,7 +407,13 @@ extern "C"
         [=]
         {
           set_background_image(viewer, path, fillHeight);
-          callback();
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, callback);
+          #else
+          callback(); 
+          #endif
         });
     auto fut = _rl->add_task(lambda);
   }
@@ -469,7 +488,14 @@ extern "C"
                                           {
     auto entity = add_light(viewer, type, colour, intensity, posX, posY, posZ, dirX,
                      dirY, dirZ, shadows);
-    callback(entity);
+      #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0, $1);
+          }, callback, entity);
+      #else
+      callback(entity);
+      #endif
+    
     return entity; });
     auto fut = _rl->add_task(lambda);
   }
@@ -495,7 +521,14 @@ extern "C"
     std::packaged_task<void()> lambda([=]
                                       {   
     remove_entity(viewer, asset); 
-    callback(); });
+    #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, callback);
+    #else
+    callback(); 
+    #endif
+    });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -503,8 +536,15 @@ extern "C"
   {
     std::packaged_task<void()> lambda([=]
                                       { 
-    clear_entities(viewer); 
-    callback(); });
+      clear_entities(viewer); 
+      #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, callback);
+      #else
+      callback(); 
+      #endif
+    });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -515,7 +555,13 @@ extern "C"
         [=]
         {
           auto success = set_camera(viewer, asset, nodeName);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0,$1);
+          }, callback, success);
+          #else
           callback(success);
+          #endif
           return success;
         });
     auto fut = _rl->add_task(lambda);
@@ -528,7 +574,14 @@ extern "C"
     std::packaged_task<void()> lambda([=]
                                       {
     get_morph_target_name(sceneManager, asset, meshName, outPtr, index);
-    callback(); });
+    #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+        }, callback);
+    #else
+    callback(); 
+    #endif
+    });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -539,7 +592,13 @@ extern "C"
     std::packaged_task<int()> lambda([=]
                                      {
     auto count = get_morph_target_name_count(sceneManager, asset, meshName);
+    #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0,$1);
+          }, callback, count);
+    #else
     callback(count);
+    #endif
     return count; });
     auto fut = _rl->add_task(lambda);
   }
@@ -583,7 +642,13 @@ extern "C"
         [=]
         {
           auto count = get_animation_count(sceneManager, asset);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0,$1);
+          }, callback, count);
+          #else
           callback(count);
+          #endif
           return count;
         });
     auto fut = _rl->add_task(lambda);
@@ -599,7 +664,13 @@ extern "C"
         [=]
         {
           get_animation_name(sceneManager, asset, outPtr, index);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0);
+          }, callback);
+          #else
           callback();
+          #endif
         });
     auto fut = _rl->add_task(lambda);
   }
@@ -620,7 +691,13 @@ extern "C"
         [=]
         {
           auto name = get_name_for_entity(sceneManager, entityId);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0,$1);
+          }, callback, name);
+          #else
           callback(name);
+          #endif
           return name;
         });
     auto fut = _rl->add_task(lambda);
@@ -636,7 +713,13 @@ extern "C"
         [=]
         {
           auto result = set_morph_target_weights(sceneManager, asset, morphData, numWeights);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0,$1);
+          }, callback, result);
+          #else
           callback(result);
+          #endif
         });
     auto fut = _rl->add_task(lambda);
   }
@@ -653,7 +736,13 @@ extern "C"
         [=]
         {
           auto success = set_bone_transform(sceneManager, asset, entityName, transform, boneName);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0,$1);
+          }, callback, success);
+          #else
           callback(success);
+          #endif
           return success;
         });
     auto fut = _rl->add_task(lambda);
@@ -695,7 +784,13 @@ extern "C"
         [=]
         {
           auto entity = create_geometry(viewer, vertices, numVertices, indices, numIndices, primitiveType, materialPath);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            window.resolveCallback($0,$1);
+          }, callback, entity);
+          #else
           callback(entity);
+          #endif
           return entity;
         });
     auto fut = _rl->add_task(lambda);
