@@ -1,20 +1,15 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-
-import 'package:flutter_filament_example/camera_matrix_overlay.dart';
 import 'package:flutter_filament_example/menus/controller_menu.dart';
 import 'package:flutter_filament_example/example_viewport.dart';
-import 'package:flutter_filament_example/picker_result_widget.dart';
+import 'package:dart_filament/dart_filament/entities/entity_transform_controller.dart';
 import 'package:flutter_filament_example/menus/scene_menu.dart';
-
 import 'package:flutter_filament/flutter_filament.dart';
+
 
 const loadDefaultScene = bool.hasEnvironment('--load-default-scene');
 
 void main() async {
-  print(loadDefaultScene);
   runApp(const MyApp());
 }
 
@@ -39,7 +34,9 @@ class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
                 bodyLarge: TextStyle(fontSize: 14),
                 bodyMedium: TextStyle(fontSize: 12))),
         // showPerformanceOverlay: true,
-        home: const Scaffold(body: ExampleWidget()));
+        home: const Scaffold(
+          backgroundColor: Color(0x00000000),
+          body: ExampleWidget()));
   }
 }
 
@@ -55,7 +52,7 @@ class ExampleWidget extends StatefulWidget {
 enum MenuType { controller, assets, camera, misc }
 
 class ExampleWidgetState extends State<ExampleWidget> {
-  FlutterFilamentPlugin? _plugin;
+  final _plugin = FlutterFilamentPlugin();
 
   EdgeInsets _viewportMargin = EdgeInsets.zero;
 
@@ -85,27 +82,6 @@ class ExampleWidgetState extends State<ExampleWidget> {
   @override
   void initState() {
     super.initState();
-    if (loadDefaultScene) {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-        _plugin = await FlutterFilamentPlugin.create();
-        setState(() {});
-        WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-          await _plugin!.initialized;
-
-          await _plugin!
-              .loadSkybox("assets/default_env/default_env_skybox.ktx");
-
-          await _plugin!.setRendering(true);
-
-          await _plugin!.loadGlb("assets/shapes/shapes.glb");
-
-          await _plugin!.setCameraManipulatorOptions(zoomSpeed: 1.0);
-
-          hasSkybox = true;
-          rendering = true;
-        });
-      });
-    }
   }
 
   @override
@@ -120,95 +96,102 @@ class ExampleWidgetState extends State<ExampleWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      Positioned.fill(
-        child: ExampleViewport(
-            controller: _plugin,
-            entityTransformController: _transformController,
-            padding: _viewportMargin,
-            keyboardFocusNode: _sharedFocusNode),
-      ),
-      EntityListWidget(controller: _plugin),
-      Positioned(
-          bottom: Platform.isIOS ? 30 : 0,
-          left: 0,
-          right: 10,
-          height: 30,
-          child: Container(
-              height: 30,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                color: Colors.white.withOpacity(0.25),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child:
-                  Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                ControllerMenu(
-                    sharedFocusNode: _sharedFocusNode,
+    return FutureBuilder(
+        future: _plugin.initialized,
+        builder: (_, AsyncSnapshot<bool> initialized) {
+          var isInitialized = initialized.data == true;
+
+          return Stack(children: [
+            if (isInitialized)
+              Positioned.fill(
+                child: ExampleViewport(
                     controller: _plugin,
-                    onToggleViewport: () {
-                      setState(() {
-                        _viewportMargin = (_viewportMargin == EdgeInsets.zero)
-                            ? const EdgeInsets.all(30)
-                            : EdgeInsets.zero;
-                      });
-                    },
-                    onControllerDestroyed: () {},
-                    onControllerCreated: (controller) {
-                      setState(() {
-                        _plugin = controller;
-                      });
-                    }),
-                SceneMenu(
-                  sharedFocusNode: _sharedFocusNode,
-                  controller: _plugin,
-                ),
-                GestureDetector(
-                    onTap: () async {
-                      await _plugin!
-                          .loadGlb('assets/shapes/shapes.glb', numInstances: 1);
-                    },
-                    child: Container(
-                        color: Colors.transparent,
-                        child: const Text("shapes.glb"))),
-                const SizedBox(width: 5),
-                GestureDetector(
-                    onTap: () async {
-                      await _plugin!.loadGlb('assets/1.glb');
-                    },
-                    child: Container(
-                        color: Colors.transparent, child: const Text("1.glb"))),
-                const SizedBox(width: 5),
-                GestureDetector(
-                    onTap: () async {
-                      await _plugin!.loadGlb('assets/2.glb');
-                    },
-                    child: Container(
-                        color: Colors.transparent, child: const Text("2.glb"))),
-                const SizedBox(width: 5),
-                GestureDetector(
-                    onTap: () async {
-                      await _plugin!.loadGlb('assets/3.glb');
-                    },
-                    child: Container(
-                        color: Colors.transparent, child: const Text("3.glb"))),
-                Expanded(child: Container()),
-              ]))),
-      _plugin == null
-          ? Container()
-          : Padding(
-              padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
-              child: ValueListenableBuilder(
-                  valueListenable: showProjectionMatrices,
-                  builder: (ctx, value, child) => CameraMatrixOverlay(
-                      controller: _plugin!, showProjectionMatrices: value)),
-            ),
-      _plugin == null
-          ? Container()
-          : Align(
-              alignment: Alignment.topRight,
-              child: PickerResultWidget(controller: _plugin!),
-            )
-    ]);
+                    entityTransformController: _transformController,
+                    padding: _viewportMargin,
+                    keyboardFocusNode: _sharedFocusNode),
+              ),
+            Positioned(
+                bottom: 30,
+                left: 0,
+                right: 10,
+                height: 30,
+                child: Container(
+                    height: 30,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      color: Colors.white.withOpacity(0.25),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          ControllerMenu(
+                              sharedFocusNode: _sharedFocusNode,
+                              controller: _plugin,
+                              onToggleViewport: () {
+                                setState(() {
+                                  _viewportMargin =
+                                      (_viewportMargin == EdgeInsets.zero)
+                                          ? const EdgeInsets.all(30)
+                                          : EdgeInsets.zero;
+                                });
+                              },
+                              onControllerDestroyed: () {},
+                              onControllerCreated: () {}),
+                          SceneMenu(
+                            sharedFocusNode: _sharedFocusNode,
+                            controller: _plugin,
+                          ),
+                          GestureDetector(
+                              onTap: () async {
+                                await _plugin.viewer.loadGlb(
+                                    'assets/shapes/shapes.glb',
+                                    numInstances: 1);
+                              },
+                              child: Container(
+                                  color: Colors.transparent,
+                                  child: const Text("shapes.glb"))),
+                          const SizedBox(width: 5),
+                          GestureDetector(
+                              onTap: () async {
+                                await _plugin.viewer.loadGlb('assets/1.glb');
+                              },
+                              child: Container(
+                                  color: Colors.transparent,
+                                  child: const Text("1.glb"))),
+                          const SizedBox(width: 5),
+                          GestureDetector(
+                              onTap: () async {
+                                await _plugin.viewer.loadGlb('assets/2.glb');
+                              },
+                              child: Container(
+                                  color: Colors.transparent,
+                                  child: const Text("2.glb"))),
+                          const SizedBox(width: 5),
+                          GestureDetector(
+                              onTap: () async {
+                                await _plugin.viewer.loadGlb('assets/3.glb');
+                              },
+                              child: Container(
+                                  color: Colors.transparent,
+                                  child: const Text("3.glb"))),
+                          Expanded(child: Container()),
+                        ]))),
+            if (isInitialized) ...[
+              // EntityListWidget(controller: _plugin.viewer),
+              // Padding(
+              //   padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
+              //   child: ValueListenableBuilder(
+              //       valueListenable: showProjectionMatrices,
+              //       builder: (ctx, value, child) => CameraMatrixOverlay(
+              //           controller: _plugin, showProjectionMatrices: value)),
+              // ),
+              // Align(
+              //   alignment: Alignment.topRight,
+              //   child: PickerResultWidget(controller: _plugin.viewer),
+              // )
+            ]
+          ]);
+        });
   }
 }

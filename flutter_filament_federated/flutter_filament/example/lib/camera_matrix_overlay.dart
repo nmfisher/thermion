@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_filament/flutter_filament.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
+import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 
 class CameraMatrixOverlay extends StatefulWidget {
-  final FlutterFilamentPlugin controller;
+  final AbstractFilamentViewer controller;
   final bool showProjectionMatrices;
 
   const CameraMatrixOverlay(

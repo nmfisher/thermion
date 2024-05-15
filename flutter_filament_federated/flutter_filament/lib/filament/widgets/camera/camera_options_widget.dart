@@ -1,6 +1,5 @@
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
-import 'package:dart_filament/dart_filament/filament_viewer_impl.dart';
-import 'package:flutter/material.dart';
+import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import '../../utils/camera_orientation.dart';
 
@@ -8,7 +7,7 @@ import 'dart:math';
 import 'package:vector_math/vector_math_64.dart' as v64;
 
 class CameraOptionsWidget extends StatefulWidget {
-  final FilamentViewer controller;
+  final AbstractFilamentViewer controller;
   final CameraOrientation cameraOrientation;
   final List<({FilamentEntity entity, String name})> cameras;
 

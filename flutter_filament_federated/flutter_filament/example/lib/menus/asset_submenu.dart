@@ -3,10 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_filament/flutter_filament.dart';
 import 'package:flutter_filament_example/main.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
-import 'package:dart_filament/dart_filament.dart';
+import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 
 class AssetSubmenu extends StatefulWidget {
   final FlutterFilamentPlugin controller;
@@ -27,8 +26,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
       MenuItemButton(
           closeOnActivate: false,
           onPressed: () async {
-            var entity = await widget.controller.getChildEntity(
-                widget.controller.scene.listEntities().last, "Cylinder");
+            var entity = await widget.controller.viewer.getChildEntity(
+                widget.controller.viewer.scene.listEntities().last, "Cylinder");
             await showDialog(
                 context: context,
                 builder: (BuildContext context) {
@@ -40,8 +39,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
           child: const Text('Find Cylinder entity by name')),
       MenuItemButton(
           onPressed: () async {
-            await widget.controller.addBoneAnimation(
-                widget.controller.scene.listEntities().last,
+            await widget.controller.viewer.addBoneAnimation(
+                widget.controller.viewer.scene.listEntities().last,
                 BoneAnimationData([
                   "Bone"
                 ], [
@@ -56,14 +55,14 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
               const Text('Set bone transform for Cylinder (pi/2 rotation X)')),
       MenuItemButton(
           onPressed: () async {
-            await widget.controller
-                .resetBones(widget.controller.scene.listEntities().last);
+            await widget.controller.viewer
+                .resetBones(widget.controller.viewer.scene.listEntities().last);
           },
           child: const Text('Reset bones for Cylinder')),
       MenuItemButton(
           onPressed: () async {
-            await widget.controller.addBoneAnimation(
-                widget.controller.scene.listEntities().last,
+            await widget.controller.viewer.addBoneAnimation(
+                widget.controller.viewer.scene.listEntities().last,
                 BoneAnimationData(
                     ["Bone"],
                     ["Cylinder"],
@@ -81,8 +80,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
       MenuItemButton(
           closeOnActivate: false,
           onPressed: () async {
-            var names = await widget.controller.getMorphTargetNames(
-                widget.controller.scene.listEntities().last, "Cylinder");
+            var names = await widget.controller.viewer.getMorphTargetNames(
+                widget.controller.viewer.scene.listEntities().last, "Cylinder");
             print("NAMES : $names");
             await showDialog(
                 context: context,
@@ -97,24 +96,24 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
           child: const Text("Show morph target names for Cylinder")),
       MenuItemButton(
           onPressed: () async {
-            var cylinder = await widget.controller.getChildEntity(
-                widget.controller.scene.listEntities().last, "Cylinder");
-            widget.controller
+            var cylinder = await widget.controller.viewer.getChildEntity(
+                widget.controller.viewer.scene.listEntities().last, "Cylinder");
+            widget.controller.viewer
                 .setMorphTargetWeights(cylinder, List.filled(4, 1.0));
           },
           child: const Text("set Cylinder morph weights to 1")),
       MenuItemButton(
           onPressed: () async {
-            var cylinder = await widget.controller.getChildEntity(
-                widget.controller.scene.listEntities().last, "Cylinder");
-            widget.controller
+            var cylinder = await widget.controller.viewer.getChildEntity(
+                widget.controller.viewer.scene.listEntities().last, "Cylinder");
+            widget.controller.viewer
                 .setMorphTargetWeights(cylinder, List.filled(4, 0.0));
           },
           child: const Text("Set Cylinder morph weights to 0")),
       MenuItemButton(
           onPressed: () async {
-            var morphTargets = await widget.controller.getMorphTargetNames(
-                widget.controller.scene.listEntities().last, "Cylinder");
+            var morphTargets = await widget.controller.viewer.getMorphTargetNames(
+                widget.controller.viewer.scene.listEntities().last, "Cylinder");
 
             var morphData = MorphAnimationData(
                 List.generate(
@@ -122,8 +121,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                     (frameNum) =>
                         List.generate(4, (morphIndex) => frameNum / 60)),
                 morphTargets);
-            await widget.controller.setMorphAnimationData(
-                widget.controller.scene.listEntities().last, morphData,
+            await widget.controller.viewer.setMorphAnimationData(
+                widget.controller.viewer.scene.listEntities().last, morphData,
                 targetMeshNames: [
                   "Cylinder",
                 ]);
@@ -131,19 +130,19 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
           child: const Text("create manual morph animation for Cylinder")),
       MenuItemButton(
         onPressed: () async {
-          widget.controller.setPosition(
-              widget.controller.scene.listEntities().last, 1.0, 1.0, -1.0);
+          widget.controller.viewer.setPosition(
+              widget.controller.viewer.scene.listEntities().last, 1.0, 1.0, -1.0);
         },
         child: const Text('Set position to 1, 1, -1'),
       ),
       MenuItemButton(
           onPressed: () async {
             if (ExampleWidgetState.coneHidden) {
-              widget.controller
-                  .reveal(widget.controller.scene.listEntities().last, "Cone");
+              widget.controller.viewer
+                  .reveal(widget.controller.viewer.scene.listEntities().last, "Cone");
             } else {
-              widget.controller
-                  .hide(widget.controller.scene.listEntities().last, "Cone");
+              widget.controller.viewer
+                  .hide(widget.controller.viewer.scene.listEntities().last, "Cone");
             }
 
             ExampleWidgetState.coneHidden = !ExampleWidgetState.coneHidden;
@@ -153,8 +152,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
       MenuItemButton(
           onPressed: () async {
             final color = Colors.purple;
-            widget.controller.setMaterialColor(
-                widget.controller.scene.listEntities().last,
+            widget.controller.viewer.setMaterialColor(
+                widget.controller.viewer.scene.listEntities().last,
                 "Cone",
                 0,
                 color.red / 255.0,
@@ -194,13 +193,13 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 -1.0,
               ];
               var indices = [0, 1, 2, 2, 3, 0];
-              var geom = await widget.controller.createGeometry(verts, indices,
+              var geom = await widget.controller.viewer.createGeometry(verts, indices,
                   materialPath: "asset://assets/solidcolor.filamat");
             },
             child: const Text("Quad")),
         MenuItemButton(
             onPressed: () async {
-              await widget.controller.createGeometry([
+              await widget.controller.viewer.createGeometry([
                 0,
                 0,
                 0,
@@ -226,55 +225,55 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
         _geometrySubmenu(),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller
+            await widget.controller.viewer
                 .addLight(1, 6500, 150000, 0, 1, 0, 0, -1, 0, true);
           },
           child: const Text("Add directional light"),
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller
+            await widget.controller.viewer
                 .addLight(2, 6500, 150000, 0, 1, 0, 0, -1, 0, true);
           },
           child: const Text("Add point light"),
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller
+            await widget.controller.viewer
                 .addLight(3, 6500, 15000000, 0, 1, 0, 0, -1, 0, true);
           },
           child: const Text("Add spot light"),
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller.clearLights();
+            await widget.controller.viewer.clearLights();
           },
           child: const Text("Clear lights"),
         ),
         MenuItemButton(
             onPressed: () {
               final color = const Color(0xAA73C9FA);
-              widget.controller.setBackgroundColor(color.red / 255.0,
+              widget.controller.viewer.setBackgroundColor(color.red / 255.0,
                   color.green / 255.0, color.blue / 255.0, 1.0);
             },
             child: const Text("Set background color")),
         MenuItemButton(
             onPressed: () {
-              widget.controller.setBackgroundImage('assets/background.ktx');
+              widget.controller.viewer.setBackgroundImage('assets/background.ktx');
             },
             child: const Text("Load background image")),
         MenuItemButton(
             onPressed: () {
-              widget.controller.setBackgroundImage('assets/background.ktx',
+              widget.controller.viewer.setBackgroundImage('assets/background.ktx',
                   fillHeight: true);
             },
             child: const Text("Load background image (fill height)")),
         MenuItemButton(
             onPressed: () {
               if (ExampleWidgetState.hasSkybox) {
-                widget.controller.removeSkybox();
+                widget.controller.viewer.removeSkybox();
               } else {
-                widget.controller
+                widget.controller.viewer
                     .loadSkybox('assets/default_env/default_env_skybox.ktx');
               }
               ExampleWidgetState.hasSkybox = !ExampleWidgetState.hasSkybox;
@@ -284,23 +283,18 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 : 'Load skybox')),
         MenuItemButton(
             onPressed: () {
-              widget.controller
+              widget.controller.viewer
                   .loadIbl('assets/default_env/default_env_ibl.ktx');
             },
             child: const Text('Load IBL')),
         MenuItemButton(
             onPressed: () {
-              widget.controller.removeIbl();
+              widget.controller.viewer.removeIbl();
             },
             child: const Text('Remove IBL')),
-        MenuItemButton(
+                MenuItemButton(
             onPressed: () async {
-              await Permission.microphone.request();
-            },
-            child: const Text("Request permissions (tests inactive->resume)")),
-        MenuItemButton(
-            onPressed: () async {
-              await widget.controller.clearEntities();
+              await widget.controller.viewer.clearEntities();
             },
             child: const Text('Clear assets')),
       ],

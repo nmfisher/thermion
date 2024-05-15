@@ -1,6 +1,6 @@
 name: flutter_filament
 description: A Flutter plugin to wrap the Filament rendering engine.
-version: 0.6.0
+version: 0.7.0
 homepage:
 
 environment:
@@ -16,7 +16,9 @@ dependencies:
   plugin_platform_interface: ^2.0.0
   tuple:
   ffi:
-  animation_tools_dart: ^0.0.2
+  animation_tools_dart:
+    git:
+      url: git@github.com:nmfisher/animation_tools_dart.git
   dart_filament:
     path: ../../dart_filament
   flutter_filament_platform_interface:

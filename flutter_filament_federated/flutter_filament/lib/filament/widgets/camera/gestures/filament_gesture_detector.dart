@@ -65,9 +65,7 @@ class FilamentGestureDetector extends StatelessWidget {
           if (initialized.data != true) {
             return Container();
           }
-          if (kIsWeb) {
-            throw Exception("TODO");
-          } else if (Platform.isLinux ||
+          if (kIsWeb || Platform.isLinux ||
               Platform.isWindows ||
               Platform.isMacOS) {
             return FilamentGestureDetectorDesktop(

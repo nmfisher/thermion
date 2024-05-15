@@ -6,7 +6,7 @@ description: Demonstrates how to use the flutter_filament plugin.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: ">=3.3.0 <4.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -20,8 +20,8 @@ dependencies:
   path_provider:
   flutter_filament:
     path: ../
-  permission_handler:
   cupertino_icons: ^1.0.2
+  web:
 
 dev_dependencies:
   flutter_test:

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_filament/flutter_filament.dart';
-import 'package:dart_filament/dart_filament.dart';
+import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 
 class PickerResultWidget extends StatelessWidget {
-  final FilamentViewer controller;
+  final AbstractFilamentViewer controller;
 
   const PickerResultWidget({required this.controller, super.key});
 

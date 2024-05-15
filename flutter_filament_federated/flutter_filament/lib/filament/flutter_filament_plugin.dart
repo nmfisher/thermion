@@ -18,8 +18,11 @@ class FlutterFilamentPlugin {
     }
     await FlutterFilamentPlatform.instance
         .initialize(uberArchivePath: uberArchivePath);
+    print("instance init completed");
     _initialized.complete(true);
+    print("completed compelter");
     await viewer.initialized;
+    print("viewer init complete");
   }
 
   Future<FlutterFilamentTexture?> createTexture(

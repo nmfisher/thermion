@@ -6,14 +6,15 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_filament/flutter_filament.dart';
 
 class ControllerMenu extends StatefulWidget {
-  final FlutterFilamentPlugin? controller;
+  final FlutterFilamentPlugin controller;
   final void Function() onToggleViewport;
-  final void Function(FlutterFilamentPlugin controller) onControllerCreated;
+  final void Function() onControllerCreated;
   final void Function() onControllerDestroyed;
   final FocusNode sharedFocusNode;
+         
 
   ControllerMenu(
-      {this.controller,
+      {required this.controller,
       required this.onControllerCreated,
       required this.onControllerDestroyed,
       required this.sharedFocusNode,
@@ -24,37 +25,26 @@ class ControllerMenu extends StatefulWidget {
 }
 
 class _ControllerMenuState extends State<ControllerMenu> {
-  FlutterFilamentPlugin? _flutterFilamentPlugin;
-
   void _createController({String? uberArchivePath}) async {
-    if (_flutterFilamentPlugin != null) {
-      throw Exception("Controller already exists");
-    }
-    _flutterFilamentPlugin =
-        await FlutterFilamentPlugin.create(uberArchivePath: uberArchivePath);
-    widget.onControllerCreated(_flutterFilamentPlugin!);
+    widget.controller.initialize(uberArchivePath: uberArchivePath);
+    widget.onControllerCreated();
   }
 
   @override
   void initState() {
     super.initState();
-    _flutterFilamentPlugin = widget.controller;
   }
 
   @override
   void didUpdateWidget(ControllerMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.controller != _flutterFilamentPlugin) {
-      setState(() {
-        _flutterFilamentPlugin = widget.controller;
-      });
-    }
   }
 
+  bool _initialized = false;
   @override
   Widget build(BuildContext context) {
     var items = <Widget>[];
-    if (_flutterFilamentPlugin == null) {
+    if (!_initialized) {
       items.addAll([
         MenuItemButton(
           child:
@@ -83,8 +73,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
         MenuItemButton(
           child: const Text("Destroy viewer"),
           onPressed: () async {
-            await _flutterFilamentPlugin!.dispose();
-            _flutterFilamentPlugin = null;
+            widget.controller.dispose();
             widget.onControllerDestroyed();
             setState(() {});
           },

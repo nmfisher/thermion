@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
-import 'package:dart_filament/dart_filament/entities/gizmo.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -66,10 +65,7 @@ class _FilamentGestureDetectorDesktopState
   @override
   void initState() {
     super.initState();
-    widget.controller.scene.gizmo.then((g) {
-      _gizmo = g;
-      setState(() {});
-    });
+    _gizmo = widget.controller.gizmo;
   }
 
   @override
@@ -107,9 +103,6 @@ class _FilamentGestureDetectorDesktopState
 
   @override
   Widget build(BuildContext context) {
-    if (_gizmo == null) {
-      return Container();
-    }
     return Listener(
         // onPointerHover: (event) async {
         //   if (_gizmo.isActive) {
@@ -134,7 +127,7 @@ class _FilamentGestureDetectorDesktopState
           throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
         },
         onPointerDown: (d) async {
-          if (_gizmo!.isActive) {
+          if (_gizmo?.isActive == true) {
             return;
           }
           if (d.buttons != kTertiaryButton && widget.enablePicking) {
@@ -145,7 +138,7 @@ class _FilamentGestureDetectorDesktopState
         },
         // holding/moving the left mouse button is interpreted as a pan, middle mouse button as a rotate
         onPointerMove: (PointerMoveEvent d) async {
-          if (_gizmo!.isActive) {
+          if (_gizmo?.isActive == true) {
             _gizmo!.translate(d.delta.dx, d.delta.dy);
             return;
           }
@@ -173,7 +166,7 @@ class _FilamentGestureDetectorDesktopState
         // 2) if _pointerMoving is false, this is interpreted as a pick
         // same applies to middle mouse button, but this is ignored as a pick
         onPointerUp: (PointerUpEvent d) async {
-          if (_gizmo!.isActive) {
+          if (_gizmo?.isActive == true) {
             _gizmo!.reset();
             return;
           }

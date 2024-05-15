@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -129,7 +130,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   @override
   Widget build(BuildContext context) {
     if (_texture == null) {
-      return widget.initial ?? Container(color: Colors.red);
+      return widget.initial ?? Container(color: kIsWeb ? Colors.transparent : Colors.red);
     }
 
     var textureWidget = Texture(

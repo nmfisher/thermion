@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_filament/flutter_filament.dart';
 import 'package:flutter_filament_example/main.dart';
-import 'package:dart_filament/dart_filament.dart';
+import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 
 class RenderingSubmenu extends StatefulWidget {
   final FlutterFilamentPlugin controller;
@@ -19,14 +19,14 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
       menuChildren: [
         MenuItemButton(
           onPressed: () {
-            widget.controller.render();
+            widget.controller.viewer.render();
           },
           child: const Text("Render single frame"),
         ),
         MenuItemButton(
           onPressed: () {
             ExampleWidgetState.rendering = !ExampleWidgetState.rendering;
-            widget.controller.setRendering(ExampleWidgetState.rendering);
+            widget.controller.viewer.setRendering(ExampleWidgetState.rendering);
           },
           child: Text(
               "Set continuous rendering to ${!ExampleWidgetState.rendering}"),
@@ -35,14 +35,14 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           onPressed: () {
             ExampleWidgetState.framerate =
                 ExampleWidgetState.framerate == 60 ? 30 : 60;
-            widget.controller.setFrameRate(ExampleWidgetState.framerate);
+            widget.controller.viewer.setFrameRate(ExampleWidgetState.framerate);
           },
           child: Text(
               "Toggle framerate (currently ${ExampleWidgetState.framerate}) "),
         ),
         MenuItemButton(
           onPressed: () {
-            widget.controller.setToneMapping(ToneMapper.LINEAR);
+            widget.controller.viewer.setToneMapping(ToneMapper.LINEAR);
           },
           child: const Text("Set tone mapping to linear"),
         ),
@@ -50,7 +50,7 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           onPressed: () {
             ExampleWidgetState.postProcessing =
                 !ExampleWidgetState.postProcessing;
-            widget.controller
+            widget.controller.viewer
                 .setPostProcessing(ExampleWidgetState.postProcessing);
           },
           child: Text(
@@ -60,7 +60,7 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           onPressed: () {
             ExampleWidgetState.antiAliasingMsaa =
                 !ExampleWidgetState.antiAliasingMsaa;
-            widget.controller.setAntiAliasing(
+            widget.controller.viewer.setAntiAliasing(
                 ExampleWidgetState.antiAliasingMsaa,
                 ExampleWidgetState.antiAliasingFxaa,
                 ExampleWidgetState.antiAliasingTaa);
@@ -72,7 +72,7 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           onPressed: () {
             ExampleWidgetState.antiAliasingFxaa =
                 !ExampleWidgetState.antiAliasingFxaa;
-            widget.controller.setAntiAliasing(
+            widget.controller.viewer.setAntiAliasing(
                 ExampleWidgetState.antiAliasingMsaa,
                 ExampleWidgetState.antiAliasingFxaa,
                 ExampleWidgetState.antiAliasingTaa);
@@ -83,14 +83,14 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
         MenuItemButton(
           onPressed: () {
             ExampleWidgetState.recording = !ExampleWidgetState.recording;
-            widget.controller.setRecording(ExampleWidgetState.recording);
+            widget.controller.viewer.setRecording(ExampleWidgetState.recording);
           },
           child: Text(
               "Turn recording ${ExampleWidgetState.recording ? "OFF" : "ON"}) "),
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller
+            await widget.controller.viewer
                 .addLight(2, 6000, 100000, 0, 0, 0, 0, 1, 0, false);
           },
           child: Text("Add light"),

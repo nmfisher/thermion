@@ -1,7 +1,5 @@
-import 'dart:math';
-
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
-import 'package:dart_filament/dart_filament/filament_viewer_impl.dart';
+import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 import 'package:dart_filament/dart_filament/utils/light_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -9,7 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 
 class LightSliderWidget extends StatefulWidget {
-  final FilamentViewer controller;
+  final AbstractFilamentViewer controller;
 
   final LightOptions options;
   final bool showControls;
