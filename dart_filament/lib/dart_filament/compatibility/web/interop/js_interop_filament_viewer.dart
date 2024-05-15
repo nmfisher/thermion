@@ -266,6 +266,7 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future<void> clearEntities() async {
+    print("clear entities on js interop side");
     await _jsObject.clearEntities().toDart;
   }
 
@@ -527,17 +528,12 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future<void> setPostProcessing(bool enabled) async {
-    throw UnimplementedError();
-    // await _jsObject.setPostProcessing(enabled.toJSBoolean()).toDart;
+    await _jsObject.setPostProcessing(enabled).toDart;
   }
 
   @override
   Future<void> setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    throw UnimplementedError();
-    // await _jsObject
-    //     .setAntiAliasing(
-    //         msaa.toJSBoolean(), fxaa.toJSBoolean(), taa.toJSBoolean())
-    //     .toDart;
+    await _jsObject.setAntiAliasing(msaa, fxaa, taa).toDart;
   }
 
   @override
@@ -568,8 +564,7 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   String? getNameForEntity(FilamentEntity entity) {
-    throw UnimplementedError();
-    // return _jsObject.getNameForEntity(entity).toDart;
+    return _jsObject.getNameForEntity(entity);
   }
 
   @override
@@ -578,14 +573,10 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
       double orbitSpeedX = 0.01,
       double orbitSpeedY = 0.01,
       double zoomSpeed = 0.01}) async {
-    throw UnimplementedError();
-    // await _jsObject
-    //     .setCameraManipulatorOptions(
-    //         mode: mode.index,
-    //         orbitSpeedX: orbitSpeedX,
-    //         orbitSpeedY: orbitSpeedY,
-    //         zoomSpeed: zoomSpeed)
-    //     .toDart;
+    await _jsObject
+        .setCameraManipulatorOptions(
+            mode.index, orbitSpeedX, orbitSpeedY, zoomSpeed)
+        .toDart;
   }
 
   @override
