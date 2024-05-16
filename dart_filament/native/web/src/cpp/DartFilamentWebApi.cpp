@@ -118,7 +118,7 @@ extern "C"
     EmscriptenWebGLContextAttributes attr;
     
     emscripten_webgl_init_context_attributes(&attr);
-    attr.alpha = EM_FALSE;
+    attr.alpha = EM_TRUE;
     attr.depth = EM_TRUE;
     attr.stencil = EM_FALSE;
     attr.antialias = EM_FALSE;
@@ -137,9 +137,9 @@ extern "C"
       std::cout << "Failed to make WebGL context current"<< std::endl;
     } else { 
       std::cout << "Made WebGL context current"<< std::endl;
-      glClearColor(1.0, 0.0, 0.0, 1.0);
-      glClear(GL_COLOR_BUFFER_BIT);
-      emscripten_webgl_commit_frame();
+      // glClearColor(1.0, 0.0, 0.0, 1.0);
+      // glClear(GL_COLOR_BUFFER_BIT);
+      // emscripten_webgl_commit_frame();
     }
     emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)NULL);
     return context;
