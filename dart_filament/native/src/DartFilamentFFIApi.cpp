@@ -107,9 +107,9 @@ public:
           std::cout << "Failed to make context current." << std::endl;
           return (FilamentViewer*)nullptr;
         }
-        glClearColor(0.0, 1.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
-        emscripten_webgl_commit_frame();
+        // glClearColor(0.0, 1.0, 0.0, 1.0);
+        // glClear(GL_COLOR_BUFFER_BIT);
+        // emscripten_webgl_commit_frame();
 
         _viewer = new FilamentViewer((void* const) emContext, loader, platform, uberArchivePath);
         MAIN_THREAD_EM_ASM({
