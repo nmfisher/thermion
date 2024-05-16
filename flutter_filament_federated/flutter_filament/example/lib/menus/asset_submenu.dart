@@ -77,39 +77,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                     1000.0 / 60.0));
           },
           child: const Text('Set bone transform animation for Cylinder')),
-      MenuItemButton(
-          closeOnActivate: false,
-          onPressed: () async {
-            var names = await widget.controller.viewer.getMorphTargetNames(
-                widget.controller.viewer.scene.listEntities().last, "Cylinder");
-            print("NAMES : $names");
-            await showDialog(
-                context: context,
-                builder: (ctx) {
-                  return Container(
-                      height: 100,
-                      width: 100,
-                      color: Colors.white,
-                      child: Text(names.join(",")));
-                });
-          },
-          child: const Text("Show morph target names for Cylinder")),
-      MenuItemButton(
-          onPressed: () async {
-            var cylinder = await widget.controller.viewer.getChildEntity(
-                widget.controller.viewer.scene.listEntities().last, "Cylinder");
-            widget.controller.viewer
-                .setMorphTargetWeights(cylinder, List.filled(4, 1.0));
-          },
-          child: const Text("set Cylinder morph weights to 1")),
-      MenuItemButton(
-          onPressed: () async {
-            var cylinder = await widget.controller.viewer.getChildEntity(
-                widget.controller.viewer.scene.listEntities().last, "Cylinder");
-            widget.controller.viewer
-                .setMorphTargetWeights(cylinder, List.filled(4, 0.0));
-          },
-          child: const Text("Set Cylinder morph weights to 0")),
+
+
       MenuItemButton(
           onPressed: () async {
             var morphTargets = await widget.controller.viewer.getMorphTargetNames(

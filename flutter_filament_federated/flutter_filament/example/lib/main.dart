@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_filament/filament/widgets/debug/entity_list_widget.dart';
+import 'package:flutter_filament_example/camera_matrix_overlay.dart';
 import 'package:flutter_filament_example/menus/controller_menu.dart';
 import 'package:flutter_filament_example/example_viewport.dart';
 import 'package:dart_filament/dart_filament/entities/entity_transform_controller.dart';
 import 'package:flutter_filament_example/menus/scene_menu.dart';
 import 'package:flutter_filament/flutter_filament.dart';
+import 'package:flutter_filament_example/picker_result_widget.dart';
 
 
 const loadDefaultScene = bool.hasEnvironment('--load-default-scene');
@@ -178,18 +181,18 @@ class ExampleWidgetState extends State<ExampleWidget> {
                           Expanded(child: Container()),
                         ]))),
             if (isInitialized) ...[
-              // EntityListWidget(controller: _plugin.viewer),
-              // Padding(
-              //   padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
-              //   child: ValueListenableBuilder(
-              //       valueListenable: showProjectionMatrices,
-              //       builder: (ctx, value, child) => CameraMatrixOverlay(
-              //           controller: _plugin, showProjectionMatrices: value)),
-              // ),
-              // Align(
-              //   alignment: Alignment.topRight,
-              //   child: PickerResultWidget(controller: _plugin.viewer),
-              // )
+              EntityListWidget(controller: _plugin.viewer),
+              Padding(
+                padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
+                child: ValueListenableBuilder(
+                    valueListenable: showProjectionMatrices,
+                    builder: (ctx, value, child) => CameraMatrixOverlay(
+                        controller: _plugin.viewer, showProjectionMatrices: value)),
+              ),
+              Align(
+                alignment: Alignment.topRight,
+                child: PickerResultWidget(controller: _plugin.viewer),
+              )
             ]
           ]);
         });

@@ -1,5 +1,6 @@
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
+import 'package:flutter_filament/filament/widgets/debug/child_renderable_widget.dart';
 import 'package:flutter_filament/flutter_filament.dart';
 import 'package:flutter/material.dart';
 
@@ -72,7 +73,9 @@ class _EntityListWidget extends State<EntityListWidget> {
                                       entity, animations.data!.indexOf(a));
                                 },
                               ))
-                          .toList())
+                          .toList()),
+                          ChildRenderableWidget(controller:widget.controller!, entity:entity),
+                  
                 ])
           ]);
         });
@@ -120,25 +123,29 @@ class _EntityListWidget extends State<EntityListWidget> {
     if (widget.controller == null) {
       return Container();
     }
-    return StreamBuilder(
-                    stream: widget.controller!.scene.onUpdated,
-                    builder: (_, __) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 10),
-                        height: 100,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          color: Colors.white.withOpacity(0.25),
-                        ),
-                        child: ListView(
-                            reverse: true,
-                            children: widget.controller!.scene
-                                .listLights()
-                                .map(_light)
-                                .followedBy(widget.controller!.scene
-                                    .listEntities()
-                                    .map(_entity))
-                                .cast<Widget>()
-                                .toList())));
+    return FutureBuilder(
+        future: widget.controller!.initialized,
+        builder: (_, snapshot) => snapshot.data != true
+            ? Container()
+            : StreamBuilder(
+                stream: widget.controller!.scene.onUpdated,
+                builder: (_, __) => Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 10),
+                    height: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      color: Colors.white.withOpacity(0.25),
+                    ),
+                    child: ListView(
+                        reverse: true,
+                        children: widget.controller!.scene
+                            .listLights()
+                            .map(_light)
+                            .followedBy(widget.controller!.scene
+                                .listEntities()
+                                .map(_entity))
+                            .cast<Widget>()
+                            .toList()))));
   }
 }
