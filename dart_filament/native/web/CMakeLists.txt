@@ -219,10 +219,10 @@ target_link_libraries(${MODULE_NAME}
  tinyexr
 )
 
-
-
-
-
-
-
+add_custom_command(TARGET ${MODULE_NAME} POST_BUILD
+    COMMAND dart --enable-experiment=native-assets run ffigen --config ffigen/web.yaml WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../
+    COMMAND ${CMAKE_COMMAND} -DINPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/../../lib/dart_filament/compatibility/web/dart_filament.g.dart -DOUTPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/../../lib/dart_filament/compatibility/web/dart_filament.g.dart "-DTO_REPLACE=symbol: '" "-DREPLACEMENT=symbol: '_" -P ${CMAKE_CURRENT_SOURCE_DIR}/replace_in_file.cmake 
+    COMMAND ${CMAKE_COMMAND} -DINPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/build/build/out/dart_filament.js -DOUTPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/build/build/out/dart_filament.js "-DTO_REPLACE=var moduleRtn" "-DREPLACEMENT=var moduleRtn\;GLctx=moduleArg.ctx" -P ${CMAKE_CURRENT_SOURCE_DIR}/replace_in_file.cmake 
+    VERBATIM
+)
 
