@@ -215,10 +215,10 @@ abstract class AbstractFilamentViewer {
   Future setMorphTargetWeights(FilamentEntity entity, List<double> weights);
 
   ///
-  /// Gets the names of all morph targets for the mesh [meshName] under [entity].
+  /// Gets the names of all morph targets for the child renderable [childEntity] under [entity].
   ///
   Future<List<String>> getMorphTargetNames(
-      FilamentEntity entity, String meshName);
+      FilamentEntity entity, FilamentEntity childEntity);
 
   Future<List<String>> getAnimationNames(FilamentEntity entity);
 
@@ -643,6 +643,11 @@ abstract class Scene {
   /// Attach the gizmo to the specified entity.
   ///
   void select(FilamentEntity entity);
+
+  ///
+  ///
+  ///
+  void registerEntity(FilamentEntity entity);
 }
 
 abstract class AbstractGizmo {
