@@ -1,0 +1,98 @@
+MAIN
+initializing
+gto uberarchive ptr
+create void ptr callback
+resolve
+try
+done, returning
+created
+got promise [object Promise]
+got fn ptr address 2720
+Calling create_filament_viewer_ffi
+Call complete
+Created viewer, waiting for initialization
+Creating WebGL context.
+Created WebGL context 2.0
+Made WebGL context current
+FEngine (32 bits) created at 0x1937d0 (threading is disabled)
+
+[stack-gl], [ANGLE], [OpenGL ES 3.0 (WebGL 1.0 stack-gl 8.0.2)], [OpenGL ES GLSL ES 1.00 (WebGL GLSL ES 1.0 stack-gl)]
+
+Feature level: 1
+Active workarounds: 
+
+Backend feature level: 1
+
+FEngine feature level: 1
+
+Set frame interval to 16.666666
+Setting tone mapping to ACES
+Bloom is disabled on WebGL builds as it causes instability with certain drivers. setBloom will be ignored
+View created
+Camera aperture 16.000000 shutter 0.008000 sensitivity 100.000000
+Created ubershader provider.
+Added imageEntity 6
+Got void ptr callback
+Set viewer to true
+Created viewer 1652064
+Initialied
+Loading GLB from buffer of length 116948
+Loaded glb
+Entities : [10, 11, 12]
+entityName : Cone
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+morph targets : [Key 1, Key 2, Key 3, Key 4, Key 5, Key 6, Key 7, Key 8]
+entityName : Cube
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+morph targets : [Key 1, Key 2]
+entityName : Cylinder
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+Getting morpht arget names
+No insdtance
+Using asset instance
+morph targets : [Key 1, Key 2, Key 3, Key 4]
