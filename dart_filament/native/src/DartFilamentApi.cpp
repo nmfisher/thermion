@@ -373,7 +373,8 @@ extern "C"
         int numFrames,
         float frameLengthInMs)
     {
-        return ((SceneManager *)sceneManager)->setMorphAnimationBuffer(asset, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
+        auto result = ((SceneManager *)sceneManager)->setMorphAnimationBuffer(asset, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
+        return result;
     }
 
     EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose(void *sceneManager, EntityId entityId)
@@ -476,15 +477,15 @@ extern "C"
         strcpy(outPtr, name.c_str());
     }
 
-    EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId asset, const char *meshName)
+    EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity)
     {
-        auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
+        auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(assetEntity, childEntity);
         return (int)names->size();
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_morph_target_name(void *sceneManager, EntityId asset, const char *meshName, char *const outPtr, int index)
+    EMSCRIPTEN_KEEPALIVE void get_morph_target_name(void *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index)
     {
-        auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(asset, meshName);
+        auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(assetEntity, childEntity);
         std::string name = names->at(index);
         strcpy(outPtr, name.c_str());
     }

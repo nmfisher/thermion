@@ -113,7 +113,7 @@ public:
 
         _viewer = new FilamentViewer((void* const) emContext, loader, platform, uberArchivePath);
         MAIN_THREAD_EM_ASM({
-          window.resolveCallback($0, $1);
+          moduleArg.dartFilamentResolveCallback($0, $1);
         }, callback, _viewer);
 #else
         _viewer = new FilamentViewer(context, loader, platform, uberArchivePath);
@@ -227,7 +227,7 @@ extern "C"
           create_swap_chain(viewer, surface, width, height);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, onComplete);
           #else
           onComplete();
@@ -245,7 +245,7 @@ extern "C"
           destroy_swap_chain(viewer);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, onComplete);
           #else
           onComplete();
@@ -265,7 +265,7 @@ extern "C"
     create_render_target(viewer, nativeTextureId, width, height);
     #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, onComplete);
     #else
     onComplete(); 
@@ -285,7 +285,7 @@ extern "C"
     update_viewport_and_camera_projection(viewer, width, height, scaleFactor);
     #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, onComplete);
     #else
     onComplete(); 
@@ -351,7 +351,7 @@ extern "C"
     auto entity = load_gltf(sceneManager, path, relativeResourcePath);
     #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0, $1);
+            moduleArg.dartFilamentResolveCallback($0, $1);
           }, callback, entity);
     #else
       callback(entity);
@@ -369,7 +369,7 @@ extern "C"
           auto entity = load_glb(sceneManager, path, numInstances);
            #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0, $1);
+            moduleArg.dartFilamentResolveCallback($0, $1);
           }, callback, entity);
           #else
             callback(entity);
@@ -409,7 +409,7 @@ extern "C"
           set_background_image(viewer, path, fillHeight);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, callback);
           #else
           callback(); 
@@ -449,7 +449,7 @@ extern "C"
         load_skybox(viewer, skyboxPath); 
         #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, onComplete);
         #else
         onComplete(); 
@@ -490,7 +490,7 @@ extern "C"
                      dirY, dirZ, shadows);
       #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0, $1);
+            moduleArg.dartFilamentResolveCallback($0, $1);
           }, callback, entity);
       #else
       callback(entity);
@@ -523,7 +523,7 @@ extern "C"
     remove_entity(viewer, asset); 
     #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, callback);
     #else
     callback(); 
@@ -539,7 +539,7 @@ extern "C"
       clear_entities(viewer); 
       #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, callback);
       #else
       callback(); 
@@ -557,7 +557,7 @@ extern "C"
           auto success = set_camera(viewer, asset, nodeName);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0,$1);
+            moduleArg.dartFilamentResolveCallback($0,$1);
           }, callback, success);
           #else
           callback(success);
@@ -568,15 +568,15 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void
-  get_morph_target_name_ffi(void *sceneManager, EntityId asset,
-                            const char *meshName, char *const outPtr, int index, void (*callback)())
+  get_morph_target_name_ffi(void *sceneManager, EntityId assetEntity,
+                            EntityId childEntity, char *const outPtr, int index, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
-    get_morph_target_name(sceneManager, asset, meshName, outPtr, index);
+    get_morph_target_name(sceneManager, assetEntity, childEntity, outPtr, index);
     #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
         }, callback);
     #else
     callback(); 
@@ -586,15 +586,15 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void
-  get_morph_target_name_count_ffi(void *sceneManager, EntityId asset,
-                                  const char *meshName, void (*callback)(int))
+  get_morph_target_name_count_ffi(void *sceneManager, EntityId assetEntity,
+                                  EntityId childEntity, void (*callback)(int))
   {
     std::packaged_task<int()> lambda([=]
                                      {
-    auto count = get_morph_target_name_count(sceneManager, asset, meshName);
+    auto count = get_morph_target_name_count(sceneManager, assetEntity, childEntity);
     #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0,$1);
+            moduleArg.dartFilamentResolveCallback($0,$1);
           }, callback, count);
     #else
     callback(count);
@@ -644,7 +644,7 @@ extern "C"
           auto count = get_animation_count(sceneManager, asset);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0,$1);
+            moduleArg.dartFilamentResolveCallback($0,$1);
           }, callback, count);
           #else
           callback(count);
@@ -666,7 +666,7 @@ extern "C"
           get_animation_name(sceneManager, asset, outPtr, index);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0);
+            moduleArg.dartFilamentResolveCallback($0);
           }, callback);
           #else
           callback();
@@ -693,7 +693,7 @@ extern "C"
           auto name = get_name_for_entity(sceneManager, entityId);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0,$1);
+            moduleArg.dartFilamentResolveCallback($0,$1);
           }, callback, name);
           #else
           callback(name);
@@ -709,13 +709,17 @@ extern "C"
                                     int numWeights,
                                     void (*callback)(bool))
   {
+    Log("Setting morph target weights");
     std::packaged_task<void()> lambda(
         [=]
         {
+          Log("Setting in lambda");
           auto result = set_morph_target_weights(sceneManager, asset, morphData, numWeights);
+          Log("Set, result was %d", result);
           #ifdef __EMSCRIPTEN__
+          Log("emscripten");
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0,$1);
+            moduleArg.dartFilamentResolveCallback($0,$1);
           }, callback, result);
           #else
           callback(result);
@@ -738,7 +742,7 @@ extern "C"
           auto success = set_bone_transform(sceneManager, asset, entityName, transform, boneName);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0,$1);
+            moduleArg.dartFilamentResolveCallback($0,$1);
           }, callback, success);
           #else
           callback(success);
@@ -786,7 +790,7 @@ extern "C"
           auto entity = create_geometry(viewer, vertices, numVertices, indices, numIndices, primitiveType, materialPath);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            window.resolveCallback($0,$1);
+            moduleArg.dartFilamentResolveCallback($0,$1);
           }, callback, entity);
           #else
           callback(entity);

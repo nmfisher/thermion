@@ -445,7 +445,6 @@ namespace flutter_filament
         const auto &pos = _instances.find(entityId);
         if (pos == _instances.end())
         {
-            // Log("Failed to find FilamentInstance for entity %d", entityId);
             return nullptr;
         }
         return pos->second;
@@ -1197,32 +1196,38 @@ namespace flutter_filament
         return names;
     }
 
-    unique_ptr<std::vector<std::string>> SceneManager::getMorphTargetNames(EntityId entityId, const char *meshName)
+    unique_ptr<std::vector<std::string>> SceneManager::getMorphTargetNames(EntityId assetEntityId, EntityId child)
     {
-
         unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
-        const auto *instance = getInstanceByEntityId(entityId);
+        const auto *instance = getInstanceByEntityId(assetEntityId);
+        
         if (!instance)
         {
-            auto asset = getAssetByEntityId(entityId);
+            auto asset = getAssetByEntityId(assetEntityId);
             if (!asset)
             {
+                Log("Warning - failed to find specified asset. This is unexpected and probably indicates you are passing the wrong entity");
                 return names;
             }
             instance = asset->getInstance();
+            if(!instance) {
+                Log("Warning - failed to find instance for specified asset. This is unexpected and probably indicates you are passing the wrong entity");
+                return names;
+            }
         }
 
         const auto *asset = instance->getAsset();
 
         const utils::Entity *entities = asset->getEntities();
 
+        const utils::Entity target = Entity::import(child);
+
         for (int i = 0; i < asset->getEntityCount(); i++)
         {
+            
             utils::Entity e = entities[i];
-            const char *name = asset->getName(e);
-
-            if (name && strcmp(name, meshName) == 0)
+            if (e == target)
             {
                 size_t count = asset->getMorphTargetCountAt(e);
                 for (int j = 0; j < count; j++)
