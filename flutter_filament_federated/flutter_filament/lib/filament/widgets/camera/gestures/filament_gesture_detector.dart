@@ -63,7 +63,7 @@ class FilamentGestureDetector extends StatelessWidget {
         future: controller.initialized,
         builder: (_, initialized) {
           if (initialized.data != true) {
-            return Container();
+            return child ?? Container();
           }
           if (kIsWeb || Platform.isLinux ||
               Platform.isWindows ||
