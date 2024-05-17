@@ -148,6 +148,15 @@ extension FloatPointer on ffi.Pointer<ffi.Float> {
 
   ffi.Pointer<ffi.Float> elementAt(int index) =>
       ffi.Pointer.fromAddress(address + ffi.sizeOf<ffi.Float>() * index);
+
+  Float32List asTypedList(int length) {
+    var list = Float32List(length);
+
+    for (int i = 0; i < length; i++) {
+      list[i] = elementAt(i).value;
+    }
+    return list;
+  }
 }
 
 extension StringConversion on String {
