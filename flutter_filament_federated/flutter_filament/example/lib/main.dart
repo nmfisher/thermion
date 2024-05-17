@@ -104,7 +104,9 @@ class ExampleWidgetState extends State<ExampleWidget> {
         builder: (_, AsyncSnapshot<bool> initialized) {
           var isInitialized = initialized.data == true;
 
-          return Stack(children: [
+          return Stack(
+            fit: StackFit.expand,
+            children: [
             if (isInitialized)
               Positioned.fill(
                 child: ExampleViewport(
@@ -181,18 +183,19 @@ class ExampleWidgetState extends State<ExampleWidget> {
                           Expanded(child: Container()),
                         ]))),
             if (isInitialized) ...[
-              EntityListWidget(controller: _plugin.viewer),
-              Padding(
-                padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
-                child: ValueListenableBuilder(
-                    valueListenable: showProjectionMatrices,
-                    builder: (ctx, value, child) => CameraMatrixOverlay(
-                        controller: _plugin.viewer, showProjectionMatrices: value)),
-              ),
-              Align(
-                alignment: Alignment.topRight,
-                child: PickerResultWidget(controller: _plugin.viewer),
-              )
+              Positioned(top:0, height:50, left:0, right:0, child:Container(
+                child:EntityListWidget(controller: _plugin.viewer))),
+              // Padding(
+              //   padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
+              //   child: ValueListenableBuilder(
+              //       valueListenable: showProjectionMatrices,
+              //       builder: (ctx, value, child) => CameraMatrixOverlay(
+              //           controller: _plugin.viewer, showProjectionMatrices: value)),
+              // ),
+              // Align(
+              //   alignment: Alignment.topRight,
+              //   child: PickerResultWidget(controller: _plugin.viewer),
+              // )
             ]
           ]);
         });
