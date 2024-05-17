@@ -362,7 +362,7 @@ external int get_main_camera(
         ffi.Pointer<ffi.Char>)>(symbol: '_set_camera', assetId: 'dart_filament')
 external bool set_camera(
   ffi.Pointer<ffi.Void> viewer,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Char> nodeName,
 );
 
@@ -484,7 +484,7 @@ external void grab_end(
         ffi.Int)>(symbol: '_apply_weights', assetId: 'dart_filament')
 external void apply_weights(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> weights,
   int count,
@@ -495,7 +495,7 @@ external void apply_weights(
         ffi.Int)>(symbol: '_set_morph_target_weights', assetId: 'dart_filament')
 external bool set_morph_target_weights(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Float> morphData,
   int numWeights,
 );
@@ -511,7 +511,7 @@ external bool set_morph_target_weights(
         ffi.Float)>(symbol: '_set_morph_animation', assetId: 'dart_filament')
 external bool set_morph_animation(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Float> morphData,
   ffi.Pointer<ffi.Int> morphIndices,
   int numMorphTargets,
@@ -539,7 +539,7 @@ external void reset_to_rest_pose(
         ffi.Bool)>(symbol: '_add_bone_animation', assetId: 'dart_filament')
 external void add_bone_animation(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Float> frameData,
   int numFrames,
   ffi.Pointer<ffi.Char> boneName,
@@ -559,7 +559,7 @@ external void add_bone_animation(
     symbol: '_set_bone_transform', assetId: 'dart_filament')
 external bool set_bone_transform(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> transform,
   ffi.Pointer<ffi.Char> boneName,
@@ -576,7 +576,7 @@ external bool set_bone_transform(
         ffi.Float)>(symbol: '_play_animation', assetId: 'dart_filament')
 external void play_animation(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   int index,
   bool loop,
   bool reverse,
@@ -589,7 +589,7 @@ external void play_animation(
     symbol: '_set_animation_frame', assetId: 'dart_filament')
 external void set_animation_frame(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   int animationIndex,
   int animationFrame,
 );
@@ -598,7 +598,7 @@ external void set_animation_frame(
     symbol: '_stop_animation', assetId: 'dart_filament')
 external void stop_animation(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   int index,
 );
 
@@ -614,7 +614,7 @@ external int get_animation_count(
         ffi.Int)>(symbol: '_get_animation_name', assetId: 'dart_filament')
 external void get_animation_name(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
 );
@@ -623,7 +623,7 @@ external void get_animation_name(
     symbol: '_get_animation_duration', assetId: 'dart_filament')
 external double get_animation_duration(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   int index,
 );
 
@@ -631,25 +631,23 @@ external double get_animation_duration(
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
         EntityId,
-        ffi.Pointer<ffi.Char>,
+        EntityId,
         ffi.Pointer<ffi.Char>,
         ffi.Int)>(symbol: '_get_morph_target_name', assetId: 'dart_filament')
 external void get_morph_target_name(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.Char> meshName,
+  int assetEntity,
+  int childEntity,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
 );
 
-@ffi.Native<
-        ffi.Int Function(
-            ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>(
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, EntityId)>(
     symbol: '_get_morph_target_name_count', assetId: 'dart_filament')
 external int get_morph_target_name_count(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.Char> meshName,
+  int assetEntity,
+  int childEntity,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
@@ -677,7 +675,7 @@ external void clear_entities(
         ffi.Float)>(symbol: '_set_material_color', assetId: 'dart_filament')
 external bool set_material_color(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Char> meshName,
   int materialIndex,
   double r,
@@ -703,7 +701,7 @@ external void transform_to_unit_cube(
         ffi.Bool)>(symbol: '_queue_position_update', assetId: 'dart_filament')
 external void queue_position_update(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   double x,
   double y,
   double z,
@@ -722,7 +720,7 @@ external void queue_position_update(
         ffi.Bool)>(symbol: '_queue_rotation_update', assetId: 'dart_filament')
 external void queue_rotation_update(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   double rads,
   double x,
   double y,
@@ -736,7 +734,7 @@ external void queue_rotation_update(
         ffi.Float)>(symbol: '_set_position', assetId: 'dart_filament')
 external void set_position(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   double x,
   double y,
   double z,
@@ -753,7 +751,7 @@ external void set_position(
         ffi.Float)>(symbol: '_set_rotation', assetId: 'dart_filament')
 external void set_rotation(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   double rads,
   double x,
   double y,
@@ -765,7 +763,7 @@ external void set_rotation(
     symbol: '_set_scale', assetId: 'dart_filament')
 external void set_scale(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   double scale,
 );
 
@@ -920,7 +918,7 @@ external void set_camera_manipulator_options(
         ffi.Pointer<ffi.Char>)>(symbol: '_hide_mesh', assetId: 'dart_filament')
 external int hide_mesh(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Char> meshName,
 );
 
@@ -929,7 +927,7 @@ external int hide_mesh(
         ffi.Pointer<ffi.Char>)>(symbol: '_reveal_mesh', assetId: 'dart_filament')
 external int reveal_mesh(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
+  int entity,
   ffi.Pointer<ffi.Char> meshName,
 );
 
@@ -1528,31 +1526,28 @@ external void get_animation_name_ffi(
         ffi.Void Function(
             ffi.Pointer<ffi.Void>,
             EntityId,
-            ffi.Pointer<ffi.Char>,
+            EntityId,
             ffi.Pointer<ffi.Char>,
             ffi.Int,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
     symbol: '_get_morph_target_name_ffi', assetId: 'dart_filament')
 external void get_morph_target_name_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.Char> meshName,
+  int assetEntity,
+  int childEntity,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
-            EntityId,
-            ffi.Pointer<ffi.Char>,
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>)>(
     symbol: '_get_morph_target_name_count_ffi', assetId: 'dart_filament')
 external void get_morph_target_name_count_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,
-  ffi.Pointer<ffi.Char> meshName,
+  int childEntity,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>> callback,
 );
 
