@@ -12,8 +12,6 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   late final DartFilamentJSShim _jsObject;
 
   JsInteropFilamentViewer(String globalPropertyName) {
-    print(
-        "Initializing interop viewer with global property $globalPropertyName");
     this._jsObject = globalContext.getProperty(globalPropertyName.toJS)
         as DartFilamentJSShim;
   }
@@ -134,7 +132,9 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future<FilamentEntity> loadGlb(String path, {int numInstances = 1}) async {
-    return (await _jsObject.loadGlb(path, numInstances).toDart).toDartInt;
+    var entity = (await _jsObject.loadGlb(path, numInstances).toDart).toDartInt;
+    scene.registerEntity(entity);
+    return entity;
   }
 
   @override
@@ -201,18 +201,17 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   @override
   Future<void> setMorphTargetWeights(
       FilamentEntity entity, List<double> weights) async {
-    throw UnimplementedError();
-
-    //     JSArray<JSNumber>.withLength(weights.length)
-    // await _jsObject.setMorphTargetWeights(entity, weights.toJSBox as JSArray<JSNumber>).toDart;
+    await _jsObject
+        .setMorphTargetWeights(entity, weights.map((x) => x.toJS).toList().toJS)
+        .toDart;
   }
 
   @override
   Future<List<String>> getMorphTargetNames(
-      FilamentEntity entity, String meshName) async {
-    var result = _jsObject.getMorphTargetNames(entity, meshName).toDart;
-    var dartResult = (await result).toDart;
-    return dartResult.map((r) => r.toDart).toList();
+      FilamentEntity entity, FilamentEntity childEntity) async {
+    var result =
+        await _jsObject.getMorphTargetNames(entity, childEntity).toDart;
+    return result.toDart.map((r) => r.toDart).toList();
   }
 
   @override
@@ -235,16 +234,23 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   Future<void> setMorphAnimationData(
       FilamentEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
-    await _jsObject
-        .setMorphAnimationData(
-            entity,
-            animation.data
-                .map((x) => x.map((y) => y.toJS).toList().toJS)
-                .toList()
-                .toJS,
-            animation.morphTargets.map((x) => x.toJS).toList().toJS,
-            targetMeshNames?.map((x) => x.toJS).toList().toJS)
-        .toDart;
+    try {
+      var animationDataJs = animation.data
+          .map((x) => x.map((y) => y.toJS).toList().toJS)
+          .toList()
+          .toJS;
+      var morphTargetsJs =
+          animation.morphTargets.map((x) => x.toJS).toList().toJS;
+      var targetMeshNamesJS = targetMeshNames?.map((x) => x.toJS).toList().toJS;
+      await _jsObject
+          .setMorphAnimationData(entity, animationDataJs, morphTargetsJs,
+              targetMeshNamesJS, animation.frameLengthInMs)
+          .toDart;
+    } catch (err, st) {
+      print(err);
+      print(st);
+      rethrow;
+    }
   }
 
   @override
@@ -266,7 +272,6 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future<void> clearEntities() async {
-    print("clear entities on js interop side");
     await _jsObject.clearEntities().toDart;
   }
 
@@ -582,14 +587,12 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   @override
   Future<List<FilamentEntity>> getChildEntities(
       FilamentEntity parent, bool renderableOnly) async {
-    throw UnimplementedError();
-    // final List<JSObject> jsEntities = await _jsObject
-    //     .getChildEntities(parent, renderableOnly.toJSBoolean())
-    //     .toDart;
-    // return jsEntities
-    //     .map((js) => FilamentEntity._fromJSObject(js))
-    //     .toList()
-    //     .toDart;
+    final children =
+        await _jsObject.getChildEntities(parent, renderableOnly).toDart;
+    return children.toDart
+        .map((js) => js.toDartInt)
+        .cast<FilamentEntity>()
+        .toList();
   }
 
   @override

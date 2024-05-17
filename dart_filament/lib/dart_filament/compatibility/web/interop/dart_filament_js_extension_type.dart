@@ -114,7 +114,7 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
 
   @JS('getMorphTargetNames')
   external JSPromise<JSArray<JSString>> getMorphTargetNames(
-      FilamentEntity entity, String meshName);
+      FilamentEntity entity, FilamentEntity childEntity);
 
   @JS('getAnimationNames')
   external JSPromise<JSArray<JSString>> getAnimationNames(FilamentEntity entity);
@@ -129,6 +129,7 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
     JSArray<JSArray<JSNumber>> animation,
     JSArray<JSString> morphTargets,  
     JSArray<JSString>? targetMeshNames,
+    double frameLengthInMs
   );
 
   @JS('resetBones')

@@ -14,12 +14,10 @@ class DartFilamentJSExportViewer {
   final AbstractFilamentViewer viewer;
 
   static void initializeBindings(AbstractFilamentViewer viewer) {
-    print("Initializing JS bindings");
     var shim = DartFilamentJSExportViewer(viewer);
     var wrapper = createJSInteropWrapper<DartFilamentJSExportViewer>(shim)
         as DartFilamentJSShim;
     globalContext.setProperty("filamentViewer".toJS, wrapper);
-    print("Set global context property");
   }
 
   DartFilamentJSExportViewer(this.viewer);
@@ -163,11 +161,12 @@ class DartFilamentJSExportViewer {
 
   @JSExport()
   JSPromise<JSArray<JSString>> getMorphTargetNames(
-          FilamentEntity entity, String meshName) =>
-      viewer
-          .getMorphTargetNames(entity, meshName)
-          .then((v) => v.map((s) => s.toJS).toList().toJS)
-          .toJS;
+      FilamentEntity entity, FilamentEntity childEntity) {
+    var morphTargetNames = viewer
+        .getMorphTargetNames(entity, childEntity)
+        .then((v) => v.map((s) => s.toJS).toList().toJS);
+    return morphTargetNames.toJS;
+  }
 
   @JSExport()
   JSPromise<JSArray<JSString>> getAnimationNames(FilamentEntity entity) =>
@@ -186,29 +185,52 @@ class DartFilamentJSExportViewer {
 
   @JSExport()
   JSPromise setMorphAnimationData(
-          FilamentEntity entity,
-          JSArray<JSArray<JSNumber>> animation,
-          JSArray<JSString> morphTargets,
-          JSArray<JSString> targetMeshNames) =>
-      viewer
+      FilamentEntity entity,
+      JSArray<JSArray<JSNumber>> animation,
+      JSArray<JSString> morphTargets,
+      JSArray<JSString>? targetMeshNames,
+      double frameLengthInMs) {
+    try {
+      var morphTargetsDart = morphTargets.toDart.map((m) => m.toDart).toList();
+      var animationDataDart = animation.toDart
+          .map((x) => x.toDart.map((y) => y.toDartDouble).toList())
+          .toList();
+
+      var morphAnimationData = MorphAnimationData(
+          animationDataDart, morphTargetsDart,
+          frameLengthInMs: frameLengthInMs);
+      var targetMeshNamesDart =
+          targetMeshNames?.toDart.map((x) => x.toDart).toList();
+      if (animationDataDart.first.length != morphTargetsDart.length) {
+        throw Exception(
+            "Length mismatch between morph targets and animation data");
+      }
+      var result = viewer
           .setMorphAnimationData(
-            entity,
-            MorphAnimationData(
-                animation.toDart
-                    .map((x) => x.toDart.map((y) => y.toDartDouble).toList())
-                    .toList(),
-                morphTargets.toDart.map((m) => m.toDart).toList()),
-            targetMeshNames:
-                targetMeshNames.toDart.map((x) => x.toDart).toList(),
-          )
-          .toJS;
+        entity,
+        morphAnimationData,
+        targetMeshNames: targetMeshNamesDart,
+      )
+          .onError((err, st) {
+        print("ERROR SETTING MORPH ANIMATION DATA : $err\n$st");
+        return null;
+      }).then((r) {
+        print("set morph animation data complete");
+      });
+      return result.toJS;
+    } catch (err, st) {
+      print(err);
+      print(st);
+      rethrow;
+    }
+  }
 
   @JSExport()
   JSPromise resetBones(FilamentEntity entity) => viewer.resetBones(entity).toJS;
 
   @JSExport()
   JSPromise addBoneAnimation(FilamentEntity entity, JSObject animation) {
-    throw Exception();
+    throw UnimplementedError();
   }
   // viewer
   //     .addBoneAnimation(
@@ -508,7 +530,10 @@ class DartFilamentJSExportViewer {
           renderableOnly,
         )
         .then((entities) => entities.map((entity) => entity.toJS).toList().toJS)
-        .toJS;
+        .onError((e, st) async {
+      print("Error : $e\n$st");
+      return <JSNumber>[].toJS;
+    }).toJS;
   }
 
   @JSExport()
@@ -519,7 +544,10 @@ class DartFilamentJSExportViewer {
           childName,
         )
         .then((entity) => entity.toJS)
-        .toJS;
+        .onError((e, st) async {
+      print("Error getChildEntity : $e\n$st");
+      return 0.toJS;
+    }).toJS;
   }
 
   @JSExport()
