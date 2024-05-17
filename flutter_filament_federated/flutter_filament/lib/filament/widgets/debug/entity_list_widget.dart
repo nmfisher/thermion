@@ -74,8 +74,8 @@ class _EntityListWidget extends State<EntityListWidget> {
                                 },
                               ))
                           .toList()),
-                          ChildRenderableWidget(controller:widget.controller!, entity:entity),
-                  
+                  ChildRenderableWidget(
+                      controller: widget.controller!, entity: entity),
                 ])
           ]);
         });
@@ -121,7 +121,7 @@ class _EntityListWidget extends State<EntityListWidget> {
   @override
   Widget build(BuildContext context) {
     if (widget.controller == null) {
-      return Container();
+      return Container(color: Colors.red);
     }
     return FutureBuilder(
         future: widget.controller!.initialized,
