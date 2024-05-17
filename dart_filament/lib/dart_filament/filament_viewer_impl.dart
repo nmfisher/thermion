@@ -98,8 +98,8 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   Future _initialize() async {
     final uberarchivePtr =
-        uberArchivePath?.toNativeUtf8(allocator:allocator).cast<Char>() ?? nullptr;
-
+        uberArchivePath?.toNativeUtf8(allocator: allocator).cast<Char>() ??
+            nullptr;
     var viewer = await withVoidPointerCallback(
         (Pointer<NativeFunction<Void Function(Pointer<Void>)>> callback) {
       create_filament_viewer_ffi(_sharedContext, _driver, uberarchivePtr,
@@ -107,8 +107,6 @@ class FilamentViewer extends AbstractFilamentViewer {
     });
     _viewer = Pointer.fromAddress(viewer);
     allocator.free(uberarchivePtr);
-    print("Set viewer to $_viewer");
-    print("Created viewer ${_viewer!.address}");
     if (_viewer!.address == 0) {
       throw Exception("Failed to create viewer. Check logs for details");
     }
@@ -156,7 +154,7 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
-    final pathPtr = path.toNativeUtf8(allocator:allocator).cast<Char>();
+    final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
     await withVoidCallback((cb) {
       set_background_image_ffi(_viewer!, pathPtr, fillHeight, cb);
     });
@@ -177,9 +175,8 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future loadSkybox(String skyboxPath) async {
-    
     final pathPtr = skyboxPath.toNativeUtf8(allocator: allocator).cast<Char>();
-    
+
     await withVoidCallback((cb) {
       load_skybox_ffi(_viewer!, pathPtr, cb);
     });
@@ -189,7 +186,8 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
-    final pathPtr = lightingPath.toNativeUtf8(allocator:allocator).cast<Char>();
+    final pathPtr =
+        lightingPath.toNativeUtf8(allocator: allocator).cast<Char>();
     load_ibl_ffi(_viewer!, pathPtr, intensity);
   }
 
@@ -290,7 +288,7 @@ class FilamentViewer extends AbstractFilamentViewer {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
-    final pathPtr = path.toNativeUtf8(allocator:allocator).cast<Char>();
+    final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
     var entity = await withIntCallback((callback) =>
         load_glb_ffi(_sceneManager!, pathPtr, numInstances, callback));
     allocator.free(pathPtr);
@@ -310,9 +308,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     //       "loadGltf has a race condition on Windows which is likely to crash your program. If you really want to try, pass force=true to loadGltf");
     // }
 
-    final pathPtr = path.toNativeUtf8(allocator:allocator).cast<Char>();
+    final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
     final relativeResourcePathPtr =
-        relativeResourcePath.toNativeUtf8(allocator:allocator).cast<Char>();
+        relativeResourcePath.toNativeUtf8(allocator: allocator).cast<Char>();
     var entity = await withIntCallback((callback) => load_gltf_ffi(
         _sceneManager!, pathPtr, relativeResourcePathPtr, callback));
     allocator.free(pathPtr);
@@ -382,20 +380,18 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future<List<String>> getMorphTargetNames(
-      FilamentEntity entity, String meshName) async {
+      FilamentEntity entity, FilamentEntity childEntity) async {
     var names = <String>[];
-    var meshNamePtr = meshName.toNativeUtf8(allocator:allocator).cast<Char>();
 
     var count = await withIntCallback((callback) =>
         get_morph_target_name_count_ffi(
-            _sceneManager!, entity, meshNamePtr, callback));
+            _sceneManager!, entity, childEntity, callback));
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < count; i++) {
-      get_morph_target_name(_sceneManager!, entity, meshNamePtr, outPtr, i);
+      get_morph_target_name(_sceneManager!, entity, childEntity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     allocator.free(outPtr);
-    allocator.free(meshNamePtr);
     return names.cast<String>();
   }
 
@@ -437,8 +433,12 @@ class FilamentViewer extends AbstractFilamentViewer {
   Future setMorphAnimationData(
       FilamentEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
+    print("setting in actual viewer with $entity");
     var meshNames = await getChildEntityNames(entity, renderableOnly: true);
+
+    print("MESH NAMES ${meshNames}");
     var meshEntities = await getChildEntities(entity, true);
+    print("MESH ENTITIES ${meshEntities}");
 
     // Entities are not guaranteed to have the same morph targets (or share the same order),
     // either from each other, or from those specified in [animation].
@@ -453,7 +453,7 @@ class FilamentViewer extends AbstractFilamentViewer {
       if (targetMeshNames?.contains(meshName) == false) {
         continue;
       }
-      var meshMorphTargets = await getMorphTargetNames(entity, meshName);
+      var meshMorphTargets = await getMorphTargetNames(entity, meshEntity);
 
       var intersection = animation.morphTargets
           .toSet()
@@ -568,8 +568,9 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future clearEntities() async {
-    await withVoidCallback(
-        (callback) => clear_entities_ffi(_viewer!, callback));
+    await withVoidCallback((callback) {
+      clear_entities_ffi(_viewer!, callback);
+    });
     _scene.clearEntities();
   }
 
@@ -647,7 +648,8 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future setCamera(FilamentEntity entity, String? name) async {
-    var cameraNamePtr = name?.toNativeUtf8(allocator:allocator).cast<Char>() ?? nullptr;
+    var cameraNamePtr =
+        name?.toNativeUtf8(allocator: allocator).cast<Char>() ?? nullptr;
     var result = set_camera(_viewer!, entity, cameraNamePtr);
     allocator.free(cameraNamePtr);
     if (!result) {
@@ -746,7 +748,7 @@ class FilamentViewer extends AbstractFilamentViewer {
   @override
   Future setMaterialColor(FilamentEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a) async {
-    var meshNamePtr = meshName.toNativeUtf8(allocator:allocator).cast<Char>();
+    var meshNamePtr = meshName.toNativeUtf8(allocator: allocator).cast<Char>();
     var result = set_material_color(
         _sceneManager!, entity, meshNamePtr, materialIndex, r, g, b, a);
     allocator.free(meshNamePtr);
@@ -808,14 +810,16 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future hide(FilamentEntity entity, String? meshName) async {
-    final meshNamePtr = meshName?.toNativeUtf8(allocator:allocator).cast<Char>() ?? nullptr;
+    final meshNamePtr =
+        meshName?.toNativeUtf8(allocator: allocator).cast<Char>() ?? nullptr;
     if (hide_mesh(_sceneManager!, entity, meshNamePtr) != 1) {}
     allocator.free(meshNamePtr);
   }
 
   @override
   Future reveal(FilamentEntity entity, String? meshName) async {
-    final meshNamePtr = meshName?.toNativeUtf8(allocator:allocator).cast<Char>() ?? nullptr;
+    final meshNamePtr =
+        meshName?.toNativeUtf8(allocator: allocator).cast<Char>() ?? nullptr;
     final result = reveal_mesh(_sceneManager!, entity, meshNamePtr) == 1;
     allocator.free(meshNamePtr);
     if (!result) {
@@ -1134,7 +1138,7 @@ class FilamentViewer extends AbstractFilamentViewer {
   Future setPriority(FilamentEntity entityId, int priority) async {
     set_priority(_sceneManager!, entityId, priority);
   }
-  
+
   @override
   AbstractGizmo? get gizmo => null;
 }
