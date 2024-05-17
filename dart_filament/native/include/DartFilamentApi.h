@@ -82,7 +82,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void get_instances(void *sceneManager, EntityId entityId, EntityId *out);
 	EMSCRIPTEN_KEEPALIVE void set_main_camera(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE bool set_camera(const void *const viewer, EntityId asset, const char *nodeName);
+	EMSCRIPTEN_KEEPALIVE bool set_camera(const void *const viewer, EntityId entity, const char *nodeName);
 	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(const void *const viewer, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void render(
 		const void *const viewer,
@@ -102,18 +102,18 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void grab_end(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void apply_weights(
 		void *sceneManager,
-		EntityId asset,
+		EntityId entity,
 		const char *const entityName,
 		float *const weights,
 		int count);
 	EMSCRIPTEN_KEEPALIVE bool set_morph_target_weights(
 		void *sceneManager,
-		EntityId asset,
+		EntityId entity,
 		const float *const morphData,
 		int numWeights);
 	EMSCRIPTEN_KEEPALIVE bool set_morph_animation(
 		void *sceneManager,
-		EntityId asset,
+		EntityId entity,
 		const float *const morphData,
 		const int *const morphIndices,
 		int numMorphTargets,
@@ -125,7 +125,7 @@ extern "C"
 		EntityId asset);
 	EMSCRIPTEN_KEEPALIVE void add_bone_animation(
 		void *sceneManager,
-		EntityId asset,
+		EntityId entity,
 		const float *const frameData,
 		int numFrames,
 		const char *const boneName,
@@ -135,27 +135,27 @@ extern "C"
 		bool isModelSpace);
 	EMSCRIPTEN_KEEPALIVE bool set_bone_transform(
 		void *sceneManager,
-		EntityId asset,
+		EntityId entity,
 		const char *entityName,
 		const float *const transform,
 		const char *boneName);
-	EMSCRIPTEN_KEEPALIVE void play_animation(void *sceneManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
-	EMSCRIPTEN_KEEPALIVE void set_animation_frame(void *sceneManager, EntityId asset, int animationIndex, int animationFrame);
-	EMSCRIPTEN_KEEPALIVE void stop_animation(void *sceneManager, EntityId asset, int index);
+	EMSCRIPTEN_KEEPALIVE void play_animation(void *sceneManager, EntityId entity, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
+	EMSCRIPTEN_KEEPALIVE void set_animation_frame(void *sceneManager, EntityId entity, int animationIndex, int animationFrame);
+	EMSCRIPTEN_KEEPALIVE void stop_animation(void *sceneManager, EntityId entity, int index);
 	EMSCRIPTEN_KEEPALIVE int get_animation_count(void *sceneManager, EntityId asset);
-	EMSCRIPTEN_KEEPALIVE void get_animation_name(void *sceneManager, EntityId asset, char *const outPtr, int index);
-	EMSCRIPTEN_KEEPALIVE float get_animation_duration(void *sceneManager, EntityId asset, int index);
-	EMSCRIPTEN_KEEPALIVE void get_morph_target_name(void *sceneManager, EntityId asset, const char *meshName, char *const outPtr, int index);
-	EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId asset, const char *meshName);
+	EMSCRIPTEN_KEEPALIVE void get_animation_name(void *sceneManager, EntityId entity, char *const outPtr, int index);
+	EMSCRIPTEN_KEEPALIVE float get_animation_duration(void *sceneManager, EntityId entity, int index);
+	EMSCRIPTEN_KEEPALIVE void get_morph_target_name(void *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index);
+	EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity);
 	EMSCRIPTEN_KEEPALIVE void remove_entity(const void *const viewer, EntityId asset);
 	EMSCRIPTEN_KEEPALIVE void clear_entities(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE bool set_material_color(void *sceneManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
+	EMSCRIPTEN_KEEPALIVE bool set_material_color(void *sceneManager, EntityId entity, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
 	EMSCRIPTEN_KEEPALIVE void transform_to_unit_cube(void *sceneManager, EntityId asset);
-	EMSCRIPTEN_KEEPALIVE void queue_position_update(void *sceneManager, EntityId asset, float x, float y, float z, bool relative);
-	EMSCRIPTEN_KEEPALIVE void queue_rotation_update(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative);
-	EMSCRIPTEN_KEEPALIVE void set_position(void *sceneManager, EntityId asset, float x, float y, float z);
-	EMSCRIPTEN_KEEPALIVE void set_rotation(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w);
-	EMSCRIPTEN_KEEPALIVE void set_scale(void *sceneManager, EntityId asset, float scale);
+	EMSCRIPTEN_KEEPALIVE void queue_position_update(void *sceneManager, EntityId entity, float x, float y, float z, bool relative);
+	EMSCRIPTEN_KEEPALIVE void queue_rotation_update(void *sceneManager, EntityId entity, float rads, float x, float y, float z, float w, bool relative);
+	EMSCRIPTEN_KEEPALIVE void set_position(void *sceneManager, EntityId entity, float x, float y, float z);
+	EMSCRIPTEN_KEEPALIVE void set_rotation(void *sceneManager, EntityId entity, float rads, float x, float y, float z, float w);
+	EMSCRIPTEN_KEEPALIVE void set_scale(void *sceneManager, EntityId entity, float scale);
 
 	// Camera methods
 	EMSCRIPTEN_KEEPALIVE void move_camera_to_asset(const void *const viewer, EntityId asset);
@@ -179,8 +179,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(const void *const viewer, float focusDistance);
 	EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
 
-	EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId asset, const char *meshName);
-	EMSCRIPTEN_KEEPALIVE int reveal_mesh(void *sceneManager, EntityId asset, const char *meshName);
+	EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId entity, const char *meshName);
+	EMSCRIPTEN_KEEPALIVE int reveal_mesh(void *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE void set_post_processing(void *const viewer, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa);
 	EMSCRIPTEN_KEEPALIVE void filament_pick(void *const viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y));

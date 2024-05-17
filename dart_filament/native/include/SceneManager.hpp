@@ -60,7 +60,7 @@ namespace flutter_filament
         unique_ptr<vector<string>> getAnimationNames(EntityId entity);
         float getAnimationDuration(EntityId entity, int animationIndex);
 
-        unique_ptr<vector<string>> getMorphTargetNames(EntityId entity, const char *name);
+        unique_ptr<vector<string>> getMorphTargetNames(EntityId assetEntityId, EntityId childEntity);
         void transformToUnitCube(EntityId e);
         inline void updateTransform(EntityId e);
         void setScale(EntityId e, float scale);

@@ -77,8 +77,8 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void stop_animation_ffi(void *const sceneManager, EntityId asset, int index);
     EMSCRIPTEN_KEEPALIVE void get_animation_count_ffi(void *const sceneManager, EntityId asset, void (*callback)(int));
     EMSCRIPTEN_KEEPALIVE void get_animation_name_ffi(void *const sceneManager, EntityId asset, char *const outPtr, int index, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_ffi(void *const sceneManager, EntityId asset, const char *meshName, char *const outPtr, int index, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_count_ffi(void *const sceneManager, EntityId asset, const char *meshName, void (*callback)(int32_t));
+    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_ffi(void *const sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index, void (*callback)());
+    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_count_ffi(void *const sceneManager, EntityId asset, EntityId childEntity, void (*callback)(int32_t));
     EMSCRIPTEN_KEEPALIVE void set_morph_target_weights_ffi(void *const sceneManager,
                                                             EntityId asset,
                                                             const float *const morphData,
