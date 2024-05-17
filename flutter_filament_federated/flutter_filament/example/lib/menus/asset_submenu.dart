@@ -2,8 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_filament/flutter_filament.dart';
-import 'package:flutter_filament_example/main.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:flutter_filament_example/main.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 
@@ -80,44 +80,13 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
 
 
       MenuItemButton(
-          onPressed: () async {
-            var morphTargets = await widget.controller.viewer.getMorphTargetNames(
-                widget.controller.viewer.scene.listEntities().last, "Cylinder");
-
-            var morphData = MorphAnimationData(
-                List.generate(
-                    60,
-                    (frameNum) =>
-                        List.generate(4, (morphIndex) => frameNum / 60)),
-                morphTargets);
-            await widget.controller.viewer.setMorphAnimationData(
-                widget.controller.viewer.scene.listEntities().last, morphData,
-                targetMeshNames: [
-                  "Cylinder",
-                ]);
-          },
-          child: const Text("create manual morph animation for Cylinder")),
-      MenuItemButton(
         onPressed: () async {
           widget.controller.viewer.setPosition(
               widget.controller.viewer.scene.listEntities().last, 1.0, 1.0, -1.0);
         },
         child: const Text('Set position to 1, 1, -1'),
       ),
-      MenuItemButton(
-          onPressed: () async {
-            if (ExampleWidgetState.coneHidden) {
-              widget.controller.viewer
-                  .reveal(widget.controller.viewer.scene.listEntities().last, "Cone");
-            } else {
-              widget.controller.viewer
-                  .hide(widget.controller.viewer.scene.listEntities().last, "Cone");
-            }
 
-            ExampleWidgetState.coneHidden = !ExampleWidgetState.coneHidden;
-          },
-          child:
-              Text(ExampleWidgetState.coneHidden ? 'show cone' : 'hide cone')),
       MenuItemButton(
           onPressed: () async {
             final color = Colors.purple;
@@ -131,12 +100,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 1.0);
           },
           child: const Text("Set cone material color to purple")),
-      MenuItemButton(
-          onPressed: () async {
-            ExampleWidgetState.loop = !ExampleWidgetState.loop;
-          },
-          child: Text(
-              "Toggle animation looping ${ExampleWidgetState.loop ? "OFF" : "ON"}"))
+  
     ];
 
     return SubmenuButton(menuChildren: children, child: const Text("Shapes"));
