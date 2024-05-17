@@ -20,10 +20,11 @@ packages:
   animation_tools_dart:
     dependency: transitive
     description:
-      name: animation_tools_dart
-      sha256: c4bc4096d43227b573345a3ea3cb26c3af47a70af31cd7d7d3a5b7c99e33d615
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "1a5ffc8a58353d43ba1864c8676c47948ee9b5ce"
+      url: "git@github.com:nmfisher/animation_tools_dart.git"
+    source: git
     version: "0.0.2"
   args:
     dependency: transitive
