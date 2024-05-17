@@ -63,7 +63,8 @@
 </style>
 </head>
 <script type="module">
-  window.resolveCallback = (cb, data) => {
+  let dartFilamentResolveCallback = (cb, data) => {
+      console.log("Resolving callback");
       const fn = window.df.wasmTable.get(cb);
       if(data) {
           fn(data);
@@ -72,6 +73,7 @@
       }
   }
   window.createVoidCallback = () => { 
+    console.log("CREATING VOID CALLBACK IN JS");
       let res; //placeholder for resolver callback, outside of promise
       const promise = new Promise((resolve, reject) => {
           res = resolve;
@@ -79,7 +81,8 @@
       try {
           const callback = () => { 
               try {
-                  res({});
+                    console.log("INVOKING CALLBACK");
+                  res(0);
               } catch(err) {
                   console.log(err);
               }
@@ -155,7 +158,7 @@
       }        
   }   
 
-  const df = await dart_filament();   
+  const df = await dart_filament({dartFilamentResolveCallback:dartFilamentResolveCallback});   
   window.df = df;
   
   const dartModulePromise = WebAssembly.compileStreaming(fetch('main.wasm'));
