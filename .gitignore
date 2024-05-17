@@ -1,4 +1,8 @@
+**/*/.cxx
+**/.github
+**/.idea
 .dart_tool
 **/.dart_tool
 .vscode
 .DS_Store
+**/*/build
