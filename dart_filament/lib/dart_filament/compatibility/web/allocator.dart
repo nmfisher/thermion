@@ -17,7 +17,8 @@ export 'dart:ffi'
         DoublePointer,
         Int32Pointer,
         Int64Pointer,
-        PointerPointer, Allocator;
+        PointerPointer,
+        Allocator;
 
 class Allocator implements ffi.Allocator {
   const Allocator();
@@ -142,6 +143,10 @@ extension FloatPointer on ffi.Pointer<ffi.Float> {
     flutter_filament_web_set_float(this, 0, value);
   }
 
+  double operator [](int index) {
+    return this.elementAt(index).value;
+  }
+
   void operator []=(int index, double value) {
     this.elementAt(index).value = value;
   }
@@ -153,7 +158,7 @@ extension FloatPointer on ffi.Pointer<ffi.Float> {
     var list = Float32List(length);
 
     for (int i = 0; i < length; i++) {
-      list[i] = elementAt(i).value;
+      list[i] = this[i];
     }
     return list;
   }
@@ -173,8 +178,6 @@ extension StringConversion on String {
 }
 
 extension StringUtf8Pointer on ffi.Pointer<Utf8> {
-
-  
   static int _length(ffi.Pointer<ffi.Uint8> codeUnits) {
     var length = 0;
     while (codeUnits[length] != 0) {
