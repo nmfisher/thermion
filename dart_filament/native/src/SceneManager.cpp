@@ -727,7 +727,6 @@ namespace flutter_filament
 
         if (!_animationComponentManager->hasComponent(entity))
         {
-
             _animationComponentManager->addAnimationComponent(entity);
         }
 
@@ -786,7 +785,6 @@ namespace flutter_filament
         if (!renderable.isValid())
         {
             Log("Renderable not valid, was the entity id correct?");
-
             return false;
         }
 
