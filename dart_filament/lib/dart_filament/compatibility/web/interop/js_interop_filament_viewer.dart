@@ -201,9 +201,11 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   @override
   Future<void> setMorphTargetWeights(
       FilamentEntity entity, List<double> weights) async {
-    await _jsObject
-        .setMorphTargetWeights(entity, weights.map((x) => x.toJS).toList().toJS)
-        .toDart;
+      var jsWeights = weights.map((x) => x.toJS).cast<JSNumber>().toList().toJS;
+      var promise = _jsObject.setMorphTargetWeights(
+        entity, jsWeights
+      );
+      await promise.toDart;
   }
 
   @override
@@ -240,8 +242,8 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
           .toList()
           .toJS;
       var morphTargetsJs =
-          animation.morphTargets.map((x) => x.toJS).toList().toJS;
-      var targetMeshNamesJS = targetMeshNames?.map((x) => x.toJS).toList().toJS;
+          animation.morphTargets.map((x) => x.toJS).cast<JSString>().toList().toJS;
+      var targetMeshNamesJS = targetMeshNames?.map((x) => x.toJS).cast<JSString>().toList().toJS;
       await _jsObject
           .setMorphAnimationData(entity, animationDataJs, morphTargetsJs,
               targetMeshNamesJS, animation.frameLengthInMs)
