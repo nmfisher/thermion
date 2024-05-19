@@ -62,10 +62,14 @@ class FilamentViewer extends AbstractFilamentViewer {
     this._renderCallback = renderCallback ?? nullptr;
     this._driver = driver ?? nullptr;
     this._sharedContext = sharedContext ?? nullptr;
-
-    // _onPickResultCallable =
-    //     NativeCallable<Void Function(Int32 entityId, Int x, Int y)>.listener(
-    //         _onPickResult);
+    try {
+      _onPickResultCallable =
+          NativeCallable<Void Function(Int32 entityId, Int x, Int y)>.listener(
+              _onPickResult);
+    } catch (err) {
+      print(
+          "Failed to set pick result callback. This is expected if running on web/wasm");
+    }
     _initialize();
   }
 
@@ -364,12 +368,10 @@ class FilamentViewer extends AbstractFilamentViewer {
     for (int i = 0; i < weights.length; i++) {
       weightsPtr[i] = weights[i];
     }
-
     var success = await withBoolCallback((cb) {
       set_morph_target_weights_ffi(
           _sceneManager!, entity, weightsPtr, weights.length, cb);
     });
-
     allocator.free(weightsPtr);
 
     if (!success) {
@@ -451,8 +453,10 @@ class FilamentViewer extends AbstractFilamentViewer {
       var meshEntity = meshEntities[i];
 
       if (targetMeshNames?.contains(meshName) == false) {
+        print("Skipping $meshName, not contained in target");
         continue;
       }
+
       var meshMorphTargets = await getMorphTargetNames(entity, meshEntity);
 
       var intersection = animation.morphTargets
@@ -474,9 +478,13 @@ class FilamentViewer extends AbstractFilamentViewer {
 
       var dataPtr = allocator<Float>(frameData.length);
 
-      dataPtr
-          .asTypedList(frameData.length)
-          .setRange(0, frameData.length, frameData);
+      // not currently working on WASM :( wasted a lot of time figuring that out as no error is thrown
+      // dataPtr
+      //     .asTypedList(frameData.length)
+      //     .setRange(0, frameData.length, frameData);
+      for (int i = 0; i < frameData.length; i++) {
+        dataPtr[i] = frameData[i];
+      }
 
       final idxPtr = allocator<Int>(indices.length);
 
