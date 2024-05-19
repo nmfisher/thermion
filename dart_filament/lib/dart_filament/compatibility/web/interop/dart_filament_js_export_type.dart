@@ -2,6 +2,7 @@
 library flutter_filament_js;
 
 import 'dart:js_interop';
+import 'dart:math';
 
 import 'package:animation_tools_dart/src/morph_animation_data.dart';
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
@@ -156,8 +157,10 @@ class DartFilamentJSExportViewer {
 
   @JSExport()
   JSPromise setMorphTargetWeights(
-          FilamentEntity entity, List<double> weights) =>
-      viewer.setMorphTargetWeights(entity, weights).toJS;
+      FilamentEntity entity, JSArray<JSNumber> weights) {
+    var dartWeights = weights.toDart.map((w) => w.toDartDouble).toList();
+    return viewer.setMorphTargetWeights(entity, dartWeights).toJS;
+  }
 
   @JSExport()
   JSPromise<JSArray<JSString>> getMorphTargetNames(
@@ -195,7 +198,7 @@ class DartFilamentJSExportViewer {
       var animationDataDart = animation.toDart
           .map((x) => x.toDart.map((y) => y.toDartDouble).toList())
           .toList();
-
+      
       var morphAnimationData = MorphAnimationData(
           animationDataDart, morphTargetsDart,
           frameLengthInMs: frameLengthInMs);
@@ -214,8 +217,6 @@ class DartFilamentJSExportViewer {
           .onError((err, st) {
         print("ERROR SETTING MORPH ANIMATION DATA : $err\n$st");
         return null;
-      }).then((r) {
-        print("set morph animation data complete");
       });
       return result.toJS;
     } catch (err, st) {
@@ -418,8 +419,11 @@ class DartFilamentJSExportViewer {
       throw UnimplementedError();
 // viewer.setCameraRotation(quaternion.toDartQuaternion()).toJS;
   @JSExport()
-  JSPromise setCameraModelMatrix(List<double> matrix) =>
-      viewer.setCameraModelMatrix(matrix).toJS;
+  JSPromise setCameraModelMatrix(JSArray<JSNumber> matrix) {
+    throw UnimplementedError();
+    // viewer.setCameraModelMatrix(matrix).toJS;
+  }
+
   @JSExport()
   JSPromise setMaterialColor(FilamentEntity entity, String meshName,
           int materialIndex, double r, double g, double b, double a) =>
