@@ -709,15 +709,11 @@ extern "C"
                                     int numWeights,
                                     void (*callback)(bool))
   {
-    Log("Setting morph target weights");
     std::packaged_task<void()> lambda(
         [=]
         {
-          Log("Setting in lambda");
           auto result = set_morph_target_weights(sceneManager, asset, morphData, numWeights);
-          Log("Set, result was %d", result);
           #ifdef __EMSCRIPTEN__
-          Log("emscripten");
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0,$1);
           }, callback, result);
