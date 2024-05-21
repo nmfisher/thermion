@@ -266,6 +266,12 @@ external void remove_ibl(
         ffi.Float,
         ffi.Float,
         ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
         ffi.Bool)>(symbol: '_add_light', assetId: 'dart_filament')
 external int add_light(
   ffi.Pointer<ffi.Void> viewer,
@@ -278,6 +284,12 @@ external int add_light(
   double dirX,
   double dirY,
   double dirZ,
+  double falloffRadius,
+  double spotLightConeInner,
+  double spotLightConeOuter,
+  double sunAngularRadius,
+  double sunHaloSize,
+  double sunHaloFallof,
   bool shadows,
 );
 
@@ -1329,6 +1341,12 @@ external void remove_ibl_ffi(
             ffi.Float,
             ffi.Float,
             ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
             ffi.Bool,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     symbol: '_add_light_ffi', assetId: 'dart_filament')
@@ -1343,6 +1361,12 @@ external void add_light_ffi(
   double dirX,
   double dirY,
   double dirZ,
+  double falloffRadius,
+  double spotLightConeInner,
+  double spotLightConeOuter,
+  double sunAngularRadius,
+  double sunHaloSize,
+  double sunHaloFallof,
   bool shadows,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
