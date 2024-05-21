@@ -88,13 +88,6 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           child: Text(
               "Turn recording ${ExampleWidgetState.recording ? "OFF" : "ON"}) "),
         ),
-        MenuItemButton(
-          onPressed: () async {
-            await widget.controller.viewer
-                .addLight(2, 6000, 100000, 0, 0, 0, 0, 1, 0, false);
-          },
-          child: Text("Add light"),
-        ),
       ],
       child: const Text("Rendering"),
     );

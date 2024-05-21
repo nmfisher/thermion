@@ -183,7 +183,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
                           Expanded(child: Container()),
                         ]))),
             if (isInitialized) ...[
-              Positioned(top:0, height:50, left:0, right:0, child:Container(
+              Positioned(top:10, left:10, width:200, height:200, child:Container(
                 child:EntityListWidget(controller: _plugin.viewer))),
               // Padding(
               //   padding: const EdgeInsets.only(top: 10, left: 20, right: 20),

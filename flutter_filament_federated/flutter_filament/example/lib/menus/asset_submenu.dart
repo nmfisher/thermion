@@ -159,21 +159,21 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
         MenuItemButton(
           onPressed: () async {
             await widget.controller.viewer
-                .addLight(1, 6500, 150000, 0, 1, 0, 0, -1, 0, true);
+                .addLight(LightType.DIRECTIONAL, 6500, 100000, 0, 1, 0, 0, -1, 0);
           },
           child: const Text("Add directional light"),
         ),
         MenuItemButton(
           onPressed: () async {
             await widget.controller.viewer
-                .addLight(2, 6500, 150000, 0, 1, 0, 0, -1, 0, true);
+                .addLight(LightType.POINT, 6500, 100000, 0, 1, 0, 0, -1, 0, falloffRadius: 1.0);
           },
           child: const Text("Add point light"),
         ),
         MenuItemButton(
           onPressed: () async {
             await widget.controller.viewer
-                .addLight(3, 6500, 15000000, 0, 1, 0, 0, -1, 0, true);
+                .addLight(LightType.SPOT, 6500, 1000000, 0, 0, 0, 0, 1, 0,spotLightConeInner: 0.1, spotLightConeOuter: 0.4, falloffRadius: 100.0);
           },
           child: const Text("Add spot light"),
         ),
