@@ -435,12 +435,9 @@ class FilamentViewer extends AbstractFilamentViewer {
   Future setMorphAnimationData(
       FilamentEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
-    print("setting in actual viewer with $entity");
     var meshNames = await getChildEntityNames(entity, renderableOnly: true);
 
-    print("MESH NAMES ${meshNames}");
     var meshEntities = await getChildEntities(entity, true);
-    print("MESH ENTITIES ${meshEntities}");
 
     // Entities are not guaranteed to have the same morph targets (or share the same order),
     // either from each other, or from those specified in [animation].
