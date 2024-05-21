@@ -12,16 +12,18 @@ const GLctx = require('gl')(100, 100, { preserveDrawingBuffer: true })
 const wasmBuffer = fs.readFileSync('dart_filament.wasm');
 
 var dartFilamentModulePromise = WebAssembly.compile(wasmBuffer);
-
-dart_filament({ctx:GLctx}).then((df) => { 
-    dartFilamentResolveCallback = (cb, data) => {
-        const fn = df.wasmTable.get(cb);
+let globalDf;
+dart_filament({
+    dartFilamentResolveCallback: (cb, data) => {
+        const fn = globalDf.wasmTable.get(cb);
         if(data) {
             fn(data);
         } else { 
             fn();
         }
-    }
+    },
+    ctx:GLctx}).then((df) => { 
+        globalDf = df;
     createVoidCallback = () => { 
         let res; //placeholder for resolver callback, outside of promise
         const promise = new Promise((resolve, reject) => {
