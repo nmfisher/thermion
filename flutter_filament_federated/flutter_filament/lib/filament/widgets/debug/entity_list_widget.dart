@@ -1,7 +1,6 @@
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:flutter_filament/filament/widgets/debug/child_renderable_widget.dart';
-import 'package:flutter_filament/flutter_filament.dart';
 import 'package:flutter/material.dart';
 
 class EntityListWidget extends StatefulWidget {
@@ -132,13 +131,12 @@ class _EntityListWidget extends State<EntityListWidget> {
                 builder: (_, __) => Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 30, vertical: 10),
-                    height: 100,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(30),
                       color: Colors.white.withOpacity(0.25),
                     ),
-                    child: ListView(
-                        reverse: true,
+                    child: SingleChildScrollView(child:Column(
+                        // reverse: true,
                         children: widget.controller!.scene
                             .listLights()
                             .map(_light)
@@ -146,6 +144,6 @@ class _EntityListWidget extends State<EntityListWidget> {
                                 .listEntities()
                                 .map(_entity))
                             .cast<Widget>()
-                            .toList()))));
+                            .toList())))));
   }
 }
