@@ -278,3 +278,8 @@ dart_filament/native/lib/android/x86/libcivetweb.a filter=lfs diff=lfs merge=lfs
 dart_filament/native/lib/android/x86_64/libshaders.a filter=lfs diff=lfs merge=lfs -text
 dart_filament/native/lib/android/x86/libbasis_transcoder.a filter=lfs diff=lfs merge=lfs -text
 dart_filament/native/lib/android/x86/libstb.a filter=lfs diff=lfs merge=lfs -text
+flutter_filament_federated/flutter_filament/example/web/dart_filament.wasm filter=lfs diff=lfs merge=lfs -text
+flutter_filament_federated/flutter_filament/example/web/main.unopt.wasm filter=lfs diff=lfs merge=lfs -text
+flutter_filament_federated/flutter_filament/example/web/main.wasm filter=lfs diff=lfs merge=lfs -text
+flutter_filament_federated/flutter_filament/example/web/dart_filament.js filter=lfs diff=lfs merge=lfs -text
+flutter_filament_federated/flutter_filament/example/web/dart_filament.worker.js filter=lfs diff=lfs merge=lfs -text
