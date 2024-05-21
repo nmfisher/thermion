@@ -54,6 +54,12 @@ extern "C"
         float dirX,
         float dirY,
         float dirZ,
+        float falloffRadius,
+        float spotLightConeInner,
+        float spotLightConeOuter,
+        float sunAngularRadius,
+        float sunHaloSize,
+        float sunHaloFallof,
         bool shadows,
         void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void remove_light_ffi(void *const viewer, EntityId entityId);

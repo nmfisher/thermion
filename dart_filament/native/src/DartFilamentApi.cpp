@@ -99,9 +99,42 @@ extern "C"
         ((FilamentViewer *)viewer)->removeIbl();
     }
 
-    EntityId add_light(const void *const viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows)
+    EntityId add_light(
+        const void *const viewer, 
+        uint8_t type, 
+        float colour, 
+        float intensity, 
+        float posX, 
+        float posY, 
+        float posZ, 
+        float dirX, 
+        float dirY, 
+        float dirZ, 
+        float falloffRadius,
+        float spotLightConeInner,
+        float spotLightConeOuter,
+        float sunAngularRadius,
+        float sunHaloSize,
+        float sunHaloFallof,
+        bool shadows)
     {
-        return ((FilamentViewer *)viewer)->addLight((LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+        return ((FilamentViewer *)viewer)->addLight(
+            (LightManager::Type)type, 
+            colour, 
+            intensity, 
+            posX, 
+            posY, 
+            posZ,
+            dirX,
+            dirY,
+            dirZ,
+            falloffRadius,
+            spotLightConeInner,
+            spotLightConeOuter,
+            sunAngularRadius,
+            sunHaloSize,
+            sunHaloFallof,
+            shadows);
     }
 
     EMSCRIPTEN_KEEPALIVE void remove_light(const void *const viewer, int32_t entityId)

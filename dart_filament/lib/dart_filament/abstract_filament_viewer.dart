@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -6,6 +8,15 @@ import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 // "picking" means clicking/tapping on the viewport, and unprojecting the X/Y coordinate to determine whether any renderable entities were present at those coordinates.
 typedef FilamentPickResult = ({FilamentEntity entity, double x, double y});
 
+enum LightType { 
+  SUN,            //!< Directional light that also draws a sun's disk in the sky.
+  DIRECTIONAL,    //!< Directional light, emits light in a given direction.
+  POINT,          //!< Point light, emits light from a position, in all directions.
+  FOCUSED_SPOT,   //!< Physically correct spot light.
+  SPOT, 
+}
+
+ 
 // copied from filament/backened/DriverEnums.h
 enum PrimitiveType {
   // don't change the enums values (made to match GL)
@@ -119,17 +130,13 @@ abstract class AbstractFilamentViewer {
   Future removeIbl();
 
   ///
-  /// Adds a dynamic light to the scene.
-  /// copied from filament LightManager.h
-  ///  enum class Type : uint8_t {
-  ///       SUN,            //!< Directional light that also draws a sun's disk in the sky.
-  ///       DIRECTIONAL,    //!< Directional light, emits light in a given direction.
-  ///       POINT,          //!< Point light, emits light from a position, in all directions.
-  ///       FOCUSED_SPOT,   //!< Physically correct spot light.
-  ///       SPOT,           //!< Spot light with coupling of outer cone and illumination disabled.
-  ///   };
+  /// Add a light to the scene.
+  /// See LightManager.h for details
+  /// Note that [sunAngularRadius] is in degrees, 
+  /// whereas [spotLightConeInner] and [spotLightConeOuter] are in radians
+  ///
   Future<FilamentEntity> addLight(
-      int type,
+      LightType type,
       double colour,
       double intensity,
       double posX,
@@ -138,7 +145,16 @@ abstract class AbstractFilamentViewer {
       double dirX,
       double dirY,
       double dirZ,
-      bool castShadows);
+      {
+        double falloffRadius=1.0,
+        double spotLightConeInner=pi/8,
+        double spotLightConeOuter=pi/4,
+        double sunAngularRadius=0.545,
+        double sunHaloSize=10.0,
+        double sunHaloFallof=80.0,
+        bool castShadows=true
+      }
+      );
 
   Future removeLight(FilamentEntity light);
 

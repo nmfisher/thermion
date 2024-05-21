@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:math';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
+import 'package:dart_filament/dart_filament/entities/gizmo.dart';
 
 import 'package:vector_math/vector_math_64.dart';
 import 'abstract_filament_viewer.dart';
@@ -100,6 +102,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     });
   }
 
+  Gizmo? _gizmo;
+  Gizmo? get gizmo => _gizmo;
+
   Future _initialize() async {
     final uberarchivePtr =
         uberArchivePath?.toNativeUtf8(allocator: allocator).cast<Char>() ??
@@ -119,6 +124,11 @@ class FilamentViewer extends AbstractFilamentViewer {
     _scene = SceneImpl(this);
 
     await setCameraManipulatorOptions(zoomSpeed: 10.0);
+    
+    final out = calloc<Int32>(3);
+    get_gizmo(_sceneManager!, out);
+    _gizmo = Gizmo(out[0], out[1], out[2], this);
+    calloc.free(out);
 
     this._initialized.complete(true);
   }
@@ -217,7 +227,7 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   @override
   Future<FilamentEntity> addLight(
-      int type,
+      LightType type,
       double colour,
       double intensity,
       double posX,
@@ -226,10 +236,16 @@ class FilamentViewer extends AbstractFilamentViewer {
       double dirX,
       double dirY,
       double dirZ,
-      bool castShadows) async {
+      {double falloffRadius = 1.0,
+      double spotLightConeInner = pi / 8,
+      double spotLightConeOuter = pi / 4,
+      double sunAngularRadius = 0.545,
+      double sunHaloSize = 10.0,
+      double sunHaloFallof = 80.0,
+      bool castShadows = true}) async {
     var entity = await withIntCallback((callback) => add_light_ffi(
         _viewer!,
-        type,
+        type.index,
         colour,
         intensity,
         posX,
@@ -238,8 +254,17 @@ class FilamentViewer extends AbstractFilamentViewer {
         dirX,
         dirY,
         dirZ,
+        falloffRadius,
+        spotLightConeInner,
+        spotLightConeOuter,
+        sunAngularRadius = 0.545,
+        sunHaloSize = 10.0,
+        sunHaloFallof = 80.0,
         castShadows,
         callback));
+    if (entity == _FILAMENT_ASSET_ERROR) {
+      throw Exception("Failed to add light to scene");
+    }
 
     _scene.registerLight(entity);
     return entity;
@@ -1144,6 +1169,5 @@ class FilamentViewer extends AbstractFilamentViewer {
     set_priority(_sceneManager!, entityId, priority);
   }
 
-  @override
-  AbstractGizmo? get gizmo => null;
+
 }

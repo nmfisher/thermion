@@ -163,6 +163,12 @@ external void remove_ibl(
             ffi.Float,
             ffi.Float,
             ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
             ffi.Bool)>(
     symbol: 'add_light', assetId: 'package:dart_filament/dart_filament.dart')
 external int add_light(
@@ -176,6 +182,12 @@ external int add_light(
   double dirX,
   double dirY,
   double dirZ,
+  double falloffRadius,
+  double spotLightConeInner,
+  double spotLightConeOuter,
+  double sunAngularRadius,
+  double sunHaloSize,
+  double sunHaloFallof,
   bool shadows,
 );
 
@@ -1307,6 +1319,12 @@ external void remove_ibl_ffi(
             ffi.Float,
             ffi.Float,
             ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
             ffi.Bool,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     symbol: 'add_light_ffi',
@@ -1322,6 +1340,12 @@ external void add_light_ffi(
   double dirX,
   double dirY,
   double dirZ,
+  double falloffRadius,
+  double spotLightConeInner,
+  double spotLightConeOuter,
+  double sunAngularRadius,
+  double sunHaloSize,
+  double sunHaloFallof,
   bool shadows,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );

@@ -480,14 +480,46 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void add_light_ffi(void *const viewer, uint8_t type, float colour,
-                     float intensity, float posX, float posY, float posZ,
-                     float dirX, float dirY, float dirZ, bool shadows, void (*callback)(EntityId))
+  void add_light_ffi(
+    void *const viewer, 
+    uint8_t type, 
+    float colour,
+    float intensity,
+    float posX,
+    float posY,
+    float posZ,
+    float dirX,
+    float dirY,
+    float dirZ,
+    float falloffRadius,
+    float spotLightConeInner,
+    float spotLightConeOuter,
+    float sunAngularRadius,
+    float sunHaloSize,
+    float sunHaloFallof,
+    bool shadows,
+    void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda([=]
                                           {
-    auto entity = add_light(viewer, type, colour, intensity, posX, posY, posZ, dirX,
-                     dirY, dirZ, shadows);
+    auto entity = add_light(
+      viewer, 
+      type,
+      colour,
+      intensity,
+      posX,
+      posY,
+      posZ,
+      dirX,
+      dirY,
+      dirZ,
+      falloffRadius,
+      spotLightConeInner,
+      spotLightConeOuter,
+      sunAngularRadius, 
+      sunHaloSize,
+      sunHaloFallof,
+      shadows);
       #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0, $1);

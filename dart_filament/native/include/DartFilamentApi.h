@@ -71,7 +71,24 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void rotate_ibl(const void *const viewer, float *rotationMatrix);
 	EMSCRIPTEN_KEEPALIVE void remove_skybox(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void remove_ibl(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE EntityId add_light(const void *const viewer, uint8_t type, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows);
+	EMSCRIPTEN_KEEPALIVE EntityId add_light(
+		const void *const viewer, 
+		uint8_t type, 
+		float colour, 
+		float intensity, 
+		float posX, 
+		float posY, 
+		float posZ, 
+		float dirX, 
+		float dirY, 
+		float dirZ, 
+		float falloffRadius,
+    	float spotLightConeInner,
+    	float spotLightConeOuter,
+		float sunAngularRadius,
+		float sunHaloSize,
+		float sunHaloFallof,
+		bool shadows);
 	EMSCRIPTEN_KEEPALIVE void remove_light(const void *const viewer, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void clear_lights(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances);

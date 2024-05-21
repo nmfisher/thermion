@@ -317,26 +317,52 @@ namespace flutter_filament
     Log("Set frame interval to %f", frameInterval);
   }
 
-  int32_t FilamentViewer::addLight(LightManager::Type t, float colour, float intensity, float posX, float posY, float posZ, float dirX, float dirY, float dirZ, bool shadows)
+  EntityId FilamentViewer::addLight(
+    LightManager::Type t, 
+    float colour, 
+    float intensity, 
+    float posX, 
+    float posY, 
+    float posZ, 
+    float dirX, 
+    float dirY, 
+    float dirZ, 
+    float falloffRadius,
+    float spotLightConeInner,
+    float spotLightConeOuter,
+    float sunAngularRadius,
+    float sunHaloSize,
+    float sunHaloFallof,
+    bool shadows)
   {
     auto light = EntityManager::get().create();
     auto &transformManager = _engine->getTransformManager();
     transformManager.create(light);
     auto parent = transformManager.getInstance(light);
-    auto builder = LightManager::Builder(t)
+
+    auto result = LightManager::Builder(t)
                        .color(Color::cct(colour))
                        .intensity(intensity)
+                       .falloff(falloffRadius)
+                       .spotLightCone(spotLightConeInner, spotLightConeOuter)
+                       .sunAngularRadius(sunAngularRadius)
+                       .sunHaloSize(sunHaloSize)
+                       .sunHaloFalloff(sunHaloFallof)
                        .position(math::float3(posX, posY, posZ))
                        .direction(math::float3(dirX, dirY, dirZ))
                        .castShadows(shadows)
                        .build(*_engine, light);
-    _scene->addEntity(light);
-    _lights.push_back(light);
+    if(result != LightManager::Builder::Result::Success) {
+      Log("ERROR : failed to create light");
+    } else {
+      _scene->addEntity(light);
+      _lights.push_back(light);
+    }
 
     auto entityId = Entity::smuggle(light);
     auto transformInstance = transformManager.getInstance(light);
     transformManager.setTransform(transformInstance, math::mat4::translation(math::float3{posX, posY, posZ}));
-    Log("Added light under entity ID %d of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", entityId, t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
+    // Log("Added light under entity ID %d of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", entityId, t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
     return entityId;
   }
 
