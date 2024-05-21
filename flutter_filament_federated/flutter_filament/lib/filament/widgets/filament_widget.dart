@@ -28,7 +28,6 @@ class FilamentWidget extends StatefulWidget {
 class _FilamentWidgetState extends State<FilamentWidget> {
   FlutterFilamentTexture? _texture;
 
-  late final AppLifecycleListener _appLifecycleListener;
 
   Rect get _rect {
     final renderBox = (context.findRenderObject()) as RenderBox;
@@ -45,10 +44,10 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       var width = (dpr * size.width).ceil();
       var height = (dpr * size.height).ceil();
       _texture = await widget.plugin.createTexture(width, height, 0, 0);
-      _appLifecycleListener = AppLifecycleListener(
-        onStateChange: _handleStateChange,
-      );
-      setState(() {});
+        
+      if (mounted) {
+        setState(() {});
+      }
     });
     super.initState();
   }
@@ -59,52 +58,10 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       widget.plugin.destroyTexture(_texture!);
     }
 
-    _appLifecycleListener.dispose();
     super.dispose();
   }
 
-  bool _wasRenderingOnInactive = false;
-
-  void _handleStateChange(AppLifecycleState state) async {
-    await widget.plugin.viewer.initialized;
-    switch (state) {
-      case AppLifecycleState.detached:
-        print("Detached");
-        if (!_wasRenderingOnInactive) {
-          _wasRenderingOnInactive = widget.plugin.viewer.rendering;
-        }
-        await widget.plugin.viewer.setRendering(false);
-        break;
-      case AppLifecycleState.hidden:
-        print("Hidden");
-        if (!_wasRenderingOnInactive) {
-          _wasRenderingOnInactive = widget.plugin.viewer.rendering;
-        }
-        await widget.plugin.viewer.setRendering(false);
-        break;
-      case AppLifecycleState.inactive:
-        print("Inactive");
-        if (!_wasRenderingOnInactive) {
-          _wasRenderingOnInactive = widget.plugin.viewer.rendering;
-        }
-        // on Windows in particular, restoring a window after minimizing stalls the renderer (and the whole application) for a considerable length of time.
-        // disabling rendering on minimize seems to fix the issue (so I wonder if there's some kind of command buffer that's filling up while the window is minimized).
-        await widget.plugin.viewer.setRendering(false);
-        break;
-      case AppLifecycleState.paused:
-        print("Paused");
-        if (!_wasRenderingOnInactive) {
-          _wasRenderingOnInactive = widget.plugin.viewer.rendering;
-        }
-        await widget.plugin.viewer.setRendering(false);
-        break;
-      case AppLifecycleState.resumed:
-        print("Resumed");
-        await widget.plugin.viewer.setRendering(_wasRenderingOnInactive);
-        break;
-    }
-  }
-
+ 
   bool _resizing = false;
 
   Future _resizeTexture(Size newSize) async {
@@ -130,7 +87,8 @@ class _FilamentWidgetState extends State<FilamentWidget> {
   @override
   Widget build(BuildContext context) {
     if (_texture == null) {
-      return widget.initial ?? Container(color: kIsWeb ? Colors.transparent : Colors.red);
+      return widget.initial ??
+          Container(color: kIsWeb ? Colors.transparent : Colors.red);
     }
 
     var textureWidget = Texture(

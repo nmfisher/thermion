@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_filament_platform_interface/flutter_filament_platform_interface.dart';
 import 'package:flutter_filament_platform_interface/flutter_filament_texture.dart';
 
@@ -7,6 +9,50 @@ import 'package:flutter_filament_platform_interface/flutter_filament_texture.dar
 /// A Flutter-only interface for creating an [AbstractFilamentViewer] .
 ///
 class FlutterFilamentPlugin {
+  bool _wasRenderingOnInactive = false;
+
+  void _handleStateChange(AppLifecycleState state) async {
+    await initialized;
+    switch (state) {
+      case AppLifecycleState.detached:
+        print("Detached");
+        if (!_wasRenderingOnInactive) {
+          _wasRenderingOnInactive = viewer.rendering;
+        }
+        await viewer.setRendering(false);
+        break;
+      case AppLifecycleState.hidden:
+        print("Hidden");
+        if (!_wasRenderingOnInactive) {
+          _wasRenderingOnInactive = viewer.rendering;
+        }
+        await viewer.setRendering(false);
+        break;
+      case AppLifecycleState.inactive:
+        print("Inactive");
+        if (!_wasRenderingOnInactive) {
+          _wasRenderingOnInactive = viewer.rendering;
+        }
+        // on Windows in particular, restoring a window after minimizing stalls the renderer (and the whole application) for a considerable length of time.
+        // disabling rendering on minimize seems to fix the issue (so I wonder if there's some kind of command buffer that's filling up while the window is minimized).
+        await viewer.setRendering(false);
+        break;
+      case AppLifecycleState.paused:
+        print("Paused");
+        if (!_wasRenderingOnInactive) {
+          _wasRenderingOnInactive = viewer.rendering;
+        }
+        await viewer.setRendering(false);
+        break;
+      case AppLifecycleState.resumed:
+        print("Resumed");
+        await viewer.setRendering(_wasRenderingOnInactive);
+        break;
+    }
+  }
+
+  AppLifecycleListener? _appLifecycleListener;
+
   AbstractFilamentViewer get viewer => FlutterFilamentPlatform.instance.viewer;
 
   final _initialized = Completer<bool>();
@@ -18,11 +64,13 @@ class FlutterFilamentPlugin {
     }
     await FlutterFilamentPlatform.instance
         .initialize(uberArchivePath: uberArchivePath);
-    print("instance init completed");
+
+    _appLifecycleListener = AppLifecycleListener(
+      onStateChange: _handleStateChange,
+    );
     _initialized.complete(true);
-    print("completed compelter");
+
     await viewer.initialized;
-    print("viewer init complete");
   }
 
   Future<FlutterFilamentTexture?> createTexture(
@@ -44,5 +92,6 @@ class FlutterFilamentPlugin {
 
   void dispose() {
     FlutterFilamentPlatform.instance.dispose();
+    _appLifecycleListener?.dispose();
   }
 }
