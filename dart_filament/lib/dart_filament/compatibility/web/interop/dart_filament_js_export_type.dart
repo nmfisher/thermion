@@ -88,10 +88,31 @@ class DartFilamentJSExportViewer {
       double dirX,
       double dirY,
       double dirZ,
+      double falloffRadius, 
+      double spotLightConeInner,
+      double spotLightConeOuter,
+      double sunAngularRadius,
+      double sunHaloSize,
+      double sunHaloFallof,
       bool castShadows) {
     return viewer
-        .addLight(type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ,
-            castShadows)
+        .addLight(
+          LightType.values[type],
+          colour,
+          intensity,
+          posX,
+          posY,
+          posZ,
+          dirX,
+          dirY,
+          dirZ,
+          falloffRadius:falloffRadius,
+          spotLightConeInner:spotLightConeInner,
+          spotLightConeOuter: spotLightConeOuter,
+          sunAngularRadius: sunAngularRadius,
+          sunHaloSize: sunHaloSize,
+          sunHaloFallof: sunHaloFallof,
+          castShadows: castShadows)
         .then((entity) => entity.toJS)
         .toJS;
   }

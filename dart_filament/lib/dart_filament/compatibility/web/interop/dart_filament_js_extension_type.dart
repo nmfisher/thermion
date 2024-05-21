@@ -63,7 +63,13 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
     double dirX,
     double dirY,
     double dirZ,
-    bool castShadows,
+    double falloffRadius, 
+    double spotLightConeInner,
+    double spotLightConeOuter,
+    double sunAngularRadius,
+    double sunHaloSize,
+    double sunHaloFallof,
+    bool castShadows
   );
 
   @JS('removeLight')

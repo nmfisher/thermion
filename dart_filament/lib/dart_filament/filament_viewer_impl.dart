@@ -125,10 +125,10 @@ class FilamentViewer extends AbstractFilamentViewer {
 
     await setCameraManipulatorOptions(zoomSpeed: 10.0);
     
-    final out = calloc<Int32>(3);
+    final out = allocator<Int32>(3);
     get_gizmo(_sceneManager!, out);
     _gizmo = Gizmo(out[0], out[1], out[2], this);
-    calloc.free(out);
+    allocator.free(out);
 
     this._initialized.complete(true);
   }

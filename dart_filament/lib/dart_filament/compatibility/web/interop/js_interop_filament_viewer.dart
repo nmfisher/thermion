@@ -1,5 +1,6 @@
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+import 'dart:math';
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
@@ -103,7 +104,7 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future<FilamentEntity> addLight(
-      int type,
+      LightType type,
       double colour,
       double intensity,
       double posX,
@@ -112,10 +113,18 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
       double dirX,
       double dirY,
       double dirZ,
-      bool castShadows) async {
+       {
+        double falloffRadius=1.0,
+        double spotLightConeInner=pi/8,
+        double spotLightConeOuter=pi/4,
+        double sunAngularRadius=0.545,
+        double sunHaloSize=10.0,
+        double sunHaloFallof=80.0,
+        bool castShadows=true
+      }) async {
     return (await _jsObject
-            .addLight(type, colour, intensity, posX, posY, posZ, dirX, dirY,
-                dirZ, castShadows)
+            .addLight(type.index, colour, intensity, posX, posY, posZ, dirX, dirY,
+                dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, castShadows)
             .toDart)
         .toDartInt;
   }
