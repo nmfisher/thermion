@@ -1,3 +1,10 @@
+## 0.8.0
+* separated into Dart- and Flutter- specific packages
+* migrated Flutter package into federated plugin structure 
+* added web support
+* addLight now accepts a LightType enum
+* added support for setting falloff, spot light radius, sun radius & halo
+
 ## 0.7.0
 * `removeAsset` & `clearAssets` have been renamed `removeEntity` and `clearEntities`
 * added support for parenting one entity to another
