@@ -269,13 +269,8 @@ namespace flutter_filament
   void FilamentViewer::setBloom(float strength)
   {
     decltype(_view->getBloomOptions()) opts;
-#ifdef __EMSCRIPTEN__
-    opts.enabled = false;
-    Log("Bloom is disabled on WebGL builds as it causes instability with certain drivers. setBloom will be ignored");
-#else
     opts.enabled = true;
     opts.strength = strength;
-#endif
     _view->setBloomOptions(opts);
   }
 
