@@ -236,6 +236,15 @@ abstract class AbstractFilamentViewer {
   Future<List<String>> getMorphTargetNames(
       FilamentEntity entity, FilamentEntity childEntity);
 
+  ///
+  /// Gets the names of all bones for the armature at [skinIndex] under the specified [entity].
+  ///
+  Future<List<String>> getBoneNames(
+      FilamentEntity entity, { int skinIndex = 0});
+
+  ///
+  /// Gets the names of all glTF animations embedded in the specified entity.
+  ///
   Future<List<String>> getAnimationNames(FilamentEntity entity);
 
   ///

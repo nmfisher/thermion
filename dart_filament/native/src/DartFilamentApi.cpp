@@ -510,6 +510,19 @@ extern "C"
         strcpy(outPtr, name.c_str());
     }
 
+    EMSCRIPTEN_KEEPALIVE int get_bone_count(void *sceneManager, EntityId assetEntity, int skinIndex) {
+        auto names = ((SceneManager *)sceneManager)->getBoneNames(assetEntity, skinIndex);
+        return names->size();
+    }
+
+    EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char** out, int skinIndex) {
+        auto names = ((SceneManager *)sceneManager)->getBoneNames(assetEntity, skinIndex);
+        
+        for(int i = 0; i < names->size(); i++) {
+            memcpy((void*)out[i], names->at(i).c_str(), names->at(i).length());
+        }
+    }
+
     EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity)
     {
         auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(assetEntity, childEntity);

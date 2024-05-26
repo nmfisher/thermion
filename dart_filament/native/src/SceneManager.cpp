@@ -1239,6 +1239,44 @@ namespace flutter_filament
         return names;
     }
 
+    unique_ptr<vector<string>> SceneManager::getBoneNames(EntityId assetEntityId, int skinIndex) {
+
+        unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
+
+        auto *instance = getInstanceByEntityId(assetEntityId);
+
+        if (!instance)
+        {
+            auto *asset = getAssetByEntityId(assetEntityId);
+            if (asset)
+            {
+                instance = asset->getInstance();
+            }
+            else
+            {
+                Log("ERROR: failed to find instance for entity %d", assetEntityId);
+                return names;
+            }
+        }
+
+        size_t skinCount = instance->getSkinCount();
+
+        if (skinCount > 1)
+        {
+            Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
+        }
+
+        size_t numJoints = instance->getJointCountAt(skinIndex);
+        auto joints = instance->getJointsAt(skinIndex);
+        for (int i = 0; i < numJoints; i++)
+        {
+            const char *jointName = _ncm->getName(_ncm->getInstance(joints[i]));
+            names->push_back(jointName);
+        }
+        return names;
+    }
+
+
     void SceneManager::transformToUnitCube(EntityId entityId)
     {
         const auto *instance = getInstanceByEntityId(entityId);

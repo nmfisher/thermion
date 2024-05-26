@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:dart_filament/dart_filament/compatibility/native/compatibility.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:dart_filament/dart_filament/entities/gizmo.dart';
 
@@ -124,7 +125,7 @@ class FilamentViewer extends AbstractFilamentViewer {
     _scene = SceneImpl(this);
 
     await setCameraManipulatorOptions(zoomSpeed: 10.0);
-    
+
     final out = allocator<Int32>(3);
     get_gizmo(_sceneManager!, out);
     _gizmo = Gizmo(out[0], out[1], out[2], this);
@@ -422,6 +423,23 @@ class FilamentViewer extends AbstractFilamentViewer {
     return names.cast<String>();
   }
 
+  Future<List<String>> getBoneNames(FilamentEntity entity,
+      {int skinIndex = 0}) async {
+    var count = get_bone_count(_sceneManager!, entity, skinIndex);
+    var out = allocator<Pointer<Char>>(count);
+    for (int i = 0; i < count; i++) {
+      out[i] = allocator<Char>(255);
+    }
+
+    get_bone_names(_sceneManager!, entity, out, skinIndex);
+    var names = <String>[];
+    for (int i = 0; i < count; i++) {
+      var namePtr = out[i];
+      names.add(namePtr.cast<Utf8>().toDartString());
+    }
+    return names;
+  }
+
   @override
   Future<List<String>> getAnimationNames(FilamentEntity entity) async {
     var animationCount = get_animation_count(_sceneManager!, entity);
@@ -461,6 +479,14 @@ class FilamentViewer extends AbstractFilamentViewer {
       FilamentEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
     var meshNames = await getChildEntityNames(entity, renderableOnly: true);
+    if (targetMeshNames != null) {
+      for (final targetMeshName in targetMeshNames) {
+        if (!meshNames.contains(targetMeshName)) {
+          throw Exception(
+              "Error: mesh ${targetMeshName} does not exist under the specified entity. Available meshes : ${meshNames}");
+        }
+      }
+    }
 
     var meshEntities = await getChildEntities(entity, true);
 
@@ -481,6 +507,8 @@ class FilamentViewer extends AbstractFilamentViewer {
 
       var meshMorphTargets = await getMorphTargetNames(entity, meshEntity);
 
+      print("Got mesh morph targets ${meshMorphTargets}");
+
       var intersection = animation.morphTargets
           .toSet()
           .intersection(meshMorphTargets.toSet())
@@ -488,7 +516,11 @@ class FilamentViewer extends AbstractFilamentViewer {
 
       if (intersection.isEmpty) {
         throw Exception(
-            "No morph targets specified in animation are present on mesh $meshName. If you weren't intending to animate every mesh, specify [targetMeshNames] when invoking this method.\nAnimation morph targets: ${animation.morphTargets}\nMesh morph targets ${meshMorphTargets}");
+            """No morph targets specified in animation are present on mesh $meshName. 
+            If you weren't intending to animate every mesh, specify [targetMeshNames] when invoking this method.
+            Animation morph targets: ${animation.morphTargets}\n
+            Mesh morph targets ${meshMorphTargets}
+            Child meshes: ${meshNames}""");
       }
 
       var indices =
@@ -1168,6 +1200,4 @@ class FilamentViewer extends AbstractFilamentViewer {
   Future setPriority(FilamentEntity entityId, int priority) async {
     set_priority(_sceneManager!, entityId, priority);
   }
-
-
 }

@@ -565,6 +565,27 @@ external double get_animation_duration(
   int index,
 );
 
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+    symbol: 'get_bone_count',
+    assetId: 'package:dart_filament/dart_filament.dart')
+external int get_bone_count(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int assetEntity,
+  int skinIndex,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Int)>(
+    symbol: 'get_bone_names',
+    assetId: 'package:dart_filament/dart_filament.dart')
+external void get_bone_names(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int assetEntity,
+  ffi.Pointer<ffi.Pointer<ffi.Char>> outPtr,
+  int skinIndex,
+);
+
 @ffi.Native<
         ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId,
             ffi.Pointer<ffi.Char>, ffi.Int)>(
