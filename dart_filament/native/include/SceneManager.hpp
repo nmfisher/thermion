@@ -61,6 +61,7 @@ namespace flutter_filament
         float getAnimationDuration(EntityId entity, int animationIndex);
 
         unique_ptr<vector<string>> getMorphTargetNames(EntityId assetEntityId, EntityId childEntity);
+        unique_ptr<vector<string>> getBoneNames(EntityId assetEntityId, EntityId childEntity);
         void transformToUnitCube(EntityId e);
         inline void updateTransform(EntityId e);
         void setScale(EntityId e, float scale);

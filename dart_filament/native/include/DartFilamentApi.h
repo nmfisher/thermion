@@ -162,6 +162,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE int get_animation_count(void *sceneManager, EntityId asset);
 	EMSCRIPTEN_KEEPALIVE void get_animation_name(void *sceneManager, EntityId entity, char *const outPtr, int index);
 	EMSCRIPTEN_KEEPALIVE float get_animation_duration(void *sceneManager, EntityId entity, int index);
+	EMSCRIPTEN_KEEPALIVE int get_bone_count(void *sceneManager, EntityId assetEntity, int skinIndex);
+	EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char** outPtr, int skinIndex);
+
 	EMSCRIPTEN_KEEPALIVE void get_morph_target_name(void *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index);
 	EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity);
 	EMSCRIPTEN_KEEPALIVE void remove_entity(const void *const viewer, EntityId asset);
