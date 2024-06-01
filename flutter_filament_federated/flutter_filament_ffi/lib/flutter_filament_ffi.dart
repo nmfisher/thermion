@@ -51,14 +51,6 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
         driver: driverPtr,
         sharedContext: sharedContextPtr,
         uberArchivePath: uberArchivePath);
-
-    // var plugin = FlutterFilamentFFI._(channel,
-    //     renderCallback: renderCallback,
-    //     renderCallbackOwner: renderCallbackOwner,
-    //     resourceLoader: resourceLoader,
-    //     driver: driverPtr,
-    //     sharedContext: sharedContextPtr,
-    //     uberArchivePath: uberArchivePath);
   }
 
   Future<FlutterFilamentTexture?> createTexture(
@@ -74,7 +66,9 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
         FlutterFilamentTexture(result[0], result[1], width, height, result[2]);
 
     await viewer.createSwapChain(width.toDouble(), height.toDouble(),
-        surface: texture.surfaceAddress == null ? nullptr : Pointer<Void>.fromAddress(texture.surfaceAddress!));
+        surface: texture.surfaceAddress == null
+            ? nullptr
+            : Pointer<Void>.fromAddress(texture.surfaceAddress!));
 
     if (texture.hardwareTextureId != null) {
       var renderTarget = await viewer.createRenderTarget(
@@ -90,41 +84,59 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
     await _channel.invokeMethod("destroyTexture", texture.flutterTextureId);
   }
 
+  bool _resizing = false;
+
   @override
   Future<FlutterFilamentTexture?> resizeTexture(FlutterFilamentTexture texture,
       int width, int height, int offsetLeft, int offsetRight) async {
+    if (_resizing) {
+      throw Exception("Resize underway");
+    }
+
     if ((width - viewer.viewportDimensions.$1).abs() < 0.001 ||
         (height - viewer.viewportDimensions.$2).abs() < 0.001) {
       return texture;
     }
+    _resizing = true;
     bool wasRendering = viewer.rendering;
     await viewer.setRendering(false);
     await viewer.destroySwapChain();
+    print("Destoryign texture");
     await destroyTexture(texture);
+    print("DEstrooyed!");
 
-    var newTexture =
-        await createTexture(width, height, offsetLeft, offsetRight);
-    if (newTexture == null || newTexture.flutterTextureId == -1) {
+    var result = await _channel
+        .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
+
+    if (result == null || result[0] == -1) {
       throw Exception("Failed to create texture");
     }
-    await viewer.createSwapChain(width.toDouble(), height.toDouble(),
-        surface: Pointer<Void>.fromAddress(newTexture.surfaceAddress!));
+    viewer.viewportDimensions = (width.toDouble(), height.toDouble());
+    var newTexture =
+        FlutterFilamentTexture(result[0], result[1], width, height, result[2]);
 
-    if (newTexture!.hardwareTextureId != null) {
-      await viewer.createRenderTarget(
-          width.toDouble(), height.toDouble(), newTexture!.hardwareTextureId!);
+    await viewer.createSwapChain(width.toDouble(), height.toDouble(),
+        surface: newTexture.surfaceAddress == null
+            ? nullptr
+            : Pointer<Void>.fromAddress(newTexture.surfaceAddress!));
+
+    if (newTexture.hardwareTextureId != null) {
+      var renderTarget = await viewer.createRenderTarget(
+          width.toDouble(), height.toDouble(), newTexture.hardwareTextureId!);
     }
     await viewer.updateViewportAndCameraProjection(
         width.toDouble(), height.toDouble());
+
     viewer.viewportDimensions = (width.toDouble(), height.toDouble());
     if (wasRendering) {
       await viewer.setRendering(true);
     }
+    _resizing = false;
     return newTexture;
     // await _channel.invokeMethod("resizeTexture",
     //     [texture.flutterTextureId, width, height, offsetLeft, offsetRight]);
   }
-  
+
   @override
   void dispose() {
     // TODO: implement dispose
