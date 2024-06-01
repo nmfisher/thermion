@@ -6,7 +6,9 @@ import 'package:flutter_filament_platform_interface/flutter_filament_platform_in
 import 'package:flutter_filament_platform_interface/flutter_filament_texture.dart';
 
 ///
-/// A Flutter-only interface for creating an [AbstractFilamentViewer] .
+/// A Flutter-only class that instantiates/wraps a [AbstractFilamentViewer],
+/// handling all platform-specific initialization work necessary to create a 
+/// backing rendering surface.
 ///
 class FlutterFilamentPlugin {
   bool _wasRenderingOnInactive = false;
