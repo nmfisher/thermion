@@ -2,6 +2,8 @@
 #include <sstream>
 #include <thread>
 #include <vector>
+#include <unordered_set>
+#include <stack>
 
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
@@ -189,8 +191,6 @@ namespace flutter_filament
         inst->getAnimator()->updateBoneMatrices();
         inst->recomputeBoundingBoxes();
 
-        _animationComponentManager->addAnimationComponent(inst);
-
         asset->releaseSourceData();
 
         EntityId eid = Entity::smuggle(asset->getRoot());
@@ -271,6 +271,29 @@ namespace flutter_filament
         EntityId eid = Entity::smuggle(asset->getRoot());
         _assets.emplace(eid, asset);
         return eid;
+    }
+
+    void SceneManager::removeAnimationComponent(EntityId entityId)
+    {
+
+        auto *instance = getInstanceByEntityId(entityId);
+        if (!instance)
+        {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
+                instance = asset->getInstance();
+            }
+        }
+
+        if (instance)
+        {
+            _animationComponentManager->removeAnimationComponent(instance);
+        }
+        else
+        {
+            _animationComponentManager->removeAnimationComponent(Entity::import(entityId));
+        }
     }
 
     bool SceneManager::addAnimationComponent(EntityId entityId)
@@ -460,15 +483,22 @@ namespace flutter_filament
         return pos->second;
     }
 
-    // TODO - we really don't want to be looking up the bone index/entity by name every single frame
-    // - could use findChildEntityByName
-    // - or is it better to add an option for "streaming" mode where we can just return a reference to a mat4 and then update the values directly?
-    bool SceneManager::setBoneTransform(EntityId entityId, const char *entityName, int32_t skinIndex, const char *boneName, math::mat4f localTransform)
-    {
-        std::lock_guard lock(_mutex);
+    math::mat4f SceneManager::getLocalTransform(EntityId entityId) {
+        auto entity = Entity::import(entityId);
+        auto& tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(entity);        
+        return tm.getTransform(transformInstance);
+    }
 
+    math::mat4f SceneManager::getWorldTransform(EntityId entityId) {
+        auto entity = Entity::import(entityId);
+        auto& tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(entity);        
+        return tm.getWorldTransform(transformInstance);
+    }
+
+    EntityId SceneManager::getBone(EntityId entityId, int skinIndex, int boneIndex) { 
         auto *instance = getInstanceByEntityId(entityId);
-
         if (!instance)
         {
             auto *asset = getAssetByEntityId(entityId);
@@ -478,17 +508,40 @@ namespace flutter_filament
             }
             else
             {
+                Log("Failed to find glTF instance under entityID %d, revealing as regular entity", entityId);
                 return false;
             }
         }
+        auto joints = instance->getJointsAt(skinIndex);
+        auto joint = joints[boneIndex];
+        return Entity::smuggle(joint);
+    }
 
-        const auto &entity = findEntityByName(instance, entityName);
-
-        if (entity.isNull())
+    math::mat4f SceneManager::getInverseBindMatrix(EntityId entityId, int skinIndex, int boneIndex) { 
+        auto *instance = getInstanceByEntityId(entityId);
+        if (!instance)
         {
-            Log("Failed to find entity %s.", entityName);
-            return false;
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
+                instance = asset->getInstance();
+            }
+            else
+            {
+                Log("Failed to find glTF instance under entityID %d, revealing as regular entity", entityId);
+                return math::mat4f();
+            }
         }
+        auto inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[boneIndex];
+        return inverseBindMatrix;
+    }
+
+
+    bool SceneManager::setBoneTransform(EntityId entityId, int32_t skinIndex, int boneIndex, math::mat4f transform)
+    {
+        std::lock_guard lock(_mutex);
+
+        const auto &entity = Entity::import(entityId);
 
         RenderableManager &rm = _engine->getRenderableManager();
 
@@ -496,60 +549,13 @@ namespace flutter_filament
 
         if (!renderableInstance.isValid())
         {
-            Log("Invalid renderable");
+            Log("Specified entity is not a renderable. You probably provided the ultimate parent entity of a glTF asset, which is non-renderable. ");
             return false;
         }
-
-        TransformManager &transformManager = _engine->getTransformManager();
-
-        size_t skinCount = instance->getSkinCount();
-
-        if (skinCount > 1)
-        {
-            Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
-        }
-
-        size_t numJoints = instance->getJointCountAt(skinIndex);
-        auto joints = instance->getJointsAt(skinIndex);
-        int boneIndex = -1;
-        for (int i = 0; i < numJoints; i++)
-        {
-            const char *jointName = _ncm->getName(_ncm->getInstance(joints[i]));
-            if (strcmp(jointName, boneName) == 0)
-            {
-                boneIndex = i;
-                break;
-            }
-        }
-        if (boneIndex == -1)
-        {
-            Log("Failed to find bone %s", boneName);
-            return false;
-        }
-
-        utils::Entity joint = instance->getJointsAt(skinIndex)[boneIndex];
-
-        if (joint.isNull())
-        {
-            Log("ERROR : joint not found");
-            return false;
-        }
-
-        const auto &inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[boneIndex];
-
-        auto jointTransform = transformManager.getInstance(joint);
-        auto globalJointTransform = transformManager.getWorldTransform(jointTransform);
-
-        auto inverseGlobalTransform = inverse(
-            transformManager.getWorldTransform(
-                transformManager.getInstance(entity)));
-
-        const auto boneTransform = inverseGlobalTransform * globalJointTransform *
-                                   localTransform * inverseBindMatrix;
 
         rm.setBones(
             renderableInstance,
-            &boneTransform,
+            &transform,
             1,
             boneIndex);
         return true;
@@ -818,40 +824,99 @@ namespace flutter_filament
             }
         }
 
-        instance->getAnimator()->resetBoneMatrices();
-
         auto skinCount = instance->getSkinCount();
 
         TransformManager &transformManager = _engine->getTransformManager();
 
-        auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
-        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
-
+        // To reset the skeleton to its rest pose, we could just call 
+        // animator->resetBoneMatrices(), which sets all bone matrices to the identity matrix.
+        // However, any subsequent calls to animator->updateBoneMatrices() may result in 
+        // unexpected poses, because updateBoneMatrices uses each bone's transform to calculate 
+        // the bone matrices (and resetBoneMatrices does not affect this transform).
+        // To "fully" reset the bone, we need to reset the transform node to its original orientation. 
+        // This transform is relative to its parent, so can be calculated as:
+        //  auto rest = inverse(parentTransformInModelSpace) * inverse(inverseBindMatrix).
+        // The only requirement is that parent bone transforms are reset before child bone transforms.
+        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance. 
+        // We ensure that parents are reset before children by:
+        // - pushing all bones onto a stack
+        // - iterate over the stack
+        //      - look at the bone at the top of the stack
+        //      - if the bone already been reset, pop and continue iterating over the stack
+        //      - otherwise
+        //          - if the bone has a parent that has not been reset, push the parent to the top of the stack and continue iterating
+        //          - otherwise
+        //              - pop the bone, reset its transform and mark it as completed
         for (int skinIndex = 0; skinIndex < skinCount; skinIndex++)
         {
+            std::unordered_set<Entity,Entity::Hasher> joints;
+            std::unordered_set<Entity,Entity::Hasher> completed;
+            std::stack<Entity> stack;
+            
             for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
             {
-                const Entity joint = instance->getJointsAt(skinIndex)[i];
-                auto restLocalTransform = animationComponent.initialJointTransforms[i];
-                auto jointTransform = transformManager.getInstance(joint);
-                transformManager.setTransform(jointTransform, restLocalTransform);
+                const auto& joint = instance->getJointsAt(skinIndex)[i];
+                joints.insert(joint);
+                stack.push(joint);
+            }
+
+            while(!stack.empty())
+            {
+                const auto& joint = stack.top();
+                // if we've already handled this node previously (e.g. when we encountered it as a parent), then skip
+                if(completed.find(joint) != completed.end()) {
+                    stack.pop();
+                    continue;
+                }
+
+                const auto transformInstance = transformManager.getInstance(joint);
+                auto parent = transformManager.getParent(transformInstance);
+
+                // we need to handle parent joints before handling their children 
+                // therefore, if this joint has a parent that hasn't been handled yet, 
+                // push it onto the top of the stack and start the loop again
+                if(joints.find(parent) != joints.end() && completed.find(parent) == completed.end()) {
+                    stack.push(parent);
+                    Log("Pushing parent %d", parent);
+                    continue;
+                }
+                
+                // otherwise let's get the inverse bind matrix for the joint 
+                math::mat4f inverseBindMatrix;
+                bool found = false;
+                for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
+                {
+                    if(instance->getJointsAt(skinIndex)[i] == joint) { 
+                        Log("Resetting bone %d", i);
+                        inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[i];
+                        found = true;
+                        break;
+                    }
+                }
+                ASSERT_PRECONDITION(found, "Failed to find joint");
+
+                // now we need to ascend back up the hierarchy to calculate the modelSpaceTransform
+                math::mat4f modelSpaceTransform;
+                while(joints.find(parent) != joints.end()) {
+                    Log("Accumulating model space transform for parent %d", parent);
+                    const auto transformInstance = transformManager.getInstance(parent);
+                    const auto transform = transformManager.getTransform(transformInstance);
+                    modelSpaceTransform = transform * modelSpaceTransform;
+                    parent = transformManager.getParent(transformInstance);
+                }
+
+                const auto bindMatrix = inverse(inverseBindMatrix);              
+                
+                const auto inverseModelSpaceTransform = inverse(modelSpaceTransform);                
+                transformManager.setTransform(transformInstance, inverseModelSpaceTransform * bindMatrix);
+                completed.insert(joint);
+                stack.pop();
             }
         }
         instance->getAnimator()->updateBoneMatrices();
-        instance->getAnimator()->resetBoneMatrices();
     }
 
-    bool SceneManager::addBoneAnimation(EntityId entityId,
-                                        const float *const frameData,
-                                        int numFrames,
-                                        const char *const boneName,
-                                        const char **const meshNames,
-                                        int numMeshTargets,
-                                        float frameLengthInMs,
-                                        bool isModelSpace)
-    {
-        std::lock_guard lock(_mutex);
-
+    bool SceneManager::updateBoneMatrices(EntityId entityId) {
         auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
@@ -865,49 +930,49 @@ namespace flutter_filament
                 return false;
             }
         }
+        instance->getAnimator()->updateBoneMatrices();
+        return true;
+    }
 
-        size_t skinCount = instance->getSkinCount();
-
-        if (skinCount > 1)
-        {
-            Log("WARNING - skin count > 1 not currently implemented. This will probably not work");
-        }
-
-        int skinIndex = 0;
-        const utils::Entity *joints = instance->getJointsAt(skinIndex);
-        size_t numJoints = instance->getJointCountAt(skinIndex);
-
-        BoneAnimation animation;
-        bool found = false;
-
-        for (int i = 0; i < numJoints; i++)
-        {
-            const char *jointName = _ncm->getName(_ncm->getInstance(joints[i]));
-            if (strcmp(jointName, boneName) == 0)
-            {
-                animation.boneIndex = i;
-                found = true;
-                break;
-            }
-        }
-        if (!found)
-        {
-            Log("Failed to find bone %s", boneName);
+    bool SceneManager::setTransform(EntityId entityId, math::mat4f transform) {
+        auto& tm = _engine->getTransformManager();
+        const auto& entity = Entity::import(entityId);
+        auto transformInstance = tm.getInstance(entity);
+        if(!transformInstance) { 
             return false;
         }
+        tm.setTransform(transformInstance, transform);
+        return true;
+    }
 
+    bool SceneManager::addBoneAnimation(EntityId parentEntity,
+                                        int skinIndex,
+                                        int boneIndex,                      
+                                        const float *const frameData,
+                                        int numFrames,
+                                        float frameLengthInMs)
+    {
+        std::lock_guard lock(_mutex);
+
+        auto *instance = getInstanceByEntityId(parentEntity);
+        if (!instance)
+        {
+            auto *asset = getAssetByEntityId(parentEntity);
+            if (asset)
+            {
+                instance = asset->getInstance();
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        BoneAnimation animation;
+        animation.boneIndex = boneIndex;
         animation.frameData.clear();
 
-        const auto &inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[animation.boneIndex];
-        const auto &bindMatrix = inverse(inverseBindMatrix);
-        math::float3 trans;
-        math::quatf rot;
-        math::float3 scale;
-        decomposeMatrix(inverseBindMatrix, &trans, &rot, &scale);
-        math::float3 btrans;
-        math::quatf brot;
-        math::float3 bscale;
-        decomposeMatrix(bindMatrix, &btrans, &brot, &bscale);
+        const auto &inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[boneIndex];
 
         for (int i = 0; i < numFrames; i++)
         {
@@ -929,35 +994,23 @@ namespace flutter_filament
                 frameData[(i * 16) + 14],
                 frameData[(i * 16) + 15]);
 
-            if (isModelSpace)
-            {
-                frame = (math::mat4f(rot) * frame) * math::mat4f(brot);
-            }
             animation.frameData.push_back(frame);
         }
 
         animation.frameLengthInMs = frameLengthInMs;
-
-        animation.meshTargets.clear();
-        for (int i = 0; i < numMeshTargets; i++)
-        {
-            auto entity = findEntityByName(instance, meshNames[i]);
-            if (!entity)
-            {
-                Log("Mesh target %s for bone animation could not be found", meshNames[i]);
-                return false;
-            }
-            animation.meshTargets.push_back(entity);
-        }
 
         animation.start = std::chrono::high_resolution_clock::now();
         animation.reverse = false;
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
         animation.lengthInFrames = numFrames;
         animation.frameLengthInMs = frameLengthInMs;
-        animation.skinIndex = 0;
-
+        animation.skinIndex = skinIndex;
+        if(!_animationComponentManager->hasComponent(instance->getRoot())) { 
+            Log("ERROR: specified entity is not animatable (has no animation component attached).");
+            return false;
+        }
         auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
+
         auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
         auto &boneAnimations = animationComponent.boneAnimations;
 
@@ -990,7 +1043,7 @@ namespace flutter_filament
             }
         }
 
-        if (!_animationComponentManager->hasComponent(instance->getRoot()))
+    if (!_animationComponentManager->hasComponent(instance->getRoot()))
         {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return;
@@ -1302,6 +1355,14 @@ namespace flutter_filament
         auto transform =
             math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
         tm.setTransform(tm.getInstance(instance->getRoot()), transform);
+    }
+
+    EntityId SceneManager::getParent(EntityId childEntityId) {
+        auto &tm = _engine->getTransformManager();
+        const auto child = Entity::import(childEntityId);
+        const auto &childInstance = tm.getInstance(child);
+        auto parent = tm.getParent(childInstance);
+        return Entity::smuggle(parent);
     }
 
     void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId)
