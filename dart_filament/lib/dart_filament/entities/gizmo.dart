@@ -16,7 +16,10 @@ class Gizmo extends AbstractGizmo {
   FilamentEntity? _activeEntity;
   bool get isActive => _activeAxis != null;
 
-  Gizmo(this.x, this.y, this.z, this.controller) {
+  final Set<FilamentEntity> ignore;
+
+  Gizmo(this.x, this.y, this.z, this.controller,
+      {this.ignore = const <FilamentEntity>{}}) {
     controller.pickResult.listen(_onPickResult);
   }
 
@@ -45,6 +48,10 @@ class Gizmo extends AbstractGizmo {
   }
 
   void _onPickResult(FilamentPickResult result) async {
+    if (ignore.contains(result)) {
+      detach();
+      return;
+    }
     if (result.entity == x || result.entity == y || result.entity == z) {
       _activeAxis = result.entity;
     } else {
