@@ -36,6 +36,9 @@ class FilamentViewer extends AbstractFilamentViewer {
   final _initialized = Completer<bool>();
   Future<bool> get initialized => _initialized.future;
 
+  ///
+  ///
+  ///
   @override
   Stream<FilamentPickResult> get pickResult => _pickResultController.stream;
   final _pickResultController =
@@ -135,26 +138,44 @@ class FilamentViewer extends AbstractFilamentViewer {
   }
 
   bool _rendering = false;
+
+  ///
+  ///
+  ///
   @override
   bool get rendering => _rendering;
 
+  ///
+  ///
+  ///
   @override
   Future setRendering(bool render) async {
     _rendering = render;
-    set_rendering_ffi(_viewer!, render);
+    await withVoidCallback((cb) {
+      set_rendering_ffi(_viewer!, render, cb);
+    });
   }
 
+  ///
+  ///
+  ///
   @override
   Future render() async {
     render_ffi(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setFrameRate(int framerate) async {
     final interval = 1000.0 / framerate;
     set_frame_interval_ffi(_viewer!, interval);
   }
 
+  ///
+  ///
+  ///
   @override
   Future dispose() async {
     destroy_filament_viewer_ffi(_viewer!);
@@ -162,11 +183,17 @@ class FilamentViewer extends AbstractFilamentViewer {
     _viewer = null;
   }
 
+  ///
+  ///
+  ///
   @override
   Future clearBackgroundImage() async {
     clear_background_image_ffi(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
@@ -177,17 +204,26 @@ class FilamentViewer extends AbstractFilamentViewer {
     allocator.free(pathPtr);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setBackgroundColor(double r, double g, double b, double a) async {
     set_background_color_ffi(_viewer!, r, g, b, a);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setBackgroundImagePosition(double x, double y,
       {bool clamp = false}) async {
     set_background_image_position_ffi(_viewer!, x, y, clamp);
   }
 
+  ///
+  ///
+  ///
   @override
   Future loadSkybox(String skyboxPath) async {
     final pathPtr = skyboxPath.toNativeUtf8(allocator: allocator).cast<Char>();
@@ -199,6 +235,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     allocator.free(pathPtr);
   }
 
+  ///
+  ///
+  ///
   @override
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
     final pathPtr =
@@ -206,6 +245,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     load_ibl_ffi(_viewer!, pathPtr, intensity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future rotateIbl(Matrix3 rotationMatrix) async {
     var floatPtr = allocator<Float>(9);
@@ -216,16 +258,25 @@ class FilamentViewer extends AbstractFilamentViewer {
     allocator.free(floatPtr);
   }
 
+  ///
+  ///
+  ///
   @override
   Future removeSkybox() async {
     remove_skybox_ffi(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future removeIbl() async {
     remove_ibl_ffi(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future<FilamentEntity> addLight(
       LightType type,
@@ -271,12 +322,18 @@ class FilamentViewer extends AbstractFilamentViewer {
     return entity;
   }
 
+  ///
+  ///
+  ///
   @override
   Future removeLight(FilamentEntity entity) async {
     _scene.unregisterLight(entity);
     remove_light_ffi(_viewer!, entity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future clearLights() async {
     clear_lights_ffi(_viewer!);
@@ -284,6 +341,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     _scene.clearLights();
   }
 
+  ///
+  ///
+  ///
   @override
   Future<FilamentEntity> createInstance(FilamentEntity entity) async {
     var created = await withIntCallback(
@@ -294,11 +354,17 @@ class FilamentViewer extends AbstractFilamentViewer {
     return created;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<int> getInstanceCount(FilamentEntity entity) async {
     return get_instance_count(_sceneManager!, entity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future<List<FilamentEntity>> getInstances(FilamentEntity entity) async {
     var count = await getInstanceCount(entity);
@@ -312,6 +378,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return instances;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<FilamentEntity> loadGlb(String path,
       {bool unlit = false, int numInstances = 1}) async {
@@ -330,6 +399,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return entity;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<FilamentEntity> loadGltf(String path, String relativeResourcePath,
       {bool force = false}) async {
@@ -353,36 +425,57 @@ class FilamentViewer extends AbstractFilamentViewer {
     return entity;
   }
 
+  ///
+  ///
+  ///
   @override
   Future panStart(double x, double y) async {
     grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, true);
   }
 
+  ///
+  ///
+  ///
   @override
   Future panUpdate(double x, double y) async {
     grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
   }
 
+  ///
+  ///
+  ///
   @override
   Future panEnd() async {
     grab_end(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future rotateStart(double x, double y) async {
     grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, false);
   }
 
+  ///
+  ///
+  ///
   @override
   Future rotateUpdate(double x, double y) async {
     grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
   }
 
+  ///
+  ///
+  ///
   @override
   Future rotateEnd() async {
     grab_end(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setMorphTargetWeights(
       FilamentEntity entity, List<double> weights) async {
@@ -406,6 +499,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     }
   }
 
+  ///
+  ///
+  ///
   @override
   Future<List<String>> getMorphTargetNames(
       FilamentEntity entity, FilamentEntity childEntity) async {
@@ -440,6 +536,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return names;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<List<String>> getAnimationNames(FilamentEntity entity) async {
     var animationCount = get_animation_count(_sceneManager!, entity);
@@ -454,6 +553,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return names;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<double> getAnimationDuration(
       FilamentEntity entity, int animationIndex) async {
@@ -463,6 +565,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return duration;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<double> getAnimationDurationByName(
       FilamentEntity entity, String name) async {
@@ -474,6 +579,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return getAnimationDuration(entity, index);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setMorphAnimationData(
       FilamentEntity entity, MorphAnimationData animation,
@@ -562,64 +670,195 @@ class FilamentViewer extends AbstractFilamentViewer {
     }
   }
 
+  ///
+  /// Currently, scale is not supported.
+  ///
   @override
-  Future addBoneAnimation(
-    FilamentEntity entity,
-    BoneAnimationData animation,
-  ) async {
-    var numFrames = animation.rotationFrameData.length;
-
-    var meshNames = allocator<Pointer<Char>>(animation.meshNames.length);
-    for (int i = 0; i < animation.meshNames.length; i++) {
-      meshNames.elementAt(i).value = animation.meshNames[i]
-          .toNativeUtf8(allocator: allocator)
-          .cast<Char>();
+  Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
+      {int skinIndex = 0}) async {
+    if (animation.space != Space.Bone && animation.space != Space.ParentWorldRotation) {
+      throw UnimplementedError("TODO - support ${animation.space}");
     }
+    if (skinIndex != 0) {
+      throw UnimplementedError("TODO - support skinIndex != 0 ");
+    }
+    var boneNames = await getBoneNames(entity);
+    await resetBones(entity);
+
+    var numFrames = animation.frameData.length;
 
     var data = allocator<Float>(numFrames * 16);
-    DateTime start = DateTime.now();
 
-    for (var boneIndex = 0; boneIndex < animation.bones.length; boneIndex++) {
-      var bone = animation.bones[boneIndex];
-      var boneNamePtr = bone.toNativeUtf8(allocator: allocator).cast<Char>();
+    var bones = await Future.wait(List<Future<FilamentEntity>>.generate(
+        boneNames.length, (i) => getBone(entity, i)));
 
-      for (int i = 0; i < numFrames; i++) {
-        var rotation = animation.rotationFrameData[i][boneIndex];
-        var translation = animation.translationFrameData[i][boneIndex];
-        var mat4 = Matrix4.compose(translation, rotation, Vector3.all(1.0));
+    for (int i = 0; i < animation.bones.length; i++) {
+      var boneName = animation.bones[i];
+      var entityBoneIndex = boneNames.indexOf(boneName);
+      if (entityBoneIndex == -1) {
+        print("Warning : bone $boneName not found, skipping");
+        continue;
+      }
+      var boneEntity = bones[entityBoneIndex];
+
+      var baseTransform = await getLocalTransform(boneEntity);
+      var baseTransformInverse = Matrix4.identity()..copyInverse(baseTransform);
+
+      for (int frameNum = 0; frameNum < numFrames; frameNum++) {
+        var rotation = animation.frameData[frameNum][i].rotation;
+        var translation = animation.frameData[frameNum][i].translation;
+        var frameTransform =
+            Matrix4.compose(translation, rotation, Vector3.all(1.0));
+        var newLocalTransform = frameTransform.clone();
+        if (animation.space == Space.Bone) {
+          newLocalTransform = baseTransform * frameTransform;
+        } else if (animation.space == Space.ParentWorldRotation) {
+          var world = await getWorldTransform(boneEntity);
+          world = Matrix4.identity()..setRotation(world.getRotation());
+          var worldInverse = Matrix4.identity()..copyInverse(world);
+          newLocalTransform =
+              baseTransform * (worldInverse * frameTransform * world);
+        }
         for (int j = 0; j < 16; j++) {
-          data.elementAt((i * 16) + j).value = mat4.storage[j];
+          data.elementAt((frameNum * 16) + j).value =
+              newLocalTransform.storage[j];
         }
       }
 
-      add_bone_animation_ffi(
-          _sceneManager!,
-          entity,
-          data,
-          numFrames,
-          boneNamePtr,
-          meshNames,
-          animation.meshNames.length,
-          animation.frameLengthInMs,
-          animation.isModelSpace);
-
-      allocator.free(boneNamePtr);
+      add_bone_animation(_sceneManager!, entity, skinIndex, entityBoneIndex,
+          data, numFrames, animation.frameLengthInMs);
     }
     allocator.free(data);
-    for (int i = 0; i < animation.meshNames.length; i++) {
-      allocator.free(meshNames.elementAt(i).value);
-    }
-    allocator.free(meshNames);
   }
 
+  ///
+  ///
+  ///
+  Future<Matrix4> getLocalTransform(FilamentEntity entity) async {
+    final ptr = allocator<Float>(16);
+
+    get_local_transform(_sceneManager!, entity, ptr);
+    var data = List<double>.filled(16, 0.0);
+    for (int i = 0; i < 16; i++) {
+      data[i] = ptr[i];
+    }
+    allocator.free(ptr);
+    return Matrix4.fromList(data);
+  }
+
+  ///
+  ///
+  ///
+  Future<Matrix4> getWorldTransform(FilamentEntity entity) async {
+    final ptr = allocator<Float>(16);
+
+    get_world_transform(_sceneManager!, entity, ptr);
+    var data = List<double>.filled(16, 0.0);
+    for (int i = 0; i < 16; i++) {
+      data[i] = ptr[i];
+    }
+    allocator.free(ptr);
+    return Matrix4.fromList(data);
+  }
+
+  ///
+  ///
+  ///
+  Future setTransform(FilamentEntity entity, Matrix4 transform) async {
+    final ptr = allocator<Float>(16);
+    for (int i = 0; i < 16; i++) {
+      ptr[i] = transform[i];
+    }
+    set_transform(_sceneManager!, entity, ptr);
+    allocator.free(ptr);
+  }
+
+  ///
+  ///
+  ///
+  Future updateBoneMatrices(FilamentEntity entity) async {
+    var result = await withBoolCallback((cb) {
+      update_bone_matrices_ffi(_sceneManager!, entity, cb);
+    });
+    if (!result) {
+      throw Exception("Failed to update bone matrices");
+    }
+  }
+
+  ///
+  ///
+  ///
+  Future<Matrix4> getInverseBindMatrix(FilamentEntity parent, int boneIndex,
+      {int skinIndex = 0}) async {
+    final ptr = allocator<Float>(16);
+
+    get_inverse_bind_matrix(_sceneManager!, parent, skinIndex, boneIndex, ptr);
+    var data = List<double>.filled(16, 0.0);
+    for (int i = 0; i < 16; i++) {
+      data[i] = ptr[i];
+    }
+    allocator.free(ptr);
+    return Matrix4.fromList(data);
+  }
+
+  ///
+  ///
+  ///
+  Future<FilamentEntity> getBone(FilamentEntity parent, int boneIndex,
+      {int skinIndex = 0}) async {
+    if (skinIndex != 0) {
+      throw UnimplementedError("TOOD");
+    }
+    return get_bone(_sceneManager!, parent, skinIndex, boneIndex);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setBoneTransform(
+      FilamentEntity entity, int boneIndex, Matrix4 transform,
+      {int skinIndex = 0}) async {
+    if (skinIndex != 0) {
+      throw UnimplementedError("TOOD");
+    }
+    final ptr = allocator<Float>(16);
+    for (int i = 0; i < 16; i++) {
+      ptr[i] = transform.storage[i];
+    }
+    var result = await withBoolCallback((cb) {
+      set_bone_transform_ffi(
+          _sceneManager!, entity, skinIndex, boneIndex, ptr, cb);
+    });
+
+    allocator.free(ptr);
+    if (!result) {
+      throw Exception("Failed to set bone transform");
+    }
+  }
+
+  ///
+  ///
+  ///
+  ///
+  ///
+  ///
   @override
   Future resetBones(FilamentEntity entity) async {
     if (_viewer == nullptr) {
       throw Exception("No viewer available, ignoring");
     }
-    reset_to_rest_pose_ffi(_sceneManager!, entity);
+    await withVoidCallback((cb) {
+      reset_to_rest_pose_ffi(_sceneManager!, entity, cb);
+    });
   }
 
+  ///
+  ///
+  ///
+  ///
+  ///
+  ///
   @override
   Future removeEntity(FilamentEntity entity) async {
     _scene.unregisterEntity(entity);
@@ -628,6 +867,12 @@ class FilamentViewer extends AbstractFilamentViewer {
         (callback) => remove_entity_ffi(_viewer!, entity, callback));
   }
 
+  ///
+  ///
+  ///
+  ///
+  ///
+  ///
   @override
   Future clearEntities() async {
     await withVoidCallback((callback) {
@@ -636,21 +881,36 @@ class FilamentViewer extends AbstractFilamentViewer {
     _scene.clearEntities();
   }
 
+  ///
+  ///
+  ///
+  ///
+  ///
+  ///
   @override
   Future zoomBegin() async {
     scroll_begin(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future zoomUpdate(double x, double y, double z) async {
     scroll_update(_viewer!, x, y, z);
   }
 
+  ///
+  ///
+  ///
   @override
   Future zoomEnd() async {
     scroll_end(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future playAnimation(FilamentEntity entity, int index,
       {bool loop = false,
@@ -661,17 +921,26 @@ class FilamentViewer extends AbstractFilamentViewer {
         _sceneManager!, entity, index, loop, reverse, replaceActive, crossfade);
   }
 
+  ///
+  ///
+  ///
   @override
   Future stopAnimation(FilamentEntity entity, int animationIndex) async {
     stop_animation(_sceneManager!, entity, animationIndex);
   }
 
+  ///
+  ///
+  ///
   @override
   Future stopAnimationByName(FilamentEntity entity, String name) async {
     var animations = await getAnimationNames(entity);
     await stopAnimation(entity, animations.indexOf(name));
   }
 
+  ///
+  ///
+  ///
   @override
   Future playAnimationByName(FilamentEntity entity, String name,
       {bool loop = false,
@@ -693,12 +962,18 @@ class FilamentViewer extends AbstractFilamentViewer {
     }
   }
 
+  ///
+  ///
+  ///
   @override
   Future setAnimationFrame(
       FilamentEntity entity, int index, int animationFrame) async {
     set_animation_frame(_sceneManager!, entity, index, animationFrame);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setMainCamera() async {
     set_main_camera(_viewer!);
@@ -708,6 +983,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return get_main_camera(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCamera(FilamentEntity entity, String? name) async {
     var cameraNamePtr =
@@ -719,83 +997,131 @@ class FilamentViewer extends AbstractFilamentViewer {
     }
   }
 
+  ///
+  ///
+  ///
   @override
   Future setToneMapping(ToneMapper mapper) async {
     set_tone_mapping_ffi(_viewer!, mapper.index);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setPostProcessing(bool enabled) async {
     set_post_processing_ffi(_viewer!, enabled);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
     set_antialiasing(_viewer!, msaa, fxaa, taa);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setBloom(double bloom) async {
     set_bloom_ffi(_viewer!, bloom);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCameraFocalLength(double focalLength) async {
     set_camera_focal_length(_viewer!, focalLength);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCameraFov(double degrees, double width, double height) async {
     set_camera_fov(_viewer!, degrees, width / height);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCameraCulling(double near, double far) async {
     set_camera_culling(_viewer!, near, far);
   }
 
+  ///
+  ///
+  ///
   @override
   Future<double> getCameraCullingNear() async {
     return get_camera_culling_near(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future<double> getCameraCullingFar() async {
     return get_camera_culling_far(_viewer!);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCameraFocusDistance(double focusDistance) async {
     set_camera_focus_distance(_viewer!, focusDistance);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCameraPosition(double x, double y, double z) async {
     set_camera_position(_viewer!, x, y, z);
   }
 
+  ///
+  ///
+  ///
   @override
   Future moveCameraToAsset(FilamentEntity entity) async {
     move_camera_to_asset(_viewer!, entity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setViewFrustumCulling(bool enabled) async {
     set_view_frustum_culling(_viewer!, enabled);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
     set_camera_exposure(_viewer!, aperture, shutterSpeed, sensitivity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCameraRotation(Quaternion quaternion) async {
     set_camera_rotation(
         _viewer!, quaternion.w, quaternion.x, quaternion.y, quaternion.z);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setCameraModelMatrix(List<double> matrix) async {
     assert(matrix.length == 16);
@@ -807,6 +1133,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     allocator.free(ptr);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setMaterialColor(FilamentEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a) async {
@@ -819,17 +1148,26 @@ class FilamentViewer extends AbstractFilamentViewer {
     }
   }
 
+  ///
+  ///
+  ///
   @override
   Future transformToUnitCube(FilamentEntity entity) async {
     transform_to_unit_cube(_sceneManager!, entity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setPosition(
       FilamentEntity entity, double x, double y, double z) async {
     set_position(_sceneManager!, entity, x, y, z);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setRotationQuat(FilamentEntity entity, Quaternion rotation,
       {bool relative = false}) async {
@@ -837,6 +1175,9 @@ class FilamentViewer extends AbstractFilamentViewer {
         rotation.y, rotation.z, rotation.w);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setRotation(
       FilamentEntity entity, double rads, double x, double y, double z) async {
@@ -844,6 +1185,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     await setRotationQuat(entity, quat);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setScale(FilamentEntity entity, double scale) async {
     set_scale(_sceneManager!, entity, scale);
@@ -855,6 +1199,9 @@ class FilamentViewer extends AbstractFilamentViewer {
         rotation.y, rotation.z, rotation.w, relative);
   }
 
+  ///
+  ///
+  ///
   @override
   Future queueRotationUpdate(
       FilamentEntity entity, double rads, double x, double y, double z,
@@ -863,6 +1210,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     await queueRotationUpdateQuat(entity, quat, relative: relative);
   }
 
+  ///
+  ///
+  ///
   @override
   Future queuePositionUpdate(
       FilamentEntity entity, double x, double y, double z,
@@ -870,6 +1220,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     queue_position_update(_sceneManager!, entity, x, y, z, relative);
   }
 
+  ///
+  ///
+  ///
   @override
   Future hide(FilamentEntity entity, String? meshName) async {
     final meshNamePtr =
@@ -878,6 +1231,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     allocator.free(meshNamePtr);
   }
 
+  ///
+  ///
+  ///
   @override
   Future reveal(FilamentEntity entity, String? meshName) async {
     final meshNamePtr =
@@ -889,6 +1245,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     }
   }
 
+  ///
+  ///
+  ///
   @override
   String? getNameForEntity(FilamentEntity entity) {
     final result = get_name_for_entity(_sceneManager!, entity);
@@ -910,6 +1269,9 @@ class FilamentViewer extends AbstractFilamentViewer {
   late NativeCallable<Void Function(Int32 entityId, Int x, Int y)>
       _onPickResultCallable;
 
+  ///
+  ///
+  ///
   @override
   void pick(int x, int y) async {
     _scene.unregisterSelected();
@@ -921,6 +1283,9 @@ class FilamentViewer extends AbstractFilamentViewer {
         _onPickResultCallable.nativeFunction);
   }
 
+  ///
+  ///
+  ///
   @override
   Future<Matrix4> getCameraViewMatrix() async {
     if (_viewer == null) {
@@ -932,6 +1297,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return viewMatrix;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<Matrix4> getCameraModelMatrix() async {
     if (_viewer == null) {
@@ -943,6 +1311,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return modelMatrix;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<Vector3> getCameraPosition() async {
     if (_viewer == null) {
@@ -958,6 +1329,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return position;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<Matrix3> getCameraRotation() async {
     if (_viewer == null) {
@@ -974,6 +1348,9 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   ManipulatorMode _cameraMode = ManipulatorMode.ORBIT;
 
+  ///
+  ///
+  ///
   @override
   Future setCameraManipulatorOptions(
       {ManipulatorMode? mode,
@@ -995,6 +1372,9 @@ class FilamentViewer extends AbstractFilamentViewer {
   /// I think because we use [setLensProjection] and [setScaling] together, this projection matrix doesn't accurately reflect the field of view (because it's using an additional scaling matrix).
   /// Also, the near/far planes never seem to get updated (which is what I would expect to see when calling [getCameraCullingProjectionMatrix])
   ///
+  ///
+  ///
+  ///
   @override
   Future<Matrix4> getCameraProjectionMatrix() async {
     if (_viewer == null) {
@@ -1011,6 +1391,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return projectionMatrix;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<Matrix4> getCameraCullingProjectionMatrix() async {
     if (_viewer == null) {
@@ -1025,6 +1408,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return projectionMatrix;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<Frustum> getCameraFrustum() async {
     if (_viewer == null) {
@@ -1051,6 +1437,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return frustum;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<FilamentEntity> getChildEntity(
       FilamentEntity parent, String childName) async {
@@ -1078,6 +1467,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return outList;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<List<String>> getChildEntityNames(FilamentEntity entity,
       {bool renderableOnly = false}) async {
@@ -1093,11 +1485,17 @@ class FilamentViewer extends AbstractFilamentViewer {
     return names;
   }
 
+  ///
+  ///
+  ///
   @override
   Future setRecording(bool recording) async {
     set_recording(_viewer!, recording);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setRecordingOutputDirectory(String outputDir) async {
     var pathPtr = outputDir.toNativeUtf8(allocator: allocator);
@@ -1107,6 +1505,9 @@ class FilamentViewer extends AbstractFilamentViewer {
 
   final _collisions = <FilamentEntity, NativeCallable>{};
 
+  ///
+  ///
+  ///
   @override
   Future addCollisionComponent(FilamentEntity entity,
       {void Function(int entityId1, int entityId2)? callback,
@@ -1128,11 +1529,17 @@ class FilamentViewer extends AbstractFilamentViewer {
     }
   }
 
+  ///
+  ///
+  ///
   @override
   Future removeCollisionComponent(FilamentEntity entity) async {
     remove_collision_component(_sceneManager!, entity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future addAnimationComponent(FilamentEntity entity) async {
     if (!add_animation_component(_sceneManager!, entity)) {
@@ -1140,6 +1547,16 @@ class FilamentViewer extends AbstractFilamentViewer {
     }
   }
 
+  ///
+  ///
+  ///
+  Future removeAnimationComponent(FilamentEntity entity) async {
+    remove_animation_component(_sceneManager!, entity);
+  }
+
+  ///
+  ///
+  ///
   @override
   Future<FilamentEntity> createGeometry(
       List<double> vertices, List<int> indices,
@@ -1183,6 +1600,9 @@ class FilamentViewer extends AbstractFilamentViewer {
     return entity;
   }
 
+  ///
+  ///
+  ///
   @override
   Future setParent(FilamentEntity child, FilamentEntity parent) async {
     if (_sceneManager == null) {
@@ -1191,11 +1611,32 @@ class FilamentViewer extends AbstractFilamentViewer {
     set_parent(_sceneManager!, child, parent);
   }
 
+  ///
+  ///
+  ///
+  @override
+  Future<FilamentEntity?> getParent(FilamentEntity child) async {
+    if (_sceneManager == null) {
+      throw Exception("Asset manager must be non-null");
+    }
+    var parent = get_parent(_sceneManager!, child);
+    if (parent == _FILAMENT_ASSET_ERROR) {
+      return null;
+    }
+    return parent;
+  }
+
+  ///
+  ///
+  ///
   @override
   Future testCollisions(FilamentEntity entity) async {
     test_collisions(_sceneManager!, entity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future setPriority(FilamentEntity entityId, int priority) async {
     set_priority(_sceneManager!, entityId, priority);
