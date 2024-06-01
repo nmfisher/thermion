@@ -126,6 +126,11 @@ extension PointerPointer<T extends ffi.NativeType>
         cast<ffi.Pointer<ffi.Void>>(), 0, value.cast<ffi.Void>());
   }
 
+
+  ffi.Pointer<T> operator [](int index) {
+    return this.elementAt(index).value;
+  }
+
   void operator []=(int index, ffi.Pointer<T> value) {
     this.elementAt(index).value = value;
   }
