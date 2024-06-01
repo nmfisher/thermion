@@ -418,15 +418,13 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void add_bone_animation(
         void *sceneManager,
         EntityId asset,
+        int skinIndex,
+        int boneIndex,
         const float *const frameData,
         int numFrames,
-        const char *const boneName,
-        const char **const meshNames,
-        int numMeshTargets,
-        float frameLengthInMs,
-        bool isModelSpace)
+        float frameLengthInMs)
     {
-        ((SceneManager *)sceneManager)->addBoneAnimation(asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs, isModelSpace);
+        ((SceneManager *)sceneManager)->addBoneAnimation(asset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_post_processing(void *const viewer, bool enabled)
@@ -439,14 +437,82 @@ extern "C"
         ((FilamentViewer *)viewer)->setAntiAliasing(msaa, fxaa, taa);
     }
 
+    EMSCRIPTEN_KEEPALIVE EntityId get_bone(void *sceneManager,
+        EntityId entityId,
+        int skinIndex,
+        int boneIndex) {
+        return ((SceneManager*)sceneManager)->getBone(entityId, skinIndex, boneIndex);
+    }
+    EMSCRIPTEN_KEEPALIVE void get_world_transform(void *sceneManager,
+        EntityId entityId, float* const out) {
+        auto transform = ((SceneManager*)sceneManager)->getWorldTransform(entityId);
+        out[0] = transform[0][0];
+        out[1] = transform[0][1];
+        out[2] = transform[0][2];
+        out[3] = transform[0][3];
+        out[4] = transform[1][0];
+        out[5] = transform[1][1];
+        out[6] = transform[1][2];
+        out[7] = transform[1][3];
+        out[8] = transform[2][0];
+        out[9] = transform[2][1];
+        out[10] = transform[2][2];
+        out[11] = transform[2][3];
+        out[12] = transform[3][0];
+        out[13] = transform[3][1];
+        out[14] = transform[3][2];
+        out[15] = transform[3][3];
+    }
+
+    EMSCRIPTEN_KEEPALIVE void get_local_transform(void *sceneManager,
+        EntityId entityId, float* const out) {
+        auto transform = ((SceneManager*)sceneManager)->getLocalTransform(entityId);
+        out[0] = transform[0][0];
+        out[1] = transform[0][1];
+        out[2] = transform[0][2];
+        out[3] = transform[0][3];
+        out[4] = transform[1][0];
+        out[5] = transform[1][1];
+        out[6] = transform[1][2];
+        out[7] = transform[1][3];
+        out[8] = transform[2][0];
+        out[9] = transform[2][1];
+        out[10] = transform[2][2];
+        out[11] = transform[2][3];
+        out[12] = transform[3][0];
+        out[13] = transform[3][1];
+        out[14] = transform[3][2];
+        out[15] = transform[3][3];
+    }
+	
+    EMSCRIPTEN_KEEPALIVE void get_inverse_bind_matrix(void *sceneManager,
+        EntityId entityId, int skinIndex, int boneIndex, float* const out) {
+        auto transform = ((SceneManager*)sceneManager)->getInverseBindMatrix(entityId, skinIndex, boneIndex);
+        out[0] = transform[0][0];
+        out[1] = transform[0][1];
+        out[2] = transform[0][2];
+        out[3] = transform[0][3];
+        out[4] = transform[1][0];
+        out[5] = transform[1][1];
+        out[6] = transform[1][2];
+        out[7] = transform[1][3];
+        out[8] = transform[2][0];
+        out[9] = transform[2][1];
+        out[10] = transform[2][2];
+        out[11] = transform[2][3];
+        out[12] = transform[3][0];
+        out[13] = transform[3][1];
+        out[14] = transform[3][2];
+        out[15] = transform[3][3];
+    }
+
     EMSCRIPTEN_KEEPALIVE bool set_bone_transform(
         void *sceneManager,
         EntityId entityId,
-        const char *entityName,
-        const float *const transform,
-        const char *boneName)
+        int skinIndex,
+        int boneIndex,
+        const float *const transform)
     {
-
         auto matrix = math::mat4f(
             transform[0], transform[1], transform[2],
             transform[3],
@@ -462,7 +528,7 @@ extern "C"
             transform[13],
             transform[14],
             transform[15]);
-        return ((SceneManager *)sceneManager)->setBoneTransform(entityId, entityName, 0, boneName, matrix);
+        return ((SceneManager *)sceneManager)->setBoneTransform(entityId, skinIndex, boneIndex, matrix);
     }
 
     EMSCRIPTEN_KEEPALIVE void play_animation(
@@ -521,6 +587,29 @@ extern "C"
         for(int i = 0; i < names->size(); i++) {
             memcpy((void*)out[i], names->at(i).c_str(), names->at(i).length());
         }
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool set_transform(void* sceneManager, EntityId entityId, const float* const transform) {
+         auto matrix = math::mat4f(
+            transform[0], transform[1], transform[2],
+            transform[3],
+            transform[4],
+            transform[5],
+            transform[6],
+            transform[7],
+            transform[8],
+            transform[9],
+            transform[10],
+            transform[11],
+            transform[12],
+            transform[13],
+            transform[14],
+            transform[15]);
+        return ((SceneManager*)sceneManager)->setTransform(entityId, matrix);
+    }
+
+    EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(void* sceneManager, EntityId entityId) {
+        return ((SceneManager*)sceneManager)->updateBoneMatrices(entityId);
     }
 
     EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity)
@@ -655,6 +744,11 @@ extern "C"
     {
         return ((SceneManager *)sceneManager)->addAnimationComponent(entityId);
     }
+    
+    EMSCRIPTEN_KEEPALIVE void remove_animation_component(void *const sceneManager, EntityId entityId)
+    {
+        ((SceneManager *)sceneManager)->removeAnimationComponent(entityId);
+    }
 
     EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
     {
@@ -665,6 +759,11 @@ extern "C"
     {
         auto entity = ((SceneManager *)sceneManager)->findChildEntityByName(parent, name);
         return utils::Entity::smuggle(entity);
+    }
+
+    EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child)
+    {
+        return ((SceneManager *)sceneManager)->getParent(child);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent)
