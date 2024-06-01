@@ -30,7 +30,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_ffi(void *const viewer);
     EMSCRIPTEN_KEEPALIVE void render_ffi(void *const viewer);
     EMSCRIPTEN_KEEPALIVE FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
-    EMSCRIPTEN_KEEPALIVE void set_rendering_ffi(void *const viewer, bool rendering);
+    EMSCRIPTEN_KEEPALIVE void set_rendering_ffi(void *const viewer, bool rendering, void(*onComplete)());
     EMSCRIPTEN_KEEPALIVE void set_frame_interval_ffi(void *const viewer, float frameInterval);
     EMSCRIPTEN_KEEPALIVE void update_viewport_and_camera_projection_ffi(void *const viewer, const uint32_t width, const uint32_t height, const float scaleFactor, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void set_background_color_ffi(void *const viewer, const float r, const float g, const float b, const float a);
@@ -91,26 +91,17 @@ extern "C"
                                                             int numWeights,
                                                             void (*callback)(bool));
 
+    EMSCRIPTEN_KEEPALIVE void update_bone_matrices_ffi(void *sceneManager,
+        EntityId asset, void(*callback)(bool));
     EMSCRIPTEN_KEEPALIVE void set_bone_transform_ffi(
         void *sceneManager,
         EntityId asset,
-        const char *entityName,
+        int skinIndex, 
+        int boneIndex,
         const float *const transform,
-        const char *boneName,
         void (*callback)(bool));
-    EMSCRIPTEN_KEEPALIVE void add_bone_animation_ffi(
-        void *sceneManager,
-        EntityId asset,
-        const float *const frameData,
-        int numFrames,
-        const char *const boneName,
-        const char **const meshNames,
-        int numMeshTargets,
-        float frameLengthInMs,
-        bool isModelSpace);
     EMSCRIPTEN_KEEPALIVE void set_post_processing_ffi(void *const viewer, bool enabled);
-    EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_ffi(void *const sceneManager, EntityId entityId);
-    EMSCRIPTEN_KEEPALIVE void ios_dummy_ffi();
+    EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_ffi(void *const sceneManager, EntityId entityId, void(*callback)());
     EMSCRIPTEN_KEEPALIVE void create_geometry_ffi(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath, void (*callback)(EntityId));
 
 #ifdef __cplusplus
