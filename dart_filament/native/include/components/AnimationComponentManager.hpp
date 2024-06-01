@@ -80,7 +80,6 @@ namespace flutter_filament
     struct AnimationComponent
     {
         std::variant<FilamentInstance *, Entity> target;
-        std::vector<math::mat4f> initialJointTransforms;
         std::vector<GltfAnimation> gltfAnimations;
         std::vector<MorphAnimation> morphAnimations;
         std::vector<BoneAnimation> boneAnimations;
@@ -112,15 +111,6 @@ namespace flutter_filament
             if (std::holds_alternative<FilamentInstance *>(target))
             {
                 auto instance = std::get<FilamentInstance *>(target);
-                // const auto joints = instance->getJointsAt(0);
-
-                // for (int i = 0; i < instance->getJointCountAt(0); i++)
-                // {
-                //     const auto joint = joints[i];
-                //     const auto &jointTransformInstance = _transformManager.getInstance(joint);
-                //     const auto &jointTransform = _transformManager.getTransform(jointTransformInstance);
-                //     animationComponent.initialJointTransforms.push_back(jointTransform);
-                // }
                 componentInstance = addComponent(instance->getRoot());
             }
             else
