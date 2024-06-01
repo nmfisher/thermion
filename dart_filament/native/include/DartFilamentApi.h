@@ -143,19 +143,23 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void add_bone_animation(
 		void *sceneManager,
 		EntityId entity,
+		int skinIndex,
+		int boneIndex,
 		const float *const frameData,
 		int numFrames,
-		const char *const boneName,
-		const char **const meshNames,
-		int numMeshTargets,
-		float frameLengthInMs,
-		bool isModelSpace);
+		float frameLengthInMs);
+	EMSCRIPTEN_KEEPALIVE void get_local_transform(void *sceneManager,
+        EntityId entityId, float* const);
+	EMSCRIPTEN_KEEPALIVE void get_world_transform(void *sceneManager,
+        EntityId entityId, float* const);
+	EMSCRIPTEN_KEEPALIVE void get_inverse_bind_matrix(void *sceneManager,
+        EntityId entityId, int skinIndex, int boneIndex, float* const);
 	EMSCRIPTEN_KEEPALIVE bool set_bone_transform(
 		void *sceneManager,
 		EntityId entity,
-		const char *entityName,
-		const float *const transform,
-		const char *boneName);
+		int skinIndex,
+		int boneIndex,
+		const float *const transform);
 	EMSCRIPTEN_KEEPALIVE void play_animation(void *sceneManager, EntityId entity, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
 	EMSCRIPTEN_KEEPALIVE void set_animation_frame(void *sceneManager, EntityId entity, int animationIndex, int animationFrame);
 	EMSCRIPTEN_KEEPALIVE void stop_animation(void *sceneManager, EntityId entity, int index);
@@ -164,7 +168,12 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE float get_animation_duration(void *sceneManager, EntityId entity, int index);
 	EMSCRIPTEN_KEEPALIVE int get_bone_count(void *sceneManager, EntityId assetEntity, int skinIndex);
 	EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char** outPtr, int skinIndex);
-
+	EMSCRIPTEN_KEEPALIVE EntityId get_bone(void *sceneManager,
+        EntityId entityId,
+        int skinIndex,
+        int boneIndex);
+	EMSCRIPTEN_KEEPALIVE bool set_transform(void* sceneManager, EntityId entityId, const float* const transform);
+	EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(void* sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void get_morph_target_name(void *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index);
 	EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity);
 	EMSCRIPTEN_KEEPALIVE void remove_entity(const void *const viewer, EntityId asset);
@@ -216,8 +225,10 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void add_collision_component(void *const sceneManager, EntityId entityId, void (*callback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
 	EMSCRIPTEN_KEEPALIVE void remove_collision_component(void *const sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE bool add_animation_component(void *const sceneManager, EntityId entityId);
+	EMSCRIPTEN_KEEPALIVE void remove_animation_component(void *const sceneManager, EntityId entityId);
 
 	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
+	EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent);
 	EMSCRIPTEN_KEEPALIVE void test_collisions(void *const sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_priority(void *const sceneManager, EntityId entityId, int priority);
