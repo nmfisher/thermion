@@ -73,6 +73,7 @@ namespace flutter_filament
         size_t getCameraEntityCount(EntityId e);
         const utils::Entity *getLightEntities(EntityId e) noexcept;
         size_t getLightEntityCount(EntityId e) noexcept;
+
         void updateAnimations();
         void updateTransforms();
         void testCollisions(EntityId entity);
@@ -88,6 +89,11 @@ namespace flutter_filament
 
         bool setMorphTargetWeights(EntityId entityId, const float *const weights, int count);
 
+        math::mat4f getLocalTransform(EntityId entityId);
+        math::mat4f getWorldTransform(EntityId entityId);
+        EntityId getBone(EntityId entityId, int skinIndex, int boneIndex);
+        math::mat4f getInverseBindMatrix(EntityId entityId, int skinIndex, int boneIndex);
+
         /// @brief Set the local transform for the bone at boneIndex/skinIndex in the given entity.
         /// @param entityId the parent entity
         /// @param entityName the name of the mesh under entityId for which the bone will be set.
@@ -95,27 +101,25 @@ namespace flutter_filament
         /// @param boneName the name of the bone
         /// @param transform the 4x4 matrix representing the local transform for the bone
         /// @return true if the transform was successfully set, false otherwise
-        bool setBoneTransform(EntityId entityId, const char *entityName, int skinIndex, const char *boneName, math::mat4f transform);
+        bool setBoneTransform(EntityId entityId, int skinIndex, int boneIndex, math::mat4f transform);
 
-        /// @brief Set frame data to animate the given bones/entities.
-        /// @param entity the parent entity
+        /// @brief Immediately start animating the bone at [boneIndex] under the parent instance [entity] at skin [skinIndex].
+        /// @param entity the mesh entity to animate
         /// @param frameData frame data as quaternions
         /// @param numFrames the number of frames
         /// @param boneName the name of the bone to animate
-        /// @param meshName an array of mesh names under [entity] that should be animated
-        /// @param numMeshTargets the number of meshes under [meshName]
         /// @param frameLengthInMs the length of each frame in ms
         /// @return true if the bone animation was successfully enqueued
         bool addBoneAnimation(
-            EntityId entity,
+            EntityId parent,
+            int skinIndex,
+            int boneIndex,
             const float *const frameData,
             int numFrames,
-            const char *const boneName,
-            const char **const meshName,
-            int numMeshTargets,
-            float frameLengthInMs,
-            bool isModelSpace);
+            float frameLengthInMs);
         void resetBones(EntityId entityId);
+        bool setTransform(EntityId entityId, math::mat4f transform);
+        bool updateBoneMatrices(EntityId entityId);
         void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f);
         void stopAnimation(EntityId e, int index);
         void setMorphTargetWeights(const char *const entityName, float *weights, int count);
@@ -132,8 +136,10 @@ namespace flutter_filament
         const char *getEntityNameAt(EntityId entity, int index, bool renderableOnly);
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
+        EntityId getParent(EntityId child);
         void setParent(EntityId child, EntityId parent);
         bool addAnimationComponent(EntityId entity);
+        void removeAnimationComponent(EntityId entity);
 
         /// @brief returns the number of instances of the FilamentAsset represented by the given entity.
         /// @param entityId
