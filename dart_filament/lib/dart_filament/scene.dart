@@ -60,7 +60,6 @@ class SceneImpl extends Scene {
 
   void registerEntity(FilamentEntity entity) {
     _entities.add(entity);
-    _entities.add(entity);
     _onLoadController.sink.add(entity);
     _onUpdatedController.add(true);
   }
