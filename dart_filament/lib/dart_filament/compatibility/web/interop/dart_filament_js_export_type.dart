@@ -3,7 +3,8 @@ library flutter_filament_js;
 
 import 'dart:js_interop';
 import 'dart:math';
-
+import 'package:vector_math/vector_math_64.dart' as v64;
+import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:animation_tools_dart/src/morph_animation_data.dart';
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
@@ -88,7 +89,7 @@ class DartFilamentJSExportViewer {
       double dirX,
       double dirY,
       double dirZ,
-      double falloffRadius, 
+      double falloffRadius,
       double spotLightConeInner,
       double spotLightConeOuter,
       double sunAngularRadius,
@@ -96,23 +97,15 @@ class DartFilamentJSExportViewer {
       double sunHaloFallof,
       bool castShadows) {
     return viewer
-        .addLight(
-          LightType.values[type],
-          colour,
-          intensity,
-          posX,
-          posY,
-          posZ,
-          dirX,
-          dirY,
-          dirZ,
-          falloffRadius:falloffRadius,
-          spotLightConeInner:spotLightConeInner,
-          spotLightConeOuter: spotLightConeOuter,
-          sunAngularRadius: sunAngularRadius,
-          sunHaloSize: sunHaloSize,
-          sunHaloFallof: sunHaloFallof,
-          castShadows: castShadows)
+        .addLight(LightType.values[type], colour, intensity, posX, posY, posZ,
+            dirX, dirY, dirZ,
+            falloffRadius: falloffRadius,
+            spotLightConeInner: spotLightConeInner,
+            spotLightConeOuter: spotLightConeOuter,
+            sunAngularRadius: sunAngularRadius,
+            sunHaloSize: sunHaloSize,
+            sunHaloFallof: sunHaloFallof,
+            castShadows: castShadows)
         .then((entity) => entity.toJS)
         .toJS;
   }
@@ -193,6 +186,15 @@ class DartFilamentJSExportViewer {
   }
 
   @JSExport()
+  JSPromise<JSArray<JSString>> getBoneNames(
+      FilamentEntity entity, int skinIndex) {
+    return viewer
+        .getBoneNames(entity, skinIndex: skinIndex)
+        .then((v) => v.map((s) => s.toJS).toList().toJS)
+        .toJS;
+  }
+
+  @JSExport()
   JSPromise<JSArray<JSString>> getAnimationNames(FilamentEntity entity) =>
       viewer
           .getAnimationNames(entity)
@@ -219,7 +221,7 @@ class DartFilamentJSExportViewer {
       var animationDataDart = animation.toDart
           .map((x) => x.toDart.map((y) => y.toDartDouble).toList())
           .toList();
-      
+
       var morphAnimationData = MorphAnimationData(
           animationDataDart, morphTargetsDart,
           frameLengthInMs: frameLengthInMs);
@@ -251,15 +253,35 @@ class DartFilamentJSExportViewer {
   JSPromise resetBones(FilamentEntity entity) => viewer.resetBones(entity).toJS;
 
   @JSExport()
-  JSPromise addBoneAnimation(FilamentEntity entity, JSObject animation) {
-    throw UnimplementedError();
+  JSPromise addBoneAnimation(
+      FilamentEntity entity,
+      JSArray<JSString> bones,
+      JSArray<JSString> meshNames,
+      JSArray<JSArray<JSArray<JSNumber>>> frameData,
+      JSNumber frameLengthInMs,
+      JSBoolean isModelSpace) {
+    var frameDataDart = frameData.toDart
+        .map((frame) => frame.toDart.map((v) {
+              var values = v.toDart;
+              var trans = v64.Vector3(values[0].toDartDouble, values[1].toDartDouble,
+                  values[2].toDartDouble);
+              var rot = v64.Quaternion(
+                  values[3].toDartDouble,
+                  values[4].toDartDouble,
+                  values[5].toDartDouble,
+                  values[6].toDartDouble);
+              return (rotation:rot, translation:trans);
+            }).cast<BoneAnimationFrame>().toList())
+        .toList();
+
+    var data = BoneAnimationData(
+        bones.toDart.map((n) => n.toDart).toList(),
+        meshNames.toDart.map((n) => n.toDart).toList(),
+        frameDataDart,
+        frameLengthInMs.toDartDouble);
+
+    return viewer.addBoneAnimation(entity, data).toJS;
   }
-  // viewer
-  //     .addBoneAnimation(
-  //       entity,
-  //       BoneAnimationData._fromJSObject(animation),
-  //     )
-  //     .toJS;
 
   @JSExport()
   JSPromise removeEntity(FilamentEntity entity) =>
