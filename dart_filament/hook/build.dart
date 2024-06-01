@@ -11,7 +11,8 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 void main(List<String> args) async {
   await build(args, (config, output) async {
     var platform = config.targetOS.toString().toLowerCase();
-    var libDir = "${config.packageRoot.toFilePath()}/native/lib/$platform/";
+    
+    var libDir = "${config.packageRoot.toFilePath()}/native/lib/$platform/${config.dryRun ? "debug" : config.buildMode == BuildMode.debug ? "debug" : "release"}";
 
     final packageName = config.packageName;
 
