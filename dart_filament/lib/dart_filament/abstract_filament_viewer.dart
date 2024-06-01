@@ -8,15 +8,14 @@ import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 // "picking" means clicking/tapping on the viewport, and unprojecting the X/Y coordinate to determine whether any renderable entities were present at those coordinates.
 typedef FilamentPickResult = ({FilamentEntity entity, double x, double y});
 
-enum LightType { 
-  SUN,            //!< Directional light that also draws a sun's disk in the sky.
-  DIRECTIONAL,    //!< Directional light, emits light in a given direction.
-  POINT,          //!< Point light, emits light from a position, in all directions.
-  FOCUSED_SPOT,   //!< Physically correct spot light.
-  SPOT, 
+enum LightType {
+  SUN, //!< Directional light that also draws a sun's disk in the sky.
+  DIRECTIONAL, //!< Directional light, emits light in a given direction.
+  POINT, //!< Point light, emits light from a position, in all directions.
+  FOCUSED_SPOT, //!< Physically correct spot light.
+  SPOT,
 }
 
- 
 // copied from filament/backened/DriverEnums.h
 enum PrimitiveType {
   // don't change the enums values (made to match GL)
@@ -132,7 +131,7 @@ abstract class AbstractFilamentViewer {
   ///
   /// Add a light to the scene.
   /// See LightManager.h for details
-  /// Note that [sunAngularRadius] is in degrees, 
+  /// Note that [sunAngularRadius] is in degrees,
   /// whereas [spotLightConeInner] and [spotLightConeOuter] are in radians
   ///
   Future<FilamentEntity> addLight(
@@ -145,16 +144,13 @@ abstract class AbstractFilamentViewer {
       double dirX,
       double dirY,
       double dirZ,
-      {
-        double falloffRadius=1.0,
-        double spotLightConeInner=pi/8,
-        double spotLightConeOuter=pi/4,
-        double sunAngularRadius=0.545,
-        double sunHaloSize=10.0,
-        double sunHaloFallof=80.0,
-        bool castShadows=true
-      }
-      );
+      {double falloffRadius = 1.0,
+      double spotLightConeInner = pi / 8,
+      double spotLightConeOuter = pi / 4,
+      double sunAngularRadius = 0.545,
+      double sunHaloSize = 10.0,
+      double sunHaloFallof = 80.0,
+      bool castShadows = true});
 
   Future removeLight(FilamentEntity light);
 
@@ -239,8 +235,7 @@ abstract class AbstractFilamentViewer {
   ///
   /// Gets the names of all bones for the armature at [skinIndex] under the specified [entity].
   ///
-  Future<List<String>> getBoneNames(
-      FilamentEntity entity, { int skinIndex = 0});
+  Future<List<String>> getBoneNames(FilamentEntity entity, {int skinIndex = 0});
 
   ///
   /// Gets the names of all glTF animations embedded in the specified entity.
@@ -270,10 +265,58 @@ abstract class AbstractFilamentViewer {
   Future resetBones(FilamentEntity entity);
 
   ///
-  /// Transforms the bone(s)/joint(s) according [animation].
-  /// To set the instantaneous transform, just use a single frame.
+  /// Enqueues and plays the [animation] for the specified bone(s).
+  /// By default, frame data is interpreted as being in *parent* bone space;
+  /// a 45 degree around Y means the bone will rotate 45 degrees around the
+  /// Y axis of the parent bone *in its current orientation*.
+  /// (i.e NOT the parent bone's rest position!).
+  /// Currently, only [Space.ParentBone] and [Space.Model] are supported; if you want
+  /// to transform to another space, you will need to do so manually.
   ///
-  Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation);
+  Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
+      {int skinIndex = 0});
+
+  ///
+  /// Gets the entity representing the bone at [boneIndex]/[skinIndex].
+  /// The returned entity is only intended for use with [getWorldTransform].
+  ///
+  Future<FilamentEntity> getBone(FilamentEntity parent, int boneIndex,
+      {int skinIndex = 0});
+
+  ///
+  /// Gets the local (relative to parent) transform for [entity].
+  ///
+  Future<Matrix4> getLocalTransform(FilamentEntity entity);
+
+  ///
+  /// Gets the world transform for [entity].
+  ///
+  Future<Matrix4> getWorldTransform(FilamentEntity entity);
+
+  ///
+  /// Gets the inverse bind (pose) matrix for the bone.
+  /// Note that [parent] must be the FilamentEntity returned by [loadGlb/loadGltf], not any other method ([getChildEntity] etc).
+  /// This is because all joint information is internally stored with the parent entity.
+  ///
+  Future<Matrix4> getInverseBindMatrix(FilamentEntity parent, int boneIndex,
+      {int skinIndex = 0});
+
+  ///
+  /// Sets the transform (relative to its parent) for [entity].
+  ///
+  Future setTransform(FilamentEntity entity, Matrix4 transform);
+
+  ///
+  /// Updates the bone matrices for [entity] (which must be the FilamentEntity returned by [loadGlb/loadGltf]).
+  /// Don't call this manually unless you know what you're doing.
+  ///
+  Future updateBoneMatrices(FilamentEntity entity);
+
+  ///
+  ///
+  ///
+  Future setBoneTransform(
+      FilamentEntity entity, int boneIndex, Matrix4 transform);
 
   ///
   /// Removes/destroys the specified entity from the scene.
@@ -583,6 +626,11 @@ abstract class AbstractFilamentViewer {
   Future addAnimationComponent(FilamentEntity entity);
 
   ///
+  /// Removes an animation component from [entity].
+  ///
+  Future removeAnimationComponent(FilamentEntity entity);
+
+  ///
   /// Makes [entity] collidable.
   /// This allows you to call [testCollisions] with any other entity ("entity B") to see if [entity] has collided with entity B. The callback will be invoked if so.
   /// Alternatively, if [affectsTransform] is true and this entity collides with another entity, any queued position updates to the latter entity will be ignored.
@@ -604,7 +652,12 @@ abstract class AbstractFilamentViewer {
       PrimitiveType primitiveType = PrimitiveType.TRIANGLES});
 
   ///
-  /// Sets the parent transform of [child] to the transform of [parent].
+  /// Gets the parent transform of [child].
+  ///
+  Future<FilamentEntity?> getParent(FilamentEntity child);
+
+  ///
+  /// Sets the parent transform of [child] to [parent].
   ///
   Future setParent(FilamentEntity child, FilamentEntity parent);
 
