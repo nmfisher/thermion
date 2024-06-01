@@ -76,8 +76,8 @@ public:
 
         now = std::chrono::high_resolution_clock::now();
         elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
-        if(elapsed < _frameIntervalInMilliseconds) {
-          auto sleepFor = std::chrono::microseconds(int(_frameIntervalInMilliseconds - elapsed) * 1000);
+        if(elapsed < _frameIntervalInMilliseconds - 4) {
+          auto sleepFor = std::chrono::microseconds(int(_frameIntervalInMilliseconds - elapsed - 4) * 1000);
           std::this_thread::sleep_for(sleepFor);
         }
       } });
@@ -133,11 +133,20 @@ public:
     auto fut = add_task(lambda);
   }
 
-  void setRendering(bool rendering)
+  void setRendering(bool rendering, void(*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
-        { this->_rendering = rendering; });
+        { 
+          this->_rendering = rendering; 
+            #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            moduleArg.dartFilamentResolveCallback($0);
+          }, callback);
+          #else
+            callback();
+          #endif
+      });
     auto fut = add_task(lambda);
   }
 
@@ -295,7 +304,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void set_rendering_ffi(void *const viewer,
-                                               bool rendering)
+                                               bool rendering, void (*callback)())
   {
     if (!_rl)
     {
@@ -303,6 +312,7 @@ extern "C"
     }
     else
     {
+      _rl->setRendering(rendering, callback);
       if (rendering)
       {
         Log("Set rendering to true");
@@ -311,7 +321,6 @@ extern "C"
       {
         Log("Set rendering to false");
       }
-      _rl->setRendering(rendering);
     }
   }
 
@@ -759,15 +768,15 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void set_bone_transform_ffi(
       void *sceneManager,
       EntityId asset,
-      const char *entityName,
+      int skinIndex,
+      int boneIndex,
       const float *const transform,
-      const char *boneName,
       void (*callback)(bool))
   {
     std::packaged_task<bool()> lambda(
         [=]
         {
-          auto success = set_bone_transform(sceneManager, asset, entityName, transform, boneName);
+          auto success = set_bone_transform(sceneManager, asset, skinIndex, boneIndex, transform);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0,$1);
@@ -780,37 +789,49 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_ffi(void *const sceneManager, EntityId entityId)
-  {
+  EMSCRIPTEN_KEEPALIVE void update_bone_matrices_ffi(void *sceneManager,
+        EntityId entity, void(*callback)(bool)) {
     std::packaged_task<void()> lambda(
         [=]
-        { return reset_to_rest_pose(sceneManager, entityId); });
+        { 
+          auto success = update_bone_matrices(sceneManager, entity);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            moduleArg.dartFilamentResolveCallback($0);
+          }, callback, success);
+          #else
+          callback(success);
+          #endif
+         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void add_bone_animation_ffi(
-      void *sceneManager,
-      EntityId asset,
-      const float *const frameData,
-      int numFrames,
-      const char *const boneName,
-      const char **const meshNames,
-      int numMeshTargets,
-      float frameLengthInMs,
-      bool isModelSpace)
+  EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_ffi(void *const sceneManager, EntityId entityId, void(*callback)())
   {
-
     std::packaged_task<void()> lambda(
         [=]
-        {
-          add_bone_animation(sceneManager, asset, frameData, numFrames, boneName, meshNames, numMeshTargets, frameLengthInMs, isModelSpace);
-        });
+        { 
+          reset_to_rest_pose(sceneManager, entityId); 
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            moduleArg.dartFilamentResolveCallback();
+          }, callback);
+          #else
+          callback();
+          #endif
+          });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void ios_dummy_ffi() { Log("Dummy called"); }
-
-  EMSCRIPTEN_KEEPALIVE void create_geometry_ffi(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath, void (*callback)(EntityId))
+  EMSCRIPTEN_KEEPALIVE void create_geometry_ffi(
+    void *const viewer, 
+    float *vertices, 
+    int numVertices, 
+    uint16_t *indices, 
+    int numIndices, 
+    int primitiveType, 
+    const char *materialPath, 
+    void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
         [=]
