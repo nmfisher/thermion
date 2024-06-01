@@ -2,6 +2,7 @@ import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:flutter_filament/filament/widgets/debug/child_renderable_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_filament/filament/widgets/debug/skeleton_menu_item_widget.dart';
 
 class EntityListWidget extends StatefulWidget {
   final AbstractFilamentViewer? controller;
@@ -67,7 +68,9 @@ class _EntityListWidget extends State<EntityListWidget> {
                       menuChildren: animations.data!
                           .map((a) => MenuItemButton(
                                 child: Text(a),
-                                onPressed: () {
+                                onPressed: () async {
+                                  await widget.controller!
+                                      .addAnimationComponent(entity);
                                   widget.controller!.playAnimation(
                                       entity, animations.data!.indexOf(a));
                                 },
@@ -75,6 +78,8 @@ class _EntityListWidget extends State<EntityListWidget> {
                           .toList()),
                   ChildRenderableWidget(
                       controller: widget.controller!, entity: entity),
+                  SkeletonMenuItemWidget(
+                      controller: widget.controller!, entity: entity)
                 ])
           ]);
         });
@@ -135,15 +140,16 @@ class _EntityListWidget extends State<EntityListWidget> {
                       borderRadius: BorderRadius.circular(30),
                       color: Colors.white.withOpacity(0.25),
                     ),
-                    child: SingleChildScrollView(child:Column(
-                        // reverse: true,
-                        children: widget.controller!.scene
-                            .listLights()
-                            .map(_light)
-                            .followedBy(widget.controller!.scene
-                                .listEntities()
-                                .map(_entity))
-                            .cast<Widget>()
-                            .toList())))));
+                    child: SingleChildScrollView(
+                        child: Column(
+                            // reverse: true,
+                            children: widget.controller!.scene
+                                .listLights()
+                                .map(_light)
+                                .followedBy(widget.controller!.scene
+                                    .listEntities()
+                                    .map(_entity))
+                                .cast<Widget>()
+                                .toList())))));
   }
 }

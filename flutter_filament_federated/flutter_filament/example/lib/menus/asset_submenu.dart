@@ -38,55 +38,15 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
           },
           child: const Text('Find Cylinder entity by name')),
       MenuItemButton(
-          onPressed: () async {
-            await widget.controller.viewer.addBoneAnimation(
-                widget.controller.viewer.scene.listEntities().last,
-                BoneAnimationData([
-                  "Bone"
-                ], [
-                  "Cylinder"
-                ], [
-                  [v.Quaternion.axisAngle(v.Vector3(1, 1, 1), pi / 2)]
-                ], [
-                  [v.Vector3.zero()]
-                ], 16));
-          },
-          child:
-              const Text('Set bone transform for Cylinder (pi/2 rotation X)')),
-      MenuItemButton(
-          onPressed: () async {
-            await widget.controller.viewer
-                .resetBones(widget.controller.viewer.scene.listEntities().last);
-          },
-          child: const Text('Reset bones for Cylinder')),
-      MenuItemButton(
-          onPressed: () async {
-            await widget.controller.viewer.addBoneAnimation(
-                widget.controller.viewer.scene.listEntities().last,
-                BoneAnimationData(
-                    ["Bone"],
-                    ["Cylinder"],
-                    List.generate(
-                        60,
-                        (idx) => [
-                              v.Quaternion.axisAngle(
-                                      v.Vector3(0, 0, 1), pi * 8 * (idx / 60))
-                                  .normalized()
-                            ]),
-                    List.generate(60, (idx) => [v.Vector3.zero()]),
-                    1000.0 / 60.0));
-          },
-          child: const Text('Set bone transform animation for Cylinder')),
-
-
-      MenuItemButton(
         onPressed: () async {
           widget.controller.viewer.setPosition(
-              widget.controller.viewer.scene.listEntities().last, 1.0, 1.0, -1.0);
+              widget.controller.viewer.scene.listEntities().last,
+              1.0,
+              1.0,
+              -1.0);
         },
         child: const Text('Set position to 1, 1, -1'),
       ),
-
       MenuItemButton(
           onPressed: () async {
             final color = Colors.purple;
@@ -100,7 +60,6 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 1.0);
           },
           child: const Text("Set cone material color to purple")),
-  
     ];
 
     return SubmenuButton(menuChildren: children, child: const Text("Shapes"));
@@ -126,7 +85,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 -1.0,
               ];
               var indices = [0, 1, 2, 2, 3, 0];
-              var geom = await widget.controller.viewer.createGeometry(verts, indices,
+              var geom = await widget.controller.viewer.createGeometry(
+                  verts, indices,
                   materialPath: "asset://assets/solidcolor.filamat");
             },
             child: const Text("Quad")),
@@ -158,22 +118,26 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
         _geometrySubmenu(),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller.viewer
-                .addLight(LightType.DIRECTIONAL, 6500, 100000, 0, 1, 0, 0, -1, 0);
+            await widget.controller.viewer.addLight(
+                LightType.DIRECTIONAL, 6500, 100000, 0, 1, 0, 0, -1, 0);
           },
           child: const Text("Add directional light"),
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller.viewer
-                .addLight(LightType.POINT, 6500, 100000, 0, 1, 0, 0, -1, 0, falloffRadius: 1.0);
+            await widget.controller.viewer.addLight(
+                LightType.POINT, 6500, 100000, 0, 1, 0, 0, -1, 0,
+                falloffRadius: 1.0);
           },
           child: const Text("Add point light"),
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller.viewer
-                .addLight(LightType.SPOT, 6500, 1000000, 0, 0, 0, 0, 1, 0,spotLightConeInner: 0.1, spotLightConeOuter: 0.4, falloffRadius: 100.0);
+            await widget.controller.viewer.addLight(
+                LightType.SPOT, 6500, 1000000, 0, 0, 0, 0, 1, 0,
+                spotLightConeInner: 0.1,
+                spotLightConeOuter: 0.4,
+                falloffRadius: 100.0);
           },
           child: const Text("Add spot light"),
         ),
@@ -192,12 +156,14 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
             child: const Text("Set background color")),
         MenuItemButton(
             onPressed: () {
-              widget.controller.viewer.setBackgroundImage('assets/background.ktx');
+              widget.controller.viewer
+                  .setBackgroundImage('assets/background.ktx');
             },
             child: const Text("Load background image")),
         MenuItemButton(
             onPressed: () {
-              widget.controller.viewer.setBackgroundImage('assets/background.ktx',
+              widget.controller.viewer.setBackgroundImage(
+                  'assets/background.ktx',
                   fillHeight: true);
             },
             child: const Text("Load background image (fill height)")),
@@ -225,7 +191,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
               widget.controller.viewer.removeIbl();
             },
             child: const Text('Remove IBL')),
-                MenuItemButton(
+        MenuItemButton(
             onPressed: () async {
               await widget.controller.viewer.clearEntities();
             },
@@ -235,7 +201,6 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
     );
   }
 }
-
 
 //           _item(() async {
 //             var frameData = Float32List.fromList(
@@ -296,4 +261,3 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
 //                 .build();
 //             widget.controller!.setMorphAnimationData(_shapes!, animation);
 //           }, "animate shapes morph weights #1 and #2"),
-

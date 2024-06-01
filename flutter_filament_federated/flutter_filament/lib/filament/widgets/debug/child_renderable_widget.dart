@@ -2,6 +2,8 @@ import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_filament/filament/widgets/debug/skeleton_menu_item_widget.dart';
+import 'dart:math';
 
 class ChildRenderableWidget extends StatelessWidget {
   final AbstractFilamentViewer controller;
@@ -13,6 +15,7 @@ class ChildRenderableWidget extends StatelessWidget {
   Widget _childRenderable(FilamentEntity childEntity) {
     var name = controller.getNameForEntity(childEntity) ?? "<none>";
     var names = controller.getMorphTargetNames(entity, childEntity);
+
     return FutureBuilder(
         future: names,
         builder: (_, morphTargetsSnapshot) {
@@ -70,7 +73,39 @@ class ChildRenderableWidget extends StatelessWidget {
           var children = snapshot.data!;
           return SubmenuButton(
               child: Text("Renderable entities"),
-              menuChildren: children.map(_childRenderable).toList());
+              menuChildren: <Widget>[
+                MenuItemButton(
+                        child: Text("Set children transforms to identity"),
+                        onPressed: () async {
+                          var childEntities =
+                              await controller.getChildEntities(entity, true);
+                          for (final child in childEntities) {
+                            await controller.setTransform(
+                                child, Matrix4.identity());
+                          }
+                        }),
+                    MenuItemButton(
+                        child: Text("Set children transforms to 90/X"),
+                        onPressed: () async {
+                          var childEntities =
+                              await controller.getChildEntities(entity, true);
+                          for (final child in childEntities) {
+                            await controller.setTransform(
+                                child, Matrix4.rotationX(pi / 2));
+                          }
+                        }),
+                          MenuItemButton(
+                        child: Text("Set children transforms to 90/Y"),
+                        onPressed: () async {
+                          var childEntities =
+                              await controller.getChildEntities(entity, true);
+                          for (final child in childEntities) {
+                            await controller.setTransform(
+                                child, Matrix4.rotationY(pi / 2));
+                          }
+                        }),
+                  ] +
+                  children.map(_childRenderable).toList());
         });
   }
 }
