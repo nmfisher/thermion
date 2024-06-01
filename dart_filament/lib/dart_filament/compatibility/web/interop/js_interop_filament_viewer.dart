@@ -113,18 +113,31 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
       double dirX,
       double dirY,
       double dirZ,
-       {
-        double falloffRadius=1.0,
-        double spotLightConeInner=pi/8,
-        double spotLightConeOuter=pi/4,
-        double sunAngularRadius=0.545,
-        double sunHaloSize=10.0,
-        double sunHaloFallof=80.0,
-        bool castShadows=true
-      }) async {
+      {double falloffRadius = 1.0,
+      double spotLightConeInner = pi / 8,
+      double spotLightConeOuter = pi / 4,
+      double sunAngularRadius = 0.545,
+      double sunHaloSize = 10.0,
+      double sunHaloFallof = 80.0,
+      bool castShadows = true}) async {
     return (await _jsObject
-            .addLight(type.index, colour, intensity, posX, posY, posZ, dirX, dirY,
-                dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, castShadows)
+            .addLight(
+                type.index,
+                colour,
+                intensity,
+                posX,
+                posY,
+                posZ,
+                dirX,
+                dirY,
+                dirZ,
+                falloffRadius,
+                spotLightConeInner,
+                spotLightConeOuter,
+                sunAngularRadius,
+                sunHaloSize,
+                sunHaloFallof,
+                castShadows)
             .toDart)
         .toDartInt;
   }
@@ -210,11 +223,9 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   @override
   Future<void> setMorphTargetWeights(
       FilamentEntity entity, List<double> weights) async {
-      var jsWeights = weights.map((x) => x.toJS).cast<JSNumber>().toList().toJS;
-      var promise = _jsObject.setMorphTargetWeights(
-        entity, jsWeights
-      );
-      await promise.toDart;
+    var jsWeights = weights.map((x) => x.toJS).cast<JSNumber>().toList().toJS;
+    var promise = _jsObject.setMorphTargetWeights(entity, jsWeights);
+    await promise.toDart;
   }
 
   @override
@@ -250,9 +261,13 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
           .map((x) => x.map((y) => y.toJS).toList().toJS)
           .toList()
           .toJS;
-      var morphTargetsJs =
-          animation.morphTargets.map((x) => x.toJS).cast<JSString>().toList().toJS;
-      var targetMeshNamesJS = targetMeshNames?.map((x) => x.toJS).cast<JSString>().toList().toJS;
+      var morphTargetsJs = animation.morphTargets
+          .map((x) => x.toJS)
+          .cast<JSString>()
+          .toList()
+          .toJS;
+      var targetMeshNamesJS =
+          targetMeshNames?.map((x) => x.toJS).cast<JSString>().toList().toJS;
       await _jsObject
           .setMorphAnimationData(entity, animationDataJs, morphTargetsJs,
               targetMeshNamesJS, animation.frameLengthInMs)
@@ -272,8 +287,17 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   @override
   Future<void> addBoneAnimation(
       FilamentEntity entity, BoneAnimationData animation) async {
-    throw UnimplementedError();
-    // await _jsObject.addBoneAnimation(entity, animation).toDart;
+    var boneNames = animation.bones.map((n) => n.toJS).toList().toJS;
+    var meshNames = animation.meshNames.map((n) => n.toJS).toList().toJS;
+    var frameData = animation.frameData
+        .map((frame) => frame
+            .map((q) => [q.translation[0].toJS, q.translation[1].toJS, q.translation[2].toJS, q.rotation.w.toJS, q.rotation.x.toJS, q.rotation.y.toJS, q.rotation.z.toJS].toJS)
+            .toList()
+            .toJS)
+        .toList()
+        .toJS;
+
+    await _jsObject.addBoneAnimation(entity, boneNames, meshNames, frameData, animation.frameLengthInMs.toJS, animation.isModelSpace.toJS).toDart;
   }
 
   @override
@@ -694,4 +718,11 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   }
 
   AbstractGizmo? get gizmo => null;
+
+  @override
+  Future<List<String>> getBoneNames(FilamentEntity entity,
+      {int skinIndex = 0}) async {
+    var result = await _jsObject.getBoneNames(entity, skinIndex).toDart;
+    return result.toDart.map((n) => n.toDart).toList();
+  }
 }
