@@ -542,39 +542,63 @@ external void reset_to_rest_pose(
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
         EntityId,
+        ffi.Int,
+        ffi.Int,
         ffi.Pointer<ffi.Float>,
         ffi.Int,
-        ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Pointer<ffi.Char>>,
-        ffi.Int,
-        ffi.Float,
-        ffi.Bool)>(symbol: '_add_bone_animation', assetId: 'dart_filament')
+        ffi.Float)>(symbol: '_add_bone_animation', assetId: 'dart_filament')
 external void add_bone_animation(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
+  int skinIndex,
+  int boneIndex,
   ffi.Pointer<ffi.Float> frameData,
   int numFrames,
-  ffi.Pointer<ffi.Char> boneName,
-  ffi.Pointer<ffi.Pointer<ffi.Char>> meshNames,
-  int numMeshTargets,
   double frameLengthInMs,
-  bool isModelSpace,
 );
 
 @ffi.Native<
-        ffi.Bool Function(
-            ffi.Pointer<ffi.Void>,
-            EntityId,
-            ffi.Pointer<ffi.Char>,
-            ffi.Pointer<ffi.Float>,
-            ffi.Pointer<ffi.Char>)>(
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>(
+    symbol: '_get_local_transform', assetId: 'dart_filament')
+external void get_local_transform(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+  ffi.Pointer<ffi.Float> arg2,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>(
+    symbol: '_get_world_transform', assetId: 'dart_filament')
+external void get_world_transform(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+  ffi.Pointer<ffi.Float> arg2,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
+            ffi.Pointer<ffi.Float>)>(
+    symbol: '_get_inverse_bind_matrix', assetId: 'dart_filament')
+external void get_inverse_bind_matrix(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+  int skinIndex,
+  int boneIndex,
+  ffi.Pointer<ffi.Float> arg4,
+);
+
+@ffi.Native<
+        ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
+            ffi.Pointer<ffi.Float>)>(
     symbol: '_set_bone_transform', assetId: 'dart_filament')
 external bool set_bone_transform(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
-  ffi.Pointer<ffi.Char> entityName,
+  int skinIndex,
+  int boneIndex,
   ffi.Pointer<ffi.Float> transform,
-  ffi.Pointer<ffi.Char> boneName,
 );
 
 @ffi.Native<
@@ -637,6 +661,54 @@ external double get_animation_duration(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
   int index,
+);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+    symbol: '_get_bone_count', assetId: 'dart_filament')
+external int get_bone_count(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int assetEntity,
+  int skinIndex,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
+        EntityId,
+        ffi.Pointer<ffi.Pointer<ffi.Char>>,
+        ffi.Int)>(symbol: '_get_bone_names', assetId: 'dart_filament')
+external void get_bone_names(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int assetEntity,
+  ffi.Pointer<ffi.Pointer<ffi.Char>> outPtr,
+  int skinIndex,
+);
+
+@ffi.Native<
+        EntityId Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int)>(
+    symbol: '_get_bone', assetId: 'dart_filament')
+external int get_bone(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+  int skinIndex,
+  int boneIndex,
+);
+
+@ffi.Native<
+        ffi.Bool Function(
+            ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>(
+    symbol: '_set_transform', assetId: 'dart_filament')
+external bool set_transform(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+  ffi.Pointer<ffi.Float> transform,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: '_update_bone_matrices', assetId: 'dart_filament')
+external bool update_bone_matrices(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
 );
 
 @ffi.Native<
@@ -1081,6 +1153,13 @@ external bool add_animation_component(
   int entityId,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: '_remove_animation_component', assetId: 'dart_filament')
+external void remove_animation_component(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+);
+
 @ffi.Native<
         EntityId Function(
             ffi.Pointer<ffi.Void>,
@@ -1099,6 +1178,13 @@ external int create_geometry(
   int numIndices,
   int primitiveType,
   ffi.Pointer<ffi.Char> materialPath,
+);
+
+@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>(
+    symbol: '_get_parent', assetId: 'dart_filament')
+external int get_parent(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int child,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId)>(
@@ -1217,11 +1303,14 @@ external FilamentRenderCallback make_render_callback_fn_pointer(
   FilamentRenderCallback arg0,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
     symbol: '_set_rendering_ffi', assetId: 'dart_filament')
 external void set_rendering_ffi(
   ffi.Pointer<ffi.Void> viewer,
   bool rendering,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>(
@@ -1592,44 +1681,31 @@ external void set_morph_target_weights_ffi(
 );
 
 @ffi.Native<
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
+    symbol: '_update_bone_matrices_ffi', assetId: 'dart_filament')
+external void update_bone_matrices_ffi(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int asset,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
+);
+
+@ffi.Native<
         ffi.Void Function(
             ffi.Pointer<ffi.Void>,
             EntityId,
-            ffi.Pointer<ffi.Char>,
+            ffi.Int,
+            ffi.Int,
             ffi.Pointer<ffi.Float>,
-            ffi.Pointer<ffi.Char>,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     symbol: '_set_bone_transform_ffi', assetId: 'dart_filament')
 external void set_bone_transform_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,
-  ffi.Pointer<ffi.Char> entityName,
+  int skinIndex,
+  int boneIndex,
   ffi.Pointer<ffi.Float> transform,
-  ffi.Pointer<ffi.Char> boneName,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
-        EntityId,
-        ffi.Pointer<ffi.Float>,
-        ffi.Int,
-        ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Pointer<ffi.Char>>,
-        ffi.Int,
-        ffi.Float,
-        ffi.Bool)>(symbol: '_add_bone_animation_ffi', assetId: 'dart_filament')
-external void add_bone_animation_ffi(
-  ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.Float> frameData,
-  int numFrames,
-  ffi.Pointer<ffi.Char> boneName,
-  ffi.Pointer<ffi.Pointer<ffi.Char>> meshNames,
-  int numMeshTargets,
-  double frameLengthInMs,
-  bool isModelSpace,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(
@@ -1639,16 +1715,15 @@ external void set_post_processing_ffi(
   bool enabled,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
     symbol: '_reset_to_rest_pose_ffi', assetId: 'dart_filament')
 external void reset_to_rest_pose_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
-
-@ffi.Native<ffi.Void Function()>(
-    symbol: '_ios_dummy_ffi', assetId: 'dart_filament')
-external void ios_dummy_ffi();
 
 @ffi.Native<
         ffi.Void Function(
