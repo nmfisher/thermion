@@ -28,7 +28,6 @@ class FilamentWidget extends StatefulWidget {
 class _FilamentWidgetState extends State<FilamentWidget> {
   FlutterFilamentTexture? _texture;
 
-
   Rect get _rect {
     final renderBox = (context.findRenderObject()) as RenderBox;
     final size = renderBox.size;
@@ -44,7 +43,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
       var width = (dpr * size.width).ceil();
       var height = (dpr * size.height).ceil();
       _texture = await widget.plugin.createTexture(width, height, 0, 0);
-        
+
       if (mounted) {
         setState(() {});
       }
@@ -61,32 +60,33 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     super.dispose();
   }
 
- 
   bool _resizing = false;
+  Timer? _resizeTimer;
 
   Future _resizeTexture(Size newSize) async {
-    if (_resizing) {
-      return;
-    }
-    await Future.delayed(Duration.zero);
-    if (_resizing) {
-      return;
-    }
-    _resizing = true;
+    _resizeTimer?.cancel();
+    _resizeTimer = Timer(Duration(milliseconds: 100), () async {
+      if (_resizing) {
+        return;
+      }
+      _resizeTimer!.cancel();
+      _resizing = true;
+      setState(() {});
 
-    var dpr = MediaQuery.of(context).devicePixelRatio;
+      var dpr = MediaQuery.of(context).devicePixelRatio;
 
-    _texture = await widget.plugin.resizeTexture(_texture!,
-        (dpr * newSize.width).ceil(), (dpr * newSize.height).ceil(), 0, 0);
-    print(
-        "Resized texture, new flutter ID is ${_texture!.flutterTextureId} (hardware ID ${_texture!.hardwareTextureId})");
-    setState(() {});
-    _resizing = false;
+      _texture = await widget.plugin.resizeTexture(_texture!,
+          (dpr * newSize.width).ceil(), (dpr * newSize.height).ceil(), 0, 0);
+      print(
+          "Resized texture, new flutter ID is ${_texture!.flutterTextureId} (hardware ID ${_texture!.hardwareTextureId})");
+      setState(() {});
+      _resizing = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_texture == null) {
+    if (_texture == null || _resizing) {
       return widget.initial ??
           Container(color: kIsWeb ? Colors.transparent : Colors.red);
     }
