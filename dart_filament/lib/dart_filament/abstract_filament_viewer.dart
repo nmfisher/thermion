@@ -307,16 +307,20 @@ abstract class AbstractFilamentViewer {
   Future setTransform(FilamentEntity entity, Matrix4 transform);
 
   ///
-  /// Updates the bone matrices for [entity] (which must be the FilamentEntity returned by [loadGlb/loadGltf]).
-  /// Don't call this manually unless you know what you're doing.
+  /// Updates the bone matrices for [entity] (which must be the FilamentEntity 
+  /// returned by [loadGlb/loadGltf]).
+  /// Under the hood, this just calls [updateBoneMatrices] on the Animator 
+  /// instance of the relevant FilamentInstance (which uses the local 
+  /// bone transform and the inverse bind matrix to set the bone matrix).
   ///
   Future updateBoneMatrices(FilamentEntity entity);
 
   ///
-  ///
+  /// Directly set the bone matrix for the bone at the given index.
+  /// Don't call this manually unless you know what you're doing.
   ///
   Future setBoneTransform(
-      FilamentEntity entity, int boneIndex, Matrix4 transform);
+      FilamentEntity entity, int boneIndex, Matrix4 transform, { int skinIndex=0});
 
   ///
   /// Removes/destroys the specified entity from the scene.
