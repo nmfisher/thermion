@@ -823,19 +823,24 @@ namespace flutter_filament
                 return;
             }
         }
-
         auto skinCount = instance->getSkinCount();
 
         TransformManager &transformManager = _engine->getTransformManager();
 
-        // To reset the skeleton to its rest pose, we could just call 
-        // animator->resetBoneMatrices(), which sets all bone matrices to the identity matrix.
-        // However, any subsequent calls to animator->updateBoneMatrices() may result in 
-        // unexpected poses, because updateBoneMatrices uses each bone's transform to calculate 
+        //
+        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(), 
+        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices() 
+        // may result in unexpected poses, because that method uses each bone's transform to calculate 
         // the bone matrices (and resetBoneMatrices does not affect this transform).
-        // To "fully" reset the bone, we need to reset the transform node to its original orientation. 
-        // This transform is relative to its parent, so can be calculated as:
-        //  auto rest = inverse(parentTransformInModelSpace) * inverse(inverseBindMatrix).
+        // To "fully" reset the bone, we need to set its local transform (i.e. relative to its parent)
+        // to its original orientation in rest pose. 
+        //
+        // This can be calculated as:
+        //
+        //   auto rest = inverse(parentTransformInModelSpace) * bindMatrix
+        //
+        // (where bindMatrix is the inverse of the inverseBindMatrix).
+        //
         // The only requirement is that parent bone transforms are reset before child bone transforms.
         // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance. 
         // We ensure that parents are reset before children by:
@@ -852,68 +857,138 @@ namespace flutter_filament
             std::unordered_set<Entity,Entity::Hasher> joints;
             std::unordered_set<Entity,Entity::Hasher> completed;
             std::stack<Entity> stack;
+
+            auto transforms = getBoneRestTranforms(entityId, skinIndex);
             
             for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
             {
+                auto restTransform = transforms->at(i);
                 const auto& joint = instance->getJointsAt(skinIndex)[i];
-                joints.insert(joint);
-                stack.push(joint);
-            }
-
-            while(!stack.empty())
-            {
-                const auto& joint = stack.top();
-                // if we've already handled this node previously (e.g. when we encountered it as a parent), then skip
-                if(completed.find(joint) != completed.end()) {
-                    stack.pop();
-                    continue;
-                }
-
-                const auto transformInstance = transformManager.getInstance(joint);
-                auto parent = transformManager.getParent(transformInstance);
-
-                // we need to handle parent joints before handling their children 
-                // therefore, if this joint has a parent that hasn't been handled yet, 
-                // push it onto the top of the stack and start the loop again
-                if(joints.find(parent) != joints.end() && completed.find(parent) == completed.end()) {
-                    stack.push(parent);
-                    Log("Pushing parent %d", parent);
-                    continue;
-                }
-                
-                // otherwise let's get the inverse bind matrix for the joint 
-                math::mat4f inverseBindMatrix;
-                bool found = false;
-                for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
-                {
-                    if(instance->getJointsAt(skinIndex)[i] == joint) { 
-                        Log("Resetting bone %d", i);
-                        inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[i];
-                        found = true;
-                        break;
-                    }
-                }
-                ASSERT_PRECONDITION(found, "Failed to find joint");
-
-                // now we need to ascend back up the hierarchy to calculate the modelSpaceTransform
-                math::mat4f modelSpaceTransform;
-                while(joints.find(parent) != joints.end()) {
-                    Log("Accumulating model space transform for parent %d", parent);
-                    const auto transformInstance = transformManager.getInstance(parent);
-                    const auto transform = transformManager.getTransform(transformInstance);
-                    modelSpaceTransform = transform * modelSpaceTransform;
-                    parent = transformManager.getParent(transformInstance);
-                }
-
-                const auto bindMatrix = inverse(inverseBindMatrix);              
-                
-                const auto inverseModelSpaceTransform = inverse(modelSpaceTransform);                
-                transformManager.setTransform(transformInstance, inverseModelSpaceTransform * bindMatrix);
-                completed.insert(joint);
-                stack.pop();
+                auto transformInstance = transformManager.getInstance(joint);
+                transformManager.setTransform(transformInstance, restTransform);
             }
         }
         instance->getAnimator()->updateBoneMatrices();
+    }
+
+    std::unique_ptr<std::vector<math::mat4f>> SceneManager::getBoneRestTranforms(EntityId entityId, int skinIndex) {
+
+        auto transforms = std::make_unique<std::vector<math::mat4f>>();
+
+        auto *instance = getInstanceByEntityId(entityId);
+        if (!instance)
+        {
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
+                instance = asset->getInstance();
+            }
+            else
+            {
+                return transforms;
+            }
+        }
+
+        auto skinCount = instance->getSkinCount();
+
+        TransformManager &transformManager = _engine->getTransformManager();
+
+        transforms->resize(instance->getJointCountAt(skinIndex));
+
+        //
+        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(), 
+        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices() 
+        // may result in unexpected poses, because that method uses each bone's transform to calculate 
+        // the bone matrices (and resetBoneMatrices does not affect this transform).
+        // To "fully" reset the bone, we need to set its local transform (i.e. relative to its parent)
+        // to its original orientation in rest pose. 
+        //
+        // This can be calculated as:
+        //
+        //   auto rest = inverse(parentTransformInModelSpace) * bindMatrix
+        //
+        // (where bindMatrix is the inverse of the inverseBindMatrix).
+        //
+        // The only requirement is that parent bone transforms are reset before child bone transforms.
+        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance. 
+        // We ensure that parents are reset before children by:
+        // - pushing all bones onto a stack
+        // - iterate over the stack
+        //      - look at the bone at the top of the stack
+        //      - if the bone already been reset, pop and continue iterating over the stack
+        //      - otherwise
+        //          - if the bone has a parent that has not been reset, push the parent to the top of the stack and continue iterating
+        //          - otherwise
+        //              - pop the bone, reset its transform and mark it as completed
+        std::vector<Entity> joints;
+        std::unordered_set<Entity,Entity::Hasher> completed;
+        std::stack<Entity> stack;
+        
+        for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
+        {
+            const auto& joint = instance->getJointsAt(skinIndex)[i];
+            joints.push_back(joint);
+            stack.push(joint);
+        }
+
+        while(!stack.empty())
+        {
+            const auto& joint = stack.top();
+
+            // if we've already handled this node previously (e.g. when we encountered it as a parent), then skip
+            if(completed.find(joint) != completed.end()) {
+                stack.pop();
+                continue;
+            }
+
+            const auto transformInstance = transformManager.getInstance(joint);
+            auto parent = transformManager.getParent(transformInstance);
+
+            // we need to handle parent joints before handling their children 
+            // therefore, if this joint has a parent that hasn't been handled yet, 
+            // push the parent to the top of the stack and start the loop again
+            const auto& jointIter = std::find(joints.begin(), joints.end(), joint);
+            auto parentIter = std::find(joints.begin(), joints.end(), parent);
+
+            if(parentIter != joints.end() && completed.find(parent) == completed.end()) {
+                stack.push(parent);
+                continue;
+            }
+            
+            // otherwise let's get the inverse bind matrix for the joint 
+            math::mat4f inverseBindMatrix;
+            bool found = false;
+            for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
+            {
+                if(instance->getJointsAt(skinIndex)[i] == joint) { 
+                    inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[i];
+                    found = true;
+                    break;
+                }
+            }
+            ASSERT_PRECONDITION(found, "Failed to find inverse bind matrix for joint %d", joint);
+
+            // now we need to ascend back up the hierarchy to calculate the modelSpaceTransform
+            math::mat4f modelSpaceTransform;
+            while(parentIter != joints.end()) {
+                const auto transformInstance = transformManager.getInstance(parent);
+                const auto parentIndex = distance(joints.begin(), parentIter);
+                const auto transform = transforms->at(parentIndex);
+                modelSpaceTransform = transform * modelSpaceTransform;
+                parent = transformManager.getParent(transformInstance);
+                parentIter = std::find(joints.begin(), joints.end(), parent);
+            }
+
+            const auto bindMatrix = inverse(inverseBindMatrix);              
+            
+            const auto inverseModelSpaceTransform = inverse(modelSpaceTransform);   
+
+            const auto jointIndex = distance(joints.begin(), jointIter);
+            transforms->at(jointIndex) = inverseModelSpaceTransform * bindMatrix;
+            completed.insert(joint);
+            stack.pop();
+        }
+        return transforms;
     }
 
     bool SceneManager::updateBoneMatrices(EntityId entityId) {
@@ -1096,19 +1171,29 @@ namespace flutter_filament
     {
         std::lock_guard lock(_mutex);
 
-        const auto *instance = getInstanceByEntityId(entityId);
+        auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
-            return;
+            auto *asset = getAssetByEntityId(entityId);
+            if (asset)
+            {
+                instance = asset->getInstance();
+            }
+            else
+            {
+                Log("Failed to find instance for entity");
+                return;
+            }
         }
 
         auto animationComponentInstance = _animationComponentManager->getInstance(instance->getRoot());
         auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
 
-        animationComponent.gltfAnimations.erase(std::remove_if(animationComponent.gltfAnimations.begin(),
+        auto erased = std::remove_if(animationComponent.gltfAnimations.begin(),
                                                                animationComponent.gltfAnimations.end(),
                                                                [=](GltfAnimation &anim)
-                                                               { return anim.index == index; }),
+                                                               { return anim.index == index; });
+        animationComponent.gltfAnimations.erase(erased,
                                                 animationComponent.gltfAnimations.end());
     }
 

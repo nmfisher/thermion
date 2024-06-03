@@ -117,6 +117,8 @@ namespace flutter_filament
             const float *const frameData,
             int numFrames,
             float frameLengthInMs);
+
+        std::unique_ptr<std::vector<math::mat4f>> getBoneRestTranforms(EntityId entityId, int skinIndex);
         void resetBones(EntityId entityId);
         bool setTransform(EntityId entityId, math::mat4f transform);
         bool updateBoneMatrices(EntityId entityId);
