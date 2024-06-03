@@ -814,7 +814,7 @@ extern "C"
           reset_to_rest_pose(sceneManager, entityId); 
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
-            moduleArg.dartFilamentResolveCallback();
+            moduleArg.dartFilamentResolveCallback($0);
           }, callback);
           #else
           callback();
