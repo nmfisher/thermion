@@ -105,20 +105,26 @@ namespace flutter_filament
 
         void addAnimationComponent(std::variant<FilamentInstance *, Entity> target)
         {
+
             AnimationComponent animationComponent;
             animationComponent.target = target;
             EntityInstanceBase::Type componentInstance;
             if (std::holds_alternative<FilamentInstance *>(target))
             {
                 auto instance = std::get<FilamentInstance *>(target);
-                componentInstance = addComponent(instance->getRoot());
+                if(!hasComponent(instance->getRoot())) {
+                    componentInstance = addComponent(instance->getRoot());
+                    this->elementAt<0>(componentInstance) = animationComponent;
+                }
             }
             else
             {
-                componentInstance = addComponent(std::get<Entity>(target));
+                auto entity = std::get<Entity>(target);
+                if(!hasComponent(entity)) {
+                    componentInstance = addComponent(entity);
+                    this->elementAt<0>(componentInstance) = animationComponent;
+                }
             }
-
-            this->elementAt<0>(componentInstance) = animationComponent;
         }
 
 
@@ -235,7 +241,7 @@ namespace flutter_filament
                             }
                         }
 
-                        // simple linear interpolation
+                        // linear interpolation for this animation
                         math::mat4f curr = (1 - delta) * animationStatus.frameData[currFrame];
                         math::mat4f next = delta * animationStatus.frameData[nextFrame];
                         math::mat4f localTransform = curr + next;
@@ -243,8 +249,14 @@ namespace flutter_filament
                         const Entity joint = target->getJointsAt(animationStatus.skinIndex)[animationStatus.boneIndex];
 
                         auto jointTransform = _transformManager.getInstance(joint);
+                        auto currentTransform = _transformManager.getTransform(jointTransform);
 
-                        _transformManager.setTransform(jointTransform, localTransform);
+                        // linear interpolation between the current transform (e.g. if set by the gltf frame)
+                        math::mat4f curr2 = (1 - delta) * animationStatus.frameData[currFrame];
+                        math::mat4f next2 = delta * currentTransform;
+                        math::mat4f localTransform2 = curr + next;
+
+                        _transformManager.setTransform(jointTransform, localTransform2);
 
                         animator->updateBoneMatrices();
 
