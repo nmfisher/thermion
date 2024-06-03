@@ -484,6 +484,24 @@ extern "C"
         out[14] = transform[3][2];
         out[15] = transform[3][3];
     }
+
+    EMSCRIPTEN_KEEPALIVE void get_rest_local_transforms(void *sceneManager,
+        EntityId entityId, int skinIndex, float* const out, int numBones) {
+        const auto transforms = ((SceneManager*)sceneManager)->getBoneRestTranforms(entityId, skinIndex);
+        auto numTransforms = transforms->size();
+        if(numTransforms != numBones) {
+            Log("Error - %d bone transforms available but you only specified %d.", numTransforms, numBones);
+            return;
+        }
+        for(int boneIndex = 0; boneIndex < numTransforms; boneIndex++) {
+            const auto transform = transforms->at(boneIndex);
+            for(int colNum = 0; colNum < 4; colNum++) {
+                for(int rowNum = 0; rowNum < 4; rowNum++) {
+                    out[(boneIndex * 16) + (colNum * 4) + rowNum] = transform[colNum][rowNum];
+                }
+            }
+        }        
+    }
 	
     EMSCRIPTEN_KEEPALIVE void get_inverse_bind_matrix(void *sceneManager,
         EntityId entityId, int skinIndex, int boneIndex, float* const out) {

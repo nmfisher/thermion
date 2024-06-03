@@ -150,6 +150,8 @@ extern "C"
 		float frameLengthInMs);
 	EMSCRIPTEN_KEEPALIVE void get_local_transform(void *sceneManager,
         EntityId entityId, float* const);
+	EMSCRIPTEN_KEEPALIVE void get_rest_local_transforms(void *sceneManager,
+        EntityId entityId, int skinIndex, float* const out, int numBones);
 	EMSCRIPTEN_KEEPALIVE void get_world_transform(void *sceneManager,
         EntityId entityId, float* const);
 	EMSCRIPTEN_KEEPALIVE void get_inverse_bind_matrix(void *sceneManager,
