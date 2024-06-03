@@ -98,19 +98,24 @@ void main() async {
     });
   });
 
-  group('animations', () {
+  group('Skinning & animations', () {
     test('get bone names', () async {
       var model = await viewer.loadGlb("$testDir/assets/shapes.glb");
       var names = await viewer.getBoneNames(model);
       expect(names.first, "Bone");
     });
+
+    test('reset bones', () async {
+      var model = await viewer.loadGlb("$testDir/assets/shapes.glb");
+      await viewer.resetBones(model);
+    });
     test('set from BVH', () async {
       var model = await viewer.loadGlb("$testDir/assets/shapes.glb");
       var animation = BVHParser.parse(
           File("$testDir/assets/animation.bvh").readAsStringSync(),
-          ["Cylinder"],
           boneRegex: RegExp(r"Bone$"));
       await viewer.addBoneAnimation(model, animation);
     });
+
   });
 }
