@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:dart_filament/dart_filament/compatibility/compatibility.dart';
 import 'package:dart_filament/dart_filament/compatibility/native/compatibility.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:dart_filament/dart_filament/entities/gizmo.dart';
@@ -676,14 +677,26 @@ class FilamentViewer extends AbstractFilamentViewer {
   @override
   Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
       {int skinIndex = 0}) async {
-    if (animation.space != Space.Bone && animation.space != Space.ParentWorldRotation) {
+    if (animation.space != Space.Bone &&
+        animation.space != Space.ParentWorldRotation) {
       throw UnimplementedError("TODO - support ${animation.space}");
     }
     if (skinIndex != 0) {
       throw UnimplementedError("TODO - support skinIndex != 0 ");
     }
     var boneNames = await getBoneNames(entity);
-    await resetBones(entity);
+    var restLocalTransformsRaw = allocator<Float>(boneNames.length * 16);
+    get_rest_local_transforms(_sceneManager!, entity, skinIndex,
+        restLocalTransformsRaw, boneNames.length);
+    var restLocalTransforms = <Matrix4>[];
+    for (int i = 0; i < boneNames.length; i++) {
+      var values = <double>[];
+      for (int j = 0; j < 16; j++) {
+        values.add(restLocalTransformsRaw[(i * 16) + j]);
+      }
+      restLocalTransforms.add(Matrix4.fromList(values));
+    }
+    allocator.free(restLocalTransformsRaw);
 
     var numFrames = animation.frameData.length;
 
@@ -701,8 +714,11 @@ class FilamentViewer extends AbstractFilamentViewer {
       }
       var boneEntity = bones[entityBoneIndex];
 
-      var baseTransform = await getLocalTransform(boneEntity);
-      var baseTransformInverse = Matrix4.identity()..copyInverse(baseTransform);
+      var baseTransform = restLocalTransforms[entityBoneIndex];
+
+      var world = await getWorldTransform(boneEntity);
+      world = Matrix4.identity()..setRotation(world.getRotation());
+      var worldInverse = Matrix4.identity()..copyInverse(world);
 
       for (int frameNum = 0; frameNum < numFrames; frameNum++) {
         var rotation = animation.frameData[frameNum][i].rotation;
@@ -713,9 +729,6 @@ class FilamentViewer extends AbstractFilamentViewer {
         if (animation.space == Space.Bone) {
           newLocalTransform = baseTransform * frameTransform;
         } else if (animation.space == Space.ParentWorldRotation) {
-          var world = await getWorldTransform(boneEntity);
-          world = Matrix4.identity()..setRotation(world.getRotation());
-          var worldInverse = Matrix4.identity()..copyInverse(world);
           newLocalTransform =
               baseTransform * (worldInverse * frameTransform * world);
         }
