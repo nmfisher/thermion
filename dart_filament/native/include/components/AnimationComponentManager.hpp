@@ -295,8 +295,6 @@ namespace flutter_filament
                             fadeDelta = 1 - ((elapsedInSecs - animationStatus.durationInSecs - animationStatus.fadeInInSecs) / animationStatus.fadeOutInSecs);
                         }
 
-                        Log("fadeDelta %f ", fadeDelta);
-
                         auto jointTransform = _transformManager.getInstance(joint);
 
                         // linearly interpolate this animation between its current (interpolated) frame and the current transform (i.e. as set by the gltf frame)
