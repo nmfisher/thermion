@@ -117,5 +117,14 @@ void main() async {
       await viewer.addBoneAnimation(model, animation);
     });
 
+    test('fade in/out', () async {
+      var model = await viewer.loadGlb("$testDir/assets/shapes.glb");
+      var animation = BVHParser.parse(
+          File("$testDir/assets/animation.bvh").readAsStringSync(),
+          boneRegex: RegExp(r"Bone$"));
+      await viewer.addBoneAnimation(model, animation,
+          fadeInInSecs: 0.5, fadeOutInSecs: 0.5);
+      await Future.delayed(Duration(seconds: 1));
+    });
   });
 }
