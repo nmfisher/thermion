@@ -675,7 +675,9 @@ class FilamentViewer extends AbstractFilamentViewer {
   ///
   @override
   Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
-      {int skinIndex = 0, double fadeOutInSecs=0.0, double fadeInInSecs=0.0}) async {
+      {int skinIndex = 0,
+      double fadeOutInSecs = 0.0,
+      double fadeInInSecs = 0.0}) async {
     if (animation.space != Space.Bone &&
         animation.space != Space.ParentWorldRotation) {
       throw UnimplementedError("TODO - support ${animation.space}");
@@ -715,7 +717,17 @@ class FilamentViewer extends AbstractFilamentViewer {
 
       var baseTransform = restLocalTransforms[entityBoneIndex];
 
-      var world = await getWorldTransform(boneEntity);
+      var world = Matrix4.identity();
+      // this odd use of ! is intentional, without it, the WASM optimizer gets in trouble
+      var parentBoneEntity = (await getParent(boneEntity))!;
+      while(true) {
+        if (!bones.contains(parentBoneEntity!)) {
+          break;
+        }
+        world = restLocalTransforms[bones.indexOf(parentBoneEntity!)] * world;
+        parentBoneEntity = (await getParent(parentBoneEntity))!;
+      }
+
       world = Matrix4.identity()..setRotation(world.getRotation());
       var worldInverse = Matrix4.identity()..copyInverse(world);
 
@@ -737,8 +749,16 @@ class FilamentViewer extends AbstractFilamentViewer {
         }
       }
 
-      add_bone_animation(_sceneManager!, entity, skinIndex, entityBoneIndex,
-          data, numFrames, animation.frameLengthInMs, fadeOutInSecs, fadeInInSecs);
+      add_bone_animation(
+          _sceneManager!,
+          entity,
+          skinIndex,
+          entityBoneIndex,
+          data,
+          numFrames,
+          animation.frameLengthInMs,
+          fadeOutInSecs,
+          fadeInInSecs);
     }
     allocator.free(data);
   }
