@@ -11,6 +11,8 @@ import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:dart_filament/dart_filament/compatibility/web/interop/dart_filament_js_extension_type.dart';
 import 'dart:js_interop_unsafe';
 
+import 'package:vector_math/vector_math_64.dart';
+
 @JSExport()
 class DartFilamentJSExportViewer {
   final AbstractFilamentViewer viewer;
@@ -256,31 +258,35 @@ class DartFilamentJSExportViewer {
   JSPromise addBoneAnimation(
       FilamentEntity entity,
       JSArray<JSString> bones,
-      JSArray<JSString> meshNames,
       JSArray<JSArray<JSArray<JSNumber>>> frameData,
       JSNumber frameLengthInMs,
-      JSBoolean isModelSpace) {
+      JSNumber spaceEnum,
+      JSNumber skinIndex) {
     var frameDataDart = frameData.toDart
-        .map((frame) => frame.toDart.map((v) {
+        .map((frame) => frame.toDart
+            .map((v) {
               var values = v.toDart;
-              var trans = v64.Vector3(values[0].toDartDouble, values[1].toDartDouble,
-                  values[2].toDartDouble);
+              var trans = v64.Vector3(values[0].toDartDouble,
+                  values[1].toDartDouble, values[2].toDartDouble);
               var rot = v64.Quaternion(
                   values[3].toDartDouble,
                   values[4].toDartDouble,
                   values[5].toDartDouble,
                   values[6].toDartDouble);
-              return (rotation:rot, translation:trans);
-            }).cast<BoneAnimationFrame>().toList())
+              return (rotation: rot, translation: trans);
+            })
+            .cast<BoneAnimationFrame>()
+            .toList())
         .toList();
 
     var data = BoneAnimationData(
-        bones.toDart.map((n) => n.toDart).toList(),
-        meshNames.toDart.map((n) => n.toDart).toList(),
-        frameDataDart,
-        frameLengthInMs.toDartDouble);
+        bones.toDart.map((n) => n.toDart).toList(), frameDataDart,
+        frameLengthInMs: frameLengthInMs.toDartDouble,
+        space: Space.values[spaceEnum.toDartInt]);
 
-    return viewer.addBoneAnimation(entity, data).toJS;
+    return viewer
+        .addBoneAnimation(entity, data, skinIndex: skinIndex.toDartInt)
+        .toJS;
   }
 
   @JSExport()
@@ -607,14 +613,67 @@ class DartFilamentJSExportViewer {
           )
           .then((v) => v.map((s) => s.toJS).toList().toJS)
           .toJS;
+
   @JSExport()
   JSPromise setRecording(bool recording) => viewer.setRecording(recording).toJS;
+
   @JSExport()
   JSPromise setRecordingOutputDirectory(String outputDirectory) =>
       viewer.setRecordingOutputDirectory(outputDirectory).toJS;
+
   @JSExport()
   JSPromise addAnimationComponent(FilamentEntity entity) =>
       viewer.addAnimationComponent(entity).toJS;
+
+  @JSExport()
+  JSPromise removeAnimationComponent(FilamentEntity entity) =>
+      viewer.removeAnimationComponent(entity).toJS;
+
+  @JSExport()
+  JSPromise getParent(FilamentEntity entity) =>
+      viewer.removeAnimationComponent(entity).toJS;
+
+  @JSExport()
+  JSPromise getBone(FilamentEntity entity, int boneIndex, int skinIndex) =>
+      viewer.getBone(entity, boneIndex, skinIndex: skinIndex).toJS;
+
+  @JSExport()
+  JSPromise<JSArray<JSNumber>> getLocalTransform(FilamentEntity entity) {
+    return viewer
+        .getLocalTransform(entity)
+        .then((t) => t.storage.map((v) => v.toJS).toList().toJS)
+        .toJS;
+  }
+
+  @JSExport()
+  JSPromise<JSArray<JSNumber>> getWorldTransform(FilamentEntity entity) {
+    return viewer
+        .getWorldTransform(entity)
+        .then((t) => t.storage.map((v) => v.toJS).toList().toJS)
+        .toJS;
+  }
+
+  @JSExport()
+  JSPromise setTransform(FilamentEntity entity, JSArray<JSNumber> transform) {
+    return viewer
+        .setTransform(
+            entity,
+            Matrix4.fromList(
+                transform.toDart.map((v) => v.toDartDouble).toList()))
+        .toJS;
+  }
+
+  @JSExport()
+  JSPromise updateBoneMatrices(FilamentEntity entity) {
+    return viewer.updateBoneMatrices(entity).toJS;
+  }
+
+  @JSExport()
+  JSPromise setBoneTransform(FilamentEntity entity, 
+      int boneIndex, JSArray<JSNumber> transform, int skinIndex) {
+    return viewer.setBoneTransform(entity, boneIndex, Matrix4.fromList(transform.toDart.map((v) => v.toDartDouble).toList()),
+        skinIndex: skinIndex).toJS;
+  }
 
   @JSExport()
   JSPromise addCollisionComponent(FilamentEntity entity,

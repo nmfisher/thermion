@@ -146,10 +146,10 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
   external JSPromise addBoneAnimation(
       FilamentEntity entity,
       JSArray<JSString> bones,
-      JSArray<JSString> meshNames,
       JSArray<JSArray<JSArray<JSNumber>>> frameData,
       JSNumber frameLengthInMs,
-      JSBoolean isModelSpace);
+      JSNumber spaceEnum,
+      JSNumber skinIndex);
 
   @JS('removeEntity')
   external JSPromise removeEntity(FilamentEntity entity);
@@ -249,56 +249,78 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
 
   @JS('setCameraPosition')
   external JSPromise setCameraPosition(double x, double y, double z);
+
   @JS('getCameraRotation')
   external JSPromise<JSArray<JSNumber>> getCameraRotation();
+
   @JS('moveCameraToAsset')
   external JSPromise moveCameraToAsset(FilamentEntity entity);
+
   @JS('setViewFrustumCulling')
   external JSPromise setViewFrustumCulling(JSBoolean enabled);
+
   @JS('setCameraExposure')
   external JSPromise setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity);
+
   @JS('setCameraRotation')
   external JSPromise setCameraRotation(JSArray<JSNumber> quaternion);
+
   @JS('setCameraModelMatrix')
   external JSPromise setCameraModelMatrix(JSArray<JSNumber> matrix);
+
   @JS('setMaterialColor')
   external JSPromise setMaterialColor(FilamentEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a);
+
   @JS('transformToUnitCube')
   external JSPromise transformToUnitCube(FilamentEntity entity);
+
   @JS('setPosition')
   external JSPromise setPosition(
       FilamentEntity entity, double x, double y, double z);
+
   @JS('setScale')
   external JSPromise setScale(FilamentEntity entity, double scale);
+
   @JS('setRotation')
   external JSPromise setRotation(
       FilamentEntity entity, double rads, double x, double y, double z);
+
   @JS('queuePositionUpdate')
   external JSPromise queuePositionUpdate(
       FilamentEntity entity, double x, double y, double z, bool relative);
+
   @JS('queueRotationUpdate')
   external JSPromise queueRotationUpdate(FilamentEntity entity, double rads,
       double x, double y, double z, bool relative);
+
   @JS('queueRotationUpdateQuat')
   external JSPromise queueRotationUpdateQuat(
       FilamentEntity entity, JSArray<JSNumber> quat, bool relative);
+
   @JS('setPostProcessing')
   external JSPromise setPostProcessing(bool enabled);
+
   @JS('setAntiAliasing')
   external JSPromise setAntiAliasing(bool msaa, bool fxaa, bool taa);
+
   @JS('setRotationQuat')
   external JSPromise setRotationQuat(
       FilamentEntity entity, JSArray<JSNumber> rotation);
+
   @JS('reveal')
   external JSPromise reveal(FilamentEntity entity, String? meshName);
+
   @JS('hide')
   external JSPromise hide(FilamentEntity entity, String? meshName);
+
   @JS('pick')
   external void pick(int x, int y);
+
   @JS('getNameForEntity')
   external String? getNameForEntity(FilamentEntity entity);
+
   @JS('setCameraManipulatorOptions')
   external JSPromise setCameraManipulatorOptions(
     int mode,
@@ -306,32 +328,73 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
     double orbitSpeedY,
     double zoomSpeed,
   );
+
   @JS('getChildEntities')
   external JSPromise<JSArray<JSNumber>> getChildEntities(
       FilamentEntity parent, bool renderableOnly);
+
   @JS('getChildEntity')
   external JSPromise<JSNumber> getChildEntity(
       FilamentEntity parent, String childName);
+
   @JS('getChildEntityNames')
   external JSPromise<JSArray<JSString>> getChildEntityNames(
       FilamentEntity entity, bool renderableOnly);
+
   @JS('setRecording')
   external JSPromise setRecording(JSBoolean recording);
+
   @JS('setRecordingOutputDirectory')
   external JSPromise setRecordingOutputDirectory(String outputDirectory);
+
   @JS('addAnimationComponent')
   external JSPromise addAnimationComponent(FilamentEntity entity);
+
+  @JS('removeAnimationComponent')
+  external JSPromise removeAnimationComponent(FilamentEntity entity);
+
   @JS('addCollisionComponent')
   external JSPromise addCollisionComponent(FilamentEntity entity);
+
   @JS('removeCollisionComponent')
   external JSPromise removeCollisionComponent(FilamentEntity entity);
+
   @JS('createGeometry')
   external JSPromise<JSNumber> createGeometry(JSArray<JSNumber> vertices,
       JSArray<JSNumber> indices, String? materialPath, int primitiveType);
+
   @JS('setParent')
   external JSPromise setParent(FilamentEntity child, FilamentEntity parent);
+
+  @JS('getParent')
+  external JSPromise<JSNumber> getParent(FilamentEntity child);
+
+  @JS('getParent')
+  external JSPromise<JSNumber> getBone(
+      FilamentEntity child, int boneIndex, int skinIndex);
+
   @JS('testCollisions')
   external JSPromise testCollisions(FilamentEntity entity);
+
   @JS('setPriority')
   external JSPromise setPriority(FilamentEntity entityId, int priority);
+
+  @JS('getLocalTransform')
+  external JSPromise<JSArray<JSNumber>> getLocalTransform(
+      FilamentEntity entity);
+
+  @JS('getWorldTransform')
+  external JSPromise<JSArray<JSNumber>> getWorldTransform(
+      FilamentEntity entity);
+
+  @JS('updateBoneMatrices')
+  external JSPromise updateBoneMatrices(FilamentEntity entity);
+
+  @JS('setTransform')
+  external JSPromise setTransform(
+      FilamentEntity entity, JSArray<JSNumber> transform);
+
+  @JS('setBoneTransform')
+  external JSPromise setBoneTransform(
+      FilamentEntity entity, int boneIndex, JSArray<JSNumber> transform, int skinIndex);
 }

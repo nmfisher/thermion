@@ -286,18 +286,34 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future<void> addBoneAnimation(
-      FilamentEntity entity, BoneAnimationData animation) async {
+      FilamentEntity entity, BoneAnimationData animation,
+      {int skinIndex = 0}) async {
     var boneNames = animation.bones.map((n) => n.toJS).toList().toJS;
-    var meshNames = animation.meshNames.map((n) => n.toJS).toList().toJS;
     var frameData = animation.frameData
         .map((frame) => frame
-            .map((q) => [q.translation[0].toJS, q.translation[1].toJS, q.translation[2].toJS, q.rotation.w.toJS, q.rotation.x.toJS, q.rotation.y.toJS, q.rotation.z.toJS].toJS)
+            .map((q) => [
+                  q.translation[0].toJS,
+                  q.translation[1].toJS,
+                  q.translation[2].toJS,
+                  q.rotation.w.toJS,
+                  q.rotation.x.toJS,
+                  q.rotation.y.toJS,
+                  q.rotation.z.toJS
+                ].toJS)
             .toList()
             .toJS)
         .toList()
         .toJS;
 
-    await _jsObject.addBoneAnimation(entity, boneNames, meshNames, frameData, animation.frameLengthInMs.toJS, animation.isModelSpace.toJS).toDart;
+    await _jsObject
+        .addBoneAnimation(
+            entity,
+            boneNames,
+            frameData,
+            animation.frameLengthInMs.toJS,
+            animation.space.index.toJS,
+            skinIndex.toJS)
+        .toDart;
   }
 
   @override
@@ -724,5 +740,64 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
       {int skinIndex = 0}) async {
     var result = await _jsObject.getBoneNames(entity, skinIndex).toDart;
     return result.toDart.map((n) => n.toDart).toList();
+  }
+
+  @override
+  Future<FilamentEntity> getBone(FilamentEntity entity, int boneIndex,
+      {int skinIndex = 0}) async {
+    var result = await _jsObject.getBone(entity, boneIndex, skinIndex).toDart;
+    return result.toDartInt;
+  }
+
+  @override
+  Future<Matrix4> getInverseBindMatrix(FilamentEntity parent, int boneIndex,
+      {int skinIndex = 0}) {
+    // TODO: implement getInverseBindMatrix
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Matrix4> getLocalTransform(FilamentEntity entity) async {
+    var result = await _jsObject.getLocalTransform(entity).toDart;
+    return Matrix4.fromList(result.toDart.map((v) => v.toDartDouble).toList());
+  }
+
+  @override
+  Future<FilamentEntity?> getParent(FilamentEntity child) async {
+    var result = await _jsObject.getParent(child).toDart;
+    return result.toDartInt;
+  }
+
+  @override
+  Future<Matrix4> getWorldTransform(FilamentEntity entity) async {
+    var result = await _jsObject.getLocalTransform(entity).toDart;
+    return Matrix4.fromList(result.toDart.map((v) => v.toDartDouble).toList());
+  }
+
+  @override
+  Future removeAnimationComponent(FilamentEntity entity) {
+    return _jsObject.removeAnimationComponent(entity).toDart;
+  }
+
+  @override
+  Future setBoneTransform(
+      FilamentEntity entity, int boneIndex, Matrix4 transform, { int skinIndex =0}) {
+    return _jsObject
+        .setBoneTransform(entity, boneIndex,
+            transform.storage.map((v) => v.toJS).toList().toJS)
+        .toDart;
+  }
+
+  @override
+  Future setTransform(FilamentEntity entity, Matrix4 transform) {
+    return _jsObject
+        .setTransform(
+            entity, transform.storage.map((v) => v.toJS).toList().toJS)
+        .toDart;
+  }
+
+  @override
+  Future updateBoneMatrices(FilamentEntity entity) {
+    return _jsObject.updateBoneMatrices(entity).toDart;
   }
 }
