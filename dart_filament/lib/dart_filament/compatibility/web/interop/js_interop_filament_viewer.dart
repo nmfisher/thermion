@@ -297,10 +297,10 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
                   q.translation[0].toJS,
                   q.translation[1].toJS,
                   q.translation[2].toJS,
-                  q.rotation.w.toJS,
                   q.rotation.x.toJS,
                   q.rotation.y.toJS,
-                  q.rotation.z.toJS
+                  q.rotation.z.toJS,
+                  q.rotation.w.toJS,
                 ].toJS)
             .toList()
             .toJS)
