@@ -546,6 +546,8 @@ external void reset_to_rest_pose(
         ffi.Int,
         ffi.Pointer<ffi.Float>,
         ffi.Int,
+        ffi.Float,
+        ffi.Float,
         ffi.Float)>(symbol: '_add_bone_animation', assetId: 'dart_filament')
 external void add_bone_animation(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -555,6 +557,8 @@ external void add_bone_animation(
   ffi.Pointer<ffi.Float> frameData,
   int numFrames,
   double frameLengthInMs,
+  double fadeOutInSecs,
+  double fadeInInSecs,
 );
 
 @ffi.Native<
@@ -565,6 +569,21 @@ external void get_local_transform(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
   ffi.Pointer<ffi.Float> arg2,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
+        EntityId,
+        ffi.Int,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int)>(symbol: '_get_rest_local_transforms', assetId: 'dart_filament')
+external void get_rest_local_transforms(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entityId,
+  int skinIndex,
+  ffi.Pointer<ffi.Float> out,
+  int numBones,
 );
 
 @ffi.Native<
