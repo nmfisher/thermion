@@ -92,9 +92,9 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future<void> rotateIbl(Matrix3 rotation) async {
-    throw UnimplementedError();
-    // final JSMatrix3 jsRotation = rotation.storage;
-    // await _jsObject.rotateIbl(jsRotation).toDart;
+    await _jsObject
+        .rotateIbl(rotation.storage.map((v) => v.toJS).toList().toJS)
+        .toDart;
   }
 
   @override
@@ -287,7 +287,9 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
   @override
   Future<void> addBoneAnimation(
       FilamentEntity entity, BoneAnimationData animation,
-      {int skinIndex = 0}) async {
+      {int skinIndex = 0,
+      double fadeInInSecs = 0.0,
+      double fadeOutInSecs = 0.0}) async {
     var boneNames = animation.bones.map((n) => n.toJS).toList().toJS;
     var frameData = animation.frameData
         .map((frame) => frame
@@ -312,7 +314,9 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
             frameData,
             animation.frameLengthInMs.toJS,
             animation.space.index.toJS,
-            skinIndex.toJS)
+            skinIndex.toJS,
+            fadeInInSecs.toJS,
+            fadeOutInSecs.toJS)
         .toDart;
   }
 
@@ -515,9 +519,13 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future<void> setCameraRotation(Quaternion quaternion) async {
-    throw UnimplementedError();
-    // final JSQuaternion jsQuaternion = quaternion.toJSQuaternion().toDart;
-    // await _jsObject.setCameraRotation(jsQuaternion).toDart;
+    final values = <JSNumber>[
+      quaternion.x.toJS,
+      quaternion.y.toJS,
+      quaternion.z.toJS,
+      quaternion.w.toJS
+    ];
+    await _jsObject.setCameraRotation(values.toJS).toDart;
   }
 
   @override
@@ -781,10 +789,11 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
 
   @override
   Future setBoneTransform(
-      FilamentEntity entity, int boneIndex, Matrix4 transform, { int skinIndex =0}) {
+      FilamentEntity entity, int boneIndex, Matrix4 transform,
+      {int skinIndex = 0}) {
     return _jsObject
         .setBoneTransform(entity, boneIndex,
-            transform.storage.map((v) => v.toJS).toList().toJS)
+            transform.storage.map((v) => v.toJS).toList().toJS, skinIndex)
         .toDart;
   }
 

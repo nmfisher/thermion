@@ -74,8 +74,11 @@ class DartFilamentJSExportViewer {
       viewer.loadIbl(lightingPath, intensity: intensity).toJS;
 
   @JSExport()
-  JSPromise rotateIbl(JSArray<JSNumber> rotation) => throw UnimplementedError();
-  // viewer.rotateIbl(rotation.toDartMatrix3()).toJS;
+  JSPromise rotateIbl(JSArray<JSNumber> rotation) {
+    var matrix =
+        Matrix3.fromList(rotation.toDart.map((v) => v.toDartDouble).toList());
+    return viewer.rotateIbl(matrix).toJS;
+  }
 
   @JSExport()
   JSPromise removeIbl() => viewer.removeIbl().toJS;
@@ -261,7 +264,9 @@ class DartFilamentJSExportViewer {
       JSArray<JSArray<JSArray<JSNumber>>> frameData,
       JSNumber frameLengthInMs,
       JSNumber spaceEnum,
-      JSNumber skinIndex) {
+      JSNumber skinIndex,
+      JSNumber fadeInInSecs,
+      JSNumber fadeOutInSecs) {
     var frameDataDart = frameData.toDart
         .map((frame) => frame.toDart
             .map((v) {
@@ -285,7 +290,10 @@ class DartFilamentJSExportViewer {
         space: Space.values[spaceEnum.toDartInt]);
 
     return viewer
-        .addBoneAnimation(entity, data, skinIndex: skinIndex.toDartInt)
+        .addBoneAnimation(entity, data,
+            skinIndex: skinIndex.toDartInt,
+            fadeInInSecs: fadeInInSecs.toDartDouble,
+            fadeOutInSecs: fadeOutInSecs.toDartDouble)
         .toJS;
   }
 
@@ -455,18 +463,23 @@ class DartFilamentJSExportViewer {
   JSPromise moveCameraToAsset(FilamentEntity entity) =>
       throw UnimplementedError();
 // viewer.moveCameraToAsset(entity)).toJS;
+  
   @JSExport()
   JSPromise setViewFrustumCulling(JSBoolean enabled) =>
       throw UnimplementedError();
 // viewer.setViewFrustumCulling(enabled).toJS;
+  
   @JSExport()
   JSPromise setCameraExposure(
           double aperture, double shutterSpeed, double sensitivity) =>
       viewer.setCameraExposure(aperture, shutterSpeed, sensitivity).toJS;
+  
   @JSExport()
-  JSPromise setCameraRotation(JSArray<JSNumber> quaternion) =>
-      throw UnimplementedError();
-// viewer.setCameraRotation(quaternion.toDartQuaternion()).toJS;
+  JSPromise setCameraRotation(JSArray<JSNumber> quaternion) {
+    var dartVals = quaternion.toDart; 
+    return viewer.setCameraRotation(v64.Quaternion(dartVals[0].toDartDouble, dartVals[1].toDartDouble, dartVals[2].toDartDouble, dartVals[3].toDartDouble)).toJS;
+  }
+  
   @JSExport()
   JSPromise setCameraModelMatrix(JSArray<JSNumber> matrix) {
     throw UnimplementedError();
@@ -669,10 +682,16 @@ class DartFilamentJSExportViewer {
   }
 
   @JSExport()
-  JSPromise setBoneTransform(FilamentEntity entity, 
-      int boneIndex, JSArray<JSNumber> transform, int skinIndex) {
-    return viewer.setBoneTransform(entity, boneIndex, Matrix4.fromList(transform.toDart.map((v) => v.toDartDouble).toList()),
-        skinIndex: skinIndex).toJS;
+  JSPromise setBoneTransform(FilamentEntity entity, int boneIndex,
+      JSArray<JSNumber> transform, int skinIndex) {
+    return viewer
+        .setBoneTransform(
+            entity,
+            boneIndex,
+            Matrix4.fromList(
+                transform.toDart.map((v) => v.toDartDouble).toList()),
+            skinIndex: skinIndex)
+        .toJS;
   }
 
   @JSExport()
