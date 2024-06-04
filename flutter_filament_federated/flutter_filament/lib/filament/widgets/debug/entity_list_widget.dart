@@ -66,15 +66,38 @@ class _EntityListWidget extends State<EntityListWidget> {
                   SubmenuButton(
                       child: const Text("Animations"),
                       menuChildren: animations.data!
-                          .map((a) => MenuItemButton(
-                                child: Text(a),
-                                onPressed: () async {
-                                  await widget.controller!
-                                      .addAnimationComponent(entity);
-                                  widget.controller!.playAnimation(
-                                      entity, animations.data!.indexOf(a));
-                                },
-                              ))
+                          .map((a) => SubmenuButton(
+                                  child: Text(a),
+                                  menuChildren: [
+                                    MenuItemButton(
+                                      child: Text("Play"),
+                                      onPressed: () async {
+                                        await widget.controller!
+                                            .addAnimationComponent(entity);
+                                        widget.controller!.playAnimation(entity,
+                                            animations.data!.indexOf(a));
+                                      },
+                                    ),
+                                    MenuItemButton(
+                                      child: Text("Loop"),
+                                      onPressed: () async {
+                                        await widget.controller!
+                                            .addAnimationComponent(entity);
+                                        widget.controller!.playAnimation(
+                                            entity, animations.data!.indexOf(a),
+                                            loop: true);
+                                      },
+                                    ),
+                                    MenuItemButton(
+                                      child: Text("Stop"),
+                                      onPressed: () async {
+                                        await widget.controller!
+                                            .addAnimationComponent(entity);
+                                        widget.controller!.stopAnimation(
+                                            entity, animations.data!.indexOf(a));
+                                      },
+                                    )
+                                  ]))
                           .toList()),
                   ChildRenderableWidget(
                       controller: widget.controller!, entity: entity),
