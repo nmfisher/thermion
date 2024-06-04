@@ -1167,7 +1167,18 @@ namespace flutter_filament
         animation.reverse = reverse;
         animation.durationInSecs = instance->getAnimator()->getAnimationDuration(index);
 
-        animationComponent.gltfAnimations.push_back(animation);
+        bool found = false;
+
+        // don't play the animation if it's already running
+        for(int i=0; i < animationComponent.gltfAnimations.size(); i++) {
+            if(animationComponent.gltfAnimations[i].index == index) { 
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            animationComponent.gltfAnimations.push_back(animation);
+        }
     }
 
     void SceneManager::stopAnimation(EntityId entityId, int index)
