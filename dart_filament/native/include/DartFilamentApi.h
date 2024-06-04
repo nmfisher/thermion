@@ -147,7 +147,9 @@ extern "C"
 		int boneIndex,
 		const float *const frameData,
 		int numFrames,
-		float frameLengthInMs);
+		float frameLengthInMs,
+		float fadeOutInSecs,
+		float fadeInInSecs);
 	EMSCRIPTEN_KEEPALIVE void get_local_transform(void *sceneManager,
         EntityId entityId, float* const);
 	EMSCRIPTEN_KEEPALIVE void get_rest_local_transforms(void *sceneManager,

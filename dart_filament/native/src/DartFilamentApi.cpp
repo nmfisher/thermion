@@ -422,9 +422,11 @@ extern "C"
         int boneIndex,
         const float *const frameData,
         int numFrames,
-        float frameLengthInMs)
+        float frameLengthInMs,
+        float fadeOutInSecs,
+        float fadeInInSecs)
     {
-        ((SceneManager *)sceneManager)->addBoneAnimation(asset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs);
+        ((SceneManager *)sceneManager)->addBoneAnimation(asset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_post_processing(void *const viewer, bool enabled)

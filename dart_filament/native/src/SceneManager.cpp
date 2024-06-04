@@ -1025,7 +1025,8 @@ namespace flutter_filament
                                         int boneIndex,                      
                                         const float *const frameData,
                                         int numFrames,
-                                        float frameLengthInMs)
+                                        float frameLengthInMs,
+                                        float fadeOutInSecs, float fadeInInSecs)
     {
         std::lock_guard lock(_mutex);
 
@@ -1079,6 +1080,8 @@ namespace flutter_filament
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
         animation.lengthInFrames = numFrames;
         animation.frameLengthInMs = frameLengthInMs;
+        animation.fadeOutInSecs = fadeOutInSecs;
+        animation.fadeInInSecs = fadeInInSecs;
         animation.skinIndex = skinIndex;
         if(!_animationComponentManager->hasComponent(instance->getRoot())) { 
             Log("ERROR: specified entity is not animatable (has no animation component attached).");

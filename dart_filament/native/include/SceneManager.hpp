@@ -116,7 +116,10 @@ namespace flutter_filament
             int boneIndex,
             const float *const frameData,
             int numFrames,
-            float frameLengthInMs);
+            float frameLengthInMs,
+            float fadeOutInSecs,
+            float fadeInInSecs
+            );
 
         std::unique_ptr<std::vector<math::mat4f>> getBoneRestTranforms(EntityId entityId, int skinIndex);
         void resetBones(EntityId entityId);

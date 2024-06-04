@@ -20,6 +20,7 @@
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
 #include <gltfio/ResourceLoader.h>
+#include <gltfio/math.h>
 #include <utils/NameComponentManager.h>
 
 template class std::vector<float>;
@@ -47,13 +48,17 @@ namespace flutter_filament
         float durationInSecs = 0;
     };
 
+    /// @brief 
+    /// The status of an animation embedded in a glTF object.
+    /// @param index refers to the index of the animation in the animations property of the underlying object.
+    ///
     struct GltfAnimation : AnimationStatus
     {
         int index = -1;
     };
 
     //
-    // Use this to construct a dynamic (i.e. non-glTF embedded) morph target animation.
+    // The status of a morph target animation created dynamically at runtime (not glTF embedded).
     //
     struct MorphAnimation : AnimationStatus
     {
@@ -66,7 +71,7 @@ namespace flutter_filament
     };
 
     //
-    // Use this to construct a dynamic (i.e. non-glTF embedded) bone/joint animation.
+    // The status of a skeletal animation created dynamically at runtime (not glTF embedded).
     //
     struct BoneAnimation : AnimationStatus
     {
@@ -75,6 +80,8 @@ namespace flutter_filament
         int lengthInFrames;
         float frameLengthInMs = 0;
         std::vector<math::mat4f> frameData;
+        float fadeOutInSecs = 0;
+        float fadeInInSecs = 0;
     };
 
     struct AnimationComponent
@@ -149,7 +156,6 @@ namespace flutter_filament
 
         void update()
         {
-            auto now = high_resolution_clock::now();
 
             for (auto it = begin(); it < end(); it++)
             {
@@ -162,6 +168,7 @@ namespace flutter_filament
 
                 if (std::holds_alternative<FilamentInstance *>(animationComponent.target))
                 {
+
                     auto target = std::get<FilamentInstance *>(animationComponent.target);
                     auto animator = target->getAnimator();
                     auto &gltfAnimations = animationComponent.gltfAnimations;
@@ -170,6 +177,7 @@ namespace flutter_filament
                     if(gltfAnimations.size() > 0) {
                         for (int i = ((int)gltfAnimations.size()) - 1; i >= 0; i--)
                         {
+                            auto now = high_resolution_clock::now();
 
                             auto animationStatus = animationComponent.gltfAnimations[i];
 
@@ -197,23 +205,33 @@ namespace flutter_filament
                         animator->updateBoneMatrices();
                     }
 
+                    ///
+                    /// When fading in/out, interpolate between the "current" transform (which has possibly been set by the glTF animation loop above)
+                    /// and the first (for fading in) or last (for fading out) frame. 
+                    ///                    
                     for (int i = (int)boneAnimations.size() - 1; i >= 0; i--)
                     {
                         auto animationStatus = boneAnimations[i];
 
-                        auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count()) / 1000.0f;
+                        auto now = high_resolution_clock::now();
 
-                        if (!animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
+                        auto elapsedInMillis = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count());
+                        auto elapsedInSecs = elapsedInMillis / 1000.0f;
+
+                        // if we're not looping and the amount of time elapsed is greater than the animation duration plus the fade-in/out buffer,
+                        // then the animation is completed and we can delete it
+                        if (elapsedInSecs >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
                         {
-                            Log("Bone animation %d finished", i);
-                            boneAnimations.erase(boneAnimations.begin() + i);
-                            continue;
+                            if(!animationStatus.loop) {
+                                Log("Bone animation %d finished", i);
+                                boneAnimations.erase(boneAnimations.begin() + i);
+                                continue;
+                            }
                         }
 
-                        float elapsedFrames = elapsedInSecs * 1000.0f / animationStatus.frameLengthInMs;
-
-                        int currFrame = static_cast<int>(elapsedFrames) % animationStatus.lengthInFrames;
-                        float delta = elapsedFrames - currFrame;
+                        // if we're fading in, treat elapsedFrames is zero (and fading out, treat elapsedFrames as lengthInFrames)
+                        float elapsedInFrames = (elapsedInMillis - (1000 * animationStatus.fadeInInSecs)) / animationStatus.frameLengthInMs;
+                        int currFrame = std::floor(elapsedInFrames);
                         int nextFrame = currFrame;
 
                         // offset from the end if reverse
@@ -240,27 +258,65 @@ namespace flutter_filament
                                 nextFrame = currFrame;
                             }
                         }
+                        currFrame = std::clamp(currFrame, 0, animationStatus.lengthInFrames - 1);
+                        nextFrame = std::clamp(nextFrame, 0, animationStatus.lengthInFrames - 1);
 
-                        // linear interpolation for this animation
-                        math::mat4f curr = (1 - delta) * animationStatus.frameData[currFrame];
-                        math::mat4f next = delta * animationStatus.frameData[nextFrame];
-                        math::mat4f localTransform = curr + next;
+                        float frameDelta = elapsedInFrames - currFrame;
+
+                        // linearly interpolate this animation between its last/current frames 
+                        // this is to avoid jerky animations when the animation framerate is slower than our tick rate                        
+
+                        math::float3 currScale, newScale;
+                        math::quatf currRotation, newRotation;
+                        math::float3 currTranslation, newTranslation;
+                        math::mat4f curr = animationStatus.frameData[currFrame];
+                        decomposeMatrix(curr, &currTranslation, &currRotation, &currScale);
+                        
+                        if(frameDelta > 0) {
+                            math::mat4f next = animationStatus.frameData[nextFrame];
+                            decomposeMatrix(next, &newTranslation, &newRotation, &newScale);                            
+                            newScale = mix(currScale, newScale, frameDelta);
+                            newRotation = slerp(currRotation, newRotation, frameDelta);
+                            newTranslation = mix(currTranslation, newTranslation, frameDelta);
+                        } else { 
+                            newScale = currScale;
+                            newRotation = currRotation;
+                            newTranslation = currTranslation;
+                        }
 
                         const Entity joint = target->getJointsAt(animationStatus.skinIndex)[animationStatus.boneIndex];
 
+                        // now calculate the fade out/in delta
+                        // if we're fading in, this will be 0.0 at the start of the fade and 1.0 at the end
+                        auto fadeDelta = elapsedInSecs / animationStatus.fadeInInSecs;
+                        
+                        // if we're fading out, this will be 1.0 at the start of the fade and 0.0 at the end
+                        if(fadeDelta > 1.0f) {
+                            fadeDelta = 1 - ((elapsedInSecs - animationStatus.durationInSecs - animationStatus.fadeInInSecs) / animationStatus.fadeOutInSecs);
+                        }
+
+                        Log("fadeDelta %f ", fadeDelta);
+
                         auto jointTransform = _transformManager.getInstance(joint);
-                        auto currentTransform = _transformManager.getTransform(jointTransform);
 
-                        // linear interpolation between the current transform (e.g. if set by the gltf frame)
-                        math::mat4f curr2 = (1 - delta) * animationStatus.frameData[currFrame];
-                        math::mat4f next2 = delta * currentTransform;
-                        math::mat4f localTransform2 = curr + next;
+                        // linearly interpolate this animation between its current (interpolated) frame and the current transform (i.e. as set by the gltf frame)
+                        // // if we are fading in or out, apply a delta
+                        if (fadeDelta >= 0.0f && fadeDelta <= 1.0f) {
+                            math::float3 fadeScale;
+                            math::quatf fadeRotation;
+                            math::float3 fadeTranslation;
+                            auto currentTransform = _transformManager.getTransform(jointTransform);
+                            decomposeMatrix(currentTransform, &fadeTranslation, &fadeRotation, &fadeScale);
+                            newScale = mix(fadeScale, newScale, fadeDelta);
+                            newRotation = slerp(fadeRotation, newRotation, fadeDelta);
+                            newTranslation = mix(fadeTranslation, newTranslation, fadeDelta);
+                        }
 
-                        _transformManager.setTransform(jointTransform, localTransform2);
+                        _transformManager.setTransform(jointTransform, composeMatrix(newTranslation, newRotation, newScale));
 
                         animator->updateBoneMatrices();
 
-                        if (animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
+                        if (animationStatus.loop && elapsedInSecs >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
                         {
                             animationStatus.start = now;
                         }
@@ -268,6 +324,8 @@ namespace flutter_filament
                 }
                 for (int i = (int)morphAnimations.size() - 1; i >= 0; i--)
                 {
+
+                    auto now = high_resolution_clock::now();
 
                     auto animationStatus = morphAnimations[i];
 

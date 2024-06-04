@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:math';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:dart_filament/dart_filament/compatibility/compatibility.dart';
-import 'package:dart_filament/dart_filament/compatibility/native/compatibility.dart';
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:dart_filament/dart_filament/entities/gizmo.dart';
 
@@ -676,7 +675,7 @@ class FilamentViewer extends AbstractFilamentViewer {
   ///
   @override
   Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
-      {int skinIndex = 0}) async {
+      {int skinIndex = 0, double fadeOutInSecs=0.0, double fadeInInSecs=0.0}) async {
     if (animation.space != Space.Bone &&
         animation.space != Space.ParentWorldRotation) {
       throw UnimplementedError("TODO - support ${animation.space}");
@@ -739,7 +738,7 @@ class FilamentViewer extends AbstractFilamentViewer {
       }
 
       add_bone_animation(_sceneManager!, entity, skinIndex, entityBoneIndex,
-          data, numFrames, animation.frameLengthInMs);
+          data, numFrames, animation.frameLengthInMs, fadeOutInSecs, fadeInInSecs);
     }
     allocator.free(data);
   }

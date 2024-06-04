@@ -274,7 +274,7 @@ abstract class AbstractFilamentViewer {
   /// to transform to another space, you will need to do so manually.
   ///
   Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
-      {int skinIndex = 0});
+      {int skinIndex = 0, double fadeInInSecs=0.0, double fadeOutInSecs=0.0});
 
   ///
   /// Gets the entity representing the bone at [boneIndex]/[skinIndex].
