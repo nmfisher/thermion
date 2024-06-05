@@ -371,7 +371,7 @@ namespace flutter_filament
     }
     else
     {
-      remove(_lights.begin(), _lights.end(), entity);
+      auto removed = remove(_lights.begin(), _lights.end(), entity);
       _scene->remove(entity);
       EntityManager::get().destroy(1, &entity);
     }
