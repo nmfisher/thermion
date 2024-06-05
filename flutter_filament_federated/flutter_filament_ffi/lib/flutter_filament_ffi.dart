@@ -101,10 +101,8 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
     bool wasRendering = viewer.rendering;
     await viewer.setRendering(false);
     await viewer.destroySwapChain();
-    print("Destoryign texture");
     await destroyTexture(texture);
-    print("DEstrooyed!");
-
+    
     var result = await _channel
         .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
 
