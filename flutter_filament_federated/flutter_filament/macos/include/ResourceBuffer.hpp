@@ -40,32 +40,6 @@ typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
 
 namespace flutter_filament {
 
-// struct ResourceBufferImpl : public ResourceBuffer
-// {
-
-//   ResourceBufferImpl(const void *const mData, const int32_t mSize, const int32_t mId)
-//   {
-//     data = mData;
-//     size = mSize;
-//     id = mId;
-//   };
-
-//   ResourceBufferImpl(const ResourceBufferImpl &rb)
-//   {
-//     (void *)data = rb.data;
-//     size = rb.size;
-//     id = rb.id;
-//   };
-
-//   ResourceBufferImpl(const ResourceBufferImpl &&rb) noexcept
-//   {
-//     data = rb.data;
-//     size = rb.size;
-//     id = rb.id;
-//   };
-//   ResourceBufferImpl &operator=(const ResourceBufferImpl &other) = delete;
-// };
-
 struct ResourceLoaderWrapperImpl : public ResourceLoaderWrapper
 {
 
