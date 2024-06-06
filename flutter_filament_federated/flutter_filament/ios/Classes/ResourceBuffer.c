@@ -1,4 +1,4 @@
-#include "ResourceBuffer.h"
+#include "ResourceBuffer.hpp"
 
 ResourceLoaderWrapper *make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void *const owner)
 {

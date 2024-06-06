@@ -13,8 +13,8 @@ A new flutter plugin project.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/*', 'include/SwiftFlutterFilamentPlugin-Bridging-Header.h', 'include/ResourceBuffer.h'
-  s.public_header_files = 'include/SwiftFlutterFilamentPlugin-Bridging-Header.h', 'include/ResourceBuffer.h'
+  s.source_files = 'Classes/*', 'include/SwiftFlutterFilamentPlugin-Bridging-Header.h','include/ResourceBuffer.hpp', 'src/ResourceBuffer.c'
+  s.public_header_files = 'include/SwiftFlutterFilamentPlugin-Bridging-Header.h', 'include/ResourceBuffer.hpp'
   s.dependency 'Flutter' 
   s.platform = :ios, '13.0'
   s.static_framework = true
