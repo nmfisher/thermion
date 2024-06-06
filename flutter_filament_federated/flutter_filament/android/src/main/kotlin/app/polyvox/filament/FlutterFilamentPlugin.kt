@@ -46,7 +46,7 @@ class RenderCallbackImpl(plugin:FlutterFilamentPlugin) : RenderCallback {
     plugin.renderCallback();
 
     if(!plugin._surface!!.isValid) {
-      Log.e("ERR", "ERR", null)
+      Log.e("flutter_filament", "Error: surface is no longer valid")
     }
   }
 }
@@ -80,7 +80,7 @@ class FlutterFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
     this.flutterPluginBinding = flutterPluginBinding
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
     channel.setMethodCallHandler(this)
-     _lib = Native.loadLibrary("flutter_filament_android", FilamentInterop::class.java, Collections.singletonMap(Library.OPTION_ALLOW_OBJECTS, true))
+    _lib = Native.loadLibrary("flutter_filament_android", FilamentInterop::class.java, Collections.singletonMap(Library.OPTION_ALLOW_OBJECTS, true))
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -91,7 +91,7 @@ class FlutterFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
   val _resources:MutableMap<ResourceBuffer,Memory> = mutableMapOf();
   var _lastId = 1
-
+  
   override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
       Log.i("flutter_filament", "Loading resource from path $path")
       var data:ByteArray? = null
@@ -161,33 +161,36 @@ class FlutterFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
             return
           }
           val args = call.arguments as List<*>
-          val width = args[0] as Double
-          val height = args[1] as Double
+          val width = args[0] as Int
+          val height = args[1] as Int
           if(width <1 || height < 1) {
               result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero (you provided $width x $height)", null);
               return;
           }
-          Log.i("flutter_filament", "Creating Surface Texture of size ${width}x${height}");
+          Log.i("flutter_filament", "Creating SurfaceTexture ${width}x${height}");
           
           _surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
           _surfaceTexture = _surfaceTextureEntry!!.surfaceTexture();
-          _surfaceTexture!!.setDefaultBufferSize(width.toInt(), height.toInt())
+          _surfaceTexture!!.setDefaultBufferSize(width, height)
 
           _surface = Surface(_surfaceTexture)
 
           if(!_surface!!.isValid) {
-              Log.e("ERR", "ERR", null)
+            result.error("SURFACE_INVALID", "Failed to create valid surface", null)
+          } else {
+            val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
+            result.success(listOf(_surfaceTextureEntry!!.id(), null, Pointer.nativeValue(nativeWindow)))
           }
-
-          val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
-        
-          val resultList = listOf(_surfaceTextureEntry!!.id(), Pointer.nativeValue(nativeWindow), null, null )
-          
-          result.success(resultList)
         }
         "getResourceLoaderWrapper" -> { 
-          val resourceLoader = _lib.make_resource_loader(loadResourceWrapper, freeResourceWrapper, Pointer(0))
+          val resourceLoader = _lib.make_resource_loader_wrapper_android(loadResourceWrapper, freeResourceWrapper, Pointer(0))
           result.success(Pointer.nativeValue(resourceLoader))
+        }
+        "getDriverPlatform" -> { 
+          result.success(null)
+        }
+        "getSharedContext" -> { 
+          result.success(null)
         }
         "getRenderCallback" -> {
           val renderCallbackFnPointer = _lib.make_render_callback_fn_pointer(RenderCallbackImpl(this))
@@ -197,7 +200,7 @@ class FlutterFilamentPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           _surface!!.release();
           _surfaceTextureEntry!!.release();
           _surface = null
-          _surfaceTextureEntry = null
+          _surfaceTextureEntry = null 
           result.success(true)
         }
         else -> {
