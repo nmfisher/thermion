@@ -7,8 +7,8 @@ plugins {
 
 android {
     namespace = "app.polyvox.example"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdkVersion 34
+    ndkVersion "25.2.9519653"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -24,19 +24,26 @@ android {
         applicationId = "app.polyvox.example"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 30
+        targetSdk = 31
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.debug
+            shrinkResources false
+            minifyEnabled false
         }
-    }
+        debug {
+             
+        }
+    }   
+}
+
+dependencies {
+    implementation 'net.java.dev.jna:jna:5.10.0@aar'
 }
 
 flutter {
