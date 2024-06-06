@@ -126,7 +126,7 @@ void main(List<String> args) async {
         ..level = Level.ALL
         ..onRecord.listen((record) => print(record.message)),
     );
-    if (!config.dryRun) {
+    if (!config.dryRun && config.targetOS == OS.android) {
       final archExtension = switch (config.targetArchitecture) {
         Architecture.arm => "arm-linux-androideabi",
         Architecture.arm64 => "aarch64-linux-android",
