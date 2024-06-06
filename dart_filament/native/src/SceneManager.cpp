@@ -221,8 +221,7 @@ namespace flutter_filament
         }
         else
         {
-            asset = _assetLoader->createAsset(
-                (const uint8_t *)data, length);
+            asset = _assetLoader->createAsset(data, length);
         }
 
         if (!asset)
