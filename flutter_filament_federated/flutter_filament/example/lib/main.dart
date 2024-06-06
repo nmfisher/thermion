@@ -110,7 +110,7 @@ class ExampleWidgetState extends State<ExampleWidget> {
             if (isInitialized)
               Positioned.fill(
                 child: ExampleViewport(
-                    controller: _plugin,
+                    controller: isInitialized ? _plugin : null,
                     entityTransformController: _transformController,
                     padding: _viewportMargin,
                     keyboardFocusNode: _sharedFocusNode),
