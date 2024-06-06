@@ -229,7 +229,7 @@ extern "C"
                                                    uint32_t height,
                                                    void (*onComplete)())
   {
-    Log("Creating swapchain %dx%d with viewer %d", width, height, viewer);
+    Log("Creating swapchain %dx%d with viewer %lu & surface %lu", width, height, viewer, surface);
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
