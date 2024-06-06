@@ -18,6 +18,8 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
     FlutterFilamentPlatform.instance = FlutterFilamentFFI();
   }
 
+  final _textures = <FlutterFilamentTexture>{};
+
   Future initialize({String? uberArchivePath}) async {
     var resourceLoader = Pointer<Void>.fromAddress(
         await _channel.invokeMethod("getResourceLoaderWrapper"));
@@ -51,19 +53,81 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
         driver: driverPtr,
         sharedContext: sharedContextPtr,
         uberArchivePath: uberArchivePath);
+    await viewer.initialized;
   }
 
+  bool _creatingTexture = false;
+
+  Future _waitForTextureCreationToComplete() async {
+    var iter = 0;
+
+    while (_creatingTexture) {
+      await Future.delayed(Duration(milliseconds: 50));
+      iter++;
+      if (iter > 10) {
+        throw Exception(
+            "Previous call to createTexture failed to complete within 500ms");
+      }
+    }
+  }
+
+  ///
+  /// Create a backing surface for rendering.
+  /// This is called by [FilamentWidget]; don't call this yourself.
+  ///
+  /// The name here is slightly misleading because we only create
+  /// a texture render target on macOS and iOS; on Android, we render into
+  /// a native window derived from a Surface, and on Windows we render into
+  /// a HWND.
+  ///
+  /// Currently, this only supports a single "texture" (aka rendering surface)
+  /// at any given time. If a [FilamentWidget] is disposed, it will call
+  /// [destroyTexture]; if it is resized, it will call [resizeTexture].
+  ///
+  /// In future, we probably want to be able to create multiple distinct
+  /// textures/render targets. This would make it possible to have multiple
+  /// Flutter Texture widgets, each with its own Filament View attached.
+  /// The current design doesn't accommodate this (for example, it seems we can
+  /// only create a single native window from a Surface at any one time).
+  ///
   Future<FlutterFilamentTexture?> createTexture(
       int width, int height, int offsetLeft, int offsetRight) async {
+    // when a FilamentWidget is inserted, disposed then immediately reinserted
+    // into the widget hierarchy (e.g. rebuilding due to setState(() {}) being called in an ancestor widget)
+    // the first call to createTexture may not have completed before the second.
+    // add a loop here to wait (max 500ms) for the first call to complete
+    await _waitForTextureCreationToComplete();
+
+    // note that when [FilamentWidget] is disposed, we don't destroy the
+    // texture; instead, we keep it around in case a subsequent call requests
+    // a texture of the same size.
+
+    if (_textures.length > 1) {
+      throw Exception("Multiple textures not yet supported");
+    } else if (_textures.length == 1 &&
+        _textures.first.height == height &&
+        _textures.first.width == width) {
+      return _textures.first;
+    }
+
+    _creatingTexture = true;
+
     var result = await _channel
         .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
 
     if (result == null || result[0] == -1) {
       throw Exception("Failed to create texture");
     }
+    final flutterTextureId = result[0] as int;
+    final hardwareTextureId = result[1] as int?;
+    final surfaceAddress = result[2] as int?;
+
+    print(
+        "Created texture with flutter texture id ${flutterTextureId}, hardwareTextureId $hardwareTextureId and surfaceAddress $surfaceAddress");
+
     viewer.viewportDimensions = (width.toDouble(), height.toDouble());
-    var texture =
-        FlutterFilamentTexture(result[0], result[1], width, height, result[2]);
+    var texture = FlutterFilamentTexture(
+        flutterTextureId, hardwareTextureId, width, height, surfaceAddress);
 
     await viewer.createSwapChain(width.toDouble(), height.toDouble(),
         surface: texture.surfaceAddress == null
@@ -77,15 +141,24 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
     await viewer.updateViewportAndCameraProjection(
         width.toDouble(), height.toDouble());
     viewer.render();
+    _creatingTexture = false;
+    _textures.add(texture);
     return texture;
   }
 
+  ///
+  /// Called by [FilamentWidget] to destroy a texture. Don't call this yourself.
+  ///
   Future destroyTexture(FlutterFilamentTexture texture) async {
     await _channel.invokeMethod("destroyTexture", texture.flutterTextureId);
+    _textures.remove(texture);
   }
 
   bool _resizing = false;
 
+  ///
+  /// Called by [FilamentWidget] to resize a texture. Don't call this yourself.
+  ///
   @override
   Future<FlutterFilamentTexture?> resizeTexture(FlutterFilamentTexture texture,
       int width, int height, int offsetLeft, int offsetRight) async {
@@ -102,7 +175,7 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
     await viewer.setRendering(false);
     await viewer.destroySwapChain();
     await destroyTexture(texture);
-    
+
     var result = await _channel
         .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
 
@@ -129,10 +202,9 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
     if (wasRendering) {
       await viewer.setRendering(true);
     }
+    _textures.add(newTexture);
     _resizing = false;
     return newTexture;
-    // await _channel.invokeMethod("resizeTexture",
-    //     [texture.flutterTextureId, width, height, offsetLeft, offsetRight]);
   }
 
   @override
