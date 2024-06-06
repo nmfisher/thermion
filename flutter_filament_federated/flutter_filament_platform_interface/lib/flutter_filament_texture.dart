@@ -7,9 +7,6 @@ class FlutterFilamentTexture {
 
   FlutterFilamentTexture(this.flutterTextureId, this.hardwareTextureId,
       this.width, this.height, this.surfaceAddress) {
-        // surface = surfaceAddress
-    // if (surfaceAddress != null) {
-    //   surface = Pointer<Void>.fromAddress(surfaceAddress!);
-    // }
+
   }
 }
