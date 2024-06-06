@@ -6,3 +6,4 @@
 .vscode
 .DS_Store
 **/*/build
+flutter_filament_federated/*/pubspec.lock
