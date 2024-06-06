@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:flutter_filament_platform_interface/flutter_filament_platform_interface.dart';
 import 'package:flutter_filament_platform_interface/flutter_filament_texture.dart';
 import 'package:flutter_filament/flutter_filament.dart';
 import 'resize_observer.dart';
@@ -26,14 +25,8 @@ class FilamentWidget extends StatefulWidget {
 }
 
 class _FilamentWidgetState extends State<FilamentWidget> {
-  FlutterFilamentTexture? _texture;
 
-  Rect get _rect {
-    final renderBox = (context.findRenderObject()) as RenderBox;
-    final size = renderBox.size;
-    final translation = renderBox.getTransformTo(null).getTranslation();
-    return Rect.fromLTWH(translation.x, translation.y, size.width, size.height);
-  }
+  FlutterFilamentTexture? _texture;
 
   @override
   void initState() {
@@ -51,31 +44,24 @@ class _FilamentWidgetState extends State<FilamentWidget> {
     super.initState();
   }
 
-  @override
-  void dispose() {
-    if (_texture != null) {
-      widget.plugin.destroyTexture(_texture!);
-    }
-
-    super.dispose();
-  }
-
   bool _resizing = false;
   Timer? _resizeTimer;
 
   Future _resizeTexture(Size newSize) async {
     _resizeTimer?.cancel();
-    _resizeTimer = Timer(Duration(milliseconds: 100), () async {
+    _resizeTimer = Timer(Duration(milliseconds: 500), () async {
       if (_resizing) {
         return;
       }
       _resizeTimer!.cancel();
       _resizing = true;
+      var oldTexture = _texture;
+      _texture = null;
       setState(() {});
 
       var dpr = MediaQuery.of(context).devicePixelRatio;
 
-      _texture = await widget.plugin.resizeTexture(_texture!,
+      _texture = await widget.plugin.resizeTexture(oldTexture!,
           (dpr * newSize.width).ceil(), (dpr * newSize.height).ceil(), 0, 0);
       print(
           "Resized texture, new flutter ID is ${_texture!.flutterTextureId} (hardware ID ${_texture!.hardwareTextureId})");
