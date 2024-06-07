@@ -14,7 +14,7 @@
 #include "GL/GL.h"
 #include "GL/GLu.h"
 
-#include "FlutterFilamentApi.h"
+#include "ResourceBuffer.hpp"
 
 #if USE_ANGLE
 #include "egl_context.h"

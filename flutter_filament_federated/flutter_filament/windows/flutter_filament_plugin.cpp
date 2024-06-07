@@ -25,8 +25,6 @@
 #include <vector>
 #include <thread>
 
-#include "FlutterFilamentApi.h"
-
 #include "flutter_render_context.h"
 
 #if USE_ANGLE
@@ -221,9 +219,16 @@ void FlutterFilamentPlugin::HandleMethodCall(
       #endif
     ));
   } else if (methodCall.method_name() == "getResourceLoaderWrapper") {
-    const ResourceLoaderWrapper *const resourceLoader =
-        new ResourceLoaderWrapper(_loadResource, _freeResource, this);
-    result->Success(flutter::EncodableValue((int64_t)resourceLoader));
+    auto wrapper = (ResourceLoaderWrapper*)malloc(sizeof(ResourceLoaderWrapper));
+    wrapper->loadFromOwner = _loadResource;
+    wrapper->freeFromOwner = _freeResource, 
+    wrapper->owner = this;
+    wrapper->loadResource = nullptr;
+    wrapper->loadToOut = nullptr;
+    wrapper->freeResource = nullptr;
+    result->Success(flutter::EncodableValue((int64_t)wrapper));
+  } else if(methodCall.method_name() == "getSharedContext")  {
+      result->Success(NULL);
   } else if (methodCall.method_name() == "resizeWindow") {
     #if WGL_USE_BACKING_WINDOW
       const auto *args =
