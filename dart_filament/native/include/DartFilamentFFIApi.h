@@ -1,5 +1,5 @@
-#ifndef _FLUTTER_FILAMENT_FFI_API_H
-#define _FLUTTER_FILAMENT_FFI_API_H
+#ifndef _DART_FILAMENT_FFI_API_H
+#define _DART_FILAMENT_FFI_API_H
 
 #include "DartFilamentApi.h"
 
@@ -9,10 +9,11 @@ extern "C"
 #endif
 
     ///
-    /// This header replicates most of the methods in FlutterFilamentApi.h, and is only intended to be used to generate client FFI bindings.
-    /// The intention is that calling one of these methods will call its respective method in FlutterFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety.
+    /// This header replicates most of the methods in DartFilamentApi.h. 
+    /// It represents the interface for:
+    /// - invoking those methods that must be called on the main Filament engine thread
+    /// - setting up a render loop
     ///
-
     typedef int32_t EntityId;
     typedef void (*FilamentRenderCallback)(void *const owner);
 
@@ -108,4 +109,4 @@ extern "C"
 }
 #endif
 
-#endif // _FLUTTER_FILAMENT_FFI_API_H
+#endif // _DART_FILAMENT_FFI_API_H
