@@ -29,7 +29,7 @@ PRs are welcome but please create a placeholder PR to discuss before writing any
 
 ## Getting Started
 
-This package requires Flutter >= `3.16.0-0.2.pre`, so you will need to first switch to the `beta` channel: 
+This package requires Flutter >= `3.16.0`.
 
 ```bash
 flutter channel beta
@@ -330,7 +330,7 @@ If you have some kind of looping animation in your app code, make sure it pauses
 ## Versioning
 
 ||Android|iOS|MacOS|Windows|Linux|WebGL|
-|---|---|---|---|---|---||
+|---|---|---|---|---|---|---|
 |Filament|v1.43.1 (arm64/armeabi-v7a/x86/x86_64)|v1.43.1* (arm64)|v1.43.1 (arm64)|v1.32.4 (x86_64)|TODO**|TODO***|
 |Flutter||3.15.0-15.2.pre|3.15.0-15.2.pre|3.15.0-15.2.pre
 
