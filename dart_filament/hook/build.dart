@@ -178,21 +178,8 @@ void main(List<String> args) async {
             architecture: config.targetArchitecture));
       }
     }
+    // do we need this?
     if (config.targetOS == "windows") {
-         final packageName = config.packageName;
-    final allAssets = [
-      DataAsset(
-        package: packageName,
-        name: 'unused_asset',
-        file: config.packageRoot.resolve('assets/unused_asset.json'),
-      ),
-      DataAsset(
-        package: packageName,
-        name: 'used_asset',
-        file: config.packageRoot.resolve('assets/used_asset.json'),
-      )
-    ];
-    output.addAssets(allAssets, linkInPackage: packageName);
       output.addAsset(
           NativeCodeAsset(
               package: "dart_filament",
