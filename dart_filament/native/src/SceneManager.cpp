@@ -57,7 +57,6 @@ namespace flutter_filament
 
         _gltfResourceLoader = new ResourceLoader({.engine = _engine,
                                                   .normalizeSkinningWeights = true});
-
         if (uberArchivePath)
         {
             auto uberdata = resourceLoaderWrapper->load(uberArchivePath);
@@ -73,13 +72,13 @@ namespace flutter_filament
             _ubershaderProvider = gltfio::createUbershaderProvider(
                 _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
         }
-        Log("Created ubershader provider.");
 
         utils::EntityManager &em = utils::EntityManager::get();
 
         _ncm = new NameComponentManager(em);
-
+        
         _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em});
+    
         _gltfResourceLoader->addTextureProvider("image/ktx2", _ktxDecoder);
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
@@ -88,7 +87,7 @@ namespace flutter_filament
 
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
-
+        
         addGizmo();
     }
 
