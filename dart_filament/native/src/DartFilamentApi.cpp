@@ -1,3 +1,6 @@
+#pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "opengl32.lib")
+
 #include "ResourceBuffer.hpp"
 
 #include "FilamentViewer.hpp"
