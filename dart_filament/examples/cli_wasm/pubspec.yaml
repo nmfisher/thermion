@@ -16,5 +16,3 @@ dev_dependencies:
   ffigen: ^11.0.0
   lints: ^3.0.0
   test: ^1.24.0
-  native_assets_cli: ^0.5.0
-  native_toolchain_c: ^0.4.0
