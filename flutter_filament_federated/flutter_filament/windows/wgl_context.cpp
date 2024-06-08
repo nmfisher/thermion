@@ -118,11 +118,10 @@ void WGLContext::CreateRenderingSurface(
     ResizeRenderingSurface(width, height, left, top);
   }
   std::vector<flutter::EncodableValue> resultList;
-  resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
+  resultList.push_back(flutter::EncodableValue()); // return null for Flutter texture ID
+  resultList.push_back(flutter::EncodableValue()); // return null for hardware texture ID
   resultList.push_back(
-      flutter::EncodableValue((int64_t)_backingWindow->GetHandle()));
-  resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
-  resultList.push_back(flutter::EncodableValue((int64_t)_context));
+      flutter::EncodableValue((int64_t)_backingWindow->GetHandle())); // return the HWND handle for the native window 
   result->Success(resultList);
 #else
   if(left != 0 || top != 0) {

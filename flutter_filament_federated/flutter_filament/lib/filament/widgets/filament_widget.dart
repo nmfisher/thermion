@@ -72,6 +72,14 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
   @override
   Widget build(BuildContext context) {
+
+    if (_texture?.usesBackingWindow == true) {
+      return Stack(children: [
+        Positioned.fill(child: CustomPaint(painter: TransparencyPainter()))
+      ]);
+    }
+
+
     if (_texture == null || _resizing) {
       return widget.initial ??
           Container(color: kIsWeb ? Colors.transparent : Colors.red);
@@ -79,7 +87,7 @@ class _FilamentWidgetState extends State<FilamentWidget> {
 
     var textureWidget = Texture(
       key: ObjectKey("texture_${_texture!.flutterTextureId}"),
-      textureId: _texture!.flutterTextureId,
+      textureId: _texture!.flutterTextureId!,
       filterQuality: FilterQuality.none,
       freeze: false,
     );
@@ -97,4 +105,20 @@ class _FilamentWidgetState extends State<FilamentWidget> {
                   : textureWidget)
         ]));
   }
+}
+
+
+class TransparencyPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()
+        ..blendMode = BlendMode.clear
+        ..color = const Color(0x00000000),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

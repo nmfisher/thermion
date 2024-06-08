@@ -1,5 +1,6 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "Shlwapi.lib")
 
 #include "flutter_filament_plugin.h"
 
@@ -35,8 +36,7 @@
 
 namespace flutter_filament {
 
-  using namespace std::chrono_literals;
-
+using namespace std::chrono_literals;
 
 void FlutterFilamentPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
@@ -123,6 +123,7 @@ void FlutterFilamentPlugin::freeResource(ResourceBuffer rbuf) {
 }
 
 static ResourceBuffer _loadResource(const char *path, void *const plugin) {
+  std::wcout << "Loading resource from path " << path << std::endl;
   return ((FlutterFilamentPlugin *)plugin)->loadResource(path);
 }
 
@@ -163,10 +164,10 @@ void FlutterFilamentPlugin::CreateTexture(
   const auto *args =
       std::get_if<flutter::EncodableList>(methodCall.arguments());
 
-  double dWidth = *(std::get_if<double>(&(args->at(0))));
-  double dHeight = *(std::get_if<double>(&(args->at(1))));
-  double dLeft = *(std::get_if<double>(&(args->at(2))));
-  double dTop = *(std::get_if<double>(&(args->at(3))));
+  int dWidth = *(std::get_if<int>(&(args->at(0))));
+  int dHeight = *(std::get_if<int>(&(args->at(1))));
+  int dLeft = *(std::get_if<int>(&(args->at(2))));
+  int dTop = *(std::get_if<int>(&(args->at(3))));
   auto width = (uint32_t)round(dWidth );
   auto height = (uint32_t)round(dHeight );
   auto left = (uint32_t)round(dLeft );
@@ -233,10 +234,11 @@ void FlutterFilamentPlugin::HandleMethodCall(
     #if WGL_USE_BACKING_WINDOW
       const auto *args =
       std::get_if<flutter::EncodableList>(methodCall.arguments());
-      double dWidth = *(std::get_if<double>(&(args->at(0))));
-      double dHeight = *(std::get_if<double>(&(args->at(1))));
-      double dLeft = *(std::get_if<double>(&(args->at(2))));
-      double dTop = *(std::get_if<double>(&(args->at(3))));
+    
+      int dWidth = *(std::get_if<int>(&(args->at(0))));
+      int dHeight = *(std::get_if<int>(&(args->at(1))));
+      int dLeft = *(std::get_if<int>(&(args->at(2))));
+      int dTop = *(std::get_if<int>(&(args->at(3))));
       auto width = (uint32_t)round(dWidth );
       auto height = (uint32_t)round(dHeight );
       auto left = (uint32_t)round(dLeft );

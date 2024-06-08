@@ -115,10 +115,10 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
     var result = await _channel
         .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
 
-    if (result == null || result[0] == -1) {
+    if (result == null || (result[0] == -1)) {
       throw Exception("Failed to create texture");
     }
-    final flutterTextureId = result[0] as int;
+    final flutterTextureId = result[0] as int?;
     final hardwareTextureId = result[1] as int?;
     final surfaceAddress = result[2] as int?;
 
@@ -126,23 +126,28 @@ class FlutterFilamentFFI extends FlutterFilamentPlatform {
         "Created texture with flutter texture id ${flutterTextureId}, hardwareTextureId $hardwareTextureId and surfaceAddress $surfaceAddress");
 
     viewer.viewportDimensions = (width.toDouble(), height.toDouble());
-    var texture = FlutterFilamentTexture(
-        flutterTextureId, hardwareTextureId, width, height, surfaceAddress);
+
+    final texture = FlutterFilamentTexture(
+      flutterTextureId, hardwareTextureId, width, height, surfaceAddress);
 
     await viewer.createSwapChain(width.toDouble(), height.toDouble(),
-        surface: texture.surfaceAddress == null
-            ? nullptr
-            : Pointer<Void>.fromAddress(texture.surfaceAddress!));
+      surface: texture.surfaceAddress == null
+          ? nullptr
+          : Pointer<Void>.fromAddress(texture.surfaceAddress!));
 
     if (texture.hardwareTextureId != null) {
+      print("Creating render target");
       var renderTarget = await viewer.createRenderTarget(
-          width.toDouble(), height.toDouble(), texture.hardwareTextureId!);
+        width.toDouble(), height.toDouble(), texture.hardwareTextureId!);
     }
+    
     await viewer.updateViewportAndCameraProjection(
         width.toDouble(), height.toDouble());
     viewer.render();
     _creatingTexture = false;
+    
     _textures.add(texture);
+    
     return texture;
   }
 

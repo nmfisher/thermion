@@ -100,6 +100,12 @@ set(flutter_filament_bundled_libraries
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/libc++.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/third_party_abseil-cpp_absl.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/third_party_zlib.dll
+  ${CMAKE_CURRENT_SOURCE_DIR}/dart_filament.dll
+  PARENT_SCOPE
+)
+else()
+set(flutter_filament_bundled_libraries
+  ${runner_BINARY_DIR}/../../../native_assets/windows/dart_filament.dll
   PARENT_SCOPE
 )
 endif()
