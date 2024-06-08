@@ -1,5 +1,7 @@
+#ifdef _WIN32
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "opengl32.lib")
+#endif
 
 #include "ResourceBuffer.hpp"
 
