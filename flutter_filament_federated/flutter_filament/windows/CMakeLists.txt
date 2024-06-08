@@ -69,16 +69,11 @@ if(USE_ANGLE)
   set_property(TARGET GLESv2 PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_SOURCE_DIR}/../../../../dart_filament/native/lib/windows/x86_64/mt/angle/libGLESv2.dll.lib")
 else()
   list(APPEND GL_LIBS
-    bluegl
     opengl32
     dwmapi
     comctl32
   )
   set(ANGLE_OR_OPENGL_DIR opengl)
-  add_library(bluegl SHARED IMPORTED)
-  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_DEBUG "${CMAKE_SOURCE_DIR}/../../../../dart_filament/native/lib/windows/x86_64/mdd/bluegl.lib")
-  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_PROFILE "${CMAKE_SOURCE_DIR}/../../../../dart_filament/native/lib/windows/x86_64/mt/bluegl.lib")
-  set_property(TARGET bluegl PROPERTY IMPORTED_IMPLIB_RELEASE "${CMAKE_SOURCE_DIR}/../../../../dart_filament/native/lib/windows/x86_64/mt/bluegl.lib")
 endif()
 
 include_directories(

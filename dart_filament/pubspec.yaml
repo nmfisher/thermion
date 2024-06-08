@@ -12,11 +12,12 @@ dependencies:
   tuple:
   ffi:
   animation_tools_dart: ^0.0.4
-  native_assets_cli: ^0.6.0
   native_toolchain_c:
     git:
       url: git@github.com:nmfisher/native.git
       path: pkgs/native_toolchain_c
+      ref: 99020084c4687be4c58c7115a167088c0441d1de
+  archive: ^3.6.1
 
 dev_dependencies:
   ffigen: ^11.0.0

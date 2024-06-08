@@ -1,6 +1,7 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "opengl32.lib")
 
 #include "flutter_filament_plugin.h"
 

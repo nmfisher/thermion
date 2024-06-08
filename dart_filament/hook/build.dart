@@ -1,41 +1,18 @@
 import 'dart:io';
+import 'package:archive/archive.dart';
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 
 void main(List<String> args) async {
   await build(args, (config, output) async {
+
+    final logger = Logger("")..level = Level.ALL
+        ..onRecord.listen((record) => print(record.message));
+
     var platform = config.targetOS.toString().toLowerCase();
 
-    var libDir = "${config.packageRoot.toFilePath()}/native/lib/$platform/";
-
-    if (platform == "macos") {
-      libDir +=
-          "${config.dryRun ? "debug" : config.buildMode == BuildMode.debug ? "debug" : "release"}";
-    } else if (platform == "android") {
-      // we don't recommend using Filament debug builds on Android, since there
-      // are known driver issues, e.g.:
-      // https://github.com/google/filament/issues/7162
-      // (these aren't present in Filament release builds).
-      // However, if for some reason you need to debug a Filament-specific issue,
-      // you can build your own debug libraries, copy to the native/lib/android/debug folder, then change the following to "debug".
-      libDir += "release";
-    } else if (platform == "windows") {
-      libDir += "x86_64/mdd";
-    }
-
-    if (platform == "android") {
-      if (!config.dryRun) {
-        final archExtension = switch (config.targetArchitecture) {
-          Architecture.arm => "armeabi-v7a",
-          Architecture.arm64 => "arm64-v8a",
-          Architecture.x64 => "x86_64",
-          Architecture.ia32 => "x86",
-          _ => throw FormatException('Invalid')
-        };
-        libDir += "/$archExtension";
-      }
-    }
+    var libDir = config.dryRun ? "" : (await getLibDir(config, logger)).path;
 
     final packageName = config.packageName;
 
@@ -108,15 +85,7 @@ void main(List<String> args) async {
     }
 
     if (platform == "ios") {
-      frameworks.addAll([
-        'Foundation',
-        'CoreGraphics',
-        'QuartzCore',
-        'GLKit',
-        "Metal",
-        'CoreVideo',
-        'OpenGLES'
-      ]);
+      frameworks.addAll(['Foundation', 'CoreGraphics', 'QuartzCore', 'GLKit', "Metal", 'CoreVideo', 'OpenGLES']);
     } else if (platform == "macos") {
       frameworks.addAll([
         'Foundation',
@@ -153,9 +122,7 @@ void main(List<String> args) async {
     await cbuilder.run(
       config: config,
       output: output,
-      logger: Logger('')
-        ..level = Level.ALL
-        ..onRecord.listen((record) => print(record.message)),
+      logger: logger,
     );
     if (config.targetOS == OS.android) {
       if (!config.dryRun) {
@@ -192,4 +159,89 @@ void main(List<String> args) async {
           linkInPackage: config.packageName);
     }
   });
+}
+
+String _FILAMENT_VERSION ="v1.51.2";
+String _getLibraryUrl(String platform, String mode) {
+   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
+}
+
+//
+// Download precompiled Filament libraries for the target platform from Cloudflare.
+//
+Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
+
+    var platform = config.targetOS.toString().toLowerCase();
+  
+    // Except on Windows, most users will only need release builds of Filament. 
+    // Debug builds are probably only relevant if you're a package developer debugging an internal Filament issue
+    // or if you're working on Flutter+Windows (which requires the CRT debug DLLs).
+    // Also note that there are known driver issues with Android debug builds, e.g.:
+    // https://github.com/google/filament/issues/7162
+    // (these aren't present in Filament release builds).
+    // However, if you know what you're doing, you can change "release" to "debug" below.
+    // TODO - check if we can pass this as a CLI compiler flag
+    var mode = "release";
+    if(platform == "windows") {
+      mode = config.buildMode == BuildMode.debug ? "debug" : "release";
+    } 
+
+    var libDir = Directory("${config.packageRoot.toFilePath()}/.dart_tool/dart_filament/lib/${_FILAMENT_VERSION}/$platform/$mode/");
+
+    if (platform == "android") {
+      final archExtension = switch (config.targetArchitecture) {
+        Architecture.arm => "armeabi-v7a",
+        Architecture.arm64 => "arm64-v8a",
+        Architecture.x64 => "x86_64",
+        Architecture.ia32 => "x86",
+        _ => throw FormatException('Invalid')
+      };
+      libDir = Directory("${libDir.path}/$archExtension/");
+    } else if(platform == "windows") {
+      if(config.targetArchitecture != Architecture.x64) {
+        throw Exception("Unsupported architecture : ${config.targetArchitecture}");
+      }
+    }
+    
+    final url = _getLibraryUrl(platform, mode);
+
+    final filename = url.split("/").last;
+
+    // Assume that the libraries exist if the directory containing them exists.
+    if (!libDir.existsSync()) {
+
+      final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
+
+      final libraryZip = File("$unzipDir/$filename");
+
+      if(libraryZip.existsSync()) {
+        libraryZip.deleteSync();
+      }
+
+      if(!libraryZip.parent.existsSync()) {
+        libraryZip.parent.createSync(recursive: true);
+      }
+
+      logger.info("Downloading prebuilt libraries for $platform/$mode from $url to ${libraryZip}, files will be unzipped to ${unzipDir}");
+      final request = await HttpClient().getUrl(Uri.parse(url));
+      final response = await request.close();
+
+      await response.pipe(libraryZip.openWrite());
+
+      final archive = ZipDecoder().decodeBytes(await libraryZip.readAsBytes());
+
+      for (final file in archive) {
+        final filename = file.name;
+        if (file.isFile) {
+          final data = file.content as List<int>;
+          final f = File('${unzipDir}/$filename');
+          await f.create(recursive: true);
+          await f.writeAsBytes(data);
+        } else {
+          final d = Directory('${unzipDir}/$filename');
+          await d.create(recursive: true);
+        }
+      }
+    }
+    return libDir;
 }
