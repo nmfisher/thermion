@@ -135,6 +135,10 @@ namespace flutter_filament
     _engine = Engine::create(Engine::Backend::METAL);
 #elif defined(__EMSCRIPTEN__)
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)new filament::backend::PlatformWebGL(), (void *)sharedContext, nullptr);
+#elif defined(_WIN32)
+    Engine::Config config;
+    config.stereoscopicEyeCount = 1; 
+    _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, &config);
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
 #endif
@@ -163,6 +167,10 @@ namespace flutter_filament
 
     _view->setAmbientOcclusionOptions({.enabled = false});
     _view->setDynamicResolutionOptions({.enabled = false});
+    
+    #if defined(_WIN32)
+    _view->setStereoscopicOptions({.enabled = true});
+    #endif
 
     _view->setDithering(filament::Dithering::NONE);
     setAntiAliasing(false, false, false);
