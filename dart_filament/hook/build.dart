@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:archive/archive.dart';
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
@@ -10,8 +11,7 @@ void main(List<String> args) async {
     var libDir = "${config.packageRoot.toFilePath()}/native/lib/$platform/";
 
     if (platform == "macos") {
-      libDir +=
-          "${config.dryRun ? "debug" : config.buildMode == BuildMode.debug ? "debug" : "release"}";
+      libDir += "${config.dryRun ? "debug" : config.buildMode == BuildMode.debug ? "debug" : "release"}";
     } else if (platform == "android") {
       // we don't recommend using Filament debug builds on Android, since there
       // are known driver issues, e.g.:
@@ -33,6 +33,11 @@ void main(List<String> args) async {
         };
         libDir += "/$archExtension";
       }
+    }
+
+    // Assume that the libraries exist if the directory containing them exists.
+    if (!Directory(libDir).existsSync()) {
+      await _downloadLibraries(platform, libDir);
     }
 
     final packageName = config.packageName;
@@ -80,15 +85,7 @@ void main(List<String> args) async {
     var frameworks = [];
 
     if (platform == "ios") {
-      frameworks.addAll([
-        'Foundation',
-        'CoreGraphics',
-        'QuartzCore',
-        'GLKit',
-        "Metal",
-        'CoreVideo',
-        'OpenGLES'
-      ]);
+      frameworks.addAll(['Foundation', 'CoreGraphics', 'QuartzCore', 'GLKit', "Metal", 'CoreVideo', 'OpenGLES']);
     } else if (platform == "macos") {
       frameworks.addAll([
         'Foundation',
@@ -135,8 +132,7 @@ void main(List<String> args) async {
         _ => throw FormatException('Invalid')
       };
       var ndkRoot = File(config.cCompiler.compiler!.path).parent.parent.path;
-      var stlPath =
-          File("$ndkRoot/sysroot/usr/lib/${archExtension}/libc++_shared.so");
+      var stlPath = File("$ndkRoot/sysroot/usr/lib/${archExtension}/libc++_shared.so");
       output.addAsset(NativeCodeAsset(
           package: "dart_filament",
           name: "libc++_shared.so",
@@ -146,4 +142,28 @@ void main(List<String> args) async {
           architecture: config.targetArchitecture));
     }
   });
+}
+
+Future<void> _downloadLibraries(String platform, String outputDirectory) async {
+  final request = await HttpClient().getUrl(Uri.parse('http://localhost:8000/$platform-libraries.zip'));
+  final response = await request.close();
+
+  final libraryZip = File('${Directory.systemTemp.path}/$platform-libraries.zip');
+
+  await response.pipe(libraryZip.openWrite());
+
+  final archive = ZipDecoder().decodeBytes(await libraryZip.readAsBytes());
+
+  for (final file in archive) {
+    final filename = file.name;
+    if (file.isFile) {
+      final data = file.content as List<int>;
+      final f = File('$outputDirectory/$filename');
+      await f.create(recursive: true);
+      await f.writeAsBytes(data);
+    } else {
+      final d = Directory('$outputDirectory/$filename');
+      await d.create(recursive: true);
+    }
+  }
 }

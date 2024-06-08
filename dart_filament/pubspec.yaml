@@ -12,11 +12,12 @@ dependencies:
   tuple:
   ffi:
   animation_tools_dart: ^0.0.4
+  archive: ^3.6.1
+  native_assets_cli: ^0.5.0
+  native_toolchain_c: ^0.4.0
 
 dev_dependencies:
   ffigen: ^11.0.0
-  native_assets_cli: ^0.5.0
-  native_toolchain_c: ^0.4.0
   test:
 
 
