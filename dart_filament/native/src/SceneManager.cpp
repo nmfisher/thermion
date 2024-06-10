@@ -1024,7 +1024,9 @@ namespace flutter_filament
                                         const float *const frameData,
                                         int numFrames,
                                         float frameLengthInMs,
-                                        float fadeOutInSecs, float fadeInInSecs)
+                                        float fadeOutInSecs, 
+                                        float fadeInInSecs,
+                                        float maxDelta)
     {
         std::lock_guard lock(_mutex);
 
@@ -1072,7 +1074,6 @@ namespace flutter_filament
         }
 
         animation.frameLengthInMs = frameLengthInMs;
-
         animation.start = std::chrono::high_resolution_clock::now();
         animation.reverse = false;
         animation.durationInSecs = (frameLengthInMs * numFrames) / 1000.0f;
@@ -1080,6 +1081,7 @@ namespace flutter_filament
         animation.frameLengthInMs = frameLengthInMs;
         animation.fadeOutInSecs = fadeOutInSecs;
         animation.fadeInInSecs = fadeInInSecs;
+        animation.maxDelta = maxDelta;
         animation.skinIndex = skinIndex;
         if(!_animationComponentManager->hasComponent(instance->getRoot())) { 
             Log("ERROR: specified entity is not animatable (has no animation component attached).");

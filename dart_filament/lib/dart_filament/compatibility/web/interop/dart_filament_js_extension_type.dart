@@ -151,7 +151,8 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
       JSNumber spaceEnum,
       JSNumber skinIndex,
       JSNumber fadeInInSecs,
-      JSNumber fadeOutInSecs);
+      JSNumber fadeOutInSecs,
+      JSNumber maxDelta);
 
   @JS('removeEntity')
   external JSPromise removeEntity(FilamentEntity entity);

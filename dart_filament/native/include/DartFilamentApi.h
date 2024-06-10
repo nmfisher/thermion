@@ -149,7 +149,8 @@ extern "C"
 		int numFrames,
 		float frameLengthInMs,
 		float fadeOutInSecs,
-		float fadeInInSecs);
+		float fadeInInSecs,
+		float maxDelta);
 	EMSCRIPTEN_KEEPALIVE void get_local_transform(void *sceneManager,
         EntityId entityId, float* const);
 	EMSCRIPTEN_KEEPALIVE void get_rest_local_transforms(void *sceneManager,

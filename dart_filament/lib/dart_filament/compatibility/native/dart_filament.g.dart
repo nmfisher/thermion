@@ -460,8 +460,17 @@ external void reset_to_rest_pose(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
-            ffi.Pointer<ffi.Float>, ffi.Int, ffi.Float, ffi.Float, ffi.Float)>(
+        ffi.Void Function(
+            ffi.Pointer<ffi.Void>,
+            EntityId,
+            ffi.Int,
+            ffi.Int,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float)>(
     symbol: 'add_bone_animation',
     assetId: 'package:dart_filament/dart_filament.dart')
 external void add_bone_animation(
@@ -474,6 +483,7 @@ external void add_bone_animation(
   double frameLengthInMs,
   double fadeOutInSecs,
   double fadeInInSecs,
+  double maxDelta,
 );
 
 @ffi.Native<
@@ -1804,8 +1814,10 @@ typedef LoadFilamentResourceIntoOutPointerFunction = ffi.Void Function(
 typedef DartLoadFilamentResourceIntoOutPointerFunction = void Function(
     ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
 
-/// This header replicates most of the methods in FlutterFilamentApi.h, and is only intended to be used to generate client FFI bindings.
-/// The intention is that calling one of these methods will call its respective method in FlutterFilamentApi.h, but wrapped in some kind of thread runner to ensure thread safety.
+/// This header replicates most of the methods in DartFilamentApi.h.
+/// It represents the interface for:
+/// - invoking those methods that must be called on the main Filament engine thread
+/// - setting up a render loop
 typedef EntityId = ffi.Int32;
 typedef DartEntityId = int;
 typedef _ManipulatorMode = ffi.Int32;

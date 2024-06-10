@@ -82,6 +82,7 @@ namespace flutter_filament
         std::vector<math::mat4f> frameData;
         float fadeOutInSecs = 0;
         float fadeInInSecs = 0;
+        float maxDelta = 1.0f;
     };
 
     struct AnimationComponent
@@ -290,10 +291,12 @@ namespace flutter_filament
                         // if we're fading in, this will be 0.0 at the start of the fade and 1.0 at the end
                         auto fadeDelta = elapsedInSecs / animationStatus.fadeInInSecs;
                         
-                        // if we're fading out, this will be 1.0 at the start of the fade and 0.0 at the end
+                        // // if we're fading out, this will be 1.0 at the start of the fade and 0.0 at the end
                         if(fadeDelta > 1.0f) {
                             fadeDelta = 1 - ((elapsedInSecs - animationStatus.durationInSecs - animationStatus.fadeInInSecs) / animationStatus.fadeOutInSecs);
                         }
+
+                        fadeDelta = std::clamp(fadeDelta, 0.0f, animationStatus.maxDelta);
 
                         auto jointTransform = _transformManager.getInstance(joint);
 
