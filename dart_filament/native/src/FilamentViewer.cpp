@@ -276,10 +276,12 @@ namespace flutter_filament
 
   void FilamentViewer::setBloom(float strength)
   {
+    #ifndef __EMSCRIPTEN__
     decltype(_view->getBloomOptions()) opts;
     opts.enabled = true;
     opts.strength = strength;
     _view->setBloomOptions(opts);
+    #endif
   }
 
   void FilamentViewer::setToneMapping(ToneMapping toneMapping)
