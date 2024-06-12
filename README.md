@@ -322,9 +322,9 @@ Don't call playAnimation when the app is in the background  (i.e inactive/hidden
 
 If you have some kind of looping animation in your app code, make sure it pauses while the app is backgrounded.
 
-
-
 ## Versioning
+
+Web requires Flutter engine commit 1f4e378de149019767c289783ea9a5be5f1c7461
 
 ||Android|iOS|MacOS|Windows|Linux|WebGL|
 |---|---|---|---|---|---||
