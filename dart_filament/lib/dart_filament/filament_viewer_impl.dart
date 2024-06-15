@@ -126,7 +126,7 @@ class FilamentViewer extends AbstractFilamentViewer {
     _sceneManager = get_scene_manager(_viewer!);
     _scene = SceneImpl(this);
 
-    await setCameraManipulatorOptions(zoomSpeed: 10.0);
+    await setCameraManipulatorOptions(zoomSpeed: 1.0);
 
     final out = allocator<Int32>(3);
     get_gizmo(_sceneManager!, out);
