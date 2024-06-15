@@ -3,7 +3,7 @@ import 'package:dart_filament/dart_filament.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 
 void main(List<String> args) async {
-  final resourceLoader = flutter_filament_web_get_resource_loader_wrapper();
+  final resourceLoader = dart_filament_web_get_resource_loader_wrapper();
   var viewer = FilamentViewer(resourceLoader: resourceLoader.cast<Void>());
   viewer.initialized.then((_) async {
     var entity = await viewer.loadGlb(
