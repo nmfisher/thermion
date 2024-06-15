@@ -54,9 +54,11 @@ extern "C"
   // 
   // Since are using -sMAIN_MODULE with -sPTHREAD_POOL_SIZE=1, main will be called when the first worker is spawned
   //
-  EMSCRIPTEN_KEEPALIVE int main() {
-    return 0;
-  }
+  
+  // EMSCRIPTEN_KEEPALIVE int main() {
+  //   std::cout << "WEBAPI MAIN " << std::endl;
+  //   return 0;
+  // }
 
   EMSCRIPTEN_KEEPALIVE void flutter_filament_web_load_resource_callback(void* data, int32_t length, void* context) {
     ((PendingCall*)context)->HandleResponse(data, length);
@@ -111,7 +113,7 @@ extern "C"
     return (long)*out;
   }
 
-  EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE flutter_filament_web_create_gl_context() {
+  EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE dart_filament_web_create_gl_context() {
 
     std::cout << "Creating WebGL context." << std::endl;
 
@@ -122,14 +124,15 @@ extern "C"
     attr.depth = EM_TRUE;
     attr.stencil = EM_FALSE;
     attr.antialias = EM_FALSE;
-    attr.explicitSwapControl = EM_TRUE;
+    attr.explicitSwapControl = EM_FALSE;
     attr.preserveDrawingBuffer = EM_FALSE;
-    attr.proxyContextToMainThread = EMSCRIPTEN_WEBGL_CONTEXT_PROXY_ALWAYS;
+    attr.proxyContextToMainThread = EMSCRIPTEN_WEBGL_CONTEXT_PROXY_DISALLOW;
     attr.enableExtensionsByDefault = EM_TRUE;
     attr.renderViaOffscreenBackBuffer = EM_FALSE;
     attr.majorVersion = 2;
     
     auto context = emscripten_webgl_create_context("#canvas", &attr);
+    
     std::cout << "Created WebGL context " << attr.majorVersion << "." << attr.minorVersion << std::endl;
 
     auto success = emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context);
@@ -137,11 +140,10 @@ extern "C"
       std::cout << "Failed to make WebGL context current"<< std::endl;
     } else { 
       std::cout << "Made WebGL context current"<< std::endl;
-      // glClearColor(1.0, 0.0, 0.0, 1.0);
+      // glClearColor(0.0, 0.0, 1.0, 1.0);
       // glClear(GL_COLOR_BUFFER_BIT);
       // emscripten_webgl_commit_frame();
     }
-    emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)NULL);
     return context;
   }
 
@@ -166,7 +168,7 @@ extern "C"
       
     // };
     // attr.onerror = [](emscripten_fetch_t* fetch) {
-      
+    //   std::cout << "Error" << std::endl;
     // };
     // attr.onprogress = [](emscripten_fetch_t* fetch) {
       
@@ -174,11 +176,14 @@ extern "C"
     // attr.onreadystatechange = [](emscripten_fetch_t* fetch) {
       
     // };
-    // attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | EMSCRIPTEN_FETCH_SYNCHRONOUS | EMSCRIPTEN_FETCH_PERSIST_FILE;
+    // attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+
+    // const char* headers[] = {"Accept-Encoding", "gzip, deflate", NULL};
+    // attr.requestHeaders = headers;
 
     auto pathString = std::string(path);
-    // if(pathString.rfind("https://",0) != 0) {
-    //   pathString = std::string("../../") + pathString;
+    // if(pathString.rfind("/",0) != 0) {
+    //   pathString = std::string("/") + pathString;
     // }
     
     // std::cout << "Fetching from path " << pathString.c_str() << std::endl;
@@ -186,6 +191,7 @@ extern "C"
     // auto request = emscripten_fetch(&attr, pathString.c_str());
     // if(!request) {
     //   std::cout << "Request failed?" << std::endl;  
+    //   return ResourceBuffer { nullptr, 0, -1 } ;
     // }
     // auto data = malloc(request->numBytes);
     // memcpy(data, request->data, request->numBytes);
@@ -214,7 +220,7 @@ extern "C"
     free(ptr);
   }
 
-  EMSCRIPTEN_KEEPALIVE void* flutter_filament_web_get_resource_loader_wrapper() {
+  EMSCRIPTEN_KEEPALIVE void* dart_filament_web_get_resource_loader_wrapper() {
     ResourceLoaderWrapper *rlw = (ResourceLoaderWrapper *)malloc(sizeof(ResourceLoaderWrapper));
     rlw->loadResource = flutter_filament_web_load_resource;
     rlw->loadFromOwner = nullptr;
