@@ -2,29 +2,35 @@
 library flutter_filament_js;
 
 import 'dart:js_interop';
-import 'dart:math';
+import 'package:dart_filament/dart_filament/compatibility/web/interop/shims/abstract_filament_viewer_js_shim.dart';
+import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:animation_tools_dart/src/morph_animation_data.dart';
 import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
-import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
-import 'package:dart_filament/dart_filament/compatibility/web/interop/dart_filament_js_extension_type.dart';
 import 'dart:js_interop_unsafe';
 
 import 'package:vector_math/vector_math_64.dart';
 
+///
+/// A (Dart) class that wraps a (Dart) instance of [AbstractFilamentViewer],
+/// but exported to JS by binding to a global property.
+/// This is effectively an implementation of [AbstractFilamentViewerJSShim];
+/// allowing users to interact with an instance of [AbstractFilamentViewer] 
+/// (presumably compiled to WASM) from any Javascript context (including 
+/// the browser console).
+///
 @JSExport()
-class DartFilamentJSExportViewer {
+class FilamentViewerJSDartBridge {
   final AbstractFilamentViewer viewer;
 
-  static void initializeBindings(AbstractFilamentViewer viewer) {
-    var shim = DartFilamentJSExportViewer(viewer);
-    var wrapper = createJSInteropWrapper<DartFilamentJSExportViewer>(shim)
-        as DartFilamentJSShim;
-    globalContext.setProperty("filamentViewer".toJS, wrapper);
+  FilamentViewerJSDartBridge(this.viewer);
+  
+  void bind(
+      {String globalPropertyName = "filamentViewer"}) {
+    var wrapper = createJSInteropWrapper<FilamentViewerJSDartBridge>(this)
+        as AbstractFilamentViewerJSShim;
+    globalContext.setProperty(globalPropertyName.toJS, wrapper);
   }
-
-  DartFilamentJSExportViewer(this.viewer);
 
   JSPromise<JSBoolean> get initialized {
     return viewer.initialized.then((v) => v.toJS).toJS;
@@ -559,28 +565,31 @@ class DartFilamentJSExportViewer {
   @JSExport()
   JSPromise setPostProcessing(bool enabled) =>
       viewer.setPostProcessing(enabled).toJS;
+
   @JSExport()
   JSPromise setAntiAliasing(bool msaa, bool fxaa, bool taa) =>
       viewer.setAntiAliasing(msaa, fxaa, taa).toJS;
+
   @JSExport()
   JSPromise setRotationQuat(
           FilamentEntity entity, JSArray<JSNumber> rotation) =>
       throw UnimplementedError();
-// viewer.setRotationQuat(
-// entity,
-// rotation.toDartQuaternion(),
-// ).toJS;
+
   @JSExport()
   JSPromise reveal(FilamentEntity entity, String? meshName) =>
       viewer.reveal(entity, meshName).toJS;
+
   @JSExport()
   JSPromise hide(FilamentEntity entity, String? meshName) =>
       viewer.hide(entity, meshName).toJS;
+
   @JSExport()
   void pick(int x, int y) => viewer.pick(x, y);
+
   @JSExport()
   String? getNameForEntity(FilamentEntity entity) =>
       viewer.getNameForEntity(entity);
+
   @JSExport()
   JSPromise setCameraManipulatorOptions({
     int mode = 0,
@@ -596,6 +605,7 @@ class DartFilamentJSExportViewer {
             zoomSpeed: zoomSpeed,
           )
           .toJS;
+
   @JSExport()
   JSPromise<JSArray<JSNumber>> getChildEntities(
       FilamentEntity parent, bool renderableOnly) {
@@ -707,13 +717,5 @@ class DartFilamentJSExportViewer {
   JSPromise addCollisionComponent(FilamentEntity entity,
       {JSFunction? callback, bool affectsTransform = false}) {
     throw UnimplementedError();
-// final Function? dartCallback = callback != null
-// ? allowInterop((int entityId1, int entityId2) => callback.apply([entityId1, entityId2]))
-// : null;
-// return viewer.addCollisionComponent(
-// entity),
-// callback: dartCallback,
-// affectsTransform: affectsTransform,
-// ).toJs
   }
 }

@@ -2,10 +2,15 @@
 library flutter_filament_js;
 
 import 'dart:js_interop';
-
 import 'package:dart_filament/dart_filament/entities/filament_entity.dart';
+import 'package:dart_filament/dart_filament/abstract_filament_viewer.dart';
 
-extension type DartFilamentJSShim(JSObject _) implements JSObject {
+///
+/// An extension type on [JSObject] that represents a 
+/// Javascript shim implementation of the [AbstractFilamentViewer] interface.
+/// 
+extension type AbstractFilamentViewerJSShim(JSObject _) implements JSObject {
+  
   @JS('initialized')
   external JSPromise<JSBoolean> get initialized;
 
@@ -401,3 +406,4 @@ extension type DartFilamentJSShim(JSObject _) implements JSObject {
   external JSPromise setBoneTransform(
       FilamentEntity entity, int boneIndex, JSArray<JSNumber> transform, int skinIndex);
 }
+
