@@ -31,8 +31,8 @@ FLUTTER_PLUGIN_EXPORT void flutter_filament_web_set_int32(int32_t* ptr, int32_t 
 FLUTTER_PLUGIN_EXPORT long flutter_filament_web_get_address(void** out);
 FLUTTER_PLUGIN_EXPORT void* flutter_filament_web_allocate(int32_t size);
 FLUTTER_PLUGIN_EXPORT void flutter_filament_web_free(void* ptr);
-EMSCRIPTEN_WEBGL_CONTEXT_HANDLE flutter_filament_web_create_gl_context();
-FLUTTER_PLUGIN_EXPORT void* flutter_filament_web_get_resource_loader_wrapper();
+EMSCRIPTEN_WEBGL_CONTEXT_HANDLE dart_filament_web_create_gl_context();
+FLUTTER_PLUGIN_EXPORT void* dart_filament_web_get_resource_loader_wrapper();
 
 #ifdef __cplusplus
 }
