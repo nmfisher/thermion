@@ -38,7 +38,7 @@ class WebViewer {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    var resourceLoader = flutter_filament_web_get_resource_loader_wrapper();
+    var resourceLoader = dart_filament_web_get_resource_loader_wrapper();
 
     var viewer = FilamentViewer(resourceLoader: resourceLoader);
 
