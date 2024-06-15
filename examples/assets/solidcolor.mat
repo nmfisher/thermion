@@ -1,14 +1,3 @@
-material {
-    name : SolidColor,
-    shadingModel : unlit,
-    culling : none,
-    featureLevel : 1,
-    vertexDomain: object
-}
-
-fragment {
-    void material(inout MaterialInputs material) {
-        prepareMaterial(material);
-        material.baseColor = vec4(0.1f, 0.5f, 0.9f, 1.0f);
-    }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:2033d3f7f8e0af983d8ab237737b45db2ed476b9283c6b0fda6a6954e1a72dea
+size 294
