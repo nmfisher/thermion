@@ -10,34 +10,36 @@ endif(NOT CMAKE_BUILD_TYPE)
 set(MODULE_NAME "dart_filament")
 
 set(EMCC_CFLAGS --bind)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_TABLE_GROWTH=1)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_TABLE_GROWTH=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_MEMORY_GROWTH=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_ALL=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sLINKABLE=1)
-#set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSIDE_MODULE)
-# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_create_filament_viewer_ffi)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSIDE_MODULE)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sINITIAL_MEMORY=512mb)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,ccall,cwrap,allocate,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,_free)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_malloc,stackAlloc,_free)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFULL_ES3)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASSERTIONS)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=1)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_BLOCKING_ON_MAIN_THREAD=0)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREEN_FRAMEBUFFER=1)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=1)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_BLOCKING_ON_MAIN_THREAD=0)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREEN_FRAMEBUFFER=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREENCANVAS_SUPPORT=1)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sNO_DISABLE_EXCEPTION_CATCHING)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sNO_DISABLE_EXCEPTION_CATCHING)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASYNCIFY=1)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_WEBGL2=1)
-# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMIN_WEBGL_VERSION=2)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAX_WEBGL_VERSION=2)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=1)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_WORKER=1)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} --js-library ../foo.js)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=0)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -pie)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -O3 -pthread")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pthread")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -O3 --no-entry")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pie")
 
 add_link_options(${EMCC_CFLAGS})
 
@@ -222,7 +224,7 @@ target_link_libraries(${MODULE_NAME}
 add_custom_command(TARGET ${MODULE_NAME} POST_BUILD
     COMMAND dart --enable-experiment=native-assets run ffigen --config ffigen/web.yaml WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../
     COMMAND ${CMAKE_COMMAND} -DINPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/../../lib/dart_filament/compatibility/web/dart_filament.g.dart -DOUTPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/../../lib/dart_filament/compatibility/web/dart_filament.g.dart "-DTO_REPLACE=symbol: '" "-DREPLACEMENT=symbol: '_" -P ${CMAKE_CURRENT_SOURCE_DIR}/replace_in_file.cmake 
-    COMMAND ${CMAKE_COMMAND} -DINPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/build/build/out/dart_filament.js -DOUTPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/build/build/out/dart_filament.js "-DTO_REPLACE=var moduleRtn" "-DREPLACEMENT=var moduleRtn\;GLctx=moduleArg.ctx" -P ${CMAKE_CURRENT_SOURCE_DIR}/replace_in_file.cmake 
+    # COMMAND ${CMAKE_COMMAND} -DINPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/build/build/out/dart_filament.js -DOUTPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/build/build/out/dart_filament.js "-DTO_REPLACE=var moduleRtn" "-DREPLACEMENT=var moduleRtn\;GLctx=moduleArg.ctx" -P ${CMAKE_CURRENT_SOURCE_DIR}/replace_in_file.cmake 
     VERBATIM
 )
 
