@@ -4,16 +4,14 @@
 #include <GL/glext.h>
 
 #include <emscripten/emscripten.h>
+#include <emscripten/bind.h>
 #include <emscripten/html5.h>
-#include <emscripten/threading.h>
-#include <emscripten/val.h>
-
 #include <emscripten/threading.h>
 #include <emscripten/val.h>
 
 extern "C"
 {
-  extern EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE flutter_filament_web_create_gl_context();
+  extern EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE dart_filament_web_create_gl_context();
 }
 #include <pthread.h>
 
@@ -34,58 +32,76 @@ extern "C"
 
 using namespace flutter_filament;
 using namespace std::chrono_literals;
-
-void doSomeStuff(void* ptr) { 
-  std::cout << "DOING SOME STUFF ON MAIN THREDA" << std::endl;
-}
+#include <time.h>
 
 class RenderLoop
 {
 public:
   explicit RenderLoop()
   {
-    _t = new std::thread([this]()
-                         {
-      auto last = std::chrono::high_resolution_clock::now();
-      while (!_stop) {
+    srand(time(NULL));
 
-        if (_rendering) {
-          // auto frameStart = std::chrono::high_resolution_clock::now();
-          doRender();
-          // auto frameEnd = std::chrono::high_resolution_clock::now();
-        }
-
-        last = std::chrono::high_resolution_clock::now();
-
-        auto now = std::chrono::high_resolution_clock::now();
-
-        float elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
-
-        std::function<void()> task;
-
-        std::unique_lock<std::mutex> lock(_access);
-
-        if(_tasks.empty()) {
-          _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
-        }
-        while(!_tasks.empty()) {
-          task = std::move(_tasks.front());
-          _tasks.pop_front();
-          task();
-        }
-
-        now = std::chrono::high_resolution_clock::now();
-        elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count());
-        if(elapsed < _frameIntervalInMilliseconds - 4) {
-          auto sleepFor = std::chrono::microseconds(int(_frameIntervalInMilliseconds - elapsed - 4) * 1000);
-          std::this_thread::sleep_for(sleepFor);
-        }
-      } });
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    #ifdef __EMSCRIPTEN__     
+    emscripten_pthread_attr_settransferredcanvases(&attr, "canvas");
+    #endif
+    pthread_create(&t, &attr, &RenderLoop::startHelper, this);
   }
+
   ~RenderLoop()
   {
     _stop = true;
-    _t->join();
+    pthread_join(t, NULL);
+  }
+
+  static void mainLoop(void* arg) {
+    ((RenderLoop*)arg)->iter();
+  }
+
+  static void *startHelper(void * parm) {
+    #ifdef __EMSCRIPTEN__     
+    emscripten_set_main_loop_arg(&RenderLoop::mainLoop, parm, 0, true);
+    #else
+    ((RenderLoop*)parm)->start();
+    #endif
+    return nullptr;
+  }
+
+  void start() { 
+    while (!_stop) {
+      iter();
+    } 
+  }
+
+  void iter() { 
+    
+    auto frameStart = std::chrono::high_resolution_clock::now();
+    if (_rendering) {
+      doRender();
+    }
+
+    auto now = std::chrono::high_resolution_clock::now();
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - frameStart).count();
+
+    std::function<void()> task;
+
+    std::unique_lock<std::mutex> lock(_access);
+    while(true) {
+        now = std::chrono::high_resolution_clock::now();
+        elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - frameStart).count();
+        if(elapsed >= _frameIntervalInMicroseconds) {
+            break;
+        }
+        if(!_tasks.empty()) {
+          task = std::move(_tasks.front());
+          _tasks.pop_front();
+          task();
+        } else { 
+          _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
+        }
+    }
   }
 
   void createViewer(void *const context, void *const platform,
@@ -99,37 +115,39 @@ public:
     _renderCallbackOwner = owner;
     std::packaged_task<FilamentViewer *()> lambda([=]() mutable
                                                   {
+        FilamentViewer* viewer = nullptr;
 #ifdef __EMSCRIPTEN__     
-        auto emContext = flutter_filament_web_create_gl_context();
+        _context = dart_filament_web_create_gl_context();
 
-        auto success = emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)emContext);
+        auto success = emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)_context);
         if(success != EMSCRIPTEN_RESULT_SUCCESS) {
           std::cout << "Failed to make context current." << std::endl;
-          return (FilamentViewer*)nullptr;
+          return viewer;
         }
-        // glClearColor(0.0, 1.0, 0.0, 1.0);
-        // glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.0, 0.5, 0.5, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
         // emscripten_webgl_commit_frame();
 
-        _viewer = new FilamentViewer((void* const) emContext, loader, platform, uberArchivePath);
+        viewer = (FilamentViewer*) create_filament_viewer((void* const) _context, loader, platform, uberArchivePath);
         MAIN_THREAD_EM_ASM({
           moduleArg.dartFilamentResolveCallback($0, $1);
-        }, callback, _viewer);
+        }, callback, viewer);
 #else
-        _viewer = new FilamentViewer(context, loader, platform, uberArchivePath);
-        callback(_viewer);
+        viewer = (FilamentViewer*)create_filament_viewer(context, loader, platform, uberArchivePath);
+        callback(viewer);
 #endif
-      return _viewer; });
+      _viewer = viewer;
+      return viewer; });
     auto fut = add_task(lambda);
   }
 
-  void destroyViewer()
+  void destroyViewer(FilamentViewer* viewer) 
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       {
       _rendering = false;
-      destroy_filament_viewer(_viewer);
-      _viewer = nullptr; });
+      destroy_filament_viewer(viewer);
+    });
     auto fut = add_task(lambda);
   }
 
@@ -152,23 +170,27 @@ public:
 
   void doRender()
   {
-    // auto now = std::chrono::high_resolution_clock::now();
-    // auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+    #ifdef __EMSCRIPTEN__
+    if(emscripten_is_webgl_context_lost(_context) == EM_TRUE) {
+      Log("Context lost");
+      auto sleepFor = std::chrono::seconds(1);
+      std::this_thread::sleep_for(sleepFor);
+      return;
+    }
+    #endif
     render(_viewer, 0, nullptr, nullptr, nullptr);
-    _lastRenderTime = std::chrono::high_resolution_clock::now();
     if (_renderCallback)
     {
       _renderCallback(_renderCallbackOwner);
     }
 #ifdef __EMSCRIPTEN__
-    emscripten_webgl_commit_frame();
+    // emscripten_webgl_commit_frame();
 #endif
   }
 
   void setFrameIntervalInMilliseconds(float frameIntervalInMilliseconds)
   {
-    _frameIntervalInMilliseconds = frameIntervalInMilliseconds;
-    Log("Set _frameIntervalInMilliseconds to %f", _frameIntervalInMilliseconds);
+    _frameIntervalInMicroseconds = static_cast<int>(1000.0f * frameIntervalInMilliseconds);
   }
 
   template <class Rt>
@@ -183,18 +205,20 @@ public:
     return ret;
   }
 
-private:
   bool _stop = false;
   bool _rendering = false;
-  float _frameIntervalInMilliseconds = 1000.0 / 60.0;
+  int _frameIntervalInMicroseconds = 1000000.0 / 60.0;
   std::mutex _access;
-  FilamentViewer *_viewer = nullptr;
   void (*_renderCallback)(void *const) = nullptr;
   void *_renderCallbackOwner = nullptr;
-  std::thread *_t = nullptr;
+  pthread_t t;
   std::condition_variable _cond;
   std::deque<std::function<void()>> _tasks;
-  std::chrono::steady_clock::time_point _lastRenderTime = std::chrono::high_resolution_clock::now();
+  FilamentViewer* _viewer = nullptr;
+  #ifdef __EMSCRIPTEN__
+  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _context;
+  int _frameNum = 0;
+  #endif
 };
 
 extern "C"
@@ -220,7 +244,7 @@ extern "C"
 
   EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_ffi(void *const viewer)
   {
-    _rl->destroyViewer();
+    _rl->destroyViewer((FilamentViewer*)viewer);
   }
 
   EMSCRIPTEN_KEEPALIVE void create_swap_chain_ffi(void *const viewer,
@@ -848,4 +872,5 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
+
 }
