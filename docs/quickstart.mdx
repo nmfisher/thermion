@@ -1,0 +1,145 @@
+## Quickstart (Flutter)
+
+> You can find the entire project below in the [examples/flutter/quickstart](examples/flutter/quickstart) folder of the repository.
+
+1. Switch to Flutter master channel
+
+```bash
+$ flutter channel master
+```
+
+2. Add [thermion_flutter] as a dependency to your `pubspec.yaml`.
+
+```bash
+$ cd /path/to/your/flutter/project$ flutter pub add thermion_flutter```
+```
+
+3. If running on MacOS, change the minimum deployment targetr to OSX 13
+
+In `Podfile`
+```
+platform :osx, '13.0'
+```
+
+Then open XCode:
+```
+open macos/Runner.xcworkspace
+```
+
+and change the minimum deployment target to 13.0
+
+2. Add a folder containing your assets (glTF model + skybox ktx) to your `pubspec.yaml` asset list
+
+```yaml
+...
+flutter
+  uses-material-design: true
+  assets:
+    - assets/
+```
+
+2. Create an instance of `ThermionFlutterPlugin` in your app.
+
+```dart
+import 'package:thermion_flutter/thermion_flutter.dart';
+...
+
+class _MyAppState extends State<MyApp> {
+  late ThermionFlutterPlugin _thermionFlutterPlugin;  
+  late Future<ThermionViewer> _thermionViewer;
+  void initState() {    
+    _thermionFlutterPlugin = ThermionFlutterPlugin();    
+    _thermionViewer = _thermionFlutterPlugin.createViewer();  
+  }
+}```
+
+3. Add a `ThermionWidget` to your widget hierarchy 
+
+```dart
+class _MyAppState extends State<MyApp> {
+    
+    late ThermionFlutterPlugin _thermionFlutterPlugin;  
+    late Future<ThermionViewer> _thermionViewer;
+    void initState() {    
+        _thermionFlutterPlugin = ThermionFlutterPlugin();
+        _thermionViewer = _thermionFlutterPlugin.createViewer();
+    }    
+
+    Widget build(BuildContext context) {
+        return Stack(children:[
+            Positioned.fill(
+                child:ThermionWidget(
+                    plugin:_thermionFlutterPlugin
+                ) 
+            )
+        ]);  
+}}```
+
+4. Add a button to load the model when pressed
+
+```dart
+class _MyAppState extends State<MyApp> {
+    
+    late ThermionFlutterPlugin _thermionFlutterPlugin;  
+    late Future<ThermionViewer> _thermionViewer;
+    void initState() {    
+        _thermionFlutterPlugin = ThermionFlutterPlugin();
+        _thermionViewer = _thermionFlutterPlugin.createViewer();
+    }    
+
+    Widget build(BuildContext context) {
+        return Stack(children:[
+            Positioned.fill(
+                child:ThermionWidget(
+                    plugin:_thermionFlutterPlugin
+                ) 
+            ), 
+            Center(child:ElevatedButton(child:Text("Load"), onPressed:() { 
+                // TODO
+            }))
+        ]);  
+}}```
+
+5. Load a skybox and the glb asset
+```
+  Center(child:ElevatedButton(child:Text("Load"), onPressed:() { 
+               var viewer = await _thermionViewer;
+               await viewer.loadSkybox("assets/default_env_skybox.ktx");
+               await viewer.loadGlb("assets/cube.glb");
+    }))
+```            
+
+(Note - "skybox" refers to the background (cube) image rendered behind all other elements in the scene).
+
+Anything added to the scene is referred to as an "entity". 
+
+Entities are always added to the scene at position (0,0,0).
+
+The default scene camera is located at (0,0,0) (and is looking at -Z, or "into" the screen), so by adding a cube at (0,0,0), the camera will now be inside the cube. 
+
+We need to move the camera outside the cube so it's visible. 
+
+6. Change the camera orientation
+```dart
+   var viewer = await _thermionViewer;
+    await viewer.loadSkybox("assets/default_env_skybox.ktx");
+    await viewer.loadGlb("assets/cube.glb");
+
+    await viewer.setCameraPosition(0, 1, 10);
+    await viewer.setCameraRotation(v.Quaternion.axisAngle(
+                        v.Vector3(1, 0, 0), -30 / 180 * pi) *
+                    v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
+```
+
+The cube still won't be visible until we add a light to the scene and tell Thermion to start rendering.
+
+7. Add a light and turn rendering on
+```dart 
+    ...
+    await viewer.addLight(
+                    LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
+    await viewer.setRendering(true);
+    ...
+````
+
+Your first Thermion project is complete!
