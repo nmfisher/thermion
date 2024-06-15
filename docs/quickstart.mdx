@@ -2,19 +2,17 @@
 
 > You can find the entire project below in the [examples/flutter/quickstart](examples/flutter/quickstart) folder of the repository.
 
-1. Switch to Flutter master channel
+1. Switch to Flutter master channel, create a new project, then add `thermion_flutter` as a dependency
 
 ```bash
 $ flutter channel master
+$ flutter create thermion_sample_project && cd thermion_sample_project
+$ flutter pub add thermion_flutter
 ```
 
-2. Add [thermion_flutter] as a dependency to your `pubspec.yaml`.
+2. If running on MacOS, change the minimum deployment target to OSX 13
 
-```bash
-$ cd /path/to/your/flutter/project$ flutter pub add thermion_flutter```
-```
-
-3. If running on MacOS, change the minimum deployment targetr to OSX 13
+<Accordion title="Click to expand MacOS instructions">
 
 In `Podfile`
 ```
@@ -26,7 +24,11 @@ Then open XCode:
 open macos/Runner.xcworkspace
 ```
 
-and change the minimum deployment target to 13.0
+and change the minimum deployment target to 13.0:
+
+![images/macos_min_deployment.png]
+
+</Accordion>
 
 2. Add a folder containing your assets (glTF model + skybox ktx) to your `pubspec.yaml` asset list
 
@@ -38,7 +40,7 @@ flutter
     - assets/
 ```
 
-2. Create an instance of `ThermionFlutterPlugin` in your app.
+3. Create an instance of `ThermionFlutterPlugin` in your app.
 
 ```dart
 import 'package:thermion_flutter/thermion_flutter.dart';
