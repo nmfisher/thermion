@@ -20,7 +20,7 @@
 
 typedef uint32_t GLuint;
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 class OpenGLTextureBuffer : public FlutterTextureBuffer {
   public:

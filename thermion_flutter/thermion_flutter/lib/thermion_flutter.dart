@@ -1,4 +1,4 @@
 library thermion_flutter;
 
-export 'filament/thermion_flutter_plugin.dart';
-
+export 'thermion/thermion_flutter_plugin.dart';
+export 'package:thermion_dart/thermion_dart.dart';

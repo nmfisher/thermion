@@ -66,7 +66,7 @@ void main() async {
       DartResourceLoader.freeResource);
   resourceLoader.ref.freeResource = freeResource.nativeFunction;
 
-  var viewer = FilamentViewer(resourceLoader: resourceLoader.cast<Void>());
+  var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
 
   await viewer.initialized;
   await viewer.createSwapChain(500, 500);

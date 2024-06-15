@@ -8,7 +8,7 @@
 
 #include "flutter_texture_buffer.h"
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
     class FlutterRenderContext {
     public:

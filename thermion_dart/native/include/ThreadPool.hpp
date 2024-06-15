@@ -15,7 +15,7 @@
 #ifndef _THREADPOOL_HPP
 #define _THREADPOOL_HPP
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 class ThreadPool {
 	std::vector<std::thread> pool;

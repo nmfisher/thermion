@@ -33,7 +33,7 @@ extern "C"
 #include "material/image.h"
 }
 
-namespace thermion_flutter
+namespace thermion_filament
 {
 
     using namespace std::chrono;
@@ -2113,4 +2113,4 @@ namespace thermion_flutter
         out[2] = Entity::smuggle(_gizmoZ);
     }
 
-} // namespace thermion_flutter
+} // namespace thermion_filament

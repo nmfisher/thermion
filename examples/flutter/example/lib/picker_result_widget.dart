@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 class PickerResultWidget extends StatelessWidget {
-  final AbstractFilamentViewer controller;
+  final ThermionViewer controller;
 
   const PickerResultWidget({required this.controller, super.key});
 

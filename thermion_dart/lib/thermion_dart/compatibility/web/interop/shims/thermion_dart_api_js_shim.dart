@@ -3,11 +3,11 @@ library thermion_flutter_js;
 
 import 'dart:js_interop';
 import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 ///
 /// An extension type on [JSObject] that represents a 
-/// Javascript shim implementation for the [AbstractFilamentViewer] interface.
+/// Javascript shim implementation for the [ThermionViewer] interface.
 /// 
 extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
 
@@ -71,7 +71,7 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
       bool castShadows);
 
   @JS('removeLight')
-  external JSPromise removeLight(FilamentEntity light);
+  external JSPromise removeLight(ThermionEntity light);
 
   @JS('clearLights')
   external JSPromise clearLights();
@@ -80,13 +80,13 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
   external JSPromise<JSNumber> loadGlb(String path, int numInstances);
 
   @JS('createInstance')
-  external JSPromise<JSNumber> createInstance(FilamentEntity entity);
+  external JSPromise<JSNumber> createInstance(ThermionEntity entity);
 
   @JS('getInstanceCount')
-  external JSPromise<JSNumber> getInstanceCount(FilamentEntity entity);
+  external JSPromise<JSNumber> getInstanceCount(ThermionEntity entity);
 
   @JS('getInstances')
-  external JSPromise<JSArray<JSNumber>> getInstances(FilamentEntity entity);
+  external JSPromise<JSArray<JSNumber>> getInstances(ThermionEntity entity);
 
   @JS('loadGltf')
   external JSPromise<JSNumber> loadGltf(
@@ -112,38 +112,38 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
 
   @JS('setMorphTargetWeights')
   external JSPromise setMorphTargetWeights(
-      FilamentEntity entity, JSArray<JSNumber> weights);
+      ThermionEntity entity, JSArray<JSNumber> weights);
 
   @JS('getMorphTargetNames')
   external JSPromise<JSArray<JSString>> getMorphTargetNames(
-      FilamentEntity entity, FilamentEntity childEntity);
+      ThermionEntity entity, ThermionEntity childEntity);
 
   @JS('getBoneNames')
   external JSPromise<JSArray<JSString>> getBoneNames(
-      FilamentEntity entity, int skinIndex);
+      ThermionEntity entity, int skinIndex);
 
   @JS('getAnimationNames')
   external JSPromise<JSArray<JSString>> getAnimationNames(
-      FilamentEntity entity);
+      ThermionEntity entity);
 
   @JS('getAnimationDuration')
   external JSPromise<JSNumber> getAnimationDuration(
-      FilamentEntity entity, int animationIndex);
+      ThermionEntity entity, int animationIndex);
 
   @JS('setMorphAnimationData')
   external JSPromise setMorphAnimationData(
-      FilamentEntity entity,
+      ThermionEntity entity,
       JSArray<JSArray<JSNumber>> animation,
       JSArray<JSString> morphTargets,
       JSArray<JSString>? targetMeshNames,
       double frameLengthInMs);
 
   @JS('resetBones')
-  external JSPromise resetBones(FilamentEntity entity);
+  external JSPromise resetBones(ThermionEntity entity);
 
   @JS('addBoneAnimation')
   external JSPromise addBoneAnimation(
-      FilamentEntity entity,
+      ThermionEntity entity,
       JSArray<JSString> bones,
       JSArray<JSArray<JSArray<JSNumber>>> frameData,
       JSNumber frameLengthInMs,
@@ -154,7 +154,7 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
       JSNumber maxDelta);
 
   @JS('removeEntity')
-  external JSPromise removeEntity(FilamentEntity entity);
+  external JSPromise removeEntity(ThermionEntity entity);
 
   @JS('clearEntities')
   external JSPromise clearEntities();
@@ -170,7 +170,7 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
 
   @JS('playAnimation')
   external JSPromise playAnimation(
-    FilamentEntity entity,
+    ThermionEntity entity,
     int index,
     bool loop,
     bool reverse,
@@ -180,7 +180,7 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
 
   @JS('playAnimationByName')
   external JSPromise playAnimationByName(
-    FilamentEntity entity,
+    ThermionEntity entity,
     String name,
     bool loop,
     bool reverse,
@@ -190,16 +190,16 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
 
   @JS('setAnimationFrame')
   external JSPromise setAnimationFrame(
-      FilamentEntity entity, int index, int animationFrame);
+      ThermionEntity entity, int index, int animationFrame);
 
   @JS('stopAnimation')
-  external JSPromise stopAnimation(FilamentEntity entity, int animationIndex);
+  external JSPromise stopAnimation(ThermionEntity entity, int animationIndex);
 
   @JS('stopAnimationByName')
-  external JSPromise stopAnimationByName(FilamentEntity entity, String name);
+  external JSPromise stopAnimationByName(ThermionEntity entity, String name);
 
   @JS('setCamera')
-  external JSPromise setCamera(FilamentEntity entity, String? name);
+  external JSPromise setCamera(ThermionEntity entity, String? name);
 
   @JS('setMainCamera')
   external JSPromise setMainCamera();
@@ -256,7 +256,7 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
   external JSPromise<JSArray<JSNumber>> getCameraRotation();
 
   @JS('moveCameraToAsset')
-  external JSPromise moveCameraToAsset(FilamentEntity entity);
+  external JSPromise moveCameraToAsset(ThermionEntity entity);
 
   @JS('setViewFrustumCulling')
   external JSPromise setViewFrustumCulling(JSBoolean enabled);
@@ -272,34 +272,34 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
   external JSPromise setCameraModelMatrix(JSArray<JSNumber> matrix);
 
   @JS('setMaterialColor')
-  external JSPromise setMaterialColor(FilamentEntity entity, String meshName,
+  external JSPromise setMaterialColor(ThermionEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a);
 
   @JS('transformToUnitCube')
-  external JSPromise transformToUnitCube(FilamentEntity entity);
+  external JSPromise transformToUnitCube(ThermionEntity entity);
 
   @JS('setPosition')
   external JSPromise setPosition(
-      FilamentEntity entity, double x, double y, double z);
+      ThermionEntity entity, double x, double y, double z);
 
   @JS('setScale')
-  external JSPromise setScale(FilamentEntity entity, double scale);
+  external JSPromise setScale(ThermionEntity entity, double scale);
 
   @JS('setRotation')
   external JSPromise setRotation(
-      FilamentEntity entity, double rads, double x, double y, double z);
+      ThermionEntity entity, double rads, double x, double y, double z);
 
   @JS('queuePositionUpdate')
   external JSPromise queuePositionUpdate(
-      FilamentEntity entity, double x, double y, double z, bool relative);
+      ThermionEntity entity, double x, double y, double z, bool relative);
 
   @JS('queueRotationUpdate')
-  external JSPromise queueRotationUpdate(FilamentEntity entity, double rads,
+  external JSPromise queueRotationUpdate(ThermionEntity entity, double rads,
       double x, double y, double z, bool relative);
 
   @JS('queueRotationUpdateQuat')
   external JSPromise queueRotationUpdateQuat(
-      FilamentEntity entity, JSArray<JSNumber> quat, bool relative);
+      ThermionEntity entity, JSArray<JSNumber> quat, bool relative);
 
   @JS('setPostProcessing')
   external JSPromise setPostProcessing(bool enabled);
@@ -309,19 +309,19 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
 
   @JS('setRotationQuat')
   external JSPromise setRotationQuat(
-      FilamentEntity entity, JSArray<JSNumber> rotation);
+      ThermionEntity entity, JSArray<JSNumber> rotation);
 
   @JS('reveal')
-  external JSPromise reveal(FilamentEntity entity, String? meshName);
+  external JSPromise reveal(ThermionEntity entity, String? meshName);
 
   @JS('hide')
-  external JSPromise hide(FilamentEntity entity, String? meshName);
+  external JSPromise hide(ThermionEntity entity, String? meshName);
 
   @JS('pick')
   external void pick(int x, int y);
 
   @JS('getNameForEntity')
-  external String? getNameForEntity(FilamentEntity entity);
+  external String? getNameForEntity(ThermionEntity entity);
 
   @JS('setCameraManipulatorOptions')
   external JSPromise setCameraManipulatorOptions(
@@ -333,15 +333,15 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
 
   @JS('getChildEntities')
   external JSPromise<JSArray<JSNumber>> getChildEntities(
-      FilamentEntity parent, bool renderableOnly);
+      ThermionEntity parent, bool renderableOnly);
 
   @JS('getChildEntity')
   external JSPromise<JSNumber> getChildEntity(
-      FilamentEntity parent, String childName);
+      ThermionEntity parent, String childName);
 
   @JS('getChildEntityNames')
   external JSPromise<JSArray<JSString>> getChildEntityNames(
-      FilamentEntity entity, bool renderableOnly);
+      ThermionEntity entity, bool renderableOnly);
 
   @JS('setRecording')
   external JSPromise setRecording(JSBoolean recording);
@@ -350,54 +350,54 @@ extension type ThermionDartAPIJSShim(JSObject _) implements JSObject {
   external JSPromise setRecordingOutputDirectory(String outputDirectory);
 
   @JS('addAnimationComponent')
-  external JSPromise addAnimationComponent(FilamentEntity entity);
+  external JSPromise addAnimationComponent(ThermionEntity entity);
 
   @JS('removeAnimationComponent')
-  external JSPromise removeAnimationComponent(FilamentEntity entity);
+  external JSPromise removeAnimationComponent(ThermionEntity entity);
 
   @JS('addCollisionComponent')
-  external JSPromise addCollisionComponent(FilamentEntity entity);
+  external JSPromise addCollisionComponent(ThermionEntity entity);
 
   @JS('removeCollisionComponent')
-  external JSPromise removeCollisionComponent(FilamentEntity entity);
+  external JSPromise removeCollisionComponent(ThermionEntity entity);
 
   @JS('createGeometry')
   external JSPromise<JSNumber> createGeometry(JSArray<JSNumber> vertices,
       JSArray<JSNumber> indices, String? materialPath, int primitiveType);
 
   @JS('setParent')
-  external JSPromise setParent(FilamentEntity child, FilamentEntity parent);
+  external JSPromise setParent(ThermionEntity child, ThermionEntity parent);
 
   @JS('getParent')
-  external JSPromise<JSNumber> getParent(FilamentEntity child);
+  external JSPromise<JSNumber> getParent(ThermionEntity child);
 
   @JS('getParent')
   external JSPromise<JSNumber> getBone(
-      FilamentEntity child, int boneIndex, int skinIndex);
+      ThermionEntity child, int boneIndex, int skinIndex);
 
   @JS('testCollisions')
-  external JSPromise testCollisions(FilamentEntity entity);
+  external JSPromise testCollisions(ThermionEntity entity);
 
   @JS('setPriority')
-  external JSPromise setPriority(FilamentEntity entityId, int priority);
+  external JSPromise setPriority(ThermionEntity entityId, int priority);
 
   @JS('getLocalTransform')
   external JSPromise<JSArray<JSNumber>> getLocalTransform(
-      FilamentEntity entity);
+      ThermionEntity entity);
 
   @JS('getWorldTransform')
   external JSPromise<JSArray<JSNumber>> getWorldTransform(
-      FilamentEntity entity);
+      ThermionEntity entity);
 
   @JS('updateBoneMatrices')
-  external JSPromise updateBoneMatrices(FilamentEntity entity);
+  external JSPromise updateBoneMatrices(ThermionEntity entity);
 
   @JS('setTransform')
   external JSPromise setTransform(
-      FilamentEntity entity, JSArray<JSNumber> transform);
+      ThermionEntity entity, JSArray<JSNumber> transform);
 
   @JS('setBoneTransform')
   external JSPromise setBoneTransform(
-      FilamentEntity entity, int boneIndex, JSArray<JSNumber> transform, int skinIndex);
+      ThermionEntity entity, int boneIndex, JSArray<JSNumber> transform, int skinIndex);
 }
 

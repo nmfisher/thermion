@@ -1,25 +1,25 @@
 import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
 import 'package:vector_math/vector_math_64.dart';
-import '../abstract_filament_viewer.dart';
+import '../thermion_viewer.dart';
 
 class Gizmo extends AbstractGizmo {
-  final FilamentEntity x;
+  final ThermionEntity x;
   Vector3 _x = Vector3(0.1, 0, 0);
-  final FilamentEntity y;
+  final ThermionEntity y;
   Vector3 _y = Vector3(0.0, 0.1, 0);
-  final FilamentEntity z;
+  final ThermionEntity z;
   Vector3 _z = Vector3(0.0, 0.0, 0.1);
 
-  final AbstractFilamentViewer controller;
+  final ThermionViewer controller;
 
-  FilamentEntity? _activeAxis;
-  FilamentEntity? _activeEntity;
+  ThermionEntity? _activeAxis;
+  ThermionEntity? _activeEntity;
   bool get isActive => _activeAxis != null;
 
-  final Set<FilamentEntity> ignore;
+  final Set<ThermionEntity> ignore;
 
   Gizmo(this.x, this.y, this.z, this.controller,
-      {this.ignore = const <FilamentEntity>{}}) {
+      {this.ignore = const <ThermionEntity>{}}) {
     controller.pickResult.listen(_onPickResult);
   }
 
@@ -59,7 +59,7 @@ class Gizmo extends AbstractGizmo {
     }
   }
 
-  void attach(FilamentEntity entity) async {
+  void attach(ThermionEntity entity) async {
     _activeAxis = null;
     _activeEntity = entity;
     await _reveal();

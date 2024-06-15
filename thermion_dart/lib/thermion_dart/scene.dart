@@ -1,41 +1,41 @@
 import 'dart:async';
 import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
-import 'abstract_filament_viewer.dart';
+import 'thermion_viewer.dart';
 
 ///
 /// For now, this class just holds the entities that have been loaded (though not necessarily visible in the Filament Scene).
 ///
 class SceneImpl extends Scene {
 
-  AbstractFilamentViewer controller;
+  ThermionViewer controller;
 
   SceneImpl(this.controller);
 
   @override
-  FilamentEntity? selected;
+  ThermionEntity? selected;
 
   final _onUpdatedController = StreamController<bool>.broadcast();
   @override
   Stream<bool> get onUpdated => _onUpdatedController.stream;
 
-  final _onLoadController = StreamController<FilamentEntity>.broadcast();
+  final _onLoadController = StreamController<ThermionEntity>.broadcast();
   @override
-  Stream<FilamentEntity> get onLoad => _onLoadController.stream;
+  Stream<ThermionEntity> get onLoad => _onLoadController.stream;
 
-  final _onUnloadController = StreamController<FilamentEntity>.broadcast();
+  final _onUnloadController = StreamController<ThermionEntity>.broadcast();
   @override
-  Stream<FilamentEntity> get onUnload => _onUnloadController.stream;
+  Stream<ThermionEntity> get onUnload => _onUnloadController.stream;
 
-  final _lights = <FilamentEntity>{};
-  final _entities = <FilamentEntity>{};
+  final _lights = <ThermionEntity>{};
+  final _entities = <ThermionEntity>{};
 
-  void registerLight(FilamentEntity entity) {
+  void registerLight(ThermionEntity entity) {
     _lights.add(entity);
     _onLoadController.sink.add(entity);
     _onUpdatedController.add(true);
   }
 
-  void unregisterLight(FilamentEntity entity) async {
+  void unregisterLight(ThermionEntity entity) async {
     var children = await controller.getChildEntities(entity, true);
     if (selected == entity || children.contains(selected)) {
       selected = null;
@@ -46,7 +46,7 @@ class SceneImpl extends Scene {
     _onUpdatedController.add(true);
   }
 
-  void unregisterEntity(FilamentEntity entity) async {
+  void unregisterEntity(ThermionEntity entity) async {
     var children = await controller.getChildEntities(entity, true);
     if (selected == entity || children.contains(selected)) {
       selected = null;
@@ -58,7 +58,7 @@ class SceneImpl extends Scene {
     _onUpdatedController.add(true);
   }
 
-  void registerEntity(FilamentEntity entity) {
+  void registerEntity(ThermionEntity entity) {
     _entities.add(entity);
     _onLoadController.sink.add(entity);
     _onUpdatedController.add(true);
@@ -92,16 +92,16 @@ class SceneImpl extends Scene {
   ///
   /// Lists all entities currently loaded (not necessarily active in the scene).
   ///
-  Iterable<FilamentEntity> listLights() {
+  Iterable<ThermionEntity> listLights() {
     return _lights;
   }
 
   @override
-  Iterable<FilamentEntity> listEntities() {
+  Iterable<ThermionEntity> listEntities() {
     return _entities;
   }
 
-  void registerSelected(FilamentEntity entity) {
+  void registerSelected(ThermionEntity entity) {
     selected = entity;
     _onUpdatedController.add(true);
   }
@@ -112,7 +112,7 @@ class SceneImpl extends Scene {
   }
 
   @override
-  void select(FilamentEntity entity) {
+  void select(ThermionEntity entity) {
     selected = entity;
     controller.gizmo?.attach(entity);
     _onUpdatedController.add(true);

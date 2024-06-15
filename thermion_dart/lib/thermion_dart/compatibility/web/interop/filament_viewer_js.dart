@@ -3,25 +3,25 @@ import 'dart:js_interop_unsafe';
 import 'dart:math';
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
-import 'shims/abstract_filament_viewer_js_shim.dart';
+import 'shims/thermion_viewer_js_shim.dart';
 
 ///
-/// An [AbstractFilamentViewer] implementation that forwards calls to
-/// a corresponding Javascript shim implementation (see [AbstractFilamentViewerJSShim]).
+/// An [ThermionViewer] implementation that forwards calls to
+/// a corresponding Javascript shim implementation (see [ThermionViewerJSShim]).
 ///
-class FilamentViewerJS implements AbstractFilamentViewer {
-  late final AbstractFilamentViewerJSShim _shim;
+class ThermionViewerFFIJS implements ThermionViewer {
+  late final ThermionViewerJSShim _shim;
 
-  FilamentViewerJS.fromGlobalProperty(String globalPropertyName) {
+  ThermionViewerFFIJS.fromGlobalProperty(String globalPropertyName) {
     this._shim = globalContext.getProperty(globalPropertyName.toJS)
-        as AbstractFilamentViewerJSShim;
+        as ThermionViewerJSShim;
   }
 
-  FilamentViewerJS(this._shim);
+  ThermionViewerFFIJS(this._shim);
 
   @override
   Future<bool> get initialized async {
@@ -109,7 +109,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> addLight(
+  Future<ThermionEntity> addLight(
       LightType type,
       double colour,
       double intensity,
@@ -149,7 +149,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> removeLight(FilamentEntity light) async {
+  Future<void> removeLight(ThermionEntity light) async {
     await _shim.removeLight(light).toDart;
   }
 
@@ -159,41 +159,41 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> loadGlb(String path, {int numInstances = 1}) async {
+  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1}) async {
     var entity = (await _shim.loadGlb(path, numInstances).toDart).toDartInt;
     scene.registerEntity(entity);
     return entity;
   }
 
   @override
-  Future<FilamentEntity> createInstance(FilamentEntity entity) async {
+  Future<ThermionEntity> createInstance(ThermionEntity entity) async {
     return (await _shim.createInstance(entity).toDart).toDartInt;
   }
 
   @override
-  Future<int> getInstanceCount(FilamentEntity entity) async {
+  Future<int> getInstanceCount(ThermionEntity entity) async {
     return (await _shim.getInstanceCount(entity).toDart).toDartInt;
   }
 
   @override
-  Future<List<FilamentEntity>> getInstances(FilamentEntity entity) async {
+  Future<List<ThermionEntity>> getInstances(ThermionEntity entity) async {
     throw UnimplementedError();
     // final List<JSObject> jsInstances =
     //     await _shim.getInstances(entity).toDart;
     // return jsInstances
-    //     .map((js) => FilamentEntity._fromJSObject(js))
+    //     .map((js) => ThermionEntity._fromJSObject(js))
     //     .toList()
     //     .toDart;
   }
 
   @override
-  Future<FilamentEntity> loadGltf(String path, String relativeResourcePath,
+  Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
       {bool force = false}) async {
     throw UnimplementedError();
-    // final FilamentEntity jsEntity = await _shim
+    // final ThermionEntity jsEntity = await _shim
     //     .loadGltf(path, relativeResourcePath, force: force)
     //     .toDart;
-    // return FilamentEntity._fromJSObject(jsEntity).toDart;
+    // return ThermionEntity._fromJSObject(jsEntity).toDart;
   }
 
   @override
@@ -228,7 +228,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
 
   @override
   Future<void> setMorphTargetWeights(
-      FilamentEntity entity, List<double> weights) async {
+      ThermionEntity entity, List<double> weights) async {
     var jsWeights = weights.map((x) => x.toJS).cast<JSNumber>().toList().toJS;
     var promise = _shim.setMorphTargetWeights(entity, jsWeights);
     await promise.toDart;
@@ -236,13 +236,13 @@ class FilamentViewerJS implements AbstractFilamentViewer {
 
   @override
   Future<List<String>> getMorphTargetNames(
-      FilamentEntity entity, FilamentEntity childEntity) async {
+      ThermionEntity entity, ThermionEntity childEntity) async {
     var result = await _shim.getMorphTargetNames(entity, childEntity).toDart;
     return result.toDart.map((r) => r.toDart).toList();
   }
 
   @override
-  Future<List<String>> getAnimationNames(FilamentEntity entity) async {
+  Future<List<String>> getAnimationNames(ThermionEntity entity) async {
     var names = (await (_shim.getAnimationNames(entity).toDart))
         .toDart
         .map((x) => x.toDart)
@@ -252,14 +252,14 @@ class FilamentViewerJS implements AbstractFilamentViewer {
 
   @override
   Future<double> getAnimationDuration(
-      FilamentEntity entity, int animationIndex) async {
+      ThermionEntity entity, int animationIndex) async {
     return (await _shim.getAnimationDuration(entity, animationIndex).toDart)
         .toDartDouble;
   }
 
   @override
   Future<void> setMorphAnimationData(
-      FilamentEntity entity, MorphAnimationData animation,
+      ThermionEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
     try {
       var animationDataJs = animation.data
@@ -285,13 +285,13 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> resetBones(FilamentEntity entity) async {
+  Future<void> resetBones(ThermionEntity entity) async {
     await _shim.resetBones(entity).toDart;
   }
 
   @override
   Future<void> addBoneAnimation(
-      FilamentEntity entity, BoneAnimationData animation,
+      ThermionEntity entity, BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeInInSecs = 0.0,
       double fadeOutInSecs = 0.0,
@@ -328,7 +328,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> removeEntity(FilamentEntity entity) async {
+  Future<void> removeEntity(ThermionEntity entity) async {
     await _shim.removeEntity(entity).toDart;
   }
 
@@ -353,7 +353,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> playAnimation(FilamentEntity entity, int index,
+  Future<void> playAnimation(ThermionEntity entity, int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
@@ -364,7 +364,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> playAnimationByName(FilamentEntity entity, String name,
+  Future<void> playAnimationByName(ThermionEntity entity, String name,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
@@ -377,22 +377,22 @@ class FilamentViewerJS implements AbstractFilamentViewer {
 
   @override
   Future<void> setAnimationFrame(
-      FilamentEntity entity, int index, int animationFrame) async {
+      ThermionEntity entity, int index, int animationFrame) async {
     await _shim.setAnimationFrame(entity, index, animationFrame).toDart;
   }
 
   @override
-  Future<void> stopAnimation(FilamentEntity entity, int animationIndex) async {
+  Future<void> stopAnimation(ThermionEntity entity, int animationIndex) async {
     await _shim.stopAnimation(entity, animationIndex).toDart;
   }
 
   @override
-  Future<void> stopAnimationByName(FilamentEntity entity, String name) async {
+  Future<void> stopAnimationByName(ThermionEntity entity, String name) async {
     await _shim.stopAnimationByName(entity, name).toDart;
   }
 
   @override
-  Future<void> setCamera(FilamentEntity entity, String? name) async {
+  Future<void> setCamera(ThermionEntity entity, String? name) async {
     await _shim.setCamera(entity, name).toDart;
   }
 
@@ -402,10 +402,10 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> getMainCamera() async {
+  Future<ThermionEntity> getMainCamera() async {
     throw UnimplementedError();
-    // final FilamentEntity jsEntity = await _shim.getMainCamera().toDart;
-    // return FilamentEntity._fromJSObject(jsEntity).toDart;
+    // final ThermionEntity jsEntity = await _shim.getMainCamera().toDart;
+    // return ThermionEntity._fromJSObject(jsEntity).toDart;
   }
 
   @override
@@ -506,7 +506,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> moveCameraToAsset(FilamentEntity entity) async {
+  Future<void> moveCameraToAsset(ThermionEntity entity) async {
     await _shim.moveCameraToAsset(entity).toDart;
   }
 
@@ -541,7 +541,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> setMaterialColor(FilamentEntity entity, String meshName,
+  Future<void> setMaterialColor(ThermionEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a) async {
     await _shim
         .setMaterialColor(entity, meshName, materialIndex, r, g, b, a)
@@ -549,43 +549,43 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> transformToUnitCube(FilamentEntity entity) async {
+  Future<void> transformToUnitCube(ThermionEntity entity) async {
     await _shim.transformToUnitCube(entity).toDart;
   }
 
   @override
   Future<void> setPosition(
-      FilamentEntity entity, double x, double y, double z) async {
+      ThermionEntity entity, double x, double y, double z) async {
     await _shim.setPosition(entity, x, y, z).toDart;
   }
 
   @override
-  Future<void> setScale(FilamentEntity entity, double scale) async {
+  Future<void> setScale(ThermionEntity entity, double scale) async {
     await _shim.setScale(entity, scale).toDart;
   }
 
   @override
   Future<void> setRotation(
-      FilamentEntity entity, double rads, double x, double y, double z) async {
+      ThermionEntity entity, double rads, double x, double y, double z) async {
     await _shim.setRotation(entity, rads, x, y, z).toDart;
   }
 
   @override
   Future<void> queuePositionUpdate(
-      FilamentEntity entity, double x, double y, double z,
+      ThermionEntity entity, double x, double y, double z,
       {bool relative = false}) async {
     await _shim.queuePositionUpdate(entity, x, y, z, relative).toDart;
   }
 
   @override
   Future<void> queueRotationUpdate(
-      FilamentEntity entity, double rads, double x, double y, double z,
+      ThermionEntity entity, double rads, double x, double y, double z,
       {bool relative = false}) async {
     await _shim.queueRotationUpdate(entity, rads, x, y, z, relative).toDart;
   }
 
   @override
-  Future<void> queueRotationUpdateQuat(FilamentEntity entity, Quaternion quat,
+  Future<void> queueRotationUpdateQuat(ThermionEntity entity, Quaternion quat,
       {bool relative = false}) async {
     throw UnimplementedError();
 
@@ -607,20 +607,20 @@ class FilamentViewerJS implements AbstractFilamentViewer {
 
   @override
   Future<void> setRotationQuat(
-      FilamentEntity entity, Quaternion rotation) async {
+      ThermionEntity entity, Quaternion rotation) async {
     throw UnimplementedError();
     // final JSQuaternion jsRotation = rotation.toJSQuaternion().toDart;
     // await _shim.setRotationQuat(entity, jsRotation).toDart;
   }
 
   @override
-  Future<void> reveal(FilamentEntity entity, String? meshName) async {
+  Future<void> reveal(ThermionEntity entity, String? meshName) async {
     throw UnimplementedError();
     // await _shim.reveal(entity, meshName).toDart;
   }
 
   @override
-  Future<void> hide(FilamentEntity entity, String? meshName) async {
+  Future<void> hide(ThermionEntity entity, String? meshName) async {
     throw UnimplementedError();
     // await _shim.hide(entity, meshName).toDart;
   }
@@ -632,7 +632,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  String? getNameForEntity(FilamentEntity entity) {
+  String? getNameForEntity(ThermionEntity entity) {
     return _shim.getNameForEntity(entity);
   }
 
@@ -649,24 +649,24 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<List<FilamentEntity>> getChildEntities(
-      FilamentEntity parent, bool renderableOnly) async {
+  Future<List<ThermionEntity>> getChildEntities(
+      ThermionEntity parent, bool renderableOnly) async {
     final children =
         await _shim.getChildEntities(parent, renderableOnly).toDart;
     return children.toDart
         .map((js) => js.toDartInt)
-        .cast<FilamentEntity>()
+        .cast<ThermionEntity>()
         .toList();
   }
 
   @override
-  Future<FilamentEntity> getChildEntity(
-      FilamentEntity parent, String childName) async {
+  Future<ThermionEntity> getChildEntity(
+      ThermionEntity parent, String childName) async {
     return (await _shim.getChildEntity(parent, childName).toDart).toDartInt;
   }
 
   @override
-  Future<List<String>> getChildEntityNames(FilamentEntity entity,
+  Future<List<String>> getChildEntityNames(ThermionEntity entity,
       {bool renderableOnly = true}) async {
     var names = await _shim.getChildEntityNames(entity, renderableOnly).toDart;
     return names.toDart.map((x) => x.toDart).toList();
@@ -684,12 +684,12 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> addAnimationComponent(FilamentEntity entity) async {
+  Future<void> addAnimationComponent(ThermionEntity entity) async {
     await _shim.addAnimationComponent(entity).toDart;
   }
 
   @override
-  Future<void> addCollisionComponent(FilamentEntity entity,
+  Future<void> addCollisionComponent(ThermionEntity entity,
       {void Function(int entityId1, int entityId2)? callback,
       bool affectsTransform = false}) async {
     throw UnimplementedError();
@@ -705,35 +705,35 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future<void> removeCollisionComponent(FilamentEntity entity) async {
+  Future<void> removeCollisionComponent(ThermionEntity entity) async {
     await _shim.removeCollisionComponent(entity).toDart;
   }
 
   @override
-  Future<FilamentEntity> createGeometry(
+  Future<ThermionEntity> createGeometry(
       List<double> vertices, List<int> indices,
       {String? materialPath,
       PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) async {
     throw UnimplementedError();
-    // final FilamentEntity jsEntity = await _shim
+    // final ThermionEntity jsEntity = await _shim
     //     .createGeometry(vertices, indices,
     //         materialPath: materialPath, primitiveType: primitiveType.index)
     //     .toDart;
-    // return FilamentEntity._fromJSObject(jsEntity).toDart;
+    // return ThermionEntity._fromJSObject(jsEntity).toDart;
   }
 
   @override
-  Future<void> setParent(FilamentEntity child, FilamentEntity parent) async {
+  Future<void> setParent(ThermionEntity child, ThermionEntity parent) async {
     await _shim.setParent(child, parent).toDart;
   }
 
   @override
-  Future<void> testCollisions(FilamentEntity entity) async {
+  Future<void> testCollisions(ThermionEntity entity) async {
     await _shim.testCollisions(entity).toDart;
   }
 
   @override
-  Future<void> setPriority(FilamentEntity entityId, int priority) async {
+  Future<void> setPriority(ThermionEntity entityId, int priority) async {
     await _shim.setPriority(entityId, priority).toDart;
   }
 
@@ -748,52 +748,52 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   AbstractGizmo? get gizmo => null;
 
   @override
-  Future<List<String>> getBoneNames(FilamentEntity entity,
+  Future<List<String>> getBoneNames(ThermionEntity entity,
       {int skinIndex = 0}) async {
     var result = await _shim.getBoneNames(entity, skinIndex).toDart;
     return result.toDart.map((n) => n.toDart).toList();
   }
 
   @override
-  Future<FilamentEntity> getBone(FilamentEntity entity, int boneIndex,
+  Future<ThermionEntity> getBone(ThermionEntity entity, int boneIndex,
       {int skinIndex = 0}) async {
     var result = await _shim.getBone(entity, boneIndex, skinIndex).toDart;
     return result.toDartInt;
   }
 
   @override
-  Future<Matrix4> getInverseBindMatrix(FilamentEntity parent, int boneIndex,
+  Future<Matrix4> getInverseBindMatrix(ThermionEntity parent, int boneIndex,
       {int skinIndex = 0}) {
     // TODO: implement getInverseBindMatrix
     throw UnimplementedError();
   }
 
   @override
-  Future<Matrix4> getLocalTransform(FilamentEntity entity) async {
+  Future<Matrix4> getLocalTransform(ThermionEntity entity) async {
     var result = await _shim.getLocalTransform(entity).toDart;
     return Matrix4.fromList(result.toDart.map((v) => v.toDartDouble).toList());
   }
 
   @override
-  Future<FilamentEntity?> getParent(FilamentEntity child) async {
+  Future<ThermionEntity?> getParent(ThermionEntity child) async {
     var result = await _shim.getParent(child).toDart;
     return result.toDartInt;
   }
 
   @override
-  Future<Matrix4> getWorldTransform(FilamentEntity entity) async {
+  Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
     var result = await _shim.getLocalTransform(entity).toDart;
     return Matrix4.fromList(result.toDart.map((v) => v.toDartDouble).toList());
   }
 
   @override
-  Future removeAnimationComponent(FilamentEntity entity) {
+  Future removeAnimationComponent(ThermionEntity entity) {
     return _shim.removeAnimationComponent(entity).toDart;
   }
 
   @override
   Future setBoneTransform(
-      FilamentEntity entity, int boneIndex, Matrix4 transform,
+      ThermionEntity entity, int boneIndex, Matrix4 transform,
       {int skinIndex = 0}) {
     return _shim
         .setBoneTransform(entity, boneIndex,
@@ -802,7 +802,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future setTransform(FilamentEntity entity, Matrix4 transform) {
+  Future setTransform(ThermionEntity entity, Matrix4 transform) {
     return _shim
         .setTransform(
             entity, transform.storage.map((v) => v.toJS).toList().toJS)
@@ -810,7 +810,7 @@ class FilamentViewerJS implements AbstractFilamentViewer {
   }
 
   @override
-  Future updateBoneMatrices(FilamentEntity entity) {
+  Future updateBoneMatrices(ThermionEntity entity) {
     return _shim.updateBoneMatrices(entity).toDart;
   }
 }

@@ -23,7 +23,7 @@
 
 #include "tsl/robin_map.h"
 
-namespace thermion_flutter
+namespace thermion_filament
 {
     typedef int32_t EntityId;
 

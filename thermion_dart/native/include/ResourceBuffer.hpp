@@ -9,7 +9,7 @@
 using namespace std::chrono_literals;
 #endif
 
-namespace thermion_flutter
+namespace thermion_filament
 {
 
   struct ResourceLoaderWrapperImpl : public ResourceLoaderWrapper

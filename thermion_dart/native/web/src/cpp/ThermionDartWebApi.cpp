@@ -60,56 +60,56 @@ extern "C"
   //   return 0;
   // }
 
-  EMSCRIPTEN_KEEPALIVE void thermion_flutter_web_load_resource_callback(void* data, int32_t length, void* context) {
+  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_load_resource_callback(void* data, int32_t length, void* context) {
     ((PendingCall*)context)->HandleResponse(data, length);
   }
 
-  EMSCRIPTEN_KEEPALIVE void thermion_flutter_web_set(char* ptr, int32_t offset, int32_t val) {
+  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set(char* ptr, int32_t offset, int32_t val) {
     memset(ptr+offset, val, 1);
   }
 
-  EMSCRIPTEN_KEEPALIVE void thermion_flutter_web_set_float(float* ptr, int32_t offset, float val) {
+  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set_float(float* ptr, int32_t offset, float val) {
     ptr[offset] = val;
   }
 
-  EMSCRIPTEN_KEEPALIVE float thermion_flutter_web_get_float(float* ptr, int32_t offset) {
+  EMSCRIPTEN_KEEPALIVE float thermion_filament_web_get_float(float* ptr, int32_t offset) {
     return ptr[offset];
   }
 
-  EMSCRIPTEN_KEEPALIVE double thermion_flutter_web_get_double(double* ptr, int32_t offset) {
+  EMSCRIPTEN_KEEPALIVE double thermion_filament_web_get_double(double* ptr, int32_t offset) {
     return ptr[offset];
   }
 
-  EMSCRIPTEN_KEEPALIVE void thermion_flutter_web_set_double(double* ptr, int32_t offset, double value) {
+  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set_double(double* ptr, int32_t offset, double value) {
     ptr[offset] = value;
   }
 
-  EMSCRIPTEN_KEEPALIVE int32_t thermion_flutter_web_get_int32(int32_t* ptr, int32_t offset) {
+  EMSCRIPTEN_KEEPALIVE int32_t thermion_filament_web_get_int32(int32_t* ptr, int32_t offset) {
     return ptr[offset];
   }
 
-  EMSCRIPTEN_KEEPALIVE void thermion_flutter_web_set_int32(int32_t* ptr, int32_t offset, int32_t value) {
+  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set_int32(int32_t* ptr, int32_t offset, int32_t value) {
     ptr[offset] = value;
   }
 
-  EMSCRIPTEN_KEEPALIVE void thermion_flutter_web_set_pointer(void** ptr, int32_t offset, void* val) { 
+  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set_pointer(void** ptr, int32_t offset, void* val) { 
     ptr[offset] = val;
   }
 
-  EMSCRIPTEN_KEEPALIVE void* thermion_flutter_web_get_pointer(void** ptr, int32_t offset) { 
+  EMSCRIPTEN_KEEPALIVE void* thermion_filament_web_get_pointer(void** ptr, int32_t offset) { 
     return ptr[offset];
   }
 
-  EMSCRIPTEN_KEEPALIVE char thermion_flutter_web_get(char* ptr, int32_t offset) {
+  EMSCRIPTEN_KEEPALIVE char thermion_filament_web_get(char* ptr, int32_t offset) {
     return ptr[offset];
   }
 
-  EMSCRIPTEN_KEEPALIVE void* thermion_flutter_web_allocate(int32_t size) {
+  EMSCRIPTEN_KEEPALIVE void* thermion_filament_web_allocate(int32_t size) {
     void* allocated = (void*)calloc(size, 1);
     return allocated;
   }
 
-  EMSCRIPTEN_KEEPALIVE long thermion_flutter_web_get_address(void** out) {
+  EMSCRIPTEN_KEEPALIVE long thermion_filament_web_get_address(void** out) {
     return (long)*out;
   }
 
@@ -149,7 +149,7 @@ extern "C"
 
   int _lastResourceId = 0;
 
-  ResourceBuffer thermion_flutter_web_load_resource(const char* path)
+  ResourceBuffer thermion_filament_web_load_resource(const char* path)
   {
     // ideally we should bounce the call to Flutter then wait for callback
     // this isn't working for large assets though - seems like it's deadlocked
@@ -212,19 +212,19 @@ extern "C"
     return ResourceBuffer { data, numBytes, _lastResourceId  } ;   
   }
 
-  void thermion_flutter_web_free_resource(ResourceBuffer rb) {
+  void thermion_filament_web_free_resource(ResourceBuffer rb) {
     free((void*)rb.data);
   }
   
-  EMSCRIPTEN_KEEPALIVE void thermion_flutter_web_free(void* ptr) {
+  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_free(void* ptr) {
     free(ptr);
   }
 
   EMSCRIPTEN_KEEPALIVE void* thermion_dart_web_get_resource_loader_wrapper() {
     ResourceLoaderWrapper *rlw = (ResourceLoaderWrapper *)malloc(sizeof(ResourceLoaderWrapper));
-    rlw->loadResource = thermion_flutter_web_load_resource;
+    rlw->loadResource = thermion_filament_web_load_resource;
     rlw->loadFromOwner = nullptr;
-    rlw->freeResource = thermion_flutter_web_free_resource;
+    rlw->freeResource = thermion_filament_web_free_resource;
     rlw->freeFromOwner = nullptr;
     rlw->loadToOut = nullptr;
     rlw->owner = nullptr;

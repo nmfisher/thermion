@@ -24,7 +24,7 @@
 #include <utils/NameComponentManager.h>
 
 template class std::vector<float>;
-namespace thermion_flutter
+namespace thermion_filament
 {
     using namespace filament;
     using namespace filament::gltfio;

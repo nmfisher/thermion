@@ -1,4 +1,4 @@
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
@@ -25,7 +25,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   @override
   Future initialize({String? uberArchivePath}) async {
     print("Creating viewer in web plugin");
-    viewer = JsInteropFilamentViewer("filamentViewer");
+    viewer = JsInteropThermionViewerFFI("filamentViewer");
     print("Waiting for initialized");
     await viewer.initialized;
     print("int complete");
@@ -37,5 +37,5 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
 
   @override
   // TODO: implement viewer
-  late final AbstractFilamentViewer viewer;
+  late final ThermionViewer viewer;
 }

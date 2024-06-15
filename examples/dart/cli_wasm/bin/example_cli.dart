@@ -4,7 +4,7 @@ import 'package:animation_tools_dart/animation_tools_dart.dart';
 
 void main(List<String> args) async {
   final resourceLoader = thermion_dart_web_get_resource_loader_wrapper();
-  var viewer = FilamentViewer(resourceLoader: resourceLoader.cast<Void>());
+  var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
   viewer.initialized.then((_) async {
     var entity = await viewer.loadGlb(
         "/Users/nickfisher/Documents/polyvox/apps/packages/thermion_flutter/thermion_flutter_federated/thermion_flutter/example/assets/shapes/shapes.glb");

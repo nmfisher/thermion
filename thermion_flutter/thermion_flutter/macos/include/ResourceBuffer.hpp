@@ -38,7 +38,7 @@ typedef struct ResourceLoaderWrapper ResourceLoaderWrapper;
 
 #if defined(__cplusplus)
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 struct ResourceLoaderWrapperImpl : public ResourceLoaderWrapper
 {

@@ -20,7 +20,7 @@
 #include "include/thermion_flutter/filament_pb_texture.h"
 #include "include/thermion_flutter/resource_loader.hpp"
 
-#include "FilamentViewer.hpp"
+#include "ThermionDartApi.h"
 #include "Log.hpp"
 
 extern "C" {
@@ -43,7 +43,7 @@ struct _ThermionFlutterPlugin {
   double width = 0;
   double height = 0;
   bool rendering = false;
-  thermion_flutter::FilamentViewer* viewer;
+  thermion_flutter::ThermionViewerFFI* viewer;
 };
 
 G_DEFINE_TYPE(ThermionFlutterPlugin, thermion_flutter_plugin, g_object_get_type())
@@ -71,7 +71,7 @@ static FlMethodResponse* _create_filament_viewer(ThermionFlutterPlugin* self, Fl
   self->height = height;
 
   auto context = glXGetCurrentContext();   
-  self->viewer = (thermion_flutter::FilamentViewer*)create_filament_viewer(
+  self->viewer = (thermion_flutter::ThermionViewerFFI*)create_filament_viewer(
     (void*)context,
     callback
   );
@@ -718,7 +718,7 @@ static void thermion_flutter_plugin_handle_method_call(
 
   const gchar* method = fl_method_call_get_name(method_call);
 
-  if(strcmp(method, "createFilamentViewer") == 0) {
+  if(strcmp(method, "createThermionViewerFFI") == 0) {
     response = _create_filament_viewer(self, method_call);
   } else if(strcmp(method, "createTexture") == 0) {
     response = _create_texture(self, method_call);    

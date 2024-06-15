@@ -6,13 +6,13 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_in
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 
 ///
-/// A subclass of [FilamentViewer] that uses Flutter platform channels
+/// A subclass of [ThermionViewerFFI] that uses Flutter platform channels
 /// to create rendering contexts, callbacks and surfaces (either backing texture(s).
 ///
 class ThermionFlutterFFI extends ThermionFlutterPlatform {
   final _channel = const MethodChannel("app.polyvox.filament/event");
 
-  late final FilamentViewer viewer;
+  late final ThermionViewerFFI viewer;
 
   static void registerWith() {
     ThermionFlutterPlatform.instance = ThermionFlutterFFI();
@@ -46,7 +46,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
         ? nullptr
         : Pointer<Void>.fromAddress(sharedContext);
 
-    viewer = FilamentViewer(
+    viewer = ThermionViewerFFI(
         resourceLoader: resourceLoader,
         renderCallback: renderCallback,
         renderCallbackOwner: renderCallbackOwner,
@@ -73,7 +73,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
 
   ///
   /// Create a backing surface for rendering.
-  /// This is called by [FilamentWidget]; don't call this yourself.
+  /// This is called by [ThermionWidget]; don't call this yourself.
   ///
   /// The name here is slightly misleading because we only create
   /// a texture render target on macOS and iOS; on Android, we render into
@@ -81,7 +81,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
   /// a HWND.
   ///
   /// Currently, this only supports a single "texture" (aka rendering surface)
-  /// at any given time. If a [FilamentWidget] is disposed, it will call
+  /// at any given time. If a [ThermionWidget] is disposed, it will call
   /// [destroyTexture]; if it is resized, it will call [resizeTexture].
   ///
   /// In future, we probably want to be able to create multiple distinct
@@ -92,13 +92,13 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
   ///
   Future<ThermionFlutterTexture?> createTexture(
       int width, int height, int offsetLeft, int offsetRight) async {
-    // when a FilamentWidget is inserted, disposed then immediately reinserted
+    // when a ThermionWidget is inserted, disposed then immediately reinserted
     // into the widget hierarchy (e.g. rebuilding due to setState(() {}) being called in an ancestor widget)
     // the first call to createTexture may not have completed before the second.
     // add a loop here to wait (max 500ms) for the first call to complete
     await _waitForTextureCreationToComplete();
 
-    // note that when [FilamentWidget] is disposed, we don't destroy the
+    // note that when [ThermionWidget] is disposed, we don't destroy the
     // texture; instead, we keep it around in case a subsequent call requests
     // a texture of the same size.
 
@@ -152,7 +152,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
   }
 
   ///
-  /// Called by [FilamentWidget] to destroy a texture. Don't call this yourself.
+  /// Called by [ThermionWidget] to destroy a texture. Don't call this yourself.
   ///
   Future destroyTexture(ThermionFlutterTexture texture) async {
     await _channel.invokeMethod("destroyTexture", texture.flutterTextureId);
@@ -162,7 +162,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
   bool _resizing = false;
 
   ///
-  /// Called by [FilamentWidget] to resize a texture. Don't call this yourself.
+  /// Called by [ThermionWidget] to resize a texture. Don't call this yourself.
   ///
   @override
   Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,

@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cstring>
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 class StreamBufferAdapter : public std::streambuf
 {

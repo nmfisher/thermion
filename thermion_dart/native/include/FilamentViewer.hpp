@@ -36,7 +36,7 @@
 #include "SceneManager.hpp"
 #include "ThreadPool.hpp"
 
-namespace thermion_flutter
+namespace thermion_filament
 {
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
@@ -167,7 +167,7 @@ namespace thermion_flutter
         Scene *_scene = nullptr;
         View *_view = nullptr;
         Engine *_engine = nullptr;
-        thermion_flutter::ThreadPool *_tp = nullptr;
+        thermion_filament::ThreadPool *_tp = nullptr;
         Renderer *_renderer = nullptr;
         RenderTarget *_rt = nullptr;
         Texture *_rtColor = nullptr;

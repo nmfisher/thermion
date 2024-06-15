@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 import 'package:thermion_flutter/thermion_flutter.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_flutter_example/main.dart';
 
 class CameraSubmenu extends StatefulWidget {

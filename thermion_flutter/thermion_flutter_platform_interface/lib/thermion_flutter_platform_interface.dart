@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'thermion_flutter_texture.dart';
 
@@ -18,7 +18,7 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  AbstractFilamentViewer get viewer;
+  ThermionViewer get viewer;
 
   Future initialize({String? uberArchivePath});
 

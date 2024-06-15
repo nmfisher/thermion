@@ -1,7 +1,7 @@
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
-import 'package:thermion_dart/thermion_dart/filament_viewer_impl.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer_ffi.dart';
 import 'package:web/web.dart';
 
 void main(List<String> arguments) async {
@@ -13,7 +13,7 @@ void main(List<String> arguments) async {
 
   var resourceLoader = thermion_dart_web_get_resource_loader_wrapper();
 
-  var viewer = FilamentViewer(resourceLoader: resourceLoader);
+  var viewer = ThermionViewerFFI(resourceLoader: resourceLoader);
 
   var mousedown = (JSObject event) {
     var x = event.getProperty("clientX".toJS) as JSNumber;

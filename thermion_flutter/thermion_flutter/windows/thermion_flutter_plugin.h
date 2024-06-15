@@ -22,7 +22,7 @@
 #include "wgl_context.h"
 #endif
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 class ThermionFlutterPlugin : public flutter::Plugin {
 public:
@@ -66,6 +66,6 @@ public:
     #endif
 };
 
-} // namespace thermion_flutter
+} // namespace thermion_filament
 
 #endif // FLUTTER_PLUGIN_FLUTTER_FILAMENT_PLUGIN_H_

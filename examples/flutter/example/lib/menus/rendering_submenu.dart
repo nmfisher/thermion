@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter_example/main.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 class RenderingSubmenu extends StatefulWidget {
   final ThermionFlutterPlugin controller;

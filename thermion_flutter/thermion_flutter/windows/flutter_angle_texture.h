@@ -26,7 +26,7 @@
 
 typedef uint32_t GLuint;
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 class FlutterAngleTexture : public FlutterTextureBuffer {
   public:

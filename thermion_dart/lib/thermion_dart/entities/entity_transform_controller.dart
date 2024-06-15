@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:vector_math/vector_math_64.dart' as v;
 
 class EntityTransformController {
-  final AbstractFilamentViewer controller;
-  final FilamentEntity _entity;
+  final ThermionViewer controller;
+  final ThermionEntity _entity;
 
   late Timer _ticker;
 

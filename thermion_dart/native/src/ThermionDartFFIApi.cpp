@@ -19,7 +19,6 @@ extern "C"
 #endif
 
 #include "ThermionDartFFIApi.h"
-
 #include "FilamentViewer.hpp"
 #include "Log.hpp"
 #include "ThreadPool.hpp"
@@ -30,7 +29,7 @@ extern "C"
 #include <thread>
 #include <stdlib.h>
 
-using namespace thermion_flutter;
+using namespace thermion_filament;
 using namespace std::chrono_literals;
 #include <time.h>
 

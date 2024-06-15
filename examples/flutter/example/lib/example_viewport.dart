@@ -29,7 +29,7 @@ class ExampleViewport extends StatelessWidget {
                 child: FilamentGestureDetector(
                     showControlOverlay: true,
                     controller: controller!.viewer,
-                    child: FilamentWidget(
+                    child: ThermionWidget(
                       plugin: controller!,
                     ))))
         : Container();

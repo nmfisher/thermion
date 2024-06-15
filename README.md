@@ -1,7 +1,33 @@
-# Flutter Filament
+![Thermion Logo](logo.png)
 
-Cross-platform, 3D PBR rendering and animation for [Flutter](https://github.com/google/filament).
+<p align="center">
+  <a href="https://docs.page/nmfisher/flutter_filament/quickstart">Quickstart (Flutter)</a> •
+  <a href="https://docs.page/nmfisher/flutter_filament">Documentation</a> •
+  <a href="https://jasprpad.schultek.de">Playground</a> •
+  <a href="https://github.com/nmfisher/flutter_filament/docs/examples/">Showcase</a> •
+  <a href="https://discord.gg/h2VdDK3EAQ">Discord</a>
+</p>
 
+## Cross-platform 3D engine for Dart and Flutter.
+
+<a href="https://pub.dev/packages/thermion"><img src="https://img.shields.io/pub/v/thermion?label=pub.dev&labelColor=333940&logo=dart&color=00589B" alt="pub"></a>
+<a href="https://github.com/nmfisher/flutter_filament"><img src="https://img.shields.io/github/stars/nmfisher/flutter_filament?style=flat&label=stars&labelColor=333940&color=8957e5&logo=github" alt="github"></a>
+<a href="https://discord.gg/h2VdDK3EAQ"><img src="https://img.shields.io/discord/993167615587520602?logo=discord&logoColor=fff&labelColor=333940" alt="discord"></a>
+<a href="https://github.com/nmfisher/flutter_filament"><img src="https://img.shields.io/github/contributors/nmfisher/flutter_filament?logo=github&labelColor=333940" alt="contributors"></a>
+
+### Features
+- Supports iOS (arm64), MacOS (arm64/x64), Android (arm64), Windows (x64) (>= 10), Web/WASM 
+- glTF, KTX, PNG & JPEG texture support
+- camera/entity manipulation with mouse (desktop) and gestures (mobile)
+- skinning + morph animations
+
+### Sponsors & Contributors 
+
+Special thanks to [odd-io](https://github.com/odd-io/) for sponsoring work on supporting Windows, raycasting, testing and documentation.
+
+PRs are welcome but please create a placeholder PR to discuss before writing any code. This will help with feature planning, avoid clashes with existing work and keep the project structure consistent.   
+
+(https://github.com/google/filament)
 Wraps the [the Filament rendering library](https://github.com/google/filament).
 
 Powers the [Polyvox](https://polyvox.app) and [odd-io](https://github.com/odd-io/) engines.
@@ -10,19 +36,6 @@ This is still in beta: bugs/missing features are to be expected.
 
 https://github.com/nmfisher/thermion_flutter/assets/7238578/abaed1c8-c97b-4999-97b2-39e85e0fa7dd
 
-
-|Feature|Supported|
-|---|---|
-|Platforms|✅ iOS (arm64)<br/>✅ MacOS (arm64)<br/>✅ Android (arm64) <br/>✅ Windows (x64) (>= 10)<br/>⚠️ Linux (x64 - broken)<br/>⚠️ Web (planned)|
-|Formats|✅ glb <br/>⚠️ glTF (partial - see Known Issues)|
-|Texture support|✅ PNG <br/>✅ JPEG <br/>✅ KTX <br/>⚠️ KTX2 (planned)|
-|Camera movement|✅ Desktop (mouse)<br/>✅ Mobile (swipe/pinch)|
-|Animation|✅ Embedded glTF skinning animations<br/>✅ Embedded glTF morph animations<br/> ✅ Runtime/dynamic morph animations<br/> ⚠️ Runtime/dynamic skinning animations <br/>
-|Entity manipulation|✅ Viewport selection<br/>⚠️ Entity/transform parenting (planned)<br/> ⚠️ Transform manipulation (mouse/gesture to rotate/translate/scale object) (partial)<br/>⚠️ Runtime material changes (planned)|
-
-Special thanks to [odd-io](https://github.com/odd-io/) for sponsoring work on supporting Windows, raycasting, testing and documentation.
-
-PRs are welcome but please create a placeholder PR to discuss before writing any code. This will help with feature planning, avoid clashes with existing work and keep the project structure consistent.   
 
 ## Getting Started
 
@@ -84,7 +97,7 @@ class MyApp extends StatelessWidget {
 
 This is a relatively lightweight object, however its constructor will load/bind symbols from the native library. This may momentarily block the UI, so you may wish to structure your app so that this is hidden behind a static widget until it is available.
 
-Next, create an instance of `FilamentWidget` in the widget hierarchy where you want the rendering canvas to appear. This can be sized as large or as small as you want. On most platforms, Flutter widgets can be positioned above or below the `FilamentWidget`.
+Next, create an instance of `ThermionWidget` in the widget hierarchy where you want the rendering canvas to appear. This can be sized as large or as small as you want. On most platforms, Flutter widgets can be positioned above or below the `ThermionWidget`.
 
 ```
 class MyApp extends StatelessWidget {
@@ -97,24 +110,24 @@ class MyApp extends StatelessWidget {
         color: Colors.white,
         home: Scaffold(backgroundColor: Colors.white, body: Stack(children:[
             Container(color:Colors.green, height:100, width:100),
-            Positioned.fill(top:100, left:100child:FilamentWidget(controller:_filamentController)),
+            Positioned.fill(top:100, left:100child:ThermionWidget(controller:_filamentController)),
             Positioned(right:0, bottom:0, child:Container(color:Colors.purple, height:100, width:100))
         ])));
     }
 }
 ```
 
-When a `FilamentWidget` is added to the widget hierarchy:
-1) by default a Container will be rendered with solid red. If you want to change this, pass a widget as the `initial` paramer to the `FilamentWidget` constructor.
-2) on the second frame, `FilamentWidget` will pass its dimensions/pixel ratio to the `FilamentController`
+When a `ThermionWidget` is added to the widget hierarchy:
+1) by default a Container will be rendered with solid red. If you want to change this, pass a widget as the `initial` paramer to the `ThermionWidget` constructor.
+2) on the second frame, `ThermionWidget` will pass its dimensions/pixel ratio to the `FilamentController`
 3) You can then call `createViewer` to create:
     * the rendering surface (on most platforms, a backing texture that will be registered with Flutter for use in a `Texture` widget) 
     * a rendering thread 
-    * a `FilamentViewer` and an `SceneManager`, which will allow you to load assets/cameras/lighting/etc via the `FilamentController`
-4) after an indeterminate number of frames, `FilamentController` will notify `FilamentWidget` when a rendering surface is available the viewport 
-5) `FilamentWidget` will replace the default `initial` Widget with the viewport (which will initially be solid black or white, depending on your platform).
+    * a `ThermionViewerFFI` and an `SceneManager`, which will allow you to load assets/cameras/lighting/etc via the `FilamentController`
+4) after an indeterminate number of frames, `FilamentController` will notify `ThermionWidget` when a rendering surface is available the viewport 
+5) `ThermionWidget` will replace the default `initial` Widget with the viewport (which will initially be solid black or white, depending on your platform).
 
-IMPORTANT: there *will* be a delay between adding a `FilamentWidget`, calling `createViewer` and the actual rendering viewport becoming available. This is why we fill `FilamentWidget` with red - to make it abundantly clear that you need to handle this asynchronous delay appropriately.  Once `createViewer` has completed, the viewport is available for rendering.
+IMPORTANT: there *will* be a delay between adding a `ThermionWidget`, calling `createViewer` and the actual rendering viewport becoming available. This is why we fill `ThermionWidget` with red - to make it abundantly clear that you need to handle this asynchronous delay appropriately.  Once `createViewer` has completed, the viewport is available for rendering.
 
 > Currently, the `initial` widget will also be displayed whenever the viewport is resized (including changing orientation on mobile and drag-to-resize on desktop). You probably want to change this from the default red.
 
@@ -172,12 +185,12 @@ You can also pass a URI to indicate that the glTF file should be loaded from the
 var entity = await _filamentController.loadGlb("file:///tmp/bob.glb");
 ```
 
-The return type `FilamentEntity` is simply an integer handle that be used to manipulate the entity in the scene. For example, to remove the asset:
+The return type `ThermionEntity` is simply an integer handle that be used to manipulate the entity in the scene. For example, to remove the asset:
 ```
 await _filamentController.removeEntity(entity);
 entity = null; 
 ``` 
-> Removing an entity from the scene will invalidate the corresponding `FilamentEntity` handle, so ensure you don't retain any references to it after calling `removeEntity` or `clearEntities`. Removing one `FilamentEntity` does not invalidate/change any other `FilamentEntity` handles; you can continue to safely manipulate these via the `FilamentController`.
+> Removing an entity from the scene will invalidate the corresponding `ThermionEntity` handle, so ensure you don't retain any references to it after calling `removeEntity` or `clearEntities`. Removing one `ThermionEntity` does not invalidate/change any other `ThermionEntity` handles; you can continue to safely manipulate these via the `FilamentController`.
 
 ### Lighting
 
@@ -202,11 +215,11 @@ To set the world space position of the asset:
 _filamentController.setPositon(entity, 1.0, 1.0, 1.0);
 ```
 
-On desktop, you can also click any renderable object in the viewport to retrieve its associated FilamentEntity (see below).
+On desktop, you can also click any renderable object in the viewport to retrieve its associated ThermionEntity (see below).
 
 ### Camera movement
 
-To enable mouse/swipe navigation through the scene, wrap the `FilamentWidget` inside a `FilamentGestureDetector`:
+To enable mouse/swipe navigation through the scene, wrap the `ThermionWidget` inside a `FilamentGestureDetector`:
 
 ```
 class MyApp extends StatelessWidget {
@@ -220,7 +233,7 @@ class MyApp extends StatelessWidget {
         home: Scaffold(backgroundColor: Colors.white, body: Stack(children:[
             Positioned.fill(child:FilamentGestureDetector(
                 controller: _filamentController,
-                child:FilamentWidget(
+                child:ThermionWidget(
                     controller:_filamentController
                 ))),
             Positioned(right:0, bottom:0, child:Container(color:Colors.purple, height:100, width:100))
@@ -253,7 +266,7 @@ await _filamentController.setCamera(asset, null); // pass null to load the first
 
 ### Picking entities
 
-On desktop, left-clicking an object in the viewport will retrieve the FilamentEntity for the top-most renderable instance at that cursor position (if any).
+On desktop, left-clicking an object in the viewport will retrieve the ThermionEntity for the top-most renderable instance at that cursor position (if any).
 
 Note this is an asynchronous operation, so you will need to subscribe to the [pickResult] stream on your [FilamentController] to do something with the result.
 
@@ -269,7 +282,7 @@ class _MyAppState extends State<MyApp> {
 
     @override
     void initState() { 
-        _filamentController.pickResult.listen((FilamentEntity filamentEntity) async {
+        _filamentController.pickResult.listen((ThermionEntity filamentEntity) async {
             var entityName = _filamentController.getNameForEntity(filamentEntity);
             await showDialog(builder:(ctx) {
                 return Container(child:Text("You clicked $entityName"));
@@ -284,7 +297,7 @@ class _MyAppState extends State<MyApp> {
         home: Scaffold(backgroundColor: Colors.white, body: Stack(children:[
             Positioned.fill(child:FilamentGestureDetector(
                 controller: _filamentController,
-                child:FilamentWidget(
+                child:ThermionWidget(
                     controller:_filamentController
                 ))),
         ])));

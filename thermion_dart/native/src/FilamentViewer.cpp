@@ -103,7 +103,7 @@ namespace filament
   class LightManager;
 } // namespace filament
 
-namespace thermion_flutter
+namespace thermion_filament
 {
 
   using namespace filament;
@@ -469,7 +469,7 @@ namespace thermion_flutter
   void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb)
   {
 
-    thermion_flutter::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
+    thermion_filament::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
 
     std::istream inputStream(&sb);
 
@@ -1204,7 +1204,7 @@ namespace thermion_flutter
     // std::lock_guard lock(_recordingMutex);
     if (recording)
     {
-      _tp = new thermion_flutter::ThreadPool(16);
+      _tp = new thermion_filament::ThreadPool(16);
       _recordingStartTime = std::chrono::high_resolution_clock::now();
     }
     else
@@ -1559,4 +1559,4 @@ namespace thermion_flutter
     return Entity::smuggle(renderable);
   }
 
-} // namespace thermion_flutter
+} // namespace thermion_filament

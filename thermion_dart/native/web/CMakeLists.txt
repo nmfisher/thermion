@@ -49,7 +49,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
 add_executable(${MODULE_NAME} 
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/SceneManager.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/FilamentViewer.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/ThermionViewerFFI.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/ThermionDartApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/ThermionDartFFIApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/StreamBufferAdapter.cpp"

@@ -11,7 +11,7 @@ This is an overview of how the rendering surface is constructed, and how the Flu
 |iOS|CVPixelBuffer surface (Metal) + Flutter Texture widget|
 |MacOS|CVMetalTexture render target (Metal) + Flutter Texture widget|
 
-On most platforms, we create Filament with a headless swapchain, then render into a (hardware accelerated) texture that Flutter imports into its own widget hierarchy via a Texture widget. This allows the Filament viewport to be transformed/composed completely within the Flutter hierarchy (i.e. you could rotate/scale/translate the FilamentWidget in Flutter if you wanted, or insert other widgets above/below).
+On most platforms, we create Filament with a headless swapchain, then render into a (hardware accelerated) texture that Flutter imports into its own widget hierarchy via a Texture widget. This allows the Filament viewport to be transformed/composed completely within the Flutter hierarchy (i.e. you could rotate/scale/translate the ThermionWidget in Flutter if you wanted, or insert other widgets above/below).
 
 Due to performance issues on Windows, we choose a different default approach where Filament renders into its own window, which is then composed with the Flutter window via the system compositor. This only works on Windows 10.
 

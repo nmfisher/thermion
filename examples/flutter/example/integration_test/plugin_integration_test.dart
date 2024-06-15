@@ -91,7 +91,7 @@ void main() {
     await tap(tester, "Controller / Viewer");
     await tap(tester, "Create ThermionFlutterPlugin (default ubershader)");
     await tap(tester, "Controller / Viewer");
-    await tap(tester, "Create FilamentViewer",
+    await tap(tester, "Create ThermionViewerFFI",
         4); // on older devices this may take a while, so let's insert a length delay
 
     await tap(tester, "Scene");
@@ -114,7 +114,7 @@ void main() {
     await tap(tester, "Load IBL", 1);
 
     final Offset pointerLocation =
-        tester.getCenter(find.byType(FilamentWidget));
+        tester.getCenter(find.byType(ThermionWidget));
     TestPointer testPointer = TestPointer(1, PointerDeviceKind.mouse);
 
     // scroll/zoom

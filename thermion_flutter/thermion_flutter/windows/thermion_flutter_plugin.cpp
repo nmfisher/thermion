@@ -35,7 +35,7 @@
 #include "wgl_context.h"
 #endif
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 using namespace std::chrono_literals;
 
@@ -275,4 +275,4 @@ void ThermionFlutterPlugin::HandleMethodCall(
   }
 }
 
-} // namespace thermion_flutter
+} // namespace thermion_filament

@@ -11,9 +11,9 @@
 // import 'package:polyvox_web/services/web_purchase_service.dart';
 // import 'package:polyvox_web/services/web_scoring_service.dart';
 // import 'package:polyvox_web/web_canvas.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/web/compatibility.dart';
-import 'package:thermion_dart/thermion_dart/filament_viewer_impl.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/web/interop/thermion_dart_js_export_type.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/web/interop/thermion_dart_js_extension_type.dart';
 import 'package:web/web.dart';
@@ -32,7 +32,7 @@ void main(List<String> arguments) async {
 }
 
 class WebViewer {
-  static Future<AbstractFilamentViewer> initialize() async {
+  static Future<ThermionViewer> initialize() async {
     var fc = FooChar();
     final canvas = document.getElementById("canvas") as HTMLCanvasElement;
     canvas.width = window.innerWidth;
@@ -40,7 +40,7 @@ class WebViewer {
 
     var resourceLoader = thermion_dart_web_get_resource_loader_wrapper();
 
-    var viewer = FilamentViewer(resourceLoader: resourceLoader);
+    var viewer = ThermionViewerFFI(resourceLoader: resourceLoader);
 
     await viewer.initialized;
     var width = window.innerWidth;

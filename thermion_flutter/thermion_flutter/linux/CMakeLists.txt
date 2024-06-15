@@ -30,7 +30,7 @@ add_library(${PLUGIN_NAME} SHARED
  "filament_texture.cc"
  "filament_pb_texture.cc"
  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/SceneManager.cpp"
- "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/FilamentViewer.cpp"
+ "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/ThermionViewerFFI.cpp"
  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/ThermionFlutterApi.cpp"
  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/StreamBufferAdapter.cpp"
  "${CMAKE_CURRENT_SOURCE_DIR}/../ios/src/TimeIt.cpp"

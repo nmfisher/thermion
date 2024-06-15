@@ -2,33 +2,33 @@
 library thermion_flutter_js;
 
 import 'dart:js_interop';
-import 'package:thermion_dart/thermion_dart/compatibility/web/interop/shims/abstract_filament_viewer_js_shim.dart';
+import 'package:thermion_dart/thermion_dart/compatibility/web/interop/shims/thermion_viewer_js_shim.dart';
 import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'dart:js_interop_unsafe';
 
 import 'package:vector_math/vector_math_64.dart';
 
 ///
-/// A (Dart) class that wraps a (Dart) instance of [AbstractFilamentViewer],
+/// A (Dart) class that wraps a (Dart) instance of [ThermionViewer],
 /// but exported to JS by binding to a global property.
-/// This is effectively an implementation of [AbstractFilamentViewerJSShim];
-/// allowing users to interact with an instance of [AbstractFilamentViewer] 
+/// This is effectively an implementation of [ThermionViewerJSShim];
+/// allowing users to interact with an instance of [ThermionViewer] 
 /// (presumably compiled to WASM) from any Javascript context (including 
 /// the browser console).
 ///
 @JSExport()
-class FilamentViewerJSDartBridge {
-  final AbstractFilamentViewer viewer;
+class ThermionViewerFFIJSDartBridge {
+  final ThermionViewer viewer;
 
-  FilamentViewerJSDartBridge(this.viewer);
+  ThermionViewerFFIJSDartBridge(this.viewer);
   
   void bind(
       {String globalPropertyName = "filamentViewer"}) {
-    var wrapper = createJSInteropWrapper<FilamentViewerJSDartBridge>(this)
-        as AbstractFilamentViewerJSShim;
+    var wrapper = createJSInteropWrapper<ThermionViewerFFIJSDartBridge>(this)
+        as ThermionViewerJSShim;
     globalContext.setProperty(globalPropertyName.toJS, wrapper);
   }
 
@@ -124,7 +124,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise removeLight(FilamentEntity light) => viewer.removeLight(light).toJS;
+  JSPromise removeLight(ThermionEntity light) => viewer.removeLight(light).toJS;
 
   @JSExport()
   JSPromise clearLights() => viewer.clearLights().toJS;
@@ -138,16 +138,16 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise<JSNumber> createInstance(FilamentEntity entity) {
+  JSPromise<JSNumber> createInstance(ThermionEntity entity) {
     return viewer.createInstance(entity).then((instance) => instance.toJS).toJS;
   }
 
   @JSExport()
-  JSPromise<JSNumber> getInstanceCount(FilamentEntity entity) =>
+  JSPromise<JSNumber> getInstanceCount(ThermionEntity entity) =>
       viewer.getInstanceCount(entity).then((v) => v.toJS).toJS;
 
   @JSExport()
-  JSPromise<JSArray<JSNumber>> getInstances(FilamentEntity entity) {
+  JSPromise<JSArray<JSNumber>> getInstances(ThermionEntity entity) {
     return viewer
         .getInstances(entity)
         .then((instances) =>
@@ -184,14 +184,14 @@ class FilamentViewerJSDartBridge {
 
   @JSExport()
   JSPromise setMorphTargetWeights(
-      FilamentEntity entity, JSArray<JSNumber> weights) {
+      ThermionEntity entity, JSArray<JSNumber> weights) {
     var dartWeights = weights.toDart.map((w) => w.toDartDouble).toList();
     return viewer.setMorphTargetWeights(entity, dartWeights).toJS;
   }
 
   @JSExport()
   JSPromise<JSArray<JSString>> getMorphTargetNames(
-      FilamentEntity entity, FilamentEntity childEntity) {
+      ThermionEntity entity, ThermionEntity childEntity) {
     var morphTargetNames = viewer
         .getMorphTargetNames(entity, childEntity)
         .then((v) => v.map((s) => s.toJS).toList().toJS);
@@ -200,7 +200,7 @@ class FilamentViewerJSDartBridge {
 
   @JSExport()
   JSPromise<JSArray<JSString>> getBoneNames(
-      FilamentEntity entity, int skinIndex) {
+      ThermionEntity entity, int skinIndex) {
     return viewer
         .getBoneNames(entity, skinIndex: skinIndex)
         .then((v) => v.map((s) => s.toJS).toList().toJS)
@@ -208,7 +208,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise<JSArray<JSString>> getAnimationNames(FilamentEntity entity) =>
+  JSPromise<JSArray<JSString>> getAnimationNames(ThermionEntity entity) =>
       viewer
           .getAnimationNames(entity)
           .then((v) => v.map((s) => s.toJS).toList().toJS)
@@ -216,7 +216,7 @@ class FilamentViewerJSDartBridge {
 
   @JSExport()
   JSPromise<JSNumber> getAnimationDuration(
-          FilamentEntity entity, int animationIndex) =>
+          ThermionEntity entity, int animationIndex) =>
       viewer
           .getAnimationDuration(entity, animationIndex)
           .then((v) => v.toJS)
@@ -224,7 +224,7 @@ class FilamentViewerJSDartBridge {
 
   @JSExport()
   JSPromise setMorphAnimationData(
-      FilamentEntity entity,
+      ThermionEntity entity,
       JSArray<JSArray<JSNumber>> animation,
       JSArray<JSString> morphTargets,
       JSArray<JSString>? targetMeshNames,
@@ -263,11 +263,11 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise resetBones(FilamentEntity entity) => viewer.resetBones(entity).toJS;
+  JSPromise resetBones(ThermionEntity entity) => viewer.resetBones(entity).toJS;
 
   @JSExport()
   JSPromise addBoneAnimation(
-      FilamentEntity entity,
+      ThermionEntity entity,
       JSArray<JSString> bones,
       JSArray<JSArray<JSArray<JSNumber>>> frameData,
       JSNumber frameLengthInMs,
@@ -307,7 +307,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise removeEntity(FilamentEntity entity) =>
+  JSPromise removeEntity(ThermionEntity entity) =>
       viewer.removeEntity(entity).toJS;
 
   @JSExport()
@@ -326,7 +326,7 @@ class FilamentViewerJSDartBridge {
   JSPromise zoomEnd() => viewer.zoomEnd().toJS;
 
   @JSExport()
-  JSPromise playAnimation(FilamentEntity entity, int index,
+  JSPromise playAnimation(ThermionEntity entity, int index,
           {bool loop = false,
           bool reverse = false,
           bool replaceActive = true,
@@ -343,7 +343,7 @@ class FilamentViewerJSDartBridge {
           .toJS;
 
   @JSExport()
-  JSPromise playAnimationByName(FilamentEntity entity, String name,
+  JSPromise playAnimationByName(ThermionEntity entity, String name,
           {bool loop = false,
           bool reverse = false,
           bool replaceActive = true,
@@ -361,7 +361,7 @@ class FilamentViewerJSDartBridge {
 
   @JSExport()
   JSPromise setAnimationFrame(
-          FilamentEntity entity, int index, int animationFrame) =>
+          ThermionEntity entity, int index, int animationFrame) =>
       viewer
           .setAnimationFrame(
             entity,
@@ -371,15 +371,15 @@ class FilamentViewerJSDartBridge {
           .toJS;
 
   @JSExport()
-  JSPromise stopAnimation(FilamentEntity entity, int animationIndex) =>
+  JSPromise stopAnimation(ThermionEntity entity, int animationIndex) =>
       viewer.stopAnimation(entity, animationIndex).toJS;
 
   @JSExport()
-  JSPromise stopAnimationByName(FilamentEntity entity, String name) =>
+  JSPromise stopAnimationByName(ThermionEntity entity, String name) =>
       viewer.stopAnimationByName(entity, name).toJS;
 
   @JSExport()
-  JSPromise setCamera(FilamentEntity entity, String? name) =>
+  JSPromise setCamera(ThermionEntity entity, String? name) =>
       viewer.setCamera(entity, name).toJS;
 
   @JSExport()
@@ -469,7 +469,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise moveCameraToAsset(FilamentEntity entity) =>
+  JSPromise moveCameraToAsset(ThermionEntity entity) =>
       throw UnimplementedError();
 // viewer.moveCameraToAsset(entity)).toJS;
 
@@ -502,7 +502,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise setMaterialColor(FilamentEntity entity, String meshName,
+  JSPromise setMaterialColor(ThermionEntity entity, String meshName,
           int materialIndex, double r, double g, double b, double a) =>
       throw UnimplementedError();
 // viewer.setMaterialColor(
@@ -515,21 +515,21 @@ class FilamentViewerJSDartBridge {
 // a,
 // ).toJS;
   @JSExport()
-  JSPromise transformToUnitCube(FilamentEntity entity) =>
+  JSPromise transformToUnitCube(ThermionEntity entity) =>
       viewer.transformToUnitCube(entity).toJS;
   @JSExport()
-  JSPromise setPosition(FilamentEntity entity, double x, double y, double z) =>
+  JSPromise setPosition(ThermionEntity entity, double x, double y, double z) =>
       viewer.setPosition(entity, x, y, z).toJS;
   @JSExport()
-  JSPromise setScale(FilamentEntity entity, double scale) =>
+  JSPromise setScale(ThermionEntity entity, double scale) =>
       viewer.setScale(entity, scale).toJS;
   @JSExport()
   JSPromise setRotation(
-          FilamentEntity entity, double rads, double x, double y, double z) =>
+          ThermionEntity entity, double rads, double x, double y, double z) =>
       viewer.setRotation(entity, rads, x, y, z).toJS;
   @JSExport()
   JSPromise queuePositionUpdate(
-          FilamentEntity entity, double x, double y, double z, bool relative) =>
+          ThermionEntity entity, double x, double y, double z, bool relative) =>
       viewer
           .queuePositionUpdate(
             entity,
@@ -540,7 +540,7 @@ class FilamentViewerJSDartBridge {
           )
           .toJS;
   @JSExport()
-  JSPromise queueRotationUpdate(FilamentEntity entity, double rads, double x,
+  JSPromise queueRotationUpdate(ThermionEntity entity, double rads, double x,
           double y, double z, bool relative) =>
       viewer
           .queueRotationUpdate(
@@ -554,7 +554,7 @@ class FilamentViewerJSDartBridge {
           .toJS;
   @JSExport()
   JSPromise queueRotationUpdateQuat(
-          FilamentEntity entity, JSArray<JSNumber> quat, JSBoolean relative) =>
+          ThermionEntity entity, JSArray<JSNumber> quat, JSBoolean relative) =>
       throw UnimplementedError();
 // viewer.queueRotationUpdateQuat(
 // entity,
@@ -572,22 +572,22 @@ class FilamentViewerJSDartBridge {
 
   @JSExport()
   JSPromise setRotationQuat(
-          FilamentEntity entity, JSArray<JSNumber> rotation) =>
+          ThermionEntity entity, JSArray<JSNumber> rotation) =>
       throw UnimplementedError();
 
   @JSExport()
-  JSPromise reveal(FilamentEntity entity, String? meshName) =>
+  JSPromise reveal(ThermionEntity entity, String? meshName) =>
       viewer.reveal(entity, meshName).toJS;
 
   @JSExport()
-  JSPromise hide(FilamentEntity entity, String? meshName) =>
+  JSPromise hide(ThermionEntity entity, String? meshName) =>
       viewer.hide(entity, meshName).toJS;
 
   @JSExport()
   void pick(int x, int y) => viewer.pick(x, y);
 
   @JSExport()
-  String? getNameForEntity(FilamentEntity entity) =>
+  String? getNameForEntity(ThermionEntity entity) =>
       viewer.getNameForEntity(entity);
 
   @JSExport()
@@ -608,7 +608,7 @@ class FilamentViewerJSDartBridge {
 
   @JSExport()
   JSPromise<JSArray<JSNumber>> getChildEntities(
-      FilamentEntity parent, bool renderableOnly) {
+      ThermionEntity parent, bool renderableOnly) {
     return viewer
         .getChildEntities(
           parent,
@@ -622,7 +622,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise<JSNumber> getChildEntity(FilamentEntity parent, String childName) {
+  JSPromise<JSNumber> getChildEntity(ThermionEntity parent, String childName) {
     return viewer
         .getChildEntity(
           parent,
@@ -637,7 +637,7 @@ class FilamentViewerJSDartBridge {
 
   @JSExport()
   JSPromise<JSArray<JSString>> getChildEntityNames(
-          FilamentEntity entity, bool renderableOnly) =>
+          ThermionEntity entity, bool renderableOnly) =>
       viewer
           .getChildEntityNames(
             entity,
@@ -654,23 +654,23 @@ class FilamentViewerJSDartBridge {
       viewer.setRecordingOutputDirectory(outputDirectory).toJS;
 
   @JSExport()
-  JSPromise addAnimationComponent(FilamentEntity entity) =>
+  JSPromise addAnimationComponent(ThermionEntity entity) =>
       viewer.addAnimationComponent(entity).toJS;
 
   @JSExport()
-  JSPromise removeAnimationComponent(FilamentEntity entity) =>
+  JSPromise removeAnimationComponent(ThermionEntity entity) =>
       viewer.removeAnimationComponent(entity).toJS;
 
   @JSExport()
-  JSPromise getParent(FilamentEntity entity) =>
+  JSPromise getParent(ThermionEntity entity) =>
       viewer.removeAnimationComponent(entity).toJS;
 
   @JSExport()
-  JSPromise getBone(FilamentEntity entity, int boneIndex, int skinIndex) =>
+  JSPromise getBone(ThermionEntity entity, int boneIndex, int skinIndex) =>
       viewer.getBone(entity, boneIndex, skinIndex: skinIndex).toJS;
 
   @JSExport()
-  JSPromise<JSArray<JSNumber>> getLocalTransform(FilamentEntity entity) {
+  JSPromise<JSArray<JSNumber>> getLocalTransform(ThermionEntity entity) {
     return viewer
         .getLocalTransform(entity)
         .then((t) => t.storage.map((v) => v.toJS).toList().toJS)
@@ -678,7 +678,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise<JSArray<JSNumber>> getWorldTransform(FilamentEntity entity) {
+  JSPromise<JSArray<JSNumber>> getWorldTransform(ThermionEntity entity) {
     return viewer
         .getWorldTransform(entity)
         .then((t) => t.storage.map((v) => v.toJS).toList().toJS)
@@ -686,7 +686,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise setTransform(FilamentEntity entity, JSArray<JSNumber> transform) {
+  JSPromise setTransform(ThermionEntity entity, JSArray<JSNumber> transform) {
     return viewer
         .setTransform(
             entity,
@@ -696,12 +696,12 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise updateBoneMatrices(FilamentEntity entity) {
+  JSPromise updateBoneMatrices(ThermionEntity entity) {
     return viewer.updateBoneMatrices(entity).toJS;
   }
 
   @JSExport()
-  JSPromise setBoneTransform(FilamentEntity entity, int boneIndex,
+  JSPromise setBoneTransform(ThermionEntity entity, int boneIndex,
       JSArray<JSNumber> transform, int skinIndex) {
     return viewer
         .setBoneTransform(
@@ -714,7 +714,7 @@ class FilamentViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise addCollisionComponent(FilamentEntity entity,
+  JSPromise addCollisionComponent(ThermionEntity entity,
       {JSFunction? callback, bool affectsTransform = false}) {
     throw UnimplementedError();
   }

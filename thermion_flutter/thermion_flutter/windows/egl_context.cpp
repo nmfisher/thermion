@@ -7,7 +7,7 @@
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "comctl32.lib")
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 FlutterEGLContext::FlutterEGLContext(
   flutter::PluginRegistrarWindows* pluginRegistrar, 

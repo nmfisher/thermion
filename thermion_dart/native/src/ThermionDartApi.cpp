@@ -13,7 +13,7 @@
 #include <thread>
 #include <functional>
 
-using namespace thermion_flutter;
+using namespace thermion_filament;
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -753,7 +753,7 @@ extern "C"
         Log("Dummy called");
     }
 
-    EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void *ptr)
+    EMSCRIPTEN_KEEPALIVE void thermion_filament_free(void *ptr)
     {
         free(ptr);
     }

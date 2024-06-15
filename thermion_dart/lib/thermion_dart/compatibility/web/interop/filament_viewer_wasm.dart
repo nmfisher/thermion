@@ -5,12 +5,12 @@ import 'dart:typed_data' as td;
 import 'dart:typed_data';
 import 'package:web/web.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:thermion_dart/thermion_dart/abstract_filament_viewer.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/web/interop/shims/thermion_dart_api_js_shim.dart';
 import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
-import 'shims/abstract_filament_viewer_js_shim.dart';
+import 'shims/thermion_viewer_js_shim.dart';
 
 extension type _EmscriptenModule(JSObject _) implements JSObject {
   external JSAny? ccall(String name, String returnType,
@@ -34,16 +34,16 @@ extension type _EmscriptenModule(JSObject _) implements JSObject {
 }
 
 ///
-/// An [AbstractFilamentViewer] implementation that forwards calls to
+/// An [ThermionViewer] implementation that forwards calls to
 /// the (Emscripten-generated) ThermionDart JS module.
 ///
-class FilamentViewerWasm implements AbstractFilamentViewer {
+class ThermionViewerFFIWasm implements ThermionViewer {
   late _EmscriptenModule _module;
 
   bool _initialized = false;
   bool _rendering = false;
 
-  FilamentViewerWasm() {
+  ThermionViewerFFIWasm() {
     _module = window.getProperty<_EmscriptenModule>("df".toJS);
   }
 
@@ -132,7 +132,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future addAnimationComponent(FilamentEntity entity) async {
+  Future addAnimationComponent(ThermionEntity entity) async {
     _module.ccall(
         "add_animation_component",
         "bool",
@@ -152,7 +152,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<List<Matrix4>> getRestLocalTransforms(FilamentEntity entity,
+  Future<List<Matrix4>> getRestLocalTransforms(ThermionEntity entity,
       {int skinIndex = 0}) async {
     var boneCountJS = _module.ccall(
         "get_bone_count",
@@ -178,7 +178,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> getBone(FilamentEntity parent, int boneIndex,
+  Future<ThermionEntity> getBone(ThermionEntity parent, int boneIndex,
       {int skinIndex = 0}) async {
     final boneId = _module.ccall(
         "get_bone",
@@ -192,7 +192,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
     return boneId.toDartInt;
   }
 
-  Future<List<FilamentEntity>> getBones(FilamentEntity entity,
+  Future<List<ThermionEntity>> getBones(ThermionEntity entity,
       {int skinIndex = 0}) async {
     final boneNames = await getBoneNames(entity);
     final bones = await Future.wait(List.generate(
@@ -201,7 +201,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
+  Future addBoneAnimation(ThermionEntity entity, BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeInInSecs = 0.0,
       double fadeOutInSecs = 0.0,
@@ -289,7 +289,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future addCollisionComponent(FilamentEntity entity,
+  Future addCollisionComponent(ThermionEntity entity,
       {void Function(int entityId1, int entityId2)? callback,
       bool affectsTransform = false}) {
     // TODO: implement addCollisionComponent
@@ -297,7 +297,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> addLight(
+  Future<ThermionEntity> addLight(
       LightType type,
       double colour,
       double intensity,
@@ -390,26 +390,26 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> createInstance(FilamentEntity entity) {
+  Future<ThermionEntity> createInstance(ThermionEntity entity) {
     // TODO: implement createInstance
     throw UnimplementedError();
   }
 
   @override
   Future<double> getAnimationDuration(
-      FilamentEntity entity, int animationIndex) {
+      ThermionEntity entity, int animationIndex) {
     // TODO: implement getAnimationDuration
     throw UnimplementedError();
   }
 
   @override
-  Future<List<String>> getAnimationNames(FilamentEntity entity) {
+  Future<List<String>> getAnimationNames(ThermionEntity entity) {
     // TODO: implement getAnimationNames
     throw UnimplementedError();
   }
 
   @override
-  Future<List<String>> getBoneNames(FilamentEntity entity,
+  Future<List<String>> getBoneNames(ThermionEntity entity,
       {int skinIndex = 0}) async {
     var boneCountJS = _module.ccall(
         "get_bone_count",
@@ -498,8 +498,8 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<List<FilamentEntity>> getChildEntities(
-      FilamentEntity parent, bool renderableOnly) async {
+  Future<List<ThermionEntity>> getChildEntities(
+      ThermionEntity parent, bool renderableOnly) async {
     var entityCountJS = _module.ccall(
         "get_entity_count",
         "int",
@@ -507,7 +507,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
         [_sceneManager!, parent.toJS, renderableOnly.toJS].toJS,
         null) as JSNumber;
     var entityCount = entityCountJS.toDartInt;
-    var entities = <FilamentEntity>[];
+    var entities = <ThermionEntity>[];
     var buf = _module._malloc(entityCount * 4) as JSNumber;
 
     _module.ccall(
@@ -526,8 +526,8 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> getChildEntity(
-      FilamentEntity parent, String childName) async {
+  Future<ThermionEntity> getChildEntity(
+      ThermionEntity parent, String childName) async {
     final entityId = _module.ccall(
         "find_child_entity_by_name",
         "int",
@@ -541,7 +541,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<List<String>> getChildEntityNames(FilamentEntity entity,
+  Future<List<String>> getChildEntityNames(ThermionEntity entity,
       {bool renderableOnly = true}) async {
     var entityCountJS = _module.ccall(
         "get_entity_count",
@@ -564,32 +564,32 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<int> getInstanceCount(FilamentEntity entity) {
+  Future<int> getInstanceCount(ThermionEntity entity) {
     // TODO: implement getInstanceCount
     throw UnimplementedError();
   }
 
   @override
-  Future<List<FilamentEntity>> getInstances(FilamentEntity entity) {
+  Future<List<ThermionEntity>> getInstances(ThermionEntity entity) {
     // TODO: implement getInstances
     throw UnimplementedError();
   }
 
   @override
-  Future<Matrix4> getInverseBindMatrix(FilamentEntity parent, int boneIndex,
+  Future<Matrix4> getInverseBindMatrix(ThermionEntity parent, int boneIndex,
       {int skinIndex = 0}) {
     // TODO: implement getInverseBindMatrix
     throw UnimplementedError();
   }
 
   @override
-  Future<Matrix4> getLocalTransform(FilamentEntity entity) {
+  Future<Matrix4> getLocalTransform(ThermionEntity entity) {
     // TODO: implement getLocalTransform
     throw UnimplementedError();
   }
 
   @override
-  Future<FilamentEntity> getMainCamera() async {
+  Future<ThermionEntity> getMainCamera() async {
     final entityId = _module.ccall(
             "get_main_camera", "int", ["void*".toJS].toJS, [_viewer].toJS, null)
         as JSNumber;
@@ -601,7 +601,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
 
   @override
   Future<List<String>> getMorphTargetNames(
-      FilamentEntity entity, FilamentEntity childEntity) async {
+      ThermionEntity entity, ThermionEntity childEntity) async {
     var morphTargetCountJS = _module.ccall(
         "get_morph_target_name_count",
         "int",
@@ -631,7 +631,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  String? getNameForEntity(FilamentEntity entity) {
+  String? getNameForEntity(ThermionEntity entity) {
     final namePtr = _module.ccall(
         "get_name_for_entity",
         "char*",
@@ -645,7 +645,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity?> getParent(FilamentEntity child) async {
+  Future<ThermionEntity?> getParent(ThermionEntity child) async {
     final parentId = _module.ccall(
         "get_parent",
         "int",
@@ -659,7 +659,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<Matrix4> getWorldTransform(FilamentEntity entity) async {
+  Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
     final matrixPtr = _module._malloc(16 * 4) as JSNumber;
     _module.ccall(
         "get_world_transform",
@@ -677,7 +677,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   AbstractGizmo? get gizmo => throw UnimplementedError();
 
   @override
-  Future hide(FilamentEntity entity, String? meshName) async {
+  Future hide(ThermionEntity entity, String? meshName) async {
     if (meshName != null) {
       final result = _module.ccall(
           "hide_mesh",
@@ -695,7 +695,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
     }
   }
 
-  Future<FilamentEntity> loadGlbFromBuffer(Uint8List data,
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
       {int numInstances = 1}) async {
     if (numInstances != 1) {
       throw Exception("TODO");
@@ -718,7 +718,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> loadGlb(String path, {int numInstances = 1}) async {
+  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1}) async {
     final promise = _module.ccall(
         "load_glb",
         "int",
@@ -733,7 +733,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future<FilamentEntity> loadGltf(String path, String relativeResourcePath,
+  Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
       {bool force = false}) async {
     final promise = _module.ccall(
         "load_gltf",
@@ -771,7 +771,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future moveCameraToAsset(FilamentEntity entity) {
+  Future moveCameraToAsset(ThermionEntity entity) {
     // TODO: implement moveCameraToAsset
     throw UnimplementedError();
   }
@@ -800,7 +800,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future playAnimation(FilamentEntity entity, int index,
+  Future playAnimation(ThermionEntity entity, int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
@@ -830,7 +830,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future playAnimationByName(FilamentEntity entity, String name,
+  Future playAnimationByName(ThermionEntity entity, String name,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
@@ -841,7 +841,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
 
   @override
   Future queuePositionUpdate(
-      FilamentEntity entity, double x, double y, double z,
+      ThermionEntity entity, double x, double y, double z,
       {bool relative = false}) {
     // TODO: implement queuePositionUpdate
     throw UnimplementedError();
@@ -849,33 +849,33 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
 
   @override
   Future queueRotationUpdate(
-      FilamentEntity entity, double rads, double x, double y, double z,
+      ThermionEntity entity, double rads, double x, double y, double z,
       {bool relative = false}) {
     // TODO: implement queueRotationUpdate
     throw UnimplementedError();
   }
 
   @override
-  Future queueRotationUpdateQuat(FilamentEntity entity, Quaternion quat,
+  Future queueRotationUpdateQuat(ThermionEntity entity, Quaternion quat,
       {bool relative = false}) {
     // TODO: implement queueRotationUpdateQuat
     throw UnimplementedError();
   }
 
   @override
-  Future removeAnimationComponent(FilamentEntity entity) {
+  Future removeAnimationComponent(ThermionEntity entity) {
     // TODO: implement removeAnimationComponent
     throw UnimplementedError();
   }
 
   @override
-  Future removeCollisionComponent(FilamentEntity entity) {
+  Future removeCollisionComponent(ThermionEntity entity) {
     // TODO: implement removeCollisionComponent
     throw UnimplementedError();
   }
 
   @override
-  Future removeEntity(FilamentEntity entity) {
+  Future removeEntity(ThermionEntity entity) {
     // TODO: implement removeEntity
     throw UnimplementedError();
   }
@@ -887,7 +887,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future removeLight(FilamentEntity light) {
+  Future removeLight(ThermionEntity light) {
     // TODO: implement removeLight
     throw UnimplementedError();
   }
@@ -924,13 +924,13 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future resetBones(FilamentEntity entity) {
+  Future resetBones(ThermionEntity entity) {
     // TODO: implement resetBones
     throw UnimplementedError();
   }
 
   @override
-  Future reveal(FilamentEntity entity, String? meshName) {
+  Future reveal(ThermionEntity entity, String? meshName) {
     // TODO: implement reveal
     throw UnimplementedError();
   }
@@ -965,7 +965,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
 
   @override
   Future setAnimationFrame(
-      FilamentEntity entity, int index, int animationFrame) {
+      ThermionEntity entity, int index, int animationFrame) {
     // TODO: implement setAnimationFrame
     throw UnimplementedError();
   }
@@ -1000,14 +1000,14 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
 
   @override
   Future setBoneTransform(
-      FilamentEntity entity, int boneIndex, Matrix4 transform,
+      ThermionEntity entity, int boneIndex, Matrix4 transform,
       {int skinIndex = 0}) {
     // TODO: implement setBoneTransform
     throw UnimplementedError();
   }
 
   @override
-  Future setCamera(FilamentEntity entity, String? name) {
+  Future setCamera(ThermionEntity entity, String? name) {
     // TODO: implement setCamera
     throw UnimplementedError();
   }
@@ -1099,7 +1099,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future setMaterialColor(FilamentEntity entity, String meshName,
+  Future setMaterialColor(ThermionEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a) {
     // TODO: implement setMaterialColor
     throw UnimplementedError();
@@ -1107,7 +1107,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
 
   // @override
   // Future setMorphAnimationData(
-  //     FilamentEntity entity, MorphAnimationData animation,
+  //     ThermionEntity entity, MorphAnimationData animation,
   //     {List<String>? targetMeshNames}) async {
   //   final morphTargetNames = await getMorphTargetNames(entity, entity);
 
@@ -1162,7 +1162,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
 
   @override
   Future setMorphAnimationData(
-      FilamentEntity entity, MorphAnimationData animation,
+      ThermionEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames, bool useNextEntity = false}) async {
     var meshNames = await getChildEntityNames(entity, renderableOnly: false);
     if (targetMeshNames != null) {
@@ -1272,20 +1272,20 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future setMorphTargetWeights(FilamentEntity entity, List<double> weights) {
+  Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) {
     // TODO: implement setMorphTargetWeights
     throw UnimplementedError();
   }
 
   @override
-  Future setParent(FilamentEntity child, FilamentEntity parent) {
+  Future setParent(ThermionEntity child, ThermionEntity parent) {
     // TODO: implement setParent
     throw UnimplementedError();
   }
 
   @override
   Future setPosition(
-      FilamentEntity entity, double x, double y, double z) async {
+      ThermionEntity entity, double x, double y, double z) async {
     _module.ccall(
         "set_position",
         "void",
@@ -1302,7 +1302,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future setPriority(FilamentEntity entityId, int priority) {
+  Future setPriority(ThermionEntity entityId, int priority) {
     // TODO: implement setPriority
     throw UnimplementedError();
   }
@@ -1327,7 +1327,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
 
   @override
   Future setRotation(
-      FilamentEntity entity, double rads, double x, double y, double z) async {
+      ThermionEntity entity, double rads, double x, double y, double z) async {
     var quaternion = Quaternion.axisAngle(Vector3(x, y, z), rads);
     _module.ccall(
         "set_rotation",
@@ -1353,7 +1353,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future setRotationQuat(FilamentEntity entity, Quaternion rotation) async {
+  Future setRotationQuat(ThermionEntity entity, Quaternion rotation) async {
     _module.ccall(
         "set_rotation",
         "void",
@@ -1378,7 +1378,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future setScale(FilamentEntity entity, double scale) {
+  Future setScale(ThermionEntity entity, double scale) {
     // TODO: implement setScale
     throw UnimplementedError();
   }
@@ -1390,7 +1390,7 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future setTransform(FilamentEntity entity, Matrix4 transform) {
+  Future setTransform(ThermionEntity entity, Matrix4 transform) {
     // TODO: implement setTransform
     throw UnimplementedError();
   }
@@ -1402,31 +1402,31 @@ class FilamentViewerWasm implements AbstractFilamentViewer {
   }
 
   @override
-  Future stopAnimation(FilamentEntity entity, int animationIndex) {
+  Future stopAnimation(ThermionEntity entity, int animationIndex) {
     // TODO: implement stopAnimation
     throw UnimplementedError();
   }
 
   @override
-  Future stopAnimationByName(FilamentEntity entity, String name) {
+  Future stopAnimationByName(ThermionEntity entity, String name) {
     // TODO: implement stopAnimationByName
     throw UnimplementedError();
   }
 
   @override
-  Future testCollisions(FilamentEntity entity) {
+  Future testCollisions(ThermionEntity entity) {
     // TODO: implement testCollisions
     throw UnimplementedError();
   }
 
   @override
-  Future transformToUnitCube(FilamentEntity entity) {
+  Future transformToUnitCube(ThermionEntity entity) {
     // TODO: implement transformToUnitCube
     throw UnimplementedError();
   }
 
   @override
-  Future updateBoneMatrices(FilamentEntity entity) {
+  Future updateBoneMatrices(ThermionEntity entity) {
     // TODO: implement updateBoneMatrices
     throw UnimplementedError();
   }

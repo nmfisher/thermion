@@ -5,7 +5,7 @@
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 
-namespace thermion_flutter {
+namespace thermion_filament {
 
 class BackingWindow {
     public:

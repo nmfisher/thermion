@@ -7,7 +7,7 @@
 #if WGL_USE_BACKING_WINDOW
 #include "backing_window.h"
 #endif
-namespace thermion_flutter {
+namespace thermion_filament {
 
     class WGLContext : public FlutterRenderContext {
     public:
