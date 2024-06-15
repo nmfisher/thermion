@@ -101,7 +101,7 @@ class _MyAppState extends State<MyApp> {
 }}```
 
 5. Load a skybox and the glb asset
-```
+```dart
   Center(child:ElevatedButton(child:Text("Load"), onPressed:() { 
                var viewer = await _thermionViewer;
                await viewer.loadSkybox("assets/default_env_skybox.ktx");
