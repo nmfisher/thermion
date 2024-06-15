@@ -44,6 +44,7 @@ class TextureDetails {
 }
 
 abstract class AbstractFilamentViewer {
+  
   Future<bool> get initialized;
 
   ///
