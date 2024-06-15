@@ -27,6 +27,11 @@
 #include <backend/platforms/OpenGLPlatform.h>
 #ifdef __EMSCRIPTEN__
 #include <backend/platforms/PlatformWebGL.h>
+#include <emscripten/emscripten.h>
+#include <emscripten/bind.h>
+#include <emscripten/html5.h>
+#include <emscripten/threading.h>
+#include <emscripten/val.h>
 #endif
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
@@ -124,6 +129,7 @@ namespace flutter_filament
   FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapperImpl *const ResourceLoaderWrapperImpl, void *const platform, const char *uberArchivePath)
       : _resourceLoaderWrapper(ResourceLoaderWrapperImpl)
   {
+    _context = (void*) sharedContext;
 
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
@@ -142,10 +148,13 @@ namespace flutter_filament
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
 #endif
+    Log("Created engine");
 
     _engine->setAutomaticInstancingEnabled(true);
 
     _renderer = _engine->createRenderer();
+
+    Log("Created renderer");
 
     _frameInterval = 1000.0f / 60.0f;
 
@@ -153,9 +162,13 @@ namespace flutter_filament
 
     _scene = _engine->createScene();
 
+    Log("Created scene");
+
     utils::Entity camera = EntityManager::get().create();
 
     _mainCamera = _engine->createCamera(camera);
+
+    Log("Created camera");
 
     _view = _engine->createView();
 
@@ -199,6 +212,8 @@ namespace flutter_filament
         _engine,
         _scene,
         uberArchivePath);
+
+    Log("Created scene maager");
 
     _imageTexture = Texture::Builder()
                         .width(1)
@@ -318,6 +333,7 @@ namespace flutter_filament
     _frameInterval = frameInterval;
     Renderer::FrameRateOptions fro;
     fro.interval = 1; // frameInterval;
+    fro.history = 5;
     _renderer->setFrameRateOptions(fro);
     Log("Set frame interval to %f", frameInterval);
   }
@@ -526,7 +542,7 @@ namespace flutter_filament
 
   void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a)
   {
-    Log("Setting background color to rgba(%f,%f,%f,%f)", r, g, b, a);
+    // Log("Setting background color to rgba(%f,%f,%f,%f)", r, g, b, a);
     _imageMaterial->setDefaultParameter("showImage", 0);
     _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
     _imageMaterial->setDefaultParameter("transform", _imageScale);
@@ -1051,13 +1067,6 @@ namespace flutter_filament
       return;
     }
 
-    // if (_frameCount == 60)
-    // {
-    //   Log("Skipped frames : %d", _skippedFrames);
-    //   _elapsed = 0;
-    //   _frameCount = 0;
-    //   _skippedFrames = 0;
-    // }
     auto now = std::chrono::high_resolution_clock::now();
     auto secsSinceLastFpsCheck = float(std::chrono::duration_cast<std::chrono::seconds>(now - _fpsCounterStartTime).count());
 
@@ -1088,9 +1097,16 @@ namespace flutter_filament
 
     // Render the scene, unless the renderer wants to skip the frame.
     bool beginFrame = _renderer->beginFrame(_swapChain, frameTimeInNanos);
+    if (!beginFrame)
+    {
+      _skippedFrames++;
+    }
+
+    // beginFrame = true;
 
     if (beginFrame)
     {
+      
       _renderer->render(_view);
       _frameCount++;
 
@@ -1122,14 +1138,10 @@ namespace flutter_filament
         _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
       }
       _renderer->endFrame();
-#ifdef __EMSCRIPTEN__
+    }
+    #ifdef __EMSCRIPTEN__
       _engine->execute();
-#endif
-    }
-    else
-    {
-      _skippedFrames++;
-    }
+    #endif
   }
 
   void FilamentViewer::savePng(void *buf, size_t size, int frameNumber)

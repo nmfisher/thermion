@@ -163,7 +163,7 @@ namespace flutter_filament
 
     private:
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
-
+        void* _context = nullptr;
         Scene *_scene = nullptr;
         View *_view = nullptr;
         Engine *_engine = nullptr;
