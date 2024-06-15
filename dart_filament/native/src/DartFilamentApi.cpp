@@ -24,9 +24,11 @@ extern "C"
 
 #include "DartFilamentApi.h"
 
+
     EMSCRIPTEN_KEEPALIVE const void *create_filament_viewer(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
     {
-        return (const void *)new FilamentViewer(context, (const ResourceLoaderWrapperImpl *const)loader, platform, uberArchivePath);
+        auto viewer = (const void *)new FilamentViewer(context, (const ResourceLoaderWrapperImpl *const)loader, platform, uberArchivePath);
+        return viewer;
     }
 
     EMSCRIPTEN_KEEPALIVE void create_render_target(const void *const viewer, intptr_t texture, uint32_t width, uint32_t height)
@@ -609,9 +611,9 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char** out, int skinIndex) {
         auto names = ((SceneManager *)sceneManager)->getBoneNames(assetEntity, skinIndex);
-        
         for(int i = 0; i < names->size(); i++) {
-            memcpy((void*)out[i], names->at(i).c_str(), names->at(i).length());
+            auto name_c = names->at(i).c_str();
+            memcpy((void*)out[i], name_c, strlen(name_c) + 1);
         }
     }
 
