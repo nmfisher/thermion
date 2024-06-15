@@ -1,4 +1,4 @@
-![Thermion Logo](logo.png)
+![Thermion Logo](docs/logo.png)
 
 <p align="center">
   <a href="https://docs.page/nmfisher/flutter_filament/quickstart">Quickstart (Flutter)</a> •
