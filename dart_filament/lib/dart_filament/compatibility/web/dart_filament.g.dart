@@ -113,14 +113,13 @@ external void flutter_filament_web_free(
 );
 
 @ffi.Native<ffi.Int Function()>(
-    symbol: '_flutter_filament_web_create_gl_context', assetId: 'dart_filament')
-external int flutter_filament_web_create_gl_context();
+    symbol: '_dart_filament_web_create_gl_context', assetId: 'dart_filament')
+external int dart_filament_web_create_gl_context();
 
 @ffi.Native<ffi.Pointer<ffi.Void> Function()>(
-    symbol: '_flutter_filament_web_get_resource_loader_wrapper',
+    symbol: '_dart_filament_web_get_resource_loader_wrapper',
     assetId: 'dart_filament')
-external ffi.Pointer<ffi.Void>
-    flutter_filament_web_get_resource_loader_wrapper();
+external ffi.Pointer<ffi.Void> dart_filament_web_get_resource_loader_wrapper();
 
 @ffi.Native<
         ffi.Pointer<ffi.Void> Function(LoadFilamentResourceFromOwner,
