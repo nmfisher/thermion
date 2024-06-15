@@ -1954,7 +1954,8 @@ namespace flutter_filament
 
         const utils::Entity entity = instance->getEntities()[found];
         auto inst = _ncm->getInstance(entity);
-        return _ncm->getName(inst);
+        auto name = _ncm->getName(inst);
+        return name;
     }
 
     void SceneManager::setPriority(EntityId entityId, int priority)
