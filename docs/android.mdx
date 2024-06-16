@@ -1,0 +1,18 @@
+## Android
+
+In release mode, you must add the following to your `app/build.gradle`:
+
+```
+    buildTypes {
+        release {
+            ...
+            shrinkResources false
+            minifyEnabled false
+        }
+    }
+...
+dependencies {
+    ....
+    implementation 'net.java.dev.jna:jna:5.10.0@aar'
+}
+```

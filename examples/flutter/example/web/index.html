@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+  <script src="thermion_dart.js"></script>
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Demonstrates how to use the thermion_flutter plugin.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="thermion_flutter_example">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>thermion_flutter_example</title>
+  <link rel="manifest" href="manifest.json">
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    const serviceWorkerVersion = null;
+  </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+  <style>
+    html, body { 
+        margin:0;
+        padding:0;
+    }
+    #flutter_host { 
+        position:absolute;
+        left:200;
+        right:0;
+        top:200;
+        bottom:0;
+    }
+    canvas {
+        position:absolute;
+        left:0;
+        right:0;
+        top:0;
+        bottom:0;
+        width:100%;
+        height:100%;
+    }
+</style>
+</head>
+<script type="module">
+  let dartFilamentResolveCallback = (cb, data) => {
+      const fn = window.df.wasmTable.get(cb);
+      if(data) {
+          fn(data);
+      } else { 
+          fn();
+      }
+  }
+  window.createVoidCallback = () => { 
+      let res; //placeholder for resolver callback, outside of promise
+      const promise = new Promise((resolve, reject) => {
+          res = resolve;
+      });
+      try {
+          const callback = () => { 
+              try {
+                  res(0);
+              } catch(err) {
+                  console.log(err);
+              }
+          }
+          const fnPtr = window.df.addFunction(callback, 'v');
+          return [promise, fnPtr];
+      } catch(err) {
+          console.log(err);
+          return null;
+      } 
+  }       
+  window.createIntCallback = window.createVoidPointerCallback = window.createBoolCallback = () => { 
+      let res; //placeholder for resolver callback, outside of promise
+      const promise = new Promise((resolve, reject) => {
+          res = resolve;
+      });
+      try {
+          const callback = (val) => { 
+              try {
+                  res(val);
+              } catch(err) {
+                  console.log(err);
+              }
+          }
+          const fnPtr = window.df.addFunction(callback, 'vi');
+          return [promise, fnPtr];
+      } catch(err) {
+          console.log(err);
+          return null;
+      }        
+  }   
+
+  const df = await thermion_dart({dartFilamentResolveCallback:dartFilamentResolveCallback});   
+  window.df = df;
+  
+  const dartModulePromise = WebAssembly.compileStreaming(fetch('main.wasm'));
+  const imports = {"thermion_dart":df};
+  const dart2wasm_runtime = await import('./main.mjs');
+  const moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, imports);
+  window.example = moduleInstance;
+  await dart2wasm_runtime.invoke(moduleInstance);
+
+//   window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+            console.log("init engine");
+          engineInitializer.initializeEngine({ hostElement: document.querySelector("#flutter_host")}).then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    // });
+
+</script>
+<body>
+  <canvas id="canvas"></canvas>
+  <div style="position:absolute;height:100%; width:100%" id="flutter_host"></div>
+</body>
+
+</html>

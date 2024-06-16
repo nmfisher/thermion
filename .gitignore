@@ -6,4 +6,4 @@
 .vscode
 .DS_Store
 **/*/build
-flutter_filament_federated/*/pubspec.lock
+thermion_flutter_federated/*/pubspec.lock
