@@ -1,4 +1,4 @@
-import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
+
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/utils/light_options.dart';
 import 'package:flutter/material.dart';

@@ -1,0 +1,11 @@
+## Windows
+
+To support embedding GPU textures in Flutter (rather than copying to a CPU pixel buffer on every frame), we need to build a slightly customized version of Filament that uses GLES on Windows (rather than the default, which uses OpenGL).
+
+Separately, we also force the Filament gltfio library to load assets via in-memory buffers, rather than the filesystem. This is simply a convenience so we don't have to use different logic for gltf resource loading across platforms.
+
+```
+git checkout flutter-filament-windows
+mkdir out && cd out
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --build . --target gltf_viewer --config Debug
+```

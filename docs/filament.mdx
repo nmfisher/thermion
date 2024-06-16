@@ -1,0 +1,46 @@
+## Filament
+
+Thermion uses the [Filament](https://github.com/google/filament) PBR package for much of the heavy lifting - rendering, materials, glTF, and so on.
+
+Thermion is currently based on the `1.51.2` release of Filament.
+
+## Building your own materials
+
+If you want to work with custom materials, you will need some (basic knowledge of the underlying Filament library)[https://google.github.io/filament/Materials.html#compilingmaterials].
+
+Things to keep in mind:
+- You must compile materials with the correct version of Filament (see the table above). Keep in mind that versions may not be identical across platforms so you may need multiple uberz files for multiple platforms.
+
+e.g. the lit_opaque.uberz file has been created from a Filament build:
+
+```
+cd out/cmake-android-release-aarch64/libs/gltfio
+uberz -TSHADINGMODEL=lit -TBLENDING=opaque -o lit_opaque_43.uberz lit_opaque 
+```
+(note that the number in the filename corresponds to the Material version, not the Filament version. Not every Filament version requires a new Material version).
+
+## Footguns
+
+### Stripping in release mode
+
+If you build your app in release mode, you will need to ensure that "Dead Strip" is set to false.
+
+This is because we only invoke the library at runtime via FFI, so at link time these symbols are otherwise treated as redundant.
+
+### Animations when backgrounded
+
+Don't call playAnimation when the app is in the background  (i.e inactive/hidden). This will queue, but not start, an animation, and eventually this will overflow the command buffer when the app is foregrounded/resumed.
+
+If you have some kind of looping animation in your app code, make sure it pauses while the app is backgrounded.
+
+The results will depend on the actual device used to generate the golden, therefore if you are using a different device (which is likely), your results may not be the same. This is expected.
+
+# Building Filament from source
+
+Only the WebGL2/WASM build differs from the official Filament build.
+
+- Note also need to specifically build imageio/png/tinyexr 
+
+
+
+
