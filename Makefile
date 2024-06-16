@@ -1,9 +1,20 @@
-# building on MacOS, we currently just delete the macos/include 
-# and macos/src directories and copy from iOS
-sync-macos: FORCE
-	rm -rf ${current_dir}macos/include ${current_dir}macos/src 
-	cp -R ${current_dir}ios/include ${current_dir}macos
-	cp -R ${current_dir}ios/src ${current_dir}macos
+dart-web:
+	cd dart_filament/native/web; mkdir -p build && cd build && emcmake cmake .. && emmake make
+dart-web-clean:
+	cd dart_filament/native/web && rm -rf build
+dart-wasm-cli-example: dart-web-clean dart-web
+	cd dart_filament/examples/cli_wasm/bin && dart compile wasm example_cli.dart && node main.js
+dart-web-example: dart-web
+	cp dart_filament/native/web/build/build/out/dart_filament* examples/web_wasm/bin
+	cd dart_filament/examples/web_wasm/bin && dart compile wasm example_web.dart
+flutter-example-web: dart-web-clean dart-web
+	cd flutter_filament_federated/flutter_filament/example/web && dart compile wasm main.dart && cd .. && flutter build web --wasm --profile
+flutter-example-macos:
+	cd flutter_filament_federated/flutter_filament/example/web && flutter run -d macos
+swift-bindings:
+	cd dart_filament/ && dart --enable-experiment=native-assets run ffigen --config ffigen/swift.yaml
+bindings:
+	cd dart_filament/ && dart --enable-experiment=native-assets run ffigen --config ffigen/native.yaml
 
 # We compile a small set of custom materials for various helpers (background image, gizmo, etc)
 # You must specify the `FILAMENT_PATH` environment variable, either the path /out/release
@@ -18,4 +29,4 @@ materials: FORCE
 	#rm materials/*.filamat
 
 FORCE: ;
-
+	

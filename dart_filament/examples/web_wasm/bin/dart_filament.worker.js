@@ -1,0 +1,1 @@
+../../../native/web/build/build/out/dart_filament.worker.js

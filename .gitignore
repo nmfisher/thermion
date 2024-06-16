@@ -1,4 +1,9 @@
+**/*/.cxx
+**/.github
+**/.idea
+.dart_tool
+**/.dart_tool
 .vscode
-macos/src
-macos/include
 .DS_Store
+**/*/build
+flutter_filament_federated/*/pubspec.lock
