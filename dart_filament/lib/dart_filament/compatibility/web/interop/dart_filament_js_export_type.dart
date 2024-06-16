@@ -70,8 +70,10 @@ class DartFilamentJSExportViewer {
   JSPromise removeSkybox() => viewer.removeSkybox().toJS;
 
   @JSExport()
-  JSPromise loadIbl(String lightingPath, {double intensity = 30000}) =>
-      viewer.loadIbl(lightingPath, intensity: intensity).toJS;
+  JSPromise loadIbl(String lightingPath, double intensity) {
+    print("Loading IBL from $lightingPath with intensity $intensity");
+    return viewer.loadIbl(lightingPath, intensity: intensity).toJS;
+  }
 
   @JSExport()
   JSPromise rotateIbl(JSArray<JSNumber> rotation) {
@@ -266,7 +268,8 @@ class DartFilamentJSExportViewer {
       JSNumber spaceEnum,
       JSNumber skinIndex,
       JSNumber fadeInInSecs,
-      JSNumber fadeOutInSecs) {
+      JSNumber fadeOutInSecs,
+      JSNumber maxDelta) {
     var frameDataDart = frameData.toDart
         .map((frame) => frame.toDart
             .map((v) {
@@ -463,23 +466,29 @@ class DartFilamentJSExportViewer {
   JSPromise moveCameraToAsset(FilamentEntity entity) =>
       throw UnimplementedError();
 // viewer.moveCameraToAsset(entity)).toJS;
-  
+
   @JSExport()
   JSPromise setViewFrustumCulling(JSBoolean enabled) =>
       throw UnimplementedError();
 // viewer.setViewFrustumCulling(enabled).toJS;
-  
+
   @JSExport()
   JSPromise setCameraExposure(
           double aperture, double shutterSpeed, double sensitivity) =>
       viewer.setCameraExposure(aperture, shutterSpeed, sensitivity).toJS;
-  
+
   @JSExport()
   JSPromise setCameraRotation(JSArray<JSNumber> quaternion) {
-    var dartVals = quaternion.toDart; 
-    return viewer.setCameraRotation(v64.Quaternion(dartVals[0].toDartDouble, dartVals[1].toDartDouble, dartVals[2].toDartDouble, dartVals[3].toDartDouble)).toJS;
+    var dartVals = quaternion.toDart;
+    return viewer
+        .setCameraRotation(v64.Quaternion(
+            dartVals[0].toDartDouble,
+            dartVals[1].toDartDouble,
+            dartVals[2].toDartDouble,
+            dartVals[3].toDartDouble))
+        .toJS;
   }
-  
+
   @JSExport()
   JSPromise setCameraModelMatrix(JSArray<JSNumber> matrix) {
     throw UnimplementedError();

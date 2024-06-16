@@ -677,7 +677,8 @@ class FilamentViewer extends AbstractFilamentViewer {
   Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeOutInSecs = 0.0,
-      double fadeInInSecs = 0.0}) async {
+      double fadeInInSecs = 0.0, 
+      double maxDelta=1.0}) async {
     if (animation.space != Space.Bone &&
         animation.space != Space.ParentWorldRotation) {
       throw UnimplementedError("TODO - support ${animation.space}");
@@ -758,7 +759,8 @@ class FilamentViewer extends AbstractFilamentViewer {
           numFrames,
           animation.frameLengthInMs,
           fadeOutInSecs,
-          fadeInInSecs);
+          fadeInInSecs, 
+          maxDelta);
     }
     allocator.free(data);
   }

@@ -289,7 +289,8 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
       FilamentEntity entity, BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeInInSecs = 0.0,
-      double fadeOutInSecs = 0.0}) async {
+      double fadeOutInSecs = 0.0,
+      double maxDelta=1.0}) async {
     var boneNames = animation.bones.map((n) => n.toJS).toList().toJS;
     var frameData = animation.frameData
         .map((frame) => frame
@@ -316,7 +317,8 @@ class JsInteropFilamentViewer implements AbstractFilamentViewer {
             animation.space.index.toJS,
             skinIndex.toJS,
             fadeInInSecs.toJS,
-            fadeOutInSecs.toJS)
+            fadeOutInSecs.toJS,
+            maxDelta)
         .toDart;
   }
 

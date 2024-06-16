@@ -273,8 +273,20 @@ abstract class AbstractFilamentViewer {
   /// Currently, only [Space.ParentBone] and [Space.Model] are supported; if you want
   /// to transform to another space, you will need to do so manually.
   ///
+  /// [fadeInInSecs]/[fadeOutInSecs]/[maxDelta] are used to cross-fade between
+  /// the current active glTF animation ("animation1") and the animation you
+  /// set via this method ("animation2"). The bone orientations will be
+  /// linearly interpolated between animation1 and animation2; at time 0, 
+  /// the orientation will be 100% animation1, at time [fadeInInSecs], the 
+  /// animation will be ((1 - maxDelta) * animation1) + (maxDelta * animation2).
+  /// This will be applied in reverse after [fadeOutInSecs]. 
+  /// 
+  ///
   Future addBoneAnimation(FilamentEntity entity, BoneAnimationData animation,
-      {int skinIndex = 0, double fadeInInSecs=0.0, double fadeOutInSecs=0.0});
+      {int skinIndex = 0,
+      double fadeInInSecs = 0.0,
+      double fadeOutInSecs = 0.0,
+      double maxDelta = 1.0});
 
   ///
   /// Gets the entity representing the bone at [boneIndex]/[skinIndex].
@@ -307,10 +319,10 @@ abstract class AbstractFilamentViewer {
   Future setTransform(FilamentEntity entity, Matrix4 transform);
 
   ///
-  /// Updates the bone matrices for [entity] (which must be the FilamentEntity 
+  /// Updates the bone matrices for [entity] (which must be the FilamentEntity
   /// returned by [loadGlb/loadGltf]).
-  /// Under the hood, this just calls [updateBoneMatrices] on the Animator 
-  /// instance of the relevant FilamentInstance (which uses the local 
+  /// Under the hood, this just calls [updateBoneMatrices] on the Animator
+  /// instance of the relevant FilamentInstance (which uses the local
   /// bone transform and the inverse bind matrix to set the bone matrix).
   ///
   Future updateBoneMatrices(FilamentEntity entity);
@@ -320,7 +332,8 @@ abstract class AbstractFilamentViewer {
   /// Don't call this manually unless you know what you're doing.
   ///
   Future setBoneTransform(
-      FilamentEntity entity, int boneIndex, Matrix4 transform, { int skinIndex=0});
+      FilamentEntity entity, int boneIndex, Matrix4 transform,
+      {int skinIndex = 0});
 
   ///
   /// Removes/destroys the specified entity from the scene.
