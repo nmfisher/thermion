@@ -91,7 +91,7 @@ void main() async {
       await viewer.setRecordingOutputDirectory(outDir.path);
       await viewer.setRecording(true);
       await viewer.loadSkybox(
-          "file:///$testDir/../../thermion_flutter/example/assets/default_env/default_env_skybox.ktx");
+          "file:///$testDir/../../examples/assets/default_env/default_env_skybox.ktx");
       await viewer.render();
       await viewer.render();
       await viewer.setRecording(false);

@@ -1,2 +1,3 @@
 native/web/build/
 pubspec.lock
+test/output/*
