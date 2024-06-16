@@ -1,4 +1,4 @@
-import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
+
 import 'package:vector_math/vector_math_64.dart';
 import '../thermion_viewer.dart';
 

@@ -7,7 +7,7 @@ import 'package:web/web.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/web/interop/shims/thermion_dart_api_js_shim.dart';
-import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
+
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'shims/thermion_viewer_js_shim.dart';

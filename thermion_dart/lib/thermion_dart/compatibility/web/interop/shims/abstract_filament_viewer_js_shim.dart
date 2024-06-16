@@ -2,7 +2,7 @@
 library thermion_flutter_js;
 
 import 'dart:js_interop';
-import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
+
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 ///

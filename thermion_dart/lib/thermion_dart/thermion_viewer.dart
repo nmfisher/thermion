@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:thermion_dart/thermion_dart/entities/filament_entity.dart';
+
+// a handle that can be safely passed back to the rendering layer to manipulate an Entity
+typedef ThermionEntity = int;
 
 // "picking" means clicking/tapping on the viewport, and unprojecting the X/Y coordinate to determine whether any renderable entities were present at those coordinates.
 typedef FilamentPickResult = ({ThermionEntity entity, double x, double y});
