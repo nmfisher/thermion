@@ -1608,7 +1608,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     for (int i = 0; i < indices.length; i++) {
-      indicesPtr.elementAt(i).value = indices[i];
+      (indicesPtr + i).value = indices[i];
     }
 
     var entity = await withIntCallback((callback) => create_geometry_ffi(

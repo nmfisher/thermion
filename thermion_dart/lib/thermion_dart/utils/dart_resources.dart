@@ -1,7 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
 import '../compatibility/compatibility.dart';
-import 'package:ffi/ffi.dart' hide Utf8Pointer;
 
 class DartResourceLoader {
   static final _assets = <int, Pointer>{};
