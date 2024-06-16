@@ -137,6 +137,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
 
     if (texture.hardwareTextureId != null) {
       print("Creating render target");
+      // ignore: unused_local_variable
       var renderTarget = await viewer.createRenderTarget(
         width.toDouble(), height.toDouble(), texture.hardwareTextureId!);
     }
@@ -197,6 +198,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
             : Pointer<Void>.fromAddress(newTexture.surfaceAddress!));
 
     if (newTexture.hardwareTextureId != null) {
+      // ignore: unused_local_variable
       var renderTarget = await viewer.createRenderTarget(
           width.toDouble(), height.toDouble(), newTexture.hardwareTextureId!);
     }

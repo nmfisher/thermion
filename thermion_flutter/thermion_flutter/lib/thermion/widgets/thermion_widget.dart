@@ -63,8 +63,6 @@ class _ThermionWidgetState extends State<ThermionWidget> {
 
       _texture = await widget.plugin.resizeTexture(oldTexture!,
           (dpr * newSize.width).ceil(), (dpr * newSize.height).ceil(), 0, 0);
-      print(
-          "Resized texture, new flutter ID is ${_texture!.flutterTextureId} (hardware ID ${_texture!.hardwareTextureId})");
       setState(() {});
       _resizing = false;
     });

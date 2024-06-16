@@ -1,8 +1,7 @@
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
-
-import 'package:thermion_flutter/filament/widgets/debug/child_renderable_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:thermion_flutter/filament/widgets/debug/skeleton_menu_item_widget.dart';
+import 'package:thermion_flutter/thermion/widgets/debug/child_renderable_widget.dart';
+import 'package:thermion_flutter/thermion/widgets/debug/skeleton_menu_item_widget.dart';
 
 class EntityListWidget extends StatefulWidget {
   final ThermionViewer? controller;

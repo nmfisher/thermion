@@ -1,7 +1,7 @@
 name: thermion_flutter_web
 description: A web platform interface for the thermion_flutter plugin.
 repository: https://github.com/nmfisher/thermion_flutter/thermion_flutter
-version: 0.0.1
+version: 0.0.1-pre
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -19,11 +19,9 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.1.0
-  web:
-  thermion_dart:
-    path: ../../thermion_dart
-  thermion_flutter_platform_interface:
-    path: ../thermion_flutter_platform_interface
+  web: ^0.5.1
+  thermion_dart: ^0.0.1-pre
+  thermion_flutter_platform_interface: ^0.0.1-pre
   flutter_web_plugins:
     sdk: flutter
 

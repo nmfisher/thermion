@@ -1,7 +1,7 @@
 name: thermion_flutter_platform_interface
 description: A common platform interface for the thermion_flutter plugin.
 repository: https://github.com/nmfisher/thermion_flutter/thermion_flutter
-version: 0.0.1
+version: 0.0.1-pre
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -11,8 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.1.0
-  thermion_dart:
-    path: ../../thermion_dart
+  thermion_dart: ^0.0.1-pre2
 
 dev_dependencies:
   flutter_test:

@@ -27,7 +27,6 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
 
   Future destroyTexture(ThermionFlutterTexture texture);
 
-  @override
   Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
       int width, int height, int offsetLeft, int offsetRight);
 

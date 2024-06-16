@@ -39,7 +39,8 @@ class _LightSliderWidgetState extends State<LightSliderWidget> {
     }
 
     _light = await widget.controller.addLight(
-        widget.options.directionalType,
+      LightType.values[
+        widget.options.directionalType],
         widget.options.directionalColor,
         widget.options.directionalIntensity,
         widget.options.directionalPosition.x,
@@ -48,7 +49,7 @@ class _LightSliderWidgetState extends State<LightSliderWidget> {
         widget.options.directionalDirection.x,
         widget.options.directionalDirection.y,
         widget.options.directionalDirection.z,
-        widget.options.directionalCastShadows);
+        castShadows:widget.options.directionalCastShadows);
 
     setState(() {});
   }

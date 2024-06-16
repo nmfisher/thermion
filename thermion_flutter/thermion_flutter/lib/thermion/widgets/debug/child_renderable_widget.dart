@@ -2,7 +2,6 @@ import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 import 'package:flutter/material.dart';
-import 'package:thermion_flutter/filament/widgets/debug/skeleton_menu_item_widget.dart';
 import 'dart:math';
 
 class ChildRenderableWidget extends StatelessWidget {
