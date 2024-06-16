@@ -3,7 +3,6 @@
 <p align="center">
   <a href="https://docs.page/nmfisher/flutter_filament/quickstart">Quickstart (Flutter)</a> •
   <a href="https://docs.page/nmfisher/flutter_filament">Documentation</a> •
-  <a href="https://jasprpad.schultek.de">Playground</a> •
   <a href="https://github.com/nmfisher/flutter_filament/docs/examples/">Showcase</a> •
   <a href="https://discord.gg/h2VdDK3EAQ">Discord</a>
 </p>
