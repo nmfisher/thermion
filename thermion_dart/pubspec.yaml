@@ -1,6 +1,6 @@
 name: thermion_dart
-description: Dart bindings for the Filament Physically Based Renderer.
-version: 0.5.0
+description: 3D rendering toolkit for Dart.
+version: 0.0.1
 homepage:
 
 environment:
