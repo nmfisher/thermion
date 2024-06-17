@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
 ///
-class FilamentGestureDetectorDesktop extends StatefulWidget {
+class ThermionGestureDetectorDesktop extends StatefulWidget {
   ///
   /// The content to display below the gesture detector/listener widget.
   /// This will usually be a ThermionWidget (so you can navigate by directly interacting with the viewport), but this is not necessary.
@@ -37,7 +37,7 @@ class FilamentGestureDetectorDesktop extends StatefulWidget {
   ///
   final bool enablePicking;
 
-  const FilamentGestureDetectorDesktop(
+  const ThermionGestureDetectorDesktop(
       {Key? key,
       required this.controller,
       this.child,
@@ -47,11 +47,11 @@ class FilamentGestureDetectorDesktop extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => _FilamentGestureDetectorDesktopState();
+  State<StatefulWidget> createState() => _ThermionGestureDetectorDesktopState();
 }
 
-class _FilamentGestureDetectorDesktopState
-    extends State<FilamentGestureDetectorDesktop> {
+class _ThermionGestureDetectorDesktopState
+    extends State<ThermionGestureDetectorDesktop> {
   ///
   ///
   ///
@@ -69,7 +69,7 @@ class _FilamentGestureDetectorDesktopState
   }
 
   @override
-  void didUpdateWidget(FilamentGestureDetectorDesktop oldWidget) {
+  void didUpdateWidget(ThermionGestureDetectorDesktop oldWidget) {
     if (widget.showControlOverlay != oldWidget.showControlOverlay ||
         widget.enableCamera != oldWidget.enableCamera ||
         widget.enablePicking != oldWidget.enablePicking) {

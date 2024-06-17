@@ -3,15 +3,15 @@ import 'dart:io';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'filament_gesture_detector_desktop.dart';
-import 'filament_gesture_detector_mobile.dart';
+import 'thermion_gesture_detector_desktop.dart';
+import 'thermion_gesture_detector_mobile.dart';
 
 enum GestureType { rotateCamera, panCamera, panBackground }
 
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
 ///
-class FilamentGestureDetector extends StatelessWidget {
+class ThermionGestureDetector extends StatelessWidget {
   ///
   /// The content to display below the gesture detector/listener widget.
   /// This will usually be a ThermionWidget (so you can navigate by directly interacting with the viewport), but this is not necessary.
@@ -45,7 +45,7 @@ class FilamentGestureDetector extends StatelessWidget {
   final void Function(ScaleUpdateDetails)? onScaleUpdate;
   final void Function(ScaleEndDetails)? onScaleEnd;
 
-  const FilamentGestureDetector(
+  const ThermionGestureDetector(
       {Key? key,
       required this.controller,
       this.child,
@@ -68,7 +68,7 @@ class FilamentGestureDetector extends StatelessWidget {
           if (kIsWeb || Platform.isLinux ||
               Platform.isWindows ||
               Platform.isMacOS) {
-            return FilamentGestureDetectorDesktop(
+            return ThermionGestureDetectorDesktop(
               controller: controller,
               child: child,
               showControlOverlay: showControlOverlay,
@@ -76,7 +76,7 @@ class FilamentGestureDetector extends StatelessWidget {
               enablePicking: enablePicking,
             );
           } else {
-            return FilamentGestureDetectorMobile(
+            return ThermionGestureDetectorMobile(
                 controller: controller,
                 child: child,
                 showControlOverlay: showControlOverlay,

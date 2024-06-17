@@ -7,7 +7,7 @@ enum GestureType { rotateCamera, panCamera, panBackground }
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
 ///
-class FilamentGestureDetectorMobile extends StatefulWidget {
+class ThermionGestureDetectorMobile extends StatefulWidget {
   ///
   /// The content to display below the gesture detector/listener widget.
   /// This will usually be a ThermionWidget (so you can navigate by directly interacting with the viewport), but this is not necessary.
@@ -43,7 +43,7 @@ class FilamentGestureDetectorMobile extends StatefulWidget {
   final void Function(ScaleUpdateDetails)? onScaleUpdate;
   final void Function(ScaleEndDetails)? onScaleEnd;
 
-  const FilamentGestureDetectorMobile(
+  const ThermionGestureDetectorMobile(
       {Key? key,
       required this.controller,
       this.child,
@@ -57,11 +57,11 @@ class FilamentGestureDetectorMobile extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => _FilamentGestureDetectorMobileState();
+  State<StatefulWidget> createState() => _ThermionGestureDetectorMobileState();
 }
 
-class _FilamentGestureDetectorMobileState
-    extends State<FilamentGestureDetectorMobile> {
+class _ThermionGestureDetectorMobileState
+    extends State<ThermionGestureDetectorMobile> {
   GestureType gestureType = GestureType.panCamera;
 
   final _icons = {
@@ -116,7 +116,7 @@ class _FilamentGestureDetectorMobileState
   }
 
   @override
-  void didUpdateWidget(FilamentGestureDetectorMobile oldWidget) {
+  void didUpdateWidget(ThermionGestureDetectorMobile oldWidget) {
     if (widget.showControlOverlay != oldWidget.showControlOverlay ||
         widget.enableCamera != oldWidget.enableCamera ||
         widget.enablePicking != oldWidget.enablePicking) {
