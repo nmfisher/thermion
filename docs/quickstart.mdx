@@ -11,13 +11,20 @@ $ flutter create thermion_sample_project && cd thermion_sample_project
 $ flutter pub add thermion_flutter
 ```
 
-2. If running on MacOS, change the minimum deployment target to OSX 13
+2. If running on iOS or MacOS, change the minimum deployment target to OSX 13
 
-<Accordion title="Click to expand MacOS instructions">
+<Accordion title="Click to iOS/MacOS instructions">
 
-In `macos/Podfile`, make sure the `platform` entry refers to `13.0`.
+Make sure the `platform` entry refers to `13.0` in your Podfile.
+
+In `macos/Podfile` (for macOS):
 ```
 platform :osx, '13.0'
+```
+
+In `ios/Podfile`, (for iOS):
+```
+platform :ios, '13.0'
 ```
 
 Then open XCode:
