@@ -1,7 +1,7 @@
 name: thermion_flutter_ffi
 description: An FFI interface for the thermion_flutter plugin (all platforms except web).
 repository: https://github.com/nmfisher/thermion_flutter/thermion_flutter
-version: 0.0.1-pre
+version: 0.0.1
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
