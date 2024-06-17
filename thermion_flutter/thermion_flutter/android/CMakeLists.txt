@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)  
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../thermion_dart/native/include)
+include_directories(src/main/include)
 include_directories(src/main/cpp)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 set(ANDROID_STL c++_shared)

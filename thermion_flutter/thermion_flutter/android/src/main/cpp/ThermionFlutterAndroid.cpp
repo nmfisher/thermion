@@ -1,9 +1,12 @@
 #include <android/native_window_jni.h>
 #include <android/native_activity.h>
 
-#include "ThermionDartFFIApi.h"
+#include "ResourceBuffer.h"
 
 extern "C" {
+
+  typedef void (*FilamentRenderCallback)(void *const owner);
+
   void* get_native_window_from_surface(
     jobject surface,
     JNIEnv* env
