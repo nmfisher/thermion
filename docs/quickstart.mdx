@@ -43,6 +43,7 @@ flutter
 3. Create an instance of `ThermionFlutterPlugin` in your app.
 
 ```dart
+
 class _MyAppState extends State<MyApp> {
   late ThermionFlutterPlugin _thermionFlutterPlugin;  
   late Future<ThermionViewer> _thermionViewer;
@@ -51,12 +52,14 @@ class _MyAppState extends State<MyApp> {
     _thermionViewer = _thermionFlutterPlugin.createViewer();  
   }
 }
+
 ```
 
 
 4. Add a `ThermionWidget` to your widget hierarchy 
 
 ```dart
+
 class _MyAppState extends State<MyApp> {
     
     late ThermionFlutterPlugin _thermionFlutterPlugin;  
@@ -74,7 +77,9 @@ class _MyAppState extends State<MyApp> {
                 ) 
             )
         ]);  
-}}
+    }
+}
+
 ```
 
 4. Add a button to load the model when pressed
