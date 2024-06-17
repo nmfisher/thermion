@@ -6,6 +6,7 @@
 
 ```bash
 $ flutter channel master
+$ flutter config --enable-native-assets  
 $ flutter create thermion_sample_project && cd thermion_sample_project
 $ flutter pub add thermion_flutter
 ```
@@ -85,14 +86,12 @@ class _MyAppState extends State<MyApp> {
 4. Add a button to load the model when pressed
 
 ```dart
+
+...
+
 class _MyAppState extends State<MyApp> {
     
-    late ThermionFlutterPlugin _thermionFlutterPlugin;  
-    late Future<ThermionViewer> _thermionViewer;
-    void initState() {    
-        _thermionFlutterPlugin = ThermionFlutterPlugin();
-        _thermionViewer = _thermionFlutterPlugin.createViewer();
-    }    
+...
     
     bool _loaded = false;
 
@@ -103,7 +102,7 @@ class _MyAppState extends State<MyApp> {
                     plugin:_thermionFlutterPlugin
                 ) 
             ), 
-            if (_loaded)
+            if (!_loaded)
                 Center(
                     child: ElevatedButton(
                         child: const Text("Load"),
@@ -116,34 +115,53 @@ class _MyAppState extends State<MyApp> {
 }}
 ```
 
-5. When the button is pressed, load a skybox and the glb asset
+5. When the button is pressed, load a skybox, lighting and the glb asset
+
+You will need to import the `dart:math` and `package:vector_math` libraries.
+
 ```dart
-  if(_loaded)
-      Center(
-          child: ElevatedButton(
-              child: const Text("Load"),
-              onPressed: () async {
-                var viewer = await _thermionViewer;
-                await viewer.loadSkybox("assets/default_env_skybox.ktx");
-                await viewer.loadGlb("assets/cube.glb");
+import 'package:vector_math/vector_math_64.dart' as v;
+import 'dart:math';
 
-                await viewer.setCameraPosition(0, 1, 10);
-                await viewer.setCameraRotation(v.Quaternion.axisAngle(
-                        v.Vector3(1, 0, 0), -30 / 180 * pi) *
-                    v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
-                await viewer.addLight(
-                    LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
-                await viewer.setRendering(true);
-                _loaded = true;
-                setState(() {});
-            }
-        )
-    )
-```            
+...
 
-(Note - "skybox" refers to the background (cube) image rendered behind all other elements in the scene).
+class _MyAppState extends State<MyApp> {
 
-Anything added to the scene is referred to as an "entity". 
+    ...
+
+    Widget build(BuildContext context) {
+        return Stack(children:[
+            ...
+            if(!_loaded)
+                Center(
+                    child: ElevatedButton(
+                        child: const Text("Load"),
+                        onPressed: () async {
+                            var viewer = await _thermionViewer;
+                            await viewer.loadIbl("assets/default_env_ibl.ktx");
+                            await viewer.loadSkybox("assets/default_env_skybox.ktx");
+                            await viewer.loadGlb("assets/cube.glb");
+
+                            await viewer.setCameraPosition(0, 1, 10);
+                            await viewer.setCameraRotation(v.Quaternion.axisAngle(
+                                    v.Vector3(1, 0, 0), -30 / 180 * pi) *
+                                v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
+                            await viewer.addLight(
+                                LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
+                            await viewer.setRendering(true);
+                            _loaded = true;
+                            setState(() {});
+                        }
+                    )
+                )
+        ]);
+    }
+}
+```           
+
+Here, we've added a skybox (the background (cube) image rendered behind all other elements in the scene), image-based lighting (where an image is used to determine the direction and intensity of a light source) and a directional light (Sun).
+
+Anything added to the scene is referred to as an "entity" (including lights and cameras).
 
 Entities are always added to the scene at position (0,0,0).
 
@@ -173,5 +191,12 @@ The cube still won't be visible until we add a light to the scene and tell Therm
     await viewer.setRendering(true);
     ...
 ````
+
+8. Run the project
+```
+$ flutter run -d macos
+```
+
+!(Screenshot of Thermion Quickstart project)[images/thermion_sample_project.png]
 
 Your first Thermion project is complete!
