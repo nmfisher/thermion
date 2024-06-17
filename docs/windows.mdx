@@ -1,0 +1,24 @@
+## Windows
+
+## pubspec.yaml
+
+On Windows, you will need to add a custom version of `native_toolchain_c` to your `dependency_overrides`. This is currently needed to link static libraries when building a DLL.
+
+```
+native_toolchain_c:
+    git:
+      url: git@github.com:nmfisher/native.git
+      path: pkgs/native_toolchain_c
+      ref: 99020084c4687be4c58c7115a167088c0441d1de
+```
+
+This will eventually be fixed upstream in the `native_toolchain_c` package, so this should be a short-term/temporary issue only.
+
+## ANGLE build (not currently working)
+To support embedding GPU textures in Flutter (rather than copying to a CPU pixel buffer on every frame), we need to build a slightly customized version of Filament that uses GLES on Windows (rather than the default, which uses OpenGL).
+
+```
+git checkout flutter-filament-windows
+mkdir out && cd out
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --build . --target gltf_viewer --config Debug
+```

@@ -1,0 +1,4 @@
+native/web/build/
+native/web/lib/**/*
+pubspec.lock
+test/output/*

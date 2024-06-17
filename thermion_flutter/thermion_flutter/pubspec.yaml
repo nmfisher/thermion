@@ -1,0 +1,43 @@
+name: thermion_flutter
+description: Flutter plugin for 3D rendering with the Thermion toolkit.
+version: 0.0.3
+homepage: https://docs.page/nmfisher/thermion
+repository: https://github.com/nmfisher/thermion
+
+environment:
+  sdk: ">=3.1.0 <4.0.0"
+  flutter: ">=3.23.0-0.1.pre"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  vector_math: ^2.1.2
+  plugin_platform_interface: ^2.0.0
+  ffi: ^2.1.2
+  animation_tools_dart: ^0.0.4
+  thermion_dart: ^0.0.4
+  thermion_flutter_platform_interface: ^0.0.1
+  thermion_flutter_ffi: ^0.0.1
+  thermion_flutter_web: ^0.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^1.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        pluginClass: ThermionFlutterPlugin
+        package: app.polyvox.filament
+      ios:
+        pluginClass: SwiftThermionFlutterPlugin
+      macos:
+        pluginClass: SwiftThermionFlutterPlugin
+      windows:
+        pluginClass: ThermionFlutterPluginCApi
+      linux:
+        pluginClass: ThermionFlutterPlugin

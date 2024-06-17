@@ -1,0 +1,16 @@
+{
+  "name": "Thermion",
+  "description": "3D rendering framework for Dart and/or Flutter",
+  "logo": "logo.png",
+  "sidebar": [
+    [
+      "Getting Started",
+      [
+        ["Overview", "/"],
+        ["Quick Start", "/quickstart"]
+      ]
+    ],
+    ["Misc.", [["Contributing", "/contributing"]]]
+  ]
+  
+}

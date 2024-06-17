@@ -1,0 +1,13 @@
+output: '../lib/thermion_dart/compatibility/native/thermion_dart.g.dart'
+headers:
+  entry-points:
+    - '../native/include/ThermionDartFFIApi.h'
+    - '../native/include/ThermionDartApi.h'
+    - '../native/include/ResourceBuffer.h'
+  include-directives:
+    - '../native/include/ThermionDartFFIApi.h'
+    - '../native/include/ThermionDartApi.h'
+    - '../native/include/ResourceBuffer.h'
+ffi-native:
+  assetId: package:thermion_dart/thermion_dart.dart
+ignore-source-errors: true

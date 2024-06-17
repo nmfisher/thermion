@@ -1,0 +1,25 @@
+![Thermion Logo](logo.png)
+
+Thermion is a framework for creating cross-platform 3D applications with Dart and/or Flutter.
+
+## Overview
+
+### Package structure 
+
+Thermion is divided into two packages:
+- `thermion_flutter`, a Flutter package for creating/embedding a rendering surface inside a Flutter app. 
+- `thermion_dart`, which contains all the code needed to create a viewer.
+
+With this structure, the Flutter-specific components are not coupled to the Dart components, meaning Thermion can be used for rendering in both Flutter and non-Flutter applications.
+
+For example, Thermion ships with examples for rendering with Dart only (no Flutter) with a CLI/headless application on MacOS, and with a Javascript/WASM/HTML applicaiton in browsers.
+
+`thermion_flutter` exports `thermion_dart`, so if you are working with a Flutter application, you will only need to import `thermion_fluttter`.
+
+### ThermionViewer (`thermion_dart`)
+
+// TODO
+
+### ThermionWidget (`thermion_flutter`)
+
+// TODO
