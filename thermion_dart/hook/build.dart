@@ -107,7 +107,8 @@ void main(List<String> args) async {
       sources: sources,
       includes: ['native/include', 'native/include/filament'],
       defines: defines,
-      linkWith: linkWith,
+      // UNCOMMENT THIS IF YOU ARE BUILDING WITH THE CUSTOM native_toolchain_c FORK FOR WINDOWS 
+      // linkWith: linkWith,
       flags: [
         if (platform == "macos") '-mmacosx-version-min=13.0',
         if (platform == "ios") '-mios-version-min=13.0',
@@ -120,8 +121,8 @@ void main(List<String> args) async {
     );
 
     await cbuilder.run(
-      config: config,
-      output: output,
+      buildConfig: config,
+      buildOutput: output,
       logger: logger,
     );
     if (config.targetOS == OS.android) {
