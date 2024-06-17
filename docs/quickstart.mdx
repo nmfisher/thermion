@@ -93,6 +93,8 @@ class _MyAppState extends State<MyApp> {
         _thermionFlutterPlugin = ThermionFlutterPlugin();
         _thermionViewer = _thermionFlutterPlugin.createViewer();
     }    
+    
+    bool _loaded = false;
 
     Widget build(BuildContext context) {
         return Stack(children:[
@@ -101,20 +103,42 @@ class _MyAppState extends State<MyApp> {
                     plugin:_thermionFlutterPlugin
                 ) 
             ), 
-            Center(child:ElevatedButton(child:Text("Load"), onPressed:() { 
-                // TODO
-            }))
+            if (_loaded)
+                Center(
+                    child: ElevatedButton(
+                        child: const Text("Load"),
+                        onPressed: () async {
+                            // TODO 
+                            _loaded = true;
+                            setState(() {});
+                        }))
         ]);  
 }}
 ```
 
-5. Load a skybox and the glb asset
+5. When the button is pressed, load a skybox and the glb asset
 ```dart
-  Center(child:ElevatedButton(child:Text("Load"), onPressed:() { 
-               var viewer = await _thermionViewer;
-               await viewer.loadSkybox("assets/default_env_skybox.ktx");
-               await viewer.loadGlb("assets/cube.glb");
-    }))
+  if(_loaded)
+      Center(
+          child: ElevatedButton(
+              child: const Text("Load"),
+              onPressed: () async {
+                var viewer = await _thermionViewer;
+                await viewer.loadSkybox("assets/default_env_skybox.ktx");
+                await viewer.loadGlb("assets/cube.glb");
+
+                await viewer.setCameraPosition(0, 1, 10);
+                await viewer.setCameraRotation(v.Quaternion.axisAngle(
+                        v.Vector3(1, 0, 0), -30 / 180 * pi) *
+                    v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
+                await viewer.addLight(
+                    LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
+                await viewer.setRendering(true);
+                _loaded = true;
+                setState(() {});
+            }
+        )
+    )
 ```            
 
 (Note - "skybox" refers to the background (cube) image rendered behind all other elements in the scene).
