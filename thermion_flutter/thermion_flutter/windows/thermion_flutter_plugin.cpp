@@ -43,7 +43,7 @@ void ThermionFlutterPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "app.polyvox.filament/event",
+          registrar->messenger(), "dev.thermion.flutter/event",
           &flutter::StandardMethodCodec::GetInstance());
 
   auto plugin = std::make_unique<ThermionFlutterPlugin>(

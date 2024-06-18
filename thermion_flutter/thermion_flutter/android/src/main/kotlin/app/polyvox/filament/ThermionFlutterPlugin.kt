@@ -55,7 +55,7 @@ class RenderCallbackImpl(plugin:ThermionFlutterPlugin) : RenderCallback {
 class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadFilamentResourceFromOwner, FreeFilamentResourceFromOwner {
 
   companion object {
-      const val CHANNEL_NAME = "app.polyvox.filament/event"
+      const val CHANNEL_NAME = "dev.thermion.flutter/event"
       const val TAG = "FilamentPlugin"
   }
 

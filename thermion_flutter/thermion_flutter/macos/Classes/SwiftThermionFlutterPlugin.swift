@@ -65,7 +65,7 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
         let _messenger = registrar.messenger;
         messenger = _messenger;
-        let channel = FlutterMethodChannel(name: "app.polyvox.filament/event", binaryMessenger: _messenger)
+        let channel = FlutterMethodChannel(name: "dev.thermion.flutter/event", binaryMessenger: _messenger)
         let instance = SwiftThermionFlutterPlugin(textureRegistry: registrar.textures, registrar:registrar)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }

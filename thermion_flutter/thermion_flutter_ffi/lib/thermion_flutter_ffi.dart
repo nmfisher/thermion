@@ -10,7 +10,7 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dar
 /// to create rendering contexts, callbacks and surfaces (either backing texture(s).
 ///
 class ThermionFlutterFFI extends ThermionFlutterPlatform {
-  final _channel = const MethodChannel("app.polyvox.filament/event");
+  final _channel = const MethodChannel("dev.thermion.flutter/event");
 
   late final ThermionViewerFFI viewer;
 
