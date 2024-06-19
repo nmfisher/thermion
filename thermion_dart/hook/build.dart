@@ -7,9 +7,9 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 void main(List<String> args) async {
   await build(args, (config, output) async {
     var logDir = Directory(
-        "${config.packageRoot.toFilePath()}/.dart_tool/thermion_dart/log/");
+        "${config.packageRoot.toFilePath()}.dart_tool/thermion_dart/log/");
     if (!logDir.existsSync()) {
-      logDir.createSync();
+      logDir.createSync(recursive: true);
     }
     var logFile = File(logDir.path + "/build.log");
 
