@@ -11,18 +11,20 @@ import GLKit
     ] as [CFString : Any] as CFDictionary
 
     @objc public var cvMetalTextureCache:CVMetalTextureCache?
+    @objc public var metalDevice:MTLDevice?
+
     @objc public var cvMetalTexture:CVMetalTexture?
     @objc public var metalTexture:MTLTexture?
-    @objc public var metalDevice:MTLDevice?
     @objc public var metalTextureAddress:Int = -1
 
     @objc override public init() {
         
     }
 
-    @objc public init(width:Int64, height:Int64) { 
-        
-        self.metalDevice = MTLCreateSystemDefaultDevice()!
+    @objc public init(width:Int64, height:Int64) {
+        if(self.metalDevice == nil) {
+            self.metalDevice = MTLCreateSystemDefaultDevice()!
+        }
 
         // create pixel buffer
         if(CVPixelBufferCreate(kCFAllocatorDefault, Int(width), Int(height),
@@ -31,37 +33,36 @@ import GLKit
             metalTextureAddress = -1;
             return
         }
-           
-        var cvret = CVMetalTextureCacheCreate(
-            kCFAllocatorDefault,
-            nil,
-            metalDevice!,
-            nil,
-            &cvMetalTextureCache);
-        if(cvret != 0) { 
-            print("Error creating Metal texture cache")
-            metalTextureAddress = -1
-            return
+        if self.cvMetalTextureCache == nil {
+            let cacheCreationResult = CVMetalTextureCacheCreate(
+                kCFAllocatorDefault,
+                nil,
+                self.metalDevice!,
+                nil,
+                &self.cvMetalTextureCache)
+            if(cacheCreationResult != kCVReturnSuccess) {
+                print("Error creating Metal texture cache")
+                metalTextureAddress = -1
+                return
+            }
         }
-        cvret = CVMetalTextureCacheCreateTextureFromImage(
+        let cvret = CVMetalTextureCacheCreateTextureFromImage(
                         kCFAllocatorDefault,
-                        cvMetalTextureCache!,
+                        self.cvMetalTextureCache!,
                         pixelBuffer!, nil,
                         MTLPixelFormat.bgra8Unorm,
                         Int(width), Int(height),
                         0,
                         &cvMetalTexture)
-        if(cvret != 0) { 
+        if(cvret != kCVReturnSuccess) { 
             print("Error creating texture from image")
             metalTextureAddress = -1
             return
         }
         metalTexture = CVMetalTextureGetTexture(cvMetalTexture!)
-        let metalTexturePtr = Unmanaged.passUnretained(metalTexture!).toOpaque()
+        let metalTexturePtr = Unmanaged.passRetained(metalTexture!).toOpaque()
         metalTextureAddress = Int(bitPattern:metalTexturePtr)
-        
-        print("Created metal texture @ \(metalTextureAddress)")
-        
+                
         // CVPixelBufferLockBaseAddress(pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
         //        let bufferWidth = Int(CVPixelBufferGetWidth(pixelBuffer!))
         //        let bufferHeight = Int(CVPixelBufferGetHeight(pixelBuffer!))
@@ -95,7 +96,12 @@ import GLKit
     }
 
     @objc public func destroyTexture()  {
-        metalTexture = nil
+       CVMetalTextureCacheFlush(self.cvMetalTextureCache!, 0)
+       self.metalTexture = nil
+       self.cvMetalTexture = nil
+       self.pixelBuffer = nil
+       self.metalDevice = nil
+       self.cvMetalTextureCache = nil
     }
 
 
