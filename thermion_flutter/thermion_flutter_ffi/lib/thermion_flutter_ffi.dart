@@ -6,21 +6,24 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_in
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 
 ///
-/// A subclass of [ThermionViewerFFI] that uses Flutter platform channels
-/// to create rendering contexts, callbacks and surfaces (either backing texture(s).
+/// An implementation of [ThermionFlutterPlatform] that uses a Flutter platform
+/// channel to create a rendering context, resource loaders, and
+/// render target(s).
 ///
 class ThermionFlutterFFI extends ThermionFlutterPlatform {
   final _channel = const MethodChannel("dev.thermion.flutter/event");
 
-  late final ThermionViewerFFI viewer;
+  ThermionViewerFFI? _viewer;
+
+  ThermionFlutterFFI._() {}
 
   static void registerWith() {
-    ThermionFlutterPlatform.instance = ThermionFlutterFFI();
+    ThermionFlutterPlatform.instance = ThermionFlutterFFI._();
   }
 
   final _textures = <ThermionFlutterTexture>{};
 
-  Future initialize({String? uberArchivePath}) async {
+  Future<ThermionViewer> createViewer({String? uberArchivePath}) async {
     var resourceLoader = Pointer<Void>.fromAddress(
         await _channel.invokeMethod("getResourceLoaderWrapper"));
 
@@ -46,22 +49,24 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
         ? nullptr
         : Pointer<Void>.fromAddress(sharedContext);
 
-    viewer = ThermionViewerFFI(
+    _viewer = ThermionViewerFFI(
         resourceLoader: resourceLoader,
         renderCallback: renderCallback,
         renderCallbackOwner: renderCallbackOwner,
         driver: driverPtr,
         sharedContext: sharedContextPtr,
         uberArchivePath: uberArchivePath);
-    await viewer.initialized;
+    await _viewer!.initialized;
+    return _viewer!;
   }
 
   bool _creatingTexture = false;
+  bool _destroyingTexture = false;
 
   Future _waitForTextureCreationToComplete() async {
     var iter = 0;
 
-    while (_creatingTexture) {
+    while (_creatingTexture || _destroyingTexture) {
       await Future.delayed(Duration(milliseconds: 50));
       iter++;
       if (iter > 10) {
@@ -125,39 +130,43 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     print(
         "Created texture with flutter texture id ${flutterTextureId}, hardwareTextureId $hardwareTextureId and surfaceAddress $surfaceAddress");
 
-    viewer.viewportDimensions = (width.toDouble(), height.toDouble());
+    _viewer?.viewportDimensions = (width.toDouble(), height.toDouble());
 
     final texture = ThermionFlutterTexture(
-      flutterTextureId, hardwareTextureId, width, height, surfaceAddress);
+        flutterTextureId, hardwareTextureId, width, height, surfaceAddress);
 
-    await viewer.createSwapChain(width.toDouble(), height.toDouble(),
-      surface: texture.surfaceAddress == null
-          ? nullptr
-          : Pointer<Void>.fromAddress(texture.surfaceAddress!));
+    await _viewer?.createSwapChain(width.toDouble(), height.toDouble(),
+        surface: texture.surfaceAddress == null
+            ? nullptr
+            : Pointer<Void>.fromAddress(texture.surfaceAddress!));
 
     if (texture.hardwareTextureId != null) {
-      print("Creating render target");
       // ignore: unused_local_variable
-      var renderTarget = await viewer.createRenderTarget(
-        width.toDouble(), height.toDouble(), texture.hardwareTextureId!);
+      var renderTarget = await _viewer?.createRenderTarget(
+          width.toDouble(), height.toDouble(), texture.hardwareTextureId!);
     }
-    
-    await viewer.updateViewportAndCameraProjection(
-        width.toDouble(), height.toDouble());
-    viewer.render();
+
+    await _viewer?.updateViewportAndCameraProjection(width.toDouble(), height.toDouble());
+    _viewer?.render();
     _creatingTexture = false;
-    
+
     _textures.add(texture);
-    
+
     return texture;
   }
 
+
   ///
-  /// Called by [ThermionWidget] to destroy a texture. Don't call this yourself.
+  /// Destroy a texture and clean up the texture cache (if applicable).
   ///
   Future destroyTexture(ThermionFlutterTexture texture) async {
-    await _channel.invokeMethod("destroyTexture", texture.flutterTextureId);
+    if (_creatingTexture || _destroyingTexture) {
+      throw Exception("Cannot destroy texture while concurrent call to createTexture/destroyTexture has not completed");
+    }
+    _destroyingTexture = true;
     _textures.remove(texture);
+    await _channel.invokeMethod("destroyTexture", texture.flutterTextureId);
+    _destroyingTexture = false;
   }
 
   bool _resizing = false;
@@ -172,14 +181,14 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
       throw Exception("Resize underway");
     }
 
-    if ((width - viewer.viewportDimensions.$1).abs() < 0.001 ||
-        (height - viewer.viewportDimensions.$2).abs() < 0.001) {
+    if ((width - _viewer!.viewportDimensions.$1).abs() < 0.001 ||
+        (height - _viewer!.viewportDimensions.$2).abs() < 0.001) {
       return texture;
     }
     _resizing = true;
-    bool wasRendering = viewer.rendering;
-    await viewer.setRendering(false);
-    await viewer.destroySwapChain();
+    bool wasRendering = _viewer!.rendering;
+    await _viewer!.setRendering(false);
+    await _viewer!.destroySwapChain();
     await destroyTexture(texture);
 
     var result = await _channel
@@ -188,34 +197,29 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     if (result == null || result[0] == -1) {
       throw Exception("Failed to create texture");
     }
-    viewer.viewportDimensions = (width.toDouble(), height.toDouble());
+    _viewer!.viewportDimensions = (width.toDouble(), height.toDouble());
     var newTexture =
         ThermionFlutterTexture(result[0], result[1], width, height, result[2]);
 
-    await viewer.createSwapChain(width.toDouble(), height.toDouble(),
+    await _viewer!.createSwapChain(width.toDouble(), height.toDouble(),
         surface: newTexture.surfaceAddress == null
             ? nullptr
             : Pointer<Void>.fromAddress(newTexture.surfaceAddress!));
 
     if (newTexture.hardwareTextureId != null) {
       // ignore: unused_local_variable
-      var renderTarget = await viewer.createRenderTarget(
+      var renderTarget = await _viewer!.createRenderTarget(
           width.toDouble(), height.toDouble(), newTexture.hardwareTextureId!);
     }
-    await viewer.updateViewportAndCameraProjection(
-        width.toDouble(), height.toDouble());
+    await _viewer!
+        .updateViewportAndCameraProjection(width.toDouble(), height.toDouble());
 
-    viewer.viewportDimensions = (width.toDouble(), height.toDouble());
+    _viewer!.viewportDimensions = (width.toDouble(), height.toDouble());
     if (wasRendering) {
-      await viewer.setRendering(true);
+      await _viewer!.setRendering(true);
     }
     _textures.add(newTexture);
     _resizing = false;
     return newTexture;
-  }
-
-  @override
-  void dispose() {
-    // TODO: implement dispose
   }
 }
