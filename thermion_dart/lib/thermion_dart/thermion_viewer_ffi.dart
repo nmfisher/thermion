@@ -6,6 +6,7 @@ import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'thermion_viewer.dart';
 import 'scene.dart';
+import 'package:logging/logging.dart';
 
 // ignore: constant_identifier_names
 const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
@@ -13,6 +14,7 @@ const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
 typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
 class ThermionViewerFFI extends ThermionViewer {
+  final _logger = Logger("ThermionViewerFFI");
   final _compat = Compatibility();
 
   SceneImpl? _scene;
@@ -68,7 +70,7 @@ class ThermionViewerFFI extends ThermionViewer {
           NativeCallable<Void Function(Int32 entityId, Int x, Int y)>.listener(
               _onPickResult);
     } catch (err) {
-      print(
+      _logger.severe(
           "Failed to set pick result callback. This is expected if running on web/wasm");
     }
     _initialize();
@@ -185,7 +187,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await _scene!.dispose();
     _scene = null;
     destroy_filament_viewer_ffi(_viewer!);
-    
+
     _sceneManager = null;
     _viewer = null;
     await _pickResultController.close();
@@ -624,13 +626,11 @@ class ThermionViewerFFI extends ThermionViewer {
       var meshEntity = meshEntities[i];
 
       if (targetMeshNames?.contains(meshName) == false) {
-        print("Skipping $meshName, not contained in target");
+        _logger.info("Skipping $meshName, not contained in target");
         continue;
       }
 
       var meshMorphTargets = await getMorphTargetNames(entity, meshEntity);
-
-      print("Got mesh morph targets ${meshMorphTargets}");
 
       var intersection = animation.morphTargets
           .toSet()
@@ -726,7 +726,7 @@ class ThermionViewerFFI extends ThermionViewer {
       var boneName = animation.bones[i];
       var entityBoneIndex = boneNames.indexOf(boneName);
       if (entityBoneIndex == -1) {
-        print("Warning : bone $boneName not found, skipping");
+        _logger.warning("Bone $boneName not found, skipping");
         continue;
       }
       var boneEntity = bones[entityBoneIndex];
@@ -1000,7 +1000,6 @@ class ThermionViewerFFI extends ThermionViewer {
     var animations = await getAnimationNames(entity);
     var index = animations.indexOf(name);
     var duration = await getAnimationDuration(entity, index);
-    print("Duration for $name : $duration");
     await playAnimation(entity, index,
         loop: loop,
         reverse: reverse,
@@ -1430,9 +1429,6 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("No viewer available");
     }
 
-    print(
-        "WARNING: getCameraProjectionMatrix and getCameraCullingProjectionMatrix are not reliable. Consider these broken");
-
     var arrayPtr = get_camera_projection_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
     var projectionMatrix = Matrix4.fromList(doubleList);
@@ -1448,7 +1444,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    print(
+    throw Exception(
         "WARNING: getCameraProjectionMatrix and getCameraCullingProjectionMatrix are not reliable. Consider these broken");
     var arrayPtr = get_camera_culling_projection_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
@@ -1467,7 +1463,6 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     var arrayPtr = get_camera_frustum(_viewer!);
     var doubleList = arrayPtr.asTypedList(24);
-    print(doubleList);
 
     var frustum = Frustum();
     frustum.plane0.setFromComponents(
