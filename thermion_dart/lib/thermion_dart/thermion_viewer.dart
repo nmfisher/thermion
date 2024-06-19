@@ -46,7 +46,6 @@ class TextureDetails {
 }
 
 abstract class ThermionViewer {
-  
   Future<bool> get initialized;
 
   ///
@@ -279,11 +278,11 @@ abstract class ThermionViewer {
   /// [fadeInInSecs]/[fadeOutInSecs]/[maxDelta] are used to cross-fade between
   /// the current active glTF animation ("animation1") and the animation you
   /// set via this method ("animation2"). The bone orientations will be
-  /// linearly interpolated between animation1 and animation2; at time 0, 
-  /// the orientation will be 100% animation1, at time [fadeInInSecs], the 
+  /// linearly interpolated between animation1 and animation2; at time 0,
+  /// the orientation will be 100% animation1, at time [fadeInInSecs], the
   /// animation will be ((1 - maxDelta) * animation1) + (maxDelta * animation2).
-  /// This will be applied in reverse after [fadeOutInSecs]. 
-  /// 
+  /// This will be applied in reverse after [fadeOutInSecs].
+  ///
   ///
   Future addBoneAnimation(ThermionEntity entity, BoneAnimationData animation,
       {int skinIndex = 0,
@@ -701,6 +700,11 @@ abstract class ThermionViewer {
   ///
   ///
   AbstractGizmo? get gizmo;
+
+  ///
+  /// Register a callback to be invoked when this viewer is disposed.
+  ///
+  void onDispose(Future Function() callback);
 }
 
 ///
@@ -746,6 +750,7 @@ abstract class Scene {
   ///
   ///
   void registerEntity(ThermionEntity entity);
+
 }
 
 abstract class AbstractGizmo {
