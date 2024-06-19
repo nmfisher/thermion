@@ -6,9 +6,19 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 
 void main(List<String> args) async {
   await build(args, (config, output) async {
+    var logDir = Directory(
+        "${config.packageRoot.toFilePath()}/.dart_tool/thermion_dart/log/");
+    if (!logDir.existsSync()) {
+      logDir.createSync();
+    }
+    var logFile = File(logDir.path + "/build.log");
 
-    final logger = Logger("")..level = Level.ALL
-        ..onRecord.listen((record) => print(record.message));
+    final logger = Logger("")
+      ..level = Level.ALL
+      ..onRecord.listen((record) => logFile.writeAsStringSync(
+          record.message + "\n",
+          mode: FileMode.append,
+          flush: true));
 
     var platform = config.targetOS.toString().toLowerCase();
 
@@ -71,7 +81,7 @@ void main(List<String> args) async {
     } else {
       libs.add("stdc++");
     }
-    final flags = [];
+    final flags = [];  //"-fsanitize=address"];
     final defines = <String, String?>{};
     var frameworks = [];
 
@@ -85,7 +95,15 @@ void main(List<String> args) async {
     }
 
     if (platform == "ios") {
-      frameworks.addAll(['Foundation', 'CoreGraphics', 'QuartzCore', 'GLKit', "Metal", 'CoreVideo', 'OpenGLES']);
+      frameworks.addAll([
+        'Foundation',
+        'CoreGraphics',
+        'QuartzCore',
+        'GLKit',
+        "Metal",
+        'CoreVideo',
+        'OpenGLES'
+      ]);
     } else if (platform == "macos") {
       frameworks.addAll([
         'Foundation',
@@ -107,7 +125,7 @@ void main(List<String> args) async {
       sources: sources,
       includes: ['native/include', 'native/include/filament'],
       defines: defines,
-      // UNCOMMENT THIS IF YOU ARE BUILDING WITH THE CUSTOM native_toolchain_c FORK FOR WINDOWS 
+      // UNCOMMENT THIS IF YOU ARE BUILDING WITH THE CUSTOM native_toolchain_c FORK FOR WINDOWS
       // linkWith: linkWith,
       flags: [
         if (platform == "macos") '-mmacosx-version-min=13.0',
@@ -162,87 +180,90 @@ void main(List<String> args) async {
   });
 }
 
-String _FILAMENT_VERSION ="v1.51.2";
+String _FILAMENT_VERSION = "v1.51.2";
 String _getLibraryUrl(String platform, String mode) {
-   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
+  return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
 }
 
 //
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
 Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
+  var platform = config.targetOS.toString().toLowerCase();
 
-    var platform = config.targetOS.toString().toLowerCase();
-  
-    // Except on Windows, most users will only need release builds of Filament. 
-    // Debug builds are probably only relevant if you're a package developer debugging an internal Filament issue
-    // or if you're working on Flutter+Windows (which requires the CRT debug DLLs).
-    // Also note that there are known driver issues with Android debug builds, e.g.:
-    // https://github.com/google/filament/issues/7162
-    // (these aren't present in Filament release builds).
-    // However, if you know what you're doing, you can change "release" to "debug" below.
-    // TODO - check if we can pass this as a CLI compiler flag
-    var mode = "release";
-    if(platform == "windows") {
-      mode = config.buildMode == BuildMode.debug ? "debug" : "release";
-    } 
+  // Except on Windows, most users will only need release builds of Filament.
+  // Debug builds are probably only relevant if you're a package developer debugging an internal Filament issue
+  // or if you're working on Flutter+Windows (which requires the CRT debug DLLs).
+  // Also note that there are known driver issues with Android debug builds, e.g.:
+  // https://github.com/google/filament/issues/7162
+  // (these aren't present in Filament release builds).
+  // However, if you know what you're doing, you can change "release" to "debug" below.
+  // TODO - check if we can pass this as a CLI compiler flag
+  var mode = "release";
+  if (platform == "windows") {
+    mode = config.buildMode == BuildMode.debug ? "debug" : "release";
+  }
 
-    var libDir = Directory("${config.packageRoot.toFilePath()}/.dart_tool/thermion_dart/lib/${_FILAMENT_VERSION}/$platform/$mode/");
+  var libDir = Directory(
+      "${config.packageRoot.toFilePath()}/.dart_tool/thermion_dart/lib/${_FILAMENT_VERSION}/$platform/$mode/");
 
-    if (platform == "android") {
-      final archExtension = switch (config.targetArchitecture) {
-        Architecture.arm => "armeabi-v7a",
-        Architecture.arm64 => "arm64-v8a",
-        Architecture.x64 => "x86_64",
-        Architecture.ia32 => "x86",
-        _ => throw FormatException('Invalid')
-      };
-      libDir = Directory("${libDir.path}/$archExtension/");
-    } else if(platform == "windows") {
-      if(config.targetArchitecture != Architecture.x64) {
-        throw Exception("Unsupported architecture : ${config.targetArchitecture}");
+  if (platform == "android") {
+    final archExtension = switch (config.targetArchitecture) {
+      Architecture.arm => "armeabi-v7a",
+      Architecture.arm64 => "arm64-v8a",
+      Architecture.x64 => "x86_64",
+      Architecture.ia32 => "x86",
+      _ => throw FormatException('Invalid')
+    };
+    libDir = Directory("${libDir.path}/$archExtension/");
+  } else if (platform == "windows") {
+    if (config.targetArchitecture != Architecture.x64) {
+      throw Exception(
+          "Unsupported architecture : ${config.targetArchitecture}");
+    }
+  }
+
+  final url = _getLibraryUrl(platform, mode);
+
+  final filename = url.split("/").last;
+
+  // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
+  // If this file already exists, we assume everything has been successfully extracted and skip
+  final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
+  final successToken = File("$unzipDir/success");
+  final libraryZip = File("$unzipDir/$filename");
+
+  if (!successToken.existsSync()) {
+    if (libraryZip.existsSync()) {
+      libraryZip.deleteSync();
+    }
+
+    if (!libraryZip.parent.existsSync()) {
+      libraryZip.parent.createSync(recursive: true);
+    }
+
+    logger.info(
+        "Downloading prebuilt libraries for $platform/$mode from $url to ${libraryZip}, files will be unzipped to ${unzipDir}");
+    final request = await HttpClient().getUrl(Uri.parse(url));
+    final response = await request.close();
+
+    await response.pipe(libraryZip.openWrite());
+
+    final archive = ZipDecoder().decodeBytes(await libraryZip.readAsBytes());
+
+    for (final file in archive) {
+      final filename = file.name;
+      if (file.isFile) {
+        final data = file.content as List<int>;
+        final f = File('${unzipDir}/$filename');
+        await f.create(recursive: true);
+        await f.writeAsBytes(data);
+      } else {
+        final d = Directory('${unzipDir}/$filename');
+        await d.create(recursive: true);
       }
     }
-    
-    final url = _getLibraryUrl(platform, mode);
-
-    final filename = url.split("/").last;
-
-    // Assume that the libraries exist if the directory containing them exists.
-    if (!libDir.existsSync()) {
-
-      final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
-
-      final libraryZip = File("$unzipDir/$filename");
-
-      if(libraryZip.existsSync()) {
-        libraryZip.deleteSync();
-      }
-
-      if(!libraryZip.parent.existsSync()) {
-        libraryZip.parent.createSync(recursive: true);
-      }
-
-      logger.info("Downloading prebuilt libraries for $platform/$mode from $url to ${libraryZip}, files will be unzipped to ${unzipDir}");
-      final request = await HttpClient().getUrl(Uri.parse(url));
-      final response = await request.close();
-
-      await response.pipe(libraryZip.openWrite());
-
-      final archive = ZipDecoder().decodeBytes(await libraryZip.readAsBytes());
-
-      for (final file in archive) {
-        final filename = file.name;
-        if (file.isFile) {
-          final data = file.content as List<int>;
-          final f = File('${unzipDir}/$filename');
-          await f.create(recursive: true);
-          await f.writeAsBytes(data);
-        } else {
-          final d = Directory('${unzipDir}/$filename');
-          await d.create(recursive: true);
-        }
-      }
-    }
-    return libDir;
+    successToken.writeAsStringSync("SUCCESS");
+  }
+  return libDir;
 }
