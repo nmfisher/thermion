@@ -8,6 +8,8 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     var texture: ThermionFlutterTexture?
     
     var createdAt = Date()
+
+    var destroying = false
     
     var resources:[UInt32:NSData] = [:]
   
@@ -70,43 +72,54 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
     
+    var resourceLoaderWrapper:UnsafeMutablePointer<ResourceLoaderWrapper>? = nil
+    var renderCallbackHolder:[Any] = []
+    
     init(textureRegistry: FlutterTextureRegistry, registrar:FlutterPluginRegistrar) {
         self.registry = textureRegistry;
         self.registrar = registrar
     }
-
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
         switch methodName {
             case "getResourceLoaderWrapper":
-            var resourceLoaderWrapper = make_resource_loader(loadResource, freeResource, Unmanaged.passUnretained(self).toOpaque())
-                result(unsafeBitCast(resourceLoaderWrapper, to:Int64.self))            
+                if(resourceLoaderWrapper == nil) {
+                    resourceLoaderWrapper = make_resource_loader(loadResource, freeResource, Unmanaged.passUnretained(self).toOpaque())
+                }
+                result(Int64(Int(bitPattern: resourceLoaderWrapper!)))
             case "getRenderCallback":
-                let renderCallback = markTextureFrameAvailable
-                let resultArray:[Any] = [
-                    unsafeBitCast(renderCallback, to:Int64.self), unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self)]
-                result(resultArray)
+                if(renderCallbackHolder.isEmpty) {
+                    renderCallbackHolder.append(unsafeBitCast(markTextureFrameAvailable, to:Int64.self))
+                    renderCallbackHolder.append(unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self))
+                }
+                result(renderCallbackHolder)
             case "getDriverPlatform":
                 result(nil)
             case "getSharedContext":
                 result(nil)
             case "createTexture":
+                if(destroying) {
+                    result(nil)
+                    return
+                }
                 let args = call.arguments as! [Any]
                 let width = args[0] as! Int64
                 let height = args[1] as! Int64
             
                 self.texture = ThermionFlutterTexture(registry: registry, width: width, height: height)
 
-                if(self.texture?.metalTextureAddress == -1) {
+                if(self.texture!.texture.metalTextureAddress == -1) {
                     result(nil)
                 } else {
-                    result([self.texture!.flutterTextureId as Any, self.texture?.metalTextureAddress, nil])
+                    result([self.texture!.flutterTextureId as Any, self.texture!.texture.metalTextureAddress, nil])
                 }
             case "destroyTexture":
+                self.destroying = true
                 self.texture?.destroy()
                 self.texture = nil
                 result(true)
+                self.destroying = false
             default:
                 result(FlutterMethodNotImplemented)
         }
