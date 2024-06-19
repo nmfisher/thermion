@@ -9,8 +9,7 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static late ThermionFlutterPlatform _instance;
-
+  static late final ThermionFlutterPlatform _instance;
   static ThermionFlutterPlatform get instance => _instance;
 
   static set instance(ThermionFlutterPlatform instance) {
@@ -18,9 +17,7 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  ThermionViewer get viewer;
-
-  Future initialize({String? uberArchivePath});
+  Future<ThermionViewer> createViewer({String? uberArchivePath});
 
   Future<ThermionFlutterTexture?> createTexture(
       int width, int height, int offsetLeft, int offsetRight);
@@ -30,5 +27,4 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
       int width, int height, int offsetLeft, int offsetRight);
 
-  void dispose();
 }
