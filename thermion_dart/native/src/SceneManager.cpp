@@ -93,10 +93,28 @@ namespace thermion_filament
 
     SceneManager::~SceneManager()
     {
+        
+        destroyAll();
+        
+        for(int i =0; i < 3; i++) {
+            _engine->destroy(_gizmo[i]);
+            _engine->destroy(_gizmoMaterialInstances[i]);
+        }
+        
+        _engine->destroy(_gizmoMaterial);
         _gltfResourceLoader->asyncCancelLoad();
         _ubershaderProvider->destroyMaterials();
-        destroyAll();
+        
+        delete _animationComponentManager;
+        delete _collisionComponentManager;
+        delete _ncm;
+
+        delete _gltfResourceLoader;
+        delete _stbDecoder;
+        delete _ktxDecoder;
+        delete _ubershaderProvider;
         AssetLoader::destroy(&_assetLoader);
+        
     }
 
     int SceneManager::getInstanceCount(EntityId entityId)
@@ -2045,72 +2063,57 @@ namespace thermion_filament
 
         auto &entityManager = EntityManager::get();
 
-        _gizmoY = entityManager.create();
-        auto materialY = _gizmoMaterial->createInstance();
-        materialY->setParameter("color", math::float3{1.0f, 0.0f, 0.0f});
+        _gizmo[1] = entityManager.create();
+        _gizmoMaterialInstances[1] = _gizmoMaterial->createInstance();
+        _gizmoMaterialInstances[1]->setParameter("color", math::float3{1.0f, 0.0f, 0.0f});
         RenderableManager::Builder(1)
             .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-            .material(0, materialY)
+            .material(0, _gizmoMaterialInstances[1])
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
                       ib, 0, indexCount)
             .culling(false)
-            .build(*_engine, _gizmoY);
+            .build(*_engine, _gizmo[1]);
 
-        _gizmoX = entityManager.create();
-        auto materialX = _gizmoMaterial->createInstance();
-        materialX->setParameter("color", math::float3{0.0f, 1.0f, 0.0f});
+        _gizmo[0] = entityManager.create();
+        _gizmoMaterialInstances[0] = _gizmoMaterial->createInstance();
+        _gizmoMaterialInstances[0]->setParameter("color", math::float3{0.0f, 1.0f, 0.0f});
         auto xTransform = math::mat4f::translation(math::float3{0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(-math::F_PI_2, math::float3{0, 0, 1});
         auto *instanceBufferX = InstanceBuffer::Builder(1).localTransforms(&xTransform).build(*_engine);
         RenderableManager::Builder(1)
             .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
             .instances(1, instanceBufferX)
-            .material(0, materialX)
+            .material(0, _gizmoMaterialInstances[0])
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
                       ib, 0, indexCount)
             .culling(false)
-            .build(*_engine, _gizmoX);
+            .build(*_engine, _gizmo[0]);
 
-        _gizmoZ = entityManager.create();
-        auto materialZ = _gizmoMaterial->createInstance();
-        materialZ->setParameter("color", math::float3{0.0f, 0.0f, 1.0f});
+        _gizmo[2] = entityManager.create();
+        _gizmoMaterialInstances[2] = _gizmoMaterial->createInstance();
+        _gizmoMaterialInstances[2]->setParameter("color", math::float3{0.0f, 0.0f, 1.0f});
         auto zTransform = math::mat4f::translation(math::float3{0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3{1, 0, 0});
         auto *instanceBufferZ = InstanceBuffer::Builder(1).localTransforms(&zTransform).build(*_engine);
         RenderableManager::Builder(1)
             .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
             .instances(1, instanceBufferZ)
-            .material(0, materialZ)
+            .material(0, _gizmoMaterialInstances[2])
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
                       ib, 0, indexCount)
             .culling(false)
-            .build(*_engine, _gizmoZ);
-
-        // auto localTransforms = math::mat4f[3] {
-        //     math::mat4f(),
-        //     math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3 { 1, 0, 0 }) ,
-        //     math::mat4f::translation(math::float3 { 0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(math::F_PI_2, math::float3 { 0, 0, 1 })
-        // };
-
-        // RenderableManager::Builder(1)
-        //     .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-        //     .instances(3, instanceBuffer)
-        //     .material(0, _gizmoMaterial->getDefaultInstance())
-        //     .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-        //             ib, 0, indexCount)
-        //     .culling(false)
-        //     .build(*_engine, _gizmo);
+            .build(*_engine, _gizmo[2]);
 
         auto &rm = _engine->getRenderableManager();
-        rm.setPriority(rm.getInstance(_gizmoX), 7);
-        rm.setPriority(rm.getInstance(_gizmoY), 7);
-        rm.setPriority(rm.getInstance(_gizmoZ), 7);
-        return Entity::smuggle(_gizmoX);
+        rm.setPriority(rm.getInstance(_gizmo[0]), 7);
+        rm.setPriority(rm.getInstance(_gizmo[1]), 7);
+        rm.setPriority(rm.getInstance(_gizmo[2]), 7);
+        return Entity::smuggle(_gizmo[0]);
     }
 
     void SceneManager::getGizmo(EntityId *out)
     {
-        out[0] = Entity::smuggle(_gizmoX);
-        out[1] = Entity::smuggle(_gizmoY);
-        out[2] = Entity::smuggle(_gizmoZ);
+        out[0] = Entity::smuggle(_gizmo[0]);
+        out[1] = Entity::smuggle(_gizmo[1]);
+        out[2] = Entity::smuggle(_gizmo[2]);
     }
 
 } // namespace thermion_filament
