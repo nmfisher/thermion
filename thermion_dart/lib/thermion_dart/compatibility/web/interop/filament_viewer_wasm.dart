@@ -3,6 +3,7 @@ import 'dart:js_interop_unsafe';
 import 'dart:math';
 import 'dart:typed_data' as td;
 import 'dart:typed_data';
+import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:web/web.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
@@ -62,7 +63,6 @@ class ThermionViewerFFIWasm implements ThermionViewer {
         ["void*".toJS, "void*".toJS, "void*".toJS, "string".toJS].toJS,
         [context, loader, null, uberArchivePath?.toJS].toJS,
         null) as JSBigInt;
-    print("Created viewer");
     await createSwapChain(width, height);
     _updateViewportAndCameraProjection(width, height, 1.0);
     _sceneManager = _module.ccall("get_scene_manager", "void*",
@@ -84,7 +84,6 @@ class ThermionViewerFFIWasm implements ThermionViewer {
         [_viewer!].toJS, null);
   }
 
-  @override
   void _updateViewportAndCameraProjection(
       int width, int height, double scaleFactor) {
     _module.ccall(
@@ -110,10 +109,28 @@ class ThermionViewerFFIWasm implements ThermionViewer {
 
   @override
   Future dispose() async {
+    if (_viewer == null) {
+      // we've already cleaned everything up, ignore the call to dispose
+      return;
+    }
+    await setRendering(false);
+    await clearEntities();
+    await clearLights();
+    _destroyViewer();
+
+    _sceneManager = null;
+    _viewer = null;
+
+    for (final callback in _onDispose) {
+      await callback.call();
+    }
+    _onDispose.clear();
+
+  }
+
+  void _destroyViewer() {
     _module.ccall("destroy_filament_viewer", "void", ["void*".toJS].toJS,
         [_viewer].toJS, null);
-    _initialized = false;
-    _viewer = null;
   }
 
   @override
@@ -956,7 +973,6 @@ class ThermionViewerFFIWasm implements ThermionViewer {
   }
 
   @override
-  // TODO: implement scene
   Scene get scene => throw UnimplementedError();
 
   @override
@@ -1443,5 +1459,14 @@ class ThermionViewerFFIWasm implements ThermionViewer {
   Future zoomUpdate(double x, double y, double z) {
     // TODO: implement zoomUpdate
     throw UnimplementedError();
+  }
+
+  final _onDispose = <Future Function()>[];
+
+  ///
+  ///
+  ///
+  void onDispose(Future Function() callback) {
+    _onDispose.add(callback);
   }
 }

@@ -3,9 +3,10 @@ import 'dart:js_interop_unsafe';
 import 'dart:math';
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
-import 'package:thermion_dart/thermion_dart/scene.dart';
+import 'package:thermion_dart/thermion_dart/scene_impl.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'shims/thermion_viewer_js_shim.dart';
 
@@ -56,6 +57,9 @@ class ThermionViewerFFIJS implements ThermionViewer {
   @override
   Future<void> dispose() async {
     await _shim.dispose().toDart;
+    for (final callback in _onDispose) {
+      callback.call();
+    }
   }
 
   @override
@@ -812,5 +816,14 @@ class ThermionViewerFFIJS implements ThermionViewer {
   @override
   Future updateBoneMatrices(ThermionEntity entity) {
     return _shim.updateBoneMatrices(entity).toDart;
+  }
+
+  final _onDispose = <Future Function()>[];
+
+  ///
+  ///
+  ///
+  void onDispose(Future Function() callback) {
+    _onDispose.add(callback);
   }
 }
