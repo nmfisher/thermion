@@ -15,7 +15,6 @@ extern "C"
 }
 #include <pthread.h>
 
-
 #endif
 
 #include "ThermionDartFFIApi.h"
@@ -52,6 +51,7 @@ public:
   {
     _stop = true;
     pthread_join(t, NULL);
+    Log("Render loop killed");
   }
 
   static void mainLoop(void* arg) {
@@ -103,48 +103,47 @@ public:
     }
   }
 
-  void createViewer(void *const context, void *const platform,
+  void createViewer(void *const context, 
+                    void *const platform,
                     const char *uberArchivePath,
-                    const ResourceLoaderWrapperImpl *const loader,
+                    const ResourceLoaderWrapper *const loader,
                     void (*renderCallback)(void *),
                     void *const owner,
                     void (*callback)(void *const))
   {
     _renderCallback = renderCallback;
     _renderCallbackOwner = owner;
-    std::packaged_task<FilamentViewer *()> lambda([=]() mutable
+    std::packaged_task<void()> lambda([=]() mutable
                                                   {
-        FilamentViewer* viewer = nullptr;
 #ifdef __EMSCRIPTEN__     
         _context = thermion_dart_web_create_gl_context();
 
         auto success = emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)_context);
         if(success != EMSCRIPTEN_RESULT_SUCCESS) {
           std::cout << "Failed to make context current." << std::endl;
-          return viewer;
+          return;
         }
         glClearColor(0.0, 0.5, 0.5, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
         // emscripten_webgl_commit_frame();
 
-        viewer = (FilamentViewer*) create_filament_viewer((void* const) _context, loader, platform, uberArchivePath);
+        _viewer = (FilamentViewer*) create_filament_viewer((void* const) _context, loader, platform, uberArchivePath);
         MAIN_THREAD_EM_ASM({
           moduleArg.dartFilamentResolveCallback($0, $1);
-        }, callback, viewer);
+        }, callback, _viewer);
 #else
-        viewer = (FilamentViewer*)create_filament_viewer(context, loader, platform, uberArchivePath);
-        callback(viewer);
+        _viewer = (FilamentViewer*)create_filament_viewer(context, loader, platform, uberArchivePath);
+        callback(_viewer);
 #endif
-      _viewer = viewer;
-      return viewer; });
+    });
     auto fut = add_task(lambda);
   }
 
   void destroyViewer(FilamentViewer* viewer) 
   {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
+    std::packaged_task<void()> lambda([=]() mutable {
       _rendering = false;
+      _viewer = nullptr;
       destroy_filament_viewer(viewer);
     });
     auto fut = add_task(lambda);
@@ -237,13 +236,15 @@ extern "C"
     {
       _rl = new RenderLoop();
     }
-    _rl->createViewer(context, platform, uberArchivePath, (const ResourceLoaderWrapperImpl *const)loader,
+    _rl->createViewer(context, platform, uberArchivePath, (const ResourceLoaderWrapper *const)loader,
                       renderCallback, renderCallbackOwner, callback);
   }
 
   EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_ffi(void *const viewer)
   {
     _rl->destroyViewer((FilamentViewer*)viewer);
+    delete _rl;
+    _rl = nullptr;
   }
 
   EMSCRIPTEN_KEEPALIVE void create_swap_chain_ffi(void *const viewer,
