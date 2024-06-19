@@ -3,7 +3,6 @@
 
 #include "ResourceBuffer.h"
 
-#if defined(__cplusplus)
 #ifndef __EMSCRIPTEN__
 #include <thread>
 using namespace std::chrono_literals;
@@ -14,6 +13,15 @@ namespace thermion_filament
 
   struct ResourceLoaderWrapperImpl : public ResourceLoaderWrapper
   {
+
+    ResourceLoaderWrapperImpl(ResourceLoaderWrapper* wrapper) {
+      loadFromOwner = wrapper->loadFromOwner;
+      freeFromOwner = wrapper->freeFromOwner;
+      loadResource = wrapper->loadResource;
+      freeResource = wrapper->freeResource;
+      owner = wrapper->owner;
+      loadToOut = wrapper->loadToOut;
+    }
 
     ResourceLoaderWrapperImpl(LoadFilamentResource loader, FreeFilamentResource freeResource)
     {
@@ -73,4 +81,3 @@ namespace thermion_filament
 }
 #endif
 
-#endif
