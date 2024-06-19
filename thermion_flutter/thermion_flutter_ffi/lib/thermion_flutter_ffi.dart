@@ -109,10 +109,15 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
 
     if (_textures.length > 1) {
       throw Exception("Multiple textures not yet supported");
-    } else if (_textures.length == 1 &&
-        _textures.first.height == height &&
-        _textures.first.width == width) {
-      return _textures.first;
+    } else if (_textures.length == 1) {
+      if (_textures.first.height == height && _textures.first.width == width) {
+        return _textures.first;
+      } else {
+        await _viewer!.setRendering(false);
+        await _viewer!.destroySwapChain();
+        await destroyTexture(_textures.first);
+        _textures.clear();
+      }
     }
 
     _creatingTexture = true;
@@ -146,7 +151,8 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
           width.toDouble(), height.toDouble(), texture.hardwareTextureId!);
     }
 
-    await _viewer?.updateViewportAndCameraProjection(width.toDouble(), height.toDouble());
+    await _viewer?.updateViewportAndCameraProjection(
+        width.toDouble(), height.toDouble());
     _viewer?.render();
     _creatingTexture = false;
 
@@ -155,13 +161,13 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     return texture;
   }
 
-
   ///
   /// Destroy a texture and clean up the texture cache (if applicable).
   ///
   Future destroyTexture(ThermionFlutterTexture texture) async {
     if (_creatingTexture || _destroyingTexture) {
-      throw Exception("Cannot destroy texture while concurrent call to createTexture/destroyTexture has not completed");
+      throw Exception(
+          "Cannot destroy texture while concurrent call to createTexture/destroyTexture has not completed");
     }
     _destroyingTexture = true;
     _textures.remove(texture);
