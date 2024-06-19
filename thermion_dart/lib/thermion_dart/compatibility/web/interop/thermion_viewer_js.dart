@@ -14,15 +14,15 @@ import 'shims/thermion_viewer_js_shim.dart';
 /// An [ThermionViewer] implementation that forwards calls to
 /// a corresponding Javascript shim implementation (see [ThermionViewerJSShim]).
 ///
-class ThermionViewerFFIJS implements ThermionViewer {
+class ThermionViewerJS implements ThermionViewer {
   late final ThermionViewerJSShim _shim;
 
-  ThermionViewerFFIJS.fromGlobalProperty(String globalPropertyName) {
+  ThermionViewerJS.fromGlobalProperty(String globalPropertyName) {
     this._shim = globalContext.getProperty(globalPropertyName.toJS)
         as ThermionViewerJSShim;
   }
 
-  ThermionViewerFFIJS(this._shim);
+  ThermionViewerJS(this._shim);
 
   @override
   Future<bool> get initialized async {

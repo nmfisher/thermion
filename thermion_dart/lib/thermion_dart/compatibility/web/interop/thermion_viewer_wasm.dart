@@ -34,20 +34,19 @@ extension type _EmscriptenModule(JSObject _) implements JSObject {
 /// An [ThermionViewer] implementation that forwards calls to
 /// the (Emscripten-generated) ThermionDart JS module.
 ///
-class ThermionViewerFFIWasm implements ThermionViewer {
+class ThermionViewerWasm implements ThermionViewer {
   late _EmscriptenModule _module;
 
   bool _initialized = false;
   bool _rendering = false;
 
-  ThermionViewerFFIWasm() {
-    _module = window.getProperty<_EmscriptenModule>("df".toJS);
+  ThermionViewerWasm({String moduleName="thermion_dart"}) {
+    _module = window.getProperty<_EmscriptenModule>(moduleName.toJS);
   }
 
-  JSBigInt? _viewer;
-  JSBigInt? _sceneManager;
+  JSNumber? _viewer;
+  JSNumber? _sceneManager;
 
-  @override
   Future initialize(int width, int height, {String? uberArchivePath}) async {
     final context = _module.ccall("thermion_dart_web_create_gl_context", "int",
         <JSString>[].toJS, <JSAny>[].toJS, null);
@@ -62,11 +61,11 @@ class ThermionViewerFFIWasm implements ThermionViewer {
         "void*",
         ["void*".toJS, "void*".toJS, "void*".toJS, "string".toJS].toJS,
         [context, loader, null, uberArchivePath?.toJS].toJS,
-        null) as JSBigInt;
+        null) as JSNumber;
     await createSwapChain(width, height);
     _updateViewportAndCameraProjection(width, height, 1.0);
     _sceneManager = _module.ccall("get_scene_manager", "void*",
-        ["void*".toJS].toJS, [_viewer!].toJS, null) as JSBigInt;
+        ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
     _initialized = true;
   }
 

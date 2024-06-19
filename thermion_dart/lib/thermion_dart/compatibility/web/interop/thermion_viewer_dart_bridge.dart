@@ -20,14 +20,14 @@ import 'package:vector_math/vector_math_64.dart';
 /// the browser console).
 ///
 @JSExport()
-class ThermionViewerFFIJSDartBridge {
+class ThermionViewerJSDartBridge {
   final ThermionViewer viewer;
 
-  ThermionViewerFFIJSDartBridge(this.viewer);
+  ThermionViewerJSDartBridge(this.viewer);
   
   void bind(
       {String globalPropertyName = "filamentViewer"}) {
-    var wrapper = createJSInteropWrapper<ThermionViewerFFIJSDartBridge>(this)
+    var wrapper = createJSInteropWrapper<ThermionViewerJSDartBridge>(this)
         as ThermionViewerJSShim;
     globalContext.setProperty(globalPropertyName.toJS, wrapper);
   }
