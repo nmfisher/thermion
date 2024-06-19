@@ -214,7 +214,7 @@ namespace thermion_filament
 
     Log("Created scene maager");
 
-    _imageTexture = Texture::Builder()
+    _dummyImageTexture = Texture::Builder()
                         .width(1)
                         .height(1)
                         .levels(0x01)
@@ -229,7 +229,7 @@ namespace thermion_filament
               .build(*_engine);
       _imageMaterial->setDefaultParameter("showImage", 0);
       _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(1.0f, 1.0f, 1.0f, 0.0f));
-      _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
+      _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
     }
     catch (...)
     {
@@ -549,6 +549,7 @@ namespace thermion_filament
 
   void FilamentViewer::clearBackgroundImage()
   {
+    _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
     _imageMaterial->setDefaultParameter("showImage", 0);
     if (_imageTexture)
     {
