@@ -13,8 +13,8 @@ A new Flutter plugin project.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/*', 'include/ResourceBuffer.hpp','include/SwiftThermionFlutterPlugin-Bridging-Header.h'
-  s.public_header_files = 'include/SwiftThermionFlutterPlugin-Bridging-Header.h', 'include/ResourceBuffer.hpp'
+  s.source_files = 'Classes/*', 'include/ResourceBuffer.h','include/SwiftThermionFlutterPlugin-Bridging-Header.h'
+  s.public_header_files = 'include/SwiftThermionFlutterPlugin-Bridging-Header.h', 'include/ResourceBuffer.h'
   s.dependency 'FlutterMacOS'
 
   s.platform = :osx, '13'
