@@ -3,9 +3,10 @@ import 'dart:math';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
 import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
+import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'thermion_viewer.dart';
-import 'scene.dart';
+import 'scene_impl.dart';
 import 'package:logging/logging.dart';
 
 // ignore: constant_identifier_names
