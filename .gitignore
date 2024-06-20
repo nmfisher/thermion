@@ -8,3 +8,5 @@
 **/*/build
 **/*/pubspec.lock
 pubspec_overrides.yaml
+/pubspec.lock
+*.iml
