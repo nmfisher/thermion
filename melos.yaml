@@ -1,0 +1,5 @@
+name: thermion_workspace
+
+packages:
+  - thermion_dart
+  - thermion_flutter/**
