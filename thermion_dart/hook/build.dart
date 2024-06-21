@@ -22,11 +22,29 @@ void main(List<String> args) async {
 
     var platform = config.targetOS.toString().toLowerCase();
 
-    // We don't support Linux (yet), so the native/Filament libraries won't be 
-    // compiled/available. However, we still want to be able to run the Dart 
-    // package itself on a Linux host(e.g. for dart_services backed), so if 
-    // we detect that we're running on Linux, just exit here.
+    // We don't support Linux (yet), so the native/Filament libraries won't be
+    // compiled/available. However, we still want to be able to run the Dart
+    // package itself on a Linux host(e.g. for dart_services backed), so if
+    // we detect that we're running on Linux, add some dummy native code
+    // assets and exit early.
     if (platform == "linux") {
+      final linkMode = DynamicLoadingBundled();
+      final name = "thermion_dart.dart";
+      final libUri = config.outputDirectory
+          .resolve(config.targetOS.libraryFileName(name, linkMode));
+      output.addAssets(
+        [
+          NativeCodeAsset(
+            package: config.packageName,
+            name: name,
+            file: libUri,
+            linkMode: linkMode,
+            os: config.targetOS,
+            architecture: config.dryRun ? null : config.targetArchitecture,
+          )
+        ],
+        linkInPackage: null,
+      );
       return;
     }
 
