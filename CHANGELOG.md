@@ -15,6 +15,28 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`thermion_flutter` - `v0.1.1+2`](#thermion_flutter---v0112)
+
+---
+
+#### `thermion_flutter` - `v0.1.1+2`
+
+ - **FIX**: update Flutter example project to use new API.
+ - **FIX**: add logging dependency to thermion_flutter.
+
+
+## 2024-06-21
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`thermion_dart` - `v0.1.0+1`](#thermion_dart---v0101)
  - [`thermion_flutter` - `v0.1.1+1`](#thermion_flutter---v0111)
  - [`thermion_flutter_web` - `v0.0.1+1`](#thermion_flutter_web---v0011)

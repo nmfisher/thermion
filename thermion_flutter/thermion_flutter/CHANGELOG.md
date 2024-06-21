@@ -1,3 +1,8 @@
+## 0.1.1+2
+
+ - **FIX**: update Flutter example project to use new API.
+ - **FIX**: add logging dependency to thermion_flutter.
+
 ## 0.1.1+1
 
  - **REFACTOR**: export ThermionViewerWasm for web and hide FFI/WASM version.
