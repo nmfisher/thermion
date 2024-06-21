@@ -1,3 +1,7 @@
+## 0.1.0+3
+
+ - **FIX**: exit build.dart early on Linux builds so we can use the package on a Linux host.
+
 ## 0.1.0+2
 
  - **REFACTOR**: rearrange some stubs/imports for easier web WASM deployment.

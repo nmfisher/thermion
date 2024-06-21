@@ -1,3 +1,7 @@
+## 0.1.0+3
+
+ - Update a dependency to the latest release.
+
 ## 0.1.0+2
 
  - **REFACTOR**: rearrange some stubs/imports for easier web WASM deployment.
