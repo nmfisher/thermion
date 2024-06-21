@@ -8,7 +8,7 @@ import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 import 'package:thermion_dart/thermion_dart/scene_impl.dart';
 import 'package:vector_math/vector_math_64.dart';
-import 'shims/thermion_viewer_js_shim.dart';
+import 'thermion_viewer_js_shim.dart';
 
 ///
 /// An [ThermionViewer] implementation that forwards calls to

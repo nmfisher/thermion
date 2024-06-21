@@ -2,7 +2,7 @@
 library thermion_flutter_js;
 
 import 'dart:js_interop';
-import 'package:thermion_dart/thermion_dart/compatibility/web/interop/shims/thermion_viewer_js_shim.dart';
+import 'package:thermion_dart/thermion_dart/compatibility/web/interop/thermion_viewer_js_shim.dart';
 
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -15,8 +15,8 @@ import 'package:vector_math/vector_math_64.dart';
 /// A (Dart) class that wraps a (Dart) instance of [ThermionViewer],
 /// but exported to JS by binding to a global property.
 /// This is effectively an implementation of [ThermionViewerJSShim];
-/// allowing users to interact with an instance of [ThermionViewer] 
-/// (presumably compiled to WASM) from any Javascript context (including 
+/// allowing users to interact with an instance of [ThermionViewer]
+/// (presumably compiled to WASM) from any Javascript context (including
 /// the browser console).
 ///
 @JSExport()
@@ -24,9 +24,8 @@ class ThermionViewerJSDartBridge {
   final ThermionViewer viewer;
 
   ThermionViewerJSDartBridge(this.viewer);
-  
-  void bind(
-      {String globalPropertyName = "filamentViewer"}) {
+
+  void bind({String globalPropertyName = "thermionViewer"}) {
     var wrapper = createJSInteropWrapper<ThermionViewerJSDartBridge>(this)
         as ThermionViewerJSShim;
     globalContext.setProperty(globalPropertyName.toJS, wrapper);
@@ -131,10 +130,13 @@ class ThermionViewerJSDartBridge {
 
   @JSExport()
   JSPromise<JSNumber> loadGlb(String path, {int numInstances = 1}) {
+    print("Loading GLB from path $path with numInstances $numInstances");
     return viewer
         .loadGlb(path, numInstances: numInstances)
         .then((entity) => entity.toJS)
-        .toJS;
+        .catchError((err) {
+          print("Error: $err");
+        }).toJS;
   }
 
   @JSExport()
