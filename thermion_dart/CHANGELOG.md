@@ -1,3 +1,7 @@
+## 0.1.0+2
+
+ - **REFACTOR**: rearrange some stubs/imports for easier web WASM deployment.
+
 ## 0.1.0+1
 
  - **REFACTOR**: export ThermionViewerWasm for web and hide FFI/WASM version.

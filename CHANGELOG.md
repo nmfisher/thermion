@@ -15,6 +15,43 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`thermion_dart` - `v0.1.0+2`](#thermion_dart---v0102)
+ - [`thermion_flutter_ffi` - `v0.1.0+2`](#thermion_flutter_ffi---v0102)
+ - [`thermion_flutter_web` - `v0.0.1+2`](#thermion_flutter_web---v0012)
+ - [`thermion_flutter` - `v0.1.1+3`](#thermion_flutter---v0113)
+ - [`thermion_flutter_platform_interface` - `v0.1.0+2`](#thermion_flutter_platform_interface---v0102)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.0.1+2`
+ - `thermion_flutter` - `v0.1.1+3`
+ - `thermion_flutter_platform_interface` - `v0.1.0+2`
+
+---
+
+#### `thermion_dart` - `v0.1.0+2`
+
+ - **REFACTOR**: rearrange some stubs/imports for easier web WASM deployment.
+
+#### `thermion_flutter_ffi` - `v0.1.0+2`
+
+ - **REFACTOR**: rearrange some stubs/imports for easier web WASM deployment.
+
+
+## 2024-06-21
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`thermion_flutter` - `v0.1.1+2`](#thermion_flutter---v0112)
 
 ---
