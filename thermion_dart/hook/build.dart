@@ -22,6 +22,14 @@ void main(List<String> args) async {
 
     var platform = config.targetOS.toString().toLowerCase();
 
+    // We don't support Linux (yet), so the native/Filament libraries won't be 
+    // compiled/available. However, we still want to be able to run the Dart 
+    // package itself on a Linux host(e.g. for dart_services backed), so if 
+    // we detect that we're running on Linux, just exit here.
+    if (platform == "linux") {
+      return;
+    }
+
     var libDir = config.dryRun ? "" : (await getLibDir(config, logger)).path;
 
     final packageName = config.packageName;
@@ -81,7 +89,7 @@ void main(List<String> args) async {
     } else {
       libs.add("stdc++");
     }
-    final flags = [];  //"-fsanitize=address"];
+    final flags = []; //"-fsanitize=address"];
     final defines = <String, String?>{};
     var frameworks = [];
 
