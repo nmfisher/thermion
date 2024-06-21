@@ -21,6 +21,7 @@ dependencies:
   thermion_flutter_platform_interface: ^0.1.0+1
   thermion_flutter_ffi: ^0.1.0+1
   thermion_flutter_web: ^0.0.1+1
+  logging: ^1.2.0
 
 dev_dependencies:
   flutter_test:
