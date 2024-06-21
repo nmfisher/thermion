@@ -13,7 +13,6 @@ dependencies:
     sdk: flutter
   path_provider:
   thermion_flutter:
-    path: ../../../thermion_flutter/thermion_flutter
   cupertino_icons: ^1.0.2
   web:
 
