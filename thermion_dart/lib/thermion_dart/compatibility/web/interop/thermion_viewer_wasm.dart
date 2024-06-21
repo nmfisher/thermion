@@ -33,8 +33,11 @@ extension type _EmscriptenModule(JSObject _) implements JSObject {
   external JSAny get HEAP32;
 }
 
+typedef ThermionViewerImpl = ThermionViewerWasm;
+
+
 ///
-/// An [ThermionViewer] implementation that forwards calls to
+/// A [ThermionViewer] implementation that forwards calls to
 /// the (Emscripten-generated) ThermionDart JS module.
 ///
 class ThermionViewerWasm implements ThermionViewer {
@@ -43,8 +46,8 @@ class ThermionViewerWasm implements ThermionViewer {
   bool _initialized = false;
   bool _rendering = false;
 
-  ThermionViewerWasm({String moduleName = "thermion_dart"}) {
-    _module = window.getProperty<_EmscriptenModule>(moduleName.toJS);
+  ThermionViewerWasm({JSObject? module, String moduleName = "thermion_dart"}) {
+    _module = module as _EmscriptenModule? ?? window.getProperty<_EmscriptenModule>(moduleName.toJS);
   }
 
   JSNumber? _viewer;
@@ -1687,7 +1690,7 @@ class ThermionViewerWasm implements ThermionViewer {
   Future setMorphTargetWeights(
       ThermionEntity entity, List<double> weights) async {
     final numWeights = weights.length;
-    final ptr = _module._malloc(numWeights * 4) as JSNumber;
+    final ptr = _module._malloc(numWeights * 4);
     for (int i = 0; i < numWeights; i++) {
       _module.setValue(
           (ptr.toDartInt + (i * 4)).toJS, weights[i].toJS, "float");

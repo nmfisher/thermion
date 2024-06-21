@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'dart:ffi' as ffi hide Uint8Pointer, FloatPointer;
 import 'dart:typed_data';
 
-import 'package:thermion_dart/thermion_dart/compatibility/web/thermion_dart.g.dart';
+import 'package:thermion_dart/thermion_dart/compatibility/web/ffi/thermion_dart.g.dart';
 
 import 'package:ffi/ffi.dart';
 export 'package:ffi/ffi.dart' hide StringUtf8Pointer, Utf8Pointer;

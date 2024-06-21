@@ -1,9 +1,7 @@
-import 'dart:ffi';
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart/swift/swift_bindings.g.dart';
+import 'package:thermion_dart/thermion_dart/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart/utils/dart_resources.dart';
-import 'package:ffi/ffi.dart';
-import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
 import 'package:test/test.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';

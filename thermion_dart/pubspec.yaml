@@ -15,6 +15,7 @@ dependencies:
   native_toolchain_c: ^0.4.2
   archive: ^3.6.1
   web: ^0.5.1
+  logging: ^1.2.0
 
 dev_dependencies:
   ffigen: ^11.0.0

@@ -47,6 +47,7 @@ class TextureDetails {
 }
 
 abstract class ThermionViewer {
+  
   Future<bool> get initialized;
 
   ///

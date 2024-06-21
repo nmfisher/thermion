@@ -9,6 +9,8 @@ import 'thermion_viewer.dart';
 import 'scene_impl.dart';
 import 'package:logging/logging.dart';
 
+typedef ThermionViewerImpl = ThermionViewerFFI;
+
 // ignore: constant_identifier_names
 const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
 
@@ -16,7 +18,6 @@ typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
 class ThermionViewerFFI extends ThermionViewer {
   final _logger = Logger("ThermionViewerFFI");
-  final _compat = Compatibility();
 
   SceneImpl? _scene;
   Scene get scene => _scene!;
