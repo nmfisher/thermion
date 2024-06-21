@@ -8,8 +8,8 @@ import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_flutter_example/main.dart';
 
 class CameraSubmenu extends StatefulWidget {
-  final ThermionFlutterPlugin controller;
-  const CameraSubmenu({super.key, required this.controller});
+  final ThermionViewer viewer;
+  const CameraSubmenu({super.key, required this.viewer});
 
   @override
   State<StatefulWidget> createState() => _CameraSubmenuState();
@@ -22,10 +22,10 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
   @override
   void initState() {
     super.initState();
-    widget.controller.viewer.initialized.then((_) {
-      widget.controller.viewer.getCameraCullingNear().then((v) {
+    widget.viewer.initialized.then((_) {
+      widget.viewer.getCameraCullingNear().then((v) {
         _near = v;
-        widget.controller.viewer.getCameraCullingFar().then((v) {
+        widget.viewer.getCameraCullingFar().then((v) {
           _far = v;
           setState(() {});
         });
@@ -56,7 +56,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
           menuChildren: [1.0, 7.0, 14.0, 28.0, 56.0]
               .map((v) => MenuItemButton(
                     onPressed: () {
-                      widget.controller.viewer.setCameraFocalLength(v);
+                      widget.viewer.setCameraFocalLength(v);
                     },
                     child: Text(
                       v.toStringAsFixed(2),
@@ -71,7 +71,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
                       _near = v;
                       print("Setting camera culling to $_near $_far!");
 
-                      widget.controller.viewer.setCameraCulling(_near!, _far!);
+                      widget.viewer.setCameraCulling(_near!, _far!);
                     },
                     child: Text(
                       v.toStringAsFixed(2),
@@ -85,7 +85,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
                     onPressed: () {
                       _far = v;
                       print("Setting camera culling to $_near! $_far");
-                      widget.controller.viewer.setCameraCulling(_near!, _far!);
+                      widget.viewer.setCameraCulling(_near!, _far!);
                     },
                     child: Text(
                       v.toStringAsFixed(2),
@@ -95,21 +95,21 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
           child: const Text("Set far")),
       MenuItemButton(
         onPressed: () async {
-          widget.controller.viewer.setCameraPosition(1.0, 1.0, -1.0);
+          widget.viewer.setCameraPosition(1.0, 1.0, -1.0);
         },
         child: const Text('Set position to 1, 1, -1 (leave rotation as-is)'),
       ),
       MenuItemButton(
         onPressed: () async {
-          widget.controller.viewer.setCameraPosition(0.0, 0.0, 0.0);
-          widget.controller.viewer.setCameraRotation(
+          widget.viewer.setCameraPosition(0.0, 0.0, 0.0);
+          widget.viewer.setCameraRotation(
               v.Quaternion.axisAngle(v.Vector3(0, 0.0, 1.0), 0.0));
         },
         child: const Text('Move to 0,0,0, facing towards 0,0,-1'),
       ),
       MenuItemButton(
         onPressed: () {
-          widget.controller.viewer.setCameraRotation(
+          widget.viewer.setCameraRotation(
               v.Quaternion.axisAngle(v.Vector3(0, 1, 0), pi / 4));
         },
         child: const Text("Rotate camera 45 degrees around y axis"),
@@ -118,7 +118,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
         onPressed: () {
           ExampleWidgetState.frustumCulling =
               !ExampleWidgetState.frustumCulling;
-          widget.controller.viewer
+          widget.viewer
               .setViewFrustumCulling(ExampleWidgetState.frustumCulling);
         },
         child: Text(
@@ -128,7 +128,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
           closeOnActivate: false,
           onPressed: () async {
             var projMatrix =
-                await widget.controller.viewer.getCameraProjectionMatrix();
+                await widget.viewer.getCameraProjectionMatrix();
             await showDialog(
                 context: context,
                 builder: (ctx) {
@@ -147,7 +147,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
           menuChildren: ManipulatorMode.values.map((mm) {
             return MenuItemButton(
               onPressed: () {
-                widget.controller.viewer.setCameraManipulatorOptions(
+                widget.viewer.setCameraManipulatorOptions(
                     mode: mm,
                     orbitSpeedX: ExampleWidgetState.orbitSpeedX,
                     orbitSpeedY: ExampleWidgetState.orbitSpeedY,
@@ -169,7 +169,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
             return MenuItemButton(
               onPressed: () {
                 ExampleWidgetState.zoomSpeed = speed;
-                widget.controller.viewer.setCameraManipulatorOptions(
+                widget.viewer.setCameraManipulatorOptions(
                     orbitSpeedX: ExampleWidgetState.orbitSpeedX,
                     orbitSpeedY: ExampleWidgetState.orbitSpeedY,
                     zoomSpeed: ExampleWidgetState.zoomSpeed);
@@ -191,7 +191,7 @@ class _CameraSubmenuState extends State<CameraSubmenu> {
               onPressed: () {
                 ExampleWidgetState.orbitSpeedX = speed;
                 ExampleWidgetState.orbitSpeedY = speed;
-                widget.controller.viewer.setCameraManipulatorOptions(
+                widget.viewer.setCameraManipulatorOptions(
                     orbitSpeedX: ExampleWidgetState.orbitSpeedX,
                     orbitSpeedY: ExampleWidgetState.orbitSpeedY,
                     zoomSpeed: ExampleWidgetState.zoomSpeed);

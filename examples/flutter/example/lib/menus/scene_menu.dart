@@ -6,7 +6,7 @@ import 'package:thermion_flutter_example/menus/camera_submenu.dart';
 import 'package:thermion_flutter_example/menus/rendering_submenu.dart';
 
 class SceneMenu extends StatefulWidget {
-  final ThermionFlutterPlugin? controller;
+  final ThermionViewer? controller;
   final FocusNode sharedFocusNode;
 
   const SceneMenu(
@@ -37,11 +37,11 @@ class _SceneMenuState extends State<SceneMenu> {
           ? []
           : <Widget>[
               RenderingSubmenu(
-                controller: widget.controller!,
+                viewer: widget.controller!,
               ),
-              AssetSubmenu(controller: widget.controller!),
+              AssetSubmenu(viewer: widget.controller!),
               CameraSubmenu(
-                controller: widget.controller!,
+                viewer: widget.controller!,
               ),
             ],
       builder:
