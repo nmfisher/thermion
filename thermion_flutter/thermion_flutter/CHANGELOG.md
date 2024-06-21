@@ -1,3 +1,8 @@
+## 0.1.1+1
+
+ - **REFACTOR**: export ThermionViewerWasm for web and hide FFI/WASM version.
+ - **FIX**: catch exception if gizmo unavailable in ThermionGestureDestectorDesktop.
+
 ## 0.1.0
 * [ThermionFlutterPlugin] is now static and [dispose] has been removed. Call [createViewer] to obtain an instance of [ThermionViewer]. If you need to release all resources, call [dispose] on [ThermionViewer] 
 * Fixed memory leaks

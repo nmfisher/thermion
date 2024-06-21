@@ -1,0 +1,46 @@
+# Change Log
+
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## 2024-06-21
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.1.0+1`](#thermion_dart---v0101)
+ - [`thermion_flutter` - `v0.1.1+1`](#thermion_flutter---v0111)
+ - [`thermion_flutter_web` - `v0.0.1+1`](#thermion_flutter_web---v0011)
+ - [`thermion_flutter_platform_interface` - `v0.1.0+1`](#thermion_flutter_platform_interface---v0101)
+ - [`thermion_flutter_ffi` - `v0.1.0+1`](#thermion_flutter_ffi---v0101)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_platform_interface` - `v0.1.0+1`
+ - `thermion_flutter_ffi` - `v0.1.0+1`
+
+---
+
+#### `thermion_dart` - `v0.1.0+1`
+
+ - **REFACTOR**: export ThermionViewerWasm for web and hide FFI/WASM version.
+ - **FIX**: use preserveDrawingBuffer=true on web.
+
+#### `thermion_flutter` - `v0.1.1+1`
+
+ - **REFACTOR**: export ThermionViewerWasm for web and hide FFI/WASM version.
+ - **FIX**: catch exception if gizmo unavailable in ThermionGestureDestectorDesktop.
+
+#### `thermion_flutter_web` - `v0.0.1+1`
+
+ - **REFACTOR**: export ThermionViewerWasm for web and hide FFI/WASM version.
+
