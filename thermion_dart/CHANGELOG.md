@@ -1,3 +1,7 @@
+## 0.1.0+4
+
+ - **FIX**: add dummy asset to build.dart on Linux builds so we can use the package on a Linux host.
+
 ## 0.1.0+3
 
  - **FIX**: exit build.dart early on Linux builds so we can use the package on a Linux host.
