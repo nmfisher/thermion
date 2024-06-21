@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -52,7 +52,8 @@ class ThermionGestureDetectorDesktop extends StatefulWidget {
 
 class _ThermionGestureDetectorDesktopState
     extends State<ThermionGestureDetectorDesktop> {
-  ///
+  final _logger = Logger("_ThermionGestureDetectorDesktopState");
+
   ///
   ///
   // ignore: unused_field
@@ -65,7 +66,12 @@ class _ThermionGestureDetectorDesktopState
   @override
   void initState() {
     super.initState();
-    _gizmo = widget.controller.gizmo;
+    try {
+      _gizmo = widget.controller.gizmo;
+    } catch (err) {
+      _logger.warning(
+          "Failed to get gizmo. If you are running on WASM, this is expected");
+    }
   }
 
   @override
