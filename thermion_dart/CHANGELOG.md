@@ -1,3 +1,7 @@
+## 0.1.1
+
+ - Bump "thermion_dart" to `0.1.1`.
+
 ## 0.1.0+4
 
  - **FIX**: add dummy asset to build.dart on Linux builds so we can use the package on a Linux host.

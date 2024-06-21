@@ -20,7 +20,7 @@ dependencies:
     sdk: flutter
   plugin_platform_interface: ^2.1.0
   web: ^0.5.1
-  thermion_dart: ^0.1.0+4
+  thermion_dart: ^0.1.1
   thermion_flutter_platform_interface: ^0.1.0+4
   flutter_web_plugins:
     sdk: flutter
