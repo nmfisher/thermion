@@ -1,3 +1,7 @@
+## 0.1.1+1
+
+ - **DOCS**: update with links to playground.
+
 ## 0.1.1
 
  - Bump "thermion_dart" to `0.1.1`.
