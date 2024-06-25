@@ -1,3 +1,8 @@
+## 0.1.1-dev.0+2
+
+ - **FIX**: revert to std::thread (pthreads not easily available on Windows).
+ - **FIX**: on Windows, pass static libs via -l rather than custom linkWith property so build.dart stays compatible between published & custom versions.
+
 ## 0.1.1+1
 
  - **DOCS**: update with links to playground.

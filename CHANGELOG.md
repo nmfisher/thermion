@@ -3,6 +3,44 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-06-26
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.1.1-dev.0+2`](#thermion_dart---v011-dev02)
+ - [`thermion_flutter` - `v0.1.1-dev.0+7`](#thermion_flutter---v011-dev07)
+ - [`thermion_flutter_platform_interface` - `v0.1.0-dev.0+6`](#thermion_flutter_platform_interface---v010-dev06)
+ - [`thermion_flutter_web` - `v0.0.1-dev.0+6`](#thermion_flutter_web---v001-dev06)
+ - [`thermion_flutter_ffi` - `v0.1.0-dev.0+6`](#thermion_flutter_ffi---v010-dev06)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_platform_interface` - `v0.1.0-dev.0+6`
+ - `thermion_flutter_web` - `v0.0.1-dev.0+6`
+ - `thermion_flutter_ffi` - `v0.1.0-dev.0+6`
+
+---
+
+#### `thermion_dart` - `v0.1.1-dev.0+2`
+
+ - **FIX**: revert to std::thread (pthreads not easily available on Windows).
+ - **FIX**: on Windows, pass static libs via -l rather than custom linkWith property so build.dart stays compatible between published & custom versions.
+
+#### `thermion_flutter` - `v0.1.1-dev.0+7`
+
+ - **FIX**: add ResourceBuffer header directly to Windows build so I don't have to fiddle around getting the CMake path right.
+
+
 ## 2024-06-22
 
 ### Changes
