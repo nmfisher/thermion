@@ -18,11 +18,12 @@ Delete the `/WX`:
 On Windows, you will need to add a custom version of `native_toolchain_c` to your `dependency_overrides`. This is currently needed to link static libraries when building a DLL.
 
 ```
-native_toolchain_c:
+dependency_overrides:
+  native_toolchain_c:
     git:
-      url: git@github.com:nmfisher/native.git
+      url: https://github.com/nmfisher/native.git
       path: pkgs/native_toolchain_c
-      ref: 99020084c4687be4c58c7115a167088c0441d1de
+      ref: windows_dll_fix
 ```
 
 This will eventually be fixed upstream in the `native_toolchain_c` package, so this should be a short-term/temporary issue only.
