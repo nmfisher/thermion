@@ -1,3 +1,7 @@
+## 0.1.1+2
+
+ - Graduate package to a stable release. See pre-releases prior to this version for changelog entries.
+
 ## 0.1.1-dev.0+2
 
  - **FIX**: revert to std::thread (pthreads not easily available on Windows).

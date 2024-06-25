@@ -11,6 +11,44 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 Packages with breaking changes:
 
+ - [`thermion_dart` - `v0.1.1+2`](#thermion_dart---v0112)
+ - [`thermion_flutter` - `v0.1.1+7`](#thermion_flutter---v0117)
+
+Packages with other changes:
+
+ - [`thermion_flutter_ffi` - `v0.1.0+6`](#thermion_flutter_ffi---v0106)
+ - [`thermion_flutter_platform_interface` - `v0.1.0+6`](#thermion_flutter_platform_interface---v0106)
+ - [`thermion_flutter_web` - `v0.0.1+6`](#thermion_flutter_web---v0016)
+
+Packages graduated to a stable release (see pre-releases prior to the stable version for changelog entries):
+
+ - `thermion_dart` - `v0.1.1+2`
+ - `thermion_flutter` - `v0.1.1+7`
+ - `thermion_flutter_ffi` - `v0.1.0+6`
+ - `thermion_flutter_platform_interface` - `v0.1.0+6`
+ - `thermion_flutter_web` - `v0.0.1+6`
+
+---
+
+#### `thermion_dart` - `v0.1.1+2`
+
+#### `thermion_flutter` - `v0.1.1+7`
+
+#### `thermion_flutter_ffi` - `v0.1.0+6`
+
+#### `thermion_flutter_platform_interface` - `v0.1.0+6`
+
+#### `thermion_flutter_web` - `v0.0.1+6`
+
+
+## 2024-06-26
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
  - There are no breaking changes in this release.
 
 Packages with other changes:
