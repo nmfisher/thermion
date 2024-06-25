@@ -35,7 +35,7 @@
 #include "wgl_context.h"
 #endif
 
-namespace thermion_filament {
+namespace thermion_flutter {
 
 using namespace std::chrono_literals;
 
@@ -61,7 +61,6 @@ ThermionFlutterPlugin::ThermionFlutterPlugin(
 
   // attach the method call handler for incoming messages
   _channel->SetMethodCallHandler([=](const auto &call, auto result) {
-    std::cout << call.method_name() << std::endl;
     this->HandleMethodCall(call, std::move(result));
   });
 }
@@ -275,4 +274,4 @@ void ThermionFlutterPlugin::HandleMethodCall(
   }
 }
 
-} // namespace thermion_filament
+} // namespace thermion_flutter

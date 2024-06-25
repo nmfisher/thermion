@@ -7,7 +7,7 @@
 
 #include <thread>
 
-namespace thermion_filament {
+namespace thermion_flutter {
 
 static void logEglError(const char *name) noexcept {
   const char *err;
@@ -240,4 +240,4 @@ FlutterAngleTexture::FlutterAngleTexture(
   result->Success(resultList);
 }
 
-} // namespace thermion_filament
+} // namespace thermion_flutter

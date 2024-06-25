@@ -12,7 +12,7 @@
 #include "backend/platforms/PlatformEGL.h"
 #include "flutter_render_context.h"
 
-namespace thermion_filament {
+namespace thermion_flutter {
 
 class FlutterEGLContext : public FlutterRenderContext {
 public:

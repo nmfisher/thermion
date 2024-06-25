@@ -7,7 +7,7 @@
 
 #include <thread>
 
-namespace thermion_filament {
+namespace thermion_flutter {
 
 void _release_callback(void *releaseContext) {
   // ((OpenGLTextureBuffer*)releaseContext)->unlock();
@@ -141,4 +141,4 @@ OpenGLTextureBuffer::~OpenGLTextureBuffer() {
     wglMakeCurrent(NULL, NULL);
 }
 
-} // namespace thermion_filament
+} // namespace thermion_flutter

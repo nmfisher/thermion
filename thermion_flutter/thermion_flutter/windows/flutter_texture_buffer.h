@@ -7,7 +7,7 @@
 #include <flutter/texture_registrar.h>
 
 
-namespace thermion_filament {
+namespace thermion_flutter {
 
     class FlutterTextureBuffer {
     public:

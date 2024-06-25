@@ -10,7 +10,7 @@
 
 #include "thermion_flutter_plugin.h"
 
-namespace thermion_filament {
+namespace thermion_flutter {
 namespace test {
 
 namespace {
@@ -40,4 +40,4 @@ TEST(ThermionFlutterPlugin, GetPlatformVersion) {
 }
 
 }  // namespace test
-}  // namespace thermion_filament
+}  // namespace thermion_flutter
