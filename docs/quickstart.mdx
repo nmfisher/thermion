@@ -204,6 +204,8 @@ The cube still won't be visible until we add a light to the scene and tell Therm
 $ flutter run -d macos
 ```
 
+> You may experience a noticeable delay the very first time you run the project. Don't panic, it's not frozen! This is due to the build system downloading the prebuilt Filament binaries from Cloudflare, which can take some time (particularly on Windows). These binaries will be cached after first download, so subsequent runs will be much faster (though every time you run flutter clean, the binaries will be re-downloaded).
+
 ![Screenshot of Thermion Quickstart project](images/thermion_sample_project.png)
 
 Your first Thermion project is complete!
