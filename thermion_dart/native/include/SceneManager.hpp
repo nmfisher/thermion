@@ -179,7 +179,6 @@ namespace thermion_filament
         gltfio::TextureProvider *_stbDecoder = nullptr;
         gltfio::TextureProvider *_ktxDecoder = nullptr;
         std::mutex _mutex;
-        Material *_gizmoMaterial;
 
         utils::NameComponentManager *_ncm;
 
@@ -201,8 +200,9 @@ namespace thermion_filament
             const char *entityName);
 
         EntityId addGizmo();
-        utils::Entity _gizmoX;
-        utils::Entity _gizmoY;
-        utils::Entity _gizmoZ;
+        utils::Entity _gizmo[3];
+        Material* _gizmoMaterial;
+        MaterialInstance* _gizmoMaterialInstances[3];
+
     };
 }

@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
-
 import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
-
+import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'thermion_viewer.dart';
-import 'scene.dart';
-import 'compatibility/compatibility.dart';
+import 'scene_impl.dart';
+import 'package:logging/logging.dart';
+
+typedef ThermionViewerImpl = ThermionViewerFFI;
 
 // ignore: constant_identifier_names
 const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
@@ -17,10 +17,10 @@ const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
 typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
 class ThermionViewerFFI extends ThermionViewer {
-  final _compat = Compatibility();
+  final _logger = Logger("ThermionViewerFFI");
 
-  late SceneImpl _scene;
-  Scene get scene => _scene;
+  SceneImpl? _scene;
+  Scene get scene => _scene!;
 
   double _pixelRatio = 1.0;
 
@@ -72,7 +72,7 @@ class ThermionViewerFFI extends ThermionViewer {
           NativeCallable<Void Function(Int32 entityId, Int x, Int y)>.listener(
               _onPickResult);
     } catch (err) {
-      print(
+      _logger.severe(
           "Failed to set pick result callback. This is expected if running on web/wasm");
     }
     _initialize();
@@ -172,14 +172,39 @@ class ThermionViewerFFI extends ThermionViewer {
     set_frame_interval_ffi(_viewer!, interval);
   }
 
+  final _onDispose = <Future Function()>[];
+
   ///
   ///
   ///
   @override
   Future dispose() async {
+    if (_viewer == null) {
+      // we've already cleaned everything up, ignore the call to dispose
+      return;
+    }
+    await setRendering(false);
+    await clearEntities();
+    await clearLights();
+    await _scene!.dispose();
+    _scene = null;
     destroy_filament_viewer_ffi(_viewer!);
+
     _sceneManager = null;
     _viewer = null;
+    await _pickResultController.close();
+
+    for (final callback in _onDispose) {
+      await callback.call();
+    }
+    _onDispose.clear();
+  }
+
+  ///
+  ///
+  ///
+  void onDispose(Future Function() callback) {
+    _onDispose.add(callback);
   }
 
   ///
@@ -317,7 +342,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to add light to scene");
     }
 
-    _scene.registerLight(entity);
+    _scene!.registerLight(entity);
     return entity;
   }
 
@@ -326,7 +351,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeLight(ThermionEntity entity) async {
-    _scene.unregisterLight(entity);
+    _scene!.unregisterLight(entity);
     remove_light_ffi(_viewer!, entity);
   }
 
@@ -337,7 +362,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future clearLights() async {
     clear_lights_ffi(_viewer!);
 
-    _scene.clearLights();
+    _scene!.clearLights();
   }
 
   ///
@@ -393,7 +418,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    _scene.registerEntity(entity);
+    _scene!.registerEntity(entity);
 
     return entity;
   }
@@ -404,11 +429,6 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
       {bool force = false}) async {
-    // if (Platform.isWindows && !force) {
-    //   throw Exception(
-    //       "loadGltf has a race condition on Windows which is likely to crash your program. If you really want to try, pass force=true to loadGltf");
-    // }
-
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
     final relativeResourcePathPtr =
         relativeResourcePath.toNativeUtf8(allocator: allocator).cast<Char>();
@@ -419,7 +439,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    _scene.registerEntity(entity);
+    _scene!.registerEntity(entity);
 
     return entity;
   }
@@ -608,13 +628,11 @@ class ThermionViewerFFI extends ThermionViewer {
       var meshEntity = meshEntities[i];
 
       if (targetMeshNames?.contains(meshName) == false) {
-        print("Skipping $meshName, not contained in target");
+        _logger.info("Skipping $meshName, not contained in target");
         continue;
       }
 
       var meshMorphTargets = await getMorphTargetNames(entity, meshEntity);
-
-      print("Got mesh morph targets ${meshMorphTargets}");
 
       var intersection = animation.morphTargets
           .toSet()
@@ -676,8 +694,8 @@ class ThermionViewerFFI extends ThermionViewer {
   Future addBoneAnimation(ThermionEntity entity, BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeOutInSecs = 0.0,
-      double fadeInInSecs = 0.0, 
-      double maxDelta=1.0}) async {
+      double fadeInInSecs = 0.0,
+      double maxDelta = 1.0}) async {
     if (animation.space != Space.Bone &&
         animation.space != Space.ParentWorldRotation) {
       throw UnimplementedError("TODO - support ${animation.space}");
@@ -710,7 +728,7 @@ class ThermionViewerFFI extends ThermionViewer {
       var boneName = animation.bones[i];
       var entityBoneIndex = boneNames.indexOf(boneName);
       if (entityBoneIndex == -1) {
-        print("Warning : bone $boneName not found, skipping");
+        _logger.warning("Bone $boneName not found, skipping");
         continue;
       }
       var boneEntity = bones[entityBoneIndex];
@@ -720,7 +738,7 @@ class ThermionViewerFFI extends ThermionViewer {
       var world = Matrix4.identity();
       // this odd use of ! is intentional, without it, the WASM optimizer gets in trouble
       var parentBoneEntity = (await getParent(boneEntity))!;
-      while(true) {
+      while (true) {
         if (!bones.contains(parentBoneEntity!)) {
           break;
         }
@@ -758,7 +776,7 @@ class ThermionViewerFFI extends ThermionViewer {
           numFrames,
           animation.frameLengthInMs,
           fadeOutInSecs,
-          fadeInInSecs, 
+          fadeInInSecs,
           maxDelta);
     }
     allocator.free(data);
@@ -894,7 +912,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeEntity(ThermionEntity entity) async {
-    _scene.unregisterEntity(entity);
+    _scene!.unregisterEntity(entity);
 
     await withVoidCallback(
         (callback) => remove_entity_ffi(_viewer!, entity, callback));
@@ -911,7 +929,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await withVoidCallback((callback) {
       clear_entities_ffi(_viewer!, callback);
     });
-    _scene.clearEntities();
+    _scene!.clearEntities();
   }
 
   ///
@@ -984,7 +1002,6 @@ class ThermionViewerFFI extends ThermionViewer {
     var animations = await getAnimationNames(entity);
     var index = animations.indexOf(name);
     var duration = await getAnimationDuration(entity, index);
-    print("Duration for $name : $duration");
     await playAnimation(entity, index,
         loop: loop,
         reverse: reverse,
@@ -1296,7 +1313,7 @@ class ThermionViewerFFI extends ThermionViewer {
       x: (x / _pixelRatio).toDouble(),
       y: (viewportDimensions.$2 - y) / _pixelRatio
     ));
-    _scene.registerSelected(entityId);
+    _scene!.registerSelected(entityId);
   }
 
   late NativeCallable<Void Function(Int32 entityId, Int x, Int y)>
@@ -1307,7 +1324,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   void pick(int x, int y) async {
-    _scene.unregisterSelected();
+    _scene!.unregisterSelected();
 
     filament_pick(
         _viewer!,
@@ -1414,9 +1431,6 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("No viewer available");
     }
 
-    print(
-        "WARNING: getCameraProjectionMatrix and getCameraCullingProjectionMatrix are not reliable. Consider these broken");
-
     var arrayPtr = get_camera_projection_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
     var projectionMatrix = Matrix4.fromList(doubleList);
@@ -1432,7 +1446,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    print(
+    throw Exception(
         "WARNING: getCameraProjectionMatrix and getCameraCullingProjectionMatrix are not reliable. Consider these broken");
     var arrayPtr = get_camera_culling_projection_matrix(_viewer!);
     var doubleList = arrayPtr.asTypedList(16);
@@ -1451,7 +1465,6 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     var arrayPtr = get_camera_frustum(_viewer!);
     var doubleList = arrayPtr.asTypedList(24);
-    print(doubleList);
 
     var frustum = Frustum();
     frustum.plane0.setFromComponents(
@@ -1624,7 +1637,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create geometry");
     }
 
-    _scene.registerEntity(entity);
+    _scene!.registerEntity(entity);
 
     allocator.free(materialPathPtr);
     allocator.free(vertexPtr);

@@ -9,7 +9,7 @@ import 'package:thermion_flutter/thermion_flutter.dart';
 import 'resize_observer.dart';
 
 class ThermionWidget extends StatefulWidget {
-  final ThermionFlutterPlugin plugin;
+  final ThermionViewer viewer;
 
   ///
   /// The content to render before the texture widget is available.
@@ -17,7 +17,7 @@ class ThermionWidget extends StatefulWidget {
   ///
   final Widget? initial;
 
-  const ThermionWidget({Key? key, this.initial, required this.plugin})
+  const ThermionWidget({Key? key, this.initial, required this.viewer})
       : super(key: key);
 
   @override
@@ -30,12 +30,22 @@ class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      await widget.plugin.initialized;
+      await widget.viewer.initialized;
+      widget.viewer.onDispose(() async {
+        if (_texture != null) {
+          var texture = _texture;
+          _texture = null;
+          if (mounted) {
+            setState(() {});
+          }
+          await ThermionFlutterPlugin.destroyTexture(texture!);
+        }
+      });
       var dpr = MediaQuery.of(context).devicePixelRatio;
       var size = ((context.findRenderObject()) as RenderBox).size;
       var width = (dpr * size.width).ceil();
       var height = (dpr * size.height).ceil();
-      _texture = await widget.plugin.createTexture(width, height, 0, 0);
+      _texture = await ThermionFlutterPlugin.createTexture(width, height, 0, 0);
 
       if (mounted) {
         setState(() {});
@@ -50,18 +60,20 @@ class _ThermionWidgetState extends State<ThermionWidget> {
   Future _resizeTexture(Size newSize) async {
     _resizeTimer?.cancel();
     _resizeTimer = Timer(Duration(milliseconds: 500), () async {
-      if (_resizing) {
+      if (_resizing || !mounted) {
         return;
       }
       _resizeTimer!.cancel();
       _resizing = true;
       var oldTexture = _texture;
       _texture = null;
-      setState(() {});
+      if (!mounted) {
+        return;
+      }
 
       var dpr = MediaQuery.of(context).devicePixelRatio;
 
-      _texture = await widget.plugin.resizeTexture(oldTexture!,
+      _texture = await ThermionFlutterPlugin.resizeTexture(oldTexture!,
           (dpr * newSize.width).ceil(), (dpr * newSize.height).ceil(), 0, 0);
       setState(() {});
       _resizing = false;

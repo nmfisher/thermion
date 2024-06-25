@@ -7,10 +7,15 @@
       "Getting Started",
       [
         ["Overview", "/"],
-        ["Quick Start", "/quickstart"]
+        ["Quick Start", "/quickstart"],
+        ["Playground", "https://dartpad.thermion.dev"]
       ]
     ],
-    ["Misc.", [["Contributing", "/contributing"]]]
+    ["Misc.", [
+      ["Windows", "/windows"],
+      ["Android", "/android"],
+      ["Contributing", "/contributing"]
+      ]]
   ]
   
 }

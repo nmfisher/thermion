@@ -1,120 +1,48 @@
+import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'dart:async';
-
-import 'thermion_viewer.dart';
 
 ///
 /// For now, this class just holds the entities that have been loaded (though not necessarily visible in the Filament Scene).
 ///
-class SceneImpl extends Scene {
-
-  ThermionViewer controller;
-
-  SceneImpl(this.controller);
-
-  @override
+abstract class Scene {
+  ///
+  /// The last entity clicked/tapped in the viewport (internally, the result of calling pick);
   ThermionEntity? selected;
 
-  final _onUpdatedController = StreamController<bool>.broadcast();
-  @override
-  Stream<bool> get onUpdated => _onUpdatedController.stream;
-
-  final _onLoadController = StreamController<ThermionEntity>.broadcast();
-  @override
-  Stream<ThermionEntity> get onLoad => _onLoadController.stream;
-
-  final _onUnloadController = StreamController<ThermionEntity>.broadcast();
-  @override
-  Stream<ThermionEntity> get onUnload => _onUnloadController.stream;
-
-  final _lights = <ThermionEntity>{};
-  final _entities = <ThermionEntity>{};
-
-  void registerLight(ThermionEntity entity) {
-    _lights.add(entity);
-    _onLoadController.sink.add(entity);
-    _onUpdatedController.add(true);
-  }
-
-  void unregisterLight(ThermionEntity entity) async {
-    var children = await controller.getChildEntities(entity, true);
-    if (selected == entity || children.contains(selected)) {
-      selected = null;
-      controller.gizmo?.detach();
-    }
-    _lights.remove(entity);
-    _onUnloadController.add(entity);
-    _onUpdatedController.add(true);
-  }
-
-  void unregisterEntity(ThermionEntity entity) async {
-    var children = await controller.getChildEntities(entity, true);
-    if (selected == entity || children.contains(selected)) {
-      selected = null;
-      
-      controller.gizmo?.detach();
-    }
-    _entities.remove(entity);
-    _onUnloadController.add(entity);
-    _onUpdatedController.add(true);
-  }
-
-  void registerEntity(ThermionEntity entity) {
-    _entities.add(entity);
-    _onLoadController.sink.add(entity);
-    _onUpdatedController.add(true);
-  }
-
-  void clearLights() {
-    for (final light in _lights) {
-      if (selected == light) {
-        selected = null;
-        controller.gizmo?.detach();
-      }
-      _onUnloadController.add(light);
-    }
-
-    _lights.clear();
-    _onUpdatedController.add(true);
-  }
-
-  void clearEntities() {
-    for (final entity in _entities) {
-      if (selected == entity) {
-        selected = null;
-        controller.gizmo?.detach();
-      }
-      _onUnloadController.add(entity);
-    }
-    _entities.clear();
-    _onUpdatedController.add(true);
-  }
+  ///
+  /// A Stream updated whenever an entity is added/removed from the scene.
+  ///
+  Stream<bool> get onUpdated;
 
   ///
-  /// Lists all entities currently loaded (not necessarily active in the scene).
+  /// A Stream containing every ThermionEntity added to the scene (i.e. via [loadGlb], [loadGltf] or [addLight]).
+  /// This is provided for convenience so you can set listeners in front-end widgets that can respond to entity loads without manually passing around the ThermionEntity returned from those methods.
   ///
-  Iterable<ThermionEntity> listLights() {
-    return _lights;
-  }
+  Stream<ThermionEntity> get onLoad;
 
-  @override
-  Iterable<ThermionEntity> listEntities() {
-    return _entities;
-  }
+  ///
+  /// A Stream containing every ThermionEntity removed from the scene (i.e. via [removeEntity], [clearEntities], [removeLight] or [clearLights]).
 
-  void registerSelected(ThermionEntity entity) {
-    selected = entity;
-    _onUpdatedController.add(true);
-  }
+  Stream<ThermionEntity> get onUnload;
 
-  void unregisterSelected() {
-    selected = null;
-    _onUpdatedController.add(true);
-  }
+  ///
+  /// Lists all light entities currently loaded (not necessarily active in the scene). Does not account for instances.
+  ///
+  Iterable<ThermionEntity> listLights();
 
-  @override
-  void select(ThermionEntity entity) {
-    selected = entity;
-    controller.gizmo?.attach(entity);
-    _onUpdatedController.add(true);
-  }
+  ///
+  /// Lists all entities currently loaded (not necessarily active in the scene). Does not account for instances.
+  ///
+  Iterable<ThermionEntity> listEntities();
+
+  ///
+  /// Attach the gizmo to the specified entity.
+  ///
+  void select(ThermionEntity entity);
+
+  ///
+  ///
+  ///
+  void registerEntity(ThermionEntity entity);
+
 }

@@ -4,9 +4,9 @@ import 'package:thermion_flutter_example/main.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 class RenderingSubmenu extends StatefulWidget {
-  final ThermionFlutterPlugin controller;
+  final ThermionViewer viewer;
 
-  const RenderingSubmenu({super.key, required this.controller});
+  const RenderingSubmenu({super.key, required this.viewer});
 
   @override
   State<StatefulWidget> createState() => _RenderingSubmenuState();
@@ -19,14 +19,14 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
       menuChildren: [
         MenuItemButton(
           onPressed: () {
-            widget.controller.viewer.render();
+            widget.viewer.render();
           },
           child: const Text("Render single frame"),
         ),
         MenuItemButton(
           onPressed: () {
             ExampleWidgetState.rendering = !ExampleWidgetState.rendering;
-            widget.controller.viewer.setRendering(ExampleWidgetState.rendering);
+            widget.viewer.setRendering(ExampleWidgetState.rendering);
           },
           child: Text(
               "Set continuous rendering to ${!ExampleWidgetState.rendering}"),
@@ -35,14 +35,14 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           onPressed: () {
             ExampleWidgetState.framerate =
                 ExampleWidgetState.framerate == 60 ? 30 : 60;
-            widget.controller.viewer.setFrameRate(ExampleWidgetState.framerate);
+            widget.viewer.setFrameRate(ExampleWidgetState.framerate);
           },
           child: Text(
               "Toggle framerate (currently ${ExampleWidgetState.framerate}) "),
         ),
         MenuItemButton(
           onPressed: () {
-            widget.controller.viewer.setToneMapping(ToneMapper.LINEAR);
+            widget.viewer.setToneMapping(ToneMapper.LINEAR);
           },
           child: const Text("Set tone mapping to linear"),
         ),
@@ -50,7 +50,7 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           onPressed: () {
             ExampleWidgetState.postProcessing =
                 !ExampleWidgetState.postProcessing;
-            widget.controller.viewer
+            widget.viewer
                 .setPostProcessing(ExampleWidgetState.postProcessing);
           },
           child: Text(
@@ -60,7 +60,7 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           onPressed: () {
             ExampleWidgetState.antiAliasingMsaa =
                 !ExampleWidgetState.antiAliasingMsaa;
-            widget.controller.viewer.setAntiAliasing(
+            widget.viewer.setAntiAliasing(
                 ExampleWidgetState.antiAliasingMsaa,
                 ExampleWidgetState.antiAliasingFxaa,
                 ExampleWidgetState.antiAliasingTaa);
@@ -72,7 +72,7 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
           onPressed: () {
             ExampleWidgetState.antiAliasingFxaa =
                 !ExampleWidgetState.antiAliasingFxaa;
-            widget.controller.viewer.setAntiAliasing(
+            widget.viewer.setAntiAliasing(
                 ExampleWidgetState.antiAliasingMsaa,
                 ExampleWidgetState.antiAliasingFxaa,
                 ExampleWidgetState.antiAliasingTaa);
@@ -83,7 +83,7 @@ class _RenderingSubmenuState extends State<RenderingSubmenu> {
         MenuItemButton(
           onPressed: () {
             ExampleWidgetState.recording = !ExampleWidgetState.recording;
-            widget.controller.viewer.setRecording(ExampleWidgetState.recording);
+            widget.viewer.setRecording(ExampleWidgetState.recording);
           },
           child: Text(
               "Turn recording ${ExampleWidgetState.recording ? "OFF" : "ON"}) "),

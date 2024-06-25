@@ -126,11 +126,10 @@ namespace thermion_filament
 
   static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
-  FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapperImpl *const ResourceLoaderWrapperImpl, void *const platform, const char *uberArchivePath)
-      : _resourceLoaderWrapper(ResourceLoaderWrapperImpl)
+  FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapperImpl *const resourceLoader, void *const platform, const char *uberArchivePath)
+      : _resourceLoaderWrapper(resourceLoader)
   {
     _context = (void*) sharedContext;
-
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
 #if TARGET_OS_IPHONE
@@ -215,7 +214,7 @@ namespace thermion_filament
 
     Log("Created scene maager");
 
-    _imageTexture = Texture::Builder()
+    _dummyImageTexture = Texture::Builder()
                         .width(1)
                         .height(1)
                         .levels(0x01)
@@ -230,7 +229,7 @@ namespace thermion_filament
               .build(*_engine);
       _imageMaterial->setDefaultParameter("showImage", 0);
       _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(1.0f, 1.0f, 1.0f, 0.0f));
-      _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
+      _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
     }
     catch (...)
     {
@@ -269,7 +268,6 @@ namespace thermion_filament
         .culling(false)
         .build(*_engine, _imageEntity);
     _scene->addEntity(_imageEntity);
-    Log("Added imageEntity %d", _imageEntity);
   }
 
   void FilamentViewer::setAntiAliasing(bool msaa, bool fxaa, bool taa)
@@ -444,7 +442,8 @@ namespace thermion_filament
         new ktxreader::Ktx1Bundle(static_cast<const uint8_t *>(rb.data),
                                   static_cast<uint32_t>(rb.size));
 
-    // because the ResourceBuffer will go out of scope before the texture callback is invoked, we need to make a copy to the heap
+    // the ResourceBuffer will go out of scope before the texture callback is invoked
+    // make a copy to the heap
     ResourceBuffer *rbCopy = new ResourceBuffer(rb);
 
     std::vector<void *> *callbackData = new std::vector<void *>{(void *)_resourceLoaderWrapper, rbCopy};
@@ -550,6 +549,7 @@ namespace thermion_filament
 
   void FilamentViewer::clearBackgroundImage()
   {
+    _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
     _imageMaterial->setDefaultParameter("showImage", 0);
     if (_imageTexture)
     {
@@ -680,22 +680,21 @@ namespace thermion_filament
 
   FilamentViewer::~FilamentViewer()
   {
-    clearEntities();
+    clearLights();
+    destroySwapChain();
+    _engine->destroy(_imageEntity);
+    _engine->destroy(_imageTexture);
+    _engine->destroy(_imageVb);
+    _engine->destroy(_imageIb);
+    _engine->destroy(_imageMaterial);
     delete _sceneManager;
-
-    for (auto it : _lights)
-    {
-      _engine->destroy(it);
-    }
-
     _engine->destroyCameraComponent(_mainCamera->getEntity());
     _mainCamera = nullptr;
     _engine->destroy(_view);
     _engine->destroy(_scene);
     _engine->destroy(_renderer);
-    _engine->destroy(_swapChain);
-
-    Engine::destroy(&_engine); // clears engine*
+    Engine::destroy(&_engine); 
+    delete _resourceLoaderWrapper;
   }
 
   Renderer *FilamentViewer::getRenderer() { return _renderer; }
@@ -930,7 +929,6 @@ namespace thermion_filament
     }
 
     Log("Loading skybox from path %s", skyboxPath);
-
     ResourceBuffer skyboxBuffer = _resourceLoaderWrapper->load(skyboxPath);
 
     // because this will go out of scope before the texture callback is invoked, we need to make a copy of the variable itself (not its contents)

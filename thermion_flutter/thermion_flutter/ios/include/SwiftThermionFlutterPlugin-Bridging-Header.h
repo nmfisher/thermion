@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-#include "ResourceBuffer.hpp"
+#include "ResourceBuffer.h"
 
-ResourceLoaderWrapper *make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void *const owner);
+void *make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void *const owner);
 
 // ResourceLoaderWrapper *make_resource_loader(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void *const owner)
 // {

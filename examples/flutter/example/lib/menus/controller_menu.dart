@@ -5,29 +5,31 @@ import 'package:flutter/widgets.dart';
 
 import 'package:thermion_flutter/thermion_flutter.dart';
 
-class ControllerMenu extends StatefulWidget {
-  final ThermionFlutterPlugin controller;
+class ViewerMenu extends StatefulWidget {
+  final ThermionViewer? viewer;
   final void Function() onToggleViewport;
-  final void Function() onControllerCreated;
-  final void Function() onControllerDestroyed;
+  final void Function(ThermionViewer viewer) onViewerCreated;
+  final void Function() onViewerDestroyed;
   final FocusNode sharedFocusNode;
-         
 
-  ControllerMenu(
-      {required this.controller,
-      required this.onControllerCreated,
-      required this.onControllerDestroyed,
+  ViewerMenu(
+      {
+        required this.viewer,
+        required this.onViewerCreated,
+      required this.onViewerDestroyed,
       required this.sharedFocusNode,
       required this.onToggleViewport});
 
   @override
-  State<StatefulWidget> createState() => _ControllerMenuState();
+  State<StatefulWidget> createState() => _ViewerMenuState();
 }
 
-class _ControllerMenuState extends State<ControllerMenu> {
-  void _createController({String? uberArchivePath}) async {
-    widget.controller.initialize(uberArchivePath: uberArchivePath);
-    widget.onControllerCreated();
+class _ViewerMenuState extends State<ViewerMenu> {
+  void _createViewer({String? uberArchivePath}) async {
+    var viewer = await ThermionFlutterPlugin.createViewer(
+        uberArchivePath: uberArchivePath);
+    await viewer.initialized;
+    widget.onViewerCreated(viewer);
   }
 
   @override
@@ -36,7 +38,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
   }
 
   @override
-  void didUpdateWidget(ControllerMenu oldWidget) {
+  void didUpdateWidget(ViewerMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
   }
 
@@ -50,14 +52,14 @@ class _ControllerMenuState extends State<ControllerMenu> {
           child:
               const Text("Create ThermionFlutterPlugin (default ubershader)"),
           onPressed: () {
-            _createController();
+            _createViewer();
           },
         ),
         MenuItemButton(
           child: const Text(
               "Create ThermionFlutterPlugin (custom ubershader - lit opaque only)"),
           onPressed: () {
-            _createController(
+            _createViewer(
                 uberArchivePath: Platform.isWindows
                     ? "assets/lit_opaque_32.uberz"
                     : Platform.isMacOS
@@ -73,8 +75,8 @@ class _ControllerMenuState extends State<ControllerMenu> {
         MenuItemButton(
           child: const Text("Destroy viewer"),
           onPressed: () async {
-            widget.controller.dispose();
-            widget.onControllerDestroyed();
+            widget.viewer!.dispose();
+            widget.onViewerDestroyed();
             setState(() {});
           },
         )
@@ -89,8 +91,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
                 onPressed: widget.onToggleViewport,
               )
             ],
-        builder:
-            (BuildContext context, MenuController controller, Widget? child) {
+        builder: (BuildContext context, MenuController controller, Widget? child) {
           return TextButton(
             onPressed: () {
               if (controller.isOpen) {
@@ -99,7 +100,7 @@ class _ControllerMenuState extends State<ControllerMenu> {
                 controller.open();
               }
             },
-            child: const Text("Controller / Viewer"),
+            child: const Text("Viewer / Viewer"),
           );
         });
   }

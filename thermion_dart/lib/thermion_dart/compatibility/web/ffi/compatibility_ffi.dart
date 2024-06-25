@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
-import 'package:thermion_dart/thermion_dart/compatibility/web/interop.dart';
+import 'package:thermion_dart/thermion_dart/compatibility/web/ffi/interop.dart';
 
 import "allocator.dart";
 

@@ -27,7 +27,8 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE const void *create_filament_viewer(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
     {
-        auto viewer = (const void *)new FilamentViewer(context, (const ResourceLoaderWrapperImpl *const)loader, platform, uberArchivePath);
+        const auto * loaderImpl = new ResourceLoaderWrapperImpl((ResourceLoaderWrapper*)loader);
+        auto viewer = (const void *)new FilamentViewer(context, loaderImpl, platform, uberArchivePath);
         return viewer;
     }
 

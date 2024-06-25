@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -279,11 +280,11 @@ abstract class ThermionViewer {
   /// [fadeInInSecs]/[fadeOutInSecs]/[maxDelta] are used to cross-fade between
   /// the current active glTF animation ("animation1") and the animation you
   /// set via this method ("animation2"). The bone orientations will be
-  /// linearly interpolated between animation1 and animation2; at time 0, 
-  /// the orientation will be 100% animation1, at time [fadeInInSecs], the 
+  /// linearly interpolated between animation1 and animation2; at time 0,
+  /// the orientation will be 100% animation1, at time [fadeInInSecs], the
   /// animation will be ((1 - maxDelta) * animation1) + (maxDelta * animation2).
-  /// This will be applied in reverse after [fadeOutInSecs]. 
-  /// 
+  /// This will be applied in reverse after [fadeOutInSecs].
+  ///
   ///
   Future addBoneAnimation(ThermionEntity entity, BoneAnimationData animation,
       {int skinIndex = 0,
@@ -701,51 +702,11 @@ abstract class ThermionViewer {
   ///
   ///
   AbstractGizmo? get gizmo;
-}
-
-///
-/// For now, this class just holds the entities that have been loaded (though not necessarily visible in the Filament Scene).
-///
-abstract class Scene {
-  ///
-  /// The last entity clicked/tapped in the viewport (internally, the result of calling pick);
-  ThermionEntity? selected;
 
   ///
-  /// A Stream updated whenever an entity is added/removed from the scene.
+  /// Register a callback to be invoked when this viewer is disposed.
   ///
-  Stream<bool> get onUpdated;
-
-  ///
-  /// A Stream containing every ThermionEntity added to the scene (i.e. via [loadGlb], [loadGltf] or [addLight]).
-  /// This is provided for convenience so you can set listeners in front-end widgets that can respond to entity loads without manually passing around the ThermionEntity returned from those methods.
-  ///
-  Stream<ThermionEntity> get onLoad;
-
-  ///
-  /// A Stream containing every ThermionEntity removed from the scene (i.e. via [removeEntity], [clearEntities], [removeLight] or [clearLights]).
-
-  Stream<ThermionEntity> get onUnload;
-
-  ///
-  /// Lists all light entities currently loaded (not necessarily active in the scene). Does not account for instances.
-  ///
-  Iterable<ThermionEntity> listLights();
-
-  ///
-  /// Lists all entities currently loaded (not necessarily active in the scene). Does not account for instances.
-  ///
-  Iterable<ThermionEntity> listEntities();
-
-  ///
-  /// Attach the gizmo to the specified entity.
-  ///
-  void select(ThermionEntity entity);
-
-  ///
-  ///
-  ///
-  void registerEntity(ThermionEntity entity);
+  void onDispose(Future Function() callback);
 }
 
 abstract class AbstractGizmo {

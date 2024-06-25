@@ -17,6 +17,18 @@ dependencies:
   cupertino_icons: ^1.0.2
   web:
 
+dependency_overrides:
+  thermion_flutter:
+    path: ../../../thermion_flutter/thermion_flutter
+  thermion_flutter_platform_interface:
+    path: ../../../thermion_flutter/thermion_flutter_platform_interface
+  thermion_flutter_ffi:
+    path: ../../../thermion_flutter/thermion_flutter_ffi
+  thermion_flutter_web:
+    path: ../../../thermion_flutter/thermion_flutter_web
+  thermion_dart:
+    path: ../../../thermion_dart
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

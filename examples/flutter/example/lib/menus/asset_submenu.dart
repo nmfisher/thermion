@@ -8,8 +8,8 @@ import 'package:vector_math/vector_math_64.dart' as v;
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 class AssetSubmenu extends StatefulWidget {
-  final ThermionFlutterPlugin controller;
-  const AssetSubmenu({super.key, required this.controller});
+  final ThermionViewer viewer;
+  const AssetSubmenu({super.key, required this.viewer});
 
   @override
   State<StatefulWidget> createState() => _AssetSubmenuState();
@@ -26,8 +26,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
       MenuItemButton(
           closeOnActivate: false,
           onPressed: () async {
-            var entity = await widget.controller.viewer.getChildEntity(
-                widget.controller.viewer.scene.listEntities().last, "Cylinder");
+            var entity = await widget.viewer.getChildEntity(
+                widget.viewer.scene.listEntities().last, "Cylinder");
             await showDialog(
                 context: context,
                 builder: (BuildContext context) {
@@ -39,8 +39,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
           child: const Text('Find Cylinder entity by name')),
       MenuItemButton(
         onPressed: () async {
-          widget.controller.viewer.setPosition(
-              widget.controller.viewer.scene.listEntities().last,
+          widget.viewer.setPosition(
+              widget.viewer.scene.listEntities().last,
               1.0,
               1.0,
               -1.0);
@@ -50,8 +50,8 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
       MenuItemButton(
           onPressed: () async {
             final color = Colors.purple;
-            widget.controller.viewer.setMaterialColor(
-                widget.controller.viewer.scene.listEntities().last,
+            widget.viewer.setMaterialColor(
+                widget.viewer.scene.listEntities().last,
                 "Cone",
                 0,
                 color.red / 255.0,
@@ -85,14 +85,14 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 -1.0,
               ];
               var indices = [0, 1, 2, 2, 3, 0];
-              var geom = await widget.controller.viewer.createGeometry(
+              var geom = await widget.viewer.createGeometry(
                   verts, indices,
                   materialPath: "asset://assets/solidcolor.filamat");
             },
             child: const Text("Quad")),
         MenuItemButton(
             onPressed: () async {
-              await widget.controller.viewer.createGeometry([
+              await widget.viewer.createGeometry([
                 0,
                 0,
                 0,
@@ -118,14 +118,14 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
         _geometrySubmenu(),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller.viewer.addLight(
+            await widget.viewer.addLight(
                 LightType.DIRECTIONAL, 6500, 100000, 0, 1, 0, 0, -1, 0);
           },
           child: const Text("Add directional light"),
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller.viewer.addLight(
+            await widget.viewer.addLight(
                 LightType.POINT, 6500, 100000, 0, 1, 0, 0, -1, 0,
                 falloffRadius: 1.0);
           },
@@ -133,7 +133,7 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller.viewer.addLight(
+            await widget.viewer.addLight(
                 LightType.SPOT, 6500, 1000000, 0, 0, 0, 0, 1, 0,
                 spotLightConeInner: 0.1,
                 spotLightConeOuter: 0.4,
@@ -143,26 +143,26 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
         ),
         MenuItemButton(
           onPressed: () async {
-            await widget.controller.viewer.clearLights();
+            await widget.viewer.clearLights();
           },
           child: const Text("Clear lights"),
         ),
         MenuItemButton(
             onPressed: () {
               final color = const Color(0xAA73C9FA);
-              widget.controller.viewer.setBackgroundColor(color.red / 255.0,
+              widget.viewer.setBackgroundColor(color.red / 255.0,
                   color.green / 255.0, color.blue / 255.0, 1.0);
             },
             child: const Text("Set background color")),
         MenuItemButton(
             onPressed: () {
-              widget.controller.viewer
+              widget.viewer
                   .setBackgroundImage('assets/background.ktx');
             },
             child: const Text("Load background image")),
         MenuItemButton(
             onPressed: () {
-              widget.controller.viewer.setBackgroundImage(
+              widget.viewer.setBackgroundImage(
                   'assets/background.ktx',
                   fillHeight: true);
             },
@@ -170,9 +170,9 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
         MenuItemButton(
             onPressed: () {
               if (ExampleWidgetState.hasSkybox) {
-                widget.controller.viewer.removeSkybox();
+                widget.viewer.removeSkybox();
               } else {
-                widget.controller.viewer
+                widget.viewer
                     .loadSkybox('assets/default_env/default_env_skybox.ktx');
               }
               ExampleWidgetState.hasSkybox = !ExampleWidgetState.hasSkybox;
@@ -182,18 +182,18 @@ class _AssetSubmenuState extends State<AssetSubmenu> {
                 : 'Load skybox')),
         MenuItemButton(
             onPressed: () {
-              widget.controller.viewer
+              widget.viewer
                   .loadIbl('assets/default_env/default_env_ibl.ktx');
             },
             child: const Text('Load IBL')),
         MenuItemButton(
             onPressed: () {
-              widget.controller.viewer.removeIbl();
+              widget.viewer.removeIbl();
             },
             child: const Text('Remove IBL')),
         MenuItemButton(
             onPressed: () async {
-              await widget.controller.viewer.clearEntities();
+              await widget.viewer.clearEntities();
             },
             child: const Text('Clear assets')),
       ],
