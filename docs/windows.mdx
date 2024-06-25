@@ -1,5 +1,18 @@
 ## Windows
 
+## CMakeLists
+
+You will need to disable the `/WX` compiler flag.
+
+In your project, open the `windows/CMakeList.txt` file and find the following line:
+
+`target_compile_options(${TARGET} PRIVATE /W4 /WX /wd"4100")`
+
+Delete the `/WX`:
+
+`target_compile_options(${TARGET} PRIVATE /W4 /wd"4100")`
+
+
 ## pubspec.yaml
 
 On Windows, you will need to add a custom version of `native_toolchain_c` to your `dependency_overrides`. This is currently needed to link static libraries when building a DLL.
