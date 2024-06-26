@@ -69,7 +69,7 @@ class ThermionViewerFFI extends ThermionViewer {
     this._sharedContext = sharedContext ?? nullptr;
     try {
       _onPickResultCallable =
-          NativeCallable<Void Function(Int32 entityId, Int x, Int y)>.listener(
+          NativeCallable<Void Function(Int entityId, Int x, Int y)>.listener(
               _onPickResult);
     } catch (err) {
       _logger.severe(
@@ -128,7 +128,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
     await setCameraManipulatorOptions(zoomSpeed: 1.0);
 
-    final out = allocator<Int32>(3);
+    final out = allocator<Int>(3);
     get_gizmo(_sceneManager!, out);
     _gizmo = Gizmo(out[0], out[1], out[2], this);
     allocator.free(out);
@@ -392,7 +392,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<List<ThermionEntity>> getInstances(ThermionEntity entity) async {
     var count = await getInstanceCount(entity);
-    var out = allocator<Int32>(count);
+    var out = allocator<Int>(count);
     get_instances(_sceneManager!, entity, out);
     var instances = <ThermionEntity>[];
     for (int i = 0; i < count; i++) {
@@ -1316,7 +1316,7 @@ class ThermionViewerFFI extends ThermionViewer {
     _scene!.registerSelected(entityId);
   }
 
-  late NativeCallable<Void Function(Int32 entityId, Int x, Int y)>
+  late NativeCallable<Void Function(Int entityId, Int x, Int y)>
       _onPickResultCallable;
 
   ///
@@ -1505,7 +1505,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<List<ThermionEntity>> getChildEntities(
       ThermionEntity parent, bool renderableOnly) async {
     var count = get_entity_count(_sceneManager!, parent, renderableOnly);
-    var out = allocator<Int32>(count);
+    var out = allocator<Int>(count);
     get_entities(_sceneManager!, parent, renderableOnly, out);
     var outList =
         List.generate(count, (index) => out[index]).cast<ThermionEntity>();
@@ -1565,7 +1565,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
     if (callback != null) {
       var ptr = NativeCallable<
-          Void Function(Int32 entityId1, Int32 entityId2)>.listener(callback);
+          Void Function(Int entityId1, Int entityId2)>.listener(callback);
       add_collision_component(
           _sceneManager!, entity, ptr.nativeFunction, affectsTransform);
       _collisions[entity] = ptr;
