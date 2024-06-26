@@ -1,0 +1,40 @@
+material {
+    name : Gizmo,
+    parameters : [
+        {
+            type : mat4,
+            name : transform,
+            precision : high
+        },
+        {
+            type : float3,
+            name : color,
+            precision : low
+        }
+    ],
+    depthWrite : true,
+    depthCulling : false,
+    shadingModel : unlit,
+    variantFilter : [ skinning, shadowReceiver, vsm ],
+    culling: none,
+    instanced: false,
+    vertexDomain: object
+}
+
+vertex {
+	void materialVertex(inout MaterialVertexInputs material) {	
+        vec4 modelSpace = getPosition();
+        vec4 worldSpace = getWorldFromModelMatrix() * modelSpace;
+        vec4 clipSpace = getClipFromWorldMatrix() * worldSpace;
+        clipSpace.z = 0.99f;
+        material.worldPosition = getWorldFromClipMatrix() * clipSpace;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = float4(materialParams.color, 1.0f);
+    }
+}
+
