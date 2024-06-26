@@ -225,7 +225,8 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
   // TODO - check if we can pass this as a CLI compiler flag
   var mode = "release";
   if (platform == "windows") {
-    mode = config.buildMode == BuildMode.debug ? "debug" : "release";
+    // temporarily disable release builds on Windows to figure out the root of the problem
+    mode = "debug"; //config.buildMode == BuildMode.debug ? "debug" : "release";
   }
 
   var libDir = Directory(
