@@ -1,4 +1,0 @@
-example_cli.mjs
-example_cli.wasm
-example_cli.unopt.wasm
-node_modules/**/*
