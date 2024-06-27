@@ -13,8 +13,6 @@ extern "C"
 {
   extern EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE thermion_dart_web_create_gl_context();
 }
-#include <pthread.h>
-
 #endif
 
 #include "ThermionDartFFIApi.h"
@@ -38,19 +36,26 @@ public:
   explicit RenderLoop()
   {
     srand(time(NULL));
-
+    #ifdef __EMSCRIPTEN__     
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    #ifdef __EMSCRIPTEN__     
     emscripten_pthread_attr_settransferredcanvases(&attr, "canvas");
-    #endif
     pthread_create(&t, &attr, &RenderLoop::startHelper, this);
+    #else
+    t = new std::thread([this]() {
+      start();
+    });
+    #endif
   }
 
   ~RenderLoop()
   {
     _stop = true;
+    #ifdef __EMSCRIPTEN__     
     pthread_join(t, NULL);
+    #else
+    t->join();
+    #endif
     Log("Render loop killed");
   }
 
@@ -209,13 +214,17 @@ public:
   std::mutex _access;
   void (*_renderCallback)(void *const) = nullptr;
   void *_renderCallbackOwner = nullptr;
-  pthread_t t;
+
+  
   std::condition_variable _cond;
   std::deque<std::function<void()>> _tasks;
   FilamentViewer* _viewer = nullptr;
   #ifdef __EMSCRIPTEN__
+  pthread_t t;
   EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _context;
   int _frameNum = 0;
+  #else
+  std::thread *t = nullptr;
   #endif
 };
 

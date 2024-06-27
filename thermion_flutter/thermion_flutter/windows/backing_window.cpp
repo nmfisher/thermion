@@ -12,7 +12,7 @@
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "comctl32.lib")
 
-namespace thermion_filament {
+namespace thermion_flutter {
 
 static constexpr auto kClassName = L"FLUTTER_FILAMENT_WINDOW";
 static constexpr auto kWindowName = L"thermion_flutter_window";
@@ -354,4 +354,4 @@ void BackingWindow::Resize(int width, int height, int left, int top) {
 }
 
 HWND BackingWindow::GetHandle() { return _windowHandle; }
-} // namespace thermion_filament
+} // namespace thermion_flutter

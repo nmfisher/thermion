@@ -1,6 +1,6 @@
 ## Quickstart (Flutter)
 
-> You can find the entire project below in the [examples/flutter/quickstart](examples/flutter/quickstart) folder of the repository.
+> You can find the entire project below in the [https://github.com/nmfisher/thermion_examples/tree/master/flutter/quickstart](flutter/quickstart) folder of the `thermion_examples` repository.
 
 1. Switch to Flutter master channel, create a new project, then add `thermion_flutter` as a dependency
 
@@ -13,7 +13,7 @@ $ flutter pub add thermion_flutter
 
 2. If running on iOS or MacOS, change the minimum deployment target to OSX 13
 
-<Accordion title="Click to iOS/MacOS instructions">
+<Accordion title="Click to open iOS/MacOS instructions">
 
 Make sure the `platform` entry refers to `13.0` in your Podfile.
 
@@ -37,6 +37,11 @@ and change the minimum deployment target to 13.0:
 ![XCode screenshot](images/macos_min_deployment.png)
 
 </Accordion>
+
+<Accordion title="Click to open Windows instructions">
+See the [/windows](Windows) page for steps needed to build on Windows.
+</Accordion>
+
 
 2. Add a folder containing your assets (glTF model + skybox ktx) to your `pubspec.yaml` asset list
 
@@ -70,18 +75,21 @@ class _MyAppState extends State<MyApp> {
 
 class _MyAppState extends State<MyApp> {
     
-    late ThermionFlutterPlugin _thermionFlutterPlugin;  
-    late Future<ThermionViewer> _thermionViewer;
+    ThermionViewer? _thermionViewer;
     void initState() {    
-        _thermionFlutterPlugin = ThermionFlutterPlugin();
-        _thermionViewer = _thermionFlutterPlugin.initialize();
+        _thermionFlutterPlugin.createViewer().then((viewer) {
+            setState(() {
+                _thermionViewer = viewer;
+            });
+        });
     }    
 
     Widget build(BuildContext context) {
         return Stack(children:[
+            if(_thermionViewer != null)
             Positioned.fill(
                 child:ThermionWidget(
-                    plugin:_thermionFlutterPlugin
+                    plugin:_thermionViewer!
                 ) 
             )
         ]);  
@@ -104,11 +112,12 @@ class _MyAppState extends State<MyApp> {
 
     Widget build(BuildContext context) {
         return Stack(children:[
+            if(_thermionViewer != null)
             Positioned.fill(
                 child:ThermionWidget(
-                    plugin:_thermionFlutterPlugin
+                    plugin:_thermionViewer!
                 ) 
-            ), 
+            ),
             if (!_loaded)
                 Center(
                     child: ElevatedButton(
@@ -203,6 +212,8 @@ The cube still won't be visible until we add a light to the scene and tell Therm
 ```
 $ flutter run -d macos
 ```
+
+> You may experience a noticeable delay the very first time you run the project. Don't panic, it's not frozen! This is due to the build system downloading the prebuilt Filament binaries from Cloudflare, which can take some time (particularly on Windows). These binaries will be cached after first download, so subsequent runs will be much faster (though every time you run flutter clean, the binaries will be re-downloaded).
 
 ![Screenshot of Thermion Quickstart project](images/thermion_sample_project.png)
 

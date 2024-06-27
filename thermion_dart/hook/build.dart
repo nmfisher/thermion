@@ -62,7 +62,7 @@ void main(List<String> args) async {
       "${config.packageRoot.toFilePath()}/native/include/material/image.c",
     ]);
 
-    final libs = [
+    var libs = [
       "filament",
       "backend",
       "filameshio",
@@ -91,12 +91,12 @@ void main(List<String> args) async {
       "basis_transcoder"
     ];
 
-    final linkWith = <String>[];
 
     if (platform == "windows") {
-      linkWith.addAll(libs.map((lib) => "$libDir/$lib.lib"));
-      linkWith.addAll(["$libDir/bluevk.lib", "$libDir/bluegl.lib"]);
-      linkWith.addAll([
+      libDir = Directory(libDir).uri.toFilePath();
+      libs = libs.map((lib) => "${libDir}${lib}.lib").toList();
+      libs.addAll(["${libDir}bluevk.lib", "${libDir}bluegl.lib"]);
+      libs.addAll([
         "gdi32.lib",
         "user32.lib",
         "shell32.lib",
@@ -151,14 +151,12 @@ void main(List<String> args) async {
       sources: sources,
       includes: ['native/include', 'native/include/filament'],
       defines: defines,
-      // UNCOMMENT THIS IF YOU ARE BUILDING WITH THE CUSTOM native_toolchain_c FORK FOR WINDOWS
-      // linkWith: linkWith,
       flags: [
         if (platform == "macos") '-mmacosx-version-min=13.0',
         if (platform == "ios") '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
-        if (platform != "windows") ...libs.map((lib) => "-l$lib"),
+        ...libs.map((lib) => "-l$lib"),
         "-L$libDir",
       ],
       dartBuildFiles: ['hook/build.dart'],

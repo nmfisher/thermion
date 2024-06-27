@@ -14,7 +14,7 @@
 #include "GL/GL.h"
 #include "GL/GLu.h"
 
-#include "ResourceBuffer.hpp"
+#include "ResourceBuffer.h"
 
 #if USE_ANGLE
 #include "egl_context.h"
@@ -22,7 +22,7 @@
 #include "wgl_context.h"
 #endif
 
-namespace thermion_filament {
+namespace thermion_flutter {
 
 class ThermionFlutterPlugin : public flutter::Plugin {
 public:
@@ -66,6 +66,6 @@ public:
     #endif
 };
 
-} // namespace thermion_filament
+} // namespace thermion_flutter
 
 #endif // FLUTTER_PLUGIN_FLUTTER_FILAMENT_PLUGIN_H_

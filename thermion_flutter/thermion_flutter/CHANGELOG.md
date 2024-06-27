@@ -1,3 +1,11 @@
+## 0.1.1+7
+
+ - Graduate package to a stable release. See pre-releases prior to this version for changelog entries.
+
+## 0.1.1-dev.0+7
+
+ - **FIX**: add ResourceBuffer header directly to Windows build so I don't have to fiddle around getting the CMake path right.
+
 ## 0.1.1+6
 
  - **DOCS**: update with links to playground.

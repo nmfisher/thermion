@@ -6,7 +6,7 @@
 
 #include "flutter_texture_buffer.h"
 
-namespace thermion_filament {
+namespace thermion_flutter {
 
 WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
                        flutter::TextureRegistrar *textureRegistrar)
@@ -143,4 +143,4 @@ void WGLContext::CreateRenderingSurface(
 
 void *WGLContext::GetSharedContext() { return (void *)_context; }
 
-} // namespace thermion_filament
+} // namespace thermion_flutter
