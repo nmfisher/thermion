@@ -1,3 +1,7 @@
+## 0.1.1+8
+
+ - **DOCS**: update homepage links and minor documentation updates.
+
 ## 0.1.1+7
 
  - Graduate package to a stable release. See pre-releases prior to this version for changelog entries.

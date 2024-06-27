@@ -3,6 +3,44 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-06-27
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.1.1+3`](#thermion_dart---v0113)
+ - [`thermion_flutter` - `v0.1.1+8`](#thermion_flutter---v0118)
+ - [`thermion_flutter_web` - `v0.0.1+7`](#thermion_flutter_web---v0017)
+ - [`thermion_flutter_platform_interface` - `v0.1.0+7`](#thermion_flutter_platform_interface---v0107)
+ - [`thermion_flutter_ffi` - `v0.1.0+7`](#thermion_flutter_ffi---v0107)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.0.1+7`
+ - `thermion_flutter_platform_interface` - `v0.1.0+7`
+ - `thermion_flutter_ffi` - `v0.1.0+7`
+
+---
+
+#### `thermion_dart` - `v0.1.1+3`
+
+ - **FIX**: bump ffigen dependency version & regenerate bindings (and revert to ffi.Int rather than ffi.Int32).
+ - **DOCS**: update homepage links and minor documentation updates.
+
+#### `thermion_flutter` - `v0.1.1+8`
+
+ - **DOCS**: update homepage links and minor documentation updates.
+
+
 ## 2024-06-26
 
 ### Changes
