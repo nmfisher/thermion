@@ -1,9 +1,9 @@
 ![Thermion Logo](https://raw.githubusercontent.com/nmfisher/flutter_filament/f19ea9b/docs/logo.png)
 
 <p align="center">
-  <a href="https://docs.page/nmfisher/flutter_filament/quickstart">Quickstart (Flutter)</a> •
-  <a href="https://docs.page/nmfisher/flutter_filament">Documentation</a> •
-  <a href="https://github.com/nmfisher/thermion/docs/examples/">Showcase</a> •
+  <a href="https://thermion.dev/quickstart">Quickstart (Flutter)</a> •
+  <a href="https://thermion.dev/quickstart">Documentation</a> •
+  <a href="https://thermion.dev/examples">Showcase</a> •
   <a href="https://dartpad.thermion.dev/">Playground</a> •
   <a href="https://discord.gg/h2VdDK3EAQ">Discord</a>
 </p>
