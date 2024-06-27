@@ -1,3 +1,7 @@
+## 0.0.1+7
+
+ - Update a dependency to the latest release.
+
 ## 0.0.1+6
 
  - Graduate package to a stable release. See pre-releases prior to this version for changelog entries.

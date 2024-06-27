@@ -1,3 +1,8 @@
+## 0.1.1+3
+
+ - **FIX**: bump ffigen dependency version & regenerate bindings (and revert to ffi.Int rather than ffi.Int32).
+ - **DOCS**: update homepage links and minor documentation updates.
+
 ## 0.1.1+2
 
  - Graduate package to a stable release. See pre-releases prior to this version for changelog entries.
