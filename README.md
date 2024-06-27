@@ -8,7 +8,7 @@
   <a href="https://discord.gg/h2VdDK3EAQ">Discord</a>
 </p>
 
-## Cross-platform 3D engine for Dart and Flutter.
+## Cross-platform 3D toolkit for Dart and Flutter.
 
 <a href="https://pub.dev/packages/thermion_dart"><img src="https://img.shields.io/pub/v/thermion_dart?label=pub.dev&labelColor=333940&logo=dart&color=00589B" alt="pub"></a>
 <a href="https://github.com/nmfisher/thermion"><img src="https://img.shields.io/github/stars/nmfisher/flutter_filament?style=flat&label=stars&labelColor=333940&color=8957e5&logo=github" alt="github"></a>
@@ -24,7 +24,7 @@
 
 ### Sponsors, Contributors & Acknowledgments
 
-Thermion uses the [Filament](https://github.com/google/filament) physically based rendering package under the hood.
+Thermion uses the [Filament](https://github.com/google/filament) Physically Based Rendering engine under the hood.
 
 Special thanks to [odd-io](https://github.com/odd-io/) for sponsoring work on supporting Windows, raycasting, testing and documentation.
 
