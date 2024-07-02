@@ -796,6 +796,25 @@ external void set_post_processing(
   bool enabled,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>()
+external void set_shadows_enabled(
+  ffi.Pointer<ffi.Void> viewer,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+external void set_shadow_type(
+  ffi.Pointer<ffi.Void> viewer,
+  int shadowType,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float)>()
+external void set_soft_shadow_options(
+  ffi.Pointer<ffi.Void> viewer,
+  double penumbraScale,
+  double penumbraRatioScale,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool, ffi.Bool, ffi.Bool)>()
 external void set_antialiasing(

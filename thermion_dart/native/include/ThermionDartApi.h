@@ -216,6 +216,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE int reveal_mesh(void *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE void set_post_processing(void *const viewer, bool enabled);
+	EMSCRIPTEN_KEEPALIVE void set_shadows_enabled(void *const viewer, bool enabled);
+	EMSCRIPTEN_KEEPALIVE void set_shadow_type(void *const viewer, int shadowType);
+	EMSCRIPTEN_KEEPALIVE void set_soft_shadow_options(void *const viewer, float penumbraScale, float penumbraRatioScale);
 	EMSCRIPTEN_KEEPALIVE void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa);
 	EMSCRIPTEN_KEEPALIVE void filament_pick(void *const viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y));
 	EMSCRIPTEN_KEEPALIVE const char *get_name_for_entity(void *const sceneManager, const EntityId entityId);

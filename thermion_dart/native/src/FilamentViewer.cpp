@@ -214,60 +214,6 @@ namespace thermion_filament
 
     Log("Created scene maager");
 
-    _dummyImageTexture = Texture::Builder()
-                        .width(1)
-                        .height(1)
-                        .levels(0x01)
-                        .format(Texture::InternalFormat::RGB16F)
-                        .sampler(Texture::Sampler::SAMPLER_2D)
-                        .build(*_engine);
-    try
-    {
-      _imageMaterial =
-          Material::Builder()
-              .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
-              .build(*_engine);
-      _imageMaterial->setDefaultParameter("showImage", 0);
-      _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(1.0f, 1.0f, 1.0f, 0.0f));
-      _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
-    }
-    catch (...)
-    {
-      Log("Failed to load background image material provider");
-      std::rethrow_exception(std::current_exception());
-    }
-    _imageScale = mat4f{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
-
-    _imageMaterial->setDefaultParameter("transform", _imageScale);
-
-    _imageVb = VertexBuffer::Builder()
-                   .vertexCount(3)
-                   .bufferCount(1)
-                   .attribute(VertexAttribute::POSITION, 0,
-                              VertexBuffer::AttributeType::FLOAT4, 0)
-                   .build(*_engine);
-
-    _imageVb->setBufferAt(
-        *_engine, 0,
-        {sFullScreenTriangleVertices, sizeof(sFullScreenTriangleVertices)});
-
-    _imageIb = IndexBuffer::Builder()
-                   .indexCount(3)
-                   .bufferType(IndexBuffer::IndexType::USHORT)
-                   .build(*_engine);
-
-    _imageIb->setBuffer(*_engine, {sFullScreenTriangleIndices,
-                                   sizeof(sFullScreenTriangleIndices)});
-
-    _imageEntity = em.create();
-    RenderableManager::Builder(1)
-        .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-        .material(0, _imageMaterial->getDefaultInstance())
-        .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, _imageVb,
-                  _imageIb, 0, 3)
-        .culling(false)
-        .build(*_engine, _imageEntity);
-    _scene->addEntity(_imageEntity);
   }
 
   void FilamentViewer::setAntiAliasing(bool msaa, bool fxaa, bool taa)
@@ -286,6 +232,24 @@ namespace thermion_filament
   {
     _view->setPostProcessingEnabled(enabled);
   }
+
+  void FilamentViewer::setShadowsEnabled(bool enabled)
+  {
+    _view->setShadowingEnabled(enabled);
+  }
+
+  void FilamentViewer::setShadowType(ShadowType shadowType)
+  {
+    _view->setShadowType(shadowType);
+  }
+
+  void FilamentViewer::setSoftShadowOptions(float penumbraScale, float penumbraRatioScale) { 
+    SoftShadowOptions opts;
+    opts.penumbraRatioScale = penumbraRatioScale;
+    opts.penumbraScale = penumbraScale;
+    _view->setSoftShadowOptions(opts);
+  }
+
 
   void FilamentViewer::setBloom(float strength)
   {
@@ -541,14 +505,81 @@ namespace thermion_filament
 
   void FilamentViewer::setBackgroundColor(const float r, const float g, const float b, const float a)
   {
-    // Log("Setting background color to rgba(%f,%f,%f,%f)", r, g, b, a);
+    std::lock_guard lock(_imageMutex);
+
+    if(_imageEntity.isNull()) {
+      createBackgroundImage();
+    }
     _imageMaterial->setDefaultParameter("showImage", 0);
     _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
     _imageMaterial->setDefaultParameter("transform", _imageScale);
   }
 
+  void FilamentViewer::createBackgroundImage() { 
+
+    _dummyImageTexture = Texture::Builder()
+                        .width(1)
+                        .height(1)
+                        .levels(0x01)
+                        .format(Texture::InternalFormat::RGB16F)
+                        .sampler(Texture::Sampler::SAMPLER_2D)
+                        .build(*_engine);
+    try
+    {
+      _imageMaterial =
+          Material::Builder()
+              .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
+              .build(*_engine);
+      _imageMaterial->setDefaultParameter("showImage", 0);
+      _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(1.0f, 1.0f, 1.0f, 0.0f));
+      _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
+    }
+    catch (...)
+    {
+      Log("Failed to load background image material provider");
+      std::rethrow_exception(std::current_exception());
+    }
+    _imageScale = mat4f{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+
+    _imageMaterial->setDefaultParameter("transform", _imageScale);
+
+    _imageVb = VertexBuffer::Builder()
+                   .vertexCount(3)
+                   .bufferCount(1)
+                   .attribute(VertexAttribute::POSITION, 0,
+                              VertexBuffer::AttributeType::FLOAT4, 0)
+                   .build(*_engine);
+
+    _imageVb->setBufferAt(
+        *_engine, 0,
+        {sFullScreenTriangleVertices, sizeof(sFullScreenTriangleVertices)});
+
+    _imageIb = IndexBuffer::Builder()
+                   .indexCount(3)
+                   .bufferType(IndexBuffer::IndexType::USHORT)
+                   .build(*_engine);
+
+    _imageIb->setBuffer(*_engine, {sFullScreenTriangleIndices,
+                                   sizeof(sFullScreenTriangleIndices)});
+    auto & em = EntityManager::get();
+    _imageEntity = em.create();
+    RenderableManager::Builder(1)
+        .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
+        .material(0, _imageMaterial->getDefaultInstance())
+        .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, _imageVb,
+                  _imageIb, 0, 3)
+        .culling(false)
+        .build(*_engine, _imageEntity);
+    _scene->addEntity(_imageEntity);
+  }
+
   void FilamentViewer::clearBackgroundImage()
   {
+    std::lock_guard lock(_imageMutex);
+    
+    if(_imageEntity.isNull()) {
+      createBackgroundImage();
+    }
     _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
     _imageMaterial->setDefaultParameter("showImage", 0);
     if (_imageTexture)
@@ -561,6 +592,12 @@ namespace thermion_filament
 
   void FilamentViewer::setBackgroundImage(const char *resourcePath, bool fillHeight)
   {
+
+    std::lock_guard lock(_imageMutex);
+
+    if(_imageEntity.isNull()) {
+      createBackgroundImage();
+    }
 
     string resourcePathString(resourcePath);
 
@@ -602,6 +639,11 @@ namespace thermion_filament
   ///
   void FilamentViewer::setBackgroundImagePosition(float x, float y, bool clamp = false)
   {
+    std::lock_guard lock(_imageMutex);
+
+    if(_imageEntity.isNull()) {
+      createBackgroundImage();
+    }
 
     // to translate the background image, we apply a transform to the UV coordinates of the quad texture, not the quad itself (see image.mat).
     // this allows us to set a background colour for the quad when the texture has been translated outside the quad's bounds.
@@ -682,11 +724,13 @@ namespace thermion_filament
   {
     clearLights();
     destroySwapChain();
-    _engine->destroy(_imageEntity);
-    _engine->destroy(_imageTexture);
-    _engine->destroy(_imageVb);
-    _engine->destroy(_imageIb);
-    _engine->destroy(_imageMaterial);
+    if(!_imageEntity.isNull()) {
+      _engine->destroy(_imageEntity);
+      _engine->destroy(_imageTexture);
+      _engine->destroy(_imageVb);
+      _engine->destroy(_imageIb);
+      _engine->destroy(_imageMaterial);
+    }
     delete _sceneManager;
     _engine->destroyCameraComponent(_mainCamera->getEntity());
     _mainCamera = nullptr;

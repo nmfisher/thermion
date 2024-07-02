@@ -443,6 +443,21 @@ extern "C"
         ((FilamentViewer *)viewer)->setPostProcessing(enabled);
     }
 
+    EMSCRIPTEN_KEEPALIVE void set_shadows_enabled(void *const viewer, bool enabled)
+    {
+        ((FilamentViewer *)viewer)->setShadowsEnabled(enabled);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void set_shadow_type(void *const viewer, int shadowType)
+    {
+        ((FilamentViewer *)viewer)->setShadowType((ShadowType)shadowType);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void set_soft_shadow_options(void *const viewer, float penumbraScale, float penumbraRatioScale)
+    {
+        ((FilamentViewer *)viewer)->setSoftShadowOptions(penumbraScale, penumbraRatioScale);
+    }
+
     EMSCRIPTEN_KEEPALIVE void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa)
     {
         ((FilamentViewer *)viewer)->setAntiAliasing(msaa, fxaa, taa);

@@ -153,6 +153,9 @@ namespace thermion_filament
 
         void setAntiAliasing(bool msaaEnabled, bool fxaaEnabled, bool taaEnabled);
         void setDepthOfField();
+        void setShadowsEnabled(bool enabled);
+        void setShadowType(ShadowType shadowType);
+        void setSoftShadowOptions( float penumbraScale, float penumbraRatioScale);
 
         EntityId createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, filament::RenderableManager::PrimitiveType primitiveType = RenderableManager::PrimitiveType::TRIANGLES, const char *materialPath = nullptr);
 
@@ -222,6 +225,7 @@ namespace thermion_filament
         void loadPngTexture(std::string path, ResourceBuffer data);
         void loadTextureFromPath(std::string path);
         void savePng(void *data, size_t size, int frameNumber);
+        void createBackgroundImage();
 
         time_point_t _recordingStartTime = std::chrono::high_resolution_clock::now();
         time_point_t _fpsCounterStartTime = std::chrono::high_resolution_clock::now();
@@ -229,6 +233,7 @@ namespace thermion_filament
         bool _recording = false;
         std::string _recordingOutputDirectory = std::string("/tmp");
         std::mutex _recordingMutex;
+        std::mutex _imageMutex;
         double _cumulativeAnimationUpdateTime = 0;
         int _frameCount = 0;
         int _skippedFrames = 0;
