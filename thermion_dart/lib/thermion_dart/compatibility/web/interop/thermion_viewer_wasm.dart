@@ -4,6 +4,7 @@ import 'dart:js_interop_unsafe';
 import 'dart:math';
 import 'dart:typed_data' as td;
 import 'dart:typed_data';
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:web/web.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -40,6 +41,8 @@ typedef ThermionViewerImpl = ThermionViewerWasm;
 /// (Emscripten-generated) ThermionDart JS module.
 ///
 class ThermionViewerWasm implements ThermionViewer {
+  final _logger = Logger("ThermionViewerWasm");
+
   late _EmscriptenModule _module;
 
   bool _initialized = false;
@@ -812,7 +815,7 @@ class ThermionViewerWasm implements ThermionViewer {
       var meshEntity = meshEntities[i];
 
       if (targetMeshNames?.contains(meshName) == false) {
-        // print("Skipping $meshName, not contained in target");
+        // _logger.info("Skipping $meshName, not contained in target");
         continue;
       }
 
@@ -820,7 +823,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
       var meshMorphTargets = await getMorphTargetNames(entity, meshEntity);
 
-      print("Got mesh morph targets ${meshMorphTargets}");
+      _logger.info("Got mesh morph targets ${meshMorphTargets}");
 
       var intersection = animation.morphTargets
           .toSet()
@@ -862,35 +865,42 @@ class ThermionViewerWasm implements ThermionViewer {
       // Copy the morph indices to WASM
       _module.writeArrayToMemory(
           idxList.buffer.asUint8List(idxList.offsetInBytes).toJS, idxPtr);
-
-      var result = _module.ccall(
-          "set_morph_animation",
-          "bool",
-          [
-            "void*".toJS,
-            "int".toJS,
-            "float*".toJS,
-            "int*".toJS,
-            "int".toJS,
-            "int".toJS,
-            "float".toJS
-          ].toJS,
-          [
-            _sceneManager!,
-            meshEntity.toJS,
-            dataPtr,
-            idxPtr,
-            indices.length.toJS,
-            animation.numFrames.toJS,
-            animation.frameLengthInMs.toJS
-          ].toJS,
-          null) as JSBoolean;
+      bool result = false;
+      try {
+        var jsResult = _module.ccall(
+            "set_morph_animation",
+            "bool",
+            [
+              "void*".toJS,
+              "int".toJS,
+              "float*".toJS,
+              "int*".toJS,
+              "int".toJS,
+              "int".toJS,
+              "float".toJS
+            ].toJS,
+            [
+              _sceneManager!,
+              meshEntity.toJS,
+              dataPtr,
+              idxPtr,
+              indices.length.toJS,
+              animation.numFrames.toJS,
+              animation.frameLengthInMs.toJS
+            ].toJS,
+            null);
+        _logger.info("Got jsResult $jsResult");
+        result = (jsResult as JSNumber).toDartInt == 1;
+      } catch (err, st) {
+        _logger.severe(err);
+        _logger.severe(st);
+      }
 
       // Free the memory allocated in WASM
       _module._free(dataPtr);
       _module._free(idxPtr);
 
-      if (!result.toDart) {
+      if (!result) {
         throw Exception("Failed to set morph animation data for ${meshName}");
       }
     }
