@@ -35,10 +35,9 @@ extension type _EmscriptenModule(JSObject _) implements JSObject {
 
 typedef ThermionViewerImpl = ThermionViewerWasm;
 
-
 ///
-/// A [ThermionViewer] implementation that forwards calls to
-/// the (Emscripten-generated) ThermionDart JS module.
+/// A [ThermionViewer] implementation that forwards calls to the
+/// (Emscripten-generated) ThermionDart JS module.
 ///
 class ThermionViewerWasm implements ThermionViewer {
   late _EmscriptenModule _module;
@@ -46,8 +45,36 @@ class ThermionViewerWasm implements ThermionViewer {
   bool _initialized = false;
   bool _rendering = false;
 
-  ThermionViewerWasm({JSObject? module, String moduleName = "thermion_dart"}) {
-    _module = module as _EmscriptenModule? ?? window.getProperty<_EmscriptenModule>(moduleName.toJS);
+  ///
+  /// Construct an instance of this class by explicitly passing the
+  /// module instance via the [module] property, or by specifying [moduleName],
+  /// being the name of the window property where the module has already been
+  /// loaded.
+  ///
+  /// Pass [assetPathPrefix] if you need to prepend a path to all asset paths
+  /// (e.g. on Flutter where the asset directory /foo is actually shipped under
+  /// the directory /assets/foo, you would construct this as:
+  ///
+  /// final viewer = ThermionViewerWasm(assetPathPrefix:"/assets/")
+  ///
+  ThermionViewerWasm(
+      {JSObject? module,
+      String moduleName = "thermion_dart",
+      String? assetPathPrefix}) {
+    _module = module as _EmscriptenModule? ??
+        window.getProperty<_EmscriptenModule>(moduleName.toJS);
+    if (assetPathPrefix != null) {
+      _setAssetPathPrefix(assetPathPrefix);
+    }
+  }
+
+  void _setAssetPathPrefix(String assetPathPrefix) {
+    _module.ccall(
+        "thermion_dart_web_set_asset_path_prefix",
+        "void",
+        <JSString>["string".toJS].toJS,
+        <JSAny>[assetPathPrefix.toJS].toJS,
+        null);
   }
 
   JSNumber? _viewer;
@@ -1847,29 +1874,22 @@ class ThermionViewerWasm implements ThermionViewer {
     // TODO: implement zoomUpdate
     throw UnimplementedError();
   }
-  
+
   @override
   Future setShadowType(ShadowType shadowType) async {
-      _module.ccall(
-        "set_shadow_type",
-        "void",
-        ["void*".toJS, "int".toJS].toJS,
-        [_viewer!, shadowType.index.toJS].toJS,
-        null);
+    _module.ccall("set_shadow_type", "void", ["void*".toJS, "int".toJS].toJS,
+        [_viewer!, shadowType.index.toJS].toJS, null);
   }
-  
+
   @override
   Future setShadowsEnabled(bool enabled) async {
-    _module.ccall(
-        "set_shadows_enabled",
-        "void",
-        ["void*".toJS, "bool".toJS].toJS,
-        [_viewer!, enabled.toJS].toJS,
-        null);
+    _module.ccall("set_shadows_enabled", "void",
+        ["void*".toJS, "bool".toJS].toJS, [_viewer!, enabled.toJS].toJS, null);
   }
-  
+
   @override
-  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) async {
+  Future setSoftShadowOptions(
+      double penumbraScale, double penumbraRatioScale) async {
     _module.ccall(
         "set_soft_shadow_options",
         "void",
