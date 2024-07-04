@@ -829,7 +829,7 @@ class ThermionViewerJS implements ThermionViewer {
   
   @override
   Future setShadowType(ShadowType shadowType) {
-    return _shim.setShadowType(shadowType).toDart;
+    return _shim.setShadowType(shadowType.index).toDart;
   }
   
   @override
