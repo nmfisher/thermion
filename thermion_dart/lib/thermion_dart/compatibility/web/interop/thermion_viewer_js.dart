@@ -826,4 +826,19 @@ class ThermionViewerJS implements ThermionViewer {
   void onDispose(Future Function() callback) {
     _onDispose.add(callback);
   }
+  
+  @override
+  Future setShadowType(ShadowType shadowType) {
+    return _shim.setShadowType(shadowType).toDart;
+  }
+  
+  @override
+  Future setShadowsEnabled(bool enabled) {
+    return _shim.setShadowsEnabled(enabled).toDart;
+  }
+  
+  @override
+  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) {
+    return _shim.setSoftShadowOptions(penumbraScale, penumbraRatioScale).toDart;
+  }
 }

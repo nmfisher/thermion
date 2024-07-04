@@ -631,8 +631,8 @@ class ThermionViewerWasm implements ThermionViewer {
     final promise = _module.ccall(
         "load_gltf",
         "int",
-        ["void*".toJS, "string".toJS, "string".toJS, "bool".toJS].toJS,
-        [_sceneManager!, path.toJS, relativeResourcePath.toJS, force.toJS].toJS,
+        ["void*".toJS, "string".toJS, "string".toJS].toJS,
+        [_sceneManager!, path.toJS, relativeResourcePath.toJS].toJS,
         {"async": true}.jsify()) as JSPromise<JSNumber>;
     final entityId = (await promise.toDart).toDartInt;
     if (entityId == -1) {
@@ -1846,5 +1846,35 @@ class ThermionViewerWasm implements ThermionViewer {
   Future zoomUpdate(double x, double y, double z) {
     // TODO: implement zoomUpdate
     throw UnimplementedError();
+  }
+  
+  @override
+  Future setShadowType(ShadowType shadowType) async {
+      _module.ccall(
+        "set_shadow_type",
+        "void",
+        ["void*".toJS, "int".toJS].toJS,
+        [_viewer!, shadowType.index.toJS].toJS,
+        null);
+  }
+  
+  @override
+  Future setShadowsEnabled(bool enabled) async {
+    _module.ccall(
+        "set_shadows_enabled",
+        "void",
+        ["void*".toJS, "bool".toJS].toJS,
+        [_viewer!, enabled.toJS].toJS,
+        null);
+  }
+  
+  @override
+  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) async {
+    _module.ccall(
+        "set_soft_shadow_options",
+        "void",
+        ["void*".toJS, "float".toJS, "float".toJS].toJS,
+        [_viewer!, penumbraScale.toJS, penumbraRatioScale.toJS].toJS,
+        null);
   }
 }
