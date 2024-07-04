@@ -15,37 +15,6 @@
 #include <emscripten/val.h>
 #include <emscripten/fetch.h>
 
-class PendingCall
-{
-public:
-  PendingCall()
-  {
-  }
-  ~PendingCall() {}
-
-  void Wait()
-  {
-    std::future<int32_t> accumulate_future = prom.get_future();
-    std::cout << "Loaded asset from Flutter of length " << accumulate_future.get() << std::endl;
-  }
-
-  void HandleResponse(void* data, int32_t length)
-  {
-    this->data = data;
-    this->length = length;
-    prom.set_value(length);
-  }
-void* data = nullptr;
-int32_t length = 0;
-
-private:
-  std::mutex mutex_;
-  std::condition_variable cv_;
-  bool notified_ = false;
-  std::promise<int32_t> prom;
-
-};
-
 using emscripten::val;
 
 extern "C"
@@ -60,8 +29,10 @@ extern "C"
   //   return 0;
   // }
 
-  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_load_resource_callback(void* data, int32_t length, void* context) {
-    ((PendingCall*)context)->HandleResponse(data, length);
+  std::string _assetPathPrefix;
+
+  EMSCRIPTEN_KEEPALIVE void thermion_dart_web_set_asset_path_prefix(const char* prefix) {
+    _assetPathPrefix = std::string(prefix);
   }
 
   EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE thermion_dart_web_create_gl_context() {
@@ -160,7 +131,7 @@ extern "C"
     // memcpy(data, request->data, request->numBytes);
     // emscripten_fetch_close(request);
     // return ResourceBuffer { data, (int32_t) request->numBytes, _lastResourceId  } ;
-    auto pathString = std::string(path);
+    auto pathString = _assetPathPrefix + std::string(path);
     void* data = nullptr;
     int32_t numBytes = 0;
 
@@ -199,12 +170,10 @@ extern "C"
       EM_ASM({
           var filename = UTF8ToString($0);
           var data = new Uint8Array(HEAPU8.subarray($1, $1 + $2));
-          console.log('Analyinzg /indexed');
 
           // Ensure the '/indexed' directory exists
           if (!FS.analyzePath('/indexed').exists) {
               FS.mkdir('/indexed');
-              console.log('Made dir /indexed');
           }
                 
           // Create all parent directories
@@ -214,13 +183,10 @@ extern "C"
               currentPath += '/' + parts[i];
               if (!FS.analyzePath(currentPath).exists) {
                   FS.mkdir(currentPath);
-                  console.log("Made dir " + currentPath);
               }
           }
-          console.log('Writing file to /indexed/' + filename);
           // Write the file
           FS.writeFile('/indexed/' + filename, data);
-          console.log('File written, syncing');
           
           FS.syncfs(false, function (err) {
               if (err) {
