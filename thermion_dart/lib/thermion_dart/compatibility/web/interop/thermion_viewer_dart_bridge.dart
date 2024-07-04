@@ -2,6 +2,7 @@
 library thermion_flutter_js;
 
 import 'dart:js_interop';
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/web/interop/thermion_viewer_js_shim.dart';
 
 import 'package:vector_math/vector_math_64.dart' as v64;
@@ -21,6 +22,7 @@ import 'package:vector_math/vector_math_64.dart';
 ///
 @JSExport()
 class ThermionViewerJSDartBridge {
+  final _logger = Logger("ThermionViewerJSDartBridge");
   final ThermionViewer viewer;
 
   ThermionViewerJSDartBridge(this.viewer);
@@ -76,7 +78,7 @@ class ThermionViewerJSDartBridge {
 
   @JSExport()
   JSPromise loadIbl(String lightingPath, double intensity) {
-    print("Loading IBL from $lightingPath with intensity $intensity");
+    _logger.info("Loading IBL from $lightingPath with intensity $intensity");
     return viewer.loadIbl(lightingPath, intensity: intensity).toJS;
   }
 
@@ -130,12 +132,12 @@ class ThermionViewerJSDartBridge {
 
   @JSExport()
   JSPromise<JSNumber> loadGlb(String path, {int numInstances = 1}) {
-    print("Loading GLB from path $path with numInstances $numInstances");
+    _logger.info("Loading GLB from path $path with numInstances $numInstances");
     return viewer
         .loadGlb(path, numInstances: numInstances)
         .then((entity) => entity.toJS)
         .catchError((err) {
-      print("Error: $err");
+      _logger.info("Error: $err");
     }).toJS;
   }
 
@@ -253,13 +255,13 @@ class ThermionViewerJSDartBridge {
         targetMeshNames: targetMeshNamesDart,
       )
           .onError((err, st) {
-        print("ERROR SETTING MORPH ANIMATION DATA : $err\n$st");
+        _logger.severe("ERROR SETTING MORPH ANIMATION DATA : $err\n$st");
         return null;
       });
       return result.toJS;
     } catch (err, st) {
-      print(err);
-      print(st);
+      _logger.severe(err);
+      _logger.severe(st);
       rethrow;
     }
   }
@@ -618,7 +620,7 @@ class ThermionViewerJSDartBridge {
         )
         .then((entities) => entities.map((entity) => entity.toJS).toList().toJS)
         .onError((e, st) async {
-      print("Error : $e\n$st");
+      _logger.severe("Error : $e\n$st");
       return <JSNumber>[].toJS;
     }).toJS;
   }
@@ -632,7 +634,7 @@ class ThermionViewerJSDartBridge {
         )
         .then((entity) => entity.toJS)
         .onError((e, st) async {
-      print("Error getChildEntity : $e\n$st");
+      _logger.severe("Error getChildEntity : $e\n$st");
       return 0.toJS;
     }).toJS;
   }

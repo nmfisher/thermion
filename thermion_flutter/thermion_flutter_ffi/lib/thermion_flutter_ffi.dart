@@ -5,6 +5,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer_ffi.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
+import 'package:logging/logging.dart';
 
 ///
 /// An implementation of [ThermionFlutterPlatform] that uses a Flutter platform
@@ -13,6 +14,7 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dar
 ///
 class ThermionFlutterFFI extends ThermionFlutterPlatform {
   final _channel = const MethodChannel("dev.thermion.flutter/event");
+  final _logger = Logger("ThermionFlutterFFI");
 
   ThermionViewerFFI? _viewer;
 
@@ -133,7 +135,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     final hardwareTextureId = result[1] as int?;
     final surfaceAddress = result[2] as int?;
 
-    print(
+    _logger.info(
         "Created texture with flutter texture id ${flutterTextureId}, hardwareTextureId $hardwareTextureId and surfaceAddress $surfaceAddress");
 
     _viewer?.viewportDimensions = (width.toDouble(), height.toDouble());
