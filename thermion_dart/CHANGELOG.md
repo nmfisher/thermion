@@ -1,3 +1,7 @@
+## 0.1.1+4
+
+ - **FIX**: defer creating image entity/material/etc until actually requested.
+
 ## 0.1.1+3
 
  - **FIX**: bump ffigen dependency version & regenerate bindings (and revert to ffi.Int rather than ffi.Int32).

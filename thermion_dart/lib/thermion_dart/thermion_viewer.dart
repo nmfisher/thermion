@@ -19,6 +19,13 @@ enum LightType {
   SPOT,
 }
 
+enum ShadowType { 
+    PCF,        //!< percentage-closer filtered shadows (default)
+    VSM,        //!< variance shadows
+    DPCF,       //!< PCF with contact hardening simulation
+    PCSS,       //!< PCF with soft shadows and contact hardening
+}
+
 // copied from filament/backened/DriverEnums.h
 enum PrimitiveType {
   // don't change the enums values (made to match GL)
@@ -562,9 +569,24 @@ abstract class ThermionViewer {
       {bool relative = false});
 
   ///
-  /// Enable/disable postprocessing.
+  /// Enable/disable postprocessing (disabled by default).
   ///
   Future setPostProcessing(bool enabled);
+
+  ///
+  /// Enable/disable shadows (disabled by default).
+  ///
+  Future setShadowsEnabled(bool enabled);
+
+  ///
+  /// Set shadow type.
+  ///
+  Future setShadowType(ShadowType shadowType);
+
+  ///
+  /// Set soft shadow options (ShadowType DPCF and PCSS)
+  ///
+  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale);
 
   ///
   /// Set antialiasing options.
@@ -707,6 +729,7 @@ abstract class ThermionViewer {
   /// Register a callback to be invoked when this viewer is disposed.
   ///
   void onDispose(Future Function() callback);
+  
 }
 
 abstract class AbstractGizmo {

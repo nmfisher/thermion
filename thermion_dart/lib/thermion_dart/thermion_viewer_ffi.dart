@@ -198,6 +198,7 @@ class ThermionViewerFFI extends ThermionViewer {
       await callback.call();
     }
     _onDispose.clear();
+
   }
 
   ///
@@ -1067,6 +1068,29 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
+  Future setShadowsEnabled(bool enabled) async {
+    set_shadows_enabled(_viewer!, enabled);
+  }
+
+  ///
+  ///
+  ///
+  Future setShadowType(ShadowType shadowType) async {
+    set_shadow_type(_viewer!, shadowType.index);
+  }
+
+  ///
+  ///
+  ///
+  Future setSoftShadowOptions(
+      double penumbraScale, double penumbraRatioScale) async {
+    set_soft_shadow_options(_viewer!, penumbraScale, penumbraRatioScale);
+  }
+
+  ///
+  ///
+  ///
+  @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
     set_antialiasing(_viewer!, msaa, fxaa, taa);
   }
@@ -1564,8 +1588,9 @@ class ThermionViewerFFI extends ThermionViewer {
     // ignore: sdk_version_since
 
     if (callback != null) {
-      var ptr = NativeCallable<
-          Void Function(Int entityId1, Int entityId2)>.listener(callback);
+      var ptr =
+          NativeCallable<Void Function(Int entityId1, Int entityId2)>.listener(
+              callback);
       add_collision_component(
           _sceneManager!, entity, ptr.nativeFunction, affectsTransform);
       _collisions[entity] = ptr;

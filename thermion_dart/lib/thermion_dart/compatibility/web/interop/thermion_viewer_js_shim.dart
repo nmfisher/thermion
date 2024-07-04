@@ -405,5 +405,17 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
   @JS('setBoneTransform')
   external JSPromise setBoneTransform(
       ThermionEntity entity, int boneIndex, JSArray<JSNumber> transform, int skinIndex);
+  
+  @JS('setShadowsEnabled')
+  external JSPromise setShadowsEnabled(
+      bool enabled);
+
+  @JS('setShadowType')
+  external JSPromise setShadowType(
+      ShadowType shadowType);
+
+  @JS('setSoftShadowOptions')
+  external JSPromise setSoftShadowOptions(
+      double penumbraScale, double penumbraRatioScale);
 }
 

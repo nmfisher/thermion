@@ -64,56 +64,19 @@ extern "C"
     ((PendingCall*)context)->HandleResponse(data, length);
   }
 
-  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set(char* ptr, int32_t offset, int32_t val) {
-    memset(ptr+offset, val, 1);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set_float(float* ptr, int32_t offset, float val) {
-    ptr[offset] = val;
-  }
-
-  EMSCRIPTEN_KEEPALIVE float thermion_filament_web_get_float(float* ptr, int32_t offset) {
-    return ptr[offset];
-  }
-
-  EMSCRIPTEN_KEEPALIVE double thermion_filament_web_get_double(double* ptr, int32_t offset) {
-    return ptr[offset];
-  }
-
-  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set_double(double* ptr, int32_t offset, double value) {
-    ptr[offset] = value;
-  }
-
-  EMSCRIPTEN_KEEPALIVE int32_t thermion_filament_web_get_int32(int32_t* ptr, int32_t offset) {
-    return ptr[offset];
-  }
-
-  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set_int32(int32_t* ptr, int32_t offset, int32_t value) {
-    ptr[offset] = value;
-  }
-
-  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_set_pointer(void** ptr, int32_t offset, void* val) { 
-    ptr[offset] = val;
-  }
-
-  EMSCRIPTEN_KEEPALIVE void* thermion_filament_web_get_pointer(void** ptr, int32_t offset) { 
-    return ptr[offset];
-  }
-
-  EMSCRIPTEN_KEEPALIVE char thermion_filament_web_get(char* ptr, int32_t offset) {
-    return ptr[offset];
-  }
-
-  EMSCRIPTEN_KEEPALIVE void* thermion_filament_web_allocate(int32_t size) {
-    void* allocated = (void*)calloc(size, 1);
-    return allocated;
-  }
-
-  EMSCRIPTEN_KEEPALIVE long thermion_filament_web_get_address(void** out) {
-    return (long)*out;
-  }
-
   EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE thermion_dart_web_create_gl_context() {
+
+    EM_ASM(
+      FS.mkdir('/indexed');
+      FS.mount(IDBFS, {}, '/indexed');
+      FS.syncfs(true, function (err) {
+          if (err) {
+              console.error('Error mounting IDBFS:', err);
+          } else {
+              console.log('IDBFS mounted successfully');
+          }
+      });
+    );
 
     std::cout << "Creating WebGL context." << std::endl;
 
@@ -181,7 +144,7 @@ extern "C"
     // const char* headers[] = {"Accept-Encoding", "gzip, deflate", NULL};
     // attr.requestHeaders = headers;
 
-    auto pathString = std::string(path);
+    // auto pathString = std::string(path);
     // if(pathString.rfind("/",0) != 0) {
     //   pathString = std::string("/") + pathString;
     // }
@@ -197,18 +160,81 @@ extern "C"
     // memcpy(data, request->data, request->numBytes);
     // emscripten_fetch_close(request);
     // return ResourceBuffer { data, (int32_t) request->numBytes, _lastResourceId  } ;
+    auto pathString = std::string(path);
     void* data = nullptr;
     int32_t numBytes = 0;
-    
-    void** pBuffer = (void**)malloc(sizeof(void*));
-    int* pNum = (int*) malloc(sizeof(int*));
-    int* pError = (int*)malloc(sizeof(int*));
-    emscripten_wget_data(pathString.c_str(), pBuffer, pNum, pError);
-    data = *pBuffer;
-    numBytes = *pNum;
-    free(pBuffer);
-    free(pNum);
-    free(pError);
+
+      
+    // Check if the file exists in IndexedDB first
+    bool fileExists = EM_ASM_INT({
+        var filename = UTF8ToString($0);
+        try {
+            var stat = FS.stat('/indexed/' + filename);
+            return stat.size > 0;
+        } catch (e) {
+            return false;
+        }
+    }, pathString.c_str());
+
+    if (fileExists) {
+        // File exists in IndexedDB, read it
+        EM_ASM({
+            var filename = UTF8ToString($0);
+            var content = FS.readFile('/indexed/' + filename);
+            var numBytes = content.length;
+            var ptr = _malloc(numBytes);
+            HEAPU8.set(content, ptr);
+            setValue($1, ptr, 'i32');
+            setValue($2, numBytes, 'i32');
+        }, pathString.c_str(), &data, &numBytes);
+    } else {
+      void** pBuffer = (void**)malloc(sizeof(void*));
+      int* pNum = (int*) malloc(sizeof(int*));
+      int* pError = (int*)malloc(sizeof(int*));
+      emscripten_wget_data(pathString.c_str(), pBuffer, pNum, pError);
+      data = *pBuffer;
+      numBytes = *pNum;
+
+      // Save the file to IndexedDB filesystem
+      EM_ASM({
+          var filename = UTF8ToString($0);
+          var data = new Uint8Array(HEAPU8.subarray($1, $1 + $2));
+          console.log('Analyinzg /indexed');
+
+          // Ensure the '/indexed' directory exists
+          if (!FS.analyzePath('/indexed').exists) {
+              FS.mkdir('/indexed');
+              console.log('Made dir /indexed');
+          }
+                
+          // Create all parent directories
+          var parts = filename.split('/');
+          var currentPath = '/indexed';
+          for (var i = 0; i < parts.length - 1; i++) {
+              currentPath += '/' + parts[i];
+              if (!FS.analyzePath(currentPath).exists) {
+                  FS.mkdir(currentPath);
+                  console.log("Made dir " + currentPath);
+              }
+          }
+          console.log('Writing file to /indexed/' + filename);
+          // Write the file
+          FS.writeFile('/indexed/' + filename, data);
+          console.log('File written, syncing');
+          
+          FS.syncfs(false, function (err) {
+              if (err) {
+                  console.error('Failed to save file to IndexedDB:', err);
+              } else {
+                  console.log('File saved to IndexedDB successfully');
+              }
+          });
+      }, pathString.c_str(), data, numBytes);
+
+      free(pBuffer);
+      free(pNum);
+      free(pError);
+    }
     return ResourceBuffer { data, numBytes, _lastResourceId  } ;   
   }
 

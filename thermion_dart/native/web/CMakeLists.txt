@@ -19,7 +19,7 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sINITIAL_MEMORY=512mb)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,ccall,cwrap,allocate,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,_free)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,ccall,cwrap,allocate,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_malloc,stackAlloc,_free)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFULL_ES3)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASSERTIONS)
@@ -35,10 +35,13 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_WORKER=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=0)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -lidbfs.js)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFORCE_FILESYSTEM=1)
+
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -pie)
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -O3 --no-entry")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -O3 --no-entry ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pie")
 
 add_link_options(${EMCC_CFLAGS})

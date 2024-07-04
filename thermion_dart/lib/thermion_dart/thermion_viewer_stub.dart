@@ -726,4 +726,22 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement zoomUpdate
     throw UnimplementedError();
   }
+  
+  @override
+  Future setShadowType(ShadowType shadowType) {
+    // TODO: implement setShadowType
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setShadowsEnabled(bool enabled) {
+    // TODO: implement setShadowsEnabled
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) {
+    // TODO: implement setSoftShadowOptions
+    throw UnimplementedError();
+  }
 }
