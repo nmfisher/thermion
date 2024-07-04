@@ -412,7 +412,7 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
 
   @JS('setShadowType')
   external JSPromise setShadowType(
-      ShadowType shadowType);
+      int shadowType);
 
   @JS('setSoftShadowOptions')
   external JSPromise setSoftShadowOptions(

@@ -135,8 +135,8 @@ class ThermionViewerJSDartBridge {
         .loadGlb(path, numInstances: numInstances)
         .then((entity) => entity.toJS)
         .catchError((err) {
-          print("Error: $err");
-        }).toJS;
+      print("Error: $err");
+    }).toJS;
   }
 
   @JSExport()
@@ -719,5 +719,21 @@ class ThermionViewerJSDartBridge {
   JSPromise addCollisionComponent(ThermionEntity entity,
       {JSFunction? callback, bool affectsTransform = false}) {
     throw UnimplementedError();
+  }
+
+  @JSExport()
+  JSPromise setShadowsEnabled(bool enabled) {
+    return viewer.setShadowsEnabled(enabled).toJS;
+  }
+
+  @JSExport()
+  JSPromise setShadowType(int shadowType) {
+    return viewer.setShadowType(ShadowType.values[shadowType]).toJS;
+  }
+
+  @JSExport()
+  JSPromise setSoftShadowOptions(
+      double penumbraScale, double penumbraRatioScale) {
+    return viewer.setSoftShadowOptions(penumbraScale, penumbraRatioScale).toJS;
   }
 }
