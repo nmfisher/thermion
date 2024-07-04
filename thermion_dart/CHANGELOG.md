@@ -1,3 +1,7 @@
+## 0.1.1+5
+
+ - Bump "thermion_dart" to `0.1.1+5`.
+
 ## 0.1.1+4
 
  - **FIX**: defer creating image entity/material/etc until actually requested.
