@@ -1,3 +1,7 @@
+## 0.1.0+10
+
+ - **FIX**: web/JS bool checks need to compare to int.
+
 ## 0.1.0+9
 
  - Update a dependency to the latest release.

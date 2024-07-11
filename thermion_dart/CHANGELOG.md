@@ -1,3 +1,10 @@
+## 0.1.2
+
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
 ## 0.1.1+5
 
  - Bump "thermion_dart" to `0.1.1+5`.
