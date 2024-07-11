@@ -24,6 +24,7 @@ dependencies:
   plugin_platform_interface: ^2.1.0
   thermion_flutter_platform_interface: ^0.1.0+10
   thermion_dart: ^0.1.2
+  logging: ^1.2.0
 
 dev_dependencies:
   flutter_test:
