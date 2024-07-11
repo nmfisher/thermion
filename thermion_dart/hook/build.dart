@@ -176,9 +176,17 @@ void main(List<String> args) async {
           Architecture.ia32 => "i686-linux-android",
           _ => throw FormatException('Invalid')
         };
-        var ndkRoot = File(config.cCompiler.compiler!.path).parent.parent.path;
+          
+        var compilerPath = config.cCompiler.compiler!.path;
+        
+        if(Platform.isWindows && compilerPath.startsWith("/")) {
+          compilerPath = compilerPath.substring(1);
+        }
+        
+        var ndkRoot = File(compilerPath).parent.parent.uri.toFilePath(windows:true);
+
         var stlPath =
-            File("$ndkRoot/sysroot/usr/lib/${archExtension}/libc++_shared.so");
+            File([ndkRoot, "sysroot", "usr", "lib", archExtension, "libc++_shared.so"].join(Platform.pathSeparator));
         output.addAsset(NativeCodeAsset(
             package: "thermion_dart",
             name: "libc++_shared.so",
