@@ -1,3 +1,7 @@
+## 0.0.2
+
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
 ## 0.0.1+9
 
  - Update a dependency to the latest release.
