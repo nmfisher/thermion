@@ -1,3 +1,15 @@
+## 0.1.3
+
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FEAT**: add clearMorphAnimationData function.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
 ## 0.1.2
 
  - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
