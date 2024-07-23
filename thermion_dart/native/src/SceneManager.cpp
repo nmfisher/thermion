@@ -781,6 +781,27 @@ namespace thermion_filament
         return true;
     }
 
+     void SceneManager::clearMorphAnimationBuffer(
+        EntityId entityId)
+    {
+        std::lock_guard lock(_mutex);
+
+        auto entity = Entity::import(entityId);
+
+        if (entity.isNull())
+        {
+            Log("ERROR: invalid entity %d.", entityId);
+            return;
+        }
+
+        auto animationComponentInstance = _animationComponentManager->getInstance(entity);
+        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &morphAnimations = animationComponent.morphAnimations;
+
+        morphAnimations.clear();
+        return;
+    }
+
     bool SceneManager::setMaterialColor(EntityId entityId, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)
     {
 

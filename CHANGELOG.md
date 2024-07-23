@@ -3,6 +3,77 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-07-11
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_flutter_ffi` - `v0.1.0+11`](#thermion_flutter_ffi---v01011)
+ - [`thermion_flutter` - `v0.1.1+12`](#thermion_flutter---v01112)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter` - `v0.1.1+12`
+
+---
+
+#### `thermion_flutter_ffi` - `v0.1.0+11`
+
+ - **FIX**: add logging dependency.
+
+
+## 2024-07-11
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.1.2`](#thermion_dart---v012)
+ - [`thermion_flutter_ffi` - `v0.1.0+10`](#thermion_flutter_ffi---v01010)
+ - [`thermion_flutter_web` - `v0.0.2`](#thermion_flutter_web---v002)
+ - [`thermion_flutter` - `v0.1.1+11`](#thermion_flutter---v01111)
+ - [`thermion_flutter_platform_interface` - `v0.1.0+10`](#thermion_flutter_platform_interface---v01010)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter` - `v0.1.1+11`
+ - `thermion_flutter_platform_interface` - `v0.1.0+10`
+
+---
+
+#### `thermion_dart` - `v0.1.2`
+
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+#### `thermion_flutter_ffi` - `v0.1.0+10`
+
+ - **FIX**: web/JS bool checks need to compare to int.
+
+#### `thermion_flutter_web` - `v0.0.2`
+
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+
 ## 2024-07-04
 
 ### Changes

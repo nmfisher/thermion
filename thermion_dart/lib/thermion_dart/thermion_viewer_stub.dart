@@ -587,6 +587,11 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
+  Future clearMorphAnimationData(ThermionEntity entity) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future setMorphAnimationData(
       ThermionEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) {
@@ -726,19 +731,19 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement zoomUpdate
     throw UnimplementedError();
   }
-  
+
   @override
   Future setShadowType(ShadowType shadowType) {
     // TODO: implement setShadowType
     throw UnimplementedError();
   }
-  
+
   @override
   Future setShadowsEnabled(bool enabled) {
     // TODO: implement setShadowsEnabled
     throw UnimplementedError();
   }
-  
+
   @override
   Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) {
     // TODO: implement setSoftShadowOptions

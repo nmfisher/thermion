@@ -3,6 +3,7 @@ import 'dart:js_interop_unsafe';
 import 'dart:math';
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
@@ -15,6 +16,7 @@ import 'thermion_viewer_js_shim.dart';
 /// a corresponding Javascript shim implementation (see [ThermionViewerJSShim]).
 ///
 class ThermionViewerJS implements ThermionViewer {
+  final _logger = Logger("ThermionViewerJS");
   late final ThermionViewerJSShim _shim;
 
   ThermionViewerJS.fromGlobalProperty(String globalPropertyName) {
@@ -262,6 +264,11 @@ class ThermionViewerJS implements ThermionViewer {
   }
 
   @override
+  Future<void> clearMorphAnimationData(ThermionEntity entity) async {
+    _shim.clearMorphAnimationData(entity);
+  }
+
+  @override
   Future<void> setMorphAnimationData(
       ThermionEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
@@ -282,8 +289,8 @@ class ThermionViewerJS implements ThermionViewer {
               targetMeshNamesJS, animation.frameLengthInMs)
           .toDart;
     } catch (err, st) {
-      print(err);
-      print(st);
+      _logger.severe(err);
+      _logger.severe(st);
       rethrow;
     }
   }
@@ -826,17 +833,17 @@ class ThermionViewerJS implements ThermionViewer {
   void onDispose(Future Function() callback) {
     _onDispose.add(callback);
   }
-  
+
   @override
   Future setShadowType(ShadowType shadowType) {
-    return _shim.setShadowType(shadowType).toDart;
+    return _shim.setShadowType(shadowType.index).toDart;
   }
-  
+
   @override
   Future setShadowsEnabled(bool enabled) {
     return _shim.setShadowsEnabled(enabled).toDart;
   }
-  
+
   @override
   Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) {
     return _shim.setSoftShadowOptions(penumbraScale, penumbraRatioScale).toDart;

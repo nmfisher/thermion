@@ -270,6 +270,12 @@ abstract class ThermionViewer {
       {List<String>? targetMeshNames});
 
   ///
+  /// Clear all current morph animations for [entity]. 
+  ///
+  Future clearMorphAnimationData(
+      ThermionEntity entity);
+
+  ///
   /// Resets all bones in the given entity to their rest pose.
   /// This should be done before every call to addBoneAnimation.
   ///

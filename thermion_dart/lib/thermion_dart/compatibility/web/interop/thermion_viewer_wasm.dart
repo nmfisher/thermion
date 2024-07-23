@@ -4,6 +4,7 @@ import 'dart:js_interop_unsafe';
 import 'dart:math';
 import 'dart:typed_data' as td;
 import 'dart:typed_data';
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:web/web.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -35,19 +36,48 @@ extension type _EmscriptenModule(JSObject _) implements JSObject {
 
 typedef ThermionViewerImpl = ThermionViewerWasm;
 
-
 ///
-/// A [ThermionViewer] implementation that forwards calls to
-/// the (Emscripten-generated) ThermionDart JS module.
+/// A [ThermionViewer] implementation that forwards calls to the
+/// (Emscripten-generated) ThermionDart JS module.
 ///
 class ThermionViewerWasm implements ThermionViewer {
+  final _logger = Logger("ThermionViewerWasm");
+
   late _EmscriptenModule _module;
 
   bool _initialized = false;
   bool _rendering = false;
 
-  ThermionViewerWasm({JSObject? module, String moduleName = "thermion_dart"}) {
-    _module = module as _EmscriptenModule? ?? window.getProperty<_EmscriptenModule>(moduleName.toJS);
+  ///
+  /// Construct an instance of this class by explicitly passing the
+  /// module instance via the [module] property, or by specifying [moduleName],
+  /// being the name of the window property where the module has already been
+  /// loaded.
+  ///
+  /// Pass [assetPathPrefix] if you need to prepend a path to all asset paths
+  /// (e.g. on Flutter where the asset directory /foo is actually shipped under
+  /// the directory /assets/foo, you would construct this as:
+  ///
+  /// final viewer = ThermionViewerWasm(assetPathPrefix:"/assets/")
+  ///
+  ThermionViewerWasm(
+      {JSObject? module,
+      String moduleName = "thermion_dart",
+      String? assetPathPrefix}) {
+    _module = module as _EmscriptenModule? ??
+        window.getProperty<_EmscriptenModule>(moduleName.toJS);
+    if (assetPathPrefix != null) {
+      _setAssetPathPrefix(assetPathPrefix);
+    }
+  }
+
+  void _setAssetPathPrefix(String assetPathPrefix) {
+    _module.ccall(
+        "thermion_dart_web_set_asset_path_prefix",
+        "void",
+        <JSString>["string".toJS].toJS,
+        <JSAny>[assetPathPrefix.toJS].toJS,
+        null);
   }
 
   JSNumber? _viewer;
@@ -759,6 +789,27 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
+  Future clearMorphAnimationData(
+      ThermionEntity entity) async {
+    var meshEntities = await getChildEntities(entity, false);
+    for(final childEntity in meshEntities) {
+          _module.ccall(
+            "clear_morph_animation",
+            "void",
+            [
+              "void*".toJS,
+              "int".toJS,
+            ].toJS,
+            [
+              _sceneManager!,
+              childEntity.toJS,
+            ].toJS,
+            null);
+    }
+
+  }
+
+  @override
   Future setMorphAnimationData(
       ThermionEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames, bool useNextEntity = false}) async {
@@ -785,7 +836,7 @@ class ThermionViewerWasm implements ThermionViewer {
       var meshEntity = meshEntities[i];
 
       if (targetMeshNames?.contains(meshName) == false) {
-        // print("Skipping $meshName, not contained in target");
+        // _logger.info("Skipping $meshName, not contained in target");
         continue;
       }
 
@@ -793,7 +844,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
       var meshMorphTargets = await getMorphTargetNames(entity, meshEntity);
 
-      print("Got mesh morph targets ${meshMorphTargets}");
+      _logger.info("Got mesh morph targets ${meshMorphTargets}");
 
       var intersection = animation.morphTargets
           .toSet()
@@ -835,35 +886,42 @@ class ThermionViewerWasm implements ThermionViewer {
       // Copy the morph indices to WASM
       _module.writeArrayToMemory(
           idxList.buffer.asUint8List(idxList.offsetInBytes).toJS, idxPtr);
-
-      var result = _module.ccall(
-          "set_morph_animation",
-          "bool",
-          [
-            "void*".toJS,
-            "int".toJS,
-            "float*".toJS,
-            "int*".toJS,
-            "int".toJS,
-            "int".toJS,
-            "float".toJS
-          ].toJS,
-          [
-            _sceneManager!,
-            meshEntity.toJS,
-            dataPtr,
-            idxPtr,
-            indices.length.toJS,
-            animation.numFrames.toJS,
-            animation.frameLengthInMs.toJS
-          ].toJS,
-          null) as JSBoolean;
+      bool result = false;
+      try {
+        var jsResult = _module.ccall(
+            "set_morph_animation",
+            "bool",
+            [
+              "void*".toJS,
+              "int".toJS,
+              "float*".toJS,
+              "int*".toJS,
+              "int".toJS,
+              "int".toJS,
+              "float".toJS
+            ].toJS,
+            [
+              _sceneManager!,
+              meshEntity.toJS,
+              dataPtr,
+              idxPtr,
+              indices.length.toJS,
+              animation.numFrames.toJS,
+              animation.frameLengthInMs.toJS
+            ].toJS,
+            null);
+        _logger.info("Got jsResult $jsResult");
+        result = (jsResult as JSNumber).toDartInt == 1;
+      } catch (err, st) {
+        _logger.severe(err);
+        _logger.severe(st);
+      }
 
       // Free the memory allocated in WASM
       _module._free(dataPtr);
       _module._free(idxPtr);
 
-      if (!result.toDart) {
+      if (!result) {
         throw Exception("Failed to set morph animation data for ${meshName}");
       }
     }
@@ -1847,29 +1905,22 @@ class ThermionViewerWasm implements ThermionViewer {
     // TODO: implement zoomUpdate
     throw UnimplementedError();
   }
-  
+
   @override
   Future setShadowType(ShadowType shadowType) async {
-      _module.ccall(
-        "set_shadow_type",
-        "void",
-        ["void*".toJS, "int".toJS].toJS,
-        [_viewer!, shadowType.index.toJS].toJS,
-        null);
+    _module.ccall("set_shadow_type", "void", ["void*".toJS, "int".toJS].toJS,
+        [_viewer!, shadowType.index.toJS].toJS, null);
   }
-  
+
   @override
   Future setShadowsEnabled(bool enabled) async {
-    _module.ccall(
-        "set_shadows_enabled",
-        "void",
-        ["void*".toJS, "bool".toJS].toJS,
-        [_viewer!, enabled.toJS].toJS,
-        null);
+    _module.ccall("set_shadows_enabled", "void",
+        ["void*".toJS, "bool".toJS].toJS, [_viewer!, enabled.toJS].toJS, null);
   }
-  
+
   @override
-  Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) async {
+  Future setSoftShadowOptions(
+      double penumbraScale, double penumbraRatioScale) async {
     _module.ccall(
         "set_soft_shadow_options",
         "void",

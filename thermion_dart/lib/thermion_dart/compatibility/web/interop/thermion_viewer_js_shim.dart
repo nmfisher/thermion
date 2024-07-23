@@ -6,11 +6,10 @@ import 'dart:js_interop';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 ///
-/// An extension type on [JSObject] that represents a 
+/// An extension type on [JSObject] that represents a
 /// Javascript shim implementation of the [ThermionViewer] interface.
-/// 
+///
 extension type ThermionViewerJSShim(JSObject _) implements JSObject {
-  
   @JS('initialized')
   external JSPromise<JSBoolean> get initialized;
 
@@ -135,6 +134,9 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
   @JS('getAnimationDuration')
   external JSPromise<JSNumber> getAnimationDuration(
       ThermionEntity entity, int animationIndex);
+
+  @JS('clearMorphAnimationData')
+  external void clearMorphAnimationData(ThermionEntity entity);
 
   @JS('setMorphAnimationData')
   external JSPromise setMorphAnimationData(
@@ -403,19 +405,16 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
       ThermionEntity entity, JSArray<JSNumber> transform);
 
   @JS('setBoneTransform')
-  external JSPromise setBoneTransform(
-      ThermionEntity entity, int boneIndex, JSArray<JSNumber> transform, int skinIndex);
-  
+  external JSPromise setBoneTransform(ThermionEntity entity, int boneIndex,
+      JSArray<JSNumber> transform, int skinIndex);
+
   @JS('setShadowsEnabled')
-  external JSPromise setShadowsEnabled(
-      bool enabled);
+  external JSPromise setShadowsEnabled(bool enabled);
 
   @JS('setShadowType')
-  external JSPromise setShadowType(
-      ShadowType shadowType);
+  external JSPromise setShadowType(int shadowType);
 
   @JS('setSoftShadowOptions')
   external JSPromise setSoftShadowOptions(
       double penumbraScale, double penumbraRatioScale);
 }
-

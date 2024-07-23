@@ -12,7 +12,7 @@
     ],
     ["Misc.", [
       ["Playground", "https://dartpad.thermion.dev"],
-      ["Examples", "/examples"],
+      ["Showcase", "/showcase"],
       ["Windows", "/windows"],
       ["Android", "/android"],
       ["Contributing", "/contributing"],

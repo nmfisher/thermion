@@ -35,7 +35,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
     var width = window.innerWidth;
     var height = window.innerHeight;
 
-    var viewer = ThermionViewerWasm();
+    var viewer = ThermionViewerWasm(assetPathPrefix: "/assets/");
     await viewer.initialize(width, height, uberArchivePath: uberArchivePath);
     return viewer;
   }
