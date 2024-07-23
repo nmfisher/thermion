@@ -3,6 +3,58 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-07-23
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.1.3`](#thermion_dart---v013)
+ - [`thermion_flutter_ffi` - `v0.1.0+12`](#thermion_flutter_ffi---v01012)
+ - [`thermion_flutter_web` - `v0.0.3`](#thermion_flutter_web---v003)
+ - [`thermion_flutter_platform_interface` - `v0.1.0+11`](#thermion_flutter_platform_interface---v01011)
+ - [`thermion_flutter` - `v0.1.1+13`](#thermion_flutter---v01113)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_platform_interface` - `v0.1.0+11`
+ - `thermion_flutter` - `v0.1.1+13`
+
+---
+
+#### `thermion_dart` - `v0.1.3`
+
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FEAT**: add clearMorphAnimationData function.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+#### `thermion_flutter_ffi` - `v0.1.0+12`
+
+ - **FIX**: add logging dependency.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: add logging dependency.
+ - **FIX**: web/JS bool checks need to compare to int.
+
+#### `thermion_flutter_web` - `v0.0.3`
+
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+
 ## 2024-07-11
 
 ### Changes
