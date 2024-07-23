@@ -789,6 +789,27 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
+  Future clearMorphAnimationData(
+      ThermionEntity entity) async {
+    var meshEntities = await getChildEntities(entity, false);
+    for(final childEntity in meshEntities) {
+          _module.ccall(
+            "clear_morph_animation",
+            "void",
+            [
+              "void*".toJS,
+              "int".toJS,
+            ].toJS,
+            [
+              _sceneManager!,
+              childEntity.toJS,
+            ].toJS,
+            null);
+    }
+
+  }
+
+  @override
   Future setMorphAnimationData(
       ThermionEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames, bool useNextEntity = false}) async {

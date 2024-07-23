@@ -599,6 +599,18 @@ class ThermionViewerFFI extends ThermionViewer {
     return getAnimationDuration(entity, index);
   }
 
+  Future clearMorphAnimationData(ThermionEntity entity) async {
+    var meshEntities = await getChildEntities(entity, true);
+
+    for(final childEntity in meshEntities) {
+        clear_morph_animation(
+          _sceneManager!,
+          childEntity);
+    }
+
+
+  }
+
   ///
   ///
   ///

@@ -264,6 +264,11 @@ class ThermionViewerJS implements ThermionViewer {
   }
 
   @override
+  Future<void> clearMorphAnimationData(ThermionEntity entity) async {
+    _shim.clearMorphAnimationData(entity);
+  }
+
+  @override
   Future<void> setMorphAnimationData(
       ThermionEntity entity, MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {

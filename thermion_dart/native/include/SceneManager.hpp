@@ -87,6 +87,9 @@ namespace thermion_filament
             int numFrames,
             float frameLengthInMs);
 
+        void clearMorphAnimationBuffer(
+            EntityId entityId);
+
         bool setMorphTargetWeights(EntityId entityId, const float *const weights, int count);
 
         math::mat4f getLocalTransform(EntityId entityId);

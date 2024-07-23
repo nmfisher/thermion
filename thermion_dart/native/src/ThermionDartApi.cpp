@@ -405,7 +405,7 @@ extern "C"
         return ((SceneManager *)sceneManager)->setMorphTargetWeights(asset, weights, numWeights);
     }
 
-    bool set_morph_animation(
+    EMSCRIPTEN_KEEPALIVE bool set_morph_animation(
         void *sceneManager,
         EntityId asset,
         const float *const morphData,
@@ -416,6 +416,10 @@ extern "C"
     {
         auto result = ((SceneManager *)sceneManager)->setMorphAnimationBuffer(asset, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
         return result;
+    }
+
+    EMSCRIPTEN_KEEPALIVE void clear_morph_animation(void* sceneManager, EntityId asset) {
+        ((SceneManager *)sceneManager)->clearMorphAnimationBuffer(asset);
     }
 
     EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose(void *sceneManager, EntityId entityId)

@@ -136,6 +136,9 @@ extern "C"
 		int numMorphTargets,
 		int numFrames,
 		float frameLengthInMs);
+	EMSCRIPTEN_KEEPALIVE void clear_morph_animation(
+		void *sceneManager,
+		EntityId entity);
 
 	EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose(
 		void *sceneManager,

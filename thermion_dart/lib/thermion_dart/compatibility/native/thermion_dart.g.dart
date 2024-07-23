@@ -369,6 +369,12 @@ external bool set_morph_animation(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+external void clear_morph_animation(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
 external void reset_to_rest_pose(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,

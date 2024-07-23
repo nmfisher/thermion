@@ -227,6 +227,11 @@ class ThermionViewerJSDartBridge {
           .toJS;
 
   @JSExport()
+  void clearMorphAnimationData(ThermionEntity entity) {
+    viewer.clearMorphAnimationData(entity);
+  }
+
+  @JSExport()
   JSPromise setMorphAnimationData(
       ThermionEntity entity,
       JSArray<JSArray<JSNumber>> animation,
