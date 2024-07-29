@@ -456,7 +456,7 @@ external bool set_bone_transform(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Bool,
-        ffi.Bool, ffi.Bool, ffi.Float)>()
+        ffi.Bool, ffi.Bool, ffi.Float, ffi.Float)>()
 external void play_animation(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
@@ -465,6 +465,7 @@ external void play_animation(
   bool reverse,
   bool replaceActive,
   double crossfade,
+  double startOffset,
 );
 
 @ffi.Native<
@@ -1299,19 +1300,6 @@ external void apply_weights_ffi(
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> weights,
   int count,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool,
-        ffi.Bool, ffi.Bool, ffi.Float)>()
-external void play_animation_ffi(
-  ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
-  int index,
-  bool loop,
-  bool reverse,
-  bool replaceActive,
-  double crossfade,
 );
 
 @ffi.Native<

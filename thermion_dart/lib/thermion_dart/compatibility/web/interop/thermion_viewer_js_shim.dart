@@ -184,6 +184,7 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
     bool reverse,
     bool replaceActive,
     double crossfade,
+    double startOffset,
   );
 
   @JS('playAnimationByName')

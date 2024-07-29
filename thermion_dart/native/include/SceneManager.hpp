@@ -129,7 +129,7 @@ namespace thermion_filament
         void resetBones(EntityId entityId);
         bool setTransform(EntityId entityId, math::mat4f transform);
         bool updateBoneMatrices(EntityId entityId);
-        void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f);
+        void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f);
         void stopAnimation(EntityId e, int index);
         void setMorphTargetWeights(const char *const entityName, float *weights, int count);
         void loadTexture(EntityId entity, const char *resourcePath, int renderableIndex);

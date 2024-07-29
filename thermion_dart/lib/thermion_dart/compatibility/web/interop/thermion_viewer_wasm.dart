@@ -698,7 +698,8 @@ class ThermionViewerWasm implements ThermionViewer {
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
-      double crossfade = 0.0}) async {
+      double crossfade = 0.0,
+      double startOffset = 0.0}) async {
     _module.ccall(
         "play_animation",
         "void",
@@ -709,6 +710,7 @@ class ThermionViewerWasm implements ThermionViewer {
           "bool".toJS,
           "bool".toJS,
           "bool".toJS,
+          "float".toJS,
           "float".toJS
         ].toJS,
         [

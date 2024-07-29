@@ -1135,8 +1135,8 @@ namespace thermion_filament
 
         return true;
     }
-
-    void SceneManager::playAnimation(EntityId entityId, int index, bool loop, bool reverse, bool replaceActive, float crossfade)
+ 
+    void SceneManager::playAnimation(EntityId entityId, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset)
     {
         std::lock_guard lock(_mutex);
 
@@ -1200,6 +1200,7 @@ namespace thermion_filament
         }
 
         GltfAnimation animation;
+        animation.startOffset = startOffset;
         animation.index = index;
         animation.start = std::chrono::high_resolution_clock::now();
         animation.loop = loop;
