@@ -339,7 +339,8 @@ class ThermionViewerJSDartBridge {
           {bool loop = false,
           bool reverse = false,
           bool replaceActive = true,
-          double crossfade = 0.0}) =>
+          double crossfade = 0.0,
+          double startOffset = 0.0}) =>
       viewer
           .playAnimation(
             entity,
@@ -348,6 +349,7 @@ class ThermionViewerJSDartBridge {
             reverse: reverse,
             replaceActive: replaceActive,
             crossfade: crossfade,
+            startOffset: startOffset
           )
           .toJS;
 

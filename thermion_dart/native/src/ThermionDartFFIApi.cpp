@@ -677,18 +677,6 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void play_animation_ffi(void *const sceneManager,
-                                                EntityId asset, int index,
-                                                bool loop, bool reverse,
-                                                bool replaceActive,
-                                                float crossfade)
-  {
-    std::packaged_task<void()> lambda([=]
-                                      { play_animation(sceneManager, asset, index, loop, reverse, replaceActive,
-                                                       crossfade); });
-    auto fut = _rl->add_task(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void set_animation_frame_ffi(void *const sceneManager,
                                                      EntityId asset,
                                                      int animationIndex,

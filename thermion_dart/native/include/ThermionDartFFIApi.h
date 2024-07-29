@@ -78,8 +78,6 @@ extern "C"
         const char *const entityName,
         float *const weights,
         int count);
-
-    EMSCRIPTEN_KEEPALIVE void play_animation_ffi(void *const sceneManager, EntityId asset, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
     EMSCRIPTEN_KEEPALIVE void set_animation_frame_ffi(void *const sceneManager, EntityId asset, int animationIndex, int animationFrame);
     EMSCRIPTEN_KEEPALIVE void stop_animation_ffi(void *const sceneManager, EntityId asset, int index);
     EMSCRIPTEN_KEEPALIVE void get_animation_count_ffi(void *const sceneManager, EntityId asset, void (*callback)(int));

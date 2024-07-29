@@ -1593,25 +1593,6 @@ external void apply_weights_ffi(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
-        EntityId,
-        ffi.Int,
-        ffi.Bool,
-        ffi.Bool,
-        ffi.Bool,
-        ffi.Float)>(symbol: '_play_animation_ffi', assetId: 'thermion_dart')
-external void play_animation_ffi(
-  ffi.Pointer<ffi.Void> sceneManager,
-  int asset,
-  int index,
-  bool loop,
-  bool reverse,
-  bool replaceActive,
-  double crossfade,
-);
-
-@ffi.Native<
         ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int)>(
     symbol: '_set_animation_frame_ffi', assetId: 'thermion_dart')
 external void set_animation_frame_ffi(

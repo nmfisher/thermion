@@ -368,9 +368,10 @@ class ThermionViewerJS implements ThermionViewer {
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
-      double crossfade = 0.0}) async {
+      double crossfade = 0.0,
+      double startOffset = 0.0}) async {
     await _shim
-        .playAnimation(entity, index, loop, reverse, replaceActive, crossfade)
+        .playAnimation(entity, index, loop, reverse, replaceActive, crossfade, startOffset)
         .toDart;
   }
 

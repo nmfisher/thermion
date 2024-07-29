@@ -980,9 +980,10 @@ class ThermionViewerFFI extends ThermionViewer {
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
-      double crossfade = 0.0}) async {
+      double crossfade = 0.0,
+      double startOffset = 0.0}) async {
     play_animation(
-        _sceneManager!, entity, index, loop, reverse, replaceActive, crossfade);
+        _sceneManager!, entity, index, loop, reverse, replaceActive, crossfade, startOffset);
   }
 
   ///

@@ -168,7 +168,7 @@ extern "C"
 		int skinIndex,
 		int boneIndex,
 		const float *const transform);
-	EMSCRIPTEN_KEEPALIVE void play_animation(void *sceneManager, EntityId entity, int index, bool loop, bool reverse, bool replaceActive, float crossfade);
+	EMSCRIPTEN_KEEPALIVE void play_animation(void *sceneManager, EntityId entity, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset);
 	EMSCRIPTEN_KEEPALIVE void set_animation_frame(void *sceneManager, EntityId entity, int animationIndex, int animationFrame);
 	EMSCRIPTEN_KEEPALIVE void stop_animation(void *sceneManager, EntityId entity, int index);
 	EMSCRIPTEN_KEEPALIVE int get_animation_count(void *sceneManager, EntityId asset);

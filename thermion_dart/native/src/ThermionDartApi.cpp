@@ -586,9 +586,10 @@ extern "C"
         bool loop,
         bool reverse,
         bool replaceActive,
-        float crossfade)
+        float crossfade,
+        float startOffset)
     {
-        ((SceneManager *)sceneManager)->playAnimation(asset, index, loop, reverse, replaceActive, crossfade);
+        ((SceneManager *)sceneManager)->playAnimation(asset, index, loop, reverse, replaceActive, crossfade, startOffset);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_animation_frame(
