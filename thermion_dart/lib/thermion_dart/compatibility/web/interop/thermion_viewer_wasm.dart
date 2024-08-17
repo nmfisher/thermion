@@ -10,6 +10,8 @@ import 'package:web/web.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:vector_math/vector_math_64.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 export 'thermion_viewer_dart_bridge.dart';
 
@@ -43,10 +45,12 @@ typedef ThermionViewerImpl = ThermionViewerWasm;
 class ThermionViewerWasm implements ThermionViewer {
   final _logger = Logger("ThermionViewerWasm");
 
-  late _EmscriptenModule _module;
+  _EmscriptenModule? _module;
 
   bool _initialized = false;
   bool _rendering = false;
+
+  String? assetPathPrefix;
 
   ///
   /// Construct an instance of this class by explicitly passing the
@@ -60,19 +64,14 @@ class ThermionViewerWasm implements ThermionViewer {
   ///
   /// final viewer = ThermionViewerWasm(assetPathPrefix:"/assets/")
   ///
-  ThermionViewerWasm(
-      {JSObject? module,
-      String moduleName = "thermion_dart",
-      String? assetPathPrefix}) {
-    _module = module as _EmscriptenModule? ??
-        window.getProperty<_EmscriptenModule>(moduleName.toJS);
-    if (assetPathPrefix != null) {
-      _setAssetPathPrefix(assetPathPrefix);
+  ThermionViewerWasm({JSObject? module, this.assetPathPrefix}) {
+    if (module != null) {
+      _module = module as _EmscriptenModule;
     }
   }
 
   void _setAssetPathPrefix(String assetPathPrefix) {
-    _module.ccall(
+    _module!.ccall(
         "thermion_dart_web_set_asset_path_prefix",
         "void",
         <JSString>["string".toJS].toJS,
@@ -84,29 +83,52 @@ class ThermionViewerWasm implements ThermionViewer {
   JSNumber? _sceneManager;
 
   Future initialize(int width, int height, {String? uberArchivePath}) async {
-    final context = _module.ccall("thermion_dart_web_create_gl_context", "int",
+    if (!_initialized) {
+      await _initializeModule();
+      _initialized = true;
+      if (assetPathPrefix != null) {
+        _setAssetPathPrefix(assetPathPrefix!);
+      }
+    }
+
+    final context = _module!.ccall("thermion_dart_web_create_gl_context", "int",
         <JSString>[].toJS, <JSAny>[].toJS, null);
-    final loader = _module.ccall(
+    final loader = _module!.ccall(
         "thermion_dart_web_get_resource_loader_wrapper",
         "void*",
         <JSString>[].toJS,
         <JSAny>[].toJS,
         null);
-    _viewer = _module.ccall(
+    _viewer = _module!.ccall(
         "create_filament_viewer",
         "void*",
         ["void*".toJS, "void*".toJS, "void*".toJS, "string".toJS].toJS,
         [context, loader, null, uberArchivePath?.toJS].toJS,
         null) as JSNumber;
     await createSwapChain(width, height);
-    _updateViewportAndCameraProjection(width, height, 1.0);
-    _sceneManager = _module.ccall("get_scene_manager", "void*",
+    updateViewportAndCameraProjection(width, height, 1.0);
+    _sceneManager = _module!.ccall("get_scene_manager", "void*",
         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
     _initialized = true;
   }
 
+  Future<void> _initializeModule() async {
+    var moduleScript = document.createElement("script") as HTMLScriptElement;
+
+    globalContext["exports"] = JSObject();
+    var module = JSObject();
+    globalContext["module"] = module;
+    var content = await http.get(Uri.parse("thermion_dart.js"));
+    moduleScript.innerHTML = content.body.toJS;
+    document.head!.appendChild(moduleScript);
+    var instantiate = module.getProperty("exports".toJS) as JSFunction;
+    var moduleInstance =
+        instantiate.callAsFunction() as JSPromise<_EmscriptenModule>;
+    _module = await moduleInstance.toDart;
+  }
+
   Future createSwapChain(int width, int height) async {
-    _module.ccall(
+    _module!.ccall(
         "create_swap_chain",
         "void",
         ["void*".toJS, "void*".toJS, "uint32_t".toJS, "uint32_t".toJS].toJS,
@@ -115,13 +137,13 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   Future destroySwapChain() async {
-    _module.ccall("destroy_swap_chain", "void", ["void*".toJS].toJS,
+    _module!.ccall("destroy_swap_chain", "void", ["void*".toJS].toJS,
         [_viewer!].toJS, null);
   }
 
-  void _updateViewportAndCameraProjection(
+  void updateViewportAndCameraProjection(
       int width, int height, double scaleFactor) {
-    _module.ccall(
+    _module!.ccall(
         "update_viewport_and_camera_projection",
         "void",
         ["void*".toJS, "uint32_t".toJS, "uint32_t".toJS, "float".toJS].toJS,
@@ -163,13 +185,13 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   void _destroyViewer() {
-    _module.ccall("destroy_filament_viewer", "void", ["void*".toJS].toJS,
+    _module!.ccall("destroy_filament_viewer", "void", ["void*".toJS].toJS,
         [_viewer].toJS, null);
   }
 
   @override
   Future setBackgroundColor(double r, double g, double b, double alpha) async {
-    _module.ccall(
+    _module!.ccall(
         "set_background_color",
         "void",
         ["void*".toJS, "float".toJS, "float".toJS, "float".toJS, "float".toJS]
@@ -180,7 +202,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future addAnimationComponent(ThermionEntity entity) async {
-    _module.ccall(
+    _module!.ccall(
         "add_animation_component",
         "bool",
         ["void*".toJS, "int32_t".toJS].toJS,
@@ -191,7 +213,7 @@ class ThermionViewerWasm implements ThermionViewer {
   Matrix4 _matrixFromPtr(JSNumber matPtr) {
     final mat = Matrix4.zero();
     for (int i = 0; i < 16; i++) {
-      mat[i] = (_module.getValue((matPtr.toDartInt + (i * 4)).toJS, "float")
+      mat[i] = (_module!.getValue((matPtr.toDartInt + (i * 4)).toJS, "float")
               as JSNumber)
           .toDartDouble;
     }
@@ -201,15 +223,15 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<List<Matrix4>> getRestLocalTransforms(ThermionEntity entity,
       {int skinIndex = 0}) async {
-    var boneCountJS = _module.ccall(
+    var boneCountJS = _module!.ccall(
         "get_bone_count",
         "int",
         ["void*".toJS, "int".toJS, "int".toJS].toJS,
         [_sceneManager!, entity.toJS, skinIndex.toJS].toJS,
         null) as JSNumber;
     var boneCount = boneCountJS.toDartInt;
-    var buf = _module._malloc(boneCount * 16 * 4) as JSNumber;
-    _module.ccall(
+    var buf = _module!._malloc(boneCount * 16 * 4) as JSNumber;
+    _module!.ccall(
         "get_rest_local_transforms",
         "void",
         ["void*".toJS, "int".toJS, "int".toJS, "float*".toJS, "int".toJS].toJS,
@@ -220,14 +242,14 @@ class ThermionViewerWasm implements ThermionViewer {
       var matPtr = (buf.toDartInt + (i * 16 * 4)).toJS;
       transforms.add(_matrixFromPtr(matPtr));
     }
-    _module._free(buf);
+    _module!._free(buf);
     return transforms;
   }
 
   @override
   Future<ThermionEntity> getBone(ThermionEntity parent, int boneIndex,
       {int skinIndex = 0}) async {
-    final boneId = _module.ccall(
+    final boneId = _module!.ccall(
         "get_bone",
         "int",
         ["void*".toJS, "int32_t".toJS, "int32_t".toJS, "int32_t".toJS].toJS,
@@ -257,7 +279,7 @@ class ThermionViewerWasm implements ThermionViewer {
     final bones = await getBones(entity);
 
     var numBytes = animation.numFrames * 16 * 4;
-    var floatPtr = _module._malloc(numBytes);
+    var floatPtr = _module!._malloc(numBytes);
 
     var restLocalTransforms = await getRestLocalTransforms(entity);
 
@@ -298,12 +320,12 @@ class ThermionViewerWasm implements ThermionViewer {
         }
         for (int j = 0; j < 16; j++) {
           var offset = ((frameNum * 16) + j) * 4;
-          _module.setValue((floatPtr.toDartInt + offset).toJS,
+          _module!.setValue((floatPtr.toDartInt + offset).toJS,
               newLocalTransform.storage[j].toJS, "float");
         }
       }
 
-      _module.ccall(
+      _module!.ccall(
           "add_bone_animation",
           "void",
           [
@@ -332,7 +354,7 @@ class ThermionViewerWasm implements ThermionViewer {
           ].toJS,
           null);
     }
-    _module._free(floatPtr);
+    _module!._free(floatPtr);
   }
 
   @override
@@ -361,7 +383,7 @@ class ThermionViewerWasm implements ThermionViewer {
       double sunHaloSize = 10.0,
       double sunHaloFallof = 80.0,
       bool castShadows = true}) async {
-    final entityId = _module.ccall(
+    final entityId = _module!.ccall(
         "add_light",
         "int",
         [
@@ -413,24 +435,24 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<List<String>> getBoneNames(ThermionEntity entity,
       {int skinIndex = 0}) async {
-    var boneCountJS = _module.ccall(
+    var boneCountJS = _module!.ccall(
         "get_bone_count",
         "int",
         ["void*".toJS, "int".toJS, "int".toJS].toJS,
         [_sceneManager!, entity.toJS, skinIndex.toJS].toJS,
         null) as JSNumber;
     var boneCount = boneCountJS.toDartInt;
-    var buf = _module._malloc(boneCount * 4) as JSNumber;
+    var buf = _module!._malloc(boneCount * 4) as JSNumber;
 
     var empty = " ".toJS;
     var ptrs = <JSNumber>[];
     for (int i = 0; i < boneCount; i++) {
-      var ptr = _module._malloc(256);
-      _module.stringToUTF8(empty, ptr, 255.toJS);
+      var ptr = _module!._malloc(256);
+      _module!.stringToUTF8(empty, ptr, 255.toJS);
       ptrs.add(ptr);
-      _module.setValue((buf.toDartInt + (i * 4)).toJS, ptr, "i32");
+      _module!.setValue((buf.toDartInt + (i * 4)).toJS, ptr, "i32");
     }
-    _module.ccall(
+    _module!.ccall(
         "get_bone_names",
         "void",
         ["void*".toJS, "int".toJS, "char**".toJS, "int".toJS].toJS,
@@ -438,7 +460,7 @@ class ThermionViewerWasm implements ThermionViewer {
         null);
     var names = <String>[];
     for (int i = 0; i < boneCount; i++) {
-      var name = _module.UTF8ToString(ptrs[i]).toDart;
+      var name = _module!.UTF8ToString(ptrs[i]).toDart;
       names.add(name);
     }
 
@@ -448,7 +470,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<List<ThermionEntity>> getChildEntities(
       ThermionEntity parent, bool renderableOnly) async {
-    var entityCountJS = _module.ccall(
+    var entityCountJS = _module!.ccall(
         "get_entity_count",
         "int",
         ["void*".toJS, "int".toJS, "bool".toJS].toJS,
@@ -456,9 +478,9 @@ class ThermionViewerWasm implements ThermionViewer {
         null) as JSNumber;
     var entityCount = entityCountJS.toDartInt;
     var entities = <ThermionEntity>[];
-    var buf = _module._malloc(entityCount * 4) as JSNumber;
+    var buf = _module!._malloc(entityCount * 4) as JSNumber;
 
-    _module.ccall(
+    _module!.ccall(
         "get_entities",
         "void",
         ["void*".toJS, "int".toJS, "bool".toJS, "int*".toJS].toJS,
@@ -466,17 +488,17 @@ class ThermionViewerWasm implements ThermionViewer {
         null);
     for (int i = 0; i < entityCount; i++) {
       var entityId =
-          _module.getValue((buf.toDartInt + (i * 4)).toJS, "i32") as JSNumber;
+          _module!.getValue((buf.toDartInt + (i * 4)).toJS, "i32") as JSNumber;
       entities.add(entityId.toDartInt);
     }
-    _module._free(buf);
+    _module!._free(buf);
     return entities;
   }
 
   @override
   Future<ThermionEntity> getChildEntity(
       ThermionEntity parent, String childName) async {
-    final entityId = _module.ccall(
+    final entityId = _module!.ccall(
         "find_child_entity_by_name",
         "int",
         ["void*".toJS, "int".toJS, "string".toJS].toJS,
@@ -491,7 +513,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<List<String>> getChildEntityNames(ThermionEntity entity,
       {bool renderableOnly = true}) async {
-    var entityCountJS = _module.ccall(
+    var entityCountJS = _module!.ccall(
         "get_entity_count",
         "int",
         ["void*".toJS, "int".toJS, "bool".toJS].toJS,
@@ -500,20 +522,20 @@ class ThermionViewerWasm implements ThermionViewer {
     var entityCount = entityCountJS.toDartInt;
     var names = <String>[];
     for (int i = 0; i < entityCount; i++) {
-      var namePtr = _module.ccall(
+      var namePtr = _module!.ccall(
           "get_entity_name_at",
           "char*",
           ["void*".toJS, "int".toJS, "int".toJS, "bool".toJS].toJS,
           [_sceneManager!, entity.toJS, i.toJS, renderableOnly.toJS].toJS,
           null) as JSNumber;
-      names.add(_module.UTF8ToString(namePtr).toDart);
+      names.add(_module!.UTF8ToString(namePtr).toDart);
     }
     return names;
   }
 
   @override
   Future<ThermionEntity> getMainCamera() async {
-    final entityId = _module.ccall(
+    final entityId = _module!.ccall(
             "get_main_camera", "int", ["void*".toJS].toJS, [_viewer].toJS, null)
         as JSNumber;
     if (entityId.toDartInt == -1) {
@@ -525,7 +547,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<List<String>> getMorphTargetNames(
       ThermionEntity entity, ThermionEntity childEntity) async {
-    var morphTargetCountJS = _module.ccall(
+    var morphTargetCountJS = _module!.ccall(
         "get_morph_target_name_count",
         "int",
         ["void*".toJS, "int32_t".toJS, "int32_t".toJS].toJS,
@@ -534,8 +556,8 @@ class ThermionViewerWasm implements ThermionViewer {
     var morphTargetCount = morphTargetCountJS.toDartInt;
     var names = <String>[];
     for (int i = 0; i < morphTargetCount; i++) {
-      var buf = _module._malloc(256) as JSNumber;
-      _module.ccall(
+      var buf = _module!._malloc(256) as JSNumber;
+      _module!.ccall(
           "get_morph_target_name",
           "void",
           [
@@ -547,15 +569,15 @@ class ThermionViewerWasm implements ThermionViewer {
           ].toJS,
           [_sceneManager!, entity.toJS, childEntity.toJS, buf, i.toJS].toJS,
           null);
-      names.add(_module.UTF8ToString(buf).toDart);
-      _module._free(buf);
+      names.add(_module!.UTF8ToString(buf).toDart);
+      _module!._free(buf);
     }
     return names;
   }
 
   @override
   String? getNameForEntity(ThermionEntity entity) {
-    final namePtr = _module.ccall(
+    final namePtr = _module!.ccall(
         "get_name_for_entity",
         "char*",
         ["void*".toJS, "int32_t".toJS].toJS,
@@ -564,12 +586,12 @@ class ThermionViewerWasm implements ThermionViewer {
     if (namePtr.toDartInt == 0) {
       return null;
     }
-    return _module.UTF8ToString(namePtr).toDart;
+    return _module!.UTF8ToString(namePtr).toDart;
   }
 
   @override
   Future<ThermionEntity?> getParent(ThermionEntity child) async {
-    final parentId = _module.ccall(
+    final parentId = _module!.ccall(
         "get_parent",
         "int",
         ["void*".toJS, "int32_t".toJS].toJS,
@@ -583,15 +605,15 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
-    final matrixPtr = _module._malloc(16 * 4) as JSNumber;
-    _module.ccall(
+    final matrixPtr = _module!._malloc(16 * 4) as JSNumber;
+    _module!.ccall(
         "get_world_transform",
         "void",
         ["void*".toJS, "int32_t".toJS, "float*".toJS].toJS,
         [_sceneManager!, entity.toJS, matrixPtr].toJS,
         null);
     final matrix = _matrixFromPtr(matrixPtr);
-    _module._free(matrixPtr);
+    _module!._free(matrixPtr);
     return matrix;
   }
 
@@ -602,7 +624,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future hide(ThermionEntity entity, String? meshName) async {
     if (meshName != null) {
-      final result = _module.ccall(
+      final result = _module!.ccall(
           "hide_mesh",
           "int",
           ["void*".toJS, "int".toJS, "string".toJS].toJS,
@@ -623,17 +645,17 @@ class ThermionViewerWasm implements ThermionViewer {
     if (numInstances != 1) {
       throw Exception("TODO");
     }
-    final ptr = _module._malloc(data.length);
-    _module.writeArrayToMemory(data.toJS, ptr);
+    final ptr = _module!._malloc(data.length);
+    _module!.writeArrayToMemory(data.toJS, ptr);
 
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "load_glb_from_buffer",
         "int",
         ["void*".toJS, "void*".toJS, "size_t".toJS].toJS,
         [_sceneManager!, ptr, data.lengthInBytes.toJS].toJS,
         null) as JSNumber;
     final entityId = result.toDartInt;
-    _module._free(ptr);
+    _module!._free(ptr);
     if (entityId == -1) {
       throw Exception("Failed to load GLB");
     }
@@ -642,7 +664,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<ThermionEntity> loadGlb(String path, {int numInstances = 1}) async {
-    final promise = _module.ccall(
+    final promise = _module!.ccall(
         "load_glb",
         "int",
         ["void*".toJS, "string".toJS, "int".toJS].toJS,
@@ -658,7 +680,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
       {bool force = false}) async {
-    final promise = _module.ccall(
+    final promise = _module!.ccall(
         "load_gltf",
         "int",
         ["void*".toJS, "string".toJS, "string".toJS].toJS,
@@ -673,7 +695,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
-    var promise = _module.ccall(
+    var promise = _module!.ccall(
         "load_ibl",
         "void",
         ["void*".toJS, "string".toJS, "float".toJS].toJS,
@@ -684,7 +706,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future loadSkybox(String skyboxPath) async {
-    var promise = _module.ccall(
+    var promise = _module!.ccall(
         "load_skybox",
         "void",
         ["void*".toJS, "string".toJS].toJS,
@@ -700,7 +722,7 @@ class ThermionViewerWasm implements ThermionViewer {
       bool replaceActive = true,
       double crossfade = 0.0,
       double startOffset = 0.0}) async {
-    _module.ccall(
+    _module!.ccall(
         "play_animation",
         "void",
         [
@@ -730,7 +752,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future render() async {
     _last = DateTime.now().millisecondsSinceEpoch * 1000000;
-    _module.ccall(
+    _module!.ccall(
         "render",
         "void",
         [
@@ -755,7 +777,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    _module.ccall(
+    _module!.ccall(
         "set_antialiasing",
         "void",
         ["void*".toJS, "bool".toJS, "bool".toJS, "bool".toJS].toJS,
@@ -765,7 +787,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setCameraPosition(double x, double y, double z) async {
-    _module.ccall(
+    _module!.ccall(
         "set_camera_position",
         "void",
         ["void*".toJS, "float".toJS, "float".toJS, "float".toJS].toJS,
@@ -775,7 +797,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setCameraRotation(Quaternion quaternion) async {
-    _module.ccall(
+    _module!.ccall(
         "set_camera_rotation",
         "void",
         ["void*".toJS, "float".toJS, "float".toJS, "float".toJS, "float".toJS]
@@ -791,24 +813,22 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future clearMorphAnimationData(
-      ThermionEntity entity) async {
+  Future clearMorphAnimationData(ThermionEntity entity) async {
     var meshEntities = await getChildEntities(entity, false);
-    for(final childEntity in meshEntities) {
-          _module.ccall(
-            "clear_morph_animation",
-            "void",
-            [
-              "void*".toJS,
-              "int".toJS,
-            ].toJS,
-            [
-              _sceneManager!,
-              childEntity.toJS,
-            ].toJS,
-            null);
+    for (final childEntity in meshEntities) {
+      _module!.ccall(
+          "clear_morph_animation",
+          "void",
+          [
+            "void*".toJS,
+            "int".toJS,
+          ].toJS,
+          [
+            _sceneManager!,
+            childEntity.toJS,
+          ].toJS,
+          null);
     }
-
   }
 
   @override
@@ -870,27 +890,27 @@ class ThermionViewerWasm implements ThermionViewer {
       assert(frameData.length == animation.numFrames * intersection.length);
 
       // Allocate memory in WASM for the morph data
-      var dataPtr = _module._malloc(frameData.length * 4) as JSNumber;
+      var dataPtr = _module!._malloc(frameData.length * 4) as JSNumber;
 
       // Create a Float32List to copy the morph data to
       var dataList = td.Float32List.fromList(frameData);
 
       // Copy the morph data to WASM
-      _module.writeArrayToMemory(
+      _module!.writeArrayToMemory(
           dataList.buffer.asUint8List(dataList.offsetInBytes).toJS, dataPtr);
 
       // Allocate memory in WASM for the morph indices
-      var idxPtr = _module._malloc(indices.length * 4) as JSNumber;
+      var idxPtr = _module!._malloc(indices.length * 4) as JSNumber;
 
       // Create an Int32List to copy the morph indices to
       var idxList = td.Int32List.fromList(indices);
 
       // Copy the morph indices to WASM
-      _module.writeArrayToMemory(
+      _module!.writeArrayToMemory(
           idxList.buffer.asUint8List(idxList.offsetInBytes).toJS, idxPtr);
       bool result = false;
       try {
-        var jsResult = _module.ccall(
+        var jsResult = _module!.ccall(
             "set_morph_animation",
             "bool",
             [
@@ -920,8 +940,8 @@ class ThermionViewerWasm implements ThermionViewer {
       }
 
       // Free the memory allocated in WASM
-      _module._free(dataPtr);
-      _module._free(idxPtr);
+      _module!._free(dataPtr);
+      _module!._free(idxPtr);
 
       if (!result) {
         throw Exception("Failed to set morph animation data for ${meshName}");
@@ -932,7 +952,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future setPosition(
       ThermionEntity entity, double x, double y, double z) async {
-    _module.ccall(
+    _module!.ccall(
         "set_position",
         "void",
         ["void*".toJS, "int".toJS, "float".toJS, "float".toJS, "float".toJS]
@@ -943,7 +963,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setPostProcessing(bool enabled) async {
-    _module.ccall("set_post_processing", "void",
+    _module!.ccall("set_post_processing", "void",
         ["void*".toJS, "bool".toJS].toJS, [_viewer!, enabled.toJS].toJS, null);
   }
 
@@ -951,7 +971,7 @@ class ThermionViewerWasm implements ThermionViewer {
   Future setRotation(
       ThermionEntity entity, double rads, double x, double y, double z) async {
     var quaternion = Quaternion.axisAngle(Vector3(x, y, z), rads);
-    _module.ccall(
+    _module!.ccall(
         "set_rotation",
         "void",
         [
@@ -976,7 +996,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setRotationQuat(ThermionEntity entity, Quaternion rotation) async {
-    _module.ccall(
+    _module!.ccall(
         "set_rotation",
         "void",
         [
@@ -1010,19 +1030,19 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future clearBackgroundImage() async {
-    _module.ccall("clear_background_image", "void", ["void*".toJS].toJS,
+    _module!.ccall("clear_background_image", "void", ["void*".toJS].toJS,
         [_viewer!].toJS, null);
   }
 
   @override
   Future clearEntities() async {
-    _module.ccall(
+    _module!.ccall(
         "clear_entities", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
   Future clearLights() async {
-    _module.ccall(
+    _module!.ccall(
         "clear_lights", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
@@ -1032,14 +1052,14 @@ class ThermionViewerWasm implements ThermionViewer {
       PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) async {
     final verticesData = td.Float32List.fromList(vertices);
     final indicesData = Uint16List.fromList(indices);
-    final verticesPtr = _module._malloc(verticesData.lengthInBytes);
-    final indicesPtr = _module._malloc(indicesData.lengthInBytes);
-    _module.writeArrayToMemory(
+    final verticesPtr = _module!._malloc(verticesData.lengthInBytes);
+    final indicesPtr = _module!._malloc(indicesData.lengthInBytes);
+    _module!.writeArrayToMemory(
         verticesData.buffer.asUint8List().toJS, verticesPtr);
-    _module.writeArrayToMemory(
-        indicesData.buffer.asUint8List().toJS, indicesPtr);
+    _module!
+        .writeArrayToMemory(indicesData.buffer.asUint8List().toJS, indicesPtr);
 
-    final entityId = _module.ccall(
+    final entityId = _module!.ccall(
         "create_geometry",
         "int",
         [
@@ -1062,8 +1082,8 @@ class ThermionViewerWasm implements ThermionViewer {
         ].toJS,
         null) as JSNumber;
 
-    _module._free(verticesPtr);
-    _module._free(indicesPtr);
+    _module!._free(verticesPtr);
+    _module!._free(indicesPtr);
 
     if (entityId.toDartInt == -1) {
       throw Exception("Failed to create geometry");
@@ -1073,7 +1093,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<ThermionEntity> createInstance(ThermionEntity entity) async {
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "create_instance",
         "int",
         ["void*".toJS, "int".toJS].toJS,
@@ -1088,7 +1108,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<double> getAnimationDuration(
       ThermionEntity entity, int animationIndex) async {
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "get_animation_duration",
         "float",
         ["void*".toJS, "int".toJS, "int".toJS].toJS,
@@ -1099,7 +1119,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<int> getAnimationCount(ThermionEntity entity) async {
-    final animationCount = _module.ccall(
+    final animationCount = _module!.ccall(
         "get_animation_count",
         "int",
         ["void*".toJS, "int".toJS].toJS,
@@ -1113,111 +1133,111 @@ class ThermionViewerWasm implements ThermionViewer {
     final animationCount = await getAnimationCount(entity);
     final names = <String>[];
     for (int i = 0; i < animationCount; i++) {
-      final namePtr = _module._malloc(256) as JSNumber;
-      _module.ccall(
+      final namePtr = _module!._malloc(256) as JSNumber;
+      _module!.ccall(
           "get_animation_name",
           "void",
           ["void*".toJS, "int".toJS, "char*".toJS, "int".toJS].toJS,
           [_sceneManager!, entity.toJS, namePtr, i.toJS].toJS,
           null);
-      names.add(_module.UTF8ToString(namePtr).toDart);
-      _module._free(namePtr);
+      names.add(_module!.UTF8ToString(namePtr).toDart);
+      _module!._free(namePtr);
     }
     return names;
   }
 
   @override
   Future<double> getCameraCullingFar() async {
-    final result = _module.ccall("get_camera_culling_far", "double",
+    final result = _module!.ccall("get_camera_culling_far", "double",
         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
     return result.toDartDouble;
   }
 
   @override
   Future<double> getCameraCullingNear() async {
-    final result = _module.ccall("get_camera_culling_near", "double",
+    final result = _module!.ccall("get_camera_culling_near", "double",
         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
     return result.toDartDouble;
   }
 
   @override
   Future<Matrix4> getCameraCullingProjectionMatrix() async {
-    final ptr = _module._malloc(16 * 8) as JSNumber;
-    _module.ccall("get_camera_culling_projection_matrix", "void",
+    final ptr = _module!._malloc(16 * 8) as JSNumber;
+    _module!.ccall("get_camera_culling_projection_matrix", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final matrix = Matrix4.zero();
     for (int i = 0; i < 16; i++) {
-      matrix[i] = (_module.getValue((ptr.toDartInt + (i * 8)).toJS, "double")
+      matrix[i] = (_module!.getValue((ptr.toDartInt + (i * 8)).toJS, "double")
               as JSNumber)
           .toDartDouble;
     }
-    _module._free(ptr);
+    _module!._free(ptr);
     return matrix;
   }
 
   @override
   Future<Frustum> getCameraFrustum() async {
-    final ptr = _module._malloc(24 * 8) as JSNumber;
-    _module.ccall("get_camera_frustum", "void",
+    final ptr = _module!._malloc(24 * 8) as JSNumber;
+    _module!.ccall("get_camera_frustum", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final planes = List.generate(6, (i) {
       final offset = i * 4;
       return Plane()
         ..setFromComponents(
-            (_module.getValue((ptr.toDartInt + (offset * 8)).toJS, "double")
+            (_module!.getValue((ptr.toDartInt + (offset * 8)).toJS, "double")
                     as JSNumber)
                 .toDartDouble,
-            (_module.getValue(
+            (_module!.getValue(
                         (ptr.toDartInt + ((offset + 1) * 8)).toJS, "double")
                     as JSNumber)
                 .toDartDouble,
-            (_module.getValue(
+            (_module!.getValue(
                         (ptr.toDartInt + ((offset + 2) * 8)).toJS, "double")
                     as JSNumber)
                 .toDartDouble,
-            (_module.getValue(
+            (_module!.getValue(
                         (ptr.toDartInt + ((offset + 3) * 8)).toJS, "double")
                     as JSNumber)
                 .toDartDouble);
     });
-    _module._free(ptr);
+    _module!._free(ptr);
     throw UnimplementedError();
     // return Frustum()..plane0 = planes[0]..plane1 =planes[1]..plane2 =planes[2]..plane3 =planes[3], planes[4], planes[5]);
   }
 
   @override
   Future<Matrix4> getCameraModelMatrix() async {
-    final ptr = _module._malloc(16 * 8) as JSNumber;
-    _module.ccall("get_camera_model_matrix", "void",
+    final ptr = _module!._malloc(16 * 8) as JSNumber;
+    _module!.ccall("get_camera_model_matrix", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final matrix = _matrixFromPtr(ptr);
-    _module._free(ptr);
+    _module!._free(ptr);
     return matrix;
   }
 
   @override
   Future<Vector3> getCameraPosition() async {
-    final ptr = _module._malloc(3 * 8) as JSNumber;
-    _module.ccall("get_camera_position", "void",
+    final ptr = _module!._malloc(3 * 8) as JSNumber;
+    _module!.ccall("get_camera_position", "void",
         ["void*".toJS, "void*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final pos = Vector3(
-        (_module.getValue(ptr.toDartInt.toJS, "double") as JSNumber)
+        (_module!.getValue(ptr.toDartInt.toJS, "double") as JSNumber)
             .toDartDouble,
-        (_module.getValue((ptr.toDartInt + 8).toJS, "double") as JSNumber)
+        (_module!.getValue((ptr.toDartInt + 8).toJS, "double") as JSNumber)
             .toDartDouble,
-        (_module.getValue((ptr.toDartInt + 16).toJS, "double") as JSNumber)
+        (_module!.getValue((ptr.toDartInt + 16).toJS, "double") as JSNumber)
             .toDartDouble);
-    _module._free(ptr);
+    _module!._free(ptr);
     return pos;
   }
 
   @override
   Future<Matrix4> getCameraProjectionMatrix() async {
-    final ptr = _module._malloc(16 * 8) as JSNumber;
-    _module.ccall("get_camera_projection_matrix", "void",
+    final ptr = _module!._malloc(16 * 8) as JSNumber;
+    _module!.ccall("get_camera_projection_matrix", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final matrix = _matrixFromPtr(ptr);
-    _module._free(ptr);
+    _module!._free(ptr);
     return matrix;
   }
 
@@ -1230,22 +1250,22 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Matrix4> getCameraViewMatrix() async {
-    final ptr = _module._malloc(16 * 8) as JSNumber;
-    _module.ccall("get_camera_view_matrix", "void",
+    final ptr = _module!._malloc(16 * 8) as JSNumber;
+    _module!.ccall("get_camera_view_matrix", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final matrix = Matrix4.zero();
     for (int i = 0; i < 16; i++) {
-      matrix[i] = (_module.getValue((ptr.toDartInt + (i * 8)).toJS, "double")
+      matrix[i] = (_module!.getValue((ptr.toDartInt + (i * 8)).toJS, "double")
               as JSNumber)
           .toDartDouble;
     }
-    _module._free(ptr);
+    _module!._free(ptr);
     return matrix;
   }
 
   @override
   Future<int> getInstanceCount(ThermionEntity entity) async {
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "get_instance_count",
         "int",
         ["void*".toJS, "int".toJS].toJS,
@@ -1257,8 +1277,8 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<List<ThermionEntity>> getInstances(ThermionEntity entity) async {
     final instanceCount = await getInstanceCount(entity);
-    final buf = _module._malloc(instanceCount * 4) as JSNumber;
-    _module.ccall(
+    final buf = _module!._malloc(instanceCount * 4) as JSNumber;
+    _module!.ccall(
         "get_instances",
         "void",
         ["void*".toJS, "int".toJS, "int*".toJS].toJS,
@@ -1267,45 +1287,45 @@ class ThermionViewerWasm implements ThermionViewer {
     final instances = <ThermionEntity>[];
     for (int i = 0; i < instanceCount; i++) {
       final instanceId =
-          _module.getValue((buf.toDartInt + (i * 4)).toJS, "i32") as JSNumber;
+          _module!.getValue((buf.toDartInt + (i * 4)).toJS, "i32") as JSNumber;
       instances.add(instanceId.toDartInt);
     }
-    _module._free(buf);
+    _module!._free(buf);
     return instances;
   }
 
   @override
   Future<Matrix4> getInverseBindMatrix(ThermionEntity parent, int boneIndex,
       {int skinIndex = 0}) async {
-    final ptr = _module._malloc(16 * 4) as JSNumber;
-    _module.ccall(
+    final ptr = _module!._malloc(16 * 4) as JSNumber;
+    _module!.ccall(
         "get_inverse_bind_matrix",
         "void",
         ["void*".toJS, "int".toJS, "int".toJS, "int".toJS, "float*".toJS].toJS,
         [_sceneManager!, parent.toJS, skinIndex.toJS, boneIndex.toJS, ptr].toJS,
         null);
     final matrix = _matrixFromPtr(ptr);
-    _module._free(ptr);
+    _module!._free(ptr);
     return matrix;
   }
 
   @override
   Future<Matrix4> getLocalTransform(ThermionEntity entity) async {
-    final ptr = _module._malloc(16 * 4) as JSNumber;
-    _module.ccall(
+    final ptr = _module!._malloc(16 * 4) as JSNumber;
+    _module!.ccall(
         "get_local_transform",
         "void",
         ["void*".toJS, "int".toJS, "float*".toJS].toJS,
         [_sceneManager!, entity.toJS, ptr].toJS,
         null);
     final matrix = _matrixFromPtr(ptr);
-    _module._free(ptr);
+    _module!._free(ptr);
     return matrix;
   }
 
   @override
   Future moveCameraToAsset(ThermionEntity entity) async {
-    _module.ccall("move_camera_to_asset", "void",
+    _module!.ccall("move_camera_to_asset", "void",
         ["void*".toJS, "int".toJS].toJS, [_viewer!, entity.toJS].toJS, null);
   }
 
@@ -1330,7 +1350,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   void pick(int x, int y) {
     throw UnimplementedError();
-    // _module.ccall("filament_pick", "void",
+    // _module!.ccall("filament_pick", "void",
     //     ["void*".toJS, "int".toJS, "int".toJS, "void*".toJS].toJS, [
     //   _viewer!,
     //   x.toJS,
@@ -1361,7 +1381,7 @@ class ThermionViewerWasm implements ThermionViewer {
   Future queuePositionUpdate(
       ThermionEntity entity, double x, double y, double z,
       {bool relative = false}) async {
-    _module.ccall(
+    _module!.ccall(
         "queue_position_update",
         "void",
         [
@@ -1381,7 +1401,7 @@ class ThermionViewerWasm implements ThermionViewer {
   Future queueRotationUpdate(
       ThermionEntity entity, double rads, double x, double y, double z,
       {bool relative = false}) async {
-    _module.ccall(
+    _module!.ccall(
         "queue_rotation_update",
         "void",
         [
@@ -1408,7 +1428,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future queueRotationUpdateQuat(ThermionEntity entity, Quaternion quat,
       {bool relative = false}) async {
-    _module.ccall(
+    _module!.ccall(
         "queue_rotation_update",
         "void",
         [
@@ -1434,7 +1454,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future removeAnimationComponent(ThermionEntity entity) async {
-    _module.ccall(
+    _module!.ccall(
         "remove_animation_component",
         "void",
         ["void*".toJS, "int".toJS].toJS,
@@ -1444,7 +1464,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future removeCollisionComponent(ThermionEntity entity) async {
-    _module.ccall(
+    _module!.ccall(
         "remove_collision_component",
         "void",
         ["void*".toJS, "int".toJS].toJS,
@@ -1454,38 +1474,42 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future removeEntity(ThermionEntity entity) async {
-    _module.ccall("remove_entity", "void", ["void*".toJS, "int".toJS].toJS,
+    _module!.ccall("remove_entity", "void", ["void*".toJS, "int".toJS].toJS,
         [_viewer!, entity.toJS].toJS, null);
   }
 
   @override
   Future removeIbl() async {
-    _module.ccall(
+    _module!.ccall(
         "remove_ibl", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
   Future removeLight(ThermionEntity light) async {
-    _module.ccall("remove_light", "void", ["void*".toJS, "int".toJS].toJS,
+    _module!.ccall("remove_light", "void", ["void*".toJS, "int".toJS].toJS,
         [_viewer!, light.toJS].toJS, null);
   }
 
   @override
   Future removeSkybox() async {
-    _module.ccall(
+    _module!.ccall(
         "remove_skybox", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
   Future resetBones(ThermionEntity entity) async {
-    _module.ccall("reset_to_rest_pose", "void", ["void*".toJS, "int".toJS].toJS,
-        [_sceneManager!, entity.toJS].toJS, null);
+    _module!.ccall(
+        "reset_to_rest_pose",
+        "void",
+        ["void*".toJS, "int".toJS].toJS,
+        [_sceneManager!, entity.toJS].toJS,
+        null);
   }
 
   @override
   Future reveal(ThermionEntity entity, String? meshName) async {
     if (meshName != null) {
-      final result = _module.ccall(
+      final result = _module!.ccall(
           "reveal_mesh",
           "int",
           ["void*".toJS, "int".toJS, "string".toJS].toJS,
@@ -1509,14 +1533,14 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future rotateIbl(Matrix3 rotation) async {
-    final ptr = _module._malloc(9 * 4) as JSNumber;
+    final ptr = _module!._malloc(9 * 4) as JSNumber;
     for (int i = 0; i < 9; i++) {
-      _module.setValue(
+      _module!.setValue(
           (ptr.toDartInt + (i * 4)).toJS, rotation.storage[i].toJS, "float");
     }
-    _module.ccall("rotate_ibl", "void", ["void*".toJS, "float*".toJS].toJS,
+    _module!.ccall("rotate_ibl", "void", ["void*".toJS, "float*".toJS].toJS,
         [_viewer!, ptr].toJS, null);
-    _module._free(ptr);
+    _module!._free(ptr);
   }
 
   @override
@@ -1534,7 +1558,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future setAnimationFrame(
       ThermionEntity entity, int index, int animationFrame) async {
-    _module.ccall(
+    _module!.ccall(
         "set_animation_frame",
         "void",
         ["void*".toJS, "int".toJS, "int".toJS, "int".toJS].toJS,
@@ -1549,7 +1573,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
-    _module.ccall(
+    _module!.ccall(
         "set_background_image",
         "void",
         ["void*".toJS, "string".toJS, "bool".toJS].toJS,
@@ -1560,7 +1584,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future setBackgroundImagePosition(double x, double y,
       {bool clamp = false}) async {
-    _module.ccall(
+    _module!.ccall(
         "set_background_image_position",
         "void",
         ["void*".toJS, "float".toJS, "float".toJS, "bool".toJS].toJS,
@@ -1570,7 +1594,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setBloom(double bloom) async {
-    _module.ccall("set_bloom", "void", ["void*".toJS, "float".toJS].toJS,
+    _module!.ccall("set_bloom", "void", ["void*".toJS, "float".toJS].toJS,
         [_viewer!, bloom.toJS].toJS, null);
   }
 
@@ -1578,18 +1602,18 @@ class ThermionViewerWasm implements ThermionViewer {
   Future setBoneTransform(
       ThermionEntity entity, int boneIndex, Matrix4 transform,
       {int skinIndex = 0}) async {
-    final ptr = _module._malloc(16 * 4) as JSNumber;
+    final ptr = _module!._malloc(16 * 4) as JSNumber;
     for (int i = 0; i < 16; i++) {
-      _module.setValue(
+      _module!.setValue(
           (ptr.toDartInt + (i * 4)).toJS, transform.storage[i].toJS, "float");
     }
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "set_bone_transform",
         "bool",
         ["void*".toJS, "int".toJS, "int".toJS, "int".toJS, "float*".toJS].toJS,
         [_sceneManager!, entity.toJS, skinIndex.toJS, boneIndex.toJS, ptr].toJS,
         null) as JSBoolean;
-    _module._free(ptr);
+    _module!._free(ptr);
     if (!result.toDart) {
       throw Exception("Failed to set bone transform");
     }
@@ -1597,7 +1621,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setCamera(ThermionEntity entity, String? name) async {
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "set_camera",
         "bool",
         ["void*".toJS, "int".toJS, "string".toJS].toJS,
@@ -1610,7 +1634,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setCameraCulling(double near, double far) async {
-    _module.ccall(
+    _module!.ccall(
         "set_camera_culling",
         "void",
         ["void*".toJS, "double".toJS, "double".toJS].toJS,
@@ -1621,7 +1645,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
-    _module.ccall(
+    _module!.ccall(
         "set_camera_exposure",
         "void",
         ["void*".toJS, "float".toJS, "float".toJS, "float".toJS].toJS,
@@ -1636,7 +1660,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setCameraFocalLength(double focalLength) async {
-    _module.ccall(
+    _module!.ccall(
         "set_camera_focal_length",
         "void",
         ["void*".toJS, "float".toJS].toJS,
@@ -1646,7 +1670,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setCameraFocusDistance(double focusDistance) async {
-    _module.ccall(
+    _module!.ccall(
         "set_camera_focus_distance",
         "void",
         ["void*".toJS, "float".toJS].toJS,
@@ -1656,7 +1680,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setCameraFov(double degrees, double width, double height) async {
-    _module.ccall(
+    _module!.ccall(
         "set_camera_fov",
         "void",
         ["void*".toJS, "float".toJS, "float".toJS].toJS,
@@ -1670,7 +1694,7 @@ class ThermionViewerWasm implements ThermionViewer {
       double orbitSpeedX = 0.01,
       double orbitSpeedY = 0.01,
       double zoomSpeed = 0.01}) async {
-    _module.ccall(
+    _module!.ccall(
         "set_camera_manipulator_options",
         "void",
         ["void*".toJS, "int".toJS, "double".toJS, "double".toJS, "double".toJS]
@@ -1688,19 +1712,19 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future setCameraModelMatrix(List<double> matrix) async {
     assert(matrix.length == 16, "Matrix must have 16 elements");
-    final ptr = _module._malloc(16 * 8) as JSNumber;
+    final ptr = _module!._malloc(16 * 8) as JSNumber;
     for (int i = 0; i < 16; i++) {
-      _module.setValue(
-          (ptr.toDartInt + (i * 8)).toJS, matrix[i].toJS, "double");
+      _module!
+          .setValue((ptr.toDartInt + (i * 8)).toJS, matrix[i].toJS, "double");
     }
-    _module.ccall("set_camera_model_matrix", "void",
+    _module!.ccall("set_camera_model_matrix", "void",
         ["void*".toJS, "float*".toJS].toJS, [_viewer!, ptr].toJS, null);
-    _module._free(ptr);
+    _module!._free(ptr);
   }
 
   @override
   Future setFrameRate(int framerate) async {
-    _module.ccall(
+    _module!.ccall(
         "set_frame_interval",
         "void",
         ["void*".toJS, "float".toJS].toJS,
@@ -1710,14 +1734,14 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setMainCamera() async {
-    _module.ccall(
+    _module!.ccall(
         "set_main_camera", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
   Future setMaterialColor(ThermionEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a) async {
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "set_material_color",
         "bool",
         [
@@ -1750,18 +1774,18 @@ class ThermionViewerWasm implements ThermionViewer {
   Future setMorphTargetWeights(
       ThermionEntity entity, List<double> weights) async {
     final numWeights = weights.length;
-    final ptr = _module._malloc(numWeights * 4);
+    final ptr = _module!._malloc(numWeights * 4);
     for (int i = 0; i < numWeights; i++) {
-      _module.setValue(
-          (ptr.toDartInt + (i * 4)).toJS, weights[i].toJS, "float");
+      _module!
+          .setValue((ptr.toDartInt + (i * 4)).toJS, weights[i].toJS, "float");
     }
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "set_morph_target_weights",
         "bool",
         ["void*".toJS, "int".toJS, "float*".toJS, "int".toJS].toJS,
         [_sceneManager!, entity.toJS, ptr, numWeights.toJS].toJS,
         null) as JSBoolean;
-    _module._free(ptr);
+    _module!._free(ptr);
     if (!result.toDart) {
       throw Exception("Failed to set morph target weights");
     }
@@ -1769,7 +1793,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setParent(ThermionEntity child, ThermionEntity parent) async {
-    _module.ccall(
+    _module!.ccall(
         "set_parent",
         "void",
         ["void*".toJS, "int".toJS, "int".toJS].toJS,
@@ -1785,13 +1809,13 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setRecording(bool recording) async {
-    _module.ccall("set_recording", "void", ["void*".toJS, "bool".toJS].toJS,
+    _module!.ccall("set_recording", "void", ["void*".toJS, "bool".toJS].toJS,
         [_viewer!, recording.toJS].toJS, null);
   }
 
   @override
   Future setRecordingOutputDirectory(String outputDirectory) async {
-    _module.ccall(
+    _module!.ccall(
         "set_recording_output_directory",
         "void",
         ["void*".toJS, "string".toJS].toJS,
@@ -1817,7 +1841,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setScale(ThermionEntity entity, double scale) async {
-    _module.ccall(
+    _module!.ccall(
         "set_scale",
         "void",
         ["void*".toJS, "int".toJS, "float".toJS].toJS,
@@ -1827,24 +1851,24 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setToneMapping(ToneMapper mapper) async {
-    _module.ccall("set_tone_mapping", "void", ["void*".toJS, "int".toJS].toJS,
+    _module!.ccall("set_tone_mapping", "void", ["void*".toJS, "int".toJS].toJS,
         [_viewer!, mapper.index.toJS].toJS, null);
   }
 
   @override
   Future setTransform(ThermionEntity entity, Matrix4 transform) async {
-    final ptr = _module._malloc(16 * 4) as JSNumber;
+    final ptr = _module!._malloc(16 * 4) as JSNumber;
     for (int i = 0; i < 16; i++) {
-      _module.setValue(
+      _module!.setValue(
           (ptr.toDartInt + (i * 4)).toJS, transform.storage[i].toJS, "float");
     }
-    final result = _module.ccall(
+    final result = _module!.ccall(
         "set_transform",
         "bool",
         ["void*".toJS, "int".toJS, "float*".toJS].toJS,
         [_sceneManager!, entity.toJS, ptr].toJS,
         null) as JSBoolean;
-    _module._free(ptr);
+    _module!._free(ptr);
     if (!result.toDart) {
       throw Exception("Failed to set transform");
     }
@@ -1852,13 +1876,13 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setViewFrustumCulling(bool enabled) async {
-    _module.ccall("set_view_frustum_culling", "void",
+    _module!.ccall("set_view_frustum_culling", "void",
         ["void*".toJS, "bool".toJS].toJS, [_viewer!, enabled.toJS].toJS, null);
   }
 
   @override
   Future stopAnimation(ThermionEntity entity, int animationIndex) async {
-    _module.ccall(
+    _module!.ccall(
         "stop_animation",
         "void",
         ["void*".toJS, "int".toJS, "int".toJS].toJS,
@@ -1867,63 +1891,98 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future stopAnimationByName(ThermionEntity entity, String name) {
-    // TODO: implement stopAnimationByName
-    throw UnimplementedError();
+  Future stopAnimationByName(ThermionEntity entity, String name) async {
+    final namePtr = _allocateString(name);
+    _module!.ccall(
+        "stop_animation_by_name",
+        "void",
+        ["void*".toJS, "int".toJS, "char*".toJS].toJS,
+        [_sceneManager!, entity.toJS, namePtr].toJS,
+        null);
+    _module!._free(namePtr);
   }
 
   @override
-  Future testCollisions(ThermionEntity entity) {
-    // TODO: implement testCollisions
-    throw UnimplementedError();
+  Future testCollisions(ThermionEntity entity) async {
+    final result = _module!.ccall(
+        "test_collisions",
+        "bool",
+        ["void*".toJS, "int".toJS].toJS,
+        [_sceneManager!, entity.toJS].toJS,
+        null) as JSBoolean;
+    return result.toDart;
   }
 
   @override
-  Future transformToUnitCube(ThermionEntity entity) {
-    // TODO: implement transformToUnitCube
-    throw UnimplementedError();
+  Future transformToUnitCube(ThermionEntity entity) async {
+    _module!.ccall(
+        "transform_to_unit_cube",
+        "void",
+        ["void*".toJS, "int".toJS].toJS,
+        [_sceneManager!, entity.toJS].toJS,
+        null);
   }
 
   @override
-  Future updateBoneMatrices(ThermionEntity entity) {
-    // TODO: implement updateBoneMatrices
-    throw UnimplementedError();
+  Future updateBoneMatrices(ThermionEntity entity) async {
+    _module!.ccall(
+        "update_bone_matrices",
+        "void",
+        ["void*".toJS, "int".toJS].toJS,
+        [_sceneManager!, entity.toJS].toJS,
+        null);
   }
 
   @override
-  Future zoomBegin() {
-    // TODO: implement zoomBegin
-    throw UnimplementedError();
+  Future zoomBegin() async {
+    _module!.ccall(
+        "zoom_begin", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
-  Future zoomEnd() {
-    // TODO: implement zoomEnd
-    throw UnimplementedError();
+  Future zoomEnd() async {
+    _module!
+        .ccall("zoom_end", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
-  Future zoomUpdate(double x, double y, double z) {
-    // TODO: implement zoomUpdate
-    throw UnimplementedError();
+  Future zoomUpdate(double x, double y, double z) async {
+    _module!.ccall(
+        "zoom_update",
+        "void",
+        ["void*".toJS, "float".toJS, "float".toJS, "float".toJS].toJS,
+        [_viewer!, x.toJS, y.toJS, z.toJS].toJS,
+        null);
+  }
+
+// Helper method to allocate a string in the WASM memory
+  JSNumber _allocateString(String str) {
+    final bytes = utf8.encode(str);
+    final ptr = _module!._malloc(bytes.length + 1) as JSNumber;
+    for (var i = 0; i < bytes.length; i++) {
+      _module!.setValue((ptr.toDartInt + i).toJS, bytes[i].toJS, "i8");
+    }
+    _module!.setValue(
+        (ptr.toDartInt + bytes.length).toJS, 0.toJS, "i8"); // Null terminator
+    return ptr;
   }
 
   @override
   Future setShadowType(ShadowType shadowType) async {
-    _module.ccall("set_shadow_type", "void", ["void*".toJS, "int".toJS].toJS,
+    _module!.ccall("set_shadow_type", "void", ["void*".toJS, "int".toJS].toJS,
         [_viewer!, shadowType.index.toJS].toJS, null);
   }
 
   @override
   Future setShadowsEnabled(bool enabled) async {
-    _module.ccall("set_shadows_enabled", "void",
+    _module!.ccall("set_shadows_enabled", "void",
         ["void*".toJS, "bool".toJS].toJS, [_viewer!, enabled.toJS].toJS, null);
   }
 
   @override
   Future setSoftShadowOptions(
       double penumbraScale, double penumbraRatioScale) async {
-    _module.ccall(
+    _module!.ccall(
         "set_soft_shadow_options",
         "void",
         ["void*".toJS, "float".toJS, "float".toJS].toJS,
