@@ -4,8 +4,12 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_in
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:web/web.dart';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
+  ThermionViewerWasm? _viewer;
+
   static void registerWith(Registrar registrar) {
     ThermionFlutterPlatform.instance = ThermionFlutterWebPlugin();
   }
@@ -24,6 +28,13 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   @override
   Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
       int width, int height, int offsetLeft, int offsetRight) async {
+    final canvas = document.getElementById("canvas") as HTMLCanvasElement;
+    canvas.width = width;
+    canvas.height = height;
+
+    _viewer!.updateViewportAndCameraProjection(width, height, 1.0);
+
+    print("Resized canvas to ${canvas.width}x${canvas.height}");
     return ThermionFlutterTexture(null, null, 0, 0, null);
   }
 
@@ -35,8 +46,8 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
     var width = window.innerWidth;
     var height = window.innerHeight;
 
-    var viewer = ThermionViewerWasm(assetPathPrefix: "/assets/");
-    await viewer.initialize(width, height, uberArchivePath: uberArchivePath);
-    return viewer;
+    _viewer = ThermionViewerWasm(assetPathPrefix: "/assets/");
+    await _viewer!.initialize(width, height, uberArchivePath: uberArchivePath);
+    return _viewer!;
   }
 }
