@@ -83,9 +83,11 @@ class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   Widget build(BuildContext context) {
     if (_texture?.usesBackingWindow == true) {
-      return Stack(children: [
+      return ResizeObserver(
+        onResized: _resizeTexture,
+        child: Stack(children: [
         Positioned.fill(child: CustomPaint(painter: TransparencyPainter()))
-      ]);
+      ]));
     }
 
     if (_texture == null || _resizing) {
