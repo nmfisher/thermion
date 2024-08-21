@@ -373,6 +373,12 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void capture_ffi(void *const viewer, uint8_t* pixelBuffer, void (*onComplete)()) {
+    std::packaged_task<void()> lambda([=]() mutable
+                                      { capture(viewer, pixelBuffer, onComplete); });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void
   set_background_color_ffi(void *const viewer, const float r, const float g,
                            const float b, const float a)

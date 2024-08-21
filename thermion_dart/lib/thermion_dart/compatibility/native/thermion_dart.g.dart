@@ -1059,6 +1059,15 @@ external void render_ffi(
   ffi.Pointer<ffi.Void> viewer,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint8>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>()
+external void capture_ffi(
+  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<ffi.Uint8> out,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
 @ffi.Native<FilamentRenderCallback Function(FilamentRenderCallback)>()
 external FilamentRenderCallback make_render_callback_fn_pointer(
   FilamentRenderCallback arg0,

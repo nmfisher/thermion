@@ -329,6 +329,13 @@ extern "C"
         ((FilamentViewer *)viewer)->render(frameTimeInNanos, pixelBuffer, callback, data);
     }
 
+    EMSCRIPTEN_KEEPALIVE void capture(
+		const void *const viewer,
+		uint8_t *pixelBuffer,
+		void (*callback)(void)) {
+            ((FilamentViewer *)viewer)->capture(pixelBuffer, callback);
+        };
+
     EMSCRIPTEN_KEEPALIVE void set_frame_interval(
         const void *const viewer,
         float frameInterval)
