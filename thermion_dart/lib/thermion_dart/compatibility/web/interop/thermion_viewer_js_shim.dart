@@ -22,6 +22,9 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
   @JS('render')
   external JSPromise render();
 
+  @JS('capture')
+  external JSPromise<JSUint8Array> capture();
+
   @JS('setFrameRate')
   external JSPromise setFrameRate(int framerate);
 

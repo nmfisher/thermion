@@ -49,6 +49,11 @@ class ThermionViewerJSDartBridge {
   JSPromise render() => viewer.render().toJS;
 
   @JSExport()
+  JSPromise<JSUint8Array> capture() {
+    return viewer.capture().then((captured) => captured.toJS).toJS;
+  }
+
+  @JSExport()
   JSPromise setFrameRate(int framerate) => viewer.setFrameRate(framerate).toJS;
 
   @JSExport()
@@ -342,15 +347,12 @@ class ThermionViewerJSDartBridge {
           double crossfade = 0.0,
           double startOffset = 0.0}) =>
       viewer
-          .playAnimation(
-            entity,
-            index,
-            loop: loop,
-            reverse: reverse,
-            replaceActive: replaceActive,
-            crossfade: crossfade,
-            startOffset: startOffset
-          )
+          .playAnimation(entity, index,
+              loop: loop,
+              reverse: reverse,
+              replaceActive: replaceActive,
+              crossfade: crossfade,
+              startOffset: startOffset)
           .toJS;
 
   @JSExport()

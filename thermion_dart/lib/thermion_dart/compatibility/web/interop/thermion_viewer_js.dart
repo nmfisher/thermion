@@ -1,6 +1,7 @@
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
@@ -371,7 +372,8 @@ class ThermionViewerJS implements ThermionViewer {
       double crossfade = 0.0,
       double startOffset = 0.0}) async {
     await _shim
-        .playAnimation(entity, index, loop, reverse, replaceActive, crossfade, startOffset)
+        .playAnimation(
+            entity, index, loop, reverse, replaceActive, crossfade, startOffset)
         .toDart;
   }
 
@@ -848,5 +850,11 @@ class ThermionViewerJS implements ThermionViewer {
   @override
   Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) {
     return _shim.setSoftShadowOptions(penumbraScale, penumbraRatioScale).toDart;
+  }
+
+  @override
+  Future<Uint8List> capture() async {
+    final captured = await _shim.capture().toDart;
+    return captured.toDart;
   }
 }
