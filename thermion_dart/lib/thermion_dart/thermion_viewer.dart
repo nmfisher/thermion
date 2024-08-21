@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -19,11 +20,11 @@ enum LightType {
   SPOT,
 }
 
-enum ShadowType { 
-    PCF,        //!< percentage-closer filtered shadows (default)
-    VSM,        //!< variance shadows
-    DPCF,       //!< PCF with contact hardening simulation
-    PCSS,       //!< PCF with soft shadows and contact hardening
+enum ShadowType {
+  PCF, //!< percentage-closer filtered shadows (default)
+  VSM, //!< variance shadows
+  DPCF, //!< PCF with contact hardening simulation
+  PCSS, //!< PCF with soft shadows and contact hardening
 }
 
 // copied from filament/backened/DriverEnums.h
@@ -58,6 +59,11 @@ abstract class ThermionViewer {
   Future<bool> get initialized;
 
   ///
+  /// The current dimensions of the viewport (in physical pixels).
+  ///
+  late (double, double) viewportDimensions;
+
+  ///
   /// The result(s) of calling [pick] (see below).
   /// This may be a broadcast stream, so you should ensure you have subscribed to this stream before calling [pick].
   /// If [pick] is called without an active subscription to this stream, the results will be silently discarded.
@@ -78,6 +84,12 @@ abstract class ThermionViewer {
   /// Render a single frame.
   ///
   Future render();
+
+  
+  ///
+  /// Render a single frame to the viewport and copy the pixel buffer to [out].
+  ///
+  Future<Uint8List> capture();
 
   ///
   /// Sets the framerate for continuous rendering when [setRendering] is enabled.
@@ -270,10 +282,9 @@ abstract class ThermionViewer {
       {List<String>? targetMeshNames});
 
   ///
-  /// Clear all current morph animations for [entity]. 
+  /// Clear all current morph animations for [entity].
   ///
-  Future clearMorphAnimationData(
-      ThermionEntity entity);
+  Future clearMorphAnimationData(ThermionEntity entity);
 
   ///
   /// Resets all bones in the given entity to their rest pose.
@@ -736,7 +747,6 @@ abstract class ThermionViewer {
   /// Register a callback to be invoked when this viewer is disposed.
   ///
   void onDispose(Future Function() callback);
-  
 }
 
 abstract class AbstractGizmo {

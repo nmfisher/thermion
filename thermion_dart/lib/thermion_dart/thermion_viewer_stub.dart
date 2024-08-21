@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
@@ -748,6 +749,12 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future setSoftShadowOptions(double penumbraScale, double penumbraRatioScale) {
     // TODO: implement setSoftShadowOptions
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Uint8List> capture() {
+    // TODO: implement capture
     throw UnimplementedError();
   }
 }

@@ -107,6 +107,10 @@ extern "C"
 		void *pixelBuffer,
 		void (*callback)(void *buf, size_t size, void *data),
 		void *data);
+	EMSCRIPTEN_KEEPALIVE void capture(
+		const void *const viewer,
+		uint8_t *pixelBuffer,
+		void (*callback)(void));
 	EMSCRIPTEN_KEEPALIVE void create_swap_chain(const void *const viewer, const void *const window, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void destroy_swap_chain(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void set_frame_interval(const void *const viewer, float interval);

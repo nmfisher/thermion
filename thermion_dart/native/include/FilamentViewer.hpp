@@ -150,6 +150,7 @@ namespace thermion_filament
 
         void setRecording(bool recording);
         void setRecordingOutputDirectory(const char *path);
+        void capture(uint8_t *out, void (*onComplete)());
 
         void setAntiAliasing(bool msaaEnabled, bool fxaaEnabled, bool taaEnabled);
         void setDepthOfField();

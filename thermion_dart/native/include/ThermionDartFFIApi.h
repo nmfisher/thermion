@@ -30,6 +30,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void create_render_target_ffi(void *const viewer, intptr_t nativeTextureId, uint32_t width, uint32_t height, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_ffi(void *const viewer);
     EMSCRIPTEN_KEEPALIVE void render_ffi(void *const viewer);
+    EMSCRIPTEN_KEEPALIVE void capture_ffi(void *const viewer, uint8_t* out, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
     EMSCRIPTEN_KEEPALIVE void set_rendering_ffi(void *const viewer, bool rendering, void(*onComplete)());
     EMSCRIPTEN_KEEPALIVE void set_frame_interval_ffi(void *const viewer, float frameInterval);

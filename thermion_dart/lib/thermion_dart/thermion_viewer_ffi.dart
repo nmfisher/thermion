@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
 import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
@@ -23,8 +24,6 @@ class ThermionViewerFFI extends ThermionViewer {
   Scene get scene => _scene!;
 
   double _pixelRatio = 1.0;
-
-  late (double, double) viewportDimensions;
 
   Pointer<Void>? _sceneManager;
 
@@ -167,6 +166,23 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
+  Future<Uint8List> capture() async {
+    final length = this.viewportDimensions.$1.toInt() *
+        this.viewportDimensions.$2.toInt() *
+        4;
+    final out = allocator<Uint8>(length);
+    await withVoidCallback((cb) {
+      capture_ffi(_viewer!, out, cb);
+    });
+    final data = Uint8List.fromList(out.asTypedList(length));
+    allocator.free(out);
+    return data;
+  }
+
+  ///
+  ///
+  ///
+  @override
   Future setFrameRate(int framerate) async {
     final interval = 1000.0 / framerate;
     set_frame_interval_ffi(_viewer!, interval);
@@ -198,7 +214,6 @@ class ThermionViewerFFI extends ThermionViewer {
       await callback.call();
     }
     _onDispose.clear();
-
   }
 
   ///
@@ -602,13 +617,9 @@ class ThermionViewerFFI extends ThermionViewer {
   Future clearMorphAnimationData(ThermionEntity entity) async {
     var meshEntities = await getChildEntities(entity, true);
 
-    for(final childEntity in meshEntities) {
-        clear_morph_animation(
-          _sceneManager!,
-          childEntity);
+    for (final childEntity in meshEntities) {
+      clear_morph_animation(_sceneManager!, childEntity);
     }
-
-
   }
 
   ///
@@ -982,8 +993,8 @@ class ThermionViewerFFI extends ThermionViewer {
       bool replaceActive = true,
       double crossfade = 0.0,
       double startOffset = 0.0}) async {
-    play_animation(
-        _sceneManager!, entity, index, loop, reverse, replaceActive, crossfade, startOffset);
+    play_animation(_sceneManager!, entity, index, loop, reverse, replaceActive,
+        crossfade, startOffset);
   }
 
   ///

@@ -1186,6 +1186,49 @@ namespace thermion_filament
     #endif
   }
 
+  void FilamentViewer::capture(uint8_t *out, void (*onComplete)()) {
+      
+      Viewport const &vp = _view->getViewport();
+      size_t pixelBufferSize = vp.width * vp.height * 4;
+      auto *pixelBuffer = new uint8_t[pixelBufferSize];
+      auto callback = [](void *buf, size_t size, void *data)
+      {
+
+        auto frameCallbackData = (std::vector<void*>*)data;
+        uint8_t *out = (uint8_t *)(frameCallbackData->at(0));
+        void* callbackPtr = frameCallbackData->at(1);
+
+        void (*callback)(void) = (void (*)(void))callbackPtr;
+        memcpy(out, buf, size);
+        delete frameCallbackData;
+        callback();
+      };
+
+      auto userData = new std::vector<void*> { out, (void*)onComplete } ;
+
+      auto pbd = Texture::PixelBufferDescriptor(
+          pixelBuffer, pixelBufferSize,
+          Texture::Format::RGBA,
+          Texture::Type::UBYTE, nullptr, callback, userData);
+      _renderer->beginFrame(_swapChain, 0);
+      
+      _renderer->render(_view);
+
+      if(_rt) {
+        _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
+      } else { 
+        _renderer->readPixels(0, 0, vp.width, vp.height, std::move(pbd));
+      }
+      _renderer->endFrame();
+
+      #ifdef __EMSCRIPTEN__
+        _engine->execute();
+        emscripten_webgl_commit_frame();
+      #endif
+    }
+
+
+
   void FilamentViewer::savePng(void *buf, size_t size, int frameNumber)
   {
     // std::lock_guard lock(_recordingMutex);
