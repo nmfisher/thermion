@@ -85,7 +85,6 @@ abstract class ThermionViewer {
   ///
   Future render();
 
-  
   ///
   /// Render a single frame to the viewport and copy the pixel buffer to [out].
   ///

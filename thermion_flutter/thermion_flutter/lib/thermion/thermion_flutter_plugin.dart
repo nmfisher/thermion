@@ -9,10 +9,8 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dar
 /// surface in a Flutter application and lifecycle listeners to pause rendering
 /// when the app is inactive or in the background.
 /// Call [createViewer] to create an instance of [ThermionViewer].
-/// This is a lightweight singleton that  
 ///
 class ThermionFlutterPlugin {
-  
   ThermionFlutterPlugin._();
 
   static AppLifecycleListener? _appLifecycleListener;
@@ -92,8 +90,12 @@ class ThermionFlutterPlugin {
   }
 
   @override
-  static Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
-      int width, int height, int offsetLeft, int offsetRight) async {
+  static Future<ThermionFlutterTexture?> resizeTexture(
+      ThermionFlutterTexture texture,
+      int width,
+      int height,
+      int offsetLeft,
+      int offsetRight) async {
     return ThermionFlutterPlatform.instance
         .resizeTexture(texture, width, height, offsetLeft, offsetRight);
   }

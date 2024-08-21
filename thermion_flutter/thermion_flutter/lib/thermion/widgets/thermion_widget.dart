@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:thermion_flutter/thermion/widgets/thermion_widget_web.dart';
 import 'dart:async';
 
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
@@ -82,17 +83,27 @@ class _ThermionWidgetState extends State<ThermionWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      if (_texture == null || _resizing) {
+        return widget.initial ?? Container(color: Colors.red);
+      }
+      return ResizeObserver(
+          onResized: _resizeTexture, child: ThermionWidgetWeb());
+    }
+
     if (_texture?.usesBackingWindow == true) {
       return ResizeObserver(
-        onResized: _resizeTexture,
-        child: Stack(children: [
-        Positioned.fill(child: CustomPaint(painter: TransparencyPainter()))
-      ]));
+          onResized: _resizeTexture,
+          child: Stack(children: [
+            Positioned.fill(child: CustomPaint(painter: TransparencyPainter()))
+          ]));
     }
 
     if (_texture == null || _resizing) {
       return widget.initial ??
-          Container(color: kIsWeb ? Colors.transparent : Colors.red);
+          Container(
+              color:
+                  kIsWeb ? const Color.fromARGB(0, 170, 129, 129) : Colors.red);
     }
 
     var textureWidget = Texture(
@@ -131,3 +142,4 @@ class TransparencyPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
