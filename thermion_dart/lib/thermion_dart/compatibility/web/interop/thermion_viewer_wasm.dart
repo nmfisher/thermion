@@ -31,6 +31,9 @@ extension type _EmscriptenModule(JSObject _) implements JSObject {
   external void stringToUTF8(
       JSString str, JSNumber ptr, JSNumber maxBytesToWrite);
   external void writeArrayToMemory(JSUint8Array data, JSNumber ptr);
+
+  external JSNumber addFunction(JSFunction f, String signature);
+  external void removeFunction(JSNumber f);
   external JSAny get ALLOC_STACK;
   external JSAny get HEAPU32;
   external JSAny get HEAP32;
@@ -51,6 +54,8 @@ class ThermionViewerWasm implements ThermionViewer {
   bool _rendering = false;
 
   String? assetPathPrefix;
+
+  late (double, double) viewportDimensions;
 
   ///
   /// Construct an instance of this class by explicitly passing the
@@ -81,6 +86,8 @@ class ThermionViewerWasm implements ThermionViewer {
 
   JSNumber? _viewer;
   JSNumber? _sceneManager;
+  int _width = 0;
+  int _height = 0;
 
   Future initialize(int width, int height, {String? uberArchivePath}) async {
     if (!_initialized) {
@@ -103,7 +110,7 @@ class ThermionViewerWasm implements ThermionViewer {
         "create_filament_viewer",
         "void*",
         ["void*".toJS, "void*".toJS, "void*".toJS, "string".toJS].toJS,
-        [context, loader, null, uberArchivePath?.toJS].toJS,
+        [context!, loader, null, uberArchivePath?.toJS].toJS,
         null) as JSNumber;
     await createSwapChain(width, height);
     updateViewportAndCameraProjection(width, height, 1.0);
@@ -143,6 +150,9 @@ class ThermionViewerWasm implements ThermionViewer {
 
   void updateViewportAndCameraProjection(
       int width, int height, double scaleFactor) {
+    _width = width;
+    _height = height;
+    viewportDimensions = (width.toDouble(), height.toDouble());
     _module!.ccall(
         "update_viewport_and_camera_projection",
         "void",
@@ -772,6 +782,54 @@ class ThermionViewerWasm implements ThermionViewer {
         null);
   }
 
+  Future<Uint8List> capture() async {
+    bool wasRendering = rendering;
+    await setRendering(false);
+    final pixelBuffer = _module!._malloc(_width * _height * 4) as JSNumber;
+    final completer = Completer();
+    final callback = () {
+      print("Callback invoked!");
+      completer.complete();
+    };
+    final callbackPtr = _module!.addFunction(callback.toJS, "v");
+
+    print("Aded functrion ${callbackPtr}, calling capture...");
+    _module!.ccall(
+        "capture",
+        "void",
+        ["void*".toJS, "uint8_t*".toJS, "void*".toJS].toJS,
+        [_viewer!, pixelBuffer, callbackPtr].toJS,
+        null);
+    print("Waiting for completer...");
+    int iter = 0;
+    while (true) {
+      await Future.delayed(Duration(milliseconds: 5));
+      await render();
+      if (completer.isCompleted) {
+        break;
+      }
+      iter++;
+      if (iter > 1000) {
+        _module!._free(pixelBuffer);
+        throw Exception("Failed to complete capture");
+      }
+    }
+
+    // Create a Uint8ClampedList to store the pixel data
+    var data = Uint8List(_width * _height * 4);
+    for (int i = 0; i < data.length; i++) {
+      data[i] = (_module!.getValue(((pixelBuffer.toDartInt) + i).toJS, "i8")
+              as JSNumber)
+          .toDartInt;
+    }
+    _module!._free(pixelBuffer);
+    await setRendering(wasRendering);
+    print("Captured to ${data.length} pixel buffer");
+    _module!.removeFunction(callbackPtr);
+
+    return data;
+  }
+
   @override
   Scene get scene => throw UnimplementedError();
 
@@ -1330,21 +1388,21 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future panEnd() {
-    // TODO: implement panEnd
-    throw UnimplementedError();
+  Future panEnd() async {
+    _module!.ccall("grab_end", "void",
+        ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
-  Future panStart(double x, double y) {
-    // TODO: implement panStart
-    throw UnimplementedError();
+  Future panStart(double x, double y) async {
+    _module!.ccall("grab_begin", "void",
+        ["void*".toJS, "float".toJS, "float".toJS, "bool".toJS].toJS, [_viewer!, x.toJS, y.toJS, true.toJS].toJS, null);
   }
 
   @override
-  Future panUpdate(double x, double y) {
-    // TODO: implement panUpdate
-    throw UnimplementedError();
+  Future panUpdate(double x, double y) async {
+    _module!.ccall("grab_update", "void",
+        ["void*".toJS, "float".toJS, "float".toJS].toJS, [_viewer!, x.toJS, y.toJS].toJS, null);
   }
 
   @override
@@ -1526,12 +1584,6 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future rotateEnd() {
-    // TODO: implement rotateEnd
-    throw UnimplementedError();
-  }
-
-  @override
   Future rotateIbl(Matrix3 rotation) async {
     final ptr = _module!._malloc(9 * 4) as JSNumber;
     for (int i = 0; i < 9; i++) {
@@ -1544,15 +1596,21 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future rotateStart(double x, double y) {
-    // TODO: implement rotateStart
-    throw UnimplementedError();
+  Future rotateStart(double x, double y) async {
+     _module!.ccall("grab_begin", "void",
+        ["void*".toJS, "float".toJS, "float".toJS, "bool".toJS].toJS, [_viewer!, x.toJS, y.toJS, false.toJS].toJS, null);
   }
 
   @override
-  Future rotateUpdate(double x, double y) {
-    // TODO: implement rotateUpdate
-    throw UnimplementedError();
+  Future rotateUpdate(double x, double y) async {
+    _module!.ccall("grab_update", "void",
+        ["void*".toJS, "float".toJS, "float".toJS].toJS, [_viewer!, x.toJS, y.toJS].toJS, null);
+  }
+
+  @override
+  Future rotateEnd() async {
+    _module!.ccall("grab_end", "void",
+        ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
@@ -1936,19 +1994,19 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future zoomBegin() async {
     _module!.ccall(
-        "zoom_begin", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
+        "scroll_begin", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
   Future zoomEnd() async {
     _module!
-        .ccall("zoom_end", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
+        .ccall("scroll_end", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
   Future zoomUpdate(double x, double y, double z) async {
     _module!.ccall(
-        "zoom_update",
+        "scroll_update",
         "void",
         ["void*".toJS, "float".toJS, "float".toJS, "float".toJS].toJS,
         [_viewer!, x.toJS, y.toJS, z.toJS].toJS,
