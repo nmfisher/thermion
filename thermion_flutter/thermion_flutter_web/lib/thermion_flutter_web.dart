@@ -17,6 +17,14 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   @override
   Future<ThermionFlutterTexture?> createTexture(
       int width, int height, int offsetLeft, int offsetRight) async {
+    await _viewer!.destroySwapChain();
+    await _viewer!.createSwapChain(width, height);
+    _viewer!.updateViewportAndCameraProjection(width, height, 1.0);
+
+    final canvas = document.getElementById("canvas") as HTMLCanvasElement;
+    canvas.width = width;
+    canvas.height = height;
+
     return ThermionFlutterTexture(null, null, 0, 0, null);
   }
 
@@ -39,15 +47,12 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   }
 
   Future<ThermionViewer> createViewer({String? uberArchivePath}) async {
-    final canvas = document.getElementById("canvas") as HTMLCanvasElement;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    var width = window.innerWidth;
-    var height = window.innerHeight;
-
     _viewer = ThermionViewerWasm(assetPathPrefix: "/assets/");
-    await _viewer!.initialize(width, height, uberArchivePath: uberArchivePath);
+    final canvas = document.createElement("canvas") as HTMLCanvasElement;
+    canvas.id = "canvas";
+    document.body!.appendChild(canvas);
+    canvas.style.display = 'none';
+    await _viewer!.initialize(0, 0, uberArchivePath:uberArchivePath);
     return _viewer!;
   }
 }
