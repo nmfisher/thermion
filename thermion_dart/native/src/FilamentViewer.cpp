@@ -806,7 +806,11 @@ namespace thermion_filament
       _swapChain = nullptr;
       Log("Swapchain destroyed.");
     }
+    #ifdef __EMSCRIPTEN__
+    _engine->execute();
+    #else
     _engine->flushAndWait();
+    #endif
   }
 
   void FilamentViewer::clearEntities()
