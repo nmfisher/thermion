@@ -822,9 +822,9 @@ extern "C"
         return ((SceneManager *)sceneManager)->getParent(child);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent)
+    EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling)
     {
-        ((SceneManager *)sceneManager)->setParent(child, parent);
+        ((SceneManager *)sceneManager)->setParent(child, parent, preserveScaling);
     }
 
     EMSCRIPTEN_KEEPALIVE void test_collisions(void *const sceneManager, EntityId entity)
@@ -841,4 +841,10 @@ extern "C"
     {
         return ((SceneManager *)sceneManager)->getGizmo(out);
     }
+
+    EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity) {
+        return ((SceneManager *)sceneManager)->getBoundingBox(entity);
+    }
+
+
 }

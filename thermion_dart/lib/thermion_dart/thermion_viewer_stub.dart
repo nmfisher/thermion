@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -608,7 +609,7 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future setParent(ThermionEntity child, ThermionEntity parent) {
+  Future setParent(ThermionEntity child, ThermionEntity parent, { bool preserveScaling = false}) {
     // TODO: implement setParent
     throw UnimplementedError();
   }
@@ -755,6 +756,12 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future<Uint8List> capture() {
     // TODO: implement capture
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Aabb2> getBoundingBox(ThermionEntity entity) {
+    // TODO: implement getBoundingBox
     throw UnimplementedError();
   }
 }

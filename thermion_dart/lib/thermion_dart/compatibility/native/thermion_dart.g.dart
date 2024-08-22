@@ -123,7 +123,7 @@ external void remove_ibl(
 );
 
 @ffi.Native<
-    ffi.Int Function(
+    EntityId Function(
         ffi.Pointer<ffi.Void>,
         ffi.Uint8,
         ffi.Float,
@@ -161,7 +161,7 @@ external int add_light(
   bool shadows,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void remove_light(
   ffi.Pointer<ffi.Void> viewer,
   int entityId,
@@ -173,7 +173,7 @@ external void clear_lights(
 );
 
 @ffi.Native<
-    ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int)>()
+    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int)>()
 external int load_glb(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
@@ -181,7 +181,7 @@ external int load_glb(
 );
 
 @ffi.Native<
-    ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size)>()
+    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size)>()
 external int load_glb_from_buffer(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Void> data,
@@ -189,7 +189,7 @@ external int load_glb_from_buffer(
 );
 
 @ffi.Native<
-    ffi.Int Function(
+    EntityId Function(
         ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
 external int load_gltf(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -197,24 +197,24 @@ external int load_gltf(
   ffi.Pointer<ffi.Char> relativePath,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external int create_instance(
   ffi.Pointer<ffi.Void> sceneManager,
   int id,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external int get_instance_count(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Int>)>()
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<EntityId>)>()
 external void get_instances(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
-  ffi.Pointer<ffi.Int> out,
+  ffi.Pointer<EntityId> out,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>()
@@ -222,13 +222,13 @@ external void set_main_camera(
   ffi.Pointer<ffi.Void> viewer,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>)>()
+@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>)>()
 external int get_main_camera(
   ffi.Pointer<ffi.Void> viewer,
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Char>)>()
+    ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>()
 external bool set_camera(
   ffi.Pointer<ffi.Void> viewer,
   int entity,
@@ -261,6 +261,15 @@ external void render(
                   ffi.Pointer<ffi.Void> data)>>
       callback,
   ffi.Pointer<ffi.Void> data,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint8>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>()
+external void capture(
+  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<ffi.Uint8> pixelBuffer,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
@@ -335,7 +344,7 @@ external void grab_end(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Char>,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>,
         ffi.Pointer<ffi.Float>, ffi.Int)>()
 external void apply_weights(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -347,7 +356,7 @@ external void apply_weights(
 
 @ffi.Native<
     ffi.Bool Function(
-        ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Float>, ffi.Int)>()
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>, ffi.Int)>()
 external bool set_morph_target_weights(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
@@ -356,7 +365,7 @@ external bool set_morph_target_weights(
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Float>,
+    ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>,
         ffi.Pointer<ffi.Int>, ffi.Int, ffi.Int, ffi.Float)>()
 external bool set_morph_animation(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -368,13 +377,13 @@ external bool set_morph_animation(
   double frameLengthInMs,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void clear_morph_animation(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void reset_to_rest_pose(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,
@@ -383,7 +392,7 @@ external void reset_to_rest_pose(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
-        ffi.Int,
+        EntityId,
         ffi.Int,
         ffi.Int,
         ffi.Pointer<ffi.Float>,
@@ -406,7 +415,8 @@ external void add_bone_animation(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Float>)>()
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>()
 external void get_local_transform(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
@@ -414,7 +424,7 @@ external void get_local_transform(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
         ffi.Pointer<ffi.Float>, ffi.Int)>()
 external void get_rest_local_transforms(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -425,7 +435,8 @@ external void get_rest_local_transforms(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Float>)>()
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>()
 external void get_world_transform(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
@@ -433,7 +444,7 @@ external void get_world_transform(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Int,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
         ffi.Pointer<ffi.Float>)>()
 external void get_inverse_bind_matrix(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -444,7 +455,7 @@ external void get_inverse_bind_matrix(
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Int,
+    ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
         ffi.Pointer<ffi.Float>)>()
 external bool set_bone_transform(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -455,7 +466,7 @@ external bool set_bone_transform(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Bool,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool,
         ffi.Bool, ffi.Bool, ffi.Float, ffi.Float)>()
 external void play_animation(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -469,7 +480,7 @@ external void play_animation(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Int)>()
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int)>()
 external void set_animation_frame(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
@@ -477,14 +488,14 @@ external void set_animation_frame(
   int animationFrame,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>()
 external void stop_animation(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
   int index,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external int get_animation_count(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,
@@ -492,7 +503,7 @@ external int get_animation_count(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Char>, ffi.Int)>()
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>, ffi.Int)>()
 external void get_animation_name(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
@@ -500,14 +511,14 @@ external void get_animation_name(
   int index,
 );
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int)>()
+@ffi.Native<ffi.Float Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>()
 external double get_animation_duration(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
   int index,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int)>()
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>()
 external int get_bone_count(
   ffi.Pointer<ffi.Void> sceneManager,
   int assetEntity,
@@ -515,7 +526,7 @@ external int get_bone_count(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
         ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Int)>()
 external void get_bone_names(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -525,7 +536,7 @@ external void get_bone_names(
 );
 
 @ffi.Native<
-    ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Int)>()
+    EntityId Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int)>()
 external int get_bone(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
@@ -534,21 +545,22 @@ external int get_bone(
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Float>)>()
+    ffi.Bool Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>()
 external bool set_transform(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
   ffi.Pointer<ffi.Float> transform,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external bool update_bone_matrices(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId,
         ffi.Pointer<ffi.Char>, ffi.Int)>()
 external void get_morph_target_name(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -558,14 +570,14 @@ external void get_morph_target_name(
   int index,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int)>()
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, EntityId)>()
 external int get_morph_target_name_count(
   ffi.Pointer<ffi.Void> sceneManager,
   int assetEntity,
   int childEntity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void remove_entity(
   ffi.Pointer<ffi.Void> viewer,
   int asset,
@@ -577,7 +589,7 @@ external void clear_entities(
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Char>,
+    ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>,
         ffi.Int, ffi.Float, ffi.Float, ffi.Float, ffi.Float)>()
 external bool set_material_color(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -590,14 +602,14 @@ external bool set_material_color(
   double a,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void transform_to_unit_cube(
   ffi.Pointer<ffi.Void> sceneManager,
   int asset,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Float, ffi.Float,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
         ffi.Float, ffi.Bool)>()
 external void queue_position_update(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -609,7 +621,7 @@ external void queue_position_update(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Float, ffi.Float,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
         ffi.Float, ffi.Float, ffi.Float, ffi.Bool)>()
 external void queue_rotation_update(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -624,7 +636,7 @@ external void queue_rotation_update(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Int, ffi.Float, ffi.Float, ffi.Float)>()
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float, ffi.Float)>()
 external void set_position(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
@@ -634,7 +646,7 @@ external void set_position(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Float, ffi.Float,
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
         ffi.Float, ffi.Float, ffi.Float)>()
 external void set_rotation(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -646,14 +658,14 @@ external void set_rotation(
   double w,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Float)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float)>()
 external void set_scale(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
   double scale,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void move_camera_to_asset(
   ffi.Pointer<ffi.Void> viewer,
   int asset,
@@ -782,7 +794,7 @@ external void set_camera_manipulator_options(
 );
 
 @ffi.Native<
-    ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Char>)>()
+    ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>()
 external int hide_mesh(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
@@ -790,7 +802,7 @@ external int hide_mesh(
 );
 
 @ffi.Native<
-    ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Char>)>()
+    ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>()
 external int reveal_mesh(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
@@ -838,32 +850,32 @@ external void set_antialiasing(
         ffi.Int,
         ffi.Pointer<
             ffi.NativeFunction<
-                ffi.Void Function(ffi.Int entityId, ffi.Int x, ffi.Int y)>>)>()
+                ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y)>>)>()
 external void filament_pick(
   ffi.Pointer<ffi.Void> viewer,
   int x,
   int y,
   ffi.Pointer<
           ffi.NativeFunction<
-              ffi.Void Function(ffi.Int entityId, ffi.Int x, ffi.Int y)>>
+              ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y)>>
       callback,
 );
 
-@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external ffi.Pointer<ffi.Char> get_name_for_entity(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
 );
 
 @ffi.Native<
-    ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Pointer<ffi.Char>)>()
+    EntityId Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>()
 external int find_child_entity_by_name(
   ffi.Pointer<ffi.Void> sceneManager,
   int parent,
   ffi.Pointer<ffi.Char> name,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Bool)>()
+@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Bool)>()
 external int get_entity_count(
   ffi.Pointer<ffi.Void> sceneManager,
   int target,
@@ -872,17 +884,17 @@ external int get_entity_count(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Int, ffi.Bool, ffi.Pointer<ffi.Int>)>()
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Bool, ffi.Pointer<EntityId>)>()
 external void get_entities(
   ffi.Pointer<ffi.Void> sceneManager,
   int target,
   bool renderableOnly,
-  ffi.Pointer<ffi.Int> out,
+  ffi.Pointer<EntityId> out,
 );
 
 @ffi.Native<
     ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int, ffi.Bool)>()
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool)>()
 external ffi.Pointer<ffi.Char> get_entity_name_at(
   ffi.Pointer<ffi.Void> sceneManager,
   int target,
@@ -913,41 +925,41 @@ external void thermion_flutter_free(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
-        ffi.Int,
+        EntityId,
         ffi.Pointer<
             ffi.NativeFunction<
-                ffi.Void Function(ffi.Int entityId1, ffi.Int entityId2)>>,
+                ffi.Void Function(EntityId entityId1, EntityId entityId2)>>,
         ffi.Bool)>()
 external void add_collision_component(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
   ffi.Pointer<
           ffi.NativeFunction<
-              ffi.Void Function(ffi.Int entityId1, ffi.Int entityId2)>>
+              ffi.Void Function(EntityId entityId1, EntityId entityId2)>>
       callback,
   bool affectsCollidingTransform,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void remove_collision_component(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external bool add_animation_component(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void remove_animation_component(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
 );
 
 @ffi.Native<
-    ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>, ffi.Int,
+    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>, ffi.Int,
         ffi.Pointer<ffi.Uint16>, ffi.Int, ffi.Int, ffi.Pointer<ffi.Char>)>()
 external int create_geometry(
   ffi.Pointer<ffi.Void> viewer,
@@ -959,36 +971,44 @@ external int create_geometry(
   ffi.Pointer<ffi.Char> materialPath,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external int get_parent(
   ffi.Pointer<ffi.Void> sceneManager,
   int child,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int)>()
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId, ffi.Bool)>()
 external void set_parent(
   ffi.Pointer<ffi.Void> sceneManager,
   int child,
   int parent,
+  bool preserveScaling,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external void test_collisions(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Int)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>()
 external void set_priority(
   ffi.Pointer<ffi.Void> sceneManager,
   int entityId,
   int priority,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Int>)>()
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<EntityId>)>()
 external void get_gizmo(
   ffi.Pointer<ffi.Void> sceneManager,
-  ffi.Pointer<ffi.Int> out,
+  ffi.Pointer<EntityId> out,
+);
+
+@ffi.Native<Aabb2 Function(ffi.Pointer<ffi.Void>, EntityId)>()
+external Aabb2 get_bounding_box(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
 );
 
 @ffi.Native<
@@ -1499,6 +1519,27 @@ typedef LoadFilamentResourceIntoOutPointerFunction = ffi.Void Function(
     ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
 typedef DartLoadFilamentResourceIntoOutPointerFunction = void Function(
     ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
+
+final class Aabb2 extends ffi.Struct {
+  @ffi.Float()
+  external double minX;
+
+  @ffi.Float()
+  external double minY;
+
+  @ffi.Float()
+  external double maxX;
+
+  @ffi.Float()
+  external double maxY;
+}
+
+/// This header replicates most of the methods in ThermionDartApi.h.
+/// It represents the interface for:
+/// - invoking those methods that must be called on the main Filament engine thread
+/// - setting up a render loop
+typedef EntityId = ffi.Int32;
+typedef DartEntityId = int;
 typedef _ManipulatorMode = ffi.Int32;
 typedef Dart_ManipulatorMode = int;
 typedef FilamentRenderCallback
@@ -1507,13 +1548,6 @@ typedef FilamentRenderCallbackFunction = ffi.Void Function(
     ffi.Pointer<ffi.Void> owner);
 typedef DartFilamentRenderCallbackFunction = void Function(
     ffi.Pointer<ffi.Void> owner);
-
-/// This header replicates most of the methods in ThermionDartApi.h.
-/// It represents the interface for:
-/// - invoking those methods that must be called on the main Filament engine thread
-/// - setting up a render loop
-typedef EntityId = ffi.Int32;
-typedef DartEntityId = int;
 
 const int __bool_true_false_are_defined = 1;
 

@@ -6,6 +6,8 @@
 #include <map>
 
 #include <filament/Scene.h>
+#include <filament/Camera.h>
+#include <filament/View.h>
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -17,11 +19,13 @@
 
 #include "material/gizmo.h"
 #include "utils/NameComponentManager.h"
+#include "Gizmo.hpp"
 #include "ResourceBuffer.hpp"
 #include "components/CollisionComponentManager.hpp"
 #include "components/AnimationComponentManager.hpp"
 
 #include "tsl/robin_map.h"
+#include "Aabb2.h"
 
 namespace thermion_filament
 {
@@ -37,7 +41,8 @@ namespace thermion_filament
     class SceneManager
     {
     public:
-        SceneManager(const ResourceLoaderWrapperImpl *const loader,
+        SceneManager(View* view,
+                    const ResourceLoaderWrapperImpl *const loader,
                      Engine *engine,
                      Scene *scene,
                      const char *uberArchivePath);
@@ -146,7 +151,7 @@ namespace thermion_filament
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
         EntityId getParent(EntityId child);
-        void setParent(EntityId child, EntityId parent);
+        void setParent(EntityId child, EntityId parent, bool preserveScaling);
         bool addAnimationComponent(EntityId entity);
         void removeAnimationComponent(EntityId entity);
 
@@ -165,10 +170,17 @@ namespace thermion_filament
         void setPriority(EntityId entity, int priority);
 
         /// @brief returns the gizmo entity, used to manipulate the global transform for entities
-        /// @param out a pointer to an array of three EntityId {x, y, z}
+        /// @param out a pointer sized large enough to hold three EntityId values (representing the x, y, and z axis of the translation gizmo).
         /// @return
         ///
         void getGizmo(EntityId *out);
+
+
+        /// @brief returns the 2D min/max viewport coordinates of the bounding box for the specified enitty;
+        /// @param out a pointer large enough to store four floats (the min/max coordinates of the bounding box)
+        /// @return
+        ///
+        Aabb2 getBoundingBox(EntityId entity);
 
         friend class FilamentViewer;
 
@@ -177,6 +189,7 @@ namespace thermion_filament
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         Engine *_engine;
         Scene *_scene;
+        View* _view;
         gltfio::MaterialProvider *_ubershaderProvider = nullptr;
         gltfio::ResourceLoader *_gltfResourceLoader = nullptr;
         gltfio::TextureProvider *_stbDecoder = nullptr;
@@ -203,9 +216,8 @@ namespace thermion_filament
             const char *entityName);
 
         EntityId addGizmo();
-        utils::Entity _gizmo[3];
-        Material* _gizmoMaterial;
-        MaterialInstance* _gizmoMaterialInstances[3];
+        Gizmo* _gizmo = nullptr;
+        
 
     };
 }

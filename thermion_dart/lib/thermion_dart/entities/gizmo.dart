@@ -1,16 +1,18 @@
+import 'dart:ffi';
 
+import 'package:ffi/ffi.dart';
+import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
 import '../thermion_viewer.dart';
 
 class Gizmo extends AbstractGizmo {
   final ThermionEntity x;
-  Vector3 _x = Vector3(0.1, 0, 0);
   final ThermionEntity y;
-  Vector3 _y = Vector3(0.0, 0.1, 0);
   final ThermionEntity z;
-  Vector3 _z = Vector3(0.0, 0.0, 0.1);
 
-  final ThermionViewer controller;
+  final ThermionEntity center;
+
+  final ThermionViewer _viewer;
 
   ThermionEntity? _activeAxis;
   ThermionEntity? _activeEntity;
@@ -18,29 +20,41 @@ class Gizmo extends AbstractGizmo {
 
   final Set<ThermionEntity> ignore;
 
-  Gizmo(this.x, this.y, this.z, this.controller,
+  Aabb2 boundingBox = Aabb2();
+
+  Gizmo(this.x, this.y, this.z, this.center, this._viewer,
       {this.ignore = const <ThermionEntity>{}}) {
-    controller.pickResult.listen(_onPickResult);
+    _viewer.pickResult.listen(_onPickResult);
   }
 
   Future _reveal() async {
-    await controller.reveal(x, null);
-    await controller.reveal(y, null);
-    await controller.reveal(z, null);
+    await _viewer.reveal(x, null);
+    await _viewer.reveal(y, null);
+    await _viewer.reveal(z, null);
+    await _viewer.reveal(center, null);
   }
 
+  final _stopwatch = Stopwatch();
+
+  var _translation = Vector3.zero();
+
   void translate(double transX, double transY) async {
-    late Vector3 vec;
-    if (_activeAxis == x) {
-      vec = _x;
-    } else if (_activeAxis == y) {
-      vec = _y;
-    } else if (_activeAxis == z) {
-      vec = _z;
+    if (!_stopwatch.isRunning) {
+      _stopwatch.start();
     }
-    await controller.queuePositionUpdate(
-        _activeEntity!, transX * vec.x, -transY * vec.y, -transX * vec.z,
-        relative: true);
+    if (_activeAxis == x) {
+      _translation += Vector3(transX, 0.0, 0.0);
+    } else {
+      _translation += Vector3(0.0, transY, 0.0);
+    }
+
+    if (_stopwatch.elapsedMilliseconds > 16) {
+      await _viewer.queuePositionUpdate(
+          _activeEntity!, _translation.x, _translation.y, _translation.z,
+          relative: true);
+      _stopwatch.reset();
+      _translation = Vector3.zero();
+    }
   }
 
   void reset() {
@@ -63,17 +77,22 @@ class Gizmo extends AbstractGizmo {
     _activeAxis = null;
     _activeEntity = entity;
     await _reveal();
-    await controller.setParent(x, entity);
-    await controller.setParent(y, entity);
-    await controller.setParent(z, entity);
+
+    await _viewer.setParent(x, entity);
+    await _viewer.setParent(y, entity);
+    await _viewer.setParent(z, entity);
+    await _viewer.setParent(center, entity);
+    boundingBox = await _viewer.getBoundingBox(x);
   }
 
   void detach() async {
-    await controller.setParent(x, 0);
-    await controller.setParent(y, 0);
-    await controller.setParent(z, 0);
-    await controller.hide(x, null);
-    await controller.hide(y, null);
-    await controller.hide(z, null);
+    await _viewer.setParent(x, 0);
+    await _viewer.setParent(y, 0);
+    await _viewer.setParent(z, 0);
+    await _viewer.setParent(center, 0);
+    await _viewer.hide(x, null);
+    await _viewer.hide(y, null);
+    await _viewer.hide(z, null);
+    await _viewer.hide(center, null);
   }
 }

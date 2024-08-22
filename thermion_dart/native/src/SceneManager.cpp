@@ -9,6 +9,7 @@
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
 #include <filament/RenderableManager.h>
+#include <filament/Viewport.h>
 
 #include <utils/EntityManager.h>
 
@@ -43,11 +44,13 @@ namespace thermion_filament
     using namespace filament::gltfio;
     using std::unique_ptr;
 
-    SceneManager::SceneManager(const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
+    SceneManager::SceneManager(View *view,
+                               const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
                                Engine *engine,
                                Scene *scene,
                                const char *uberArchivePath)
-        : _resourceLoaderWrapper(resourceLoaderWrapper),
+        : _view(view),
+          _resourceLoaderWrapper(resourceLoaderWrapper),
           _engine(engine),
           _scene(scene)
     {
@@ -76,9 +79,9 @@ namespace thermion_filament
         utils::EntityManager &em = utils::EntityManager::get();
 
         _ncm = new NameComponentManager(em);
-        
+
         _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em});
-    
+
         _gltfResourceLoader->addTextureProvider("image/ktx2", _ktxDecoder);
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
@@ -87,24 +90,20 @@ namespace thermion_filament
 
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
-        
-        addGizmo();
+
+        _gizmo = new Gizmo(_engine);
     }
 
     SceneManager::~SceneManager()
     {
-        
+
         destroyAll();
-        
-        for(int i =0; i < 3; i++) {
-            _engine->destroy(_gizmo[i]);
-            _engine->destroy(_gizmoMaterialInstances[i]);
-        }
-        
-        _engine->destroy(_gizmoMaterial);
+
+        _gizmo->destroy(_engine);
+
         _gltfResourceLoader->asyncCancelLoad();
         _ubershaderProvider->destroyMaterials();
-        
+
         delete _animationComponentManager;
         delete _collisionComponentManager;
         delete _ncm;
@@ -114,7 +113,6 @@ namespace thermion_filament
         delete _ktxDecoder;
         delete _ubershaderProvider;
         AssetLoader::destroy(&_assetLoader);
-        
     }
 
     int SceneManager::getInstanceCount(EntityId entityId)
@@ -454,7 +452,8 @@ namespace thermion_filament
         for (auto &asset : _assets)
         {
             auto numInstances = asset.second->getAssetInstanceCount();
-            for(int i = 0; i < numInstances; i++) {
+            for (int i = 0; i < numInstances; i++)
+            {
                 auto instance = asset.second->getAssetInstances()[i];
                 for (int j = 0; j < instance->getEntityCount(); j++)
                 {
@@ -499,21 +498,24 @@ namespace thermion_filament
         return pos->second;
     }
 
-    math::mat4f SceneManager::getLocalTransform(EntityId entityId) {
+    math::mat4f SceneManager::getLocalTransform(EntityId entityId)
+    {
         auto entity = Entity::import(entityId);
-        auto& tm = _engine->getTransformManager();
-        auto transformInstance = tm.getInstance(entity);        
+        auto &tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(entity);
         return tm.getTransform(transformInstance);
     }
 
-    math::mat4f SceneManager::getWorldTransform(EntityId entityId) {
+    math::mat4f SceneManager::getWorldTransform(EntityId entityId)
+    {
         auto entity = Entity::import(entityId);
-        auto& tm = _engine->getTransformManager();
-        auto transformInstance = tm.getInstance(entity);        
+        auto &tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(entity);
         return tm.getWorldTransform(transformInstance);
     }
 
-    EntityId SceneManager::getBone(EntityId entityId, int skinIndex, int boneIndex) { 
+    EntityId SceneManager::getBone(EntityId entityId, int skinIndex, int boneIndex)
+    {
         auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
@@ -533,7 +535,8 @@ namespace thermion_filament
         return Entity::smuggle(joint);
     }
 
-    math::mat4f SceneManager::getInverseBindMatrix(EntityId entityId, int skinIndex, int boneIndex) { 
+    math::mat4f SceneManager::getInverseBindMatrix(EntityId entityId, int skinIndex, int boneIndex)
+    {
         auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
@@ -551,7 +554,6 @@ namespace thermion_filament
         auto inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[boneIndex];
         return inverseBindMatrix;
     }
-
 
     bool SceneManager::setBoneTransform(EntityId entityId, int32_t skinIndex, int boneIndex, math::mat4f transform)
     {
@@ -781,7 +783,7 @@ namespace thermion_filament
         return true;
     }
 
-     void SceneManager::clearMorphAnimationBuffer(
+    void SceneManager::clearMorphAnimationBuffer(
         EntityId entityId)
     {
         std::lock_guard lock(_mutex);
@@ -865,12 +867,12 @@ namespace thermion_filament
         TransformManager &transformManager = _engine->getTransformManager();
 
         //
-        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(), 
-        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices() 
-        // may result in unexpected poses, because that method uses each bone's transform to calculate 
+        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(),
+        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices()
+        // may result in unexpected poses, because that method uses each bone's transform to calculate
         // the bone matrices (and resetBoneMatrices does not affect this transform).
         // To "fully" reset the bone, we need to set its local transform (i.e. relative to its parent)
-        // to its original orientation in rest pose. 
+        // to its original orientation in rest pose.
         //
         // This can be calculated as:
         //
@@ -879,7 +881,7 @@ namespace thermion_filament
         // (where bindMatrix is the inverse of the inverseBindMatrix).
         //
         // The only requirement is that parent bone transforms are reset before child bone transforms.
-        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance. 
+        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance.
         // We ensure that parents are reset before children by:
         // - pushing all bones onto a stack
         // - iterate over the stack
@@ -891,16 +893,16 @@ namespace thermion_filament
         //              - pop the bone, reset its transform and mark it as completed
         for (int skinIndex = 0; skinIndex < skinCount; skinIndex++)
         {
-            std::unordered_set<Entity,Entity::Hasher> joints;
-            std::unordered_set<Entity,Entity::Hasher> completed;
+            std::unordered_set<Entity, Entity::Hasher> joints;
+            std::unordered_set<Entity, Entity::Hasher> completed;
             std::stack<Entity> stack;
 
             auto transforms = getBoneRestTranforms(entityId, skinIndex);
-            
+
             for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
             {
                 auto restTransform = transforms->at(i);
-                const auto& joint = instance->getJointsAt(skinIndex)[i];
+                const auto &joint = instance->getJointsAt(skinIndex)[i];
                 auto transformInstance = transformManager.getInstance(joint);
                 transformManager.setTransform(transformInstance, restTransform);
             }
@@ -908,7 +910,8 @@ namespace thermion_filament
         instance->getAnimator()->updateBoneMatrices();
     }
 
-    std::unique_ptr<std::vector<math::mat4f>> SceneManager::getBoneRestTranforms(EntityId entityId, int skinIndex) {
+    std::unique_ptr<std::vector<math::mat4f>> SceneManager::getBoneRestTranforms(EntityId entityId, int skinIndex)
+    {
 
         auto transforms = std::make_unique<std::vector<math::mat4f>>();
 
@@ -933,12 +936,12 @@ namespace thermion_filament
         transforms->resize(instance->getJointCountAt(skinIndex));
 
         //
-        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(), 
-        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices() 
-        // may result in unexpected poses, because that method uses each bone's transform to calculate 
+        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(),
+        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices()
+        // may result in unexpected poses, because that method uses each bone's transform to calculate
         // the bone matrices (and resetBoneMatrices does not affect this transform).
         // To "fully" reset the bone, we need to set its local transform (i.e. relative to its parent)
-        // to its original orientation in rest pose. 
+        // to its original orientation in rest pose.
         //
         // This can be calculated as:
         //
@@ -947,7 +950,7 @@ namespace thermion_filament
         // (where bindMatrix is the inverse of the inverseBindMatrix).
         //
         // The only requirement is that parent bone transforms are reset before child bone transforms.
-        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance. 
+        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance.
         // We ensure that parents are reset before children by:
         // - pushing all bones onto a stack
         // - iterate over the stack
@@ -958,22 +961,23 @@ namespace thermion_filament
         //          - otherwise
         //              - pop the bone, reset its transform and mark it as completed
         std::vector<Entity> joints;
-        std::unordered_set<Entity,Entity::Hasher> completed;
+        std::unordered_set<Entity, Entity::Hasher> completed;
         std::stack<Entity> stack;
-        
+
         for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
         {
-            const auto& joint = instance->getJointsAt(skinIndex)[i];
+            const auto &joint = instance->getJointsAt(skinIndex)[i];
             joints.push_back(joint);
             stack.push(joint);
         }
 
-        while(!stack.empty())
+        while (!stack.empty())
         {
-            const auto& joint = stack.top();
+            const auto &joint = stack.top();
 
             // if we've already handled this node previously (e.g. when we encountered it as a parent), then skip
-            if(completed.find(joint) != completed.end()) {
+            if (completed.find(joint) != completed.end())
+            {
                 stack.pop();
                 continue;
             }
@@ -981,23 +985,25 @@ namespace thermion_filament
             const auto transformInstance = transformManager.getInstance(joint);
             auto parent = transformManager.getParent(transformInstance);
 
-            // we need to handle parent joints before handling their children 
-            // therefore, if this joint has a parent that hasn't been handled yet, 
+            // we need to handle parent joints before handling their children
+            // therefore, if this joint has a parent that hasn't been handled yet,
             // push the parent to the top of the stack and start the loop again
-            const auto& jointIter = std::find(joints.begin(), joints.end(), joint);
+            const auto &jointIter = std::find(joints.begin(), joints.end(), joint);
             auto parentIter = std::find(joints.begin(), joints.end(), parent);
 
-            if(parentIter != joints.end() && completed.find(parent) == completed.end()) {
+            if (parentIter != joints.end() && completed.find(parent) == completed.end())
+            {
                 stack.push(parent);
                 continue;
             }
-            
-            // otherwise let's get the inverse bind matrix for the joint 
+
+            // otherwise let's get the inverse bind matrix for the joint
             math::mat4f inverseBindMatrix;
             bool found = false;
             for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
             {
-                if(instance->getJointsAt(skinIndex)[i] == joint) { 
+                if (instance->getJointsAt(skinIndex)[i] == joint)
+                {
                     inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[i];
                     found = true;
                     break;
@@ -1007,7 +1013,8 @@ namespace thermion_filament
 
             // now we need to ascend back up the hierarchy to calculate the modelSpaceTransform
             math::mat4f modelSpaceTransform;
-            while(parentIter != joints.end()) {
+            while (parentIter != joints.end())
+            {
                 const auto transformInstance = transformManager.getInstance(parent);
                 const auto parentIndex = distance(joints.begin(), parentIter);
                 const auto transform = transforms->at(parentIndex);
@@ -1016,9 +1023,9 @@ namespace thermion_filament
                 parentIter = std::find(joints.begin(), joints.end(), parent);
             }
 
-            const auto bindMatrix = inverse(inverseBindMatrix);              
-            
-            const auto inverseModelSpaceTransform = inverse(modelSpaceTransform);   
+            const auto bindMatrix = inverse(inverseBindMatrix);
+
+            const auto inverseModelSpaceTransform = inverse(modelSpaceTransform);
 
             const auto jointIndex = distance(joints.begin(), jointIter);
             transforms->at(jointIndex) = inverseModelSpaceTransform * bindMatrix;
@@ -1028,7 +1035,8 @@ namespace thermion_filament
         return transforms;
     }
 
-    bool SceneManager::updateBoneMatrices(EntityId entityId) {
+    bool SceneManager::updateBoneMatrices(EntityId entityId)
+    {
         auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
@@ -1046,11 +1054,13 @@ namespace thermion_filament
         return true;
     }
 
-    bool SceneManager::setTransform(EntityId entityId, math::mat4f transform) {
-        auto& tm = _engine->getTransformManager();
-        const auto& entity = Entity::import(entityId);
+    bool SceneManager::setTransform(EntityId entityId, math::mat4f transform)
+    {
+        auto &tm = _engine->getTransformManager();
+        const auto &entity = Entity::import(entityId);
         auto transformInstance = tm.getInstance(entity);
-        if(!transformInstance) { 
+        if (!transformInstance)
+        {
             return false;
         }
         tm.setTransform(transformInstance, transform);
@@ -1059,11 +1069,11 @@ namespace thermion_filament
 
     bool SceneManager::addBoneAnimation(EntityId parentEntity,
                                         int skinIndex,
-                                        int boneIndex,                      
+                                        int boneIndex,
                                         const float *const frameData,
                                         int numFrames,
                                         float frameLengthInMs,
-                                        float fadeOutInSecs, 
+                                        float fadeOutInSecs,
                                         float fadeInInSecs,
                                         float maxDelta)
     {
@@ -1122,7 +1132,8 @@ namespace thermion_filament
         animation.fadeInInSecs = fadeInInSecs;
         animation.maxDelta = maxDelta;
         animation.skinIndex = skinIndex;
-        if(!_animationComponentManager->hasComponent(instance->getRoot())) { 
+        if (!_animationComponentManager->hasComponent(instance->getRoot()))
+        {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return false;
         }
@@ -1135,7 +1146,7 @@ namespace thermion_filament
 
         return true;
     }
- 
+
     void SceneManager::playAnimation(EntityId entityId, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset)
     {
         std::lock_guard lock(_mutex);
@@ -1160,7 +1171,7 @@ namespace thermion_filament
             }
         }
 
-    if (!_animationComponentManager->hasComponent(instance->getRoot()))
+        if (!_animationComponentManager->hasComponent(instance->getRoot()))
         {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return;
@@ -1210,13 +1221,16 @@ namespace thermion_filament
         bool found = false;
 
         // don't play the animation if it's already running
-        for(int i=0; i < animationComponent.gltfAnimations.size(); i++) {
-            if(animationComponent.gltfAnimations[i].index == index) { 
+        for (int i = 0; i < animationComponent.gltfAnimations.size(); i++)
+        {
+            if (animationComponent.gltfAnimations[i].index == index)
+            {
                 found = true;
                 break;
             }
         }
-        if(!found) {
+        if (!found)
+        {
             animationComponent.gltfAnimations.push_back(animation);
         }
     }
@@ -1244,9 +1258,9 @@ namespace thermion_filament
         auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
 
         auto erased = std::remove_if(animationComponent.gltfAnimations.begin(),
-                                                               animationComponent.gltfAnimations.end(),
-                                                               [=](GltfAnimation &anim)
-                                                               { return anim.index == index; });
+                                     animationComponent.gltfAnimations.end(),
+                                     [=](GltfAnimation &anim)
+                                     { return anim.index == index; });
         animationComponent.gltfAnimations.erase(erased,
                                                 animationComponent.gltfAnimations.end());
     }
@@ -1391,7 +1405,7 @@ namespace thermion_filament
         unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
         const auto *instance = getInstanceByEntityId(assetEntityId);
-        
+
         if (!instance)
         {
             auto asset = getAssetByEntityId(assetEntityId);
@@ -1401,7 +1415,8 @@ namespace thermion_filament
                 return names;
             }
             instance = asset->getInstance();
-            if(!instance) {
+            if (!instance)
+            {
                 Log("Warning - failed to find instance for specified asset. This is unexpected and probably indicates you are passing the wrong entity");
                 return names;
             }
@@ -1415,7 +1430,7 @@ namespace thermion_filament
 
         for (int i = 0; i < asset->getEntityCount(); i++)
         {
-            
+
             utils::Entity e = entities[i];
             if (e == target)
             {
@@ -1431,7 +1446,8 @@ namespace thermion_filament
         return names;
     }
 
-    unique_ptr<vector<string>> SceneManager::getBoneNames(EntityId assetEntityId, int skinIndex) {
+    unique_ptr<vector<string>> SceneManager::getBoneNames(EntityId assetEntityId, int skinIndex)
+    {
 
         unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
@@ -1468,7 +1484,6 @@ namespace thermion_filament
         return names;
     }
 
-
     void SceneManager::transformToUnitCube(EntityId entityId)
     {
         const auto *instance = getInstanceByEntityId(entityId);
@@ -1496,7 +1511,8 @@ namespace thermion_filament
         tm.setTransform(tm.getInstance(instance->getRoot()), transform);
     }
 
-    EntityId SceneManager::getParent(EntityId childEntityId) {
+    EntityId SceneManager::getParent(EntityId childEntityId)
+    {
         auto &tm = _engine->getTransformManager();
         const auto child = Entity::import(childEntityId);
         const auto &childInstance = tm.getInstance(child);
@@ -1504,7 +1520,7 @@ namespace thermion_filament
         return Entity::smuggle(parent);
     }
 
-    void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId)
+    void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId, bool preserveScaling)
     {
         auto &tm = _engine->getTransformManager();
         const auto child = Entity::import(childEntityId);
@@ -1512,6 +1528,31 @@ namespace thermion_filament
 
         const auto &parentInstance = tm.getInstance(parent);
         const auto &childInstance = tm.getInstance(child);
+
+        if (preserveScaling)
+        {
+            auto parentTransform = tm.getWorldTransform(parentInstance);
+            math::float3 parentTranslation;
+            math::quatf parentRotation;
+            math::float3 parentScale;
+
+            decomposeMatrix(parentTransform, &parentTranslation, &parentRotation, &parentScale);
+
+            auto childTransform = tm.getTransform(childInstance);
+            math::float3 childTranslation;
+            math::quatf childRotation;
+            math::float3 childScale;
+
+            decomposeMatrix(childTransform, &childTranslation, &childRotation, &childScale);
+
+            childScale = childScale * (1 / parentScale);
+
+            childTransform = composeMatrix(childTranslation, childRotation, childScale);
+
+            tm.setTransform(childInstance, childTransform);
+        }
+
+        // auto scale = childInstance.
         tm.setParent(childInstance, parentInstance);
     }
 
@@ -1587,11 +1628,15 @@ namespace thermion_filament
         _animationComponentManager->update();
     }
 
+   
+
     void SceneManager::updateTransforms()
     {
         std::lock_guard lock(_mutex);
 
         auto &tm = _engine->getTransformManager();
+
+        _gizmo->updateTransform();
 
         for (const auto &[entityId, transformUpdate] : _transformUpdates)
         {
@@ -1751,25 +1796,77 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
-    void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
+  void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
+{
+    std::lock_guard lock(_mutex);
+
+    const auto &pos = _transformUpdates.find(entity);
+    if (pos == _transformUpdates.end())
     {
-        std::lock_guard lock(_mutex);
-
-        const auto &pos = _transformUpdates.find(entity);
-        if (pos == _transformUpdates.end())
-        {
-            _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
-        }
-        auto curr = _transformUpdates[entity];
-        auto &trans = std::get<0>(curr);
-        trans.x = x;
-        trans.y = y;
-        trans.z = z;
-
-        auto &isRelative = std::get<1>(curr);
-        isRelative = relative;
-        _transformUpdates[entity] = curr;
+        _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
     }
+    auto curr = _transformUpdates[entity];
+    auto &trans = std::get<0>(curr);
+
+    const auto &tm = _engine->getTransformManager();
+    auto transformInstance = tm.getInstance(Entity::import(entity));
+    auto transform = tm.getTransform(transformInstance);
+    math::double4 position { 0.0f, 0.0f, 0.0f, 1.0f};
+    math::mat4 worldTransform = tm.getWorldTransformAccurate(transformInstance);
+    position = worldTransform * position;
+
+    // Get camera's view matrix and its inverse
+    const Camera &camera = _view->getCamera();
+    
+    math::mat4 viewMatrix = camera.getViewMatrix();
+    math::mat4 invViewMatrix = inverse(viewMatrix);
+
+    // Transform object position to view space
+    math::double4 viewSpacePos = viewMatrix * position;
+
+    Log("viewSpacePos %f %f %f %f", viewSpacePos.x, viewSpacePos.y, viewSpacePos.z, viewSpacePos.w);
+
+    // Calculate plane distance from camera
+    float planeDistance = -viewSpacePos.z;
+
+    const auto &vp = _view->getViewport();
+
+    // Calculate viewport to world scale at the object's distance
+    float viewportToWorldScale = planeDistance * std::tan(camera.getFieldOfViewInDegrees(Camera::Fov::VERTICAL) * 0.5f * M_PI / 180.0f) * 2.0f / vp.height;
+
+    Log("viewportToWorldScale %f", viewportToWorldScale);
+
+    // Calculate view space delta
+    math::float4 viewSpaceDelta(
+        x * viewportToWorldScale,
+        -y * viewportToWorldScale,  // Invert y-axis
+        z * viewportToWorldScale,
+        0.0f);  // Use 0 for the w component as it's a direction, not a position
+
+    Log("viewSpaceDelta %f %f %f", viewSpaceDelta.x, viewSpaceDelta.y, viewSpaceDelta.z);
+
+    // Transform delta to world space
+    math::float4 worldDelta = invViewMatrix * viewSpaceDelta;
+
+    Log("worldDelta %f %f %f", worldDelta.x, worldDelta.y, worldDelta.z);
+
+    if (relative)
+    {
+        trans.x += worldDelta.x;
+        trans.y += worldDelta.y;
+        trans.z += worldDelta.z;
+    }
+    else
+    {
+        trans.x = worldDelta.x;
+        trans.y = worldDelta.y;
+        trans.z = worldDelta.z;
+    }
+
+    auto &isRelative = std::get<1>(curr);
+    isRelative = relative;
+    _transformUpdates[entity] = curr;
+}
 
     void SceneManager::queueRotationUpdate(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
     {
@@ -2011,131 +2108,86 @@ namespace thermion_filament
         Log("Set instance renderable priority to %d", priority);
     }
 
-    EntityId SceneManager::addGizmo()
+    Aabb2 SceneManager::getBoundingBox(EntityId entityId)
     {
-        _gizmoMaterial =
-            Material::Builder()
-                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
-                .build(*_engine);
+        const auto &camera = _view->getCamera();
+        const auto &viewport = _view->getViewport();
 
-        auto vertexCount = 9;
+        auto &tcm = _engine->getTransformManager();
+        auto &rcm = _engine->getRenderableManager();
 
-        float *vertices = new float[vertexCount * 3]{
-            -0.05, 0.0f, 0.05f,
-            0.05f, 0.0f, 0.05f,
-            0.05f, 0.0f, -0.05f,
-            -0.05f, 0.0f, -0.05f,
-            -0.05f, 1.0f, 0.05f,
-            0.05f, 1.0f, 0.05f,
-            0.05f, 1.0f, -0.05f,
-            -0.05f, 1.0f, -0.05f,
-            0.00f, 1.1f, 0.0f};
+        // Get the projection and view matrices
+        math::mat4 projMatrix = camera.getProjectionMatrix();
+        math::mat4 viewMatrix = camera.getViewMatrix();
+        math::mat4 vpMatrix = projMatrix * viewMatrix;
 
-        VertexBuffer::BufferDescriptor::Callback vertexCallback = [](void *buf, size_t,
-                                                                     void *data)
+        auto entity = Entity::import(entityId);
+
+        auto renderable = rcm.getInstance(entity);
+        auto worldTransform = tcm.getWorldTransform(tcm.getInstance(entity));
+
+        // Get the axis-aligned bounding box in model space
+        Box aabb = rcm.getAxisAlignedBoundingBox(renderable);
+
+        auto min = aabb.getMin();
+        auto max = aabb.getMax();
+
+        Log("min %f %f %f max %f %f %f", min.x, min.y, min.z, max.x, max.y, max.z);
+
+        // Transform the 8 corners of the AABB to clip space
+        std::array<math::float4, 8> corners = {
+            worldTransform * math::float4(min.x, min.y, min.z, 1.0f),
+            worldTransform * math::float4(max.x, min.y, min.z, 1.0f),
+            worldTransform * math::float4(min.x, max.y, min.z, 1.0f),
+            worldTransform * math::float4(max.x, max.y, min.z, 1.0f),
+            worldTransform * math::float4(min.x, min.y, max.z, 1.0f),
+            worldTransform * math::float4(max.x, min.y, max.z, 1.0f),
+            worldTransform * math::float4(min.x, max.y, max.z, 1.0f),
+            worldTransform * math::float4(max.x, max.y, max.z, 1.0f)};
+
+        // Project corners to clip space and convert to viewport space
+        float minX = std::numeric_limits<float>::max();
+        float minY = std::numeric_limits<float>::max();
+        float maxX = std::numeric_limits<float>::lowest();
+        float maxY = std::numeric_limits<float>::lowest();
+
+        for (const auto &corner : corners)
         {
-            free((void *)buf);
-        };
 
-        auto indexCount = 42;
-        uint16_t *indices = new uint16_t[indexCount]{
-            // bottom quad
-            0, 1, 2,
-            0, 2, 3,
-            // top "cone"
-            4, 5, 8,
-            5, 6, 8,
-            4, 7, 8,
-            6, 7, 8,
-            // front
-            0, 1, 4,
-            1, 5, 4,
-            // right
-            1, 2, 5,
-            2, 6, 5,
-            // back
-            2, 6, 7,
-            7, 3, 2,
-            // left
-            0, 4, 7,
-            7, 3, 0
+            math::float4 clipSpace = vpMatrix * corner;
 
-        };
+            // Check if the point is behind the camera
+            if (clipSpace.w <= 0)
+            {
+                continue; // Skip this point
+            }
 
-        IndexBuffer::BufferDescriptor::Callback indexCallback = [](void *buf, size_t,
-                                                                   void *data)
-        {
-            free((void *)buf);
-        };
+            // Perform perspective division
+            math::float3 ndcSpace = clipSpace.xyz / clipSpace.w;
 
-        auto vb = VertexBuffer::Builder()
-                      .vertexCount(vertexCount)
-                      .bufferCount(1)
-                      .attribute(
-                          VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-                      .build(*_engine);
+            // Clamp NDC coordinates to [-1, 1] range
+            ndcSpace.x = std::max(-1.0f, std::min(1.0f, ndcSpace.x));
+            ndcSpace.y = std::max(-1.0f, std::min(1.0f, ndcSpace.y));
 
-        vb->setBufferAt(
-            *_engine,
-            0,
-            VertexBuffer::BufferDescriptor(vertices, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback));
+            // Convert NDC to viewport space
+            float viewportX = (ndcSpace.x * 0.5f + 0.5f) * viewport.width;
+            float viewportY = (1.0f - (ndcSpace.y * 0.5f + 0.5f)) * viewport.height; // Flip Y-axis
 
-        auto ib = IndexBuffer::Builder().indexCount(indexCount).bufferType(IndexBuffer::IndexType::USHORT).build(*_engine);
-        ib->setBuffer(*_engine, IndexBuffer::BufferDescriptor(indices, ib->getIndexCount() * sizeof(uint16_t), 0, indexCallback));
+            minX = std::min(minX, viewportX);
+            minY = std::min(minY, viewportY);
+            maxX = std::max(maxX, viewportX);
+            maxY = std::max(maxY, viewportY);
+        }
 
-        auto &entityManager = EntityManager::get();
-
-        _gizmo[1] = entityManager.create();
-        _gizmoMaterialInstances[1] = _gizmoMaterial->createInstance();
-        _gizmoMaterialInstances[1]->setParameter("color", math::float3{1.0f, 0.0f, 0.0f});
-        RenderableManager::Builder(1)
-            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-            .material(0, _gizmoMaterialInstances[1])
-            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                      ib, 0, indexCount)
-            .culling(false)
-            .build(*_engine, _gizmo[1]);
-
-        _gizmo[0] = entityManager.create();
-        _gizmoMaterialInstances[0] = _gizmoMaterial->createInstance();
-        _gizmoMaterialInstances[0]->setParameter("color", math::float3{0.0f, 1.0f, 0.0f});
-        auto xTransform = math::mat4f::translation(math::float3{0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(-math::F_PI_2, math::float3{0, 0, 1});
-        auto *instanceBufferX = InstanceBuffer::Builder(1).localTransforms(&xTransform).build(*_engine);
-        RenderableManager::Builder(1)
-            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-            .instances(1, instanceBufferX)
-            .material(0, _gizmoMaterialInstances[0])
-            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                      ib, 0, indexCount)
-            .culling(false)
-            .build(*_engine, _gizmo[0]);
-
-        _gizmo[2] = entityManager.create();
-        _gizmoMaterialInstances[2] = _gizmoMaterial->createInstance();
-        _gizmoMaterialInstances[2]->setParameter("color", math::float3{0.0f, 0.0f, 1.0f});
-        auto zTransform = math::mat4f::translation(math::float3{0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3{1, 0, 0});
-        auto *instanceBufferZ = InstanceBuffer::Builder(1).localTransforms(&zTransform).build(*_engine);
-        RenderableManager::Builder(1)
-            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-            .instances(1, instanceBufferZ)
-            .material(0, _gizmoMaterialInstances[2])
-            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                      ib, 0, indexCount)
-            .culling(false)
-            .build(*_engine, _gizmo[2]);
-
-        auto &rm = _engine->getRenderableManager();
-        rm.setPriority(rm.getInstance(_gizmo[0]), 7);
-        rm.setPriority(rm.getInstance(_gizmo[1]), 7);
-        rm.setPriority(rm.getInstance(_gizmo[2]), 7);
-        return Entity::smuggle(_gizmo[0]);
+        return Aabb2{minX, minY, maxX, maxY};
     }
 
     void SceneManager::getGizmo(EntityId *out)
     {
-        out[0] = Entity::smuggle(_gizmo[0]);
-        out[1] = Entity::smuggle(_gizmo[1]);
-        out[2] = Entity::smuggle(_gizmo[2]);
+        out[0] = Entity::smuggle(_gizmo->x());
+        out[1] = Entity::smuggle(_gizmo->y());
+        out[2] = Entity::smuggle(_gizmo->z());
+        out[3] = Entity::smuggle(_gizmo->center());
     }
 
 } // namespace thermion_filament
