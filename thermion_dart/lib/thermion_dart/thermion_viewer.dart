@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
@@ -55,7 +56,6 @@ class TextureDetails {
 }
 
 abstract class ThermionViewer {
-  
   Future<bool> get initialized;
 
   ///
@@ -719,7 +719,7 @@ abstract class ThermionViewer {
   ///
   /// Sets the parent transform of [child] to [parent].
   ///
-  Future setParent(ThermionEntity child, ThermionEntity parent);
+  Future setParent(ThermionEntity child, ThermionEntity parent, { bool preserveScaling });
 
   ///
   /// Test all collidable entities against this entity to see if any have collided.
@@ -738,7 +738,7 @@ abstract class ThermionViewer {
   Scene get scene;
 
   ///
-  ///
+  /// The gizmo for translating/rotating objects. Only one gizmo is present in the scene.
   ///
   AbstractGizmo? get gizmo;
 
@@ -746,16 +746,10 @@ abstract class ThermionViewer {
   /// Register a callback to be invoked when this viewer is disposed.
   ///
   void onDispose(Future Function() callback);
+
+  ///
+  /// Gets the 2D bounding box (in viewport coordinates) for the given entity.
+  ///
+  Future<Aabb2> getBoundingBox(ThermionEntity entity);
 }
 
-abstract class AbstractGizmo {
-  bool get isActive;
-
-  void translate(double transX, double transY);
-
-  void reset();
-
-  void attach(ThermionEntity entity);
-
-  void detach();
-}

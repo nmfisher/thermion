@@ -4,10 +4,12 @@ headers:
     - '../native/include/ThermionDartFFIApi.h'
     - '../native/include/ThermionDartApi.h'
     - '../native/include/ResourceBuffer.h'
+    - '../native/include/Aabb2.h'
   include-directives:
     - '../native/include/ThermionDartFFIApi.h'
     - '../native/include/ThermionDartApi.h'
     - '../native/include/ResourceBuffer.h'
+    - '../native/include/Aabb2.h'
 ffi-native:
   assetId: package:thermion_dart/thermion_dart.dart
 ignore-source-errors: true

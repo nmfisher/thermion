@@ -47,6 +47,7 @@
 #endif
 
 #include "ResourceBuffer.hpp"
+#include "Aabb2.h"
 
 typedef int32_t EntityId;
 typedef int32_t _ManipulatorMode;
@@ -244,10 +245,11 @@ extern "C"
 
 	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
 	EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child);
-	EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent);
+	EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling);
 	EMSCRIPTEN_KEEPALIVE void test_collisions(void *const sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_priority(void *const sceneManager, EntityId entityId, int priority);
 	EMSCRIPTEN_KEEPALIVE void get_gizmo(void *const sceneManager, EntityId *out);
+	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity);
 
 #ifdef __cplusplus
 }

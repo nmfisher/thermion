@@ -6,6 +6,7 @@ import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
 import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
+import 'package:vector_math/vector_math_64.dart' as v64;
 import 'thermion_viewer.dart';
 import 'scene_impl.dart';
 import 'package:logging/logging.dart';
@@ -67,9 +68,9 @@ class ThermionViewerFFI extends ThermionViewer {
     this._driver = driver ?? nullptr;
     this._sharedContext = sharedContext ?? nullptr;
     try {
-      _onPickResultCallable =
-          NativeCallable<Void Function(Int entityId, Int x, Int y)>.listener(
-              _onPickResult);
+      _onPickResultCallable = NativeCallable<
+          Void Function(
+              EntityId entityId, Int x, Int y)>.listener(_onPickResult);
     } catch (err) {
       _logger.severe(
           "Failed to set pick result callback. This is expected if running on web/wasm");
@@ -127,9 +128,9 @@ class ThermionViewerFFI extends ThermionViewer {
 
     await setCameraManipulatorOptions(zoomSpeed: 1.0);
 
-    final out = allocator<Int>(3);
+    final out = allocator<EntityId>(4);
     get_gizmo(_sceneManager!, out);
-    _gizmo = Gizmo(out[0], out[1], out[2], this);
+    _gizmo = Gizmo(out[0], out[1], out[2], out[3], this);
     allocator.free(out);
 
     this._initialized.complete(true);
@@ -408,7 +409,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<List<ThermionEntity>> getInstances(ThermionEntity entity) async {
     var count = await getInstanceCount(entity);
-    var out = allocator<Int>(count);
+    var out = allocator<Int32>(count);
     get_instances(_sceneManager!, entity, out);
     var instances = <ThermionEntity>[];
     for (int i = 0; i < count; i++) {
@@ -1364,7 +1365,7 @@ class ThermionViewerFFI extends ThermionViewer {
     _scene!.registerSelected(entityId);
   }
 
-  late NativeCallable<Void Function(Int entityId, Int x, Int y)>
+  late NativeCallable<Void Function(EntityId entityId, Int x, Int y)>
       _onPickResultCallable;
 
   ///
@@ -1553,7 +1554,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<List<ThermionEntity>> getChildEntities(
       ThermionEntity parent, bool renderableOnly) async {
     var count = get_entity_count(_sceneManager!, parent, renderableOnly);
-    var out = allocator<Int>(count);
+    var out = allocator<EntityId>(count);
     get_entities(_sceneManager!, parent, renderableOnly, out);
     var outList =
         List.generate(count, (index) => out[index]).cast<ThermionEntity>();
@@ -1612,9 +1613,9 @@ class ThermionViewerFFI extends ThermionViewer {
     // ignore: sdk_version_since
 
     if (callback != null) {
-      var ptr =
-          NativeCallable<Void Function(Int entityId1, Int entityId2)>.listener(
-              callback);
+      var ptr = NativeCallable<
+          Void Function(
+              EntityId entityId1, EntityId entityId2)>.listener(callback);
       add_collision_component(
           _sceneManager!, entity, ptr.nativeFunction, affectsTransform);
       _collisions[entity] = ptr;
@@ -1699,11 +1700,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setParent(ThermionEntity child, ThermionEntity parent) async {
+  Future setParent(ThermionEntity child, ThermionEntity parent, { bool preserveScaling = false}) async {
     if (_sceneManager == null) {
       throw Exception("Asset manager must be non-null");
     }
-    set_parent(_sceneManager!, child, parent);
+    set_parent(_sceneManager!, child, parent, preserveScaling);
   }
 
   ///
@@ -1735,5 +1736,12 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setPriority(ThermionEntity entityId, int priority) async {
     set_priority(_sceneManager!, entityId, priority);
+  }
+
+  @override
+  Future<v64.Aabb2> getBoundingBox(ThermionEntity entityId) async {
+    final result = get_bounding_box(_sceneManager!, entityId);
+    return v64.Aabb2.minMax(v64.Vector2(result.minX, result.minY),
+        v64.Vector2(result.maxX, result.maxY));
   }
 }
