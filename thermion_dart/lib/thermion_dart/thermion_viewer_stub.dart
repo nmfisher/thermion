@@ -537,7 +537,7 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future setCameraFov(double degrees, double width, double height) {
+  Future setCameraFov(double degrees, {bool horizontal=true}) {
     // TODO: implement setCameraFov
     throw UnimplementedError();
   }
