@@ -4,8 +4,6 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_in
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:web/web.dart';
-import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
 
 class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   ThermionViewerWasm? _viewer;
@@ -15,15 +13,20 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   }
 
   @override
-  Future<ThermionFlutterTexture?> createTexture(
-      int width, int height, int offsetLeft, int offsetRight) async {
+  Future<ThermionFlutterTexture?> createTexture(double width, double height,
+      double offsetLeft, double offsetRight, double pixelRatio) async {
     await _viewer!.destroySwapChain();
-    await _viewer!.createSwapChain(width, height);
-    _viewer!.updateViewportAndCameraProjection(width, height, 1.0);
+    var physicalWidth = (width * pixelRatio).ceil();
+    var physicalHeight = (width * pixelRatio).ceil();
+    await _viewer!.createSwapChain(physicalWidth, physicalHeight);
 
     final canvas = document.getElementById("canvas") as HTMLCanvasElement;
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = physicalWidth;
+    canvas.height = physicalHeight;
+
+    print("canvas dimensions ${width}x${height}");
+
+    _viewer!.updateViewportAndCameraProjection(physicalWidth, physicalHeight, 1.0);
 
     return ThermionFlutterTexture(null, null, 0, 0, null);
   }
@@ -39,10 +42,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
     final canvas = document.getElementById("canvas") as HTMLCanvasElement;
     canvas.width = width;
     canvas.height = height;
-
     _viewer!.updateViewportAndCameraProjection(width, height, 1.0);
-
-    print("Resized canvas to ${canvas.width}x${canvas.height}");
     return ThermionFlutterTexture(null, null, 0, 0, null);
   }
 
@@ -52,7 +52,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
     canvas.id = "canvas";
     document.body!.appendChild(canvas);
     canvas.style.display = 'none';
-    await _viewer!.initialize(0, 0, uberArchivePath:uberArchivePath);
+    await _viewer!.initialize(1, 1, uberArchivePath: uberArchivePath);
     return _viewer!;
   }
 }
