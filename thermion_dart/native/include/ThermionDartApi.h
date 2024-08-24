@@ -194,6 +194,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE bool set_material_color(void *sceneManager, EntityId entity, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
 	EMSCRIPTEN_KEEPALIVE void transform_to_unit_cube(void *sceneManager, EntityId asset);
 	EMSCRIPTEN_KEEPALIVE void queue_position_update(void *sceneManager, EntityId entity, float x, float y, float z, bool relative);
+	EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(void *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void queue_rotation_update(void *sceneManager, EntityId entity, float rads, float x, float y, float z, float w, bool relative);
 	EMSCRIPTEN_KEEPALIVE void set_position(void *sceneManager, EntityId entity, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void set_rotation(void *sceneManager, EntityId entity, float rads, float x, float y, float z, float w);
@@ -216,7 +217,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE const double *const get_camera_culling_projection_matrix(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE void set_camera_fov(const void *const viewer, float fovInDegrees, float aspect);
+	EMSCRIPTEN_KEEPALIVE float get_camera_fov(const void *const viewer, bool horizontal);
+	EMSCRIPTEN_KEEPALIVE void set_camera_fov(const void *const viewer, float fovInDegrees, bool horizontal);
 	EMSCRIPTEN_KEEPALIVE void set_camera_focal_length(const void *const viewer, float focalLength);
 	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(const void *const viewer, float focusDistance);
 	EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
@@ -250,6 +252,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_priority(void *const sceneManager, EntityId entityId, int priority);
 	EMSCRIPTEN_KEEPALIVE void get_gizmo(void *const sceneManager, EntityId *out);
 	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float* minX, float* minY, float* maxX, float* maxY);
+	EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled);
 
 #ifdef __cplusplus
 }
