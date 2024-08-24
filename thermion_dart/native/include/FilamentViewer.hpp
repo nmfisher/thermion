@@ -86,7 +86,9 @@ namespace thermion_filament
         bool setCamera(EntityId asset, const char *nodeName);
         void setMainCamera();
         EntityId getMainCamera();
-        void setCameraFov(double fovDegrees, double aspect);
+        
+        float getCameraFov(bool horizontal);
+        void setCameraFov(double fovDegrees, bool horizontal);
 
         void createSwapChain(const void *surface, uint32_t width, uint32_t height);
         void destroySwapChain();
@@ -188,8 +190,6 @@ namespace thermion_filament
         Skybox *_skybox = nullptr;
         Texture *_iblTexture = nullptr;
         IndirectLight *_indirectLight = nullptr;
-        bool _recomputeAabb = false;
-        bool _actualSize = false;
 
         float _frameInterval = 1000.0 / 60.0;
 
