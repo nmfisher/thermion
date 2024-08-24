@@ -56,6 +56,7 @@ add_executable(${MODULE_NAME}
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/ThermionDartApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/ThermionDartFFIApi.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/Gizmo.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/GridOverlay.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/StreamBufferAdapter.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/TimeIt.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Manipulator.cpp"
