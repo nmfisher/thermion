@@ -200,9 +200,13 @@ extern "C"
         return ((FilamentViewer *)viewer)->setCamera(asset, nodeName);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_fov(const void *const viewer, float fovInDegrees, float aspect)
+    EMSCRIPTEN_KEEPALIVE float get_camera_fov(const void *const viewer, bool horizontal) {
+        return ((FilamentViewer*)viewer)->getCameraFov(horizontal);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void set_camera_fov(const void *const viewer, float fovInDegrees, bool horizontal)
     {
-        return ((FilamentViewer *)viewer)->setCameraFov(double(fovInDegrees), double(aspect));
+        return ((FilamentViewer *)viewer)->setCameraFov(double(fovInDegrees), horizontal);
     }
 
     const double *const get_camera_model_matrix(const void *const viewer)
@@ -721,6 +725,10 @@ extern "C"
         ((SceneManager *)sceneManager)->queuePositionUpdate(asset, x, y, z, relative);
     }
 
+    EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(void *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z) {
+        ((SceneManager *)sceneManager)->queueRelativePositionUpdateWorldAxis(entity, viewportX, viewportY, x, y, z);
+    }
+
     EMSCRIPTEN_KEEPALIVE void queue_rotation_update(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
     {
         ((SceneManager *)sceneManager)->queueRotationUpdate(asset, rads, x, y, z, w, relative);
@@ -839,12 +847,29 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void get_gizmo(void *const sceneManager, EntityId *out)
     {
-        return ((SceneManager *)sceneManager)->getGizmo(out);
+        auto gizmo = ((SceneManager *)sceneManager)->gizmo;
+        out[0] = Entity::smuggle(gizmo->x());
+        out[1] = Entity::smuggle(gizmo->y());
+        out[2] = Entity::smuggle(gizmo->z());
+        out[3] = Entity::smuggle(gizmo->center());
     }
 
     EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity) {
         return ((SceneManager *)sceneManager)->getBoundingBox(entity);
     }
+
+    EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float* minX, float* minY, float* maxX, float* maxY) {
+        auto box =((SceneManager *)sceneManager)->getBoundingBox(entity);
+        *minX = box.minX;
+        *minY = box.minY;
+        *maxX = box.maxX;
+        *maxY = box.maxY;
+    }
+
+    EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled) {
+        ((SceneManager*)sceneManager)->setLayerEnabled(layer, enabled);
+    }
+
 
 
 }
