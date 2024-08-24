@@ -622,6 +622,19 @@ external void queue_position_update(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
+        ffi.Float, ffi.Float, ffi.Float)>()
+external void queue_relative_position_update_world_axis(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  double viewportX,
+  double viewportY,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
         ffi.Float, ffi.Float, ffi.Float, ffi.Bool)>()
 external void queue_rotation_update(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -763,11 +776,17 @@ external ffi.Pointer<ffi.Double> get_camera_frustum(
   ffi.Pointer<ffi.Void> viewer,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float)>()
+@ffi.Native<ffi.Float Function(ffi.Pointer<ffi.Void>, ffi.Bool)>()
+external double get_camera_fov(
+  ffi.Pointer<ffi.Void> viewer,
+  bool horizontal,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Bool)>()
 external void set_camera_fov(
   ffi.Pointer<ffi.Void> viewer,
   double fovInDegrees,
-  double aspect,
+  bool horizontal,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>()
@@ -1009,6 +1028,30 @@ external void get_gizmo(
 external Aabb2 get_bounding_box(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
+        EntityId,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Float>)>()
+external void get_bounding_box_to_out(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  ffi.Pointer<ffi.Float> minX,
+  ffi.Pointer<ffi.Float> minY,
+  ffi.Pointer<ffi.Float> maxX,
+  ffi.Pointer<ffi.Float> maxY,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Bool)>()
+external void set_layer_enabled(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int layer,
+  bool enabled,
 );
 
 @ffi.Native<
@@ -1532,6 +1575,20 @@ final class Aabb2 extends ffi.Struct {
 
   @ffi.Float()
   external double maxY;
+}
+
+final class int32_t_4 extends ffi.Struct {
+  @ffi.Int32()
+  external int i0;
+
+  @ffi.Int32()
+  external int i1;
+
+  @ffi.Int32()
+  external int i2;
+
+  @ffi.Int32()
+  external int i3;
 }
 
 /// This header replicates most of the methods in ThermionDartApi.h.
