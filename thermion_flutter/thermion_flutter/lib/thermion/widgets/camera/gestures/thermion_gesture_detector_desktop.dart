@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
+import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' as v64;
 
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
@@ -110,16 +113,14 @@ class _ThermionGestureDetectorDesktopState
   @override
   Widget build(BuildContext context) {
     return Listener(
-        // onPointerHover: (event) async {
-        //   if (_gizmo.isActive) {
-        //     return;
-        //   }
-        //   _pickTimer?.cancel();
-        //   _pickTimer = Timer(const Duration(milliseconds: 100), () async {
-        //     widget.controller
-        //         .pick(event.position.dx.toInt(), event.position.dy.toInt());
-        //   });
-        // },
+        onPointerHover: (event) async {
+        // print(
+        //     "local position ${event.localPosition}  globalPosition ${event.position}");r
+          _gizmo?.checkHover(event.localPosition.dx, event.localPosition.dy);
+          if (_gizmo == null || _gizmo!.isActive == true) {
+            return;
+          }
+        },
         onPointerSignal: (PointerSignalEvent pointerSignal) async {
           if (pointerSignal is PointerScrollEvent) {
             if (widget.enableCamera) {
