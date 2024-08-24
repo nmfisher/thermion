@@ -404,8 +404,16 @@ class ThermionViewerJSDartBridge {
   }
 
   @JSExport()
-  JSPromise setCameraFov(double degrees, double width, double height) =>
-      viewer.setCameraFov(degrees, width, height).toJS;
+  JSPromise setParent(
+      ThermionEntity child, ThermionEntity parent, bool preserveScaling) {
+    return viewer
+        .setParent(child, parent, preserveScaling: preserveScaling)
+        .toJS;
+  }
+
+  @JSExport()
+  JSPromise setCameraFov(double degrees, bool horizontal) =>
+      viewer.setCameraFov(degrees, horizontal: horizontal).toJS;
 
   @JSExport()
   JSPromise setToneMapping(int mapper) =>
@@ -527,9 +535,11 @@ class ThermionViewerJSDartBridge {
 // b,
 // a,
 // ).toJS;
+
   @JSExport()
   JSPromise transformToUnitCube(ThermionEntity entity) =>
       viewer.transformToUnitCube(entity).toJS;
+
   @JSExport()
   JSPromise setPosition(ThermionEntity entity, double x, double y, double z) =>
       viewer.setPosition(entity, x, y, z).toJS;

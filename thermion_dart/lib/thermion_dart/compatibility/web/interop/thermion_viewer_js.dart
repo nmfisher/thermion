@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
+import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
@@ -423,8 +424,8 @@ class ThermionViewerJS implements ThermionViewer {
   }
 
   @override
-  Future<void> setCameraFov(double degrees, double width, double height) async {
-    await _shim.setCameraFov(degrees, width, height).toDart;
+  Future<void> setCameraFov(double degrees, {bool horizontal = true}) async {
+    await _shim.setCameraFov(degrees, horizontal).toDart;
   }
 
   @override
@@ -737,8 +738,9 @@ class ThermionViewerJS implements ThermionViewer {
   }
 
   @override
-  Future<void> setParent(ThermionEntity child, ThermionEntity parent) async {
-    await _shim.setParent(child, parent).toDart;
+  Future<void> setParent(ThermionEntity child, ThermionEntity parent,
+      {bool preserveScaling = false}) async {
+    await _shim.setParent(child, parent, preserveScaling).toDart;
   }
 
   @override
@@ -856,5 +858,27 @@ class ThermionViewerJS implements ThermionViewer {
   Future<Uint8List> capture() async {
     final captured = await _shim.capture().toDart;
     return captured.toDart;
+  }
+
+  @override
+  late (double, double) viewportDimensions;
+
+  @override
+  Future<Aabb2> getBoundingBox(ThermionEntity entity) {
+    // return _shim.getBoundingBox(entity);
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<double> getCameraFov(bool horizontal) {
+    // TODO: implement getCameraFov
+    throw UnimplementedError();
+  }
+
+  @override
+  Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
+      double viewportX, double viewportY, double x, double y, double z) {
+    // TODO: implement queueRelativePositionUpdateWorldAxis
+    throw UnimplementedError();
   }
 }

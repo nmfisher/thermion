@@ -220,7 +220,7 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
   external JSPromise<JSNumber> getMainCamera();
 
   @JS('setCameraFov')
-  external JSPromise setCameraFov(double degrees, double width, double height);
+  external JSPromise setCameraFov(double degrees, bool horizontal);
 
   @JS('setToneMapping')
   external JSPromise setToneMapping(int mapper);
@@ -378,7 +378,7 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
       JSArray<JSNumber> indices, String? materialPath, int primitiveType);
 
   @JS('setParent')
-  external JSPromise setParent(ThermionEntity child, ThermionEntity parent);
+  external JSPromise setParent(ThermionEntity child, ThermionEntity parent, bool preserveScaling);
 
   @JS('getParent')
   external JSPromise<JSNumber> getParent(ThermionEntity child);
