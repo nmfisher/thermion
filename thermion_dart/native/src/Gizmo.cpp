@@ -68,7 +68,8 @@ Gizmo::Gizmo(Engine &engine) : _engine(engine)
                                         { delete[] static_cast<uint16_t *>(buffer); }));
 
     RenderableManager::Builder(1)
-        .boundingBox({{}, {centerCubeSize, centerCubeSize, centerCubeSize}})
+        .boundingBox({{-centerCubeSize, -centerCubeSize, -centerCubeSize}, 
+                      {centerCubeSize, centerCubeSize, centerCubeSize}})
         .material(0, _materialInstances[3])
         .layerMask(0xFF, 2)
         .priority(0)
@@ -138,28 +139,27 @@ Gizmo::Gizmo(Engine &engine) : _engine(engine)
         _entities[i] = entityManager.create();
         _materialInstances[i] = _material->createInstance();
 
-        math::float3 color;
+        auto baseColor = inactiveColors[i];
+
         math::mat4f transform;
 
         switch (i)
         {
-        case 0: // X-axis (Red)
-            color = {1.0f, 0.0f, 0.0f};
+        case Axis::X: 
             transform = math::mat4f::rotation(math::F_PI_2, math::float3{0, 1, 0});
             break;
-        case 1: // Y-axis (Green)
-            color = {0.0f, 1.0f, 0.0f};
+        case 1: 
             transform = math::mat4f::rotation(-math::F_PI_2, math::float3{1, 0, 0});
             break;
-        case 2: // Z-axis (Blue)
-            color = {0.0f, 0.0f, 1.0f};
+        case 2: 
             break;
         }
 
-        _materialInstances[i]->setParameter("color", color);
+        _materialInstances[i]->setParameter("color", baseColor);
 
         RenderableManager::Builder(1)
-            .boundingBox({{0, 0, (lineLength + arrowLength) / 2}, {arrowWidth / 2, arrowWidth / 2, (lineLength + arrowLength) / 2}})
+             .boundingBox({{-arrowWidth, -arrowWidth, 0}, 
+                          {arrowWidth, arrowWidth, lineLength + arrowLength}})
             .material(0, _materialInstances[i])
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0, 54)
             .priority(0)
@@ -175,6 +175,37 @@ Gizmo::Gizmo(Engine &engine) : _engine(engine)
 
         // parent the axis to the center cube
         transformManager.setParent(instance, cubeTransformInstance);
+    }
+}
+
+void Gizmo::highlight(Entity entity) {
+    auto &rm = _engine.getRenderableManager();
+    auto renderableInstance = rm.getInstance(entity);
+    auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
+
+    math::float3 baseColor;
+    if(entity == x()) {
+        baseColor = activeColors[Axis::X];
+    } else if(entity == y()) {
+        baseColor = activeColors[Axis::Y];
+    } else if(entity == z()) {
+        baseColor = activeColors[Axis::Z];
+    } else {
+        baseColor = math::float3 { 1.0f, 1.0f, 1.0f };
+    }
+
+    materialInstance->setParameter("color", baseColor);
+}
+
+void Gizmo::unhighlight() {
+    auto &rm = _engine.getRenderableManager();
+    
+    for(int i = 0; i < 3; i++) { 
+        auto renderableInstance = rm.getInstance(_entities[i]);
+        auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
+
+        math::float3 baseColor = inactiveColors[i];
+        materialInstance->setParameter("color", baseColor);
     }
 }
 
