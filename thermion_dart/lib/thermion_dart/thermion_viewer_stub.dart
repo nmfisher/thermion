@@ -764,4 +764,22 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement getBoundingBox
     throw UnimplementedError();
   }
+  
+  @override
+  Future<double> getCameraFov(bool horizontal) {
+    // TODO: implement getCameraFov
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity, double viewportX, double viewportY, double x, double y, double z) {
+    // TODO: implement queueRelativePositionUpdateWorldAxis
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setLayerEnabled(int layer, bool enabled) {
+    // TODO: implement setLayerEnabled
+    throw UnimplementedError();
+  }
 }
