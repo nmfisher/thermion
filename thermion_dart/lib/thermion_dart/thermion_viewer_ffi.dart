@@ -24,7 +24,7 @@ class ThermionViewerFFI extends ThermionViewer {
   SceneImpl? _scene;
   Scene get scene => _scene!;
 
-  double _pixelRatio = 1.0;
+  double pixelRatio = 1.0;
 
   Pointer<Void>? _sceneManager;
 
@@ -85,6 +85,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future updateViewportAndCameraProjection(double width, double height) async {
+    viewportDimensions = (width * pixelRatio, height * pixelRatio);
     await withVoidCallback((callback) {
       update_viewport_and_camera_projection_ffi(
           _viewer!, width.toInt(), height.toInt(), 1.0, callback);
@@ -128,11 +129,11 @@ class ThermionViewerFFI extends ThermionViewer {
 
     await setCameraManipulatorOptions(zoomSpeed: 1.0);
 
-    final out = allocator<EntityId>(4);
-    get_gizmo(_sceneManager!, out);
-    _gizmo = Gizmo(out[0], out[1], out[2], out[3], this);
-    allocator.free(out);
-
+    final gizmoEntities = allocator<Int32>(4);
+    get_gizmo(_sceneManager!, gizmoEntities);
+    _gizmo = Gizmo(gizmoEntities[0], gizmoEntities[1], gizmoEntities[2],
+        gizmoEntities[3], this);
+    allocator.free(gizmoEntities);
     this._initialized.complete(true);
   }
 
@@ -466,7 +467,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future panStart(double x, double y) async {
-    grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, true);
+    grab_begin(_viewer!, x * pixelRatio, y * pixelRatio, true);
   }
 
   ///
@@ -474,7 +475,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future panUpdate(double x, double y) async {
-    grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
+    grab_update(_viewer!, x * pixelRatio, y * pixelRatio);
   }
 
   ///
@@ -490,7 +491,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future rotateStart(double x, double y) async {
-    grab_begin(_viewer!, x * _pixelRatio, y * _pixelRatio, false);
+    grab_begin(_viewer!, x * pixelRatio, y * pixelRatio, false);
   }
 
   ///
@@ -498,7 +499,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future rotateUpdate(double x, double y) async {
-    grab_update(_viewer!, x * _pixelRatio, y * _pixelRatio);
+    grab_update(_viewer!, x * pixelRatio, y * pixelRatio);
   }
 
   ///
@@ -1139,9 +1140,16 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
+  Future<double> getCameraFov(bool horizontal) async {
+    return get_camera_fov(_viewer!, horizontal);
+  }
+
+  ///
+  ///
+  ///
   @override
-  Future setCameraFov(double degrees, double width, double height) async {
-    set_camera_fov(_viewer!, degrees, width / height);
+  Future setCameraFov(double degrees, {bool horizontal = true}) async {
+    set_camera_fov(_viewer!, degrees, horizontal);
   }
 
   ///
@@ -1319,6 +1327,12 @@ class ThermionViewerFFI extends ThermionViewer {
     queue_position_update(_sceneManager!, entity, x, y, z, relative);
   }
 
+  Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
+      double viewportX, double viewportY, double x, double y, double z) async {
+    queue_relative_position_update_world_axis(
+        _sceneManager!, entity, viewportX, viewportY, x, y, z);
+  }
+
   ///
   ///
   ///
@@ -1359,8 +1373,8 @@ class ThermionViewerFFI extends ThermionViewer {
   void _onPickResult(ThermionEntity entityId, int x, int y) {
     _pickResultController.add((
       entity: entityId,
-      x: (x / _pixelRatio).toDouble(),
-      y: (viewportDimensions.$2 - y) / _pixelRatio
+      x: (x / pixelRatio).toDouble(),
+      y: (viewportDimensions.$2 - y) / pixelRatio
     ));
     _scene!.registerSelected(entityId);
   }
@@ -1375,11 +1389,10 @@ class ThermionViewerFFI extends ThermionViewer {
   void pick(int x, int y) async {
     _scene!.unregisterSelected();
 
-    filament_pick(
-        _viewer!,
-        (x * _pixelRatio).toInt(),
-        (viewportDimensions.$2 - (y * _pixelRatio)).toInt(),
-        _onPickResultCallable.nativeFunction);
+    x = (x * pixelRatio).ceil();
+    y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
+
+    filament_pick(_viewer!, x, y, _onPickResultCallable.nativeFunction);
   }
 
   ///
@@ -1700,7 +1713,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setParent(ThermionEntity child, ThermionEntity parent, { bool preserveScaling = false}) async {
+  Future setParent(ThermionEntity child, ThermionEntity parent,
+      {bool preserveScaling = false}) async {
     if (_sceneManager == null) {
       throw Exception("Asset manager must be non-null");
     }
@@ -1738,10 +1752,20 @@ class ThermionViewerFFI extends ThermionViewer {
     set_priority(_sceneManager!, entityId, priority);
   }
 
+  ///
+  ///
+  ///
   @override
   Future<v64.Aabb2> getBoundingBox(ThermionEntity entityId) async {
     final result = get_bounding_box(_sceneManager!, entityId);
     return v64.Aabb2.minMax(v64.Vector2(result.minX, result.minY),
         v64.Vector2(result.maxX, result.maxY));
+  }
+
+  ///
+  ///
+  ///
+  Future setLayerEnabled(int layer, bool enabled) async {
+    set_layer_enabled(_sceneManager!, layer, enabled);
   }
 }

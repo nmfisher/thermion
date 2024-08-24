@@ -1,6 +1,3 @@
-
-
-
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:vector_math/vector_math_64.dart';
 
@@ -15,9 +12,7 @@ abstract class AbstractGizmo {
 
   void detach();
 
-  Aabb2 boundingBox = Aabb2();
+  Stream<Aabb2> get boundingBox;
 
-  void checkHover(double x, double y) { 
-    if(boundingBox.containsVector2(Vector2(x, y)));
-  }
+  void checkHover(double x, double y);
 }
