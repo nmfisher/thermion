@@ -20,6 +20,7 @@
 #include "material/gizmo.h"
 #include "utils/NameComponentManager.h"
 #include "Gizmo.hpp"
+#include "GridOverlay.hpp"
 #include "ResourceBuffer.hpp"
 #include "components/CollisionComponentManager.hpp"
 #include "components/AnimationComponentManager.hpp"
@@ -74,6 +75,7 @@ namespace thermion_filament
         void setRotation(EntityId e, float rads, float x, float y, float z, float w);
         void queuePositionUpdate(EntityId e, float x, float y, float z, bool relative);
         void queueRotationUpdate(EntityId e, float rads, float x, float y, float z, float w, bool relative);
+        void queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z);
         const utils::Entity *getCameraEntities(EntityId e);
         size_t getCameraEntityCount(EntityId e);
         const utils::Entity *getLightEntities(EntityId e) noexcept;
@@ -169,27 +171,31 @@ namespace thermion_filament
         ///
         void setPriority(EntityId entity, int priority);
 
-        /// @brief returns the gizmo entity, used to manipulate the global transform for entities
-        /// @param out a pointer sized large enough to hold three EntityId values (representing the x, y, and z axis of the translation gizmo).
-        /// @return
-        ///
-        void getGizmo(EntityId *out);
-
-
         /// @brief returns the 2D min/max viewport coordinates of the bounding box for the specified enitty;
         /// @param out a pointer large enough to store four floats (the min/max coordinates of the bounding box)
         /// @return
         ///
         Aabb2 getBoundingBox(EntityId entity);
 
+        ///
+        /// Toggles the visibility of the given layer.
+        /// Layer 0 - regular scene assets
+        /// Layer 1 - gizmo
+        /// Layer 2 - grid
+        ///
+        void setLayerEnabled(int layer, bool enabled);
+
         friend class FilamentViewer;
+
+        Gizmo* gizmo = nullptr;
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         Engine *_engine;
-        Scene *_scene;
+        Scene *_scene;       
         View* _view;
+
         gltfio::MaterialProvider *_ubershaderProvider = nullptr;
         gltfio::ResourceLoader *_gltfResourceLoader = nullptr;
         gltfio::TextureProvider *_stbDecoder = nullptr;
@@ -216,7 +222,8 @@ namespace thermion_filament
             const char *entityName);
 
         EntityId addGizmo();
-        Gizmo* _gizmo = nullptr;
+
+        GridOverlay* _gridOverlay = nullptr;
         
 
     };
