@@ -63,6 +63,8 @@ abstract class ThermionViewer {
   ///
   late (double, double) viewportDimensions;
 
+  late double pixelRatio;
+
   ///
   /// The result(s) of calling [pick] (see below).
   /// This may be a broadcast stream, so you should ensure you have subscribed to this stream before calling [pick].
@@ -430,9 +432,15 @@ abstract class ThermionViewer {
   Future<ThermionEntity> getMainCamera();
 
   ///
-  /// Sets the current scene camera to the glTF camera under [name] in [entity].
+  /// Sets the horizontal field of view (if [horizontal] is true) or vertical field of view for the currently active camera to [degrees].
+  /// The aspect ratio of the current viewport is used.
   ///
-  Future setCameraFov(double degrees, double width, double height);
+  Future setCameraFov(double degrees, {bool horizontal = true});
+
+  ///
+  /// Gets the field of view (in degrees).
+  ///
+  Future<double> getCameraFov(bool horizontal);
 
   ///
   /// Sets the tone mapping (requires postprocessing).
@@ -570,6 +578,12 @@ abstract class ThermionViewer {
   Future queuePositionUpdate(
       ThermionEntity entity, double x, double y, double z,
       {bool relative = false});
+
+  ///
+  /// TODO
+  ///
+  Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
+      double viewportX, double viewportY, double x, double y, double z);
 
   ///
   /// Queues an update to the worldspace rotation for [entity].
@@ -719,7 +733,8 @@ abstract class ThermionViewer {
   ///
   /// Sets the parent transform of [child] to [parent].
   ///
-  Future setParent(ThermionEntity child, ThermionEntity parent, { bool preserveScaling });
+  Future setParent(ThermionEntity child, ThermionEntity parent,
+      {bool preserveScaling});
 
   ///
   /// Test all collidable entities against this entity to see if any have collided.
@@ -751,5 +766,11 @@ abstract class ThermionViewer {
   /// Gets the 2D bounding box (in viewport coordinates) for the given entity.
   ///
   Future<Aabb2> getBoundingBox(ThermionEntity entity);
-}
 
+  ///
+  /// Filament assigns renderables to a numeric layer.
+  /// We place all scene assets in layer 0 (enabled by default), gizmos in layer 1 (enabled by default), world grid in layer 2 (disabled by default).
+  /// Use this method to toggle visibility of the respective layer.
+  ///
+  Future setLayerEnabled(int layer, bool enabled);
+}
