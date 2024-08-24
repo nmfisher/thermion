@@ -44,9 +44,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
       });
       var dpr = MediaQuery.of(context).devicePixelRatio;
       var size = ((context.findRenderObject()) as RenderBox).size;
-      var width = (dpr * size.width).ceil();
-      var height = (dpr * size.height).ceil();
-      _texture = await ThermionFlutterPlugin.createTexture(width, height, 0, 0);
+      _texture = await ThermionFlutterPlugin.createTexture(size.width, size.height, 0, 0, dpr);
 
       if (mounted) {
         setState(() {});
