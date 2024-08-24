@@ -1,15 +1,13 @@
-import 'dart:ffi';
-
-import 'package:ffi/ffi.dart';
+import 'dart:async';
 import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
 import '../thermion_viewer.dart';
 
 class Gizmo extends AbstractGizmo {
+  
   final ThermionEntity x;
   final ThermionEntity y;
   final ThermionEntity z;
-
   final ThermionEntity center;
 
   final ThermionViewer _viewer;
@@ -20,11 +18,14 @@ class Gizmo extends AbstractGizmo {
 
   final Set<ThermionEntity> ignore;
 
-  Aabb2 boundingBox = Aabb2();
+  Stream<Aabb2> get boundingBox => _boundingBoxController.stream;
+  final _boundingBoxController = StreamController<Aabb2>.broadcast();
+
 
   Gizmo(this.x, this.y, this.z, this.center, this._viewer,
       {this.ignore = const <ThermionEntity>{}}) {
     _viewer.pickResult.listen(_onPickResult);
+
   }
 
   Future _reveal() async {
@@ -42,19 +43,19 @@ class Gizmo extends AbstractGizmo {
     if (!_stopwatch.isRunning) {
       _stopwatch.start();
     }
-    if (_activeAxis == x) {
-      _translation += Vector3(transX, 0.0, 0.0);
-    } else {
-      _translation += Vector3(0.0, transY, 0.0);
-    }
 
-    if (_stopwatch.elapsedMilliseconds > 16) {
-      await _viewer.queuePositionUpdate(
-          _activeEntity!, _translation.x, _translation.y, _translation.z,
-          relative: true);
-      _stopwatch.reset();
-      _translation = Vector3.zero();
-    }
+    _translation = Vector3(_activeAxis == x ? 1.0 : 0.0,
+        _activeAxis == y ? 1.0 : 0.0, _activeAxis == z ? 1.0 : 0.0);
+
+    await _viewer.queueRelativePositionUpdateWorldAxis(
+        _activeEntity!,
+        transX * _viewer.pixelRatio,
+        -transY * _viewer.pixelRatio,
+        _translation.x,
+        _translation.y,
+        _translation.z);
+    _stopwatch.reset();
+    _translation = Vector3.zero();
   }
 
   void reset() {
@@ -62,14 +63,19 @@ class Gizmo extends AbstractGizmo {
   }
 
   void _onPickResult(FilamentPickResult result) async {
-    if (ignore.contains(result)) {
-      detach();
-      return;
-    }
+    // print(
+    //     "Pick result ${result}, x is ${x}, y is $y, z is $z, ignore is $ignore");
+    // if (ignore.contains(result)) {
+    //   print("Ignore/detach");
+    //   detach();
+    //   return;
+    // }
     if (result.entity == x || result.entity == y || result.entity == z) {
       _activeAxis = result.entity;
+      print("Set active axis to $_activeAxis");
     } else {
       attach(result.entity);
+      print("Attaching to ${result.entity}");
     }
   }
 
@@ -78,21 +84,21 @@ class Gizmo extends AbstractGizmo {
     _activeEntity = entity;
     await _reveal();
 
-    await _viewer.setParent(x, entity);
-    await _viewer.setParent(y, entity);
-    await _viewer.setParent(z, entity);
     await _viewer.setParent(center, entity);
-    boundingBox = await _viewer.getBoundingBox(x);
+
+    _boundingBoxController.sink.add(await _viewer.getBoundingBox(x));
   }
 
   void detach() async {
-    await _viewer.setParent(x, 0);
-    await _viewer.setParent(y, 0);
-    await _viewer.setParent(z, 0);
     await _viewer.setParent(center, 0);
     await _viewer.hide(x, null);
     await _viewer.hide(y, null);
     await _viewer.hide(z, null);
     await _viewer.hide(center, null);
+  }
+
+  @override
+  void checkHover(double x, double y) {
+    _viewer.pick(x.toInt(), y.toInt());
   }
 }
