@@ -20,7 +20,7 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   Future<ThermionViewer> createViewer({String? uberArchivePath});
 
   Future<ThermionFlutterTexture?> createTexture(
-      int width, int height, int offsetLeft, int offsetRight);
+      double width, double height, double offsetLeft, double offsetRight, double pixelRatio);
 
   Future destroyTexture(ThermionFlutterTexture texture);
 
