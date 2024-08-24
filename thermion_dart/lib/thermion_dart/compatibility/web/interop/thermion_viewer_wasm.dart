@@ -5,6 +5,8 @@ import 'dart:math';
 import 'dart:typed_data' as td;
 import 'dart:typed_data';
 import 'package:logging/logging.dart';
+import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
+import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:web/web.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -56,6 +58,8 @@ class ThermionViewerWasm implements ThermionViewer {
   String? assetPathPrefix;
 
   late (double, double) viewportDimensions;
+
+  late double pixelRatio;
 
   ///
   /// Construct an instance of this class by explicitly passing the
@@ -116,6 +120,23 @@ class ThermionViewerWasm implements ThermionViewer {
     updateViewportAndCameraProjection(width, height, 1.0);
     _sceneManager = _module!.ccall("get_scene_manager", "void*",
         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
+
+    _pickCallbackPtr = _module!.addFunction(_onPickCallback.toJS, "viii");
+    // _module!.removeFunction(_pickCallbackPtr);
+
+    var gizmoOut = _module!._malloc(4 * 4) as JSNumber;
+
+    _module!.ccall("get_gizmo", "void", ["void*".toJS, "void*".toJS].toJS,
+        [_sceneManager!, gizmoOut].toJS, null);
+
+    var x = _module!.getValue(gizmoOut, "i32") as JSNumber;
+    var y = _module!.getValue((gizmoOut.toDartInt + 4).toJS, "i32") as JSNumber;
+    var z = _module!.getValue((gizmoOut.toDartInt + 8).toJS, "i32") as JSNumber;
+    var center =
+        _module!.getValue((gizmoOut.toDartInt + 12).toJS, "i32") as JSNumber;
+    _gizmo =
+        Gizmo(x.toDartInt, y.toDartInt, z.toDartInt, center.toDartInt, this);
+    _module!._free(gizmoOut);
     _initialized = true;
   }
 
@@ -150,6 +171,9 @@ class ThermionViewerWasm implements ThermionViewer {
 
   void updateViewportAndCameraProjection(
       int width, int height, double scaleFactor) {
+    if (width == 0 || height == 0) {
+      throw Exception("Width/height must be greater than zero");
+    }
     _width = width;
     _height = height;
     viewportDimensions = (width.toDouble(), height.toDouble());
@@ -166,9 +190,12 @@ class ThermionViewerWasm implements ThermionViewer {
     return _initialized;
   }
 
+  final _pickResultController =
+      StreamController<FilamentPickResult>.broadcast();
+
   @override
   Stream<FilamentPickResult> get pickResult {
-    throw UnimplementedError();
+    return _pickResultController.stream;
   }
 
   @override
@@ -628,8 +655,8 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  // TODO: implement gizmo
-  AbstractGizmo? get gizmo => throw UnimplementedError();
+  AbstractGizmo? get gizmo => _gizmo;
+  Gizmo? _gizmo;
 
   @override
   Future hide(ThermionEntity entity, String? meshName) async {
@@ -788,19 +815,17 @@ class ThermionViewerWasm implements ThermionViewer {
     final pixelBuffer = _module!._malloc(_width * _height * 4) as JSNumber;
     final completer = Completer();
     final callback = () {
-      print("Callback invoked!");
       completer.complete();
     };
     final callbackPtr = _module!.addFunction(callback.toJS, "v");
 
-    print("Aded functrion ${callbackPtr}, calling capture...");
     _module!.ccall(
         "capture",
         "void",
         ["void*".toJS, "uint8_t*".toJS, "void*".toJS].toJS,
         [_viewer!, pixelBuffer, callbackPtr].toJS,
         null);
-    print("Waiting for completer...");
+
     int iter = 0;
     while (true) {
       await Future.delayed(Duration(milliseconds: 5));
@@ -1389,32 +1414,47 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future panEnd() async {
-    _module!.ccall("grab_end", "void",
-        ["void*".toJS].toJS, [_viewer!].toJS, null);
+    _module!
+        .ccall("grab_end", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
   Future panStart(double x, double y) async {
-    _module!.ccall("grab_begin", "void",
-        ["void*".toJS, "float".toJS, "float".toJS, "bool".toJS].toJS, [_viewer!, x.toJS, y.toJS, true.toJS].toJS, null);
+    _module!.ccall(
+        "grab_begin",
+        "void",
+        ["void*".toJS, "float".toJS, "float".toJS, "bool".toJS].toJS,
+        [_viewer!, x.toJS, y.toJS, true.toJS].toJS,
+        null);
   }
 
   @override
   Future panUpdate(double x, double y) async {
-    _module!.ccall("grab_update", "void",
-        ["void*".toJS, "float".toJS, "float".toJS].toJS, [_viewer!, x.toJS, y.toJS].toJS, null);
+    _module!.ccall(
+        "grab_update",
+        "void",
+        ["void*".toJS, "float".toJS, "float".toJS].toJS,
+        [_viewer!, x.toJS, y.toJS].toJS,
+        null);
+  }
+
+  late JSNumber _pickCallbackPtr;
+
+  void _onPickCallback(ThermionEntity entity, int x, int y) {
+    _pickResultController
+        .add((entity: entity, x: x.toDouble(), y: y.toDouble()));
   }
 
   @override
-  void pick(int x, int y) {
-    throw UnimplementedError();
-    // _module!.ccall("filament_pick", "void",
-    //     ["void*".toJS, "int".toJS, "int".toJS, "void*".toJS].toJS, [
-    //   _viewer!,
-    //   x.toJS,
-    //   y.toJS,
-    //   (entityId, x, y) {}.toJS
-    // ]);
+  void pick(int x, int y) async {
+    x = (x * pixelRatio).ceil();
+    y = (y * pixelRatio).ceil();
+    _module!.ccall(
+        "filament_pick",
+        "void",
+        ["void*".toJS, "int".toJS, "int".toJS, "void*".toJS].toJS,
+        [_viewer!, x.toJS, y.toJS, _pickCallbackPtr].toJS,
+        null);
   }
 
   @override
@@ -1566,20 +1606,15 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future reveal(ThermionEntity entity, String? meshName) async {
-    if (meshName != null) {
-      final result = _module!.ccall(
-          "reveal_mesh",
-          "int",
-          ["void*".toJS, "int".toJS, "string".toJS].toJS,
-          [_sceneManager!, entity.toJS, meshName.toJS].toJS,
-          null) as JSNumber;
-      if (result.toDartInt == -1) {
-        throw Exception(
-            "Failed to reveal mesh ${meshName} on entity ${entity.toJS}");
-      }
-    } else {
+    final result = _module!.ccall(
+        "reveal_mesh",
+        "int",
+        ["void*".toJS, "int".toJS, "string".toJS].toJS,
+        [_sceneManager!, entity.toJS, meshName?.toJS].toJS,
+        null) as JSNumber;
+    if (result.toDartInt == -1) {
       throw Exception(
-          "Cannot reveal mesh, meshName must be specified when invoking this method");
+          "Failed to reveal mesh ${meshName} on entity ${entity.toJS}");
     }
   }
 
@@ -1597,20 +1632,28 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future rotateStart(double x, double y) async {
-     _module!.ccall("grab_begin", "void",
-        ["void*".toJS, "float".toJS, "float".toJS, "bool".toJS].toJS, [_viewer!, x.toJS, y.toJS, false.toJS].toJS, null);
+    _module!.ccall(
+        "grab_begin",
+        "void",
+        ["void*".toJS, "float".toJS, "float".toJS, "bool".toJS].toJS,
+        [_viewer!, x.toJS, y.toJS, false.toJS].toJS,
+        null);
   }
 
   @override
   Future rotateUpdate(double x, double y) async {
-    _module!.ccall("grab_update", "void",
-        ["void*".toJS, "float".toJS, "float".toJS].toJS, [_viewer!, x.toJS, y.toJS].toJS, null);
+    _module!.ccall(
+        "grab_update",
+        "void",
+        ["void*".toJS, "float".toJS, "float".toJS].toJS,
+        [_viewer!, x.toJS, y.toJS].toJS,
+        null);
   }
 
   @override
   Future rotateEnd() async {
-    _module!.ccall("grab_end", "void",
-        ["void*".toJS].toJS, [_viewer!].toJS, null);
+    _module!
+        .ccall("grab_end", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
@@ -1737,12 +1780,12 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future setCameraFov(double degrees, double width, double height) async {
+  Future setCameraFov(double degrees, {bool horizontal = true}) async {
     _module!.ccall(
         "set_camera_fov",
         "void",
-        ["void*".toJS, "float".toJS, "float".toJS].toJS,
-        [_viewer!, degrees.toJS, (width / height).toJS].toJS,
+        ["void*".toJS, "float".toJS, "bool".toJS].toJS,
+        [_viewer!, degrees.toJS, horizontal.toJS].toJS,
         null);
   }
 
@@ -1850,12 +1893,13 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future setParent(ThermionEntity child, ThermionEntity parent) async {
+  Future setParent(ThermionEntity child, ThermionEntity parent,
+      {bool preserveScaling = false}) async {
     _module!.ccall(
         "set_parent",
         "void",
-        ["void*".toJS, "int".toJS, "int".toJS].toJS,
-        [_sceneManager!, child.toJS, parent.toJS].toJS,
+        ["void*".toJS, "int".toJS, "int".toJS, "bool".toJS].toJS,
+        [_sceneManager!, child.toJS, parent.toJS, preserveScaling.toJS].toJS,
         null);
   }
 
@@ -1999,8 +2043,8 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future zoomEnd() async {
-    _module!
-        .ccall("scroll_end", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
+    _module!.ccall(
+        "scroll_end", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
   }
 
   @override
@@ -2045,6 +2089,98 @@ class ThermionViewerWasm implements ThermionViewer {
         "void",
         ["void*".toJS, "float".toJS, "float".toJS].toJS,
         [_viewer!, penumbraScale.toJS, penumbraRatioScale.toJS].toJS,
+        null);
+  }
+
+  @override
+  Future<Aabb2> getBoundingBox(ThermionEntity entity) {
+    var minX = _module!._malloc(4);
+    var minY = _module!._malloc(4);
+    var maxX = _module!._malloc(4);
+    var maxY = _module!._malloc(4);
+    _module!.ccall(
+        "get_bounding_box_to_out",
+        "void",
+        [
+          "void*".toJS,
+          "int".toJS,
+          "float*".toJS,
+          "float*".toJS,
+          "float*".toJS,
+          "float*".toJS
+        ].toJS,
+        [_sceneManager!, entity.toJS, minX, minY, maxX, maxY].toJS,
+        null);
+
+    final min = Vector2(
+        (_module!.getValue(minX, "float") as JSNumber).toDartDouble,
+        (_module!.getValue(minY, "float") as JSNumber).toDartDouble);
+    final max = Vector2(
+        (_module!.getValue(maxX, "float") as JSNumber).toDartDouble,
+        (_module!.getValue(maxY, "float") as JSNumber).toDartDouble);
+
+    final box = Aabb2.minMax(min, max);
+    _module!._free(minX);
+    _module!._free(minY);
+    _module!._free(maxX);
+    _module!._free(maxY);
+
+    return Future.value(box);
+  }
+
+  @override
+  Future<double> getCameraFov(bool horizontal) async {
+    var fov = _module!.ccall(
+        "get_camera_fov",
+        "float",
+        ["void*".toJS, "bool".toJS].toJS,
+        [_viewer!, horizontal.toJS].toJS,
+        null);
+    return (fov as JSNumber).toDartDouble;
+  }
+
+  @override
+  Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
+      double viewportX, double viewportY, double x, double y, double z) async {
+    _module!.ccall(
+        "queue_relative_position_update_world_axis",
+        "void",
+        [
+          "void*".toJS,
+          "int".toJS,
+          "float".toJS,
+          "float".toJS,
+          "float".toJS,
+          "float".toJS,
+          "float".toJS
+        ].toJS,
+        [
+          _sceneManager!,
+          entity.toJS,
+          viewportX.toJS,
+          viewportY.toJS,
+          x.toJS,
+          y.toJS,
+          z.toJS
+        ].toJS,
+        null);
+  }
+
+  @override
+  Future setLayerEnabled(int layer, bool enabled) async {
+    _module!.ccall(
+        "set_layer_enabled",
+        "void",
+        [
+          "void*".toJS,
+          "int".toJS,
+          "bool".toJS,
+        ].toJS,
+        [
+          _sceneManager!,
+          layer.toJS,
+          enabled.toJS,
+        ].toJS,
         null);
   }
 }
