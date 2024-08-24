@@ -10,6 +10,7 @@
 #include <filament/Texture.h>
 #include <filament/RenderableManager.h>
 #include <filament/Viewport.h>
+#include <filament/Frustum.h>
 
 #include <utils/EntityManager.h>
 
@@ -91,7 +92,15 @@ namespace thermion_filament
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
 
-        _gizmo = new Gizmo(_engine);
+        gizmo = new Gizmo(*_engine);
+        _gridOverlay = new GridOverlay(*_engine);
+        
+        _scene->addEntity(_gridOverlay->sphere());
+        _scene->addEntity(_gridOverlay->grid());
+
+        _view->setLayerEnabled(0, true); // scene assets
+        _view->setLayerEnabled(1, true); // gizmo
+        _view->setLayerEnabled(2, false); // world grid
     }
 
     SceneManager::~SceneManager()
@@ -99,7 +108,8 @@ namespace thermion_filament
 
         destroyAll();
 
-        _gizmo->destroy(_engine);
+        gizmo->destroy();
+        _gridOverlay->destroy();
 
         _gltfResourceLoader->asyncCancelLoad();
         _ubershaderProvider->destroyMaterials();
@@ -1628,15 +1638,11 @@ namespace thermion_filament
         _animationComponentManager->update();
     }
 
-   
-
     void SceneManager::updateTransforms()
     {
         std::lock_guard lock(_mutex);
 
         auto &tm = _engine->getTransformManager();
-
-        _gizmo->updateTransform();
 
         for (const auto &[entityId, transformUpdate] : _transformUpdates)
         {
@@ -1723,6 +1729,7 @@ namespace thermion_filament
             tm.setTransform(transformInstance, transform);
         }
         _transformUpdates.clear();
+        gizmo->updateTransform(_view->getCamera(), _view->getViewport());
     }
 
     void SceneManager::setScale(EntityId entityId, float newScale)
@@ -1796,77 +1803,222 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
-  void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
-{
-    std::lock_guard lock(_mutex);
 
-    const auto &pos = _transformUpdates.find(entity);
-    if (pos == _transformUpdates.end())
+        // Log("view matrix %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+        // viewMatrix[0][0], viewMatrix[0][1], viewMatrix[0][2], viewMatrix[0][3],
+        // viewMatrix[1][0], viewMatrix[1][1], viewMatrix[1][2], viewMatrix[1][3],
+        // viewMatrix[2][0], viewMatrix[2][1], viewMatrix[2][2], viewMatrix[2][3],
+        // viewMatrix[3][0], viewMatrix[3][1], viewMatrix[3][2], viewMatrix[3][3]);
+
+
+
+    //     math::float4 worldspace = { 250.0f, 0.0f, 0.0f, 1.0f };
+    //     math::float4 viewSpace = viewMatrix * worldspace;
+    //     Log("viewspace %f %f %f %f", viewSpace.x, viewSpace.y, viewSpace.z, viewSpace.w);
+
+    //     math::float4 clipSpace = camera.getProjectionMatrix() * viewSpace;
+    //     Log("clip space %f %f %f %f", clipSpace.x, clipSpace.y, clipSpace.z, clipSpace.w);
+
+    //     math::float4 ndc = clipSpace / clipSpace.w;
+    //     Log("ndc %f %f %f %f", ndc.x, ndc.y, ndc.z, ndc.w);
+
+    //     ndc.x = -1.0;
+      
+    // // Multiply by inverse view-projection matrix
+    // auto inverseProj = inverse(camera.getProjectionMatrix()); 
+    // clipSpace = inverseProj * math::float4 { ndc.x, ndc.y, ndc.z, 1.0f };
+    // viewSpace = clipSpace / clipSpace.w;
+    // Log("clip space %f %f %f %f", viewSpace.x, viewSpace.y, viewSpace.z, viewSpace.w);
+
+    // auto inverseView = inverse(viewMatrix);
+    // worldspace = inverseView * viewSpace;
+    // Log("worldspace space %f %f %f %f", worldspace.x, worldspace.y, worldspace.z, worldspace.w);
+
+    // return;
+
+    void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
     {
-        _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
-    }
-    auto curr = _transformUpdates[entity];
-    auto &trans = std::get<0>(curr);
 
-    const auto &tm = _engine->getTransformManager();
-    auto transformInstance = tm.getInstance(Entity::import(entity));
-    auto transform = tm.getTransform(transformInstance);
-    math::double4 position { 0.0f, 0.0f, 0.0f, 1.0f};
-    math::mat4 worldTransform = tm.getWorldTransformAccurate(transformInstance);
-    position = worldTransform * position;
+        auto worldAxis = math::float3 { x, y, z};
 
-    // Get camera's view matrix and its inverse
-    const Camera &camera = _view->getCamera();
+        // Get the camera
+        const auto &camera = _view->getCamera();
+        const auto &vp = _view->getViewport();
+        auto viewMatrix = camera.getViewMatrix();   
+        
+        // Scale the viewport movement to NDC coordinates view axis
+        math::float2 viewportMovementNDC(viewportCoordX / (vp.width / 2), viewportCoordY / (vp.height / 2));
     
-    math::mat4 viewMatrix = camera.getViewMatrix();
-    math::mat4 invViewMatrix = inverse(viewMatrix);
+        // First we need to get the orientation of the specified world axis in screen space
+        math::float4 viewAxis = viewMatrix * math::float4 { x, y, z, 1.0f };
+        // Apply projection matrix to get clip space axis
+        math::float4 clipAxis = camera.getProjectionMatrix() * viewAxis;
+        // Perform perspective division to get normalized device coordinates (NDC)
+        math::float2 ndcAxis = (clipAxis.xyz / clipAxis.w).xy;
 
-    // Transform object position to view space
-    math::double4 viewSpacePos = viewMatrix * position;
+        // project viewportMovementNDC onto axis 
+        float projectedMovement = dot(viewportMovementNDC, normalize(ndcAxis));
+        auto translationNDC = projectedMovement * normalize(ndcAxis);
 
-    Log("viewSpacePos %f %f %f %f", viewSpacePos.x, viewSpacePos.y, viewSpacePos.z, viewSpacePos.w);
+        // Log("projectedMovement %f translationNDC %f %f", projectedMovement, translationNDC.x, translationNDC.y);
 
-    // Calculate plane distance from camera
-    float planeDistance = -viewSpacePos.z;
+        // Get the camera's field of view and aspect ratio
+        float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
+        float fovX = camera.getFieldOfViewInDegrees(filament::Camera::Fov::HORIZONTAL);
 
-    const auto &vp = _view->getViewport();
+        // Convert to radians
+        fovY = (fovY / 180) * M_PI;
+        fovX = (fovX / 180) * M_PI;
 
-    // Calculate viewport to world scale at the object's distance
-    float viewportToWorldScale = planeDistance * std::tan(camera.getFieldOfViewInDegrees(Camera::Fov::VERTICAL) * 0.5f * M_PI / 180.0f) * 2.0f / vp.height;
+        // Log("Fov vertical %f horizontal %f", fovY, fovX);
+        float aspectRatio = static_cast<float>(vp.width) / vp.height;
 
-    Log("viewportToWorldScale %f", viewportToWorldScale);
+        auto &transformManager = _engine->getTransformManager();
+        auto transformInstance = transformManager.getInstance(Entity::import(entity));
+        const auto &transform = transformManager.getWorldTransform(transformInstance);
 
-    // Calculate view space delta
-    math::float4 viewSpaceDelta(
-        x * viewportToWorldScale,
-        -y * viewportToWorldScale,  // Invert y-axis
-        z * viewportToWorldScale,
-        0.0f);  // Use 0 for the w component as it's a direction, not a position
+        math::float3 translation;
+        math::quatf rotation;
+        math::float3 scale;
 
-    Log("viewSpaceDelta %f %f %f", viewSpaceDelta.x, viewSpaceDelta.y, viewSpaceDelta.z);
+        decomposeMatrix(transform, &translation, &rotation, &scale);
 
-    // Transform delta to world space
-    math::float4 worldDelta = invViewMatrix * viewSpaceDelta;
+        const auto entityWorldPosition = transform * math::float4{0.0f, 0.0f, 0.0f, 1.0f};
 
-    Log("worldDelta %f %f %f", worldDelta.x, worldDelta.y, worldDelta.z);
+        // Log("entityWorldPosition %f %f %f", entityWorldPosition.x, entityWorldPosition.y, entityWorldPosition.z);
 
-    if (relative)
-    {
-        trans.x += worldDelta.x;
-        trans.y += worldDelta.y;
-        trans.z += worldDelta.z;
+        float distanceToCamera = length(entityWorldPosition.xyz - camera.getPosition());
+
+        // Calculate the height of the view frustum at the given distance
+        float frustumHeight = 2.0f * distanceToCamera * tan(fovY * 0.5f);
+
+        // Calculate the width of the view frustum at the given distance
+        float frustumWidth = frustumHeight * aspectRatio;
+
+        // Log("frustum %fx%f", frustumWidth, frustumHeight);
+
+        // Convert projected viewport movement to world space distance
+        float worldDistance = length(math::float2 { (translationNDC /2) * math::float2 { frustumWidth, frustumHeight } });
+
+        if(projectedMovement < 0) {
+            worldDistance *= -1;
+        }
+
+        // Log("%f units in world ", worldDistance);
+
+        auto newWorldTranslation = worldAxis * worldDistance;
+
+        queuePositionUpdate(entity, newWorldTranslation.x, newWorldTranslation.y, newWorldTranslation.z, true);
+
+        // // Convert to local space
+        // math::mat4f newWorldTransform = transformManager.getWorldTransform(transformInstance) * math::mat4f::translation(worldAxis * worldDistance);
+        // const auto parent = transformManager.getParent(transformInstance);
+        // const auto parentTransformInstance = transformManager.getInstance(parent);
+        // const auto inverseParentWorldTransformInverse = inverse(transformManager.getWorldTransform(parentTransformInstance));
+        // math::mat4f newLocalTransform = inverseParentWorldTransformInverse * newWorldTransform;
+
+        // Log("newLocalTransform %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+        // newLocalTransform[0][0], newLocalTransform[0][1], newLocalTransform[0][2], newLocalTransform[0][3],
+        // newLocalTransform[1][0], newLocalTransform[1][1], newLocalTransform[1][2], newLocalTransform[1][3],
+        // newLocalTransform[2][0], newLocalTransform[2][1], newLocalTransform[2][2], newLocalTransform[2][3],
+        // newLocalTransform[3][0], newLocalTransform[3][1], newLocalTransform[3][2], newLocalTransform[3][3]);
+
+
+
+        // transformManager.setTransform(transformInstance, newLocalTransform);
     }
-    else
+
+    void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
     {
-        trans.x = worldDelta.x;
-        trans.y = worldDelta.y;
-        trans.z = worldDelta.z;
+        std::lock_guard lock(_mutex);
+
+        const auto &pos = _transformUpdates.find(entity);
+        if (pos == _transformUpdates.end())
+        {
+            _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
+        }
+        auto curr = _transformUpdates[entity];
+        auto &trans = std::get<0>(curr);
+        trans.x = x;
+        trans.y = y;
+        trans.z = z;
+
+        auto &isRelative = std::get<1>(curr);
+        isRelative = relative;
+        _transformUpdates[entity] = curr;
     }
 
-    auto &isRelative = std::get<1>(curr);
-    isRelative = relative;
-    _transformUpdates[entity] = curr;
-}
+    //   void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
+    // {
+    //     std::lock_guard lock(_mutex);
+
+    //     const auto &pos = _transformUpdates.find(entity);
+    //     if (pos == _transformUpdates.end())
+    //     {
+    //         _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
+    //     }
+    //     auto curr = _transformUpdates[entity];
+    //     auto &trans = std::get<0>(curr);
+
+    //     const auto &tm = _engine->getTransformManager();
+    //     auto transformInstance = tm.getInstance(Entity::import(entity));
+    //     auto transform = tm.getTransform(transformInstance);
+    //     math::double4 position { 0.0f, 0.0f, 0.0f, 1.0f};
+    //     math::mat4 worldTransform = tm.getWorldTransformAccurate(transformInstance);
+    //     position = worldTransform * position;
+
+    //     // Get camera's view matrix and its inverse
+    //     const Camera &camera = _view->getCamera();
+
+    //     math::mat4 viewMatrix = camera.getViewMatrix();
+    //     math::mat4 invViewMatrix = inverse(viewMatrix);
+
+    //     // Transform object position to view space
+    //     math::double4 viewSpacePos = viewMatrix * position;
+
+    //     Log("viewSpacePos %f %f %f %f", viewSpacePos.x, viewSpacePos.y, viewSpacePos.z, viewSpacePos.w);
+
+    //     // Calculate plane distance from camera
+    //     float planeDistance = -viewSpacePos.z;
+
+    //     const auto &vp = _view->getViewport();
+
+    //     // Calculate viewport to world scale at the object's distance
+    //     float viewportToWorldScale = planeDistance * std::tan(camera.getFieldOfViewInDegrees(Camera::Fov::VERTICAL) * 0.5f * M_PI / 180.0f) * 2.0f / vp.height;
+
+    //     // Log("viewportToWorldScale %f", viewportToWorldScale);
+
+    //     // Calculate view space delta
+    //     math::float4 viewSpaceDelta(
+    //         x * viewportToWorldScale,
+    //         -y * viewportToWorldScale,  // Invert y-axis
+    //         z * viewportToWorldScale,
+    //         0.0f);  // Use 0 for the w component as it's a direction, not a position
+
+    //     // Log("viewSpaceDelta %f %f %f", viewSpaceDelta.x, viewSpaceDelta.y, viewSpaceDelta.z);
+
+    //     // Transform delta to world space
+    //     math::float4 worldDelta = invViewMatrix * viewSpaceDelta;
+
+    //     // Log("worldDelta %f %f %f", worldDelta.x, worldDelta.y, worldDelta.z);
+
+    //     if (relative)
+    //     {
+    //         trans.x += worldDelta.x;
+    //         trans.y += worldDelta.y;
+    //         trans.z += worldDelta.z;
+    //     }
+    //     else
+    //     {
+    //         trans.x = worldDelta.x;
+    //         trans.y = worldDelta.y;
+    //         trans.z = worldDelta.z;
+    //     }
+
+    //     auto &isRelative = std::get<1>(curr);
+    //     isRelative = relative;
+    //     _transformUpdates[entity] = curr;
+    // }
 
     void SceneManager::queueRotationUpdate(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
     {
@@ -2132,8 +2284,6 @@ namespace thermion_filament
         auto min = aabb.getMin();
         auto max = aabb.getMax();
 
-        Log("min %f %f %f max %f %f %f", min.x, min.y, min.z, max.x, max.y, max.z);
-
         // Transform the 8 corners of the AABB to clip space
         std::array<math::float4, 8> corners = {
             worldTransform * math::float4(min.x, min.y, min.z, 1.0f),
@@ -2182,12 +2332,10 @@ namespace thermion_filament
         return Aabb2{minX, minY, maxX, maxY};
     }
 
-    void SceneManager::getGizmo(EntityId *out)
-    {
-        out[0] = Entity::smuggle(_gizmo->x());
-        out[1] = Entity::smuggle(_gizmo->y());
-        out[2] = Entity::smuggle(_gizmo->z());
-        out[3] = Entity::smuggle(_gizmo->center());
+    void SceneManager::setLayerEnabled(int layer, bool enabled) {
+        Log("Setting layer %d to %d", layer, enabled);
+        _view->setLayerEnabled(layer, enabled);
     }
+
 
 } // namespace thermion_filament
