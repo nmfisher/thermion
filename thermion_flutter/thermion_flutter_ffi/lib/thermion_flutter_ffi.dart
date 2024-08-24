@@ -98,8 +98,10 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
   /// The current design doesn't accommodate this (for example, it seems we can
   /// only create a single native window from a Surface at any one time).
   ///
-  Future<ThermionFlutterTexture?> createTexture(
-      int width, int height, int offsetLeft, int offsetRight) async {
+  Future<ThermionFlutterTexture?> createTexture(double width, double height,
+      double offsetLeft, double offsetRight, double pixelRatio) async {
+    final physicalWidth = (width * pixelRatio).ceil();
+    final physicalHeight = (height * pixelRatio).ceil();
     // when a ThermionWidget is inserted, disposed then immediately reinserted
     // into the widget hierarchy (e.g. rebuilding due to setState(() {}) being called in an ancestor widget)
     // the first call to createTexture may not have completed before the second.
@@ -113,7 +115,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     if (_textures.length > 1) {
       throw Exception("Multiple textures not yet supported");
     } else if (_textures.length == 1) {
-      if (_textures.first.height == height && _textures.first.width == width) {
+      if (_textures.first.height == physicalHeight && _textures.first.width == physicalWidth) {
         return _textures.first;
       } else {
         await _viewer!.setRendering(false);
@@ -126,7 +128,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     _creatingTexture = true;
 
     var result = await _channel
-        .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
+        .invokeMethod("createTexture", [physicalWidth, physicalHeight, offsetLeft, offsetLeft]);
 
     if (result == null || (result[0] == -1)) {
       throw Exception("Failed to create texture");
@@ -138,12 +140,12 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     _logger.info(
         "Created texture with flutter texture id ${flutterTextureId}, hardwareTextureId $hardwareTextureId and surfaceAddress $surfaceAddress");
 
-    _viewer?.viewportDimensions = (width.toDouble(), height.toDouble());
+    _viewer?.viewportDimensions = (physicalWidth.toDouble(), physicalHeight.toDouble());
 
     final texture = ThermionFlutterTexture(
-        flutterTextureId, hardwareTextureId, width, height, surfaceAddress);
+        flutterTextureId, hardwareTextureId, physicalWidth, physicalHeight, surfaceAddress);
 
-    await _viewer?.createSwapChain(width.toDouble(), height.toDouble(),
+    await _viewer?.createSwapChain(physicalWidth.toDouble(), physicalHeight.toDouble(),
         surface: texture.surfaceAddress == null
             ? nullptr
             : Pointer<Void>.fromAddress(texture.surfaceAddress!));
@@ -151,11 +153,11 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     if (texture.hardwareTextureId != null) {
       // ignore: unused_local_variable
       var renderTarget = await _viewer?.createRenderTarget(
-          width.toDouble(), height.toDouble(), texture.hardwareTextureId!);
+          physicalWidth.toDouble(), physicalHeight.toDouble(), texture.hardwareTextureId!);
     }
 
     await _viewer?.updateViewportAndCameraProjection(
-        width.toDouble(), height.toDouble());
+        physicalWidth.toDouble(), physicalHeight.toDouble());
     _viewer?.render();
     _creatingTexture = false;
 
