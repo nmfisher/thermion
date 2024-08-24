@@ -23,9 +23,9 @@ bindings:
 materials: FORCE
 	@echo "Using Filament build from ${FILAMENT_PATH}"
 	${FILAMENT_PATH}/matc -a opengl -a metal -o materials/image.filamat materials/image.mat
-	$(FILAMENT_PATH)/resgen -c -p image -x ios/include/material/ materials/image.filamat   
+	$(FILAMENT_PATH)/resgen -c -p image -x thermion_dart/native/include/material/ materials/image.filamat   
 	$(FILAMENT_PATH)/matc -a opengl -a metal -o materials/gizmo.filamat materials/gizmo.mat
-	$(FILAMENT_PATH)/resgen -c -p gizmo -x ios/include/material/ materials/gizmo.filamat
+	$(FILAMENT_PATH)/resgen -c -p gizmo -x thermion_dart/native/include/material/ materials/gizmo.filamat
 	#rm materials/*.filamat
 
 FORCE: ;
