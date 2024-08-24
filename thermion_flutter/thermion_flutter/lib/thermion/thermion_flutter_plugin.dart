@@ -80,9 +80,9 @@ class ThermionFlutterPlugin {
   }
 
   static Future<ThermionFlutterTexture?> createTexture(
-      int width, int height, int offsetLeft, int offsetRight) async {
+      double width, double height, double offsetLeft, double offsetRight, double pixelRatio) async {
     return ThermionFlutterPlatform.instance
-        .createTexture(width, height, offsetLeft, offsetRight);
+        .createTexture(width, height, offsetLeft, offsetRight, pixelRatio);
   }
 
   static Future destroyTexture(ThermionFlutterTexture texture) async {
