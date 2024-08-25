@@ -1836,6 +1836,12 @@ namespace thermion_filament
 
     // return;
 
+            
+        // Log("viewMatrixRotation %f %f %f %f %f %f %f %f %f",
+        // viewMatrixRotation[0][0], viewMatrixRotation[0][1], viewMatrixRotation[0][2],
+        // viewMatrixRotation[1][0], viewMatrixRotation[1][1], viewMatrixRotation[1][2],
+        // viewMatrixRotation[2][0], viewMatrixRotation[2][1], viewMatrixRotation[2][2]);
+
     void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
     {
 
@@ -1848,19 +1854,47 @@ namespace thermion_filament
         
         // Scale the viewport movement to NDC coordinates view axis
         math::float2 viewportMovementNDC(viewportCoordX / (vp.width / 2), viewportCoordY / (vp.height / 2));
-    
-        // First we need to get the orientation of the specified world axis in screen space
-        math::float4 viewAxis = viewMatrix * math::float4 { x, y, z, 1.0f };
+            
+        // calculate the translation axis in view space
+        // ignore the translation component of the view matrix we only care about whether or not the camera has rotated 
+        // (if the entity is in the viewport, we don't need to translate it first back to the "true" X, Y or Z axis - we're just moving parallel to those axes )
+        math::float3 viewSpaceAxis = viewMatrix.upperLeft() * worldAxis;
+
         // Apply projection matrix to get clip space axis
-        math::float4 clipAxis = camera.getProjectionMatrix() * viewAxis;
-        // Perform perspective division to get normalized device coordinates (NDC)
+        math::float4 clipAxis = camera.getProjectionMatrix() * math::float4(viewSpaceAxis, 0.0f);
+        
+        // Perform perspective division to get the translation axis in normalized device coordinates (NDC)
         math::float2 ndcAxis = (clipAxis.xyz / clipAxis.w).xy;
 
-        // project viewportMovementNDC onto axis 
+        // Check if ndcAxis is too small (camera nearly orthogonal to the axis)
+        const float epsilon = 1e-6f;
+        if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y) || length(ndcAxis) < epsilon) {
+            // Use an alternative method when the camera is nearly orthogonal to the axis
+            math::float3 cameraForward = -viewMatrix.upperLeft()[2];
+            math::float3 perpendicularAxis = cross(cameraForward, worldAxis);
+            
+            if (length(perpendicularAxis) < epsilon) {
+                // If worldAxis is parallel to cameraForward, use a fixed perpendicular axis
+                perpendicularAxis = math::float3{0, 1, 0};
+                if (std::abs(dot(perpendicularAxis, cameraForward)) > 0.9f) {
+                    perpendicularAxis = math::float3{1, 0, 0};
+                }
+            }
+            
+            ndcAxis = (camera.getProjectionMatrix() * math::float4(viewMatrix.upperLeft() * normalize(perpendicularAxis), 0.0f)).xy;
+
+            Log("Corrected NDC axis %f %f", ndcAxis.x, ndcAxis.y);
+
+        }
+
+        // project the viewport movement (i.e pointer drag) vector onto the translation axis 
+        // this gives the proportion of the pointer drag vector to translate along the translation axis
         float projectedMovement = dot(viewportMovementNDC, normalize(ndcAxis));
         auto translationNDC = projectedMovement * normalize(ndcAxis);
 
-        // Log("projectedMovement %f translationNDC %f %f", projectedMovement, translationNDC.x, translationNDC.y);
+        math::float3 cameraPosition = camera.getPosition();
+        math::float3 cameraForward = -viewMatrix.upperLeft()[2]; // Third row of the view matrix is the forward vector
+        float dotProduct = dot(normalize(worldAxis), cameraForward);
 
         // Get the camera's field of view and aspect ratio
         float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
@@ -1870,7 +1904,6 @@ namespace thermion_filament
         fovY = (fovY / 180) * M_PI;
         fovX = (fovX / 180) * M_PI;
 
-        // Log("Fov vertical %f horizontal %f", fovY, fovX);
         float aspectRatio = static_cast<float>(vp.width) / vp.height;
 
         auto &transformManager = _engine->getTransformManager();
@@ -1885,8 +1918,6 @@ namespace thermion_filament
 
         const auto entityWorldPosition = transform * math::float4{0.0f, 0.0f, 0.0f, 1.0f};
 
-        // Log("entityWorldPosition %f %f %f", entityWorldPosition.x, entityWorldPosition.y, entityWorldPosition.z);
-
         float distanceToCamera = length(entityWorldPosition.xyz - camera.getPosition());
 
         // Calculate the height of the view frustum at the given distance
@@ -1895,38 +1926,26 @@ namespace thermion_filament
         // Calculate the width of the view frustum at the given distance
         float frustumWidth = frustumHeight * aspectRatio;
 
-        // Log("frustum %fx%f", frustumWidth, frustumHeight);
-
         // Convert projected viewport movement to world space distance
         float worldDistance = length(math::float2 { (translationNDC /2) * math::float2 { frustumWidth, frustumHeight } });
 
-        if(projectedMovement < 0) {
-            worldDistance *= -1;
+        float sign = (dotProduct >= 0) ? -1.0f : 1.0f;
+        if (projectedMovement < 0) {
+            sign *= -1.0f;
         }
 
-        // Log("%f units in world ", worldDistance);
+        // Flip the sign for the Z-axis
+        if (std::abs(z) > 0.001) {
+            sign *= -1.0f;
+        }
+
+        worldDistance *= sign;
 
         auto newWorldTranslation = worldAxis * worldDistance;
 
         queuePositionUpdate(entity, newWorldTranslation.x, newWorldTranslation.y, newWorldTranslation.z, true);
-
-        // // Convert to local space
-        // math::mat4f newWorldTransform = transformManager.getWorldTransform(transformInstance) * math::mat4f::translation(worldAxis * worldDistance);
-        // const auto parent = transformManager.getParent(transformInstance);
-        // const auto parentTransformInstance = transformManager.getInstance(parent);
-        // const auto inverseParentWorldTransformInverse = inverse(transformManager.getWorldTransform(parentTransformInstance));
-        // math::mat4f newLocalTransform = inverseParentWorldTransformInverse * newWorldTransform;
-
-        // Log("newLocalTransform %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-        // newLocalTransform[0][0], newLocalTransform[0][1], newLocalTransform[0][2], newLocalTransform[0][3],
-        // newLocalTransform[1][0], newLocalTransform[1][1], newLocalTransform[1][2], newLocalTransform[1][3],
-        // newLocalTransform[2][0], newLocalTransform[2][1], newLocalTransform[2][2], newLocalTransform[2][3],
-        // newLocalTransform[3][0], newLocalTransform[3][1], newLocalTransform[3][2], newLocalTransform[3][3]);
-
-
-
-        // transformManager.setTransform(transformInstance, newLocalTransform);
     }
+
 
     void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
     {
