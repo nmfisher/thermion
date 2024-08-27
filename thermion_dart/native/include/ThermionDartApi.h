@@ -69,6 +69,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_bloom(const void *const viewer, float strength);
 	EMSCRIPTEN_KEEPALIVE void load_skybox(const void *const viewer, const char *skyboxPath);
 	EMSCRIPTEN_KEEPALIVE void load_ibl(const void *const viewer, const char *iblPath, float intensity);
+	EMSCRIPTEN_KEEPALIVE void create_ibl(const void *const viewer, float r, float g, float b, float intensity);
 	EMSCRIPTEN_KEEPALIVE void rotate_ibl(const void *const viewer, float *rotationMatrix);
 	EMSCRIPTEN_KEEPALIVE void remove_skybox(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void remove_ibl(const void *const viewer);
@@ -254,6 +255,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float* minX, float* minY, float* maxX, float* maxY);
 	EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled);
+	EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y));
+	EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible);
 
 #ifdef __cplusplus
 }

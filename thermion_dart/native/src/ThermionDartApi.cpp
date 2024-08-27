@@ -69,13 +69,16 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void set_bloom(const void *const viewer, float strength)
     {
-        Log("Setting bloom to %f", strength);
         ((FilamentViewer *)viewer)->setBloom(strength);
     }
 
     EMSCRIPTEN_KEEPALIVE void load_skybox(const void *const viewer, const char *skyboxPath)
     {
         ((FilamentViewer *)viewer)->loadSkybox(skyboxPath);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void create_ibl(const void *const viewer, float r, float g, float b, float intensity) {
+        ((FilamentViewer*)viewer)->createIbl(r, g, b, intensity);
     }
 
     EMSCRIPTEN_KEEPALIVE void load_ibl(const void *const viewer, const char *iblPath, float intensity)
@@ -869,6 +872,19 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled) {
         ((SceneManager*)sceneManager)->setLayerEnabled(layer, enabled);
     }
+
+    EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void* ptr) {
+        free(ptr);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y)) {
+        ((SceneManager*)sceneManager)->gizmo->pick(x, y, callback);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible) {
+        ((SceneManager*)sceneManager)->gizmo->setVisibility(visible);
+    }
+	
 
 
 
