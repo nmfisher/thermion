@@ -20,6 +20,7 @@
 #include "material/gizmo.h"
 
 #include "Aabb2.h"
+#include "ThermionDartApi.h"
 
 namespace thermion_filament {
 
@@ -31,8 +32,10 @@ class Gizmo {
     enum Axis { X, Y, Z};
 
     public:
-        Gizmo(Engine& engine);
-        void updateTransform(Camera& camera, const Viewport& vp);
+        Gizmo(Engine& engine, View *view, Scene *scene);
+        ~Gizmo();
+
+        void updateTransform();
         void destroy();
         Entity x() {
             return _entities[0];
@@ -46,24 +49,37 @@ class Gizmo {
         Entity center() {
             return _entities[3];
         };
+        View* view() { 
+            return _view;
+        }
+
+        bool isActive() { 
+            return _isActive;
+        }
 
         void highlight(Entity entity);
         void unhighlight();
+        void pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y));
+
     private:
         Engine &_engine;
-        utils::Entity _entities[4];
+        View *_view;
+        Scene *_scene;
+        Camera *_camera;
+        utils::Entity _entities[4] = { utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity() };
         Material* _material;
         MaterialInstance* _materialInstances[4];
-        math::float3 inactiveColors[3] {
-            math::float3 { 0.75f, 0.0f, 0.0f },
-            math::float3 { 0.0f, 0.75f, 0.0f },
-            math::float3 { 0.0f, 0.0f, 0.75f },
+        math::float4 inactiveColors[3] {
+            math::float4 { 0.75f, 0.0f, 0.0f, 1.0f },
+            math::float4 { 0.0f, 0.75f, 0.0f, 1.0f },
+            math::float4 { 0.0f, 0.0f, 0.75f, 1.0f },
         };
-        math::float3 activeColors[3] {
-            math::float3 { 1.0f, 0.0f, 0.0f },
-            math::float3 { 0.0f, 1.0f, 0.0f },
-            math::float3 { 0.0f, 0.0f, 1.0f },
+        math::float4 activeColors[3] {
+            math::float4 { 1.0f, 0.0f, 0.0f, 1.0f },
+            math::float4 { 0.0f, 1.0f, 0.0f, 1.0f },
+            math::float4 { 0.0f, 0.0f, 1.0f, 1.0f },
         };
+        bool _isActive = true;
 };
 
 }
