@@ -93,7 +93,8 @@ class ThermionViewerWasm implements ThermionViewer {
   int _width = 0;
   int _height = 0;
 
-  Future initialize(int width, int height, {String? uberArchivePath}) async {
+  Future initialize(double width, double height, double pixelRatio,
+      {String? uberArchivePath}) async {
     if (!_initialized) {
       await _initializeModule();
       _initialized = true;
@@ -101,6 +102,7 @@ class ThermionViewerWasm implements ThermionViewer {
         _setAssetPathPrefix(assetPathPrefix!);
       }
     }
+    this.pixelRatio = pixelRatio;
 
     final context = _module!.ccall("thermion_dart_web_create_gl_context", "int",
         <JSString>[].toJS, <JSAny>[].toJS, null);
@@ -116,8 +118,8 @@ class ThermionViewerWasm implements ThermionViewer {
         ["void*".toJS, "void*".toJS, "void*".toJS, "string".toJS].toJS,
         [context!, loader, null, uberArchivePath?.toJS].toJS,
         null) as JSNumber;
-    await createSwapChain(width, height);
-    updateViewportAndCameraProjection(width, height, 1.0);
+    await createSwapChain(width.ceil(), height.ceil());
+    updateViewportAndCameraProjection(width.ceil(), height.ceil(), 1.0);
     _sceneManager = _module!.ccall("get_scene_manager", "void*",
         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
 
@@ -174,14 +176,15 @@ class ThermionViewerWasm implements ThermionViewer {
     if (width == 0 || height == 0) {
       throw Exception("Width/height must be greater than zero");
     }
-    _width = width;
-    _height = height;
-    viewportDimensions = (width.toDouble(), height.toDouble());
+    _width = (width * pixelRatio).ceil();
+    _height = (height * pixelRatio).ceil();
+    viewportDimensions = (_width.toDouble(), _height.toDouble());
+    print("Update viewport camera projection : $_width $height");
     _module!.ccall(
         "update_viewport_and_camera_projection",
         "void",
         ["void*".toJS, "uint32_t".toJS, "uint32_t".toJS, "float".toJS].toJS,
-        [_viewer!, width.toJS, height.toJS, scaleFactor.toJS].toJS,
+        [_viewer!, _width.toJS, _height.toJS, scaleFactor.toJS].toJS,
         null);
   }
 
@@ -1290,11 +1293,12 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Matrix4> getCameraModelMatrix() async {
-    final ptr = _module!._malloc(16 * 8) as JSNumber;
-    _module!.ccall("get_camera_model_matrix", "void",
-        ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
+    final ptr = _module!.ccall("get_camera_model_matrix", "void*",
+        ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
     final matrix = _matrixFromPtr(ptr);
-    _module!._free(ptr);
+    _module!.ccall(
+        "thermion_flutter_free", "void", ["void*".toJS].toJS, [ptr].toJS, null);
+
     return matrix;
   }
 
@@ -1448,7 +1452,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   void pick(int x, int y) async {
     x = (x * pixelRatio).ceil();
-    y = (y * pixelRatio).ceil();
+    y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
     _module!.ccall(
         "filament_pick",
         "void",
