@@ -43,6 +43,12 @@ class ThermionViewerFFI extends ThermionViewer {
   final _pickResultController =
       StreamController<FilamentPickResult>.broadcast();
 
+  @override
+  Stream<FilamentPickResult> get gizmoPickResult =>
+      _gizmoPickResultController.stream;
+  final _gizmoPickResultController =
+      StreamController<FilamentPickResult>.broadcast();
+
   final Pointer<Void> resourceLoader;
 
   var _driver = nullptr.cast<Void>();
@@ -67,14 +73,15 @@ class ThermionViewerFFI extends ThermionViewer {
     this._renderCallback = renderCallback ?? nullptr;
     this._driver = driver ?? nullptr;
     this._sharedContext = sharedContext ?? nullptr;
-    try {
-      _onPickResultCallable = NativeCallable<
-          Void Function(
-              EntityId entityId, Int x, Int y)>.listener(_onPickResult);
-    } catch (err) {
-      _logger.severe(
-          "Failed to set pick result callback. This is expected if running on web/wasm");
-    }
+
+    _onPickResultCallable =
+        NativeCallable<Void Function(EntityId entityId, Int x, Int y)>.listener(
+            _onPickResult);
+
+    _onGizmoPickResultCallable =
+        NativeCallable<Void Function(EntityId entityId, Int x, Int y)>.listener(
+            _onGizmoPickResult);
+
     _initialize();
   }
 
@@ -275,6 +282,14 @@ class ThermionViewerFFI extends ThermionViewer {
     });
 
     allocator.free(pathPtr);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future createIbl(double r, double g, double b, double intensity) async {
+    create_ibl(_viewer!, r, g, b, intensity);
   }
 
   ///
@@ -1379,8 +1394,18 @@ class ThermionViewerFFI extends ThermionViewer {
     _scene!.registerSelected(entityId);
   }
 
+  void _onGizmoPickResult(ThermionEntity entityId, int x, int y) {
+    _gizmoPickResultController.add((
+      entity: entityId,
+      x: (x / pixelRatio).toDouble(),
+      y: (viewportDimensions.$2 - y) / pixelRatio
+    ));
+  }
+
   late NativeCallable<Void Function(EntityId entityId, Int x, Int y)>
       _onPickResultCallable;
+  late NativeCallable<Void Function(EntityId entityId, Int x, Int y)>
+      _onGizmoPickResultCallable;
 
   ///
   ///
@@ -1393,6 +1418,16 @@ class ThermionViewerFFI extends ThermionViewer {
     y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
 
     filament_pick(_viewer!, x, y, _onPickResultCallable.nativeFunction);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  void pickGizmo(int x, int y) async {
+    x = (x * pixelRatio).ceil();
+    y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
+    pick_gizmo(_sceneManager!, x, y, _onGizmoPickResultCallable.nativeFunction);
   }
 
   ///
@@ -1767,5 +1802,12 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setLayerEnabled(int layer, bool enabled) async {
     set_layer_enabled(_sceneManager!, layer, enabled);
+  }
+
+  ///
+  ///
+  ///
+  Future setGizmoVisibility(bool visible) async {
+    set_gizmo_visibility(_sceneManager!, visible);
   }
 }

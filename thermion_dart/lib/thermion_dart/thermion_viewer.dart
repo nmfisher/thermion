@@ -73,6 +73,11 @@ abstract class ThermionViewer {
   Stream<FilamentPickResult> get pickResult;
 
   ///
+  /// The result(s) of calling [pickGizmo] (see below).
+  ///
+  Stream<FilamentPickResult> get gizmoPickResult;
+
+  ///
   /// Whether the controller is currently rendering at [framerate].
   ///
   bool get rendering;
@@ -137,10 +142,16 @@ abstract class ThermionViewer {
   Future removeSkybox();
 
   ///
-  /// Loads an image-based light from the specified path at the given intensity.
-  /// Only one IBL can be active at any given time; if an IBL has already been loaded, it will be replaced.
+  /// Creates an indirect light by loading the reflections/irradiance from the KTX file.
+  /// Only one indirect light can be active at any given time; if an indirect light has already been loaded, it will be replaced.
   ///
   Future loadIbl(String lightingPath, {double intensity = 30000});
+
+  ///
+  /// Creates a indirect light with the given color.
+  /// Only one indirect light can be active at any given time; if an indirect light has already been loaded, it will be replaced.
+  ///
+  Future createIbl(double r, double g, double b, double intensity);
 
   ///
   /// Rotates the IBL & skybox.
@@ -649,6 +660,14 @@ abstract class ThermionViewer {
   void pick(int x, int y);
 
   ///
+  /// Used to test whether a Gizmo is at the given viewport coordinates.
+  /// Called by `FilamentGestureDetector` on a mouse/finger down event. You probably don't want to call this yourself.
+  /// This is asynchronous and will require 2-3 frames to complete - subscribe to the [gizmoPickResult] stream to receive the results of this method.
+  /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the ThermionWidget).
+  ///
+  void pickGizmo(int x, int y);
+
+  ///
   /// Retrieves the name assigned to the given ThermionEntity (usually corresponds to the glTF mesh name).
   ///
   String? getNameForEntity(ThermionEntity entity);
@@ -773,4 +792,9 @@ abstract class ThermionViewer {
   /// Use this method to toggle visibility of the respective layer.
   ///
   Future setLayerEnabled(int layer, bool enabled);
+
+  ///
+  /// Show/hide the translation gizmo.
+  ///
+  Future setGizmoVisibility(bool visible);
 }
