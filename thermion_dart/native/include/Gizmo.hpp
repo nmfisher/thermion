@@ -35,7 +35,6 @@ class Gizmo {
         Gizmo(Engine& engine, View *view, Scene *scene);
         ~Gizmo();
 
-        void updateTransform();
         void destroy();
         Entity x() {
             return _entities[0];
@@ -57,18 +56,21 @@ class Gizmo {
             return _isActive;
         }
 
-        void highlight(Entity entity);
-        void unhighlight();
         void pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y));
+        bool isGizmoEntity(Entity entity);
+        void setVisibility(bool visible);
 
     private:
+        void createTransparentRectangles();
+        void highlight(Entity entity);
+        void unhighlight();
         Engine &_engine;
         View *_view;
         Scene *_scene;
         Camera *_camera;
-        utils::Entity _entities[4] = { utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity() };
+        utils::Entity _entities[7] = { utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity() };
         Material* _material;
-        MaterialInstance* _materialInstances[4];
+        MaterialInstance* _materialInstances[7];
         math::float4 inactiveColors[3] {
             math::float4 { 0.75f, 0.0f, 0.0f, 1.0f },
             math::float4 { 0.0f, 0.75f, 0.0f, 1.0f },
@@ -80,6 +82,7 @@ class Gizmo {
             math::float4 { 0.0f, 0.0f, 1.0f, 1.0f },
         };
         bool _isActive = true;
+        
 };
 
 }

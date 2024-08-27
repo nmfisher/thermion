@@ -45,8 +45,9 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
     // First, create the black cube at the center
     // The axes widgets will be parented to this entity 
     _entities[3] = entityManager.create();
+
     _materialInstances[3] = _material->createInstance();
-    _materialInstances[3]->setParameter("color", math::float3{0.0f, 0.0f, 0.0f}); // Black color
+    _materialInstances[3]->setParameter("color", math::float4{0.0f, 0.0f, 0.0f, 1.0f}); // Black color
 
     // Create center cube vertices
     float centerCubeSize = 0.05f;
@@ -89,7 +90,7 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
                       {centerCubeSize, centerCubeSize, centerCubeSize}})
         .material(0, _materialInstances[3])
         .layerMask(0xFF, 2)
-        .priority(7)
+        .priority(6)
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, centerCubeVb, centerCubeIb, 0, 36)
         .culling(false)
         .build(engine, _entities[3]);
@@ -197,21 +198,21 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
         transformManager.setParent(instance, cubeTransformInstance);
 
     }
-    
-    _scene->addEntities(_entities,4);
 
+    createTransparentRectangles();
+    
     _view->setLayerEnabled(0, true);  // scene assets
     _view->setLayerEnabled(1, true);  // gizmo
     _view->setLayerEnabled(2, true); // world grid
 }
 
 Gizmo::~Gizmo() {
-    _scene->removeEntities(_entities, 4);
-    for(int i = 0; i < 4; i++) {
+    _scene->removeEntities(_entities, 7);
+    for(int i = 0; i < 7; i++) {
         _engine.destroy(_materialInstances[i]);    
     }
     _engine.destroy(_material);
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 7; i++) {
         _engine.destroy(_entities[i]);    
     }
     
@@ -219,6 +220,95 @@ Gizmo::~Gizmo() {
     _engine.destroy(_scene);
     _engine.destroy(_view);
 
+}
+
+void Gizmo::createTransparentRectangles()
+{
+    auto &entityManager = EntityManager::get();
+    auto &transformManager = _engine.getTransformManager();
+
+    float volumeWidth = 0.2f;
+    float volumeLength = 1.2f;
+    float volumeDepth = 0.2f;
+
+    float *volumeVertices = new float[8 * 3]{
+        -volumeWidth / 2, -volumeDepth / 2, 0,
+        volumeWidth / 2, -volumeDepth / 2, 0,
+        volumeWidth / 2, -volumeDepth / 2, volumeLength,
+        -volumeWidth / 2, -volumeDepth / 2, volumeLength,
+        -volumeWidth / 2, volumeDepth / 2, 0,
+        volumeWidth / 2, volumeDepth / 2, 0,
+        volumeWidth / 2, volumeDepth / 2, volumeLength,
+        -volumeWidth / 2, volumeDepth / 2, volumeLength
+    };
+
+    uint16_t *volumeIndices = new uint16_t[36]{
+        0, 1, 2, 2, 3, 0,  // Bottom face
+        4, 5, 6, 6, 7, 4,  // Top face
+        0, 4, 7, 7, 3, 0,  // Left face
+        1, 5, 6, 6, 2, 1,  // Right face
+        0, 1, 5, 5, 4, 0,  // Front face
+        3, 2, 6, 6, 7, 3   // Back face
+    };
+
+    auto volumeVb = VertexBuffer::Builder()
+        .vertexCount(8)
+        .bufferCount(1)
+        .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
+        .build(_engine);
+
+    volumeVb->setBufferAt(_engine, 0, VertexBuffer::BufferDescriptor(
+        volumeVertices, 8 * sizeof(filament::math::float3),
+        [](void *buffer, size_t size, void *) { delete[] static_cast<float *>(buffer); }
+    ));
+
+    auto volumeIb = IndexBuffer::Builder()
+        .indexCount(36)
+        .bufferType(IndexBuffer::IndexType::USHORT)
+        .build(_engine);
+
+    volumeIb->setBuffer(_engine, IndexBuffer::BufferDescriptor(
+        volumeIndices, 36 * sizeof(uint16_t),
+        [](void *buffer, size_t size, void *) { delete[] static_cast<uint16_t *>(buffer); }
+    ));
+
+    for (int i = 4; i < 7; i++)
+    {
+        _entities[i] = entityManager.create();
+        _materialInstances[i] = _material->createInstance();
+
+        _materialInstances[i]->setParameter("color", math::float4{0.0f, 0.0f, 0.0f, 0.0f});  
+
+        math::mat4f transform;
+        switch (i-4)
+        {
+        case Axis::X:
+            transform = math::mat4f::rotation(math::F_PI_2, math::float3{0, 1, 0});
+            break;
+        case Axis::Y:
+            transform = math::mat4f::rotation(-math::F_PI_2, math::float3{1, 0, 0});
+            break;
+        case Axis::Z:
+            break;
+        }
+
+        RenderableManager::Builder(1)
+            .boundingBox({{-volumeWidth / 2, -volumeDepth / 2, 0}, {volumeWidth / 2, volumeDepth / 2, volumeLength}})
+            .material(0, _materialInstances[i])
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, volumeVb, volumeIb, 0, 36)
+            .priority(7)
+            .layerMask(0xFF, 2)
+            .culling(false)
+            .receiveShadows(false)
+            .castShadows(false)
+            .build(_engine, _entities[i]);
+
+        auto instance = transformManager.getInstance(_entities[i]);
+        transformManager.setTransform(instance, transform);
+
+        // Parent the picking volume to the center cube
+        transformManager.setParent(instance, transformManager.getInstance(_entities[3]));
+    }
 }
 
 void Gizmo::highlight(Entity entity) {
@@ -270,73 +360,37 @@ void Gizmo::destroy()
 }
 
 
-void Gizmo::updateTransform()
-{
-    return;
-    // auto & transformManager = _engine.getTransformManager();
-    // auto transformInstance = transformManager.getInstance(_entities[3]);
-
-    // if(!transformInstance.isValid()) {
-    //     Log("No valid gizmo transform");
-    //     return;
-    // }
-
-    // auto worldTransform = transformManager.getWorldTransform(transformInstance);
-    // math::float4 worldPosition { 0.0f, 0.0f, 0.0f, 1.0f };
-    // worldPosition = worldTransform * worldPosition;
-
-    // // Calculate distance
-    // float distance = length(worldPosition.xyz - camera.getPosition());
-
-    // const float desiredScreenSize = 3.0f;  // Desired height in pixels
-    // const float baseSize = 0.1f;  // Base size in world units
-
-    // // Get the vertical field of view of the camera (assuming it's in radians)
-    // float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
-
-    // // Calculate the scale needed to maintain the desired screen size
-    // float newScale = (2.0f * distance * tan(fovY * 0.5f) * desiredScreenSize) / (baseSize * vp.height);
-
-    // if(std::isnan(newScale)) { 
-    //     newScale = 1.0f;
-    // }
-
-    // // Log("Distance %f, newscale %f", distance, newScale);
-    
-    // auto localTransform = transformManager.getTransform(transformInstance);
-    
-    // // Apply scale to gizmo
-    // math::float3 translation;
-    // math::quatf rotation;
-    // math::float3 scale;
-
-    // decomposeMatrix(localTransform, &translation, &rotation, &scale);
-
-    // scale = math::float3 { newScale, newScale, newScale };
-
-    // auto scaledTransform = composeMatrix(translation, rotation, scale);
-
-    // transformManager.setTransform(transformInstance, scaledTransform);
-
-    // auto viewSpacePos = camera.getViewMatrix() * worldPosition;
-    // math::float4 entityScreenPos = camera.getProjectionMatrix() * viewSpacePos;
-    // entityScreenPos /= entityScreenPos.w;
-    // float screenX = (entityScreenPos.x * 0.5f + 0.5f) * vp.width;
-    // float screenY = (entityScreenPos.y * 0.5f + 0.5f) * vp.height;
-}
-
 void Gizmo::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
   {
     auto * gizmo = this;
     _view->pick(x, y, [=](filament::View::PickingQueryResult const &result) { 
-      if(result.renderable == gizmo->x() || result.renderable == gizmo->y() || result.renderable == gizmo->z()) {
-        gizmo->highlight(result.renderable);
-        callback(Entity::smuggle(result.renderable), x, y);
-      } else { 
+        for(int i = 4; i < 7; i++) {
+            if(_entities[i] == result.renderable) {
+                gizmo->highlight(_entities[i - 4]);
+                callback(Entity::smuggle(_entities[i - 4]), x, y);
+                return;
+            }
+        }
         gizmo->unhighlight();
-      }
+        callback(0, x, y);
     });
   }
 
-
+bool Gizmo::isGizmoEntity(Entity e) {
+    for(int i = 0; i < 7; i++) {
+        if(e == _entities[i]) {
+            return true;
+        }
+    }
+    return false;
 }
+
+void Gizmo::setVisibility(bool visible) {
+    if(visible) {
+        _scene->addEntities(_entities, 7);
+    } else { 
+        _scene->removeEntities(_entities, 7);
+    }
+}
+}
+
