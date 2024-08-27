@@ -92,14 +92,14 @@ namespace thermion_filament
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
 
-        gizmo = new Gizmo(*_engine);
+        gizmo = new Gizmo(*_engine, _view, _scene);
         _gridOverlay = new GridOverlay(*_engine);
-        
+
         _scene->addEntity(_gridOverlay->sphere());
         _scene->addEntity(_gridOverlay->grid());
 
-        _view->setLayerEnabled(0, true); // scene assets
-        _view->setLayerEnabled(1, true); // gizmo
+        _view->setLayerEnabled(0, true);  // scene assets
+        _view->setLayerEnabled(1, true);  // gizmo
         _view->setLayerEnabled(2, false); // world grid
     }
 
@@ -1539,6 +1539,18 @@ namespace thermion_filament
         const auto &parentInstance = tm.getInstance(parent);
         const auto &childInstance = tm.getInstance(child);
 
+        if(!parentInstance.isValid()) {
+            Log("Parent instance is not valid");
+            return;
+        }
+
+        if(!childInstance.isValid()) {
+            Log("Child instance is not valid");
+            return;
+        }
+
+        Log("Parenting child entity %d to new parent entity %d", childEntityId, parentEntityId);
+
         if (preserveScaling)
         {
             auto parentTransform = tm.getWorldTransform(parentInstance);
@@ -1562,7 +1574,6 @@ namespace thermion_filament
             tm.setTransform(childInstance, childTransform);
         }
 
-        // auto scale = childInstance.
         tm.setParent(childInstance, parentInstance);
     }
 
@@ -1729,7 +1740,6 @@ namespace thermion_filament
             tm.setTransform(transformInstance, transform);
         }
         _transformUpdates.clear();
-        gizmo->updateTransform(_view->getCamera(), _view->getViewport());
     }
 
     void SceneManager::setScale(EntityId entityId, float newScale)
@@ -1803,14 +1813,11 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
-
-        // Log("view matrix %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-        // viewMatrix[0][0], viewMatrix[0][1], viewMatrix[0][2], viewMatrix[0][3],
-        // viewMatrix[1][0], viewMatrix[1][1], viewMatrix[1][2], viewMatrix[1][3],
-        // viewMatrix[2][0], viewMatrix[2][1], viewMatrix[2][2], viewMatrix[2][3],
-        // viewMatrix[3][0], viewMatrix[3][1], viewMatrix[3][2], viewMatrix[3][3]);
-
-
+    // Log("view matrix %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+    // viewMatrix[0][0], viewMatrix[0][1], viewMatrix[0][2], viewMatrix[0][3],
+    // viewMatrix[1][0], viewMatrix[1][1], viewMatrix[1][2], viewMatrix[1][3],
+    // viewMatrix[2][0], viewMatrix[2][1], viewMatrix[2][2], viewMatrix[2][3],
+    // viewMatrix[3][0], viewMatrix[3][1], viewMatrix[3][2], viewMatrix[3][3]);
 
     //     math::float4 worldspace = { 250.0f, 0.0f, 0.0f, 1.0f };
     //     math::float4 viewSpace = viewMatrix * worldspace;
@@ -1823,9 +1830,9 @@ namespace thermion_filament
     //     Log("ndc %f %f %f %f", ndc.x, ndc.y, ndc.z, ndc.w);
 
     //     ndc.x = -1.0;
-      
+
     // // Multiply by inverse view-projection matrix
-    // auto inverseProj = inverse(camera.getProjectionMatrix()); 
+    // auto inverseProj = inverse(camera.getProjectionMatrix());
     // clipSpace = inverseProj * math::float4 { ndc.x, ndc.y, ndc.z, 1.0f };
     // viewSpace = clipSpace / clipSpace.w;
     // Log("clip space %f %f %f %f", viewSpace.x, viewSpace.y, viewSpace.z, viewSpace.w);
@@ -1836,116 +1843,136 @@ namespace thermion_filament
 
     // return;
 
-            
-        // Log("viewMatrixRotation %f %f %f %f %f %f %f %f %f",
-        // viewMatrixRotation[0][0], viewMatrixRotation[0][1], viewMatrixRotation[0][2],
-        // viewMatrixRotation[1][0], viewMatrixRotation[1][1], viewMatrixRotation[1][2],
-        // viewMatrixRotation[2][0], viewMatrixRotation[2][1], viewMatrixRotation[2][2]);
+    // Log("viewMatrixRotation %f %f %f %f %f %f %f %f %f",
+    // viewMatrixRotation[0][0], viewMatrixRotation[0][1], viewMatrixRotation[0][2],
+    // viewMatrixRotation[1][0], viewMatrixRotation[1][1], viewMatrixRotation[1][2],
+    // viewMatrixRotation[2][0], viewMatrixRotation[2][1], viewMatrixRotation[2][2]);
 
-    void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
+void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
+{
+    auto worldAxis = math::float3{x, y, z};
+
+    // Get the camera
+    const auto &camera = _view->getCamera();
+    const auto &vp = _view->getViewport();
+    auto viewMatrix = camera.getViewMatrix();
+
+    math::float3 cameraPosition = camera.getPosition();
+    math::float3 cameraForward = -viewMatrix.upperLeft()[2];
+
+    // Scale the viewport movement to NDC coordinates view axis
+    math::float2 viewportMovementNDC(viewportCoordX / (vp.width / 2), viewportCoordY / (vp.height / 2));
+
+    // calculate the translation axis in view space
+    math::float3 viewSpaceAxis = viewMatrix.upperLeft() * worldAxis;
+
+    // Apply projection matrix to get clip space axis
+    math::float4 clipAxis = camera.getProjectionMatrix() * math::float4(viewSpaceAxis, 0.0f);
+
+    // Perform perspective division to get the translation axis in normalized device coordinates (NDC)
+    math::float2 ndcAxis = (clipAxis.xyz / clipAxis.w).xy;
+
+    const float epsilon = 1e-6f;
+    bool isAligned = false;
+    if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y) || length(ndcAxis) < epsilon || std::abs(dot(normalize(worldAxis), cameraForward)) > 0.99f)
     {
-
-        auto worldAxis = math::float3 { x, y, z};
-
-        // Get the camera
-        const auto &camera = _view->getCamera();
-        const auto &vp = _view->getViewport();
-        auto viewMatrix = camera.getViewMatrix();   
-        
-        // Scale the viewport movement to NDC coordinates view axis
-        math::float2 viewportMovementNDC(viewportCoordX / (vp.width / 2), viewportCoordY / (vp.height / 2));
-            
-        // calculate the translation axis in view space
-        // ignore the translation component of the view matrix we only care about whether or not the camera has rotated 
-        // (if the entity is in the viewport, we don't need to translate it first back to the "true" X, Y or Z axis - we're just moving parallel to those axes )
-        math::float3 viewSpaceAxis = viewMatrix.upperLeft() * worldAxis;
-
-        // Apply projection matrix to get clip space axis
-        math::float4 clipAxis = camera.getProjectionMatrix() * math::float4(viewSpaceAxis, 0.0f);
-        
-        // Perform perspective division to get the translation axis in normalized device coordinates (NDC)
-        math::float2 ndcAxis = (clipAxis.xyz / clipAxis.w).xy;
-
-        // Check if ndcAxis is too small (camera nearly orthogonal to the axis)
-        const float epsilon = 1e-6f;
-        if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y) || length(ndcAxis) < epsilon) {
-            // Use an alternative method when the camera is nearly orthogonal to the axis
-            math::float3 cameraForward = -viewMatrix.upperLeft()[2];
-            math::float3 perpendicularAxis = cross(cameraForward, worldAxis);
-            
-            if (length(perpendicularAxis) < epsilon) {
-                // If worldAxis is parallel to cameraForward, use a fixed perpendicular axis
-                perpendicularAxis = math::float3{0, 1, 0};
-                if (std::abs(dot(perpendicularAxis, cameraForward)) > 0.9f) {
-                    perpendicularAxis = math::float3{1, 0, 0};
-                }
-            }
-            
-            ndcAxis = (camera.getProjectionMatrix() * math::float4(viewMatrix.upperLeft() * normalize(perpendicularAxis), 0.0f)).xy;
-
-            Log("Corrected NDC axis %f %f", ndcAxis.x, ndcAxis.y);
-
+        isAligned = true;
+        // Find a suitable perpendicular axis:
+        math::float3 perpendicularAxis;
+        if (std::abs(worldAxis.x) < epsilon && std::abs(worldAxis.z) < epsilon)
+        {
+            // If worldAxis is (0, y, 0), use (1, 0, 0)
+            perpendicularAxis = {1.0f, 0.0f, 0.0f};
+        }
+        else
+        {
+            // Otherwise, calculate a perpendicular vector
+            perpendicularAxis = normalize(cross(cameraForward, worldAxis));
         }
 
-        // project the viewport movement (i.e pointer drag) vector onto the translation axis 
-        // this gives the proportion of the pointer drag vector to translate along the translation axis
-        float projectedMovement = dot(viewportMovementNDC, normalize(ndcAxis));
-        auto translationNDC = projectedMovement * normalize(ndcAxis);
+        ndcAxis = (camera.getProjectionMatrix() * math::float4(viewMatrix.upperLeft() * perpendicularAxis, 0.0f)).xy;
 
-        math::float3 cameraPosition = camera.getPosition();
-        math::float3 cameraForward = -viewMatrix.upperLeft()[2]; // Third row of the view matrix is the forward vector
-        float dotProduct = dot(normalize(worldAxis), cameraForward);
-
-        // Get the camera's field of view and aspect ratio
-        float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
-        float fovX = camera.getFieldOfViewInDegrees(filament::Camera::Fov::HORIZONTAL);
-
-        // Convert to radians
-        fovY = (fovY / 180) * M_PI;
-        fovX = (fovX / 180) * M_PI;
-
-        float aspectRatio = static_cast<float>(vp.width) / vp.height;
-
-        auto &transformManager = _engine->getTransformManager();
-        auto transformInstance = transformManager.getInstance(Entity::import(entity));
-        const auto &transform = transformManager.getWorldTransform(transformInstance);
-
-        math::float3 translation;
-        math::quatf rotation;
-        math::float3 scale;
-
-        decomposeMatrix(transform, &translation, &rotation, &scale);
-
-        const auto entityWorldPosition = transform * math::float4{0.0f, 0.0f, 0.0f, 1.0f};
-
-        float distanceToCamera = length(entityWorldPosition.xyz - camera.getPosition());
-
-        // Calculate the height of the view frustum at the given distance
-        float frustumHeight = 2.0f * distanceToCamera * tan(fovY * 0.5f);
-
-        // Calculate the width of the view frustum at the given distance
-        float frustumWidth = frustumHeight * aspectRatio;
-
-        // Convert projected viewport movement to world space distance
-        float worldDistance = length(math::float2 { (translationNDC /2) * math::float2 { frustumWidth, frustumHeight } });
-
-        float sign = (dotProduct >= 0) ? -1.0f : 1.0f;
-        if (projectedMovement < 0) {
-            sign *= -1.0f;
+        Log("Corrected NDC axis %f %f", ndcAxis.x, ndcAxis.y);
+        if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y)) {
+            return;
         }
 
-        // Flip the sign for the Z-axis
-        if (std::abs(z) > 0.001) {
-            sign *= -1.0f;
-        }
-
-        worldDistance *= sign;
-
-        auto newWorldTranslation = worldAxis * worldDistance;
-
-        queuePositionUpdate(entity, newWorldTranslation.x, newWorldTranslation.y, newWorldTranslation.z, true);
     }
 
+    // project the viewport movement (i.e pointer drag) vector onto the translation axis
+    // this gives the proportion of the pointer drag vector to translate along the translation axis
+    float projectedMovement = dot(viewportMovementNDC, normalize(ndcAxis));
+    auto translationNDC = projectedMovement * normalize(ndcAxis);
+
+    float dotProduct = dot(normalize(worldAxis), cameraForward);
+
+    // Ensure minimum translation and correct direction
+    const float minTranslation = 0.01f;
+    if (isAligned || std::abs(projectedMovement) < minTranslation) {
+        // Use the dominant component of the viewport movement
+        float dominantMovement = std::abs(viewportMovementNDC.x) > std::abs(viewportMovementNDC.y) ? viewportMovementNDC.x : viewportMovementNDC.y;
+        projectedMovement = (std::abs(dominantMovement) < minTranslation) ? minTranslation : std::abs(dominantMovement);
+        projectedMovement *= (dominantMovement >= 0) ? 1.0f : -1.0f;
+        translationNDC = projectedMovement * normalize(ndcAxis);
+    }
+
+    // Log("projectedMovement %f dotProduct %f", projectedMovement, dotProduct);
+
+    // Get the camera's field of view and aspect ratio
+    float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
+    float fovX = camera.getFieldOfViewInDegrees(filament::Camera::Fov::HORIZONTAL);
+
+    // Convert to radians
+    fovY = (fovY / 180) * M_PI;
+    fovX = (fovX / 180) * M_PI;
+
+    float aspectRatio = static_cast<float>(vp.width) / vp.height;
+
+    auto &transformManager = _engine->getTransformManager();
+    auto transformInstance = transformManager.getInstance(Entity::import(entity));
+    const auto &transform = transformManager.getWorldTransform(transformInstance);
+
+    math::float3 translation;
+    math::quatf rotation;
+    math::float3 scale;
+
+    decomposeMatrix(transform, &translation, &rotation, &scale);
+
+    const auto entityWorldPosition = transform * math::float4{0.0f, 0.0f, 0.0f, 1.0f};
+
+    float distanceToCamera = length(entityWorldPosition.xyz - camera.getPosition());
+
+    // Calculate the height of the view frustum at the given distance
+    float frustumHeight = 2.0f * distanceToCamera * tan(fovY * 0.5f);
+
+    // Calculate the width of the view frustum at the given distance
+    float frustumWidth = frustumHeight * aspectRatio;
+
+    // Convert projected viewport movement to world space distance
+    float worldDistance = length(math::float2{(translationNDC / 2) * math::float2{frustumWidth, frustumHeight}});
+
+    // Determine the sign based on the alignment of world axis and camera forward
+    float sign = (dotProduct >= 0) ? -1.0f : 1.0f;
+
+    // If aligned, use the sign of the projected movement instead
+    if (isAligned) {
+        sign = (projectedMovement >= 0) ? 1.0f : -1.0f;
+    } else if (projectedMovement < 0) {
+        sign *= -1.0f;
+    }
+
+    // Flip the sign for the Z-axis
+    if (std::abs(z) > 0.001)
+    {
+        sign *= -1.0f;
+    }
+
+    worldDistance *= sign;
+
+    auto newWorldTranslation = worldAxis * worldDistance;
+
+    queuePositionUpdate(entity, newWorldTranslation.x, newWorldTranslation.y, newWorldTranslation.z, true);
+}
 
     void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
     {
@@ -2351,10 +2378,10 @@ namespace thermion_filament
         return Aabb2{minX, minY, maxX, maxY};
     }
 
-    void SceneManager::setLayerEnabled(int layer, bool enabled) {
+    void SceneManager::setLayerEnabled(int layer, bool enabled)
+    {
         Log("Setting layer %d to %d", layer, enabled);
         _view->setLayerEnabled(layer, enabled);
     }
-
 
 } // namespace thermion_filament
