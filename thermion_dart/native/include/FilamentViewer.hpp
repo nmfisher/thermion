@@ -71,6 +71,7 @@ namespace thermion_filament
         void loadIbl(const char *const iblUri, float intensity);
         void removeIbl();
         void rotateIbl(const math::mat3f &matrix);
+        void createIbl(float r, float g, float b, float intensity);
 
         void removeEntity(EntityId asset);
         void clearEntities();
@@ -172,6 +173,7 @@ namespace thermion_filament
         void* _context = nullptr;
         Scene *_scene = nullptr;
         View *_view = nullptr;
+        
         Engine *_engine = nullptr;
         thermion_filament::ThreadPool *_tp = nullptr;
         Renderer *_renderer = nullptr;
