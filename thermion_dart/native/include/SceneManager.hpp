@@ -180,7 +180,7 @@ namespace thermion_filament
         ///
         /// Toggles the visibility of the given layer.
         /// Layer 0 - regular scene assets
-        /// Layer 1 - gizmo
+        /// Layer 1 - unused
         /// Layer 2 - grid
         ///
         void setLayerEnabled(int layer, bool enabled);
@@ -192,9 +192,9 @@ namespace thermion_filament
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
-        Engine *_engine;
-        Scene *_scene;       
-        View* _view;
+        Engine *_engine = nullptr;
+        Scene *_scene = nullptr;       
+        View* _view = nullptr;
 
         gltfio::MaterialProvider *_ubershaderProvider = nullptr;
         gltfio::ResourceLoader *_gltfResourceLoader = nullptr;
@@ -221,10 +221,7 @@ namespace thermion_filament
             const gltfio::FilamentInstance *instance,
             const char *entityName);
 
-        EntityId addGizmo();
-
-        GridOverlay* _gridOverlay = nullptr;
-        
+        GridOverlay* _gridOverlay = nullptr;       
 
     };
 }
