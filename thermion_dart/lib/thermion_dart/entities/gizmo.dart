@@ -4,7 +4,6 @@ import 'package:vector_math/vector_math_64.dart';
 import '../thermion_viewer.dart';
 
 class Gizmo extends AbstractGizmo {
-  
   final ThermionEntity x;
   final ThermionEntity y;
   final ThermionEntity z;
@@ -14,48 +13,56 @@ class Gizmo extends AbstractGizmo {
 
   ThermionEntity? _activeAxis;
   ThermionEntity? _activeEntity;
-  bool get isActive => _activeAxis != null;
+
+  bool _visible = false;
+  bool get isVisible => _visible;
+
+  bool _isHovered = false;
+  bool get isHovered => _isHovered;
 
   final Set<ThermionEntity> ignore;
 
   Stream<Aabb2> get boundingBox => _boundingBoxController.stream;
   final _boundingBoxController = StreamController<Aabb2>.broadcast();
 
-
   Gizmo(this.x, this.y, this.z, this.center, this._viewer,
       {this.ignore = const <ThermionEntity>{}}) {
+    _viewer.gizmoPickResult.listen(_onGizmoPickResult);
     _viewer.pickResult.listen(_onPickResult);
-
-  }
-
-  Future _reveal() async {
-    await _viewer.reveal(x, null);
-    await _viewer.reveal(y, null);
-    await _viewer.reveal(z, null);
-    await _viewer.reveal(center, null);
   }
 
   final _stopwatch = Stopwatch();
 
-  var _translation = Vector3.zero();
+  double _transX = 0.0;
+  double _transY = 0.0;
 
-  void translate(double transX, double transY) async {
+  Future translate(double transX, double transY) async {
     if (!_stopwatch.isRunning) {
       _stopwatch.start();
     }
 
-    _translation = Vector3(_activeAxis == x ? 1.0 : 0.0,
+    _transX += transX;
+    _transY += transY;
+
+    if (_stopwatch.elapsedMilliseconds < 16) {
+      return;
+    }
+
+    final axis = Vector3(_activeAxis == x ? 1.0 : 0.0,
         _activeAxis == y ? 1.0 : 0.0, _activeAxis == z ? 1.0 : 0.0);
 
     await _viewer.queueRelativePositionUpdateWorldAxis(
         _activeEntity!,
-        transX * _viewer.pixelRatio,
-        -transY * _viewer.pixelRatio,
-        _translation.x,
-        _translation.y,
-        _translation.z);
+        _transX * _viewer.pixelRatio,
+        -_transY *
+            _viewer
+                .pixelRatio, // flip the sign because "up" in NDC Y axis is positive, but negative in Flutter
+        axis.x,
+        axis.y,
+        axis.z);
+    _transX = 0;
+    _transY = 0;
     _stopwatch.reset();
-    _translation = Vector3.zero();
   }
 
   void reset() {
@@ -63,42 +70,43 @@ class Gizmo extends AbstractGizmo {
   }
 
   void _onPickResult(FilamentPickResult result) async {
-    // print(
-    //     "Pick result ${result}, x is ${x}, y is $y, z is $z, ignore is $ignore");
-    // if (ignore.contains(result)) {
-    //   print("Ignore/detach");
-    //   detach();
-    //   return;
-    // }
+    await attach(result.entity);
+  }
+
+  void _onGizmoPickResult(FilamentPickResult result) async {
     if (result.entity == x || result.entity == y || result.entity == z) {
       _activeAxis = result.entity;
-      print("Set active axis to $_activeAxis");
+      _isHovered = true;
+    } else if (result.entity == 0) {
+      _activeAxis = null;
+      _isHovered = false;
     } else {
-      attach(result.entity);
-      print("Attaching to ${result.entity}");
+      throw Exception("Unexpected gizmo pick result");
     }
   }
 
-  void attach(ThermionEntity entity) async {
+  Future attach(ThermionEntity entity) async {
     _activeAxis = null;
+    if (entity == _activeEntity) {
+      return;
+    }
+    if (entity == center) {
+      _activeEntity = null;
+      return;
+    }
+    _visible = true;
     _activeEntity = entity;
-    await _reveal();
-
-    await _viewer.setParent(center, entity);
-
+    await _viewer.setGizmoVisibility(true);
+    await _viewer.setParent(center, entity, preserveScaling: true);
     _boundingBoxController.sink.add(await _viewer.getBoundingBox(x));
   }
 
-  void detach() async {
-    await _viewer.setParent(center, 0);
-    await _viewer.hide(x, null);
-    await _viewer.hide(y, null);
-    await _viewer.hide(z, null);
-    await _viewer.hide(center, null);
+  Future detach() async {
+    await _viewer.setGizmoVisibility(false);
   }
 
   @override
   void checkHover(double x, double y) {
-    _viewer.pick(x.toInt(), y.toInt());
+    _viewer.pickGizmo(x.toInt(), y.toInt());
   }
 }

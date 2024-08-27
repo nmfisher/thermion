@@ -2,15 +2,17 @@ import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 abstract class AbstractGizmo {
-  bool get isActive;
+  
+  bool get isVisible;
+  bool get isHovered;
 
-  void translate(double transX, double transY);
+  Future translate(double transX, double transY);
 
   void reset();
 
-  void attach(ThermionEntity entity);
+  Future attach(ThermionEntity entity);
 
-  void detach();
+  Future detach();
 
   Stream<Aabb2> get boundingBox;
 
