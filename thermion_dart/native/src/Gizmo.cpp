@@ -14,8 +14,25 @@ namespace thermion_filament {
 
 using namespace filament::gltfio;
 
-Gizmo::Gizmo(Engine &engine) : _engine(engine)
+Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
 {
+    if(scene) {
+        _scene = scene;
+        _view = view;
+        _camera = &(_view->getCamera());
+    } else {
+        _scene = _engine.createScene();
+        _view = _engine.createView();
+        _view->setBlendMode(BlendMode::TRANSLUCENT);
+        
+        utils::Entity camera = EntityManager::get().create();
+        _camera = engine.createCamera(camera);
+        _camera->setProjection(Camera::Projection::ORTHO, -1.0, 1.0, -1.0, 1.0, 1.0, 5.0);
+        _view->setScene(_scene);
+        _view->setCamera(_camera);
+
+    }
+
     auto &entityManager = EntityManager::get();
 
     auto &transformManager = engine.getTransformManager();
@@ -72,7 +89,7 @@ Gizmo::Gizmo(Engine &engine) : _engine(engine)
                       {centerCubeSize, centerCubeSize, centerCubeSize}})
         .material(0, _materialInstances[3])
         .layerMask(0xFF, 2)
-        .priority(0)
+        .priority(7)
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, centerCubeVb, centerCubeIb, 0, 36)
         .culling(false)
         .build(engine, _entities[3]);
@@ -83,9 +100,9 @@ Gizmo::Gizmo(Engine &engine) : _engine(engine)
 
     // Line and arrow vertices
     float lineLength = 0.8f;
-    float lineWidth = 0.01f;
-    float arrowLength = 0.2f;
-    float arrowWidth = 0.06f;
+    float lineWidth = 0.005f;
+    float arrowLength = 0.1f;
+    float arrowWidth = 0.03f;
     float *vertices = new float[13 * 3]{
         // Line vertices (8 vertices)
         -lineWidth, -lineWidth, 0.0f,
@@ -146,12 +163,15 @@ Gizmo::Gizmo(Engine &engine) : _engine(engine)
         switch (i)
         {
         case Axis::X: 
+            // _materialInstances[i]->setParameter("axisDirection", math::float3 { 1.0f, 0.0f, 0.0f});
             transform = math::mat4f::rotation(math::F_PI_2, math::float3{0, 1, 0});
             break;
         case 1: 
+            // _materialInstances[i]->setParameter("axisDirection", math::float3 { 0.0f, 1.0f, 0.0f});
             transform = math::mat4f::rotation(-math::F_PI_2, math::float3{1, 0, 0});
             break;
         case 2: 
+            // _materialInstances[i]->setParameter("axisDirection", math::float3 { 0.0f, 0.0f, 1.0f});
             break;
         }
 
@@ -162,7 +182,7 @@ Gizmo::Gizmo(Engine &engine) : _engine(engine)
                           {arrowWidth, arrowWidth, lineLength + arrowLength}})
             .material(0, _materialInstances[i])
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0, 54)
-            .priority(0)
+            .priority(6)
             .layerMask(0xFF, 2)
             .culling(false)
             .receiveShadows(false)
@@ -175,7 +195,30 @@ Gizmo::Gizmo(Engine &engine) : _engine(engine)
 
         // parent the axis to the center cube
         transformManager.setParent(instance, cubeTransformInstance);
+
     }
+    
+    _scene->addEntities(_entities,4);
+
+    _view->setLayerEnabled(0, true);  // scene assets
+    _view->setLayerEnabled(1, true);  // gizmo
+    _view->setLayerEnabled(2, true); // world grid
+}
+
+Gizmo::~Gizmo() {
+    _scene->removeEntities(_entities, 4);
+    for(int i = 0; i < 4; i++) {
+        _engine.destroy(_materialInstances[i]);    
+    }
+    _engine.destroy(_material);
+    for(int i = 0; i < 4; i++) {
+        _engine.destroy(_entities[i]);    
+    }
+    
+    _view->setScene(nullptr);
+    _engine.destroy(_scene);
+    _engine.destroy(_view);
+
 }
 
 void Gizmo::highlight(Entity entity) {
@@ -183,7 +226,7 @@ void Gizmo::highlight(Entity entity) {
     auto renderableInstance = rm.getInstance(entity);
     auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
 
-    math::float3 baseColor;
+    math::float4 baseColor;
     if(entity == x()) {
         baseColor = activeColors[Axis::X];
     } else if(entity == y()) {
@@ -191,10 +234,11 @@ void Gizmo::highlight(Entity entity) {
     } else if(entity == z()) {
         baseColor = activeColors[Axis::Z];
     } else {
-        baseColor = math::float3 { 1.0f, 1.0f, 1.0f };
+        baseColor = math::float4 { 1.0f, 1.0f, 1.0f, 1.0f };
     }
 
     materialInstance->setParameter("color", baseColor);
+    
 }
 
 void Gizmo::unhighlight() {
@@ -204,7 +248,7 @@ void Gizmo::unhighlight() {
         auto renderableInstance = rm.getInstance(_entities[i]);
         auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
 
-        math::float3 baseColor = inactiveColors[i];
+        math::float4 baseColor = inactiveColors[i];
         materialInstance->setParameter("color", baseColor);
     }
 }
@@ -226,72 +270,73 @@ void Gizmo::destroy()
 }
 
 
-void Gizmo::updateTransform(Camera& camera, const Viewport &vp)
+void Gizmo::updateTransform()
 {
-    auto & transformManager = _engine.getTransformManager();
-    auto transformInstance = transformManager.getInstance(_entities[3]);
+    return;
+    // auto & transformManager = _engine.getTransformManager();
+    // auto transformInstance = transformManager.getInstance(_entities[3]);
 
-    if(!transformInstance.isValid()) {
-        Log("No valid gizmo transform");
-        return;
-    }
+    // if(!transformInstance.isValid()) {
+    //     Log("No valid gizmo transform");
+    //     return;
+    // }
 
-    auto worldTransform = transformManager.getWorldTransform(transformInstance);
-    math::float4 worldPosition { 0.0f, 0.0f, 0.0f, 1.0f };
-    worldPosition = worldTransform * worldPosition;
+    // auto worldTransform = transformManager.getWorldTransform(transformInstance);
+    // math::float4 worldPosition { 0.0f, 0.0f, 0.0f, 1.0f };
+    // worldPosition = worldTransform * worldPosition;
 
-    // Calculate distance
-    float distance = length(worldPosition.xyz - camera.getPosition());
+    // // Calculate distance
+    // float distance = length(worldPosition.xyz - camera.getPosition());
 
-    const float desiredScreenSize = 3.0f;  // Desired height in pixels
-    const float baseSize = 0.1f;  // Base size in world units
+    // const float desiredScreenSize = 3.0f;  // Desired height in pixels
+    // const float baseSize = 0.1f;  // Base size in world units
 
-    // Get the vertical field of view of the camera (assuming it's in radians)
-    float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
+    // // Get the vertical field of view of the camera (assuming it's in radians)
+    // float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
 
-    // Calculate the scale needed to maintain the desired screen size
-    float newScale = (2.0f * distance * tan(fovY * 0.5f) * desiredScreenSize) / (baseSize * vp.height);
+    // // Calculate the scale needed to maintain the desired screen size
+    // float newScale = (2.0f * distance * tan(fovY * 0.5f) * desiredScreenSize) / (baseSize * vp.height);
 
-    if(std::isnan(newScale)) { 
-        newScale = 1.0f;
-    }
+    // if(std::isnan(newScale)) { 
+    //     newScale = 1.0f;
+    // }
 
-    // Log("Distance %f, newscale %f", distance, newScale);
+    // // Log("Distance %f, newscale %f", distance, newScale);
     
-    auto localTransform = transformManager.getTransform(transformInstance);
+    // auto localTransform = transformManager.getTransform(transformInstance);
     
-    // Apply scale to gizmo
-    math::float3 translation;
-    math::quatf rotation;
-    math::float3 scale;
+    // // Apply scale to gizmo
+    // math::float3 translation;
+    // math::quatf rotation;
+    // math::float3 scale;
 
-    decomposeMatrix(localTransform, &translation, &rotation, &scale);
+    // decomposeMatrix(localTransform, &translation, &rotation, &scale);
 
-    scale = math::float3 { newScale, newScale, newScale };
+    // scale = math::float3 { newScale, newScale, newScale };
 
-    auto scaledTransform = composeMatrix(translation, rotation, scale);
+    // auto scaledTransform = composeMatrix(translation, rotation, scale);
 
-    transformManager.setTransform(transformInstance, scaledTransform);
+    // transformManager.setTransform(transformInstance, scaledTransform);
 
-    // The following code for logging screen position remains unchanged
-    auto viewSpacePos = camera.getViewMatrix() * worldPosition;
-    math::float4 entityScreenPos = camera.getProjectionMatrix() * viewSpacePos;
-    entityScreenPos /= entityScreenPos.w;
-    float screenX = (entityScreenPos.x * 0.5f + 0.5f) * vp.width;
-    float screenY = (entityScreenPos.y * 0.5f + 0.5f) * vp.height;
-    // Log("gizmo %f %f", screenX, screenY);
+    // auto viewSpacePos = camera.getViewMatrix() * worldPosition;
+    // math::float4 entityScreenPos = camera.getProjectionMatrix() * viewSpacePos;
+    // entityScreenPos /= entityScreenPos.w;
+    // float screenX = (entityScreenPos.x * 0.5f + 0.5f) * vp.width;
+    // float screenY = (entityScreenPos.y * 0.5f + 0.5f) * vp.height;
 }
 
+void Gizmo::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
+  {
+    auto * gizmo = this;
+    _view->pick(x, y, [=](filament::View::PickingQueryResult const &result) { 
+      if(result.renderable == gizmo->x() || result.renderable == gizmo->y() || result.renderable == gizmo->z()) {
+        gizmo->highlight(result.renderable);
+        callback(Entity::smuggle(result.renderable), x, y);
+      } else { 
+        gizmo->unhighlight();
+      }
+    });
+  }
 
-    // Log("scaledTransform %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-    // scaledTransform[0][0], scaledTransform[0][1], scaledTransform[0][2], scaledTransform[0][3],
-    // scaledTransform[1][0], scaledTransform[1][1], scaledTransform[1][2], scaledTransform[1][3],
-    // scaledTransform[2][0], scaledTransform[2][1], scaledTransform[2][2], scaledTransform[2][3],
-    // scaledTransform[3][0], scaledTransform[3][1], scaledTransform[3][2], scaledTransform[3][3]);
 
-      // Log("localTransform %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-    // localTransform[0][0], localTransform[0][1], localTransform[0][2], localTransform[0][3],
-    // localTransform[1][0], localTransform[1][1], localTransform[1][2], localTransform[1][3],
-    // localTransform[2][0], localTransform[2][1], localTransform[2][2], localTransform[2][3],
-    // localTransform[3][0], localTransform[3][1], localTransform[3][2], localTransform[3][3]);
 }
