@@ -114,12 +114,7 @@ class _ThermionGestureDetectorDesktopState
   Widget build(BuildContext context) {
     return Listener(
         onPointerHover: (event) async {
-        // print(
-        //     "local position ${event.localPosition}  globalPosition ${event.position}");r
           _gizmo?.checkHover(event.localPosition.dx, event.localPosition.dy);
-          if (_gizmo == null || _gizmo!.isActive == true) {
-            return;
-          }
         },
         onPointerSignal: (PointerSignalEvent pointerSignal) async {
           if (pointerSignal is PointerScrollEvent) {
@@ -134,9 +129,6 @@ class _ThermionGestureDetectorDesktopState
           throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
         },
         onPointerDown: (d) async {
-          if (_gizmo?.isActive == true) {
-            return;
-          }
           if (d.buttons != kTertiaryButton && widget.enablePicking) {
             widget.controller
                 .pick(d.localPosition.dx.toInt(), d.localPosition.dy.toInt());
@@ -145,7 +137,7 @@ class _ThermionGestureDetectorDesktopState
         },
         // holding/moving the left mouse button is interpreted as a pan, middle mouse button as a rotate
         onPointerMove: (PointerMoveEvent d) async {
-          if (_gizmo?.isActive == true) {
+          if (_gizmo?.isHovered == true) {
             _gizmo!.translate(d.delta.dx, d.delta.dy);
             return;
           }
@@ -173,8 +165,7 @@ class _ThermionGestureDetectorDesktopState
         // 2) if _pointerMoving is false, this is interpreted as a pick
         // same applies to middle mouse button, but this is ignored as a pick
         onPointerUp: (PointerUpEvent d) async {
-          if (_gizmo?.isActive == true) {
-            _gizmo!.reset();
+          if (_gizmo?.isHovered == true) {
             return;
           }
 
