@@ -16,17 +16,14 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   Future<ThermionFlutterTexture?> createTexture(double width, double height,
       double offsetLeft, double offsetRight, double pixelRatio) async {
     await _viewer!.destroySwapChain();
-    var physicalWidth = (width * pixelRatio).ceil();
-    var physicalHeight = (width * pixelRatio).ceil();
-    await _viewer!.createSwapChain(physicalWidth, physicalHeight);
+    await _viewer!.createSwapChain(width.ceil(), height.ceil());
 
     final canvas = document.getElementById("canvas") as HTMLCanvasElement;
-    canvas.width = physicalWidth;
-    canvas.height = physicalHeight;
+    canvas.width = (width * pixelRatio).ceil();
+    canvas.height = (height * pixelRatio).ceil();
 
-    print("canvas dimensions ${width}x${height}");
-
-    _viewer!.updateViewportAndCameraProjection(physicalWidth, physicalHeight, 1.0);
+    _viewer!
+        .updateViewportAndCameraProjection(width.ceil(), height.ceil(), 1.0);
 
     return ThermionFlutterTexture(null, null, 0, 0, null);
   }
@@ -52,7 +49,10 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
     canvas.id = "canvas";
     document.body!.appendChild(canvas);
     canvas.style.display = 'none';
-    await _viewer!.initialize(1, 1, uberArchivePath: uberArchivePath);
+    final pixelRatio = window.devicePixelRatio;
+    
+    await _viewer!
+        .initialize(1, 1, pixelRatio, uberArchivePath: uberArchivePath);
     return _viewer!;
   }
 }

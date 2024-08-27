@@ -43,8 +43,10 @@ class _ThermionWidgetState extends State<ThermionWidget> {
         }
       });
       var dpr = MediaQuery.of(context).devicePixelRatio;
+      
       var size = ((context.findRenderObject()) as RenderBox).size;
-      _texture = await ThermionFlutterPlugin.createTexture(size.width, size.height, 0, 0, dpr);
+      _texture = await ThermionFlutterPlugin.createTexture(
+          size.width, size.height, 0, 0, dpr);
 
       if (mounted) {
         setState(() {});
@@ -140,4 +142,3 @@ class TransparencyPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
