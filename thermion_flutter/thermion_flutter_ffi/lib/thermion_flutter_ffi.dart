@@ -26,7 +26,12 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
 
   final _textures = <ThermionFlutterTexture>{};
 
-  Future<ThermionViewer> createViewer({String? uberArchivePath}) async {
+  Future<ThermionViewer> createViewerWithOptions(
+      ThermionFlutterOptions options) async {
+    return createViewer(uberarchivePath: options.uberarchivePath);
+  }
+
+  Future<ThermionViewer> createViewer({String? uberarchivePath}) async {
     var resourceLoader = Pointer<Void>.fromAddress(
         await _channel.invokeMethod("getResourceLoaderWrapper"));
 
@@ -58,7 +63,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
         renderCallbackOwner: renderCallbackOwner,
         driver: driverPtr,
         sharedContext: sharedContextPtr,
-        uberArchivePath: uberArchivePath);
+        uberArchivePath: uberarchivePath);
     await _viewer!.initialized;
     return _viewer!;
   }
@@ -115,7 +120,8 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     if (_textures.length > 1) {
       throw Exception("Multiple textures not yet supported");
     } else if (_textures.length == 1) {
-      if (_textures.first.height == physicalHeight && _textures.first.width == physicalWidth) {
+      if (_textures.first.height == physicalHeight &&
+          _textures.first.width == physicalWidth) {
         return _textures.first;
       } else {
         await _viewer!.setRendering(false);
@@ -127,8 +133,8 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
 
     _creatingTexture = true;
 
-    var result = await _channel
-        .invokeMethod("createTexture", [physicalWidth, physicalHeight, offsetLeft, offsetLeft]);
+    var result = await _channel.invokeMethod("createTexture",
+        [physicalWidth, physicalHeight, offsetLeft, offsetLeft]);
 
     if (result == null || (result[0] == -1)) {
       throw Exception("Failed to create texture");
@@ -140,12 +146,14 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     _logger.info(
         "Created texture with flutter texture id ${flutterTextureId}, hardwareTextureId $hardwareTextureId and surfaceAddress $surfaceAddress");
 
-    _viewer?.viewportDimensions = (physicalWidth.toDouble(), physicalHeight.toDouble());
+    _viewer?.viewportDimensions =
+        (physicalWidth.toDouble(), physicalHeight.toDouble());
 
-    final texture = ThermionFlutterTexture(
-        flutterTextureId, hardwareTextureId, physicalWidth, physicalHeight, surfaceAddress);
+    final texture = ThermionFlutterTexture(flutterTextureId, hardwareTextureId,
+        physicalWidth, physicalHeight, surfaceAddress);
 
-    await _viewer?.createSwapChain(physicalWidth.toDouble(), physicalHeight.toDouble(),
+    await _viewer?.createSwapChain(
+        physicalWidth.toDouble(), physicalHeight.toDouble(),
         surface: texture.surfaceAddress == null
             ? nullptr
             : Pointer<Void>.fromAddress(texture.surfaceAddress!));
@@ -153,7 +161,9 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     if (texture.hardwareTextureId != null) {
       // ignore: unused_local_variable
       var renderTarget = await _viewer?.createRenderTarget(
-          physicalWidth.toDouble(), physicalHeight.toDouble(), texture.hardwareTextureId!);
+          physicalWidth.toDouble(),
+          physicalHeight.toDouble(),
+          texture.hardwareTextureId!);
     }
 
     await _viewer?.updateViewportAndCameraProjection(
@@ -186,11 +196,19 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
   /// Called by [ThermionWidget] to resize a texture. Don't call this yourself.
   ///
   @override
-  Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
-      int width, int height, int offsetLeft, int offsetRight) async {
+  Future<ThermionFlutterTexture?> resizeTexture(
+      ThermionFlutterTexture texture,
+      int width,
+      int height,
+      int offsetLeft,
+      int offsetTop,
+      double pixelRatio) async {
     if (_resizing) {
       throw Exception("Resize underway");
     }
+
+    width = (width * pixelRatio).ceil();
+    height = (height * pixelRatio).ceil();
 
     if ((width - _viewer!.viewportDimensions.$1).abs() < 0.001 ||
         (height - _viewer!.viewportDimensions.$2).abs() < 0.001) {
