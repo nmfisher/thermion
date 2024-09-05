@@ -37,8 +37,11 @@ class Gizmo {
             void handle(filament::View::PickingQueryResult const &result) { 
                 auto x = static_cast<int32_t>(result.fragCoords.x);
                 auto y= static_cast<int32_t>(result.fragCoords.y);
-                for(int i = 4; i < 7; i++) {
+                for(int i = 0; i < 7; i++) {
                     if(_gizmo->_entities[i] == result.renderable) {
+                        if(i < 4) {
+                            return;    
+                        }
                         _gizmo->highlight(_gizmo->_entities[i - 4]);
                         _callback(Entity::smuggle(_gizmo->_entities[i - 4]), x, y);
                         return;
@@ -96,9 +99,9 @@ class Gizmo {
         Material* _material;
         MaterialInstance* _materialInstances[7];
         math::float4 inactiveColors[3] {
-            math::float4 { 0.75f, 0.0f, 0.0f, 1.0f },
-            math::float4 { 0.0f, 0.75f, 0.0f, 1.0f },
-            math::float4 { 0.0f, 0.0f, 0.75f, 1.0f },
+            math::float4 { 1.0f, 0.0f, 0.0f, 0.5f },
+            math::float4 { 0.0f, 1.0f, 0.0f, 0.5f },
+            math::float4 { 0.0f, 0.0f, 1.0f, 0.5f },
         };
         math::float4 activeColors[3] {
             math::float4 { 1.0f, 0.0f, 0.0f, 1.0f },
