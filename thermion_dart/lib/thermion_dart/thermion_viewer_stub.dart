@@ -782,4 +782,25 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement setLayerEnabled
     throw UnimplementedError();
   }
+  
+  @override
+  Future createIbl(double r, double g, double b, double intensity) {
+    // TODO: implement createIbl
+    throw UnimplementedError();
+  }
+  
+  @override
+  // TODO: implement gizmoPickResult
+  Stream<FilamentPickResult> get gizmoPickResult => throw UnimplementedError();
+  
+  @override
+  void pickGizmo(int x, int y) {
+    // TODO: implement pickGizmo
+  }
+  
+  @override
+  Future setGizmoVisibility(bool visible) {
+    // TODO: implement setGizmoVisibility
+    throw UnimplementedError();
+  }
 }
