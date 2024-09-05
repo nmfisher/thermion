@@ -110,7 +110,7 @@ extern "C"
         ((FilamentViewer *)viewer)->removeIbl();
     }
 
-    EntityId add_light(
+    EMSCRIPTEN_KEEPALIVE EntityId add_light(
         const void *const viewer, 
         uint8_t type, 
         float colour, 
