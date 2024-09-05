@@ -63,6 +63,9 @@ abstract class ThermionViewer {
   ///
   late (double, double) viewportDimensions;
 
+  ///
+  /// The current ratio of logical to physical pixels.
+  ///
   late double pixelRatio;
 
   ///
