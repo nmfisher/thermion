@@ -26,10 +26,14 @@ materials: FORCE
 	$(FILAMENT_PATH)/resgen -c -p image -x thermion_dart/native/include/material/ materials/image.filamat   
 	$(FILAMENT_PATH)/matc -a opengl -a metal -o materials/gizmo.filamat materials/gizmo.mat
 	$(FILAMENT_PATH)/resgen -c -p gizmo -x thermion_dart/native/include/material/ materials/gizmo.filamat
+	${FILAMENT_PATH}/matc -a opengl -a metal -o materials/grid.filamat materials/grid.mat
+	$(FILAMENT_PATH)/resgen -c -p grid -x thermion_dart/native/include/material/ materials/grid.filamat   
 	echo '#include "gizmo.h"' | cat - thermion_dart/native/include/material/gizmo.c > thermion_dart/native/include/material/gizmo.c.new
 	echo '#include "image.h"' | cat - thermion_dart/native/include/material/image.c > thermion_dart/native/include/material/image.c.new
+	echo '#include "grid.h"' | cat - thermion_dart/native/include/material/grid.c > thermion_dart/native/include/material/grid.c.new
 	mv thermion_dart/native/include/material/image.c.new thermion_dart/native/include/material/image.c
 	mv thermion_dart/native/include/material/gizmo.c.new thermion_dart/native/include/material/gizmo.c
+	mv thermion_dart/native/include/material/grid.c.new thermion_dart/native/include/material/grid.c
 
 	#rm materials/*.filamat
 
