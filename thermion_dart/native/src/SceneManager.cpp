@@ -1813,41 +1813,6 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
-    // Log("view matrix %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-    // viewMatrix[0][0], viewMatrix[0][1], viewMatrix[0][2], viewMatrix[0][3],
-    // viewMatrix[1][0], viewMatrix[1][1], viewMatrix[1][2], viewMatrix[1][3],
-    // viewMatrix[2][0], viewMatrix[2][1], viewMatrix[2][2], viewMatrix[2][3],
-    // viewMatrix[3][0], viewMatrix[3][1], viewMatrix[3][2], viewMatrix[3][3]);
-
-    //     math::float4 worldspace = { 250.0f, 0.0f, 0.0f, 1.0f };
-    //     math::float4 viewSpace = viewMatrix * worldspace;
-    //     Log("viewspace %f %f %f %f", viewSpace.x, viewSpace.y, viewSpace.z, viewSpace.w);
-
-    //     math::float4 clipSpace = camera.getProjectionMatrix() * viewSpace;
-    //     Log("clip space %f %f %f %f", clipSpace.x, clipSpace.y, clipSpace.z, clipSpace.w);
-
-    //     math::float4 ndc = clipSpace / clipSpace.w;
-    //     Log("ndc %f %f %f %f", ndc.x, ndc.y, ndc.z, ndc.w);
-
-    //     ndc.x = -1.0;
-
-    // // Multiply by inverse view-projection matrix
-    // auto inverseProj = inverse(camera.getProjectionMatrix());
-    // clipSpace = inverseProj * math::float4 { ndc.x, ndc.y, ndc.z, 1.0f };
-    // viewSpace = clipSpace / clipSpace.w;
-    // Log("clip space %f %f %f %f", viewSpace.x, viewSpace.y, viewSpace.z, viewSpace.w);
-
-    // auto inverseView = inverse(viewMatrix);
-    // worldspace = inverseView * viewSpace;
-    // Log("worldspace space %f %f %f %f", worldspace.x, worldspace.y, worldspace.z, worldspace.w);
-
-    // return;
-
-    // Log("viewMatrixRotation %f %f %f %f %f %f %f %f %f",
-    // viewMatrixRotation[0][0], viewMatrixRotation[0][1], viewMatrixRotation[0][2],
-    // viewMatrixRotation[1][0], viewMatrixRotation[1][1], viewMatrixRotation[1][2],
-    // viewMatrixRotation[2][0], viewMatrixRotation[2][1], viewMatrixRotation[2][2]);
-
 void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
 {
     auto worldAxis = math::float3{x, y, z};
@@ -1892,7 +1857,6 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
 
         ndcAxis = (camera.getProjectionMatrix() * math::float4(viewMatrix.upperLeft() * perpendicularAxis, 0.0f)).xy;
 
-        Log("Corrected NDC axis %f %f", ndcAxis.x, ndcAxis.y);
         if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y)) {
             return;
         }
@@ -1993,78 +1957,6 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
         isRelative = relative;
         _transformUpdates[entity] = curr;
     }
-
-    //   void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
-    // {
-    //     std::lock_guard lock(_mutex);
-
-    //     const auto &pos = _transformUpdates.find(entity);
-    //     if (pos == _transformUpdates.end())
-    //     {
-    //         _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
-    //     }
-    //     auto curr = _transformUpdates[entity];
-    //     auto &trans = std::get<0>(curr);
-
-    //     const auto &tm = _engine->getTransformManager();
-    //     auto transformInstance = tm.getInstance(Entity::import(entity));
-    //     auto transform = tm.getTransform(transformInstance);
-    //     math::double4 position { 0.0f, 0.0f, 0.0f, 1.0f};
-    //     math::mat4 worldTransform = tm.getWorldTransformAccurate(transformInstance);
-    //     position = worldTransform * position;
-
-    //     // Get camera's view matrix and its inverse
-    //     const Camera &camera = _view->getCamera();
-
-    //     math::mat4 viewMatrix = camera.getViewMatrix();
-    //     math::mat4 invViewMatrix = inverse(viewMatrix);
-
-    //     // Transform object position to view space
-    //     math::double4 viewSpacePos = viewMatrix * position;
-
-    //     Log("viewSpacePos %f %f %f %f", viewSpacePos.x, viewSpacePos.y, viewSpacePos.z, viewSpacePos.w);
-
-    //     // Calculate plane distance from camera
-    //     float planeDistance = -viewSpacePos.z;
-
-    //     const auto &vp = _view->getViewport();
-
-    //     // Calculate viewport to world scale at the object's distance
-    //     float viewportToWorldScale = planeDistance * std::tan(camera.getFieldOfViewInDegrees(Camera::Fov::VERTICAL) * 0.5f * M_PI / 180.0f) * 2.0f / vp.height;
-
-    //     // Log("viewportToWorldScale %f", viewportToWorldScale);
-
-    //     // Calculate view space delta
-    //     math::float4 viewSpaceDelta(
-    //         x * viewportToWorldScale,
-    //         -y * viewportToWorldScale,  // Invert y-axis
-    //         z * viewportToWorldScale,
-    //         0.0f);  // Use 0 for the w component as it's a direction, not a position
-
-    //     // Log("viewSpaceDelta %f %f %f", viewSpaceDelta.x, viewSpaceDelta.y, viewSpaceDelta.z);
-
-    //     // Transform delta to world space
-    //     math::float4 worldDelta = invViewMatrix * viewSpaceDelta;
-
-    //     // Log("worldDelta %f %f %f", worldDelta.x, worldDelta.y, worldDelta.z);
-
-    //     if (relative)
-    //     {
-    //         trans.x += worldDelta.x;
-    //         trans.y += worldDelta.y;
-    //         trans.z += worldDelta.z;
-    //     }
-    //     else
-    //     {
-    //         trans.x = worldDelta.x;
-    //         trans.y = worldDelta.y;
-    //         trans.z = worldDelta.z;
-    //     }
-
-    //     auto &isRelative = std::get<1>(curr);
-    //     isRelative = relative;
-    //     _transformUpdates[entity] = curr;
-    // }
 
     void SceneManager::queueRotationUpdate(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
     {
