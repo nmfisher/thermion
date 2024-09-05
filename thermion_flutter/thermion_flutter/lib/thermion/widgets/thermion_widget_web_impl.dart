@@ -1,19 +1,32 @@
 import 'dart:js_util';
-import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
 import 'dart:ui' as ui;
 import 'dart:ui_web' as ui_web;
-import 'package:flutter/material.dart';
+import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:web/web.dart';
 import 'package:flutter/widgets.dart';
-import 'dart:html' as html;
 
-class ThermionWidgetWeb extends StatefulWidget {
+class ThermionWidgetWeb extends StatelessWidget {
+  final ThermionFlutterWebOptions options;
+
+  const ThermionWidgetWeb({super.key, required this.options});
+
   @override
-  State<StatefulWidget> createState() => ThermionWidgetWebState();
+  Widget build(BuildContext context) {
+    if (options.importCanvasAsWidget) {
+      return _ImageCopyingWidget();
+    }
+    return Container(color: const Color(0x00000000));
+  }
 }
 
-class ThermionWidgetWebState extends State<ThermionWidgetWeb> {
+class _ImageCopyingWidget extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+    return _ImageCopyingWidgetState();
+  }
+}
+
+class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
   ui.Image? _img;
 
   @override
@@ -41,9 +54,6 @@ class ThermionWidgetWebState extends State<ThermionWidgetWeb> {
 
   @override
   Widget build(BuildContext context) {
-    if (_img == null) {
-      return Container(color: Colors.transparent);
-    }
     return RawImage(image: _img!);
   }
 }
