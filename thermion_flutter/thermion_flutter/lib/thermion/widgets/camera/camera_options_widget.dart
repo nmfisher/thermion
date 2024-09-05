@@ -82,19 +82,19 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
         child: Container(
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.5)),
             child: SliderTheme(
-                data: SliderThemeData(
+                data: const SliderThemeData(
                     showValueIndicator: ShowValueIndicator.always,
                     valueIndicatorTextStyle: TextStyle(color: Colors.black)),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Row(children: [
-                    Text("Aperture"),
+                    const Text("Aperture"),
                     Expanded(
                         child: TextField(
                       controller: _apertureController,
                     )),
-                    Text("Speed"),
+                    const Text("Speed"),
                     Expanded(child: TextField(controller: _speedController)),
-                    Text("Sensitivity"),
+                    const Text("Sensitivity"),
                     Expanded(
                         child: TextField(controller: _sensitivityController)),
                   ]),
@@ -112,7 +112,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
                         })
                   ]),
                   Row(children: [
-                    Text("Focal length"),
+                    const Text("Focal length"),
                     Slider(
                         label: _focalLength.toString(),
                         value: _focalLength,
@@ -127,7 +127,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
                         })
                   ]),
                   Row(children: [
-                    Text("X"),
+                    const Text("X"),
                     Slider(
                         label: widget.cameraOrientation.position.x.toString(),
                         value: widget.cameraOrientation.position.x,
@@ -141,7 +141,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
                         })
                   ]),
                   Row(children: [
-                    Text("Y"),
+                    const Text("Y"),
                     Slider(
                         label: widget.cameraOrientation.position.y.toString(),
                         value: widget.cameraOrientation.position.y,
@@ -155,7 +155,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
                         })
                   ]),
                   Row(children: [
-                    Text("Z"),
+                    const Text("Z"),
                     Slider(
                         label: widget.cameraOrientation.position.z.toString(),
                         value: widget.cameraOrientation.position.z,
@@ -169,7 +169,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
                         })
                   ]),
                   Row(children: [
-                    Text("ROTX"),
+                    const Text("ROTX"),
                     Slider(
                         label: widget.cameraOrientation.rotationX.toString(),
                         value: widget.cameraOrientation.rotationX,
@@ -183,7 +183,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
                         })
                   ]),
                   Row(children: [
-                    Text("ROTY"),
+                    const Text("ROTY"),
                     Slider(
                         label: widget.cameraOrientation.rotationY.toString(),
                         value: widget.cameraOrientation.rotationY,
@@ -197,7 +197,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
                         }),
                   ]),
                   Row(children: [
-                    Text("ROTZ"),
+                    const Text("ROTZ"),
                     Slider(
                         label: widget.cameraOrientation.rotationZ.toString(),
                         value: widget.cameraOrientation.rotationZ,
@@ -213,7 +213,7 @@ class _CameraOptionsWidgetState extends State<CameraOptionsWidget> {
                   Wrap(
                     children: [
                       GestureDetector(
-                        child: Text("Main "),
+                        child: const Text("Main "),
                         onTap: () {
                           widget.controller.setMainCamera();
                         },
