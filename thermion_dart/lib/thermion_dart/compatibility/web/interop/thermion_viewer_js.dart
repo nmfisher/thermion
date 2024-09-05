@@ -881,4 +881,34 @@ class ThermionViewerJS implements ThermionViewer {
     // TODO: implement queueRelativePositionUpdateWorldAxis
     throw UnimplementedError();
   }
+  
+  @override
+  double pixelRatio;
+  
+  @override
+  Future createIbl(double r, double g, double b, double intensity) {
+    // TODO: implement createIbl
+    throw UnimplementedError();
+  }
+  
+  @override
+  // TODO: implement gizmoPickResult
+  Stream<FilamentPickResult> get gizmoPickResult => throw UnimplementedError();
+  
+  @override
+  void pickGizmo(int x, int y) {
+    // TODO: implement pickGizmo
+  }
+  
+  @override
+  Future setGizmoVisibility(bool visible) {
+    // TODO: implement setGizmoVisibility
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setLayerEnabled(int layer, bool enabled) {
+    // TODO: implement setLayerEnabled
+    throw UnimplementedError();
+  }
 }
