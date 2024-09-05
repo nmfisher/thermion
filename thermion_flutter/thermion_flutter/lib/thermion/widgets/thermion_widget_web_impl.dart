@@ -6,13 +6,16 @@ import 'package:web/web.dart';
 import 'package:flutter/widgets.dart';
 
 class ThermionWidgetWeb extends StatelessWidget {
-  final ThermionFlutterWebOptions options;
+  
+  late final ThermionFlutterWebOptions options;
 
-  const ThermionWidgetWeb({super.key, required this.options});
+  const ThermionWidgetWeb({super.key, ThermionFlutterWebOptions? options}) {
+    this.options = options ?? ThermionFlutterWebOptions();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (options.importCanvasAsWidget) {
+    if (options?.importCanvasAsWidget == true) {
       return _ImageCopyingWidget();
     }
     return Container(color: const Color(0x00000000));
