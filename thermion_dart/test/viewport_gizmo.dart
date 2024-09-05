@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:thermion_dart/thermion_dart/swift/swift_bindings.g.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer_ffi.dart';
@@ -6,6 +7,7 @@ import 'package:thermion_dart/thermion_dart/utils/dart_resources.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
 import 'package:test/test.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 /// Test files are run in a variety of ways, find this package root in all.
 ///
@@ -66,16 +68,14 @@ void main() async {
   await viewer.createRenderTarget(500, 500, object.metalTextureAddress);
   await viewer.updateViewportAndCameraProjection(500, 500);
 
-  print(await viewer.getCameraFov(true));
-  print(await viewer.getCameraFov(false));
-
   group('viewport', () {
     test('viewport', () async {
       var entity = await viewer
           .createGeometry([0.0], [0], primitiveType: PrimitiveType.POINTS);
       await viewer.setCameraPosition(0.0, 0.0, 4.0);
+      await viewer.setCameraRotation(Quaternion.axisAngle(Vector3(0,0,1), pi/2));
       await viewer.queueRelativePositionUpdateWorldAxis(
-          entity, -250.0, 250.0, 1, 0, 0);
+          entity, 250.0, 250.0, 1, 0, 0);
     });
   });
 }
