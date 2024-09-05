@@ -60,6 +60,7 @@ void main(List<String> args) async {
     sources.addAll([
       "${config.packageRoot.toFilePath()}/native/include/material/gizmo.c",
       "${config.packageRoot.toFilePath()}/native/include/material/image.c",
+      "${config.packageRoot.toFilePath()}/native/include/material/grid.c",
     ]);
 
     var libs = [
@@ -76,7 +77,6 @@ void main(List<String> args) async {
       "image",
       "imageio",
       "tinyexr",
-      "gltfio_core",
       "filaflat",
       "dracodec",
       "ibl",
