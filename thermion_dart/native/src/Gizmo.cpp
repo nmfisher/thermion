@@ -359,20 +359,11 @@ void Gizmo::destroy()
     _engine.destroy(_material);
 }
 
-
 void Gizmo::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
   {
-    auto * gizmo = this;
-    _view->pick(x, y, [=](filament::View::PickingQueryResult const &result) { 
-        for(int i = 4; i < 7; i++) {
-            if(_entities[i] == result.renderable) {
-                gizmo->highlight(_entities[i - 4]);
-                callback(Entity::smuggle(_entities[i - 4]), x, y);
-                return;
-            }
-        }
-        gizmo->unhighlight();
-        callback(0, x, y);
+    auto handler = new Gizmo::PickCallbackHandler(this, callback);
+    _view->pick(x, y,  [=](filament::View::PickingQueryResult const &result) { 
+        handler->handle(result);
     });
   }
 

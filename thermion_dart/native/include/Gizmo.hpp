@@ -31,6 +31,30 @@ class Gizmo {
 
     enum Axis { X, Y, Z};
 
+    class PickCallbackHandler {
+        public: 
+            PickCallbackHandler(Gizmo* gizmo, void (*callback)(EntityId entityId, int x, int y)) : _gizmo(gizmo), _callback(callback) {};
+            void handle(filament::View::PickingQueryResult const &result) { 
+                auto x = static_cast<int32_t>(result.fragCoords.x);
+                auto y= static_cast<int32_t>(result.fragCoords.y);
+                for(int i = 4; i < 7; i++) {
+                    if(_gizmo->_entities[i] == result.renderable) {
+                        _gizmo->highlight(_gizmo->_entities[i - 4]);
+                        _callback(Entity::smuggle(_gizmo->_entities[i - 4]), x, y);
+                        return;
+                    }
+                }
+                _gizmo->unhighlight();
+                _callback(0, x, y);
+                delete(this);
+            }
+
+        private:
+            Gizmo* _gizmo;
+            void (*_callback)(EntityId entityId, int x, int y);
+
+    };
+
     public:
         Gizmo(Engine& engine, View *view, Scene *scene);
         ~Gizmo();
