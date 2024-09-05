@@ -124,9 +124,12 @@ class ThermionViewerWasm implements ThermionViewer {
         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
 
     _pickCallbackPtr = _module!.addFunction(_onPickCallback.toJS, "viii");
+    _pickGizmoCallbackPtr =
+        _module!.addFunction(_onPickGizmoCallback.toJS, "viii");
     // _module!.removeFunction(_pickCallbackPtr);
+    // _module!.removeFunction(_pickGizmoCallbackPtr);
 
-    var gizmoOut = _module!._malloc(4 * 4) as JSNumber;
+    var gizmoOut = _module!._malloc(4 * 4);
 
     _module!.ccall("get_gizmo", "void", ["void*".toJS, "void*".toJS].toJS,
         [_sceneManager!, gizmoOut].toJS, null);
@@ -167,6 +170,9 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   Future destroySwapChain() async {
+    if (_viewer == null) {
+      return;
+    }
     _module!.ccall("destroy_swap_chain", "void", ["void*".toJS].toJS,
         [_viewer!].toJS, null);
   }
@@ -193,6 +199,9 @@ class ThermionViewerWasm implements ThermionViewer {
     return _initialized;
   }
 
+  ///
+  ///
+  ///
   final _pickResultController =
       StreamController<FilamentPickResult>.broadcast();
 
@@ -200,6 +209,12 @@ class ThermionViewerWasm implements ThermionViewer {
   Stream<FilamentPickResult> get pickResult {
     return _pickResultController.stream;
   }
+
+  @override
+  Stream<FilamentPickResult> get gizmoPickResult =>
+      _gizmoPickResultController.stream;
+  final _gizmoPickResultController =
+      StreamController<FilamentPickResult>.broadcast();
 
   @override
   bool get rendering => _rendering;
@@ -270,7 +285,7 @@ class ThermionViewerWasm implements ThermionViewer {
         [_sceneManager!, entity.toJS, skinIndex.toJS].toJS,
         null) as JSNumber;
     var boneCount = boneCountJS.toDartInt;
-    var buf = _module!._malloc(boneCount * 16 * 4) as JSNumber;
+    var buf = _module!._malloc(boneCount * 16 * 4);
     _module!.ccall(
         "get_rest_local_transforms",
         "void",
@@ -482,7 +497,7 @@ class ThermionViewerWasm implements ThermionViewer {
         [_sceneManager!, entity.toJS, skinIndex.toJS].toJS,
         null) as JSNumber;
     var boneCount = boneCountJS.toDartInt;
-    var buf = _module!._malloc(boneCount * 4) as JSNumber;
+    var buf = _module!._malloc(boneCount * 4);
 
     var empty = " ".toJS;
     var ptrs = <JSNumber>[];
@@ -518,7 +533,7 @@ class ThermionViewerWasm implements ThermionViewer {
         null) as JSNumber;
     var entityCount = entityCountJS.toDartInt;
     var entities = <ThermionEntity>[];
-    var buf = _module!._malloc(entityCount * 4) as JSNumber;
+    var buf = _module!._malloc(entityCount * 4);
 
     _module!.ccall(
         "get_entities",
@@ -596,7 +611,7 @@ class ThermionViewerWasm implements ThermionViewer {
     var morphTargetCount = morphTargetCountJS.toDartInt;
     var names = <String>[];
     for (int i = 0; i < morphTargetCount; i++) {
-      var buf = _module!._malloc(256) as JSNumber;
+      var buf = _module!._malloc(256);
       _module!.ccall(
           "get_morph_target_name",
           "void",
@@ -645,7 +660,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
-    final matrixPtr = _module!._malloc(16 * 4) as JSNumber;
+    final matrixPtr = _module!._malloc(16 * 4);
     _module!.ccall(
         "get_world_transform",
         "void",
@@ -815,7 +830,7 @@ class ThermionViewerWasm implements ThermionViewer {
   Future<Uint8List> capture() async {
     bool wasRendering = rendering;
     await setRendering(false);
-    final pixelBuffer = _module!._malloc(_width * _height * 4) as JSNumber;
+    final pixelBuffer = _module!._malloc(_width * _height * 4);
     final completer = Completer();
     final callback = () {
       completer.complete();
@@ -976,7 +991,7 @@ class ThermionViewerWasm implements ThermionViewer {
       assert(frameData.length == animation.numFrames * intersection.length);
 
       // Allocate memory in WASM for the morph data
-      var dataPtr = _module!._malloc(frameData.length * 4) as JSNumber;
+      var dataPtr = _module!._malloc(frameData.length * 4);
 
       // Create a Float32List to copy the morph data to
       var dataList = td.Float32List.fromList(frameData);
@@ -986,7 +1001,7 @@ class ThermionViewerWasm implements ThermionViewer {
           dataList.buffer.asUint8List(dataList.offsetInBytes).toJS, dataPtr);
 
       // Allocate memory in WASM for the morph indices
-      var idxPtr = _module!._malloc(indices.length * 4) as JSNumber;
+      var idxPtr = _module!._malloc(indices.length * 4);
 
       // Create an Int32List to copy the morph indices to
       var idxList = td.Int32List.fromList(indices);
@@ -1219,7 +1234,7 @@ class ThermionViewerWasm implements ThermionViewer {
     final animationCount = await getAnimationCount(entity);
     final names = <String>[];
     for (int i = 0; i < animationCount; i++) {
-      final namePtr = _module!._malloc(256) as JSNumber;
+      final namePtr = _module!._malloc(256);
       _module!.ccall(
           "get_animation_name",
           "void",
@@ -1248,7 +1263,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Matrix4> getCameraCullingProjectionMatrix() async {
-    final ptr = _module!._malloc(16 * 8) as JSNumber;
+    final ptr = _module!._malloc(16 * 8);
     _module!.ccall("get_camera_culling_projection_matrix", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final matrix = Matrix4.zero();
@@ -1263,7 +1278,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Frustum> getCameraFrustum() async {
-    final ptr = _module!._malloc(24 * 8) as JSNumber;
+    final ptr = _module!._malloc(24 * 8);
     _module!.ccall("get_camera_frustum", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final planes = List.generate(6, (i) {
@@ -1304,7 +1319,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Vector3> getCameraPosition() async {
-    final ptr = _module!._malloc(3 * 8) as JSNumber;
+    final ptr = _module!._malloc(3 * 8);
     _module!.ccall("get_camera_position", "void",
         ["void*".toJS, "void*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final pos = Vector3(
@@ -1320,7 +1335,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Matrix4> getCameraProjectionMatrix() async {
-    final ptr = _module!._malloc(16 * 8) as JSNumber;
+    final ptr = _module!._malloc(16 * 8);
     _module!.ccall("get_camera_projection_matrix", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final matrix = _matrixFromPtr(ptr);
@@ -1337,7 +1352,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Matrix4> getCameraViewMatrix() async {
-    final ptr = _module!._malloc(16 * 8) as JSNumber;
+    final ptr = _module!._malloc(16 * 8);
     _module!.ccall("get_camera_view_matrix", "void",
         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
     final matrix = Matrix4.zero();
@@ -1364,7 +1379,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<List<ThermionEntity>> getInstances(ThermionEntity entity) async {
     final instanceCount = await getInstanceCount(entity);
-    final buf = _module!._malloc(instanceCount * 4) as JSNumber;
+    final buf = _module!._malloc(instanceCount * 4);
     _module!.ccall(
         "get_instances",
         "void",
@@ -1384,7 +1399,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future<Matrix4> getInverseBindMatrix(ThermionEntity parent, int boneIndex,
       {int skinIndex = 0}) async {
-    final ptr = _module!._malloc(16 * 4) as JSNumber;
+    final ptr = _module!._malloc(16 * 4);
     _module!.ccall(
         "get_inverse_bind_matrix",
         "void",
@@ -1398,7 +1413,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future<Matrix4> getLocalTransform(ThermionEntity entity) async {
-    final ptr = _module!._malloc(16 * 4) as JSNumber;
+    final ptr = _module!._malloc(16 * 4);
     _module!.ccall(
         "get_local_transform",
         "void",
@@ -1624,7 +1639,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future rotateIbl(Matrix3 rotation) async {
-    final ptr = _module!._malloc(9 * 4) as JSNumber;
+    final ptr = _module!._malloc(9 * 4);
     for (int i = 0; i < 9; i++) {
       _module!.setValue(
           (ptr.toDartInt + (i * 4)).toJS, rotation.storage[i].toJS, "float");
@@ -1707,7 +1722,7 @@ class ThermionViewerWasm implements ThermionViewer {
   Future setBoneTransform(
       ThermionEntity entity, int boneIndex, Matrix4 transform,
       {int skinIndex = 0}) async {
-    final ptr = _module!._malloc(16 * 4) as JSNumber;
+    final ptr = _module!._malloc(16 * 4);
     for (int i = 0; i < 16; i++) {
       _module!.setValue(
           (ptr.toDartInt + (i * 4)).toJS, transform.storage[i].toJS, "float");
@@ -1817,7 +1832,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future setCameraModelMatrix(List<double> matrix) async {
     assert(matrix.length == 16, "Matrix must have 16 elements");
-    final ptr = _module!._malloc(16 * 8) as JSNumber;
+    final ptr = _module!._malloc(16 * 8);
     for (int i = 0; i < 16; i++) {
       _module!
           .setValue((ptr.toDartInt + (i * 8)).toJS, matrix[i].toJS, "double");
@@ -1963,7 +1978,7 @@ class ThermionViewerWasm implements ThermionViewer {
 
   @override
   Future setTransform(ThermionEntity entity, Matrix4 transform) async {
-    final ptr = _module!._malloc(16 * 4) as JSNumber;
+    final ptr = _module!._malloc(16 * 4);
     for (int i = 0; i < 16; i++) {
       _module!.setValue(
           (ptr.toDartInt + (i * 4)).toJS, transform.storage[i].toJS, "float");
@@ -2064,7 +2079,7 @@ class ThermionViewerWasm implements ThermionViewer {
 // Helper method to allocate a string in the WASM memory
   JSNumber _allocateString(String str) {
     final bytes = utf8.encode(str);
-    final ptr = _module!._malloc(bytes.length + 1) as JSNumber;
+    final ptr = _module!._malloc(bytes.length + 1);
     for (var i = 0; i < bytes.length; i++) {
       _module!.setValue((ptr.toDartInt + i).toJS, bytes[i].toJS, "i8");
     }
@@ -2185,6 +2200,60 @@ class ThermionViewerWasm implements ThermionViewer {
           layer.toJS,
           enabled.toJS,
         ].toJS,
+        null);
+  }
+
+  @override
+  Future createIbl(double r, double g, double b, double intensity) async {
+    _module!.ccall(
+        "create_ibl",
+        "void",
+        [
+          "void*".toJS,
+          "double".toJS,
+          "double".toJS,
+          "double".toJS,
+          "double".toJS,
+        ].toJS,
+        [_sceneManager!, r.toJS, g.toJS, b.toJS, intensity.toJS].toJS,
+        null);
+  }
+
+  late JSNumber _pickGizmoCallbackPtr;
+
+  void _onPickGizmoCallback(ThermionEntity entity, int x, int y) {
+    _gizmoPickResultController
+        .add((entity: entity, x: x.toDouble(), y: y.toDouble()));
+  }
+
+  @override
+  void pickGizmo(int x, int y) {
+    x = (x * pixelRatio).ceil();
+    y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
+
+    _module!.ccall(
+        "pick_gizmo",
+        "void",
+        [
+          "void*".toJS,
+          "int".toJS,
+          "int".toJS,
+          "void*".toJS,
+        ].toJS,
+        [_sceneManager!, x.toJS, y.toJS, _pickGizmoCallbackPtr].toJS,
+        null);
+  }
+
+  @override
+  Future setGizmoVisibility(bool visible) async {
+    _module!.ccall(
+        "set_gizmo_visibility",
+        "void",
+        [
+          "void*".toJS,
+          "bool".toJS,
+        ].toJS,
+        [_sceneManager!, visible.toJS].toJS,
         null);
   }
 }
