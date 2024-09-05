@@ -1291,6 +1291,24 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
+  Future setLightPosition(
+      ThermionEntity lightEntity, double x, double y, double z) async {
+    set_light_position(_viewer!, lightEntity, x, y, z);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setLightDirection(ThermionEntity lightEntity, Vector3 direction) async {
+    direction.normalize();
+    set_light_direction(_viewer!, lightEntity, direction.x, direction.y, direction.z);
+  }
+
+  ///
+  ///
+  ///
+  @override
   Future setRotationQuat(ThermionEntity entity, Quaternion rotation,
       {bool relative = false}) async {
     set_rotation(_sceneManager!, entity, rotation.radians, rotation.x,

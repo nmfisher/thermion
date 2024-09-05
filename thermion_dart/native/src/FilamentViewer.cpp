@@ -288,7 +288,6 @@ namespace thermion_filament
     fro.interval = 1; // frameInterval;
     fro.history = 5;
     _renderer->setFrameRateOptions(fro);
-    Log("Set frame interval to %f", frameInterval);
   }
 
   EntityId FilamentViewer::addLight(
@@ -310,9 +309,6 @@ namespace thermion_filament
       bool shadows)
   {
     auto light = EntityManager::get().create();
-    auto &transformManager = _engine->getTransformManager();
-    transformManager.create(light);
-    auto parent = transformManager.getInstance(light);
 
     auto result = LightManager::Builder(t)
                       .color(Color::cct(colour))
@@ -336,16 +332,43 @@ namespace thermion_filament
       _lights.push_back(light);
     }
 
-    auto entityId = Entity::smuggle(light);
-    auto transformInstance = transformManager.getInstance(light);
-    transformManager.setTransform(transformInstance, math::mat4::translation(math::float3{posX, posY, posZ}));
-    // Log("Added light under entity ID %d of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", entityId, t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
-    return entityId;
+    return Entity::smuggle(light);
+  }
+
+  void FilamentViewer::setLightPosition(EntityId entityId, float x, float y, float z) {
+    auto light = Entity::import(entityId);
+
+    if(light.isNull()) {
+      Log("Light not found for entity %d", entityId);
+      return;
+    }
+
+    auto& lm = _engine->getLightManager();
+
+    auto instance = lm.getInstance(light);
+
+    lm.setPosition(instance, filament::math::float3 { x, y, z });
+
+  }
+
+  void FilamentViewer::setLightDirection(EntityId entityId, float x, float y, float z) {
+    auto light = Entity::import(entityId);
+
+    if(light.isNull()) {
+      Log("Light not found for entity %d", entityId);
+      return;
+    }
+
+    auto& lm = _engine->getLightManager();
+
+    auto instance = lm.getInstance(light);
+
+    lm.setDirection(instance, filament::math::float3 { x, y, z });
+
   }
 
   void FilamentViewer::removeLight(EntityId entityId)
   {
-    Log("Removing light with entity ID %d", entityId);
     auto entity = utils::Entity::import(entityId);
     if (entity.isNull())
     {
@@ -361,7 +384,6 @@ namespace thermion_filament
 
   void FilamentViewer::clearLights()
   {
-    Log("Removing all lights");
     _scene->removeEntities(_lights.data(), _lights.size());
     EntityManager::get().destroy(_lights.size(), _lights.data());
     _lights.clear();
@@ -1364,7 +1386,6 @@ namespace thermion_filament
   {
     if (!_view || !_mainCamera)
     {
-      Log("Skipping camera update, no view or camrea");
       return;
     }
 
@@ -1379,8 +1400,6 @@ namespace thermion_filament
     cam.setLensProjection(_cameraFocalLength, aspect, _near,
                           _far);
 
-    Log("Set viewport to width: %d height: %d aspect %f scaleFactor : %f", width, height, aspect,
-        contentScaleFactor);
   }
 
   void FilamentViewer::setViewFrustumCulling(bool enabled)
@@ -1398,7 +1417,7 @@ namespace thermion_filament
   {
     Camera &cam = _view->getCamera();
     const auto &vp = _view->getViewport();
-    auto aspect = vp.width / vp.height;
+    const float aspect = static_cast<float>(vp.width) / static_cast<float>(vp.height);
     cam.setProjection(fovInDegrees, aspect, _near, _far, horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
   }
 
@@ -1672,7 +1691,7 @@ namespace thermion_filament
     if (materialPath)
     {
       auto matData = _resourceLoaderWrapper->load(materialPath);
-      auto mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
+      mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
       _resourceLoaderWrapper->free(matData);
     }
 
@@ -1705,8 +1724,6 @@ namespace thermion_filament
     auto result = builder.build(*_engine, renderable);
 
     _scene->addEntity(renderable);
-
-    Log("Created geometry with primitive type %d (result %d)", primitiveType, result);
 
     return Entity::smuggle(renderable);
   }

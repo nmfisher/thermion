@@ -93,6 +93,8 @@ extern "C"
 		bool shadows);
 	EMSCRIPTEN_KEEPALIVE void remove_light(const void *const viewer, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void clear_lights(const void *const viewer);
+	EMSCRIPTEN_KEEPALIVE void set_light_position(const void *const viewer, EntityId light, float x, float y, float z);
+	EMSCRIPTEN_KEEPALIVE void set_light_direction(const void *const viewer, EntityId light, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances);
 	EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length);
 	EMSCRIPTEN_KEEPALIVE EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath);

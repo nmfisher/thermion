@@ -570,9 +570,19 @@ abstract class ThermionViewer {
   Future transformToUnitCube(ThermionEntity entity);
 
   ///
-  /// Directly sets the world space position for [entity] to the given coordinates, skipping all collision detection.
+  /// Directly sets the world space position for [entity] to the given coordinates.
   ///
   Future setPosition(ThermionEntity entity, double x, double y, double z);
+
+  ///
+  /// Set the world space position for [lightEntity] to the given coordinates.
+  ///
+  Future setLightPosition(ThermionEntity lightEntity, double x, double y, double z);
+
+  ///
+  /// Sets the world space direction for [lightEntity] to the given vector.
+  ///
+  Future setLightDirection(ThermionEntity lightEntity, Vector3 direction);
 
   ///
   /// Directly sets the scale for [entity], skipping all collision detection.

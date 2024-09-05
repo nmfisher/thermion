@@ -2256,4 +2256,28 @@ class ThermionViewerWasm implements ThermionViewer {
         [_sceneManager!, visible.toJS].toJS,
         null);
   }
+
+  @override
+  Future setLightDirection(ThermionEntity lightEntity, Vector3 direction) async {
+    direction.normalize();
+    _module!.ccall(
+        "set_light_direction",
+        "void",
+        ["void*".toJS, "double".toJS, "double".toJS, "double".toJS].toJS,
+        [_viewer!, direction.x.toJS, direction.y.toJS, direction.z.toJS]
+            .toJS,
+        null);
+  }
+
+  @override
+  Future setLightPosition(
+      ThermionEntity lightEntity, double x, double y, double z) async {
+    _module!.ccall(
+        "set_light_position",
+        "void",
+        ["void*".toJS, "double".toJS, "double".toJS, "double".toJS].toJS,
+        [_viewer!, x.toJS,y.toJS,z.toJS]
+            .toJS,
+        null);
+  }
 }
