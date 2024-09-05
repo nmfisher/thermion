@@ -65,8 +65,29 @@ class ThermionFlutterPlugin {
       throw Exception("Existing call to createViewer has not completed.");
     }
     _initializing = true;
+
+
     _viewer = await ThermionFlutterPlatform.instance
-        .createViewer(uberArchivePath: uberArchivePath);
+        .createViewer(uberarchivePath: uberArchivePath);
+    _appLifecycleListener = AppLifecycleListener(
+      onStateChange: _handleStateChange,
+    );
+    _viewer!.onDispose(() async {
+      _viewer = null;
+      _appLifecycleListener?.dispose();
+      _appLifecycleListener = null;
+    });
+    _initializing = false;
+    return _viewer!;
+  }
+
+  static Future<ThermionViewer> createViewerWithOptions(ThermionFlutterOptions options) async {
+    if (_initializing) {
+      throw Exception("Existing call to createViewer has not completed.");
+    }
+    _initializing = true;
+    _viewer = await ThermionFlutterPlatform.instance
+        .createViewerWithOptions(options);
     _appLifecycleListener = AppLifecycleListener(
       onStateChange: _handleStateChange,
     );
@@ -80,9 +101,9 @@ class ThermionFlutterPlugin {
   }
 
   static Future<ThermionFlutterTexture?> createTexture(
-      double width, double height, double offsetLeft, double offsetRight, double pixelRatio) async {
+      double width, double height, double offsetLeft, double offsetTop, double pixelRatio) async {
     return ThermionFlutterPlatform.instance
-        .createTexture(width, height, offsetLeft, offsetRight, pixelRatio);
+        .createTexture(width, height, offsetLeft, offsetTop, pixelRatio);
   }
 
   static Future destroyTexture(ThermionFlutterTexture texture) async {
@@ -95,8 +116,8 @@ class ThermionFlutterPlugin {
       int width,
       int height,
       int offsetLeft,
-      int offsetRight) async {
+      int offsetTop, double pixelRatio) async {
     return ThermionFlutterPlatform.instance
-        .resizeTexture(texture, width, height, offsetLeft, offsetRight);
+        .resizeTexture(texture, width, height, offsetLeft, offsetTop, pixelRatio);
   }
 }
