@@ -106,6 +106,17 @@ external void load_ibl(
   double intensity,
 );
 
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float, ffi.Float)>()
+external void create_ibl(
+  ffi.Pointer<ffi.Void> viewer,
+  double r,
+  double g,
+  double b,
+  double intensity,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>)>()
 external void rotate_ibl(
   ffi.Pointer<ffi.Void> viewer,
@@ -1057,6 +1068,30 @@ external void set_layer_enabled(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
+        ffi.Int,
+        ffi.Int,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y)>>)>()
+external void pick_gizmo(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int x,
+  int y,
+  ffi.Pointer<
+          ffi.NativeFunction<
+              ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y)>>
+      callback,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>()
+external void set_gizmo_visibility(
+  ffi.Pointer<ffi.Void> sceneManager,
+  bool visible,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Char>,
         ffi.Pointer<ffi.Void>,
@@ -1575,20 +1610,6 @@ final class Aabb2 extends ffi.Struct {
 
   @ffi.Float()
   external double maxY;
-}
-
-final class int32_t_4 extends ffi.Struct {
-  @ffi.Int32()
-  external int i0;
-
-  @ffi.Int32()
-  external int i1;
-
-  @ffi.Int32()
-  external int i2;
-
-  @ffi.Int32()
-  external int i3;
 }
 
 /// This header replicates most of the methods in ThermionDartApi.h.
