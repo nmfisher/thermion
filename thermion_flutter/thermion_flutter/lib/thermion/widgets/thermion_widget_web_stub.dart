@@ -4,7 +4,7 @@ import 'package:thermion_flutter_ffi/thermion_flutter_ffi.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 
 class ThermionWidgetWeb extends StatefulWidget {
-  final ThermionFlutterWebOptions options;
+  final ThermionFlutterWebOptions? options;
 
   const ThermionWidgetWeb({super.key, required this.options});
   

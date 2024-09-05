@@ -95,7 +95,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
       return ResizeObserver(
           onResized: _resizeTexture,
           child: ThermionWidgetWeb(
-              options: widget.options! as ThermionFlutterWebOptions));
+              options: widget.options as ThermionFlutterWebOptions?));
     }
 
     if (_texture?.usesBackingWindow == true) {
