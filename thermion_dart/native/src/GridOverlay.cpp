@@ -7,7 +7,7 @@
 #include <filament/TransformManager.h>
 #include <gltfio/math.h>
 
-#include "material/gizmo.h"
+#include "material/grid.h"
 #include "Log.hpp"
 
 namespace thermion_filament {
@@ -76,13 +76,20 @@ GridOverlay::GridOverlay(Engine &engine) : _engine(engine)
     ));
 
     _gridEntity = entityManager.create();
-    // _materialInstance = _material->createInstance();
-    // _materialInstance->setParameter("color", math::float3{0.5f, 0.5f, 0.5f}); // Gray color for the grid
+    _material = Material::Builder()
+        .package(GRID_PACKAGE, GRID_GRID_SIZE)
+        .build(engine);
+
+    _materialInstance = _material->createInstance();
+
+    _materialInstance->setParameter("maxDistance", 50.0f); // Adjust as needed
+    _materialInstance->setParameter("color", math::float3{0.5f, 0.5f, 0.5f}); // Gray color for the grid
+
 
     RenderableManager::Builder(1)
         .boundingBox({{-gridSize * gridSpacing / 2, 0, -gridSize * gridSpacing / 2},
                       {gridSize * gridSpacing / 2, 0, gridSize * gridSpacing / 2}})
-        // .material(0, _materialInstance)
+        .material(0, _materialInstance)
         .geometry(0, RenderableManager::PrimitiveType::LINES, vb, ib, 0, vertexCount)
         .priority(6)
         .layerMask(0xFF, 4)
