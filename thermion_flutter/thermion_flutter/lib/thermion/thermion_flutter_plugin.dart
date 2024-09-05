@@ -60,6 +60,7 @@ class ThermionFlutterPlugin {
     }
   }
 
+  @Deprecated("Use createViewerWithOptions")
   static Future<ThermionViewer> createViewer({String? uberArchivePath}) async {
     if (_initializing) {
       throw Exception("Existing call to createViewer has not completed.");
