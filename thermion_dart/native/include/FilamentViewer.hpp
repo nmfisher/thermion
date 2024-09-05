@@ -147,6 +147,8 @@ namespace thermion_filament
             float sunHaloSize,
             float sunHaloFallof,
             bool shadows);
+        void setLightPosition(EntityId entityId, float x, float y, float z);
+        void setLightDirection(EntityId entityId, float x, float y, float z);
         void removeLight(EntityId entityId);
         void clearLights();
         void setPostProcessing(bool enabled);

@@ -184,6 +184,28 @@ external void clear_lights(
 );
 
 @ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float, ffi.Float)>()
+external void set_light_position(
+  ffi.Pointer<ffi.Void> viewer,
+  int light,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float, ffi.Float)>()
+external void set_light_direction(
+  ffi.Pointer<ffi.Void> viewer,
+  int light,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<
     EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int)>()
 external int load_glb(
   ffi.Pointer<ffi.Void> sceneManager,

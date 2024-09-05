@@ -148,6 +148,14 @@ extern "C"
             shadows);
     }
 
+    EMSCRIPTEN_KEEPALIVE void set_light_position(const void *const viewer, int32_t entityId, float x, float y, float z) {
+        ((FilamentViewer*)viewer)->setLightPosition(entityId, x, y, z);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void set_light_direction(const void *const viewer, int32_t entityId, float x, float y, float z) {
+        ((FilamentViewer*)viewer)->setLightDirection(entityId, x, y, z);
+    }
+
     EMSCRIPTEN_KEEPALIVE void remove_light(const void *const viewer, int32_t entityId)
     {
         ((FilamentViewer *)viewer)->removeLight(entityId);
