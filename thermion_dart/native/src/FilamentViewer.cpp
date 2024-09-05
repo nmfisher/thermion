@@ -1071,7 +1071,7 @@ namespace thermion_filament
 
                       .build(*_engine);
     // Create a copy of the cubemap data
-    float32_t *pixelData = new float32_t[18] {
+    float *pixelData = new float[18] {
       r, g, b,
       r, g, b,
       r, g, b,
@@ -1082,12 +1082,12 @@ namespace thermion_filament
 
     Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t, void *data)
     {
-      delete[] reinterpret_cast<float32_t *>(data);
+      delete[] reinterpret_cast<float *>(data);
     };
 
     auto pbd = Texture::PixelBufferDescriptor(
         pixelData,
-        18 * sizeof(float32_t),
+        18 * sizeof(float),
         Texture::Format::RGB,
         Texture::Type::FLOAT,
         freeCallback,
