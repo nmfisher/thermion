@@ -35,6 +35,7 @@
 #endif
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
+#include <filament/Fence.h>
 #include <filament/IndexBuffer.h>
 #include <filament/IndirectLight.h>
 
@@ -165,6 +166,7 @@ namespace thermion_filament
     _mainCamera = _engine->createCamera(camera);
 
     _view = _engine->createView();
+    _view->setStencilBufferEnabled(true);
 
     setToneMapping(ToneMapping::ACES);
 
@@ -1261,6 +1263,12 @@ namespace thermion_filament
 #endif
   }
 
+  class CaptureCallbackHandler : public filament::backend::CallbackHandler {
+      void post(void* user, Callback callback) {
+        callback(user);
+      }
+  };
+
   void FilamentViewer::capture(uint8_t *out, void (*onComplete)())
   {
 
@@ -1279,22 +1287,24 @@ namespace thermion_filament
       callback();
     };
 
+    // Create a fence
+    #ifndef __EMSCRIPTEN__
+    Fence* fence = _engine->createFence();
+    #endif
+
     auto userData = new std::vector<void *>{out, (void *)onComplete};
+
+    auto dispatcher = new CaptureCallbackHandler();
 
     auto pbd = Texture::PixelBufferDescriptor(
         pixelBuffer, pixelBufferSize,
         Texture::Format::RGBA,
-        Texture::Type::UBYTE, nullptr, callback, userData);
+        Texture::Type::UBYTE, dispatcher, callback, userData);
     _renderer->beginFrame(_swapChain, 0);
-
     _renderer->render(_view);
-
     _view->setScene(_highlightScene);
-
     _renderer->render(_view);
-
     _view->setScene(_scene);
-
     if (_rt)
     {
       _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
@@ -1308,6 +1318,8 @@ namespace thermion_filament
 #ifdef __EMSCRIPTEN__
     _engine->execute();
     emscripten_webgl_commit_frame();
+#else
+    Fence::waitAndDestroy(fence);
 #endif
   }
 
