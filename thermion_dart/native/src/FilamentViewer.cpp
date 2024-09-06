@@ -22,7 +22,7 @@
  * limitations under the License.
  */
 #include <filament/Camera.h>
-
+#include <filament/SwapChain.h>
 #include <backend/DriverEnums.h>
 #include <backend/platforms/OpenGLPlatform.h>
 #ifdef __EMSCRIPTEN__
@@ -158,6 +158,7 @@ namespace thermion_filament
     setFrameInterval(_frameInterval);
 
     _scene = _engine->createScene();
+    _highlightScene = _engine->createScene();
 
     utils::Entity camera = EntityManager::get().create();
 
@@ -195,8 +196,6 @@ namespace thermion_filament
     const float shutterSpeed = _mainCamera->getShutterSpeed();
     const float sens = _mainCamera->getSensitivity();
 
-    Log("Camera aperture %f shutter %f sensitivity %f", aperture, shutterSpeed, sens);
-
     EntityManager &em = EntityManager::get();
 
     _sceneManager = new SceneManager(
@@ -204,6 +203,7 @@ namespace thermion_filament
         _resourceLoaderWrapper,
         _engine,
         _scene,
+        _highlightScene,
         uberArchivePath);
   }
 
@@ -780,7 +780,7 @@ namespace thermion_filament
     else
     {
       Log("Created headless swapchain.");
-      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
     }
 #endif
   }
@@ -800,7 +800,7 @@ namespace thermion_filament
                    .width(width)
                    .height(height)
                    .levels(1)
-                   .usage(filament::Texture::Usage::DEPTH_ATTACHMENT)
+                   .usage(filament::Texture::Usage::DEPTH_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
                    .format(filament::Texture::InternalFormat::DEPTH32F)
                    .build(*_engine);
     _rt = filament::RenderTarget::Builder()
@@ -1180,24 +1180,12 @@ namespace thermion_filament
       void *data)
   {
 
-    if (!_view)
-    {
-      Log("No view");
-      return;
-    }
-    else if (!_swapChain)
-    {
-      Log("No swapchain");
-      return;
-    }
-
     auto now = std::chrono::high_resolution_clock::now();
     auto secsSinceLastFpsCheck = float(std::chrono::duration_cast<std::chrono::seconds>(now - _fpsCounterStartTime).count());
 
     if (secsSinceLastFpsCheck >= 1)
     {
       auto fps = _frameCount / secsSinceLastFpsCheck;
-      Log("%ffps (%d skipped)", fps, _skippedFrames);
       _frameCount = 0;
       _skippedFrames = 0;
       _fpsCounterStartTime = now;
@@ -1230,6 +1218,12 @@ namespace thermion_filament
     {
 
       _renderer->render(_view);
+
+      _view->setScene(_highlightScene);
+
+      _renderer->render(_view);
+
+      _view->setScene(_scene);
 
       _frameCount++;
 
@@ -1294,6 +1288,12 @@ namespace thermion_filament
     _renderer->beginFrame(_swapChain, 0);
 
     _renderer->render(_view);
+
+    _view->setScene(_highlightScene);
+
+    _renderer->render(_view);
+
+    _view->setScene(_scene);
 
     if (_rt)
     {

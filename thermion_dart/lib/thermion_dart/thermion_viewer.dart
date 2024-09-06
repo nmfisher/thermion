@@ -199,11 +199,14 @@ abstract class ThermionViewer {
 
   ///
   /// Load the .glb asset at the given path and insert into the scene.
+  /// Specify [numInstances] to create multiple instances (this is more efficient than dynamically instantating at a later time). You can then retrieve the created instances with [getInstances].
+  /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
+  /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
   ///
-  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1});
+  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1, bool keepData = false});
 
   ///
-  /// Create a new instance of [entity].
+  /// Create a new instance of [entity]. 
   ///
   Future<ThermionEntity> createInstance(ThermionEntity entity);
 
@@ -221,9 +224,11 @@ abstract class ThermionViewer {
   /// Load the .gltf asset at the given path and insert into the scene.
   /// [relativeResourcePath] is the folder path where the glTF resources are stored;
   /// this is usually the parent directory of the .gltf file itself.
+  /// 
+  /// See [loadGlb] for an explanation of [keepData].
   ///
   Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
-      {bool force = false});
+      {bool keepData = false});
 
   ///
   /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
@@ -577,7 +582,8 @@ abstract class ThermionViewer {
   ///
   /// Set the world space position for [lightEntity] to the given coordinates.
   ///
-  Future setLightPosition(ThermionEntity lightEntity, double x, double y, double z);
+  Future setLightPosition(
+      ThermionEntity lightEntity, double x, double y, double z);
 
   ///
   /// Sets the world space direction for [lightEntity] to the given vector.
@@ -810,4 +816,9 @@ abstract class ThermionViewer {
   /// Show/hide the translation gizmo.
   ///
   Future setGizmoVisibility(bool visible);
+
+  ///
+  /// Outlines [entity].
+  /// 
+  Future setStencilHighlight(ThermionEntity entity);
 }

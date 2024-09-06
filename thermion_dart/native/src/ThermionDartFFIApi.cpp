@@ -392,11 +392,12 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void load_gltf_ffi(void *const sceneManager,
                                            const char *path,
                                            const char *relativeResourcePath,
+                                           bool keepData,
                                            void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda([=]() mutable
                                           {
-    auto entity = load_gltf(sceneManager, path, relativeResourcePath);
+    auto entity = load_gltf(sceneManager, path, relativeResourcePath, keepData);
     #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0, $1);
@@ -409,12 +410,15 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void load_glb_ffi(void *const sceneManager,
-                                          const char *path, int numInstances, void (*callback)(EntityId))
+                                          const char *path, 
+                                          int numInstances, 
+                                          bool keepData,
+                                          void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
         [=]() mutable
         {
-          auto entity = load_glb(sceneManager, path, numInstances);
+          auto entity = load_glb(sceneManager, path, numInstances, keepData);
            #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0, $1);
@@ -428,12 +432,16 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_ffi(void *const sceneManager,
-                                                      const void *const data, size_t length, int numInstances, void (*callback)(EntityId))
+                                                      const void *const data, 
+                                                      size_t length, 
+                                                      int numInstances, 
+                                                      bool keepData,
+                                                      void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
         [=]() mutable
         {
-          auto entity = load_glb_from_buffer(sceneManager, data, length);
+          auto entity = load_glb_from_buffer(sceneManager, data, length, keepData);
           callback(entity);
           return entity;
         });

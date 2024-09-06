@@ -61,6 +61,7 @@ void main(List<String> args) async {
       "${config.packageRoot.toFilePath()}/native/include/material/gizmo.c",
       "${config.packageRoot.toFilePath()}/native/include/material/image.c",
       "${config.packageRoot.toFilePath()}/native/include/material/grid.c",
+      "${config.packageRoot.toFilePath()}/native/include/material/unlit.c",
     ]);
 
     var libs = [

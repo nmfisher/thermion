@@ -403,8 +403,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> createInstance(ThermionEntity entity) async {
-    var created = await withIntCallback(
-        (callback) => create_instance(_sceneManager!, entity));
+    var created = create_instance(_sceneManager!, entity);
     if (created == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create instance");
     }
@@ -440,13 +439,13 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> loadGlb(String path,
-      {bool unlit = false, int numInstances = 1}) async {
+      {bool unlit = false, int numInstances = 1, bool keepData = false}) async {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
     var entity = await withIntCallback((callback) =>
-        load_glb_ffi(_sceneManager!, pathPtr, numInstances, callback));
+        load_glb_ffi(_sceneManager!, pathPtr, numInstances, keepData, callback));
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
@@ -461,12 +460,12 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
-      {bool force = false}) async {
+      {bool keepData = false}) async {
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
     final relativeResourcePathPtr =
         relativeResourcePath.toNativeUtf8(allocator: allocator).cast<Char>();
     var entity = await withIntCallback((callback) => load_gltf_ffi(
-        _sceneManager!, pathPtr, relativeResourcePathPtr, callback));
+        _sceneManager!, pathPtr, relativeResourcePathPtr, keepData, callback));
     allocator.free(pathPtr);
     allocator.free(relativeResourcePathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
@@ -1300,9 +1299,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setLightDirection(ThermionEntity lightEntity, Vector3 direction) async {
+  Future setLightDirection(
+      ThermionEntity lightEntity, Vector3 direction) async {
     direction.normalize();
-    set_light_direction(_viewer!, lightEntity, direction.x, direction.y, direction.z);
+    set_light_direction(
+        _viewer!, lightEntity, direction.x, direction.y, direction.z);
   }
 
   ///
@@ -1827,5 +1828,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setGizmoVisibility(bool visible) async {
     set_gizmo_visibility(_sceneManager!, visible);
+  }
+
+  Future setStencilHighlight(ThermionEntity entity) async {
+    set_stencil_highlight(_sceneManager!, entity);
   }
 }

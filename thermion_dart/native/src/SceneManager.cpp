@@ -24,6 +24,9 @@
 #include <imageio/ImageDecoder.h>
 
 #include "material/FileMaterialProvider.hpp"
+#include "material/UnlitMaterialProvider.hpp"
+#include "material/unlit.h"
+
 #include "StreamBufferAdapter.hpp"
 #include "Log.hpp"
 #include "SceneManager.hpp"
@@ -49,11 +52,13 @@ namespace thermion_filament
                                const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
                                Engine *engine,
                                Scene *scene,
+                               Scene *highlightScene,
                                const char *uberArchivePath)
         : _view(view),
           _resourceLoaderWrapper(resourceLoaderWrapper),
           _engine(engine),
-          _scene(scene)
+          _scene(scene),
+          _highlightScene(highlightScene)
     {
 
         _stbDecoder = createStbProvider(_engine);
@@ -76,6 +81,8 @@ namespace thermion_filament
             _ubershaderProvider = gltfio::createUbershaderProvider(
                 _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
         }
+
+        _unlitMaterialProvider = new UnlitMaterialProvider(_engine, UNLIT_PACKAGE, UNLIT_UNLIT_SIZE);
 
         utils::EntityManager &em = utils::EntityManager::get();
 
@@ -152,7 +159,8 @@ namespace thermion_filament
     }
 
     EntityId SceneManager::loadGltf(const char *uri,
-                                    const char *relativeResourcePath)
+                                    const char *relativeResourcePath,
+                                    bool keepData)
     {
         ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
 
@@ -172,7 +180,6 @@ namespace thermion_filament
         for (size_t i = 0; i < resourceUriCount; i++)
         {
             std::string uri = std::string(relativeResourcePath) + std::string("/") + std::string(resourceUris[i]);
-            Log("Loading resource URI from relative path %s", resourceUris[i], uri.c_str());
             ResourceBuffer buf = _resourceLoaderWrapper->load(uri.c_str());
 
             resourceBuffers.push_back(buf);
@@ -215,8 +222,10 @@ namespace thermion_filament
         FilamentInstance *inst = asset->getInstance();
         inst->getAnimator()->updateBoneMatrices();
         inst->recomputeBoundingBoxes();
-
-        asset->releaseSourceData();
+        
+        if(!keepData) {
+            asset->releaseSourceData();
+        }
 
         EntityId eid = Entity::smuggle(asset->getRoot());
 
@@ -233,10 +242,8 @@ namespace thermion_filament
         return eid;
     }
 
-    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances)
+    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData)
     {
-
-        Log("Loading GLB from buffer of length %d", length);
 
         FilamentAsset *asset = nullptr;
         if (numInstances > 1)
@@ -290,7 +297,9 @@ namespace thermion_filament
             _instances.emplace(instanceEntityId, inst);
         }
 
-        asset->releaseSourceData();
+        if(!keepData) {
+            asset->releaseSourceData();
+        }
 
         EntityId eid = Entity::smuggle(asset->getRoot());
         _assets.emplace(eid, asset);
@@ -352,18 +361,26 @@ namespace thermion_filament
         if (pos == _assets.end())
         {
             Log("Couldn't find asset under specified entity id.");
-            return false;
+            return 0;
         }
+
         const auto asset = pos->second;
         auto instance = _assetLoader->createInstance(asset);
 
-        return Entity::smuggle(instance->getRoot());
+        if(!instance) {
+            Log("Failed to create instance");
+            return 0;
+        }
+        auto root = instance->getRoot();
+        _scene->addEntities(instance->getEntities(), instance->getEntityCount());
+
+        return Entity::smuggle(root);
     }
 
-    EntityId SceneManager::loadGlb(const char *uri, int numInstances)
+    EntityId SceneManager::loadGlb(const char *uri, int numInstances, bool keepData)
     {
         ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
-        auto entity = loadGlbFromBuffer((const uint8_t *)rbuf.data, rbuf.size, numInstances);
+        auto entity = loadGlbFromBuffer((const uint8_t *)rbuf.data, rbuf.size, numInstances, keepData);
         _resourceLoaderWrapper->free(rbuf);
         return entity;
     }
@@ -2272,8 +2289,11 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
 
     void SceneManager::setLayerEnabled(int layer, bool enabled)
     {
-        Log("Setting layer %d to %d", layer, enabled);
         _view->setLayerEnabled(layer, enabled);
+    }
+
+   
+
     }
 
 } // namespace thermion_filament
