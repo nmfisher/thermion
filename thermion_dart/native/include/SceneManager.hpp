@@ -46,10 +46,11 @@ namespace thermion_filament
                     const ResourceLoaderWrapperImpl *const loader,
                      Engine *engine,
                      Scene *scene,
+                     Scene *highlightScene,
                      const char *uberArchivePath);
         ~SceneManager();
 
-        EntityId loadGltf(const char *uri, const char *relativeResourcePath);
+        EntityId loadGltf(const char *uri, const char *relativeResourcePath, bool keepData = false);
 
         ////
         /// @brief Load the GLB from the specified path, optionally creating multiple instances.
@@ -57,8 +58,8 @@ namespace thermion_filament
         /// @param numInstances the number of instances to create.
         /// @return an Entity representing the FilamentAsset associated with the loaded FilamentAsset.
         ///
-        EntityId loadGlb(const char *uri, int numInstances);
-        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1);
+        EntityId loadGlb(const char *uri, int numInstances, bool keepData);
+        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false);
         EntityId createInstance(EntityId entityId);
 
         void remove(EntityId entity);
@@ -157,6 +158,8 @@ namespace thermion_filament
         bool addAnimationComponent(EntityId entity);
         void removeAnimationComponent(EntityId entity);
 
+        void setStencilHighlight(EntityId entity);
+
         /// @brief returns the number of instances of the FilamentAsset represented by the given entity.
         /// @param entityId
         /// @return the number of instances
@@ -194,9 +197,11 @@ namespace thermion_filament
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         Engine *_engine = nullptr;
         Scene *_scene = nullptr;       
+        Scene *_highlightScene = nullptr;       
         View* _view = nullptr;
 
         gltfio::MaterialProvider *_ubershaderProvider = nullptr;
+        gltfio::MaterialProvider *_unlitMaterialProvider = nullptr;
         gltfio::ResourceLoader *_gltfResourceLoader = nullptr;
         gltfio::TextureProvider *_stbDecoder = nullptr;
         gltfio::TextureProvider *_ktxDecoder = nullptr;

@@ -174,6 +174,7 @@ namespace thermion_filament
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         void* _context = nullptr;
         Scene *_scene = nullptr;
+        Scene *_highlightScene = nullptr;
         View *_view = nullptr;
         
         Engine *_engine = nullptr;

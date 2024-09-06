@@ -1,0 +1,33 @@
+material {
+    name : unlit,
+    parameters : [
+        {
+            type : float3,
+            name : color
+        },
+        {
+            type : float,
+            name : scale
+        }
+    ],
+    depthWrite : true,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending: opaque,
+    variantFilter : [ skinning, shadowReceiver, vsm ],
+    culling: none,
+    instanced: false,
+    vertexDomain: object
+}
+    vertex {
+        void materialVertex(inout MaterialVertexInputs material) {
+            material.worldPosition = materialParams.scale * getWorldFromModelMatrix() * getPosition();
+        }
+    }
+    
+    fragment {
+        void material(inout MaterialInputs material) {
+            prepareMaterial(material);           
+            material.baseColor = float4(materialParams.color, 1.0);
+        }
+    }

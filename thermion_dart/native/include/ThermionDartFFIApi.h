@@ -66,9 +66,9 @@ extern "C"
         void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void remove_light_ffi(void *const viewer, EntityId entityId);
     EMSCRIPTEN_KEEPALIVE void clear_lights_ffi(void *const viewer);
-    EMSCRIPTEN_KEEPALIVE void load_glb_ffi(void *const sceneManager, const char *assetPath, int numInstances, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_ffi(void *const sceneManager, const void *const data, size_t length, int numInstances, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void load_gltf_ffi(void *const sceneManager, const char *assetPath, const char *relativePath, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void load_glb_ffi(void *const sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_ffi(void *const sceneManager, const void *const data, size_t length, int numInstances, bool keepData, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void load_gltf_ffi(void *const sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void create_instance_ffi(void *const sceneManager, EntityId entityId, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void remove_entity_ffi(void *const viewer, EntityId asset, void (*callback)());
     EMSCRIPTEN_KEEPALIVE void clear_entities_ffi(void *const viewer, void (*callback)());

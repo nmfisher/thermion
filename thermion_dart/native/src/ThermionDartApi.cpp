@@ -166,14 +166,14 @@ extern "C"
         ((FilamentViewer *)viewer)->clearLights();
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances)
+    EMSCRIPTEN_KEEPALIVE EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances, bool keepData)
     {
-        return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances);
+        return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances, keepData);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length)
+    EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length, bool keepData)
     {
-        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length);
+        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, keepData);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId create_instance(void *sceneManager, EntityId entityId)
@@ -191,9 +191,9 @@ extern "C"
         return ((SceneManager *)sceneManager)->getInstances(entityId, out);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath)
+    EMSCRIPTEN_KEEPALIVE EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath, bool keepData)
     {
-        return ((SceneManager *)sceneManager)->loadGltf(assetPath, relativePath);
+        return ((SceneManager *)sceneManager)->loadGltf(assetPath, relativePath, keepData);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_main_camera(const void *const viewer)
@@ -892,7 +892,10 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible) {
         ((SceneManager*)sceneManager)->gizmo->setVisibility(visible);
     }
-	
+    
+    EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->setStencilHighlight(entityId);
+    }
 
 
 

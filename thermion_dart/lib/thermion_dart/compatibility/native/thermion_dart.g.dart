@@ -206,28 +206,33 @@ external void set_light_direction(
 );
 
 @ffi.Native<
-    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int)>()
+    EntityId Function(
+        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int, ffi.Bool)>()
 external int load_glb(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   int numInstances,
-);
-
-@ffi.Native<
-    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size)>()
-external int load_glb_from_buffer(
-  ffi.Pointer<ffi.Void> sceneManager,
-  ffi.Pointer<ffi.Void> data,
-  int length,
+  bool keepData,
 );
 
 @ffi.Native<
     EntityId Function(
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
+        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size, ffi.Bool)>()
+external int load_glb_from_buffer(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<ffi.Void> data,
+  int length,
+  bool keepData,
+);
+
+@ffi.Native<
+    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.Char>, ffi.Bool)>()
 external int load_gltf(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   ffi.Pointer<ffi.Char> relativePath,
+  bool keepData,
 );
 
 @ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>()
@@ -1111,6 +1116,12 @@ external void set_gizmo_visibility(
   bool visible,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
+external void set_stencil_highlight(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+);
+
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
@@ -1347,12 +1358,17 @@ external void clear_lights_ffi(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int,
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Char>,
+        ffi.Int,
+        ffi.Bool,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>()
 external void load_glb_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   int numInstances,
+  bool keepData,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 
@@ -1362,12 +1378,14 @@ external void load_glb_ffi(
         ffi.Pointer<ffi.Void>,
         ffi.Size,
         ffi.Int,
+        ffi.Bool,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>()
 external void load_glb_from_buffer_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Void> data,
   int length,
   int numInstances,
+  bool keepData,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 
@@ -1376,11 +1394,13 @@ external void load_glb_from_buffer_ffi(
         ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Char>,
         ffi.Pointer<ffi.Char>,
+        ffi.Bool,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>()
 external void load_gltf_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   ffi.Pointer<ffi.Char> relativePath,
+  bool keepData,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 

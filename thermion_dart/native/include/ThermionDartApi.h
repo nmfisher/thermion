@@ -95,9 +95,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void clear_lights(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void set_light_position(const void *const viewer, EntityId light, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void set_light_direction(const void *const viewer, EntityId light, float x, float y, float z);
-	EMSCRIPTEN_KEEPALIVE EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances);
-	EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length);
-	EMSCRIPTEN_KEEPALIVE EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath);
+	EMSCRIPTEN_KEEPALIVE EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances, bool keepData);
+	EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length, bool keepData);
+	EMSCRIPTEN_KEEPALIVE EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath, bool keepData);
 	EMSCRIPTEN_KEEPALIVE EntityId create_instance(void *sceneManager, EntityId id);
 	EMSCRIPTEN_KEEPALIVE int get_instance_count(void *sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void get_instances(void *sceneManager, EntityId entityId, EntityId *out);
@@ -259,6 +259,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y));
 	EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible);
+	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entity);
 
 #ifdef __cplusplus
 }
