@@ -16,23 +16,11 @@ using namespace filament::gltfio;
 
 Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
 {
-    if(scene) {
-        _scene = scene;
-        _view = view;
-        _camera = &(_view->getCamera());
-    } else {
-        _scene = _engine.createScene();
-        _view = _engine.createView();
-        _view->setBlendMode(BlendMode::TRANSLUCENT);
-        
-        utils::Entity camera = EntityManager::get().create();
-        _camera = engine.createCamera(camera);
-        _camera->setProjection(Camera::Projection::ORTHO, -1.0, 1.0, -1.0, 1.0, 1.0, 5.0);
-        _view->setScene(_scene);
-        _view->setCamera(_camera);
-
-    }
-
+    
+    _scene = scene;
+    _view = view;
+    _camera = &(_view->getCamera());
+    
     auto &entityManager = EntityManager::get();
 
     auto &transformManager = engine.getTransformManager();
@@ -208,18 +196,17 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
 
 Gizmo::~Gizmo() {
     _scene->removeEntities(_entities, 7);
-    for(int i = 0; i < 7; i++) {
-        _engine.destroy(_materialInstances[i]);    
-    }
-    _engine.destroy(_material);
+    
     for(int i = 0; i < 7; i++) {
         _engine.destroy(_entities[i]);    
     }
     
-    _view->setScene(nullptr);
-    _engine.destroy(_scene);
-    _engine.destroy(_view);
-
+    for(int i = 0; i < 7; i++) {
+        _engine.destroy(_materialInstances[i]);    
+    }
+    
+    _engine.destroy(_material);
+    
 }
 
 void Gizmo::createTransparentRectangles()
@@ -341,22 +328,6 @@ void Gizmo::unhighlight() {
         math::float4 baseColor = inactiveColors[i];
         materialInstance->setParameter("color", baseColor);
     }
-}
-
-void Gizmo::destroy()
-{
-    auto& rm = _engine.getRenderableManager();
-    auto& tm = _engine.getTransformManager();
-        
-    for (int i = 0; i < 4; i++)
-    {
-        rm.destroy(_entities[i]);
-        tm.destroy(_entities[i]);
-        _engine.destroy(_entities[i]);
-        _engine.destroy(_materialInstances[i]);
-    }
-
-    _engine.destroy(_material);
 }
 
 void Gizmo::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
