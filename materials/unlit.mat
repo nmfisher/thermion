@@ -14,14 +14,15 @@ material {
     depthCulling : false,
     shadingModel : unlit,
     blending: opaque,
-    variantFilter : [ skinning, shadowReceiver, vsm ],
     culling: none,
     instanced: false,
     vertexDomain: object
 }
     vertex {
         void materialVertex(inout MaterialVertexInputs material) {
-            material.worldPosition = materialParams.scale * getWorldFromModelMatrix() * getPosition();
+            float4 position = getPosition();
+            position.xyz *= materialParams.scale;
+            material.worldPosition = getWorldFromModelMatrix() * position;
         }
     }
     
