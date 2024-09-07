@@ -62,7 +62,6 @@ class Gizmo {
         Gizmo(Engine& engine, View *view, Scene *scene);
         ~Gizmo();
 
-        void destroy();
         Entity x() {
             return _entities[0];
         };
