@@ -198,6 +198,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void transform_to_unit_cube(void *sceneManager, EntityId asset);
 	EMSCRIPTEN_KEEPALIVE void queue_position_update(void *sceneManager, EntityId entity, float x, float y, float z, bool relative);
 	EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(void *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z);
+	EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(void *sceneManager, EntityId entity, float viewportX, float viewportY);
 	EMSCRIPTEN_KEEPALIVE void queue_rotation_update(void *sceneManager, EntityId entity, float rads, float x, float y, float z, float w, bool relative);
 	EMSCRIPTEN_KEEPALIVE void set_position(void *sceneManager, EntityId entity, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void set_rotation(void *sceneManager, EntityId entity, float rads, float x, float y, float z, float w);
@@ -248,7 +249,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE bool add_animation_component(void *const sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void remove_animation_component(void *const sceneManager, EntityId entityId);
 
-	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
+	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
 	EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling);
 	EMSCRIPTEN_KEEPALIVE void test_collisions(void *const sceneManager, EntityId entity);
@@ -259,7 +260,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y));
 	EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible);
-	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entity, float r, float g, float b);
+	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entity);
 
 #ifdef __cplusplus
 }
