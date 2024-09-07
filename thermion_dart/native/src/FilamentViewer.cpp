@@ -159,13 +159,13 @@ namespace thermion_filament
     setFrameInterval(_frameInterval);
 
     _scene = _engine->createScene();
-    _highlightScene = _engine->createScene();
 
     utils::Entity camera = EntityManager::get().create();
 
     _mainCamera = _engine->createCamera(camera);
 
     _view = _engine->createView();
+    _view->setBlendMode(filament::View::BlendMode::TRANSLUCENT);
     _view->setStencilBufferEnabled(true);
 
     setToneMapping(ToneMapping::ACES);
@@ -205,7 +205,6 @@ namespace thermion_filament
         _resourceLoaderWrapper,
         _engine,
         _scene,
-        _highlightScene,
         uberArchivePath);
   }
 
@@ -623,8 +622,6 @@ namespace thermion_filament
     }
 
     string resourcePathString(resourcePath);
-
-    Log("Setting background image to %s", resourcePath);
 
     clearBackgroundImage();
 
@@ -1132,8 +1129,6 @@ namespace thermion_filament
     removeIbl();
     if (iblPath)
     {
-      Log("Loading IBL from %s", iblPath);
-
       // Load IBL.
       ResourceBuffer iblBuffer = _resourceLoaderWrapper->load(iblPath);
       // because this will go out of scope before the texture callback is invoked, we need to make a copy to the heap
@@ -1182,6 +1177,11 @@ namespace thermion_filament
       void *data)
   {
 
+    if (!_view || !_swapChain)
+    {
+      return;
+    }
+
     auto now = std::chrono::high_resolution_clock::now();
     auto secsSinceLastFpsCheck = float(std::chrono::duration_cast<std::chrono::seconds>(now - _fpsCounterStartTime).count());
 
@@ -1220,12 +1220,6 @@ namespace thermion_filament
     {
 
       _renderer->render(_view);
-
-      _view->setScene(_highlightScene);
-
-      _renderer->render(_view);
-
-      _view->setScene(_scene);
 
       _frameCount++;
 
@@ -1301,10 +1295,9 @@ namespace thermion_filament
         Texture::Format::RGBA,
         Texture::Type::UBYTE, dispatcher, callback, userData);
     _renderer->beginFrame(_swapChain, 0);
+
     _renderer->render(_view);
-    _view->setScene(_highlightScene);
-    _renderer->render(_view);
-    _view->setScene(_scene);
+    
     if (_rt)
     {
       _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
@@ -1673,71 +1666,6 @@ namespace thermion_filament
     });
   }
 
-  EntityId FilamentViewer::createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, RenderableManager::PrimitiveType primitiveType, const char *materialPath)
-  {
-
-    float *verticesCopy = (float *)malloc(numVertices * sizeof(float));
-    memcpy(verticesCopy, vertices, numVertices * sizeof(float));
-    VertexBuffer::BufferDescriptor::Callback vertexCallback = [](void *buf, size_t,
-                                                                 void *data)
-    {
-      free((void *)buf);
-    };
-
-    uint16_t *indicesCopy = (uint16_t *)malloc(numIndices * sizeof(uint16_t));
-    memcpy(indicesCopy, indices, numIndices * sizeof(uint16_t));
-    IndexBuffer::BufferDescriptor::Callback indexCallback = [](void *buf, size_t,
-                                                               void *data)
-    {
-      free((void *)buf);
-    };
-
-    auto vb = VertexBuffer::Builder().vertexCount(numVertices).bufferCount(1).attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3).build(*_engine);
-
-    vb->setBufferAt(*_engine, 0, VertexBuffer::BufferDescriptor(verticesCopy, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback));
-
-    auto ib = IndexBuffer::Builder().indexCount(numIndices).bufferType(IndexBuffer::IndexType::USHORT).build(*_engine);
-    ib->setBuffer(*_engine, IndexBuffer::BufferDescriptor(indicesCopy, ib->getIndexCount() * sizeof(uint16_t), 0, indexCallback));
-
-    filament::Material *mat = nullptr;
-    if (materialPath)
-    {
-      auto matData = _resourceLoaderWrapper->load(materialPath);
-      mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
-      _resourceLoaderWrapper->free(matData);
-    }
-
-    float minX, minY, minZ = 0.0f;
-    float maxX, maxY, maxZ = 0.0f;
-
-    for (int i = 0; i < numVertices; i += 3)
-    {
-      minX = std::min(vertices[i], minX);
-      minY = std::min(vertices[i + 1], minY);
-      minZ = std::min(vertices[i + 2], minZ);
-      maxX = std::max(vertices[i], maxX);
-      maxY = std::max(vertices[i + 1], maxY);
-      maxZ = std::max(vertices[i + 2], maxZ);
-    }
-
-    auto renderable = utils::EntityManager::get().create();
-    RenderableManager::Builder builder = RenderableManager::Builder(1);
-    builder
-        .boundingBox({{minX, minY, minZ}, {maxX, maxY, maxZ}})
-        .geometry(0, primitiveType,
-                  vb, ib, 0, numIndices)
-        .culling(false)
-        .receiveShadows(false)
-        .castShadows(false);
-    if (mat)
-    {
-      builder.material(0, mat->getDefaultInstance()).build(*_engine, renderable);
-    }
-    auto result = builder.build(*_engine, renderable);
-
-    _scene->addEntity(renderable);
-
-    return Entity::smuggle(renderable);
-  }
+  
 
 } // namespace thermion_filament

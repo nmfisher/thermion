@@ -163,8 +163,6 @@ namespace thermion_filament
         void setShadowType(ShadowType shadowType);
         void setSoftShadowOptions( float penumbraScale, float penumbraRatioScale);
 
-        EntityId createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, filament::RenderableManager::PrimitiveType primitiveType = RenderableManager::PrimitiveType::TRIANGLES, const char *materialPath = nullptr);
-
         SceneManager *const getSceneManager()
         {
             return (SceneManager *const)_sceneManager;
@@ -174,7 +172,7 @@ namespace thermion_filament
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         void* _context = nullptr;
         Scene *_scene = nullptr;
-        Scene *_highlightScene = nullptr;
+
         View *_view = nullptr;
         
         Engine *_engine = nullptr;
