@@ -859,7 +859,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void create_geometry_ffi(
-    void *const viewer, 
+    void *const sceneManager, 
     float *vertices, 
     int numVertices, 
     uint16_t *indices, 
@@ -871,7 +871,7 @@ extern "C"
     std::packaged_task<EntityId()> lambda(
         [=]
         {
-          auto entity = create_geometry(viewer, vertices, numVertices, indices, numIndices, primitiveType, materialPath);
+          auto entity = create_geometry(sceneManager, vertices, numVertices, indices, numIndices, primitiveType, materialPath);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0,$1);

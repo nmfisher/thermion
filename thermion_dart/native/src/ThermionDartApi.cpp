@@ -745,6 +745,10 @@ extern "C"
         ((SceneManager *)sceneManager)->queueRotationUpdate(asset, rads, x, y, z, w, relative);
     }
 
+    EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(void *sceneManager, EntityId entity, float viewportX, float viewportY) {
+        ((SceneManager *)sceneManager)->queueRelativePositionUpdateFromViewportVector(entity, viewportX, viewportY);
+    }
+
     EMSCRIPTEN_KEEPALIVE void stop_animation(void *sceneManager, EntityId asset, int index)
     {
         ((SceneManager *)sceneManager)->stopAnimation(asset, index);
@@ -825,9 +829,15 @@ extern "C"
         ((SceneManager *)sceneManager)->removeAnimationComponent(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const viewer, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
+    EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
     {
-        return ((FilamentViewer *)viewer)->createGeometry(vertices, (uint32_t)numVertices, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, materialPath);
+        return ((SceneManager *)sceneManager)->createGeometry(
+            vertices, 
+            (uint32_t)numVertices, 
+            indices, 
+            numIndices, 
+            (filament::RenderableManager::PrimitiveType)primitiveType, 
+            materialPath);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char *name)
@@ -893,10 +903,12 @@ extern "C"
         ((SceneManager*)sceneManager)->gizmo->setVisibility(visible);
     }
     
-    EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entityId) {
-        ((SceneManager*)sceneManager)->setStencilHighlight(entityId);
+    EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entityId, float r, float g, float b) {
+        ((SceneManager*)sceneManager)->setStencilHighlight(entityId, r, g, b);
     }
 
-
+    EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entityId) {
+        ((SceneManager*)sceneManager)->removeStencilHighlight(entityId);
+    }
 
 }
