@@ -86,6 +86,7 @@ class Gizmo extends AbstractGizmo {
   }
 
   Future attach(ThermionEntity entity) async {
+    print("Attaching");
     _activeAxis = null;
     if (entity == _activeEntity) {
       return;
@@ -95,10 +96,16 @@ class Gizmo extends AbstractGizmo {
       return;
     }
     _visible = true;
+
+    if (_activeEntity != null) {
+      await _viewer.removeStencilHighlight(_activeEntity!);
+    }
     _activeEntity = entity;
     await _viewer.setGizmoVisibility(true);
     await _viewer.setParent(center, entity, preserveScaling: true);
     _boundingBoxController.sink.add(await _viewer.getBoundingBox(x));
+
+    await _viewer.setStencilHighlight(_activeEntity!);
   }
 
   Future detach() async {
