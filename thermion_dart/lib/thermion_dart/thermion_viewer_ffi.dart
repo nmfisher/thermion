@@ -444,8 +444,8 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Not yet implemented");
     }
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
-    var entity = await withIntCallback((callback) =>
-        load_glb_ffi(_sceneManager!, pathPtr, numInstances, keepData, callback));
+    var entity = await withIntCallback((callback) => load_glb_ffi(
+        _sceneManager!, pathPtr, numInstances, keepData, callback));
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
@@ -1334,6 +1334,9 @@ class ThermionViewerFFI extends ThermionViewer {
     set_scale(_sceneManager!, entity, scale);
   }
 
+  ///
+  ///
+  ///
   Future queueRotationUpdateQuat(ThermionEntity entity, Quaternion rotation,
       {bool relative = false}) async {
     queue_rotation_update(_sceneManager!, entity, rotation.radians, rotation.x,
@@ -1361,6 +1364,18 @@ class ThermionViewerFFI extends ThermionViewer {
     queue_position_update(_sceneManager!, entity, x, y, z, relative);
   }
 
+  ///
+  /// Queues an update to the worldspace position for [entity] to the viewport coordinates {x,y}.
+  /// The actual update will occur on the next frame, and will be subject to collision detection.
+  ///
+  Future queuePositionUpdateFromViewportCoords(
+      ThermionEntity entity, double x, double y) async {
+    queue_position_update_from_viewport_coords(_sceneManager!, entity, x, y);
+  }
+
+  ///
+  ///
+  ///
   Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
       double viewportX, double viewportY, double x, double y, double z) async {
     queue_relative_position_update_world_axis(
@@ -1742,7 +1757,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var entity = await withIntCallback((callback) => create_geometry_ffi(
-        _viewer!,
+        _sceneManager!,
         vertexPtr,
         vertices.length,
         indicesPtr,
@@ -1830,7 +1845,18 @@ class ThermionViewerFFI extends ThermionViewer {
     set_gizmo_visibility(_sceneManager!, visible);
   }
 
-  Future setStencilHighlight(ThermionEntity entity) async {
-    set_stencil_highlight(_sceneManager!, entity);
+  ///
+  ///
+  ///
+  Future setStencilHighlight(ThermionEntity entity,
+      {double r = 1.0, double g = 0.0, double b = 0.0}) async {
+    set_stencil_highlight(_sceneManager!, entity, r, g, b);
+  }
+
+  ///
+  ///
+  ///
+  Future removeStencilHighlight(ThermionEntity entity) async {
+    remove_stencil_highlight(_sceneManager!, entity);
   }
 }
