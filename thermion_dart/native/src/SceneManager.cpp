@@ -20,7 +20,7 @@
 #include <gltfio/ResourceLoader.h>
 #include <gltfio/TextureProvider.h>
 #include <gltfio/math.h>
-
+#include <gltfio/materials/uberarchive.h>
 #include <imageio/ImageDecoder.h>
 
 #include "material/FileMaterialProvider.hpp"
@@ -30,8 +30,7 @@
 #include "StreamBufferAdapter.hpp"
 #include "Log.hpp"
 #include "SceneManager.hpp"
-
-#include "gltfio/materials/uberarchive.h"
+#include "CustomGeometry.hpp"
 
 extern "C"
 {
@@ -52,13 +51,11 @@ namespace thermion_filament
                                const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
                                Engine *engine,
                                Scene *scene,
-                               Scene *highlightScene,
                                const char *uberArchivePath)
         : _view(view),
           _resourceLoaderWrapper(resourceLoaderWrapper),
           _engine(engine),
-          _scene(scene),
-          _highlightScene(highlightScene)
+          _scene(scene)
     {
 
         _stbDecoder = createStbProvider(_engine);
@@ -112,11 +109,9 @@ namespace thermion_filament
 
     SceneManager::~SceneManager()
     {
-
-        destroyAll();
-
-        gizmo->destroy();
+        delete gizmo;
         _gridOverlay->destroy();
+        destroyAll();
 
         _gltfResourceLoader->asyncCancelLoad();
         _ubershaderProvider->destroyMaterials();
@@ -1830,6 +1825,55 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
+void SceneManager::queueRelativePositionUpdateFromViewportVector(EntityId entityId, float viewportCoordX, float viewportCoordY)
+{
+   // Get the camera and viewport
+    const auto &camera = _view->getCamera();
+    const auto &vp = _view->getViewport();
+
+    // Convert viewport coordinates to NDC space
+    float ndcX = (2.0f * viewportCoordX) / vp.width - 1.0f;
+    float ndcY = 1.0f - (2.0f * viewportCoordY) / vp.height;
+
+    Log("ndc X ndcY %f %f", ndcX, ndcY );
+    // Get the current position of the entity
+    auto &tm = _engine->getTransformManager();
+    auto entity = Entity::import(entityId);
+    auto transformInstance = tm.getInstance(entity);
+    auto currentTransform = tm.getTransform(transformInstance);
+
+    // get entity model origin in camera space
+    auto entityPositionInCameraSpace = camera.getViewMatrix() * currentTransform * filament::math::float4 { 0.0f, 0.0f, 0.0f, 1.0f };
+    // get entity model origin in clip space
+    auto entityPositionInClipSpace = camera.getProjectionMatrix() * entityPositionInCameraSpace;
+    auto entityPositionInNdcSpace = entityPositionInClipSpace / entityPositionInClipSpace.w;
+
+    Log("entityPositionInCameraSpace %f %f %f %f", entityPositionInCameraSpace.x, entityPositionInCameraSpace.y, entityPositionInCameraSpace.z, entityPositionInCameraSpace.w);
+    Log("entityPositionInClipSpace %f %f %f %f", entityPositionInClipSpace.x, entityPositionInClipSpace.y, entityPositionInClipSpace.z, entityPositionInClipSpace.w);
+    Log("entityPositionInNdcSpace %f %f %f %f", entityPositionInNdcSpace.x, entityPositionInNdcSpace.y, entityPositionInNdcSpace.z, entityPositionInNdcSpace.w);
+
+    // Viewport coords in NDC space (use entity position in camera space Z to project onto near plane)
+    math::float4 ndcNearPlanePos = {ndcX, ndcY, -1.0f, 1.0f};
+    math::float4 ndcFarPlanePos = {ndcX, ndcY, 0.99f, 1.0f};
+    math::float4 ndcEntityPlanePos = {ndcX, ndcY, entityPositionInNdcSpace.z, 1.0f};
+
+    // Get viewport coords in clip space 
+    math::float4 nearPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcNearPlanePos;
+    auto nearPlaneInCameraSpace = nearPlaneInClipSpace / nearPlaneInClipSpace.w;
+    math::float4 farPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcFarPlanePos;
+    auto farPlaneInCameraSpace = farPlaneInClipSpace / farPlaneInClipSpace.w;
+    math::float4 entityPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcEntityPlanePos;
+    auto entityPlaneInCameraSpace = entityPlaneInClipSpace / entityPlaneInClipSpace.w;
+    auto entityPlaneInWorldSpace = camera.getModelMatrix() * entityPlaneInCameraSpace;
+
+    Log("nearPlaneInClipSpace %f %f %f %f",nearPlaneInClipSpace.x, nearPlaneInClipSpace.y, nearPlaneInClipSpace.z, nearPlaneInClipSpace.w);
+    Log("nearPlaneInCameraSpace %f %f %f %f",nearPlaneInCameraSpace.x, nearPlaneInCameraSpace.y, nearPlaneInCameraSpace.z, nearPlaneInCameraSpace.w);
+    Log("entityPlaneInCameraSpace %f %f %f %f",entityPlaneInCameraSpace.x, entityPlaneInCameraSpace.y, entityPlaneInCameraSpace.z, entityPlaneInCameraSpace.w);
+    Log("entityPlaneInWorldSpace %f %f %f %f",entityPlaneInWorldSpace.x, entityPlaneInWorldSpace.y, entityPlaneInWorldSpace.z, entityPlaneInWorldSpace.w);
+    
+    // Queue the position update (as a relative movement)
+    queuePositionUpdate(entityId, entityPlaneInWorldSpace.x, entityPlaneInWorldSpace.y, entityPlaneInWorldSpace.z, false);
+}
 void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
 {
     auto worldAxis = math::float3{x, y, z};
@@ -2212,7 +2256,6 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
             return;
         }
         rm.setPriority(renderableInstance, priority);
-        Log("Set instance renderable priority to %d", priority);
     }
 
     Aabb2 SceneManager::getBoundingBox(EntityId entityId)
@@ -2292,8 +2335,71 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
         _view->setLayerEnabled(layer, enabled);
     }
 
-   
+    void SceneManager::removeStencilHighlight(EntityId entityId) {
+        auto found = _highlighted.find(entityId);
+        if(found == _highlighted.end()) {
+            return;
+        }
+        delete found->second;
+        _highlighted.erase(entityId);
+    }
+
+    void SceneManager::setStencilHighlight(EntityId entityId, float r, float g, float b) {
+
+        auto highlightEntity = new HighlightOverlay(entityId, this, _engine, r, g, b);
+
+        if(!highlightEntity->isValid()) {
+            delete highlightEntity;
+        } else {
+            _highlighted.emplace(entityId, highlightEntity);
+        }
 
     }
 
+    EntityId SceneManager::createGeometry(
+        float *vertices,
+        uint32_t numVertices,
+        uint16_t *indices,
+        uint32_t numIndices,
+        RenderableManager::PrimitiveType primitiveType,
+        const char *materialPath,
+        bool keepData
+    ) {
+
+    auto geometry = new CustomGeometry(vertices, numVertices, indices, numIndices, primitiveType, _engine);
+
+    filament::Material* mat = nullptr;
+    if (materialPath) {
+        auto matData = _resourceLoaderWrapper->load(materialPath);
+        mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
+        _resourceLoaderWrapper->free(matData);
+    }
+
+    auto renderable = utils::EntityManager::get().create();
+    RenderableManager::Builder builder(1);
+
+    builder.boundingBox(geometry->getBoundingBox())
+           .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
+           .culling(true)
+           .receiveShadows(false)
+           .castShadows(false);
+
+    if (mat) {
+        builder.material(0, mat->getDefaultInstance());
+    } 
+
+    builder.build(*_engine, renderable);
+
+    _scene->addEntity(renderable);
+
+    auto entityId = Entity::smuggle(renderable);
+
+    _geometry.emplace(entityId, geometry);
+
+    return entityId;
+  }
+
 } // namespace thermion_filament
+
+
+    
