@@ -672,6 +672,15 @@ external void queue_relative_position_update_world_axis(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float)>()
+external void queue_position_update_from_viewport_coords(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  double viewportX,
+  double viewportY,
+);
+
+@ffi.Native<
     ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
         ffi.Float, ffi.Float, ffi.Float, ffi.Bool)>()
 external void queue_rotation_update(
@@ -1019,7 +1028,7 @@ external void remove_animation_component(
     EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>, ffi.Int,
         ffi.Pointer<ffi.Uint16>, ffi.Int, ffi.Int, ffi.Pointer<ffi.Char>)>()
 external int create_geometry(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
   ffi.Pointer<ffi.Uint16> indices,
@@ -1116,8 +1125,19 @@ external void set_gizmo_visibility(
   bool visible,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float, ffi.Float)>()
 external void set_stencil_highlight(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  double r,
+  double g,
+  double b,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>()
+external void remove_stencil_highlight(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
 );
@@ -1581,7 +1601,7 @@ external void reset_to_rest_pose_ffi(
         ffi.Pointer<ffi.Char>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>()
 external void create_geometry_ffi(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
   ffi.Pointer<ffi.Uint16> indices,
