@@ -1809,6 +1809,21 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
+  Future<ThermionEntity?> getAncestor(ThermionEntity child) async {
+    if (_sceneManager == null) {
+      throw Exception("Asset manager must be non-null");
+    }
+    var parent = get_ancestor(_sceneManager!, child);
+    if (parent == _FILAMENT_ASSET_ERROR) {
+      return null;
+    }
+    return parent;
+  }
+
+  ///
+  ///
+  ///
+  @override
   Future testCollisions(ThermionEntity entity) async {
     test_collisions(_sceneManager!, entity);
   }

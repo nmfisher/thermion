@@ -1043,6 +1043,12 @@ external int get_parent(
   int child,
 );
 
+@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>()
+external int get_ancestor(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int child,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId, ffi.Bool)>()
 external void set_parent(
