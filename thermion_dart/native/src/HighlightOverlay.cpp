@@ -71,8 +71,6 @@ namespace thermion_filament {
             return;
         }
 
-        Log("Not geometry");
-
         if(sceneManager->isGltfAsset(entityId)) {
 
             auto *asset = sceneManager->getAssetByEntityId(entityId);
@@ -98,10 +96,13 @@ namespace thermion_filament {
 
                 _entity = newInstance->getRoot();
 
+                auto newTransformInstance = tm.getInstance(_entity);
+
+                auto entityTransformInstance = tm.getInstance(asset->getRoot());                
+                tm.setParent(newTransformInstance, entityTransformInstance);      
                 if(!newInstance) {
                     Log("Couldn't create new instance");
                 } else {
-                    auto& tm = engine->getTransformManager();
                     for(int i = 0; i < newInstance->getEntityCount(); i++) {
                         auto entity = newInstance->getEntities()[i];
                         auto renderableInstance = rm.getInstance(entity);
@@ -149,7 +150,6 @@ namespace thermion_filament {
 }
 
 SceneManager::HighlightOverlay::~HighlightOverlay() { 
-    Log("DEsturctor called!");
       if (_entity.isNull()) {
         return;
       }
