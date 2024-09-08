@@ -1542,6 +1542,25 @@ namespace thermion_filament
         return Entity::smuggle(parent);
     }
 
+    EntityId SceneManager::getAncestor(EntityId childEntityId)
+    {
+        auto &tm = _engine->getTransformManager();
+        const auto child = Entity::import(childEntityId);
+        auto transformInstance = tm.getInstance(child);
+        Entity parent;
+        
+        while(true) {
+            auto newParent = tm.getParent(transformInstance);
+            if(newParent.isNull()) {
+                break;
+            }
+            parent = newParent;
+            transformInstance = tm.getInstance(parent);
+        }
+
+        return Entity::smuggle(parent);
+    }
+
     void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId, bool preserveScaling)
     {
         auto &tm = _engine->getTransformManager();
@@ -1560,8 +1579,6 @@ namespace thermion_filament
             Log("Child instance is not valid");
             return;
         }
-
-        Log("Parenting child entity %d to new parent entity %d", childEntityId, parentEntityId);
 
         if (preserveScaling)
         {

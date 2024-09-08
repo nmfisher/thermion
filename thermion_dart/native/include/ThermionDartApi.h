@@ -251,6 +251,7 @@ extern "C"
 
 	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
 	EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child);
+	EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling);
 	EMSCRIPTEN_KEEPALIVE void test_collisions(void *const sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_priority(void *const sceneManager, EntityId entityId, int priority);

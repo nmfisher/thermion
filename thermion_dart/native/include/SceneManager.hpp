@@ -181,6 +181,7 @@ namespace thermion_filament
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
         EntityId getParent(EntityId child);
+        EntityId getAncestor(EntityId child);
         void setParent(EntityId child, EntityId parent, bool preserveScaling);
         bool addAnimationComponent(EntityId entity);
         void removeAnimationComponent(EntityId entity);
