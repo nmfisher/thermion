@@ -124,7 +124,51 @@ void main() async {
     });
   });
 
-  group("transforms", () {
+  group("transforms & parenting", () {
+    test('getParent and getAncestor both return null when entity has no parent', () async {
+      var viewer = await createViewer();
+
+      final cube = await viewer.createGeometry(cubeVertices, cubeIndices,
+          primitiveType: PrimitiveType.TRIANGLES);
+
+      expect(await viewer.getParent(cube), isNull);
+      expect(await viewer.getAncestor(cube), isNull);
+    });
+
+    test(
+        'getParent returns the parent entity after one has been set via setParent',
+        () async {
+      var viewer = await createViewer();
+
+      final cube1 = await viewer.createGeometry(cubeVertices, cubeIndices,
+          primitiveType: PrimitiveType.TRIANGLES);
+      final cube2 = await viewer.createGeometry(cubeVertices, cubeIndices,
+          primitiveType: PrimitiveType.TRIANGLES);
+
+      await viewer.setParent(cube1, cube2);
+
+      final parent = await viewer.getParent(cube1);
+
+      expect(parent, cube2);
+    });
+
+    test('getAncestor returns the ultimate parent entity', () async {
+      var viewer = await createViewer();
+
+      final grandparent = await viewer.createGeometry(cubeVertices, cubeIndices,
+          primitiveType: PrimitiveType.TRIANGLES);
+      final parent = await viewer.createGeometry(cubeVertices, cubeIndices,
+          primitiveType: PrimitiveType.TRIANGLES);
+      final child = await viewer.createGeometry(cubeVertices, cubeIndices,
+          primitiveType: PrimitiveType.TRIANGLES);
+
+      await viewer.setParent(child, parent);
+      await viewer.setParent(parent, grandparent);
+
+      expect(await viewer.getAncestor(child), grandparent);
+
+    });
+
     test('set position based on screenspace coord', () async {
       var viewer = await createViewer();
       print(await viewer.getCameraFov(true));

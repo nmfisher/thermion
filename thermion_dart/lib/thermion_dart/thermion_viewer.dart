@@ -773,9 +773,14 @@ abstract class ThermionViewer {
       PrimitiveType primitiveType = PrimitiveType.TRIANGLES});
 
   ///
-  /// Gets the parent transform of [child].
+  /// Gets the parent entity of [entity]. Returns null if the entity has no parent. 
   ///
-  Future<ThermionEntity?> getParent(ThermionEntity child);
+  Future<ThermionEntity?> getParent(ThermionEntity entity);
+
+  ///
+  /// Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the entity has no parent. 
+  ///
+  Future<ThermionEntity?> getAncestor(ThermionEntity entity);
 
   ///
   /// Sets the parent transform of [child] to [parent].
