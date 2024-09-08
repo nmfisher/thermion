@@ -851,6 +851,10 @@ extern "C"
         return ((SceneManager *)sceneManager)->getParent(child);
     }
 
+    EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(void *const sceneManager, EntityId child) {
+        return ((SceneManager *)sceneManager)->getAncestor(child);
+    }
+
     EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling)
     {
         ((SceneManager *)sceneManager)->setParent(child, parent, preserveScaling);
