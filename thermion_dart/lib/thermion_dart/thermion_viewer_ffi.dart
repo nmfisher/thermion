@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
 import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
+import 'package:thermion_dart/thermion_dart/matrix_helper.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
@@ -17,6 +18,10 @@ typedef ThermionViewerImpl = ThermionViewerFFI;
 const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
 
 typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
+
+double kNear = 0.05;
+double kFar = 1000.0;
+double kFocalLength = 28.0;
 
 class ThermionViewerFFI extends ThermionViewer {
   final _logger = Logger("ThermionViewerFFI");
@@ -93,10 +98,23 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future updateViewportAndCameraProjection(double width, double height) async {
     viewportDimensions = (width * pixelRatio, height * pixelRatio);
-    await withVoidCallback((callback) {
-      update_viewport_and_camera_projection_ffi(
-          _viewer!, width.toInt(), height.toInt(), 1.0, callback);
-    });
+    update_viewport(_viewer!, width.toInt(), height.toInt());
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    var near = await getCameraCullingNear();
+    if (near.abs() < 0.000001) {
+      near = kNear;
+    }
+    var far = await getCameraCullingFar();
+    if (far.abs() < 0.000001) {
+      far = kFar;
+    }
+
+    var aspect = viewportDimensions.$1 / viewportDimensions.$2;
+    var focalLength = get_camera_focal_length(mainCamera);
+    if (focalLength.abs() < 0.1) {
+      focalLength = kFocalLength;
+    }
+    set_camera_lens_projection(mainCamera, near, far, aspect, focalLength);
   }
 
   Future createSwapChain(double width, double height,
@@ -472,7 +490,7 @@ class ThermionViewerFFI extends ThermionViewer {
         numInstances,
         keepData,
         callback));
-    
+
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading GLB from buffer");
     }
@@ -1173,14 +1191,15 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraFocalLength(double focalLength) async {
-    set_camera_focal_length(_viewer!, focalLength);
+    throw Exception("DONT USE");
   }
 
   ///
   ///
   ///
   Future<double> getCameraFov(bool horizontal) async {
-    return get_camera_fov(_viewer!, horizontal);
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    return get_camera_fov(mainCamera, horizontal);
   }
 
   ///
@@ -1188,7 +1207,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraFov(double degrees, {bool horizontal = true}) async {
-    set_camera_fov(_viewer!, degrees, horizontal);
+    throw Exception("DONT USE");
   }
 
   ///
@@ -1196,7 +1215,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraCulling(double near, double far) async {
-    set_camera_culling(_viewer!, near, far);
+    throw Exception("DONT USE");
   }
 
   ///
@@ -1204,7 +1223,12 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<double> getCameraCullingNear() async {
-    return get_camera_culling_near(_viewer!);
+    return getCameraNear();
+  }
+
+  Future<double> getCameraNear() async {
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    return get_camera_near(mainCamera);
   }
 
   ///
@@ -1212,7 +1236,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<double> getCameraCullingFar() async {
-    return get_camera_culling_far(_viewer!);
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    return get_camera_culling_far(mainCamera);
   }
 
   ///
@@ -1220,7 +1245,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraFocusDistance(double focusDistance) async {
-    set_camera_focus_distance(_viewer!, focusDistance);
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    set_camera_focus_distance(mainCamera, focusDistance);
   }
 
   ///
@@ -1228,7 +1254,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraPosition(double x, double y, double z) async {
-    set_camera_position(_viewer!, x, y, z);
+    var modelMatrix = await getCameraModelMatrix();
+    modelMatrix.setTranslation(Vector3(x, y, z));
+    await setCameraModelMatrix4(modelMatrix);
   }
 
   ///
@@ -1236,7 +1264,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future moveCameraToAsset(ThermionEntity entity) async {
-    move_camera_to_asset(_viewer!, entity);
+    throw Exception("DON'T USE");
   }
 
   ///
@@ -1253,7 +1281,8 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
-    set_camera_exposure(_viewer!, aperture, shutterSpeed, sensitivity);
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    set_camera_exposure(mainCamera, aperture, shutterSpeed, sensitivity);
   }
 
   ///
@@ -1261,8 +1290,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraRotation(Quaternion quaternion) async {
-    set_camera_rotation(
-        _viewer!, quaternion.w, quaternion.x, quaternion.y, quaternion.z);
+    var modelMatrix = await getCameraModelMatrix();
+    modelMatrix.setRotation(quaternion.asRotationMatrix());
+    await setCameraModelMatrix(modelMatrix.storage);
   }
 
   ///
@@ -1271,12 +1301,28 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setCameraModelMatrix(List<double> matrix) async {
     assert(matrix.length == 16);
-    var ptr = allocator<Float>(16);
-    for (int i = 0; i < 16; i++) {
-      ptr.elementAt(i).value = matrix[i];
-    }
-    set_camera_model_matrix(_viewer!, ptr);
-    allocator.free(ptr);
+    await setCameraModelMatrix4(Matrix4.fromList(matrix));
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setCameraModelMatrix4(Matrix4 modelMatrix) async {
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    final out = allocator<double4x4>(1);
+    set_camera_model_matrix(mainCamera, out.ref);
+    allocator.free(out);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setCameraLensProjection(
+      double near, double far, double aspect, double focalLength) async {
+    var mainCamera = get_camera(_viewer!, get_main_camera(_viewer!));
+    set_camera_lens_projection(mainCamera, near, far, aspect, focalLength);
   }
 
   ///
@@ -1497,10 +1543,9 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = get_camera_view_matrix(_viewer!);
-    var viewMatrix = Matrix4.fromList(arrayPtr.asTypedList(16));
-    allocator.free(arrayPtr);
-    return viewMatrix;
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    var matrixStruct = get_camera_view_matrix(mainCamera);
+    return double4x4ToMatrix4(matrixStruct);
   }
 
   ///
@@ -1511,10 +1556,35 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = get_camera_model_matrix(_viewer!);
-    var modelMatrix = Matrix4.fromList(arrayPtr.asTypedList(16));
-    allocator.free(arrayPtr);
-    return modelMatrix;
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    var matrixStruct = get_camera_model_matrix(mainCamera);
+    return double4x4ToMatrix4(matrixStruct);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<Matrix4> getCameraProjectionMatrix() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    var matrixStruct = get_camera_projection_matrix(mainCamera);
+    return double4x4ToMatrix4(matrixStruct);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<Matrix4> getCameraCullingProjectionMatrix() async {
+    if (_viewer == null) {
+      throw Exception("No viewer available");
+    }
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    var matrixStruct = get_camera_culling_projection_matrix(mainCamera);
+    return double4x4ToMatrix4(matrixStruct);
   }
 
   ///
@@ -1525,14 +1595,8 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = get_camera_model_matrix(_viewer!);
-    var doubleList = arrayPtr.asTypedList(16);
-    var modelMatrix = Matrix4.fromFloat64List(doubleList);
-
-    var position = modelMatrix.getColumn(3).xyz;
-
-    thermion_flutter_free(arrayPtr.cast<Void>());
-    return position;
+    var modelMatrix = await getCameraModelMatrix();
+    return modelMatrix.getColumn(3).xyz;
   }
 
   ///
@@ -1543,12 +1607,9 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = get_camera_model_matrix(_viewer!);
-    var doubleList = arrayPtr.asTypedList(16);
-    var modelMatrix = Matrix4.fromFloat64List(doubleList);
+    var modelMatrix = await getCameraModelMatrix();
     var rotationMatrix = Matrix3.identity();
     modelMatrix.copyRotation(rotationMatrix);
-    thermion_flutter_free(arrayPtr.cast<Void>());
     return rotationMatrix;
   }
 
@@ -1574,44 +1635,6 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   ///
-  /// I don't think these two methods are accurate - don't rely on them, use the Frustum values instead.
-  /// I think because we use [setLensProjection] and [setScaling] together, this projection matrix doesn't accurately reflect the field of view (because it's using an additional scaling matrix).
-  /// Also, the near/far planes never seem to get updated (which is what I would expect to see when calling [getCameraCullingProjectionMatrix])
-  ///
-  ///
-  ///
-  ///
-  @override
-  Future<Matrix4> getCameraProjectionMatrix() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-
-    var arrayPtr = get_camera_projection_matrix(_viewer!);
-    var doubleList = arrayPtr.asTypedList(16);
-    var projectionMatrix = Matrix4.fromList(doubleList);
-    thermion_flutter_free(arrayPtr.cast<Void>());
-    return projectionMatrix;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<Matrix4> getCameraCullingProjectionMatrix() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-    throw Exception(
-        "WARNING: getCameraProjectionMatrix and getCameraCullingProjectionMatrix are not reliable. Consider these broken");
-    var arrayPtr = get_camera_culling_projection_matrix(_viewer!);
-    var doubleList = arrayPtr.asTypedList(16);
-    var projectionMatrix = Matrix4.fromList(doubleList);
-    thermion_flutter_free(arrayPtr.cast<Void>());
-    return projectionMatrix;
-  }
-
-  ///
   ///
   ///
   @override
@@ -1619,7 +1642,8 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var arrayPtr = get_camera_frustum(_viewer!);
+    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    var arrayPtr = get_camera_frustum(mainCamera);
     var doubleList = arrayPtr.asTypedList(24);
 
     var frustum = Frustum();
@@ -1885,7 +1909,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future<v64.Aabb2> getBoundingBox(ThermionEntity entityId) async {
+  Future<v64.Aabb2> getViewportBoundingBox(ThermionEntity entityId) async {
     final result = get_bounding_box(_sceneManager!, entityId);
     return v64.Aabb2.minMax(v64.Vector2(result.minX, result.minY),
         v64.Vector2(result.maxX, result.maxY));
@@ -1919,4 +1943,6 @@ class ThermionViewerFFI extends ThermionViewer {
   Future removeStencilHighlight(ThermionEntity entity) async {
     remove_stencil_highlight(_sceneManager!, entity);
   }
+
+
 }
