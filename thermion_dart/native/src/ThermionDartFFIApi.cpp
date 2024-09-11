@@ -432,7 +432,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_ffi(void *const sceneManager,
-                                                      const void *const data, 
+                                                      const uint8_t *const data, 
                                                       size_t length, 
                                                       int numInstances, 
                                                       bool keepData,
@@ -866,12 +866,42 @@ extern "C"
     int numIndices, 
     int primitiveType, 
     const char *materialPath, 
+    bool keepData, 
     void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
         [=]
         {
           auto entity = create_geometry(sceneManager, vertices, numVertices, indices, numIndices, primitiveType, materialPath);
+          #ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({
+            moduleArg.dartFilamentResolveCallback($0,$1);
+          }, callback, entity);
+          #else
+          callback(entity);
+          #endif
+          return entity;
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void create_geometry_with_normals_ffi(
+    void *const sceneManager, 
+    float *vertices, 
+    int numVertices, 
+    float *normals, 
+    int numNormals, 
+    uint16_t *indices, 
+    int numIndices, 
+    int primitiveType, 
+    const char *materialPath, 
+    bool keepData, 
+    void (*callback)(EntityId))
+  {
+    std::packaged_task<EntityId()> lambda(
+        [=]
+        {
+          auto entity = create_geometry_with_normals(sceneManager, vertices, numVertices, normals, numNormals, indices, numIndices, primitiveType, materialPath);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0,$1);
