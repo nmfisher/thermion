@@ -76,7 +76,7 @@ namespace thermion_filament
         void removeEntity(EntityId asset);
         void clearEntities();
 
-        void updateViewportAndCameraProjection(int height, int width, float scaleFactor);
+        void updateViewport(uint32_t width, uint32_t height);
         void render(
             uint64_t frameTimeInNanos,
             void *pixelBuffer,
@@ -87,6 +87,7 @@ namespace thermion_filament
         bool setCamera(EntityId asset, const char *nodeName);
         void setMainCamera();
         EntityId getMainCamera();
+        Camera* getCamera(EntityId entity);
         
         float getCameraFov(bool horizontal);
         void setCameraFov(double fovDegrees, bool horizontal);
@@ -103,24 +104,8 @@ namespace thermion_filament
         void clearBackgroundImage();
         void setBackgroundImagePosition(float x, float y, bool clamp);
 
-        // Camera methods
-        void moveCameraToAsset(EntityId entityId);
         void setViewFrustumCulling(bool enabled);
-        void setCameraExposure(float aperture, float shutterSpeed, float sensitivity);
-        void setCameraPosition(float x, float y, float z);
-        void setCameraRotation(float w, float x, float y, float z);
-        const math::mat4 getCameraModelMatrix();
-        const math::mat4 getCameraViewMatrix();
-        const math::mat4 getCameraProjectionMatrix();
-        const math::mat4 getCameraCullingProjectionMatrix();
-        const filament::Frustum getCameraFrustum();
-        void setCameraModelMatrix(const float *const matrix);
-        void setCameraProjectionMatrix(const double *const matrix, double near, double far);
-        void setCameraFocalLength(float focalLength);
-        void setCameraCulling(double near, double far);
-        double getCameraCullingNear();
-        double getCameraCullingFar();
-        void setCameraFocusDistance(float focusDistance);
+
         void setCameraManipulatorOptions(filament::camutils::Mode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
         void grabBegin(float x, float y, bool pan);
         void grabUpdate(float x, float y);
@@ -198,18 +183,14 @@ namespace thermion_filament
 
         // Camera properties
         Camera *_mainCamera = nullptr; // the default camera added to every scene. If you want the *active* camera, access via View.
-        float _cameraFocalLength = 28.0f;
-        float _cameraFocusDistance = 0.0f;
+        
         Manipulator<double> *_manipulator = nullptr;
         filament::camutils::Mode _manipulatorMode = filament::camutils::Mode::ORBIT;
         double _orbitSpeedX = 0.01;
         double _orbitSpeedY = 0.01;
         double _zoomSpeed = 0.01;
-        math::mat4f _cameraPosition;
-        math::mat4f _cameraRotation;
+        
         void _createManipulator();
-        double _near = 0.05;
-        double _far = 1000.0;
 
         ColorGrading *colorGrading = nullptr;
 
