@@ -103,7 +103,7 @@ class Gizmo extends AbstractGizmo {
     _activeEntity = entity;
     await _viewer.setGizmoVisibility(true);
     await _viewer.setParent(center, entity, preserveScaling: true);
-    _boundingBoxController.sink.add(await _viewer.getBoundingBox(x));
+    _boundingBoxController.sink.add(await _viewer.getViewportBoundingBox(x));
 
   }
 
