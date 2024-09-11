@@ -51,7 +51,7 @@ class ThermionGestureDetector extends StatelessWidget {
       this.child,
       this.showControlOverlay = false,
       this.enableCamera = true,
-      this.enablePicking = true,
+      this.enablePicking = false,
       this.onScaleStart,
       this.onScaleUpdate,
       this.onScaleEnd})
