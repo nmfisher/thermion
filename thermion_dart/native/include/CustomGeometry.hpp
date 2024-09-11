@@ -19,18 +19,26 @@ namespace thermion_filament
 // CustomGeometry.h
 class CustomGeometry {
 public:
-    CustomGeometry(float* vertices, uint32_t numVertices, uint16_t* indices, uint32_t numIndices, RenderableManager::PrimitiveType primitiveType, Engine* engine);
+    CustomGeometry(
+        float* vertices, 
+        uint32_t numVertices, 
+        float* normals, 
+        uint32_t numNormals, 
+        uint16_t* indices, 
+        uint32_t numIndices, 
+        RenderableManager::PrimitiveType primitiveType, 
+        Engine* engine);
     ~CustomGeometry();
 
-    void computeBoundingBox();
-    VertexBuffer* vertexBuffer();
-    IndexBuffer* indexBuffer();
+    VertexBuffer* vertexBuffer() const;
+    IndexBuffer* indexBuffer() const;
     Box getBoundingBox() const;
 
-    float* vertices;
-    uint32_t numVertices;
-    uint16_t* indices;
-    uint32_t numIndices;
+    float* vertices = nullptr;
+    float* normals = nullptr;
+    uint32_t numVertices = 0;
+    uint16_t* indices = 0;
+    uint32_t numIndices = 0;
     Box boundingBox;
     RenderableManager::PrimitiveType primitiveType;
 
@@ -38,6 +46,8 @@ private:
     Engine* _engine;
     bool _vertexBufferFreed = false;
     bool _indexBufferFreed = false;
+
+    void computeBoundingBox();
 
 };
 
