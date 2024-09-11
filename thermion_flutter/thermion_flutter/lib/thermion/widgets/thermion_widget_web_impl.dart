@@ -6,12 +6,12 @@ import 'package:web/web.dart';
 import 'package:flutter/widgets.dart';
 
 class ThermionWidgetWeb extends StatelessWidget {
-  
-  late final ThermionFlutterWebOptions options;
+  final ThermionFlutterWebOptions options;
 
-  const ThermionWidgetWeb({super.key, ThermionFlutterWebOptions? options}) {
-    this.options = options ?? ThermionFlutterWebOptions();
-  }
+  const ThermionWidgetWeb(
+      {super.key,
+      this.options =
+          const ThermionFlutterWebOptions.empty()});
 
   @override
   Widget build(BuildContext context) {
