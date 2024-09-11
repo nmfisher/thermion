@@ -209,7 +209,6 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(const void *const viewer, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(const void *const viewer, float aperture, float shutterSpeed, float sensitivity);
 	EMSCRIPTEN_KEEPALIVE void set_camera_position(const void *const viewer, float x, float y, float z);
-	EMSCRIPTEN_KEEPALIVE void get_camera_position(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void set_camera_rotation(const void *const viewer, float w, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(const void *const viewer, const float *const matrix);
 	EMSCRIPTEN_KEEPALIVE const double *const get_camera_model_matrix(const void *const viewer);
