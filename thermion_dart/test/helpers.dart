@@ -8,59 +8,7 @@ import 'package:thermion_dart/thermion_dart/utils/dart_resources.dart';
 import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
-List<double> cubeVertices = [
-  // Front face
-  -1, -1, 1,
-  1, -1, 1,
-  1, 1, 1,
-  -1, 1, 1,
 
-  // Back face
-  -1, -1, -1,
-  -1, 1, -1,
-  1, 1, -1,
-  1, -1, -1,
-
-  // Top face
-  -1, 1, -1,
-  -1, 1, 1,
-  1, 1, 1,
-  1, 1, -1,
-
-  // Bottom face
-  -1, -1, -1,
-  1, -1, -1,
-  1, -1, 1,
-  -1, -1, 1,
-
-  // Right face
-  1, -1, -1,
-  1, 1, -1,
-  1, 1, 1,
-  1, -1, 1,
-
-  // Left face
-  -1, -1, -1,
-  -1, -1, 1,
-  -1, 1, 1,
-  -1, 1, -1,
-];
-
-// Define the indices for the cube
-List<int> cubeIndices = [
-  // Front face
-  0, 3, 2,  0, 2, 1,
-  // Back face
-  4, 7, 6,  4, 6, 5,
-  // Top face
-  8, 11, 10,  8, 10, 9,
-  // Bottom face
-  12, 15, 14,  12, 14, 13,
-  // Right face
-  16, 19, 18,  16, 18, 17,
-  // Left face
-  20, 23, 22,  20, 22, 21
-];
 
 final viewportDimensions = (width: 500, height: 500);
 
