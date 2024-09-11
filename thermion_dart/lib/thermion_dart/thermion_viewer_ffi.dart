@@ -459,6 +459,31 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
+      {bool unlit = false, int numInstances = 1, bool keepData = false}) async {
+    if (unlit) {
+      throw Exception("Not yet implemented");
+    }
+
+    var entity = await withIntCallback((callback) => load_glb_from_buffer_ffi(
+        _sceneManager!,
+        data.address,
+        data.length,
+        numInstances,
+        keepData,
+        callback));
+    
+    if (entity == _FILAMENT_ASSET_ERROR) {
+      throw Exception("An error occurred loading GLB from buffer");
+    }
+    _scene!.registerEntity(entity);
+    return entity;
+  }
+
+  ///
+  ///
+  ///
+  @override
   Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
       {bool keepData = false}) async {
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
@@ -1739,6 +1764,8 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<ThermionEntity> createGeometry(
       List<double> vertices, List<int> indices,
       {String? materialPath,
+      List<double>? normals,
+      bool keepData = false,
       PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) async {
     if (_viewer == null) {
       throw Exception("Viewer must not be null");
@@ -1749,22 +1776,36 @@ class ThermionViewerFFI extends ThermionViewer {
     final vertexPtr = allocator<Float>(vertices.length);
     final indicesPtr = allocator<Uint16>(indices.length);
     for (int i = 0; i < vertices.length; i++) {
-      vertexPtr.elementAt(i).value = vertices[i];
+      vertexPtr[i] = vertices[i];
     }
 
     for (int i = 0; i < indices.length; i++) {
       (indicesPtr + i).value = indices[i];
     }
 
-    var entity = await withIntCallback((callback) => create_geometry_ffi(
-        _sceneManager!,
-        vertexPtr,
-        vertices.length,
-        indicesPtr,
-        indices.length,
-        primitiveType.index,
-        materialPathPtr.cast<Char>(),
-        callback));
+    var normalsPtr = nullptr.cast<Float>();
+    if (normals != null) {
+      normalsPtr = allocator<Float>(normals.length);
+      for (int i = 0; i < normals.length; i++) {
+        normalsPtr[i] = normals[i];
+      }
+    }
+
+    print("ALLOCATION DONE");
+
+    var entity = await withIntCallback((callback) =>
+        create_geometry_with_normals_ffi(
+            _sceneManager!,
+            vertexPtr,
+            vertices.length,
+            normalsPtr,
+            normals?.length ?? 0,
+            indicesPtr,
+            indices.length,
+            primitiveType.index,
+            materialPathPtr.cast<Char>(),
+            keepData,
+            callback));
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create geometry");
     }
@@ -1774,6 +1815,10 @@ class ThermionViewerFFI extends ThermionViewer {
     allocator.free(materialPathPtr);
     allocator.free(vertexPtr);
     allocator.free(indicesPtr);
+
+    if (normals != null) {
+      allocator.free(normalsPtr);
+    }
 
     return entity;
   }
