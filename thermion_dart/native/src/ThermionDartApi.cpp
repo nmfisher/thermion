@@ -840,6 +840,19 @@ extern "C"
             materialPath);
     }
 
+    EMSCRIPTEN_KEEPALIVE EntityId create_geometry_with_normals(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
+    {
+        return ((SceneManager *)sceneManager)->createGeometryWithNormals(
+            vertices, 
+            (uint32_t)numVertices, 
+            normals,
+            (uint32_t)numNormals,
+            indices, 
+            numIndices, 
+            (filament::RenderableManager::PrimitiveType)primitiveType, 
+            materialPath);
+    }
+
     EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char *name)
     {
         auto entity = ((SceneManager *)sceneManager)->findChildEntityByName(parent, name);
