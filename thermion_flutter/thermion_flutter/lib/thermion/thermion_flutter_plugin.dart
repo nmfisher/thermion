@@ -67,7 +67,6 @@ class ThermionFlutterPlugin {
     }
     _initializing = true;
 
-
     _viewer = await ThermionFlutterPlatform.instance
         .createViewer(uberarchivePath: uberArchivePath);
     _appLifecycleListener = AppLifecycleListener(
@@ -82,13 +81,14 @@ class ThermionFlutterPlugin {
     return _viewer!;
   }
 
-  static Future<ThermionViewer> createViewerWithOptions(ThermionFlutterOptions options) async {
+  static Future<ThermionViewer> createViewerWithOptions(
+      {ThermionFlutterOptions options = const ThermionFlutterOptions.empty()}) async {
     if (_initializing) {
       throw Exception("Existing call to createViewer has not completed.");
     }
     _initializing = true;
-    _viewer = await ThermionFlutterPlatform.instance
-        .createViewerWithOptions(options);
+    _viewer =
+        await ThermionFlutterPlatform.instance.createViewerWithOptions(options);
     _appLifecycleListener = AppLifecycleListener(
       onStateChange: _handleStateChange,
     );
@@ -102,7 +102,11 @@ class ThermionFlutterPlugin {
   }
 
   static Future<ThermionFlutterTexture?> createTexture(
-      double width, double height, double offsetLeft, double offsetTop, double pixelRatio) async {
+      double width,
+      double height,
+      double offsetLeft,
+      double offsetTop,
+      double pixelRatio) async {
     return ThermionFlutterPlatform.instance
         .createTexture(width, height, offsetLeft, offsetTop, pixelRatio);
   }
@@ -117,8 +121,9 @@ class ThermionFlutterPlugin {
       int width,
       int height,
       int offsetLeft,
-      int offsetTop, double pixelRatio) async {
-    return ThermionFlutterPlatform.instance
-        .resizeTexture(texture, width, height, offsetLeft, offsetTop, pixelRatio);
+      int offsetTop,
+      double pixelRatio) async {
+    return ThermionFlutterPlatform.instance.resizeTexture(
+        texture, width, height, offsetLeft, offsetTop, pixelRatio);
   }
 }

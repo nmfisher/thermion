@@ -8,6 +8,8 @@ class ThermionFlutterOptions {
   final String? uberarchivePath;
 
   ThermionFlutterOptions({this.uberarchivePath});
+  const ThermionFlutterOptions.empty() : uberarchivePath = null;
+
 }
 
 abstract class ThermionFlutterPlatform extends PlatformInterface {
