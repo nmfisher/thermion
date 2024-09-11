@@ -49,13 +49,22 @@
 #include "ResourceBuffer.hpp"
 #include "Aabb2.h"
 
-typedef int32_t EntityId;
-typedef int32_t _ManipulatorMode;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+	typedef int32_t EntityId;
+	typedef int32_t _ManipulatorMode;
+	typedef struct CameraPtr CameraPtr;
+
+	typedef struct {
+		double col1[4];
+		double col2[4];
+		double col3[4];
+		double col4[4];
+	} double4x4;
 
 	EMSCRIPTEN_KEEPALIVE const void *create_filament_viewer(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
 	EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(const void *const viewer);
@@ -118,7 +127,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void create_swap_chain(const void *const viewer, const void *const window, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void destroy_swap_chain(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void set_frame_interval(const void *const viewer, float interval);
-	EMSCRIPTEN_KEEPALIVE void update_viewport_and_camera_projection(const void *const viewer, uint32_t width, uint32_t height, float scaleFactor);
+	EMSCRIPTEN_KEEPALIVE void update_viewport(const void *const viewer, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void scroll_begin(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void scroll_update(const void *const viewer, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void scroll_end(const void *const viewer);
@@ -205,25 +214,23 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_scale(void *sceneManager, EntityId entity, float scale);
 
 	// Camera methods
-	EMSCRIPTEN_KEEPALIVE void move_camera_to_asset(const void *const viewer, EntityId asset);
 	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(const void *const viewer, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(const void *const viewer, float aperture, float shutterSpeed, float sensitivity);
-	EMSCRIPTEN_KEEPALIVE void set_camera_position(const void *const viewer, float x, float y, float z);
-	EMSCRIPTEN_KEEPALIVE void set_camera_rotation(const void *const viewer, float w, float x, float y, float z);
-	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(const void *const viewer, const float *const matrix);
-	EMSCRIPTEN_KEEPALIVE const double *const get_camera_model_matrix(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE const double *const get_camera_view_matrix(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE const double *const get_camera_projection_matrix(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(const void *const viewer, const double *const matrix, double near, double far);
-	EMSCRIPTEN_KEEPALIVE void set_camera_culling(const void *const viewer, double near, double far);
-	EMSCRIPTEN_KEEPALIVE double get_camera_culling_near(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE const double *const get_camera_culling_projection_matrix(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(const void *const viewer);
-	EMSCRIPTEN_KEEPALIVE float get_camera_fov(const void *const viewer, bool horizontal);
-	EMSCRIPTEN_KEEPALIVE void set_camera_fov(const void *const viewer, float fovInDegrees, bool horizontal);
-	EMSCRIPTEN_KEEPALIVE void set_camera_focal_length(const void *const viewer, float focalLength);
-	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(const void *const viewer, float focusDistance);
+	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(CameraPtr* camera, float aperture, float shutterSpeed, float sensitivity);
+	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(CameraPtr* camera, double4x4 matrix);
+	EMSCRIPTEN_KEEPALIVE CameraPtr* get_camera(const void *const viewer, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(CameraPtr* const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(CameraPtr* const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(CameraPtr* const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(CameraPtr* const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_culling_projection_matrix(CameraPtr* const camera);
+	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(CameraPtr* const camera);
+	EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(CameraPtr* camera, double4x4 matrix, double near, double far);
+	EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(CameraPtr* camera, double fovInDegrees, double aspect, double near, double far, bool horizontal);
+	EMSCRIPTEN_KEEPALIVE double get_camera_near(CameraPtr* camera);
+	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(CameraPtr* camera);
+	EMSCRIPTEN_KEEPALIVE float get_camera_fov(CameraPtr* camera, bool horizontal);
+	EMSCRIPTEN_KEEPALIVE void set_camera_lens_projection(CameraPtr* camera, double near, double far, double aspect, double focalLength);
+	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(CameraPtr* camera, float focusDistance);
 	EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
 
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId entity, const char *meshName);
