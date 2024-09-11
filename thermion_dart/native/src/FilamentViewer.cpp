@@ -190,10 +190,6 @@ namespace thermion_filament
     _view->setScene(_scene);
     _view->setCamera(_mainCamera);
 
-    _cameraFocalLength = 28.0f;
-    _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, _near,
-                                   _far);
-
     const float aperture = _mainCamera->getAperture();
     const float shutterSpeed = _mainCamera->getShutterSpeed();
     const float sens = _mainCamera->getSensitivity();
@@ -852,68 +848,6 @@ namespace thermion_filament
   }
 
   ///
-  /// Set the exposure for the current active camera.
-  ///
-  void FilamentViewer::setCameraExposure(float aperture, float shutterSpeed, float sensitivity)
-  {
-    Camera &cam = _view->getCamera();
-    cam.setExposure(aperture, shutterSpeed, sensitivity);
-  }
-
-  ///
-  /// Set the focal length of the active camera.
-  ///
-  void FilamentViewer::setCameraFocalLength(float focalLength)
-  {
-    Camera &cam = _view->getCamera();
-    _cameraFocalLength = focalLength;
-    const auto &vp = _view->getViewport();
-    if (vp.height == 0)
-    {
-      Log("Viewport height has not yet been set, returning");
-      return;
-    }
-    auto aspect = vp.width / vp.height;
-
-    cam.setLensProjection(_cameraFocalLength, aspect, _near,
-                          _far);
-  }
-
-  ///
-  /// Set the focal length of the active camera.
-  ///
-  void FilamentViewer::setCameraCulling(double near, double far)
-  {
-    Camera &cam = _view->getCamera();
-    _near = near;
-    _far = far;
-    const auto &vp = _view->getViewport();
-    auto aspect = vp.width / vp.height;
-    cam.setLensProjection(_cameraFocalLength, aspect, _near, _far);
-  }
-
-  double FilamentViewer::getCameraCullingNear()
-  {
-    Camera &cam = _view->getCamera();
-    return cam.getNear();
-  }
-  double FilamentViewer::getCameraCullingFar()
-  {
-    Camera &cam = _view->getCamera();
-    return cam.getCullingFar();
-  }
-
-  ///
-  /// Set the focus distance of the active camera.
-  ///
-  void FilamentViewer::setCameraFocusDistance(float focusDistance)
-  {
-    Camera &cam = _view->getCamera();
-    _cameraFocusDistance = focusDistance;
-    cam.setFocusDistance(_cameraFocusDistance);
-  }
-
-  ///
   ///
   ///
   void FilamentViewer::setMainCamera()
@@ -1386,157 +1320,21 @@ namespace thermion_filament
     this->_recording = recording;
   }
 
-  void FilamentViewer::updateViewportAndCameraProjection(
-      int width, int height, float contentScaleFactor)
+  Camera* FilamentViewer::getCamera(EntityId entity) { 
+    return _engine->getCameraComponent(Entity::import(entity));
+  }
+
+  void FilamentViewer::updateViewport(
+      uint32_t width, uint32_t height)
   {
-    if (!_view || !_mainCamera)
-    {
-      return;
-    }
-
-    const uint32_t _width = width * contentScaleFactor;
-    const uint32_t _height = height * contentScaleFactor;
-    _view->setViewport({0, 0, _width, _height});
-
-    const double aspect = (double)width / height;
-
-    Camera &cam = _view->getCamera();
-
-    cam.setLensProjection(_cameraFocalLength, aspect, _near,
-                          _far);
-
+    _view->setViewport({0, 0, width, height});
   }
 
   void FilamentViewer::setViewFrustumCulling(bool enabled)
   {
     _view->setFrustumCullingEnabled(enabled);
   }
-
-  float FilamentViewer::getCameraFov(bool horizontal)
-  {
-    Camera &cam = _view->getCamera();
-    return cam.getFieldOfViewInDegrees(horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
-  }
-
-  void FilamentViewer::setCameraFov(double fovInDegrees, bool horizontal)
-  {
-    Camera &cam = _view->getCamera();
-    const auto &vp = _view->getViewport();
-    const float aspect = static_cast<float>(vp.width) / static_cast<float>(vp.height);
-    cam.setProjection(fovInDegrees, aspect, _near, _far, horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
-  }
-
-  void FilamentViewer::setCameraPosition(float x, float y, float z)
-  {
-    Camera &cam = _view->getCamera();
-
-    _cameraPosition = math::mat4f::translation(math::float3(x, y, z));
-    cam.setModelMatrix(_cameraRotation * _cameraPosition);
-  }
-
-  void FilamentViewer::moveCameraToAsset(EntityId entityId)
-  {
-    auto asset = _sceneManager->getAssetByEntityId(entityId);
-    if (!asset)
-    {
-      Log("Failed to find asset attached to specified entity id.");
-      return;
-    }
-
-    const filament::Aabb bb = asset->getBoundingBox();
-    auto corners = bb.getCorners();
-    Camera &cam = _view->getCamera();
-    auto eye = corners.vertices[0] * 1.5;
-    auto lookAt = corners.vertices[7];
-    cam.lookAt(eye, lookAt);
-    Log("Moved camera to %f %f %f, lookAt %f %f %f, near %f far %f", eye[0], eye[1], eye[2], lookAt[0], lookAt[1], lookAt[2], cam.getNear(), cam.getCullingFar());
-  }
-
-  void FilamentViewer::setCameraRotation(float w, float x, float y, float z)
-  {
-    Camera &cam = _view->getCamera();
-    _cameraRotation = math::mat4f(math::quatf(w, x, y, z));
-    cam.setModelMatrix(_cameraRotation * _cameraPosition);
-  }
-
-  void FilamentViewer::setCameraModelMatrix(const float *const matrix)
-  {
-    Camera &cam = _view->getCamera();
-
-    mat4 modelMatrix(
-        matrix[0],
-        matrix[1],
-        matrix[2],
-        matrix[3],
-        matrix[4],
-        matrix[5],
-        matrix[6],
-        matrix[7],
-        matrix[8],
-        matrix[9],
-        matrix[10],
-        matrix[11],
-        matrix[12],
-        matrix[13],
-        matrix[14],
-        matrix[15]);
-    cam.setModelMatrix(modelMatrix);
-  }
-
-  void FilamentViewer::setCameraProjectionMatrix(const double *const matrix, double near, double far)
-  {
-    Camera &cam = _view->getCamera();
-
-    mat4 projectionMatrix(
-        matrix[0],
-        matrix[1],
-        matrix[2],
-        matrix[3],
-        matrix[4],
-        matrix[5],
-        matrix[6],
-        matrix[7],
-        matrix[8],
-        matrix[9],
-        matrix[10],
-        matrix[11],
-        matrix[12],
-        matrix[13],
-        matrix[14],
-        matrix[15]);
-    cam.setCustomProjection(projectionMatrix, projectionMatrix, near, far);
-  }
-
-  const math::mat4 FilamentViewer::getCameraModelMatrix()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getModelMatrix();
-  }
-
-  const math::mat4 FilamentViewer::getCameraViewMatrix()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getViewMatrix();
-  }
-
-  const math::mat4 FilamentViewer::getCameraProjectionMatrix()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getProjectionMatrix();
-  }
-
-  const math::mat4 FilamentViewer::getCameraCullingProjectionMatrix()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getCullingProjectionMatrix();
-  }
-
-  const filament::Frustum FilamentViewer::getCameraFrustum()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getFrustum();
-  }
-
+ 
   void FilamentViewer::_createManipulator()
   {
     Camera &cam = _view->getCamera();
