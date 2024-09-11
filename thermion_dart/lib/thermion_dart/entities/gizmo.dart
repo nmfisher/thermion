@@ -105,7 +105,6 @@ class Gizmo extends AbstractGizmo {
     await _viewer.setParent(center, entity, preserveScaling: true);
     _boundingBoxController.sink.add(await _viewer.getBoundingBox(x));
 
-    await _viewer.setStencilHighlight(_activeEntity!);
   }
 
   Future detach() async {
