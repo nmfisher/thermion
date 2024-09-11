@@ -492,14 +492,25 @@ abstract class ThermionViewer {
   Future setCameraCulling(double near, double far);
 
   ///
-  /// Get the distance (in world units) to the near culling plane for the active camera.
+  /// Get the distance (in world units) to the near plane for the active camera.
   ///
+  @Deprecated("Use getCameraNear")
   Future<double> getCameraCullingNear();
+
+  ///
+  /// Get the distance (in world units) to the near plane for the active camera.
+  ///
+  Future<double> getCameraNear();
 
   ///
   /// Get the distance (in world units) to the far culling plane for the active camera.
   ///
   Future<double> getCameraCullingFar();
+
+  ///
+  ///
+  ///
+  Future setCameraLensProjection(double near, double far, double aspect, double focalLength);
 
   ///
   /// Sets the focus distance for the camera.
@@ -571,7 +582,13 @@ abstract class ThermionViewer {
   ///
   /// Sets the camera model matrix.
   ///
+  @Deprecated("Will be superseded by setCameraModelMatrix4")
   Future setCameraModelMatrix(List<double> matrix);
+
+  ///
+  /// Sets the camera model matrix.
+  ///
+  Future setCameraModelMatrix4(Matrix4 matrix);
 
   ///
   /// Sets the `baseColorFactor` property for the material at index [materialIndex] in [entity] under node [meshName] to [color].
@@ -630,8 +647,6 @@ abstract class ThermionViewer {
   ///
   Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
       double viewportX, double viewportY, double x, double y, double z);
-
-  
 
   ///
   /// Queues an update to the worldspace rotation for [entity].
@@ -783,12 +798,12 @@ abstract class ThermionViewer {
       PrimitiveType primitiveType = PrimitiveType.TRIANGLES});
 
   ///
-  /// Gets the parent entity of [entity]. Returns null if the entity has no parent. 
+  /// Gets the parent entity of [entity]. Returns null if the entity has no parent.
   ///
   Future<ThermionEntity?> getParent(ThermionEntity entity);
 
   ///
-  /// Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the entity has no parent. 
+  /// Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the entity has no parent.
   ///
   Future<ThermionEntity?> getAncestor(ThermionEntity entity);
 
@@ -827,7 +842,7 @@ abstract class ThermionViewer {
   ///
   /// Gets the 2D bounding box (in viewport coordinates) for the given entity.
   ///
-  Future<Aabb2> getBoundingBox(ThermionEntity entity);
+  Future<Aabb2> getViewportBoundingBox(ThermionEntity entity);
 
   ///
   /// Filament assigns renderables to a numeric layer.
