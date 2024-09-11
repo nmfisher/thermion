@@ -93,7 +93,7 @@ class Gizmo {
         Engine &_engine;
         View *_view;
         Scene *_scene;
-        Camera *_camera;
+        filament::Camera *_camera;
         utils::Entity _entities[7] = { utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity() };
         Material* _material;
         MaterialInstance* _materialInstances[7];
