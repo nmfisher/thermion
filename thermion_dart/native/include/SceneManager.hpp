@@ -62,9 +62,10 @@ namespace thermion_filament
                 }
 
             private:
-                MaterialInstance* _highlightMaterialInstance;
-                CustomGeometry* _newGeometry;
-                FilamentInstance* _newInstance;
+                MaterialInstance* _highlightMaterialInstance = nullptr;
+                bool _isGeometryEntity = false;
+                bool _isGltfAsset = false;
+                FilamentInstance* _newInstance = nullptr;
                 Entity _entity;
                 Engine* const _engine;
                 SceneManager* const _sceneManager;                
@@ -238,6 +239,23 @@ namespace thermion_filament
             bool keepData = false
         );
 
+
+        ///
+        /// Creates an entity with the specified geometry/material/normals and adds to the scene.
+        /// If [keepData] is true, stores 
+        ///
+        EntityId createGeometryWithNormals(
+            float *vertices, 
+            uint32_t numVertices, 
+            float *normals,
+            uint32_t numNormals,
+            uint16_t *indices, 
+            uint32_t numIndices, 
+            filament::RenderableManager::PrimitiveType primitiveType = RenderableManager::PrimitiveType::TRIANGLES, 
+            const char *materialPath = nullptr,
+            bool keepData = false
+        );
+
         friend class FilamentViewer;
 
         Gizmo* gizmo = nullptr;
@@ -250,8 +268,8 @@ namespace thermion_filament
             return _geometry.find(entity) != _geometry.end();
         }
 
-        CustomGeometry* const getGeometry(EntityId entityId) {
-            return _geometry[entityId];
+        const CustomGeometry* const getGeometry(EntityId entityId) {
+            return _geometry[entityId].get();
         }
 
         Scene* const getScene() { 
@@ -282,6 +300,7 @@ namespace thermion_filament
         gltfio::TextureProvider *_stbDecoder = nullptr;
         gltfio::TextureProvider *_ktxDecoder = nullptr;
         std::mutex _mutex;
+        std::mutex _stencilMutex;
 
         utils::NameComponentManager *_ncm;
 
@@ -290,8 +309,8 @@ namespace thermion_filament
             gltfio::FilamentInstance *>
             _instances;
         tsl::robin_map<EntityId, gltfio::FilamentAsset *> _assets;
-        tsl::robin_map<EntityId, CustomGeometry*> _geometry;
-        tsl::robin_map<EntityId, HighlightOverlay *> _highlighted;
+        tsl::robin_map<EntityId, unique_ptr<CustomGeometry>> _geometry;
+        tsl::robin_map<EntityId, unique_ptr<HighlightOverlay>> _highlighted;
         
         tsl::robin_map<EntityId, std::tuple<math::float3, bool, math::quatf, bool, float>> _transformUpdates;
 
