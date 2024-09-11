@@ -13,3 +13,8 @@ headers:
 ffi-native:
   assetId: package:thermion_dart/thermion_dart.dart
 ignore-source-errors: true
+functions:
+  leaf:
+    include:
+      - '.*'
+
