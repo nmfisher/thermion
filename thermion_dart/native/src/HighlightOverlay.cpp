@@ -1,5 +1,6 @@
-#include  <filament/Material.h>
-#include  <filament/MaterialInstance.h>
+#include <filament/Material.h>
+#include <filament/MaterialInstance.h>
+#include <utils/EntityManager.h>
 
 #include "SceneManager.hpp"
 
@@ -35,7 +36,19 @@ namespace thermion_filament {
 
         auto scene = sceneManager->getScene();
 
-        if(sceneManager->isGeometryEntity(entityId)) {
+        _isGeometryEntity = sceneManager->isGeometryEntity(entityId);
+        _isGltfAsset = sceneManager->isGltfAsset(entityId);
+
+        if(!(_isGeometryEntity || _isGltfAsset)) {
+            Log("Failed to set stencil outline for entity %d: the entity is a child of another entity. "
+            "Currently, we only support outlining top-level entities."
+            "Call getAncestor() to get the ancestor of this entity, then set on that", entityId);
+            return;
+        }
+
+        if(_isGeometryEntity) {
+
+            Log("Entity %d is geometry", entityId);
 
             auto geometryEntity = Entity::import(entityId);
             auto renderable = rm.getInstance(geometryEntity); 
@@ -68,11 +81,8 @@ namespace thermion_filament {
             auto outlineTransformInstance = tm.getInstance(_entity);
             auto entityTransformInstance = tm.getInstance(geometryEntity);
             tm.setParent(outlineTransformInstance, entityTransformInstance);            
-            return;
-        }
-
-        if(sceneManager->isGltfAsset(entityId)) {
-
+        } else if(_isGltfAsset) {
+            Log("Entity %d is gltf", entityId);
             auto *asset = sceneManager->getAssetByEntityId(entityId);
             
             if (asset)
@@ -92,19 +102,19 @@ namespace thermion_filament {
                 materialInstance->setStencilOpDepthStencilPass(filament::backend::StencilOperation::REPLACE);
                 materialInstance->setStencilCompareFunction(filament::backend::SamplerCompareFunc::A);
 
-                auto newInstance = sceneManager->createGltfAssetInstance(asset);
+                _newInstance = sceneManager->createGltfAssetInstance(asset);
 
-                _entity = newInstance->getRoot();
+                _entity = _newInstance->getRoot();
 
                 auto newTransformInstance = tm.getInstance(_entity);
 
                 auto entityTransformInstance = tm.getInstance(asset->getRoot());                
                 tm.setParent(newTransformInstance, entityTransformInstance);      
-                if(!newInstance) {
+                if(!_newInstance) {
                     Log("Couldn't create new instance");
                 } else {
-                    for(int i = 0; i < newInstance->getEntityCount(); i++) {
-                        auto entity = newInstance->getEntities()[i];
+                    for(int i = 0; i < _newInstance->getEntityCount(); i++) {
+                        auto entity = _newInstance->getEntities()[i];
                         auto renderableInstance = rm.getInstance(entity);
                         rm.setPriority(renderableInstance, 7);
                         if(renderableInstance.isValid()) {
@@ -115,69 +125,39 @@ namespace thermion_filament {
                             Log("Not renderable, ignoring");
                         }
                     }                
-                    scene->addEntities(newInstance->getEntities(), newInstance->getEntityCount());                   
+                    scene->addEntities(_newInstance->getEntities(), _newInstance->getEntityCount());                   
                 }
-                return;
             } else { 
                 Log("Not FilamentAsset");
             }
         }
 
-        Log("Looking for parent");
 
-        auto renderable = rm.getInstance(Entity::import(entityId));
-        auto transformInstance = tm.getInstance(Entity::import(entityId));
-        if(!transformInstance.isValid()) {
-            Log("Unknown entity type");
-            return;
-        } 
-
-        Entity parent;
-        while(true) {
-            auto newParent = tm.getParent(transformInstance);
-            if(newParent.isNull()) {
-                break;
-            }
-            parent = newParent;
-            transformInstance = tm.getInstance(parent);
-        }
-        if(parent.isNull()) {
-            Log("Unknown entity type");
-            return;
-        }
-        
-        sceneManager->setStencilHighlight(Entity::smuggle(parent), r, g, b);
 }
 
 SceneManager::HighlightOverlay::~HighlightOverlay() { 
+    Log("Destructor");
       if (_entity.isNull()) {
+        Log("Null entity");
         return;
       }
-      
-      auto& rm = _engine->getRenderableManager();
-      auto& tm = _engine->getTransformManager();
 
-      _sceneManager->getScene()->remove(_entity);
-
-
-        // If this was a glTF asset instance, we need to destroy it
-        if (_newInstance) {
-            for(int i =0 ; i < _newInstance->getEntityCount(); i++) {
-                auto entity =_newInstance->getEntities()[i];
-                _sceneManager->getScene()->remove(entity);
-                rm.destroy(entity);
-            }
-        } 
-
-        tm.destroy(_entity);
-
-        _engine->destroy(_highlightMaterialInstance);
-
-      // Destroy the entity
-      utils::EntityManager::get().destroy(_entity);
-
-
+       if (_isGltfAsset)
+        {
+            Log("Erasing new instance");
+            _sceneManager->getScene()->removeEntities(_newInstance->getEntities(), _newInstance->getEntityCount());
+            _newInstance->detachMaterialInstances();
+            _engine->destroy(_highlightMaterialInstance);
+        } else if(_isGeometryEntity) {
+            Log("Erasing new geometry");
+            auto& tm = _engine->getTransformManager();
+            auto transformInstance = tm.getInstance(_entity);
+            _sceneManager->getScene()->remove(_entity);
+            utils::EntityManager::get().destroy(_entity);
+            _engine->destroy(_entity);
+            _engine->destroy(_highlightMaterialInstance);
+        } else { 
+            Log("FATAL: Unknown highlight overlay entity type");
+        }
     }
-
-
 }
