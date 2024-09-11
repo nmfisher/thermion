@@ -34,7 +34,6 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
     EMSCRIPTEN_KEEPALIVE void set_rendering_ffi(void *const viewer, bool rendering, void(*onComplete)());
     EMSCRIPTEN_KEEPALIVE void set_frame_interval_ffi(void *const viewer, float frameInterval);
-    EMSCRIPTEN_KEEPALIVE void update_viewport_and_camera_projection_ffi(void *const viewer, const uint32_t width, const uint32_t height, const float scaleFactor, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void set_background_color_ffi(void *const viewer, const float r, const float g, const float b, const float a);
     EMSCRIPTEN_KEEPALIVE void clear_background_image_ffi(void *const viewer);
     EMSCRIPTEN_KEEPALIVE void set_background_image_ffi(void *const viewer, const char *path, bool fillHeight, void (*onComplete)());
