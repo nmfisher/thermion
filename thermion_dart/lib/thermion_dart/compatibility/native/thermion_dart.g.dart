@@ -1037,6 +1037,29 @@ external int create_geometry(
   ffi.Pointer<ffi.Char> materialPath,
 );
 
+@ffi.Native<
+    EntityId Function(
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
+        ffi.Pointer<ffi.Uint16>,
+        ffi.Int,
+        ffi.Int,
+        ffi.Pointer<ffi.Char>)>()
+external int create_geometry_with_normals(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<ffi.Float> vertices,
+  int numVertices,
+  ffi.Pointer<ffi.Float> normals,
+  int numNormals,
+  ffi.Pointer<ffi.Uint16> indices,
+  int numIndices,
+  int primitiveType,
+  ffi.Pointer<ffi.Char> materialPath,
+);
+
 @ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>()
 external int get_parent(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -1401,14 +1424,14 @@ external void load_glb_ffi(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Uint8>,
         ffi.Size,
         ffi.Int,
         ffi.Bool,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>()
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(isLeaf: true)
 external void load_glb_from_buffer_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
-  ffi.Pointer<ffi.Void> data,
+  ffi.Pointer<ffi.Uint8> data,
   int length,
   int numInstances,
   bool keepData,
@@ -1605,6 +1628,7 @@ external void reset_to_rest_pose_ffi(
         ffi.Int,
         ffi.Int,
         ffi.Pointer<ffi.Char>,
+        ffi.Bool,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>()
 external void create_geometry_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
@@ -1614,6 +1638,34 @@ external void create_geometry_ffi(
   int numIndices,
   int primitiveType,
   ffi.Pointer<ffi.Char> materialPath,
+  bool keepData,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
+        ffi.Pointer<ffi.Uint16>,
+        ffi.Int,
+        ffi.Int,
+        ffi.Pointer<ffi.Char>,
+        ffi.Bool,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>()
+external void create_geometry_with_normals_ffi(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<ffi.Float> vertices,
+  int numVertices,
+  ffi.Pointer<ffi.Float> normals,
+  int numNormals,
+  ffi.Pointer<ffi.Uint16> indices,
+  int numIndices,
+  int primitiveType,
+  ffi.Pointer<ffi.Char> materialPath,
+  bool keepData,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 
