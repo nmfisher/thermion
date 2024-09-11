@@ -603,6 +603,7 @@ namespace thermion_filament
 
     void SceneManager::remove(EntityId entityId)
     {
+
         std::lock_guard lock(_mutex);
 
         auto entity = Entity::import(entityId);
@@ -1852,7 +1853,6 @@ void SceneManager::queueRelativePositionUpdateFromViewportVector(EntityId entity
     float ndcX = (2.0f * viewportCoordX) / vp.width - 1.0f;
     float ndcY = 1.0f - (2.0f * viewportCoordY) / vp.height;
 
-    Log("ndc X ndcY %f %f", ndcX, ndcY );
     // Get the current position of the entity
     auto &tm = _engine->getTransformManager();
     auto entity = Entity::import(entityId);
@@ -1864,10 +1864,6 @@ void SceneManager::queueRelativePositionUpdateFromViewportVector(EntityId entity
     // get entity model origin in clip space
     auto entityPositionInClipSpace = camera.getProjectionMatrix() * entityPositionInCameraSpace;
     auto entityPositionInNdcSpace = entityPositionInClipSpace / entityPositionInClipSpace.w;
-
-    Log("entityPositionInCameraSpace %f %f %f %f", entityPositionInCameraSpace.x, entityPositionInCameraSpace.y, entityPositionInCameraSpace.z, entityPositionInCameraSpace.w);
-    Log("entityPositionInClipSpace %f %f %f %f", entityPositionInClipSpace.x, entityPositionInClipSpace.y, entityPositionInClipSpace.z, entityPositionInClipSpace.w);
-    Log("entityPositionInNdcSpace %f %f %f %f", entityPositionInNdcSpace.x, entityPositionInNdcSpace.y, entityPositionInNdcSpace.z, entityPositionInNdcSpace.w);
 
     // Viewport coords in NDC space (use entity position in camera space Z to project onto near plane)
     math::float4 ndcNearPlanePos = {ndcX, ndcY, -1.0f, 1.0f};
@@ -1882,11 +1878,6 @@ void SceneManager::queueRelativePositionUpdateFromViewportVector(EntityId entity
     math::float4 entityPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcEntityPlanePos;
     auto entityPlaneInCameraSpace = entityPlaneInClipSpace / entityPlaneInClipSpace.w;
     auto entityPlaneInWorldSpace = camera.getModelMatrix() * entityPlaneInCameraSpace;
-
-    Log("nearPlaneInClipSpace %f %f %f %f",nearPlaneInClipSpace.x, nearPlaneInClipSpace.y, nearPlaneInClipSpace.z, nearPlaneInClipSpace.w);
-    Log("nearPlaneInCameraSpace %f %f %f %f",nearPlaneInCameraSpace.x, nearPlaneInCameraSpace.y, nearPlaneInCameraSpace.z, nearPlaneInCameraSpace.w);
-    Log("entityPlaneInCameraSpace %f %f %f %f",entityPlaneInCameraSpace.x, entityPlaneInCameraSpace.y, entityPlaneInCameraSpace.z, entityPlaneInCameraSpace.w);
-    Log("entityPlaneInWorldSpace %f %f %f %f",entityPlaneInWorldSpace.x, entityPlaneInWorldSpace.y, entityPlaneInWorldSpace.z, entityPlaneInWorldSpace.w);
     
     // Queue the position update (as a relative movement)
     queuePositionUpdate(entityId, entityPlaneInWorldSpace.x, entityPlaneInWorldSpace.y, entityPlaneInWorldSpace.z, false);
@@ -2353,24 +2344,109 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
     }
 
     void SceneManager::removeStencilHighlight(EntityId entityId) {
+        std::lock_guard lock(_stencilMutex);
         auto found = _highlighted.find(entityId);
         if(found == _highlighted.end()) {
+            Log("Entity %d has no stencil highlight, skipping removal", entityId);
             return;
         }
-        delete found->second;
+        Log("Erasing entity id %d from highlighted", entityId);
+
         _highlighted.erase(entityId);
     }
 
     void SceneManager::setStencilHighlight(EntityId entityId, float r, float g, float b) {
+        
+        std::lock_guard lock(_stencilMutex);
 
-        auto highlightEntity = new HighlightOverlay(entityId, this, _engine, r, g, b);
+        auto highlightEntity = std::make_unique<HighlightOverlay>(entityId, this, _engine, r, g, b);
 
-        if(!highlightEntity->isValid()) {
-            delete highlightEntity;
-        } else {
-            _highlighted.emplace(entityId, highlightEntity);
+        if(highlightEntity->isValid()) {
+            _highlighted.emplace(entityId, std::move(highlightEntity));
         }
 
+    }
+
+    ///
+    /// Creates an entity with the specified geometry/material/normals and adds to the scene.
+    /// If [keepData] is true, stores 
+    ///
+    EntityId SceneManager::createGeometryWithNormals(
+        float *vertices, 
+        uint32_t numVertices, 
+        float *normals,
+        uint32_t numNormals,
+        uint16_t *indices, 
+        uint32_t numIndices, 
+        filament::RenderableManager::PrimitiveType primitiveType,
+        const char *materialPath,
+        bool keepData
+    ) {
+        auto geometry = std::make_unique<CustomGeometry>(vertices, numVertices, normals, numNormals, indices, numIndices, primitiveType, _engine);
+
+        auto renderable = utils::EntityManager::get().create();
+        RenderableManager::Builder builder(1);
+
+        builder.boundingBox(geometry->getBoundingBox())
+            .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
+            .culling(true)
+            .receiveShadows(false)
+            .castShadows(false);
+
+        if (materialPath) {
+            filament::Material* mat = nullptr;
+            
+            auto matData = _resourceLoaderWrapper->load(materialPath);
+            mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
+            _resourceLoaderWrapper->free(matData);
+            builder.material(0, mat->getDefaultInstance());
+        } else { 
+            filament::gltfio::MaterialKey config;
+            
+            config.unlit = false;
+            config.doubleSided = false;
+            config.useSpecularGlossiness = false;
+            config.alphaMode = filament::gltfio::AlphaMode::OPAQUE;
+            config.hasBaseColorTexture = false;
+            config.hasClearCoat = false;
+            config.hasClearCoatNormalTexture = false;
+            config.hasClearCoatRoughnessTexture = false;
+            config.hasEmissiveTexture = false;
+            config.hasIOR = false;
+            config.hasMetallicRoughnessTexture = false;
+            config.hasNormalTexture = false;
+            config.hasOcclusionTexture = false;
+            config.hasSheen = false;
+            config.hasSheenColorTexture = false;
+            config.hasSheenRoughnessTexture = false;
+            config.hasSpecularGlossinessTexture = false;
+            config.hasTextureTransforms = false;
+            config.hasTransmission = false;
+            config.hasTransmissionTexture = false;
+            config.hasVolume = false;
+            config.hasVolumeThicknessTexture = false;
+
+            config.hasVertexColors = false;
+            config.hasVolume = false;
+            // config.enableDiagnostics = true;
+            
+            filament::gltfio::UvMap uvmap;        
+            auto materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
+            materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4 { 1.0f, 0.0f, 0.0f, 1.0f });
+            // auto materialInstance = _unlitMaterialProvider->createMaterialInstance(&config, &uvmap);
+            builder.material(0, materialInstance);
+
+        } 
+
+        builder.build(*_engine, renderable);
+
+        _scene->addEntity(renderable);
+
+        auto entityId = Entity::smuggle(renderable);
+
+        _geometry.emplace(entityId, std::move(geometry));
+
+        return entityId;
     }
 
     EntityId SceneManager::createGeometry(
@@ -2382,38 +2458,7 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
         const char *materialPath,
         bool keepData
     ) {
-
-    auto geometry = new CustomGeometry(vertices, numVertices, indices, numIndices, primitiveType, _engine);
-
-    filament::Material* mat = nullptr;
-    if (materialPath) {
-        auto matData = _resourceLoaderWrapper->load(materialPath);
-        mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
-        _resourceLoaderWrapper->free(matData);
-    }
-
-    auto renderable = utils::EntityManager::get().create();
-    RenderableManager::Builder builder(1);
-
-    builder.boundingBox(geometry->getBoundingBox())
-           .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
-           .culling(true)
-           .receiveShadows(false)
-           .castShadows(false);
-
-    if (mat) {
-        builder.material(0, mat->getDefaultInstance());
-    } 
-
-    builder.build(*_engine, renderable);
-
-    _scene->addEntity(renderable);
-
-    auto entityId = Entity::smuggle(renderable);
-
-    _geometry.emplace(entityId, geometry);
-
-    return entityId;
+        return createGeometryWithNormals(vertices, numVertices, nullptr, 0, indices, numIndices, primitiveType, materialPath, keepData);
   }
 
 } // namespace thermion_filament
