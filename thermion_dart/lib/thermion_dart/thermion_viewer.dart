@@ -207,6 +207,15 @@ abstract class ThermionViewer {
       {int numInstances = 1, bool keepData = false});
 
   ///
+  /// Load the .glb asset from the specified buffer and insert into the scene.
+  /// Specify [numInstances] to create multiple instances (this is more efficient than dynamically instantating at a later time). You can then retrieve the created instances with [getInstances].
+  /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
+  /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
+  ///
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
+      {int numInstances = 1, bool keepData = false});
+
+  ///
   /// Create a new instance of [entity].
   ///
   Future<ThermionEntity> createInstance(ThermionEntity entity);
@@ -770,6 +779,7 @@ abstract class ThermionViewer {
   ///
   Future createGeometry(List<double> vertices, List<int> indices,
       {String? materialPath,
+      List<double>? normals,
       PrimitiveType primitiveType = PrimitiveType.TRIANGLES});
 
   ///
