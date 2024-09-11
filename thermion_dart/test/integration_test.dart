@@ -5,6 +5,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:path/path.dart' as p;
+import 'package:thermion_dart/thermion_dart/geometry_helper.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'helpers.dart';
@@ -24,6 +25,72 @@ void main() async {
     await pixelBufferToBmp(pixelBuffer, viewportDimensions.width,
         viewportDimensions.height, outPath);
   }
+
+  final cubeGeometry = GeometryHelper.cube();
+
+  group('camera', () {
+    test('getCameraModelMatrix, getCameraPosition, rotation', () async {
+      var viewer = await createViewer();
+      var matrix = await viewer.getCameraModelMatrix();
+      expect(matrix.trace(), 4);
+      await viewer.setCameraPosition(2.0, 2.0, 2.0);
+      matrix = await viewer.getCameraModelMatrix();
+      var position = matrix.getColumn(3).xyz;
+      expect(position.x, 2.0);
+      expect(position.y, 2.0);
+      expect(position.z, 2.0);
+
+      position = await viewer.getCameraPosition();
+      expect(position.x, 2.0);
+      expect(position.y, 2.0);
+      expect(position.z, 2.0);
+    });
+
+    test('getCameraViewMatrix', () async {
+      var viewer = await createViewer();
+
+      var modelMatrix = await viewer.getCameraModelMatrix();
+      var viewMatrix = await viewer.getCameraViewMatrix();
+
+      // The view matrix should be the inverse of the model matrix
+      var identity = modelMatrix * viewMatrix;
+      expect(identity.isIdentity(), isTrue);
+
+      // Check that moving the camera affects the view matrix
+      await viewer.setCameraPosition(3.0, 4.0, 5.0);
+      viewMatrix = await viewer.getCameraViewMatrix();
+      var invertedView = viewMatrix.clone()..invert();
+      var position = invertedView.getColumn(3).xyz;
+      expect(position.x, closeTo(3.0, 1e-6));
+      expect(position.y, closeTo(4.0, 1e-6));
+      expect(position.z, closeTo(5.0, 1e-6));
+    });
+
+    test('getCameraProjectionMatrix', () async {
+      var viewer = await createViewer();
+      var projectionMatrix = await viewer.getCameraProjectionMatrix();
+      print(projectionMatrix);
+    });
+
+    test('getCameraCullingProjectionMatrix', () async {
+      var viewer = await createViewer();
+      var matrix = await viewer.getCameraCullingProjectionMatrix();
+      print(matrix);
+      throw Exception("TODO");
+    });
+
+    test('getCameraFrustum', () async {
+      var viewer = await createViewer();
+      var frustum = await viewer.getCameraFrustum();
+      print(frustum.plane5.normal);
+      print(frustum.plane5.constant);
+
+      await viewer.setCameraLensProjection(10.0, 1000.0, 1.0, 28.0);
+      frustum = await viewer.getCameraFrustum();
+      print(frustum.plane5.normal);
+      print(frustum.plane5.constant);
+    });
+  });
 
   group('background', () {
     test('set background color to solid green', () async {
@@ -52,6 +119,45 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
       await _capture(viewer, "load_glb");
+    });
+  });
+
+  group("custom geometry", () {
+    test('create cube (no normals)', () async {
+      var viewer = await createViewer();
+      var light = await viewer.addLight(
+          LightType.POINT, 6500, 10000000, 0, 2, 0, 0, -1, 0,
+          falloffRadius: 10.0);
+      await viewer.setCameraPosition(0, 0, 6);
+      await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
+      await viewer.createGeometry(cubeGeometry.vertices, cubeGeometry.indices,
+          primitiveType: PrimitiveType.TRIANGLES);
+      await _capture(viewer, "geometry_cube");
+    });
+
+    test('create cube (with normals)', () async {
+      var viewer = await createViewer();
+
+      var light = await viewer.addLight(
+          LightType.POINT, 6500, 1000000, 0, 2, 0, 0, -1, 0,
+          falloffRadius: 10.0);
+
+      await viewer.setCameraPosition(0, 0, 6);
+      await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
+      await viewer.createGeometry(cubeGeometry.vertices, cubeGeometry.indices,
+          normals: cubeGeometry.normals,
+          primitiveType: PrimitiveType.TRIANGLES);
+      await _capture(viewer, "geometry_cube");
+    });
+
+    test('create sphere', () async {
+      final geometry = GeometryHelper.sphere();
+      var viewer = await createViewer();
+      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
+      await viewer.setCameraPosition(0, 0, 6);
+      await viewer.createGeometry(geometry.vertices, geometry.indices,
+          primitiveType: PrimitiveType.TRIANGLES);
+      await _capture(viewer, "geometry_sphere");
     });
   });
 
@@ -117,7 +223,7 @@ void main() async {
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
       // Create the cube geometry
-      await viewer.createGeometry(cubeVertices, cubeIndices,
+      await viewer.createGeometry(cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
 
       await _capture(viewer, "geometry_cube");
@@ -125,10 +231,12 @@ void main() async {
   });
 
   group("transforms & parenting", () {
-    test('getParent and getAncestor both return null when entity has no parent', () async {
+    test('getParent and getAncestor both return null when entity has no parent',
+        () async {
       var viewer = await createViewer();
 
-      final cube = await viewer.createGeometry(cubeVertices, cubeIndices,
+      final cube = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
 
       expect(await viewer.getParent(cube), isNull);
@@ -140,9 +248,11 @@ void main() async {
         () async {
       var viewer = await createViewer();
 
-      final cube1 = await viewer.createGeometry(cubeVertices, cubeIndices,
+      final cube1 = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
-      final cube2 = await viewer.createGeometry(cubeVertices, cubeIndices,
+      final cube2 = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
 
       await viewer.setParent(cube1, cube2);
@@ -155,18 +265,20 @@ void main() async {
     test('getAncestor returns the ultimate parent entity', () async {
       var viewer = await createViewer();
 
-      final grandparent = await viewer.createGeometry(cubeVertices, cubeIndices,
+      final grandparent = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
-      final parent = await viewer.createGeometry(cubeVertices, cubeIndices,
+      final parent = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
-      final child = await viewer.createGeometry(cubeVertices, cubeIndices,
+      final child = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
 
       await viewer.setParent(child, parent);
       await viewer.setParent(parent, grandparent);
 
       expect(await viewer.getAncestor(child), grandparent);
-
     });
 
     test('set position based on screenspace coord', () async {
@@ -176,7 +288,8 @@ void main() async {
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
       // Create the cube geometry
-      final cube = await viewer.createGeometry(cubeVertices, cubeIndices,
+      final cube = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
       // await viewer.setPosition(cube, -0.05, 0.04, 5.9);
       // await viewer.setPosition(cube, -2.54, 2.54, 0);
@@ -188,64 +301,6 @@ void main() async {
       await _capture(viewer, "set_position_from_viewport_coords");
     });
   });
-
-  //   test('create sphere', () async {
-  //     // Define the parameters for the sphere
-  //     int latitudeBands = 30;
-  //     int longitudeBands = 30;
-  //     double radius = 1.0;
-
-  //     List<double> vertices = [];
-  //     List<int> indices = [];
-
-  //     // Generate vertices
-  //     for (int latNumber = 0; latNumber <= latitudeBands; latNumber++) {
-  //       double theta = latNumber * pi / latitudeBands;
-  //       double sinTheta = sin(theta);
-  //       double cosTheta = cos(theta);
-
-  //       for (int longNumber = 0; longNumber <= longitudeBands; longNumber++) {
-  //         double phi = longNumber * 2 * pi / longitudeBands;
-  //         double sinPhi = sin(phi);
-  //         double cosPhi = cos(phi);
-
-  //         double x = cosPhi * sinTheta;
-  //         double y = cosTheta;
-  //         double z = sinPhi * sinTheta;
-
-  //         vertices.addAll([radius * x, radius * y, radius * z]);
-  //       }
-  //     }
-
-  //     // Generate indices
-  //     for (int latNumber = 0; latNumber < latitudeBands; latNumber++) {
-  //       for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
-  //         int first = (latNumber * (longitudeBands + 1)) + longNumber;
-  //         int second = first + longitudeBands + 1;
-
-  //         indices.addAll(
-  //             [first, second, first + 1, second, second + 1, first + 1]);
-  //       }
-  //     }
-
-  //     await viewer.createIbl(1.0, 1.0, 1.0, 1000);
-  //     await viewer.setCameraPosition(0, 0.5, 10);
-  //     await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
-  //     await viewer
-  //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
-  //     await viewer.setRendering(true);
-
-  //     // Create the sphere geometry
-  //     // final sphere = await viewer.createGeometry(vertices, indices,
-  //     //     primitiveType: PrimitiveType.TRIANGLES);
-
-  //     // await viewer.gizmo!.attach(sphere);
-  //     // await viewer.setPosition(sphere, -1.0, 0.0, -10.0);
-  //     // await viewer.setRotationQuat(
-  //     //     sphere, Quaternion.axisAngle(Vector3(1, 0, 0), pi / 8));
-  //     await _capture(viewer, "geometry_sphere");
-  //     await viewer.setRendering(false);
-  //   });
 
   //   test('enable grid overlay', () async {
   //     await viewer.setBackgroundColor(0, 0, 0, 1);
@@ -344,7 +399,8 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube = await viewer.createGeometry(cubeVertices, cubeIndices,
+      var cube = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
       await viewer.setStencilHighlight(cube);
 
@@ -355,6 +411,26 @@ void main() async {
       await _capture(viewer, "stencil_highlight_geometry_remove");
     });
 
+    test('set stencil highlight for gltf asset', () async {
+      var viewer = await createViewer();
+      await viewer.setPostProcessing(true);
+      await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
+      await viewer.setCameraPosition(0, 1, 5);
+      await viewer
+          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
+
+      var cube1 = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
+      await viewer.transformToUnitCube(cube1);
+
+      await viewer.setStencilHighlight(cube1);
+
+      await _capture(viewer, "stencil_highlight_gltf");
+
+      await viewer.removeStencilHighlight(cube1);
+
+      await _capture(viewer, "stencil_highlight_gltf_removed");
+    });
+
     test('set stencil highlight for multiple geometry ', () async {
       var viewer = await createViewer();
       await viewer.setPostProcessing(true);
@@ -363,15 +439,46 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube1 = await viewer.createGeometry(cubeVertices, cubeIndices,
+      var cube1 = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
-      var cube2 = await viewer.createGeometry(cubeVertices, cubeIndices,
+      var cube2 = await viewer.createGeometry(
+          cubeGeometry.vertices, cubeGeometry.indices,
           primitiveType: PrimitiveType.TRIANGLES);
       await viewer.setPosition(cube2, 0.5, 0.5, 0);
       await viewer.setStencilHighlight(cube1);
       await viewer.setStencilHighlight(cube2, r: 0.0, g: 0.0, b: 1.0);
 
       await _capture(viewer, "stencil_highlight_multiple_geometry");
+
+      await viewer.removeStencilHighlight(cube1);
+      await viewer.removeStencilHighlight(cube2);
+
+      await _capture(viewer, "stencil_highlight_multiple_geometry_removed");
+    });
+
+    test('set stencil highlight for multiple gltf assets ', () async {
+      var viewer = await createViewer();
+      await viewer.setPostProcessing(true);
+      await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
+      await viewer.setCameraPosition(0, 1, 5);
+      await viewer
+          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
+
+      var cube1 = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
+      await viewer.transformToUnitCube(cube1);
+      var cube2 = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
+      await viewer.transformToUnitCube(cube2);
+      await viewer.setPosition(cube2, 0.5, 0.5, 0);
+      await viewer.setStencilHighlight(cube1);
+      await viewer.setStencilHighlight(cube2, r: 0.0, g: 0.0, b: 1.0);
+
+      await _capture(viewer, "stencil_highlight_multiple_geometry");
+
+      await viewer.removeStencilHighlight(cube1);
+      await viewer.removeStencilHighlight(cube2);
+
+      await _capture(viewer, "stencil_highlight_multiple_geometry_removed");
     });
   });
 }
