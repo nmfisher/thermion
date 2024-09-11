@@ -75,13 +75,6 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
 
-  @override
-  Future createGeometry(List<double> vertices, List<int> indices,
-      {String? materialPath,
-      PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) {
-    // TODO: implement createGeometry
-    throw UnimplementedError();
-  }
 
   @override
   Future<ThermionEntity> createInstance(ThermionEntity entity) {
@@ -266,19 +259,6 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   // TODO: implement initialized
   Future<bool> get initialized => throw UnimplementedError();
-
-  @override
-  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1}) {
-    // TODO: implement loadGlb
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
-      {bool force = false}) {
-    // TODO: implement loadGltf
-    throw UnimplementedError();
-  }
 
   @override
   Future loadIbl(String lightingPath, {double intensity = 30000}) {
@@ -843,6 +823,48 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future setStencilHighlight(ThermionEntity entity, {double r = 1.0, double g = 0.0, double b = 0.0}) {
     // TODO: implement setStencilHighlight
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<double> getCameraNear() {
+    // TODO: implement getCameraNear
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Aabb2> getViewportBoundingBox(ThermionEntity entity) {
+    // TODO: implement getViewportBoundingBox
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setCameraLensProjection(double near, double far, double aspect, double focalLength) {
+    // TODO: implement setCameraLensProjection
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setCameraModelMatrix4(Matrix4 matrix) {
+    // TODO: implement setCameraModelMatrix4
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future createGeometry(List<double> vertices, List<int> indices, {String? materialPath, List<double>? normals, PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) {
+    // TODO: implement createGeometry
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1, bool keepData = false}) {
+    // TODO: implement loadGlb
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ThermionEntity> loadGltf(String path, String relativeResourcePath, {bool keepData = false}) {
+    // TODO: implement loadGltf
     throw UnimplementedError();
   }
 }
