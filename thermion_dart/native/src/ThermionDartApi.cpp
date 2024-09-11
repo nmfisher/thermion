@@ -4,7 +4,6 @@
 #endif
 
 #include "ResourceBuffer.hpp"
-
 #include "FilamentViewer.hpp"
 #include "filament/LightManager.h"
 #include "Log.hpp"
@@ -13,21 +12,42 @@
 #include <thread>
 #include <functional>
 
-using namespace thermion_filament;
-
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
+
+using namespace thermion_filament;
 
 extern "C"
 {
 
 #include "ThermionDartApi.h"
 
+    // Helper function to convert filament::math::mat4 to double4x4
+    static double4x4 convert_mat4_to_double4x4(const filament::math::mat4 &mat)
+    {
+        return double4x4{
+            {mat[0][0], mat[0][1], mat[0][2], mat[0][3]},
+            {mat[1][0], mat[1][1], mat[1][2], mat[1][3]},
+            {mat[2][0], mat[2][1], mat[2][2], mat[2][3]},
+            {mat[3][0], mat[3][1], mat[3][2], mat[3][3]},
+        };
+    }
+
+    // Helper function to convert double4x4 to filament::math::mat4
+    static filament::math::mat4 convert_double4x4_to_mat4(const double4x4& d_mat)
+    {
+        return filament::math::mat4{
+            filament::math::float4{float(d_mat.col1[0]), float(d_mat.col1[1]), float(d_mat.col1[2]), float(d_mat.col1[3])},
+            filament::math::float4{float(d_mat.col2[0]), float(d_mat.col2[1]), float(d_mat.col2[2]), float(d_mat.col2[3])},
+            filament::math::float4{float(d_mat.col3[0]), float(d_mat.col3[1]), float(d_mat.col3[2]), float(d_mat.col3[3])},
+            filament::math::float4{float(d_mat.col4[0]), float(d_mat.col4[1]), float(d_mat.col4[2]), float(d_mat.col4[3])}
+        };
+    }
 
     EMSCRIPTEN_KEEPALIVE const void *create_filament_viewer(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
     {
-        const auto * loaderImpl = new ResourceLoaderWrapperImpl((ResourceLoaderWrapper*)loader);
+        const auto *loaderImpl = new ResourceLoaderWrapperImpl((ResourceLoaderWrapper *)loader);
         auto viewer = (const void *)new FilamentViewer(context, loaderImpl, platform, uberArchivePath);
         return viewer;
     }
@@ -77,8 +97,9 @@ extern "C"
         ((FilamentViewer *)viewer)->loadSkybox(skyboxPath);
     }
 
-    EMSCRIPTEN_KEEPALIVE void create_ibl(const void *const viewer, float r, float g, float b, float intensity) {
-        ((FilamentViewer*)viewer)->createIbl(r, g, b, intensity);
+    EMSCRIPTEN_KEEPALIVE void create_ibl(const void *const viewer, float r, float g, float b, float intensity)
+    {
+        ((FilamentViewer *)viewer)->createIbl(r, g, b, intensity);
     }
 
     EMSCRIPTEN_KEEPALIVE void load_ibl(const void *const viewer, const char *iblPath, float intensity)
@@ -111,16 +132,16 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId add_light(
-        const void *const viewer, 
-        uint8_t type, 
-        float colour, 
-        float intensity, 
-        float posX, 
-        float posY, 
-        float posZ, 
-        float dirX, 
-        float dirY, 
-        float dirZ, 
+        const void *const viewer,
+        uint8_t type,
+        float colour,
+        float intensity,
+        float posX,
+        float posY,
+        float posZ,
+        float dirX,
+        float dirY,
+        float dirZ,
         float falloffRadius,
         float spotLightConeInner,
         float spotLightConeOuter,
@@ -129,31 +150,17 @@ extern "C"
         float sunHaloFallof,
         bool shadows)
     {
-        return ((FilamentViewer *)viewer)->addLight(
-            (LightManager::Type)type, 
-            colour, 
-            intensity, 
-            posX, 
-            posY, 
-            posZ,
-            dirX,
-            dirY,
-            dirZ,
-            falloffRadius,
-            spotLightConeInner,
-            spotLightConeOuter,
-            sunAngularRadius,
-            sunHaloSize,
-            sunHaloFallof,
-            shadows);
+        return ((FilamentViewer *)viewer)->addLight((LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, shadows);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_light_position(const void *const viewer, int32_t entityId, float x, float y, float z) {
-        ((FilamentViewer*)viewer)->setLightPosition(entityId, x, y, z);
+    EMSCRIPTEN_KEEPALIVE void set_light_position(const void *const viewer, int32_t entityId, float x, float y, float z)
+    {
+        ((FilamentViewer *)viewer)->setLightPosition(entityId, x, y, z);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_light_direction(const void *const viewer, int32_t entityId, float x, float y, float z) {
-        ((FilamentViewer*)viewer)->setLightDirection(entityId, x, y, z);
+    EMSCRIPTEN_KEEPALIVE void set_light_direction(const void *const viewer, int32_t entityId, float x, float y, float z)
+    {
+        ((FilamentViewer *)viewer)->setLightDirection(entityId, x, y, z);
     }
 
     EMSCRIPTEN_KEEPALIVE void remove_light(const void *const viewer, int32_t entityId)
@@ -211,70 +218,82 @@ extern "C"
         return ((FilamentViewer *)viewer)->setCamera(asset, nodeName);
     }
 
-    EMSCRIPTEN_KEEPALIVE float get_camera_fov(const void *const viewer, bool horizontal) {
-        return ((FilamentViewer*)viewer)->getCameraFov(horizontal);
+    EMSCRIPTEN_KEEPALIVE float get_camera_fov(CameraPtr* camera, bool horizontal)
+    {
+        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        return cam->getFieldOfViewInDegrees(horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_fov(const void *const viewer, float fovInDegrees, bool horizontal)
-    {
-        return ((FilamentViewer *)viewer)->setCameraFov(double(fovInDegrees), horizontal);
+    EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(CameraPtr* const camera) {
+        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        return cam->getFocalLength();
     }
 
-    const double *const get_camera_model_matrix(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(CameraPtr* camera, double fovInDegrees, double aspect, double near, double far, bool horizontal)
     {
-        const auto &modelMatrix = ((FilamentViewer *)viewer)->getCameraModelMatrix();
-        double *array = (double *)calloc(16, sizeof(double));
-        memcpy(array, modelMatrix.asArray(), 16 * sizeof(double));
-        return array;
+        auto cam = reinterpret_cast<filament::Camera*>(camera);       
+        cam->setProjection(fovInDegrees, aspect, near, far, horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
     }
 
-    const double *const get_camera_view_matrix(const void *const viewer)
-    {
-        const auto &matrix = ((FilamentViewer *)viewer)->getCameraViewMatrix();
-        double *array = (double *)calloc(16, sizeof(double));
-        memcpy(array, matrix.asArray(), 16 * sizeof(double));
-        return array;
+    EMSCRIPTEN_KEEPALIVE CameraPtr* get_camera(const void *const viewer, EntityId entity) {
+        auto filamentCamera = ((FilamentViewer*)viewer)->getCamera(entity);
+        return reinterpret_cast<CameraPtr*>(filamentCamera);
     }
 
-    const double *const get_camera_projection_matrix(const void *const viewer)
+    double4x4 get_camera_model_matrix(CameraPtr* camera)
     {
-        const auto &matrix = ((FilamentViewer *)viewer)->getCameraProjectionMatrix();
-        double *array = (double *)calloc(16, sizeof(double));
-        memcpy(array, matrix.asArray(), 16 * sizeof(double));
-        return array;
+        const auto &mat = reinterpret_cast<filament::Camera*>(camera)->getModelMatrix();
+        return convert_mat4_to_double4x4(mat);
     }
 
-    const double *const get_camera_culling_projection_matrix(const void *const viewer)
+    double4x4 get_camera_view_matrix(CameraPtr* camera)
     {
-        const auto &matrix = ((FilamentViewer *)viewer)->getCameraCullingProjectionMatrix();
-        double *array = (double *)calloc(16, sizeof(double));
-        memcpy(array, matrix.asArray(), 16 * sizeof(double));
-        return array;
+        const auto &mat = reinterpret_cast<filament::Camera*>(camera)->getViewMatrix();
+        return convert_mat4_to_double4x4(mat);
     }
 
-    void set_camera_projection_matrix(const void *const viewer, const double *const matrix, double near, double far)
+    double4x4 get_camera_projection_matrix(CameraPtr* camera)
     {
-        ((FilamentViewer *)viewer)->setCameraProjectionMatrix(matrix, near, far);
+        const auto &mat = reinterpret_cast<filament::Camera*>(camera)->getProjectionMatrix();
+        return convert_mat4_to_double4x4(mat);
     }
 
-    void set_camera_culling(const void *const viewer, double near, double far)
+    double4x4 get_camera_culling_projection_matrix(CameraPtr* camera)
     {
-        ((FilamentViewer *)viewer)->setCameraCulling(near, far);
+        const auto &mat = reinterpret_cast<filament::Camera*>(camera)->getCullingProjectionMatrix();
+        return convert_mat4_to_double4x4(mat);
     }
 
-    double get_camera_culling_near(const void *const viewer)
+    void set_camera_projection_matrix(CameraPtr* camera, double4x4 matrix, double near, double far)
     {
-        return ((FilamentViewer *)viewer)->getCameraCullingNear();
+        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        const auto& mat = convert_double4x4_to_mat4(matrix);
+        cam->setCustomProjection(mat, near, far);
     }
 
-    double get_camera_culling_far(const void *const viewer)
+    void set_camera_lens_projection(CameraPtr* camera, double near, double far, double aspect, double focalLength)
     {
-        return ((FilamentViewer *)viewer)->getCameraCullingFar();
+        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        cam->setLensProjection(focalLength, aspect, near, far);
     }
 
-    const double *const get_camera_frustum(const void *const viewer)
+    double get_camera_near(CameraPtr* camera)
     {
-        const auto frustum = ((FilamentViewer *)viewer)->getCameraFrustum();
+        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        return cam->getNear();
+    }
+
+    double get_camera_culling_far(CameraPtr* camera)
+    {
+        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        return cam->getCullingFar();
+    }
+
+    const double *const get_camera_frustum(CameraPtr* camera)
+    {
+        
+        const auto frustum = reinterpret_cast<filament::Camera*>(camera)->getFrustum();
+        
         const math::float4 *planes = frustum.getNormalizedPlanes();
         double *array = (double *)calloc(24, sizeof(double));
         for (int i = 0; i < 6; i++)
@@ -299,39 +318,23 @@ extern "C"
         ((FilamentViewer *)viewer)->setViewFrustumCulling(enabled);
     }
 
-    EMSCRIPTEN_KEEPALIVE void move_camera_to_asset(const void *const viewer, EntityId asset)
+    EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(CameraPtr* camera, float distance)
     {
-        ((FilamentViewer *)viewer)->moveCameraToAsset(asset);
+        auto * cam = reinterpret_cast<filament::Camera*>(camera);
+        cam->setFocusDistance(distance);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(const void *const viewer, float distance)
+    EMSCRIPTEN_KEEPALIVE void set_camera_exposure(CameraPtr* camera, float aperture, float shutterSpeed, float sensitivity)
     {
-        ((FilamentViewer *)viewer)->setCameraFocusDistance(distance);
+        auto * cam = reinterpret_cast<filament::Camera*>(camera);
+        cam->setExposure(aperture, shutterSpeed, sensitivity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_exposure(const void *const viewer, float aperture, float shutterSpeed, float sensitivity)
+    EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(CameraPtr* camera, double4x4 matrix)
     {
-        ((FilamentViewer *)viewer)->setCameraExposure(aperture, shutterSpeed, sensitivity);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_camera_position(const void *const viewer, float x, float y, float z)
-    {
-        ((FilamentViewer *)viewer)->setCameraPosition(x, y, z);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_camera_rotation(const void *const viewer, float w, float x, float y, float z)
-    {
-        ((FilamentViewer *)viewer)->setCameraRotation(w, x, y, z);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(const void *const viewer, const float *const matrix)
-    {
-        ((FilamentViewer *)viewer)->setCameraModelMatrix(matrix);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_camera_focal_length(const void *const viewer, float focalLength)
-    {
-        ((FilamentViewer *)viewer)->setCameraFocalLength(focalLength);
+        auto * cam = reinterpret_cast<filament::Camera*>(camera);
+        const filament::math::mat4& mat = convert_double4x4_to_mat4(matrix);
+        cam->setModelMatrix(mat);
     }
 
     EMSCRIPTEN_KEEPALIVE void render(
@@ -345,11 +348,12 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void capture(
-		const void *const viewer,
-		uint8_t *pixelBuffer,
-		void (*callback)(void)) {
-            ((FilamentViewer *)viewer)->capture(pixelBuffer, callback);
-        };
+        const void *const viewer,
+        uint8_t *pixelBuffer,
+        void (*callback)(void))
+    {
+        ((FilamentViewer *)viewer)->capture(pixelBuffer, callback);
+    };
 
     EMSCRIPTEN_KEEPALIVE void set_frame_interval(
         const void *const viewer,
@@ -368,9 +372,9 @@ extern "C"
         ((FilamentViewer *)viewer)->createSwapChain(window, width, height);
     }
 
-    EMSCRIPTEN_KEEPALIVE void update_viewport_and_camera_projection(const void *const viewer, uint32_t width, uint32_t height, float scaleFactor)
+    EMSCRIPTEN_KEEPALIVE void update_viewport(const void *const viewer, uint32_t width, uint32_t height)
     {
-        return ((FilamentViewer *)viewer)->updateViewportAndCameraProjection(width, height, scaleFactor);
+        return ((FilamentViewer *)viewer)->updateViewport(width, height);
     }
 
     EMSCRIPTEN_KEEPALIVE void scroll_update(const void *const viewer, float x, float y, float delta)
@@ -440,7 +444,8 @@ extern "C"
         return result;
     }
 
-    EMSCRIPTEN_KEEPALIVE void clear_morph_animation(void* sceneManager, EntityId asset) {
+    EMSCRIPTEN_KEEPALIVE void clear_morph_animation(void *sceneManager, EntityId asset)
+    {
         ((SceneManager *)sceneManager)->clearMorphAnimationBuffer(asset);
     }
 
@@ -490,14 +495,16 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId get_bone(void *sceneManager,
-        EntityId entityId,
-        int skinIndex,
-        int boneIndex) {
-        return ((SceneManager*)sceneManager)->getBone(entityId, skinIndex, boneIndex);
+                                           EntityId entityId,
+                                           int skinIndex,
+                                           int boneIndex)
+    {
+        return ((SceneManager *)sceneManager)->getBone(entityId, skinIndex, boneIndex);
     }
     EMSCRIPTEN_KEEPALIVE void get_world_transform(void *sceneManager,
-        EntityId entityId, float* const out) {
-        auto transform = ((SceneManager*)sceneManager)->getWorldTransform(entityId);
+                                                  EntityId entityId, float *const out)
+    {
+        auto transform = ((SceneManager *)sceneManager)->getWorldTransform(entityId);
         out[0] = transform[0][0];
         out[1] = transform[0][1];
         out[2] = transform[0][2];
@@ -517,8 +524,9 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void get_local_transform(void *sceneManager,
-        EntityId entityId, float* const out) {
-        auto transform = ((SceneManager*)sceneManager)->getLocalTransform(entityId);
+                                                  EntityId entityId, float *const out)
+    {
+        auto transform = ((SceneManager *)sceneManager)->getLocalTransform(entityId);
         out[0] = transform[0][0];
         out[1] = transform[0][1];
         out[2] = transform[0][2];
@@ -538,26 +546,32 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void get_rest_local_transforms(void *sceneManager,
-        EntityId entityId, int skinIndex, float* const out, int numBones) {
-        const auto transforms = ((SceneManager*)sceneManager)->getBoneRestTranforms(entityId, skinIndex);
+                                                        EntityId entityId, int skinIndex, float *const out, int numBones)
+    {
+        const auto transforms = ((SceneManager *)sceneManager)->getBoneRestTranforms(entityId, skinIndex);
         auto numTransforms = transforms->size();
-        if(numTransforms != numBones) {
+        if (numTransforms != numBones)
+        {
             Log("Error - %d bone transforms available but you only specified %d.", numTransforms, numBones);
             return;
         }
-        for(int boneIndex = 0; boneIndex < numTransforms; boneIndex++) {
+        for (int boneIndex = 0; boneIndex < numTransforms; boneIndex++)
+        {
             const auto transform = transforms->at(boneIndex);
-            for(int colNum = 0; colNum < 4; colNum++) {
-                for(int rowNum = 0; rowNum < 4; rowNum++) {
+            for (int colNum = 0; colNum < 4; colNum++)
+            {
+                for (int rowNum = 0; rowNum < 4; rowNum++)
+                {
                     out[(boneIndex * 16) + (colNum * 4) + rowNum] = transform[colNum][rowNum];
                 }
             }
-        }        
+        }
     }
-	
+
     EMSCRIPTEN_KEEPALIVE void get_inverse_bind_matrix(void *sceneManager,
-        EntityId entityId, int skinIndex, int boneIndex, float* const out) {
-        auto transform = ((SceneManager*)sceneManager)->getInverseBindMatrix(entityId, skinIndex, boneIndex);
+                                                      EntityId entityId, int skinIndex, int boneIndex, float *const out)
+    {
+        auto transform = ((SceneManager *)sceneManager)->getInverseBindMatrix(entityId, skinIndex, boneIndex);
         out[0] = transform[0][0];
         out[1] = transform[0][1];
         out[2] = transform[0][2];
@@ -647,21 +661,25 @@ extern "C"
         strcpy(outPtr, name.c_str());
     }
 
-    EMSCRIPTEN_KEEPALIVE int get_bone_count(void *sceneManager, EntityId assetEntity, int skinIndex) {
+    EMSCRIPTEN_KEEPALIVE int get_bone_count(void *sceneManager, EntityId assetEntity, int skinIndex)
+    {
         auto names = ((SceneManager *)sceneManager)->getBoneNames(assetEntity, skinIndex);
         return names->size();
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char** out, int skinIndex) {
+    EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char **out, int skinIndex)
+    {
         auto names = ((SceneManager *)sceneManager)->getBoneNames(assetEntity, skinIndex);
-        for(int i = 0; i < names->size(); i++) {
+        for (int i = 0; i < names->size(); i++)
+        {
             auto name_c = names->at(i).c_str();
-            memcpy((void*)out[i], name_c, strlen(name_c) + 1);
+            memcpy((void *)out[i], name_c, strlen(name_c) + 1);
         }
     }
 
-    EMSCRIPTEN_KEEPALIVE bool set_transform(void* sceneManager, EntityId entityId, const float* const transform) {
-         auto matrix = math::mat4f(
+    EMSCRIPTEN_KEEPALIVE bool set_transform(void *sceneManager, EntityId entityId, const float *const transform)
+    {
+        auto matrix = math::mat4f(
             transform[0], transform[1], transform[2],
             transform[3],
             transform[4],
@@ -676,11 +694,12 @@ extern "C"
             transform[13],
             transform[14],
             transform[15]);
-        return ((SceneManager*)sceneManager)->setTransform(entityId, matrix);
+        return ((SceneManager *)sceneManager)->setTransform(entityId, matrix);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(void* sceneManager, EntityId entityId) {
-        return ((SceneManager*)sceneManager)->updateBoneMatrices(entityId);
+    EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(void *sceneManager, EntityId entityId)
+    {
+        return ((SceneManager *)sceneManager)->updateBoneMatrices(entityId);
     }
 
     EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity)
@@ -736,7 +755,8 @@ extern "C"
         ((SceneManager *)sceneManager)->queuePositionUpdate(asset, x, y, z, relative);
     }
 
-    EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(void *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z) {
+    EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(void *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z)
+    {
         ((SceneManager *)sceneManager)->queueRelativePositionUpdateWorldAxis(entity, viewportX, viewportY, x, y, z);
     }
 
@@ -745,7 +765,8 @@ extern "C"
         ((SceneManager *)sceneManager)->queueRotationUpdate(asset, rads, x, y, z, w, relative);
     }
 
-    EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(void *sceneManager, EntityId entity, float viewportX, float viewportY) {
+    EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(void *sceneManager, EntityId entity, float viewportX, float viewportY)
+    {
         ((SceneManager *)sceneManager)->queueRelativePositionUpdateFromViewportVector(entity, viewportX, viewportY);
     }
 
@@ -823,7 +844,7 @@ extern "C"
     {
         return ((SceneManager *)sceneManager)->addAnimationComponent(entityId);
     }
-    
+
     EMSCRIPTEN_KEEPALIVE void remove_animation_component(void *const sceneManager, EntityId entityId)
     {
         ((SceneManager *)sceneManager)->removeAnimationComponent(entityId);
@@ -831,26 +852,12 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
     {
-        return ((SceneManager *)sceneManager)->createGeometry(
-            vertices, 
-            (uint32_t)numVertices, 
-            indices, 
-            numIndices, 
-            (filament::RenderableManager::PrimitiveType)primitiveType, 
-            materialPath);
+        return ((SceneManager *)sceneManager)->createGeometry(vertices, (uint32_t)numVertices, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, materialPath);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId create_geometry_with_normals(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
     {
-        return ((SceneManager *)sceneManager)->createGeometryWithNormals(
-            vertices, 
-            (uint32_t)numVertices, 
-            normals,
-            (uint32_t)numNormals,
-            indices, 
-            numIndices, 
-            (filament::RenderableManager::PrimitiveType)primitiveType, 
-            materialPath);
+        return ((SceneManager *)sceneManager)->createGeometryWithNormals(vertices, (uint32_t)numVertices, normals, (uint32_t)numNormals, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, materialPath);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char *name)
@@ -864,7 +871,8 @@ extern "C"
         return ((SceneManager *)sceneManager)->getParent(child);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(void *const sceneManager, EntityId child) {
+    EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(void *const sceneManager, EntityId child)
+    {
         return ((SceneManager *)sceneManager)->getAncestor(child);
     }
 
@@ -892,40 +900,47 @@ extern "C"
         out[3] = Entity::smuggle(gizmo->center());
     }
 
-    EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity) {
+    EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity)
+    {
         return ((SceneManager *)sceneManager)->getBoundingBox(entity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float* minX, float* minY, float* maxX, float* maxY) {
-        auto box =((SceneManager *)sceneManager)->getBoundingBox(entity);
+    EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float *minX, float *minY, float *maxX, float *maxY)
+    {
+        auto box = ((SceneManager *)sceneManager)->getBoundingBox(entity);
         *minX = box.minX;
         *minY = box.minY;
         *maxX = box.maxX;
         *maxY = box.maxY;
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled) {
-        ((SceneManager*)sceneManager)->setLayerEnabled(layer, enabled);
+    EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled)
+    {
+        ((SceneManager *)sceneManager)->setLayerEnabled(layer, enabled);
     }
 
-    EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void* ptr) {
+    EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void *ptr)
+    {
         free(ptr);
     }
 
-    EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y)) {
-        ((SceneManager*)sceneManager)->gizmo->pick(x, y, callback);
+    EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y))
+    {
+        ((SceneManager *)sceneManager)->gizmo->pick(x, y, callback);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible) {
-        ((SceneManager*)sceneManager)->gizmo->setVisibility(visible);
-    }
-    
-    EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entityId, float r, float g, float b) {
-        ((SceneManager*)sceneManager)->setStencilHighlight(entityId, r, g, b);
+    EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible)
+    {
+        ((SceneManager *)sceneManager)->gizmo->setVisibility(visible);
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entityId) {
-        ((SceneManager*)sceneManager)->removeStencilHighlight(entityId);
+    EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entityId, float r, float g, float b)
+    {
+        ((SceneManager *)sceneManager)->setStencilHighlight(entityId, r, g, b);
     }
 
+    EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entityId)
+    {
+        ((SceneManager *)sceneManager)->removeStencilHighlight(entityId);
+    }
 }
