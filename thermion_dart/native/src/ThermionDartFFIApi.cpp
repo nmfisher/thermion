@@ -316,26 +316,6 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void update_viewport_and_camera_projection_ffi(
-      void *const viewer, const uint32_t width, const uint32_t height,
-      const float scaleFactor,
-      void (*onComplete)())
-  {
-    Log("Update viewport  %dx%d", width, height);
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-    update_viewport_and_camera_projection(viewer, width, height, scaleFactor);
-    #ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({
-            moduleArg.dartFilamentResolveCallback($0);
-          }, onComplete);
-    #else
-    onComplete(); 
-    #endif
-    });
-    auto fut = _rl->add_task(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void set_rendering_ffi(void *const viewer,
                                                bool rendering, void (*callback)())
   {
