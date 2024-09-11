@@ -250,6 +250,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void remove_animation_component(void *const sceneManager, EntityId entityId);
 
 	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
+	EMSCRIPTEN_KEEPALIVE EntityId create_geometry_with_normals(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
 	EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling);
