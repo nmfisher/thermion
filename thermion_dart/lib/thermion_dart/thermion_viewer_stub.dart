@@ -803,4 +803,46 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement setGizmoVisibility
     throw UnimplementedError();
   }
+  
+  @override
+  Future<ThermionEntity?> getAncestor(ThermionEntity entity) {
+    // TODO: implement getAncestor
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false}) {
+    // TODO: implement loadGlbFromBuffer
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future queuePositionUpdateFromViewportCoords(ThermionEntity entity, double x, double y) {
+    // TODO: implement queuePositionUpdateFromViewportCoords
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future removeStencilHighlight(ThermionEntity entity) {
+    // TODO: implement removeStencilHighlight
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setLightDirection(ThermionEntity lightEntity, Vector3 direction) {
+    // TODO: implement setLightDirection
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setLightPosition(ThermionEntity lightEntity, double x, double y, double z) {
+    // TODO: implement setLightPosition
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setStencilHighlight(ThermionEntity entity, {double r = 1.0, double g = 0.0, double b = 0.0}) {
+    // TODO: implement setStencilHighlight
+    throw UnimplementedError();
+  }
 }
