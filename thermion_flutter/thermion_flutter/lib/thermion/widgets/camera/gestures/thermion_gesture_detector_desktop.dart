@@ -10,14 +10,14 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 
 class ThermionGestureDetectorDesktop extends StatefulWidget {
   final Widget? child;
-  final ThermionViewer controller;
+  final ThermionViewer viewer;
   final bool showControlOverlay;
   final bool enableCamera;
   final bool enablePicking;
 
   const ThermionGestureDetectorDesktop({
     Key? key,
-    required this.controller,
+    required this.viewer,
     this.child,
     this.showControlOverlay = false,
     this.enableCamera = true,
@@ -37,7 +37,7 @@ class _ThermionGestureDetectorDesktopState
     super.initState();
     _gestureHandler = ThermionGestureHandler(
       enableCamera: widget.enableCamera,
-      enablePicking: widget.enablePicking, viewer: widget.controller,
+      enablePicking: widget.enablePicking, viewer: widget.viewer,
     );
   }
 
@@ -46,7 +46,7 @@ class _ThermionGestureDetectorDesktopState
     if (widget.enableCamera != oldWidget.enableCamera ||
         widget.enablePicking != oldWidget.enablePicking) {
       _gestureHandler = ThermionGestureHandler(
-        viewer: widget.controller,
+        viewer: widget.viewer,
         enableCamera: widget.enableCamera,
         enablePicking: widget.enablePicking,
       );
