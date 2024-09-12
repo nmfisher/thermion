@@ -15,14 +15,14 @@ class ThermionGestureDetector extends StatelessWidget {
   ///
   /// The content to display below the gesture detector/listener widget.
   /// This will usually be a ThermionWidget (so you can navigate by directly interacting with the viewport), but this is not necessary.
-  /// It is equally possible to render the viewport/gesture controls elsewhere in the widget hierarchy. The only requirement is that they share the same [FilamentController].
+  /// It is equally possible to render the viewport/gesture controls elsewhere in the widget hierarchy. The only requirement is that they share the same [Filamentviewer].
   ///
   final Widget? child;
 
   ///
-  /// The [controller] attached to the [ThermionWidget] you wish to control.
+  /// The [viewer] attached to the [ThermionWidget] you wish to control.
   ///
-  final ThermionViewer controller;
+  final ThermionViewer viewer;
 
   ///
   /// If true, an overlay will be shown with buttons to toggle whether pointer movements are interpreted as:
@@ -47,7 +47,7 @@ class ThermionGestureDetector extends StatelessWidget {
 
   const ThermionGestureDetector(
       {Key? key,
-      required this.controller,
+      required this.viewer,
       this.child,
       this.showControlOverlay = false,
       this.enableCamera = true,
@@ -60,7 +60,7 @@ class ThermionGestureDetector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: controller.initialized,
+        future: viewer.initialized,
         builder: (_, initialized) {
           if (initialized.data != true) {
             return child ?? Container();
@@ -69,7 +69,7 @@ class ThermionGestureDetector extends StatelessWidget {
               Platform.isWindows ||
               Platform.isMacOS) {
             return ThermionGestureDetectorDesktop(
-              controller: controller,
+              viewer: viewer,
               child: child,
               showControlOverlay: showControlOverlay,
               enableCamera: enableCamera,
@@ -77,7 +77,7 @@ class ThermionGestureDetector extends StatelessWidget {
             );
           } else {
             return ThermionGestureDetectorMobile(
-                controller: controller,
+                viewer: viewer,
                 child: child,
                 showControlOverlay: showControlOverlay,
                 enableCamera: enableCamera,
