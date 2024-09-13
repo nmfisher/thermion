@@ -61,7 +61,7 @@ abstract class ThermionViewer {
   ///
   /// The current dimensions of the viewport (in physical pixels).
   ///
-  late (double, double) viewportDimensions;
+  var viewportDimensions = (0.0,0.0);
 
   ///
   /// The current ratio of logical to physical pixels.
@@ -575,7 +575,7 @@ abstract class ThermionViewer {
       double aperture, double shutterSpeed, double sensitivity);
 
   ///
-  /// Rotate the camera by [rads] around the given axis. Note this is not persistent - any viewport navigation will reset the camera transform.
+  /// Rotate the camera by [rads] around the given axis.
   ///
   Future setCameraRotation(Quaternion quaternion);
 
@@ -728,6 +728,7 @@ abstract class ThermionViewer {
   /// Sets the options for manipulating the camera via the viewport.
   /// ManipulatorMode.FREE_FLIGHT and ManipulatorMode.MAP are currently unsupported and will throw an exception.
   ///
+  @Deprecated("Use ThermionGestureHandler instead")
   Future setCameraManipulatorOptions(
       {ManipulatorMode mode = ManipulatorMode.ORBIT,
       double orbitSpeedX = 0.01,
