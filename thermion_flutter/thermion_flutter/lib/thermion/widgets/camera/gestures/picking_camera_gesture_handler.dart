@@ -76,7 +76,7 @@ class PickingCameraGestureHandler implements ThermionGestureHandler {
   }
 
   @override
-  Future<void> onPointerHover(Offset localPosition) async {
+  Future<void> onPointerHover(Offset localPosition, Offset delta) async {
     if (_gizmoAttached) {
       _gizmo?.checkHover(localPosition.dx, localPosition.dy);
     }
