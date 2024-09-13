@@ -59,6 +59,13 @@ extern "C"
 	typedef int32_t _ManipulatorMode;
 	typedef struct CameraPtr CameraPtr;
 
+	typedef struct { 
+		float x;
+		float y; 
+		float z;
+		float w;
+	} float4;
+
 	typedef struct {
 		double col1[4];
 		double col2[4];
@@ -270,6 +277,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible);
 	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entity, float r, float g, float b);
 	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float value);
+	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float4 value);
+
 
 #ifdef __cplusplus
 }

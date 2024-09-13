@@ -2460,6 +2460,41 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
     ) {
         return createGeometryWithNormals(vertices, numVertices, nullptr, 0, indices, numIndices, primitiveType, materialPath, keepData);
   }
+
+  void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char* property, float value) {
+    auto entity = Entity::import(entityId);
+    const auto& rm = _engine->getRenderableManager();
+    auto renderableInstance = rm.getInstance(entity);
+    if(!renderableInstance.isValid()) {
+        Log("ERROR");
+        return;
+    }
+    auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+    
+    if(!materialInstance->getMaterial()->hasParameter(property)) {
+        Log("Parameter %s not found", property);
+        return;
+    }
+    materialInstance->setParameter(property, value);
+  }
+
+  void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4 value) {
+    auto entity = Entity::import(entityId);
+    const auto& rm = _engine->getRenderableManager();
+    auto renderableInstance = rm.getInstance(entity);
+    if(!renderableInstance.isValid()) {
+        Log("ERROR");
+        return;
+    }
+    auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+    
+    if(!materialInstance->getMaterial()->hasParameter(property)) {
+        Log("Parameter %s not found", property);
+        return;
+    }
+    materialInstance->setParameter(property, value);
+  }
+
 } // namespace thermion_filament
 
 
