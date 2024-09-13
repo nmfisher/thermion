@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:logging/logging.dart';
+import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_pan_camera_delegate.dart';
+import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_velocity_delegate.dart';
+import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_zoom_camera_delegate.dart';
 import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.dart';
+import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/fixed_orbit_camera_rotation_delegate.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 
 class DelegateGestureHandler implements ThermionGestureHandler {
@@ -16,6 +20,10 @@ class DelegateGestureHandler implements ThermionGestureHandler {
   ZoomCameraDelegate? zoomCameraDelegate;
   VelocityDelegate? velocityDelegate;
 
+  // Timer for continuous movement
+  Timer? _velocityTimer;
+  static const _velocityUpdateInterval = Duration(milliseconds: 16); // ~60 FPS
+
   DelegateGestureHandler({
     required this.viewer,
     required this.rotateCameraDelegate,
@@ -24,10 +32,21 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     required this.velocityDelegate,
   });
 
+  factory DelegateGestureHandler.withDefaults(ThermionViewer viewer) =>
+      DelegateGestureHandler(
+          viewer: viewer,
+          rotateCameraDelegate: FixedOrbitRotateCameraDelegate(viewer),
+          panCameraDelegate: DefaultPanCameraDelegate(viewer),
+          zoomCameraDelegate: DefaultZoomCameraDelegate(viewer),
+          velocityDelegate: DefaultVelocityDelegate());
+
   @override
   Future<void> onPointerDown(Offset localPosition, int buttons) async {
     velocityDelegate?.stopDeceleration();
+    _stopVelocityTimer();
   }
+
+  GestureType? _lastGestureType;
 
   @override
   Future<void> onPointerMove(
@@ -37,7 +56,7 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     GestureType gestureType;
     if (buttons == kPrimaryMouseButton) {
       gestureType = GestureType.POINTER1_MOVE;
-    } else if (buttons == kSecondaryMouseButton) {
+    } else if (buttons == kMiddleMouseButton) {
       gestureType = GestureType.POINTER2_MOVE;
     } else {
       throw Exception("Unsupported button: $buttons");
@@ -51,19 +70,58 @@ class DelegateGestureHandler implements ThermionGestureHandler {
         await panCameraDelegate?.panCamera(delta, velocityDelegate?.velocity);
       case GestureAction.ROTATE_CAMERA:
         _currentState = ThermionGestureState.ROTATING;
-        await rotateCameraDelegate?.rotateCamera(delta, velocityDelegate?.velocity);
+        await rotateCameraDelegate?.rotateCamera(
+            delta, velocityDelegate?.velocity);
       case null:
         // ignore;
         break;
       default:
         throw Exception("Unsupported gesture type : $gestureType ");
     }
+
+    _lastGestureType = gestureType;
   }
 
   @override
   Future<void> onPointerUp(int buttons) async {
     _currentState = ThermionGestureState.NULL;
     velocityDelegate?.startDeceleration();
+    _startVelocityTimer();
+  }
+
+  void _startVelocityTimer() {
+    _stopVelocityTimer(); // Ensure any existing timer is stopped
+    _velocityTimer = Timer.periodic(_velocityUpdateInterval, (timer) {
+      _applyVelocity();
+    });
+  }
+
+  void _stopVelocityTimer() {
+    _velocityTimer?.cancel();
+    _velocityTimer = null;
+  }
+
+  Future<void> _applyVelocity() async {
+    final velocity = velocityDelegate?.velocity;
+    if (velocity == null || velocity.length < 0.1) {
+      _stopVelocityTimer();
+      return;
+    }
+
+    final lastAction = _actions[_lastGestureType];
+    switch (lastAction) {
+      case GestureAction.PAN_CAMERA:
+        await panCameraDelegate?.panCamera(
+            Offset(velocity.x, velocity.y), velocity);
+      case GestureAction.ROTATE_CAMERA:
+        await rotateCameraDelegate?.rotateCamera(
+            Offset(velocity.x, velocity.y), velocity);
+      default:
+        // Do nothing for other actions
+        break;
+    }
+
+    velocityDelegate?.updateVelocity(Offset(velocity.x, velocity.y)); // Gradually reduce velocity
   }
 
   @override
@@ -85,7 +143,8 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     _currentState = ThermionGestureState.ZOOMING;
 
     try {
-      await zoomCameraDelegate?.zoomCamera(scrollDelta, velocityDelegate?.velocity);
+      await zoomCameraDelegate?.zoomCamera(
+          scrollDelta, velocityDelegate?.velocity);
     } catch (e) {
       _logger.warning("Error during camera zoom: $e");
     } finally {
@@ -95,7 +154,8 @@ class DelegateGestureHandler implements ThermionGestureHandler {
 
   @override
   void dispose() {
-    // Clean up any resources if needed
+    _stopVelocityTimer();
+    velocityDelegate?.dispose();
   }
 
   @override
