@@ -1943,4 +1943,33 @@ class ThermionViewerFFI extends ThermionViewer {
   Future removeStencilHighlight(ThermionEntity entity) async {
     remove_stencil_highlight(_sceneManager!, entity);
   }
+
+  ///
+  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
+  /// [entity] must have a Renderable attached.
+  ///
+  Future setMaterialPropertyFloat(ThermionEntity entity, String propertyName,
+      int materialIndex, double value) async {
+    final ptr = propertyName.toNativeUtf8(allocator: allocator);
+    set_material_property_float(
+        _sceneManager!, entity, materialIndex, ptr.cast<Char>(), value);
+    allocator.free(ptr);
+  }
+
+  ///
+  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to {f1,f2,f3,f4}.
+  /// [entity] must have a Renderable attached.
+  ///
+  Future setMaterialPropertyFloat4(ThermionEntity entity, String propertyName,
+      int materialIndex, double f1, double f2, double f3, double f4) async {
+    final ptr = propertyName.toNativeUtf8(allocator: allocator);
+    var struct = Struct.create<float4>();
+    struct.x = f1;
+    struct.y = f2;
+    struct.z = f3;
+    struct.w = f3;
+    set_material_property_float4(_sceneManager!, entity, materialIndex,
+        ptr.cast<Char>(), struct);
+    allocator.free(ptr);
+  }
 }
