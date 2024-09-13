@@ -1291,8 +1291,9 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setCameraRotation(Quaternion quaternion) async {
     var modelMatrix = await getCameraModelMatrix();
-    modelMatrix.setRotation(quaternion.asRotationMatrix());
-    await setCameraModelMatrix(modelMatrix.storage);
+    var translation = modelMatrix.getTranslation();
+    modelMatrix = Matrix4.compose(translation, quaternion, Vector3.all(1.0));
+    await setCameraModelMatrix4(modelMatrix);
   }
 
   ///
@@ -1311,6 +1312,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setCameraModelMatrix4(Matrix4 modelMatrix) async {
     var mainCamera = get_camera(_viewer!, await getMainCamera());
     final out = allocator<double4x4>(1);
+    matrix4ToDouble4x4(modelMatrix, out.ref);
     set_camera_model_matrix(mainCamera, out.ref);
     allocator.free(out);
   }
@@ -1815,8 +1817,6 @@ class ThermionViewerFFI extends ThermionViewer {
       }
     }
 
-    print("ALLOCATION DONE");
-
     var entity = await withIntCallback((callback) =>
         create_geometry_with_normals_ffi(
             _sceneManager!,
@@ -1943,6 +1943,4 @@ class ThermionViewerFFI extends ThermionViewer {
   Future removeStencilHighlight(ThermionEntity entity) async {
     remove_stencil_highlight(_sceneManager!, entity);
   }
-
-
 }
