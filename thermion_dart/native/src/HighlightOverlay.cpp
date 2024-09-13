@@ -27,7 +27,6 @@ namespace thermion_filament
         auto materialProvider = sceneManager->unlitMaterialProvider();
 
         _highlightMaterialInstance = materialProvider->createMaterialInstance(&dummyKey, &dummyUvMap);
-        _highlightMaterialInstance->setDoubleSided(false);
         _highlightMaterialInstance->setStencilOpStencilFail(filament::backend::StencilOperation::KEEP);
         _highlightMaterialInstance->setStencilOpDepthFail(filament::backend::StencilOperation::KEEP);
         _highlightMaterialInstance->setStencilOpDepthStencilPass(filament::backend::StencilOperation::REPLACE);
