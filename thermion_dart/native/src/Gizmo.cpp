@@ -89,8 +89,8 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
 
     // Line and arrow vertices
     float lineLength = 0.6f;
-    float lineWidth = 0.005f;
-    float arrowLength = 0.05f;
+    float lineWidth = 0.004f;
+    float arrowLength = 0.06f;
     float arrowWidth = 0.02f;
     float *vertices = new float[13 * 3]{
         // Line vertices (8 vertices)
