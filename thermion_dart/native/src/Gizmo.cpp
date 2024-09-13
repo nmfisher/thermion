@@ -38,7 +38,7 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
     _materialInstances[3]->setParameter("color", math::float4{0.0f, 0.0f, 0.0f, 1.0f}); // Black color
 
     // Create center cube vertices
-    float centerCubeSize = 0.05f;
+    float centerCubeSize = 0.01f;
     float *centerCubeVertices = new float[8 * 3]{
         -centerCubeSize, -centerCubeSize, -centerCubeSize,
         centerCubeSize, -centerCubeSize, -centerCubeSize,
@@ -78,7 +78,7 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
                       {centerCubeSize, centerCubeSize, centerCubeSize}})
         .material(0, _materialInstances[3])
         .layerMask(0xFF, 2)
-        .priority(6)
+        .priority(7)
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, centerCubeVb, centerCubeIb, 0, 36)
         .culling(false)
         .build(engine, _entities[3]);
@@ -88,10 +88,10 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
     transformManager.setTransform(cubeTransformInstance, cubeTransform);
 
     // Line and arrow vertices
-    float lineLength = 0.8f;
+    float lineLength = 0.6f;
     float lineWidth = 0.005f;
-    float arrowLength = 0.1f;
-    float arrowWidth = 0.03f;
+    float arrowLength = 0.05f;
+    float arrowWidth = 0.02f;
     float *vertices = new float[13 * 3]{
         // Line vertices (8 vertices)
         -lineWidth, -lineWidth, 0.0f,
