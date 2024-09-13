@@ -7,11 +7,11 @@ import 'package:vector_math/vector_math_64.dart';
 
 class DefaultZoomCameraDelegate implements ZoomCameraDelegate {
   final ThermionViewer viewer;
-  final double _zoomSensitivity = 0.0005;
+  final double zoomSensitivity ;
 
   final double? Function(Vector3 cameraPosition)? getDistanceToTarget;
 
-  DefaultZoomCameraDelegate(this.viewer, {this.getDistanceToTarget});
+  DefaultZoomCameraDelegate(this.viewer, {this.zoomSensitivity = 0.005, this.getDistanceToTarget});
 
   @override
   Future<void> zoomCamera(double scrollDelta, Vector2? velocity) async {
@@ -23,14 +23,14 @@ class DefaultZoomCameraDelegate implements ZoomCameraDelegate {
     forwardVector.normalize();
 
     double? distanceToTarget = getDistanceToTarget?.call(cameraPosition);
-    double zoomDistance = scrollDelta * _zoomSensitivity;
+    double zoomDistance = scrollDelta * zoomSensitivity;
     if (distanceToTarget != null) {
       zoomDistance *= distanceToTarget;
       if (zoomDistance.abs() < 0.0001) {
-        zoomDistance = scrollDelta * _zoomSensitivity;
+        zoomDistance = scrollDelta * zoomSensitivity;
       }
     }
-    zoomDistance = max(zoomDistance, scrollDelta * _zoomSensitivity);
+    zoomDistance = max(zoomDistance, scrollDelta * zoomSensitivity);
 
     Vector3 newPosition = cameraPosition + (forwardVector * zoomDistance);
     await viewer.setCameraPosition(newPosition.x, newPosition.y, newPosition.z);
