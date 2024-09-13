@@ -10,7 +10,6 @@ import 'package:thermion_flutter/thermion/widgets/camera/gestures/thermion_gestu
 
 // Renamed implementation
 class PickingCameraGestureHandler implements ThermionGestureHandler {
-  
   final ThermionViewer viewer;
   final bool enableCamera;
   final bool enablePicking;
@@ -71,6 +70,7 @@ class PickingCameraGestureHandler implements ThermionGestureHandler {
       _highlightedEntity = targetEntity;
       if (_highlightedEntity != null) {
         await viewer.setStencilHighlight(_highlightedEntity!);
+        _gizmo?.attach(_highlightedEntity!);
       }
     }
   }
@@ -92,10 +92,11 @@ class PickingCameraGestureHandler implements ThermionGestureHandler {
 
   @override
   Future<void> onPointerScroll(Offset localPosition, double scrollDelta) async {
-    if(!enableCamera) {
+    if (!enableCamera) {
       return;
     }
-    if (_currentState == ThermionGestureState.NULL || _currentState == ThermionGestureState.ZOOMING) {
+    if (_currentState == ThermionGestureState.NULL ||
+        _currentState == ThermionGestureState.ZOOMING) {
       await _zoom(localPosition, scrollDelta);
     }
   }
@@ -127,7 +128,7 @@ class PickingCameraGestureHandler implements ThermionGestureHandler {
       await _handleEntityHighlightedMove(localPosition);
       return;
     }
-    
+
     switch (_currentState) {
       case ThermionGestureState.NULL:
         break;
