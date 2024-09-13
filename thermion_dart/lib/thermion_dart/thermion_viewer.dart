@@ -593,8 +593,22 @@ abstract class ThermionViewer {
   ///
   /// Sets the `baseColorFactor` property for the material at index [materialIndex] in [entity] under node [meshName] to [color].
   ///
+  @Deprecated("Use setMaterialPropertyFloat4 instead")
   Future setMaterialColor(ThermionEntity entity, String meshName,
       int materialIndex, double r, double g, double b, double a);
+
+  ///
+  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
+  /// [entity] must have a Renderable attached.
+  ///
+  Future setMaterialPropertyFloat4(ThermionEntity entity, String propertyName,
+      int materialIndex, double f1, double f2, double f3, double f4);
+
+  ///
+  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
+  /// [entity] must have a Renderable attached.
+  ///
+  Future setMaterialPropertyFloat(ThermionEntity entity, String propertyName, int materialIndex, double value);
 
   ///
   /// Scale [entity] to fit within the unit cube.
@@ -867,4 +881,5 @@ abstract class ThermionViewer {
   /// Removes the outline around [entity]. Noop if there was no highlight.
   ///
   Future removeStencilHighlight(ThermionEntity entity);
+
 }
