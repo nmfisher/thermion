@@ -34,7 +34,7 @@ class ThermionListenerWidget extends StatelessWidget {
   Widget _desktop() { 
     return Listener(
       onPointerHover: (event) =>
-          gestureHandler.onPointerHover(event.localPosition),
+          gestureHandler.onPointerHover(event.localPosition, event.delta),
       onPointerSignal: (PointerSignalEvent pointerSignal) {
         if (pointerSignal is PointerScrollEvent) {
           gestureHandler.onPointerScroll(
