@@ -42,8 +42,6 @@ namespace thermion_filament
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
 
     using namespace std::chrono;
-    using namespace filament;
-    using namespace filament::math;
     using namespace gltfio;
     using namespace camutils;
 
@@ -197,7 +195,7 @@ namespace thermion_filament
         // background image properties
         uint32_t _imageHeight = 0;
         uint32_t _imageWidth = 0;
-        mat4f _imageScale;
+        filament::math::mat4f _imageScale;
         Texture *_imageTexture = nullptr;
         Texture *_dummyImageTexture = nullptr;
         utils::Entity _imageEntity;
