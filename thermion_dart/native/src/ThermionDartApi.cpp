@@ -943,4 +943,16 @@ extern "C"
     {
         ((SceneManager *)sceneManager)->removeStencilHighlight(entityId);
     }
+
+    EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float value) {
+        ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
+    }
+    
+    EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float4 value) {
+        filament::math::float4 filamentValue { value.x, value.y, value.z, value.w };
+        
+        ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
+    }
+
+
 }

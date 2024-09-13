@@ -287,6 +287,9 @@ namespace thermion_filament
             return _assetLoader->createInstance(asset);
         }
 
+        void setMaterialProperty(EntityId entity, int materialIndex, const char* property, float value);
+        void setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4 value);
+
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
