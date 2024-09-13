@@ -3,7 +3,7 @@ import 'dart:math';
 class Geometry {
   final List<double> vertices;
   final List<int> indices;
-  final List<double> normals;
+  final List<double>? normals;
 
   Geometry(this.vertices, this.indices, this.normals);
 
@@ -15,7 +15,7 @@ class Geometry {
 }
 
 class GeometryHelper {
-  static Geometry sphere() {
+static Geometry sphere() {
     int latitudeBands = 20;
     int longitudeBands = 20;
 
@@ -136,90 +136,136 @@ class GeometryHelper {
       -1, 0, 0,
     ];
 
-    final indices = [
+  final indices = [
       // Front face
-      0, 3, 2, 0, 2, 1,
+      0, 1, 2, 0, 2, 3,
       // Back face
-      4, 7, 6, 4, 6, 5,
+      4, 5, 6, 4, 6, 7,
       // Top face
-      8, 11, 10, 8, 10, 9,
+      8, 9, 10, 8, 10, 11,
       // Bottom face
-      12, 15, 14, 12, 14, 13,
+      12, 13, 14, 12, 14, 15,
       // Right face
-      16, 19, 18, 16, 18, 17,
+      16, 17, 18, 16, 18, 19,
       // Left face
-      20, 23, 22, 20, 22, 21
+      20, 21, 22, 20, 22, 23
     ];
-
     return Geometry(vertices, indices, normals);
   }
 
   static Geometry cylinder({double radius = 1.0, double length = 1.0}) {
-      int segments = 32;
-      List<double> vertices = [];
-      List<int> indices = [];
+    int segments = 32;
+    List<double> vertices = [];
+    List<double> normals = [];
+    List<int> indices = [];
 
-      // Create vertices
-      for (int i = 0; i <= segments; i++) {
-        double theta = i * 2 * pi / segments;
-        double x = radius * cos(theta);
-        double z = radius * sin(theta);
+    // Create vertices and normals
+    for (int i = 0; i <= segments; i++) {
+      double theta = i * 2 * pi / segments;
+      double x = radius * cos(theta);
+      double z = radius * sin(theta);
 
-        // Top circle
-        vertices.addAll([x, length / 2, z]);
-        // Bottom circle
-        vertices.addAll([x, -length / 2, z]);
-      }
+      // Top circle
+      vertices.addAll([x, length / 2, z]);
+      normals.addAll([x / radius, 0, z / radius]);
 
-      // Create indices
-      for (int i = 0; i < segments; i++) {
-        int topFirst = i * 2;
-        int topSecond = (i + 1) * 2;
-        int bottomFirst = topFirst + 1;
-        int bottomSecond = topSecond + 1;
-
-        // Top face (counter-clockwise)
-        indices.addAll([segments * 2, topSecond, topFirst]);
-        // Bottom face (counter-clockwise when viewed from below)
-        indices.addAll([segments * 2 + 1, bottomFirst, bottomSecond]);
-        // Side faces (counter-clockwise)
-        indices.addAll([topFirst, bottomFirst, topSecond]);
-        indices.addAll([bottomFirst, bottomSecond, topSecond]);
-      }
-
-      // Add center vertices for top and bottom faces
-      vertices.addAll([0, length / 2, 0]); // Top center
-      vertices.addAll([0, -length / 2, 0]); // Bottom center
-
-      return Geometry(vertices:vertices, indices:indices, normals:normals);
+      // Bottom circle
+      vertices.addAll([x, -length / 2, z]);
+      normals.addAll([x / radius, 0, z / radius]);
     }
 
-    static Geometry conic({double radius = 1.0, double length = 1.0}) {
-      int segments = 32;
-      List<double> vertices = [];
-      List<int> indices = [];
+    // Create indices
+    for (int i = 0; i < segments; i++) {
+      int topFirst = i * 2;
+      int topSecond = (i + 1) * 2;
+      int bottomFirst = topFirst + 1;
+      int bottomSecond = topSecond + 1;
 
-      // Create vertices
-      for (int i = 0; i <= segments; i++) {
-        double theta = i * 2 * pi / segments;
-        double x = radius * cos(theta);
-        double z = radius * sin(theta);
-
-        // Base circle
-        vertices.addAll([x, 0, z]);
-      }
-      // Apex
-      vertices.addAll([0, length, 0]);
-
-      // Create indices
-      for (int i = 0; i < segments; i++) {
-        // Base face
-        indices.addAll([i, i + 1, segments + 1]);
-        // Side faces
-        indices.addAll([i, segments, i + 1]);
-      }
-
-      return Geometry(vertices:vertices, indices:indices, normals:normals);
+      // Top face (counter-clockwise)
+      indices.addAll([segments * 2, topSecond, topFirst]);
+      // Bottom face (counter-clockwise when viewed from below)
+      indices.addAll([segments * 2 + 1, bottomFirst, bottomSecond]);
+      // Side faces (counter-clockwise)
+      indices.addAll([topFirst, bottomFirst, topSecond]);
+      indices.addAll([bottomFirst, bottomSecond, topSecond]);
     }
+
+    // Add center vertices and normals for top and bottom faces
+    vertices.addAll([0, length / 2, 0]); // Top center
+    normals.addAll([0, 1, 0]);
+    vertices.addAll([0, -length / 2, 0]); // Bottom center
+    normals.addAll([0, -1, 0]);
+
+    // Add top and bottom face normals
+    for (int i = 0; i <= segments; i++) {
+      normals.addAll([0, 1, 0]); // Top face normal
+      normals.addAll([0, -1, 0]); // Bottom face normal
+    }
+
+    return Geometry(vertices, indices, normals);
+  }
+
+  static Geometry conic({double radius = 1.0, double length = 1.0}) {
+    int segments = 32;
+    List<double> vertices = [];
+    List<double> normals = [];
+    List<int> indices = [];
+
+    // Create vertices and normals
+    for (int i = 0; i <= segments; i++) {
+      double theta = i * 2 * pi / segments;
+      double x = radius * cos(theta);
+      double z = radius * sin(theta);
+
+      // Base circle
+      vertices.addAll([x, 0, z]);
+      
+      // Calculate normal for the side
+      double nx = x / sqrt(x * x + length * length);
+      double nz = z / sqrt(z * z + length * length);
+      double ny = radius / sqrt(radius * radius + length * length);
+      normals.addAll([nx, ny, nz]);
+    }
+    // Apex
+    vertices.addAll([0, length, 0]);
+    normals.addAll([0, 1, 0]); // Normal at apex points straight up
+
+    // Create indices
+    for (int i = 0; i < segments; i++) {
+      // Base face
+      indices.addAll([i, i + 1, segments + 1]);
+      // Side faces
+      indices.addAll([i, segments, i + 1]);
+    }
+
+    // Add base face normals
+    for (int i = 0; i <= segments; i++) {
+      normals.addAll([0, -1, 0]); // Base face normal
+    }
+
+    return Geometry(vertices, indices, normals);
+  }
+
+  static Geometry plane({double width = 1.0, double height = 1.0}) {
+    List<double> vertices = [
+      -width / 2, 0, -height / 2,
+      width / 2, 0, -height / 2,
+      width / 2, 0, height / 2,
+      -width / 2, 0, height / 2,
+    ];
+
+    List<double> normals = [
+      0, 1, 0,
+      0, 1, 0,
+      0, 1, 0,
+      0, 1, 0,
+    ];
+
+    List<int> indices = [
+      0, 1, 2,
+      0, 2, 3,
+    ];
+
+    return Geometry(vertices, indices, normals);
   }
 }
