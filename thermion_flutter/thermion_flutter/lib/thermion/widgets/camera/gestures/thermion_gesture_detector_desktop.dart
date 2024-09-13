@@ -10,14 +10,14 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 
 class ThermionGestureDetectorDesktop extends StatefulWidget {
   final Widget? child;
-  final ThermionViewer viewer;
+  final ThermionGestureHandler gestureHandler;
   final bool showControlOverlay;
   final bool enableCamera;
   final bool enablePicking;
 
   const ThermionGestureDetectorDesktop({
     Key? key,
-    required this.viewer,
+    required this.gestureHandler,
     this.child,
     this.showControlOverlay = false,
     this.enableCamera = true,
@@ -30,38 +30,15 @@ class ThermionGestureDetectorDesktop extends StatefulWidget {
 
 class _ThermionGestureDetectorDesktopState
     extends State<ThermionGestureDetectorDesktop> {
-  late ThermionGestureHandler _gestureHandler;
-
-  @override
-  void initState() {
-    super.initState();
-    _gestureHandler = ThermionGestureHandler(
-      enableCamera: widget.enableCamera,
-      enablePicking: widget.enablePicking, viewer: widget.viewer,
-    );
-  }
-
-  @override
-  void didUpdateWidget(ThermionGestureDetectorDesktop oldWidget) {
-    if (widget.enableCamera != oldWidget.enableCamera ||
-        widget.enablePicking != oldWidget.enablePicking) {
-      _gestureHandler = ThermionGestureHandler(
-        viewer: widget.viewer,
-        enableCamera: widget.enableCamera,
-        enablePicking: widget.enablePicking,
-      );
-    }
-    super.didUpdateWidget(oldWidget);
-  }
-
+  
   @override
   Widget build(BuildContext context) {
     return Listener(
       onPointerHover: (event) =>
-          _gestureHandler.onPointerHover(event.localPosition),
+          widget.gestureHandler.onPointerHover(event.localPosition),
       onPointerSignal: (PointerSignalEvent pointerSignal) {
         if (pointerSignal is PointerScrollEvent) {
-          _gestureHandler.onPointerScroll(
+          widget.gestureHandler.onPointerScroll(
               pointerSignal.localPosition, pointerSignal.scrollDelta.dy);
         }
       },
@@ -69,10 +46,10 @@ class _ThermionGestureDetectorDesktopState
         throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
       },
       onPointerDown: (d) =>
-          _gestureHandler.onPointerDown(d.localPosition, d.buttons),
-      onPointerMove: (d) => _gestureHandler.onPointerMove(
-          d.localPosition, d.delta, d.buttons),
-      onPointerUp: (d) => _gestureHandler.onPointerUp(d.buttons),
+          widget.gestureHandler.onPointerDown(d.localPosition, d.buttons),
+      onPointerMove: (d) =>
+          widget.gestureHandler.onPointerMove(d.localPosition, d.delta, d.buttons),
+      onPointerUp: (d) => widget.gestureHandler.onPointerUp(d.buttons),
       child: widget.child,
     );
   }

@@ -1,28 +1,22 @@
-import 'dart:io';
-
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'thermion_gesture_detector_desktop.dart';
-import 'thermion_gesture_detector_mobile.dart';
-
-enum GestureType { rotateCamera, panCamera, panBackground }
 
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
 ///
+@Deprecated("Use ThermionListenerWidget instead")
 class ThermionGestureDetector extends StatelessWidget {
   ///
   /// The content to display below the gesture detector/listener widget.
   /// This will usually be a ThermionWidget (so you can navigate by directly interacting with the viewport), but this is not necessary.
-  /// It is equally possible to render the viewport/gesture controls elsewhere in the widget hierarchy. The only requirement is that they share the same [Filamentviewer].
+  /// It is equally possible to render the viewport/gesture controls elsewhere in the widget hierarchy. The only requirement is that they share the same [FilamentController].
   ///
   final Widget? child;
 
   ///
-  /// The [viewer] attached to the [ThermionWidget] you wish to control.
+  /// The [controller] attached to the [ThermionWidget] you wish to control.
   ///
-  final ThermionViewer viewer;
+  final ThermionViewer controller;
 
   ///
   /// If true, an overlay will be shown with buttons to toggle whether pointer movements are interpreted as:
@@ -47,7 +41,7 @@ class ThermionGestureDetector extends StatelessWidget {
 
   const ThermionGestureDetector(
       {Key? key,
-      required this.viewer,
+      required this.controller,
       this.child,
       this.showControlOverlay = false,
       this.enableCamera = true,
@@ -59,33 +53,34 @@ class ThermionGestureDetector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: viewer.initialized,
-        builder: (_, initialized) {
-          if (initialized.data != true) {
-            return child ?? Container();
-          }
-          if (kIsWeb || Platform.isLinux ||
-              Platform.isWindows ||
-              Platform.isMacOS) {
-            return ThermionGestureDetectorDesktop(
-              viewer: viewer,
-              child: child,
-              showControlOverlay: showControlOverlay,
-              enableCamera: enableCamera,
-              enablePicking: enablePicking,
-            );
-          } else {
-            return ThermionGestureDetectorMobile(
-                viewer: viewer,
-                child: child,
-                showControlOverlay: showControlOverlay,
-                enableCamera: enableCamera,
-                enablePicking: enablePicking,
-                onScaleStart: onScaleStart,
-                onScaleUpdate: onScaleUpdate,
-                onScaleEnd: onScaleEnd);
-          }
-        });
+    throw Exception("TODO");
+    // return FutureBuilder(
+    //     future: controller.initialized,
+    //     builder: (_, initialized) {
+    //       if (initialized.data != true) {
+    //         return child ?? Container();
+    //       }
+    //       if (kIsWeb || Platform.isLinux ||
+    //           Platform.isWindows ||
+    //           Platform.isMacOS) {
+    //         return ThermionGestureDetectorDesktop(
+    //           controller: controller,
+    //           child: child,
+    //           showControlOverlay: showControlOverlay,
+    //           enableCamera: enableCamera,
+    //           enablePicking: enablePicking,
+    //         );
+    //       } else {
+    //         return ThermionGestureDetectorMobile(
+    //             controller: controller,
+    //             child: child,
+    //             showControlOverlay: showControlOverlay,
+    //             enableCamera: enableCamera,
+    //             enablePicking: enablePicking,
+    //             onScaleStart: onScaleStart,
+    //             onScaleUpdate: onScaleUpdate,
+    //             onScaleEnd: onScaleEnd);
+    //       }
+    //     });
   }
 }
