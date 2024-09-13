@@ -2390,8 +2390,8 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
         builder.boundingBox(geometry->getBoundingBox())
             .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
             .culling(true)
-            .receiveShadows(false)
-            .castShadows(false);
+            .receiveShadows(true)
+            .castShadows(true);
 
         if (materialPath) {
             filament::Material* mat = nullptr;
@@ -2460,7 +2460,6 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
     ) {
         return createGeometryWithNormals(vertices, numVertices, nullptr, 0, indices, numIndices, primitiveType, materialPath, keepData);
   }
-
 } // namespace thermion_filament
 
 
