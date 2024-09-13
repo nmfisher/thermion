@@ -117,7 +117,7 @@ namespace thermion_filament
 
   using std::string;
 
-  static constexpr float4 sFullScreenTriangleVertices[3] = {
+  static constexpr filament::math::float4 sFullScreenTriangleVertices[3] = {
       {-1.0f, -1.0f, 1.0f, 1.0f},
       {3.0f, -1.0f, 1.0f, 1.0f},
       {-1.0f, 3.0f, 1.0f, 1.0f}};
@@ -315,8 +315,8 @@ namespace thermion_filament
                       .sunAngularRadius(sunAngularRadius)
                       .sunHaloSize(sunHaloSize)
                       .sunHaloFalloff(sunHaloFallof)
-                      .position(math::float3(posX, posY, posZ))
-                      .direction(math::float3(dirX, dirY, dirZ))
+                      .position(filament::math::float3(posX, posY, posZ))
+                      .direction(filament::math::float3(dirX, dirY, dirZ))
                       .castShadows(shadows)
                       .build(*_engine, light);
     if (result != LightManager::Builder::Result::Success)
@@ -526,7 +526,7 @@ namespace thermion_filament
       createBackgroundImage();
     }
     _imageMaterial->setDefaultParameter("showImage", 0);
-    _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
+    _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, filament::math::float4(r, g, b, a));
     _imageMaterial->setDefaultParameter("transform", _imageScale);
   }
 
@@ -547,7 +547,7 @@ namespace thermion_filament
               .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
               .build(*_engine);
       _imageMaterial->setDefaultParameter("showImage", 0);
-      _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(1.0f, 1.0f, 1.0f, 0.0f));
+      _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, filament::math::float4(1.0f, 1.0f, 1.0f, 0.0f));
       _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
     }
     catch (...)
@@ -728,7 +728,7 @@ namespace thermion_filament
         _imageScale[2][0], _imageScale[2][1], _imageScale[2][2], _imageScale[2][3],
         _imageScale[3][0], _imageScale[3][1], _imageScale[3][2], _imageScale[3][3]);
 
-    auto transform = math::mat4f::translation(math::float3(x, y, 0.0f)) * _imageScale;
+    auto transform = math::mat4f::translation(filament::math::float3(x, y, 0.0f)) * _imageScale;
 
     Log("transform %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f ", transform[0][0], transform[0][1], transform[0][2], transform[0][3],
         transform[1][0], transform[1][1], transform[1][2], transform[1][3],
@@ -1077,7 +1077,7 @@ namespace thermion_filament
       image::Ktx1Bundle *iblBundle =
           new image::Ktx1Bundle(static_cast<const uint8_t *>(iblBuffer.data),
                                 static_cast<uint32_t>(iblBuffer.size));
-      math::float3 harmonics[9];
+      filament::math::float3 harmonics[9];
       iblBundle->getSphericalHarmonics(harmonics);
 
       std::vector<void *> *callbackData = new std::vector<void *>{(void *)_resourceLoaderWrapper, iblBufferCopy};
