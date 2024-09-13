@@ -1193,6 +1193,28 @@ external void remove_stencil_highlight(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
+        ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
+external void set_material_property_float(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  int materialIndex,
+  ffi.Pointer<ffi.Char> property,
+  double value,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
+        ffi.Pointer<ffi.Char>, float4)>(isLeaf: true)
+external void set_material_property_float4(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  int materialIndex,
+  ffi.Pointer<ffi.Char> property,
+  float4 value,
+);
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>,
@@ -1772,6 +1794,20 @@ final class Aabb2 extends ffi.Struct {
 }
 
 final class CameraPtr extends ffi.Opaque {}
+
+final class float4 extends ffi.Struct {
+  @ffi.Float()
+  external double x;
+
+  @ffi.Float()
+  external double y;
+
+  @ffi.Float()
+  external double z;
+
+  @ffi.Float()
+  external double w;
+}
 
 final class double4x4 extends ffi.Struct {
   @ffi.Array.multi([4])
