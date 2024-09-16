@@ -31,6 +31,7 @@
 #include "Log.hpp"
 #include "SceneManager.hpp"
 #include "CustomGeometry.hpp"
+#include "UnprojectTexture.hpp"
 
 extern "C"
 {
@@ -217,8 +218,9 @@ namespace thermion_filament
         FilamentInstance *inst = asset->getInstance();
         inst->getAnimator()->updateBoneMatrices();
         inst->recomputeBoundingBoxes();
-        
-        if(!keepData) {
+
+        if (!keepData)
+        {
             asset->releaseSourceData();
         }
 
@@ -292,7 +294,8 @@ namespace thermion_filament
             _instances.emplace(instanceEntityId, inst);
         }
 
-        if(!keepData) {
+        if (!keepData)
+        {
             asset->releaseSourceData();
         }
 
@@ -362,7 +365,8 @@ namespace thermion_filament
         const auto asset = pos->second;
         auto instance = _assetLoader->createInstance(asset);
 
-        if(!instance) {
+        if (!instance)
+        {
             Log("Failed to create instance");
             return 0;
         }
@@ -497,6 +501,12 @@ namespace thermion_filament
                                    asset.second->getLightEntityCount());
             _assetLoader->destroyAsset(asset.second);
         }
+        for(auto* texture : _textures) {
+            _engine->destroy(texture);
+        }
+
+        // TODO - free geometry?
+        _textures.clear();
         _assets.clear();
     }
 
@@ -608,6 +618,7 @@ namespace thermion_filament
 
         auto entity = Entity::import(entityId);
 
+
         if (_animationComponentManager->hasComponent(entity))
         {
             _animationComponentManager->removeComponent(entity);
@@ -619,6 +630,10 @@ namespace thermion_filament
         }
 
         _scene->remove(entity);
+
+        if(isGeometryEntity(entityId)) {
+            return;
+        }
 
         const auto *instance = getInstanceByEntityId(entityId);
 
@@ -645,7 +660,6 @@ namespace thermion_filament
 
             if (!asset)
             {
-                Log("ERROR: could not find FilamentInstance or FilamentAsset associated with the given entity id");
                 return;
             }
             _assets.erase(entityId);
@@ -1288,78 +1302,100 @@ namespace thermion_filament
                                                 animationComponent.gltfAnimations.end());
     }
 
-    void SceneManager::loadTexture(EntityId entity, const char *resourcePath, int renderableIndex)
+    Texture *SceneManager::createTexture(const uint8_t *data, size_t length, const char *name)
     {
+        using namespace filament;
 
-        // const auto &pos = _instances.find(entity);
-        // if (pos == _instances.end())
-        // {
-        //     Log("ERROR: asset not found for entity.");
-        //     return;
-        // }
-        // const auto *instance = pos->second;
+        // Create an input stream from the data
+        std::istringstream stream(std::string(reinterpret_cast<const char *>(data), length));
 
-        // Log("Loading texture at %s for renderableIndex %d", resourcePath, renderableIndex);
+        // Decode the image
+        image::LinearImage linearImage = image::ImageDecoder::decode(stream, name, image::ImageDecoder::ColorSpace::SRGB);
 
-        // string rp(resourcePath);
+        if (!linearImage.isValid())
+        {
+            Log("Failed to decode image.");
+            return nullptr;
+        }
 
-        // if (asset.texture)
-        // {
-        //     _engine->destroy(asset.texture);
-        //     asset.texture = nullptr;
-        // }
+        uint32_t w = linearImage.getWidth();
+        uint32_t h = linearImage.getHeight();
+        uint32_t channels = linearImage.getChannels();
 
-        // ResourceBuffer imageResource = _resourceLoaderWrapper->load(rp.c_str());
+        Texture::InternalFormat textureFormat = channels == 3 ? Texture::InternalFormat::RGB16F
+                                                              : Texture::InternalFormat::RGBA16F;
+        Texture::Format bufferFormat = channels == 3 ? Texture::Format::RGB
+                                                     : Texture::Format::RGBA;
 
-        // StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
+        Texture *texture = Texture::Builder()
+                               .width(w)
+                               .height(h)
+                               .levels(1)
+                               .format(textureFormat)
+                               .sampler(Texture::Sampler::SAMPLER_2D)
+                               .build(*_engine);
 
-        // istream *inputStream = new std::istream(&sb);
+        if (!texture)
+        {
+            Log("Failed to create texture: ");
+            return nullptr;
+        }
 
-        // LinearImage *image = new LinearImage(ImageDecoder::decode(
-        //     *inputStream, rp.c_str(), ImageDecoder::ColorSpace::SRGB));
+        Texture::PixelBufferDescriptor buffer(
+            linearImage.getPixelRef(),
+            size_t(w * h * channels * sizeof(float)),
+            bufferFormat,
+            Texture::Type::FLOAT);
 
-        // if (!image->isValid())
-        // {
-        //     Log("Invalid image : %s", rp.c_str());
-        //     delete inputStream;
-        //     _resourceLoaderWrapper->free(imageResource);
-        //     return;
-        // }
+        texture->setImage(*_engine, 0, std::move(buffer));
 
-        // uint32_t channels = image->getChannels();
-        // uint32_t w = image->getWidth();
-        // uint32_t h = image->getHeight();
-        // asset.texture = Texture::Builder()
-        //                      .width(w)
-        //                      .height(h)
-        //                      .levels(0xff)
-        //                      .format(channels == 3 ? Texture::InternalFormat::RGB16F
-        //                                            : Texture::InternalFormat::RGBA16F)
-        //                      .sampler(Texture::Sampler::SAMPLER_2D)
-        //                      .build(*_engine);
+        Log("Created texture: %s (%d x %d, %d channels)", name, w, h, channels);
 
-        // Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-        //                                                            void *data)
-        // {
-        //     delete reinterpret_cast<LinearImage *>(data);
-        // };
+        _textures.insert(texture);
 
-        // Texture::PixelBufferDescriptor buffer(
-        //     image->getPixelRef(), size_t(w * h * channels * sizeof(float)),
-        //     channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
-        //     Texture::Type::FLOAT, freeCallback);
+        return texture;
+    }
 
-        // asset.texture->setImage(*_engine, 0, std::move(buffer));
-        // MaterialInstance *const *inst = instance->getMaterialInstances();
-        // size_t mic = instance->getMaterialInstanceCount();
-        // Log("Material instance count : %d", mic);
+    bool SceneManager::applyTexture(EntityId entityId, Texture *texture, const char* parameterName, int materialIndex)
+    {
+        auto entity = Entity::import(entityId);
 
-        // auto sampler = TextureSampler();
-        // inst[0]->setParameter("baseColorIndex", 0);
-        // inst[0]->setParameter("baseColorMap", asset.texture, sampler);
-        // delete inputStream;
+        if (entity.isNull())
+        {
+            Log("Entity %d is null?", entityId);
+            return false;
+        }
 
-        // _resourceLoaderWrapper->free(imageResource);
+        RenderableManager &rm = _engine->getRenderableManager();
+
+        auto renderable = rm.getInstance(entity);
+
+        if (!renderable.isValid())
+        {
+            Log("Renderable not valid, was the entity id correct (%d)?", entityId);
+            return false;
+        }
+
+        MaterialInstance *mi = rm.getMaterialInstanceAt(renderable, materialIndex);
+
+        if (!mi)
+        {
+            Log("ERROR: material index must be less than number of material instances");
+            return false;
+        }
+
+        auto sampler = TextureSampler();
+        mi->setParameter(parameterName, texture, sampler);
+        Log("Applied texture to entity %d", entityId);
+        return true;
+    }
+
+    void SceneManager::destroyTexture(Texture* texture) {
+        if(_textures.find(texture) == _textures.end()) {
+            Log("Warning: couldn't find texture");
+        } 
+        _textures.erase(texture);
+        _engine->destroy(texture);
     }
 
     void SceneManager::setAnimationFrame(EntityId entityId, int animationIndex, int animationFrame)
@@ -1549,10 +1585,12 @@ namespace thermion_filament
         const auto child = Entity::import(childEntityId);
         auto transformInstance = tm.getInstance(child);
         Entity parent;
-        
-        while(true) {
+
+        while (true)
+        {
             auto newParent = tm.getParent(transformInstance);
-            if(newParent.isNull()) {
+            if (newParent.isNull())
+            {
                 break;
             }
             parent = newParent;
@@ -1571,12 +1609,14 @@ namespace thermion_filament
         const auto &parentInstance = tm.getInstance(parent);
         const auto &childInstance = tm.getInstance(child);
 
-        if(!parentInstance.isValid()) {
+        if (!parentInstance.isValid())
+        {
             Log("Parent instance is not valid");
             return;
         }
 
-        if(!childInstance.isValid()) {
+        if (!childInstance.isValid())
+        {
             Log("Child instance is not valid");
             return;
         }
@@ -1843,169 +1883,173 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
-void SceneManager::queueRelativePositionUpdateFromViewportVector(EntityId entityId, float viewportCoordX, float viewportCoordY)
-{
-   // Get the camera and viewport
-    const auto &camera = _view->getCamera();
-    const auto &vp = _view->getViewport();
-
-    // Convert viewport coordinates to NDC space
-    float ndcX = (2.0f * viewportCoordX) / vp.width - 1.0f;
-    float ndcY = 1.0f - (2.0f * viewportCoordY) / vp.height;
-
-    // Get the current position of the entity
-    auto &tm = _engine->getTransformManager();
-    auto entity = Entity::import(entityId);
-    auto transformInstance = tm.getInstance(entity);
-    auto currentTransform = tm.getTransform(transformInstance);
-
-    // get entity model origin in camera space
-    auto entityPositionInCameraSpace = camera.getViewMatrix() * currentTransform * filament::math::float4 { 0.0f, 0.0f, 0.0f, 1.0f };
-    // get entity model origin in clip space
-    auto entityPositionInClipSpace = camera.getProjectionMatrix() * entityPositionInCameraSpace;
-    auto entityPositionInNdcSpace = entityPositionInClipSpace / entityPositionInClipSpace.w;
-
-    // Viewport coords in NDC space (use entity position in camera space Z to project onto near plane)
-    math::float4 ndcNearPlanePos = {ndcX, ndcY, -1.0f, 1.0f};
-    math::float4 ndcFarPlanePos = {ndcX, ndcY, 0.99f, 1.0f};
-    math::float4 ndcEntityPlanePos = {ndcX, ndcY, entityPositionInNdcSpace.z, 1.0f};
-
-    // Get viewport coords in clip space 
-    math::float4 nearPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcNearPlanePos;
-    auto nearPlaneInCameraSpace = nearPlaneInClipSpace / nearPlaneInClipSpace.w;
-    math::float4 farPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcFarPlanePos;
-    auto farPlaneInCameraSpace = farPlaneInClipSpace / farPlaneInClipSpace.w;
-    math::float4 entityPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcEntityPlanePos;
-    auto entityPlaneInCameraSpace = entityPlaneInClipSpace / entityPlaneInClipSpace.w;
-    auto entityPlaneInWorldSpace = camera.getModelMatrix() * entityPlaneInCameraSpace;
-    
-    // Queue the position update (as a relative movement)
-    queuePositionUpdate(entityId, entityPlaneInWorldSpace.x, entityPlaneInWorldSpace.y, entityPlaneInWorldSpace.z, false);
-}
-void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
-{
-    auto worldAxis = math::float3{x, y, z};
-
-    // Get the camera
-    const auto &camera = _view->getCamera();
-    const auto &vp = _view->getViewport();
-    auto viewMatrix = camera.getViewMatrix();
-
-    math::float3 cameraPosition = camera.getPosition();
-    math::float3 cameraForward = -viewMatrix.upperLeft()[2];
-
-    // Scale the viewport movement to NDC coordinates view axis
-    math::float2 viewportMovementNDC(viewportCoordX / (vp.width / 2), viewportCoordY / (vp.height / 2));
-
-    // calculate the translation axis in view space
-    math::float3 viewSpaceAxis = viewMatrix.upperLeft() * worldAxis;
-
-    // Apply projection matrix to get clip space axis
-    math::float4 clipAxis = camera.getProjectionMatrix() * math::float4(viewSpaceAxis, 0.0f);
-
-    // Perform perspective division to get the translation axis in normalized device coordinates (NDC)
-    math::float2 ndcAxis = (clipAxis.xyz / clipAxis.w).xy;
-
-    const float epsilon = 1e-6f;
-    bool isAligned = false;
-    if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y) || length(ndcAxis) < epsilon || std::abs(dot(normalize(worldAxis), cameraForward)) > 0.99f)
+    void SceneManager::queueRelativePositionUpdateFromViewportVector(EntityId entityId, float viewportCoordX, float viewportCoordY)
     {
-        isAligned = true;
-        // Find a suitable perpendicular axis:
-        math::float3 perpendicularAxis;
-        if (std::abs(worldAxis.x) < epsilon && std::abs(worldAxis.z) < epsilon)
-        {
-            // If worldAxis is (0, y, 0), use (1, 0, 0)
-            perpendicularAxis = {1.0f, 0.0f, 0.0f};
-        }
-        else
-        {
-            // Otherwise, calculate a perpendicular vector
-            perpendicularAxis = normalize(cross(cameraForward, worldAxis));
-        }
+        // Get the camera and viewport
+        const auto &camera = _view->getCamera();
+        const auto &vp = _view->getViewport();
 
-        ndcAxis = (camera.getProjectionMatrix() * math::float4(viewMatrix.upperLeft() * perpendicularAxis, 0.0f)).xy;
+        // Convert viewport coordinates to NDC space
+        float ndcX = (2.0f * viewportCoordX) / vp.width - 1.0f;
+        float ndcY = 1.0f - (2.0f * viewportCoordY) / vp.height;
 
-        if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y)) {
-            return;
-        }
+        // Get the current position of the entity
+        auto &tm = _engine->getTransformManager();
+        auto entity = Entity::import(entityId);
+        auto transformInstance = tm.getInstance(entity);
+        auto currentTransform = tm.getTransform(transformInstance);
 
+        // get entity model origin in camera space
+        auto entityPositionInCameraSpace = camera.getViewMatrix() * currentTransform * filament::math::float4{0.0f, 0.0f, 0.0f, 1.0f};
+        // get entity model origin in clip space
+        auto entityPositionInClipSpace = camera.getProjectionMatrix() * entityPositionInCameraSpace;
+        auto entityPositionInNdcSpace = entityPositionInClipSpace / entityPositionInClipSpace.w;
+
+        // Viewport coords in NDC space (use entity position in camera space Z to project onto near plane)
+        math::float4 ndcNearPlanePos = {ndcX, ndcY, -1.0f, 1.0f};
+        math::float4 ndcFarPlanePos = {ndcX, ndcY, 0.99f, 1.0f};
+        math::float4 ndcEntityPlanePos = {ndcX, ndcY, entityPositionInNdcSpace.z, 1.0f};
+
+        // Get viewport coords in clip space
+        math::float4 nearPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcNearPlanePos;
+        auto nearPlaneInCameraSpace = nearPlaneInClipSpace / nearPlaneInClipSpace.w;
+        math::float4 farPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcFarPlanePos;
+        auto farPlaneInCameraSpace = farPlaneInClipSpace / farPlaneInClipSpace.w;
+        math::float4 entityPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcEntityPlanePos;
+        auto entityPlaneInCameraSpace = entityPlaneInClipSpace / entityPlaneInClipSpace.w;
+        auto entityPlaneInWorldSpace = camera.getModelMatrix() * entityPlaneInCameraSpace;
+
+        // Queue the position update (as a relative movement)
+        queuePositionUpdate(entityId, entityPlaneInWorldSpace.x, entityPlaneInWorldSpace.y, entityPlaneInWorldSpace.z, false);
     }
-
-    // project the viewport movement (i.e pointer drag) vector onto the translation axis
-    // this gives the proportion of the pointer drag vector to translate along the translation axis
-    float projectedMovement = dot(viewportMovementNDC, normalize(ndcAxis));
-    auto translationNDC = projectedMovement * normalize(ndcAxis);
-
-    float dotProduct = dot(normalize(worldAxis), cameraForward);
-
-    // Ensure minimum translation and correct direction
-    const float minTranslation = 0.01f;
-    if (isAligned || std::abs(projectedMovement) < minTranslation) {
-        // Use the dominant component of the viewport movement
-        float dominantMovement = std::abs(viewportMovementNDC.x) > std::abs(viewportMovementNDC.y) ? viewportMovementNDC.x : viewportMovementNDC.y;
-        projectedMovement = (std::abs(dominantMovement) < minTranslation) ? minTranslation : std::abs(dominantMovement);
-        projectedMovement *= (dominantMovement >= 0) ? 1.0f : -1.0f;
-        translationNDC = projectedMovement * normalize(ndcAxis);
-    }
-
-    // Log("projectedMovement %f dotProduct %f", projectedMovement, dotProduct);
-
-    // Get the camera's field of view and aspect ratio
-    float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
-    float fovX = camera.getFieldOfViewInDegrees(filament::Camera::Fov::HORIZONTAL);
-
-    // Convert to radians
-    fovY = (fovY / 180) * M_PI;
-    fovX = (fovX / 180) * M_PI;
-
-    float aspectRatio = static_cast<float>(vp.width) / vp.height;
-
-    auto &transformManager = _engine->getTransformManager();
-    auto transformInstance = transformManager.getInstance(Entity::import(entity));
-    const auto &transform = transformManager.getWorldTransform(transformInstance);
-
-    math::float3 translation;
-    math::quatf rotation;
-    math::float3 scale;
-
-    decomposeMatrix(transform, &translation, &rotation, &scale);
-
-    const auto entityWorldPosition = transform * math::float4{0.0f, 0.0f, 0.0f, 1.0f};
-
-    float distanceToCamera = length(entityWorldPosition.xyz - camera.getPosition());
-
-    // Calculate the height of the view frustum at the given distance
-    float frustumHeight = 2.0f * distanceToCamera * tan(fovY * 0.5f);
-
-    // Calculate the width of the view frustum at the given distance
-    float frustumWidth = frustumHeight * aspectRatio;
-
-    // Convert projected viewport movement to world space distance
-    float worldDistance = length(math::float2{(translationNDC / 2) * math::float2{frustumWidth, frustumHeight}});
-
-    // Determine the sign based on the alignment of world axis and camera forward
-    float sign = (dotProduct >= 0) ? -1.0f : 1.0f;
-
-    // If aligned, use the sign of the projected movement instead
-    if (isAligned) {
-        sign = (projectedMovement >= 0) ? 1.0f : -1.0f;
-    } else if (projectedMovement < 0) {
-        sign *= -1.0f;
-    }
-
-    // Flip the sign for the Z-axis
-    if (std::abs(z) > 0.001)
+    void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
     {
-        sign *= -1.0f;
+        auto worldAxis = math::float3{x, y, z};
+
+        // Get the camera
+        const auto &camera = _view->getCamera();
+        const auto &vp = _view->getViewport();
+        auto viewMatrix = camera.getViewMatrix();
+
+        math::float3 cameraPosition = camera.getPosition();
+        math::float3 cameraForward = -viewMatrix.upperLeft()[2];
+
+        // Scale the viewport movement to NDC coordinates view axis
+        math::float2 viewportMovementNDC(viewportCoordX / (vp.width / 2), viewportCoordY / (vp.height / 2));
+
+        // calculate the translation axis in view space
+        math::float3 viewSpaceAxis = viewMatrix.upperLeft() * worldAxis;
+
+        // Apply projection matrix to get clip space axis
+        math::float4 clipAxis = camera.getProjectionMatrix() * math::float4(viewSpaceAxis, 0.0f);
+
+        // Perform perspective division to get the translation axis in normalized device coordinates (NDC)
+        math::float2 ndcAxis = (clipAxis.xyz / clipAxis.w).xy;
+
+        const float epsilon = 1e-6f;
+        bool isAligned = false;
+        if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y) || length(ndcAxis) < epsilon || std::abs(dot(normalize(worldAxis), cameraForward)) > 0.99f)
+        {
+            isAligned = true;
+            // Find a suitable perpendicular axis:
+            math::float3 perpendicularAxis;
+            if (std::abs(worldAxis.x) < epsilon && std::abs(worldAxis.z) < epsilon)
+            {
+                // If worldAxis is (0, y, 0), use (1, 0, 0)
+                perpendicularAxis = {1.0f, 0.0f, 0.0f};
+            }
+            else
+            {
+                // Otherwise, calculate a perpendicular vector
+                perpendicularAxis = normalize(cross(cameraForward, worldAxis));
+            }
+
+            ndcAxis = (camera.getProjectionMatrix() * math::float4(viewMatrix.upperLeft() * perpendicularAxis, 0.0f)).xy;
+
+            if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y))
+            {
+                return;
+            }
+        }
+
+        // project the viewport movement (i.e pointer drag) vector onto the translation axis
+        // this gives the proportion of the pointer drag vector to translate along the translation axis
+        float projectedMovement = dot(viewportMovementNDC, normalize(ndcAxis));
+        auto translationNDC = projectedMovement * normalize(ndcAxis);
+
+        float dotProduct = dot(normalize(worldAxis), cameraForward);
+
+        // Ensure minimum translation and correct direction
+        const float minTranslation = 0.01f;
+        if (isAligned || std::abs(projectedMovement) < minTranslation)
+        {
+            // Use the dominant component of the viewport movement
+            float dominantMovement = std::abs(viewportMovementNDC.x) > std::abs(viewportMovementNDC.y) ? viewportMovementNDC.x : viewportMovementNDC.y;
+            projectedMovement = (std::abs(dominantMovement) < minTranslation) ? minTranslation : std::abs(dominantMovement);
+            projectedMovement *= (dominantMovement >= 0) ? 1.0f : -1.0f;
+            translationNDC = projectedMovement * normalize(ndcAxis);
+        }
+
+        // Log("projectedMovement %f dotProduct %f", projectedMovement, dotProduct);
+
+        // Get the camera's field of view and aspect ratio
+        float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
+        float fovX = camera.getFieldOfViewInDegrees(filament::Camera::Fov::HORIZONTAL);
+
+        // Convert to radians
+        fovY = (fovY / 180) * M_PI;
+        fovX = (fovX / 180) * M_PI;
+
+        float aspectRatio = static_cast<float>(vp.width) / vp.height;
+
+        auto &transformManager = _engine->getTransformManager();
+        auto transformInstance = transformManager.getInstance(Entity::import(entity));
+        const auto &transform = transformManager.getWorldTransform(transformInstance);
+
+        math::float3 translation;
+        math::quatf rotation;
+        math::float3 scale;
+
+        decomposeMatrix(transform, &translation, &rotation, &scale);
+
+        const auto entityWorldPosition = transform * math::float4{0.0f, 0.0f, 0.0f, 1.0f};
+
+        float distanceToCamera = length(entityWorldPosition.xyz - camera.getPosition());
+
+        // Calculate the height of the view frustum at the given distance
+        float frustumHeight = 2.0f * distanceToCamera * tan(fovY * 0.5f);
+
+        // Calculate the width of the view frustum at the given distance
+        float frustumWidth = frustumHeight * aspectRatio;
+
+        // Convert projected viewport movement to world space distance
+        float worldDistance = length(math::float2{(translationNDC / 2) * math::float2{frustumWidth, frustumHeight}});
+
+        // Determine the sign based on the alignment of world axis and camera forward
+        float sign = (dotProduct >= 0) ? -1.0f : 1.0f;
+
+        // If aligned, use the sign of the projected movement instead
+        if (isAligned)
+        {
+            sign = (projectedMovement >= 0) ? 1.0f : -1.0f;
+        }
+        else if (projectedMovement < 0)
+        {
+            sign *= -1.0f;
+        }
+
+        // Flip the sign for the Z-axis
+        if (std::abs(z) > 0.001)
+        {
+            sign *= -1.0f;
+        }
+
+        worldDistance *= sign;
+
+        auto newWorldTranslation = worldAxis * worldDistance;
+
+        queuePositionUpdate(entity, newWorldTranslation.x, newWorldTranslation.y, newWorldTranslation.z, true);
     }
-
-    worldDistance *= sign;
-
-    auto newWorldTranslation = worldAxis * worldDistance;
-
-    queuePositionUpdate(entity, newWorldTranslation.x, newWorldTranslation.y, newWorldTranslation.z, true);
-}
 
     void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
     {
@@ -2343,10 +2387,12 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
         _view->setLayerEnabled(layer, enabled);
     }
 
-    void SceneManager::removeStencilHighlight(EntityId entityId) {
+    void SceneManager::removeStencilHighlight(EntityId entityId)
+    {
         std::lock_guard lock(_stencilMutex);
         auto found = _highlighted.find(entityId);
-        if(found == _highlighted.end()) {
+        if (found == _highlighted.end())
+        {
             Log("Entity %d has no stencil highlight, skipping removal", entityId);
             return;
         }
@@ -2355,147 +2401,164 @@ void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float v
         _highlighted.erase(entityId);
     }
 
-    void SceneManager::setStencilHighlight(EntityId entityId, float r, float g, float b) {
-        
+    void SceneManager::setStencilHighlight(EntityId entityId, float r, float g, float b)
+    {
+
         std::lock_guard lock(_stencilMutex);
 
         auto highlightEntity = std::make_unique<HighlightOverlay>(entityId, this, _engine, r, g, b);
 
-        if(highlightEntity->isValid()) {
+        if (highlightEntity->isValid())
+        {
             _highlighted.emplace(entityId, std::move(highlightEntity));
         }
-
     }
 
-    ///
-    /// Creates an entity with the specified geometry/material/normals and adds to the scene.
-    /// If [keepData] is true, stores 
-    ///
-    EntityId SceneManager::createGeometryWithNormals(
-        float *vertices, 
-        uint32_t numVertices, 
-        float *normals,
-        uint32_t numNormals,
-        uint16_t *indices, 
-        uint32_t numIndices, 
-        filament::RenderableManager::PrimitiveType primitiveType,
-        const char *materialPath,
-        bool keepData
-    ) {
-        auto geometry = std::make_unique<CustomGeometry>(vertices, numVertices, normals, numNormals, indices, numIndices, primitiveType, _engine);
+EntityId SceneManager::createGeometry(
+    float *vertices,
+    uint32_t numVertices,
+    float *normals,
+    uint32_t numNormals,
+    float *uvs,
+    uint32_t numUvs,
+    uint16_t *indices,
+    uint32_t numIndices,
+    filament::RenderableManager::PrimitiveType primitiveType,
+    const char *materialPath,
+    bool keepData)
+{
+    auto geometry = std::make_unique<CustomGeometry>(vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, _engine);
 
-        auto renderable = utils::EntityManager::get().create();
-        RenderableManager::Builder builder(1);
+    auto entity = utils::EntityManager::get().create();
+    RenderableManager::Builder builder(1);
 
-        builder.boundingBox(geometry->getBoundingBox())
-            .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
-            .culling(true)
-            .receiveShadows(true)
-            .castShadows(true);
+    builder.boundingBox(geometry->getBoundingBox())
+        .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
+        .culling(true)
+        .receiveShadows(true)
+        .castShadows(true);
 
-        if (materialPath) {
-            filament::Material* mat = nullptr;
-            
-            auto matData = _resourceLoaderWrapper->load(materialPath);
-            mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
-            _resourceLoaderWrapper->free(matData);
-            builder.material(0, mat->getDefaultInstance());
-        } else { 
-            filament::gltfio::MaterialKey config;
-            
-            config.unlit = false;
-            config.doubleSided = false;
-            config.useSpecularGlossiness = false;
-            config.alphaMode = filament::gltfio::AlphaMode::OPAQUE;
-            config.hasBaseColorTexture = false;
-            config.hasClearCoat = false;
-            config.hasClearCoatNormalTexture = false;
-            config.hasClearCoatRoughnessTexture = false;
-            config.hasEmissiveTexture = false;
-            config.hasIOR = false;
-            config.hasMetallicRoughnessTexture = false;
-            config.hasNormalTexture = false;
-            config.hasOcclusionTexture = false;
-            config.hasSheen = false;
-            config.hasSheenColorTexture = false;
-            config.hasSheenRoughnessTexture = false;
-            config.hasSpecularGlossinessTexture = false;
-            config.hasTextureTransforms = false;
-            config.hasTransmission = false;
-            config.hasTransmissionTexture = false;
-            config.hasVolume = false;
-            config.hasVolumeThicknessTexture = false;
+    filament::Material *mat = nullptr;
+    filament::MaterialInstance* materialInstance = nullptr;
 
-            config.hasVertexColors = false;
-            config.hasVolume = false;
-            // config.enableDiagnostics = true;
-            
-            filament::gltfio::UvMap uvmap;        
-            auto materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
-            materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4 { 1.0f, 0.0f, 0.0f, 1.0f });
-            // auto materialInstance = _unlitMaterialProvider->createMaterialInstance(&config, &uvmap);
-            builder.material(0, materialInstance);
+    if (materialPath)
+    {
+        auto matData = _resourceLoaderWrapper->load(materialPath);
+        mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
+        _resourceLoaderWrapper->free(matData);
+        materialInstance = mat->getDefaultInstance();
+    }
+    else
+    {
+        filament::gltfio::MaterialKey config;
 
-        } 
+        config.unlit = false;
+        config.doubleSided = false;
+        config.useSpecularGlossiness = false;
+        config.alphaMode = filament::gltfio::AlphaMode::OPAQUE;
+        config.hasBaseColorTexture = uvs != nullptr;
+        config.hasClearCoat = false;
+        config.hasClearCoatNormalTexture = false;
+        config.hasClearCoatRoughnessTexture = false;
+        config.hasEmissiveTexture = false;
+        config.hasIOR = false;
+        config.hasMetallicRoughnessTexture = false;
+        config.hasNormalTexture = false;
+        config.hasOcclusionTexture = false;
+        config.hasSheen = false;
+        config.hasSheenColorTexture = false;
+        config.hasSheenRoughnessTexture = false;
+        config.hasSpecularGlossinessTexture = false;
+        config.hasTextureTransforms = false;
+        config.hasTransmission = false;
+        config.hasTransmissionTexture = false;
+        config.hasVolume = false;
+        config.hasVolumeThicknessTexture = false;
+        config.baseColorUV = 0;
+        config.hasVertexColors = false;
+        config.hasVolume = false;
 
-        builder.build(*_engine, renderable);
+        filament::gltfio::UvMap uvmap;
+        materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
 
-        _scene->addEntity(renderable);
-
-        auto entityId = Entity::smuggle(renderable);
-
-        _geometry.emplace(entityId, std::move(geometry));
-
-        return entityId;
+        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 0.0f, 1.0f, 1.0f});
     }
 
-    EntityId SceneManager::createGeometry(
-        float *vertices,
-        uint32_t numVertices,
-        uint16_t *indices,
-        uint32_t numIndices,
-        RenderableManager::PrimitiveType primitiveType,
-        const char *materialPath,
-        bool keepData
-    ) {
-        return createGeometryWithNormals(vertices, numVertices, nullptr, 0, indices, numIndices, primitiveType, materialPath, keepData);
-  }
+    // Set up texture and sampler if UVs are available
+    if (uvs != nullptr && numUvs > 0)
+    {
+        // Create a default white texture
+        static constexpr uint32_t textureSize = 1;
+        static constexpr uint32_t white = 0x00ffffff;
+        Texture* texture = Texture::Builder()
+            .width(textureSize)
+            .height(textureSize)
+            .levels(1)
+            .format(Texture::InternalFormat::RGBA8)
+            .build(*_engine);
 
-  void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char* property, float value) {
-    auto entity = Entity::import(entityId);
-    const auto& rm = _engine->getRenderableManager();
-    auto renderableInstance = rm.getInstance(entity);
-    if(!renderableInstance.isValid()) {
-        Log("ERROR");
-        return;
-    }
-    auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
-    
-    if(!materialInstance->getMaterial()->hasParameter(property)) {
-        Log("Parameter %s not found", property);
-        return;
-    }
-    materialInstance->setParameter(property, value);
-  }
+        _textures.insert(texture);
+       
+        filament::backend::PixelBufferDescriptor pbd(&white, 4, Texture::Format::RGBA, Texture::Type::UBYTE);
+        texture->setImage(*_engine, 0, std::move(pbd));
 
-  void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4 value) {
-    auto entity = Entity::import(entityId);
-    const auto& rm = _engine->getRenderableManager();
-    auto renderableInstance = rm.getInstance(entity);
-    if(!renderableInstance.isValid()) {
-        Log("ERROR");
-        return;
+        // Create a sampler
+        TextureSampler sampler(TextureSampler::MinFilter::LINEAR, TextureSampler::MagFilter::LINEAR);
+
+        // Set the texture and sampler to the material instance
+        materialInstance->setParameter("baseColorMap", texture, sampler);
     }
-    auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
-    
-    if(!materialInstance->getMaterial()->hasParameter(property)) {
-        Log("Parameter %s not found", property);
-        return;
+
+    builder.material(0, materialInstance);
+    builder.build(*_engine, entity);
+
+    _scene->addEntity(entity);
+
+    auto entityId = Entity::smuggle(entity);
+
+    _geometry.emplace(entityId, std::move(geometry));
+
+    return entityId;
+}
+
+    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, float value)
+    {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("ERROR");
+            return;
+        }
+        auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+
+        if (!materialInstance->getMaterial()->hasParameter(property))
+        {
+            Log("Parameter %s not found", property);
+            return;
+        }
+        materialInstance->setParameter(property, value);
     }
-    materialInstance->setParameter(property, value);
-  }
+
+    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, filament::math::float4 value)
+    {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("ERROR");
+            return;
+        }
+        auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+
+        if (!materialInstance->getMaterial()->hasParameter(property))
+        {
+            Log("Parameter %s not found", property);
+            return;
+        }
+        materialInstance->setParameter(property, value);
+    }
 
 } // namespace thermion_filament
-
-
-    

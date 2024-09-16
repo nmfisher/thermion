@@ -262,8 +262,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE bool add_animation_component(void *const sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void remove_animation_component(void *const sceneManager, EntityId entityId);
 
-	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
-	EMSCRIPTEN_KEEPALIVE EntityId create_geometry_with_normals(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
+	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, float *uvs, int numUvs, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
 	EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling);
@@ -279,6 +278,10 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float value);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float4 value);
+	EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const sceneManager, EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight);
+    EMSCRIPTEN_KEEPALIVE void* const create_texture(void *const sceneManager, uint8_t* data, size_t length);
+	EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void* const texture);
+	EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void* const texture, const char* parameterName, int materialIndex);
 
 
 #ifdef __cplusplus

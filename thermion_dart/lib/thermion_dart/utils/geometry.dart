@@ -1,14 +1,16 @@
 import 'dart:math';
-
+import 'dart:typed_data';
 import 'package:thermion_dart/thermion_dart/viewer/shared_types/geometry.dart';
+import 'package:thermion_dart/thermion_dart/viewer/thermion_viewer_base.dart';
 
 class GeometryHelper {
   static Geometry sphere({bool normals = true, bool uvs = true}) {
     int latitudeBands = 20;
     int longitudeBands = 20;
 
-    List<double> vertices = [];
-    List<double> _normals = [];
+    List<double> verticesList = [];
+    List<double> normalsList = [];
+    List<double> uvsList = [];
     List<int> indices = [];
 
     for (int latNumber = 0; latNumber <= latitudeBands; latNumber++) {
@@ -25,12 +27,10 @@ class GeometryHelper {
         double y = cosTheta;
         double z = sinPhi * sinTheta;
 
-        vertices.addAll([x, y, z]);
-        _normals.addAll([
-          x,
-          y,
-          z
-        ]); // For a sphere, normals are the same as vertex positions
+        verticesList.addAll([x, y, z]);
+        normalsList.addAll([x, y, z]);
+        
+        uvsList.addAll([longNumber / longitudeBands, latNumber / latitudeBands]);
       }
     }
 
@@ -39,127 +39,171 @@ class GeometryHelper {
         int first = (latNumber * (longitudeBands + 1)) + longNumber;
         int second = first + longitudeBands + 1;
 
-        indices
-            .addAll([first, second, first + 1, second, second + 1, first + 1]);
+        indices.addAll([first, second, first + 1, second, second + 1, first + 1]);
       }
     }
 
-    return Geometry(vertices, indices, normals: normals ? _normals : null);
+    Float32List vertices = Float32List.fromList(verticesList);
+    Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+    Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+
+    return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
-  static Geometry cube({bool normals = true, bool uvs = true}) {
-    final vertices = <double>[
-      // Front face
-      -1, -1, 1,
-      1, -1, 1,
-      1, 1, 1,
-      -1, 1, 1,
+static Geometry cube({bool normals = true, bool uvs = true}) {
+  final vertices = Float32List.fromList([
+    // Front face
+    -1, -1, 1,
+    1, -1, 1,
+    1, 1, 1,
+    -1, 1, 1,
 
-      // Back face
-      -1, -1, -1,
-      -1, 1, -1,
-      1, 1, -1,
-      1, -1, -1,
+    // Back face
+    -1, -1, -1,
+    -1, 1, -1,
+    1, 1, -1,
+    1, -1, -1,
 
-      // Top face
-      -1, 1, -1,
-      -1, 1, 1,
-      1, 1, 1,
-      1, 1, -1,
+    // Top face
+    -1, 1, -1,
+    -1, 1, 1,
+    1, 1, 1,
+    1, 1, -1,
 
-      // Bottom face
-      -1, -1, -1,
-      1, -1, -1,
-      1, -1, 1,
-      -1, -1, 1,
+    // Bottom face
+    -1, -1, -1,
+    1, -1, -1,
+    1, -1, 1,
+    -1, -1, 1,
 
-      // Right face
-      1, -1, -1,
-      1, 1, -1,
-      1, 1, 1,
-      1, -1, 1,
+    // Right face
+    1, -1, -1,
+    1, 1, -1,
+    1, 1, 1,
+    1, -1, 1,
 
-      // Left face
-      -1, -1, -1,
-      -1, -1, 1,
-      -1, 1, 1,
-      -1, 1, -1,
-    ];
+    // Left face
+    -1, -1, -1,
+    -1, -1, 1,
+    -1, 1, 1,
+    -1, 1, -1,
+  ]);
 
-    final _normals = <double>[
-      // Front face
-      0, 0, 1,
-      0, 0, 1,
-      0, 0, 1,
-      0, 0, 1,
+  final _normals = normals ? Float32List.fromList([
+    // Front face
+    0, 0, 1,
+    0, 0, 1,
+    0, 0, 1,
+    0, 0, 1,
 
-      // Back face
-      0, 0, -1,
-      0, 0, -1,
-      0, 0, -1,
-      0, 0, -1,
+    // Back face
+    0, 0, -1,
+    0, 0, -1,
+    0, 0, -1,
+    0, 0, -1,
 
-      // Top face
-      0, 1, 0,
-      0, 1, 0,
-      0, 1, 0,
-      0, 1, 0,
+    // Top face
+    0, 1, 0,
+    0, 1, 0,
+    0, 1, 0,
+    0, 1, 0,
 
-      // Bottom face
-      0, -1, 0,
-      0, -1, 0,
-      0, -1, 0,
-      0, -1, 0,
+    // Bottom face
+    0, -1, 0,
+    0, -1, 0,
+    0, -1, 0,
+    0, -1, 0,
 
-      // Right face
-      1, 0, 0,
-      1, 0, 0,
-      1, 0, 0,
-      1, 0, 0,
+    // Right face
+    1, 0, 0,
+    1, 0, 0,
+    1, 0, 0,
+    1, 0, 0,
 
-      // Left face
-      -1, 0, 0,
-      -1, 0, 0,
-      -1, 0, 0,
-      -1, 0, 0,
-    ];
+    // Left face
+    -1, 0, 0,
+    -1, 0, 0,
+    -1, 0, 0,
+    -1, 0, 0,
+  ]) : null;
 
-    final indices = [
-      // Front face
-      0, 1, 2, 0, 2, 3,
-      // Back face
-      4, 5, 6, 4, 6, 7,
-      // Top face
-      8, 9, 10, 8, 10, 11,
-      // Bottom face
-      12, 13, 14, 12, 14, 15,
-      // Right face
-      16, 17, 18, 16, 18, 19,
-      // Left face
-      20, 21, 22, 20, 22, 23
-    ];
-    return Geometry(vertices, indices, normals: normals ? _normals : null);
-  }
+  final _uvs = uvs ? Float32List.fromList([
+    // Front face
+    1/3, 1/3,
+    2/3, 1/3,
+    2/3, 2/3,
+    1/3, 2/3,
+
+    // Back face
+    2/3, 2/3,
+    2/3, 1,
+    1, 1,
+    1, 2/3,
+
+    // Top face
+    1/3, 0,
+    1/3, 1/3,
+    2/3, 1/3,
+    2/3, 0,
+
+    // Bottom face
+    1/3, 2/3,
+    2/3, 2/3,
+    2/3, 1,
+    1/3, 1,
+
+    // Right face
+    2/3, 1/3,
+    2/3, 2/3,
+    1, 2/3,
+    1, 1/3,
+
+    // Left face
+    0, 1/3,
+    1/3, 1/3,
+    1/3, 2/3,
+    0, 2/3,
+  ]) : null;
+
+  final indices = [
+    // Front face
+    0, 1, 2, 0, 2, 3,
+    // Back face
+    4, 5, 6, 4, 6, 7,
+    // Top face
+    8, 9, 10, 8, 10, 11,
+    // Bottom face
+    12, 13, 14, 12, 14, 15,
+    // Right face
+    16, 17, 18, 16, 18, 19,
+    // Left face
+    20, 21, 22, 20, 22, 23
+  ];
+  return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
+}
 
   static Geometry cylinder({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true }) {
     int segments = 32;
-    List<double> vertices = [];
-    List<double> _normals = [];
+    List<double> verticesList = [];
+    List<double> normalsList = [];
+    List<double> uvsList = [];
     List<int> indices = [];
 
-    // Create vertices and normals
+    // Create vertices, normals, and UVs
     for (int i = 0; i <= segments; i++) {
       double theta = i * 2 * pi / segments;
       double x = radius * cos(theta);
       double z = radius * sin(theta);
 
       // Top circle
-      vertices.addAll([x, length / 2, z]);
-      _normals.addAll([x / radius, 0, z / radius]);
+      verticesList.addAll([x, length / 2, z]);
+      normalsList.addAll([x / radius, 0, z / radius]);
+      uvsList.addAll([i / segments, 1]);
 
       // Bottom circle
-      vertices.addAll([x, -length / 2, z]);
-      _normals.addAll([x / radius, 0, z / radius]);
+      verticesList.addAll([x, -length / 2, z]);
+      normalsList.addAll([x / radius, 0, z / radius]);
+      uvsList.addAll([i / segments, 0]);
     }
 
     // Create indices
@@ -178,45 +222,62 @@ class GeometryHelper {
       indices.addAll([bottomFirst, bottomSecond, topSecond]);
     }
 
-    // Add center vertices and normals for top and bottom faces
-    vertices.addAll([0, length / 2, 0]); // Top center
-    _normals.addAll([0, 1, 0]);
-    vertices.addAll([0, -length / 2, 0]); // Bottom center
-    _normals.addAll([0, -1, 0]);
+    // Add center vertices, normals, and UVs for top and bottom faces
+    verticesList.addAll([0, length / 2, 0]); // Top center
+    normalsList.addAll([0, 1, 0]);
+    uvsList.addAll([0.5, 0.5]); // Center of top face
 
-    // Add top and bottom face normals
+    verticesList.addAll([0, -length / 2, 0]); // Bottom center
+    normalsList.addAll([0, -1, 0]);
+    uvsList.addAll([0.5, 0.5]); // Center of bottom face
+
+    // Add top and bottom face normals and UVs
     for (int i = 0; i <= segments; i++) {
-      _normals.addAll([0, 1, 0]); // Top face normal
-      _normals.addAll([0, -1, 0]); // Bottom face normal
+      normalsList.addAll([0, 1, 0]); // Top face normal
+      normalsList.addAll([0, -1, 0]); // Bottom face normal
+      
+      double u = 0.5 + 0.5 * cos(i * 2 * pi / segments);
+      double v = 0.5 + 0.5 * sin(i * 2 * pi / segments);
+      uvsList.addAll([u, v]); // Top face UV
+      uvsList.addAll([u, v]); // Bottom face UV
     }
 
-    return Geometry(vertices, indices, normals: normals ? _normals : null);
+    Float32List vertices = Float32List.fromList(verticesList);
+    Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+    Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+
+    return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
   static Geometry conic({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true}) {
     int segments = 32;
-    List<double> vertices = [];
-    List<double> _normals = [];
+    List<double> verticesList = [];
+    List<double> normalsList = [];
+    List<double> uvsList = [];
     List<int> indices = [];
 
-    // Create vertices and normals
+    // Create vertices, normals, and UVs
     for (int i = 0; i <= segments; i++) {
       double theta = i * 2 * pi / segments;
       double x = radius * cos(theta);
       double z = radius * sin(theta);
 
       // Base circle
-      vertices.addAll([x, 0, z]);
+      verticesList.addAll([x, 0, z]);
 
       // Calculate normal for the side
       double nx = x / sqrt(x * x + length * length);
       double nz = z / sqrt(z * z + length * length);
       double ny = radius / sqrt(radius * radius + length * length);
-      _normals.addAll([nx, ny, nz]);
+      normalsList.addAll([nx, ny, nz]);
+
+      // UV coordinates
+      uvsList.addAll([i / segments, 0]);
     }
     // Apex
-    vertices.addAll([0, length, 0]);
-    _normals.addAll([0, 1, 0]); // Normal at apex points straight up
+    verticesList.addAll([0, length, 0]);
+    normalsList.addAll([0, 1, 0]); // Normal at apex points straight up
+    uvsList.addAll([0.5, 1]); // UV for apex
 
     // Create indices
     for (int i = 0; i < segments; i++) {
@@ -226,54 +287,48 @@ class GeometryHelper {
       indices.addAll([i, segments, i + 1]);
     }
 
-    // Add base face normals
+    // Add base face normals and UVs
     for (int i = 0; i <= segments; i++) {
-      _normals.addAll([0, -1, 0]); // Base face normal
+      normalsList.addAll([0, -1, 0]); // Base face normal
+      double u = 0.5 + 0.5 * cos(i * 2 * pi / segments);
+      double v = 0.5 + 0.5 * sin(i * 2 * pi / segments);
+      uvsList.addAll([u, v]); // Base face UV
     }
 
-    return Geometry(vertices, indices, normals: normals ? _normals : null);
+    Float32List vertices = Float32List.fromList(verticesList);
+    Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+    Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+
+    return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
   static Geometry plane({double width = 1.0, double height = 1.0, bool normals = true, bool uvs = true}) {
-    List<double> vertices = [
-      -width / 2,
-      0,
-      -height / 2,
-      width / 2,
-      0,
-      -height / 2,
-      width / 2,
-      0,
-      height / 2,
-      -width / 2,
-      0,
-      height / 2,
-    ];
+    Float32List vertices = Float32List.fromList([
+      -width / 2, 0, -height / 2,
+      width / 2, 0, -height / 2,
+      width / 2, 0, height / 2,
+      -width / 2, 0, height / 2,
+    ]);
 
-    List<double> _normals = [
-      0,
-      1,
-      0,
-      0,
-      1,
-      0,
-      0,
-      1,
-      0,
-      0,
-      1,
-      0,
-    ];
+    Float32List? _normals = normals ? Float32List.fromList([
+      0, 1, 0,
+      0, 1, 0,
+      0, 1, 0,
+      0, 1, 0,
+    ]) : null;
+
+    Float32List? _uvs = uvs ? Float32List.fromList([
+      0, 0,
+      1, 0,
+      1, 1,
+      0, 1,
+    ]) : null;
 
     List<int> indices = [
-      0,
-      2,
-      1,
-      0,
-      3,
-      2,
+      0, 2, 1,
+      0, 3, 2,
     ];
 
-    return Geometry(vertices, indices, normals: normals ? _normals : null);
+    return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 }

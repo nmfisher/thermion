@@ -24,6 +24,8 @@ public:
         uint32_t numVertices, 
         float* normals, 
         uint32_t numNormals, 
+        float *uvs,
+        uint32_t numUvs,
         uint16_t* indices, 
         uint32_t numIndices, 
         RenderableManager::PrimitiveType primitiveType, 
@@ -36,6 +38,7 @@ public:
 
     float* vertices = nullptr;
     float* normals = nullptr;
+    float *uvs = nullptr;
     uint32_t numVertices = 0;
     uint16_t* indices = 0;
     uint32_t numIndices = 0;

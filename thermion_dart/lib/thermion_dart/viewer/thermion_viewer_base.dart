@@ -11,10 +11,9 @@ import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 
 abstract class ThermionViewer {
-  
-  /// 
+  ///
   /// A Future that resolves when the underlying rendering context has been successfully created.
-  ///  
+  ///
   Future<bool> get initialized;
 
   ///
@@ -136,7 +135,8 @@ abstract class ThermionViewer {
   /// Note that [sunAngularRadius] is in degrees,
   /// whereas [spotLightConeInner] and [spotLightConeOuter] are in radians
   ///
-  @Deprecated("This will be removed in future versions. Use addDirectLight instead.")
+  @Deprecated(
+      "This will be removed in future versions. Use addDirectLight instead.")
   Future<ThermionEntity> addLight(
       LightType type,
       double colour,
@@ -161,8 +161,7 @@ abstract class ThermionViewer {
   /// Note that [sunAngularRadius] is in degrees,
   /// whereas [spotLightConeInner] and [spotLightConeOuter] are in radians
   ///
-  Future<ThermionEntity> addDirectLight(
-      DirectLight light);
+  Future<ThermionEntity> addDirectLight(DirectLight light);
 
   ///
   /// Remove a light from the scene.
@@ -787,7 +786,7 @@ abstract class ThermionViewer {
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
   /// If [keepData] is true, the source data will not be released.
   ///
-  Future createGeometry(Geometry geometry, { bool keepData= false});
+  Future createGeometry(Geometry geometry, {bool keepData = false});
 
   ///
   /// Gets the parent entity of [entity]. Returns null if the entity has no parent.
@@ -853,4 +852,21 @@ abstract class ThermionViewer {
   /// Removes the outline around [entity]. Noop if there was no highlight.
   ///
   Future removeStencilHighlight(ThermionEntity entity);
+
+  ///
+  /// Decodes the specified image data and creates a texture.
+  ///
+  Future<ThermionTexture> createTexture(Uint8List data);
+
+  ///
+  ///
+  ///
+  Future applyTexture(covariant ThermionTexture texture, ThermionEntity entity,
+      {int materialIndex = 0, String parameterName = "baseColorMap"});
+
+  ///
+  ///
+  ///
+  Future destroyTexture(covariant ThermionTexture texture);
+
 }

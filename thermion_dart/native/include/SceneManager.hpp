@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <set>
 
 #include <filament/Scene.h>
 #include <filament/Camera.h>
@@ -168,7 +169,11 @@ namespace thermion_filament
         void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f);
         void stopAnimation(EntityId e, int index);
         void setMorphTargetWeights(const char *const entityName, float *weights, int count);
-        void loadTexture(EntityId entity, const char *resourcePath, int renderableIndex);
+        
+        Texture* createTexture(const uint8_t* data, size_t length, const char* name);
+        bool applyTexture(EntityId entityId, Texture *texture, const char* slotName, int materialIndex);
+        void destroyTexture(Texture* texture);
+        
         void setAnimationFrame(EntityId entity, int animationIndex, int animationFrame);
         bool hide(EntityId entity, const char *meshName);
         bool reveal(EntityId entity, const char *meshName);
@@ -226,29 +231,16 @@ namespace thermion_filament
         void setLayerEnabled(int layer, bool enabled);
 
         ///
-        /// Creates an entity with the specified geometry/material and adds to the scene.
+        /// Creates an entity with the specified geometry/material/normals and adds to the scene.
         /// If [keepData] is true, stores 
         ///
         EntityId createGeometry(
             float *vertices, 
             uint32_t numVertices, 
-            uint16_t *indices, 
-            uint32_t numIndices, 
-            filament::RenderableManager::PrimitiveType primitiveType = RenderableManager::PrimitiveType::TRIANGLES, 
-            const char *materialPath = nullptr,
-            bool keepData = false
-        );
-
-
-        ///
-        /// Creates an entity with the specified geometry/material/normals and adds to the scene.
-        /// If [keepData] is true, stores 
-        ///
-        EntityId createGeometryWithNormals(
-            float *vertices, 
-            uint32_t numVertices, 
             float *normals,
             uint32_t numNormals,
+            float *uvs,
+            uint32_t numUvs,
             uint16_t *indices, 
             uint32_t numIndices, 
             filament::RenderableManager::PrimitiveType primitiveType = RenderableManager::PrimitiveType::TRIANGLES, 
@@ -313,9 +305,9 @@ namespace thermion_filament
             _instances;
         tsl::robin_map<EntityId, gltfio::FilamentAsset *> _assets;
         tsl::robin_map<EntityId, unique_ptr<CustomGeometry>> _geometry;
-        tsl::robin_map<EntityId, unique_ptr<HighlightOverlay>> _highlighted;
-        
+        tsl::robin_map<EntityId, unique_ptr<HighlightOverlay>> _highlighted;        
         tsl::robin_map<EntityId, std::tuple<math::float3, bool, math::quatf, bool, float>> _transformUpdates;
+        std::set<Texture*> _textures;
 
         AnimationComponentManager *_animationComponentManager = nullptr;
         CollisionComponentManager *_collisionComponentManager = nullptr;

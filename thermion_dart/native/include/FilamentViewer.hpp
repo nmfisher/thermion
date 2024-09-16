@@ -138,7 +138,7 @@ namespace thermion_filament
 
         void setRecording(bool recording);
         void setRecordingOutputDirectory(const char *path);
-        void capture(uint8_t *out, void (*onComplete)());
+        void capture(uint8_t *out, bool useFence, void (*onComplete)());
 
         void setAntiAliasing(bool msaaEnabled, bool fxaaEnabled, bool taaEnabled);
         void setDepthOfField();
@@ -150,6 +150,8 @@ namespace thermion_filament
         {
             return (SceneManager *const)_sceneManager;
         }
+
+        void unprojectTexture(EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight);  
 
     private:
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;

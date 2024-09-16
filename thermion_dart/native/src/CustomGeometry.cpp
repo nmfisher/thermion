@@ -1,7 +1,5 @@
 #include <vector> 
-
 #include "math.h"
-
 #include <filament/Engine.h>
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
@@ -22,6 +20,8 @@ CustomGeometry::CustomGeometry(
     uint32_t numVertices, 
     float* normals,
     uint32_t numNormals,
+    float* uvs,
+    uint32_t numUvs,
     uint16_t* indices, 
     uint32_t numIndices, 
     RenderableManager::PrimitiveType primitiveType, 
@@ -35,6 +35,16 @@ CustomGeometry::CustomGeometry(
         Log("numNormals %d", numNormals);
         this->normals = new float[numNormals];
         std::memcpy(this->normals, normals, numNormals * sizeof(float));
+    } else { 
+        Log("no normals");
+    }
+
+    if(numUvs > 0) {
+        Log("numUvs %d", numUvs);
+        this->uvs = new float[numUvs];
+        std::memcpy(this->uvs, uvs, numUvs * sizeof(float));
+    } else {
+        this->uvs = nullptr;
     }
 
     this->indices = new uint16_t[numIndices];
@@ -76,7 +86,6 @@ VertexBuffer* CustomGeometry::vertexBuffer() const {
         triangles.push_back(triangle);
     }
     
-
     // Create a SurfaceOrientation builder
     geometry::SurfaceOrientation::Builder builder;
     builder.vertexCount(numVertices)
@@ -92,8 +101,13 @@ VertexBuffer* CustomGeometry::vertexBuffer() const {
     auto quats = new std::vector<filament::math::quatf>(numVertices);
     orientation->getQuats(quats->data(), numVertices);
 
-    // Create dummy UV data
-    auto dummyUVs = new std::vector<filament::math::float2>(numVertices, filament::math::float2{0.0f, 0.0f});
+    // Use provided UVs or create dummy UV data
+    std::vector<filament::math::float2>* uvData;
+    if (this->uvs != nullptr) {
+        uvData = new std::vector<filament::math::float2>((filament::math::float2*)this->uvs, (filament::math::float2*)(this->uvs + numVertices * 2));
+    } else {
+        uvData = new std::vector<filament::math::float2>(numVertices, filament::math::float2{0.0f, 0.0f});
+    }
 
     // Create dummy vertex color data (white color for all vertices)
     auto dummyColors = new std::vector<filament::math::float4>(numVertices, filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
@@ -118,22 +132,21 @@ VertexBuffer* CustomGeometry::vertexBuffer() const {
     vertexBuffer->setBufferAt(*_engine, 0, VertexBuffer::BufferDescriptor(
         this->vertices, vertexBuffer->getVertexCount() * sizeof(math::float3), vertexCallback));
 
-
-      // Set UV0 buffer
+    // Set UV0 buffer
     vertexBuffer->setBufferAt(*_engine, 1, VertexBuffer::BufferDescriptor(
-        dummyUVs->data(), dummyUVs->size() * sizeof(math::float2), 
+        uvData->data(), uvData->size() * sizeof(math::float2), 
         [](void* buf, size_t, void* data) {
             delete static_cast<std::vector<math::float2>*>(data);
-        }, dummyUVs));
+        }, uvData));
 
-    // Set UV1 buffer
+    // Set UV1 buffer (reusing UV0 data)
     vertexBuffer->setBufferAt(*_engine, 2, VertexBuffer::BufferDescriptor(
-        dummyUVs->data(), dummyUVs->size() * sizeof(math::float2), 
+        uvData->data(), uvData->size() * sizeof(math::float2), 
         [](void* buf, size_t, void* data) {
             // Do nothing here, as we're reusing the same data as UV0
         }, nullptr));
 
-      // Set vertex color buffer
+    // Set vertex color buffer
     vertexBuffer->setBufferAt(*_engine, 3, VertexBuffer::BufferDescriptor(
         dummyColors->data(), dummyColors->size() * sizeof(math::float4),
         [](void* buf, size_t, void* data) {
@@ -154,6 +167,8 @@ VertexBuffer* CustomGeometry::vertexBuffer() const {
 CustomGeometry::~CustomGeometry() {
     delete[] vertices;
     delete[] indices;
+    if (normals) delete[] normals;
+    if (uvs) delete[] uvs;
 }
 
 void CustomGeometry::computeBoundingBox() {

@@ -58,7 +58,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Stream<SceneUpdateEvent> get sceneUpdated =>
       _sceneUpdateEventController.stream;
-  final _sceneUpdateEventController = StreamController<SceneUpdateEvent>.broadcast();
+  final _sceneUpdateEventController =
+      StreamController<SceneUpdateEvent>.broadcast();
 
   final Pointer<Void> resourceLoader;
 
@@ -355,9 +356,6 @@ class ThermionViewerFFI extends ThermionViewer {
     remove_ibl_ffi(_viewer!);
   }
 
-  ///
-  ///
-  ///
   @override
   Future<ThermionEntity> addLight(
       LightType type,
@@ -376,30 +374,21 @@ class ThermionViewerFFI extends ThermionViewer {
       double sunHaloSize = 10.0,
       double sunHaloFallof = 80.0,
       bool castShadows = true}) async {
-    var entity = await withIntCallback((callback) => add_light_ffi(
-        _viewer!,
-        type.index,
-        colour,
-        intensity,
-        posX,
-        posY,
-        posZ,
-        dirX,
-        dirY,
-        dirZ,
-        falloffRadius,
-        spotLightConeInner,
-        spotLightConeOuter,
-        sunAngularRadius = 0.545,
-        sunHaloSize = 10.0,
-        sunHaloFallof = 80.0,
-        castShadows,
-        callback));
-    if (entity == _FILAMENT_ASSET_ERROR) {
-      throw Exception("Failed to add light to scene");
-    }
+    DirectLight directLight = DirectLight(
+        type: type,
+        color: colour,
+        intensity: intensity,
+        position: Vector3(posX, posY, posZ),
+        direction: Vector3(dirX, dirY, dirZ),
+        falloffRadius: falloffRadius,
+        spotLightConeInner: spotLightConeInner,
+        spotLightConeOuter: spotLightConeOuter,
+        sunAngularRadius: sunAngularRadius,
+        sunHaloSize: sunHaloSize,
+        sunHaloFallof: sunHaloFallof,
+        castShadows: castShadows);
 
-    return entity;
+    return addDirectLight(directLight);
   }
 
   ///
@@ -1827,47 +1816,23 @@ class ThermionViewerFFI extends ThermionViewer {
 
     final materialPathPtr =
         geometry.materialPath?.toNativeUtf8(allocator: allocator) ?? nullptr;
-    final vertexPtr = allocator<Float>(geometry.vertices.length);
-    final indicesPtr = allocator<Uint16>(geometry.indices.length);
-    for (int i = 0; i < geometry.vertices.length; i++) {
-      vertexPtr[i] = geometry.vertices[i];
-    }
 
-    for (int i = 0; i < geometry.indices.length; i++) {
-      (indicesPtr + i).value = geometry.indices[i];
-    }
-
-    var normalsPtr = nullptr.cast<Float>();
-    if (geometry.normals != null) {
-      normalsPtr = allocator<Float>(geometry.normals!.length);
-      for (int i = 0; i < geometry.normals!.length; i++) {
-        normalsPtr[i] = geometry.normals![i];
-      }
-    }
-
-    var entity = await withIntCallback((callback) =>
-        create_geometry_with_normals_ffi(
-            _sceneManager!,
-            vertexPtr,
-            geometry.vertices.length,
-            normalsPtr,
-            geometry.normals?.length ?? 0,
-            indicesPtr,
-            geometry.indices.length,
-            geometry.primitiveType.index,
-            materialPathPtr.cast<Char>(),
-            keepData,
-            callback));
+    var entity = await withIntCallback((callback) => create_geometry_ffi(
+        _sceneManager!,
+        geometry.vertices.address,
+        geometry.vertices.length,
+        geometry.normals.address,
+        geometry.normals.length,
+        geometry.uvs.address,
+        geometry.uvs.length,
+        geometry.indices.address,
+        geometry.indices.length,
+        geometry.primitiveType.index,
+        materialPathPtr.cast<Char>(),
+        keepData,
+        callback));
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create geometry");
-    }
-
-    allocator.free(materialPathPtr);
-    allocator.free(vertexPtr);
-    allocator.free(indicesPtr);
-
-    if (geometry.normals != null) {
-      allocator.free(normalsPtr);
     }
 
     _sceneUpdateEventController
@@ -2001,4 +1966,38 @@ class ThermionViewerFFI extends ThermionViewer {
         _sceneManager!, entity, materialIndex, ptr.cast<Char>(), struct);
     allocator.free(ptr);
   }
+
+  Future<Uint8List> unproject(
+      ThermionEntity entity, int outWidth, int outHeight) async {
+    final outPtr = Uint8List(outWidth * outHeight * 4);
+    await withVoidCallback((callback) {
+      unproject_texture_ffi(
+          _viewer!, entity, outPtr.address, outWidth, outHeight, callback);
+    });
+
+    return outPtr.buffer.asUint8List();
+  }
+
+  Future<ThermionTexture> createTexture(Uint8List data) async {
+    var ptr = create_texture(_sceneManager!, data.address, data.length);
+    return ThermionFFITexture(ptr);
+  }
+
+  Future applyTexture(ThermionFFITexture texture, ThermionEntity entity,
+      {int materialIndex = 0, String parameterName = "baseColorMap"}) async {
+    using(parameterName.toNativeUtf8(), (namePtr) async {
+      apply_texture_to_material(_sceneManager!, entity, texture._pointer,
+          namePtr.cast<Char>(), materialIndex);
+    });
+  }
+
+  Future destroyTexture(ThermionFFITexture texture) async {
+    destroy_texture(_sceneManager!, texture._pointer);
+  }
+}
+
+class ThermionFFITexture extends ThermionTexture {
+  final Pointer<Void> _pointer;
+
+  ThermionFFITexture(this._pointer);
 }

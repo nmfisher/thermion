@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'dart:ffi';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:thermion_dart/thermion_dart/thermion_viewer_ffi.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_viewer_ffi.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:logging/logging.dart';
