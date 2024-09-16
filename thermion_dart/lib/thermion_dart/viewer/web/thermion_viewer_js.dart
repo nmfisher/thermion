@@ -9,7 +9,6 @@ import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
-import 'package:thermion_dart/thermion_dart/scene_impl.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'thermion_viewer_js_shim.dart';
 
@@ -909,6 +908,100 @@ class ThermionViewerJS implements ThermionViewer {
   @override
   Future setLayerEnabled(int layer, bool enabled) {
     // TODO: implement setLayerEnabled
+    throw UnimplementedError();
+  }
+  
+  @override
+  // TODO: implement entitiesAdded
+  Stream<ThermionEntity> get entitiesAdded => throw UnimplementedError();
+  
+  @override
+  // TODO: implement entitiesRemoved
+  Stream<ThermionEntity> get entitiesRemoved => throw UnimplementedError();
+  
+  @override
+  Future<ThermionEntity?> getAncestor(ThermionEntity entity) {
+    // TODO: implement getAncestor
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<double> getCameraNear() {
+    // TODO: implement getCameraNear
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Aabb2> getViewportBoundingBox(ThermionEntity entity) {
+    // TODO: implement getViewportBoundingBox
+    throw UnimplementedError();
+  }
+  
+  @override
+  // TODO: implement lightsAdded
+  Stream<ThermionEntity> get lightsAdded => throw UnimplementedError();
+  
+  @override
+  // TODO: implement lightsRemoved
+  Stream<ThermionEntity> get lightsRemoved => throw UnimplementedError();
+  
+  @override
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false}) {
+    // TODO: implement loadGlbFromBuffer
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future queuePositionUpdateFromViewportCoords(ThermionEntity entity, double x, double y) {
+    // TODO: implement queuePositionUpdateFromViewportCoords
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future removeStencilHighlight(ThermionEntity entity) {
+    // TODO: implement removeStencilHighlight
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setCameraLensProjection(double near, double far, double aspect, double focalLength) {
+    // TODO: implement setCameraLensProjection
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setCameraModelMatrix4(Matrix4 matrix) {
+    // TODO: implement setCameraModelMatrix4
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setLightDirection(ThermionEntity lightEntity, Vector3 direction) {
+    // TODO: implement setLightDirection
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setLightPosition(ThermionEntity lightEntity, double x, double y, double z) {
+    // TODO: implement setLightPosition
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setMaterialPropertyFloat(ThermionEntity entity, String propertyName, int materialIndex, double value) {
+    // TODO: implement setMaterialPropertyFloat
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setMaterialPropertyFloat4(ThermionEntity entity, String propertyName, int materialIndex, double f1, double f2, double f3, double f4) {
+    // TODO: implement setMaterialPropertyFloat4
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setStencilHighlight(ThermionEntity entity, {double r = 1.0, double g = 0.0, double b = 0.0}) {
+    // TODO: implement setStencilHighlight
     throw UnimplementedError();
   }
 }

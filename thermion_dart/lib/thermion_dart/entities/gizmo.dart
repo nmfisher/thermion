@@ -86,7 +86,6 @@ class Gizmo extends AbstractGizmo {
   }
 
   Future attach(ThermionEntity entity) async {
-    print("Attaching");
     _activeAxis = null;
     if (entity == _activeEntity) {
       return;
@@ -102,7 +101,7 @@ class Gizmo extends AbstractGizmo {
     }
     _activeEntity = entity;
     await _viewer.setGizmoVisibility(true);
-    await _viewer.setParent(center, entity, preserveScaling: true);
+    await _viewer.setParent(center, entity, preserveScaling: false);
     _boundingBoxController.sink.add(await _viewer.getViewportBoundingBox(x));
 
   }

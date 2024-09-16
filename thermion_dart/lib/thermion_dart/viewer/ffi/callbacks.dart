@@ -8,6 +8,11 @@ export 'thermion_dart.g.dart';
 
 final allocator = calloc;
 
+void using(Pointer ptr, Future Function(Pointer ptr) function) async {
+  await function.call(ptr);
+  allocator.free(ptr);
+}
+
 Future<void> withVoidCallback(
     Function(Pointer<NativeFunction<Void Function()>>) func) async {
   final completer = Completer();
@@ -82,4 +87,3 @@ Future<String> withCharPtrCallback(
   return completer.future;
 }
 
-class Compatibility {}

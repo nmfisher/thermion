@@ -1,18 +1,17 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:thermion_dart/thermion_dart/compatibility/compatibility.dart';
 import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
-import 'package:thermion_dart/thermion_dart/matrix_helper.dart';
-import 'package:thermion_dart/thermion_dart/scene.dart';
+
+import 'package:thermion_dart/thermion_dart/utils/matrix.dart';
+import 'package:thermion_dart/thermion_dart/viewer/events.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/callbacks.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
-import 'thermion_viewer.dart';
-import 'scene_impl.dart';
+import '../thermion_viewer_base.dart';
 import 'package:logging/logging.dart';
-
-typedef ThermionViewerImpl = ThermionViewerFFI;
 
 // ignore: constant_identifier_names
 const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
@@ -25,9 +24,6 @@ double kFocalLength = 28.0;
 
 class ThermionViewerFFI extends ThermionViewer {
   final _logger = Logger("ThermionViewerFFI");
-
-  SceneImpl? _scene;
-  Scene get scene => _scene!;
 
   double pixelRatio = 1.0;
 
@@ -48,11 +44,21 @@ class ThermionViewerFFI extends ThermionViewer {
   final _pickResultController =
       StreamController<FilamentPickResult>.broadcast();
 
+  ///
+  ///
+  ///
   @override
   Stream<FilamentPickResult> get gizmoPickResult =>
       _gizmoPickResultController.stream;
   final _gizmoPickResultController =
       StreamController<FilamentPickResult>.broadcast();
+
+  ///
+  ///
+  ///
+  Stream<SceneUpdateEvent> get sceneUpdated =>
+      _sceneUpdateEventController.stream;
+  final _sceneUpdateEventController = StreamController<SceneUpdateEvent>.broadcast();
 
   final Pointer<Void> resourceLoader;
 
@@ -150,7 +156,6 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     _sceneManager = get_scene_manager(_viewer!);
-    _scene = SceneImpl(this);
 
     await setCameraManipulatorOptions(zoomSpeed: 1.0);
 
@@ -229,13 +234,14 @@ class ThermionViewerFFI extends ThermionViewer {
     await setRendering(false);
     await clearEntities();
     await clearLights();
-    await _scene!.dispose();
-    _scene = null;
+
     destroy_filament_viewer_ffi(_viewer!);
 
     _sceneManager = null;
     _viewer = null;
     await _pickResultController.close();
+    await _gizmoPickResultController.close();
+    await _sceneUpdateEventController.close();
 
     for (final callback in _onDispose) {
       await callback.call();
@@ -393,7 +399,38 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to add light to scene");
     }
 
-    _scene!.registerLight(entity);
+    return entity;
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
+    var entity = await withIntCallback((callback) => add_light_ffi(
+        _viewer!,
+        directLight.type.index,
+        directLight.color,
+        directLight.intensity,
+        directLight.position.x,
+        directLight.position.y,
+        directLight.position.z,
+        directLight.direction.x,
+        directLight.direction.y,
+        directLight.direction.z,
+        directLight.falloffRadius,
+        directLight.spotLightConeInner,
+        directLight.spotLightConeOuter,
+        directLight.sunAngularRadius,
+        directLight.sunHaloSize,
+        directLight.sunHaloFallof,
+        directLight.castShadows,
+        callback));
+    if (entity == _FILAMENT_ASSET_ERROR) {
+      throw Exception("Failed to add light to scene");
+    }
+    _sceneUpdateEventController
+        .add(SceneUpdateEvent.addDirectLight(entity, directLight));
     return entity;
   }
 
@@ -402,8 +439,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeLight(ThermionEntity entity) async {
-    _scene!.unregisterLight(entity);
     remove_light_ffi(_viewer!, entity);
+    _sceneUpdateEventController.add(SceneUpdateEvent.remove(entity));
   }
 
   ///
@@ -413,7 +450,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future clearLights() async {
     clear_lights_ffi(_viewer!);
 
-    _scene!.clearLights();
+    _sceneUpdateEventController.add(SceneUpdateEvent.clearLights());
   }
 
   ///
@@ -468,7 +505,9 @@ class ThermionViewerFFI extends ThermionViewer {
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    _scene!.registerEntity(entity);
+
+    _sceneUpdateEventController
+        .add(SceneUpdateEvent.addGltf(entity, GLTF(path, numInstances)));
 
     return entity;
   }
@@ -494,7 +533,6 @@ class ThermionViewerFFI extends ThermionViewer {
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading GLB from buffer");
     }
-    _scene!.registerEntity(entity);
     return entity;
   }
 
@@ -514,7 +552,6 @@ class ThermionViewerFFI extends ThermionViewer {
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
     }
-    _scene!.registerEntity(entity);
 
     return entity;
   }
@@ -995,10 +1032,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeEntity(ThermionEntity entity) async {
-    _scene!.unregisterEntity(entity);
-
     await withVoidCallback(
         (callback) => remove_entity_ffi(_viewer!, entity, callback));
+    _sceneUpdateEventController.add(SceneUpdateEvent.remove(entity));
   }
 
   ///
@@ -1012,7 +1048,6 @@ class ThermionViewerFFI extends ThermionViewer {
     await withVoidCallback((callback) {
       clear_entities_ffi(_viewer!, callback);
     });
-    _scene!.clearEntities();
   }
 
   ///
@@ -1498,7 +1533,6 @@ class ThermionViewerFFI extends ThermionViewer {
       x: (x / pixelRatio).toDouble(),
       y: (viewportDimensions.$2 - y) / pixelRatio
     ));
-    _scene!.registerSelected(entityId);
   }
 
   void _onGizmoPickResult(ThermionEntity entityId, int x, int y) {
@@ -1519,8 +1553,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   void pick(int x, int y) async {
-    _scene!.unregisterSelected();
-
     x = (x * pixelRatio).ceil();
     y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
 
@@ -1787,33 +1819,29 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future<ThermionEntity> createGeometry(
-      List<double> vertices, List<int> indices,
-      {String? materialPath,
-      List<double>? normals,
-      bool keepData = false,
-      PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) async {
+  Future<ThermionEntity> createGeometry(Geometry geometry,
+      {bool keepData = false}) async {
     if (_viewer == null) {
       throw Exception("Viewer must not be null");
     }
 
     final materialPathPtr =
-        materialPath?.toNativeUtf8(allocator: allocator) ?? nullptr;
-    final vertexPtr = allocator<Float>(vertices.length);
-    final indicesPtr = allocator<Uint16>(indices.length);
-    for (int i = 0; i < vertices.length; i++) {
-      vertexPtr[i] = vertices[i];
+        geometry.materialPath?.toNativeUtf8(allocator: allocator) ?? nullptr;
+    final vertexPtr = allocator<Float>(geometry.vertices.length);
+    final indicesPtr = allocator<Uint16>(geometry.indices.length);
+    for (int i = 0; i < geometry.vertices.length; i++) {
+      vertexPtr[i] = geometry.vertices[i];
     }
 
-    for (int i = 0; i < indices.length; i++) {
-      (indicesPtr + i).value = indices[i];
+    for (int i = 0; i < geometry.indices.length; i++) {
+      (indicesPtr + i).value = geometry.indices[i];
     }
 
     var normalsPtr = nullptr.cast<Float>();
-    if (normals != null) {
-      normalsPtr = allocator<Float>(normals.length);
-      for (int i = 0; i < normals.length; i++) {
-        normalsPtr[i] = normals[i];
+    if (geometry.normals != null) {
+      normalsPtr = allocator<Float>(geometry.normals!.length);
+      for (int i = 0; i < geometry.normals!.length; i++) {
+        normalsPtr[i] = geometry.normals![i];
       }
     }
 
@@ -1821,12 +1849,12 @@ class ThermionViewerFFI extends ThermionViewer {
         create_geometry_with_normals_ffi(
             _sceneManager!,
             vertexPtr,
-            vertices.length,
+            geometry.vertices.length,
             normalsPtr,
-            normals?.length ?? 0,
+            geometry.normals?.length ?? 0,
             indicesPtr,
-            indices.length,
-            primitiveType.index,
+            geometry.indices.length,
+            geometry.primitiveType.index,
             materialPathPtr.cast<Char>(),
             keepData,
             callback));
@@ -1834,15 +1862,16 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create geometry");
     }
 
-    _scene!.registerEntity(entity);
-
     allocator.free(materialPathPtr);
     allocator.free(vertexPtr);
     allocator.free(indicesPtr);
 
-    if (normals != null) {
+    if (geometry.normals != null) {
       allocator.free(normalsPtr);
     }
+
+    _sceneUpdateEventController
+        .add(SceneUpdateEvent.addGeometry(entity, geometry));
 
     return entity;
   }
@@ -1968,8 +1997,8 @@ class ThermionViewerFFI extends ThermionViewer {
     struct.y = f2;
     struct.z = f3;
     struct.w = f3;
-    set_material_property_float4(_sceneManager!, entity, materialIndex,
-        ptr.cast<Char>(), struct);
+    set_material_property_float4(
+        _sceneManager!, entity, materialIndex, ptr.cast<Char>(), struct);
     allocator.free(ptr);
   }
 }

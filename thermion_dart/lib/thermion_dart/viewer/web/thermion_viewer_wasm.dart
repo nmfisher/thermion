@@ -185,7 +185,6 @@ class ThermionViewerWasm implements ThermionViewer {
     _width = (width * pixelRatio).ceil();
     _height = (height * pixelRatio).ceil();
     viewportDimensions = (_width.toDouble(), _height.toDouble());
-    print("Update viewport camera projection : $_width $height");
     _module!.ccall(
         "update_viewport_and_camera_projection",
         "void",
@@ -718,7 +717,7 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1}) async {
+  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1, bool keepData = false}) async {
     final promise = _module!.ccall(
         "load_glb",
         "int",
@@ -733,8 +732,7 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
-      {bool force = false}) async {
+  Future<ThermionEntity> loadGltf(String path, String relativeResourcePath, { bool keepData = false}) async {
     final promise = _module!.ccall(
         "load_gltf",
         "int",
@@ -2279,5 +2277,81 @@ class ThermionViewerWasm implements ThermionViewer {
         [_viewer!, x.toJS,y.toJS,z.toJS]
             .toJS,
         null);
+  }
+  
+  @override
+  Future<ThermionEntity?> getAncestor(ThermionEntity entity) {
+    // TODO: implement getAncestor
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future queuePositionUpdateFromViewportCoords(ThermionEntity entity, double x, double y) {
+    // TODO: implement queuePositionUpdateFromViewportCoords
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future removeStencilHighlight(ThermionEntity entity) {
+    // TODO: implement removeStencilHighlight
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setStencilHighlight(ThermionEntity entity, {double r = 1.0, double g = 0.0, double b = 0.0}) {
+    // TODO: implement setStencilHighlight
+    throw UnimplementedError();
+  }
+  
+  @override
+  // TODO: implement entitiesAdded
+  Stream<ThermionEntity> get entitiesAdded => throw UnimplementedError();
+  
+  @override
+  // TODO: implement entitiesRemoved
+  Stream<ThermionEntity> get entitiesRemoved => throw UnimplementedError();
+  
+  @override
+  Future<double> getCameraNear() {
+    // TODO: implement getCameraNear
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Aabb2> getViewportBoundingBox(ThermionEntity entity) {
+    // TODO: implement getViewportBoundingBox
+    throw UnimplementedError();
+  }
+  
+  @override
+  // TODO: implement lightsAdded
+  Stream<ThermionEntity> get lightsAdded => throw UnimplementedError();
+  
+  @override
+  // TODO: implement lightsRemoved
+  Stream<ThermionEntity> get lightsRemoved => throw UnimplementedError();
+  
+  @override
+  Future setCameraLensProjection(double near, double far, double aspect, double focalLength) {
+    // TODO: implement setCameraLensProjection
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setCameraModelMatrix4(Matrix4 matrix) {
+    // TODO: implement setCameraModelMatrix4
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setMaterialPropertyFloat(ThermionEntity entity, String propertyName, int materialIndex, double value) {
+    // TODO: implement setMaterialPropertyFloat
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setMaterialPropertyFloat4(ThermionEntity entity, String propertyName, int materialIndex, double f1, double f2, double f3, double f4) {
+    // TODO: implement setMaterialPropertyFloat4
+    throw UnimplementedError();
   }
 }

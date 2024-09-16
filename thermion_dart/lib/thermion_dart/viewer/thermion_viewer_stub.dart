@@ -2,13 +2,12 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
-import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
+import 'package:thermion_dart/thermion_dart/viewer/events.dart';
+import 'package:thermion_dart/thermion_dart/viewer/thermion_viewer_base.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-
-typedef ThermionViewerImpl = ThermionViewerStub;
 
 class ThermionViewerStub extends ThermionViewer {
   @override
@@ -437,10 +436,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  // TODO: implement scene
-  Scene get scene => throw UnimplementedError();
-
-  @override
   Future setAnimationFrame(
       ThermionEntity entity, int index, int animationFrame) {
     // TODO: implement setAnimationFrame
@@ -850,12 +845,7 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
   
-  @override
-  Future createGeometry(List<double> vertices, List<int> indices, {String? materialPath, List<double>? normals, PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) {
-    // TODO: implement createGeometry
-    throw UnimplementedError();
-  }
-  
+    
   @override
   Future<ThermionEntity> loadGlb(String path, {int numInstances = 1, bool keepData = false}) {
     // TODO: implement loadGlb
@@ -867,4 +857,34 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement loadGltf
     throw UnimplementedError();
   }
+  
+  @override
+  Future setMaterialPropertyFloat(ThermionEntity entity, String propertyName, int materialIndex, double value) {
+    // TODO: implement setMaterialPropertyFloat
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setMaterialPropertyFloat4(ThermionEntity entity, String propertyName, int materialIndex, double f1, double f2, double f3, double f4) {
+    // TODO: implement setMaterialPropertyFloat4
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future createGeometry(Geometry geometry, {bool keepData=false}) {
+    // TODO: implement createGeometry
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement sceneUpdated
+  Stream<SceneUpdateEvent> get sceneUpdated => throw UnimplementedError();
+  
+  @override
+  Future<ThermionEntity> addDirectLight(DirectLight light) {
+    // TODO: implement addDirectLight
+    throw UnimplementedError();
+  }
+
+  
 }
