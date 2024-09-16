@@ -352,7 +352,12 @@ extern "C"
         uint8_t *pixelBuffer,
         void (*callback)(void))
     {
-        ((FilamentViewer *)viewer)->capture(pixelBuffer, callback);
+        #ifdef __EMSCRIPTEN__
+        bool useFence = true;
+        #else
+        bool useFence = false;
+        #endif
+        ((FilamentViewer *)viewer)->capture(pixelBuffer, useFence, callback);
     };
 
     EMSCRIPTEN_KEEPALIVE void set_frame_interval(
@@ -850,14 +855,10 @@ extern "C"
         ((SceneManager *)sceneManager)->removeAnimationComponent(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
-    {
-        return ((SceneManager *)sceneManager)->createGeometry(vertices, (uint32_t)numVertices, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, materialPath);
-    }
 
-    EMSCRIPTEN_KEEPALIVE EntityId create_geometry_with_normals(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
+    EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, float *uvs, int numUvs, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
     {
-        return ((SceneManager *)sceneManager)->createGeometryWithNormals(vertices, (uint32_t)numVertices, normals, (uint32_t)numNormals, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, materialPath);
+        return ((SceneManager *)sceneManager)->createGeometry(vertices, (uint32_t)numVertices, normals, (uint32_t)numNormals, uvs, numUvs, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, materialPath);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char *name)
@@ -950,8 +951,23 @@ extern "C"
     
     EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float4 value) {
         filament::math::float4 filamentValue { value.x, value.y, value.z, value.w };
-        
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const viewer, EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight) {
+        ((FilamentViewer *)viewer)->unprojectTexture(entity, out, outWidth, outHeight);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void* const create_texture(void *const sceneManager, uint8_t* data, size_t length) {
+        return (void* const) ((SceneManager *)sceneManager)->createTexture(data, length, "SOMETEXTURE");
+    }
+
+    EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void* const texture, const char* parameterName, int materialIndex)  {
+        ((SceneManager*)sceneManager)->applyTexture(entity, reinterpret_cast<Texture*>(texture), parameterName, materialIndex);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void* const texture) {
+        ((SceneManager*)sceneManager)->destroyTexture(reinterpret_cast<Texture*>(texture));
     }
 
 

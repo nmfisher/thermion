@@ -97,7 +97,7 @@
 #include "StreamBufferAdapter.hpp"
 #include "material/image.h"
 #include "TimeIt.hpp"
-#include "ThreadPool.hpp"
+#include "UnprojectTexture.hpp"
 
 namespace filament
 {
@@ -306,7 +306,7 @@ namespace thermion_filament
       bool shadows)
   {
     auto light = EntityManager::get().create();
-
+    
     auto result = LightManager::Builder(t)
                       .color(Color::cct(colour))
                       .intensity(intensity)
@@ -1197,7 +1197,7 @@ namespace thermion_filament
       }
   };
 
-  void FilamentViewer::capture(uint8_t *out, void (*onComplete)())
+  void FilamentViewer::capture(uint8_t *out, bool useFence, void (*onComplete)())
   {
 
     Viewport const &vp = _view->getViewport();
@@ -1209,16 +1209,19 @@ namespace thermion_filament
       uint8_t *out = (uint8_t *)(frameCallbackData->at(0));
       void *callbackPtr = frameCallbackData->at(1);
 
-      void (*callback)(void) = (void (*)(void))callbackPtr;
       memcpy(out, buf, size);
       delete frameCallbackData;
-      callback();
+      if(callbackPtr) {
+        void (*callback)(void) = (void (*)(void))callbackPtr;
+        callback();
+      }
     };
 
     // Create a fence
-    #ifndef __EMSCRIPTEN__
-    Fence* fence = _engine->createFence();
-    #endif
+    Fence* fence = nullptr;
+    if(useFence) {
+      fence = _engine->createFence();
+    }
 
     auto userData = new std::vector<void *>{out, (void *)onComplete};
 
@@ -1245,9 +1248,10 @@ namespace thermion_filament
 #ifdef __EMSCRIPTEN__
     _engine->execute();
     emscripten_webgl_commit_frame();
-#else
-    Fence::waitAndDestroy(fence);
 #endif
+  if(fence) {
+    Fence::waitAndDestroy(fence);
+  }
   }
 
   void FilamentViewer::savePng(void *buf, size_t size, int frameNumber)
@@ -1462,6 +1466,21 @@ namespace thermion_filament
         callback(Entity::smuggle(result.renderable), x, y);
       } 
     });
+  }
+
+  void FilamentViewer::unprojectTexture(EntityId entityId, uint8_t* out, uint32_t outWidth, uint32_t outHeight) {
+    const auto * geometry = _sceneManager->getGeometry(entityId);
+    if(!geometry->uvs) {
+        Log("No UVS");
+        return;
+    }
+    
+    const auto& viewport = _view->getViewport();
+    auto viewportCapture = new uint8_t[viewport.width * viewport.height * 4];
+    capture(viewportCapture, true, nullptr); 
+    UnprojectTexture unproject(geometry, _view->getCamera(), _engine);
+    
+    unproject.unproject(utils::Entity::import(entityId), viewportCapture, out, viewport.width, viewport.height, outWidth, outHeight);
   }
 
   

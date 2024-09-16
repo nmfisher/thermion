@@ -1039,6 +1039,10 @@ external void remove_animation_component(
         ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Float>,
         ffi.Int,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
         ffi.Pointer<ffi.Uint16>,
         ffi.Int,
         ffi.Int,
@@ -1047,29 +1051,10 @@ external int create_geometry(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
-  ffi.Pointer<ffi.Uint16> indices,
-  int numIndices,
-  int primitiveType,
-  ffi.Pointer<ffi.Char> materialPath,
-);
-
-@ffi.Native<
-    EntityId Function(
-        ffi.Pointer<ffi.Void>,
-        ffi.Pointer<ffi.Float>,
-        ffi.Int,
-        ffi.Pointer<ffi.Float>,
-        ffi.Int,
-        ffi.Pointer<ffi.Uint16>,
-        ffi.Int,
-        ffi.Int,
-        ffi.Pointer<ffi.Char>)>(isLeaf: true)
-external int create_geometry_with_normals(
-  ffi.Pointer<ffi.Void> sceneManager,
-  ffi.Pointer<ffi.Float> vertices,
-  int numVertices,
   ffi.Pointer<ffi.Float> normals,
   int numNormals,
+  ffi.Pointer<ffi.Float> uvs,
+  int numUvs,
   ffi.Pointer<ffi.Uint16> indices,
   int numIndices,
   int primitiveType,
@@ -1212,6 +1197,44 @@ external void set_material_property_float4(
   int materialIndex,
   ffi.Pointer<ffi.Char> property,
   float4 value,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Uint8>,
+        ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+external void unproject_texture(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  ffi.Pointer<ffi.Uint8> out,
+  int outWidth,
+  int outHeight,
+);
+
+@ffi.Native<
+    ffi.Pointer<ffi.Void> Function(
+        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external ffi.Pointer<ffi.Void> create_texture(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>)>(
+    isLeaf: true)
+external void destroy_texture(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<ffi.Void> texture,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
+external void apply_texture_to_material(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  ffi.Pointer<ffi.Void> texture,
+  ffi.Pointer<ffi.Char> parameterName,
+  int materialIndex,
 );
 
 @ffi.Native<
@@ -1683,6 +1706,10 @@ external void reset_to_rest_pose_ffi(
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Float>,
             ffi.Int,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
             ffi.Pointer<ffi.Uint16>,
             ffi.Int,
             ffi.Int,
@@ -1694,6 +1721,10 @@ external void create_geometry_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
+  ffi.Pointer<ffi.Float> normals,
+  int numNormals,
+  ffi.Pointer<ffi.Float> uvs,
+  int numUvs,
   ffi.Pointer<ffi.Uint16> indices,
   int numIndices,
   int primitiveType,
@@ -1703,31 +1734,20 @@ external void create_geometry_ffi(
 );
 
 @ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Uint16>,
-            ffi.Int,
-            ffi.Int,
-            ffi.Pointer<ffi.Char>,
-            ffi.Bool,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void create_geometry_with_normals_ffi(
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
+        EntityId,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void unproject_texture_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
-  ffi.Pointer<ffi.Float> vertices,
-  int numVertices,
-  ffi.Pointer<ffi.Float> normals,
-  int numNormals,
-  ffi.Pointer<ffi.Uint16> indices,
-  int numIndices,
-  int primitiveType,
-  ffi.Pointer<ffi.Char> materialPath,
-  bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
+  int entity,
+  ffi.Pointer<ffi.Uint8> out,
+  int outWidth,
+  int outHeight,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 final class ResourceBuffer extends ffi.Struct {

@@ -101,8 +101,9 @@ extern "C"
         void (*callback)(bool));
     EMSCRIPTEN_KEEPALIVE void set_post_processing_ffi(void *const viewer, bool enabled);
     EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_ffi(void *const sceneManager, EntityId entityId, void(*callback)());
-    EMSCRIPTEN_KEEPALIVE void create_geometry_ffi(void *const sceneManager, float *vertices, int numVertices, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath, bool keepData, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void create_geometry_with_normals_ffi(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath, bool keepData, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void create_geometry_ffi(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, float *uvs, int numUvs, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath, bool keepData, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void unproject_texture_ffi(void *const sceneManager, EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)());
+
 
 #ifdef __cplusplus
 }

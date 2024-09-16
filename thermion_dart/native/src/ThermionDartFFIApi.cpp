@@ -78,32 +78,24 @@ public:
     } 
   }
 
-  void iter() { 
-    
-    auto frameStart = std::chrono::high_resolution_clock::now();
+  void iter() {
+    const auto frameStart = std::chrono::steady_clock::now();
     if (_rendering) {
-      doRender();
+        doRender();
     }
 
-    auto now = std::chrono::high_resolution_clock::now();
-
-    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - frameStart).count();
-
-    std::function<void()> task;
-
     std::unique_lock<std::mutex> lock(_access);
-    while(true) {
-        now = std::chrono::high_resolution_clock::now();
-        elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - frameStart).count();
-        if(elapsed >= _frameIntervalInMicroseconds) {
-            break;
-        }
-        if(!_tasks.empty()) {
-          task = std::move(_tasks.front());
-          _tasks.pop_front();
-          task();
-        } else { 
-          _cond.wait_for(lock, std::chrono::duration<float, std::milli>(1));
+    const auto frameEnd = frameStart + std::chrono::microseconds(_frameIntervalInMicroseconds);
+
+    while (std::chrono::steady_clock::now() < frameEnd) {
+        if (!_tasks.empty()) {
+            auto task = std::move(_tasks.front());
+            _tasks.pop_front();
+            lock.unlock();
+            task();
+            lock.lock();
+        } else {
+            _cond.wait_until(lock, frameEnd);
         }
     }
   }
@@ -841,6 +833,10 @@ extern "C"
     void *const sceneManager, 
     float *vertices, 
     int numVertices, 
+    float *normals, 
+    int numNormals, 
+    float *uvs,
+    int numUvs,
     uint16_t *indices, 
     int numIndices, 
     int primitiveType, 
@@ -851,7 +847,7 @@ extern "C"
     std::packaged_task<EntityId()> lambda(
         [=]
         {
-          auto entity = create_geometry(sceneManager, vertices, numVertices, indices, numIndices, primitiveType, materialPath);
+          auto entity = create_geometry(sceneManager, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, materialPath);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0,$1);
@@ -864,31 +860,12 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void create_geometry_with_normals_ffi(
-    void *const sceneManager, 
-    float *vertices, 
-    int numVertices, 
-    float *normals, 
-    int numNormals, 
-    uint16_t *indices, 
-    int numIndices, 
-    int primitiveType, 
-    const char *materialPath, 
-    bool keepData, 
-    void (*callback)(EntityId))
-  {
-    std::packaged_task<EntityId()> lambda(
+  EMSCRIPTEN_KEEPALIVE void unproject_texture_ffi(void *const viewer, EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)()) {
+    std::packaged_task<void()> lambda(
         [=]
         {
-          auto entity = create_geometry_with_normals(sceneManager, vertices, numVertices, normals, numNormals, indices, numIndices, primitiveType, materialPath);
-          #ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({
-            moduleArg.dartFilamentResolveCallback($0,$1);
-          }, callback, entity);
-          #else
-          callback(entity);
-          #endif
-          return entity;
+          unproject_texture(viewer, entity, out, outWidth, outHeight);
+          callback();
         });
     auto fut = _rl->add_task(lambda);
   }
