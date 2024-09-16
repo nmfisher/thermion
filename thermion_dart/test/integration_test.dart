@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -5,7 +6,8 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:path/path.dart' as p;
-import 'package:thermion_dart/thermion_dart/geometry_helper.dart';
+import 'package:thermion_dart/thermion_dart/utils/geometry.dart';
+import 'package:thermion_dart/thermion_dart/viewer/events.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'helpers.dart';
@@ -25,8 +27,6 @@ void main() async {
     await pixelBufferToBmp(pixelBuffer, viewportDimensions.width,
         viewportDimensions.height, outPath);
   }
-
-  final cubeGeometry = GeometryHelper.cube();
 
   group('camera', () {
     test('getCameraModelMatrix, getCameraPosition, rotation', () async {
@@ -122,42 +122,120 @@ void main() async {
     });
   });
 
+  group("scene update events", () {
+    test('add light fires SceneUpdateEvent', () async {
+      var viewer = await createViewer();
+
+      final success = Completer<bool>();
+      var light = DirectLight(
+          type: LightType.POINT,
+          color: 6500,
+          intensity: 1000000,
+          position: Vector3(0, 0.6, 0.6),
+          direction: Vector3(0, 0, 0),
+          falloffRadius: 2.0);
+
+      late StreamSubscription listener;
+      listener = viewer.sceneUpdated.listen((updateEvent) {
+        var wasSuccess = updateEvent.eventType == EventType.EntityAdded &&
+            updateEvent.addedEntityType == EntityType.DirectLight &&
+            updateEvent.getDirectLight() == light;
+        success.complete(wasSuccess);
+        listener.cancel();
+      });
+      await viewer.addDirectLight(light);
+      expect(await success.future, true);
+    });
+
+    test('remove light fires SceneUpdateEvent', () async {
+      var viewer = await createViewer();
+
+      final success = Completer<bool>();
+      var light = await viewer.addDirectLight(DirectLight.point());
+
+      late StreamSubscription listener;
+      listener = viewer.sceneUpdated.listen((updateEvent) {
+        var wasSuccess = updateEvent.eventType == EventType.EntityRemoved &&
+            updateEvent.entity == light;
+        success.complete(wasSuccess);
+        listener.cancel();
+      });
+
+      await viewer.removeLight(light);
+
+      expect(await success.future, true);
+    });
+
+    test('add geometry fires SceneUpdateEvent', () async {
+      var viewer = await createViewer();
+
+      final success = Completer<bool>();
+      var geometry = GeometryHelper.cube();
+
+      late StreamSubscription listener;
+      listener = viewer.sceneUpdated.listen((updateEvent) {
+        var wasSuccess = updateEvent.eventType == EventType.EntityAdded &&
+            updateEvent.addedEntityType == EntityType.Geometry &&
+            updateEvent.getAsGeometry() == geometry;
+        success.complete(wasSuccess);
+        listener.cancel();
+      });
+      await viewer.createGeometry(geometry);
+      expect(await success.future, true);
+    });
+
+    test('remove geometry fires SceneUpdateEvent', () async {
+      var viewer = await createViewer();
+      var geometry =       await viewer.createGeometry(GeometryHelper.cube());
+      final success = Completer<bool>();
+
+      late StreamSubscription listener;
+      listener = viewer.sceneUpdated.listen((updateEvent) {
+        var wasSuccess = updateEvent.eventType == EventType.EntityRemoved &&
+            updateEvent.entity == geometry;
+        success.complete(wasSuccess);
+        listener.cancel();
+      });
+
+      await viewer.removeEntity(geometry);
+
+      expect(await success.future, true);
+    });
+  });
+
   group("custom geometry", () {
     test('create cube (no normals)', () async {
       var viewer = await createViewer();
       var light = await viewer.addLight(
-          LightType.POINT, 6500, 10000000, 0, 2, 0, 0, -1, 0,
-          falloffRadius: 10.0);
+          LightType.POINT, 6500, 1000000, 0, 0.6, 0.6, 0, 0, 0,
+          falloffRadius: 2.0);
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
-      await viewer.createGeometry(cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
-      await _capture(viewer, "geometry_cube");
+      await viewer
+          .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+      await _capture(viewer, "geometry_cube_no_normals");
     });
 
     test('create cube (with normals)', () async {
       var viewer = await createViewer();
 
       var light = await viewer.addLight(
-          LightType.POINT, 6500, 1000000, 0, 2, 0, 0, -1, 0,
-          falloffRadius: 10.0);
-
+          LightType.POINT, 6500, 1000000, 0, 0.5, 1, 0, 0, 0,
+          falloffRadius: 100.0);
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
-      await viewer.createGeometry(cubeGeometry.vertices, cubeGeometry.indices,
-          normals: cubeGeometry.normals,
-          primitiveType: PrimitiveType.TRIANGLES);
-      await _capture(viewer, "geometry_cube");
+      await viewer
+          .createGeometry(GeometryHelper.cube(normals: true, uvs: false));
+      await _capture(viewer, "geometry_cube_with_normals");
     });
 
-    test('create sphere', () async {
-      final geometry = GeometryHelper.sphere();
+    test('create sphere (no normals)', () async {
       var viewer = await createViewer();
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
       await viewer.setCameraPosition(0, 0, 6);
-      await viewer.createGeometry(geometry.vertices, geometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
-      await _capture(viewer, "geometry_sphere");
+      await viewer
+          .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
+      await _capture(viewer, "geometry_sphere_no_normals");
     });
   });
 
@@ -216,17 +294,57 @@ void main() async {
   //     await Future.delayed(Duration(seconds: 1));
   //   });
 
-  group("geometry", () {
-    test('create custom geometry', () async {
+  group("materials", () {
+    test('set float4 material property for custom geometry', () async {
       var viewer = await createViewer();
-      await viewer.createIbl(1.0, 1.0, 1.0, 1000);
+
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
-      // Create the cube geometry
-      await viewer.createGeometry(cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
+      var light = await viewer.addLight(
+          LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
 
-      await _capture(viewer, "geometry_cube");
+      final cube = await viewer.createGeometry(GeometryHelper.cube());
+
+      await _capture(viewer, "set_material_float4_pre");
+      await viewer.setMaterialPropertyFloat4(
+          cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
+      await _capture(viewer, "set_material_float4_post");
+    });
+    test('set float material property for custom geometry', () async {
+      var viewer = await createViewer();
+
+      await viewer.setCameraPosition(0, 0, 6);
+      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
+      var light = await viewer.addLight(
+          LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
+
+      final cube = await viewer.createGeometry(GeometryHelper.cube());
+
+      // this won't actually do anything because the default ubershader doesn't use specular/glossiness
+      // but we can at least check that the call succeeds
+      await _capture(viewer, "set_material_specular_pre");
+      await viewer.setMaterialPropertyFloat(cube, "specularFactor", 0, 0.0);
+      await _capture(viewer, "set_material_specular_post");
+    });
+
+    test('set float material property (roughness) for custom geometry',
+        () async {
+      var viewer = await createViewer();
+
+      await viewer.setCameraPosition(0, 0, 6);
+      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
+      var light = await viewer.addLight(
+          LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
+
+      final cube = await viewer.createGeometry(GeometryHelper.cube());
+
+      // this won't actually do anything because the default ubershader doesn't use specular/glossiness
+      // but we can at least check that the call succeeds
+      await _capture(viewer, "set_material_roughness_pre");
+
+      await viewer.setMaterialPropertyFloat(cube, "metallicFactor", 0, 0.0);
+      await viewer.setMaterialPropertyFloat(cube, "roughnessFactor", 0, 0.0);
+      await _capture(viewer, "set_material_roughness_post");
     });
   });
 
@@ -235,9 +353,7 @@ void main() async {
         () async {
       var viewer = await createViewer();
 
-      final cube = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
+      final cube = await viewer.createGeometry(GeometryHelper.cube());
 
       expect(await viewer.getParent(cube), isNull);
       expect(await viewer.getAncestor(cube), isNull);
@@ -248,12 +364,9 @@ void main() async {
         () async {
       var viewer = await createViewer();
 
-      final cube1 = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
-      final cube2 = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
+      final cube1 = await viewer.createGeometry(GeometryHelper.cube());
+
+      final cube2 = await viewer.createGeometry(GeometryHelper.cube());
 
       await viewer.setParent(cube1, cube2);
 
@@ -265,15 +378,9 @@ void main() async {
     test('getAncestor returns the ultimate parent entity', () async {
       var viewer = await createViewer();
 
-      final grandparent = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
-      final parent = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
-      final child = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
+      final grandparent = await viewer.createGeometry(GeometryHelper.cube());
+      final parent = await viewer.createGeometry(GeometryHelper.cube());
+      final child = await viewer.createGeometry(GeometryHelper.cube());
 
       await viewer.setParent(child, parent);
       await viewer.setParent(parent, grandparent);
@@ -288,9 +395,7 @@ void main() async {
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
       // Create the cube geometry
-      final cube = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
+      final cube = await viewer.createGeometry(GeometryHelper.cube());
       // await viewer.setPosition(cube, -0.05, 0.04, 5.9);
       // await viewer.setPosition(cube, -2.54, 2.54, 0);
       await viewer.queuePositionUpdateFromViewportCoords(cube, 0, 0);
@@ -395,13 +500,11 @@ void main() async {
       var viewer = await createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
-      await viewer.setCameraPosition(0, 1, 5);
+      await viewer.setCameraPosition(0, 2, 5);
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
+      var cube = await viewer.createGeometry(GeometryHelper.cube());
       await viewer.setStencilHighlight(cube);
 
       await _capture(viewer, "stencil_highlight_geometry");
@@ -439,12 +542,8 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube1 = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
-      var cube2 = await viewer.createGeometry(
-          cubeGeometry.vertices, cubeGeometry.indices,
-          primitiveType: PrimitiveType.TRIANGLES);
+      var cube1 = await viewer.createGeometry(GeometryHelper.cube());
+      var cube2 = await viewer.createGeometry(GeometryHelper.cube());
       await viewer.setPosition(cube2, 0.5, 0.5, 0);
       await viewer.setStencilHighlight(cube1);
       await viewer.setStencilHighlight(cube2, r: 0.0, g: 0.0, b: 1.0);
