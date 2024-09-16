@@ -186,7 +186,7 @@ void main() async {
 
     test('remove geometry fires SceneUpdateEvent', () async {
       var viewer = await createViewer();
-      var geometry =       await viewer.createGeometry(GeometryHelper.cube());
+      var geometry = await viewer.createGeometry(GeometryHelper.cube());
       final success = Completer<bool>();
 
       late StreamSubscription listener;
@@ -199,6 +199,44 @@ void main() async {
 
       await viewer.removeEntity(geometry);
 
+      expect(await success.future, true);
+    });
+
+    test('loadGlb fires SceneUpdateEvent', () async {
+      var viewer = await createViewer();
+
+      final success = Completer<bool>();
+
+      late StreamSubscription listener;
+
+      final uri = "$testDir/cube.glb";
+
+      listener = viewer.sceneUpdated.listen((updateEvent) {
+        var wasSuccess = updateEvent.eventType == EventType.EntityAdded &&
+            updateEvent.addedEntityType == EntityType.Gltf &&
+            updateEvent.getAsGLTF().uri == uri;
+        success.complete(wasSuccess);
+        listener.cancel();
+      });
+      await viewer.loadGlb(uri, keepData: false);
+      expect(await success.future, true);
+    });
+
+    test('remove glb fires SceneUpdateEvent', () async {
+      var viewer = await createViewer();
+      final uri = "$testDir/cube.glb";
+      var entity = await viewer.loadGlb(uri, keepData: false);
+
+      final success = Completer<bool>();
+
+      late StreamSubscription listener;
+      listener = viewer.sceneUpdated.listen((updateEvent) {
+        var wasSuccess = updateEvent.eventType == EventType.EntityRemoved &&
+            updateEvent.entity == entity;
+        success.complete(wasSuccess);
+        listener.cancel();
+      });
+      await viewer.removeEntity(entity);
       expect(await success.future, true);
     });
   });
