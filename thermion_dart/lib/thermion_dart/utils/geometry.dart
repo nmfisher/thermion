@@ -1,26 +1,14 @@
 import 'dart:math';
 
-class Geometry {
-  final List<double> vertices;
-  final List<int> indices;
-  final List<double>? normals;
-
-  Geometry(this.vertices, this.indices, this.normals);
-
-  void scale(double factor) {
-    for (int i = 0; i < vertices.length; i++) {
-      vertices[i] = vertices[i] * factor;
-    }
-  }
-}
+import 'package:thermion_dart/thermion_dart/viewer/shared_types/geometry.dart';
 
 class GeometryHelper {
-static Geometry sphere() {
+  static Geometry sphere({bool normals = true, bool uvs = true}) {
     int latitudeBands = 20;
     int longitudeBands = 20;
 
     List<double> vertices = [];
-    List<double> normals = [];
+    List<double> _normals = [];
     List<int> indices = [];
 
     for (int latNumber = 0; latNumber <= latitudeBands; latNumber++) {
@@ -38,7 +26,7 @@ static Geometry sphere() {
         double z = sinPhi * sinTheta;
 
         vertices.addAll([x, y, z]);
-        normals.addAll([
+        _normals.addAll([
           x,
           y,
           z
@@ -56,10 +44,10 @@ static Geometry sphere() {
       }
     }
 
-    return Geometry(vertices, indices, normals);
+    return Geometry(vertices, indices, normals: normals ? _normals : null);
   }
 
-  static Geometry cube() {
+  static Geometry cube({bool normals = true, bool uvs = true}) {
     final vertices = <double>[
       // Front face
       -1, -1, 1,
@@ -98,7 +86,7 @@ static Geometry sphere() {
       -1, 1, -1,
     ];
 
-    final normals = <double>[
+    final _normals = <double>[
       // Front face
       0, 0, 1,
       0, 0, 1,
@@ -136,7 +124,7 @@ static Geometry sphere() {
       -1, 0, 0,
     ];
 
-  final indices = [
+    final indices = [
       // Front face
       0, 1, 2, 0, 2, 3,
       // Back face
@@ -150,13 +138,13 @@ static Geometry sphere() {
       // Left face
       20, 21, 22, 20, 22, 23
     ];
-    return Geometry(vertices, indices, normals);
+    return Geometry(vertices, indices, normals: normals ? _normals : null);
   }
 
-  static Geometry cylinder({double radius = 1.0, double length = 1.0}) {
+  static Geometry cylinder({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true }) {
     int segments = 32;
     List<double> vertices = [];
-    List<double> normals = [];
+    List<double> _normals = [];
     List<int> indices = [];
 
     // Create vertices and normals
@@ -167,11 +155,11 @@ static Geometry sphere() {
 
       // Top circle
       vertices.addAll([x, length / 2, z]);
-      normals.addAll([x / radius, 0, z / radius]);
+      _normals.addAll([x / radius, 0, z / radius]);
 
       // Bottom circle
       vertices.addAll([x, -length / 2, z]);
-      normals.addAll([x / radius, 0, z / radius]);
+      _normals.addAll([x / radius, 0, z / radius]);
     }
 
     // Create indices
@@ -192,23 +180,23 @@ static Geometry sphere() {
 
     // Add center vertices and normals for top and bottom faces
     vertices.addAll([0, length / 2, 0]); // Top center
-    normals.addAll([0, 1, 0]);
+    _normals.addAll([0, 1, 0]);
     vertices.addAll([0, -length / 2, 0]); // Bottom center
-    normals.addAll([0, -1, 0]);
+    _normals.addAll([0, -1, 0]);
 
     // Add top and bottom face normals
     for (int i = 0; i <= segments; i++) {
-      normals.addAll([0, 1, 0]); // Top face normal
-      normals.addAll([0, -1, 0]); // Bottom face normal
+      _normals.addAll([0, 1, 0]); // Top face normal
+      _normals.addAll([0, -1, 0]); // Bottom face normal
     }
 
-    return Geometry(vertices, indices, normals);
+    return Geometry(vertices, indices, normals: normals ? _normals : null);
   }
 
-  static Geometry conic({double radius = 1.0, double length = 1.0}) {
+  static Geometry conic({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true}) {
     int segments = 32;
     List<double> vertices = [];
-    List<double> normals = [];
+    List<double> _normals = [];
     List<int> indices = [];
 
     // Create vertices and normals
@@ -219,53 +207,73 @@ static Geometry sphere() {
 
       // Base circle
       vertices.addAll([x, 0, z]);
-      
+
       // Calculate normal for the side
       double nx = x / sqrt(x * x + length * length);
       double nz = z / sqrt(z * z + length * length);
       double ny = radius / sqrt(radius * radius + length * length);
-      normals.addAll([nx, ny, nz]);
+      _normals.addAll([nx, ny, nz]);
     }
     // Apex
     vertices.addAll([0, length, 0]);
-    normals.addAll([0, 1, 0]); // Normal at apex points straight up
+    _normals.addAll([0, 1, 0]); // Normal at apex points straight up
 
     // Create indices
     for (int i = 0; i < segments; i++) {
-      // Base face
-      indices.addAll([i, i + 1, segments + 1]);
-      // Side faces
+      // Base face (fixed to counterclockwise)
+      indices.addAll([segments + 1, i + 1, i]);
+      // Side faces (already correct)
       indices.addAll([i, segments, i + 1]);
     }
 
     // Add base face normals
     for (int i = 0; i <= segments; i++) {
-      normals.addAll([0, -1, 0]); // Base face normal
+      _normals.addAll([0, -1, 0]); // Base face normal
     }
 
-    return Geometry(vertices, indices, normals);
+    return Geometry(vertices, indices, normals: normals ? _normals : null);
   }
 
-  static Geometry plane({double width = 1.0, double height = 1.0}) {
+  static Geometry plane({double width = 1.0, double height = 1.0, bool normals = true, bool uvs = true}) {
     List<double> vertices = [
-      -width / 2, 0, -height / 2,
-      width / 2, 0, -height / 2,
-      width / 2, 0, height / 2,
-      -width / 2, 0, height / 2,
+      -width / 2,
+      0,
+      -height / 2,
+      width / 2,
+      0,
+      -height / 2,
+      width / 2,
+      0,
+      height / 2,
+      -width / 2,
+      0,
+      height / 2,
     ];
 
-    List<double> normals = [
-      0, 1, 0,
-      0, 1, 0,
-      0, 1, 0,
-      0, 1, 0,
+    List<double> _normals = [
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
     ];
 
     List<int> indices = [
-      0, 1, 2,
-      0, 2, 3,
+      0,
+      2,
+      1,
+      0,
+      3,
+      2,
     ];
 
-    return Geometry(vertices, indices, normals);
+    return Geometry(vertices, indices, normals: normals ? _normals : null);
   }
 }

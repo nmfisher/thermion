@@ -1,6 +1,8 @@
 import 'dart:ffi';
 import 'dart:io';
-import '../compatibility/compatibility.dart';
+
+import 'package:ffi/ffi.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_dart.g.dart';
 
 class DartResourceLoader {
   static final _assets = <int, Pointer>{};
