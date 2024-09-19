@@ -862,11 +862,11 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void unproject_texture_ffi(void *const viewer, EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)()) {
+  EMSCRIPTEN_KEEPALIVE void unproject_texture_ffi(void *const viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)()) {
     std::packaged_task<void()> lambda(
         [=]
         {
-          unproject_texture(viewer, entity, out, outWidth, outHeight);
+          unproject_texture(viewer, entity, input, inputWidth, inputHeight, out, outWidth, outHeight);
           callback();
         });
     auto fut = _rl->add_task(lambda);

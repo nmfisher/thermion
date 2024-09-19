@@ -115,7 +115,7 @@ extern "C"
         TMaterialInstance *materialInstance, 
         bool keepData, 
         void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void unproject_texture_ffi(void *const sceneManager, EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)());
+    EMSCRIPTEN_KEEPALIVE void unproject_texture_ffi(void *const sceneManager, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)());
 
 
 #ifdef __cplusplus

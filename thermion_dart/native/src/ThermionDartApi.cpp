@@ -968,9 +968,9 @@ extern "C"
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
     }
 
-    EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const viewer, EntityId entity, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
+    EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
     {
-        ((FilamentViewer *)viewer)->unprojectTexture(entity, out, outWidth, outHeight);
+        ((FilamentViewer *)viewer)->unprojectTexture(entity, input, inputWidth, inputHeight, out, outWidth, outHeight);
     }
 
     EMSCRIPTEN_KEEPALIVE void *const create_texture(void *const sceneManager, uint8_t *data, size_t length)
