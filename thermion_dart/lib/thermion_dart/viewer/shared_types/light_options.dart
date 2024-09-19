@@ -53,4 +53,24 @@ DirectLight.point({
   direction: Vector3.zero(),
   falloffRadius: falloffRadius,
 );
+
+DirectLight.sun({
+  double color = 6500,
+  double intensity = 100000,
+  bool castShadows = true,
+  Vector3? direction,
+  double sunAngularRadius = 0.545,
+  double sunHaloSize = 10.0,
+  double sunHaloFalloff = 80.0,
+}) : this(
+  type: LightType.DIRECTIONAL,
+  color: color,
+  intensity: intensity,
+  castShadows: castShadows,
+  position: Vector3(0, 0, 0),  
+  direction: direction ?? Vector3(0, -1, 0),
+  sunAngularRadius: sunAngularRadius,
+  sunHaloSize: sunHaloSize,
+  sunHaloFallof: sunHaloFalloff,
+);
 }

@@ -8,7 +8,6 @@ class Geometry {
   final Float32List normals;
   final Float32List uvs;
   final PrimitiveType primitiveType;
-  final String? materialPath;
 
   Geometry(
     this.vertices,
@@ -16,7 +15,6 @@ class Geometry {
     Float32List? normals,
     Float32List? uvs,
     this.primitiveType = PrimitiveType.TRIANGLES,
-    this.materialPath,
   })  : indices = Uint16List.fromList(indices),
         normals = normals ?? Float32List(0),
         uvs = uvs ?? Float32List(0) {
