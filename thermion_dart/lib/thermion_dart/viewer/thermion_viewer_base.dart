@@ -189,7 +189,7 @@ abstract class ThermionViewer {
   /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
   ///
   Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
-      {int numInstances = 1, bool keepData = false});
+      {int numInstances = 1, bool keepData = false, int priority=4, int layer=0});
 
   ///
   /// Create a new instance of [entity].
@@ -786,7 +786,7 @@ abstract class ThermionViewer {
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
   /// If [keepData] is true, the source data will not be released.
   ///
-  Future createGeometry(Geometry geometry, {bool keepData = false});
+  Future createGeometry(Geometry geometry, {MaterialInstance? materialInstance,  bool keepData = false});
 
   ///
   /// Gets the parent entity of [entity]. Returns null if the entity has no parent.
@@ -869,4 +869,50 @@ abstract class ThermionViewer {
   ///
   Future destroyTexture(covariant ThermionTexture texture);
 
+  ///
+  ///
+  ///
+  Future<MaterialInstance> createUbershaderMaterialInstance({
+    bool doubleSided = false,
+    bool unlit = false,
+    bool hasVertexColors = false,
+    bool hasBaseColorTexture = false,
+    bool hasNormalTexture = false,
+    bool hasOcclusionTexture = false,
+    bool hasEmissiveTexture = false,
+    bool useSpecularGlossiness = false,
+    AlphaMode alphaMode = AlphaMode.OPAQUE,
+    bool enableDiagnostics = false,
+    bool hasMetallicRoughnessTexture = false,
+    int metallicRoughnessUV = 0,
+    int baseColorUV = 0,
+    bool hasClearCoatTexture = false,
+    int clearCoatUV = 0,
+    bool hasClearCoatRoughnessTexture = false,
+    int clearCoatRoughnessUV = 0,
+    bool hasClearCoatNormalTexture = false,
+    int clearCoatNormalUV = 0,
+    bool hasClearCoat = false,
+    bool hasTransmission = false,
+    bool hasTextureTransforms = false,
+    int emissiveUV = 0,
+    int aoUV = 0,
+    int normalUV = 0,
+    bool hasTransmissionTexture = false,
+    int transmissionUV = 0,
+    bool hasSheenColorTexture = false,
+    int sheenColorUV = 0,
+    bool hasSheenRoughnessTexture = false,
+    int sheenRoughnessUV = 0,
+    bool hasVolumeThicknessTexture = false,
+    int volumeThicknessUV = 0,
+    bool hasSheen = false,
+    bool hasIOR = false,
+    bool hasVolume = false,
+  });
+
+  ///
+  ///
+  ///
+  Future destroyMaterialInstance(covariant MaterialInstance materialInstance);
 }
