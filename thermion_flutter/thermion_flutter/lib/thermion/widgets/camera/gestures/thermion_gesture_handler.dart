@@ -16,7 +16,8 @@ enum GestureType {
   SCALE1,
   SCALE2,
   SCROLLWHEEL,
-  POINTER_MOVE
+  POINTER_MOVE,
+  KEYDOWN
 }
 
 enum GestureAction {

@@ -35,7 +35,7 @@ class _ThermionGestureDetectorDesktopState
   Widget build(BuildContext context) {
     return Listener(
       onPointerHover: (event) =>
-          widget.gestureHandler.onPointerHover(event.localPosition),
+          widget.gestureHandler.onPointerHover(event.localPosition, event.delta),
       onPointerSignal: (PointerSignalEvent pointerSignal) {
         if (pointerSignal is PointerScrollEvent) {
           widget.gestureHandler.onPointerScroll(
