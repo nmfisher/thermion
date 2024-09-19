@@ -16,16 +16,6 @@ external ffi.Pointer<ffi.Void> make_resource_loader(
   ffi.Pointer<ffi.Void> owner,
 );
 
-@ffi.Native<
-    ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
-external ffi.Pointer<ffi.Void> create_filament_viewer(
-  ffi.Pointer<ffi.Void> context,
-  ffi.Pointer<ffi.Void> loader,
-  ffi.Pointer<ffi.Void> platform,
-  ffi.Pointer<ffi.Char> uberArchivePath,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external void destroy_filament_viewer(
   ffi.Pointer<ffi.Void> viewer,
@@ -221,12 +211,13 @@ external int load_glb(
 
 @ffi.Native<
     EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size,
-        ffi.Bool)>(isLeaf: true)
+        ffi.Bool, ffi.Int)>(isLeaf: true)
 external int load_glb_from_buffer(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Void> data,
   int length,
   bool keepData,
+  int priority,
 );
 
 @ffi.Native<
@@ -420,6 +411,22 @@ external bool set_morph_animation(
   int numMorphTargets,
   int numFrames,
   double frameLengthInMs,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<ffi.Void>, TMaterialKey)>(isLeaf: true)
+external ffi.Pointer<TMaterialInstance> create_material_instance(
+  ffi.Pointer<ffi.Void> sceneManager,
+  TMaterialKey key,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>, ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+external void destroy_material_instance(
+  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TMaterialInstance> instance,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
@@ -1046,7 +1053,8 @@ external void remove_animation_component(
         ffi.Pointer<ffi.Uint16>,
         ffi.Int,
         ffi.Int,
-        ffi.Pointer<ffi.Char>)>(isLeaf: true)
+        ffi.Pointer<TMaterialInstance>,
+        ffi.Bool)>(isLeaf: true)
 external int create_geometry(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
@@ -1058,7 +1066,8 @@ external int create_geometry(
   ffi.Pointer<ffi.Uint16> indices,
   int numIndices,
   int primitiveType,
-  ffi.Pointer<ffi.Char> materialPath,
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  bool keepData,
 );
 
 @ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
@@ -1492,6 +1501,8 @@ external void load_glb_ffi(
             ffi.Size,
             ffi.Int,
             ffi.Bool,
+            ffi.Int,
+            ffi.Int,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
 external void load_glb_from_buffer_ffi(
@@ -1500,6 +1511,8 @@ external void load_glb_from_buffer_ffi(
   int length,
   int numInstances,
   bool keepData,
+  int priority,
+  int layer,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 
@@ -1713,7 +1726,7 @@ external void reset_to_rest_pose_ffi(
             ffi.Pointer<ffi.Uint16>,
             ffi.Int,
             ffi.Int,
-            ffi.Pointer<ffi.Char>,
+            ffi.Pointer<TMaterialInstance>,
             ffi.Bool,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
@@ -1728,7 +1741,7 @@ external void create_geometry_ffi(
   ffi.Pointer<ffi.Uint16> indices,
   int numIndices,
   int primitiveType,
-  ffi.Pointer<ffi.Char> materialPath,
+  ffi.Pointer<TMaterialInstance> materialInstance,
   bool keepData,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
@@ -1749,6 +1762,180 @@ external void unproject_texture_ffi(
   int outHeight,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
+
+final class CameraPtr extends ffi.Opaque {}
+
+final class TMaterialInstance extends ffi.Opaque {}
+
+final class TMaterialKey extends ffi.Struct {
+  @ffi.Bool()
+  external bool doubleSided;
+
+  @ffi.Bool()
+  external bool unlit;
+
+  @ffi.Bool()
+  external bool hasVertexColors;
+
+  @ffi.Bool()
+  external bool hasBaseColorTexture;
+
+  @ffi.Bool()
+  external bool hasNormalTexture;
+
+  @ffi.Bool()
+  external bool hasOcclusionTexture;
+
+  @ffi.Bool()
+  external bool hasEmissiveTexture;
+
+  @ffi.Bool()
+  external bool useSpecularGlossiness;
+
+  @ffi.Int()
+  external int alphaMode;
+
+  @ffi.Bool()
+  external bool enableDiagnostics;
+
+  external UnnamedUnion1 unnamed;
+
+  @ffi.Uint8()
+  external int baseColorUV;
+
+  @ffi.Bool()
+  external bool hasClearCoatTexture;
+
+  @ffi.Uint8()
+  external int clearCoatUV;
+
+  @ffi.Bool()
+  external bool hasClearCoatRoughnessTexture;
+
+  @ffi.Uint8()
+  external int clearCoatRoughnessUV;
+
+  @ffi.Bool()
+  external bool hasClearCoatNormalTexture;
+
+  @ffi.Uint8()
+  external int clearCoatNormalUV;
+
+  @ffi.Bool()
+  external bool hasClearCoat;
+
+  @ffi.Bool()
+  external bool hasTransmission;
+
+  @ffi.Bool()
+  external bool hasTextureTransforms;
+
+  @ffi.Uint8()
+  external int emissiveUV;
+
+  @ffi.Uint8()
+  external int aoUV;
+
+  @ffi.Uint8()
+  external int normalUV;
+
+  @ffi.Bool()
+  external bool hasTransmissionTexture;
+
+  @ffi.Uint8()
+  external int transmissionUV;
+
+  @ffi.Bool()
+  external bool hasSheenColorTexture;
+
+  @ffi.Uint8()
+  external int sheenColorUV;
+
+  @ffi.Bool()
+  external bool hasSheenRoughnessTexture;
+
+  @ffi.Uint8()
+  external int sheenRoughnessUV;
+
+  @ffi.Bool()
+  external bool hasVolumeThicknessTexture;
+
+  @ffi.Uint8()
+  external int volumeThicknessUV;
+
+  @ffi.Bool()
+  external bool hasSheen;
+
+  @ffi.Bool()
+  external bool hasIOR;
+
+  @ffi.Bool()
+  external bool hasVolume;
+}
+
+final class UnnamedUnion1 extends ffi.Union {
+  external UnnamedStruct1 unnamed;
+
+  external UnnamedStruct2 unnamed1;
+}
+
+final class UnnamedStruct1 extends ffi.Struct {
+  @ffi.Bool()
+  external bool hasMetallicRoughnessTexture;
+
+  @ffi.Uint8()
+  external int metallicRoughnessUV;
+}
+
+final class UnnamedStruct2 extends ffi.Struct {
+  @ffi.Bool()
+  external bool hasSpecularGlossinessTexture;
+
+  @ffi.Uint8()
+  external int specularGlossinessUV;
+}
+
+final class float4 extends ffi.Struct {
+  @ffi.Float()
+  external double x;
+
+  @ffi.Float()
+  external double y;
+
+  @ffi.Float()
+  external double z;
+
+  @ffi.Float()
+  external double w;
+}
+
+final class double4x4 extends ffi.Struct {
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.Double> col1;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.Double> col2;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.Double> col3;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.Double> col4;
+}
+
+final class Aabb2 extends ffi.Struct {
+  @ffi.Float()
+  external double minX;
+
+  @ffi.Float()
+  external double minY;
+
+  @ffi.Float()
+  external double maxX;
+
+  @ffi.Float()
+  external double maxY;
+}
 
 final class ResourceBuffer extends ffi.Struct {
   external ffi.Pointer<ffi.Void> data;
@@ -1798,50 +1985,6 @@ typedef LoadFilamentResourceIntoOutPointerFunction = ffi.Void Function(
     ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
 typedef DartLoadFilamentResourceIntoOutPointerFunction = void Function(
     ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
-
-final class Aabb2 extends ffi.Struct {
-  @ffi.Float()
-  external double minX;
-
-  @ffi.Float()
-  external double minY;
-
-  @ffi.Float()
-  external double maxX;
-
-  @ffi.Float()
-  external double maxY;
-}
-
-final class CameraPtr extends ffi.Opaque {}
-
-final class float4 extends ffi.Struct {
-  @ffi.Float()
-  external double x;
-
-  @ffi.Float()
-  external double y;
-
-  @ffi.Float()
-  external double z;
-
-  @ffi.Float()
-  external double w;
-}
-
-final class double4x4 extends ffi.Struct {
-  @ffi.Array.multi([4])
-  external ffi.Array<ffi.Double> col1;
-
-  @ffi.Array.multi([4])
-  external ffi.Array<ffi.Double> col2;
-
-  @ffi.Array.multi([4])
-  external ffi.Array<ffi.Double> col3;
-
-  @ffi.Array.multi([4])
-  external ffi.Array<ffi.Double> col4;
-}
 
 /// This header replicates most of the methods in ThermionDartApi.h.
 /// It represents the interface for:
