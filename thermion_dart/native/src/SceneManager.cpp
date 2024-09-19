@@ -2580,7 +2580,7 @@ EntityId SceneManager::createGeometry(
             return nullptr;
         }
         materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{0.0f, 1.0f, 1.0f, 1.0f});
-        materialInstance->setParameter("baseColorIndex", -1);
+        materialInstance->setParameter("baseColorIndex", 0);
         return materialInstance;
     }
 
