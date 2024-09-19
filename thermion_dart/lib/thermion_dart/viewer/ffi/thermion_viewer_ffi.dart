@@ -506,9 +506,17 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
-      {bool unlit = false, int numInstances = 1, bool keepData = false}) async {
+      {bool unlit = false,
+      int numInstances = 1,
+      bool keepData = false,
+      int priority = 4,
+      int layer = 0}) async {
     if (unlit) {
       throw Exception("Not yet implemented");
+    }
+
+    if (layer < 0 || layer > 6) {
+      throw Exception("Layer must be between 0 and 6");
     }
 
     var entity = await withIntCallback((callback) => load_glb_from_buffer_ffi(
@@ -517,6 +525,8 @@ class ThermionViewerFFI extends ThermionViewer {
         data.length,
         numInstances,
         keepData,
+        priority,
+        layer,
         callback));
 
     if (entity == _FILAMENT_ASSET_ERROR) {
@@ -1335,10 +1345,9 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setCameraModelMatrix4(Matrix4 modelMatrix) async {
     var mainCamera = get_camera(_viewer!, await getMainCamera());
-    final out = allocator<double4x4>(1);
-    matrix4ToDouble4x4(modelMatrix, out.ref);
-    set_camera_model_matrix(mainCamera, out.ref);
-    allocator.free(out);
+    final out = Struct.create<double4x4>();
+    matrix4ToDouble4x4(modelMatrix, out);
+    set_camera_model_matrix(mainCamera, out);
   }
 
   ///
@@ -1809,13 +1818,10 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> createGeometry(Geometry geometry,
-      {bool keepData = false}) async {
+      {MaterialInstance? materialInstance, bool keepData = false}) async {
     if (_viewer == null) {
       throw Exception("Viewer must not be null");
     }
-
-    final materialPathPtr =
-        geometry.materialPath?.toNativeUtf8(allocator: allocator) ?? nullptr;
 
     var entity = await withIntCallback((callback) => create_geometry_ffi(
         _sceneManager!,
@@ -1828,7 +1834,9 @@ class ThermionViewerFFI extends ThermionViewer {
         geometry.indices.address,
         geometry.indices.length,
         geometry.primitiveType.index,
-        materialPathPtr.cast<Char>(),
+        materialInstance == null
+            ? nullptr
+            : (materialInstance as ThermionFFIMaterialInstance)._pointer,
         keepData,
         callback));
     if (entity == _FILAMENT_ASSET_ERROR) {
@@ -1991,8 +1999,108 @@ class ThermionViewerFFI extends ThermionViewer {
     });
   }
 
+  ///
+  ///
+  ///
   Future destroyTexture(ThermionFFITexture texture) async {
     destroy_texture(_sceneManager!, texture._pointer);
+  }
+
+  Future<MaterialInstance> createUbershaderMaterialInstance(
+      {bool doubleSided = false,
+      bool unlit = false,
+      bool hasVertexColors = false,
+      bool hasBaseColorTexture = false,
+      bool hasNormalTexture = false,
+      bool hasOcclusionTexture = false,
+      bool hasEmissiveTexture = false,
+      bool useSpecularGlossiness = false,
+      AlphaMode alphaMode = AlphaMode.OPAQUE,
+      bool enableDiagnostics = false,
+      bool hasMetallicRoughnessTexture = false,
+      int metallicRoughnessUV = 0,
+      int baseColorUV = 0,
+      bool hasClearCoatTexture = false,
+      int clearCoatUV = 0,
+      bool hasClearCoatRoughnessTexture = false,
+      int clearCoatRoughnessUV = 0,
+      bool hasClearCoatNormalTexture = false,
+      int clearCoatNormalUV = 0,
+      bool hasClearCoat = false,
+      bool hasTransmission = false,
+      bool hasTextureTransforms = false,
+      int emissiveUV = 0,
+      int aoUV = 0,
+      int normalUV = 0,
+      bool hasTransmissionTexture = false,
+      int transmissionUV = 0,
+      bool hasSheenColorTexture = false,
+      int sheenColorUV = 0,
+      bool hasSheenRoughnessTexture = false,
+      int sheenRoughnessUV = 0,
+      bool hasVolumeThicknessTexture = false,
+      int volumeThicknessUV = 0,
+      bool hasSheen = false,
+      bool hasIOR = false,
+      bool hasVolume = false}) async {
+    final key = Struct.create<TMaterialKey>();
+
+    // Set all the fields of the TMaterialKey struct
+    key.doubleSided = doubleSided;
+    key.unlit = unlit;
+    key.hasVertexColors = hasVertexColors;
+    key.hasBaseColorTexture = hasBaseColorTexture;
+    key.hasNormalTexture = hasNormalTexture;
+    key.hasOcclusionTexture = hasOcclusionTexture;
+    key.hasEmissiveTexture = hasEmissiveTexture;
+    key.useSpecularGlossiness = useSpecularGlossiness;
+    key.alphaMode = alphaMode.index;
+    key.enableDiagnostics = enableDiagnostics;
+    key.unnamed.unnamed.hasMetallicRoughnessTexture =
+        hasMetallicRoughnessTexture;
+    key.unnamed.unnamed.metallicRoughnessUV = metallicRoughnessUV;
+    key.baseColorUV = baseColorUV;
+    key.hasClearCoatTexture = hasClearCoatTexture;
+    key.clearCoatUV = clearCoatUV;
+    key.hasClearCoatRoughnessTexture = hasClearCoatRoughnessTexture;
+    key.clearCoatRoughnessUV = clearCoatRoughnessUV;
+    key.hasClearCoatNormalTexture = hasClearCoatNormalTexture;
+    key.clearCoatNormalUV = clearCoatNormalUV;
+    key.hasClearCoat = hasClearCoat;
+    key.hasTransmission = hasTransmission;
+    key.hasTextureTransforms = hasTextureTransforms;
+    key.emissiveUV = emissiveUV;
+    key.aoUV = aoUV;
+    key.normalUV = normalUV;
+    key.hasTransmissionTexture = hasTransmissionTexture;
+    key.transmissionUV = transmissionUV;
+    key.hasSheenColorTexture = hasSheenColorTexture;
+    key.sheenColorUV = sheenColorUV;
+    key.hasSheenRoughnessTexture = hasSheenRoughnessTexture;
+    key.sheenRoughnessUV = sheenRoughnessUV;
+    key.hasVolumeThicknessTexture = hasVolumeThicknessTexture;
+    key.volumeThicknessUV = volumeThicknessUV;
+    key.hasSheen = hasSheen;
+    key.hasIOR = hasIOR;
+    key.hasVolume = hasVolume;
+
+    // Assuming there's a method to create the MaterialInstance using the key
+    final materialInstance = create_material_instance(_sceneManager!, key);
+
+    if (materialInstance == nullptr) {
+      throw Exception("Failed to create material instance");
+    }
+
+    // Don't forget to free the memory allocated for the struct
+    return ThermionFFIMaterialInstance(materialInstance);
+  }
+
+  ///
+  ///
+  ///
+  Future destroyMaterialInstance(
+      ThermionFFIMaterialInstance materialInstance) async {
+    destroy_material_instance(_viewer!, materialInstance._pointer);
   }
 }
 
@@ -2000,4 +2108,10 @@ class ThermionFFITexture extends ThermionTexture {
   final Pointer<Void> _pointer;
 
   ThermionFFITexture(this._pointer);
+}
+
+class ThermionFFIMaterialInstance extends MaterialInstance {
+  final Pointer<TMaterialInstance> _pointer;
+
+  ThermionFFIMaterialInstance(this._pointer);
 }
