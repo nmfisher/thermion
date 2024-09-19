@@ -407,12 +407,14 @@ extern "C"
                                                       size_t length, 
                                                       int numInstances, 
                                                       bool keepData,
+                                                      int priority,
+                                                      int layer,
                                                       void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
         [=]() mutable
         {
-          auto entity = load_glb_from_buffer(sceneManager, data, length, keepData);
+          auto entity = load_glb_from_buffer(sceneManager, data, length, keepData, priority, layer);
           callback(entity);
           return entity;
         });
@@ -840,14 +842,14 @@ extern "C"
     uint16_t *indices, 
     int numIndices, 
     int primitiveType, 
-    const char *materialPath, 
+    TMaterialInstance * materialInstance, 
     bool keepData, 
     void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
         [=]
         {
-          auto entity = create_geometry(sceneManager, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, materialPath);
+          auto entity = create_geometry(sceneManager, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, materialInstance, keepData);
           #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({
             moduleArg.dartFilamentResolveCallback($0,$1);
