@@ -19,7 +19,6 @@
 
 #include "material/gizmo.h"
 
-#include "Aabb2.h"
 #include "ThermionDartApi.h"
 
 namespace thermion_filament {
