@@ -1976,11 +1976,11 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<Uint8List> unproject(
-      ThermionEntity entity, int outWidth, int outHeight) async {
+      ThermionEntity entity, Uint8List input, int inputWidth, int inputHeight, int outWidth, int outHeight) async {
     final outPtr = Uint8List(outWidth * outHeight * 4);
     await withVoidCallback((callback) {
       unproject_texture_ffi(
-          _viewer!, entity, outPtr.address, outWidth, outHeight, callback);
+          _viewer!, entity, input.address, inputWidth, inputHeight, outPtr.address, outWidth, outHeight, callback);
     });
 
     return outPtr.buffer.asUint8List();
