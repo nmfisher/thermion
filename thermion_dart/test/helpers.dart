@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
-
+import 'dart:math';
+import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -10,10 +11,7 @@ import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_dart.g.dart';
 import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_viewer_ffi.dart';
 
-
-
 final viewportDimensions = (width: 500, height: 500);
-
 
 /// Test files are run in a variety of ways, find this package root in all.
 ///
@@ -56,61 +54,116 @@ extension on Uri {
 
 late String testDir;
 
-Future<void> pixelBufferToBmp(
+Future<Uint8List> savePixelBufferToBmp(
     Uint8List pixelBuffer, int width, int height, String outputPath) async {
-  // BMP file header (14 bytes)
-  final fileHeader = ByteData(14);
-  fileHeader.setUint16(0, 0x4D42, Endian.little); // 'BM'
-  final fileSize = 54 + width * height * 3; // 54 bytes header + RGB data
-  fileHeader.setUint32(2, fileSize, Endian.little);
-  fileHeader.setUint32(10, 54, Endian.little); // Offset to pixel data
+  var data = await pixelBufferToBmp(pixelBuffer, width, height);
+  File(outputPath).writeAsBytesSync(data);
+  print("Wrote bitmap to ${outputPath}");
+  return data;
+}
 
-  // BMP info header (40 bytes)
-  final infoHeader = ByteData(40);
-  infoHeader.setUint32(0, 40, Endian.little); // Info header size
-  infoHeader.setInt32(4, width, Endian.little);
-  infoHeader.setInt32(8, -height, Endian.little); // Negative for top-down
-  infoHeader.setUint16(12, 1, Endian.little); // Number of color planes
-  infoHeader.setUint16(14, 24, Endian.little); // Bits per pixel (RGB)
-  infoHeader.setUint32(16, 0, Endian.little); // No compression
-  infoHeader.setUint32(20, width * height * 3, Endian.little); // Image size
-  infoHeader.setInt32(24, 2835, Endian.little); // X pixels per meter
-  infoHeader.setInt32(28, 2835, Endian.little); // Y pixels per meter
-
-  // Calculate row size and padding
+Future<Uint8List> pixelBufferToBmp(
+    Uint8List pixelBuffer, int width, int height) async {
   final rowSize = (width * 3 + 3) & ~3;
   final padding = rowSize - (width * 3);
+  final fileSize = 54 + rowSize * height;
+
+  final data = Uint8List(fileSize);
+  final buffer = data.buffer;
+  final bd = ByteData.view(buffer);
+
+  // BMP file header (14 bytes)
+  bd.setUint16(0, 0x4D42, Endian.little); // 'BM'
+  bd.setUint32(2, fileSize, Endian.little);
+  bd.setUint32(10, 54, Endian.little); // Offset to pixel data
+
+  // BMP info header (40 bytes)
+  bd.setUint32(14, 40, Endian.little); // Info header size
+  bd.setInt32(18, width, Endian.little);
+  bd.setInt32(22, -height, Endian.little); // Negative for top-down
+  bd.setUint16(26, 1, Endian.little); // Number of color planes
+  bd.setUint16(28, 24, Endian.little); // Bits per pixel (RGB)
+  bd.setUint32(30, 0, Endian.little); // No compression
+  bd.setUint32(34, rowSize * height, Endian.little); // Image size
+  bd.setInt32(38, 2835, Endian.little); // X pixels per meter
+  bd.setInt32(42, 2835, Endian.little); // Y pixels per meter
 
   // Pixel data (BMP stores in BGR format)
-  final bmpData = Uint8List(rowSize * height);
   for (var y = 0; y < height; y++) {
     for (var x = 0; x < width; x++) {
       final srcIndex = (y * width + x) * 4; // RGBA format
-      final dstIndex = y * rowSize + x * 3; // BGR format
-      bmpData[dstIndex] = pixelBuffer[srcIndex + 2]; // Blue
-      bmpData[dstIndex + 1] = pixelBuffer[srcIndex + 1]; // Green
-      bmpData[dstIndex + 2] = pixelBuffer[srcIndex]; // Red
+      final dstIndex = 54 + y * rowSize + x * 3; // BGR format
+      data[dstIndex] = pixelBuffer[srcIndex + 2]; // Blue
+      data[dstIndex + 1] = pixelBuffer[srcIndex + 1]; // Green
+      data[dstIndex + 2] = pixelBuffer[srcIndex]; // Red
       // Alpha channel is discarded
     }
     // Add padding to the end of each row
     for (var p = 0; p < padding; p++) {
-      bmpData[y * rowSize + width * 3 + p] = 0;
+      data[54 + y * rowSize + width * 3 + p] = 0;
     }
   }
 
-  // Write BMP file
-  final file = File(outputPath);
-  final sink = file.openWrite();
-  sink.add(fileHeader.buffer.asUint8List());
-  sink.add(infoHeader.buffer.asUint8List());
-  sink.add(bmpData);
-  await sink.close();
+  return data;
+}
 
-  print('BMP image saved to: $outputPath');
+Future<Uint8List> bmpToPng(Uint8List pixelBuffer, int width, int height) async {
+  final image = img.Image(width: width, height: height);
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      final int pixelIndex = (y * width + x) * 4;
+      double r = pixelBuffer[pixelIndex] / 255.0;
+      double g = pixelBuffer[pixelIndex + 1] / 255.0;
+      double b = pixelBuffer[pixelIndex + 2] / 255.0;
+      int a = pixelBuffer[pixelIndex + 3];
+
+      // Apply inverse ACES tone mapping
+      bool invertAces = false;
+      if (invertAces) {
+        r = _inverseACESToneMapping(r);
+        g = _inverseACESToneMapping(g);
+        b = _inverseACESToneMapping(b);
+      }
+
+      // Convert from linear to sRGB
+      final int sRgbR = _linearToSRGB(r);
+      final int sRgbG = _linearToSRGB(g);
+      final int sRgbB = _linearToSRGB(b);
+
+      image.setPixel(
+          x, y, img.ColorUint8(4)..setRgba(sRgbR, sRgbG, sRgbB, 1.0));
+    }
+  }
+
+  return img.encodePng(image);
+}
+
+double _inverseACESToneMapping(double x) {
+  const double a = 2.51;
+  const double b = 0.03;
+  const double c = 2.43;
+  const double d = 0.59;
+  const double e = 0.14;
+
+  // Ensure x is in the valid range [0, 1]
+  x = x.clamp(0.0, 1.0);
+
+  // Inverse ACES filmic tone mapping function
+  return (x * (x * a + b)) / (x * (x * c + d) + e);
+}
+
+int _linearToSRGB(double linearValue) {
+  if (linearValue <= 0.0031308) {
+    return (linearValue * 12.92 * 255.0).round().clamp(0, 255);
+  } else {
+    return ((1.055 * pow(linearValue, 1.0 / 2.4) - 0.055) * 255.0)
+        .round()
+        .clamp(0, 255);
+  }
 }
 
 Future<ThermionViewer> createViewer() async {
-
   final packageUri = findPackageRoot('thermion_dart');
 
   final lib = ThermionDartTexture1(DynamicLibrary.open(
