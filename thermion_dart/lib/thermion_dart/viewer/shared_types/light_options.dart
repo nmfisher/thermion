@@ -38,39 +38,61 @@ class DirectLight {
     this.sunHaloSize = 10.0,
     this.sunHaloFallof = 80.0,
   });
-DirectLight.point({
-  double color = 6500,
-  double intensity = 100000,
-  bool castShadows = false,
-  Vector3? position,
-  double falloffRadius = 1.0,
-}) : this(
-  type: LightType.POINT,
-  color: color,
-  intensity: intensity,
-  castShadows: castShadows,
-  position: position ?? Vector3(0, 1, 0),
-  direction: Vector3.zero(),
-  falloffRadius: falloffRadius,
-);
 
-DirectLight.sun({
-  double color = 6500,
-  double intensity = 100000,
-  bool castShadows = true,
-  Vector3? direction,
-  double sunAngularRadius = 0.545,
-  double sunHaloSize = 10.0,
-  double sunHaloFalloff = 80.0,
-}) : this(
-  type: LightType.DIRECTIONAL,
-  color: color,
-  intensity: intensity,
-  castShadows: castShadows,
-  position: Vector3(0, 0, 0),  
-  direction: direction ?? Vector3(0, -1, 0),
-  sunAngularRadius: sunAngularRadius,
-  sunHaloSize: sunHaloSize,
-  sunHaloFallof: sunHaloFalloff,
-);
+  DirectLight.point({
+    double color = 6500,
+    double intensity = 100000,
+    bool castShadows = false,
+    Vector3? position,
+    double falloffRadius = 1.0,
+  }) : this(
+    type: LightType.POINT,
+    color: color,
+    intensity: intensity,
+    castShadows: castShadows,
+    position: position ?? Vector3(0, 1, 0),
+    direction: Vector3.zero(),
+    falloffRadius: falloffRadius,
+  );
+
+  DirectLight.sun({
+    double color = 6500,
+    double intensity = 100000,
+    bool castShadows = true,
+    Vector3? direction,
+    double sunAngularRadius = 0.545,
+    double sunHaloSize = 10.0,
+    double sunHaloFalloff = 80.0,
+  }) : this(
+    type: LightType.DIRECTIONAL,
+    color: color,
+    intensity: intensity,
+    castShadows: castShadows,
+    position: Vector3(0, 0, 0),  
+    direction: direction ?? Vector3(0, -1, 0),
+    sunAngularRadius: sunAngularRadius,
+    sunHaloSize: sunHaloSize,
+    sunHaloFallof: sunHaloFalloff,
+  );
+
+  DirectLight.spot({
+    double color = 6500,
+    double intensity = 100000,
+    bool castShadows = true,
+    Vector3? position,
+    Vector3? direction,
+    double falloffRadius = 1.0,
+    double spotLightConeInner = pi / 8,
+    double spotLightConeOuter = pi / 4,
+  }) : this(
+    type: LightType.SPOT,
+    color: color,
+    intensity: intensity,
+    castShadows: castShadows,
+    position: position ?? Vector3(0, 1, 0),
+    direction: direction ?? Vector3(0, -1, 0),
+    falloffRadius: falloffRadius,
+    spotLightConeInner: spotLightConeInner,
+    spotLightConeOuter: spotLightConeOuter,
+  );
 }
