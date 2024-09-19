@@ -103,9 +103,8 @@ namespace thermion_filament
         _scene->addEntity(_gridOverlay->sphere());
         _scene->addEntity(_gridOverlay->grid());
 
-        _view->setLayerEnabled(0, true);  // scene assets
-        _view->setLayerEnabled(1, true);  // gizmo
-        _view->setLayerEnabled(2, false); // world grid
+        _view->setLayerEnabled(SceneManager::LAYERS::DEFAULT_ASSETS, true);
+        _view->setLayerEnabled(SceneManager::LAYERS::OVERLAY, false); // world grid + gizmo
     }
 
     SceneManager::~SceneManager()
@@ -239,7 +238,7 @@ namespace thermion_filament
         return eid;
     }
 
-    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData)
+    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer)
     {
 
         FilamentAsset *asset = nullptr;
@@ -262,6 +261,18 @@ namespace thermion_filament
         size_t entityCount = asset->getEntityCount();
 
         _scene->addEntities(asset->getEntities(), entityCount);
+
+        auto & rm = _engine->getRenderableManager();
+
+        for(int i=0; i < entityCount; i++) {
+            auto instance = rm.getInstance(asset->getEntities()[i]);
+            if(!instance.isValid()) {
+                Log("No valid renderable for entity");
+                continue;
+            }
+            rm.setPriority(instance, priority);
+            rm.setLayerMask(instance, 0xFF, 1u << (uint8_t)layer);
+        }
 
 #ifdef __EMSCRIPTEN__
         if (!_gltfResourceLoader->asyncBeginLoad(asset))
@@ -2424,7 +2435,7 @@ EntityId SceneManager::createGeometry(
     uint16_t *indices,
     uint32_t numIndices,
     filament::RenderableManager::PrimitiveType primitiveType,
-    const char *materialPath,
+    filament::MaterialInstance* materialInstance,
     bool keepData)
 {
     auto geometry = std::make_unique<CustomGeometry>(vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, _engine);
@@ -2439,24 +2450,15 @@ EntityId SceneManager::createGeometry(
         .castShadows(true);
 
     filament::Material *mat = nullptr;
-    filament::MaterialInstance* materialInstance = nullptr;
-
-    if (materialPath)
-    {
-        auto matData = _resourceLoaderWrapper->load(materialPath);
-        mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
-        _resourceLoaderWrapper->free(matData);
-        materialInstance = mat->getDefaultInstance();
-    }
-    else
-    {
+    
+    if (!materialInstance){
         filament::gltfio::MaterialKey config;
 
-        config.unlit = false;
+        config.unlit = true;
         config.doubleSided = false;
         config.useSpecularGlossiness = false;
         config.alphaMode = filament::gltfio::AlphaMode::OPAQUE;
-        config.hasBaseColorTexture = uvs != nullptr;
+        config.hasBaseColorTexture = false; //uvs != nullptr;
         config.hasClearCoat = false;
         config.hasClearCoatNormalTexture = false;
         config.hasClearCoatRoughnessTexture = false;
@@ -2479,9 +2481,16 @@ EntityId SceneManager::createGeometry(
         config.hasVolume = false;
 
         filament::gltfio::UvMap uvmap;
+        
         materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
 
-        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 0.0f, 1.0f, 1.0f});
+        if(!materialInstance) { 
+            Log("Failed to create material instance");
+            return Entity::smuggle(Entity());
+        }
+
+        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
+        materialInstance->setParameter("baseColorIndex", 0);
     }
 
     // Set up texture and sampler if UVs are available
@@ -2528,7 +2537,7 @@ EntityId SceneManager::createGeometry(
         auto renderableInstance = rm.getInstance(entity);
         if (!renderableInstance.isValid())
         {
-            Log("ERROR");
+            Log("Error setting material property for entity %d: no renderable");
             return;
         }
         auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
@@ -2548,7 +2557,7 @@ EntityId SceneManager::createGeometry(
         auto renderableInstance = rm.getInstance(entity);
         if (!renderableInstance.isValid())
         {
-            Log("ERROR");
+            Log("Error setting material property for entity %d: no renderable");
             return;
         }
         auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
@@ -2559,6 +2568,22 @@ EntityId SceneManager::createGeometry(
             return;
         }
         materialInstance->setParameter(property, value);
+    }
+
+    void SceneManager::destroy(MaterialInstance* instance) {
+        _engine->destroy(instance);
+    }
+
+    MaterialInstance* SceneManager::createUbershaderMaterialInstance(filament::gltfio::MaterialKey config) {
+        
+        filament::gltfio::UvMap uvmap;
+        auto * materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
+        if(!materialInstance) {
+            Log("Invalid material configuration");
+        }
+        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
+        materialInstance->setParameter("baseColorIndex", 0);
+        return materialInstance;
     }
 
 } // namespace thermion_filament
