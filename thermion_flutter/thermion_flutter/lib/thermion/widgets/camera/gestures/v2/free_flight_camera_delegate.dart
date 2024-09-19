@@ -9,8 +9,6 @@ import 'package:vector_math/vector_math_64.dart';
 
 class FreeFlightCameraDelegate implements CameraDelegate {
   final ThermionViewer viewer;
-  final bool lockPitch;
-  final bool lockYaw;
   final bool lockRoll;
   final Vector3? minBounds;
   final Vector3? maxBounds;
@@ -36,8 +34,7 @@ class FreeFlightCameraDelegate implements CameraDelegate {
 
   FreeFlightCameraDelegate(
     this.viewer, {
-    this.lockPitch = false,
-    this.lockYaw = false,
+
     this.lockRoll = false,
     this.minBounds,
     this.maxBounds,
@@ -76,9 +73,9 @@ class FreeFlightCameraDelegate implements CameraDelegate {
 
       // Apply rotation
       if (_accumulatedRotation != Offset.zero) {
-        double deltaX = lockYaw ? 0 : _accumulatedRotation.dx * rotationSensitivity * viewer.pixelRatio;
-        double deltaY = lockPitch ? 0 : _accumulatedRotation.dy * rotationSensitivity * viewer.pixelRatio;
-        double deltaZ = lockRoll ? 0 : (_accumulatedRotation.dx + _accumulatedRotation.dy) * rotationSensitivity * 0.5 * viewer.pixelRatio;
+        double deltaX = _accumulatedRotation.dx * rotationSensitivity * viewer.pixelRatio;
+        double deltaY = _accumulatedRotation.dy * rotationSensitivity * viewer.pixelRatio;
+        double deltaZ = (_accumulatedRotation.dx + _accumulatedRotation.dy) * rotationSensitivity * 0.5 * viewer.pixelRatio;
 
         Quaternion yawRotation = Quaternion.axisAngle(_up, -deltaX);
         Quaternion pitchRotation = Quaternion.axisAngle(_right, -deltaY);
@@ -150,7 +147,7 @@ class FreeFlightCameraDelegate implements CameraDelegate {
 
   @override
   Future<void> zoom(double scrollDelta, Vector2? velocity) async {
-    _accumulatedZoom += scrollDelta;
+    _accumulatedZoom -= scrollDelta;
     _lastVelocity = velocity;
   }
 

@@ -14,16 +14,19 @@ class DefaultZoomCameraDelegate {
   DefaultZoomCameraDelegate(this.viewer,
       {this.zoomSensitivity = 0.005, this.getDistanceToTarget});
 
-  double calculateZoomDistance(double scrollDelta, Vector2? velocity, Vector3 cameraPosition) {
-    double? distanceToTarget = getDistanceToTarget?.call(cameraPosition);
-    double zoomDistance = scrollDelta * zoomSensitivity;
-    if (distanceToTarget != null) {
-      zoomDistance *= distanceToTarget;
-      if (zoomDistance.abs() < 0.0001) {
-        zoomDistance = scrollDelta * zoomSensitivity;
-      }
+  ///
+  /// Converts the given [scrollDelta] (usually somewhere between 1 and -1) to
+  /// a percentage of the current camera distance (either to the origin,
+  /// or to a custom target) along its forward vector.
+  /// In other words, "shift "
+  ///
+  double calculateZoomFactor(
+      double scrollDelta, Vector2? velocity) {
+    double zoomFactor = scrollDelta * zoomSensitivity;
+    if (zoomFactor.abs() < 0.0001) {
+      zoomFactor = scrollDelta * zoomSensitivity;
     }
-    return max(zoomDistance, scrollDelta * zoomSensitivity);
+    return zoomFactor;
   }
 
   @override
@@ -36,7 +39,7 @@ class DefaultZoomCameraDelegate {
     forwardVector.normalize();
 
     var zoomDistance =
-        calculateZoomDistance(scrollDelta, velocity, cameraPosition);
+        calculateZoomFactor(scrollDelta, velocity);
 
     Vector3 newPosition = cameraPosition + (forwardVector * zoomDistance);
     await viewer.setCameraPosition(newPosition.x, newPosition.y, newPosition.z);
