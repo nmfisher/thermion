@@ -274,7 +274,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float value);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float4 value);
-	EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const sceneManager, EntityId entity, uint8_t *out, uint32_t outWidth, uint32_t outHeight);
+	EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const sceneManager, EntityId entity,uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight);
 	EMSCRIPTEN_KEEPALIVE void *const create_texture(void *const sceneManager, uint8_t *data, size_t length);
 	EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void *const texture);
 	EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex);
