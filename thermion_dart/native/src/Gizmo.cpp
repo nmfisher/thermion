@@ -6,7 +6,7 @@
 #include <filament/RenderableManager.h>
 #include <filament/TransformManager.h>
 #include <gltfio/math.h>
-
+#include "SceneManager.hpp"
 #include "material/gizmo.h"
 #include "Log.hpp"
 
@@ -77,7 +77,7 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
         .boundingBox({{-centerCubeSize, -centerCubeSize, -centerCubeSize}, 
                       {centerCubeSize, centerCubeSize, centerCubeSize}})
         .material(0, _materialInstances[3])
-        .layerMask(0xFF, 2)
+        .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
         .priority(7)
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, centerCubeVb, centerCubeIb, 0, 36)
         .culling(false)
@@ -172,7 +172,7 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
             .material(0, _materialInstances[i])
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0, 54)
             .priority(6)
-            .layerMask(0xFF, 2)
+            .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
             .culling(false)
             .receiveShadows(false)
             .castShadows(false)
@@ -188,10 +188,6 @@ Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
     }
 
     createTransparentRectangles();
-    
-    _view->setLayerEnabled(0, true);  // scene assets
-    _view->setLayerEnabled(1, true);  // gizmo
-    _view->setLayerEnabled(2, true); // world grid
 }
 
 Gizmo::~Gizmo() {
@@ -284,7 +280,7 @@ void Gizmo::createTransparentRectangles()
             .material(0, _materialInstances[i])
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, volumeVb, volumeIb, 0, 36)
             .priority(7)
-            .layerMask(0xFF, 2)
+            .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
             .culling(false)
             .receiveShadows(false)
             .castShadows(false)
