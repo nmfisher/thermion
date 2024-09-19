@@ -46,32 +46,13 @@
 #include <stddef.h>
 #endif
 
+#include "APIBoundaryTypes.h"
 #include "ResourceBuffer.hpp"
-#include "Aabb2.h"
-
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-	typedef int32_t EntityId;
-	typedef int32_t _ManipulatorMode;
-	typedef struct CameraPtr CameraPtr;
-
-	typedef struct { 
-		float x;
-		float y; 
-		float z;
-		float w;
-	} float4;
-
-	typedef struct {
-		double col1[4];
-		double col2[4];
-		double col3[4];
-		double col4[4];
-	} double4x4;
 
 	EMSCRIPTEN_KEEPALIVE const void *create_filament_viewer(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
 	EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(const void *const viewer);
@@ -90,19 +71,19 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void remove_skybox(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE void remove_ibl(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE EntityId add_light(
-		const void *const viewer, 
-		uint8_t type, 
-		float colour, 
-		float intensity, 
-		float posX, 
-		float posY, 
-		float posZ, 
-		float dirX, 
-		float dirY, 
-		float dirZ, 
+		const void *const viewer,
+		uint8_t type,
+		float colour,
+		float intensity,
+		float posX,
+		float posY,
+		float posZ,
+		float dirX,
+		float dirY,
+		float dirZ,
 		float falloffRadius,
-    	float spotLightConeInner,
-    	float spotLightConeOuter,
+		float spotLightConeInner,
+		float spotLightConeOuter,
 		float sunAngularRadius,
 		float sunHaloSize,
 		float sunHaloFallof,
@@ -112,7 +93,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_light_position(const void *const viewer, EntityId light, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void set_light_direction(const void *const viewer, EntityId light, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances, bool keepData);
-	EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length, bool keepData);
+	EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length, bool keepData, int priority, int layer);
 	EMSCRIPTEN_KEEPALIVE EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath, bool keepData);
 	EMSCRIPTEN_KEEPALIVE EntityId create_instance(void *sceneManager, EntityId id);
 	EMSCRIPTEN_KEEPALIVE int get_instance_count(void *sceneManager, EntityId entityId);
@@ -160,6 +141,8 @@ extern "C"
 		int numMorphTargets,
 		int numFrames,
 		float frameLengthInMs);
+	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_material_instance(void *const sceneManager, TMaterialKey key);
+	EMSCRIPTEN_KEEPALIVE void destroy_material_instance(void *const sceneManager, TMaterialInstance *instance);
 	EMSCRIPTEN_KEEPALIVE void clear_morph_animation(
 		void *sceneManager,
 		EntityId entity);
@@ -179,13 +162,13 @@ extern "C"
 		float fadeInInSecs,
 		float maxDelta);
 	EMSCRIPTEN_KEEPALIVE void get_local_transform(void *sceneManager,
-        EntityId entityId, float* const);
+												  EntityId entityId, float *const);
 	EMSCRIPTEN_KEEPALIVE void get_rest_local_transforms(void *sceneManager,
-        EntityId entityId, int skinIndex, float* const out, int numBones);
+														EntityId entityId, int skinIndex, float *const out, int numBones);
 	EMSCRIPTEN_KEEPALIVE void get_world_transform(void *sceneManager,
-        EntityId entityId, float* const);
+												  EntityId entityId, float *const);
 	EMSCRIPTEN_KEEPALIVE void get_inverse_bind_matrix(void *sceneManager,
-        EntityId entityId, int skinIndex, int boneIndex, float* const);
+													  EntityId entityId, int skinIndex, int boneIndex, float *const);
 	EMSCRIPTEN_KEEPALIVE bool set_bone_transform(
 		void *sceneManager,
 		EntityId entity,
@@ -199,13 +182,13 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void get_animation_name(void *sceneManager, EntityId entity, char *const outPtr, int index);
 	EMSCRIPTEN_KEEPALIVE float get_animation_duration(void *sceneManager, EntityId entity, int index);
 	EMSCRIPTEN_KEEPALIVE int get_bone_count(void *sceneManager, EntityId assetEntity, int skinIndex);
-	EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char** outPtr, int skinIndex);
+	EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char **outPtr, int skinIndex);
 	EMSCRIPTEN_KEEPALIVE EntityId get_bone(void *sceneManager,
-        EntityId entityId,
-        int skinIndex,
-        int boneIndex);
-	EMSCRIPTEN_KEEPALIVE bool set_transform(void* sceneManager, EntityId entityId, const float* const transform);
-	EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(void* sceneManager, EntityId entityId);
+										   EntityId entityId,
+										   int skinIndex,
+										   int boneIndex);
+	EMSCRIPTEN_KEEPALIVE bool set_transform(void *sceneManager, EntityId entityId, const float *const transform);
+	EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(void *sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void get_morph_target_name(void *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index);
 	EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity);
 	EMSCRIPTEN_KEEPALIVE void remove_entity(const void *const viewer, EntityId asset);
@@ -222,22 +205,22 @@ extern "C"
 
 	// Camera methods
 	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(const void *const viewer, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(CameraPtr* camera, float aperture, float shutterSpeed, float sensitivity);
-	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(CameraPtr* camera, double4x4 matrix);
-	EMSCRIPTEN_KEEPALIVE CameraPtr* get_camera(const void *const viewer, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(CameraPtr* const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(CameraPtr* const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(CameraPtr* const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(CameraPtr* const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_culling_projection_matrix(CameraPtr* const camera);
-	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(CameraPtr* const camera);
-	EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(CameraPtr* camera, double4x4 matrix, double near, double far);
-	EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(CameraPtr* camera, double fovInDegrees, double aspect, double near, double far, bool horizontal);
-	EMSCRIPTEN_KEEPALIVE double get_camera_near(CameraPtr* camera);
-	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(CameraPtr* camera);
-	EMSCRIPTEN_KEEPALIVE float get_camera_fov(CameraPtr* camera, bool horizontal);
-	EMSCRIPTEN_KEEPALIVE void set_camera_lens_projection(CameraPtr* camera, double near, double far, double aspect, double focalLength);
-	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(CameraPtr* camera, float focusDistance);
+	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(CameraPtr *camera, float aperture, float shutterSpeed, float sensitivity);
+	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(CameraPtr *camera, double4x4 matrix);
+	EMSCRIPTEN_KEEPALIVE CameraPtr *get_camera(const void *const viewer, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(CameraPtr *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(CameraPtr *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(CameraPtr *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(CameraPtr *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_culling_projection_matrix(CameraPtr *const camera);
+	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(CameraPtr *const camera);
+	EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(CameraPtr *camera, double4x4 matrix, double near, double far);
+	EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(CameraPtr *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal);
+	EMSCRIPTEN_KEEPALIVE double get_camera_near(CameraPtr *camera);
+	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(CameraPtr *camera);
+	EMSCRIPTEN_KEEPALIVE float get_camera_fov(CameraPtr *camera, bool horizontal);
+	EMSCRIPTEN_KEEPALIVE void set_camera_lens_projection(CameraPtr *camera, double near, double far, double aspect, double focalLength);
+	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(CameraPtr *camera, float focusDistance);
 	EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
 
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId entity, const char *meshName);
@@ -262,7 +245,19 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE bool add_animation_component(void *const sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void remove_animation_component(void *const sceneManager, EntityId entityId);
 
-	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, float *uvs, int numUvs, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath);
+	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(
+		void *const sceneManager, 
+		float *vertices, 
+		int numVertices, 
+		float *normals, 
+		int numNormals, 
+		float *uvs, 
+		int numUvs, 
+		uint16_t *indices, 
+		int numIndices, 
+		int primitiveType, 
+		TMaterialInstance *materialInstance, 
+		bool keepData);
 	EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(void *const sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling);
@@ -270,19 +265,18 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_priority(void *const sceneManager, EntityId entityId, int priority);
 	EMSCRIPTEN_KEEPALIVE void get_gizmo(void *const sceneManager, EntityId *out);
 	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float* minX, float* minY, float* maxX, float* maxY);
+	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float *minX, float *minY, float *maxX, float *maxY);
 	EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y));
 	EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible);
 	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entity, float r, float g, float b);
 	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float value);
-	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float4 value);
-	EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const sceneManager, EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight);
-    EMSCRIPTEN_KEEPALIVE void* const create_texture(void *const sceneManager, uint8_t* data, size_t length);
-	EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void* const texture);
-	EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void* const texture, const char* parameterName, int materialIndex);
-
+	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float value);
+	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float4 value);
+	EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const sceneManager, EntityId entity, uint8_t *out, uint32_t outWidth, uint32_t outHeight);
+	EMSCRIPTEN_KEEPALIVE void *const create_texture(void *const sceneManager, uint8_t *data, size_t length);
+	EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void *const texture);
+	EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex);
 
 #ifdef __cplusplus
 }
