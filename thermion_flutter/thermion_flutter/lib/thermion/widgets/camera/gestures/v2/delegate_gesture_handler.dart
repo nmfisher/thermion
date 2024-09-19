@@ -9,6 +9,7 @@ import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.d
 import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/fixed_orbit_camera_rotation_delegate.dart';
 import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/free_flight_camera_delegate.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 class DelegateGestureHandler implements ThermionGestureHandler {
   final ThermionViewer viewer;
@@ -48,10 +49,16 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     _initializeAccumulatedDeltas();
   }
 
-  factory DelegateGestureHandler.fixedOrbit(ThermionViewer viewer) =>
+  factory DelegateGestureHandler.fixedOrbit(ThermionViewer viewer,
+          {double? Function(Vector3)? getDistanceToTarget,
+          double rotationSensitivity = 0.001,
+          double zoomSensitivity = 0.001}) =>
       DelegateGestureHandler(
         viewer: viewer,
-        cameraDelegate: FixedOrbitRotateCameraDelegate(viewer),
+        cameraDelegate: FixedOrbitRotateCameraDelegate(viewer,
+            getDistanceToTarget: getDistanceToTarget,
+            rotationSensitivity: rotationSensitivity,
+            zoomSensitivity: zoomSensitivity),
         velocityDelegate: DefaultVelocityDelegate(),
       );
 
@@ -96,7 +103,8 @@ class DelegateGestureHandler implements ThermionGestureHandler {
             // Do nothing
             break;
           default:
-            _logger.warning("Unsupported gesture action: $action for type: $gestureType");
+            _logger.warning(
+                "Unsupported gesture action: $action for type: $gestureType");
             break;
         }
 
@@ -105,12 +113,13 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     }
 
     if (_accumulatedScrollDelta != 0.0) {
-      await cameraDelegate?.zoom(_accumulatedScrollDelta, velocityDelegate?.velocity);
+      await cameraDelegate?.zoom(
+          _accumulatedScrollDelta, velocityDelegate?.velocity);
       _accumulatedScrollDelta = 0.0;
     }
   }
 
-   @override
+  @override
   Future<void> onPointerDown(Offset localPosition, int buttons) async {
     velocityDelegate?.stopDeceleration();
     _activePointers++;
@@ -120,13 +129,18 @@ class DelegateGestureHandler implements ThermionGestureHandler {
   }
 
   @override
-  Future<void> onPointerMove(Offset localPosition, Offset delta, int buttons) async {
+  Future<void> onPointerMove(
+      Offset localPosition, Offset delta, int buttons) async {
     GestureType gestureType = _getGestureTypeFromButtons(buttons);
     if (gestureType == GestureType.MMB_HOLD_AND_MOVE ||
-        (_actions[GestureType.POINTER_MOVE] == GestureAction.ROTATE_CAMERA && gestureType == GestureType.POINTER_MOVE)) {
-      _accumulatedDeltas[GestureType.MMB_HOLD_AND_MOVE] = (_accumulatedDeltas[GestureType.MMB_HOLD_AND_MOVE] ?? Offset.zero) + delta;
+        (_actions[GestureType.POINTER_MOVE] == GestureAction.ROTATE_CAMERA &&
+            gestureType == GestureType.POINTER_MOVE)) {
+      _accumulatedDeltas[GestureType.MMB_HOLD_AND_MOVE] =
+          (_accumulatedDeltas[GestureType.MMB_HOLD_AND_MOVE] ?? Offset.zero) +
+              delta;
     } else {
-      _accumulatedDeltas[gestureType] = (_accumulatedDeltas[gestureType] ?? Offset.zero) + delta;
+      _accumulatedDeltas[gestureType] =
+          (_accumulatedDeltas[gestureType] ?? Offset.zero) + delta;
     }
   }
 
@@ -142,22 +156,26 @@ class DelegateGestureHandler implements ThermionGestureHandler {
   }
 
   GestureType _getGestureTypeFromButtons(int buttons) {
-    if (buttons & kPrimaryMouseButton != 0) return GestureType.LMB_HOLD_AND_MOVE;
-    if (buttons & kMiddleMouseButton != 0 || _isMiddleMouseButtonPressed) return GestureType.MMB_HOLD_AND_MOVE;
+    if (buttons & kPrimaryMouseButton != 0)
+      return GestureType.LMB_HOLD_AND_MOVE;
+    if (buttons & kMiddleMouseButton != 0 || _isMiddleMouseButtonPressed)
+      return GestureType.MMB_HOLD_AND_MOVE;
     return GestureType.POINTER_MOVE;
   }
 
   @override
   Future<void> onPointerHover(Offset localPosition, Offset delta) async {
     if (_actions[GestureType.POINTER_MOVE] == GestureAction.ROTATE_CAMERA) {
-      _accumulatedDeltas[GestureType.POINTER_MOVE] = (_accumulatedDeltas[GestureType.POINTER_MOVE] ?? Offset.zero) + delta;
+      _accumulatedDeltas[GestureType.POINTER_MOVE] =
+          (_accumulatedDeltas[GestureType.POINTER_MOVE] ?? Offset.zero) + delta;
     }
   }
-  
+
   @override
   Future<void> onPointerScroll(Offset localPosition, double scrollDelta) async {
     if (_actions[GestureType.SCROLLWHEEL] != GestureAction.ZOOM_CAMERA) {
-      throw Exception("Unsupported action: ${_actions[GestureType.SCROLLWHEEL]}");
+      throw Exception(
+          "Unsupported action: ${_actions[GestureType.SCROLLWHEEL]}");
     }
 
     try {
@@ -203,6 +221,9 @@ class DelegateGestureHandler implements ThermionGestureHandler {
   }
 
   bool _handleKeyEvent(KeyEvent event) {
+    if (_actions[GestureType.KEYDOWN] == GestureAction.NONE) {
+      return false;
+    }
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
       cameraDelegate?.onKeypress(event.physicalKey);
       return true;
