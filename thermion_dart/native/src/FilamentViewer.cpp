@@ -603,7 +603,6 @@ namespace thermion_filament
     {
       _engine->destroy(_imageTexture);
       _imageTexture = nullptr;
-      Log("Destroyed background image texture");
     }
   }
 
@@ -619,14 +618,11 @@ namespace thermion_filament
 
     string resourcePathString(resourcePath);
 
-    clearBackgroundImage();
-
     loadTextureFromPath(resourcePathString);
 
     // This currently just anchors the image at the bottom left of the viewport at its original size
     // TODO - implement stretch/etc
     const Viewport &vp = _view->getViewport();
-    // Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
 
     float xScale = float(vp.width) / float(_imageWidth);
 
@@ -645,6 +641,7 @@ namespace thermion_filament
     _imageMaterial->setDefaultParameter("transform", _imageScale);
     _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
     _imageMaterial->setDefaultParameter("showImage", 1);
+
   }
 
   ///
@@ -1468,19 +1465,18 @@ namespace thermion_filament
     });
   }
 
-  void FilamentViewer::unprojectTexture(EntityId entityId, uint8_t* out, uint32_t outWidth, uint32_t outHeight) {
+  void FilamentViewer::unprojectTexture(EntityId entityId, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight) {
     const auto * geometry = _sceneManager->getGeometry(entityId);
     if(!geometry->uvs) {
         Log("No UVS");
         return;
     }
     
-    const auto& viewport = _view->getViewport();
-    auto viewportCapture = new uint8_t[viewport.width * viewport.height * 4];
-    capture(viewportCapture, true, nullptr); 
     UnprojectTexture unproject(geometry, _view->getCamera(), _engine);
+
+    // TODO - check that input dimensions match viewport?
     
-    unproject.unproject(utils::Entity::import(entityId), viewportCapture, out, viewport.width, viewport.height, outWidth, outHeight);
+    unproject.unproject(utils::Entity::import(entityId), input, out, inputWidth, inputHeight, outWidth, outHeight);
   }
 
   
