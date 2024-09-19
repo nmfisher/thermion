@@ -8,6 +8,7 @@
 #include <gltfio/math.h>
 
 #include "material/grid.h"
+#include "SceneManager.hpp"
 #include "Log.hpp"
 
 namespace thermion_filament {
@@ -92,7 +93,7 @@ GridOverlay::GridOverlay(Engine &engine) : _engine(engine)
         .material(0, _materialInstance)
         .geometry(0, RenderableManager::PrimitiveType::LINES, vb, ib, 0, vertexCount)
         .priority(6)
-        .layerMask(0xFF, 4)
+        .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
         .culling(false)
         .receiveShadows(false)
         .castShadows(false)
@@ -172,7 +173,7 @@ RenderableManager::Builder(1)
                   {sphereRadius, sphereRadius, sphereRadius}})
     .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, sphereVb, sphereIb, 0, indexCount)
     .priority(6)
-    .layerMask(0xFF, 4)
+    .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
     .culling(false)
     .receiveShadows(false)
     .castShadows(false)
