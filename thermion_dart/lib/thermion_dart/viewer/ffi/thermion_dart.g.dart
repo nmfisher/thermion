@@ -1220,11 +1220,21 @@ external void set_material_property_float4(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Uint8>,
-        ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+    ffi.Void Function(
+        ffi.Pointer<ffi.Void>,
+        EntityId,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Uint32,
+        ffi.Uint32)>(isLeaf: true)
 external void unproject_texture(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
+  ffi.Pointer<ffi.Uint8> input,
+  int inputWidth,
+  int inputHeight,
   ffi.Pointer<ffi.Uint8> out,
   int outWidth,
   int outHeight,
@@ -1764,10 +1774,16 @@ external void create_geometry_ffi(
         ffi.Pointer<ffi.Uint8>,
         ffi.Uint32,
         ffi.Uint32,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Uint32,
+        ffi.Uint32,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void unproject_texture_ffi(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
+  ffi.Pointer<ffi.Uint8> input,
+  int inputWidth,
+  int inputHeight,
   ffi.Pointer<ffi.Uint8> out,
   int outWidth,
   int outHeight,
