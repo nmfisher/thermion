@@ -141,7 +141,8 @@ extern "C"
 		int numMorphTargets,
 		int numFrames,
 		float frameLengthInMs);
-	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_material_instance(void *const sceneManager, TMaterialKey key);
+	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_material_instance(void *const sceneManager, TMaterialKey materialConfig);
+
 	EMSCRIPTEN_KEEPALIVE void destroy_material_instance(void *const sceneManager, TMaterialInstance *instance);
 	EMSCRIPTEN_KEEPALIVE void clear_morph_animation(
 		void *sceneManager,

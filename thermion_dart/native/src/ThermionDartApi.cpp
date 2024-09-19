@@ -35,14 +35,13 @@ extern "C"
     }
 
     // Helper function to convert double4x4 to filament::math::mat4
-    static filament::math::mat4 convert_double4x4_to_mat4(const double4x4& d_mat)
+    static filament::math::mat4 convert_double4x4_to_mat4(const double4x4 &d_mat)
     {
         return filament::math::mat4{
             filament::math::float4{float(d_mat.col1[0]), float(d_mat.col1[1]), float(d_mat.col1[2]), float(d_mat.col1[3])},
             filament::math::float4{float(d_mat.col2[0]), float(d_mat.col2[1]), float(d_mat.col2[2]), float(d_mat.col2[3])},
             filament::math::float4{float(d_mat.col3[0]), float(d_mat.col3[1]), float(d_mat.col3[2]), float(d_mat.col3[3])},
-            filament::math::float4{float(d_mat.col4[0]), float(d_mat.col4[1]), float(d_mat.col4[2]), float(d_mat.col4[3])}
-        };
+            filament::math::float4{float(d_mat.col4[0]), float(d_mat.col4[1]), float(d_mat.col4[2]), float(d_mat.col4[3])}};
     }
 
     EMSCRIPTEN_KEEPALIVE const void *create_filament_viewer(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
@@ -178,9 +177,9 @@ extern "C"
         return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances, keepData);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length, bool keepData)
+    EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length, bool keepData, int priority, int layer)
     {
-        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, keepData);
+        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId create_instance(void *sceneManager, EntityId entityId)
@@ -218,82 +217,84 @@ extern "C"
         return ((FilamentViewer *)viewer)->setCamera(asset, nodeName);
     }
 
-    EMSCRIPTEN_KEEPALIVE float get_camera_fov(CameraPtr* camera, bool horizontal)
+    EMSCRIPTEN_KEEPALIVE float get_camera_fov(CameraPtr *camera, bool horizontal)
     {
-        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getFieldOfViewInDegrees(horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
     }
 
-    EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(CameraPtr* const camera) {
-        auto cam = reinterpret_cast<filament::Camera*>(camera);
+    EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(CameraPtr *const camera)
+    {
+        auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getFocalLength();
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(CameraPtr* camera, double fovInDegrees, double aspect, double near, double far, bool horizontal)
+    EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(CameraPtr *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal)
     {
-        auto cam = reinterpret_cast<filament::Camera*>(camera);       
+        auto cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setProjection(fovInDegrees, aspect, near, far, horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
     }
 
-    EMSCRIPTEN_KEEPALIVE CameraPtr* get_camera(const void *const viewer, EntityId entity) {
-        auto filamentCamera = ((FilamentViewer*)viewer)->getCamera(entity);
-        return reinterpret_cast<CameraPtr*>(filamentCamera);
+    EMSCRIPTEN_KEEPALIVE CameraPtr *get_camera(const void *const viewer, EntityId entity)
+    {
+        auto filamentCamera = ((FilamentViewer *)viewer)->getCamera(entity);
+        return reinterpret_cast<CameraPtr *>(filamentCamera);
     }
 
-    double4x4 get_camera_model_matrix(CameraPtr* camera)
+    double4x4 get_camera_model_matrix(CameraPtr *camera)
     {
-        const auto &mat = reinterpret_cast<filament::Camera*>(camera)->getModelMatrix();
+        const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getModelMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_view_matrix(CameraPtr* camera)
+    double4x4 get_camera_view_matrix(CameraPtr *camera)
     {
-        const auto &mat = reinterpret_cast<filament::Camera*>(camera)->getViewMatrix();
+        const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getViewMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_projection_matrix(CameraPtr* camera)
+    double4x4 get_camera_projection_matrix(CameraPtr *camera)
     {
-        const auto &mat = reinterpret_cast<filament::Camera*>(camera)->getProjectionMatrix();
+        const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getProjectionMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_culling_projection_matrix(CameraPtr* camera)
+    double4x4 get_camera_culling_projection_matrix(CameraPtr *camera)
     {
-        const auto &mat = reinterpret_cast<filament::Camera*>(camera)->getCullingProjectionMatrix();
+        const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getCullingProjectionMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    void set_camera_projection_matrix(CameraPtr* camera, double4x4 matrix, double near, double far)
+    void set_camera_projection_matrix(CameraPtr *camera, double4x4 matrix, double near, double far)
     {
-        auto cam = reinterpret_cast<filament::Camera*>(camera);
-        const auto& mat = convert_double4x4_to_mat4(matrix);
+        auto cam = reinterpret_cast<filament::Camera *>(camera);
+        const auto &mat = convert_double4x4_to_mat4(matrix);
         cam->setCustomProjection(mat, near, far);
     }
 
-    void set_camera_lens_projection(CameraPtr* camera, double near, double far, double aspect, double focalLength)
+    void set_camera_lens_projection(CameraPtr *camera, double near, double far, double aspect, double focalLength)
     {
-        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        auto cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setLensProjection(focalLength, aspect, near, far);
     }
 
-    double get_camera_near(CameraPtr* camera)
+    double get_camera_near(CameraPtr *camera)
     {
-        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getNear();
     }
 
-    double get_camera_culling_far(CameraPtr* camera)
+    double get_camera_culling_far(CameraPtr *camera)
     {
-        auto cam = reinterpret_cast<filament::Camera*>(camera);
+        auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getCullingFar();
     }
 
-    const double *const get_camera_frustum(CameraPtr* camera)
+    const double *const get_camera_frustum(CameraPtr *camera)
     {
-        
-        const auto frustum = reinterpret_cast<filament::Camera*>(camera)->getFrustum();
-        
+
+        const auto frustum = reinterpret_cast<filament::Camera *>(camera)->getFrustum();
+
         const math::float4 *planes = frustum.getNormalizedPlanes();
         double *array = (double *)calloc(24, sizeof(double));
         for (int i = 0; i < 6; i++)
@@ -318,22 +319,22 @@ extern "C"
         ((FilamentViewer *)viewer)->setViewFrustumCulling(enabled);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(CameraPtr* camera, float distance)
+    EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(CameraPtr *camera, float distance)
     {
-        auto * cam = reinterpret_cast<filament::Camera*>(camera);
+        auto *cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setFocusDistance(distance);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_exposure(CameraPtr* camera, float aperture, float shutterSpeed, float sensitivity)
+    EMSCRIPTEN_KEEPALIVE void set_camera_exposure(CameraPtr *camera, float aperture, float shutterSpeed, float sensitivity)
     {
-        auto * cam = reinterpret_cast<filament::Camera*>(camera);
+        auto *cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setExposure(aperture, shutterSpeed, sensitivity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(CameraPtr* camera, double4x4 matrix)
+    EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(CameraPtr *camera, double4x4 matrix)
     {
-        auto * cam = reinterpret_cast<filament::Camera*>(camera);
-        const filament::math::mat4& mat = convert_double4x4_to_mat4(matrix);
+        auto *cam = reinterpret_cast<filament::Camera *>(camera);
+        const filament::math::mat4 &mat = convert_double4x4_to_mat4(matrix);
         cam->setModelMatrix(mat);
     }
 
@@ -352,11 +353,11 @@ extern "C"
         uint8_t *pixelBuffer,
         void (*callback)(void))
     {
-        #ifdef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
         bool useFence = true;
-        #else
+#else
         bool useFence = false;
-        #endif
+#endif
         ((FilamentViewer *)viewer)->capture(pixelBuffer, useFence, callback);
     };
 
@@ -855,10 +856,21 @@ extern "C"
         ((SceneManager *)sceneManager)->removeAnimationComponent(entityId);
     }
 
-
-    EMSCRIPTEN_KEEPALIVE EntityId create_geometry(void *const sceneManager, float *vertices, int numVertices, float *normals, int numNormals, float *uvs, int numUvs, uint16_t *indices, int numIndices, int primitiveType, const char *materialPath)
+    EMSCRIPTEN_KEEPALIVE EntityId create_geometry(
+        void *const sceneManager,
+        float *vertices,
+        int numVertices,
+        float *normals,
+        int numNormals,
+        float *uvs,
+        int numUvs,
+        uint16_t *indices,
+        int numIndices,
+        int primitiveType,
+        TMaterialInstance *materialInstance,
+        bool keepData)
     {
-        return ((SceneManager *)sceneManager)->createGeometry(vertices, (uint32_t)numVertices, normals, (uint32_t)numNormals, uvs, numUvs, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, materialPath);
+        return ((SceneManager *)sceneManager)->createGeometry(vertices, (uint32_t)numVertices, normals, (uint32_t)numNormals, uvs, numUvs, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, reinterpret_cast<MaterialInstance *>(materialInstance), keepData);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char *name)
@@ -945,30 +957,73 @@ extern "C"
         ((SceneManager *)sceneManager)->removeStencilHighlight(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float value) {
+    EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float value)
+    {
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
     }
-    
-    EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char* property, float4 value) {
-        filament::math::float4 filamentValue { value.x, value.y, value.z, value.w };
+
+    EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float4 value)
+    {
+        filament::math::float4 filamentValue{value.x, value.y, value.z, value.w};
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
     }
 
-    EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const viewer, EntityId entity, uint8_t* out, uint32_t outWidth, uint32_t outHeight) {
+    EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const viewer, EntityId entity, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
+    {
         ((FilamentViewer *)viewer)->unprojectTexture(entity, out, outWidth, outHeight);
     }
 
-    EMSCRIPTEN_KEEPALIVE void* const create_texture(void *const sceneManager, uint8_t* data, size_t length) {
-        return (void* const) ((SceneManager *)sceneManager)->createTexture(data, length, "SOMETEXTURE");
+    EMSCRIPTEN_KEEPALIVE void *const create_texture(void *const sceneManager, uint8_t *data, size_t length)
+    {
+        return (void *const)((SceneManager *)sceneManager)->createTexture(data, length, "SOMETEXTURE");
     }
 
-    EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void* const texture, const char* parameterName, int materialIndex)  {
-        ((SceneManager*)sceneManager)->applyTexture(entity, reinterpret_cast<Texture*>(texture), parameterName, materialIndex);
+    EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex)
+    {
+        ((SceneManager *)sceneManager)->applyTexture(entity, reinterpret_cast<Texture *>(texture), parameterName, materialIndex);
     }
 
-    EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void* const texture) {
-        ((SceneManager*)sceneManager)->destroyTexture(reinterpret_cast<Texture*>(texture));
+    EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void *const texture)
+    {
+        ((SceneManager *)sceneManager)->destroyTexture(reinterpret_cast<Texture *>(texture));
     }
 
 
+ EMSCRIPTEN_KEEPALIVE TMaterialInstance* create_material_instance(void *const sceneManager, TMaterialKey materialConfig)
+{
+
+    filament::gltfio::MaterialKey config;
+    memset(&config, 0, sizeof(MaterialKey));
+
+    // Set and log each field
+    config.unlit = materialConfig.unlit;
+    config.doubleSided = materialConfig.doubleSided;
+    config.useSpecularGlossiness = materialConfig.useSpecularGlossiness;
+    config.alphaMode = static_cast<filament::gltfio::AlphaMode>(materialConfig.alphaMode);
+    config.hasBaseColorTexture = materialConfig.hasBaseColorTexture;
+    config.hasClearCoat = materialConfig.hasClearCoat;
+    config.hasClearCoatNormalTexture = materialConfig.hasClearCoatNormalTexture;
+    config.hasClearCoatRoughnessTexture = materialConfig.hasClearCoatRoughnessTexture;
+    config.hasEmissiveTexture = materialConfig.hasEmissiveTexture;
+    config.hasIOR = materialConfig.hasIOR;
+    config.hasMetallicRoughnessTexture = materialConfig.hasMetallicRoughnessTexture;
+    config.hasNormalTexture = materialConfig.hasNormalTexture;
+    config.hasOcclusionTexture = materialConfig.hasOcclusionTexture;
+    config.hasSheen = materialConfig.hasSheen;
+    config.hasSheenColorTexture = materialConfig.hasSheenColorTexture;
+    config.hasSheenRoughnessTexture = materialConfig.hasSheenRoughnessTexture;
+    config.hasTextureTransforms = materialConfig.hasTextureTransforms;
+    config.hasTransmission = materialConfig.hasTransmission;
+    config.hasTransmissionTexture = materialConfig.hasTransmissionTexture;
+    config.hasVolume = materialConfig.hasVolume;
+    config.hasVolumeThicknessTexture = materialConfig.hasVolumeThicknessTexture;
+    config.baseColorUV = materialConfig.baseColorUV;
+    config.hasVertexColors = materialConfig.hasVertexColors;
+    auto materialInstance = ((SceneManager *)sceneManager)->createUbershaderMaterialInstance(config);
+    return reinterpret_cast<TMaterialInstance*>(materialInstance);
+}
+
+EMSCRIPTEN_KEEPALIVE void destroy_material_instance(void *const sceneManager, TMaterialInstance *instance) {
+    ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance*>(instance));
+}
 }

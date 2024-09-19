@@ -2045,7 +2045,6 @@ class ThermionViewerFFI extends ThermionViewer {
       bool hasVolume = false}) async {
     final key = Struct.create<TMaterialKey>();
 
-    // Set all the fields of the TMaterialKey struct
     key.doubleSided = doubleSided;
     key.unlit = unlit;
     key.hasVertexColors = hasVertexColors;
@@ -2058,7 +2057,7 @@ class ThermionViewerFFI extends ThermionViewer {
     key.enableDiagnostics = enableDiagnostics;
     key.unnamed.unnamed.hasMetallicRoughnessTexture =
         hasMetallicRoughnessTexture;
-    key.unnamed.unnamed.metallicRoughnessUV = metallicRoughnessUV;
+    key.unnamed.unnamed.metallicRoughnessUV = 0;
     key.baseColorUV = baseColorUV;
     key.hasClearCoatTexture = hasClearCoatTexture;
     key.clearCoatUV = clearCoatUV;
@@ -2084,14 +2083,11 @@ class ThermionViewerFFI extends ThermionViewer {
     key.hasIOR = hasIOR;
     key.hasVolume = hasVolume;
 
-    // Assuming there's a method to create the MaterialInstance using the key
     final materialInstance = create_material_instance(_sceneManager!, key);
-
     if (materialInstance == nullptr) {
       throw Exception("Failed to create material instance");
     }
 
-    // Don't forget to free the memory allocated for the struct
     return ThermionFFIMaterialInstance(materialInstance);
   }
 
@@ -2100,7 +2096,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future destroyMaterialInstance(
       ThermionFFIMaterialInstance materialInstance) async {
-    destroy_material_instance(_viewer!, materialInstance._pointer);
+    destroy_material_instance(_sceneManager!, materialInstance._pointer);
   }
 }
 

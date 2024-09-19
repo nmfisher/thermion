@@ -16,6 +16,16 @@ external ffi.Pointer<ffi.Void> make_resource_loader(
   ffi.Pointer<ffi.Void> owner,
 );
 
+@ffi.Native<
+    ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+external ffi.Pointer<ffi.Void> create_filament_viewer(
+  ffi.Pointer<ffi.Void> context,
+  ffi.Pointer<ffi.Void> loader,
+  ffi.Pointer<ffi.Void> platform,
+  ffi.Pointer<ffi.Char> uberArchivePath,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external void destroy_filament_viewer(
   ffi.Pointer<ffi.Void> viewer,
@@ -211,13 +221,14 @@ external int load_glb(
 
 @ffi.Native<
     EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size,
-        ffi.Bool, ffi.Int)>(isLeaf: true)
+        ffi.Bool, ffi.Int, ffi.Int)>(isLeaf: true)
 external int load_glb_from_buffer(
   ffi.Pointer<ffi.Void> sceneManager,
   ffi.Pointer<ffi.Void> data,
   int length,
   bool keepData,
   int priority,
+  int layer,
 );
 
 @ffi.Native<
@@ -418,7 +429,7 @@ external bool set_morph_animation(
         ffi.Pointer<ffi.Void>, TMaterialKey)>(isLeaf: true)
 external ffi.Pointer<TMaterialInstance> create_material_instance(
   ffi.Pointer<ffi.Void> sceneManager,
-  TMaterialKey key,
+  TMaterialKey materialConfig,
 );
 
 @ffi.Native<

@@ -2451,14 +2451,17 @@ EntityId SceneManager::createGeometry(
 
     filament::Material *mat = nullptr;
     
-    if (!materialInstance){
+    if (!materialInstance) {
+        Log("Using default ubershader material");
         filament::gltfio::MaterialKey config;
 
-        config.unlit = true;
+        memset(&config, 0, sizeof(config));  // Initialize all bits to zero
+
+        config.unlit = false;
         config.doubleSided = false;
         config.useSpecularGlossiness = false;
         config.alphaMode = filament::gltfio::AlphaMode::OPAQUE;
-        config.hasBaseColorTexture = false; //uvs != nullptr;
+        config.hasBaseColorTexture = numUvs > 0;
         config.hasClearCoat = false;
         config.hasClearCoatNormalTexture = false;
         config.hasClearCoatRoughnessTexture = false;
@@ -2479,18 +2482,13 @@ EntityId SceneManager::createGeometry(
         config.baseColorUV = 0;
         config.hasVertexColors = false;
         config.hasVolume = false;
-
-        filament::gltfio::UvMap uvmap;
         
-        materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
+        materialInstance = createUbershaderMaterialInstance(config); 
 
         if(!materialInstance) { 
             Log("Failed to create material instance");
             return Entity::smuggle(Entity());
         }
-
-        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
-        materialInstance->setParameter("baseColorIndex", 0);
     }
 
     // Set up texture and sampler if UVs are available
@@ -2575,15 +2573,17 @@ EntityId SceneManager::createGeometry(
     }
 
     MaterialInstance* SceneManager::createUbershaderMaterialInstance(filament::gltfio::MaterialKey config) {
-        
-        filament::gltfio::UvMap uvmap;
+        filament::gltfio::UvMap uvmap {};
         auto * materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
         if(!materialInstance) {
             Log("Invalid material configuration");
+            return nullptr;
         }
-        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
-        materialInstance->setParameter("baseColorIndex", 0);
+        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{0.0f, 1.0f, 1.0f, 1.0f});
+        materialInstance->setParameter("baseColorIndex", -1);
         return materialInstance;
     }
+
+    
 
 } // namespace thermion_filament
