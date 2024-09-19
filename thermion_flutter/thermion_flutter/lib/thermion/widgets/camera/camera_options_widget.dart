@@ -1,10 +1,9 @@
 
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import '../../utils/camera_orientation.dart';
 
 import 'dart:math';
-import 'package:vector_math/vector_math_64.dart' as v64;
+
 
 class CameraOptionsWidget extends StatefulWidget {
   final ThermionViewer controller;
