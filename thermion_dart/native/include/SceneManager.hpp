@@ -253,9 +253,6 @@ namespace thermion_filament
             bool keepData = false
         );
 
-        MaterialInstance* createUbershaderInstance(TMaterialKey key);
-        void destroy(MaterialInstance* materialInstance);
-
         friend class FilamentViewer;
 
         Gizmo* gizmo = nullptr;
@@ -291,6 +288,11 @@ namespace thermion_filament
         void setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4 value);
 
         MaterialInstance* createUbershaderMaterialInstance(MaterialKey key);
+        void destroy(MaterialInstance* materialInstance);
+
+        gltfio::MaterialProvider* getUbershaderProvider() {
+            return _ubershaderProvider;
+        }
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
