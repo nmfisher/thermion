@@ -328,15 +328,16 @@ void main() async {
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
       await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
 
-      // var materialInstance =
-      //     await viewer.createUbershaderMaterialInstance(unlit: true);
+      var materialInstance =
+          await viewer.createUbershaderMaterialInstance(unlit: true);
       final cube = await viewer.createGeometry(
           GeometryHelper.cube(uvs: false, normals: true),
-          materialInstance: null);
-      // await viewer.setMaterialPropertyFloat4(
-      //     cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 0.0);
-      // await viewer.destroyMaterialInstance(materialInstance);
+          materialInstance: materialInstance);
+      await viewer.setMaterialPropertyFloat4(
+          cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 0.0);
       await _capture(viewer, "geometry_cube_with_custom_material");
+      await viewer.removeEntity(cube);
+      await viewer.destroyMaterialInstance(materialInstance);
     });
 
     test('create sphere (no normals)', () async {
