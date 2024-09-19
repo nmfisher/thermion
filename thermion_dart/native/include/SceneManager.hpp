@@ -23,14 +23,14 @@
 
 #include "CustomGeometry.hpp"
 #include "Gizmo.hpp"
-
+#include "APIBoundaryTypes.h"
 #include "GridOverlay.hpp"
 #include "ResourceBuffer.hpp"
 #include "components/CollisionComponentManager.hpp"
 #include "components/AnimationComponentManager.hpp"
 
 #include "tsl/robin_map.h"
-#include "Aabb2.h"
+
 
 namespace thermion_filament
 {
@@ -52,6 +52,11 @@ namespace thermion_filament
                      Scene *scene,
                      const char *uberArchivePath);
         ~SceneManager();
+
+        enum LAYERS {
+            DEFAULT_ASSETS = 0,
+            OVERLAY = 7,
+        };
 
         class HighlightOverlay {
             public:
@@ -87,7 +92,7 @@ namespace thermion_filament
         /// @return an Entity representing the FilamentAsset associated with the loaded FilamentAsset.
         ///
         EntityId loadGlb(const char *uri, int numInstances, bool keepData);
-        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false);
+        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 2);
         EntityId createInstance(EntityId entityId);
 
         void remove(EntityId entity);
@@ -244,9 +249,12 @@ namespace thermion_filament
             uint16_t *indices, 
             uint32_t numIndices, 
             filament::RenderableManager::PrimitiveType primitiveType = RenderableManager::PrimitiveType::TRIANGLES, 
-            const char *materialPath = nullptr,
+            MaterialInstance* materialInstance = nullptr,
             bool keepData = false
         );
+
+        MaterialInstance* createUbershaderInstance(TMaterialKey key);
+        void destroy(MaterialInstance* materialInstance);
 
         friend class FilamentViewer;
 
@@ -281,6 +289,8 @@ namespace thermion_filament
 
         void setMaterialProperty(EntityId entity, int materialIndex, const char* property, float value);
         void setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4 value);
+
+        MaterialInstance* createUbershaderMaterialInstance(MaterialKey key);
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
