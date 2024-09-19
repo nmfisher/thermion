@@ -21,7 +21,6 @@
 
 #include "material/gizmo.h"
 
-#include "Aabb2.h"
 
 namespace thermion_filament {
 
