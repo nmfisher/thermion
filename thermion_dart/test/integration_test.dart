@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
@@ -25,8 +26,12 @@ void main() async {
   Future _capture(ThermionViewer viewer, String outputFilename) async {
     var outPath = p.join(outDir.path, "$outputFilename.bmp");
     var pixelBuffer = await viewer.capture();
-    await savePixelBufferToBmp(pixelBuffer, viewportDimensions.width,
-        viewportDimensions.height, outPath);
+    await savePixelBufferToBmp(
+        pixelBuffer,
+        viewer.viewportDimensions.$1.toInt(),
+        viewer.viewportDimensions.$2.toInt(),
+        outPath);
+    return pixelBuffer;
   }
 
   group('camera', () {
@@ -107,6 +112,16 @@ void main() async {
           "file:///$testDir/../../examples/assets/default_env/default_env_skybox.ktx");
       await Future.delayed(Duration(seconds: 1));
       await _capture(viewer, "skybox");
+    });
+
+    test('set background image', () async {
+      var viewer = await createViewer();
+      await viewer
+          .setBackgroundImage("file:///$testDir/cube_texture_512x512.png");
+      await viewer.setPostProcessing(true);
+      await viewer.setToneMapping(ToneMapper.LINEAR);
+      await _capture(viewer, "set_background_image");
+      await viewer.dispose();
     });
   });
 
@@ -719,12 +734,25 @@ void main() async {
           File("$testDir/cube_texture_512x512.png").readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
       await viewer.setBackgroundColor(0.0, 0.0, 0.0, 1.0);
-      await viewer.createIbl(1.0, 1.0, 1.0, 60000.0);
+      await viewer.addDirectLight(
+          DirectLight.sun(direction: Vector3(0, -10, -1)..normalize()));
+      await viewer.addDirectLight(DirectLight.spot(
+          intensity: 1000000,
+          position: Vector3(0, 0, 1.5),
+          direction: Vector3(0, 0, -1)..normalize(),
+          falloffRadius: 10,
+          spotLightConeInner: 1,
+          spotLightConeOuter: 1));
       await viewer.setCameraPosition(0, 2, 6);
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
+      var materialInstance =
+          await viewer.createUbershaderMaterialInstance(unlit: true);
+      var cube = await viewer.createGeometry(GeometryHelper.cube(),
+          materialInstance: materialInstance);
 
-      var cube = await viewer.createGeometry(GeometryHelper.cube());
+      await viewer.setPostProcessing(false);
+      //await viewer.setToneMapping(ToneMapper.LINEAR);
 
       await viewer.applyTexture(texture, cube,
           materialIndex: 0, parameterName: "baseColorMap");
@@ -738,7 +766,9 @@ void main() async {
 
   group("unproject", () {
     test("unproject", () async {
-      var viewer = await createViewer();
+      final dimensions = (width: 1280, height: 768);
+
+      var viewer = await createViewer(viewportDimensions: dimensions);
       await viewer.setPostProcessing(false);
       // await viewer.setToneMapping(ToneMapper.LINEAR);
       await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
@@ -761,20 +791,110 @@ void main() async {
       await viewer.applyTexture(texture, cube,
           materialIndex: 0, parameterName: "baseColorMap");
 
-      await _capture(viewer, "unproject_temporary");
+      var numFrames = 60;
 
-      var pixelBuffer =
-          await (await viewer as ThermionViewerFFI).unproject(cube, 256, 256);
+      // first do the render
+      for (int i = 0; i < numFrames; i++) {
+        await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
 
-      await savePixelBufferToBmp(
-          pixelBuffer, 256, 256, p.join(outDir.path, "unproject.bmp"));
-      var pixelBufferPng = await bmpToPng(pixelBuffer, 256, 256);
+        await viewer.setCameraRotation(
+            Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+                Quaternion.axisAngle(
+                    Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
+
+        var rendered = await _capture(viewer, "unproject_render$i");
+        var renderPng =
+            await pixelsToPng(rendered, dimensions.width, dimensions.height);
+
+        File("${outDir.path}/unproject_render${i}.png")
+            .writeAsBytesSync(renderPng);
+      }
+
+      // then go off and convert the video
+
+      // now unproject the render back onto the geometry
+      final textureSize = (width: 1280, height: 768);
+      var pixels = <Uint8List>[];
+      // note we skip the first frame
+      for (int i = 0; i < numFrames; i++) {
+        await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
+
+        await viewer.setCameraRotation(
+            Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+                Quaternion.axisAngle(
+                    Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
+
+        var input = pngToPixelBuffer(File(
+                "${outDir.path}/a8c317af-6081-4848-8a06-f6b69bc57664_${i + 1}.png")
+            .readAsBytesSync());
+        var pixelBuffer = await (await viewer as ThermionViewerFFI).unproject(
+            cube,
+            input,
+            dimensions.width,
+            dimensions.height,
+            textureSize.width,
+            textureSize.height);
+
+        // var png = await pixelsToPng(Uint8List.fromList(pixelBuffer),
+        //     dimensions.width, dimensions.height);
+
+        await savePixelBufferToBmp(
+            pixelBuffer,
+            textureSize.width,
+            textureSize.height,
+            p.join(outDir.path, "unprojected_texture${i}.bmp"));
+
+        pixels.add(pixelBuffer);
+
+        if (i > 10) {
+          break;
+        }
+      }
+
+      // }
+
+      final aggregatePixelBuffer = medianImages(pixels);
+      await savePixelBufferToBmp(aggregatePixelBuffer, textureSize.width,
+          textureSize.height, "unproject_texture.bmp");
+      var pixelBufferPng = await pixelsToPng(
+          Uint8List.fromList(aggregatePixelBuffer),
+          dimensions.width,
+          dimensions.height);
       File("${outDir.path}/unproject_texture.png")
           .writeAsBytesSync(pixelBufferPng);
-      var reconstructed = await viewer.createTexture(pixelBufferPng);
-      await viewer.applyTexture(reconstructed, cube);
 
+      await viewer.clearLights();
+      await viewer.setPostProcessing(true);
+      await viewer.setToneMapping(ToneMapper.ACES);
+
+      final unlit = await viewer.createUbershaderMaterialInstance(unlit: true);
+      await viewer.removeEntity(cube);
+      cube = await viewer.createGeometry(GeometryHelper.cube(),
+          materialInstance: unlit);
+      var reconstructedTexture = await viewer.createTexture(pixelBufferPng);
+      await viewer.applyTexture(reconstructedTexture, cube);
+
+      await viewer.setCameraRotation(
+          Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+              Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 6));
       await _capture(viewer, "unproject_reconstruct");
-    });
+
+      // now re-render
+      for (int i = 0; i < numFrames; i++) {
+        await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
+
+        await viewer.setCameraRotation(
+            Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+                Quaternion.axisAngle(
+                    Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
+
+        var rendered = await _capture(viewer, "unproject_rerender$i");
+        var renderPng =
+            await pixelsToPng(rendered, dimensions.width, dimensions.height);
+
+        File("${outDir.path}/unproject_rerender${i}.png")
+            .writeAsBytesSync(renderPng);
+      }
+    }, timeout: Timeout(Duration(minutes: 2)));
   });
 }
