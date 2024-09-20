@@ -92,7 +92,7 @@ void main() async {
       print(frustum.plane5.normal);
       print(frustum.plane5.constant);
 
-      await viewer.setCameraLensProjection(10.0, 1000.0, 1.0, 28.0);
+      await viewer.setCameraLensProjection(near:10.0, far:1000.0, aspect:1.0, focalLength:28.0);
       frustum = await viewer.getCameraFrustum();
       print(frustum.plane5.normal);
       print(frustum.plane5.constant);

@@ -9,7 +9,7 @@ extern "C"
 
 	typedef int32_t EntityId;
 	typedef int32_t _ManipulatorMode;
-	typedef struct CameraPtr CameraPtr;
+	typedef struct TCamera TCamera;
 	typedef struct TMaterialInstance TMaterialInstance;
 
 	struct TMaterialKey {

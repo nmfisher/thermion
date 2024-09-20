@@ -208,22 +208,22 @@ extern "C"
 
 	// Camera methods
 	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(const void *const viewer, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(CameraPtr *camera, float aperture, float shutterSpeed, float sensitivity);
-	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(CameraPtr *camera, double4x4 matrix);
-	EMSCRIPTEN_KEEPALIVE CameraPtr *get_camera(const void *const viewer, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(CameraPtr *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(CameraPtr *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(CameraPtr *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(CameraPtr *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_culling_projection_matrix(CameraPtr *const camera);
-	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(CameraPtr *const camera);
-	EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(CameraPtr *camera, double4x4 matrix, double near, double far);
-	EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(CameraPtr *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal);
-	EMSCRIPTEN_KEEPALIVE double get_camera_near(CameraPtr *camera);
-	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(CameraPtr *camera);
-	EMSCRIPTEN_KEEPALIVE float get_camera_fov(CameraPtr *camera, bool horizontal);
-	EMSCRIPTEN_KEEPALIVE void set_camera_lens_projection(CameraPtr *camera, double near, double far, double aspect, double focalLength);
-	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(CameraPtr *camera, float focusDistance);
+	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(TCamera *camera, float aperture, float shutterSpeed, float sensitivity);
+	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(TCamera *camera, double4x4 matrix);
+	EMSCRIPTEN_KEEPALIVE TCamera *get_camera(const void *const viewer, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_culling_projection_matrix(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(TCamera *camera, double4x4 matrix, double near, double far);
+	EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(TCamera *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal);
+	EMSCRIPTEN_KEEPALIVE double get_camera_near(TCamera *camera);
+	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(TCamera *camera);
+	EMSCRIPTEN_KEEPALIVE float get_camera_fov(TCamera *camera, bool horizontal);
+	EMSCRIPTEN_KEEPALIVE void set_camera_lens_projection(TCamera *camera, double near, double far, double aspect, double focalLength);
+	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(TCamera *camera, float focusDistance);
 	EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
 
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId entity, const char *meshName);

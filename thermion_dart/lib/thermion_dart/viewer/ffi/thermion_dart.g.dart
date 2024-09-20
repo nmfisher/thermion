@@ -766,73 +766,73 @@ external void set_scale(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<CameraPtr>, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+        ffi.Pointer<TCamera>, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
 external void set_camera_exposure(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
   double aperture,
   double shutterSpeed,
   double sensitivity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<CameraPtr>, double4x4)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4)>(isLeaf: true)
 external void set_camera_model_matrix(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
   double4x4 matrix,
 );
 
-@ffi.Native<ffi.Pointer<CameraPtr> Function(ffi.Pointer<ffi.Void>, EntityId)>(
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<ffi.Void>, EntityId)>(
     isLeaf: true)
-external ffi.Pointer<CameraPtr> get_camera(
+external ffi.Pointer<TCamera> get_camera(
   ffi.Pointer<ffi.Void> viewer,
   int entity,
 );
 
-@ffi.Native<ffi.Double Function(ffi.Pointer<CameraPtr>)>(isLeaf: true)
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double get_camera_focal_length(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
 );
 
-@ffi.Native<double4x4 Function(ffi.Pointer<CameraPtr>)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double4x4 get_camera_model_matrix(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
 );
 
-@ffi.Native<double4x4 Function(ffi.Pointer<CameraPtr>)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double4x4 get_camera_view_matrix(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
 );
 
-@ffi.Native<double4x4 Function(ffi.Pointer<CameraPtr>)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double4x4 get_camera_projection_matrix(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
 );
 
-@ffi.Native<double4x4 Function(ffi.Pointer<CameraPtr>)>(isLeaf: true)
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double4x4 get_camera_culling_projection_matrix(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
 );
 
-@ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<CameraPtr>)>(
+@ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<TCamera>)>(
     isLeaf: true)
 external ffi.Pointer<ffi.Double> get_camera_frustum(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<CameraPtr>, double4x4, ffi.Double,
+    ffi.Void Function(ffi.Pointer<TCamera>, double4x4, ffi.Double,
         ffi.Double)>(isLeaf: true)
 external void set_camera_projection_matrix(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
   double4x4 matrix,
   double near,
   double far,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<CameraPtr>, ffi.Double, ffi.Double,
+    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double,
         ffi.Double, ffi.Double, ffi.Bool)>(isLeaf: true)
 external void set_camera_projection_from_fov(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
   double fovInDegrees,
   double aspect,
   double near,
@@ -840,36 +840,36 @@ external void set_camera_projection_from_fov(
   bool horizontal,
 );
 
-@ffi.Native<ffi.Double Function(ffi.Pointer<CameraPtr>)>(isLeaf: true)
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double get_camera_near(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
 );
 
-@ffi.Native<ffi.Double Function(ffi.Pointer<CameraPtr>)>(isLeaf: true)
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double get_camera_culling_far(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
 );
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<CameraPtr>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>, ffi.Bool)>(isLeaf: true)
 external double get_camera_fov(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
   bool horizontal,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<CameraPtr>, ffi.Double, ffi.Double,
+    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double,
         ffi.Double, ffi.Double)>(isLeaf: true)
 external void set_camera_lens_projection(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
   double near,
   double far,
   double aspect,
   double focalLength,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<CameraPtr>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float)>(isLeaf: true)
 external void set_camera_focus_distance(
-  ffi.Pointer<CameraPtr> camera,
+  ffi.Pointer<TCamera> camera,
   double focusDistance,
 );
 
@@ -1848,7 +1848,7 @@ external void unproject_texture_ffi(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
-final class CameraPtr extends ffi.Opaque {}
+final class TCamera extends ffi.Opaque {}
 
 final class TMaterialInstance extends ffi.Opaque {}
 
