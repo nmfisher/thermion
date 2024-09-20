@@ -978,6 +978,10 @@ extern "C"
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
     }
 
+    EMSCRIPTEN_KEEPALIVE void set_material_depth_write(void *const sceneManager, EntityId entity, int materialIndex, bool enabled) {
+        ((SceneManager *)sceneManager)->setMaterialDepthWrite(entity, materialIndex, enabled);
+     }
+
     EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
     {
         ((FilamentViewer *)viewer)->unprojectTexture(entity, input, inputWidth, inputHeight, out, outWidth, outHeight);

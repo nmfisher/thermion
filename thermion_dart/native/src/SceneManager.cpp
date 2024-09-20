@@ -2610,6 +2610,20 @@ EntityId SceneManager::createGeometry(
         return instance;
     }
 
-    
+    void SceneManager::setMaterialDepthWrite(EntityId entityId, int materialIndex, bool enabled) {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("Error setting material property for entity %d: no renderable");
+            return;
+        }
+        auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+
+        materialInstance->setDepthWrite(enabled);
+    }
+
+        
 
 } // namespace thermion_filament
