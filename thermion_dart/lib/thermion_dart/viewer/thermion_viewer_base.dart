@@ -1,4 +1,5 @@
 import 'package:thermion_dart/thermion_dart/viewer/events.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_viewer_ffi.dart';
 
 import 'shared_types/shared_types.dart';
 export 'shared_types/shared_types.dart';
@@ -189,7 +190,10 @@ abstract class ThermionViewer {
   /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
   ///
   Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
-      {int numInstances = 1, bool keepData = false, int priority=4, int layer=0});
+      {int numInstances = 1,
+      bool keepData = false,
+      int priority = 4,
+      int layer = 0});
 
   ///
   /// Create a new instance of [entity].
@@ -589,6 +593,13 @@ abstract class ThermionViewer {
       int materialIndex, double value);
 
   ///
+  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
+  /// [entity] must have a Renderable attached.
+  ///
+  Future setMaterialPropertyInt(ThermionEntity entity, String propertyName,
+      int materialIndex, int value);
+
+  ///
   /// Scale [entity] to fit within the unit cube.
   ///
   Future transformToUnitCube(ThermionEntity entity);
@@ -786,7 +797,8 @@ abstract class ThermionViewer {
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
   /// If [keepData] is true, the source data will not be released.
   ///
-  Future createGeometry(Geometry geometry, {MaterialInstance? materialInstance,  bool keepData = false});
+  Future createGeometry(Geometry geometry,
+      {MaterialInstance? materialInstance, bool keepData = false});
 
   ///
   /// Gets the parent entity of [entity]. Returns null if the entity has no parent.
@@ -915,4 +927,9 @@ abstract class ThermionViewer {
   ///
   ///
   Future destroyMaterialInstance(covariant MaterialInstance materialInstance);
+
+  ///
+  ///
+  ///
+  Future<MaterialInstance> createUnlitMaterialInstance();
 }
