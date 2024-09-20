@@ -1,34 +1,38 @@
 material {
     name : unlit,
+    requires : [ uv0 ],
     parameters : [
         {
-            type : float3,
-            name : color
+            type : sampler2d,
+            name : baseColorMap
         },
-        {
-            type : float,
-            name : scale
+        { 
+            type : float4, 
+            name : baseColorFactor 
+        },
+        { 
+            type : int, 
+            name : baseColorIndex 
         }
     ],
     depthWrite : true,
-    depthCulling : false,
+    depthCulling : true,
     shadingModel : unlit,
     blending: opaque,
     culling: none,
     instanced: false,
     vertexDomain: object
 }
-    vertex {
-        void materialVertex(inout MaterialVertexInputs material) {
-            float4 position = getPosition();
-            position.xyz *= materialParams.scale;
-            material.worldPosition = getWorldFromModelMatrix() * position;
-        }
-    }
-    
+   
     fragment {
         void material(inout MaterialInputs material) {
             prepareMaterial(material);           
-            material.baseColor = float4(materialParams.color, 1.0);
+            material.baseColor = materialParams.baseColorFactor;
+            
+            if (materialParams.baseColorIndex > -1) {
+                highp float2 uv = getUV0();
+                uv.y = 1.0 - uv.y;
+                material.baseColor *= texture(materialParams_baseColorMap, uv);
+            }
         }
     }
