@@ -1,5 +1,4 @@
 import 'package:thermion_dart/thermion_dart/viewer/events.dart';
-import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_viewer_ffi.dart';
 
 import 'shared_types/shared_types.dart';
 export 'shared_types/shared_types.dart';
@@ -10,6 +9,10 @@ import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+
+const double kNear = 0.05;
+const double kFar = 1000.0;
+const double kFocalLength = 28.0;
 
 abstract class ThermionViewer {
   ///
@@ -490,8 +493,8 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future setCameraLensProjection(
-      double near, double far, double aspect, double focalLength);
+  Future setCameraLensProjection({double near = kNear, double far = kFar, double? aspect,
+      double focalLength = kFocalLength});
 
   ///
   /// Sets the focus distance for the camera.

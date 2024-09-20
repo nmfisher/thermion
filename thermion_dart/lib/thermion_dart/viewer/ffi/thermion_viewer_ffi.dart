@@ -18,10 +18,6 @@ const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
 
 typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
-double kNear = 0.05;
-double kFar = 1000.0;
-double kFocalLength = 28.0;
-
 class ThermionViewerFFI extends ThermionViewer {
   final _logger = Logger("ThermionViewerFFI");
 
@@ -1354,8 +1350,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setCameraLensProjection(
-      double near, double far, double aspect, double focalLength) async {
+  Future setCameraLensProjection({double near = kNear, double far = kFar, double? aspect,
+      double focalLength = kFocalLength}) async {
+    aspect ??= viewportDimensions.$1 / viewportDimensions.$2;
     var mainCamera = get_camera(_viewer!, get_main_camera(_viewer!));
     set_camera_lens_projection(mainCamera, near, far, aspect, focalLength);
   }

@@ -217,80 +217,80 @@ extern "C"
         return ((FilamentViewer *)viewer)->setCamera(asset, nodeName);
     }
 
-    EMSCRIPTEN_KEEPALIVE float get_camera_fov(CameraPtr *camera, bool horizontal)
+    EMSCRIPTEN_KEEPALIVE float get_camera_fov(TCamera *camera, bool horizontal)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getFieldOfViewInDegrees(horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
     }
 
-    EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(CameraPtr *const camera)
+    EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(TCamera *const camera)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getFocalLength();
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(CameraPtr *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal)
+    EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(TCamera *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setProjection(fovInDegrees, aspect, near, far, horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
     }
 
-    EMSCRIPTEN_KEEPALIVE CameraPtr *get_camera(const void *const viewer, EntityId entity)
+    EMSCRIPTEN_KEEPALIVE TCamera *get_camera(const void *const viewer, EntityId entity)
     {
         auto filamentCamera = ((FilamentViewer *)viewer)->getCamera(entity);
-        return reinterpret_cast<CameraPtr *>(filamentCamera);
+        return reinterpret_cast<TCamera *>(filamentCamera);
     }
 
-    double4x4 get_camera_model_matrix(CameraPtr *camera)
+    double4x4 get_camera_model_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getModelMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_view_matrix(CameraPtr *camera)
+    double4x4 get_camera_view_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getViewMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_projection_matrix(CameraPtr *camera)
+    double4x4 get_camera_projection_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getProjectionMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_culling_projection_matrix(CameraPtr *camera)
+    double4x4 get_camera_culling_projection_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getCullingProjectionMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    void set_camera_projection_matrix(CameraPtr *camera, double4x4 matrix, double near, double far)
+    void set_camera_projection_matrix(TCamera *camera, double4x4 matrix, double near, double far)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         const auto &mat = convert_double4x4_to_mat4(matrix);
         cam->setCustomProjection(mat, near, far);
     }
 
-    void set_camera_lens_projection(CameraPtr *camera, double near, double far, double aspect, double focalLength)
+    void set_camera_lens_projection(TCamera *camera, double near, double far, double aspect, double focalLength)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setLensProjection(focalLength, aspect, near, far);
     }
 
-    double get_camera_near(CameraPtr *camera)
+    double get_camera_near(TCamera *camera)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getNear();
     }
 
-    double get_camera_culling_far(CameraPtr *camera)
+    double get_camera_culling_far(TCamera *camera)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getCullingFar();
     }
 
-    const double *const get_camera_frustum(CameraPtr *camera)
+    const double *const get_camera_frustum(TCamera *camera)
     {
 
         const auto frustum = reinterpret_cast<filament::Camera *>(camera)->getFrustum();
@@ -319,19 +319,19 @@ extern "C"
         ((FilamentViewer *)viewer)->setViewFrustumCulling(enabled);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(CameraPtr *camera, float distance)
+    EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(TCamera *camera, float distance)
     {
         auto *cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setFocusDistance(distance);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_exposure(CameraPtr *camera, float aperture, float shutterSpeed, float sensitivity)
+    EMSCRIPTEN_KEEPALIVE void set_camera_exposure(TCamera *camera, float aperture, float shutterSpeed, float sensitivity)
     {
         auto *cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setExposure(aperture, shutterSpeed, sensitivity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(CameraPtr *camera, double4x4 matrix)
+    EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(TCamera *camera, double4x4 matrix)
     {
         auto *cam = reinterpret_cast<filament::Camera *>(camera);
         const filament::math::mat4 &mat = convert_double4x4_to_mat4(matrix);
