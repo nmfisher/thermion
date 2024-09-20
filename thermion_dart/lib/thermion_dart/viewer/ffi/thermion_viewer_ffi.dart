@@ -1147,8 +1147,8 @@ class ThermionViewerFFI extends ThermionViewer {
     set_main_camera(_viewer!);
   }
 
-  Future<ThermionEntity> getMainCamera() async {
-    return get_main_camera(_viewer!);
+  Future<ThermionEntity> getMainCamera() {
+    return Future.value(get_main_camera(_viewer!));
   }
 
   ///
@@ -1290,7 +1290,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setCameraPosition(double x, double y, double z) async {
     var modelMatrix = await getCameraModelMatrix();
     modelMatrix.setTranslation(Vector3(x, y, z));
-    await setCameraModelMatrix4(modelMatrix);
+    return setCameraModelMatrix4(modelMatrix);
   }
 
   ///
@@ -1965,22 +1965,22 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setMaterialPropertyFloat4(ThermionEntity entity, String propertyName,
       int materialIndex, double f1, double f2, double f3, double f4) async {
     final ptr = propertyName.toNativeUtf8(allocator: allocator);
-    var struct = Struct.create<float4>();
+    var struct = Struct.create<double4>();
     struct.x = f1;
     struct.y = f2;
     struct.z = f3;
-    struct.w = f3;
+    struct.w = f4;
     set_material_property_float4(
         _sceneManager!, entity, materialIndex, ptr.cast<Char>(), struct);
     allocator.free(ptr);
   }
 
-  Future<Uint8List> unproject(
-      ThermionEntity entity, Uint8List input, int inputWidth, int inputHeight, int outWidth, int outHeight) async {
+  Future<Uint8List> unproject(ThermionEntity entity, Uint8List input,
+      int inputWidth, int inputHeight, int outWidth, int outHeight) async {
     final outPtr = Uint8List(outWidth * outHeight * 4);
     await withVoidCallback((callback) {
-      unproject_texture_ffi(
-          _viewer!, entity, input.address, inputWidth, inputHeight, outPtr.address, outWidth, outHeight, callback);
+      unproject_texture_ffi(_viewer!, entity, input.address, inputWidth,
+          inputHeight, outPtr.address, outWidth, outHeight, callback);
     });
 
     return outPtr.buffer.asUint8List();
@@ -2097,6 +2097,24 @@ class ThermionViewerFFI extends ThermionViewer {
   Future destroyMaterialInstance(
       ThermionFFIMaterialInstance materialInstance) async {
     destroy_material_instance(_sceneManager!, materialInstance._pointer);
+  }
+
+  Future<ThermionFFIMaterialInstance> createUnlitMaterialInstance() async {
+    var instance = create_unlit_material_instance(_sceneManager!);
+    if (instance == nullptr) {
+      throw Exception("Failed to create material instance");
+    }
+    return ThermionFFIMaterialInstance(instance);
+  }
+
+  @override
+  Future setMaterialPropertyInt(ThermionEntity entity, String propertyName,
+      int materialIndex, int value) {
+    final ptr = propertyName.toNativeUtf8(allocator: allocator);
+    set_material_property_int(
+        _sceneManager!, entity, materialIndex, ptr.cast<Char>(), value);
+    allocator.free(ptr);
+    return Future.value();
   }
 }
 
