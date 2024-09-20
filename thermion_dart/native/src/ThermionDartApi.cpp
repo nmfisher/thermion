@@ -962,9 +962,19 @@ extern "C"
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float4 value)
+    EMSCRIPTEN_KEEPALIVE void set_material_property_int(void *const sceneManager, EntityId entity, int materialIndex, const char *property, int32_t value)
     {
-        filament::math::float4 filamentValue{value.x, value.y, value.z, value.w};
+
+        ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, double4 value)
+    {        
+        filament::math::float4 filamentValue;
+        filamentValue.x = static_cast<float32_t>(value.x);
+        filamentValue.y = static_cast<float32_t>(value.y);
+        filamentValue.z = static_cast<float32_t>(value.z);
+        filamentValue.w = static_cast<float32_t>(value.w);
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
     }
 
@@ -1021,6 +1031,11 @@ extern "C"
     config.hasVertexColors = materialConfig.hasVertexColors;
     auto materialInstance = ((SceneManager *)sceneManager)->createUbershaderMaterialInstance(config);
     return reinterpret_cast<TMaterialInstance*>(materialInstance);
+}
+
+EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(void *const sceneManager) { 
+    auto * instance = ((SceneManager*)sceneManager)->createUnlitMaterialInstance();
+    return reinterpret_cast<TMaterialInstance*>(instance);
 }
 
 EMSCRIPTEN_KEEPALIVE void destroy_material_instance(void *const sceneManager, TMaterialInstance *instance) {
