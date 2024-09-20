@@ -92,7 +92,7 @@ namespace thermion_filament
         /// @return an Entity representing the FilamentAsset associated with the loaded FilamentAsset.
         ///
         EntityId loadGlb(const char *uri, int numInstances, bool keepData);
-        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 2);
+        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0);
         EntityId createInstance(EntityId entityId);
 
         void remove(EntityId entity);
@@ -285,7 +285,8 @@ namespace thermion_filament
         }
 
         void setMaterialProperty(EntityId entity, int materialIndex, const char* property, float value);
-        void setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4 value);
+        void setMaterialProperty(EntityId entity, int materialIndex, const char* property, int32_t value);
+        void setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4& value);
 
         MaterialInstance* createUbershaderMaterialInstance(MaterialKey key);
         void destroy(MaterialInstance* materialInstance);
@@ -293,6 +294,8 @@ namespace thermion_filament
         gltfio::MaterialProvider* getUbershaderProvider() {
             return _ubershaderProvider;
         }
+
+        MaterialInstance* createUnlitMaterialInstance();
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
