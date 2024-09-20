@@ -141,9 +141,11 @@ extern "C"
 		int numMorphTargets,
 		int numFrames,
 		float frameLengthInMs);
+	
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_material_instance(void *const sceneManager, TMaterialKey materialConfig);
-
+	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(void *const sceneManager);
 	EMSCRIPTEN_KEEPALIVE void destroy_material_instance(void *const sceneManager, TMaterialInstance *instance);
+
 	EMSCRIPTEN_KEEPALIVE void clear_morph_animation(
 		void *sceneManager,
 		EntityId entity);
@@ -273,7 +275,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entity, float r, float g, float b);
 	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float value);
-	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float4 value);
+	EMSCRIPTEN_KEEPALIVE void set_material_property_int(void *const sceneManager, EntityId entity, int materialIndex, const char *property, int value);
+	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, double4 value);
 	EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const sceneManager, EntityId entity,uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight);
 	EMSCRIPTEN_KEEPALIVE void *const create_texture(void *const sceneManager, uint8_t *data, size_t length);
 	EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void *const texture);
