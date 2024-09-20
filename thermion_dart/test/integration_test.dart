@@ -440,6 +440,40 @@ void main() async {
     });
   });
 
+  group("MaterialInstance", () {
+    test('disable depth write', () async {
+      var viewer = await createViewer();
+      await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
+      await viewer.setCameraPosition(0, 0, 6);
+      await viewer.addDirectLight(
+          DirectLight.sun(direction: Vector3(0, 0, -1)..normalize()));
+
+      final cube1 = await viewer.createGeometry(GeometryHelper.cube());
+      var materialInstance = await viewer.getMaterialInstanceAt(cube1, 0);
+
+      final cube2 = await viewer.createGeometry(GeometryHelper.cube());
+      await viewer.setMaterialPropertyFloat4(
+          cube2, "baseColorFactor", 0, 0, 1, 0, 1);
+      await viewer.setPosition(cube2, 1.0, 0.0, -1.0);
+
+      expect(materialInstance, isNotNull);
+
+      // with depth write enabled on both materials, cube2 renders behind the white cube
+        await _capture(viewer, "material_instance_depth_write_enabled");
+
+      // if we disable depth write on cube1, then cube2 will always appear in front
+      // (relying on insertion order)
+      materialInstance!.setDepthWriteEnabled(false);
+      await _capture(viewer, "material_instance_depth_write_disabled");
+
+      // set priority for the cube1 cube to 7 (render) last, cube1 renders in front
+      await viewer.setPriority(cube1, 7);
+      await _capture(viewer, "material_instance_depth_write_disabled_with_priority");
+    });
+  });
+
+  
+
   //   test('create instance from glb when keepData is true', () async {
   //     var model = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
   //     await viewer.transformToUnitCube(model);
@@ -546,38 +580,6 @@ void main() async {
       await viewer.setMaterialPropertyFloat(cube, "metallicFactor", 0, 0.0);
       await viewer.setMaterialPropertyFloat(cube, "roughnessFactor", 0, 0.0);
       await _capture(viewer, "set_material_roughness_post");
-    });
-
-    test('enable/disable depth write for custom geometry', () async {
-      var viewer = await createViewer();
-
-      await viewer.setCameraPosition(0, 0, 6);
-      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
-      var light =
-          await viewer.addLight(LightType.SUN, 6500, 100000, 0, 0, 0, 0, 0, -1);
-
-      final cube1 = await viewer.createGeometry(GeometryHelper.cube());
-      await viewer.setMaterialPropertyFloat4(
-          cube1, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1);
-      final cube2 = await viewer.createGeometry(GeometryHelper.cube());
-      await viewer.setPosition(cube2, 1.0, 0.0, -1.0);
-      await viewer.setMaterialPropertyFloat4(
-          cube2, "baseColorFactor", 0, 1.0, 0, 0, 1);
-
-      // with depth write enabled on both materials, the red cube will render behind the white cube
-      await viewer.setMaterialDepthWrite(cube1, 0, true);
-      await viewer.setMaterialDepthWrite(cube2, 0, true);
-      await _capture(viewer, "geometry_enable_depth_write");
-
-      // with depth write disabled on the first material, the red cube will render in front of the white cube
-      // (relying on insertion order)
-      await viewer.setMaterialDepthWrite(cube1, 0, false);
-
-      await _capture(viewer, "geometry_disable_depth_write_insertion_order");
-
-      // if we set priority for the black cube to 7 (render) last, red cube will render behind the white cube
-      await viewer.setPriority(cube1, 7);
-      await _capture(viewer, "geometry_disable_depth_write_priority");
     });
   });
 

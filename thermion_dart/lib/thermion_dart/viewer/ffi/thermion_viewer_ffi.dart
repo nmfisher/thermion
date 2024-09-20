@@ -1982,15 +1982,6 @@ class ThermionViewerFFI extends ThermionViewer {
     allocator.free(ptr);
   }
 
-  ///
-  ///
-  ///
-  Future setMaterialDepthWrite(
-      ThermionEntity entity, int materialIndex, bool enabled) {
-    set_material_depth_write(_sceneManager!, entity, materialIndex, enabled);
-    return Future.value();
-  }
-
   Future<Uint8List> unproject(ThermionEntity entity, Uint8List input,
       int inputWidth, int inputHeight, int outWidth, int outHeight) async {
     final outPtr = Uint8List(outWidth * outHeight * 4);
@@ -2132,6 +2123,18 @@ class ThermionViewerFFI extends ThermionViewer {
     allocator.free(ptr);
     return Future.value();
   }
+
+  ///
+  ///
+  ///
+  Future<MaterialInstance?> getMaterialInstanceAt(
+      ThermionEntity entity, int index) async {
+    final instance = get_material_instance_at(_sceneManager!, entity, index);
+    if (instance == nullptr) {
+      return null;
+    }
+    return ThermionFFIMaterialInstance(instance);
+  }
 }
 
 class ThermionFFITexture extends ThermionTexture {
@@ -2144,4 +2147,14 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
   final Pointer<TMaterialInstance> _pointer;
 
   ThermionFFIMaterialInstance(this._pointer);
+
+  @override
+  Future setDepthCullingEnabled(bool enabled) async {
+    MaterialInstance_setDepthCulling(this._pointer, enabled);
+  }
+
+  @override
+  Future setDepthWriteEnabled(bool enabled) async {
+    MaterialInstance_setDepthWrite(this._pointer, enabled);
+  }
 }

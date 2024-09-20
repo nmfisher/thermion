@@ -928,6 +928,30 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement setMaterialPropertyInt
     throw UnimplementedError();
   }
+  
+  @override
+  Future<MaterialInstance?> getMaterialInstanceAt(ThermionEntity entity, int index) {
+    // TODO: implement getMaterialInstanceAt
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setLayerVisibility(int layer, bool visible) {
+    // TODO: implement setLayerVisibility
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setMaterialDepthWrite(ThermionEntity entity, int materialIndex, bool enabled) {
+    // TODO: implement setMaterialDepthWrite
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setVisibilityLayer(ThermionEntity entity, int layer) {
+    // TODO: implement setVisibilityLayer
+    throw UnimplementedError();
+  }
 
   
 }
