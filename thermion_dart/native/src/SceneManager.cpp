@@ -2489,7 +2489,7 @@ EntityId SceneManager::createGeometry(
             Log("Failed to create material instance");
             return Entity::smuggle(Entity());
         }
-    }
+    }    
 
     // Set up texture and sampler if UVs are available
     if (uvs != nullptr && numUvs > 0)
@@ -2548,7 +2548,7 @@ EntityId SceneManager::createGeometry(
         materialInstance->setParameter(property, value);
     }
 
-    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, filament::math::float4 value)
+    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, int32_t value)
     {
         auto entity = Entity::import(entityId);
         const auto &rm = _engine->getRenderableManager();
@@ -2568,6 +2568,26 @@ EntityId SceneManager::createGeometry(
         materialInstance->setParameter(property, value);
     }
 
+    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, filament::math::float4& value)
+    {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("Error setting material property for entity %d: no renderable");
+            return;
+        }
+        auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+
+        if (!materialInstance->getMaterial()->hasParameter(property))
+        {
+            Log("Parameter %s not found", property);
+            return;
+        }
+        materialInstance->setParameter(property, filament::math::float4 { value.x, value.y, value.z, value.w });
+    }
+
     void SceneManager::destroy(MaterialInstance* instance) {
         _engine->destroy(instance);
     }
@@ -2579,9 +2599,15 @@ EntityId SceneManager::createGeometry(
             Log("Invalid material configuration");
             return nullptr;
         }
-        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{0.0f, 1.0f, 1.0f, 1.0f});
+        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 0.0f, 1.0f, 1.0f});
         materialInstance->setParameter("baseColorIndex", 0);
         return materialInstance;
+    }
+
+    MaterialInstance* SceneManager::createUnlitMaterialInstance() {
+        UvMap uvmap;
+        auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
+        return instance;
     }
 
     
