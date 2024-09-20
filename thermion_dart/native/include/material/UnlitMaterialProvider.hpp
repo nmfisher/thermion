@@ -35,11 +35,6 @@ public:
                                                        const char* label = "unlit", 
                                                        const char* extras = nullptr) override {
         auto instance = mUnlitMaterial->createInstance();
-
-        // Set default parameters
-        instance->setParameter("color", filament::math::float3{1.0f, 1.0f, 1.0f});
-        instance->setParameter("scale", 1.0f);
-
         return instance;
     }
 
