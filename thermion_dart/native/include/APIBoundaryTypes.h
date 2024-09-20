@@ -75,11 +75,11 @@ extern "C"
 	typedef struct TMaterialKey TMaterialKey; 
 
 	typedef struct { 
-		float x;
-		float y; 
-		float z;
-		float w;
-	} float4;
+		double x;
+		double y; 
+		double z;
+		double w;
+	} double4;
 
 	typedef struct {
 		double col1[4];
