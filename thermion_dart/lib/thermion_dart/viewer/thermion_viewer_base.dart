@@ -600,6 +600,12 @@ abstract class ThermionViewer {
       int materialIndex, int value);
 
   ///
+  /// Sets the depthWrite material instance at [materialIndex] for [entity] to [enabled].
+  /// [entity] must have a Renderable attached.
+  ///
+  Future setMaterialDepthWrite(ThermionEntity entity, int materialIndex, bool enabled);
+
+  ///
   /// Scale [entity] to fit within the unit cube.
   ///
   Future transformToUnitCube(ThermionEntity entity);
