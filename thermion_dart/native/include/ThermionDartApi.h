@@ -277,6 +277,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float value);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_int(void *const sceneManager, EntityId entity, int materialIndex, const char *property, int value);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, double4 value);
+	EMSCRIPTEN_KEEPALIVE void set_material_depth_write(void *const sceneManager, EntityId entity, int materialIndex, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const sceneManager, EntityId entity,uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight);
 	EMSCRIPTEN_KEEPALIVE void *const create_texture(void *const sceneManager, uint8_t *data, size_t length);
 	EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void *const texture);

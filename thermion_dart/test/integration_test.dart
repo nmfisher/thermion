@@ -547,6 +547,39 @@ void main() async {
       await viewer.setMaterialPropertyFloat(cube, "roughnessFactor", 0, 0.0);
       await _capture(viewer, "set_material_roughness_post");
     });
+
+    test('enable/disable depth write for custom geometry', () async {
+      var viewer = await createViewer();
+
+      await viewer.setCameraPosition(0, 0, 6);
+      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
+      var light =
+          await viewer.addLight(LightType.SUN, 6500, 100000, 0, 0, 0, 0, 0, -1);
+
+      final cube1 = await viewer.createGeometry(GeometryHelper.cube());
+      await viewer.setMaterialPropertyFloat4(
+          cube1, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1);
+      final cube2 = await viewer.createGeometry(GeometryHelper.cube());
+      await viewer.setPosition(cube2, 1.0, 0.0, -1.0);
+      await viewer.setMaterialPropertyFloat4(
+          cube2, "baseColorFactor", 0, 1.0, 0, 0, 1);
+
+      // with depth write enabled on both materials, the red cube will render behind the white cube
+      await viewer.setMaterialDepthWrite(cube1, 0, true);
+      await viewer.setMaterialDepthWrite(cube2, 0, true);
+      await _capture(viewer, "geometry_enable_depth_write");
+
+      // with depth write disabled on both materials, the red cube will render in front of the white cube
+      // (relying on insertion order)
+      await viewer.setMaterialDepthWrite(cube1, 0, false);
+      await viewer.setMaterialDepthWrite(cube2, 0, false);
+
+      await _capture(viewer, "geometry_disable_depth_write_insertion_order");
+
+      // if we set priority for the black cube to 7 (render) last, red cube will render behind the white cube
+      await viewer.setPriority(cube1, 7);
+      await _capture(viewer, "geometry_disable_depth_write_priority");
+    });
   });
 
   group("transforms & parenting", () {
