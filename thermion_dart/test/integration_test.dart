@@ -569,10 +569,9 @@ void main() async {
       await viewer.setMaterialDepthWrite(cube2, 0, true);
       await _capture(viewer, "geometry_enable_depth_write");
 
-      // with depth write disabled on both materials, the red cube will render in front of the white cube
+      // with depth write disabled on the first material, the red cube will render in front of the white cube
       // (relying on insertion order)
       await viewer.setMaterialDepthWrite(cube1, 0, false);
-      await viewer.setMaterialDepthWrite(cube2, 0, false);
 
       await _capture(viewer, "geometry_disable_depth_write_insertion_order");
 
@@ -649,9 +648,9 @@ void main() async {
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
       await viewer.setCameraPosition(0, 2, 0);
       await _capture(viewer, "grid_overlay_default");
-      await viewer.setLayerEnabled(7, true);
+      await viewer.setLayerVisibility(7, true);
       await _capture(viewer, "grid_overlay_enabled");
-      await viewer.setLayerEnabled(7, false);
+      await viewer.setLayerVisibility(7, false);
       await _capture(viewer, "grid_overlay_disabled");
     });
 
@@ -666,8 +665,35 @@ void main() async {
       var buffer = File("$testDir/cube.glb").readAsBytesSync();
       var model = await viewer.loadGlbFromBuffer(buffer, layer: 1);
       await _capture(viewer, "load_glb_from_buffer_with_layer_disabled");
-      await viewer.setLayerEnabled(1, true);
+      await viewer.setLayerVisibility(1, true);
       await _capture(viewer, "load_glb_from_buffer_with_layer_enabled");
+    });
+
+    test('change layer visibility at runtime', () async {
+      var viewer = await createViewer();
+
+      await viewer.setBackgroundColor(1, 0, 1, 1);
+      await viewer.setCameraPosition(0, 2, 5);
+      await viewer
+          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
+
+      var cube = await viewer.createGeometry(GeometryHelper.cube());
+      await _capture(viewer, "change_layer_visibility_at_runtime_default");
+
+      // all entities set to layer 0 by default, so this should now be invisible
+      await viewer.setLayerVisibility(0, false);
+      await _capture(
+          viewer, "change_layer_visibility_at_runtime_layer0_invisible");
+
+      // now change the visibility layer to 5, should be invisible
+      await viewer.setVisibilityLayer(cube, 5);
+      await _capture(
+          viewer, "change_layer_visibility_at_runtime_layer5_invisible");
+
+      // now toggle layer 5 visibility, cube should now be visible
+      await viewer.setLayerVisibility(5, true);
+      await _capture(
+          viewer, "change_layer_visibility_at_runtime_layer5_visible");
     });
   });
 

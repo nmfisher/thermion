@@ -1155,10 +1155,18 @@ external void get_bounding_box_to_out(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Bool)>(
     isLeaf: true)
-external void set_layer_enabled(
+external void set_layer_visibility(
   ffi.Pointer<ffi.Void> sceneManager,
   int layer,
-  bool enabled,
+  bool visible,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+    isLeaf: true)
+external void set_visibility_layer(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  int layer,
 );
 
 @ffi.Native<
@@ -1201,6 +1209,15 @@ external void set_stencil_highlight(
 external void remove_stencil_highlight(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(isLeaf: true)
+external ffi.Pointer<TMaterialInstance> get_material_instance_at(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  int materialIndex,
 );
 
 @ffi.Native<

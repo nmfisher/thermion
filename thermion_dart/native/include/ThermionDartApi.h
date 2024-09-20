@@ -269,11 +269,13 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void get_gizmo(void *const sceneManager, EntityId *out);
 	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float *minX, float *minY, float *maxX, float *maxY);
-	EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled);
+	EMSCRIPTEN_KEEPALIVE void set_layer_visibility(void *const sceneManager, int layer, bool visible);
+	EMSCRIPTEN_KEEPALIVE void set_visibility_layer(void *const sceneManager, EntityId entity, int layer);
 	EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y));
 	EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible);
 	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entity, float r, float g, float b);
 	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE TMaterialInstance* get_material_instance_at(void *const sceneManager, EntityId entity, int materialIndex);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float value);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_int(void *const sceneManager, EntityId entity, int materialIndex, const char *property, int value);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, double4 value);

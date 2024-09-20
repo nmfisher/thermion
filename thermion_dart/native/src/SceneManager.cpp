@@ -104,6 +104,7 @@ namespace thermion_filament
         _scene->addEntity(_gridOverlay->grid());
 
         _view->setLayerEnabled(SceneManager::LAYERS::DEFAULT_ASSETS, true);
+        _view->setLayerEnabled(SceneManager::LAYERS::BACKGROUND, true); // skybox + image
         _view->setLayerEnabled(SceneManager::LAYERS::OVERLAY, false); // world grid + gizmo
     }
 
@@ -236,6 +237,17 @@ namespace thermion_filament
         Log("Finished loading glTF from %s", uri);
 
         return eid;
+    }
+
+    void SceneManager::setVisibilityLayer(EntityId entityId, int layer) {
+        auto& rm = _engine->getRenderableManager();
+        auto renderable = rm.getInstance(utils::Entity::import(entityId));
+        if(!renderable.isValid()) {
+            Log("Warning: no renderable found");
+        }
+
+        rm.setLayerMask(renderable, 0xFF, 1u << layer);
+
     }
 
     EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer)
@@ -2393,7 +2405,7 @@ namespace thermion_filament
         return Aabb2{minX, minY, maxX, maxY};
     }
 
-    void SceneManager::setLayerEnabled(int layer, bool enabled)
+    void SceneManager::setLayerVisibility(LAYERS layer, bool enabled)
     {
         _view->setLayerEnabled(layer, enabled);
     }
@@ -2528,6 +2540,18 @@ EntityId SceneManager::createGeometry(
     return entityId;
 }
 
+    MaterialInstance* SceneManager::getMaterialInstanceAt(EntityId entityId, int materialIndex) {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("Error retrieving material instance: no renderable found for entity %d");
+            return std::nullptr_t();
+        }
+        return rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+    }
+
     void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, float value)
     {
         auto entity = Entity::import(entityId);
@@ -2620,7 +2644,6 @@ EntityId SceneManager::createGeometry(
             return;
         }
         auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
-
         materialInstance->setDepthWrite(enabled);
     }
 

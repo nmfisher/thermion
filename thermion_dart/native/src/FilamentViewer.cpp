@@ -584,6 +584,7 @@ namespace thermion_filament
         .material(0, _imageMaterial->getDefaultInstance())
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, _imageVb,
                   _imageIb, 0, 3)
+        .layerMask(0xFF, 1u << SceneManager::LAYERS::BACKGROUND)
         .culling(false)
         .build(*_engine, _imageEntity);
     _scene->addEntity(_imageEntity);
@@ -969,7 +970,11 @@ namespace thermion_filament
                 delete vec; },
             callbackData);
     _skybox =
-        filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
+        filament::Skybox::Builder()
+          .environment(_skyboxTexture)
+          .build(*_engine);
+
+    _skybox->setLayerMask(0xFF, 1u << SceneManager::LAYERS::BACKGROUND);
 
     _scene->setSkybox(_skybox);
   }
