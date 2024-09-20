@@ -927,9 +927,14 @@ extern "C"
         *maxY = box.maxY;
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_layer_enabled(void *const sceneManager, int layer, bool enabled)
+    EMSCRIPTEN_KEEPALIVE void set_visibility_layer(void *const sceneManager, EntityId entity, int layer) {
+        ((SceneManager*)sceneManager)->setVisibilityLayer(entity, layer);
+    }
+
+
+    EMSCRIPTEN_KEEPALIVE void set_layer_visibility(void *const sceneManager, int layer, bool visible)
     {
-        ((SceneManager *)sceneManager)->setLayerEnabled(layer, enabled);
+        ((SceneManager *)sceneManager)->setLayerVisibility((SceneManager::LAYERS)layer, visible);
     }
 
     EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void *ptr)
@@ -962,9 +967,13 @@ extern "C"
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
     }
 
+    EMSCRIPTEN_KEEPALIVE TMaterialInstance* get_material_instance_at(void *const sceneManager, EntityId entity, int materialIndex) {
+        auto instance = ((SceneManager *)sceneManager)->getMaterialInstanceAt(entity, materialIndex);
+        return reinterpret_cast<TMaterialInstance*>(instance);
+    }
+
     EMSCRIPTEN_KEEPALIVE void set_material_property_int(void *const sceneManager, EntityId entity, int materialIndex, const char *property, int32_t value)
     {
-
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
     }
 

@@ -545,7 +545,7 @@ abstract class ThermionViewer {
   Future moveCameraToAsset(ThermionEntity entity);
 
   ///
-  /// Enables/disables frustum culling. Currently we don't expose a method for manipulating the camera projection/culling matrices so this is your only option to deal with unwanted near/far clipping.
+  /// Enables/disables frustum culling.
   ///
   Future setViewFrustumCulling(bool enabled);
 
@@ -596,14 +596,15 @@ abstract class ThermionViewer {
   /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
   /// [entity] must have a Renderable attached.
   ///
-  Future setMaterialPropertyInt(ThermionEntity entity, String propertyName,
-      int materialIndex, int value);
+  Future setMaterialPropertyInt(
+      ThermionEntity entity, String propertyName, int materialIndex, int value);
 
   ///
   /// Sets the depthWrite material instance at [materialIndex] for [entity] to [enabled].
   /// [entity] must have a Renderable attached.
   ///
-  Future setMaterialDepthWrite(ThermionEntity entity, int materialIndex, bool enabled);
+  Future setMaterialDepthWrite(
+      ThermionEntity entity, int materialIndex, bool enabled);
 
   ///
   /// Scale [entity] to fit within the unit cube.
@@ -853,7 +854,12 @@ abstract class ThermionViewer {
   /// We place all scene assets in layer 0 (enabled by default), gizmos in layer 1 (enabled by default), world grid in layer 2 (disabled by default).
   /// Use this method to toggle visibility of the respective layer.
   ///
-  Future setLayerEnabled(int layer, bool enabled);
+  Future setLayerVisibility(int layer, bool visible);
+
+  ///
+  /// Assigns [entity] to visibility layer [layer].
+  /// 
+  Future setVisibilityLayer(ThermionEntity entity, int layer);
 
   ///
   /// Show/hide the translation gizmo.

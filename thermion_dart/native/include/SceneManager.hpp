@@ -55,6 +55,7 @@ namespace thermion_filament
 
         enum LAYERS {
             DEFAULT_ASSETS = 0,
+            BACKGROUND = 6,
             OVERLAY = 7,
         };
 
@@ -229,11 +230,8 @@ namespace thermion_filament
 
         ///
         /// Toggles the visibility of the given layer.
-        /// Layer 0 - regular scene assets
-        /// Layer 1 - unused
-        /// Layer 2 - grid
         ///
-        void setLayerEnabled(int layer, bool enabled);
+        void setLayerVisibility(SceneManager::LAYERS layer, bool enabled);
 
         ///
         /// Creates an entity with the specified geometry/material/normals and adds to the scene.
@@ -284,6 +282,8 @@ namespace thermion_filament
             return _assetLoader->createInstance(asset);
         }
 
+        MaterialInstance* getMaterialInstanceAt(EntityId entityId, int materialIndex);
+
         void setMaterialProperty(EntityId entity, int materialIndex, const char* property, float value);
         void setMaterialProperty(EntityId entity, int materialIndex, const char* property, int32_t value);
         void setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4& value);
@@ -297,6 +297,8 @@ namespace thermion_filament
         }
 
         MaterialInstance* createUnlitMaterialInstance();
+
+        void setVisibilityLayer(EntityId entityId, int layer);
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;

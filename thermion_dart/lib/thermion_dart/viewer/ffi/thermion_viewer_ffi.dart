@@ -1920,8 +1920,17 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future setLayerEnabled(int layer, bool enabled) async {
-    set_layer_enabled(_sceneManager!, layer, enabled);
+  Future setLayerVisibility(int layer, bool visible) {
+    set_layer_visibility(_sceneManager!, layer, visible);
+    return Future.value();
+  }
+
+  ///
+  ///
+  ///
+  Future setVisibilityLayer(ThermionEntity entity, int layer) {
+    set_visibility_layer(_sceneManager!, entity, layer);
+    return Future.value();
   }
 
   ///
