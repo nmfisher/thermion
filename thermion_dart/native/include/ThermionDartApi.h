@@ -275,7 +275,6 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible);
 	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entity, float r, float g, float b);
 	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE TMaterialInstance* get_material_instance_at(void *const sceneManager, EntityId entity, int materialIndex);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float value);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_int(void *const sceneManager, EntityId entity, int materialIndex, const char *property, int value);
 	EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, double4 value);
@@ -284,6 +283,12 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void *const create_texture(void *const sceneManager, uint8_t *data, size_t length);
 	EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void *const texture);
 	EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex);
+
+	EMSCRIPTEN_KEEPALIVE TMaterialInstance* get_material_instance_at(void *const sceneManager, EntityId entity, int materialIndex);
+	
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance* materialInstance, bool enabled);
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance* materialInstance, bool enabled);
+
 
 #ifdef __cplusplus
 }

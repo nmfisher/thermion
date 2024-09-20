@@ -2186,7 +2186,7 @@ class ThermionViewerWasm implements ThermionViewer {
   @override
   Future setLayerEnabled(int layer, bool enabled) async {
     _module!.ccall(
-        "set_layer_enabled",
+        "set_layer_visibility",
         "void",
         [
           "void*".toJS,

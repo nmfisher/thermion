@@ -1212,15 +1212,6 @@ external void remove_stencil_highlight(
 );
 
 @ffi.Native<
-    ffi.Pointer<TMaterialInstance> Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(isLeaf: true)
-external ffi.Pointer<TMaterialInstance> get_material_instance_at(
-  ffi.Pointer<ffi.Void> sceneManager,
-  int entity,
-  int materialIndex,
-);
-
-@ffi.Native<
     ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
         ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
 external void set_material_property_float(
@@ -1309,6 +1300,29 @@ external void apply_texture_to_material(
   ffi.Pointer<ffi.Void> texture,
   ffi.Pointer<ffi.Char> parameterName,
   int materialIndex,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(isLeaf: true)
+external ffi.Pointer<TMaterialInstance> get_material_instance_at(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  int materialIndex,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(
+    isLeaf: true)
+external void MaterialInstance_setDepthWrite(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(
+    isLeaf: true)
+external void MaterialInstance_setDepthCulling(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  bool enabled,
 );
 
 @ffi.Native<
