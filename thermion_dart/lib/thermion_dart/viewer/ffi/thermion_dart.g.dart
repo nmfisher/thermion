@@ -1238,6 +1238,16 @@ external void set_material_property_float4(
 
 @ffi.Native<
     ffi.Void Function(
+        ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool)>(isLeaf: true)
+external void set_material_depth_write(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  int materialIndex,
+  bool enabled,
+);
+
+@ffi.Native<
+    ffi.Void Function(
         ffi.Pointer<ffi.Void>,
         EntityId,
         ffi.Pointer<ffi.Uint8>,
