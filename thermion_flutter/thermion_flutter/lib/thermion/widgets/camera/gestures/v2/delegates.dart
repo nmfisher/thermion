@@ -23,3 +23,8 @@ abstract class VelocityDelegate {
     stopDeceleration();
   }
 }
+
+abstract class PickDelegate {
+  const PickDelegate();
+  void pick(Offset location);
+}
