@@ -2,3 +2,4 @@
 import 'package:thermion_dart/thermion_dart/viewer/shared_types/shared_types.dart';
 
 typedef FilamentPickResult = ({ThermionEntity entity, double x, double y});
+typedef ThermionPickResult = FilamentPickResult;
