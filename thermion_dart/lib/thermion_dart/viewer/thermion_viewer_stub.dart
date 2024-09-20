@@ -785,11 +785,6 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
   
-  @override
-  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false}) {
-    // TODO: implement loadGlbFromBuffer
-    throw UnimplementedError();
-  }
   
   @override
   Future queuePositionUpdateFromViewportCoords(ThermionEntity entity, double x, double y) {
@@ -871,18 +866,66 @@ class ThermionViewerStub extends ThermionViewer {
   }
   
   @override
-  Future createGeometry(Geometry geometry, {bool keepData=false}) {
-    // TODO: implement createGeometry
-    throw UnimplementedError();
-  }
-
-  @override
   // TODO: implement sceneUpdated
   Stream<SceneUpdateEvent> get sceneUpdated => throw UnimplementedError();
   
   @override
   Future<ThermionEntity> addDirectLight(DirectLight light) {
     // TODO: implement addDirectLight
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future applyTexture(covariant ThermionTexture texture, ThermionEntity entity, {int materialIndex = 0, String parameterName = "baseColorMap"}) {
+    // TODO: implement applyTexture
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ThermionTexture> createTexture(Uint8List data) {
+    // TODO: implement createTexture
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<MaterialInstance> createUbershaderMaterialInstance({bool doubleSided = false, bool unlit = false, bool hasVertexColors = false, bool hasBaseColorTexture = false, bool hasNormalTexture = false, bool hasOcclusionTexture = false, bool hasEmissiveTexture = false, bool useSpecularGlossiness = false, AlphaMode alphaMode = AlphaMode.OPAQUE, bool enableDiagnostics = false, bool hasMetallicRoughnessTexture = false, int metallicRoughnessUV = 0, int baseColorUV = 0, bool hasClearCoatTexture = false, int clearCoatUV = 0, bool hasClearCoatRoughnessTexture = false, int clearCoatRoughnessUV = 0, bool hasClearCoatNormalTexture = false, int clearCoatNormalUV = 0, bool hasClearCoat = false, bool hasTransmission = false, bool hasTextureTransforms = false, int emissiveUV = 0, int aoUV = 0, int normalUV = 0, bool hasTransmissionTexture = false, int transmissionUV = 0, bool hasSheenColorTexture = false, int sheenColorUV = 0, bool hasSheenRoughnessTexture = false, int sheenRoughnessUV = 0, bool hasVolumeThicknessTexture = false, int volumeThicknessUV = 0, bool hasSheen = false, bool hasIOR = false, bool hasVolume = false}) {
+    // TODO: implement createUbershaderMaterialInstance
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<MaterialInstance> createUnlitMaterialInstance() {
+    // TODO: implement createUnlitMaterialInstance
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future destroyMaterialInstance(covariant MaterialInstance materialInstance) {
+    // TODO: implement destroyMaterialInstance
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future destroyTexture(covariant ThermionTexture texture) {
+    // TODO: implement destroyTexture
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future createGeometry(Geometry geometry, {MaterialInstance? materialInstance, bool keepData = false}) {
+    // TODO: implement createGeometry
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0}) {
+    // TODO: implement loadGlbFromBuffer
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setMaterialPropertyInt(ThermionEntity entity, String propertyName, int materialIndex, int value) {
+    // TODO: implement setMaterialPropertyInt
     throw UnimplementedError();
   }
 
