@@ -1947,8 +1947,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   ///
-  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
-  /// [entity] must have a Renderable attached.
+  ///
   ///
   Future setMaterialPropertyFloat(ThermionEntity entity, String propertyName,
       int materialIndex, double value) async {
@@ -1959,8 +1958,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   ///
-  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to {f1,f2,f3,f4}.
-  /// [entity] must have a Renderable attached.
+  ///
   ///
   Future setMaterialPropertyFloat4(ThermionEntity entity, String propertyName,
       int materialIndex, double f1, double f2, double f3, double f4) async {
@@ -1973,6 +1971,15 @@ class ThermionViewerFFI extends ThermionViewer {
     set_material_property_float4(
         _sceneManager!, entity, materialIndex, ptr.cast<Char>(), struct);
     allocator.free(ptr);
+  }
+
+  ///
+  ///
+  ///
+  Future setMaterialDepthWrite(
+      ThermionEntity entity, int materialIndex, bool enabled) {
+    set_material_depth_write(_sceneManager!, entity, materialIndex, enabled);
+    return Future.value();
   }
 
   Future<Uint8List> unproject(ThermionEntity entity, Uint8List input,
