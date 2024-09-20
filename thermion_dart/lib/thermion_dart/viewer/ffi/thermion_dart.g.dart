@@ -432,6 +432,12 @@ external ffi.Pointer<TMaterialInstance> create_material_instance(
   TMaterialKey materialConfig,
 );
 
+@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<ffi.Void>)>(
+    isLeaf: true)
+external ffi.Pointer<TMaterialInstance> create_unlit_material_instance(
+  ffi.Pointer<ffi.Void> sceneManager,
+);
+
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>, ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
@@ -1210,13 +1216,24 @@ external void set_material_property_float(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
-        ffi.Pointer<ffi.Char>, float4)>(isLeaf: true)
+        ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
+external void set_material_property_int(
+  ffi.Pointer<ffi.Void> sceneManager,
+  int entity,
+  int materialIndex,
+  ffi.Pointer<ffi.Char> property,
+  int value,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
+        ffi.Pointer<ffi.Char>, double4)>(isLeaf: true)
 external void set_material_property_float4(
   ffi.Pointer<ffi.Void> sceneManager,
   int entity,
   int materialIndex,
   ffi.Pointer<ffi.Char> property,
-  float4 value,
+  double4 value,
 );
 
 @ffi.Native<
@@ -1922,17 +1939,17 @@ final class UnnamedStruct2 extends ffi.Struct {
   external int specularGlossinessUV;
 }
 
-final class float4 extends ffi.Struct {
-  @ffi.Float()
+final class double4 extends ffi.Struct {
+  @ffi.Double()
   external double x;
 
-  @ffi.Float()
+  @ffi.Double()
   external double y;
 
-  @ffi.Float()
+  @ffi.Double()
   external double z;
 
-  @ffi.Float()
+  @ffi.Double()
   external double w;
 }
 
