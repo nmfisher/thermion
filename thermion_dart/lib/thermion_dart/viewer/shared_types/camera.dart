@@ -1,6 +1,8 @@
-// abstract class Camera {
-//   Future setProjectionMatrixWithCulling(Matrix4 projectionMatrix, Matrix4 projectionMatrixForCUlling);
-//   Future setDepthCullingEnabled(bool enabled);
-// }
+import 'package:vector_math/vector_math_64.dart';
 
-enum AlphaMode { OPAQUE, MASK, BLEND }
+abstract class Camera {
+
+  Future setProjectionMatrixWithCulling(Matrix4 projectionMatrix, double near, double far);
+  
+}
+

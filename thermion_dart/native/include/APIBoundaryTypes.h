@@ -11,6 +11,8 @@ extern "C"
 	typedef int32_t _ManipulatorMode;
 	typedef struct TCamera TCamera;
 	typedef struct TMaterialInstance TMaterialInstance;
+	typedef struct TEngine TEngine;
+	typedef struct TViewer TViewer;
 
 	struct TMaterialKey {
 		bool doubleSided = 1;

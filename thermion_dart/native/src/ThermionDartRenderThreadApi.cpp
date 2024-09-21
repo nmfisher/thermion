@@ -133,7 +133,7 @@ public:
                     const ResourceLoaderWrapper *const loader,
                     void (*renderCallback)(void *),
                     void *const owner,
-                    void (*callback)(void *const))
+                    void (*callback)(TViewer*))
   {
     _renderCallback = renderCallback;
     _renderCallbackOwner = owner;
@@ -155,7 +155,8 @@ public:
                                         _viewer = (FilamentViewer *)create_filament_viewer((void *const)_context, loader, platform, uberArchivePath);
                                         MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, _viewer);
 #else
-                                        _viewer = (FilamentViewer *)create_filament_viewer(context, loader, platform, uberArchivePath);
+                                        auto viewer = (FilamentViewer *)create_filament_viewer(context, loader, platform, uberArchivePath);
+                                        _viewer = reinterpret_cast<TViewer*>(viewer);
                                         callback(_viewer);
 #endif
                                       });
@@ -168,7 +169,7 @@ public:
                                       {
       _render = false;
       _viewer = nullptr;
-      destroy_filament_viewer(viewer); });
+      destroy_filament_viewer(reinterpret_cast<TViewer*>(viewer)); });
     auto fut = add_task(lambda);
     fut.wait();
   }
@@ -222,7 +223,7 @@ private:
   void (*_renderCallback)(void *const) = nullptr;
   void *_renderCallbackOwner = nullptr;
   std::deque<std::function<void()>> _tasks;
-  FilamentViewer *_viewer = nullptr;
+  TViewer *_viewer = nullptr;
   std::chrono::high_resolution_clock::time_point _lastFrameTime;
   int _frameCount = 0;
   float _accumulatedTime = 0.0f;
@@ -246,7 +247,7 @@ extern "C"
       const void *const loader,
       void (*renderCallback)(void *const renderCallbackOwner),
       void *const renderCallbackOwner,
-      void (*callback)(void *const))
+      void (*callback)(TViewer *))
   {
 
     if (!_rl)
@@ -257,14 +258,14 @@ extern "C"
                       renderCallback, renderCallbackOwner, callback);
   }
 
-  EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer)
   {
     _rl->destroyViewer((FilamentViewer *)viewer);
     delete _rl;
     _rl = nullptr;
   }
 
-  EMSCRIPTEN_KEEPALIVE void create_swap_chain_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void create_swap_chain_render_thread(TViewer *viewer,
                                                             void *const surface,
                                                             uint32_t width,
                                                             uint32_t height,
@@ -283,7 +284,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void destroy_swap_chain_render_thread(void *const viewer, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void destroy_swap_chain_render_thread(TViewer *viewer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -298,7 +299,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void create_render_target_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void create_render_target_render_thread(TViewer *viewer,
                                                                intptr_t nativeTextureId,
                                                                uint32_t width,
                                                                uint32_t height,
@@ -316,7 +317,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(TViewer *viewer)
   {
     if (!_rl)
     {
@@ -329,7 +330,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void
-  set_frame_interval_render_thread(void *const viewer, float frameIntervalInMilliseconds)
+  set_frame_interval_render_thread(TViewer *viewer, float frameIntervalInMilliseconds)
   {
     _rl->setFrameIntervalInMilliseconds(frameIntervalInMilliseconds);
     std::packaged_task<void()> lambda([=]() mutable
@@ -337,14 +338,14 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void render_render_thread(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void render_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { _rl->doRender(); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void capture_render_thread(void *const viewer, uint8_t *pixelBuffer, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void capture_render_thread(TViewer *viewer, uint8_t *pixelBuffer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { capture(viewer, pixelBuffer, onComplete); });
@@ -352,7 +353,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void
-  set_background_color_render_thread(void *const viewer, const float r, const float g,
+  set_background_color_render_thread(TViewer *viewer, const float r, const float g,
                                      const float b, const float a)
   {
     std::packaged_task<void()> lambda(
@@ -420,14 +421,14 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { clear_background_image(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void set_background_image_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_background_image_render_thread(TViewer *viewer,
                                                                const char *path,
                                                                bool fillHeight, void (*callback)())
   {
@@ -443,7 +444,7 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void set_background_image_position_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_background_image_position_render_thread(TViewer *viewer,
                                                                         float x, float y,
                                                                         bool clamp)
   {
@@ -452,7 +453,7 @@ extern "C"
         { set_background_image_position(viewer, x, y, clamp); });
     auto fut = _rl->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void set_tone_mapping_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_tone_mapping_render_thread(TViewer *viewer,
                                                            int toneMapping)
   {
     std::packaged_task<void()> lambda(
@@ -460,13 +461,13 @@ extern "C"
         { set_tone_mapping(viewer, toneMapping); });
     auto fut = _rl->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void set_bloom_render_thread(void *const viewer, float strength)
+  EMSCRIPTEN_KEEPALIVE void set_bloom_render_thread(TViewer *viewer, float strength)
   {
     std::packaged_task<void()> lambda([=]
                                       { set_bloom(viewer, strength); });
     auto fut = _rl->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer,
                                                       const char *skyboxPath,
                                                       void (*onComplete)())
   {
@@ -482,7 +483,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_ibl_render_thread(void *const viewer, const char *iblPath,
+  EMSCRIPTEN_KEEPALIVE void load_ibl_render_thread(TViewer *viewer, const char *iblPath,
                                                    float intensity)
   {
     std::packaged_task<void()> lambda(
@@ -490,14 +491,14 @@ extern "C"
         { load_ibl(viewer, iblPath, intensity); });
     auto fut = _rl->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_skybox(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void remove_ibl_render_thread(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void remove_ibl_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_ibl(viewer); });
@@ -505,7 +506,7 @@ extern "C"
   }
 
   void add_light_render_thread(
-      void *const viewer,
+      TViewer *viewer,
       uint8_t type,
       float colour,
       float intensity,
@@ -556,7 +557,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void remove_light_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void remove_light_render_thread(TViewer *viewer,
                                                        EntityId entityId)
   {
     std::packaged_task<void()> lambda([=]
@@ -564,14 +565,14 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void clear_lights_render_thread(void *const viewer)
+  EMSCRIPTEN_KEEPALIVE void clear_lights_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { clear_lights(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void remove_entity_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void remove_entity_render_thread(TViewer *viewer,
                                                         EntityId asset, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
@@ -586,7 +587,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void clear_entities_render_thread(void *const viewer, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void clear_entities_render_thread(TViewer *viewer, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
@@ -600,7 +601,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void set_camera_render_thread(void *const viewer, EntityId asset,
+  EMSCRIPTEN_KEEPALIVE void set_camera_render_thread(TViewer *viewer, EntityId asset,
                                                      const char *nodeName, void (*callback)(bool))
   {
     std::packaged_task<bool()> lambda(
@@ -707,7 +708,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void set_post_processing_render_thread(void *const viewer,
+  EMSCRIPTEN_KEEPALIVE void set_post_processing_render_thread(TViewer *viewer,
                                                               bool enabled)
   {
     std::packaged_task<void()> lambda(
@@ -834,7 +835,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(void *const viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]

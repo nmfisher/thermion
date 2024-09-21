@@ -44,69 +44,74 @@ extern "C"
             filament::math::float4{float(d_mat.col4[0]), float(d_mat.col4[1]), float(d_mat.col4[2]), float(d_mat.col4[3])}};
     }
 
-    EMSCRIPTEN_KEEPALIVE const void *create_filament_viewer(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
+    EMSCRIPTEN_KEEPALIVE TViewer *create_filament_viewer(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
     {
         const auto *loaderImpl = new ResourceLoaderWrapperImpl((ResourceLoaderWrapper *)loader);
-        auto viewer = (const void *)new FilamentViewer(context, loaderImpl, platform, uberArchivePath);
-        return viewer;
+        auto viewer = new FilamentViewer(context, loaderImpl, platform, uberArchivePath);
+        return reinterpret_cast<TViewer*>(viewer);
     }
 
-    EMSCRIPTEN_KEEPALIVE void create_render_target(const void *const viewer, intptr_t texture, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer) { 
+        auto* engine = reinterpret_cast<FilamentViewer*>(viewer)->getEngine();
+        return reinterpret_cast<TEngine*>(engine);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void create_render_target(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height)
     {
         ((FilamentViewer *)viewer)->createRenderTarget(texture, width, height);
     }
 
-    EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer)
     {
         delete ((FilamentViewer *)viewer);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_background_color(const void *const viewer, const float r, const float g, const float b, const float a)
+    EMSCRIPTEN_KEEPALIVE void set_background_color(TViewer *viewer, const float r, const float g, const float b, const float a)
     {
         ((FilamentViewer *)viewer)->setBackgroundColor(r, g, b, a);
     }
 
-    EMSCRIPTEN_KEEPALIVE void clear_background_image(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void clear_background_image(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->clearBackgroundImage();
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_background_image(const void *const viewer, const char *path, bool fillHeight)
+    EMSCRIPTEN_KEEPALIVE void set_background_image(TViewer *viewer, const char *path, bool fillHeight)
     {
         ((FilamentViewer *)viewer)->setBackgroundImage(path, fillHeight);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_background_image_position(const void *const viewer, float x, float y, bool clamp)
+    EMSCRIPTEN_KEEPALIVE void set_background_image_position(TViewer *viewer, float x, float y, bool clamp)
     {
         ((FilamentViewer *)viewer)->setBackgroundImagePosition(x, y, clamp);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_tone_mapping(const void *const viewer, int toneMapping)
+    EMSCRIPTEN_KEEPALIVE void set_tone_mapping(TViewer *viewer, int toneMapping)
     {
         ((FilamentViewer *)viewer)->setToneMapping((ToneMapping)toneMapping);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_bloom(const void *const viewer, float strength)
+    EMSCRIPTEN_KEEPALIVE void set_bloom(TViewer *viewer, float strength)
     {
         ((FilamentViewer *)viewer)->setBloom(strength);
     }
 
-    EMSCRIPTEN_KEEPALIVE void load_skybox(const void *const viewer, const char *skyboxPath)
+    EMSCRIPTEN_KEEPALIVE void load_skybox(TViewer *viewer, const char *skyboxPath)
     {
         ((FilamentViewer *)viewer)->loadSkybox(skyboxPath);
     }
 
-    EMSCRIPTEN_KEEPALIVE void create_ibl(const void *const viewer, float r, float g, float b, float intensity)
+    EMSCRIPTEN_KEEPALIVE void create_ibl(TViewer *viewer, float r, float g, float b, float intensity)
     {
         ((FilamentViewer *)viewer)->createIbl(r, g, b, intensity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void load_ibl(const void *const viewer, const char *iblPath, float intensity)
+    EMSCRIPTEN_KEEPALIVE void load_ibl(TViewer *viewer, const char *iblPath, float intensity)
     {
         ((FilamentViewer *)viewer)->loadIbl(iblPath, intensity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void rotate_ibl(const void *const viewer, float *rotationMatrix)
+    EMSCRIPTEN_KEEPALIVE void rotate_ibl(TViewer *viewer, float *rotationMatrix)
     {
         math::mat3f matrix(rotationMatrix[0], rotationMatrix[1],
                            rotationMatrix[2],
@@ -120,18 +125,18 @@ extern "C"
         ((FilamentViewer *)viewer)->rotateIbl(matrix);
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_skybox(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void remove_skybox(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->removeSkybox();
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_ibl(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void remove_ibl(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->removeIbl();
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId add_light(
-        const void *const viewer,
+        TViewer *viewer,
         uint8_t type,
         float colour,
         float intensity,
@@ -152,22 +157,22 @@ extern "C"
         return ((FilamentViewer *)viewer)->addLight((LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, shadows);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_light_position(const void *const viewer, int32_t entityId, float x, float y, float z)
+    EMSCRIPTEN_KEEPALIVE void set_light_position(TViewer *viewer, int32_t entityId, float x, float y, float z)
     {
         ((FilamentViewer *)viewer)->setLightPosition(entityId, x, y, z);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_light_direction(const void *const viewer, int32_t entityId, float x, float y, float z)
+    EMSCRIPTEN_KEEPALIVE void set_light_direction(TViewer *viewer, int32_t entityId, float x, float y, float z)
     {
         ((FilamentViewer *)viewer)->setLightDirection(entityId, x, y, z);
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_light(const void *const viewer, int32_t entityId)
+    EMSCRIPTEN_KEEPALIVE void remove_light(TViewer *viewer, int32_t entityId)
     {
         ((FilamentViewer *)viewer)->removeLight(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE void clear_lights(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void clear_lights(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->clearLights();
     }
@@ -202,17 +207,17 @@ extern "C"
         return ((SceneManager *)sceneManager)->loadGltf(assetPath, relativePath, keepData);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_main_camera(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void set_main_camera(TViewer *viewer)
     {
         return ((FilamentViewer *)viewer)->setMainCamera();
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(TViewer *viewer)
     {
         return ((FilamentViewer *)viewer)->getMainCamera();
     }
 
-    EMSCRIPTEN_KEEPALIVE bool set_camera(const void *const viewer, EntityId asset, const char *nodeName)
+    EMSCRIPTEN_KEEPALIVE bool set_camera(TViewer *viewer, EntityId asset, const char *nodeName)
     {
         return ((FilamentViewer *)viewer)->setCamera(asset, nodeName);
     }
@@ -235,7 +240,7 @@ extern "C"
         cam->setProjection(fovInDegrees, aspect, near, far, horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
     }
 
-    EMSCRIPTEN_KEEPALIVE TCamera *get_camera(const void *const viewer, EntityId entity)
+    EMSCRIPTEN_KEEPALIVE TCamera *get_camera(TViewer *viewer, EntityId entity)
     {
         auto filamentCamera = ((FilamentViewer *)viewer)->getCamera(entity);
         return reinterpret_cast<TCamera *>(filamentCamera);
@@ -309,12 +314,12 @@ extern "C"
         return array;
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed)
+    EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(TViewer *viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed)
     {
         ((FilamentViewer *)viewer)->setCameraManipulatorOptions((filament::camutils::Mode)mode, orbitSpeedX, orbitSpeedY, zoomSpeed);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(const void *const viewer, bool enabled)
+    EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(TViewer *viewer, bool enabled)
     {
         ((FilamentViewer *)viewer)->setViewFrustumCulling(enabled);
     }
@@ -339,17 +344,17 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE bool render(
-        const void *const viewer,
+        TViewer *viewer,
         uint64_t frameTimeInNanos,
         void *pixelBuffer,
         void (*callback)(void *buf, size_t size, void *data),
         void *data)
     {
-        return ((FilamentViewer *)viewer)->render(frameTimeInNanos, pixelBuffer, callback, data);
+    return ((FilamentViewer *)viewer)->render(frameTimeInNanos, pixelBuffer, callback, data);
     }
 
     EMSCRIPTEN_KEEPALIVE void capture(
-        const void *const viewer,
+        TViewer *viewer,
         uint8_t *pixelBuffer,
         void (*callback)(void))
     {
@@ -362,58 +367,58 @@ extern "C"
     };
 
     EMSCRIPTEN_KEEPALIVE void set_frame_interval(
-        const void *const viewer,
+        TViewer *viewer,
         float frameInterval)
     {
         ((FilamentViewer *)viewer)->setFrameInterval(frameInterval);
     }
 
-    EMSCRIPTEN_KEEPALIVE void destroy_swap_chain(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void destroy_swap_chain(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->destroySwapChain();
     }
 
-    EMSCRIPTEN_KEEPALIVE void create_swap_chain(const void *const viewer, const void *const window, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE void create_swap_chain(TViewer *viewer, const void *const window, uint32_t width, uint32_t height)
     {
         ((FilamentViewer *)viewer)->createSwapChain(window, width, height);
     }
 
-    EMSCRIPTEN_KEEPALIVE void update_viewport(const void *const viewer, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE void update_viewport(TViewer *viewer, uint32_t width, uint32_t height)
     {
         return ((FilamentViewer *)viewer)->updateViewport(width, height);
     }
 
-    EMSCRIPTEN_KEEPALIVE void scroll_update(const void *const viewer, float x, float y, float delta)
+    EMSCRIPTEN_KEEPALIVE void scroll_update(TViewer *viewer, float x, float y, float delta)
     {
         ((FilamentViewer *)viewer)->scrollUpdate(x, y, delta);
     }
 
-    EMSCRIPTEN_KEEPALIVE void scroll_begin(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void scroll_begin(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->scrollBegin();
     }
 
-    EMSCRIPTEN_KEEPALIVE void scroll_end(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void scroll_end(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->scrollEnd();
     }
 
-    EMSCRIPTEN_KEEPALIVE void grab_begin(const void *const viewer, float x, float y, bool pan)
+    EMSCRIPTEN_KEEPALIVE void grab_begin(TViewer *viewer, float x, float y, bool pan)
     {
         ((FilamentViewer *)viewer)->grabBegin(x, y, pan);
     }
 
-    EMSCRIPTEN_KEEPALIVE void grab_update(const void *const viewer, float x, float y)
+    EMSCRIPTEN_KEEPALIVE void grab_update(TViewer *viewer, float x, float y)
     {
         ((FilamentViewer *)viewer)->grabUpdate(x, y);
     }
 
-    EMSCRIPTEN_KEEPALIVE void grab_end(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void grab_end(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->grabEnd();
     }
 
-    EMSCRIPTEN_KEEPALIVE void *get_scene_manager(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void *get_scene_manager(TViewer *viewer)
     {
         return (void *)((FilamentViewer *)viewer)->getSceneManager();
     }
@@ -475,27 +480,27 @@ extern "C"
         ((SceneManager *)sceneManager)->addBoneAnimation(asset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_post_processing(void *const viewer, bool enabled)
+    EMSCRIPTEN_KEEPALIVE void set_post_processing(TViewer *viewer, bool enabled)
     {
         ((FilamentViewer *)viewer)->setPostProcessing(enabled);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_shadows_enabled(void *const viewer, bool enabled)
+    EMSCRIPTEN_KEEPALIVE void set_shadows_enabled(TViewer *viewer, bool enabled)
     {
         ((FilamentViewer *)viewer)->setShadowsEnabled(enabled);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_shadow_type(void *const viewer, int shadowType)
+    EMSCRIPTEN_KEEPALIVE void set_shadow_type(TViewer *viewer, int shadowType)
     {
         ((FilamentViewer *)viewer)->setShadowType((ShadowType)shadowType);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_soft_shadow_options(void *const viewer, float penumbraScale, float penumbraRatioScale)
+    EMSCRIPTEN_KEEPALIVE void set_soft_shadow_options(TViewer *viewer, float penumbraScale, float penumbraRatioScale)
     {
         ((FilamentViewer *)viewer)->setSoftShadowOptions(penumbraScale, penumbraRatioScale);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_antialiasing(void *const viewer, bool msaa, bool fxaa, bool taa)
+    EMSCRIPTEN_KEEPALIVE void set_antialiasing(TViewer *viewer, bool msaa, bool fxaa, bool taa)
     {
         ((FilamentViewer *)viewer)->setAntiAliasing(msaa, fxaa, taa);
     }
@@ -721,12 +726,12 @@ extern "C"
         strcpy(outPtr, name.c_str());
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_entity(const void *const viewer, EntityId asset)
+    EMSCRIPTEN_KEEPALIVE void remove_entity(TViewer *viewer, EntityId asset)
     {
         ((FilamentViewer *)viewer)->removeEntity(asset);
     }
 
-    EMSCRIPTEN_KEEPALIVE void clear_entities(const void *const viewer)
+    EMSCRIPTEN_KEEPALIVE void clear_entities(TViewer *viewer)
     {
         ((FilamentViewer *)viewer)->clearEntities();
     }
@@ -791,7 +796,7 @@ extern "C"
         return ((SceneManager *)sceneManager)->reveal(asset, meshName);
     }
 
-    EMSCRIPTEN_KEEPALIVE void filament_pick(void *const viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y))
+    EMSCRIPTEN_KEEPALIVE void filament_pick(TViewer *viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y))
     {
         ((FilamentViewer *)viewer)->pick(static_cast<uint32_t>(x), static_cast<uint32_t>(y), callback);
     }
@@ -816,12 +821,12 @@ extern "C"
         return ((SceneManager *)sceneManager)->getEntityNameAt(target, index, renderableOnly);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_recording(void *const viewer, bool recording)
+    EMSCRIPTEN_KEEPALIVE void set_recording(TViewer *viewer, bool recording)
     {
         ((FilamentViewer *)viewer)->setRecording(recording);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_recording_output_directory(void *const viewer, const char *outputDirectory)
+    EMSCRIPTEN_KEEPALIVE void set_recording_output_directory(TViewer *viewer, const char *outputDirectory)
     {
         ((FilamentViewer *)viewer)->setRecordingOutputDirectory(outputDirectory);
     }
@@ -987,7 +992,7 @@ extern "C"
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
     }
 
-    EMSCRIPTEN_KEEPALIVE void unproject_texture(void *const viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
+    EMSCRIPTEN_KEEPALIVE void unproject_texture(TViewer *viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
     {
         ((FilamentViewer *)viewer)->unprojectTexture(entity, input, inputWidth, inputHeight, out, outWidth, outHeight);
     }
@@ -1058,7 +1063,14 @@ EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance* ma
     reinterpret_cast<MaterialInstance*>(materialInstance)->setDepthCulling(enabled);
 }
 
-EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* camera, double4x4 projectionMatrix, double4x4 projectionMatrixForCulling, double near, double far) {
-    reinterpret_cast<Camera*>(camera)->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), convert_double4x4_to_mat4(projectionMatrixForCulling), near, far);
+EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* tCamera, double4x4 projectionMatrix, double near, double far) {
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    camera->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), near, far);
+}
+
+EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId) {
+    auto * engine = reinterpret_cast<Engine*>(tEngine);
+    auto * camera = engine->getCameraComponent(utils::Entity::import(entityId));
+    return reinterpret_cast<TCamera*>(camera);
 }
 }

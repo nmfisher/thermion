@@ -10,8 +10,7 @@ import 'package:thermion_dart/thermion_dart/utils/dart_resources.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_dart.g.dart';
 import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_viewer_ffi.dart';
-
-final viewportDimensions = (width: 500, height: 500);
+import 'package:vector_math/vector_math_64.dart';
 
 /// Test files are run in a variety of ways, find this package root in all.
 ///
@@ -107,7 +106,8 @@ Future<Uint8List> pixelBufferToBmp(
   return data;
 }
 
-Future<Uint8List> bmpToPng(Uint8List pixelBuffer, int width, int height) async {
+Future<Uint8List> pixelsToPng(Uint8List pixelBuffer, int width, int height,
+    {bool linearToSrgb = false}) async {
   final image = img.Image(width: width, height: height);
 
   for (int y = 0; y < height; y++) {
@@ -126,13 +126,23 @@ Future<Uint8List> bmpToPng(Uint8List pixelBuffer, int width, int height) async {
         b = _inverseACESToneMapping(b);
       }
 
-      // Convert from linear to sRGB
-      final int sRgbR = _linearToSRGB(r);
-      final int sRgbG = _linearToSRGB(g);
-      final int sRgbB = _linearToSRGB(b);
+      if (linearToSrgb) {
+        // Convert from linear to sRGB
 
-      image.setPixel(
-          x, y, img.ColorUint8(4)..setRgba(sRgbR, sRgbG, sRgbB, 1.0));
+        image.setPixel(
+            x,
+            y,
+            img.ColorUint8(4)
+              ..setRgba(
+                  _linearToSRGB(r), _linearToSRGB(g), _linearToSRGB(b), 1.0));
+      } else {
+        image.setPixel(
+            x,
+            y,
+            img.ColorUint8(4)
+              ..setRgba((r * 255).toInt(), (g * 255).toInt(), (b * 255).toInt(),
+                  1.0));
+      }
     }
   }
 
@@ -163,7 +173,10 @@ int _linearToSRGB(double linearValue) {
   }
 }
 
-Future<ThermionViewer> createViewer() async {
+Future<ThermionViewer> createViewer(
+    {img.Color? bg,
+    Vector3? cameraPosition,
+    viewportDimensions = (width: 500, height: 500)}) async {
   final packageUri = findPackageRoot('thermion_dart');
 
   final lib = ThermionDartTexture1(DynamicLibrary.open(
@@ -192,5 +205,280 @@ Future<ThermionViewer> createViewer() async {
   await viewer.updateViewportAndCameraProjection(
       viewportDimensions.width.toDouble(),
       viewportDimensions.height.toDouble());
+  if (bg != null) {
+    await viewer.setBackgroundColor(
+        bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());
+  }
+
+  if (cameraPosition != null) {
+    await viewer.setCameraPosition(
+        cameraPosition.x, cameraPosition.y, cameraPosition.z);
+  }
   return viewer;
+}
+
+Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {
+  final int numTextures = textures.length;
+  final int size = width * height;
+
+  // Initialize the result
+  List<Vector4> result = List.generate(size, (_) => Vector4(0, 0, 0, 0));
+  List<bool> validPixel = List.generate(size, (_) => false);
+
+  // Compute gradients and perform simplified Poisson blending
+  for (int y = 1; y < height - 1; y++) {
+    for (int x = 1; x < width - 1; x++) {
+      int index = y * width + x;
+      Vector4 gradX = Vector4(0, 0, 0, 0);
+      Vector4 gradY = Vector4(0, 0, 0, 0);
+      bool hasValidData = false;
+
+      for (int t = 0; t < numTextures; t++) {
+        int i = index * 4;
+        if (textures[t][i] == 0 &&
+            textures[t][i + 1] == 0 &&
+            textures[t][i + 2] == 0 &&
+            textures[t][i + 3] == 0) {
+          continue; // Skip this texture if the pixel is empty
+        }
+
+        hasValidData = true;
+        int iLeft = (y * width + x - 1) * 4;
+        int iRight = (y * width + x + 1) * 4;
+        int iUp = ((y - 1) * width + x) * 4;
+        int iDown = ((y + 1) * width + x) * 4;
+
+        Vector4 gx = Vector4(
+            (textures[t][iRight] - textures[t][iLeft]) / 2,
+            (textures[t][iRight + 1] - textures[t][iLeft + 1]) / 2,
+            (textures[t][iRight + 2] - textures[t][iLeft + 2]) / 2,
+            (textures[t][iRight + 3] - textures[t][iLeft + 3]) / 2);
+
+        Vector4 gy = Vector4(
+            (textures[t][iDown] - textures[t][iUp]) / 2,
+            (textures[t][iDown + 1] - textures[t][iUp + 1]) / 2,
+            (textures[t][iDown + 2] - textures[t][iUp + 2]) / 2,
+            (textures[t][iDown + 3] - textures[t][iUp + 3]) / 2);
+
+        // Select the gradient with larger magnitude
+        double magX = gx.r * gx.r + gx.g * gx.g + gx.b * gx.b + gx.a * gx.a;
+        double magY = gy.r * gy.r + gy.g * gy.g + gy.b * gy.b + gy.a * gy.a;
+
+        if (magX >
+            gradX.r * gradX.r +
+                gradX.g * gradX.g +
+                gradX.b * gradX.b +
+                gradX.a * gradX.a) {
+          gradX = gx;
+        }
+        if (magY >
+            gradY.r * gradY.r +
+                gradY.g * gradY.g +
+                gradY.b * gradY.b +
+                gradY.a * gradY.a) {
+          gradY = gy;
+        }
+      }
+
+      if (hasValidData) {
+        validPixel[index] = true;
+        // Simplified Poisson equation solver (Jacobi iteration)
+        result[index].r = (result[index - 1].r +
+                result[index + 1].r +
+                result[index - width].r +
+                result[index + width].r +
+                gradX.r -
+                gradY.r) /
+            4;
+        result[index].g = (result[index - 1].g +
+                result[index + 1].g +
+                result[index - width].g +
+                result[index + width].g +
+                gradX.g -
+                gradY.g) /
+            4;
+        result[index].b = (result[index - 1].b +
+                result[index + 1].b +
+                result[index - width].b +
+                result[index + width].b +
+                gradX.b -
+                gradY.b) /
+            4;
+        result[index].a = (result[index - 1].a +
+                result[index + 1].a +
+                result[index - width].a +
+                result[index + width].a +
+                gradX.a -
+                gradY.a) /
+            4;
+      }
+    }
+  }
+
+  // Fill in gaps and normalize
+  Uint8List finalResult = Uint8List(size * 4);
+  for (int i = 0; i < size; i++) {
+    if (validPixel[i]) {
+      finalResult[i * 4] = (result[i].r.clamp(0, 255)).toInt();
+      finalResult[i * 4 + 1] = (result[i].g.clamp(0, 255)).toInt();
+      finalResult[i * 4 + 2] = (result[i].b.clamp(0, 255)).toInt();
+      finalResult[i * 4 + 3] = (result[i].a.clamp(0, 255)).toInt();
+    } else {
+      // For invalid pixels, try to interpolate from neighbors
+      List<int> validNeighbors = [];
+      if (i > width && validPixel[i - width]) validNeighbors.add(i - width);
+      if (i < size - width && validPixel[i + width])
+        validNeighbors.add(i + width);
+      if (i % width > 0 && validPixel[i - 1]) validNeighbors.add(i - 1);
+      if (i % width < width - 1 && validPixel[i + 1]) validNeighbors.add(i + 1);
+
+      if (validNeighbors.isNotEmpty) {
+        double r = 0, g = 0, b = 0, a = 0;
+        for (int neighbor in validNeighbors) {
+          r += result[neighbor].r;
+          g += result[neighbor].g;
+          b += result[neighbor].b;
+          a += result[neighbor].a;
+        }
+        finalResult[i * 4] = (r / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 1] =
+            (g / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 2] =
+            (b / validNeighbors.length).clamp(0, 255).toInt();
+        finalResult[i * 4 + 3] =
+            (a / validNeighbors.length).clamp(0, 255).toInt();
+      } else {
+        // If no valid neighbors, set to transparent black
+        finalResult[i * 4] = 0;
+        finalResult[i * 4 + 1] = 0;
+        finalResult[i * 4 + 2] = 0;
+        finalResult[i * 4 + 3] = 0;
+      }
+    }
+  }
+
+  return finalResult;
+}
+
+Uint8List medianImages(List<Uint8List> images) {
+  if (images.isEmpty) {
+    return Uint8List(0);
+  }
+
+  int imageSize = images[0].length;
+  Uint8List result = Uint8List(imageSize);
+  int numImages = images.length;
+
+  for (int i = 0; i < imageSize; i++) {
+    List<int> pixelValues = [];
+    for (int j = 0; j < numImages; j++) {
+      pixelValues.add(images[j][i]);
+    }
+
+    pixelValues.sort();
+    int medianIndex = numImages ~/ 2;
+    result[i] = pixelValues[medianIndex];
+  }
+
+  return result;
+}
+
+Uint8List maxIntensityProjection(
+    List<Uint8List> textures, int width, int height) {
+  final int numTextures = textures.length;
+  final int size = width * height;
+
+  // Initialize the result with the first texture
+  Uint8List result = Uint8List.fromList(textures[0]);
+
+  // Iterate through all textures and perform max intensity projection
+  for (int t = 1; t < numTextures; t++) {
+    for (int i = 0; i < size * 4; i += 4) {
+      // Calculate intensity (using luminance formula)
+      double intensityCurrent =
+          0.299 * result[i] + 0.587 * result[i + 1] + 0.114 * result[i + 2];
+      double intensityNew = 0.299 * textures[t][i] +
+          0.587 * textures[t][i + 1] +
+          0.114 * textures[t][i + 2];
+
+      // If the new texture has higher intensity, use its values
+      if (intensityNew > intensityCurrent) {
+        result[i] = textures[t][i]; // R
+        result[i + 1] = textures[t][i + 1]; // G
+        result[i + 2] = textures[t][i + 2]; // B
+        result[i + 3] = textures[t][i + 3]; // A
+      }
+    }
+  }
+
+  return result;
+}
+
+// Helper function to blend MIP result with Poisson blending
+Uint8List blendMIPWithPoisson(
+    Uint8List mipResult, Uint8List poissonResult, double alpha) {
+  final int size = mipResult.length;
+  Uint8List blendedResult = Uint8List(size);
+
+  for (int i = 0; i < size; i++) {
+    blendedResult[i] = (mipResult[i] * (1 - alpha) + poissonResult[i] * alpha)
+        .round()
+        .clamp(0, 255);
+  }
+
+  return blendedResult;
+}
+
+Uint8List pngToPixelBuffer(Uint8List pngData) {
+  // Decode the PNG image
+  final image = img.decodePng(pngData);
+
+  if (image == null) {
+    throw Exception('Failed to decode PNG image');
+  }
+
+  // Create a buffer for the raw pixel data
+  final rawPixels = Uint8List(image.width * image.height * 4);
+
+  // Convert the image to RGBA format
+  for (int y = 0; y < image.height; y++) {
+    for (int x = 0; x < image.width; x++) {
+      final pixel = image.getPixel(x, y);
+      final i = (y * image.width + x) * 4;
+      rawPixels[i] = pixel.r.toInt(); // Red
+      rawPixels[i + 1] = pixel.g.toInt(); // Green
+      rawPixels[i + 2] = pixel.b.toInt(); // Blue
+      rawPixels[i + 3] = pixel.a.toInt(); // Alpha
+    }
+  }
+
+  return rawPixels;
+}
+
+Uint8List medianBlending(List<Uint8List> textures, int width, int height) {
+  final int numTextures = textures.length;
+  final int size = width * height;
+
+  Uint8List result = Uint8List(size * 4);
+
+  for (int i = 0; i < size; i++) {
+    List<int> values = [];
+    for (int t = 0; t < numTextures; t++) {
+      if (textures[t][i * 4] != 0 ||
+          textures[t][i * 4 + 1] != 0 ||
+          textures[t][i * 4 + 2] != 0 ||
+          textures[t][i * 4 + 3] != 0) {
+        values.addAll(textures[t].sublist(i * 4, i * 4 + 4));
+      }
+    }
+
+    if (values.isNotEmpty) {
+      values.sort();
+      result[i] = values[values.length ~/ 2];
+    } else {
+      result[i] = 0; // If no valid data, set to transparent
+    }
+  }
+
+  return result;
 }

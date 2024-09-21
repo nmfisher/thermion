@@ -26,16 +26,16 @@ Future<void> withVoidCallback(
   nativeCallable.close();
 }
 
-Future<int> withVoidPointerCallback(
-    Function(Pointer<NativeFunction<Void Function(Pointer<Void>)>>)
+Future<int> withPointerCallback<T extends NativeType>(
+    Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>)
         func) async {
-  final completer = Completer<Pointer<Void>>();
+  final completer = Completer<Pointer<T>>();
   // ignore: prefer_function_declarations_over_variables
-  void Function(Pointer<Void>) callback = (Pointer<Void> ptr) {
-    completer.complete(ptr);
+  void Function(Pointer<NativeType>) callback = (Pointer<NativeType> ptr) {
+    completer.complete(ptr.cast<T>());
   };
   final nativeCallable =
-      NativeCallable<Void Function(Pointer<Void>)>.listener(callback);
+      NativeCallable<Void Function(Pointer<NativeType>)>.listener(callback);
   func.call(nativeCallable.nativeFunction);
   var ptr = await completer.future;
   nativeCallable.close();

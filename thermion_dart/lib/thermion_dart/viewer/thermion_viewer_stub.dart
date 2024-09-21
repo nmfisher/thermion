@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/viewer/events.dart';
+import 'package:thermion_dart/thermion_dart/viewer/shared_types/camera.dart';
 import 'package:thermion_dart/thermion_dart/viewer/thermion_viewer_base.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
@@ -211,12 +212,6 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future<Matrix4> getLocalTransform(ThermionEntity entity) {
     // TODO: implement getLocalTransform
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionEntity> getMainCamera() {
-    // TODO: implement getMainCamera
     throw UnimplementedError();
   }
 
@@ -956,6 +951,18 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future setCameraLensProjection({double near = kNear, double far = kFar, double? aspect, double focalLength = kFocalLength}) {
     // TODO: implement setCameraLensProjection
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ThermionEntity> getMainCameraEntity() {
+    // TODO: implement getMainCameraEntity
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Camera> getMainCamera() {
+    // TODO: implement getMainCamera
     throw UnimplementedError();
   }
 
