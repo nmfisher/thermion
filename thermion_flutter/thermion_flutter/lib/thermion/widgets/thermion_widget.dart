@@ -56,8 +56,17 @@ class _ThermionWidgetState extends State<ThermionWidget> {
       if (mounted) {
         setState(() {});
       }
+
+      _requestFrame();
     });
     super.initState();
+  }
+
+  void _requestFrame() {
+    WidgetsBinding.instance.scheduleFrameCallback((d) {
+      widget.viewer.requestFrame();
+      _requestFrame();
+    });
   }
 
   bool _resizing = false;
