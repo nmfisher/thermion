@@ -75,7 +75,7 @@ namespace thermion_filament
         void clearEntities();
 
         void updateViewport(uint32_t width, uint32_t height);
-        void render(
+        bool render(
             uint64_t frameTimeInNanos,
             void *pixelBuffer,
             void (*callback)(void *buf, size_t size, void *data),

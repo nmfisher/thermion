@@ -102,7 +102,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(const void *const viewer);
 	EMSCRIPTEN_KEEPALIVE bool set_camera(const void *const viewer, EntityId entity, const char *nodeName);
 	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(const void *const viewer, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void render(
+	EMSCRIPTEN_KEEPALIVE bool render(
 		const void *const viewer,
 		uint64_t frameTimeInNanos,
 		void *pixelBuffer,
@@ -225,6 +225,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_camera_lens_projection(TCamera *camera, double near, double far, double aspect, double focalLength);
 	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(TCamera *camera, float focusDistance);
 	EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(const void *const viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
+	EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* camera, double4x4 projectionMatrix, double4x4 projectionMatrixForCulling, double near, double far);
+	
 
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE int reveal_mesh(void *sceneManager, EntityId entity, const char *meshName);

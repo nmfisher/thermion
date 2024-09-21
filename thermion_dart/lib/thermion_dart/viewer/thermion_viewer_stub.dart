@@ -828,11 +828,6 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
   
-  @override
-  Future setCameraLensProjection(double near, double far, double aspect, double focalLength) {
-    // TODO: implement setCameraLensProjection
-    throw UnimplementedError();
-  }
   
   @override
   Future setCameraModelMatrix4(Matrix4 matrix) {
@@ -950,6 +945,17 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future setVisibilityLayer(ThermionEntity entity, int layer) {
     // TODO: implement setVisibilityLayer
+    throw UnimplementedError();
+  }
+  
+  @override
+  void requestFrame() {
+    // TODO: implement requestFrame
+  }
+  
+  @override
+  Future setCameraLensProjection({double near = kNear, double far = kFar, double? aspect, double focalLength = kFocalLength}) {
+    // TODO: implement setCameraLensProjection
     throw UnimplementedError();
   }
 

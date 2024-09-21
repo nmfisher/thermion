@@ -92,7 +92,8 @@ void main() async {
       print(frustum.plane5.normal);
       print(frustum.plane5.constant);
 
-      await viewer.setCameraLensProjection(near:10.0, far:1000.0, aspect:1.0, focalLength:28.0);
+      await viewer.setCameraLensProjection(
+          near: 10.0, far: 1000.0, aspect: 1.0, focalLength: 28.0);
       frustum = await viewer.getCameraFrustum();
       print(frustum.plane5.normal);
       print(frustum.plane5.constant);
@@ -459,7 +460,7 @@ void main() async {
       expect(materialInstance, isNotNull);
 
       // with depth write enabled on both materials, cube2 renders behind the white cube
-        await _capture(viewer, "material_instance_depth_write_enabled");
+      await _capture(viewer, "material_instance_depth_write_enabled");
 
       // if we disable depth write on cube1, then cube2 will always appear in front
       // (relying on insertion order)
@@ -468,11 +469,10 @@ void main() async {
 
       // set priority for the cube1 cube to 7 (render) last, cube1 renders in front
       await viewer.setPriority(cube1, 7);
-      await _capture(viewer, "material_instance_depth_write_disabled_with_priority");
+      await _capture(
+          viewer, "material_instance_depth_write_disabled_with_priority");
     });
   });
-
-  
 
   //   test('create instance from glb when keepData is true', () async {
   //     var model = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
@@ -898,6 +898,16 @@ void main() async {
 
       await viewer.removeEntity(cube);
       await viewer.destroyTexture(texture);
+    });
+  });
+
+  group("render thread", () {
+    test("request frame on render thread", () async {
+      var viewer = await createViewer();
+      viewer.requestFrame();
+
+      await Future.delayed(Duration(milliseconds: 20));
+      await viewer.dispose();
     });
   });
 

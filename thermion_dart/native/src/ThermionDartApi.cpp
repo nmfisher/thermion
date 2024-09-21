@@ -338,14 +338,14 @@ extern "C"
         cam->setModelMatrix(mat);
     }
 
-    EMSCRIPTEN_KEEPALIVE void render(
+    EMSCRIPTEN_KEEPALIVE bool render(
         const void *const viewer,
         uint64_t frameTimeInNanos,
         void *pixelBuffer,
         void (*callback)(void *buf, size_t size, void *data),
         void *data)
     {
-        ((FilamentViewer *)viewer)->render(frameTimeInNanos, pixelBuffer, callback, data);
+        return ((FilamentViewer *)viewer)->render(frameTimeInNanos, pixelBuffer, callback, data);
     }
 
     EMSCRIPTEN_KEEPALIVE void capture(
@@ -1056,5 +1056,9 @@ EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance* mate
 }
 EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance* materialInstance, bool enabled) {
     reinterpret_cast<MaterialInstance*>(materialInstance)->setDepthCulling(enabled);
+}
+
+EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* camera, double4x4 projectionMatrix, double4x4 projectionMatrixForCulling, double near, double far) {
+    reinterpret_cast<Camera*>(camera)->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), convert_double4x4_to_mat4(projectionMatrixForCulling), near, far);
 }
 }

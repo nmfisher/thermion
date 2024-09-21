@@ -58,12 +58,17 @@ abstract class ThermionViewer {
   Future setRendering(bool render);
 
   ///
-  /// Render a single frame.
+  /// Render a single frame immediately.
   ///
   Future render();
 
   ///
-  /// Render a single frame to the viewport and copy the pixel buffer to [out].
+  /// Requests a single frame to be rendered. This is only intended to be used internally.
+  ///
+  void requestFrame();
+
+  ///
+  /// Render a single frame and copy the pixel buffer to [out].
   ///
   Future<Uint8List> capture();
 

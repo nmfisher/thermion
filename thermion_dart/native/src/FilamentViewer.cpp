@@ -1106,7 +1106,7 @@ namespace thermion_filament
     }
   }
 
-  void FilamentViewer::render(
+  bool FilamentViewer::render(
       uint64_t frameTimeInNanos,
       void *pixelBuffer,
       void (*callback)(void *buf, size_t size, void *data),
@@ -1115,7 +1115,7 @@ namespace thermion_filament
 
     if (!_view || !_swapChain)
     {
-      return;
+      return false;
     }
 
     auto now = std::chrono::high_resolution_clock::now();
@@ -1191,6 +1191,7 @@ namespace thermion_filament
 #ifdef __EMSCRIPTEN__
     _engine->execute();
 #endif
+    return beginFrame;
   }
 
   class CaptureCallbackHandler : public filament::backend::CallbackHandler {
