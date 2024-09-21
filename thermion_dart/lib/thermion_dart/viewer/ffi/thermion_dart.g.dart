@@ -17,129 +17,141 @@ external ffi.Pointer<ffi.Void> make_resource_loader(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
+    ffi.Pointer<TViewer> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
-external ffi.Pointer<ffi.Void> create_filament_viewer(
+external ffi.Pointer<TViewer> create_filament_viewer(
   ffi.Pointer<ffi.Void> context,
   ffi.Pointer<ffi.Void> loader,
   ffi.Pointer<ffi.Void> platform,
   ffi.Pointer<ffi.Char> uberArchivePath,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_filament_viewer(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
-@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external ffi.Pointer<ffi.Void> get_scene_manager(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
+);
+
+@ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
+external ffi.Pointer<TEngine> Viewer_getEngine(
+  ffi.Pointer<TViewer> viewer,
+);
+
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>(
+    isLeaf: true)
+external ffi.Pointer<TCamera> Engine_getCameraComponent(
+  ffi.Pointer<TEngine> tEngine,
+  int entityId,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.IntPtr, ffi.Uint32,
-        ffi.Uint32)>(isLeaf: true)
+    ffi.Void Function(
+        ffi.Pointer<TViewer>, ffi.IntPtr, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
 external void create_render_target(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int texture,
   int width,
   int height,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void clear_background_image(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Bool)>(isLeaf: true)
+        ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Bool)>(isLeaf: true)
 external void set_background_image(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> path,
   bool fillHeight,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
+        ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
 external void set_background_image_position(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double x,
   double y,
   bool clamp,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Float,
         ffi.Float)>(isLeaf: true)
 external void set_background_color(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double r,
   double g,
   double b,
   double a,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Int)>(isLeaf: true)
 external void set_tone_mapping(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int toneMapping,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
 external void set_bloom(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double strength,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
 external void load_skybox(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> skyboxPath,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
+        ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
 external void load_ibl(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> iblPath,
   double intensity,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Float,
         ffi.Float)>(isLeaf: true)
 external void create_ibl(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double r,
   double g,
   double b,
   double intensity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Float>)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Float>)>(
     isLeaf: true)
 external void rotate_ibl(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Float> rotationMatrix,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void remove_skybox(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void remove_ibl(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
     EntityId Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TViewer>,
         ffi.Uint8,
         ffi.Float,
         ffi.Float,
@@ -157,7 +169,7 @@ external void remove_ibl(
         ffi.Float,
         ffi.Bool)>(isLeaf: true)
 external int add_light(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int type,
   double colour,
   double intensity,
@@ -176,22 +188,22 @@ external int add_light(
   bool shadows,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, EntityId)>(isLeaf: true)
 external void remove_light(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int entityId,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void clear_lights(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
+    ffi.Void Function(ffi.Pointer<TViewer>, EntityId, ffi.Float, ffi.Float,
         ffi.Float)>(isLeaf: true)
 external void set_light_position(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int light,
   double x,
   double y,
@@ -199,10 +211,10 @@ external void set_light_position(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
+    ffi.Void Function(ffi.Pointer<TViewer>, EntityId, ffi.Float, ffi.Float,
         ffi.Float)>(isLeaf: true)
 external void set_light_direction(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int light,
   double x,
   double y,
@@ -262,34 +274,34 @@ external void get_instances(
   ffi.Pointer<EntityId> out,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void set_main_camera(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
-@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external int get_main_camera(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
     ffi.Bool Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+        ffi.Pointer<TViewer>, EntityId, ffi.Pointer<ffi.Char>)>(isLeaf: true)
 external bool set_camera(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int entity,
   ffi.Pointer<ffi.Char> nodeName,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool)>(isLeaf: true)
 external void set_view_frustum_culling(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   bool enabled,
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+    ffi.Bool Function(
+        ffi.Pointer<TViewer>,
         ffi.Uint64,
         ffi.Pointer<ffi.Void>,
         ffi.Pointer<
@@ -297,8 +309,8 @@ external void set_view_frustum_culling(
                 ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
                     ffi.Pointer<ffi.Void> data)>>,
         ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external void render(
-  ffi.Pointer<ffi.Void> viewer,
+external bool render(
+  ffi.Pointer<TViewer> viewer,
   int frameTimeInNanos,
   ffi.Pointer<ffi.Void> pixelBuffer,
   ffi.Pointer<
@@ -310,84 +322,84 @@ external void render(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint8>,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Uint8>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void capture(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Uint8> pixelBuffer,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Uint32,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Void>, ffi.Uint32,
         ffi.Uint32)>(isLeaf: true)
 external void create_swap_chain(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Void> window,
   int width,
   int height,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_swap_chain(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
 external void set_frame_interval(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double interval,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Uint32, ffi.Uint32)>(
     isLeaf: true)
 external void update_viewport(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int width,
   int height,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void scroll_begin(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+        ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
 external void scroll_update(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double x,
   double y,
   double z,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void scroll_end(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
+        ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
 external void grab_begin(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double x,
   double y,
   bool pan,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float, ffi.Float)>(
     isLeaf: true)
 external void grab_update(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double x,
   double y,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void grab_end(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
@@ -652,15 +664,15 @@ external int get_morph_target_name_count(
   int childEntity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, EntityId)>(isLeaf: true)
 external void remove_entity(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int asset,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void clear_entities(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
@@ -780,10 +792,10 @@ external void set_camera_model_matrix(
   double4x4 matrix,
 );
 
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<ffi.Void>, EntityId)>(
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TViewer>, EntityId)>(
     isLeaf: true)
 external ffi.Pointer<TCamera> get_camera(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int entity,
 );
 
@@ -874,10 +886,10 @@ external void set_camera_focus_distance(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, _ManipulatorMode, ffi.Double,
+    ffi.Void Function(ffi.Pointer<TViewer>, _ManipulatorMode, ffi.Double,
         ffi.Double, ffi.Double)>(isLeaf: true)
 external void set_camera_manipulator_options(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int mode,
   double orbitSpeedX,
   double orbitSpeedY,
@@ -885,14 +897,20 @@ external void set_camera_manipulator_options(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TCamera>, double4x4, double4x4, ffi.Double,
-        ffi.Double)>(isLeaf: true)
+    ffi.Void Function(
+        ffi.Pointer<TCamera>, double4x4, ffi.Double, ffi.Double)>(isLeaf: true)
 external void Camera_setCustomProjectionWithCulling(
   ffi.Pointer<TCamera> camera,
   double4x4 projectionMatrix,
-  double4x4 projectionMatrixForCulling,
   double near,
   double far,
+);
+
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>(
+    isLeaf: true)
+external ffi.Pointer<TCamera> get_camera_component(
+  ffi.Pointer<TEngine> engine,
+  int entity,
 );
 
 @ffi.Native<
@@ -913,37 +931,37 @@ external int reveal_mesh(
   ffi.Pointer<ffi.Char> meshName,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool)>(isLeaf: true)
 external void set_post_processing(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   bool enabled,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool)>(isLeaf: true)
 external void set_shadows_enabled(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   bool enabled,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Int)>(isLeaf: true)
 external void set_shadow_type(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int shadowType,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float, ffi.Float)>(
     isLeaf: true)
 external void set_soft_shadow_options(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double penumbraScale,
   double penumbraRatioScale,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Bool, ffi.Bool, ffi.Bool)>(isLeaf: true)
+        ffi.Pointer<TViewer>, ffi.Bool, ffi.Bool, ffi.Bool)>(isLeaf: true)
 external void set_antialiasing(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   bool msaa,
   bool fxaa,
   bool taa,
@@ -951,7 +969,7 @@ external void set_antialiasing(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TViewer>,
         ffi.Int,
         ffi.Int,
         ffi.Pointer<
@@ -959,7 +977,7 @@ external void set_antialiasing(
                 ffi.Void Function(
                     EntityId entityId, ffi.Int x, ffi.Int y)>>)>(isLeaf: true)
 external void filament_pick(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int x,
   int y,
   ffi.Pointer<
@@ -1012,16 +1030,16 @@ external ffi.Pointer<ffi.Char> get_entity_name_at(
   bool renderableOnly,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool)>(isLeaf: true)
 external void set_recording(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   bool recording,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
 external void set_recording_output_directory(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> outputDirectory,
 );
 
@@ -1267,7 +1285,7 @@ external void set_material_depth_write(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TViewer>,
         EntityId,
         ffi.Pointer<ffi.Uint8>,
         ffi.Uint32,
@@ -1276,7 +1294,7 @@ external void set_material_depth_write(
         ffi.Uint32,
         ffi.Uint32)>(isLeaf: true)
 external void unproject_texture(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TViewer> viewer,
   int entity,
   ffi.Pointer<ffi.Uint8> input,
   int inputWidth,
@@ -1348,8 +1366,7 @@ external void MaterialInstance_setDepthCulling(
         ffi.Pointer<ffi.Void>,
         ffi.Pointer<
             ffi.NativeFunction<
-                ffi.Void Function(
-                    ffi.Pointer<ffi.Void> viewer)>>)>(isLeaf: true)
+                ffi.Void Function(ffi.Pointer<TViewer> viewer)>>)>(isLeaf: true)
 external void create_filament_viewer_render_thread(
   ffi.Pointer<ffi.Void> context,
   ffi.Pointer<ffi.Void> platform,
@@ -1361,19 +1378,19 @@ external void create_filament_viewer_render_thread(
       renderCallback,
   ffi.Pointer<ffi.Void> renderCallbackOwner,
   ffi.Pointer<
-          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void> viewer)>>
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TViewer> viewer)>>
       callback,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TViewer>,
         ffi.Pointer<ffi.Void>,
         ffi.Uint32,
         ffi.Uint32,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void create_swap_chain_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Void> surface,
   int width,
   int height,
@@ -1381,39 +1398,39 @@ external void create_swap_chain_render_thread(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>,
+    ffi.Void Function(ffi.Pointer<TViewer>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void destroy_swap_chain_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.IntPtr, ffi.Uint32, ffi.Uint32,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.IntPtr, ffi.Uint32, ffi.Uint32,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void create_render_target_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int nativeTextureId,
   int width,
   int height,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_filament_viewer_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void render_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint8>,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Uint8>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void capture_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Uint8> out,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
@@ -1425,46 +1442,46 @@ external FilamentRenderCallback make_render_callback_fn_pointer(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void set_rendering_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   bool rendering,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void request_frame_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
 external void set_frame_interval_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double frameInterval,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Float,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Float,
         ffi.Float)>(isLeaf: true)
 external void set_background_color_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double r,
   double g,
   double b,
   double a,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void clear_background_image_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Bool,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Bool,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void set_background_image_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> path,
   bool fillHeight,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
@@ -1472,57 +1489,57 @@ external void set_background_image_render_thread(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
+        ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
 external void set_background_image_position_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double x,
   double y,
   bool clamp,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Int)>(isLeaf: true)
 external void set_tone_mapping_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int toneMapping,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Float)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
 external void set_bloom_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   double strength,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>,
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void load_skybox_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> skyboxPath,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
+        ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
 external void load_ibl_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> iblPath,
   double intensity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void remove_skybox_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void remove_ibl_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<TViewer>,
             ffi.Uint8,
             ffi.Float,
             ffi.Float,
@@ -1542,7 +1559,7 @@ external void remove_ibl_render_thread(
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
 external void add_light_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int type,
   double colour,
   double intensity,
@@ -1562,15 +1579,15 @@ external void add_light_render_thread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, EntityId)>(isLeaf: true)
 external void remove_light_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int entityId,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void clear_lights_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
@@ -1638,31 +1655,28 @@ external void create_instance_render_thread(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+    ffi.Void Function(ffi.Pointer<TViewer>, EntityId,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void remove_entity_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int asset,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>,
+    ffi.Void Function(ffi.Pointer<TViewer>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void clear_entities_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
-            EntityId,
-            ffi.Pointer<ffi.Char>,
+        ffi.Void Function(ffi.Pointer<TViewer>, EntityId, ffi.Pointer<ffi.Char>,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
 external void set_camera_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   int asset,
   ffi.Pointer<ffi.Char> nodeName,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
@@ -1794,9 +1808,9 @@ external void set_bone_transform_render_thread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool)>(isLeaf: true)
 external void set_post_processing_render_thread(
-  ffi.Pointer<ffi.Void> viewer,
+  ffi.Pointer<TViewer> viewer,
   bool enabled,
 );
 
@@ -1843,7 +1857,7 @@ external void create_geometry_render_thread(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TViewer>,
         EntityId,
         ffi.Pointer<ffi.Uint8>,
         ffi.Uint32,
@@ -1853,7 +1867,7 @@ external void create_geometry_render_thread(
         ffi.Uint32,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void unproject_texture_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TViewer> viewer,
   int entity,
   ffi.Pointer<ffi.Uint8> input,
   int inputWidth,
@@ -1867,6 +1881,10 @@ external void unproject_texture_render_thread(
 final class TCamera extends ffi.Opaque {}
 
 final class TMaterialInstance extends ffi.Opaque {}
+
+final class TEngine extends ffi.Opaque {}
+
+final class TViewer extends ffi.Opaque {}
 
 final class TMaterialKey extends ffi.Struct {
   @ffi.Bool()

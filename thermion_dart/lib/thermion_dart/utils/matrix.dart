@@ -24,14 +24,15 @@ Matrix4 double4x4ToMatrix4(double4x4 mat) {
   ]);
 }
 
-double4x4 matrix4ToDouble4x4(Matrix4 mat, double4x4 out) {
-  
+double4x4 matrix4ToDouble4x4(Matrix4 mat) {
+  final out = Struct.create<double4x4>();
+
   for (int i = 0; i < 4; i++) {
     out.col1[i] = mat.storage[i];
     out.col2[i] = mat.storage[i + 4];
     out.col3[i] = mat.storage[i + 8];
     out.col4[i] = mat.storage[i + 12];
   }
-  
+
   return out;
 }

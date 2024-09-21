@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:image/image.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -13,6 +14,9 @@ import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_viewer_ffi.dart'
 import 'package:vector_math/vector_math_64.dart';
 
 import 'helpers.dart';
+
+Color kWhite = ColorFloat32(4)..setRgba(1.0, 1.0, 1.0, 1.0);
+Color kRed = ColorFloat32(4)..setRgba(1.0, 0.0, 0.0, 1.0);
 
 void main() async {
   final packageUri = findPackageRoot('thermion_dart');
@@ -97,6 +101,27 @@ void main() async {
       frustum = await viewer.getCameraFrustum();
       print(frustum.plane5.normal);
       print(frustum.plane5.constant);
+    });
+
+    test('set custom projection/culling matrix', () async {
+      var viewer = await createViewer(bg:kRed, cameraPosition:Vector3(0,0,4));
+      var camera = await viewer.getMainCamera();
+      final cube = await viewer.createGeometry(GeometryHelper.cube());
+
+      
+      // cube is visible when inside the frustum, cube is visible
+      var projectionMatrix =
+          makeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, 0.05, 10000);
+      await camera.setProjectionMatrixWithCulling(
+          projectionMatrix, 0.05, 10000);
+      await _capture(viewer, "camera_projection_culling_matrix_object_in_frustum");
+      
+      // cube no longer visible when the far plane is moved closer to camera so cube is outside
+      projectionMatrix =
+          makeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, 0.05, 1);
+      await camera.setProjectionMatrixWithCulling(
+          projectionMatrix, 0.05, 1);
+      await _capture(viewer, "camera_projection_culling_matrix_object_outside_frustum");
     });
   });
 

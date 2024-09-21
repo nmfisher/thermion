@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -8,6 +7,8 @@ import 'package:thermion_dart/thermion_dart/entities/gizmo.dart';
 import 'package:thermion_dart/thermion_dart/utils/matrix.dart';
 import 'package:thermion_dart/thermion_dart/viewer/events.dart';
 import 'package:thermion_dart/thermion_dart/viewer/ffi/callbacks.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/camera_ffi.dart';
+import 'package:thermion_dart/thermion_dart/viewer/shared_types/camera.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import '../thermion_viewer_base.dart';
@@ -25,7 +26,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Pointer<Void>? _sceneManager;
 
-  Pointer<Void>? _viewer;
+  Pointer<TViewer>? _viewer;
 
   final String? uberArchivePath;
 
@@ -102,7 +103,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future updateViewportAndCameraProjection(double width, double height) async {
     viewportDimensions = (width * pixelRatio, height * pixelRatio);
     update_viewport(_viewer!, width.toInt(), height.toInt());
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
     var near = await getCameraCullingNear();
     if (near.abs() < 0.000001) {
       near = kNear;
@@ -113,11 +114,12 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var aspect = viewportDimensions.$1 / viewportDimensions.$2;
-    var focalLength = get_camera_focal_length(mainCamera);
+    var focalLength = get_camera_focal_length(mainCamera.pointer);
     if (focalLength.abs() < 0.1) {
       focalLength = kFocalLength;
     }
-    set_camera_lens_projection(mainCamera, near, far, aspect, focalLength);
+    set_camera_lens_projection(
+        mainCamera.pointer, near, far, aspect, focalLength);
   }
 
   Future createSwapChain(double width, double height,
@@ -141,8 +143,8 @@ class ThermionViewerFFI extends ThermionViewer {
     final uberarchivePtr =
         uberArchivePath?.toNativeUtf8(allocator: allocator).cast<Char>() ??
             nullptr;
-    var viewer = await withVoidPointerCallback(
-        (Pointer<NativeFunction<Void Function(Pointer<Void>)>> callback) {
+    var viewer = await withPointerCallback(
+        (Pointer<NativeFunction<Void Function(Pointer<TViewer>)>> callback) {
       create_filament_viewer_render_thread(
           _sharedContext,
           _driver,
@@ -1144,8 +1146,25 @@ class ThermionViewerFFI extends ThermionViewer {
     set_main_camera(_viewer!);
   }
 
-  Future<ThermionEntity> getMainCamera() {
-    return Future.value(get_main_camera(_viewer!));
+  ///
+  ///
+  ///
+  Future<ThermionEntity> getMainCameraEntity() async {
+    return get_main_camera(_viewer!);
+  }
+
+  ///
+  ///
+  ///
+  Future<Camera> getMainCamera() async {
+    var camera = await getCameraComponent(await getMainCameraEntity());
+    return camera!;
+  }
+
+  Future<Camera?> getCameraComponent(ThermionEntity cameraEntity) async {
+    var engine = Viewer_getEngine(_viewer!);
+    var camera = Engine_getCameraComponent(engine, cameraEntity);
+    return ThermionFFICamera(camera);
   }
 
   ///
@@ -1229,8 +1248,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<double> getCameraFov(bool horizontal) async {
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    return get_camera_fov(mainCamera, horizontal);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    return get_camera_fov(mainCamera.pointer, horizontal);
   }
 
   ///
@@ -1258,8 +1277,8 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<double> getCameraNear() async {
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    return get_camera_near(mainCamera);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    return get_camera_near(mainCamera.pointer);
   }
 
   ///
@@ -1267,8 +1286,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<double> getCameraCullingFar() async {
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    return get_camera_culling_far(mainCamera);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    return get_camera_culling_far(mainCamera.pointer);
   }
 
   ///
@@ -1276,8 +1295,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraFocusDistance(double focusDistance) async {
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    set_camera_focus_distance(mainCamera, focusDistance);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    set_camera_focus_distance(mainCamera.pointer, focusDistance);
   }
 
   ///
@@ -1312,8 +1331,8 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    set_camera_exposure(mainCamera, aperture, shutterSpeed, sensitivity);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    set_camera_exposure(mainCamera.pointer, aperture, shutterSpeed, sensitivity);
   }
 
   ///
@@ -1341,10 +1360,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraModelMatrix4(Matrix4 modelMatrix) async {
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    final out = Struct.create<double4x4>();
-    matrix4ToDouble4x4(modelMatrix, out);
-    set_camera_model_matrix(mainCamera, out);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    final out = matrix4ToDouble4x4(modelMatrix);
+    set_camera_model_matrix(mainCamera.pointer, out);
   }
 
   ///
@@ -1576,8 +1594,8 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    var matrixStruct = get_camera_view_matrix(mainCamera);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var matrixStruct = get_camera_view_matrix(mainCamera.pointer);
     return double4x4ToMatrix4(matrixStruct);
   }
 
@@ -1589,8 +1607,8 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    var matrixStruct = get_camera_model_matrix(mainCamera);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var matrixStruct = get_camera_model_matrix(mainCamera.pointer);
     return double4x4ToMatrix4(matrixStruct);
   }
 
@@ -1602,8 +1620,8 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    var matrixStruct = get_camera_projection_matrix(mainCamera);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var matrixStruct = get_camera_projection_matrix(mainCamera.pointer);
     return double4x4ToMatrix4(matrixStruct);
   }
 
@@ -1615,8 +1633,8 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    var matrixStruct = get_camera_culling_projection_matrix(mainCamera);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var matrixStruct = get_camera_culling_projection_matrix(mainCamera.pointer);
     return double4x4ToMatrix4(matrixStruct);
   }
 
@@ -1675,8 +1693,8 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = get_camera(_viewer!, await getMainCamera());
-    var arrayPtr = get_camera_frustum(mainCamera);
+    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var arrayPtr = get_camera_frustum(mainCamera.pointer);
     var doubleList = arrayPtr.asTypedList(24);
 
     var frustum = Frustum();

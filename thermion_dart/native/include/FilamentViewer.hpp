@@ -112,6 +112,9 @@ namespace thermion_filament
         void scrollUpdate(float x, float y, float delta);
         void scrollEnd();
         void pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y));
+        Engine* getEngine() { 
+            return _engine;
+        }
 
         EntityId addLight(
             LightManager::Type t, 

@@ -1,4 +1,5 @@
 import 'package:thermion_dart/thermion_dart/viewer/events.dart';
+import 'package:thermion_dart/thermion_dart/viewer/shared_types/camera.dart';
 
 import 'shared_types/shared_types.dart';
 export 'shared_types/shared_types.dart';
@@ -444,9 +445,14 @@ abstract class ThermionViewer {
   Future setMainCamera();
 
   ///
-  /// Returns the entity associated with the main camera.
+  /// Returns the entity associated with the main camera. You probably never need this; use getMainCamera instead.
   ///
-  Future<ThermionEntity> getMainCamera();
+  Future<ThermionEntity> getMainCameraEntity();
+
+  ///
+  /// Returns the entity associated with the main camera. You probably never need this; use getMainCamera instead.
+  ///
+  Future<Camera> getMainCamera();
 
   ///
   /// Sets the horizontal field of view (if [horizontal] is true) or vertical field of view for the currently active camera to [degrees].
@@ -498,7 +504,10 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future setCameraLensProjection({double near = kNear, double far = kFar, double? aspect,
+  Future setCameraLensProjection(
+      {double near = kNear,
+      double far = kFar,
+      double? aspect,
       double focalLength = kFocalLength});
 
   ///
