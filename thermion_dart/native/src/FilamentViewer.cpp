@@ -151,7 +151,7 @@ namespace thermion_filament
     _renderer = _engine->createRenderer();
 
     Renderer::ClearOptions clearOptions;
-    clearOptions.clear = false;
+    clearOptions.clear = true;
     _renderer->setClearOptions(clearOptions);
 
     _frameInterval = 1000.0f / 60.0f;
