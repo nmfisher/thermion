@@ -26,6 +26,7 @@ enum GestureAction {
   ZOOM_CAMERA,
   TRANSLATE_ENTITY,
   ROTATE_ENTITY,
+  PICK_ENTITY,
   NONE
 }
 
