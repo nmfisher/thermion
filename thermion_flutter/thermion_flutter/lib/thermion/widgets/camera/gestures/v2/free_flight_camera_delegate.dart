@@ -9,7 +9,7 @@ import 'package:vector_math/vector_math_64.dart';
 
 class FreeFlightCameraDelegate implements CameraDelegate {
   final ThermionViewer viewer;
-  final bool lockRoll;
+  
   final Vector3? minBounds;
   final Vector3? maxBounds;
 
@@ -34,8 +34,6 @@ class FreeFlightCameraDelegate implements CameraDelegate {
 
   FreeFlightCameraDelegate(
     this.viewer, {
-
-    this.lockRoll = false,
     this.minBounds,
     this.maxBounds,
     this.rotationSensitivity = 0.001,
@@ -81,7 +79,7 @@ class FreeFlightCameraDelegate implements CameraDelegate {
         Quaternion pitchRotation = Quaternion.axisAngle(_right, -deltaY);
         Quaternion rollRotation = Quaternion.axisAngle(_forward, deltaZ);
 
-        currentRotation = currentRotation * yawRotation * pitchRotation * rollRotation;
+        currentRotation = currentRotation * rollRotation * pitchRotation * yawRotation ;
         currentRotation.normalize();
 
         _accumulatedRotation = Offset.zero;
@@ -164,14 +162,18 @@ class FreeFlightCameraDelegate implements CameraDelegate {
   Future<void> _processKeyboardInput() async {
     double dx = 0, dy = 0, dz = 0;
 
-    if (_pressedKeys[PhysicalKeyboardKey.keyW] == true)
+    if (_pressedKeys[PhysicalKeyboardKey.keyW] == true) {
       dz += keyMoveSensitivity;
-    if (_pressedKeys[PhysicalKeyboardKey.keyS] == true)
+    }
+    if (_pressedKeys[PhysicalKeyboardKey.keyS] == true) {
       dz -= keyMoveSensitivity;
-    if (_pressedKeys[PhysicalKeyboardKey.keyA] == true)
+    }
+    if (_pressedKeys[PhysicalKeyboardKey.keyA] == true) {
       dx -= keyMoveSensitivity;
-    if (_pressedKeys[PhysicalKeyboardKey.keyD] == true)
+    }
+    if (_pressedKeys[PhysicalKeyboardKey.keyD] == true) {
       dx += keyMoveSensitivity;
+    }
 
     if (dx != 0 || dy != 0 || dz != 0) {
       await _moveCamera(dx, dy, dz);
