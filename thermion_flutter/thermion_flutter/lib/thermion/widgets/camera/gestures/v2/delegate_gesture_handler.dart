@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_keyboard_camera_flight_delegate.dart';
+import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_pick_delegate.dart';
 import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_velocity_delegate.dart';
 import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.dart';
 import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/fixed_orbit_camera_rotation_delegate.dart';
@@ -17,9 +17,9 @@ class DelegateGestureHandler implements ThermionGestureHandler {
 
   CameraDelegate? cameraDelegate;
   VelocityDelegate? velocityDelegate;
+  PickDelegate? pickDelegate;
 
   Ticker? _ticker;
-  static const _updateInterval = Duration(milliseconds: 16);
 
   Map<GestureType, Offset> _accumulatedDeltas = {};
   double _accumulatedScrollDelta = 0.0;
@@ -39,10 +39,10 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     required this.viewer,
     required this.cameraDelegate,
     required this.velocityDelegate,
+    this.pickDelegate,
     Map<GestureType, GestureAction>? actions,
   }) {
     _initializeKeyboardListener();
-    _initializeTicker();
     if (actions != null) {
       _actions.addAll(actions);
     }
@@ -52,19 +52,25 @@ class DelegateGestureHandler implements ThermionGestureHandler {
   factory DelegateGestureHandler.fixedOrbit(ThermionViewer viewer,
           {double? Function(Vector3)? getDistanceToTarget,
           double rotationSensitivity = 0.001,
-          double zoomSensitivity = 0.001}) =>
+          double zoomSensitivity = 0.001,
+          double baseAnglePerMeterNumerator = 10000,
+          PickDelegate? pickDelegate}) =>
       DelegateGestureHandler(
         viewer: viewer,
+        pickDelegate: pickDelegate,
         cameraDelegate: FixedOrbitRotateCameraDelegate(viewer,
             getDistanceToTarget: getDistanceToTarget,
             rotationSensitivity: rotationSensitivity,
+            baseAnglePerMeterNumerator: baseAnglePerMeterNumerator,
             zoomSensitivity: zoomSensitivity),
         velocityDelegate: DefaultVelocityDelegate(),
       );
 
-  factory DelegateGestureHandler.flight(ThermionViewer viewer) =>
+  factory DelegateGestureHandler.flight(ThermionViewer viewer,
+          {PickDelegate? pickDelegate}) =>
       DelegateGestureHandler(
         viewer: viewer,
+        pickDelegate: pickDelegate,
         cameraDelegate: FreeFlightCameraDelegate(viewer),
         velocityDelegate: DefaultVelocityDelegate(),
         actions: {GestureType.POINTER_MOVE: GestureAction.ROTATE_CAMERA},
@@ -74,15 +80,6 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     for (var gestureType in GestureType.values) {
       _accumulatedDeltas[gestureType] = Offset.zero;
     }
-  }
-
-  void _initializeTicker() {
-    _ticker = Ticker(_onTick);
-    _ticker!.start();
-  }
-
-  void _onTick(Duration elapsed) async {
-    await _applyAccumulatedUpdates();
   }
 
   Future<void> _applyAccumulatedUpdates() async {
@@ -126,6 +123,16 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     if (buttons & kMiddleMouseButton != 0) {
       _isMiddleMouseButtonPressed = true;
     }
+    if (buttons & kPrimaryButton != 0) {
+      final action = _actions[GestureType.LMB_DOWN];
+      switch (action) {
+        case GestureAction.PICK_ENTITY:
+          pickDelegate?.pick(localPosition);
+        default:
+        // noop
+      }
+    }
+    await _applyAccumulatedUpdates();
   }
 
   @override
@@ -142,6 +149,7 @@ class DelegateGestureHandler implements ThermionGestureHandler {
       _accumulatedDeltas[gestureType] =
           (_accumulatedDeltas[gestureType] ?? Offset.zero) + delta;
     }
+    await _applyAccumulatedUpdates();
   }
 
   @override
@@ -156,10 +164,12 @@ class DelegateGestureHandler implements ThermionGestureHandler {
   }
 
   GestureType _getGestureTypeFromButtons(int buttons) {
-    if (buttons & kPrimaryMouseButton != 0)
+    if (buttons & kPrimaryMouseButton != 0) {
       return GestureType.LMB_HOLD_AND_MOVE;
-    if (buttons & kMiddleMouseButton != 0 || _isMiddleMouseButtonPressed)
+    }
+    if (buttons & kMiddleMouseButton != 0 || _isMiddleMouseButtonPressed) {
       return GestureType.MMB_HOLD_AND_MOVE;
+    }
     return GestureType.POINTER_MOVE;
   }
 
@@ -209,6 +219,7 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     _actions[gestureType] = gestureAction;
   }
 
+  @override
   GestureAction? getActionForType(GestureType gestureType) {
     return _actions[gestureType];
   }
