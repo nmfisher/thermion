@@ -384,7 +384,7 @@ class ThermionViewerFFI extends ThermionViewer {
         color: colour,
         intensity: intensity,
         position: Vector3(posX, posY, posZ),
-        direction: Vector3(dirX, dirY, dirZ),
+        direction: Vector3(dirX, dirY, dirZ)..normalize(),
         falloffRadius: falloffRadius,
         spotLightConeInner: spotLightConeInner,
         spotLightConeOuter: spotLightConeOuter,
