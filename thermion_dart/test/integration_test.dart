@@ -129,7 +129,14 @@ void main() async {
     test('set background color to solid green', () async {
       var viewer = await createViewer();
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
-      await _capture(viewer, "bgcolor");
+      await _capture(viewer, "set_background_color_to_solid_green");
+      await viewer.dispose();
+    });
+
+    test('set background color to full transparency', () async {
+      var viewer = await createViewer();
+      await viewer.setBackgroundColor(0.0, 1.0, 0.0, 0.0);
+      await _capture(viewer, "set_background_color_to_transparent_green");
       await viewer.dispose();
     });
 
