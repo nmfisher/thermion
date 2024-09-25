@@ -127,8 +127,6 @@ class ThermionViewerWasm implements ThermionViewer {
     _pickCallbackPtr = _module!.addFunction(_onPickCallback.toJS, "viii");
     _pickGizmoCallbackPtr =
         _module!.addFunction(_onPickGizmoCallback.toJS, "viii");
-    // _module!.removeFunction(_pickCallbackPtr);
-    // _module!.removeFunction(_pickGizmoCallbackPtr);
 
     var gizmoOut = _module!._malloc(4 * 4);
 
@@ -237,6 +235,8 @@ class ThermionViewerWasm implements ThermionViewer {
       await callback.call();
     }
     _onDispose.clear();
+    _module!.removeFunction(_pickCallbackPtr);
+    _module!.removeFunction(_pickGizmoCallbackPtr);
   }
 
   void _destroyViewer() {
