@@ -11,6 +11,28 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 Packages with breaking changes:
 
+ - [`thermion_flutter` - `v0.2.0-dev.3.0`](#thermion_flutter---v020-dev30)
+
+Packages with other changes:
+
+ - There are no other changes in this release.
+
+---
+
+#### `thermion_flutter` - `v0.2.0-dev.3.0`
+
+ - **BREAKING** **FIX**: remove EntityControllerMouseWidget (replace with GestureHandler).
+ - **BREAKING** **CHORE**: (flutter) cleanup for pub.dev publishing.
+
+
+## 2024-09-25
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
  - [`thermion_flutter` - `v0.2.0-dev.2.0`](#thermion_flutter---v020-dev20)
 
 Packages with other changes:
