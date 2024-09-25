@@ -3,6 +3,113 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-09-25
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - [`thermion_dart` - `v0.2.0-dev.1.0`](#thermion_dart---v020-dev10)
+ - [`thermion_flutter` - `v0.2.0-dev.1.0`](#thermion_flutter---v020-dev10)
+ - [`thermion_flutter_ffi` - `v0.2.0-dev.1.0`](#thermion_flutter_ffi---v020-dev10)
+ - [`thermion_flutter_platform_interface` - `v0.2.0-dev.1.0`](#thermion_flutter_platform_interface---v020-dev10)
+ - [`thermion_flutter_web` - `v0.1.0-dev.1.0`](#thermion_flutter_web---v010-dev10)
+
+Packages with other changes:
+
+ - There are no other changes in this release.
+
+---
+
+#### `thermion_dart` - `v0.2.0-dev.1.0`
+
+ - **REFACTOR**: native types.
+ - **REFACTOR**: native types.
+ - **REFACTOR**: move native types to own header, add methods for create/destroy material instance, add priority/layer to load_glb_from_buffer.
+ - **REFACTOR**: Dart types.
+ - **FIX**: (web) add emscripten guards for flushAndWait call when swapchain destroyed.
+ - **FIX**: ignore pick results directly on axis.
+ - **FIX**: properly destroy entities/material/etc in Gizmo on destruction, remove custom scene creation logic.
+ - **FIX**: add check for nan NDC coordinates for viewport translation.
+ - **FIX**: (wasm) use correct coords for pick, free memory correctly, keep pixelratio copy.
+ - **FIX**: add more nan checks for gizmo manipulation.
+ - **FIX**: emscripten export visibility for add_light.
+ - **FIX**: add Fence to capture() and set stencil buffer by default.
+ - **FEAT**: add removeStencilHighlight, queuePositionUpdateFromViewportCoords to ThermionViewer.
+ - **FEAT**: add removeStencilHighlight, accept color param for setStencilHighlight, queuePositionUpdateFromViewportCoords to ThermionDartApi.
+ - **FEAT**: add flag for keepData for gltf instancing, add highlightScene, add stencilHighlight method.
+ - **FEAT**: grid uses own material.
+ - **FEAT**: parent the cloned entity instance when setting stencil highlight.
+ - **FEAT**: add grid material.
+ - **FEAT**: expose setLightDirection and setLightPosition.
+ - **FEAT**: move HighlightOverlay to nested class, move createGeometry to SceneManager, add queueRelativePositionUpdateFromViewportVector.
+ - **FEAT**: move createGeometry to SceneManager, add queueRelativePositionUpdateFromViewportVector and removeStencilHighlight.
+ - **FEAT**: add setGizmoVisibility/pickGizmo methods to ThermionViewer.
+ - **FEAT**: remove gizmo view references, exclude gizmo entities from picking, add createIbl.
+ - **FEAT**: set stencil highlight on gizmo attach.
+ - **FEAT**: add getAncestor method.
+ - **FEAT**: expose API methods for create_ibl, pick/set gizmo visibility.
+ - **FEAT**: create transparent overlay for gizmo for easier picking.
+ - **FEAT**: rescale gizmo based on distance from camera.
+ - **FEAT**: rescale gizmo based on distance from camera.
+ - **FEAT**: add getAncestor method.
+ - **FEAT**: add startOffset parameter to gltf playAnimation.
+ - **FEAT**: layers, grid.
+ - **FEAT**: layers, grid.
+ - **FEAT**: ignore grid overlay and gizmo center when picking, implement highlighting.
+ - **FEAT**: SceneManager updates (setLayer, add grid, queueRelativePositionUpdateWorld.
+ - **FEAT**: expose set_layer_enabled, get_camera_fov and queue_relative_position_updateg_world_axis to ThermionDartApi.h.
+ - **FEAT**: add getCameraFov to FilamentViewer.
+ - **FEAT**: add new grid overlay files to web CmakeLists.
+ - **FEAT**: re-implement (native) Gizmo class, expose preserveScaling parameter for setParent, add methods for getting viewport bounding box from renderable entity.
+ - **FEAT**: expose setLayerEnabled, viewportDimensions and getCameraFov on ThermionView.
+ - **FEAT**: download WASM module directly on web (no need to embed in index.html any more) and expose updateViewportAndCameraProjection.
+ - **FEAT**: add capture() function and expose viewportDimensions on ThermionViewer (allows easier saving of captured images to PNG).
+ - **FEAT**: (web) allow table growth in emscripten module for passing C-style callback function pointers.
+ - **FEAT**: (web) add capture() method and missing camera navigation controls.
+ - **FEAT**: createIbl.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: update web/http dependencies.
+
+#### `thermion_flutter` - `v0.2.0-dev.1.0`
+
+ - **FIX**: (flutter) pass ThermionFlutterOptions to ThermionWidget, use dpr for resizeTexture, delete unnecessary TransparencyPainter class.
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FIX**: (flutter) desktop gesture detector changes for new Gizmo methods.
+ - **FEAT**: allow passing null options to ThermionWidget.
+ - **FEAT**: (flutter) (web) if importCanvasAsWidget is false, render transparency.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: highlight gizmo on hover.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+ - **BREAKING** **CHORE**: rename controller to viewer in gesture detector widgets.
+
+#### `thermion_flutter_ffi` - `v0.2.0-dev.1.0`
+
+ - **FEAT**: (flutter) move DPR calculation to resizeTexture and add createViewerWithOptions method to ThermionFlutterFFI.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+
+#### `thermion_flutter_platform_interface` - `v0.2.0-dev.1.0`
+
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add ThermionFlutterOptions classes, rename interface parameter for offsetTop and ensure pixelRatio is passed to resizeTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+
+#### `thermion_flutter_web` - `v0.1.0-dev.1.0`
+
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FEAT**: (flutter) (web) use options to determine whether to create canvas, and set fixed position + offset.
+ - **FEAT**: add ThermionFlutterOptions classes, rename interface parameter for offsetTop and ensure pixelRatio is passed to resizeTexture.
+ - **BREAKING** **FEAT**: (flutter) (web) upgrade package:web dep to 1.0.0.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+
+
 ## 2024-07-23
 
 ### Changes

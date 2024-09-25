@@ -1,3 +1,55 @@
+## 0.2.0-dev.1.0
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: native types.
+ - **REFACTOR**: native types.
+ - **REFACTOR**: move native types to own header, add methods for create/destroy material instance, add priority/layer to load_glb_from_buffer.
+ - **REFACTOR**: Dart types.
+ - **FIX**: (web) add emscripten guards for flushAndWait call when swapchain destroyed.
+ - **FIX**: ignore pick results directly on axis.
+ - **FIX**: properly destroy entities/material/etc in Gizmo on destruction, remove custom scene creation logic.
+ - **FIX**: add check for nan NDC coordinates for viewport translation.
+ - **FIX**: (wasm) use correct coords for pick, free memory correctly, keep pixelratio copy.
+ - **FIX**: add more nan checks for gizmo manipulation.
+ - **FIX**: emscripten export visibility for add_light.
+ - **FIX**: add Fence to capture() and set stencil buffer by default.
+ - **FEAT**: add removeStencilHighlight, queuePositionUpdateFromViewportCoords to ThermionViewer.
+ - **FEAT**: add removeStencilHighlight, accept color param for setStencilHighlight, queuePositionUpdateFromViewportCoords to ThermionDartApi.
+ - **FEAT**: add flag for keepData for gltf instancing, add highlightScene, add stencilHighlight method.
+ - **FEAT**: grid uses own material.
+ - **FEAT**: parent the cloned entity instance when setting stencil highlight.
+ - **FEAT**: add grid material.
+ - **FEAT**: expose setLightDirection and setLightPosition.
+ - **FEAT**: move HighlightOverlay to nested class, move createGeometry to SceneManager, add queueRelativePositionUpdateFromViewportVector.
+ - **FEAT**: move createGeometry to SceneManager, add queueRelativePositionUpdateFromViewportVector and removeStencilHighlight.
+ - **FEAT**: add setGizmoVisibility/pickGizmo methods to ThermionViewer.
+ - **FEAT**: remove gizmo view references, exclude gizmo entities from picking, add createIbl.
+ - **FEAT**: set stencil highlight on gizmo attach.
+ - **FEAT**: add getAncestor method.
+ - **FEAT**: expose API methods for create_ibl, pick/set gizmo visibility.
+ - **FEAT**: create transparent overlay for gizmo for easier picking.
+ - **FEAT**: rescale gizmo based on distance from camera.
+ - **FEAT**: rescale gizmo based on distance from camera.
+ - **FEAT**: add getAncestor method.
+ - **FEAT**: add startOffset parameter to gltf playAnimation.
+ - **FEAT**: layers, grid.
+ - **FEAT**: layers, grid.
+ - **FEAT**: ignore grid overlay and gizmo center when picking, implement highlighting.
+ - **FEAT**: SceneManager updates (setLayer, add grid, queueRelativePositionUpdateWorld.
+ - **FEAT**: expose set_layer_enabled, get_camera_fov and queue_relative_position_updateg_world_axis to ThermionDartApi.h.
+ - **FEAT**: add getCameraFov to FilamentViewer.
+ - **FEAT**: add new grid overlay files to web CmakeLists.
+ - **FEAT**: re-implement (native) Gizmo class, expose preserveScaling parameter for setParent, add methods for getting viewport bounding box from renderable entity.
+ - **FEAT**: expose setLayerEnabled, viewportDimensions and getCameraFov on ThermionView.
+ - **FEAT**: download WASM module directly on web (no need to embed in index.html any more) and expose updateViewportAndCameraProjection.
+ - **FEAT**: add capture() function and expose viewportDimensions on ThermionViewer (allows easier saving of captured images to PNG).
+ - **FEAT**: (web) allow table growth in emscripten module for passing C-style callback function pointers.
+ - **FEAT**: (web) add capture() method and missing camera navigation controls.
+ - **FEAT**: createIbl.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: update web/http dependencies.
+
 ## 0.1.3
 
  - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
