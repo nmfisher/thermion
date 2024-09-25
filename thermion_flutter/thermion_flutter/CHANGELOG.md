@@ -1,3 +1,10 @@
+## 0.2.0-dev.3.0
+
+> Note: This release has breaking changes.
+
+ - **BREAKING** **FIX**: remove EntityControllerMouseWidget (replace with GestureHandler).
+ - **BREAKING** **CHORE**: (flutter) cleanup for pub.dev publishing.
+
 ## 0.2.0-dev.2.0
 
 > Note: This release has breaking changes.
