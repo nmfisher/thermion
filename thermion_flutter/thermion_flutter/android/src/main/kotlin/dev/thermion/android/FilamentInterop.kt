@@ -1,4 +1,4 @@
-package app.polyvox.filament 
+package dev.thermion.android 
 
 import com.sun.jna.ptr.PointerByReference
 import com.sun.jna.ptr.IntByReference
