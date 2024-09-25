@@ -11,6 +11,39 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 Packages with breaking changes:
 
+ - [`thermion_dart` - `v0.2.0-dev.5.0`](#thermion_dart---v020-dev50)
+
+Packages with other changes:
+
+ - [`thermion_flutter_web` - `v0.1.0-dev.5.0`](#thermion_flutter_web---v010-dev50)
+ - [`thermion_flutter` - `v0.2.0-dev.5.0`](#thermion_flutter---v020-dev50)
+ - [`thermion_flutter_platform_interface` - `v0.2.0-dev.5.0`](#thermion_flutter_platform_interface---v020-dev50)
+ - [`thermion_flutter_ffi` - `v0.2.0-dev.5.0`](#thermion_flutter_ffi---v020-dev50)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0-dev.5.0`
+ - `thermion_flutter` - `v0.2.0-dev.5.0`
+ - `thermion_flutter_platform_interface` - `v0.2.0-dev.5.0`
+ - `thermion_flutter_ffi` - `v0.2.0-dev.5.0`
+
+---
+
+#### `thermion_dart` - `v0.2.0-dev.5.0`
+
+ - **BREAKING** **CHORE**: remove EntityTransformController (requires replacement).
+
+
+## 2024-09-25
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
  - [`thermion_dart` - `v0.2.0-dev.4.0`](#thermion_dart---v020-dev40)
  - [`thermion_flutter_web` - `v0.1.0-dev.4.0`](#thermion_flutter_web---v010-dev40)
 

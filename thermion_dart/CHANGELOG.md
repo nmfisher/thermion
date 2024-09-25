@@ -1,3 +1,9 @@
+## 0.2.0-dev.5.0
+
+> Note: This release has breaking changes.
+
+ - **BREAKING** **CHORE**: remove EntityTransformController (requires replacement).
+
 ## 0.2.0-dev.4.0
 
 > Note: This release has breaking changes.
