@@ -1,11 +1,11 @@
 name: thermion_dart
 description: 3D rendering toolkit for Dart.
-version: 0.1.2
+version: 0.1.3
 homepage: https://thermion.dev
 repository: https://github.com/nmfisher/thermion
 
 environment:
-  sdk: ">=3.3.0 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
   vector_math: ^2.1.2
@@ -14,9 +14,11 @@ dependencies:
   animation_tools_dart: ^0.0.4
   native_toolchain_c: ^0.4.2
   archive: ^3.6.1
-  web: ^0.5.1
+  web: ^1.0.0
   logging: ^1.2.0
+  http: ^1.2.2
 
 dev_dependencies:
   ffigen: ^12.0.0
   test:
+  image:

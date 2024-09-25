@@ -11,14 +11,14 @@ class ThermionGestureDetectorMobile extends StatefulWidget {
   ///
   /// The content to display below the gesture detector/listener widget.
   /// This will usually be a ThermionWidget (so you can navigate by directly interacting with the viewport), but this is not necessary.
-  /// It is equally possible to render the viewport/gesture controls elsewhere in the widget hierarchy. The only requirement is that they share the same [FilamentController].
+  /// It is equally possible to render the viewport/gesture controls elsewhere in the widget hierarchy. The only requirement is that they share the same [Filamentviewer].
   ///
   final Widget? child;
 
   ///
-  /// The [controller] attached to the [ThermionWidget] you wish to control.
+  /// The [viewer] attached to the [ThermionWidget] you wish to control.
   ///
-  final ThermionViewer controller;
+  final ThermionViewer viewer;
 
   ///
   /// If true, an overlay will be shown with buttons to toggle whether pointer movements are interpreted as:
@@ -45,7 +45,7 @@ class ThermionGestureDetectorMobile extends StatefulWidget {
 
   const ThermionGestureDetectorMobile(
       {Key? key,
-      required this.controller,
+      required this.viewer,
       this.child,
       this.showControlOverlay = false,
       this.enableCamera = true,
@@ -98,14 +98,14 @@ class _ThermionGestureDetectorMobileState
   void _setFunction() {
     switch (gestureType) {
       case GestureType.rotateCamera:
-        _functionStart = widget.controller.rotateStart;
-        _functionUpdate = widget.controller.rotateUpdate;
-        _functionEnd = widget.controller.rotateEnd;
+        _functionStart = widget.viewer.rotateStart;
+        _functionUpdate = widget.viewer.rotateUpdate;
+        _functionEnd = widget.viewer.rotateEnd;
         break;
       case GestureType.panCamera:
-        _functionStart = widget.controller.panStart;
-        _functionUpdate = widget.controller.panUpdate;
-        _functionEnd = widget.controller.panEnd;
+        _functionStart = widget.viewer.panStart;
+        _functionUpdate = widget.viewer.panUpdate;
+        _functionEnd = widget.viewer.panEnd;
         break;
       // TODO
       case GestureType.panBackground:
@@ -143,7 +143,7 @@ class _ThermionGestureDetectorMobileState
                   return;
                 }
 
-                widget.controller.pick(
+                widget.viewer.pick(
                     d.globalPosition.dx.toInt(), d.globalPosition.dy.toInt());
               },
               onDoubleTap: () {
@@ -158,13 +158,13 @@ class _ThermionGestureDetectorMobileState
                 }
                 if (d.pointerCount == 2 && widget.enableCamera) {
                   _scaling = true;
-                  await widget.controller.zoomBegin();
+                  await widget.viewer.zoomBegin();
                 } else if (!_scaling && widget.enableCamera) {
                   if (_rotateOnPointerMove) {
-                    widget.controller.rotateStart(
+                    widget.viewer.rotateStart(
                         d.localFocalPoint.dx, d.localFocalPoint.dy);
                   } else {
-                    widget.controller
+                    widget.viewer
                         .panStart(d.localFocalPoint.dx, d.localFocalPoint.dy);
                   }
                 }
@@ -176,7 +176,7 @@ class _ThermionGestureDetectorMobileState
                 }
                 if (d.pointerCount == 2 && widget.enableCamera) {
                   if (d.horizontalScale != _lastScale) {
-                    widget.controller.zoomUpdate(
+                    widget.viewer.zoomUpdate(
                         d.localFocalPoint.dx,
                         d.localFocalPoint.dy,
                         d.horizontalScale > _lastScale ? 0.1 : -0.1);
@@ -184,10 +184,10 @@ class _ThermionGestureDetectorMobileState
                   }
                 } else if (!_scaling && widget.enableCamera) {
                   if (_rotateOnPointerMove) {
-                    widget.controller
+                    widget.viewer
                         .rotateUpdate(d.focalPoint.dx, d.focalPoint.dy);
                   } else {
-                    widget.controller
+                    widget.viewer
                         .panUpdate(d.focalPoint.dx, d.focalPoint.dy);
                   }
                 }
@@ -199,12 +199,12 @@ class _ThermionGestureDetectorMobileState
                 }
 
                 if (d.pointerCount == 2 && widget.enableCamera) {
-                  widget.controller.zoomEnd();
+                  widget.viewer.zoomEnd();
                 } else if (!_scaling && widget.enableCamera) {
                   if (_rotateOnPointerMove) {
-                    widget.controller.rotateEnd();
+                    widget.viewer.rotateEnd();
                   } else {
-                    widget.controller.panEnd();
+                    widget.viewer.panEnd();
                   }
                 }
                 _scaling = false;

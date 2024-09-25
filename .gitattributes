@@ -153,10 +153,7 @@ thermion_dart/native/lib/ios/libibl-lite.a filter=lfs diff=lfs merge=lfs -text
 thermion_dart/native/lib/ios/libimageio.a filter=lfs diff=lfs merge=lfs -text
 materials/Makefile filter=lfs diff=lfs merge=lfs -text
 materials/gizmo.filamat filter=lfs diff=lfs merge=lfs -text
-materials/gizmo.mat filter=lfs diff=lfs merge=lfs -text
 materials/image.filamat filter=lfs diff=lfs merge=lfs -text
-materials/image.mat filter=lfs diff=lfs merge=lfs -text
-materials/unlit_fade.mat filter=lfs diff=lfs merge=lfs -text
 materials/unlit_opaque.mat filter=lfs diff=lfs merge=lfs -text
 thermion_dart/native/lib/android/arm64-v8a/libktxreader.a filter=lfs diff=lfs merge=lfs -text
 thermion_dart/native/lib/android/armeabi-v7a/libcamutils.a filter=lfs diff=lfs merge=lfs -text

@@ -1,3 +1,10 @@
+## 0.1.0+12
+
+ - **FIX**: add logging dependency.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: add logging dependency.
+ - **FIX**: web/JS bool checks need to compare to int.
+
 ## 0.1.0+11
 
  - **FIX**: add logging dependency.
