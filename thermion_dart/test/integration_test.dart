@@ -104,24 +104,40 @@ void main() async {
     });
 
     test('set custom projection/culling matrix', () async {
-      var viewer = await createViewer(bg:kRed, cameraPosition:Vector3(0,0,4));
+      var viewer =
+          await createViewer(bg: kRed, cameraPosition: Vector3(0, 0, 4));
       var camera = await viewer.getMainCamera();
       final cube = await viewer.createGeometry(GeometryHelper.cube());
 
-      
       // cube is visible when inside the frustum, cube is visible
       var projectionMatrix =
           makeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, 0.05, 10000);
       await camera.setProjectionMatrixWithCulling(
           projectionMatrix, 0.05, 10000);
-      await _capture(viewer, "camera_projection_culling_matrix_object_in_frustum");
-      
+      await _capture(
+          viewer, "camera_projection_culling_matrix_object_in_frustum");
+
       // cube no longer visible when the far plane is moved closer to camera so cube is outside
       projectionMatrix =
           makeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, 0.05, 1);
-      await camera.setProjectionMatrixWithCulling(
-          projectionMatrix, 0.05, 1);
-      await _capture(viewer, "camera_projection_culling_matrix_object_outside_frustum");
+      await camera.setProjectionMatrixWithCulling(projectionMatrix, 0.05, 1);
+      await _capture(
+          viewer, "camera_projection_culling_matrix_object_outside_frustum");
+    });
+
+    test('setting camera transform updates model matrix', () async {
+      var viewer = await createViewer();
+
+      var cameraEntity = await viewer.getMainCameraEntity();
+      var camera = await viewer.getMainCamera();
+
+      await viewer.setPosition(cameraEntity, 1, 0, 0);
+
+      var modelMatrix = await viewer.getCameraModelMatrix();
+      expect(modelMatrix.getColumn(3).x, 1.0);
+      expect(modelMatrix.getColumn(3).y, 0.0);
+      expect(modelMatrix.getColumn(3).z, 0.0);
+      expect(modelMatrix.getColumn(3).w, 1.0);
     });
   });
 

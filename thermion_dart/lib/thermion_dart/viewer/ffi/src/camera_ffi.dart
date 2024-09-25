@@ -11,12 +11,13 @@ class ThermionFFICamera extends Camera {
   ThermionFFICamera(this.pointer);
 
   @override
-  Future setProjectionMatrixWithCulling(Matrix4 projectionMatrix,
-      double near, double far) async {
+  Future setProjectionMatrixWithCulling(
+      Matrix4 projectionMatrix, double near, double far) async {
     Camera_setCustomProjectionWithCulling(
-        pointer,
-        matrix4ToDouble4x4(projectionMatrix),
-        near,
-        far);
+        pointer, matrix4ToDouble4x4(projectionMatrix), near, far);
+  }
+
+  Future<Matrix4> getModelMatrix() async {
+    return double4x4ToMatrix4(Camera_getModelMatrix(pointer));
   }
 }
