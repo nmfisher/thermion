@@ -1,3 +1,10 @@
+## 0.2.0-dev.4.0
+
+> Note: This release has breaking changes.
+
+ - **BREAKING** **FIX**: (web/wasm) free pick callbacks on dispose.
+ - **BREAKING** **CHORE**: restructure viewer folders as libraries to only export the public interface.
+
 ## 0.2.0-dev.1.0
 
 > Note: This release has breaking changes.
