@@ -177,32 +177,32 @@ extern "C"
         ((FilamentViewer *)viewer)->clearLights();
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId load_glb(void *sceneManager, const char *assetPath, int numInstances, bool keepData)
+    EMSCRIPTEN_KEEPALIVE EntityId load_glb(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData)
     {
         return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances, keepData);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(void *sceneManager, const void *const data, size_t length, bool keepData, int priority, int layer)
+    EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(TSceneManager *sceneManager, const void *const data, size_t length, bool keepData, int priority, int layer)
     {
         return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId create_instance(void *sceneManager, EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE EntityId create_instance(TSceneManager *sceneManager, EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->createInstance(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE int get_instance_count(void *sceneManager, EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE int get_instance_count(TSceneManager *sceneManager, EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->getInstanceCount(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_instances(void *sceneManager, EntityId entityId, EntityId *out)
+    EMSCRIPTEN_KEEPALIVE void get_instances(TSceneManager *sceneManager, EntityId entityId, EntityId *out)
     {
         return ((SceneManager *)sceneManager)->getInstances(entityId, out);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId load_gltf(void *sceneManager, const char *assetPath, const char *relativePath, bool keepData)
+    EMSCRIPTEN_KEEPALIVE EntityId load_gltf(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData)
     {
         return ((SceneManager *)sceneManager)->loadGltf(assetPath, relativePath, keepData);
     }
@@ -277,7 +277,7 @@ extern "C"
         cam->setCustomProjection(mat, near, far);
     }
 
-    void set_camera_lens_projection(TCamera *camera, double near, double far, double aspect, double focalLength)
+    void Camera_setLensProjection(TCamera *camera, double near, double far, double aspect, double focalLength)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setLensProjection(focalLength, aspect, near, far);
@@ -418,13 +418,15 @@ extern "C"
         ((FilamentViewer *)viewer)->grabEnd();
     }
 
-    EMSCRIPTEN_KEEPALIVE void *get_scene_manager(TViewer *viewer)
+    EMSCRIPTEN_KEEPALIVE TSceneManager* Viewer_getSceneManager(TViewer *tViewer)
     {
-        return (void *)((FilamentViewer *)viewer)->getSceneManager();
+        auto * viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        auto * sceneManager = viewer->getSceneManager();
+        return reinterpret_cast<TSceneManager*>(sceneManager);
     }
 
     EMSCRIPTEN_KEEPALIVE void apply_weights(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         const char *const entityName,
         float *const weights,
@@ -434,7 +436,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE bool set_morph_target_weights(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         const float *const weights,
         const int numWeights)
@@ -443,7 +445,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE bool set_morph_animation(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         const float *const morphData,
         const int *const morphIndices,
@@ -455,18 +457,18 @@ extern "C"
         return result;
     }
 
-    EMSCRIPTEN_KEEPALIVE void clear_morph_animation(void *sceneManager, EntityId asset)
+    EMSCRIPTEN_KEEPALIVE void clear_morph_animation(TSceneManager *sceneManager, EntityId asset)
     {
         ((SceneManager *)sceneManager)->clearMorphAnimationBuffer(asset);
     }
 
-    EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose(void *sceneManager, EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose(TSceneManager *sceneManager, EntityId entityId)
     {
         ((SceneManager *)sceneManager)->resetBones(entityId);
     }
 
     EMSCRIPTEN_KEEPALIVE void add_bone_animation(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         int skinIndex,
         int boneIndex,
@@ -505,14 +507,14 @@ extern "C"
         ((FilamentViewer *)viewer)->setAntiAliasing(msaa, fxaa, taa);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId get_bone(void *sceneManager,
+    EMSCRIPTEN_KEEPALIVE EntityId get_bone(TSceneManager *sceneManager,
                                            EntityId entityId,
                                            int skinIndex,
                                            int boneIndex)
     {
         return ((SceneManager *)sceneManager)->getBone(entityId, skinIndex, boneIndex);
     }
-    EMSCRIPTEN_KEEPALIVE void get_world_transform(void *sceneManager,
+    EMSCRIPTEN_KEEPALIVE void get_world_transform(TSceneManager *sceneManager,
                                                   EntityId entityId, float *const out)
     {
         auto transform = ((SceneManager *)sceneManager)->getWorldTransform(entityId);
@@ -534,7 +536,7 @@ extern "C"
         out[15] = transform[3][3];
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_local_transform(void *sceneManager,
+    EMSCRIPTEN_KEEPALIVE void get_local_transform(TSceneManager *sceneManager,
                                                   EntityId entityId, float *const out)
     {
         auto transform = ((SceneManager *)sceneManager)->getLocalTransform(entityId);
@@ -556,7 +558,7 @@ extern "C"
         out[15] = transform[3][3];
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_rest_local_transforms(void *sceneManager,
+    EMSCRIPTEN_KEEPALIVE void get_rest_local_transforms(TSceneManager *sceneManager,
                                                         EntityId entityId, int skinIndex, float *const out, int numBones)
     {
         const auto transforms = ((SceneManager *)sceneManager)->getBoneRestTranforms(entityId, skinIndex);
@@ -579,7 +581,7 @@ extern "C"
         }
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_inverse_bind_matrix(void *sceneManager,
+    EMSCRIPTEN_KEEPALIVE void get_inverse_bind_matrix(TSceneManager *sceneManager,
                                                       EntityId entityId, int skinIndex, int boneIndex, float *const out)
     {
         auto transform = ((SceneManager *)sceneManager)->getInverseBindMatrix(entityId, skinIndex, boneIndex);
@@ -602,7 +604,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE bool set_bone_transform(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId entityId,
         int skinIndex,
         int boneIndex,
@@ -627,7 +629,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void play_animation(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         int index,
         bool loop,
@@ -640,7 +642,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void set_animation_frame(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         int animationIndex,
         int animationFrame)
@@ -648,13 +650,13 @@ extern "C"
         // ((SceneManager*)sceneManager)->setAnimationFrame(asset, animationIndex, animationFrame);
     }
 
-    float get_animation_duration(void *sceneManager, EntityId asset, int animationIndex)
+    float get_animation_duration(TSceneManager *sceneManager, EntityId asset, int animationIndex)
     {
         return ((SceneManager *)sceneManager)->getAnimationDuration(asset, animationIndex);
     }
 
     int get_animation_count(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset)
     {
         auto names = ((SceneManager *)sceneManager)->getAnimationNames(asset);
@@ -662,7 +664,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void get_animation_name(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         char *const outPtr,
         int index)
@@ -672,13 +674,13 @@ extern "C"
         strcpy(outPtr, name.c_str());
     }
 
-    EMSCRIPTEN_KEEPALIVE int get_bone_count(void *sceneManager, EntityId assetEntity, int skinIndex)
+    EMSCRIPTEN_KEEPALIVE int get_bone_count(TSceneManager *sceneManager, EntityId assetEntity, int skinIndex)
     {
         auto names = ((SceneManager *)sceneManager)->getBoneNames(assetEntity, skinIndex);
         return names->size();
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_bone_names(void *sceneManager, EntityId assetEntity, const char **out, int skinIndex)
+    EMSCRIPTEN_KEEPALIVE void get_bone_names(TSceneManager *sceneManager, EntityId assetEntity, const char **out, int skinIndex)
     {
         auto names = ((SceneManager *)sceneManager)->getBoneNames(assetEntity, skinIndex);
         for (int i = 0; i < names->size(); i++)
@@ -688,7 +690,7 @@ extern "C"
         }
     }
 
-    EMSCRIPTEN_KEEPALIVE bool set_transform(void *sceneManager, EntityId entityId, const float *const transform)
+    EMSCRIPTEN_KEEPALIVE bool set_transform(TSceneManager *sceneManager, EntityId entityId, const float *const transform)
     {
         auto matrix = math::mat4f(
             transform[0], transform[1], transform[2],
@@ -708,18 +710,18 @@ extern "C"
         return ((SceneManager *)sceneManager)->setTransform(entityId, matrix);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(void *sceneManager, EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->updateBoneMatrices(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(void *sceneManager, EntityId assetEntity, EntityId childEntity)
+    EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity)
     {
         auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(assetEntity, childEntity);
         return (int)names->size();
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_morph_target_name(void *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index)
+    EMSCRIPTEN_KEEPALIVE void get_morph_target_name(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index)
     {
         auto names = ((SceneManager *)sceneManager)->getMorphTargetNames(assetEntity, childEntity);
         std::string name = names->at(index);
@@ -736,62 +738,62 @@ extern "C"
         ((FilamentViewer *)viewer)->clearEntities();
     }
 
-    bool set_material_color(void *sceneManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)
+    bool set_material_color(TSceneManager *sceneManager, EntityId asset, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)
     {
         return ((SceneManager *)sceneManager)->setMaterialColor(asset, meshName, materialIndex, r, g, b, a);
     }
 
-    EMSCRIPTEN_KEEPALIVE void transform_to_unit_cube(void *sceneManager, EntityId asset)
+    EMSCRIPTEN_KEEPALIVE void transform_to_unit_cube(TSceneManager *sceneManager, EntityId asset)
     {
         ((SceneManager *)sceneManager)->transformToUnitCube(asset);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_position(void *sceneManager, EntityId asset, float x, float y, float z)
+    EMSCRIPTEN_KEEPALIVE void set_position(TSceneManager *sceneManager, EntityId asset, float x, float y, float z)
     {
         ((SceneManager *)sceneManager)->setPosition(asset, x, y, z);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_rotation(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w)
+    EMSCRIPTEN_KEEPALIVE void set_rotation(TSceneManager *sceneManager, EntityId asset, float rads, float x, float y, float z, float w)
     {
         ((SceneManager *)sceneManager)->setRotation(asset, rads, x, y, z, w);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_scale(void *sceneManager, EntityId asset, float scale)
+    EMSCRIPTEN_KEEPALIVE void set_scale(TSceneManager *sceneManager, EntityId asset, float scale)
     {
         ((SceneManager *)sceneManager)->setScale(asset, scale);
     }
 
-    EMSCRIPTEN_KEEPALIVE void queue_position_update(void *sceneManager, EntityId asset, float x, float y, float z, bool relative)
+    EMSCRIPTEN_KEEPALIVE void queue_position_update(TSceneManager *sceneManager, EntityId asset, float x, float y, float z, bool relative)
     {
         ((SceneManager *)sceneManager)->queuePositionUpdate(asset, x, y, z, relative);
     }
 
-    EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(void *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z)
+    EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z)
     {
         ((SceneManager *)sceneManager)->queueRelativePositionUpdateWorldAxis(entity, viewportX, viewportY, x, y, z);
     }
 
-    EMSCRIPTEN_KEEPALIVE void queue_rotation_update(void *sceneManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
+    EMSCRIPTEN_KEEPALIVE void queue_rotation_update(TSceneManager *sceneManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
     {
         ((SceneManager *)sceneManager)->queueRotationUpdate(asset, rads, x, y, z, w, relative);
     }
 
-    EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(void *sceneManager, EntityId entity, float viewportX, float viewportY)
+    EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY)
     {
         ((SceneManager *)sceneManager)->queueRelativePositionUpdateFromViewportVector(entity, viewportX, viewportY);
     }
 
-    EMSCRIPTEN_KEEPALIVE void stop_animation(void *sceneManager, EntityId asset, int index)
+    EMSCRIPTEN_KEEPALIVE void stop_animation(TSceneManager *sceneManager, EntityId asset, int index)
     {
         ((SceneManager *)sceneManager)->stopAnimation(asset, index);
     }
 
-    EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId asset, const char *meshName)
+    EMSCRIPTEN_KEEPALIVE int hide_mesh(TSceneManager *sceneManager, EntityId asset, const char *meshName)
     {
         return ((SceneManager *)sceneManager)->hide(asset, meshName);
     }
 
-    EMSCRIPTEN_KEEPALIVE int reveal_mesh(void *sceneManager, EntityId asset, const char *meshName)
+    EMSCRIPTEN_KEEPALIVE int reveal_mesh(TSceneManager *sceneManager, EntityId asset, const char *meshName)
     {
         return ((SceneManager *)sceneManager)->reveal(asset, meshName);
     }
@@ -801,22 +803,22 @@ extern "C"
         ((FilamentViewer *)viewer)->pick(static_cast<uint32_t>(x), static_cast<uint32_t>(y), callback);
     }
 
-    EMSCRIPTEN_KEEPALIVE const char *get_name_for_entity(void *const sceneManager, const EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE const char *get_name_for_entity(TSceneManager *sceneManager, const EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->getNameForEntity(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE int get_entity_count(void *const sceneManager, const EntityId target, bool renderableOnly)
+    EMSCRIPTEN_KEEPALIVE int get_entity_count(TSceneManager *sceneManager, const EntityId target, bool renderableOnly)
     {
         return ((SceneManager *)sceneManager)->getEntityCount(target, renderableOnly);
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_entities(void *const sceneManager, const EntityId target, bool renderableOnly, EntityId *out)
+    EMSCRIPTEN_KEEPALIVE void get_entities(TSceneManager *sceneManager, const EntityId target, bool renderableOnly, EntityId *out)
     {
         ((SceneManager *)sceneManager)->getEntities(target, renderableOnly, out);
     }
 
-    EMSCRIPTEN_KEEPALIVE const char *get_entity_name_at(void *const sceneManager, const EntityId target, int index, bool renderableOnly)
+    EMSCRIPTEN_KEEPALIVE const char *get_entity_name_at(TSceneManager *sceneManager, const EntityId target, int index, bool renderableOnly)
     {
         return ((SceneManager *)sceneManager)->getEntityNameAt(target, index, renderableOnly);
     }
@@ -841,28 +843,28 @@ extern "C"
         free(ptr);
     }
 
-    EMSCRIPTEN_KEEPALIVE void add_collision_component(void *const sceneManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform)
+    EMSCRIPTEN_KEEPALIVE void add_collision_component(TSceneManager *sceneManager, EntityId entityId, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform)
     {
         ((SceneManager *)sceneManager)->addCollisionComponent(entityId, onCollisionCallback, affectsCollidingTransform);
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_collision_component(void *const sceneManager, EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE void remove_collision_component(TSceneManager *sceneManager, EntityId entityId)
     {
         ((SceneManager *)sceneManager)->removeCollisionComponent(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool add_animation_component(void *const sceneManager, EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE bool add_animation_component(TSceneManager *sceneManager, EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->addAnimationComponent(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_animation_component(void *const sceneManager, EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE void remove_animation_component(TSceneManager *sceneManager, EntityId entityId)
     {
         ((SceneManager *)sceneManager)->removeAnimationComponent(entityId);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId create_geometry(
-        void *const sceneManager,
+        TSceneManager *sceneManager,
         float *vertices,
         int numVertices,
         float *normals,
@@ -878,38 +880,38 @@ extern "C"
         return ((SceneManager *)sceneManager)->createGeometry(vertices, (uint32_t)numVertices, normals, (uint32_t)numNormals, uvs, numUvs, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, reinterpret_cast<MaterialInstance *>(materialInstance), keepData);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(void *const sceneManager, const EntityId parent, const char *name)
+    EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(TSceneManager *sceneManager, const EntityId parent, const char *name)
     {
         auto entity = ((SceneManager *)sceneManager)->findChildEntityByName(parent, name);
         return utils::Entity::smuggle(entity);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId get_parent(void *const sceneManager, EntityId child)
+    EMSCRIPTEN_KEEPALIVE EntityId get_parent(TSceneManager *sceneManager, EntityId child)
     {
         return ((SceneManager *)sceneManager)->getParent(child);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(void *const sceneManager, EntityId child)
+    EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(TSceneManager *sceneManager, EntityId child)
     {
         return ((SceneManager *)sceneManager)->getAncestor(child);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_parent(void *const sceneManager, EntityId child, EntityId parent, bool preserveScaling)
+    EMSCRIPTEN_KEEPALIVE void set_parent(TSceneManager *sceneManager, EntityId child, EntityId parent, bool preserveScaling)
     {
         ((SceneManager *)sceneManager)->setParent(child, parent, preserveScaling);
     }
 
-    EMSCRIPTEN_KEEPALIVE void test_collisions(void *const sceneManager, EntityId entity)
+    EMSCRIPTEN_KEEPALIVE void test_collisions(TSceneManager *sceneManager, EntityId entity)
     {
         ((SceneManager *)sceneManager)->testCollisions(entity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_priority(void *const sceneManager, EntityId entity, int priority)
+    EMSCRIPTEN_KEEPALIVE void set_priority(TSceneManager *sceneManager, EntityId entity, int priority)
     {
         ((SceneManager *)sceneManager)->setPriority(entity, priority);
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_gizmo(void *const sceneManager, EntityId *out)
+    EMSCRIPTEN_KEEPALIVE void get_gizmo(TSceneManager *sceneManager, EntityId *out)
     {
         auto gizmo = ((SceneManager *)sceneManager)->gizmo;
         out[0] = Entity::smuggle(gizmo->x());
@@ -918,12 +920,12 @@ extern "C"
         out[3] = Entity::smuggle(gizmo->center());
     }
 
-    EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(void *const sceneManager, EntityId entity)
+    EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, EntityId entity)
     {
         return ((SceneManager *)sceneManager)->getBoundingBox(entity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(void *const sceneManager, EntityId entity, float *minX, float *minY, float *maxX, float *maxY)
+    EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, EntityId entity, float *minX, float *minY, float *maxX, float *maxY)
     {
         auto box = ((SceneManager *)sceneManager)->getBoundingBox(entity);
         *minX = box.minX;
@@ -932,12 +934,12 @@ extern "C"
         *maxY = box.maxY;
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_visibility_layer(void *const sceneManager, EntityId entity, int layer) {
+    EMSCRIPTEN_KEEPALIVE void set_visibility_layer(TSceneManager *sceneManager, EntityId entity, int layer) {
         ((SceneManager*)sceneManager)->setVisibilityLayer(entity, layer);
     }
 
 
-    EMSCRIPTEN_KEEPALIVE void set_layer_visibility(void *const sceneManager, int layer, bool visible)
+    EMSCRIPTEN_KEEPALIVE void set_layer_visibility(TSceneManager *sceneManager, int layer, bool visible)
     {
         ((SceneManager *)sceneManager)->setLayerVisibility((SceneManager::LAYERS)layer, visible);
     }
@@ -947,42 +949,42 @@ extern "C"
         free(ptr);
     }
 
-    EMSCRIPTEN_KEEPALIVE void pick_gizmo(void *const sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y))
+    EMSCRIPTEN_KEEPALIVE void pick_gizmo(TSceneManager *sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y))
     {
         ((SceneManager *)sceneManager)->gizmo->pick(x, y, callback);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(void *const sceneManager, bool visible)
+    EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(TSceneManager *sceneManager, bool visible)
     {
         ((SceneManager *)sceneManager)->gizmo->setVisibility(visible);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(void *const sceneManager, EntityId entityId, float r, float g, float b)
+    EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(TSceneManager *sceneManager, EntityId entityId, float r, float g, float b)
     {
         ((SceneManager *)sceneManager)->setStencilHighlight(entityId, r, g, b);
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(void *const sceneManager, EntityId entityId)
+    EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(TSceneManager *sceneManager, EntityId entityId)
     {
         ((SceneManager *)sceneManager)->removeStencilHighlight(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_material_property_float(void *const sceneManager, EntityId entity, int materialIndex, const char *property, float value)
+    EMSCRIPTEN_KEEPALIVE void set_material_property_float(TSceneManager *sceneManager, EntityId entity, int materialIndex, const char *property, float value)
     {
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
     }
 
-    EMSCRIPTEN_KEEPALIVE TMaterialInstance* get_material_instance_at(void *const sceneManager, EntityId entity, int materialIndex) {
+    EMSCRIPTEN_KEEPALIVE TMaterialInstance* get_material_instance_at(TSceneManager *sceneManager, EntityId entity, int materialIndex) {
         auto instance = ((SceneManager *)sceneManager)->getMaterialInstanceAt(entity, materialIndex);
         return reinterpret_cast<TMaterialInstance*>(instance);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_material_property_int(void *const sceneManager, EntityId entity, int materialIndex, const char *property, int32_t value)
+    EMSCRIPTEN_KEEPALIVE void set_material_property_int(TSceneManager *sceneManager, EntityId entity, int materialIndex, const char *property, int32_t value)
     {
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_material_property_float4(void *const sceneManager, EntityId entity, int materialIndex, const char *property, double4 value)
+    EMSCRIPTEN_KEEPALIVE void set_material_property_float4(TSceneManager *sceneManager, EntityId entity, int materialIndex, const char *property, double4 value)
     {        
         filament::math::float4 filamentValue;
         filamentValue.x = static_cast<float32_t>(value.x);
@@ -997,23 +999,23 @@ extern "C"
         ((FilamentViewer *)viewer)->unprojectTexture(entity, input, inputWidth, inputHeight, out, outWidth, outHeight);
     }
 
-    EMSCRIPTEN_KEEPALIVE void *const create_texture(void *const sceneManager, uint8_t *data, size_t length)
+    EMSCRIPTEN_KEEPALIVE void *const create_texture(TSceneManager *sceneManager, uint8_t *data, size_t length)
     {
         return (void *const)((SceneManager *)sceneManager)->createTexture(data, length, "SOMETEXTURE");
     }
 
-    EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(void *const sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex)
+    EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(TSceneManager *sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex)
     {
         ((SceneManager *)sceneManager)->applyTexture(entity, reinterpret_cast<Texture *>(texture), parameterName, materialIndex);
     }
 
-    EMSCRIPTEN_KEEPALIVE void destroy_texture(void *const sceneManager, void *const texture)
+    EMSCRIPTEN_KEEPALIVE void destroy_texture(TSceneManager *sceneManager, void *const texture)
     {
         ((SceneManager *)sceneManager)->destroyTexture(reinterpret_cast<Texture *>(texture));
     }
 
 
- EMSCRIPTEN_KEEPALIVE TMaterialInstance* create_material_instance(void *const sceneManager, TMaterialKey materialConfig)
+ EMSCRIPTEN_KEEPALIVE TMaterialInstance* create_material_instance(TSceneManager *sceneManager, TMaterialKey materialConfig)
 {
 
     filament::gltfio::MaterialKey config;
@@ -1047,12 +1049,12 @@ extern "C"
     return reinterpret_cast<TMaterialInstance*>(materialInstance);
 }
 
-EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(void *const sceneManager) { 
+EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(TSceneManager *sceneManager) { 
     auto * instance = ((SceneManager*)sceneManager)->createUnlitMaterialInstance();
     return reinterpret_cast<TMaterialInstance*>(instance);
 }
 
-EMSCRIPTEN_KEEPALIVE void destroy_material_instance(void *const sceneManager, TMaterialInstance *instance) {
+EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance) {
     ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance*>(instance));
 }
 
@@ -1073,9 +1075,42 @@ EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* tCamera) {
     return convert_mat4_to_double4x4(camera->getModelMatrix());
 }
 
+EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera* tCamera) {
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    return Entity::smuggle(camera->getEntity());
+}
+
 EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId) {
     auto * engine = reinterpret_cast<Engine*>(tEngine);
     auto * camera = engine->getCameraComponent(utils::Entity::import(entityId));
     return reinterpret_cast<TCamera*>(camera);
+}
+
+EMSCRIPTEN_KEEPALIVE void Engine_setTransform(TEngine* tEngine, EntityId entity, double4x4 transform) {
+    auto * engine = reinterpret_cast<Engine*>(tEngine);
+    auto& transformManager = engine->getTransformManager();
+    
+    auto transformInstance = transformManager.getInstance(utils::Entity::import(entity));
+    if(!transformInstance.isValid()) {
+        Log("Transform instance not valid");
+    }
+    transformManager.setTransform(transformInstance, convert_double4x4_to_mat4(transform));
+}
+
+EMSCRIPTEN_KEEPALIVE TCamera *SceneManager_createCamera(TSceneManager* tSceneManager) {
+    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
+    return reinterpret_cast<TCamera*>(sceneManager->createCamera());
+}
+
+EMSCRIPTEN_KEEPALIVE void SceneManager_destroyCamera(TSceneManager* tSceneManager, TCamera* tCamera) {
+    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    sceneManager->destroyCamera(camera);
+}
+
+EMSCRIPTEN_KEEPALIVE void SceneManager_setCamera(TSceneManager* tSceneManager, TCamera* tCamera) {
+    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    sceneManager->setCamera(camera);
 }
 }

@@ -362,7 +362,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(TSceneManager *sceneManager,
                                                     const char *path,
                                                     const char *relativeResourcePath,
                                                     bool keepData,
@@ -382,7 +382,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(TSceneManager *sceneManager,
                                                    const char *path,
                                                    int numInstances,
                                                    bool keepData,
@@ -402,7 +402,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_render_thread(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_render_thread(TSceneManager *sceneManager,
                                                                const uint8_t *const data,
                                                                size_t length,
                                                                int numInstances,
@@ -619,7 +619,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void
-  get_morph_target_name_render_thread(void *sceneManager, EntityId assetEntity,
+  get_morph_target_name_render_thread(TSceneManager *sceneManager, EntityId assetEntity,
                                       EntityId childEntity, char *const outPtr, int index, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
@@ -635,7 +635,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void
-  get_morph_target_name_count_render_thread(void *sceneManager, EntityId assetEntity,
+  get_morph_target_name_count_render_thread(TSceneManager *sceneManager, EntityId assetEntity,
                                             EntityId childEntity, void (*callback)(int))
   {
     std::packaged_task<int()> lambda([=]
@@ -652,7 +652,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void set_animation_frame_render_thread(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void set_animation_frame_render_thread(TSceneManager *sceneManager,
                                                               EntityId asset,
                                                               int animationIndex,
                                                               int animationFrame)
@@ -662,7 +662,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void stop_animation_render_thread(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void stop_animation_render_thread(TSceneManager *sceneManager,
                                                          EntityId asset, int index)
   {
     std::packaged_task<void()> lambda(
@@ -671,7 +671,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void get_animation_count_render_thread(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void get_animation_count_render_thread(TSceneManager *sceneManager,
                                                               EntityId asset,
                                                               void (*callback)(int))
   {
@@ -689,7 +689,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void get_animation_name_render_thread(void *const sceneManager,
+  EMSCRIPTEN_KEEPALIVE void get_animation_name_render_thread(TSceneManager *sceneManager,
                                                              EntityId asset,
                                                              char *const outPtr,
                                                              int index,
@@ -718,7 +718,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void
-  get_name_for_entity_render_thread(void *const sceneManager, const EntityId entityId, void (*callback)(const char *))
+  get_name_for_entity_render_thread(TSceneManager *sceneManager, const EntityId entityId, void (*callback)(const char *))
   {
     std::packaged_task<const char *()> lambda(
         [=]
@@ -734,7 +734,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void set_morph_target_weights_render_thread(void *const sceneManager,
+  void set_morph_target_weights_render_thread(TSceneManager *sceneManager,
                                               EntityId asset,
                                               const float *const morphData,
                                               int numWeights,
@@ -754,7 +754,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void set_bone_transform_render_thread(
-      void *sceneManager,
+      TSceneManager *sceneManager,
       EntityId asset,
       int skinIndex,
       int boneIndex,
@@ -775,7 +775,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void update_bone_matrices_render_thread(void *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void update_bone_matrices_render_thread(TSceneManager *sceneManager,
                                                                EntityId entity, void (*callback)(bool))
   {
     std::packaged_task<void()> lambda(
@@ -791,7 +791,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(void *const sceneManager, EntityId entityId, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]
@@ -807,7 +807,7 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void create_geometry_render_thread(
-      void *const sceneManager,
+      TSceneManager *sceneManager,
       float *vertices,
       int numVertices,
       float *normals,

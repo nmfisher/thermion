@@ -960,4 +960,14 @@ abstract class ThermionViewer {
   ///
   Future<MaterialInstance?> getMaterialInstanceAt(
       ThermionEntity entity, int index);
+
+  ///
+  ///
+  ///
+  Future<Camera> createCamera();
+
+  ///
+  ///
+  ///
+  Future setActiveCamera(covariant Camera camera);
 }

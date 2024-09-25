@@ -750,7 +750,6 @@ namespace thermion_filament
     delete _sceneManager;
     _engine->destroyCameraComponent(_mainCamera->getEntity());
     _mainCamera = nullptr;
-    _view->setScene(nullptr);
     _engine->destroy(_view);
     _engine->destroy(_scene);
     _engine->destroy(_renderer);

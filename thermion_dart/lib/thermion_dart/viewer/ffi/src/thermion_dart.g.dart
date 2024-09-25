@@ -21,8 +21,9 @@ external void destroy_filament_viewer(
   ffi.Pointer<TViewer> viewer,
 );
 
-@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external ffi.Pointer<ffi.Void> get_scene_manager(
+@ffi.Native<ffi.Pointer<TSceneManager> Function(ffi.Pointer<TViewer>)>(
+    isLeaf: true)
+external ffi.Pointer<TSceneManager> Viewer_getSceneManager(
   ffi.Pointer<TViewer> viewer,
 );
 
@@ -36,6 +37,14 @@ external ffi.Pointer<TEngine> Viewer_getEngine(
 external ffi.Pointer<TCamera> Engine_getCameraComponent(
   ffi.Pointer<TEngine> tEngine,
   int entityId,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, EntityId, double4x4)>(
+    isLeaf: true)
+external void Engine_setTransform(
+  ffi.Pointer<TEngine> tEngine,
+  int entity,
+  double4x4 transform,
 );
 
 @ffi.Native<
@@ -212,20 +221,20 @@ external void set_light_direction(
 );
 
 @ffi.Native<
-    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int,
-        ffi.Bool)>(isLeaf: true)
+    EntityId Function(ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Char>,
+        ffi.Int, ffi.Bool)>(isLeaf: true)
 external int load_glb(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   int numInstances,
   bool keepData,
 );
 
 @ffi.Native<
-    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>, ffi.Size,
-        ffi.Bool, ffi.Int, ffi.Int)>(isLeaf: true)
+    EntityId Function(ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Void>,
+        ffi.Size, ffi.Bool, ffi.Int, ffi.Int)>(isLeaf: true)
 external int load_glb_from_buffer(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Void> data,
   int length,
   bool keepData,
@@ -234,32 +243,34 @@ external int load_glb_from_buffer(
 );
 
 @ffi.Native<
-    EntityId Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>,
+    EntityId Function(ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Char>,
         ffi.Pointer<ffi.Char>, ffi.Bool)>(isLeaf: true)
 external int load_gltf(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   ffi.Pointer<ffi.Char> relativePath,
   bool keepData,
 );
 
-@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external int create_instance(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int id,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external int get_instance_count(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<EntityId>)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<EntityId>)>(isLeaf: true)
 external void get_instances(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   ffi.Pointer<EntityId> out,
 );
@@ -393,10 +404,10 @@ external void grab_end(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Float>, ffi.Int)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(isLeaf: true)
 external void apply_weights(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> weights,
@@ -404,20 +415,26 @@ external void apply_weights(
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>,
-        ffi.Int)>(isLeaf: true)
+    ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Float>, ffi.Int)>(isLeaf: true)
 external bool set_morph_target_weights(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Float> morphData,
   int numWeights,
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Int>, ffi.Int, ffi.Int, ffi.Float)>(isLeaf: true)
+    ffi.Bool Function(
+        ffi.Pointer<TSceneManager>,
+        EntityId,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Int>,
+        ffi.Int,
+        ffi.Int,
+        ffi.Float)>(isLeaf: true)
 external bool set_morph_animation(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Float> morphData,
   ffi.Pointer<ffi.Int> morphIndices,
@@ -428,41 +445,44 @@ external bool set_morph_animation(
 
 @ffi.Native<
     ffi.Pointer<TMaterialInstance> Function(
-        ffi.Pointer<ffi.Void>, TMaterialKey)>(isLeaf: true)
+        ffi.Pointer<TSceneManager>, TMaterialKey)>(isLeaf: true)
 external ffi.Pointer<TMaterialInstance> create_material_instance(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   TMaterialKey materialConfig,
 );
 
-@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<ffi.Void>)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<TSceneManager>)>(isLeaf: true)
 external ffi.Pointer<TMaterialInstance> create_unlit_material_instance(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>, ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>,
+        ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
 external void destroy_material_instance(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<TMaterialInstance> instance,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external void clear_morph_animation(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external void reset_to_rest_pose(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TSceneManager>,
         EntityId,
         ffi.Int,
         ffi.Int,
@@ -473,7 +493,7 @@ external void reset_to_rest_pose(
         ffi.Float,
         ffi.Float)>(isLeaf: true)
 external void add_bone_animation(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int skinIndex,
   int boneIndex,
@@ -486,19 +506,19 @@ external void add_bone_animation(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Float>)>(isLeaf: true)
 external void get_local_transform(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   ffi.Pointer<ffi.Float> arg2,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int,
         ffi.Pointer<ffi.Float>, ffi.Int)>(isLeaf: true)
 external void get_rest_local_transforms(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   int skinIndex,
   ffi.Pointer<ffi.Float> out,
@@ -506,19 +526,19 @@ external void get_rest_local_transforms(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Float>)>(isLeaf: true)
 external void get_world_transform(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   ffi.Pointer<ffi.Float> arg2,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Int,
         ffi.Pointer<ffi.Float>)>(isLeaf: true)
 external void get_inverse_bind_matrix(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   int skinIndex,
   int boneIndex,
@@ -526,10 +546,10 @@ external void get_inverse_bind_matrix(
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int,
+    ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Int,
         ffi.Pointer<ffi.Float>)>(isLeaf: true)
 external bool set_bone_transform(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int skinIndex,
   int boneIndex,
@@ -537,10 +557,10 @@ external bool set_bone_transform(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Bool,
         ffi.Bool, ffi.Bool, ffi.Float, ffi.Float)>(isLeaf: true)
 external void play_animation(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int index,
   bool loop,
@@ -552,59 +572,60 @@ external void play_animation(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int)>(isLeaf: true)
+        ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Int)>(isLeaf: true)
 external void set_animation_frame(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int animationIndex,
   int animationFrame,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int)>(
     isLeaf: true)
 external void stop_animation(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int index,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external int get_animation_count(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>,
-        ffi.Int)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
 external void get_animation_name(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
 );
 
-@ffi.Native<ffi.Float Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+@ffi.Native<ffi.Float Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int)>(
     isLeaf: true)
 external double get_animation_duration(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int index,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int)>(
     isLeaf: true)
 external int get_bone_count(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int assetEntity,
   int skinIndex,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
         ffi.Pointer<ffi.Pointer<ffi.Char>>, ffi.Int)>(isLeaf: true)
 external void get_bone_names(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int assetEntity,
   ffi.Pointer<ffi.Pointer<ffi.Char>> outPtr,
   int skinIndex,
@@ -612,44 +633,45 @@ external void get_bone_names(
 
 @ffi.Native<
     EntityId Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int)>(isLeaf: true)
+        ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Int)>(isLeaf: true)
 external int get_bone(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   int skinIndex,
   int boneIndex,
 );
 
 @ffi.Native<
-    ffi.Bool Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Float>)>(isLeaf: true)
+    ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Float>)>(isLeaf: true)
 external bool set_transform(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   ffi.Pointer<ffi.Float> transform,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external bool update_bone_matrices(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, EntityId,
         ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
 external void get_morph_target_name(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int assetEntity,
   int childEntity,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, EntityId)>(
+@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneManager>, EntityId, EntityId)>(
     isLeaf: true)
 external int get_morph_target_name_count(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int assetEntity,
   int childEntity,
 );
@@ -666,10 +688,17 @@ external void clear_entities(
 );
 
 @ffi.Native<
-    ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>,
-        ffi.Int, ffi.Float, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+    ffi.Bool Function(
+        ffi.Pointer<TSceneManager>,
+        EntityId,
+        ffi.Pointer<ffi.Char>,
+        ffi.Int,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float)>(isLeaf: true)
 external bool set_material_color(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Char> meshName,
   int materialIndex,
@@ -679,17 +708,18 @@ external bool set_material_color(
   double a,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external void transform_to_unit_cube(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float, ffi.Bool)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
+        ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
 external void queue_position_update(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double x,
   double y,
@@ -698,10 +728,10 @@ external void queue_position_update(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
+        ffi.Float, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
 external void queue_relative_position_update_world_axis(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double viewportX,
   double viewportY,
@@ -711,20 +741,20 @@ external void queue_relative_position_update_world_axis(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
+        ffi.Float)>(isLeaf: true)
 external void queue_position_update_from_viewport_coords(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double viewportX,
   double viewportY,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
+        ffi.Float, ffi.Float, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
 external void queue_rotation_update(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double rads,
   double x,
@@ -735,10 +765,10 @@ external void queue_rotation_update(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
+        ffi.Float, ffi.Float)>(isLeaf: true)
 external void set_position(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double x,
   double y,
@@ -746,10 +776,10 @@ external void set_position(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
+        ffi.Float, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
 external void set_rotation(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double rads,
   double x,
@@ -758,10 +788,10 @@ external void set_rotation(
   double w,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float)>(
     isLeaf: true)
 external void set_scale(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double scale,
 );
@@ -858,17 +888,6 @@ external double get_camera_fov(
   bool horizontal,
 );
 
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double,
-        ffi.Double)>(isLeaf: true)
-external void set_camera_lens_projection(
-  ffi.Pointer<TCamera> camera,
-  double near,
-  double far,
-  double aspect,
-  double focalLength,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float)>(isLeaf: true)
 external void set_camera_focus_distance(
   ffi.Pointer<TCamera> camera,
@@ -896,25 +915,69 @@ external void Camera_setCustomProjectionWithCulling(
   double far,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double,
+        ffi.Double)>(isLeaf: true)
+external void Camera_setLensProjection(
+  ffi.Pointer<TCamera> camera,
+  double near,
+  double far,
+  double aspect,
+  double focalLength,
+);
+
 @ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double4x4 Camera_getModelMatrix(
   ffi.Pointer<TCamera> camera,
 );
 
+@ffi.Native<EntityId Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external int Camera_getEntity(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TEntityManager> Engine_getEntityManager(
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TSceneManager>)>(
+    isLeaf: true)
+external ffi.Pointer<TCamera> SceneManager_createCamera(
+  ffi.Pointer<TSceneManager> sceneManager,
+);
+
 @ffi.Native<
-    ffi.Int Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+    ffi.Void Function(
+        ffi.Pointer<TSceneManager>, ffi.Pointer<TCamera>)>(isLeaf: true)
+external void SceneManager_destroyCamera(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneManager>, ffi.Pointer<TCamera>)>(isLeaf: true)
+external void SceneManager_setCamera(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<
+    ffi.Int Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Char>)>(isLeaf: true)
 external int hide_mesh(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Char> meshName,
 );
 
 @ffi.Native<
-    ffi.Int Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+    ffi.Int Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Char>)>(isLeaf: true)
 external int reveal_mesh(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Char> meshName,
 );
@@ -974,35 +1037,36 @@ external void filament_pick(
       callback,
 );
 
-@ffi.Native<ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Void>, EntityId)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Pointer<ffi.Char> Function(
+        ffi.Pointer<TSceneManager>, EntityId)>(isLeaf: true)
 external ffi.Pointer<ffi.Char> get_name_for_entity(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
 );
 
 @ffi.Native<
-    EntityId Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+    EntityId Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Char>)>(isLeaf: true)
 external int find_child_entity_by_name(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int parent,
   ffi.Pointer<ffi.Char> name,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Bool)>(
+@ffi.Native<ffi.Int Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Bool)>(
     isLeaf: true)
 external int get_entity_count(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int target,
   bool renderableOnly,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Bool,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Bool,
         ffi.Pointer<EntityId>)>(isLeaf: true)
 external void get_entities(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int target,
   bool renderableOnly,
   ffi.Pointer<EntityId> out,
@@ -1010,9 +1074,9 @@ external void get_entities(
 
 @ffi.Native<
     ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool)>(isLeaf: true)
+        ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Bool)>(isLeaf: true)
 external ffi.Pointer<ffi.Char> get_entity_name_at(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int target,
   int index,
   bool renderableOnly,
@@ -1041,14 +1105,14 @@ external void thermion_flutter_free(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TSceneManager>,
         EntityId,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(EntityId entityId1, EntityId entityId2)>>,
         ffi.Bool)>(isLeaf: true)
 external void add_collision_component(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   ffi.Pointer<
           ffi.NativeFunction<
@@ -1057,27 +1121,30 @@ external void add_collision_component(
   bool affectsCollidingTransform,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external void remove_collision_component(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
 );
 
-@ffi.Native<ffi.Bool Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external bool add_animation_component(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external void remove_animation_component(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
 );
 
 @ffi.Native<
     EntityId Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TSceneManager>,
         ffi.Pointer<ffi.Float>,
         ffi.Int,
         ffi.Pointer<ffi.Float>,
@@ -1090,7 +1157,7 @@ external void remove_animation_component(
         ffi.Pointer<TMaterialInstance>,
         ffi.Bool)>(isLeaf: true)
 external int create_geometry(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
   ffi.Pointer<ffi.Float> normals,
@@ -1104,65 +1171,69 @@ external int create_geometry(
   bool keepData,
 );
 
-@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external int get_parent(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int child,
 );
 
-@ffi.Native<EntityId Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<EntityId Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external int get_ancestor(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int child,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, EntityId, EntityId, ffi.Bool)>(isLeaf: true)
+        ffi.Pointer<TSceneManager>, EntityId, EntityId, ffi.Bool)>(isLeaf: true)
 external void set_parent(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int child,
   int parent,
   bool preserveScaling,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external void test_collisions(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int)>(
     isLeaf: true)
 external void set_priority(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   int priority,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<EntityId>)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneManager>, ffi.Pointer<EntityId>)>(isLeaf: true)
 external void get_gizmo(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<EntityId> out,
 );
 
-@ffi.Native<Aabb2 Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<Aabb2 Function(ffi.Pointer<TSceneManager>, EntityId)>(isLeaf: true)
 external Aabb2 get_bounding_box(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TSceneManager>,
         EntityId,
         ffi.Pointer<ffi.Float>,
         ffi.Pointer<ffi.Float>,
         ffi.Pointer<ffi.Float>,
         ffi.Pointer<ffi.Float>)>(isLeaf: true)
 external void get_bounding_box_to_out(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Float> minX,
   ffi.Pointer<ffi.Float> minY,
@@ -1170,25 +1241,25 @@ external void get_bounding_box_to_out(
   ffi.Pointer<ffi.Float> maxY,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Int, ffi.Bool)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, ffi.Int, ffi.Bool)>(
     isLeaf: true)
 external void set_layer_visibility(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int layer,
   bool visible,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int)>(
     isLeaf: true)
 external void set_visibility_layer(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int layer,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TSceneManager>,
         ffi.Int,
         ffi.Int,
         ffi.Pointer<
@@ -1196,7 +1267,7 @@ external void set_visibility_layer(
                 ffi.Void Function(
                     EntityId entityId, ffi.Int x, ffi.Int y)>>)>(isLeaf: true)
 external void pick_gizmo(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int x,
   int y,
   ffi.Pointer<
@@ -1205,34 +1276,36 @@ external void pick_gizmo(
       callback,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Bool)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, ffi.Bool)>(
+    isLeaf: true)
 external void set_gizmo_visibility(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   bool visible,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
+        ffi.Float, ffi.Float)>(isLeaf: true)
 external void set_stencil_highlight(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double r,
   double g,
   double b,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId)>(
+    isLeaf: true)
 external void remove_stencil_highlight(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int,
         ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
 external void set_material_property_float(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int materialIndex,
   ffi.Pointer<ffi.Char> property,
@@ -1240,10 +1313,10 @@ external void set_material_property_float(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int,
         ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
 external void set_material_property_int(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int materialIndex,
   ffi.Pointer<ffi.Char> property,
@@ -1251,10 +1324,10 @@ external void set_material_property_int(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int,
         ffi.Pointer<ffi.Char>, double4)>(isLeaf: true)
 external void set_material_property_float4(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int materialIndex,
   ffi.Pointer<ffi.Char> property,
@@ -1263,9 +1336,9 @@ external void set_material_property_float4(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Bool)>(isLeaf: true)
+        ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Bool)>(isLeaf: true)
 external void set_material_depth_write(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int materialIndex,
   bool enabled,
@@ -1293,26 +1366,27 @@ external void unproject_texture(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Void> Function(
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+    ffi.Pointer<ffi.Void> Function(ffi.Pointer<TSceneManager>,
+        ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
 external ffi.Pointer<ffi.Void> create_texture(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Uint8> data,
   int length,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external void destroy_texture(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Void> texture,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Void>,
-        ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
 external void apply_texture_to_material(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Void> texture,
   ffi.Pointer<ffi.Char> parameterName,
@@ -1321,9 +1395,9 @@ external void apply_texture_to_material(
 
 @ffi.Native<
     ffi.Pointer<TMaterialInstance> Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(isLeaf: true)
+        ffi.Pointer<TSceneManager>, EntityId, ffi.Int)>(isLeaf: true)
 external ffi.Pointer<TMaterialInstance> get_material_instance_at(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   int materialIndex,
 );
@@ -1580,14 +1654,14 @@ external void clear_lights_render_thread(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<TSceneManager>,
             ffi.Pointer<ffi.Char>,
             ffi.Int,
             ffi.Bool,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
 external void load_glb_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   int numInstances,
   bool keepData,
@@ -1596,7 +1670,7 @@ external void load_glb_render_thread(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<TSceneManager>,
             ffi.Pointer<ffi.Uint8>,
             ffi.Size,
             ffi.Int,
@@ -1606,7 +1680,7 @@ external void load_glb_render_thread(
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
 external void load_glb_from_buffer_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Uint8> data,
   int length,
   int numInstances,
@@ -1618,14 +1692,14 @@ external void load_glb_from_buffer_render_thread(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<TSceneManager>,
             ffi.Pointer<ffi.Char>,
             ffi.Pointer<ffi.Char>,
             ffi.Bool,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
 external void load_gltf_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Char> assetPath,
   ffi.Pointer<ffi.Char> relativePath,
   bool keepData,
@@ -1633,11 +1707,11 @@ external void load_gltf_render_thread(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+        ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
 external void create_instance_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
@@ -1671,10 +1745,10 @@ external void set_camera_render_thread(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.Float>, ffi.Int)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(isLeaf: true)
 external void apply_weights_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> entityName,
   ffi.Pointer<ffi.Float> weights,
@@ -1683,41 +1757,41 @@ external void apply_weights_render_thread(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>, EntityId, ffi.Int, ffi.Int)>(isLeaf: true)
+        ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Int)>(isLeaf: true)
 external void set_animation_frame_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   int animationIndex,
   int animationFrame,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, ffi.Int)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int)>(
     isLeaf: true)
 external void stop_animation_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   int index,
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+        ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>)>(
     isLeaf: true)
 external void get_animation_count_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>> callback,
 );
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TSceneManager>,
         EntityId,
         ffi.Pointer<ffi.Char>,
         ffi.Int,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void get_animation_name_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   ffi.Pointer<ffi.Char> outPtr,
   int index,
@@ -1726,14 +1800,14 @@ external void get_animation_name_render_thread(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<TSceneManager>,
         EntityId,
         EntityId,
         ffi.Pointer<ffi.Char>,
         ffi.Int,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void get_morph_target_name_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int assetEntity,
   int childEntity,
   ffi.Pointer<ffi.Char> outPtr,
@@ -1742,11 +1816,11 @@ external void get_morph_target_name_render_thread(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId, EntityId,
+        ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, EntityId,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>)>(
     isLeaf: true)
 external void get_morph_target_name_count_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   int childEntity,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>> callback,
@@ -1754,14 +1828,14 @@ external void get_morph_target_name_count_render_thread(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<TSceneManager>,
             EntityId,
             ffi.Pointer<ffi.Float>,
             ffi.Int,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
 external void set_morph_target_weights_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   ffi.Pointer<ffi.Float> morphData,
   int numWeights,
@@ -1769,18 +1843,18 @@ external void set_morph_target_weights_render_thread(
 );
 
 @ffi.Native<
-        ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+        ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
 external void update_bone_matrices_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<TSceneManager>,
             EntityId,
             ffi.Int,
             ffi.Int,
@@ -1788,7 +1862,7 @@ external void update_bone_matrices_render_thread(
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
 external void set_bone_transform_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int asset,
   int skinIndex,
   int boneIndex,
@@ -1803,17 +1877,17 @@ external void set_post_processing_render_thread(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<ffi.Void>, EntityId,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void reset_to_rest_pose_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<TSceneManager>,
             ffi.Pointer<ffi.Float>,
             ffi.Int,
             ffi.Pointer<ffi.Float>,
@@ -1828,7 +1902,7 @@ external void reset_to_rest_pose_render_thread(
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
 external void create_geometry_render_thread(
-  ffi.Pointer<ffi.Void> sceneManager,
+  ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
   ffi.Pointer<ffi.Float> normals,
@@ -1872,7 +1946,11 @@ final class TMaterialInstance extends ffi.Opaque {}
 
 final class TEngine extends ffi.Opaque {}
 
+final class TEntityManager extends ffi.Opaque {}
+
 final class TViewer extends ffi.Opaque {}
+
+final class TSceneManager extends ffi.Opaque {}
 
 final class TMaterialKey extends ffi.Struct {
   @ffi.Bool()

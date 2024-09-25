@@ -12,7 +12,9 @@ extern "C"
 	typedef struct TCamera TCamera;
 	typedef struct TMaterialInstance TMaterialInstance;
 	typedef struct TEngine TEngine;
+	typedef struct TEntityManager TEntityManager;
 	typedef struct TViewer TViewer;
+	typedef struct TSceneManager TSceneManager;
 
 	struct TMaterialKey {
 		bool doubleSided = 1;
