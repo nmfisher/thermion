@@ -66,44 +66,44 @@ extern "C"
         void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void remove_light_render_thread(TViewer *viewer, EntityId entityId);
     EMSCRIPTEN_KEEPALIVE void clear_lights_render_thread(TViewer *viewer);
-    EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(void *const sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_render_thread(void *const sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(void *const sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void create_instance_render_thread(void *const sceneManager, EntityId entityId, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_render_thread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void create_instance_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void remove_entity_render_thread(TViewer *viewer, EntityId asset, void (*callback)());
     EMSCRIPTEN_KEEPALIVE void clear_entities_render_thread(TViewer *viewer, void (*callback)());
     EMSCRIPTEN_KEEPALIVE void set_camera_render_thread(TViewer *viewer, EntityId asset, const char *nodeName, void (*callback)(bool));
     EMSCRIPTEN_KEEPALIVE void apply_weights_render_thread(
-        void *const sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         const char *const entityName,
         float *const weights,
         int count);
-    EMSCRIPTEN_KEEPALIVE void set_animation_frame_render_thread(void *const sceneManager, EntityId asset, int animationIndex, int animationFrame);
-    EMSCRIPTEN_KEEPALIVE void stop_animation_render_thread(void *const sceneManager, EntityId asset, int index);
-    EMSCRIPTEN_KEEPALIVE void get_animation_count_render_thread(void *const sceneManager, EntityId asset, void (*callback)(int));
-    EMSCRIPTEN_KEEPALIVE void get_animation_name_render_thread(void *const sceneManager, EntityId asset, char *const outPtr, int index, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_render_thread(void *const sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_count_render_thread(void *const sceneManager, EntityId asset, EntityId childEntity, void (*callback)(int32_t));
-    EMSCRIPTEN_KEEPALIVE void set_morph_target_weights_render_thread(void *const sceneManager,
+    EMSCRIPTEN_KEEPALIVE void set_animation_frame_render_thread(TSceneManager *sceneManager, EntityId asset, int animationIndex, int animationFrame);
+    EMSCRIPTEN_KEEPALIVE void stop_animation_render_thread(TSceneManager *sceneManager, EntityId asset, int index);
+    EMSCRIPTEN_KEEPALIVE void get_animation_count_render_thread(TSceneManager *sceneManager, EntityId asset, void (*callback)(int));
+    EMSCRIPTEN_KEEPALIVE void get_animation_name_render_thread(TSceneManager *sceneManager, EntityId asset, char *const outPtr, int index, void (*callback)());
+    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_render_thread(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index, void (*callback)());
+    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_count_render_thread(TSceneManager *sceneManager, EntityId asset, EntityId childEntity, void (*callback)(int32_t));
+    EMSCRIPTEN_KEEPALIVE void set_morph_target_weights_render_thread(TSceneManager *sceneManager,
                                                             EntityId asset,
                                                             const float *const morphData,
                                                             int numWeights,
                                                             void (*callback)(bool));
 
-    EMSCRIPTEN_KEEPALIVE void update_bone_matrices_render_thread(void *sceneManager,
+    EMSCRIPTEN_KEEPALIVE void update_bone_matrices_render_thread(TSceneManager *sceneManager,
         EntityId asset, void(*callback)(bool));
     EMSCRIPTEN_KEEPALIVE void set_bone_transform_render_thread(
-        void *sceneManager,
+        TSceneManager *sceneManager,
         EntityId asset,
         int skinIndex, 
         int boneIndex,
         const float *const transform,
         void (*callback)(bool));
     EMSCRIPTEN_KEEPALIVE void set_post_processing_render_thread(TViewer *viewer, bool enabled);
-    EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(void *const sceneManager, EntityId entityId, void(*callback)());
+    EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void(*callback)());
     EMSCRIPTEN_KEEPALIVE void create_geometry_render_thread(
-        void *const sceneManager, 
+        TSceneManager *sceneManager, 
         float *vertices, 
         int numVertices, 
         float *normals, 

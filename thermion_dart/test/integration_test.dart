@@ -139,6 +139,23 @@ void main() async {
       expect(modelMatrix.getColumn(3).z, 0.0);
       expect(modelMatrix.getColumn(3).w, 1.0);
     });
+
+    test('create camera', () async {
+      var viewer = await createViewer();
+
+      await viewer.setCameraPosition(0, 0, 5);
+      await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
+      await viewer.createGeometry(GeometryHelper.cube());
+      await _capture(viewer, "create_camera_main_camera");
+      var newCamera = await viewer.createCamera();
+      await newCamera.setTransform(Matrix4.translation(Vector3(0, 0, 4)));
+      newCamera.setLensProjection();
+      await viewer.setActiveCamera(newCamera);
+      await _capture(viewer, "create_camera_new_camera");
+      final mainCamera = await viewer.getMainCamera();
+      await viewer.setActiveCamera(mainCamera);
+      await _capture(viewer, "create_camera_back_to_main");
+    });
   });
 
   group('background', () {

@@ -299,6 +299,12 @@ namespace thermion_filament
 
         void setVisibilityLayer(EntityId entityId, int layer);
 
+        Camera* createCamera();
+        
+        void destroyCamera(Camera* camera);
+
+        void setCamera(Camera* camera);
+
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
@@ -325,6 +331,7 @@ namespace thermion_filament
         tsl::robin_map<EntityId, unique_ptr<HighlightOverlay>> _highlighted;        
         tsl::robin_map<EntityId, std::tuple<math::float3, bool, math::quatf, bool, float>> _transformUpdates;
         std::set<Texture*> _textures;
+        std::vector<Camera*> _cameras;
 
         AnimationComponentManager *_animationComponentManager = nullptr;
         CollisionComponentManager *_collisionComponentManager = nullptr;

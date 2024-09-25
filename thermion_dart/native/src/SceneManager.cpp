@@ -110,6 +110,14 @@ namespace thermion_filament
 
     SceneManager::~SceneManager()
     {
+        _view->setScene(nullptr);
+        _view->setCamera(nullptr);
+        for(auto camera : _cameras) {
+            auto entity = camera->getEntity();
+            _engine->destroyCameraComponent(entity);
+            _engine->getEntityManager().destroy(entity);
+        }
+        _cameras.clear();
         delete gizmo;
         _gridOverlay->destroy();
         destroyAll();
@@ -2632,6 +2640,27 @@ EntityId SceneManager::createGeometry(
         UvMap uvmap;
         auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
         return instance;
+    }
+
+    Camera* SceneManager::createCamera() {
+        auto entity = EntityManager::get().create();
+        auto camera = _engine->createCamera(entity);
+        _cameras.push_back(camera);
+        return camera;
+    }
+
+    void SceneManager::destroyCamera(Camera* camera) {
+        auto entity = camera->getEntity();
+        _engine->destroyCameraComponent(entity);
+        _engine->getEntityManager().destroy(entity);
+        auto it = std::find(_cameras.begin(), _cameras.end(), camera);
+        if(it != _cameras.end()) {
+            _cameras.erase(it);
+        }
+    }
+
+    void SceneManager::setCamera(Camera* camera) {
+        _view->setCamera(camera);
     }
        
 
