@@ -10,7 +10,7 @@ import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:path/path.dart' as p;
 import 'package:thermion_dart/thermion_dart/utils/geometry.dart';
 import 'package:thermion_dart/thermion_dart/viewer/events.dart';
-import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_viewer_ffi.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/src/thermion_viewer_ffi.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'helpers.dart';
