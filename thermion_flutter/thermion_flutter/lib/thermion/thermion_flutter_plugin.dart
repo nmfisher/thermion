@@ -115,7 +115,6 @@ class ThermionFlutterPlugin {
     return ThermionFlutterPlatform.instance.destroyTexture(texture);
   }
 
-  @override
   static Future<ThermionFlutterTexture?> resizeTexture(
       ThermionFlutterTexture texture,
       int width,
