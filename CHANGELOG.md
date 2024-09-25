@@ -11,6 +11,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 Packages with breaking changes:
 
+ - [`thermion_flutter` - `v0.2.0-dev.6.0`](#thermion_flutter---v020-dev60)
+
+Packages with other changes:
+
+ - There are no other changes in this release.
+
+---
+
+#### `thermion_flutter` - `v0.2.0-dev.6.0`
+
+ - **BREAKING** **CHORE**: remove superseded HardwareKeyboard* classes.
+
+
+## 2024-09-25
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
  - [`thermion_dart` - `v0.2.0-dev.5.0`](#thermion_dart---v020-dev50)
 
 Packages with other changes:
