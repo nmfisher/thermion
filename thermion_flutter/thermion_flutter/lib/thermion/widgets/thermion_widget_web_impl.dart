@@ -1,6 +1,7 @@
 import 'dart:js_util';
 import 'dart:ui' as ui;
 import 'dart:ui_web' as ui_web;
+import 'package:logging/logging.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:web/web.dart';
 import 'package:flutter/widgets.dart';
@@ -9,9 +10,7 @@ class ThermionWidgetWeb extends StatelessWidget {
   final ThermionFlutterWebOptions options;
 
   const ThermionWidgetWeb(
-      {super.key,
-      this.options =
-          const ThermionFlutterWebOptions.empty()});
+      {super.key, this.options = const ThermionFlutterWebOptions.empty()});
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +29,7 @@ class _ImageCopyingWidget extends StatefulWidget {
 }
 
 class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
+  final _logger = Logger("_ImageCopyingWidgetState");
   ui.Image? _img;
 
   @override
@@ -51,7 +51,7 @@ class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
         capture();
       });
     } catch (err) {
-      print(err);
+      _logger.severe(err);
     }
   }
 
