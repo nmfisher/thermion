@@ -1,3 +1,9 @@
+## 0.2.0-dev.7.0
+
+> Note: This release has breaking changes.
+
+ - **BREAKING** **FIX**: fix min SDK for thermion_dart.
+
 ## 0.2.0-dev.6.0
 
 > Note: This release has breaking changes.
