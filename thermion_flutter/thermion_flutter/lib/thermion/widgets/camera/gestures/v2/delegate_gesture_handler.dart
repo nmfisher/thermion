@@ -50,20 +50,17 @@ class DelegateGestureHandler implements ThermionGestureHandler {
   }
 
   factory DelegateGestureHandler.fixedOrbit(ThermionViewer viewer,
-          {double? Function(Vector3)? getDistanceToTarget,
-          double rotationSensitivity = 0.001,
-          double zoomSensitivity = 0.001,
-          double baseAnglePerMeterNumerator = 10000,
+          {double minimumDistance = 10.0,
+          double? Function(Vector3)? getDistanceToTarget,
           PickDelegate? pickDelegate}) =>
       DelegateGestureHandler(
         viewer: viewer,
         pickDelegate: pickDelegate,
         cameraDelegate: FixedOrbitRotateCameraDelegate(viewer,
             getDistanceToTarget: getDistanceToTarget,
-            rotationSensitivity: rotationSensitivity,
-            baseAnglePerMeterNumerator: baseAnglePerMeterNumerator,
-            zoomSensitivity: zoomSensitivity),
+            minimumDistance: minimumDistance),
         velocityDelegate: DefaultVelocityDelegate(),
+        actions: {GestureType.MMB_HOLD_AND_MOVE:GestureAction.ROTATE_CAMERA}
       );
 
   factory DelegateGestureHandler.flight(ThermionViewer viewer,
@@ -193,6 +190,7 @@ class DelegateGestureHandler implements ThermionGestureHandler {
     } catch (e) {
       _logger.warning("Error during scroll accumulation: $e");
     }
+    await _applyAccumulatedUpdates();
   }
 
   @override

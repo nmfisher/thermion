@@ -1,48 +1,36 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
-
-import 'package:flutter/src/services/keyboard_key.g.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_zoom_camera_delegate.dart';
 import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.dart';
 import 'package:vector_math/vector_math_64.dart';
 
+/// A camera delegate that rotates the camera around the origin.
+/// Panning is not permitted; zooming is permitted (up to a minimum distance)
+///
+/// The rotation sensitivity will be automatically adjusted so that
+/// 100 horizontal pixels equates to a geodetic distance of 1m when the camera
+/// is 1m from the surface (denoted by distanceToSurface). This scales to 10m
+/// geodetic distance when the camera is 100m from the surface, 100m when the
+/// camera is 1000m from the surface, and so on.
+///
+///
 class FixedOrbitRotateCameraDelegate implements CameraDelegate {
   final ThermionViewer viewer;
-
-  double rotationSensitivity = 0.01;
-
-  late DefaultZoomCameraDelegate _zoomCameraDelegate;
+  final double minimumDistance;
+  double? Function(Vector3)? getDistanceToTarget;
 
   Offset _accumulatedRotationDelta = Offset.zero;
   double _accumulatedZoomDelta = 0.0;
 
   static final _up = Vector3(0, 1, 0);
-
   Timer? _updateTimer;
 
-  Vector3 _targetPosition = Vector3(0, 0, 0);
-
-  double? Function(Vector3)? getDistanceToTarget;
-
-  FixedOrbitRotateCameraDelegate(this.viewer,
-      {this.getDistanceToTarget,
-      double? rotationSensitivity,
-      double zoomSensitivity = 0.005}) {
-    _zoomCameraDelegate = DefaultZoomCameraDelegate(this.viewer,
-        zoomSensitivity: zoomSensitivity,
-        getDistanceToTarget: getDistanceToTarget);
-    this.rotationSensitivity = rotationSensitivity ?? 0.01;
-    _startUpdateTimer();
-  }
-
-  void _startUpdateTimer() {
-    _updateTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
-      _applyAccumulatedUpdates();
-    });
-  }
+  FixedOrbitRotateCameraDelegate(
+    this.viewer, {
+    this.getDistanceToTarget,
+    this.minimumDistance = 10.0,
+  });
 
   void dispose() {
     _updateTimer?.cancel();
@@ -51,6 +39,7 @@ class FixedOrbitRotateCameraDelegate implements CameraDelegate {
   @override
   Future<void> rotate(Offset delta, Vector2? velocity) async {
     _accumulatedRotationDelta += delta;
+    await _applyAccumulatedUpdates();
   }
 
   @override
@@ -60,11 +49,8 @@ class FixedOrbitRotateCameraDelegate implements CameraDelegate {
 
   @override
   Future<void> zoom(double yScrollDeltaInPixels, Vector2? velocity) async {
-    if (yScrollDeltaInPixels > 1) {
-      _accumulatedZoomDelta++;
-    } else {
-      _accumulatedZoomDelta--;
-    }
+    _accumulatedZoomDelta += yScrollDeltaInPixels > 0 ? 1 : -1;
+    await _applyAccumulatedUpdates();
   }
 
   Future<void> _applyAccumulatedUpdates() async {
@@ -73,64 +59,82 @@ class FixedOrbitRotateCameraDelegate implements CameraDelegate {
       return;
     }
 
+    var viewMatrix = await viewer.getCameraViewMatrix();
     var modelMatrix = await viewer.getCameraModelMatrix();
-    Vector3 cameraPosition = modelMatrix.getTranslation();
+    var projectionMatrix = await viewer.getCameraProjectionMatrix();
+    var inverseProjectionMatrix = projectionMatrix.clone()..invert();
+    Vector3 currentPosition = modelMatrix.getTranslation();
 
-    final heightAboveSurface = getDistanceToTarget?.call(cameraPosition) ?? 1.0;
+    Vector3 forward = -currentPosition.normalized();
+    Vector3 right = _up.cross(forward).normalized();
+    Vector3 up = forward.cross(right);
 
-    final sphereRadius = cameraPosition.length - heightAboveSurface;
-
-    // Apply rotation
-    if (_accumulatedRotationDelta.distanceSquared > 0) {
-      // Calculate the distance factor
-      final distanceFactor = sqrt((heightAboveSurface / sphereRadius) + 1);
-
-      // Adjust the base angle per meter
-      final baseAnglePerMeter = 10000 / sphereRadius;
-      final adjustedAnglePerMeter = baseAnglePerMeter * distanceFactor;
-
-      final metersOnSurface = _accumulatedRotationDelta;
-      final rotationX = metersOnSurface.dy * adjustedAnglePerMeter;
-      final rotationY = metersOnSurface.dx * adjustedAnglePerMeter;
-
-      Matrix4 rotation = Matrix4.rotationX(rotationX)..rotateY(rotationY);
-      Vector3 newPos = rotation.getRotation() * cameraPosition;
-      cameraPosition = newPos;
+    // first, we find the point in the sphere that intersects with the camera
+    // forward vector
+    double radius = 0.0;
+    double? distanceToTarget = getDistanceToTarget?.call(currentPosition);
+    if (distanceToTarget != null) {
+      radius = currentPosition.length - distanceToTarget;
+    } else {
+      radius = 1.0;
     }
+    Vector3 intersection = (-forward).scaled(radius);
 
-    // Normalize the position to maintain constant distance from center
-    cameraPosition =
-        cameraPosition.normalized() * (sphereRadius + heightAboveSurface);
+    // next, calculate the depth value at that intersection point
+    final intersectionInViewSpace = viewMatrix *
+        Vector4(intersection.x, intersection.y, intersection.z, 1.0);
+    final intersectionInClipSpace = projectionMatrix * intersectionInViewSpace;
+    final intersectionInNdcSpace =
+        intersectionInClipSpace / intersectionInClipSpace.w;
 
-    // Apply zoom (modified to ensure minimum 10m distance)
+    // using that depth value, find the world space position of the mouse
+    // note we flip the signs of the X and Y values
+
+    final ndcX = 2 *
+        ((-_accumulatedRotationDelta.dx * viewer.pixelRatio) /
+            viewer.viewportDimensions.$1);
+    final ndcY = 2 *
+        ((_accumulatedRotationDelta.dy * viewer.pixelRatio) /
+            viewer.viewportDimensions.$2);
+    final ndc = Vector4(ndcX, ndcY, intersectionInNdcSpace.z, 1.0);
+
+    var clipSpace = Vector4(
+        ndc.x * intersectionInClipSpace.w,
+        ndcY * intersectionInClipSpace.w,
+        ndc.z * intersectionInClipSpace.w,
+        intersectionInClipSpace.w);
+    Vector4 cameraSpace = inverseProjectionMatrix * clipSpace;
+    Vector4 worldSpace = modelMatrix * cameraSpace;
+
+    // the new camera world space position will be that position,
+    // scaled to the camera's current distance
+    var worldSpace3 = worldSpace.xyz.normalized() * currentPosition.length;
+    currentPosition = worldSpace3;
+
+    // Apply zoom
     if (_accumulatedZoomDelta != 0.0) {
-      var zoomFactor = -0.5 * _accumulatedZoomDelta;
-
-      double newHeight = heightAboveSurface * (1 - zoomFactor);
-      newHeight = newHeight.clamp(
-          10.0, double.infinity); // Prevent getting closer than 10m to surface
-      cameraPosition = cameraPosition.normalized() * (sphereRadius + newHeight);
-
+      // double zoomFactor = 1.0 + ();
+      Vector3 toSurface = currentPosition - intersection;
+      currentPosition = currentPosition + toSurface.scaled(_accumulatedZoomDelta * 0.1);
       _accumulatedZoomDelta = 0.0;
     }
 
-    // Ensure minimum 10m distance even after rotation
-    final currentHeight = cameraPosition.length - sphereRadius;
-    if (currentHeight < 10.0) {
-      cameraPosition = cameraPosition.normalized() * (sphereRadius + 10.0);
+    // Ensure minimum distance
+    if (currentPosition.length < radius + minimumDistance) {
+      currentPosition =
+          (currentPosition.normalized() * (radius + minimumDistance));
     }
 
-    // Calculate view matrix (unchanged)
-    Vector3 forward = cameraPosition.normalized();
-    Vector3 up = Vector3(0, 1, 0);
-    final right = up.cross(forward)..normalize();
+    // Calculate view matrix
+    forward = -currentPosition.normalized();
+    right = _up.cross(forward).normalized();
     up = forward.cross(right);
 
-    Matrix4 viewMatrix = makeViewMatrix(cameraPosition, Vector3.zero(), up);
-    viewMatrix.invert();
+    Matrix4 newViewMatrix = makeViewMatrix(currentPosition, Vector3.zero(), up);
+    newViewMatrix.invert();
 
     // Set the camera model matrix
-    await viewer.setCameraModelMatrix4(viewMatrix);
+    await viewer.setCameraModelMatrix4(newViewMatrix);
     _accumulatedRotationDelta = Offset.zero;
   }
 
