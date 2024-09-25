@@ -3,7 +3,7 @@ library thermion_flutter_js;
 
 import 'dart:js_interop';
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/thermion_dart/viewer/web/thermion_viewer_js_shim.dart';
+import 'package:thermion_dart/thermion_dart/viewer/web_js/src/thermion_viewer_js_shim.dart';
 
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -400,7 +400,8 @@ class ThermionViewerJSDartBridge {
 
   @JSExport()
   JSPromise<JSNumber> getMainCamera() {
-    return viewer.getMainCamera().then((camera) => camera.toJS).toJS;
+    throw UnimplementedError("TODO");
+    // return viewer.getMainCamera().then((camera) => camera.toJS).toJS;
   }
 
   @JSExport()

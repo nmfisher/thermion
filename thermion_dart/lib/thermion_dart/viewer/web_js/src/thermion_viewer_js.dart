@@ -8,6 +8,8 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:thermion_dart/thermion_dart/scene.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
+import 'package:thermion_dart/thermion_dart/viewer/events.dart';
+import 'package:thermion_dart/thermion_dart/viewer/shared_types/camera.dart';
 
 import 'package:vector_math/vector_math_64.dart';
 import 'thermion_viewer_js_shim.dart';
@@ -166,9 +168,8 @@ class ThermionViewerJS implements ThermionViewer {
   }
 
   @override
-  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1}) async {
+  Future<ThermionEntity> loadGlb(String path, {int numInstances = 1, bool keepData=false}) async {
     var entity = (await _shim.loadGlb(path, numInstances).toDart).toDartInt;
-    scene.registerEntity(entity);
     return entity;
   }
 
@@ -195,7 +196,7 @@ class ThermionViewerJS implements ThermionViewer {
 
   @override
   Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
-      {bool force = false}) async {
+      {bool keepData = false}) async {
     throw UnimplementedError();
     // final ThermionEntity jsEntity = await _shim
     //     .loadGltf(path, relativeResourcePath, force: force)
@@ -416,7 +417,7 @@ class ThermionViewerJS implements ThermionViewer {
   }
 
   @override
-  Future<ThermionEntity> getMainCamera() async {
+  Future<Camera> getMainCamera() async {
     throw UnimplementedError();
     // final ThermionEntity jsEntity = await _shim.getMainCamera().toDart;
     // return ThermionEntity._fromJSObject(jsEntity).toDart;
@@ -725,8 +726,9 @@ class ThermionViewerJS implements ThermionViewer {
 
   @override
   Future<ThermionEntity> createGeometry(
-      List<double> vertices, List<int> indices,
-      {String? materialPath,
+      Geometry geometry,
+      {
+        bool keepData=false, MaterialInstance? materialInstance,
       PrimitiveType primitiveType = PrimitiveType.TRIANGLES}) async {
     throw UnimplementedError();
     // final ThermionEntity jsEntity = await _shim
@@ -750,14 +752,6 @@ class ThermionViewerJS implements ThermionViewer {
   @override
   Future<void> setPriority(ThermionEntity entityId, int priority) async {
     await _shim.setPriority(entityId, priority).toDart;
-  }
-
-  Scene? _scene;
-
-  // @override
-  Scene get scene {
-    _scene ??= SceneImpl(this);
-    return _scene!;
   }
 
   AbstractGizmo? get gizmo => null;
@@ -882,7 +876,7 @@ class ThermionViewerJS implements ThermionViewer {
   }
   
   @override
-  double pixelRatio;
+  double pixelRatio = 0.0;
   
   @override
   Future createIbl(double r, double g, double b, double intensity) {
@@ -946,7 +940,7 @@ class ThermionViewerJS implements ThermionViewer {
   Stream<ThermionEntity> get lightsRemoved => throw UnimplementedError();
   
   @override
-  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false}) {
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int layer=4, int priority =4 }) {
     // TODO: implement loadGlbFromBuffer
     throw UnimplementedError();
   }
@@ -963,11 +957,6 @@ class ThermionViewerJS implements ThermionViewer {
     throw UnimplementedError();
   }
   
-  @override
-  Future setCameraLensProjection(double near, double far, double aspect, double focalLength) {
-    // TODO: implement setCameraLensProjection
-    throw UnimplementedError();
-  }
   
   @override
   Future setCameraModelMatrix4(Matrix4 matrix) {
@@ -1002,6 +991,93 @@ class ThermionViewerJS implements ThermionViewer {
   @override
   Future setStencilHighlight(ThermionEntity entity, {double r = 1.0, double g = 0.0, double b = 0.0}) {
     // TODO: implement setStencilHighlight
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ThermionEntity> addDirectLight(DirectLight light) {
+    // TODO: implement addDirectLight
+    throw UnimplementedError();
+  }
+
+  @override
+  Future applyTexture(covariant ThermionTexture texture, ThermionEntity entity, {int materialIndex = 0, String parameterName = "baseColorMap"}) {
+    // TODO: implement applyTexture
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ThermionTexture> createTexture(Uint8List data) {
+    // TODO: implement createTexture
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MaterialInstance> createUbershaderMaterialInstance({bool doubleSided = false, bool unlit = false, bool hasVertexColors = false, bool hasBaseColorTexture = false, bool hasNormalTexture = false, bool hasOcclusionTexture = false, bool hasEmissiveTexture = false, bool useSpecularGlossiness = false, AlphaMode alphaMode = AlphaMode.OPAQUE, bool enableDiagnostics = false, bool hasMetallicRoughnessTexture = false, int metallicRoughnessUV = 0, int baseColorUV = 0, bool hasClearCoatTexture = false, int clearCoatUV = 0, bool hasClearCoatRoughnessTexture = false, int clearCoatRoughnessUV = 0, bool hasClearCoatNormalTexture = false, int clearCoatNormalUV = 0, bool hasClearCoat = false, bool hasTransmission = false, bool hasTextureTransforms = false, int emissiveUV = 0, int aoUV = 0, int normalUV = 0, bool hasTransmissionTexture = false, int transmissionUV = 0, bool hasSheenColorTexture = false, int sheenColorUV = 0, bool hasSheenRoughnessTexture = false, int sheenRoughnessUV = 0, bool hasVolumeThicknessTexture = false, int volumeThicknessUV = 0, bool hasSheen = false, bool hasIOR = false, bool hasVolume = false}) {
+    // TODO: implement createUbershaderMaterialInstance
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MaterialInstance> createUnlitMaterialInstance() {
+    // TODO: implement createUnlitMaterialInstance
+    throw UnimplementedError();
+  }
+
+  @override
+  Future destroyMaterialInstance(covariant MaterialInstance materialInstance) {
+    // TODO: implement destroyMaterialInstance
+    throw UnimplementedError();
+  }
+
+  @override
+  Future destroyTexture(covariant ThermionTexture texture) {
+    // TODO: implement destroyTexture
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ThermionEntity> getMainCameraEntity() {
+    // TODO: implement getMainCameraEntity
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MaterialInstance?> getMaterialInstanceAt(ThermionEntity entity, int index) {
+    // TODO: implement getMaterialInstanceAt
+    throw UnimplementedError();
+  }
+
+  @override
+  void requestFrame() {
+    // TODO: implement requestFrame
+  }
+
+  @override
+  // TODO: implement sceneUpdated
+  Stream<SceneUpdateEvent> get sceneUpdated => throw UnimplementedError();
+
+  @override
+  Future setLayerVisibility(int layer, bool visible) {
+    // TODO: implement setLayerVisibility
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setMaterialPropertyInt(ThermionEntity entity, String propertyName, int materialIndex, int value) {
+    // TODO: implement setMaterialPropertyInt
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setVisibilityLayer(ThermionEntity entity, int layer) {
+    // TODO: implement setVisibilityLayer
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setCameraLensProjection({double near = kNear, double far = kFar, double? aspect, double focalLength = kFocalLength}) {
+    // TODO: implement setCameraLensProjection
     throw UnimplementedError();
   }
 }

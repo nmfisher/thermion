@@ -8,8 +8,8 @@ import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/utils/dart_resources.dart';
 
 import 'package:test/test.dart';
-import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_dart.g.dart';
-import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_viewer_ffi.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/src/thermion_dart.g.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/src/thermion_viewer_ffi.dart';
 
 import 'package:vector_math/vector_math_64.dart';
 

@@ -1,7 +1,7 @@
 import 'dart:ffi';
 
 import 'package:thermion_dart/thermion_dart/utils/matrix.dart';
-import 'package:thermion_dart/thermion_dart/viewer/ffi/thermion_dart.g.dart';
+import 'package:thermion_dart/thermion_dart/viewer/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/thermion_dart/viewer/shared_types/camera.dart';
 import 'package:vector_math/vector_math_64.dart';
 
