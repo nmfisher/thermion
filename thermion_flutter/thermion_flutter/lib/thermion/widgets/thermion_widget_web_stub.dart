@@ -9,5 +9,6 @@ class ThermionWidgetWeb extends StatefulWidget {
   const ThermionWidgetWeb({super.key, required this.options});
   
   @override
+  // ignore: no_logic_in_create_state
   State<StatefulWidget> createState() => throw Exception();
 }
