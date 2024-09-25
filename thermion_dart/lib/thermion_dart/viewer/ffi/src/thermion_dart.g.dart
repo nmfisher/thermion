@@ -16,16 +16,6 @@ external ffi.Pointer<ffi.Void> make_resource_loader(
   ffi.Pointer<ffi.Void> owner,
 );
 
-@ffi.Native<
-    ffi.Pointer<TViewer> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
-external ffi.Pointer<TViewer> create_filament_viewer(
-  ffi.Pointer<ffi.Void> context,
-  ffi.Pointer<ffi.Void> loader,
-  ffi.Pointer<ffi.Void> platform,
-  ffi.Pointer<ffi.Char> uberArchivePath,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_filament_viewer(
   ffi.Pointer<TViewer> viewer,
@@ -906,11 +896,9 @@ external void Camera_setCustomProjectionWithCulling(
   double far,
 );
 
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>(
-    isLeaf: true)
-external ffi.Pointer<TCamera> get_camera_component(
-  ffi.Pointer<TEngine> engine,
-  int entity,
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 Camera_getModelMatrix(
+  ffi.Pointer<TCamera> camera,
 );
 
 @ffi.Native<

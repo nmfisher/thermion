@@ -1068,6 +1068,11 @@ EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* tCamera
     camera->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), near, far);
 }
 
+EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* tCamera) {
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    return convert_mat4_to_double4x4(camera->getModelMatrix());
+}
+
 EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId) {
     auto * engine = reinterpret_cast<Engine*>(tEngine);
     auto * camera = engine->getCameraComponent(utils::Entity::import(entityId));

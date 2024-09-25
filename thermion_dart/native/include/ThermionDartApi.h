@@ -230,10 +230,10 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_camera_lens_projection(TCamera *camera, double near, double far, double aspect, double focalLength);
 	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(TCamera *camera, float focusDistance);
 	EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(TViewer *viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
-	EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* camera, double4x4 projectionMatrix, double near, double far);
-	EMSCRIPTEN_KEEPALIVE TCamera *get_camera_component(TEngine *engine, EntityId entity);
-
 	
+	EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* camera, double4x4 projectionMatrix, double near, double far);
+	EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* camera);
+	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *engine, EntityId entity);
 
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(void *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE int reveal_mesh(void *sceneManager, EntityId entity, const char *meshName);
