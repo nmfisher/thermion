@@ -1,5 +1,5 @@
-import 'package:thermion_dart/thermion_dart/compatibility/web/interop/thermion_viewer_wasm.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
+import 'package:thermion_dart/thermion_dart/viewer/web/thermion_viewer_wasm.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
@@ -7,6 +7,7 @@ import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:web/web.dart';
 
 class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
+  
   ThermionViewerWasm? _viewer;
 
   static void registerWith(Registrar registrar) {
