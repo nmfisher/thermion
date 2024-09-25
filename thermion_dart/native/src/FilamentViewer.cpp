@@ -22,7 +22,7 @@
  * limitations under the License.
  */
 #include <filament/Camera.h>
-
+#include <filament/SwapChain.h>
 #include <backend/DriverEnums.h>
 #include <backend/platforms/OpenGLPlatform.h>
 #ifdef __EMSCRIPTEN__
@@ -35,6 +35,7 @@
 #endif
 #include <filament/ColorGrading.h>
 #include <filament/Engine.h>
+#include <filament/Fence.h>
 #include <filament/IndexBuffer.h>
 #include <filament/IndirectLight.h>
 
@@ -88,6 +89,7 @@
 #include <filesystem>
 #include <mutex>
 #include <iomanip>
+#include <unordered_set>
 
 #include "Log.hpp"
 
@@ -95,7 +97,7 @@
 #include "StreamBufferAdapter.hpp"
 #include "material/image.h"
 #include "TimeIt.hpp"
-#include "ThreadPool.hpp"
+#include "UnprojectTexture.hpp"
 
 namespace filament
 {
@@ -115,11 +117,7 @@ namespace thermion_filament
 
   using std::string;
 
-  // const float kAperture = 1.0f;
-  // const float kShutterSpeed = 1.0f;
-  // const float kSensitivity = 50.0f;
-
-  static constexpr float4 sFullScreenTriangleVertices[3] = {
+  static constexpr filament::math::float4 sFullScreenTriangleVertices[3] = {
       {-1.0f, -1.0f, 1.0f, 1.0f},
       {3.0f, -1.0f, 1.0f, 1.0f},
       {-1.0f, 3.0f, 1.0f, 1.0f}};
@@ -129,7 +127,7 @@ namespace thermion_filament
   FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapperImpl *const resourceLoader, void *const platform, const char *uberArchivePath)
       : _resourceLoaderWrapper(resourceLoader)
   {
-    _context = (void*) sharedContext;
+    _context = (void *)sharedContext;
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
 #if TARGET_OS_IPHONE
@@ -142,18 +140,19 @@ namespace thermion_filament
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)new filament::backend::PlatformWebGL(), (void *)sharedContext, nullptr);
 #elif defined(_WIN32)
     Engine::Config config;
-    config.stereoscopicEyeCount = 1; 
+    config.stereoscopicEyeCount = 1;
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, &config);
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
 #endif
-    Log("Created engine");
 
     _engine->setAutomaticInstancingEnabled(true);
 
     _renderer = _engine->createRenderer();
 
-    Log("Created renderer");
+    Renderer::ClearOptions clearOptions;
+    clearOptions.clear = true;
+    _renderer->setClearOptions(clearOptions);
 
     _frameInterval = 1000.0f / 60.0f;
 
@@ -161,15 +160,13 @@ namespace thermion_filament
 
     _scene = _engine->createScene();
 
-    Log("Created scene");
-
     utils::Entity camera = EntityManager::get().create();
 
     _mainCamera = _engine->createCamera(camera);
 
-    Log("Created camera");
-
     _view = _engine->createView();
+    _view->setBlendMode(filament::View::BlendMode::TRANSLUCENT);
+    _view->setStencilBufferEnabled(true);
 
     setToneMapping(ToneMapping::ACES);
 
@@ -179,10 +176,10 @@ namespace thermion_filament
 
     _view->setAmbientOcclusionOptions({.enabled = false});
     _view->setDynamicResolutionOptions({.enabled = false});
-    
-    #if defined(_WIN32)
+
+#if defined(_WIN32)
     _view->setStereoscopicOptions({.enabled = true});
-    #endif
+#endif
 
     _view->setDithering(filament::Dithering::NONE);
     setAntiAliasing(false, false, false);
@@ -193,27 +190,18 @@ namespace thermion_filament
     _view->setScene(_scene);
     _view->setCamera(_mainCamera);
 
-    _cameraFocalLength = 28.0f;
-    _mainCamera->setLensProjection(_cameraFocalLength, 1.0f, _near,
-                                   _far);
-    // _mainCamera->setExposure(kAperture, kShutterSpeed, kSensitivity);
-    Log("View created");
     const float aperture = _mainCamera->getAperture();
     const float shutterSpeed = _mainCamera->getShutterSpeed();
     const float sens = _mainCamera->getSensitivity();
 
-    Log("Camera aperture %f shutter %f sensitivity %f", aperture, shutterSpeed, sens);
-
     EntityManager &em = EntityManager::get();
 
     _sceneManager = new SceneManager(
+        _view,
         _resourceLoaderWrapper,
         _engine,
         _scene,
         uberArchivePath);
-
-    Log("Created scene maager");
-
   }
 
   void FilamentViewer::setAntiAliasing(bool msaa, bool fxaa, bool taa)
@@ -243,22 +231,22 @@ namespace thermion_filament
     _view->setShadowType(shadowType);
   }
 
-  void FilamentViewer::setSoftShadowOptions(float penumbraScale, float penumbraRatioScale) { 
+  void FilamentViewer::setSoftShadowOptions(float penumbraScale, float penumbraRatioScale)
+  {
     SoftShadowOptions opts;
     opts.penumbraRatioScale = penumbraRatioScale;
     opts.penumbraScale = penumbraScale;
     _view->setSoftShadowOptions(opts);
   }
 
-
   void FilamentViewer::setBloom(float strength)
   {
-    #ifndef __EMSCRIPTEN__
+#ifndef __EMSCRIPTEN__
     decltype(_view->getBloomOptions()) opts;
     opts.enabled = true;
     opts.strength = strength;
     _view->setBloomOptions(opts);
-    #endif
+#endif
   }
 
   void FilamentViewer::setToneMapping(ToneMapping toneMapping)
@@ -297,61 +285,87 @@ namespace thermion_filament
     fro.interval = 1; // frameInterval;
     fro.history = 5;
     _renderer->setFrameRateOptions(fro);
-    Log("Set frame interval to %f", frameInterval);
   }
 
   EntityId FilamentViewer::addLight(
-    LightManager::Type t, 
-    float colour, 
-    float intensity, 
-    float posX, 
-    float posY, 
-    float posZ, 
-    float dirX, 
-    float dirY, 
-    float dirZ, 
-    float falloffRadius,
-    float spotLightConeInner,
-    float spotLightConeOuter,
-    float sunAngularRadius,
-    float sunHaloSize,
-    float sunHaloFallof,
-    bool shadows)
+      LightManager::Type t,
+      float colour,
+      float intensity,
+      float posX,
+      float posY,
+      float posZ,
+      float dirX,
+      float dirY,
+      float dirZ,
+      float falloffRadius,
+      float spotLightConeInner,
+      float spotLightConeOuter,
+      float sunAngularRadius,
+      float sunHaloSize,
+      float sunHaloFallof,
+      bool shadows)
   {
     auto light = EntityManager::get().create();
-    auto &transformManager = _engine->getTransformManager();
-    transformManager.create(light);
-    auto parent = transformManager.getInstance(light);
-
+    
     auto result = LightManager::Builder(t)
-                       .color(Color::cct(colour))
-                       .intensity(intensity)
-                       .falloff(falloffRadius)
-                       .spotLightCone(spotLightConeInner, spotLightConeOuter)
-                       .sunAngularRadius(sunAngularRadius)
-                       .sunHaloSize(sunHaloSize)
-                       .sunHaloFalloff(sunHaloFallof)
-                       .position(math::float3(posX, posY, posZ))
-                       .direction(math::float3(dirX, dirY, dirZ))
-                       .castShadows(shadows)
-                       .build(*_engine, light);
-    if(result != LightManager::Builder::Result::Success) {
+                      .color(Color::cct(colour))
+                      .intensity(intensity)
+                      .falloff(falloffRadius)
+                      .spotLightCone(spotLightConeInner, spotLightConeOuter)
+                      .sunAngularRadius(sunAngularRadius)
+                      .sunHaloSize(sunHaloSize)
+                      .sunHaloFalloff(sunHaloFallof)
+                      .position(filament::math::float3(posX, posY, posZ))
+                      .direction(filament::math::float3(dirX, dirY, dirZ))
+                      .castShadows(shadows)
+                      .build(*_engine, light);
+    if (result != LightManager::Builder::Result::Success)
+    {
       Log("ERROR : failed to create light");
-    } else {
+    }
+    else
+    {
       _scene->addEntity(light);
       _lights.push_back(light);
     }
 
-    auto entityId = Entity::smuggle(light);
-    auto transformInstance = transformManager.getInstance(light);
-    transformManager.setTransform(transformInstance, math::mat4::translation(math::float3{posX, posY, posZ}));
-    // Log("Added light under entity ID %d of type %d with colour %f intensity %f at (%f, %f, %f) with direction (%f, %f, %f) with shadows %d", entityId, t, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, shadows);
-    return entityId;
+    return Entity::smuggle(light);
+  }
+
+  void FilamentViewer::setLightPosition(EntityId entityId, float x, float y, float z) {
+    auto light = Entity::import(entityId);
+
+    if(light.isNull()) {
+      Log("Light not found for entity %d", entityId);
+      return;
+    }
+
+    auto& lm = _engine->getLightManager();
+
+    auto instance = lm.getInstance(light);
+
+    lm.setPosition(instance, filament::math::float3 { x, y, z });
+
+  }
+
+  void FilamentViewer::setLightDirection(EntityId entityId, float x, float y, float z) {
+    auto light = Entity::import(entityId);
+
+    if(light.isNull()) {
+      Log("Light not found for entity %d", entityId);
+      return;
+    }
+
+    auto& lm = _engine->getLightManager();
+
+    auto instance = lm.getInstance(light);
+
+    lm.setDirection(instance, filament::math::float3 { x, y, z });
+
   }
 
   void FilamentViewer::removeLight(EntityId entityId)
   {
-    Log("Removing light with entity ID %d", entityId);
     auto entity = utils::Entity::import(entityId);
     if (entity.isNull())
     {
@@ -367,7 +381,6 @@ namespace thermion_filament
 
   void FilamentViewer::clearLights()
   {
-    Log("Removing all lights");
     _scene->removeEntities(_lights.data(), _lights.size());
     EntityManager::get().destroy(_lights.size(), _lights.data());
     _lights.clear();
@@ -470,8 +483,9 @@ namespace thermion_filament
         Texture::Type::FLOAT, nullptr, freeCallback, image);
 
     _imageTexture->setImage(*_engine, 0, std::move(pbd));
-    // we don't need to free the ResourceBuffer in the texture callback because LinearImage takes a copy
-    // (check if this is correct ? )
+
+    // don't need to free the ResourceBuffer in the texture callback
+    // LinearImage takes a copy
     _resourceLoaderWrapper->free(rb);
   }
 
@@ -507,23 +521,25 @@ namespace thermion_filament
   {
     std::lock_guard lock(_imageMutex);
 
-    if(_imageEntity.isNull()) {
+    if (_imageEntity.isNull())
+    {
       createBackgroundImage();
     }
     _imageMaterial->setDefaultParameter("showImage", 0);
-    _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(r, g, b, a));
+    _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, filament::math::float4(r, g, b, a));
     _imageMaterial->setDefaultParameter("transform", _imageScale);
   }
 
-  void FilamentViewer::createBackgroundImage() { 
+  void FilamentViewer::createBackgroundImage()
+  {
 
     _dummyImageTexture = Texture::Builder()
-                        .width(1)
-                        .height(1)
-                        .levels(0x01)
-                        .format(Texture::InternalFormat::RGB16F)
-                        .sampler(Texture::Sampler::SAMPLER_2D)
-                        .build(*_engine);
+                             .width(1)
+                             .height(1)
+                             .levels(0x01)
+                             .format(Texture::InternalFormat::RGB16F)
+                             .sampler(Texture::Sampler::SAMPLER_2D)
+                             .build(*_engine);
     try
     {
       _imageMaterial =
@@ -531,7 +547,7 @@ namespace thermion_filament
               .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
               .build(*_engine);
       _imageMaterial->setDefaultParameter("showImage", 0);
-      _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, float4(1.0f, 1.0f, 1.0f, 0.0f));
+      _imageMaterial->setDefaultParameter("backgroundColor", RgbaType::sRGB, filament::math::float4(1.0f, 1.0f, 1.0f, 0.0f));
       _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
     }
     catch (...)
@@ -561,13 +577,14 @@ namespace thermion_filament
 
     _imageIb->setBuffer(*_engine, {sFullScreenTriangleIndices,
                                    sizeof(sFullScreenTriangleIndices)});
-    auto & em = EntityManager::get();
+    auto &em = EntityManager::get();
     _imageEntity = em.create();
     RenderableManager::Builder(1)
         .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
         .material(0, _imageMaterial->getDefaultInstance())
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, _imageVb,
                   _imageIb, 0, 3)
+        .layerMask(0xFF, 1u << SceneManager::LAYERS::BACKGROUND)
         .culling(false)
         .build(*_engine, _imageEntity);
     _scene->addEntity(_imageEntity);
@@ -576,8 +593,9 @@ namespace thermion_filament
   void FilamentViewer::clearBackgroundImage()
   {
     std::lock_guard lock(_imageMutex);
-    
-    if(_imageEntity.isNull()) {
+
+    if (_imageEntity.isNull())
+    {
       createBackgroundImage();
     }
     _imageMaterial->setDefaultParameter("image", _dummyImageTexture, _imageSampler);
@@ -586,7 +604,6 @@ namespace thermion_filament
     {
       _engine->destroy(_imageTexture);
       _imageTexture = nullptr;
-      Log("Destroyed background image texture");
     }
   }
 
@@ -595,22 +612,18 @@ namespace thermion_filament
 
     std::lock_guard lock(_imageMutex);
 
-    if(_imageEntity.isNull()) {
+    if (_imageEntity.isNull())
+    {
       createBackgroundImage();
     }
 
     string resourcePathString(resourcePath);
-
-    Log("Setting background image to %s", resourcePath);
-
-    clearBackgroundImage();
 
     loadTextureFromPath(resourcePathString);
 
     // This currently just anchors the image at the bottom left of the viewport at its original size
     // TODO - implement stretch/etc
     const Viewport &vp = _view->getViewport();
-    Log("Image width %d height %d vp width %d height %d", _imageWidth, _imageHeight, vp.width, vp.height);
 
     float xScale = float(vp.width) / float(_imageWidth);
 
@@ -629,6 +642,7 @@ namespace thermion_filament
     _imageMaterial->setDefaultParameter("transform", _imageScale);
     _imageMaterial->setDefaultParameter("image", _imageTexture, _imageSampler);
     _imageMaterial->setDefaultParameter("showImage", 1);
+
   }
 
   ///
@@ -641,7 +655,8 @@ namespace thermion_filament
   {
     std::lock_guard lock(_imageMutex);
 
-    if(_imageEntity.isNull()) {
+    if (_imageEntity.isNull())
+    {
       createBackgroundImage();
     }
 
@@ -711,7 +726,7 @@ namespace thermion_filament
         _imageScale[2][0], _imageScale[2][1], _imageScale[2][2], _imageScale[2][3],
         _imageScale[3][0], _imageScale[3][1], _imageScale[3][2], _imageScale[3][3]);
 
-    auto transform = math::mat4f::translation(math::float3(x, y, 0.0f)) * _imageScale;
+    auto transform = math::mat4f::translation(filament::math::float3(x, y, 0.0f)) * _imageScale;
 
     Log("transform %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f ", transform[0][0], transform[0][1], transform[0][2], transform[0][3],
         transform[1][0], transform[1][1], transform[1][2], transform[1][3],
@@ -724,7 +739,8 @@ namespace thermion_filament
   {
     clearLights();
     destroySwapChain();
-    if(!_imageEntity.isNull()) {
+    if (!_imageEntity.isNull())
+    {
       _engine->destroy(_imageEntity);
       _engine->destroy(_imageTexture);
       _engine->destroy(_imageVb);
@@ -734,10 +750,11 @@ namespace thermion_filament
     delete _sceneManager;
     _engine->destroyCameraComponent(_mainCamera->getEntity());
     _mainCamera = nullptr;
+    _view->setScene(nullptr);
     _engine->destroy(_view);
     _engine->destroy(_scene);
     _engine->destroy(_renderer);
-    Engine::destroy(&_engine); 
+    Engine::destroy(&_engine);
     delete _resourceLoaderWrapper;
   }
 
@@ -756,7 +773,7 @@ namespace thermion_filament
     else
     {
       Log("Created headless swapchain.");
-      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
     }
 #endif
   }
@@ -776,7 +793,7 @@ namespace thermion_filament
                    .width(width)
                    .height(height)
                    .levels(1)
-                   .usage(filament::Texture::Usage::DEPTH_ATTACHMENT)
+                   .usage(filament::Texture::Usage::DEPTH_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
                    .format(filament::Texture::InternalFormat::DEPTH32F)
                    .build(*_engine);
     _rt = filament::RenderTarget::Builder()
@@ -785,6 +802,7 @@ namespace thermion_filament
               .build(*_engine);
 
     _view->setRenderTarget(_rt);
+    
     Log("Created render target for texture id %ld (%u x %u)", (long)texture, width, height);
   }
 
@@ -806,7 +824,11 @@ namespace thermion_filament
       _swapChain = nullptr;
       Log("Swapchain destroyed.");
     }
+#ifdef __EMSCRIPTEN__
+    _engine->execute();
+#else
     _engine->flushAndWait();
+#endif
   }
 
   void FilamentViewer::clearEntities()
@@ -817,66 +839,10 @@ namespace thermion_filament
 
   void FilamentViewer::removeEntity(EntityId asset)
   {
-    Log("Removing asset from scene");
-
     mtx.lock();
     // todo - what if we are using a camera from this asset?
     _sceneManager->remove(asset);
     mtx.unlock();
-  }
-
-  ///
-  /// Set the exposure for the current active camera.
-  ///
-  void FilamentViewer::setCameraExposure(float aperture, float shutterSpeed, float sensitivity)
-  {
-    Camera &cam = _view->getCamera();
-    Log("Setting aperture (%03f) shutterSpeed (%03f) and sensitivity (%03f)", aperture, shutterSpeed, sensitivity);
-    cam.setExposure(aperture, shutterSpeed, sensitivity);
-  }
-
-  ///
-  /// Set the focal length of the active camera.
-  ///
-  void FilamentViewer::setCameraFocalLength(float focalLength)
-  {
-    Camera &cam = _view->getCamera();
-    _cameraFocalLength = focalLength;
-    cam.setLensProjection(_cameraFocalLength, 1.0f, _near,
-                          _far);
-  }
-
-  ///
-  /// Set the focal length of the active camera.
-  ///
-  void FilamentViewer::setCameraCulling(double near, double far)
-  {
-    Camera &cam = _view->getCamera();
-    _near = near;
-    _far = far;
-    cam.setLensProjection(_cameraFocalLength, 1.0f, _near, _far);
-    Log("Set lens projection to focal length %f, near %f and far %f", _cameraFocalLength, _near, _far);
-  }
-
-  double FilamentViewer::getCameraCullingNear()
-  {
-    Camera &cam = _view->getCamera();
-    return cam.getNear();
-  }
-  double FilamentViewer::getCameraCullingFar()
-  {
-    Camera &cam = _view->getCamera();
-    return cam.getCullingFar();
-  }
-
-  ///
-  /// Set the focus distance of the active camera.
-  ///
-  void FilamentViewer::setCameraFocusDistance(float focusDistance)
-  {
-    Camera &cam = _view->getCamera();
-    _cameraFocusDistance = focusDistance;
-    cam.setFocusDistance(_cameraFocusDistance);
   }
 
   ///
@@ -1001,11 +967,14 @@ namespace thermion_filament
                 ResourceBuffer* rb = (ResourceBuffer*) vec->at(1);
                 loader->free(*rb);
                 delete rb;
-                delete vec;
-        },
+                delete vec; },
             callbackData);
     _skybox =
-        filament::Skybox::Builder().environment(_skyboxTexture).build(*_engine);
+        filament::Skybox::Builder()
+          .environment(_skyboxTexture)
+          .build(*_engine);
+
+    _skybox->setLayerMask(0xFF, 1u << SceneManager::LAYERS::BACKGROUND);
 
     _scene->setSkybox(_skybox);
   }
@@ -1043,13 +1012,59 @@ namespace thermion_filament
     _indirectLight->setRotation(matrix);
   }
 
+  void FilamentViewer::createIbl(float r, float g, float b, float intensity)
+  {
+    if (_indirectLight)
+    {
+      removeIbl();
+    }
+
+    _iblTexture = Texture::Builder()
+                      .width(1)
+                      .height(1)
+                      .levels(0x01)
+                      .format(Texture::InternalFormat::RGB16F)
+                      .sampler(Texture::Sampler::SAMPLER_CUBEMAP)
+
+                      .build(*_engine);
+    // Create a copy of the cubemap data
+    float *pixelData = new float[18] {
+      r, g, b,
+      r, g, b,
+      r, g, b,
+      r, g, b,
+      r, g, b,
+      r, g, b,
+    };
+
+    Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t, void *data)
+    {
+      delete[] reinterpret_cast<float *>(data);
+    };
+
+    auto pbd = Texture::PixelBufferDescriptor(
+        pixelData,
+        18 * sizeof(float),
+        Texture::Format::RGB,
+        Texture::Type::FLOAT,
+        freeCallback,
+        pixelData);
+
+    _iblTexture->setImage(*_engine, 0, std::move(pbd));
+
+    _indirectLight = IndirectLight::Builder()
+                         .reflections(_iblTexture)
+                         .intensity(intensity)
+                         .build(*_engine);
+
+    _scene->setIndirectLight(_indirectLight);
+  }
+
   void FilamentViewer::loadIbl(const char *const iblPath, float intensity)
   {
     removeIbl();
     if (iblPath)
     {
-      Log("Loading IBL from %s", iblPath);
-
       // Load IBL.
       ResourceBuffer iblBuffer = _resourceLoaderWrapper->load(iblPath);
       // because this will go out of scope before the texture callback is invoked, we need to make a copy to the heap
@@ -1064,7 +1079,7 @@ namespace thermion_filament
       image::Ktx1Bundle *iblBundle =
           new image::Ktx1Bundle(static_cast<const uint8_t *>(iblBuffer.data),
                                 static_cast<uint32_t>(iblBuffer.size));
-      math::float3 harmonics[9];
+      filament::math::float3 harmonics[9];
       iblBundle->getSphericalHarmonics(harmonics);
 
       std::vector<void *> *callbackData = new std::vector<void *>{(void *)_resourceLoaderWrapper, iblBufferCopy};
@@ -1091,22 +1106,16 @@ namespace thermion_filament
     }
   }
 
-  void FilamentViewer::render(
+  bool FilamentViewer::render(
       uint64_t frameTimeInNanos,
       void *pixelBuffer,
       void (*callback)(void *buf, size_t size, void *data),
       void *data)
   {
 
-    if (!_view)
+    if (!_view || !_swapChain)
     {
-      Log("No view");
-      return;
-    }
-    else if (!_swapChain)
-    {
-      Log("No swapchain");
-      return;
+      return false;
     }
 
     auto now = std::chrono::high_resolution_clock::now();
@@ -1115,7 +1124,6 @@ namespace thermion_filament
     if (secsSinceLastFpsCheck >= 1)
     {
       auto fps = _frameCount / secsSinceLastFpsCheck;
-      Log("%ffps (%d skipped)", fps, _skippedFrames);
       _frameCount = 0;
       _skippedFrames = 0;
       _fpsCounterStartTime = now;
@@ -1144,12 +1152,11 @@ namespace thermion_filament
       _skippedFrames++;
     }
 
-    // beginFrame = true;
-
     if (beginFrame)
     {
-      
+
       _renderer->render(_view);
+
       _frameCount++;
 
       if (_recording)
@@ -1181,53 +1188,74 @@ namespace thermion_filament
       }
       _renderer->endFrame();
     }
-    #ifdef __EMSCRIPTEN__
-      _engine->execute();
-    #endif
+#ifdef __EMSCRIPTEN__
+    _engine->execute();
+#endif
+    return beginFrame;
   }
 
-  void FilamentViewer::capture(uint8_t *out, void (*onComplete)()) {
-      
-      Viewport const &vp = _view->getViewport();
-      size_t pixelBufferSize = vp.width * vp.height * 4;
-      auto *pixelBuffer = new uint8_t[pixelBufferSize];
-      auto callback = [](void *buf, size_t size, void *data)
-      {
-
-        auto frameCallbackData = (std::vector<void*>*)data;
-        uint8_t *out = (uint8_t *)(frameCallbackData->at(0));
-        void* callbackPtr = frameCallbackData->at(1);
-
-        void (*callback)(void) = (void (*)(void))callbackPtr;
-        memcpy(out, buf, size);
-        delete frameCallbackData;
-        callback();
-      };
-
-      auto userData = new std::vector<void*> { out, (void*)onComplete } ;
-
-      auto pbd = Texture::PixelBufferDescriptor(
-          pixelBuffer, pixelBufferSize,
-          Texture::Format::RGBA,
-          Texture::Type::UBYTE, nullptr, callback, userData);
-      _renderer->beginFrame(_swapChain, 0);
-      
-      _renderer->render(_view);
-
-      if(_rt) {
-        _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
-      } else { 
-        _renderer->readPixels(0, 0, vp.width, vp.height, std::move(pbd));
+  class CaptureCallbackHandler : public filament::backend::CallbackHandler {
+      void post(void* user, Callback callback) {
+        callback(user);
       }
-      _renderer->endFrame();
+  };
 
-      #ifdef __EMSCRIPTEN__
-        _engine->execute();
-        emscripten_webgl_commit_frame();
-      #endif
+  void FilamentViewer::capture(uint8_t *out, bool useFence, void (*onComplete)())
+  {
+
+    Viewport const &vp = _view->getViewport();
+    size_t pixelBufferSize = vp.width * vp.height * 4;
+    auto *pixelBuffer = new uint8_t[pixelBufferSize];
+    auto callback = [](void *buf, size_t size, void *data)
+    {
+      auto frameCallbackData = (std::vector<void *> *)data;
+      uint8_t *out = (uint8_t *)(frameCallbackData->at(0));
+      void *callbackPtr = frameCallbackData->at(1);
+
+      memcpy(out, buf, size);
+      delete frameCallbackData;
+      if(callbackPtr) {
+        void (*callback)(void) = (void (*)(void))callbackPtr;
+        callback();
+      }
+    };
+
+    // Create a fence
+    Fence* fence = nullptr;
+    if(useFence) {
+      fence = _engine->createFence();
     }
 
+    auto userData = new std::vector<void *>{out, (void *)onComplete};
 
+    auto dispatcher = new CaptureCallbackHandler();
+
+    auto pbd = Texture::PixelBufferDescriptor(
+        pixelBuffer, pixelBufferSize,
+        Texture::Format::RGBA,
+        Texture::Type::UBYTE, dispatcher, callback, userData);
+    _renderer->beginFrame(_swapChain, 0);
+
+    _renderer->render(_view);
+    
+    if (_rt)
+    {
+      _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
+    }
+    else
+    {
+      _renderer->readPixels(0, 0, vp.width, vp.height, std::move(pbd));
+    }
+    _renderer->endFrame();
+
+#ifdef __EMSCRIPTEN__
+    _engine->execute();
+    emscripten_webgl_commit_frame();
+#endif
+  if(fence) {
+    Fence::waitAndDestroy(fence);
+  }
+  }
 
   void FilamentViewer::savePng(void *buf, size_t size, int frameNumber)
   {
@@ -1299,154 +1327,21 @@ namespace thermion_filament
     this->_recording = recording;
   }
 
-  void FilamentViewer::updateViewportAndCameraProjection(
-      int width, int height, float contentScaleFactor)
+  Camera* FilamentViewer::getCamera(EntityId entity) { 
+    return _engine->getCameraComponent(Entity::import(entity));
+  }
+
+  void FilamentViewer::updateViewport(
+      uint32_t width, uint32_t height)
   {
-    if (!_view || !_mainCamera)
-    {
-      Log("Skipping camera update, no view or camrea");
-      return;
-    }
-
-    const uint32_t _width = width * contentScaleFactor;
-    const uint32_t _height = height * contentScaleFactor;
-    _view->setViewport({0, 0, _width, _height});
-
-    const double aspect = (double)width / height;
-
-    Camera &cam = _view->getCamera();
-    cam.setLensProjection(_cameraFocalLength, 1.0f, _near,
-                          _far);
-
-    cam.setScaling({1.0 / aspect, 1.0});
-
-    Log("Set viewport to width: %d height: %d aspect %f scaleFactor : %f", width, height, aspect,
-        contentScaleFactor);
+    _view->setViewport({0, 0, width, height});
   }
 
   void FilamentViewer::setViewFrustumCulling(bool enabled)
   {
     _view->setFrustumCullingEnabled(enabled);
   }
-
-  void FilamentViewer::setCameraFov(double fovInDegrees, double aspect)
-  {
-    Camera &cam = _view->getCamera();
-    cam.setProjection(fovInDegrees, aspect, _near, _far, Camera::Fov::HORIZONTAL);
-    Log("Set camera projection fov to %f", fovInDegrees);
-  }
-
-  void FilamentViewer::setCameraPosition(float x, float y, float z)
-  {
-    Camera &cam = _view->getCamera();
-
-    _cameraPosition = math::mat4f::translation(math::float3(x, y, z));
-    cam.setModelMatrix(_cameraRotation * _cameraPosition);
-  }
-
-  void FilamentViewer::moveCameraToAsset(EntityId entityId)
-  {
-    auto asset = _sceneManager->getAssetByEntityId(entityId);
-    if (!asset)
-    {
-      Log("Failed to find asset attached to specified entity id.");
-      return;
-    }
-
-    const filament::Aabb bb = asset->getBoundingBox();
-    auto corners = bb.getCorners();
-    Camera &cam = _view->getCamera();
-    auto eye = corners.vertices[0] * 1.5;
-    auto lookAt = corners.vertices[7];
-    cam.lookAt(eye, lookAt);
-    Log("Moved camera to %f %f %f, lookAt %f %f %f, near %f far %f", eye[0], eye[1], eye[2], lookAt[0], lookAt[1], lookAt[2], cam.getNear(), cam.getCullingFar());
-  }
-
-  void FilamentViewer::setCameraRotation(float w, float x, float y, float z)
-  {
-    Camera &cam = _view->getCamera();
-    _cameraRotation = math::mat4f(math::quatf(w, x, y, z));
-    cam.setModelMatrix(_cameraRotation * _cameraPosition);
-  }
-
-  void FilamentViewer::setCameraModelMatrix(const float *const matrix)
-  {
-    Camera &cam = _view->getCamera();
-
-    mat4 modelMatrix(
-        matrix[0],
-        matrix[1],
-        matrix[2],
-        matrix[3],
-        matrix[4],
-        matrix[5],
-        matrix[6],
-        matrix[7],
-        matrix[8],
-        matrix[9],
-        matrix[10],
-        matrix[11],
-        matrix[12],
-        matrix[13],
-        matrix[14],
-        matrix[15]);
-    cam.setModelMatrix(modelMatrix);
-  }
-
-  void FilamentViewer::setCameraProjectionMatrix(const double *const matrix, double near, double far)
-  {
-    Camera &cam = _view->getCamera();
-
-    mat4 projectionMatrix(
-        matrix[0],
-        matrix[1],
-        matrix[2],
-        matrix[3],
-        matrix[4],
-        matrix[5],
-        matrix[6],
-        matrix[7],
-        matrix[8],
-        matrix[9],
-        matrix[10],
-        matrix[11],
-        matrix[12],
-        matrix[13],
-        matrix[14],
-        matrix[15]);
-    cam.setCustomProjection(projectionMatrix, projectionMatrix, near, far);
-  }
-
-  const math::mat4 FilamentViewer::getCameraModelMatrix()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getModelMatrix();
-  }
-
-  const math::mat4 FilamentViewer::getCameraViewMatrix()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getViewMatrix();
-  }
-
-  const math::mat4 FilamentViewer::getCameraProjectionMatrix()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getProjectionMatrix();
-  }
-
-  const math::mat4 FilamentViewer::getCameraCullingProjectionMatrix()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getCullingProjectionMatrix();
-  }
-
-  const filament::Frustum FilamentViewer::getCameraFrustum()
-  {
-    const auto &cam = _view->getCamera();
-    return cam.getFrustum();
-  }
-
+ 
   void FilamentViewer::_createManipulator()
   {
     Camera &cam = _view->getCamera();
@@ -1456,7 +1351,6 @@ namespace thermion_filament
     auto fv = cam.getForwardVector();
     math::double3 target = home + fv;
     Viewport const &vp = _view->getViewport();
-    // Log("Creating manipulator for viewport size %dx%d at home %f %f %f, fv %f %f %f, up %f %f %f target %f %f %f (norm %f) with _zoomSpeed %f", vp.width, vp.height, home[0], home[1], home[2], fv[0], fv[1], fv[2], up[0], up[1], up[2], target[0], target[1], target[2], norm(home), _zoomSpeed);
 
     _manipulator = Manipulator<double>::Builder()
                        .viewport(vp.width, vp.height)
@@ -1490,15 +1384,6 @@ namespace thermion_filament
     {
       _createManipulator();
     }
-    if (pan)
-    {
-      Log("Beginning pan at %f %f", x, y);
-    }
-    else
-    {
-      Log("Beginning rotate at %f %f", x, y);
-    }
-
     _manipulator->grabBegin(x, y, pan);
   }
 
@@ -1568,80 +1453,38 @@ namespace thermion_filament
   void FilamentViewer::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
   {
 
-    _view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
-                { 
-                  if(result.renderable != _imageEntity) {
-                    callback(Entity::smuggle(result.renderable), x, y); 
-                  } });
+    _view->pick(x, y, [=](filament::View::PickingQueryResult const &result) { 
+
+      if(_sceneManager->gizmo->isGizmoEntity(result.renderable)) {
+        Log("Gizmo entity, ignoring");
+        return;
+      }
+      std::unordered_set<Entity, Entity::Hasher> nonPickableEntities = {
+        _imageEntity,
+        _sceneManager->_gridOverlay->sphere(),
+        _sceneManager->_gridOverlay->grid(),
+      };
+
+      if (nonPickableEntities.find(result.renderable) == nonPickableEntities.end()) {
+        callback(Entity::smuggle(result.renderable), x, y);
+      } 
+    });
   }
 
-  EntityId FilamentViewer::createGeometry(float *vertices, uint32_t numVertices, uint16_t *indices, uint32_t numIndices, RenderableManager::PrimitiveType primitiveType, const char *materialPath)
-  {
-
-    float *verticesCopy = (float *)malloc(numVertices * sizeof(float));
-    memcpy(verticesCopy, vertices, numVertices * sizeof(float));
-    VertexBuffer::BufferDescriptor::Callback vertexCallback = [](void *buf, size_t,
-                                                                 void *data)
-    {
-      free((void *)buf);
-    };
-
-    uint16_t *indicesCopy = (uint16_t *)malloc(numIndices * sizeof(uint16_t));
-    memcpy(indicesCopy, indices, numIndices * sizeof(uint16_t));
-    IndexBuffer::BufferDescriptor::Callback indexCallback = [](void *buf, size_t,
-                                                               void *data)
-    {
-      free((void *)buf);
-    };
-
-    auto vb = VertexBuffer::Builder().vertexCount(numVertices).bufferCount(1).attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3).build(*_engine);
-
-    vb->setBufferAt(*_engine, 0, VertexBuffer::BufferDescriptor(verticesCopy, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback));
-
-    auto ib = IndexBuffer::Builder().indexCount(numIndices).bufferType(IndexBuffer::IndexType::USHORT).build(*_engine);
-    ib->setBuffer(*_engine, IndexBuffer::BufferDescriptor(indicesCopy, ib->getIndexCount() * sizeof(uint16_t), 0, indexCallback));
-
-    filament::Material *mat = nullptr;
-    if (materialPath)
-    {
-      auto matData = _resourceLoaderWrapper->load(materialPath);
-      auto mat = Material::Builder().package(matData.data, matData.size).build(*_engine);
-      _resourceLoaderWrapper->free(matData);
+  void FilamentViewer::unprojectTexture(EntityId entityId, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight) {
+    const auto * geometry = _sceneManager->getGeometry(entityId);
+    if(!geometry->uvs) {
+        Log("No UVS");
+        return;
     }
+    
+    UnprojectTexture unproject(geometry, _view->getCamera(), _engine);
 
-    float minX, minY, minZ = 0.0f;
-    float maxX, maxY, maxZ = 0.0f;
-
-    for (int i = 0; i < numVertices; i += 3)
-    {
-      minX = std::min(vertices[i], minX);
-      minY = std::min(vertices[i + 1], minY);
-      minZ = std::min(vertices[i + 2], minZ);
-      maxX = std::max(vertices[i], maxX);
-      maxY = std::max(vertices[i + 1], maxY);
-      maxZ = std::max(vertices[i + 2], maxZ);
-    }
-
-    auto renderable = utils::EntityManager::get().create();
-    RenderableManager::Builder builder = RenderableManager::Builder(1);
-    builder
-        .boundingBox({{minX, minY, minZ}, {maxX, maxY, maxZ}})
-        .geometry(0, primitiveType,
-                  vb, ib, 0, numIndices)
-        .culling(false)
-        .receiveShadows(false)
-        .castShadows(false);
-    if (mat)
-    {
-      builder.material(0, mat->getDefaultInstance()).build(*_engine, renderable);
-    }
-    auto result = builder.build(*_engine, renderable);
-
-    _scene->addEntity(renderable);
-
-    Log("Created geometry with primitive type %d (result %d)", primitiveType, result);
-
-    return Entity::smuggle(renderable);
+    // TODO - check that input dimensions match viewport?
+    
+    unproject.unproject(utils::Entity::import(entityId), input, out, inputWidth, inputHeight, outWidth, outHeight);
   }
+
+  
 
 } // namespace thermion_filament

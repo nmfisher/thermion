@@ -4,8 +4,11 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <set>
 
 #include <filament/Scene.h>
+#include <filament/Camera.h>
+#include <filament/View.h>
 
 #include <gltfio/AssetLoader.h>
 #include <gltfio/FilamentAsset.h>
@@ -14,14 +17,20 @@
 
 #include <filament/IndexBuffer.h>
 #include <filament/InstanceBuffer.h>
+#include <utils/NameComponentManager.h>
 
 #include "material/gizmo.h"
-#include "utils/NameComponentManager.h"
+
+#include "CustomGeometry.hpp"
+#include "Gizmo.hpp"
+#include "APIBoundaryTypes.h"
+#include "GridOverlay.hpp"
 #include "ResourceBuffer.hpp"
 #include "components/CollisionComponentManager.hpp"
 #include "components/AnimationComponentManager.hpp"
 
 #include "tsl/robin_map.h"
+
 
 namespace thermion_filament
 {
@@ -37,13 +46,45 @@ namespace thermion_filament
     class SceneManager
     {
     public:
-        SceneManager(const ResourceLoaderWrapperImpl *const loader,
+        SceneManager(View* view,
+                    const ResourceLoaderWrapperImpl *const loader,
                      Engine *engine,
                      Scene *scene,
                      const char *uberArchivePath);
         ~SceneManager();
 
-        EntityId loadGltf(const char *uri, const char *relativeResourcePath);
+        enum LAYERS {
+            DEFAULT_ASSETS = 0,
+            BACKGROUND = 6,
+            OVERLAY = 7,
+        };
+
+        class HighlightOverlay {
+            public:
+                HighlightOverlay(EntityId id, SceneManager* const sceneManager, Engine* const engine, float r, float g, float b);
+                ~HighlightOverlay();
+
+                bool isValid() {
+                    return !_entity.isNull();
+                }
+
+            private:
+                MaterialInstance* _highlightMaterialInstance = nullptr;
+                bool _isGeometryEntity = false;
+                bool _isGltfAsset = false;
+                FilamentInstance* _newInstance = nullptr;
+                Entity _entity;
+                Engine* const _engine;
+                SceneManager* const _sceneManager;                
+        };
+        
+        ////
+        /// @brief Load the glTF file from the specified path and adds all entities to the scene.
+        /// @param uri the path to the asset. Should be either asset:// (representing a Flutter asset), or file:// (representing a filesystem file).
+        /// @param relativeResourcePath the (relative) path to the asset's resources. 
+        /// @return the glTF entity.
+        ///
+        EntityId loadGltf(const char *uri, const char *relativeResourcePath, bool keepData = false);
 
         ////
         /// @brief Load the GLB from the specified path, optionally creating multiple instances.
@@ -51,8 +92,8 @@ namespace thermion_filament
         /// @param numInstances the number of instances to create.
         /// @return an Entity representing the FilamentAsset associated with the loaded FilamentAsset.
         ///
-        EntityId loadGlb(const char *uri, int numInstances);
-        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1);
+        EntityId loadGlb(const char *uri, int numInstances, bool keepData);
+        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0);
         EntityId createInstance(EntityId entityId);
 
         void remove(EntityId entity);
@@ -69,6 +110,8 @@ namespace thermion_filament
         void setRotation(EntityId e, float rads, float x, float y, float z, float w);
         void queuePositionUpdate(EntityId e, float x, float y, float z, bool relative);
         void queueRotationUpdate(EntityId e, float rads, float x, float y, float z, float w, bool relative);
+        void queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z);
+        void queueRelativePositionUpdateFromViewportVector(EntityId entityId, float viewportCoordX, float viewportCoordY);
         const utils::Entity *getCameraEntities(EntityId e);
         size_t getCameraEntityCount(EntityId e);
         const utils::Entity *getLightEntities(EntityId e) noexcept;
@@ -132,7 +175,11 @@ namespace thermion_filament
         void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f);
         void stopAnimation(EntityId e, int index);
         void setMorphTargetWeights(const char *const entityName, float *weights, int count);
-        void loadTexture(EntityId entity, const char *resourcePath, int renderableIndex);
+        
+        Texture* createTexture(const uint8_t* data, size_t length, const char* name);
+        bool applyTexture(EntityId entityId, Texture *texture, const char* slotName, int materialIndex);
+        void destroyTexture(Texture* texture);
+        
         void setAnimationFrame(EntityId entity, int animationIndex, int animationFrame);
         bool hide(EntityId entity, const char *meshName);
         bool reveal(EntityId entity, const char *meshName);
@@ -146,9 +193,20 @@ namespace thermion_filament
         void addCollisionComponent(EntityId entity, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);
         void removeCollisionComponent(EntityId entityId);
         EntityId getParent(EntityId child);
-        void setParent(EntityId child, EntityId parent);
+        EntityId getAncestor(EntityId child);
+        void setParent(EntityId child, EntityId parent, bool preserveScaling);
         bool addAnimationComponent(EntityId entity);
         void removeAnimationComponent(EntityId entity);
+
+        /// @brief renders an outline around the specified entity.
+        ///
+        ///
+        void setStencilHighlight(EntityId entity, float r, float g, float b);
+
+        /// @brief removes the outline around the specified entity.
+        ///
+        ///        
+        void removeStencilHighlight(EntityId entity);
 
         /// @brief returns the number of instances of the FilamentAsset represented by the given entity.
         /// @param entityId
@@ -164,24 +222,97 @@ namespace thermion_filament
         ///
         void setPriority(EntityId entity, int priority);
 
-        /// @brief returns the gizmo entity, used to manipulate the global transform for entities
-        /// @param out a pointer to an array of three EntityId {x, y, z}
+        /// @brief returns the 2D min/max viewport coordinates of the bounding box for the specified enitty;
+        /// @param out a pointer large enough to store four floats (the min/max coordinates of the bounding box)
         /// @return
         ///
-        void getGizmo(EntityId *out);
+        Aabb2 getBoundingBox(EntityId entity);
+
+        ///
+        /// Toggles the visibility of the given layer.
+        ///
+        void setLayerVisibility(SceneManager::LAYERS layer, bool enabled);
+
+        ///
+        /// Creates an entity with the specified geometry/material/normals and adds to the scene.
+        /// If [keepData] is true, stores 
+        ///
+        EntityId createGeometry(
+            float *vertices, 
+            uint32_t numVertices, 
+            float *normals,
+            uint32_t numNormals,
+            float *uvs,
+            uint32_t numUvs,
+            uint16_t *indices, 
+            uint32_t numIndices, 
+            filament::RenderableManager::PrimitiveType primitiveType = RenderableManager::PrimitiveType::TRIANGLES, 
+            MaterialInstance* materialInstance = nullptr,
+            bool keepData = false
+        );
 
         friend class FilamentViewer;
+
+        Gizmo* gizmo = nullptr;
+
+        gltfio::MaterialProvider * const unlitMaterialProvider() {
+            return _unlitMaterialProvider;
+        }
+
+        bool isGeometryEntity(EntityId entity) {
+            return _geometry.find(entity) != _geometry.end();
+        }
+
+        const CustomGeometry* const getGeometry(EntityId entityId) {
+            return _geometry[entityId].get();
+        }
+
+        Scene* const getScene() { 
+            return _scene;
+        }
+
+        bool isGltfAsset(EntityId entity) {
+            return getAssetByEntityId(entity) != nullptr;
+        }
+
+        gltfio::FilamentInstance *getInstanceByEntityId(EntityId entityId);
+        gltfio::FilamentAsset *getAssetByEntityId(EntityId entityId);
+
+        gltfio::FilamentInstance *createGltfAssetInstance(FilamentAsset* asset) {
+            return _assetLoader->createInstance(asset);
+        }
+
+        MaterialInstance* getMaterialInstanceAt(EntityId entityId, int materialIndex);
+
+        void setMaterialProperty(EntityId entity, int materialIndex, const char* property, float value);
+        void setMaterialProperty(EntityId entity, int materialIndex, const char* property, int32_t value);
+        void setMaterialProperty(EntityId entityId, int materialIndex, const char* property, filament::math::float4& value);
+
+        MaterialInstance* createUbershaderMaterialInstance(MaterialKey key);
+        void destroy(MaterialInstance* materialInstance);
+
+        gltfio::MaterialProvider* getUbershaderProvider() {
+            return _ubershaderProvider;
+        }
+
+        MaterialInstance* createUnlitMaterialInstance();
+
+        void setVisibilityLayer(EntityId entityId, int layer);
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
-        Engine *_engine;
-        Scene *_scene;
+        Engine *_engine = nullptr;
+        Scene *_scene = nullptr;       
+        View* _view = nullptr;
+
         gltfio::MaterialProvider *_ubershaderProvider = nullptr;
+        gltfio::MaterialProvider *_unlitMaterialProvider = nullptr;
         gltfio::ResourceLoader *_gltfResourceLoader = nullptr;
         gltfio::TextureProvider *_stbDecoder = nullptr;
         gltfio::TextureProvider *_ktxDecoder = nullptr;
         std::mutex _mutex;
+        std::mutex _stencilMutex;
 
         utils::NameComponentManager *_ncm;
 
@@ -190,22 +321,20 @@ namespace thermion_filament
             gltfio::FilamentInstance *>
             _instances;
         tsl::robin_map<EntityId, gltfio::FilamentAsset *> _assets;
+        tsl::robin_map<EntityId, unique_ptr<CustomGeometry>> _geometry;
+        tsl::robin_map<EntityId, unique_ptr<HighlightOverlay>> _highlighted;        
         tsl::robin_map<EntityId, std::tuple<math::float3, bool, math::quatf, bool, float>> _transformUpdates;
+        std::set<Texture*> _textures;
 
         AnimationComponentManager *_animationComponentManager = nullptr;
         CollisionComponentManager *_collisionComponentManager = nullptr;
-
-        gltfio::FilamentInstance *getInstanceByEntityId(EntityId entityId);
-        gltfio::FilamentAsset *getAssetByEntityId(EntityId entityId);
 
         utils::Entity findEntityByName(
             const gltfio::FilamentInstance *instance,
             const char *entityName);
 
-        EntityId addGizmo();
-        utils::Entity _gizmo[3];
-        Material* _gizmoMaterial;
-        MaterialInstance* _gizmoMaterialInstances[3];
+        GridOverlay* _gridOverlay = nullptr;     
+        
 
     };
 }

@@ -1,16 +1,10 @@
-import 'dart:io';
-
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'thermion_gesture_detector_desktop.dart';
-import 'thermion_gesture_detector_mobile.dart';
-
-enum GestureType { rotateCamera, panCamera, panBackground }
 
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
 ///
+@Deprecated("Use ThermionListenerWidget instead")
 class ThermionGestureDetector extends StatelessWidget {
   ///
   /// The content to display below the gesture detector/listener widget.
@@ -51,7 +45,7 @@ class ThermionGestureDetector extends StatelessWidget {
       this.child,
       this.showControlOverlay = false,
       this.enableCamera = true,
-      this.enablePicking = true,
+      this.enablePicking = false,
       this.onScaleStart,
       this.onScaleUpdate,
       this.onScaleEnd})
@@ -59,33 +53,34 @@ class ThermionGestureDetector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: controller.initialized,
-        builder: (_, initialized) {
-          if (initialized.data != true) {
-            return child ?? Container();
-          }
-          if (kIsWeb || Platform.isLinux ||
-              Platform.isWindows ||
-              Platform.isMacOS) {
-            return ThermionGestureDetectorDesktop(
-              controller: controller,
-              child: child,
-              showControlOverlay: showControlOverlay,
-              enableCamera: enableCamera,
-              enablePicking: enablePicking,
-            );
-          } else {
-            return ThermionGestureDetectorMobile(
-                controller: controller,
-                child: child,
-                showControlOverlay: showControlOverlay,
-                enableCamera: enableCamera,
-                enablePicking: enablePicking,
-                onScaleStart: onScaleStart,
-                onScaleUpdate: onScaleUpdate,
-                onScaleEnd: onScaleEnd);
-          }
-        });
+    throw Exception("TODO");
+    // return FutureBuilder(
+    //     future: controller.initialized,
+    //     builder: (_, initialized) {
+    //       if (initialized.data != true) {
+    //         return child ?? Container();
+    //       }
+    //       if (kIsWeb || Platform.isLinux ||
+    //           Platform.isWindows ||
+    //           Platform.isMacOS) {
+    //         return ThermionGestureDetectorDesktop(
+    //           controller: controller,
+    //           child: child,
+    //           showControlOverlay: showControlOverlay,
+    //           enableCamera: enableCamera,
+    //           enablePicking: enablePicking,
+    //         );
+    //       } else {
+    //         return ThermionGestureDetectorMobile(
+    //             controller: controller,
+    //             child: child,
+    //             showControlOverlay: showControlOverlay,
+    //             enableCamera: enableCamera,
+    //             enablePicking: enablePicking,
+    //             onScaleStart: onScaleStart,
+    //             onScaleUpdate: onScaleUpdate,
+    //             onScaleEnd: onScaleEnd);
+    //       }
+    //     });
   }
 }

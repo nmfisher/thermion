@@ -1,46 +1,68 @@
-
+import 'dart:async';
+import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
 import '../thermion_viewer.dart';
 
 class Gizmo extends AbstractGizmo {
   final ThermionEntity x;
-  Vector3 _x = Vector3(0.1, 0, 0);
   final ThermionEntity y;
-  Vector3 _y = Vector3(0.0, 0.1, 0);
   final ThermionEntity z;
-  Vector3 _z = Vector3(0.0, 0.0, 0.1);
+  final ThermionEntity center;
 
-  final ThermionViewer controller;
+  final ThermionViewer _viewer;
 
   ThermionEntity? _activeAxis;
   ThermionEntity? _activeEntity;
-  bool get isActive => _activeAxis != null;
+
+  bool _visible = false;
+  bool get isVisible => _visible;
+
+  bool _isHovered = false;
+  bool get isHovered => _isHovered;
 
   final Set<ThermionEntity> ignore;
 
-  Gizmo(this.x, this.y, this.z, this.controller,
+  Stream<Aabb2> get boundingBox => _boundingBoxController.stream;
+  final _boundingBoxController = StreamController<Aabb2>.broadcast();
+
+  Gizmo(this.x, this.y, this.z, this.center, this._viewer,
       {this.ignore = const <ThermionEntity>{}}) {
-    controller.pickResult.listen(_onPickResult);
+    _viewer.gizmoPickResult.listen(_onGizmoPickResult);
+    _viewer.pickResult.listen(_onPickResult);
   }
 
-  Future _reveal() async {
-    await controller.reveal(x, null);
-    await controller.reveal(y, null);
-    await controller.reveal(z, null);
-  }
+  final _stopwatch = Stopwatch();
 
-  void translate(double transX, double transY) async {
-    late Vector3 vec;
-    if (_activeAxis == x) {
-      vec = _x;
-    } else if (_activeAxis == y) {
-      vec = _y;
-    } else if (_activeAxis == z) {
-      vec = _z;
+  double _transX = 0.0;
+  double _transY = 0.0;
+
+  Future translate(double transX, double transY) async {
+    if (!_stopwatch.isRunning) {
+      _stopwatch.start();
     }
-    await controller.queuePositionUpdate(
-        _activeEntity!, transX * vec.x, -transY * vec.y, -transX * vec.z,
-        relative: true);
+
+    _transX += transX;
+    _transY += transY;
+
+    if (_stopwatch.elapsedMilliseconds < 16) {
+      return;
+    }
+
+    final axis = Vector3(_activeAxis == x ? 1.0 : 0.0,
+        _activeAxis == y ? 1.0 : 0.0, _activeAxis == z ? 1.0 : 0.0);
+
+    await _viewer.queueRelativePositionUpdateWorldAxis(
+        _activeEntity!,
+        _transX * _viewer.pixelRatio,
+        -_transY *
+            _viewer
+                .pixelRatio, // flip the sign because "up" in NDC Y axis is positive, but negative in Flutter
+        axis.x,
+        axis.y,
+        axis.z);
+    _transX = 0;
+    _transY = 0;
+    _stopwatch.reset();
   }
 
   void reset() {
@@ -48,32 +70,48 @@ class Gizmo extends AbstractGizmo {
   }
 
   void _onPickResult(FilamentPickResult result) async {
-    if (ignore.contains(result)) {
-      detach();
-      return;
-    }
+    await attach(result.entity);
+  }
+
+  void _onGizmoPickResult(FilamentPickResult result) async {
     if (result.entity == x || result.entity == y || result.entity == z) {
       _activeAxis = result.entity;
+      _isHovered = true;
+    } else if (result.entity == 0) {
+      _activeAxis = null;
+      _isHovered = false;
     } else {
-      attach(result.entity);
+      throw Exception("Unexpected gizmo pick result");
     }
   }
 
-  void attach(ThermionEntity entity) async {
+  Future attach(ThermionEntity entity) async {
     _activeAxis = null;
+    if (entity == _activeEntity) {
+      return;
+    }
+    if (entity == center) {
+      _activeEntity = null;
+      return;
+    }
+    _visible = true;
+
+    if (_activeEntity != null) {
+      await _viewer.removeStencilHighlight(_activeEntity!);
+    }
     _activeEntity = entity;
-    await _reveal();
-    await controller.setParent(x, entity);
-    await controller.setParent(y, entity);
-    await controller.setParent(z, entity);
+    await _viewer.setGizmoVisibility(true);
+    await _viewer.setParent(center, entity, preserveScaling: false);
+    _boundingBoxController.sink.add(await _viewer.getViewportBoundingBox(x));
+
   }
 
-  void detach() async {
-    await controller.setParent(x, 0);
-    await controller.setParent(y, 0);
-    await controller.setParent(z, 0);
-    await controller.hide(x, null);
-    await controller.hide(y, null);
-    await controller.hide(z, null);
+  Future detach() async {
+    await _viewer.setGizmoVisibility(false);
+  }
+
+  @override
+  void checkHover(double x, double y) {
+    _viewer.pickGizmo(x.toInt(), y.toInt());
   }
 }

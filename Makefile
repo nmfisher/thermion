@@ -22,10 +22,13 @@ bindings:
 # 
 materials: FORCE
 	@echo "Using Filament build from ${FILAMENT_PATH}"
-	${FILAMENT_PATH}/matc -a opengl -a metal -o materials/image.filamat materials/image.mat
-	$(FILAMENT_PATH)/resgen -c -p image -x ios/include/material/ materials/image.filamat   
-	$(FILAMENT_PATH)/matc -a opengl -a metal -o materials/gizmo.filamat materials/gizmo.mat
-	$(FILAMENT_PATH)/resgen -c -p gizmo -x ios/include/material/ materials/gizmo.filamat
+	@for material in unlit image gizmo grid; do \
+		${FILAMENT_PATH}/matc -a opengl -a metal -o materials/$$material.filamat materials/$$material.mat; \
+		$(FILAMENT_PATH)/resgen -c -p $$material -x thermion_dart/native/include/material/ materials/$$material.filamat; \
+		echo '#include "'$$material'.h"' | cat - thermion_dart/native/include/material/$$material.c > thermion_dart/native/include/material/$$material.c.new; \
+		mv thermion_dart/native/include/material/$$material.c.new thermion_dart/native/include/material/$$material.c; \
+	done
+
 	#rm materials/*.filamat
 
 FORCE: ;

@@ -9,10 +9,8 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dar
 /// surface in a Flutter application and lifecycle listeners to pause rendering
 /// when the app is inactive or in the background.
 /// Call [createViewer] to create an instance of [ThermionViewer].
-/// This is a lightweight singleton that  
 ///
 class ThermionFlutterPlugin {
-  
   ThermionFlutterPlugin._();
 
   static AppLifecycleListener? _appLifecycleListener;
@@ -62,13 +60,35 @@ class ThermionFlutterPlugin {
     }
   }
 
+  @Deprecated("Use createViewerWithOptions")
   static Future<ThermionViewer> createViewer({String? uberArchivePath}) async {
     if (_initializing) {
       throw Exception("Existing call to createViewer has not completed.");
     }
     _initializing = true;
+
     _viewer = await ThermionFlutterPlatform.instance
-        .createViewer(uberArchivePath: uberArchivePath);
+        .createViewer(uberarchivePath: uberArchivePath);
+    _appLifecycleListener = AppLifecycleListener(
+      onStateChange: _handleStateChange,
+    );
+    _viewer!.onDispose(() async {
+      _viewer = null;
+      _appLifecycleListener?.dispose();
+      _appLifecycleListener = null;
+    });
+    _initializing = false;
+    return _viewer!;
+  }
+
+  static Future<ThermionViewer> createViewerWithOptions(
+      {ThermionFlutterOptions options = const ThermionFlutterOptions.empty()}) async {
+    if (_initializing) {
+      throw Exception("Existing call to createViewer has not completed.");
+    }
+    _initializing = true;
+    _viewer =
+        await ThermionFlutterPlatform.instance.createViewerWithOptions(options);
     _appLifecycleListener = AppLifecycleListener(
       onStateChange: _handleStateChange,
     );
@@ -82,9 +102,13 @@ class ThermionFlutterPlugin {
   }
 
   static Future<ThermionFlutterTexture?> createTexture(
-      int width, int height, int offsetLeft, int offsetRight) async {
+      double width,
+      double height,
+      double offsetLeft,
+      double offsetTop,
+      double pixelRatio) async {
     return ThermionFlutterPlatform.instance
-        .createTexture(width, height, offsetLeft, offsetRight);
+        .createTexture(width, height, offsetLeft, offsetTop, pixelRatio);
   }
 
   static Future destroyTexture(ThermionFlutterTexture texture) async {
@@ -92,9 +116,14 @@ class ThermionFlutterPlugin {
   }
 
   @override
-  static Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
-      int width, int height, int offsetLeft, int offsetRight) async {
-    return ThermionFlutterPlatform.instance
-        .resizeTexture(texture, width, height, offsetLeft, offsetRight);
+  static Future<ThermionFlutterTexture?> resizeTexture(
+      ThermionFlutterTexture texture,
+      int width,
+      int height,
+      int offsetLeft,
+      int offsetTop,
+      double pixelRatio) async {
+    return ThermionFlutterPlatform.instance.resizeTexture(
+        texture, width, height, offsetLeft, offsetTop, pixelRatio);
   }
 }

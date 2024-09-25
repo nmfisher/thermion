@@ -33,7 +33,7 @@ flutter:
     platforms:
       android:
         pluginClass: ThermionFlutterPlugin
-        package: app.polyvox.filament
+        package: dev.thermion.android
       ios:
         pluginClass: SwiftThermionFlutterPlugin
       macos:

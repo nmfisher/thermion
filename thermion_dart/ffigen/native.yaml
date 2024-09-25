@@ -1,13 +1,19 @@
-output: '../lib/thermion_dart/compatibility/native/thermion_dart.g.dart'
+output: '../lib/thermion_dart/viewer/ffi/thermion_dart.g.dart'
 headers:
   entry-points:
-    - '../native/include/ThermionDartFFIApi.h'
+    - '../native/include/ThermionDartRenderThreadApi.h'
     - '../native/include/ThermionDartApi.h'
     - '../native/include/ResourceBuffer.h'
   include-directives:
-    - '../native/include/ThermionDartFFIApi.h'
+    - '../native/include/ThermionDartRenderThreadApi.h'
     - '../native/include/ThermionDartApi.h'
     - '../native/include/ResourceBuffer.h'
+    - '../native/include/APIBoundaryTypes.h'
 ffi-native:
   assetId: package:thermion_dart/thermion_dart.dart
 ignore-source-errors: true
+functions:
+  leaf:
+    include:
+      - '.*'
+
