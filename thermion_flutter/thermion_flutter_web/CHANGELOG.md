@@ -1,3 +1,9 @@
+## 0.1.0-dev.4.0
+
+> Note: This release has breaking changes.
+
+ - **BREAKING** **CHORE**: restructure viewer folders as libraries to only export the public interface.
+
 ## 0.1.0-dev.1.0
 
 > Note: This release has breaking changes.
