@@ -1,3 +1,9 @@
+## 0.2.0-dev.2.0
+
+> Note: This release has breaking changes.
+
+ - **BREAKING** **CHORE**: remove EntityListWidget - will replace with new Scene.
+
 ## 0.2.0-dev.1.0
 
 > Note: This release has breaking changes.

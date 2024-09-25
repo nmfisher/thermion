@@ -11,6 +11,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 Packages with breaking changes:
 
+ - [`thermion_flutter` - `v0.2.0-dev.2.0`](#thermion_flutter---v020-dev20)
+
+Packages with other changes:
+
+ - There are no other changes in this release.
+
+---
+
+#### `thermion_flutter` - `v0.2.0-dev.2.0`
+
+ - **BREAKING** **CHORE**: remove EntityListWidget - will replace with new Scene.
+
+
+## 2024-09-25
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
  - [`thermion_dart` - `v0.2.0-dev.1.0`](#thermion_dart---v020-dev10)
  - [`thermion_flutter` - `v0.2.0-dev.1.0`](#thermion_flutter---v020-dev10)
  - [`thermion_flutter_ffi` - `v0.2.0-dev.1.0`](#thermion_flutter_ffi---v020-dev10)
