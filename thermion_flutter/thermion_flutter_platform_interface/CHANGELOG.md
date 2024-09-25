@@ -1,3 +1,11 @@
+## 0.2.0-dev.1.0
+
+> Note: This release has breaking changes.
+
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add ThermionFlutterOptions classes, rename interface parameter for offsetTop and ensure pixelRatio is passed to resizeTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+
 ## 0.1.0+11
 
  - Update a dependency to the latest release.

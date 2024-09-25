@@ -1,3 +1,14 @@
+## 0.1.0-dev.1.0
+
+> Note: This release has breaking changes.
+
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FEAT**: (flutter) (web) use options to determine whether to create canvas, and set fixed position + offset.
+ - **FEAT**: add ThermionFlutterOptions classes, rename interface parameter for offsetTop and ensure pixelRatio is passed to resizeTexture.
+ - **BREAKING** **FEAT**: (flutter) (web) upgrade package:web dep to 1.0.0.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+
 ## 0.0.3
 
  - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.

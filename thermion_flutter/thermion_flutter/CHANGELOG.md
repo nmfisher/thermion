@@ -1,3 +1,21 @@
+## 0.2.0-dev.1.0
+
+> Note: This release has breaking changes.
+
+ - **FIX**: (flutter) pass ThermionFlutterOptions to ThermionWidget, use dpr for resizeTexture, delete unnecessary TransparencyPainter class.
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FIX**: (flutter) desktop gesture detector changes for new Gizmo methods.
+ - **FEAT**: allow passing null options to ThermionWidget.
+ - **FEAT**: (flutter) (web) if importCanvasAsWidget is false, render transparency.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: highlight gizmo on hover.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+ - **BREAKING** **CHORE**: rename controller to viewer in gesture detector widgets.
+
 ## 0.1.1+13
 
  - Update a dependency to the latest release.

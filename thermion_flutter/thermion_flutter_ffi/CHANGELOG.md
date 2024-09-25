@@ -1,3 +1,10 @@
+## 0.2.0-dev.1.0
+
+> Note: This release has breaking changes.
+
+ - **FEAT**: (flutter) move DPR calculation to resizeTexture and add createViewerWithOptions method to ThermionFlutterFFI.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+
 ## 0.1.0+12
 
  - **FIX**: add logging dependency.
