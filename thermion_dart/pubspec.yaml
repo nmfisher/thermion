@@ -5,7 +5,7 @@ homepage: https://thermion.dev
 repository: https://github.com/nmfisher/thermion
 
 environment:
-  sdk: ">=3.5.0 <4.0.0"
+  sdk: ">=3.6.0-0 <4.0.0"
 
 dependencies:
   vector_math: ^2.1.2
