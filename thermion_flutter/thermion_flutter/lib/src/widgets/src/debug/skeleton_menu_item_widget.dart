@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';

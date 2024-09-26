@@ -1,9 +1,8 @@
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:test/test.dart';
-import 'package:thermion_dart/thermion_dart/input/src/input_handler.dart';
-import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
-import 'package:thermion_dart/thermion_dart/input/src/implementations/fixed_orbit_camera_rotation_delegate.dart';
+import 'package:thermion_dart/src/input/src/implementations/fixed_orbit_camera_rotation_delegate.dart';
+import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 // Generate mocks
@@ -30,7 +29,6 @@ void main() {
 
       delegate = FixedOrbitRotateInputHandlerDelegate(
         mockViewer,
-        entity: mockEntity,
         minimumDistance: 1.0,
       );
     });

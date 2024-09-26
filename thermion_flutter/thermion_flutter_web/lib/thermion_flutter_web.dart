@@ -1,5 +1,4 @@
-import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
-import 'package:thermion_dart/thermion_dart/viewer/web_wasm/src/thermion_viewer_wasm.dart';
+import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
