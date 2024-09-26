@@ -1,4 +1,3 @@
-
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:thermion_dart/thermion_dart/utils/geometry.dart';
@@ -94,7 +93,8 @@ void main() async {
           viewer, "camera_projection_culling_matrix_object_outside_frustum");
     });
 
-    test('setting camera transform updates model matrix', () async {
+    test('setting transform on camera updates model matrix (no parent)',
+        () async {
       var viewer = await createViewer();
 
       var cameraEntity = await viewer.getMainCameraEntity();
@@ -105,6 +105,33 @@ void main() async {
       var modelMatrix = await viewer.getCameraModelMatrix();
       expect(modelMatrix.getColumn(3).x, 1.0);
       expect(modelMatrix.getColumn(3).y, 0.0);
+      expect(modelMatrix.getColumn(3).z, 0.0);
+      expect(modelMatrix.getColumn(3).w, 1.0);
+    });
+
+    test('setting transform on camera updates model matrix (with parent)',
+        () async {
+      var viewer = await createViewer();
+
+      var cameraEntity = await viewer.getMainCameraEntity();
+      var camera = await viewer.getMainCamera();
+
+      var parent = await viewer.createGeometry(GeometryHelper.cube());
+
+      await viewer.setParent(camera.getEntity(), parent);
+      await viewer.setTransform(
+          cameraEntity, Matrix4.translation(Vector3(1, 0, 0)));
+
+      var modelMatrix = await viewer.getCameraModelMatrix();
+      expect(modelMatrix.getColumn(3).x, 1.0);
+      expect(modelMatrix.getColumn(3).y, 0.0);
+      expect(modelMatrix.getColumn(3).z, 0.0);
+      expect(modelMatrix.getColumn(3).w, 1.0);
+
+      await viewer.setTransform(parent, Matrix4.translation(Vector3(0, 1, 0)));
+       modelMatrix = await viewer.getCameraModelMatrix();
+      expect(modelMatrix.getColumn(3).x, 1.0);
+      expect(modelMatrix.getColumn(3).y, 1.0);
       expect(modelMatrix.getColumn(3).z, 0.0);
       expect(modelMatrix.getColumn(3).w, 1.0);
     });
@@ -126,5 +153,4 @@ void main() async {
       await testHelper.capture(viewer, "create_camera_back_to_main");
     });
   });
-
 }
