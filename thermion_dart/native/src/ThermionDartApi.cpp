@@ -1119,4 +1119,14 @@ EMSCRIPTEN_KEEPALIVE void SceneManager_setCamera(TSceneManager* tSceneManager, T
     auto * camera = reinterpret_cast<Camera*>(tCamera);
     sceneManager->setCamera(camera);
 }
+
+EMSCRIPTEN_KEEPALIVE size_t SceneManager_getCameraCount(TSceneManager *tSceneManager) { 
+    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
+    return sceneManager->getCameraCount();
+}
+EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraAt(TSceneManager *tSceneManager, size_t index) {
+    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
+    auto * camera = sceneManager->getCameraAt(index);
+    return reinterpret_cast<TCamera*>(camera);
+}
 }

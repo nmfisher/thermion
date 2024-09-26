@@ -72,7 +72,7 @@ class TestHelper {
     final packageUri = findPackageRoot('thermion_dart');
     testDir = Directory("${packageUri.toFilePath()}/test").path;
 
-    var outDir = Directory("$testDir/output/${dir}");
+    outDir = Directory("$testDir/output/${dir}");
     // outDir.deleteSync(recursive: true);
     outDir.createSync();
   }

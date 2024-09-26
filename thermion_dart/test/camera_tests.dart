@@ -128,7 +128,7 @@ void main() async {
       expect(modelMatrix.getColumn(3).w, 1.0);
 
       await viewer.setTransform(parent, Matrix4.translation(Vector3(0, 1, 0)));
-       modelMatrix = await viewer.getCameraModelMatrix();
+      modelMatrix = await viewer.getCameraModelMatrix();
       expect(modelMatrix.getColumn(3).x, 1.0);
       expect(modelMatrix.getColumn(3).y, 1.0);
       expect(modelMatrix.getColumn(3).z, 0.0);
@@ -150,6 +150,11 @@ void main() async {
       final mainCamera = await viewer.getMainCamera();
       await viewer.setActiveCamera(mainCamera);
       await testHelper.capture(viewer, "create_camera_back_to_main");
+
+      expect(viewer.getCameraCount(), 2);
+      expect(viewer.getCameraAt(0), await viewer.getMainCamera());
+      expect(viewer.getCameraAt(1), newCamera);
+      await expectLater(() => viewer.getCameraAt(2), throwsA(isA<Exception>()));
     });
   });
 }

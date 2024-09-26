@@ -979,4 +979,15 @@ abstract class ThermionViewer {
   ///
   ///
   Future unregisterRequestFrameHook(Future Function() hook);
+
+  ///
+  ///
+  ///
+  int getCameraCount();
+
+  ///
+  /// Returns the camera specified by the given index. Note that the camera at
+  /// index 0 is always the main camera; this cannot be destroyed.
+  ///
+  Camera getCameraAt(int index);
 }

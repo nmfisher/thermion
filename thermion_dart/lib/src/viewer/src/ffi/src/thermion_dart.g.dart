@@ -970,6 +970,19 @@ external void SceneManager_setCamera(
   ffi.Pointer<TCamera> camera,
 );
 
+@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneManager>)>(isLeaf: true)
+external int SceneManager_getCameraCount(
+  ffi.Pointer<TSceneManager> sceneManager,
+);
+
+@ffi.Native<
+    ffi.Pointer<TCamera> Function(
+        ffi.Pointer<TSceneManager>, ffi.Size)>(isLeaf: true)
+external ffi.Pointer<TCamera> SceneManager_getCameraAt(
+  ffi.Pointer<TSceneManager> sceneManager,
+  int index,
+);
+
 @ffi.Native<
     ffi.Int Function(ffi.Pointer<TSceneManager>, EntityId,
         ffi.Pointer<ffi.Char>)>(isLeaf: true)

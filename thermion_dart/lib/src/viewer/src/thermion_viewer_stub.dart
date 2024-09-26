@@ -995,6 +995,18 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement unregisterRequestFrameHook
     throw UnimplementedError();
   }
+  
+  @override
+  Camera getCameraAt(int index) {
+    // TODO: implement getCameraAt
+    throw UnimplementedError();
+  }
+  
+  @override
+  int getCameraCount() {
+    // TODO: implement getCameraCount
+    throw UnimplementedError();
+  }
 
   
 }

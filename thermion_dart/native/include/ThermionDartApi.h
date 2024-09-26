@@ -245,6 +245,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_createCamera(TSceneManager *sceneManager);
 	EMSCRIPTEN_KEEPALIVE void SceneManager_destroyCamera(TSceneManager *sceneManager, TCamera* camera);
 	EMSCRIPTEN_KEEPALIVE void SceneManager_setCamera(TSceneManager *sceneManager, TCamera* camera);
+	EMSCRIPTEN_KEEPALIVE size_t SceneManager_getCameraCount(TSceneManager *sceneManager);	
+	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraAt(TSceneManager *sceneManager, size_t index);	
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE int reveal_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE void set_post_processing(TViewer *viewer, bool enabled);
