@@ -283,6 +283,12 @@ extern "C"
         cam->setLensProjection(focalLength, aspect, near, far);
     }
 
+    void Camera_setModelMatrix(TCamera *camera, double4x4 matrix)
+    {
+        auto cam = reinterpret_cast<filament::Camera *>(camera);
+        cam->setModelMatrix(convert_double4x4_to_mat4(matrix));
+    }
+
     double get_camera_near(TCamera *camera)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
