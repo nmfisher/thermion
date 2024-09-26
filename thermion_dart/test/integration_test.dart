@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
-
-import 'package:image/image.dart';
+import 'package:thermion_dart/src/viewer/src/events.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
-import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:thermion_dart/thermion_dart/viewer/events.dart';
-import 'package:thermion_dart/thermion_dart/viewer/ffi/src/thermion_viewer_ffi.dart';
+
 import 'package:vector_math/vector_math_64.dart';
 
 import 'helpers.dart';
