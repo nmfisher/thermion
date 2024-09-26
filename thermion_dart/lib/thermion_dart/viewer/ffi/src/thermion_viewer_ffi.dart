@@ -119,8 +119,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (focalLength.abs() < 0.1) {
       focalLength = kFocalLength;
     }
-    Camera_setLensProjection(
-        mainCamera.camera, near, far, aspect, focalLength);
+    Camera_setLensProjection(mainCamera.camera, near, far, aspect, focalLength);
   }
 
   Future createSwapChain(double width, double height,
@@ -1333,8 +1332,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
     var mainCamera = await getMainCamera() as ThermionFFICamera;
-    set_camera_exposure(
-        mainCamera.camera, aperture, shutterSpeed, sensitivity);
+    set_camera_exposure(mainCamera.camera, aperture, shutterSpeed, sensitivity);
   }
 
   ///
@@ -2167,7 +2165,10 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   @override
-  void requestFrame() {
+  Future requestFrame() async {
+    for (final hook in _hooks) {
+      await hook.call();
+    }
     request_frame_render_thread(_viewer!);
   }
 
@@ -2186,6 +2187,22 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setActiveCamera(ThermionFFICamera camera) async {
     SceneManager_setCamera(_sceneManager!, camera.camera);
+  }
+
+  final _hooks = <Future Function()>[];
+
+  @override
+  Future registerRequestFrameHook(Future Function() hook) async {
+    if (!_hooks.contains(hook)) {
+      _hooks.add(hook);
+    }
+  }
+
+  @override
+  Future unregisterRequestFrameHook(Future Function() hook) async {
+    if (_hooks.contains(hook)) {
+      _hooks.remove(hook);
+    }
   }
 }
 

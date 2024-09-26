@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:flutter/material.dart';
 
-enum GestureType { rotateCamera, panCamera, panBackground }
+enum InputType { rotateCamera, panCamera, panBackground }
 
 ///
 /// A widget that translates finger/mouse gestures to zoom/pan/rotate actions.
@@ -62,12 +62,12 @@ class ThermionGestureDetectorMobile extends StatefulWidget {
 
 class _ThermionGestureDetectorMobileState
     extends State<ThermionGestureDetectorMobile> {
-  GestureType gestureType = GestureType.panCamera;
+  InputType gestureType = InputType.panCamera;
 
   final _icons = {
-    GestureType.panBackground: Icons.image,
-    GestureType.panCamera: Icons.pan_tool,
-    GestureType.rotateCamera: Icons.rotate_90_degrees_ccw
+    InputType.panBackground: Icons.image,
+    InputType.panCamera: Icons.pan_tool,
+    InputType.rotateCamera: Icons.rotate_90_degrees_ccw
   };
 
   // on mobile, we can't differentiate between pointer down events like we do on desktop with primary/secondary/tertiary buttons
@@ -97,18 +97,18 @@ class _ThermionGestureDetectorMobileState
 
   void _setFunction() {
     switch (gestureType) {
-      case GestureType.rotateCamera:
+      case InputType.rotateCamera:
         _functionStart = widget.viewer.rotateStart;
         _functionUpdate = widget.viewer.rotateUpdate;
         _functionEnd = widget.viewer.rotateEnd;
         break;
-      case GestureType.panCamera:
+      case InputType.panCamera:
         _functionStart = widget.viewer.panStart;
         _functionUpdate = widget.viewer.panUpdate;
         _functionEnd = widget.viewer.panEnd;
         break;
       // TODO
-      case GestureType.panBackground:
+      case InputType.panBackground:
         _functionStart = (x, y) async {};
         _functionUpdate = (x, y) async {};
         _functionEnd = () async {};
@@ -216,11 +216,11 @@ class _ThermionGestureDetectorMobileState
               child: GestureDetector(
                 onTap: () {
                   setState(() {
-                    var curIdx = GestureType.values.indexOf(gestureType);
-                    var nextIdx = curIdx == GestureType.values.length - 1
+                    var curIdx = InputType.values.indexOf(gestureType);
+                    var nextIdx = curIdx == InputType.values.length - 1
                         ? 0
                         : curIdx + 1;
-                    gestureType = GestureType.values[nextIdx];
+                    gestureType = InputType.values[nextIdx];
                     _setFunction();
                   });
                 },

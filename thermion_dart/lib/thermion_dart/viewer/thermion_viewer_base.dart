@@ -66,7 +66,7 @@ abstract class ThermionViewer {
   ///
   /// Requests a single frame to be rendered. This is only intended to be used internally.
   ///
-  void requestFrame();
+  Future requestFrame();
 
   ///
   /// Render a single frame and copy the pixel buffer to [out].
@@ -748,7 +748,7 @@ abstract class ThermionViewer {
   /// Sets the options for manipulating the camera via the viewport.
   /// ManipulatorMode.FREE_FLIGHT and ManipulatorMode.MAP are currently unsupported and will throw an exception.
   ///
-  @Deprecated("Use ThermionGestureHandler instead")
+  @Deprecated("Use InputHandler instead")
   Future setCameraManipulatorOptions(
       {ManipulatorMode mode = ManipulatorMode.ORBIT,
       double orbitSpeedX = 0.01,
@@ -970,4 +970,14 @@ abstract class ThermionViewer {
   ///
   ///
   Future setActiveCamera(covariant Camera camera);
+
+  ///
+  ///
+  ///
+  Future registerRequestFrameHook(Future Function() hook);
+
+  ///
+  ///
+  ///
+  Future unregisterRequestFrameHook(Future Function() hook);
 }

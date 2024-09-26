@@ -2446,7 +2446,7 @@ class ThermionViewerWasm implements ThermionViewer {
   }
 
   @override
-  void requestFrame() {
+  Future requestFrame() async {
     // TODO: implement requestFrame
   }
 
@@ -2477,5 +2477,33 @@ class ThermionViewerWasm implements ThermionViewer {
   Future setCameraLensProjection({double near = kNear, double far = kFar, double? aspect, double focalLength = kFocalLength}) {
     // TODO: implement setCameraLensProjection
     throw UnimplementedError();
+  }
+  
+  @override
+  Future<Camera> createCamera() {
+    // TODO: implement createCamera
+    throw UnimplementedError();
+  }
+    
+  @override
+  Future setActiveCamera(covariant Camera camera) {
+    // TODO: implement setActiveCamera
+    throw UnimplementedError();
+  }
+  
+  final _hooks = <Future Function()>[];
+
+  @override
+  Future registerRequestFrameHook(Future Function() hook) async {
+    if (!_hooks.contains(hook)) {
+      _hooks.add(hook);
+    }
+  }
+
+  @override
+  Future unregisterRequestFrameHook(Future Function() hook) async {
+    if (_hooks.contains(hook)) {
+      _hooks.remove(hook);
+    }
   }
 }

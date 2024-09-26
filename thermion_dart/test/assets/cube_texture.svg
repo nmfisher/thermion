@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="600"
+   height="600"
+   viewBox="0 0 600 600"
+   version="1.1"
+   id="svg3369"
+   sodipodi:docname="cube_texture.svg"
+   inkscape:export-filename="cube_texture_512x512.png"
+   inkscape:export-xdpi="81.919998"
+   inkscape:export-ydpi="81.919998"
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs3373" />
+  <sodipodi:namedview
+     id="namedview3371"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="0.52625"
+     inkscape:cx="374.34679"
+     inkscape:cy="290.73634"
+     inkscape:window-width="1390"
+     inkscape:window-height="940"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg3369" />
+  <rect
+     width="600"
+     height="600"
+     fill="white"
+     id="rect3333" />
+  <!-- Grid -->
+  <g
+     stroke="gray"
+     stroke-width="0.5"
+     id="g3343">
+    <line
+       x1="0"
+       y1="200"
+       x2="600"
+       y2="200"
+       id="line3335" />
+    <line
+       x1="0"
+       y1="400"
+       x2="600"
+       y2="400"
+       id="line3337" />
+    <line
+       x1="200"
+       y1="0"
+       x2="200"
+       y2="600"
+       id="line3339" />
+    <line
+       x1="400"
+       y1="0"
+       x2="400"
+       y2="600"
+       id="line3341" />
+  </g>
+  <!-- Top face -->
+  <rect
+     x="200"
+     y="0"
+     width="200"
+     height="200"
+     fill="blue"
+     fill-opacity="0.5"
+     stroke="black"
+     id="rect3345" />
+  <text
+     x="300"
+     y="100"
+     text-anchor="middle"
+     dominant-baseline="middle"
+     fill="black"
+     font-size="24"
+     id="text3347">Top</text>
+  <!-- Left face -->
+  <rect
+     x="0"
+     y="200"
+     width="200"
+     height="200"
+     fill="cyan"
+     fill-opacity="0.5"
+     stroke="black"
+     id="rect3349" />
+  <text
+     x="100"
+     y="300"
+     text-anchor="middle"
+     dominant-baseline="middle"
+     fill="black"
+     font-size="24"
+     id="text3351">Left</text>
+  <!-- Front face -->
+  <rect
+     x="200"
+     y="200"
+     width="200"
+     height="200"
+     fill="red"
+     fill-opacity="0.5"
+     stroke="black"
+     id="rect3353" />
+  <text
+     x="300"
+     y="300"
+     text-anchor="middle"
+     dominant-baseline="middle"
+     fill="black"
+     font-size="24"
+     id="text3355">Front</text>
+  <!-- Right face -->
+  <rect
+     x="400"
+     y="200"
+     width="200"
+     height="200"
+     fill="purple"
+     fill-opacity="0.5"
+     stroke="black"
+     id="rect3357" />
+  <text
+     x="500"
+     y="300"
+     text-anchor="middle"
+     dominant-baseline="middle"
+     fill="black"
+     font-size="24"
+     id="text3359">Right</text>
+  <!-- Bottom face -->
+  <rect
+     x="200"
+     y="400"
+     width="200"
+     height="200"
+     fill="yellow"
+     fill-opacity="0.5"
+     stroke="black"
+     id="rect3361" />
+  <text
+     x="300"
+     y="500"
+     text-anchor="middle"
+     dominant-baseline="middle"
+     fill="black"
+     font-size="24"
+     id="text3363">Bottom</text>
+  <!-- Back face -->
+  <rect
+     x="400"
+     y="400"
+     width="200"
+     height="200"
+     fill="green"
+     fill-opacity="0.5"
+     stroke="black"
+     id="rect3365" />
+  <text
+     x="500"
+     y="500"
+     text-anchor="middle"
+     dominant-baseline="middle"
+     fill="black"
+     font-size="24"
+     id="text3367">Back</text>
+</svg>

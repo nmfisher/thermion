@@ -4,12 +4,12 @@
 // import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.dart';
 // import 'package:vector_math/vector_math_64.dart';
 
-// class DefaultPanCameraDelegate implements PanCameraDelegate {
+// class DefaultPanInputHandlerDelegate implements PanInputHandlerDelegate {
 //   final ThermionViewer viewer;
 
 //   static const double _panSensitivity = 0.005;
 
-//   DefaultPanCameraDelegate(this.viewer);
+//   DefaultPanInputHandlerDelegate(this.viewer);
 //   static const double _panSensitivity = 0.005;
 
 //   @override

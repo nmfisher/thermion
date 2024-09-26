@@ -915,6 +915,12 @@ external void Camera_setCustomProjectionWithCulling(
   double far,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4)>(isLeaf: true)
+external void Camera_setModelMatrix(
+  ffi.Pointer<TCamera> camera,
+  double4x4 modelMatrix,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double,
         ffi.Double)>(isLeaf: true)
