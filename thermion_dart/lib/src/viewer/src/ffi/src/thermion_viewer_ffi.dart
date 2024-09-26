@@ -105,22 +105,28 @@ class ThermionViewerFFI extends ThermionViewer {
   Future updateViewportAndCameraProjection(double width, double height) async {
     viewportDimensions = (width * pixelRatio, height * pixelRatio);
     update_viewport(_viewer!, width.toInt(), height.toInt());
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
-    var near = await getCameraCullingNear();
-    if (near.abs() < 0.000001) {
-      near = kNear;
-    }
-    var far = await getCameraCullingFar();
-    if (far.abs() < 0.000001) {
-      far = kFar;
-    }
 
-    var aspect = viewportDimensions.$1 / viewportDimensions.$2;
-    var focalLength = get_camera_focal_length(mainCamera.camera);
-    if (focalLength.abs() < 0.1) {
-      focalLength = kFocalLength;
+    final cameraCount = await getCameraCount();
+
+    for (int i = 0; i < cameraCount; i++) {
+      var camera = await getCameraAt(i);
+      var near = await camera.getNear();
+      if (near.abs() < 0.000001) {
+        near = kNear;
+      }
+      var far = await camera.getCullingFar();
+      if (far.abs() < 0.000001) {
+        far = kFar;
+      }
+
+      var aspect = viewportDimensions.$1 / viewportDimensions.$2;
+      var focalLength = await camera.getFocalLength();
+      if (focalLength.abs() < 0.1) {
+        focalLength = kFocalLength;
+      }
+      camera.setLensProjection(
+          near: near, far: far, aspect: aspect, focalLength: focalLength);
     }
-    Camera_setLensProjection(mainCamera.camera, near, far, aspect, focalLength);
   }
 
   Future createSwapChain(double width, double height,
@@ -2174,9 +2180,10 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<Camera> createCamera() async {
-    var camera = SceneManager_createCamera(_sceneManager!);
+    var cameraPtr = SceneManager_createCamera(_sceneManager!);
     var engine = Viewer_getEngine(_viewer!);
-    return ThermionFFICamera(camera, engine);
+    var camera = ThermionFFICamera(cameraPtr, engine);
+    return camera;
   }
 
   Future destroyCamera(ThermionFFICamera camera) async {
@@ -2188,6 +2195,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setActiveCamera(ThermionFFICamera camera) async {
     SceneManager_setCamera(_sceneManager!, camera.camera);
+  }
+
+  ///
+  ///
+  ///
+  Future<Camera> getActiveCamera() async {
+    final ptr = SceneManager_getActiveCamera(_sceneManager!);
+    return ThermionFFICamera(ptr, Viewer_getEngine(_viewer!));
   }
 
   final _hooks = <Future Function()>[];

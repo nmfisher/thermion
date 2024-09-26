@@ -2678,6 +2678,11 @@ EntityId SceneManager::createGeometry(
         }
         return _cameras[index-1];
     }
+
+    Camera* SceneManager::getActiveCamera() { 
+        auto& camera = _view->getCamera();
+        return &camera;
+    }
        
 
 } // namespace thermion_filament

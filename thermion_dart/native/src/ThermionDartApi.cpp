@@ -1086,6 +1086,21 @@ EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera* tCamera) {
     return Entity::smuggle(camera->getEntity());
 }
 
+EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const tCamera) { 
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    return camera->getFocalLength();
+}
+
+EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const tCamera) {
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    return camera->getNear();
+}
+
+EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const tCamera) {
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    return camera->getCullingFar();
+}
+
 EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId) {
     auto * engine = reinterpret_cast<Engine*>(tEngine);
     auto * camera = engine->getCameraComponent(utils::Entity::import(entityId));
@@ -1129,4 +1144,11 @@ EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraAt(TSceneManager *tSceneMana
     auto * camera = sceneManager->getCameraAt(index);
     return reinterpret_cast<TCamera*>(camera);
 }
+
+EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getActiveCamera(TSceneManager *tSceneManager) { 
+    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
+    auto * camera = sceneManager->getActiveCamera();
+    return reinterpret_cast<TCamera*>(camera);
+}
+
 }

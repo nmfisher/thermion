@@ -69,11 +69,11 @@ class DelegateInputHandler implements InputHandler {
           });
 
   factory DelegateInputHandler.flight(ThermionViewer viewer,
-          {PickDelegate? pickDelegate, bool freeLook=false}) =>
+          {PickDelegate? pickDelegate, bool freeLook=false, double? clampY, ThermionEntity? entity}) =>
       DelegateInputHandler(
           viewer: viewer,
           pickDelegate: pickDelegate,
-          transformDelegate: FreeFlightInputHandlerDelegate(viewer),
+          transformDelegate: FreeFlightInputHandlerDelegate(viewer, clampY:clampY, entity:entity),
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
             InputType.SCROLLWHEEL: InputAction.TRANSLATE,

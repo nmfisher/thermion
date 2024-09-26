@@ -142,13 +142,19 @@ void main() async {
       await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
       await viewer.createGeometry(GeometryHelper.cube());
       await testHelper.capture(viewer, "create_camera_main_camera");
+
       var newCamera = await viewer.createCamera();
       await newCamera.setTransform(Matrix4.translation(Vector3(0, 0, 4)));
       newCamera.setLensProjection();
       await viewer.setActiveCamera(newCamera);
+
+      expect(await viewer.getActiveCamera(), newCamera);
+
       await testHelper.capture(viewer, "create_camera_new_camera");
+      
       final mainCamera = await viewer.getMainCamera();
       await viewer.setActiveCamera(mainCamera);
+      expect(await viewer.getActiveCamera(), mainCamera);
       await testHelper.capture(viewer, "create_camera_back_to_main");
 
       expect(viewer.getCameraCount(), 2);
