@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/thermion_gesture_handler.dart';
+import 'package:thermion_flutter/src/widgets/camera/gestures/thermion_gesture_handler.dart';
 
 ///
 /// A widget that captures swipe/pointer events.

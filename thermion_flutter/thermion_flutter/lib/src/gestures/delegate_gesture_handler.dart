@@ -3,11 +3,11 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_pick_delegate.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/default_velocity_delegate.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/fixed_orbit_camera_rotation_delegate.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/free_flight_camera_delegate.dart';
+import 'package:thermion_flutter/src/gestures/default_pick_delegate.dart';
+import 'package:thermion_flutter/src/gestures/default_velocity_delegate.dart';
+import 'package:thermion_flutter/src/gestures/delegates.dart';
+import 'package:thermion_flutter/src/gestures/fixed_orbit_camera_rotation_delegate.dart';
+import 'package:thermion_flutter/src/gestures/free_flight_camera_delegate.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:vector_math/vector_math_64.dart';
 

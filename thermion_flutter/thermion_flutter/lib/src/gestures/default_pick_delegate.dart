@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.dart';
+import 'package:thermion_flutter/src/gestures/delegates.dart';
 
 class DefaultPickDelegate extends PickDelegate {
   final ThermionViewer _viewer;
