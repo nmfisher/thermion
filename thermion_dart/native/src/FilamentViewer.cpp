@@ -201,7 +201,8 @@ namespace thermion_filament
         _resourceLoaderWrapper,
         _engine,
         _scene,
-        uberArchivePath);
+        uberArchivePath,
+        _mainCamera);
   }
 
   void FilamentViewer::setAntiAliasing(bool msaa, bool fxaa, bool taa)

@@ -1,4 +1,4 @@
-output: '../lib/thermion_dart/viewer/ffi/src/thermion_dart.g.dart'
+output: '../lib/src/viewer/src/ffi/src/thermion_dart.g.dart'
 headers:
   entry-points:
     - '../native/include/ThermionDartRenderThreadApi.h'

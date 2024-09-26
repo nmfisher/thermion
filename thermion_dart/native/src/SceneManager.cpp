@@ -52,11 +52,13 @@ namespace thermion_filament
                                const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
                                Engine *engine,
                                Scene *scene,
-                               const char *uberArchivePath)
+                               const char *uberArchivePath,
+                                Camera *mainCamera)
         : _view(view),
           _resourceLoaderWrapper(resourceLoaderWrapper),
           _engine(engine),
-          _scene(scene)
+          _scene(scene),
+          _mainCamera(mainCamera)
     {
 
         _stbDecoder = createStbProvider(_engine);
@@ -2661,6 +2663,20 @@ EntityId SceneManager::createGeometry(
 
     void SceneManager::setCamera(Camera* camera) {
         _view->setCamera(camera);
+    }
+
+    size_t SceneManager::getCameraCount() {
+        return _cameras.size() + 1;
+    }
+
+    Camera* SceneManager::getCameraAt(size_t index) {
+        if(index == 0) {
+            return _mainCamera;
+        }
+        if(index - 1 > _cameras.size() - 1) {
+            return nullptr;
+        }
+        return _cameras[index-1];
     }
        
 

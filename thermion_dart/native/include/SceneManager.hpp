@@ -50,7 +50,8 @@ namespace thermion_filament
                     const ResourceLoaderWrapperImpl *const loader,
                      Engine *engine,
                      Scene *scene,
-                     const char *uberArchivePath);
+                     const char *uberArchivePath,
+                     Camera* mainCamera);
         ~SceneManager();
 
         enum LAYERS {
@@ -305,12 +306,17 @@ namespace thermion_filament
 
         void setCamera(Camera* camera);
 
+        size_t getCameraCount();
+
+        Camera* getCameraAt(size_t index);
+
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         Engine *_engine = nullptr;
         Scene *_scene = nullptr;       
         View* _view = nullptr;
+        Camera* _mainCamera;
 
         gltfio::MaterialProvider *_ubershaderProvider = nullptr;
         gltfio::MaterialProvider *_unlitMaterialProvider = nullptr;

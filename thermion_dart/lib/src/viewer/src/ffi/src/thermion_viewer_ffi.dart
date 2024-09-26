@@ -2205,6 +2205,25 @@ class ThermionViewerFFI extends ThermionViewer {
       _hooks.remove(hook);
     }
   }
+
+  ///
+  ///
+  ///
+  int getCameraCount() {
+    return SceneManager_getCameraCount(_sceneManager!);
+  }
+
+  ///
+  /// Returns the camera specified by the given index. Note that the camera at
+  /// index 0 is always the main camera; this cannot be destroyed.
+  ///
+  Camera getCameraAt(int index) {
+    final camera = SceneManager_getCameraAt(_sceneManager!, index);
+    if (camera == nullptr) {
+      throw Exception("No camera at index $index");
+    }
+    return ThermionFFICamera(camera, Viewer_getEngine(_viewer!));
+  }
 }
 
 class ThermionFFITexture extends ThermionTexture {
