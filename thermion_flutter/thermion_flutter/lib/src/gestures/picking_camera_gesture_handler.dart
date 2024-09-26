@@ -6,7 +6,7 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart/entities/abstract_gizmo.dart';
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'dart:ui';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/thermion_gesture_handler.dart';
+import 'package:thermion_flutter/src/widgets/camera/gestures/thermion_gesture_handler.dart';
 
 // Renamed implementation
 class PickingCameraGestureHandler implements ThermionGestureHandler {

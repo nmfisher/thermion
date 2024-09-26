@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.dart';
+import 'package:thermion_flutter/src/gestures/delegates.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 class DefaultVelocityDelegate extends VelocityDelegate {

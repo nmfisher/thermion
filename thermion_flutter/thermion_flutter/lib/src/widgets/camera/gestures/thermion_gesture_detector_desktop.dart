@@ -5,7 +5,7 @@ import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/thermion_gesture_handler.dart';
+import 'package:thermion_flutter/src/widgets/camera/gestures/thermion_gesture_handler.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 
 class ThermionGestureDetectorDesktop extends StatefulWidget {

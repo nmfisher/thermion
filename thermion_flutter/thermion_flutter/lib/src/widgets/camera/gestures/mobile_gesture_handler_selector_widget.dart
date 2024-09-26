@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/thermion_gesture_handler.dart';
+import 'package:thermion_flutter/src/widgets/camera/gestures/thermion_gesture_handler.dart';
 
 class MobileGestureHandlerSelectorWidget extends StatelessWidget {
   final ThermionGestureHandler handler;

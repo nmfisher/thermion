@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:thermion_flutter/thermion/widgets/thermion_widget_web.dart';
-import 'package:thermion_flutter/thermion/widgets/transparent_filament_widget.dart';
+import 'package:thermion_flutter/src/widgets/thermion_widget_web.dart';
+import 'package:thermion_flutter/src/widgets/transparent_filament_widget.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'dart:async';
 

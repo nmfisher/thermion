@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
-import 'package:thermion_flutter/thermion/widgets/camera/gestures/v2/delegates.dart';
+import 'package:thermion_flutter/src/gestures/delegates.dart';
 
 enum GestureType {
   LMB_DOWN,
