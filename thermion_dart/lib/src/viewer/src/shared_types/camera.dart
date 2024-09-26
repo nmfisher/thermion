@@ -12,6 +12,7 @@ abstract class Camera {
       double aspect = 1.0,
       double focalLength = kFocalLength});
 
+  Future<Matrix4> getViewMatrix();
   Future<Matrix4> getModelMatrix();
   Future setModelMatrix(Matrix4 matrix);
 

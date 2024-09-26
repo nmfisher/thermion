@@ -75,4 +75,9 @@ class ThermionFFICamera extends Camera {
   Future<double> getFocalLength() async {
     return Camera_getFocalLength(camera);
   }
+
+  @override
+  Future<Matrix4> getViewMatrix() async {
+    return double4x4ToMatrix4(Camera_getViewMatrix(camera));
+  }
 }

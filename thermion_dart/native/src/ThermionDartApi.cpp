@@ -1081,6 +1081,11 @@ EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* tCamera) {
     return convert_mat4_to_double4x4(camera->getModelMatrix());
 }
 
+EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const tCamera) {
+    auto * camera = reinterpret_cast<Camera*>(tCamera);
+    return convert_mat4_to_double4x4(camera->getViewMatrix());
+}
+
 EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera* tCamera) {
     auto * camera = reinterpret_cast<Camera*>(tCamera);
     return Entity::smuggle(camera->getEntity());
