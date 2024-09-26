@@ -10,8 +10,11 @@ import '../../thermion_viewer_base.dart';
 class ThermionFFICamera extends Camera {
   final Pointer<TCamera> camera;
   final Pointer<TEngine> engine;
+  late ThermionEntity _entity;
 
-  ThermionFFICamera(this.camera, this.engine);
+  ThermionFFICamera(this.camera, this.engine) {
+    _entity = Camera_getEntity(camera);
+  }
 
   @override
   Future setProjectionMatrixWithCulling(
@@ -41,8 +44,7 @@ class ThermionFFICamera extends Camera {
 
   @override
   ThermionEntity getEntity() {
-    // TODO: implement getEntity
-    throw UnimplementedError();
+    return _entity;
   }
 
   @override
