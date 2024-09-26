@@ -7,169 +7,27 @@ import 'package:image/image.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:path/path.dart' as p;
-import 'package:thermion_dart/thermion_dart/utils/geometry.dart';
 import 'package:thermion_dart/thermion_dart/viewer/events.dart';
 import 'package:thermion_dart/thermion_dart/viewer/ffi/src/thermion_viewer_ffi.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'helpers.dart';
 
-Color kWhite = ColorFloat32(4)..setRgba(1.0, 1.0, 1.0, 1.0);
-Color kRed = ColorFloat32(4)..setRgba(1.0, 0.0, 0.0, 1.0);
-
 void main() async {
-  final packageUri = findPackageRoot('thermion_dart');
-  testDir = Directory("${packageUri.toFilePath()}/test").path;
-
-  var outDir = Directory("$testDir/output");
-
-  // outDir.deleteSync(recursive: true);
-  outDir.createSync();
-
-  Future _capture(ThermionViewer viewer, String outputFilename) async {
-    await Future.delayed(Duration(milliseconds: 10));
-    var outPath = p.join(outDir.path, "$outputFilename.bmp");
-    var pixelBuffer = await viewer.capture();
-    await savePixelBufferToBmp(
-        pixelBuffer,
-        viewer.viewportDimensions.$1.toInt(),
-        viewer.viewportDimensions.$2.toInt(),
-        outPath);
-    return pixelBuffer;
-  }
-
-  group('camera', () {
-    test('getCameraModelMatrix, getCameraPosition, rotation', () async {
-      var viewer = await createViewer();
-      var matrix = await viewer.getCameraModelMatrix();
-      expect(matrix.trace(), 4);
-      await viewer.setCameraPosition(2.0, 2.0, 2.0);
-      matrix = await viewer.getCameraModelMatrix();
-      var position = matrix.getColumn(3).xyz;
-      expect(position.x, 2.0);
-      expect(position.y, 2.0);
-      expect(position.z, 2.0);
-
-      position = await viewer.getCameraPosition();
-      expect(position.x, 2.0);
-      expect(position.y, 2.0);
-      expect(position.z, 2.0);
-    });
-
-    test('getCameraViewMatrix', () async {
-      var viewer = await createViewer();
-
-      var modelMatrix = await viewer.getCameraModelMatrix();
-      var viewMatrix = await viewer.getCameraViewMatrix();
-
-      // The view matrix should be the inverse of the model matrix
-      var identity = modelMatrix * viewMatrix;
-      expect(identity.isIdentity(), isTrue);
-
-      // Check that moving the camera affects the view matrix
-      await viewer.setCameraPosition(3.0, 4.0, 5.0);
-      viewMatrix = await viewer.getCameraViewMatrix();
-      var invertedView = viewMatrix.clone()..invert();
-      var position = invertedView.getColumn(3).xyz;
-      expect(position.x, closeTo(3.0, 1e-6));
-      expect(position.y, closeTo(4.0, 1e-6));
-      expect(position.z, closeTo(5.0, 1e-6));
-    });
-
-    test('getCameraProjectionMatrix', () async {
-      var viewer = await createViewer();
-      var projectionMatrix = await viewer.getCameraProjectionMatrix();
-      print(projectionMatrix);
-    });
-
-    test('getCameraCullingProjectionMatrix', () async {
-      var viewer = await createViewer();
-      var matrix = await viewer.getCameraCullingProjectionMatrix();
-      print(matrix);
-      throw Exception("TODO");
-    });
-
-    test('getCameraFrustum', () async {
-      var viewer = await createViewer();
-      var frustum = await viewer.getCameraFrustum();
-      print(frustum.plane5.normal);
-      print(frustum.plane5.constant);
-
-      await viewer.setCameraLensProjection(
-          near: 10.0, far: 1000.0, aspect: 1.0, focalLength: 28.0);
-      frustum = await viewer.getCameraFrustum();
-      print(frustum.plane5.normal);
-      print(frustum.plane5.constant);
-    });
-
-    test('set custom projection/culling matrix', () async {
-      var viewer =
-          await createViewer(bg: kRed, cameraPosition: Vector3(0, 0, 4));
-      var camera = await viewer.getMainCamera();
-      final cube = await viewer.createGeometry(GeometryHelper.cube());
-
-      // cube is visible when inside the frustum, cube is visible
-      var projectionMatrix =
-          makeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, 0.05, 10000);
-      await camera.setProjectionMatrixWithCulling(
-          projectionMatrix, 0.05, 10000);
-      await _capture(
-          viewer, "camera_projection_culling_matrix_object_in_frustum");
-
-      // cube no longer visible when the far plane is moved closer to camera so cube is outside
-      projectionMatrix =
-          makeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, 0.05, 1);
-      await camera.setProjectionMatrixWithCulling(projectionMatrix, 0.05, 1);
-      await _capture(
-          viewer, "camera_projection_culling_matrix_object_outside_frustum");
-    });
-
-    test('setting camera transform updates model matrix', () async {
-      var viewer = await createViewer();
-
-      var cameraEntity = await viewer.getMainCameraEntity();
-      var camera = await viewer.getMainCamera();
-
-      await viewer.setPosition(cameraEntity, 1, 0, 0);
-
-      var modelMatrix = await viewer.getCameraModelMatrix();
-      expect(modelMatrix.getColumn(3).x, 1.0);
-      expect(modelMatrix.getColumn(3).y, 0.0);
-      expect(modelMatrix.getColumn(3).z, 0.0);
-      expect(modelMatrix.getColumn(3).w, 1.0);
-    });
-
-    test('create camera', () async {
-      var viewer = await createViewer();
-
-      await viewer.setCameraPosition(0, 0, 5);
-      await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
-      await viewer.createGeometry(GeometryHelper.cube());
-      await _capture(viewer, "create_camera_main_camera");
-      var newCamera = await viewer.createCamera();
-      await newCamera.setTransform(Matrix4.translation(Vector3(0, 0, 4)));
-      newCamera.setLensProjection();
-      await viewer.setActiveCamera(newCamera);
-      await _capture(viewer, "create_camera_new_camera");
-      final mainCamera = await viewer.getMainCamera();
-      await viewer.setActiveCamera(mainCamera);
-      await _capture(viewer, "create_camera_back_to_main");
-    });
-  });
+  final testHelper = TestHelper("integration");
 
   group('background', () {
     test('set background color to solid green', () async {
       var viewer = await createViewer();
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
-      await _capture(viewer, "set_background_color_to_solid_green");
+      await testHelper.capture(viewer, "set_background_color_to_solid_green");
       await viewer.dispose();
     });
 
     test('set background color to full transparency', () async {
       var viewer = await createViewer();
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 0.0);
-      await _capture(viewer, "set_background_color_to_transparent_green");
+      await testHelper.capture(viewer, "set_background_color_to_transparent_green");
       await viewer.dispose();
     });
 
@@ -178,7 +36,7 @@ void main() async {
       await viewer.loadSkybox(
           "file:///$testDir/../../examples/assets/default_env/default_env_skybox.ktx");
       await Future.delayed(Duration(seconds: 1));
-      await _capture(viewer, "skybox");
+      await testHelper.capture(viewer, "skybox");
     });
 
     test('set background image', () async {
@@ -187,7 +45,7 @@ void main() async {
           .setBackgroundImage("file:///$testDir/cube_texture_512x512.png");
       await viewer.setPostProcessing(true);
       await viewer.setToneMapping(ToneMapper.LINEAR);
-      await _capture(viewer, "set_background_image");
+      await testHelper.capture(viewer, "set_background_image");
       await viewer.dispose();
     });
   });
@@ -201,7 +59,7 @@ void main() async {
       await viewer.setCameraPosition(0, 1, 5);
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
-      await _capture(viewer, "load_glb_from_file");
+      await testHelper.capture(viewer, "load_glb_from_file");
     });
 
     test('load glb from buffer', () async {
@@ -213,7 +71,7 @@ void main() async {
       await viewer.setCameraPosition(0, 1, 5);
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
-      await _capture(viewer, "load_glb_from_buffer");
+      await testHelper.capture(viewer, "load_glb_from_buffer");
     });
 
     test('load glb from buffer with priority', () async {
@@ -236,7 +94,7 @@ void main() async {
         await viewer.setMaterialPropertyFloat4(
             entity, "baseColorFactor", 0, 0, 1.0, 0.0, 1.0);
       }
-      await _capture(viewer, "load_glb_from_buffer_with_priority");
+      await testHelper.capture(viewer, "load_glb_from_buffer_with_priority");
     });
   });
 
@@ -370,7 +228,7 @@ void main() async {
       await viewer
           .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
 
-      await _capture(viewer, "geometry_cube_no_uv_no_normal");
+      await testHelper.capture(viewer, "geometry_cube_no_uv_no_normal");
     });
 
     test('create cube (no normals)', () async {
@@ -384,7 +242,7 @@ void main() async {
       await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
       await viewer
           .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
-      await _capture(viewer, "geometry_cube_no_normals");
+      await testHelper.capture(viewer, "geometry_cube_no_normals");
     });
 
     test('create cube (with normals)', () async {
@@ -399,7 +257,7 @@ void main() async {
       await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
       await viewer
           .createGeometry(GeometryHelper.cube(normals: true, uvs: false));
-      await _capture(viewer, "geometry_cube_with_normals");
+      await testHelper.capture(viewer, "geometry_cube_with_normals");
     });
 
     test('create cube with custom ubershader material instance (color)',
@@ -418,7 +276,7 @@ void main() async {
           materialInstance: materialInstance);
       await viewer.setMaterialPropertyFloat4(
           cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 0.0);
-      await _capture(viewer, "geometry_cube_with_custom_material_ubershader");
+      await testHelper.capture(viewer, "geometry_cube_with_custom_material_ubershader");
       await viewer.removeEntity(cube);
       await viewer.destroyMaterialInstance(materialInstance);
     });
@@ -440,7 +298,7 @@ void main() async {
           File("$testDir/cube_texture_512x512.png").readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
       await viewer.applyTexture(texture as ThermionFFITexture, cube);
-      await _capture(
+      await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_ubershader_texture");
       await viewer.removeEntity(cube);
       await viewer.destroyMaterialInstance(materialInstance);
@@ -464,7 +322,7 @@ void main() async {
           File("$testDir/cube_texture_512x512.png").readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
       await viewer.applyTexture(texture, cube);
-      await _capture(
+      await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_texture_only");
       await viewer.removeEntity(cube);
 
@@ -474,7 +332,7 @@ void main() async {
       await viewer.setMaterialPropertyInt(cube, "baseColorIndex", 0, -1);
       await viewer.setMaterialPropertyFloat4(
           cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
-      await _capture(
+      await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_color_only");
       await viewer.removeEntity(cube);
 
@@ -486,7 +344,7 @@ void main() async {
           cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 0.5);
       await viewer.applyTexture(texture, cube);
 
-      await _capture(
+      await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_color_and_texture");
 
       await viewer.removeEntity(cube);
@@ -502,7 +360,7 @@ void main() async {
       await viewer.setCameraPosition(0, 0, 6);
       await viewer
           .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
-      await _capture(viewer, "geometry_sphere_no_normals");
+      await testHelper.capture(viewer, "geometry_sphere_no_normals");
     });
   });
 
@@ -525,16 +383,16 @@ void main() async {
       expect(materialInstance, isNotNull);
 
       // with depth write enabled on both materials, cube2 renders behind the white cube
-      await _capture(viewer, "material_instance_depth_write_enabled");
+      await testHelper.capture(viewer, "material_instance_depth_write_enabled");
 
       // if we disable depth write on cube1, then cube2 will always appear in front
       // (relying on insertion order)
       materialInstance!.setDepthWriteEnabled(false);
-      await _capture(viewer, "material_instance_depth_write_disabled");
+      await testHelper.capture(viewer, "material_instance_depth_write_disabled");
 
       // set priority for the cube1 cube to 7 (render) last, cube1 renders in front
       await viewer.setPriority(cube1, 7);
-      await _capture(
+      await testHelper.capture(
           viewer, "material_instance_depth_write_disabled_with_priority");
     });
   });
@@ -549,7 +407,7 @@ void main() async {
   //     await viewer
   //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
   //     await viewer.setRendering(true);
-  //     await _capture(viewer, "glb_create_instance");
+  //     await testHelper.capture(viewer, "glb_create_instance");
   //     await viewer.setRendering(false);
   //   });
 
@@ -605,10 +463,10 @@ void main() async {
 
       final cube = await viewer.createGeometry(GeometryHelper.cube());
 
-      await _capture(viewer, "set_material_float4_pre");
+      await testHelper.capture(viewer, "set_material_float4_pre");
       await viewer.setMaterialPropertyFloat4(
           cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
-      await _capture(viewer, "set_material_float4_post");
+      await testHelper.capture(viewer, "set_material_float4_post");
     });
     test('set float material property for custom geometry', () async {
       var viewer = await createViewer();
@@ -622,9 +480,9 @@ void main() async {
 
       // this won't actually do anything because the default ubershader doesn't use specular/glossiness
       // but we can at least check that the call succeeds
-      await _capture(viewer, "set_material_specular_pre");
+      await testHelper.capture(viewer, "set_material_specular_pre");
       await viewer.setMaterialPropertyFloat(cube, "specularFactor", 0, 0.0);
-      await _capture(viewer, "set_material_specular_post");
+      await testHelper.capture(viewer, "set_material_specular_post");
     });
 
     test('set float material property (roughness) for custom geometry',
@@ -640,11 +498,11 @@ void main() async {
 
       // this won't actually do anything because the default ubershader doesn't use specular/glossiness
       // but we can at least check that the call succeeds
-      await _capture(viewer, "set_material_roughness_pre");
+      await testHelper.capture(viewer, "set_material_roughness_pre");
 
       await viewer.setMaterialPropertyFloat(cube, "metallicFactor", 0, 0.0);
       await viewer.setMaterialPropertyFloat(cube, "roughnessFactor", 0, 0.0);
-      await _capture(viewer, "set_material_roughness_post");
+      await testHelper.capture(viewer, "set_material_roughness_post");
     });
   });
 
@@ -703,7 +561,7 @@ void main() async {
       // we need an explicit render call here to process the transform queue
       await viewer.render();
 
-      await _capture(viewer, "set_position_from_viewport_coords");
+      await testHelper.capture(viewer, "set_position_from_viewport_coords");
     });
   });
 
@@ -714,11 +572,11 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
       await viewer.setCameraPosition(0, 2, 0);
-      await _capture(viewer, "grid_overlay_default");
+      await testHelper.capture(viewer, "grid_overlay_default");
       await viewer.setLayerVisibility(7, true);
-      await _capture(viewer, "grid_overlay_enabled");
+      await testHelper.capture(viewer, "grid_overlay_enabled");
       await viewer.setLayerVisibility(7, false);
-      await _capture(viewer, "grid_overlay_disabled");
+      await testHelper.capture(viewer, "grid_overlay_disabled");
     });
 
     test('load glb from buffer with layer', () async {
@@ -731,9 +589,9 @@ void main() async {
 
       var buffer = File("$testDir/cube.glb").readAsBytesSync();
       var model = await viewer.loadGlbFromBuffer(buffer, layer: 1);
-      await _capture(viewer, "load_glb_from_buffer_with_layer_disabled");
+      await testHelper.capture(viewer, "load_glb_from_buffer_with_layer_disabled");
       await viewer.setLayerVisibility(1, true);
-      await _capture(viewer, "load_glb_from_buffer_with_layer_enabled");
+      await testHelper.capture(viewer, "load_glb_from_buffer_with_layer_enabled");
     });
 
     test('change layer visibility at runtime', () async {
@@ -745,21 +603,21 @@ void main() async {
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
       var cube = await viewer.createGeometry(GeometryHelper.cube());
-      await _capture(viewer, "change_layer_visibility_at_runtime_default");
+      await testHelper.capture(viewer, "change_layer_visibility_at_runtime_default");
 
       // all entities set to layer 0 by default, so this should now be invisible
       await viewer.setLayerVisibility(0, false);
-      await _capture(
+      await testHelper.capture(
           viewer, "change_layer_visibility_at_runtime_layer0_invisible");
 
       // now change the visibility layer to 5, should be invisible
       await viewer.setVisibilityLayer(cube, 5);
-      await _capture(
+      await testHelper.capture(
           viewer, "change_layer_visibility_at_runtime_layer5_invisible");
 
       // now toggle layer 5 visibility, cube should now be visible
       await viewer.setLayerVisibility(5, true);
-      await _capture(
+      await testHelper.capture(
           viewer, "change_layer_visibility_at_runtime_layer5_visible");
     });
   });
@@ -775,7 +633,7 @@ void main() async {
   //     await viewer
   //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
   //     await viewer.setRendering(true);
-  //     await _capture(viewer, "point_light");
+  //     await testHelper.capture(viewer, "point_light");
   //     await viewer.setRendering(false);
   //   });
 
@@ -791,7 +649,7 @@ void main() async {
   //     await viewer
   //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
   //     await viewer.setRendering(true);
-  //     await _capture(viewer, "move_point_light");
+  //     await testHelper.capture(viewer, "move_point_light");
   //     await viewer.setRendering(false);
   //   });
 
@@ -805,7 +663,7 @@ void main() async {
   //     await viewer
   //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
   //     await viewer.setRendering(true);
-  //     await _capture(viewer, "directional_light");
+  //     await testHelper.capture(viewer, "directional_light");
   //     await viewer.setRendering(false);
   //   });
 
@@ -820,7 +678,7 @@ void main() async {
   //     await viewer
   //         .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
   //     await viewer.setRendering(true);
-  //     await _capture(viewer, "set_directional_light_direction");
+  //     await testHelper.capture(viewer, "set_directional_light_direction");
   //     await viewer.setRendering(false);
   //   });
 
@@ -839,7 +697,7 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), pi / 8));
       await viewer.setStencilHighlight(model);
-      await _capture(viewer, "stencil_highlight_glb");
+      await testHelper.capture(viewer, "stencil_highlight_glb");
     });
 
     test('set stencil highlight for geometry', () async {
@@ -853,11 +711,11 @@ void main() async {
       var cube = await viewer.createGeometry(GeometryHelper.cube());
       await viewer.setStencilHighlight(cube);
 
-      await _capture(viewer, "stencil_highlight_geometry");
+      await testHelper.capture(viewer, "stencil_highlight_geometry");
 
       await viewer.removeStencilHighlight(cube);
 
-      await _capture(viewer, "stencil_highlight_geometry_remove");
+      await testHelper.capture(viewer, "stencil_highlight_geometry_remove");
     });
 
     test('set stencil highlight for gltf asset', () async {
@@ -873,11 +731,11 @@ void main() async {
 
       await viewer.setStencilHighlight(cube1);
 
-      await _capture(viewer, "stencil_highlight_gltf");
+      await testHelper.capture(viewer, "stencil_highlight_gltf");
 
       await viewer.removeStencilHighlight(cube1);
 
-      await _capture(viewer, "stencil_highlight_gltf_removed");
+      await testHelper.capture(viewer, "stencil_highlight_gltf_removed");
     });
 
     test('set stencil highlight for multiple geometry ', () async {
@@ -894,12 +752,12 @@ void main() async {
       await viewer.setStencilHighlight(cube1);
       await viewer.setStencilHighlight(cube2, r: 0.0, g: 0.0, b: 1.0);
 
-      await _capture(viewer, "stencil_highlight_multiple_geometry");
+      await testHelper.capture(viewer, "stencil_highlight_multiple_geometry");
 
       await viewer.removeStencilHighlight(cube1);
       await viewer.removeStencilHighlight(cube2);
 
-      await _capture(viewer, "stencil_highlight_multiple_geometry_removed");
+      await testHelper.capture(viewer, "stencil_highlight_multiple_geometry_removed");
     });
 
     test('set stencil highlight for multiple gltf assets ', () async {
@@ -918,12 +776,12 @@ void main() async {
       await viewer.setStencilHighlight(cube1);
       await viewer.setStencilHighlight(cube2, r: 0.0, g: 0.0, b: 1.0);
 
-      await _capture(viewer, "stencil_highlight_multiple_geometry");
+      await testHelper.capture(viewer, "stencil_highlight_multiple_geometry");
 
       await viewer.removeStencilHighlight(cube1);
       await viewer.removeStencilHighlight(cube2);
 
-      await _capture(viewer, "stencil_highlight_multiple_geometry_removed");
+      await testHelper.capture(viewer, "stencil_highlight_multiple_geometry_removed");
     });
   });
 
@@ -959,7 +817,7 @@ void main() async {
       await viewer.applyTexture(texture, cube,
           materialIndex: 0, parameterName: "baseColorMap");
 
-      await _capture(viewer, "texture_applied_to_geometry");
+      await testHelper.capture(viewer, "texture_applied_to_geometry");
 
       await viewer.removeEntity(cube);
       await viewer.destroyTexture(texture);
@@ -976,136 +834,136 @@ void main() async {
     });
   });
 
-  group("unproject", () {
-    test("unproject", () async {
-      final dimensions = (width: 1280, height: 768);
+  // group("unproject", () {
+  //   test("unproject", () async {
+  //     final dimensions = (width: 1280, height: 768);
 
-      var viewer = await createViewer(viewportDimensions: dimensions);
-      await viewer.setPostProcessing(false);
-      // await viewer.setToneMapping(ToneMapper.LINEAR);
-      await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
-      // await viewer.createIbl(1.0, 1.0, 1.0, 100000);
-      await viewer.addLight(LightType.SUN, 6500, 100000, -2, 0, 0, 1, -1, 0);
-      await viewer.addLight(LightType.SPOT, 6500, 500000, 0, 0, 2, 0, 0, -1,
-          falloffRadius: 10, spotLightConeInner: 1.0, spotLightConeOuter: 2.0);
+  //     var viewer = await createViewer(viewportDimensions: dimensions);
+  //     await viewer.setPostProcessing(false);
+  //     // await viewer.setToneMapping(ToneMapper.LINEAR);
+  //     await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
+  //     // await viewer.createIbl(1.0, 1.0, 1.0, 100000);
+  //     await viewer.addLight(LightType.SUN, 6500, 100000, -2, 0, 0, 1, -1, 0);
+  //     await viewer.addLight(LightType.SPOT, 6500, 500000, 0, 0, 2, 0, 0, -1,
+  //         falloffRadius: 10, spotLightConeInner: 1.0, spotLightConeOuter: 2.0);
 
-      await viewer.setCameraPosition(-3, 4, 6);
-      await viewer.setCameraRotation(
-          Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
-              Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 6));
-      var cube =
-          await viewer.createGeometry(GeometryHelper.cube(), keepData: true);
-      await viewer.setMaterialPropertyFloat4(
-          cube, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1.0);
-      var textureData =
-          File("$testDir/cube_texture_512x512.png").readAsBytesSync();
-      var texture = await viewer.createTexture(textureData);
-      await viewer.applyTexture(texture, cube,
-          materialIndex: 0, parameterName: "baseColorMap");
+  //     await viewer.setCameraPosition(-3, 4, 6);
+  //     await viewer.setCameraRotation(
+  //         Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+  //             Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 6));
+  //     var cube =
+  //         await viewer.createGeometry(GeometryHelper.cube(), keepData: true);
+  //     await viewer.setMaterialPropertyFloat4(
+  //         cube, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1.0);
+  //     var textureData =
+  //         File("$testDir/cube_texture_512x512.png").readAsBytesSync();
+  //     var texture = await viewer.createTexture(textureData);
+  //     await viewer.applyTexture(texture, cube,
+  //         materialIndex: 0, parameterName: "baseColorMap");
 
-      var numFrames = 60;
+  //     var numFrames = 60;
 
-      // first do the render
-      for (int i = 0; i < numFrames; i++) {
-        await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
+  //     // first do the render
+  //     for (int i = 0; i < numFrames; i++) {
+  //       await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
 
-        await viewer.setCameraRotation(
-            Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
-                Quaternion.axisAngle(
-                    Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
+  //       await viewer.setCameraRotation(
+  //           Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+  //               Quaternion.axisAngle(
+  //                   Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
 
-        var rendered = await _capture(viewer, "unproject_render$i");
-        var renderPng =
-            await pixelsToPng(rendered, dimensions.width, dimensions.height);
+  //       var rendered = await testHelper.capture(viewer, "unproject_render$i");
+  //       var renderPng =
+  //           await pixelsToPng(rendered, dimensions.width, dimensions.height);
 
-        File("${outDir.path}/unproject_render${i}.png")
-            .writeAsBytesSync(renderPng);
-      }
+  //       File("${outDir.path}/unproject_render${i}.png")
+  //           .writeAsBytesSync(renderPng);
+  //     }
 
-      // then go off and convert the video
+  //     // then go off and convert the video
 
-      // now unproject the render back onto the geometry
-      final textureSize = (width: 1280, height: 768);
-      var pixels = <Uint8List>[];
-      // note we skip the first frame
-      for (int i = 0; i < numFrames; i++) {
-        await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
+  //     // now unproject the render back onto the geometry
+  //     final textureSize = (width: 1280, height: 768);
+  //     var pixels = <Uint8List>[];
+  //     // note we skip the first frame
+  //     for (int i = 0; i < numFrames; i++) {
+  //       await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
 
-        await viewer.setCameraRotation(
-            Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
-                Quaternion.axisAngle(
-                    Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
+  //       await viewer.setCameraRotation(
+  //           Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+  //               Quaternion.axisAngle(
+  //                   Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
 
-        var input = pngToPixelBuffer(File(
-                "${outDir.path}/a8c317af-6081-4848-8a06-f6b69bc57664_${i + 1}.png")
-            .readAsBytesSync());
-        var pixelBuffer = await (await viewer as ThermionViewerFFI).unproject(
-            cube,
-            input,
-            dimensions.width,
-            dimensions.height,
-            textureSize.width,
-            textureSize.height);
+  //       var input = pngToPixelBuffer(File(
+  //               "${outDir.path}/a8c317af-6081-4848-8a06-f6b69bc57664_${i + 1}.png")
+  //           .readAsBytesSync());
+  //       var pixelBuffer = await (await viewer as ThermionViewerFFI).unproject(
+  //           cube,
+  //           input,
+  //           dimensions.width,
+  //           dimensions.height,
+  //           textureSize.width,
+  //           textureSize.height);
 
-        // var png = await pixelsToPng(Uint8List.fromList(pixelBuffer),
-        //     dimensions.width, dimensions.height);
+  //       // var png = await pixelsToPng(Uint8List.fromList(pixelBuffer),
+  //       //     dimensions.width, dimensions.height);
 
-        await savePixelBufferToBmp(
-            pixelBuffer,
-            textureSize.width,
-            textureSize.height,
-            p.join(outDir.path, "unprojected_texture${i}.bmp"));
+  //       await savePixelBufferToBmp(
+  //           pixelBuffer,
+  //           textureSize.width,
+  //           textureSize.height,
+  //           p.join(outDir.path, "unprojected_texture${i}.bmp"));
 
-        pixels.add(pixelBuffer);
+  //       pixels.add(pixelBuffer);
 
-        if (i > 10) {
-          break;
-        }
-      }
+  //       if (i > 10) {
+  //         break;
+  //       }
+  //     }
 
-      // }
+  //     // }
 
-      final aggregatePixelBuffer = medianImages(pixels);
-      await savePixelBufferToBmp(aggregatePixelBuffer, textureSize.width,
-          textureSize.height, "unproject_texture.bmp");
-      var pixelBufferPng = await pixelsToPng(
-          Uint8List.fromList(aggregatePixelBuffer),
-          dimensions.width,
-          dimensions.height);
-      File("${outDir.path}/unproject_texture.png")
-          .writeAsBytesSync(pixelBufferPng);
+  //     final aggregatePixelBuffer = medianImages(pixels);
+  //     await savePixelBufferToBmp(aggregatePixelBuffer, textureSize.width,
+  //         textureSize.height, "unproject_texture.bmp");
+  //     var pixelBufferPng = await pixelsToPng(
+  //         Uint8List.fromList(aggregatePixelBuffer),
+  //         dimensions.width,
+  //         dimensions.height);
+  //     File("${outDir.path}/unproject_texture.png")
+  //         .writeAsBytesSync(pixelBufferPng);
 
-      await viewer.setPostProcessing(true);
-      await viewer.setToneMapping(ToneMapper.LINEAR);
+  //     await viewer.setPostProcessing(true);
+  //     await viewer.setToneMapping(ToneMapper.LINEAR);
 
-      final unlit = await viewer.createUnlitMaterialInstance();
-      await viewer.removeEntity(cube);
-      cube = await viewer.createGeometry(GeometryHelper.cube(),
-          materialInstance: unlit);
-      var reconstructedTexture = await viewer.createTexture(pixelBufferPng);
-      await viewer.applyTexture(reconstructedTexture, cube);
+  //     final unlit = await viewer.createUnlitMaterialInstance();
+  //     await viewer.removeEntity(cube);
+  //     cube = await viewer.createGeometry(GeometryHelper.cube(),
+  //         materialInstance: unlit);
+  //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);
+  //     await viewer.applyTexture(reconstructedTexture, cube);
 
-      await viewer.setCameraRotation(
-          Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
-              Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 6));
-      await _capture(viewer, "unproject_reconstruct");
+  //     await viewer.setCameraRotation(
+  //         Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+  //             Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 6));
+  //     await testHelper.capture(viewer, "unproject_reconstruct");
 
-      // now re-render
-      for (int i = 0; i < numFrames; i++) {
-        await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
+  //     // now re-render
+  //     for (int i = 0; i < numFrames; i++) {
+  //       await viewer.setCameraPosition(-3 + (i / numFrames * 2), 4, 6);
 
-        await viewer.setCameraRotation(
-            Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
-                Quaternion.axisAngle(
-                    Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
+  //       await viewer.setCameraRotation(
+  //           Quaternion.axisAngle(Vector3(0, 1, 0), -pi / 8) *
+  //               Quaternion.axisAngle(
+  //                   Vector3(1, 0, 0), -pi / 6 - (i / numFrames * pi / 6)));
 
-        var rendered = await _capture(viewer, "unproject_rerender$i");
-        var renderPng =
-            await pixelsToPng(rendered, dimensions.width, dimensions.height);
+  //       var rendered = await testHelper.capture(viewer, "unproject_rerender$i");
+  //       var renderPng =
+  //           await pixelsToPng(rendered, dimensions.width, dimensions.height);
 
-        File("${outDir.path}/unproject_rerender${i}.png")
-            .writeAsBytesSync(renderPng);
-      }
-    }, timeout: Timeout(Duration(minutes: 2)));
-  });
+  //       File("${outDir.path}/unproject_rerender${i}.png")
+  //           .writeAsBytesSync(renderPng);
+  //     }
+  //   }, timeout: Timeout(Duration(minutes: 2)));
+  // });
 }

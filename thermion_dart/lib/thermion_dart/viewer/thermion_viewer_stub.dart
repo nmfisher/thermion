@@ -944,8 +944,8 @@ class ThermionViewerStub extends ThermionViewer {
   }
   
   @override
-  void requestFrame() {
-    // TODO: implement requestFrame
+  Future requestFrame() {
+    throw UnimplementedError();
   }
   
   @override
@@ -963,6 +963,36 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future<Camera> getMainCamera() {
     // TODO: implement getMainCamera
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Camera> createCamera() {
+    // TODO: implement createCamera
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future registerRenderHook(Future Function() hook) {
+    // TODO: implement registerRenderHook
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setActiveCamera(covariant Camera camera) {
+    // TODO: implement setActiveCamera
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future registerRequestFrameHook(Future Function() hook) {
+    // TODO: implement registerRequestFrameHook
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future unregisterRequestFrameHook(Future Function() hook) {
+    // TODO: implement unregisterRequestFrameHook
     throw UnimplementedError();
   }
 

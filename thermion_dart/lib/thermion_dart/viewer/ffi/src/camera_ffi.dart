@@ -29,9 +29,24 @@ class ThermionFFICamera extends Camera {
     var entity = Camera_getEntity(camera);
     Engine_setTransform(engine, entity, matrix4ToDouble4x4(transform));
   }
-  
+
   @override
-  Future setLensProjection({double near = kNear, double far = kFar, double aspect = 1.0, double focalLength = kFocalLength}) async {
+  Future setLensProjection(
+      {double near = kNear,
+      double far = kFar,
+      double aspect = 1.0,
+      double focalLength = kFocalLength}) async {
     Camera_setLensProjection(camera, near, far, aspect, focalLength);
+  }
+
+  @override
+  ThermionEntity getEntity() {
+    // TODO: implement getEntity
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setModelMatrix(Matrix4 matrix) async {
+    Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix));
   }
 }

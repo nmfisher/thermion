@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
+import 'package:image/image.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/thermion_dart/swift/swift_bindings.g.dart';
 import 'package:thermion_dart/thermion_dart/utils/dart_resources.dart';
@@ -11,6 +12,10 @@ import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';
 import 'package:thermion_dart/thermion_dart/viewer/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/thermion_dart/viewer/ffi/src/thermion_viewer_ffi.dart';
 import 'package:vector_math/vector_math_64.dart';
+import 'package:path/path.dart' as p;
+
+Color kWhite = ColorFloat32(4)..setRgba(1.0, 1.0, 1.0, 1.0);
+Color kRed = ColorFloat32(4)..setRgba(1.0, 0.0, 0.0, 1.0);
 
 /// Test files are run in a variety of ways, find this package root in all.
 ///
@@ -59,6 +64,31 @@ Future<Uint8List> savePixelBufferToBmp(
   File(outputPath).writeAsBytesSync(data);
   print("Wrote bitmap to ${outputPath}");
   return data;
+}
+
+class TestHelper {
+  late Directory outDir;
+
+  TestHelper(String dir) {
+    final packageUri = findPackageRoot('thermion_dart');
+    testDir = Directory("${packageUri.toFilePath()}/test").path;
+
+    var outDir = Directory("$testDir/output/${dir}");
+    // outDir.deleteSync(recursive: true);
+    outDir.createSync();
+  }
+
+  Future capture(ThermionViewer viewer, String outputFilename) async {
+    await Future.delayed(Duration(milliseconds: 10));
+    var outPath = p.join(outDir.path, "$outputFilename.bmp");
+    var pixelBuffer = await viewer.capture();
+    await savePixelBufferToBmp(
+        pixelBuffer,
+        viewer.viewportDimensions.$1.toInt(),
+        viewer.viewportDimensions.$2.toInt(),
+        outPath);
+    return pixelBuffer;
+  }
 }
 
 Future<Uint8List> pixelBufferToBmp(

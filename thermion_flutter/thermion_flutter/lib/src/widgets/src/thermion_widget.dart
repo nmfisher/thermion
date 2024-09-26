@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:thermion_flutter/src/widgets/thermion_widget_web.dart';
-import 'package:thermion_flutter/src/widgets/transparent_filament_widget.dart';
+import 'package:thermion_flutter/src/widgets/src/thermion_widget_web.dart';
+import 'package:thermion_flutter/src/widgets/src/transparent_filament_widget.dart';
 import 'dart:async';
 
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
@@ -12,8 +12,10 @@ import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'resize_observer.dart';
 
 class ThermionWidget extends StatefulWidget {
+  
   final ThermionViewer viewer;
   final ThermionFlutterOptions? options;
+
 
   ///
   /// The content to render before the texture widget is available.
@@ -63,6 +65,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
 
   void _requestFrame() {
     WidgetsBinding.instance.scheduleFrameCallback((d) {
+
       widget.viewer.requestFrame();
       _requestFrame();
     });

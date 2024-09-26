@@ -9,10 +9,13 @@ abstract class Camera {
   Future setLensProjection(
       {double near = kNear,
       double far = kFar,
-      double aspect=1.0,
+      double aspect = 1.0,
       double focalLength = kFocalLength});
 
   Future<Matrix4> getModelMatrix();
+  Future setModelMatrix(Matrix4 matrix);
+
+  ThermionEntity getEntity();
 
   Future setTransform(Matrix4 transform);
 }

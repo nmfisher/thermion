@@ -1,6 +1,6 @@
 
 import 'package:thermion_dart/thermion_dart/thermion_viewer.dart';import 'package:flutter/material.dart';
-import '../../utils/camera_orientation.dart';
+import '../../../utils/camera_orientation.dart';
 
 import 'dart:math';
 

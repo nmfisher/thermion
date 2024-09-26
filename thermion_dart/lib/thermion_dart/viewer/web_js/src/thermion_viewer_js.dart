@@ -1048,10 +1048,6 @@ class ThermionViewerJS implements ThermionViewer {
     throw UnimplementedError();
   }
 
-  @override
-  void requestFrame() {
-    // TODO: implement requestFrame
-  }
 
   @override
   // TODO: implement sceneUpdated
@@ -1078,6 +1074,36 @@ class ThermionViewerJS implements ThermionViewer {
   @override
   Future setCameraLensProjection({double near = kNear, double far = kFar, double? aspect, double focalLength = kFocalLength}) {
     // TODO: implement setCameraLensProjection
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Camera> createCamera() {
+    // TODO: implement createCamera
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future registerRequestFrameHook(Future Function() hook) {
+    // TODO: implement registerRequestFrameHook
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future requestFrame() {
+    // TODO: implement requestFrame
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setActiveCamera(covariant Camera camera) {
+    // TODO: implement setActiveCamera
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future unregisterRequestFrameHook(Future Function() hook) {
+    // TODO: implement unregisterRequestFrameHook
     throw UnimplementedError();
   }
 }

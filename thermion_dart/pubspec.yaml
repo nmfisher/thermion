@@ -23,3 +23,5 @@ dev_dependencies:
   test:
   image:
   path:
+  mockito: ^5.0.0
+  build_runner: ^2.0.0
