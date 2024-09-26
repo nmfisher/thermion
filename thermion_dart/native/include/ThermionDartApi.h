@@ -228,6 +228,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const camera);
 	EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const camera);
 	EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* camera);
+
 	EMSCRIPTEN_KEEPALIVE double get_camera_near(TCamera *camera);
 	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(TCamera *camera);
 	EMSCRIPTEN_KEEPALIVE float get_camera_fov(TCamera *camera, bool horizontal);
@@ -237,7 +240,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* camera, double4x4 projectionMatrix, double near, double far);
 	EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera* camera, double4x4 modelMatrix);
 	EMSCRIPTEN_KEEPALIVE void Camera_setLensProjection(TCamera *camera, double near, double far, double aspect, double focalLength);
-	EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* camera);
+	
 	EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera* camera);
 	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *engine, EntityId entity);
 

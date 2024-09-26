@@ -11,6 +11,7 @@ void main() async {
       var viewer = await createViewer();
       var matrix = await viewer.getCameraModelMatrix();
       expect(matrix.trace(), 4);
+
       await viewer.setCameraPosition(2.0, 2.0, 2.0);
       matrix = await viewer.getCameraModelMatrix();
       var position = matrix.getColumn(3).xyz;
@@ -32,6 +33,9 @@ void main() async {
 
       // The view matrix should be the inverse of the model matrix
       var identity = modelMatrix * viewMatrix;
+      expect(identity.isIdentity(), isTrue);
+      var camera = await viewer.getMainCamera();
+      identity = modelMatrix * (await camera.getViewMatrix());
       expect(identity.isIdentity(), isTrue);
 
       // Check that moving the camera affects the view matrix

@@ -887,6 +887,16 @@ external double Camera_getCullingFar(
   ffi.Pointer<TCamera> camera,
 );
 
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 Camera_getViewMatrix(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 Camera_getModelMatrix(
+  ffi.Pointer<TCamera> camera,
+);
+
 @ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double get_camera_near(
   ffi.Pointer<TCamera> camera,
@@ -945,11 +955,6 @@ external void Camera_setLensProjection(
   double far,
   double aspect,
   double focalLength,
-);
-
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double4x4 Camera_getModelMatrix(
-  ffi.Pointer<TCamera> camera,
 );
 
 @ffi.Native<EntityId Function(ffi.Pointer<TCamera>)>(isLeaf: true)
