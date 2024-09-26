@@ -7,7 +7,6 @@ import '../../thermion_viewer_base.dart';
 import 'thermion_dart.g.dart';
 
 class ThermionFFICamera extends Camera {
-
   final Pointer<TCamera> camera;
   final Pointer<TEngine> engine;
   late ThermionEntity _entity;
@@ -52,7 +51,7 @@ class ThermionFFICamera extends Camera {
     Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix));
   }
 
-   @override
+  @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ThermionFFICamera &&
@@ -61,4 +60,19 @@ class ThermionFFICamera extends Camera {
 
   @override
   int get hashCode => camera.hashCode;
+
+  @override
+  Future<double> getCullingFar() async {
+    return Camera_getCullingFar(camera);
+  }
+
+  @override
+  Future<double> getNear() async {
+    return Camera_getNear(camera);
+  }
+
+  @override
+  Future<double> getFocalLength() async {
+    return Camera_getFocalLength(camera);
+  }
 }

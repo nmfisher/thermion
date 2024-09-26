@@ -973,6 +973,11 @@ abstract class ThermionViewer {
   ///
   ///
   ///
+  Future getActiveCamera();
+
+  ///
+  ///
+  ///
   Future registerRequestFrameHook(Future Function() hook);
 
   ///

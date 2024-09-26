@@ -5,14 +5,15 @@ import '../delegates.dart';
 import '../input_handler.dart';
 
 class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
-  
   final ThermionViewer viewer;
+  late Future<ThermionEntity> entity;
   final Vector3? minBounds;
   final Vector3? maxBounds;
   final double rotationSensitivity;
   final double movementSensitivity;
   final double zoomSensitivity;
   final double panSensitivity;
+  final double? clampY;
 
   static final _up = Vector3(0, 1, 0);
   static final _forward = Vector3(0, 0, -1);
@@ -23,15 +24,21 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
   double _queuedZoomDelta = 0.0;
   Vector3 _queuedMoveDelta = Vector3.zero();
 
-  FreeFlightInputHandlerDelegate(
-    this.viewer, {
-    this.minBounds,
-    this.maxBounds,
-    this.rotationSensitivity = 0.001,
-    this.movementSensitivity = 0.1,
-    this.zoomSensitivity = 0.1,
-    this.panSensitivity = 0.1,
-  });
+  FreeFlightInputHandlerDelegate(this.viewer,
+      {this.minBounds,
+      this.maxBounds,
+      this.rotationSensitivity = 0.001,
+      this.movementSensitivity = 0.1,
+      this.zoomSensitivity = 0.1,
+      this.panSensitivity = 0.1,
+      this.clampY,
+      ThermionEntity? entity}) {
+    if (entity != null) {
+      this.entity = Future.value(entity);
+    } else {
+      this.entity = viewer.getMainCameraEntity();
+    }
+  }
 
   @override
   Future<void> queue(InputAction action, Vector3? delta) async {
@@ -73,10 +80,14 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
       return;
     }
 
-    Matrix4 currentModelMatrix = await viewer.getCameraModelMatrix();
-    Vector3 currentPosition = currentModelMatrix.getTranslation();
+    final activeCamera = await viewer.getActiveCamera();
+    Matrix4 currentViewMatrix = activeCamera.getViewMatrix();
+    
+
+    Matrix4 currentTransform = await viewer.getLocalTransform(await entity);
+    Vector3 currentPosition = currentTransform.getTranslation();
     Quaternion currentRotation =
-        Quaternion.fromRotation(currentModelMatrix.getRotation());
+        Quaternion.fromRotation(currentTransform.getRotation());
 
     // Apply rotation
     if (_queuedRotationDelta.length2 > 0.0) {
@@ -135,7 +146,7 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
     // Update camera
     Matrix4 newModelMatrix =
         Matrix4.compose(currentPosition, currentRotation, Vector3(1, 1, 1));
-    await viewer.setCameraModelMatrix4(newModelMatrix);
+    await viewer.setTransform(await entity, newModelMatrix);
 
     _executing = false;
   }
@@ -150,6 +161,10 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
       position.x = position.x.clamp(double.negativeInfinity, maxBounds!.x);
       position.y = position.y.clamp(double.negativeInfinity, maxBounds!.y);
       position.z = position.z.clamp(double.negativeInfinity, maxBounds!.z);
+    }
+
+    if (clampY != null) {
+      position.y = clampY!;
     }
     return position;
   }

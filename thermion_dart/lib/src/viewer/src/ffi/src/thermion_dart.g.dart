@@ -819,11 +819,6 @@ external ffi.Pointer<TCamera> get_camera(
   int entity,
 );
 
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double get_camera_focal_length(
-  ffi.Pointer<TCamera> camera,
-);
-
 @ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double4x4 get_camera_model_matrix(
   ffi.Pointer<TCamera> camera,
@@ -870,6 +865,26 @@ external void set_camera_projection_from_fov(
   double near,
   double far,
   bool horizontal,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double get_camera_focal_length(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double Camera_getFocalLength(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double Camera_getNear(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double Camera_getCullingFar(
+  ffi.Pointer<TCamera> camera,
 );
 
 @ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
@@ -981,6 +996,12 @@ external int SceneManager_getCameraCount(
 external ffi.Pointer<TCamera> SceneManager_getCameraAt(
   ffi.Pointer<TSceneManager> sceneManager,
   int index,
+);
+
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TSceneManager>)>(
+    isLeaf: true)
+external ffi.Pointer<TCamera> SceneManager_getActiveCamera(
+  ffi.Pointer<TSceneManager> sceneManager,
 );
 
 @ffi.Native<

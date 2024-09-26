@@ -217,7 +217,6 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(TCamera *camera, float aperture, float shutterSpeed, float sensitivity);
 	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(TCamera *camera, double4x4 matrix);
 	EMSCRIPTEN_KEEPALIVE TCamera *get_camera(TViewer *viewer, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(TCamera *const camera);
 	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(TCamera *const camera);
 	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(TCamera *const camera);
 	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(TCamera *const camera);
@@ -225,6 +224,10 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(TCamera *const camera);
 	EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(TCamera *camera, double4x4 matrix, double near, double far);
 	EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(TCamera *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal);
+	EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const camera);
+	EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const camera);
 	EMSCRIPTEN_KEEPALIVE double get_camera_near(TCamera *camera);
 	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(TCamera *camera);
 	EMSCRIPTEN_KEEPALIVE float get_camera_fov(TCamera *camera, bool horizontal);
@@ -247,6 +250,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void SceneManager_setCamera(TSceneManager *sceneManager, TCamera* camera);
 	EMSCRIPTEN_KEEPALIVE size_t SceneManager_getCameraCount(TSceneManager *sceneManager);	
 	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraAt(TSceneManager *sceneManager, size_t index);	
+	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getActiveCamera(TSceneManager *sceneManager);	
+
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE int reveal_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE void set_post_processing(TViewer *viewer, bool enabled);

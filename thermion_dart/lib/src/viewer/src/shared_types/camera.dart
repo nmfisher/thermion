@@ -18,4 +18,8 @@ abstract class Camera {
   ThermionEntity getEntity();
 
   Future setTransform(Matrix4 transform);
+
+  Future<double> getNear();
+  Future<double> getCullingFar();
+  Future<double> getFocalLength();
 }

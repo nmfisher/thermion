@@ -310,6 +310,8 @@ namespace thermion_filament
 
         Camera* getCameraAt(size_t index);
 
+        Camera* getActiveCamera();
+
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
