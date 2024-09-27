@@ -160,18 +160,11 @@ namespace thermion_filament
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         void* _context = nullptr;
         Scene *_scene = nullptr;
-
-        View *_view = nullptr;
-        
+        View *_view = nullptr;       
         Engine *_engine = nullptr;
         thermion_filament::ThreadPool *_tp = nullptr;
         Renderer *_renderer = nullptr;
-        RenderTarget *_rt = nullptr;
-        Texture *_rtColor = nullptr;
-        Texture *_rtDepth = nullptr;
-
         SwapChain *_swapChain = nullptr;
-
         SceneManager *_sceneManager = nullptr;
 
         std::mutex mtx; // mutex to ensure thread safety when removing assets

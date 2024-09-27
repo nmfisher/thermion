@@ -781,7 +781,7 @@ namespace thermion_filament
   void FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32_t height)
   {
     // Create filament textures and render targets (note the color buffer has the import call)
-    _rtColor = filament::Texture::Builder()
+    auto rtColor = filament::Texture::Builder()
                    .width(width)
                    .height(height)
                    .levels(1)
@@ -789,7 +789,7 @@ namespace thermion_filament
                    .format(filament::Texture::InternalFormat::RGBA8)
                    .import(texture)
                    .build(*_engine);
-    _rtDepth = filament::Texture::Builder()
+    auto rtDepth = filament::Texture::Builder()
                    .width(width)
                    .height(height)
                    .levels(1)
@@ -797,8 +797,8 @@ namespace thermion_filament
                    .format(filament::Texture::InternalFormat::DEPTH32F)
                    .build(*_engine);
     _rt = filament::RenderTarget::Builder()
-              .texture(RenderTarget::AttachmentPoint::COLOR, _rtColor)
-              .texture(RenderTarget::AttachmentPoint::DEPTH, _rtDepth)
+              .texture(RenderTarget::AttachmentPoint::COLOR, rtColor)
+              .texture(RenderTarget::AttachmentPoint::DEPTH, rtDepth)
               .build(*_engine);
 
     _view->setRenderTarget(_rt);
@@ -811,12 +811,18 @@ namespace thermion_filament
     if (_rt)
     {
       _view->setRenderTarget(nullptr);
-      _engine->destroy(_rtDepth);
-      _engine->destroy(_rtColor);
+      auto rtDepth = _rt->getTexture(RenderTarget::AttachmentPoint::DEPTH);
+      if(rtDepth) {
+        _engine->destroy(rtDepth);
+        Log("destroyed depth");
+      }
+      auto rtColor = _rt->getTexture(RenderTarget::AttachmentPoint::COLOR);
+      if(rtColor) {
+        _engine->destroy(rtColor);
+        Log("destroyed color");
+      }
       _engine->destroy(_rt);
-      _rt = nullptr;
-      _rtDepth = nullptr;
-      _rtColor = nullptr;
+      _rt = nullptr;      
     }
     if (_swapChain)
     {
