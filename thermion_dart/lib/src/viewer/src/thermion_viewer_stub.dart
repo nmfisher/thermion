@@ -1007,6 +1007,18 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement getCameraCount
     throw UnimplementedError();
   }
+  
+  @override
+  Future getActiveCamera() {
+    // TODO: implement getActiveCamera
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future queueTransformUpdates(List<ThermionEntity> entities, List<Matrix4> transforms) {
+    // TODO: implement queueTransformUpdates
+    throw UnimplementedError();
+  }
 
   
 }
