@@ -696,9 +696,9 @@ extern "C"
         }
     }
 
-    EMSCRIPTEN_KEEPALIVE bool set_transform(TSceneManager *sceneManager, EntityId entityId, const float *const transform)
+    EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform)
     {
-        auto matrix = math::mat4f(
+        auto matrix = math::mat4(
             transform[0], transform[1], transform[2],
             transform[3],
             transform[4],
@@ -714,6 +714,29 @@ extern "C"
             transform[14],
             transform[15]);
         return ((SceneManager *)sceneManager)->setTransform(entityId, matrix);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *tSceneManager, EntityId* entities, const double* const transforms, int numEntities) {
+        auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager); 
+        math::mat4 matrices[numEntities];
+        for(int i = 0; i < numEntities; i++) {
+            matrices[i] =  math::mat4(
+            transforms[i * 16], transforms[i*16+1], transforms[i*16+2],
+            transforms[i*16+3],
+            transforms[i*16+4],
+            transforms[i*16+5],
+            transforms[i*16+6],
+            transforms[i*16+7],
+            transforms[i*16+8],
+            transforms[i*16+9],
+            transforms[i*16+10],
+            transforms[i*16+11],
+            transforms[i*16+12],
+            transforms[i*16+13],
+            transforms[i*16+14],
+            transforms[i*16+15]);
+        }
+        sceneManager->queueTransformUpdates(entities, matrices, numEntities);
     }
 
     EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId)
@@ -767,21 +790,6 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void set_scale(TSceneManager *sceneManager, EntityId asset, float scale)
     {
         ((SceneManager *)sceneManager)->setScale(asset, scale);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void queue_position_update(TSceneManager *sceneManager, EntityId asset, float x, float y, float z, bool relative)
-    {
-        ((SceneManager *)sceneManager)->queuePositionUpdate(asset, x, y, z, relative);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z)
-    {
-        ((SceneManager *)sceneManager)->queueRelativePositionUpdateWorldAxis(entity, viewportX, viewportY, x, y, z);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void queue_rotation_update(TSceneManager *sceneManager, EntityId asset, float rads, float x, float y, float z, float w, bool relative)
-    {
-        ((SceneManager *)sceneManager)->queueRotationUpdate(asset, rads, x, y, z, w, relative);
     }
 
     EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY)
@@ -1067,8 +1075,14 @@ EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager,
 EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance* materialInstance, bool enabled) {
     reinterpret_cast<MaterialInstance*>(materialInstance)->setDepthWrite(enabled);
 }
+
 EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance* materialInstance, bool enabled) {
     reinterpret_cast<MaterialInstance*>(materialInstance)->setDepthCulling(enabled);
+}
+
+EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance* materialInstance, const char* propertyName, double x, double y) {
+    filament::math::float2 data { static_cast<float>(x), static_cast<float>(y) };
+    reinterpret_cast<MaterialInstance*>(materialInstance)->setParameter(propertyName, data);
 }
 
 EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* tCamera, double4x4 projectionMatrix, double near, double far) {
