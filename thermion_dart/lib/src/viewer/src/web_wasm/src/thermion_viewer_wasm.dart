@@ -1803,26 +1803,6 @@ class ThermionViewerWasm implements ThermionViewer {
         null);
   }
 
-  @override
-  Future setCameraManipulatorOptions(
-      {ManipulatorMode mode = ManipulatorMode.ORBIT,
-      double orbitSpeedX = 0.01,
-      double orbitSpeedY = 0.01,
-      double zoomSpeed = 0.01}) async {
-    _module!.ccall(
-        "set_camera_manipulator_options",
-        "void",
-        ["void*".toJS, "int".toJS, "double".toJS, "double".toJS, "double".toJS]
-            .toJS,
-        [
-          _viewer!,
-          mode.index.toJS,
-          orbitSpeedX.toJS,
-          orbitSpeedY.toJS,
-          zoomSpeed.toJS
-        ].toJS,
-        null);
-  }
 
   @override
   Future setCameraModelMatrix(List<double> matrix) async {

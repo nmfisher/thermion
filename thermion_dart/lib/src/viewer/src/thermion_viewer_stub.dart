@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:thermion_dart/src/viewer/src/shared_types/swap_chain.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
@@ -385,12 +386,7 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
 
-  @override
-  Future render() {
-    // TODO: implement render
-    throw UnimplementedError();
-  }
-
+ 
   @override
   // TODO: implement rendering
   bool get rendering => throw UnimplementedError();
@@ -1030,6 +1026,30 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future setRenderTarget(covariant RenderTarget renderTarget) {
     // TODO: implement setRenderTarget
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Uint8List> capture(covariant SwapChain swapChain, {covariant RenderTarget? renderTarget}) {
+    // TODO: implement capture
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<View> createView() {
+    // TODO: implement createView
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<View> getViewAt(int index) {
+    // TODO: implement getViewAt
+    throw UnimplementedError();
+  }
+
+  @override
+  Future render(covariant SwapChain swapChain) {
+    // TODO: implement render
     throw UnimplementedError();
   }
 

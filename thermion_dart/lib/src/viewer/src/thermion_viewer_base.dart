@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 
 import 'shared_types/swap_chain.dart';
+import 'shared_types/view.dart';
 
 const double kNear = 0.05;
 const double kFar = 1000.0;
@@ -72,7 +73,8 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame and copy the pixel buffer to [out].
   ///
-  Future<Uint8List> capture(covariant SwapChain swapChain, { covariant RenderTarget? renderTarget });
+  Future<Uint8List> capture(covariant SwapChain swapChain,
+      {covariant RenderTarget? renderTarget});
 
   ///
   ///
@@ -82,13 +84,23 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future<RenderTarget> createRenderTarget(int width, int height, int textureHandle);
+  Future<RenderTarget> createRenderTarget(
+      int width, int height, int textureHandle);
 
   ///
   ///
   ///
   Future setRenderTarget(covariant RenderTarget renderTarget);
 
+  ///
+  ///
+  ///
+  Future<View> createView();
+  
+  ///
+  ///
+  ///
+  Future<View> getViewAt(int index);
 
   ///
   /// Sets the framerate for continuous rendering when [setRendering] is enabled.
@@ -247,36 +259,6 @@ abstract class ThermionViewer {
       {bool keepData = false});
 
   ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future panStart(double x, double y);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future panUpdate(double x, double y);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future panEnd();
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future rotateStart(double x, double y);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future rotateUpdate(double x, double y);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future rotateEnd();
-
-  ///
   /// Set the weights for all morph targets in [entity] to [weights].
   /// Note that [weights] must contain values for ALL morph targets, but no exception will be thrown if you don't do so (you'll just get incorrect results).
   /// If you only want to set one value, set all others to zero (check [getMorphTargetNames] if you need the get a list of all morph targets).
@@ -418,20 +400,6 @@ abstract class ThermionViewer {
   ///
   Future clearEntities();
 
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future zoomBegin();
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future zoomUpdate(double x, double y, double z);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future zoomEnd();
 
   ///
   /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
@@ -745,17 +713,6 @@ abstract class ThermionViewer {
   /// Retrieves the name assigned to the given ThermionEntity (usually corresponds to the glTF mesh name).
   ///
   String? getNameForEntity(ThermionEntity entity);
-
-  ///
-  /// Sets the options for manipulating the camera via the viewport.
-  /// ManipulatorMode.FREE_FLIGHT and ManipulatorMode.MAP are currently unsupported and will throw an exception.
-  ///
-  @Deprecated("Use InputHandler instead")
-  Future setCameraManipulatorOptions(
-      {ManipulatorMode mode = ManipulatorMode.ORBIT,
-      double orbitSpeedX = 0.01,
-      double orbitSpeedY = 0.01,
-      double zoomSpeed = 0.01});
 
   ///
   /// Returns all child entities under [parent].

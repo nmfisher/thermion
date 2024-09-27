@@ -3,10 +3,14 @@ headers:
   entry-points:
     - '../native/include/ThermionDartRenderThreadApi.h'
     - '../native/include/ThermionDartApi.h'
+    - '../native/include/TView.h'
+    - '../native/include/TGizmo.h'
     - '../native/include/ResourceBuffer.h'
   include-directives:
     - '../native/include/ThermionDartRenderThreadApi.h'
     - '../native/include/ThermionDartApi.h'
+    - '../native/include/TView.h'
+    - '../native/include/TGizmo.h'
     - '../native/include/ResourceBuffer.h'
     - '../native/include/APIBoundaryTypes.h'
 ffi-native:

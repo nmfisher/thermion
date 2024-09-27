@@ -27,9 +27,9 @@ extern "C"
         void (*callback)(TViewer *viewer));
     EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer, void *const surface, uint32_t width, uint32_t height, void (*onComplete)(TSwapChain*));
     EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain* swapChain, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TSwapChain* swapChain);
-    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TSwapChain* swapChain, uint8_t* out, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView* view, TSwapChain* swapChain);
+    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, uint8_t* out, void (*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
 
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer);
     
@@ -52,7 +52,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void create_instance_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void remove_entity_render_thread(TViewer *viewer, EntityId asset, void (*callback)());
     EMSCRIPTEN_KEEPALIVE void clear_entities_render_thread(TViewer *viewer, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void set_camera_render_thread(TViewer *viewer, EntityId asset, const char *nodeName, void (*callback)(bool));
+    
     EMSCRIPTEN_KEEPALIVE void apply_weights_render_thread(
         TSceneManager *sceneManager,
         EntityId asset,

@@ -14,12 +14,10 @@ namespace thermion_filament {
 
 using namespace filament::gltfio;
 
-Gizmo::Gizmo(Engine &engine, View* view, Scene* scene) : _engine(engine)
+Gizmo::Gizmo(Engine &engine, Scene* scene) : _engine(engine)
 {
     
     _scene = scene;
-    _view = view;
-    _camera = &(_view->getCamera());
     
     auto &entityManager = EntityManager::get();
 
@@ -326,10 +324,10 @@ void Gizmo::unhighlight() {
     }
 }
 
-void Gizmo::pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
+void Gizmo::pick(View *view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
   {
     auto handler = new Gizmo::PickCallbackHandler(this, callback);
-    _view->pick(x, y,  [=](filament::View::PickingQueryResult const &result) { 
+    view->pick(x, y,  [=](filament::View::PickingQueryResult const &result) { 
         handler->handle(result);
     });
   }

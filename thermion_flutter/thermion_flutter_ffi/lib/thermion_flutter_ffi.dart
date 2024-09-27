@@ -240,7 +240,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     if (newTexture.hardwareTextureId != null) {
       // ignore: unused_local_variable
       var renderTarget = await _viewer!.createRenderTarget(
-          width.toDouble(), height.toDouble(), newTexture.hardwareTextureId!);
+          width, height, newTexture.hardwareTextureId!);
     }
     await _viewer!
         .updateViewportAndCameraProjection(width.toDouble(), height.toDouble());
