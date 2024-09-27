@@ -643,11 +643,21 @@ external int get_bone(
 
 @ffi.Native<
     ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId,
-        ffi.Pointer<ffi.Float>)>(isLeaf: true)
-external bool set_transform(
+        ffi.Pointer<ffi.Double>)>(isLeaf: true)
+external bool SceneManager_setTransform(
   ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
-  ffi.Pointer<ffi.Float> transform,
+  ffi.Pointer<ffi.Double> transform,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSceneManager>, ffi.Pointer<EntityId>,
+        ffi.Pointer<ffi.Double>, ffi.Int)>(isLeaf: true)
+external void SceneManager_queueTransformUpdates(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<EntityId> entities,
+  ffi.Pointer<ffi.Double> transforms,
+  int numEntities,
 );
 
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId)>(
@@ -717,18 +727,6 @@ external void transform_to_unit_cube(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
-        ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
-external void queue_position_update(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int entity,
-  double x,
-  double y,
-  double z,
-  bool relative,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
         ffi.Float, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
 external void queue_relative_position_update_world_axis(
   ffi.Pointer<TSceneManager> sceneManager,
@@ -748,20 +746,6 @@ external void queue_position_update_from_viewport_coords(
   int entity,
   double viewportX,
   double viewportY,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Float,
-        ffi.Float, ffi.Float, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
-external void queue_rotation_update(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int entity,
-  double rads,
-  double x,
-  double y,
-  double z,
-  double w,
-  bool relative,
 );
 
 @ffi.Native<
@@ -1462,6 +1446,16 @@ external void MaterialInstance_setDepthCulling(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double, ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat2(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  double x,
+  double y,
+);
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>,
@@ -1557,9 +1551,12 @@ external void set_rendering_render_thread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void request_frame_render_thread(
   ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
@@ -1625,75 +1622,8 @@ external void load_skybox_render_thread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
-external void load_ibl_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Char> iblPath,
-  double intensity,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void remove_skybox_render_thread(
-  ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void remove_ibl_render_thread(
-  ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TViewer>,
-            ffi.Uint8,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Bool,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void add_light_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  int type,
-  double colour,
-  double intensity,
-  double posX,
-  double posY,
-  double posZ,
-  double dirX,
-  double dirY,
-  double dirZ,
-  double falloffRadius,
-  double spotLightConeInner,
-  double spotLightConeOuter,
-  double sunAngularRadius,
-  double sunHaloSize,
-  double sunHaloFallof,
-  bool shadows,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, EntityId)>(isLeaf: true)
-external void remove_light_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  int entityId,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void clear_lights_render_thread(
   ffi.Pointer<TViewer> viewer,
 );
 
