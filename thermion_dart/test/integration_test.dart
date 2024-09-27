@@ -24,22 +24,17 @@ void main() async {
     test('set background color to full transparency', () async {
       var viewer = await createViewer();
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 0.0);
-      await testHelper.capture(viewer, "set_background_color_to_transparent_green");
+      await testHelper.capture(
+          viewer, "set_background_color_to_transparent_green");
       await viewer.dispose();
     });
 
-    test('load skybox', () async {
-      var viewer = await createViewer();
-      await viewer.loadSkybox(
-          "file:///$testDir/../../examples/assets/default_env/default_env_skybox.ktx");
-      await Future.delayed(Duration(seconds: 1));
-      await testHelper.capture(viewer, "skybox");
-    });
+
 
     test('set background image', () async {
       var viewer = await createViewer();
-      await viewer
-          .setBackgroundImage("file:///$testDir/cube_texture_512x512.png");
+      await viewer.setBackgroundImage(
+          "file:///${testHelper.testDir}/assets/cube_texture_512x512.png");
       await viewer.setPostProcessing(true);
       await viewer.setToneMapping(ToneMapper.LINEAR);
       await testHelper.capture(viewer, "set_background_image");
@@ -50,7 +45,7 @@ void main() async {
   group("gltf", () {
     test('load glb from file', () async {
       var viewer = await createViewer();
-      var model = await viewer.loadGlb("file://$testDir/cube.glb");
+      var model = await viewer.loadGlb("file://${testHelper.testDir}/cube.glb");
       await viewer.transformToUnitCube(model);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
       await viewer.setCameraPosition(0, 1, 5);
@@ -61,7 +56,7 @@ void main() async {
 
     test('load glb from buffer', () async {
       var viewer = await createViewer();
-      var buffer = File("$testDir/cube.glb").readAsBytesSync();
+      var buffer = File("${testHelper.testDir}/cube.glb").readAsBytesSync();
       var model = await viewer.loadGlbFromBuffer(buffer);
       await viewer.transformToUnitCube(model);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
@@ -79,7 +74,7 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var buffer = File("$testDir/cube.glb").readAsBytesSync();
+      var buffer = File("${testHelper.testDir}/cube.glb").readAsBytesSync();
       var model1 = await viewer.loadGlbFromBuffer(buffer, priority: 7);
       var model2 = await viewer.loadGlbFromBuffer(buffer, priority: 0);
 
@@ -182,7 +177,7 @@ void main() async {
 
       late StreamSubscription listener;
 
-      final uri = "$testDir/cube.glb";
+      final uri = "${testHelper.testDir}/cube.glb";
 
       listener = viewer.sceneUpdated.listen((updateEvent) {
         var wasSuccess = updateEvent.eventType == EventType.EntityAdded &&
@@ -197,7 +192,7 @@ void main() async {
 
     test('remove glb fires SceneUpdateEvent', () async {
       var viewer = await createViewer();
-      final uri = "$testDir/cube.glb";
+      final uri = "${testHelper.testDir}/cube.glb";
       var entity = await viewer.loadGlb(uri, keepData: false);
 
       final success = Completer<bool>();
@@ -273,7 +268,8 @@ void main() async {
           materialInstance: materialInstance);
       await viewer.setMaterialPropertyFloat4(
           cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 0.0);
-      await testHelper.capture(viewer, "geometry_cube_with_custom_material_ubershader");
+      await testHelper.capture(
+          viewer, "geometry_cube_with_custom_material_ubershader");
       await viewer.removeEntity(cube);
       await viewer.destroyMaterialInstance(materialInstance);
     });
@@ -292,7 +288,7 @@ void main() async {
           GeometryHelper.cube(uvs: true, normals: true),
           materialInstance: materialInstance);
       var textureData =
-          File("$testDir/cube_texture_512x512.png").readAsBytesSync();
+          File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
       await viewer.applyTexture(texture as ThermionFFITexture, cube);
       await testHelper.capture(
@@ -300,6 +296,25 @@ void main() async {
       await viewer.removeEntity(cube);
       await viewer.destroyMaterialInstance(materialInstance);
       await viewer.destroyTexture(texture);
+    });
+
+    test('unlit material with color only', () async {
+      var viewer = await createViewer();
+      await viewer.setCameraPosition(0, 0, 6);
+      await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
+      await viewer.setPostProcessing(true);
+      await viewer.setToneMapping(ToneMapper.LINEAR);
+
+      var materialInstance = await viewer.createUnlitMaterialInstance();
+      var cube = await viewer.createGeometry(GeometryHelper.cube(),
+          materialInstance: materialInstance);
+
+      await viewer.setMaterialPropertyFloat4(
+          cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
+
+      await testHelper.capture(viewer, "unlit_material_base_color");
+
+      await viewer.dispose();
     });
 
     test('create cube with custom material instance (unlit)', () async {
@@ -316,7 +331,7 @@ void main() async {
           materialInstance: materialInstance);
 
       var textureData =
-          File("$testDir/cube_texture_512x512.png").readAsBytesSync();
+          File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
       await viewer.applyTexture(texture, cube);
       await testHelper.capture(
@@ -385,7 +400,8 @@ void main() async {
       // if we disable depth write on cube1, then cube2 will always appear in front
       // (relying on insertion order)
       materialInstance!.setDepthWriteEnabled(false);
-      await testHelper.capture(viewer, "material_instance_depth_write_disabled");
+      await testHelper.capture(
+          viewer, "material_instance_depth_write_disabled");
 
       // set priority for the cube1 cube to 7 (render) last, cube1 renders in front
       await viewer.setPriority(cube1, 7);
@@ -395,7 +411,7 @@ void main() async {
   });
 
   //   test('create instance from glb when keepData is true', () async {
-  //     var model = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
   //     await viewer.transformToUnitCube(model);
   //     var instance = await viewer.createInstance(model);
   //     await viewer.setPosition(instance, 0.5, 0.5, -0.5);
@@ -409,7 +425,7 @@ void main() async {
   //   });
 
   //   test('create instance from glb fails when keepData is false', () async {
-  //     var model = await viewer.loadGlb("$testDir/cube.glb", keepData: false);
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: false);
   //     bool thrown = false;
   //     try {
   //       await viewer.createInstance(model);
@@ -422,27 +438,27 @@ void main() async {
 
   // group('Skinning & animations', () {
   //   test('get bone names', () async {
-  //     var model = await viewer.loadGlb("$testDir/assets/shapes.glb");
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/assets/shapes.glb");
   //     var names = await viewer.getBoneNames(model);
   //     expect(names.first, "Bone");
   //   });
 
   //   test('reset bones', () async {
-  //     var model = await viewer.loadGlb("$testDir/assets/shapes.glb");
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/assets/shapes.glb");
   //     await viewer.resetBones(model);
   //   });
   //   test('set from BVH', () async {
-  //     var model = await viewer.loadGlb("$testDir/assets/shapes.glb");
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/assets/shapes.glb");
   //     var animation = BVHParser.parse(
-  //         File("$testDir/assets/animation.bvh").readAsStringSync(),
+  //         File("${testHelper.testDir}/assets/animation.bvh").readAsStringSync(),
   //         boneRegex: RegExp(r"Bone$"));
   //     await viewer.addBoneAnimation(model, animation);
   //   });
 
   //   test('fade in/out', () async {
-  //     var model = await viewer.loadGlb("$testDir/assets/shapes.glb");
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/assets/shapes.glb");
   //     var animation = BVHParser.parse(
-  //         File("$testDir/assets/animation.bvh").readAsStringSync(),
+  //         File("${testHelper.testDir}/assets/animation.bvh").readAsStringSync(),
   //         boneRegex: RegExp(r"Bone$"));
   //     await viewer.addBoneAnimation(model, animation,
   //         fadeInInSecs: 0.5, fadeOutInSecs: 0.5);
@@ -504,6 +520,25 @@ void main() async {
   });
 
   group("transforms & parenting", () {
+    test('set multiple transforms simultaneously with setTransforms', () async {
+      var viewer =
+          await createViewer(bg: kRed, cameraPosition: Vector3(0, 0, 5));
+      final cube1 = await viewer.createGeometry(GeometryHelper.cube());
+      final cube2 = await viewer.createGeometry(GeometryHelper.cube());
+
+      await viewer.queueTransformUpdates([
+        cube1,
+        cube2
+      ], [
+        Matrix4.translation(Vector3(-1, 0, 0)),
+        Matrix4.translation(Vector3(1, 0, 0))
+      ]);
+
+      await viewer.render();
+
+      await testHelper.capture(viewer, "set_multiple_transforms");
+    });
+
     test('getParent and getAncestor both return null when entity has no parent',
         () async {
       var viewer = await createViewer();
@@ -584,11 +619,13 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var buffer = File("$testDir/cube.glb").readAsBytesSync();
+      var buffer = File("${testHelper.testDir}/cube.glb").readAsBytesSync();
       var model = await viewer.loadGlbFromBuffer(buffer, layer: 1);
-      await testHelper.capture(viewer, "load_glb_from_buffer_with_layer_disabled");
+      await testHelper.capture(
+          viewer, "load_glb_from_buffer_with_layer_disabled");
       await viewer.setLayerVisibility(1, true);
-      await testHelper.capture(viewer, "load_glb_from_buffer_with_layer_enabled");
+      await testHelper.capture(
+          viewer, "load_glb_from_buffer_with_layer_enabled");
     });
 
     test('change layer visibility at runtime', () async {
@@ -600,7 +637,8 @@ void main() async {
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
       var cube = await viewer.createGeometry(GeometryHelper.cube());
-      await testHelper.capture(viewer, "change_layer_visibility_at_runtime_default");
+      await testHelper.capture(
+          viewer, "change_layer_visibility_at_runtime_default");
 
       // all entities set to layer 0 by default, so this should now be invisible
       await viewer.setLayerVisibility(0, false);
@@ -620,7 +658,7 @@ void main() async {
   });
 
   //   test('point light', () async {
-  //     var model = await viewer.loadGlb("$testDir/cube.glb");
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb");
   //     await viewer.transformToUnitCube(model);
   //     var light = await viewer.addLight(
   //         LightType.POINT, 6500, 1000000, 0, 2, 0, 0, -1, 0,
@@ -635,7 +673,7 @@ void main() async {
   //   });
 
   //   test('set point light position', () async {
-  //     var model = await viewer.loadGlb("$testDir/cube.glb");
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb");
   //     await viewer.transformToUnitCube(model);
   //     var light = await viewer.addLight(
   //         LightType.POINT, 6500, 1000000, 0, 2, 0, 0, -1, 0,
@@ -651,7 +689,7 @@ void main() async {
   //   });
 
   //   test('directional light', () async {
-  //     var model = await viewer.loadGlb("$testDir/cube.glb");
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb");
   //     await viewer.transformToUnitCube(model);
   //     var light = await viewer.addLight(
   //         LightType.SUN, 6500, 1000000, 0, 0, 0, 0, -1, 0);
@@ -665,7 +703,7 @@ void main() async {
   //   });
 
   //   test('set directional light direction', () async {
-  //     var model = await viewer.loadGlb("$testDir/cube.glb");
+  //     var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb");
   //     await viewer.transformToUnitCube(model);
   //     var light = await viewer.addLight(
   //         LightType.SUN, 6500, 1000000, 0, 0, 0, 0, -1, 0);
@@ -682,7 +720,7 @@ void main() async {
   group("stencil", () {
     test('set stencil highlight for glb', () async {
       final viewer = await createViewer();
-      var model = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
+      var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
       await viewer.setPostProcessing(true);
 
       var light = await viewer.addLight(
@@ -723,7 +761,7 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube1 = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
+      var cube1 = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
       await viewer.transformToUnitCube(cube1);
 
       await viewer.setStencilHighlight(cube1);
@@ -754,7 +792,8 @@ void main() async {
       await viewer.removeStencilHighlight(cube1);
       await viewer.removeStencilHighlight(cube2);
 
-      await testHelper.capture(viewer, "stencil_highlight_multiple_geometry_removed");
+      await testHelper.capture(
+          viewer, "stencil_highlight_multiple_geometry_removed");
     });
 
     test('set stencil highlight for multiple gltf assets ', () async {
@@ -765,9 +804,9 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube1 = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
+      var cube1 = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
       await viewer.transformToUnitCube(cube1);
-      var cube2 = await viewer.loadGlb("$testDir/cube.glb", keepData: true);
+      var cube2 = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
       await viewer.transformToUnitCube(cube2);
       await viewer.setPosition(cube2, 0.5, 0.5, 0);
       await viewer.setStencilHighlight(cube1);
@@ -778,7 +817,8 @@ void main() async {
       await viewer.removeStencilHighlight(cube1);
       await viewer.removeStencilHighlight(cube2);
 
-      await testHelper.capture(viewer, "stencil_highlight_multiple_geometry_removed");
+      await testHelper.capture(
+          viewer, "stencil_highlight_multiple_geometry_removed");
     });
   });
 
@@ -787,7 +827,7 @@ void main() async {
       var viewer = await createViewer();
 
       var textureData =
-          File("$testDir/cube_texture_512x512.png").readAsBytesSync();
+          File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
 
       var texture = await viewer.createTexture(textureData);
       await viewer.setBackgroundColor(0.0, 0.0, 0.0, 1.0);
@@ -853,7 +893,7 @@ void main() async {
   //     await viewer.setMaterialPropertyFloat4(
   //         cube, "baseColorFactor", 0, 1.0, 1.0, 1.0, 1.0);
   //     var textureData =
-  //         File("$testDir/cube_texture_512x512.png").readAsBytesSync();
+  //         File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
   //     var texture = await viewer.createTexture(textureData);
   //     await viewer.applyTexture(texture, cube,
   //         materialIndex: 0, parameterName: "baseColorMap");

@@ -55,7 +55,6 @@ extension on Uri {
   String get name => pathSegments.where((e) => e != '').last;
 }
 
-late String testDir;
 
 Future<Uint8List> savePixelBufferToBmp(
     Uint8List pixelBuffer, int width, int height, String outputPath) async {
@@ -66,7 +65,9 @@ Future<Uint8List> savePixelBufferToBmp(
 }
 
 class TestHelper {
+  
   late Directory outDir;
+  late String testDir;
 
   TestHelper(String dir) {
     final packageUri = findPackageRoot('thermion_dart');
