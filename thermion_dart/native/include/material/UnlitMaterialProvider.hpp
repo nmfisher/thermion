@@ -35,6 +35,7 @@ public:
                                                        const char* label = "unlit", 
                                                        const char* extras = nullptr) override {
         auto instance = mUnlitMaterial->createInstance();
+        instance->setParameter("baseColorIndex", -1);
         return instance;
     }
 
