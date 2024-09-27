@@ -196,7 +196,10 @@ extern "C"
 										   EntityId entityId,
 										   int skinIndex,
 										   int boneIndex);
-	EMSCRIPTEN_KEEPALIVE bool set_transform(TSceneManager *sceneManager, EntityId entityId, const float *const transform);
+	
+	EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform);
+	EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *sceneManager, EntityId* entities, const double* const transforms, int numEntities);
+
 	EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void get_morph_target_name(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index);
 	EMSCRIPTEN_KEEPALIVE int get_morph_target_name_count(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity);
@@ -204,10 +207,10 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void clear_entities(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE bool set_material_color(TSceneManager *sceneManager, EntityId entity, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a);
 	EMSCRIPTEN_KEEPALIVE void transform_to_unit_cube(TSceneManager *sceneManager, EntityId asset);
-	EMSCRIPTEN_KEEPALIVE void queue_position_update(TSceneManager *sceneManager, EntityId entity, float x, float y, float z, bool relative);
+	
 	EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY);
-	EMSCRIPTEN_KEEPALIVE void queue_rotation_update(TSceneManager *sceneManager, EntityId entity, float rads, float x, float y, float z, float w, bool relative);
+
 	EMSCRIPTEN_KEEPALIVE void set_position(TSceneManager *sceneManager, EntityId entity, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void set_rotation(TSceneManager *sceneManager, EntityId entity, float rads, float x, float y, float z, float w);
 	EMSCRIPTEN_KEEPALIVE void set_scale(TSceneManager *sceneManager, EntityId entity, float scale);
@@ -317,6 +320,7 @@ extern "C"
 	
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance* materialInstance, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance* materialInstance, bool enabled);
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance* materialInstance, const char* name, double x, double y);
 
 
 #ifdef __cplusplus
