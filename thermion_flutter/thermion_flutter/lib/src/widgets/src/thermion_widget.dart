@@ -12,10 +12,8 @@ import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'resize_observer.dart';
 
 class ThermionWidget extends StatefulWidget {
-  
   final ThermionViewer viewer;
   final ThermionFlutterOptions? options;
-
 
   ///
   /// The content to render before the texture widget is available.
@@ -63,13 +61,19 @@ class _ThermionWidgetState extends State<ThermionWidget> {
     super.initState();
   }
 
-  void _requestFrame() {
-    WidgetsBinding.instance.scheduleFrameCallback((d) {
 
-      widget.viewer.requestFrame();
-      _requestFrame();
-    });
-  }
+bool _rendering = false;
+
+void _requestFrame() {
+  WidgetsBinding.instance.scheduleFrameCallback((d) async {
+    if (!_rendering) {
+      _rendering = true;
+      await widget.viewer.requestFrame();
+      _rendering = false;
+    }
+    _requestFrame();
+  });
+}
 
   bool _resizing = false;
   Timer? _resizeTimer;
