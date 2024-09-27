@@ -336,7 +336,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
     final pathPtr =
         lightingPath.toNativeUtf8(allocator: allocator).cast<Char>();
-    load_ibl_render_thread(_viewer!, pathPtr, intensity);
+    load_ibl(_viewer!, pathPtr, intensity);
   }
 
   ///
@@ -365,7 +365,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeIbl() async {
-    remove_ibl_render_thread(_viewer!);
+    remove_ibl(_viewer!);
   }
 
   @override
@@ -408,7 +408,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
-    var entity = await withIntCallback((callback) => add_light_render_thread(
+    var entity = add_light(
         _viewer!,
         directLight.type.index,
         directLight.color,
@@ -426,7 +426,7 @@ class ThermionViewerFFI extends ThermionViewer {
         directLight.sunHaloSize,
         directLight.sunHaloFallof,
         directLight.castShadows,
-        callback));
+        );
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to add light to scene");
     }
@@ -440,7 +440,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeLight(ThermionEntity entity) async {
-    remove_light_render_thread(_viewer!, entity);
+    remove_light(_viewer!, entity);
     _sceneUpdateEventController.add(SceneUpdateEvent.remove(entity));
   }
 
@@ -449,8 +449,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future clearLights() async {
-    clear_lights_render_thread(_viewer!);
-
+    clear_lights(_viewer!);
     _sceneUpdateEventController.add(SceneUpdateEvent.clearLights());
   }
 
@@ -941,12 +940,21 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setTransform(ThermionEntity entity, Matrix4 transform) async {
-    final ptr = allocator<Float>(16);
-    for (int i = 0; i < 16; i++) {
-      ptr[i] = transform[i];
-    }
-    set_transform(_sceneManager!, entity, ptr);
-    allocator.free(ptr);
+    SceneManager_setTransform(
+        _sceneManager!, entity, transform.storage.address);
+  }
+
+  ///
+  ///
+  ///
+  Future queueTransformUpdates(
+      List<ThermionEntity> entities, List<Matrix4> transforms) async {
+    var tEntities = Int32List.fromList(entities);
+    var tTransforms =
+        Float64List.fromList(transforms.expand((t) => t.storage).toList());
+
+    SceneManager_queueTransformUpdates(_sceneManager!, tEntities.address,
+        tTransforms.address, tEntities.length);
   }
 
   ///
@@ -1464,36 +1472,6 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setScale(ThermionEntity entity, double scale) async {
     set_scale(_sceneManager!, entity, scale);
-  }
-
-  ///
-  ///
-  ///
-  Future queueRotationUpdateQuat(ThermionEntity entity, Quaternion rotation,
-      {bool relative = false}) async {
-    queue_rotation_update(_sceneManager!, entity, rotation.radians, rotation.x,
-        rotation.y, rotation.z, rotation.w, relative);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future queueRotationUpdate(
-      ThermionEntity entity, double rads, double x, double y, double z,
-      {bool relative = false}) async {
-    var quat = Quaternion.axisAngle(Vector3(x, y, z), rads);
-    await queueRotationUpdateQuat(entity, quat, relative: relative);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future queuePositionUpdate(
-      ThermionEntity entity, double x, double y, double z,
-      {bool relative = false}) async {
-    queue_position_update(_sceneManager!, entity, x, y, z, relative);
   }
 
   ///
@@ -2176,7 +2154,15 @@ class ThermionViewerFFI extends ThermionViewer {
     for (final hook in _hooks) {
       await hook.call();
     }
-    request_frame_render_thread(_viewer!);
+    final completer = Completer();
+
+    final callback = NativeCallable<Void Function()>.listener(() {
+      completer.complete(true);
+    });
+
+    request_frame_render_thread(_viewer!, callback.nativeFunction);
+
+    await completer.future;
   }
 
   Future<Camera> createCamera() async {
@@ -2260,5 +2246,11 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
   @override
   Future setDepthWriteEnabled(bool enabled) async {
     MaterialInstance_setDepthWrite(this._pointer, enabled);
+  }
+
+  @override
+  Future setParameterFloat2(String name, double x, double y) async {
+    MaterialInstance_setParameterFloat2(
+        _pointer, name.toNativeUtf8().cast<Char>(), x, y);
   }
 }

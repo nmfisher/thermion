@@ -33,7 +33,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void capture_render_thread(TViewer *viewer, uint8_t* out, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
     EMSCRIPTEN_KEEPALIVE void set_rendering_render_thread(TViewer *viewer, bool rendering, void(*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(TViewer *viewer);
+    EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(TViewer *viewer, void(*onComplete)());
     EMSCRIPTEN_KEEPALIVE void set_frame_interval_render_thread(TViewer *viewer, float frameInterval);
     EMSCRIPTEN_KEEPALIVE void set_background_color_render_thread(TViewer *viewer, const float r, const float g, const float b, const float a);
     EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer);
@@ -42,30 +42,8 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void set_tone_mapping_render_thread(TViewer *viewer, int toneMapping);
     EMSCRIPTEN_KEEPALIVE void set_bloom_render_thread(TViewer *viewer, float strength);
     EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer, const char *skyboxPath, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void load_ibl_render_thread(TViewer *viewer, const char *iblPath, float intensity);
     EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer);
-    EMSCRIPTEN_KEEPALIVE void remove_ibl_render_thread(TViewer *viewer);
-    EMSCRIPTEN_KEEPALIVE void add_light_render_thread(
-        TViewer *viewer,
-        uint8_t type,
-        float colour,
-        float intensity,
-        float posX,
-        float posY,
-        float posZ,
-        float dirX,
-        float dirY,
-        float dirZ,
-        float falloffRadius,
-        float spotLightConeInner,
-        float spotLightConeOuter,
-        float sunAngularRadius,
-        float sunHaloSize,
-        float sunHaloFallof,
-        bool shadows,
-        void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void remove_light_render_thread(TViewer *viewer, EntityId entityId);
-    EMSCRIPTEN_KEEPALIVE void clear_lights_render_thread(TViewer *viewer);
+
     EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_render_thread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));

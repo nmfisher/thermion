@@ -82,9 +82,10 @@ public:
     }
   }
 
-  void requestFrame()
+  void requestFrame(void (*callback)())
   {
     this->_render = true;
+    this->_requestFrameRenderCallback = callback;
   }
 
    void iter()
@@ -93,6 +94,7 @@ public:
     if (_render)
     {
       doRender();
+      this->_requestFrameRenderCallback();
       _render = false;
 
       // Calculate and print FPS
@@ -214,9 +216,12 @@ public:
     return ret;
   }
 
+public:
+  std::atomic_bool _render = false;
+
 private:
+  void(*_requestFrameRenderCallback)()  = nullptr;
   bool _stop = false;
-  bool _render = false;
   int _frameIntervalInMicroseconds = 1000000 / 60;
   std::mutex _mutex;
   std::condition_variable _cv;
@@ -317,7 +322,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(TViewer *viewer)
+  EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(TViewer *viewer, void(*onComplete)())
   {
     if (!_rl)
     {
@@ -325,7 +330,7 @@ extern "C"
     }
     else
     {
-      _rl->requestFrame();
+      _rl->requestFrame(onComplete);
     }
   }
 
@@ -502,73 +507,6 @@ extern "C"
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_ibl(viewer); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  void add_light_render_thread(
-      TViewer *viewer,
-      uint8_t type,
-      float colour,
-      float intensity,
-      float posX,
-      float posY,
-      float posZ,
-      float dirX,
-      float dirY,
-      float dirZ,
-      float falloffRadius,
-      float spotLightConeInner,
-      float spotLightConeOuter,
-      float sunAngularRadius,
-      float sunHaloSize,
-      float sunHaloFallof,
-      bool shadows,
-      void (*callback)(EntityId))
-  {
-    std::packaged_task<EntityId()> lambda([=]
-                                          {
-    auto entity = add_light(
-      viewer, 
-      type,
-      colour,
-      intensity,
-      posX,
-      posY,
-      posZ,
-      dirX,
-      dirY,
-      dirZ,
-      falloffRadius,
-      spotLightConeInner,
-      spotLightConeOuter,
-      sunAngularRadius, 
-      sunHaloSize,
-      sunHaloFallof,
-      shadows);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({
-            moduleArg.dartFilamentResolveCallback($0, $1);
-          }, callback, entity);
-#else
-      callback(entity);
-#endif
-    
-    return entity; });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void remove_light_render_thread(TViewer *viewer,
-                                                       EntityId entityId)
-  {
-    std::packaged_task<void()> lambda([=]
-                                      { remove_light(viewer, entityId); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void clear_lights_render_thread(TViewer *viewer)
-  {
-    std::packaged_task<void()> lambda([=]
-                                      { clear_lights(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
