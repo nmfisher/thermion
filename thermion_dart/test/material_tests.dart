@@ -15,7 +15,7 @@ void main() async {
 
   group("texture tests", () {
     test('apply texture to custom ubershader material instance', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
       await viewer.setCameraPosition(0, 2, 6);
       await viewer
@@ -38,7 +38,7 @@ void main() async {
     });
 
     test('unlit material with color only', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
       await viewer.setPostProcessing(true);
@@ -57,7 +57,7 @@ void main() async {
     });
 
     test('create cube with custom material instance (unlit)', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setCameraPosition(0, 2, 6);
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
@@ -106,7 +106,7 @@ void main() async {
     });
 
     test('create sphere (no normals)', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
       await viewer.setCameraPosition(0, 0, 6);
       await viewer
@@ -117,7 +117,7 @@ void main() async {
 
   group("MaterialInstance", () {
     test('disable depth write', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.addDirectLight(
@@ -149,7 +149,7 @@ void main() async {
     });
 
     test('set uv scaling (unlit)', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.addDirectLight(
@@ -174,7 +174,7 @@ void main() async {
 
   group("stencil", () {
     test('set stencil highlight for glb', () async {
-      final viewer = await createViewer();
+      final viewer = await testHelper.createViewer();
       var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
       await viewer.setPostProcessing(true);
 
@@ -191,7 +191,7 @@ void main() async {
     });
 
     test('set stencil highlight for geometry', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 2, 5);
@@ -209,7 +209,7 @@ void main() async {
     });
 
     test('set stencil highlight for gltf asset', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 1, 5);
@@ -229,7 +229,7 @@ void main() async {
     });
 
     test('set stencil highlight for multiple geometry ', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 1, 5);
@@ -252,7 +252,7 @@ void main() async {
     });
 
     test('set stencil highlight for multiple gltf assets ', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 1, 5);
@@ -279,7 +279,7 @@ void main() async {
 
   group("texture", () {
     test("create/apply/dispose texture", () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       var textureData =
           File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
@@ -318,7 +318,7 @@ void main() async {
 
   group("render thread", () {
     test("request frame on render thread", () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       viewer.requestFrame();
 
       await Future.delayed(Duration(milliseconds: 20));
@@ -330,7 +330,7 @@ void main() async {
   //   test("unproject", () async {
   //     final dimensions = (width: 1280, height: 768);
 
-  //     var viewer = await createViewer(viewportDimensions: dimensions);
+  //     var viewer = await testHelper.createViewer(viewportDimensions: dimensions);
   //     await viewer.setPostProcessing(false);
   //     // await viewer.setToneMapping(ToneMapper.LINEAR);
   //     await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);

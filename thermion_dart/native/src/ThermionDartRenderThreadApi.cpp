@@ -49,8 +49,8 @@ public:
 
   ~RenderLoop()
   {
-    _render = false;
     _stop = true;
+    target = nullptr;
     _cv.notify_one();
 #ifdef __EMSCRIPTEN__
     pthread_join(t, NULL);
@@ -82,20 +82,20 @@ public:
     }
   }
 
-  void requestFrame(void (*callback)())
+  void requestFrame(SwapChain* swapChain, void (*callback)())
   {
-    this->_render = true;
+    this->target = swapChain;
     this->_requestFrameRenderCallback = callback;
   }
 
    void iter()
   {
     std::unique_lock<std::mutex> lock(_mutex);
-    if (_render)
+    if (target)
     {
-      doRender();
+      doRender(target);
       this->_requestFrameRenderCallback();
-      _render = false;
+      target = nullptr;
 
       // Calculate and print FPS
       auto currentTime = std::chrono::high_resolution_clock::now();
@@ -123,7 +123,7 @@ public:
     }
 
     _cv.wait_for(lock, std::chrono::microseconds(1000), [this]
-                 { return !_tasks.empty() || _stop || _render; });
+                 { return !_tasks.empty() || _stop; });
 
     if (_stop)
       return;
@@ -169,14 +169,14 @@ public:
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       {
-      _render = false;
+      target = nullptr;
       _viewer = nullptr;
       destroy_filament_viewer(reinterpret_cast<TViewer*>(viewer)); });
     auto fut = add_task(lambda);
     fut.wait();
   }
 
-  bool doRender()
+  bool doRender(SwapChain *swapChain)
   {
 #ifdef __EMSCRIPTEN__
     if (emscripten_is_webgl_context_lost(_context) == EM_TRUE)
@@ -187,7 +187,8 @@ public:
       return;
     }
 #endif
-    auto rendered = render(_viewer, 0, nullptr, nullptr, nullptr);
+    TSwapChain *tSwapChain = reinterpret_cast<TSwapChain*>(swapChain);
+    auto rendered = Viewer_render(_viewer, tSwapChain, 0, nullptr, nullptr, nullptr);
     if (_renderCallback)
     {
       _renderCallback(_renderCallbackOwner);
@@ -217,7 +218,7 @@ public:
   }
 
 public:
-  std::atomic_bool _render = false;
+  SwapChain* target;
 
 private:
   void(*_requestFrameRenderCallback)()  = nullptr;
@@ -270,16 +271,31 @@ extern "C"
     _rl = nullptr;
   }
 
-  EMSCRIPTEN_KEEPALIVE void create_swap_chain_render_thread(TViewer *viewer,
+  EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer,
                                                             void *const surface,
                                                             uint32_t width,
                                                             uint32_t height,
-                                                            void (*onComplete)())
+                                                            void (*onComplete)(TSwapChain*))
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          create_swap_chain(viewer, surface, width, height);
+          auto *swapChain = Viewer_createSwapChain(viewer, surface, width, height);
+#ifdef __EMSCRIPTEN__
+          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, onComplete);
+#else
+          onComplete(swapChain);
+#endif
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain *swapChain, void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Viewer_destroySwapChain(viewer, swapChain);
 #ifdef __EMSCRIPTEN__
           MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, onComplete);
 #else
@@ -289,40 +305,8 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void destroy_swap_chain_render_thread(TViewer *viewer, void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          destroy_swap_chain(viewer);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, onComplete);
-#else
-          onComplete();
-#endif
-        });
-    auto fut = _rl->add_task(lambda);
-  }
 
-  EMSCRIPTEN_KEEPALIVE void create_render_target_render_thread(TViewer *viewer,
-                                                               intptr_t nativeTextureId,
-                                                               uint32_t width,
-                                                               uint32_t height,
-                                                               void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-                                        create_render_target(viewer, nativeTextureId, width, height);
-#ifdef __EMSCRIPTEN__
-                                        MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, onComplete);
-#else
-                                        onComplete();
-#endif
-                                      });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(TViewer *viewer, void(*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TSwapChain* tSwapChain, void(*onComplete)())
   {
     if (!_rl)
     {
@@ -330,7 +314,7 @@ extern "C"
     }
     else
     {
-      _rl->requestFrame(onComplete);
+      _rl->requestFrame(reinterpret_cast<SwapChain*>(tSwapChain), onComplete);
     }
   }
 
@@ -343,17 +327,24 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void render_render_thread(TViewer *viewer)
+  EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TSwapChain *tSwapChain)
   {
     std::packaged_task<void()> lambda([=]() mutable
-                                      { _rl->doRender(); });
+                                      { _rl->doRender(reinterpret_cast<SwapChain*>(tSwapChain)); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void capture_render_thread(TViewer *viewer, uint8_t *pixelBuffer, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TSwapChain *tSwapChain, uint8_t *pixelBuffer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]() mutable
-                                      { capture(viewer, pixelBuffer, onComplete); });
+                                      { Viewer_capture(viewer, tSwapChain, pixelBuffer, onComplete); });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TSwapChain *tSwapChain, TRenderTarget* tRenderTarget, uint8_t *pixelBuffer, void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda([=]() mutable
+                                      { Viewer_captureRenderTarget(viewer, tSwapChain, tRenderTarget, pixelBuffer, onComplete); });
     auto fut = _rl->add_task(lambda);
   }
 

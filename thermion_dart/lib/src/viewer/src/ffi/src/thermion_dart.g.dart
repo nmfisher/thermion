@@ -27,6 +27,101 @@ external ffi.Pointer<TSceneManager> Viewer_getSceneManager(
   ffi.Pointer<TViewer> viewer,
 );
 
+@ffi.Native<
+    ffi.Pointer<TRenderTarget> Function(
+        ffi.Pointer<TViewer>, ffi.IntPtr, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+external ffi.Pointer<TRenderTarget> Viewer_createRenderTarget(
+  ffi.Pointer<TViewer> viewer,
+  int texture,
+  int width,
+  int height,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TViewer>, ffi.Pointer<TRenderTarget>)>(isLeaf: true)
+external void Viewer_destroyRenderTarget(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TRenderTarget> tRenderTarget,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TViewer>, ffi.Pointer<TRenderTarget>)>(isLeaf: true)
+external void Viewer_setRenderTarget(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TRenderTarget> tRenderTarget,
+);
+
+@ffi.Native<
+    ffi.Pointer<TSwapChain> Function(ffi.Pointer<TViewer>,
+        ffi.Pointer<ffi.Void>, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+external ffi.Pointer<TSwapChain> Viewer_createSwapChain(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<ffi.Void> window,
+  int width,
+  int height,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<TSwapChain>)>(
+    isLeaf: true)
+external void Viewer_destroySwapChain(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TSwapChain> swapChain,
+);
+
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TViewer>,
+        ffi.Pointer<TSwapChain>,
+        ffi.Uint64,
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
+                    ffi.Pointer<ffi.Void> data)>>,
+        ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external bool Viewer_render(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TSwapChain> swapChain,
+  int frameTimeInNanos,
+  ffi.Pointer<ffi.Void> pixelBuffer,
+  ffi.Pointer<
+          ffi.NativeFunction<
+              ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
+                  ffi.Pointer<ffi.Void> data)>>
+      callback,
+  ffi.Pointer<ffi.Void> data,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TViewer>,
+        ffi.Pointer<TSwapChain>,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_capture(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TSwapChain> swapChain,
+  ffi.Pointer<ffi.Uint8> pixelBuffer,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TViewer>,
+        ffi.Pointer<TSwapChain>,
+        ffi.Pointer<TRenderTarget>,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_captureRenderTarget(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TSwapChain> swapChain,
+  ffi.Pointer<TRenderTarget> renderTarget,
+  ffi.Pointer<ffi.Uint8> pixelBuffer,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
 @ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external ffi.Pointer<TEngine> Viewer_getEngine(
   ffi.Pointer<TViewer> viewer,
@@ -45,16 +140,6 @@ external void Engine_setTransform(
   ffi.Pointer<TEngine> tEngine,
   int entity,
   double4x4 transform,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TViewer>, ffi.IntPtr, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
-external void create_render_target(
-  ffi.Pointer<TViewer> viewer,
-  int texture,
-  int width,
-  int height,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
@@ -298,52 +383,6 @@ external bool set_camera(
 external void set_view_frustum_culling(
   ffi.Pointer<TViewer> viewer,
   bool enabled,
-);
-
-@ffi.Native<
-    ffi.Bool Function(
-        ffi.Pointer<TViewer>,
-        ffi.Uint64,
-        ffi.Pointer<ffi.Void>,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
-                    ffi.Pointer<ffi.Void> data)>>,
-        ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external bool render(
-  ffi.Pointer<TViewer> viewer,
-  int frameTimeInNanos,
-  ffi.Pointer<ffi.Void> pixelBuffer,
-  ffi.Pointer<
-          ffi.NativeFunction<
-              ffi.Void Function(ffi.Pointer<ffi.Void> buf, ffi.Size size,
-                  ffi.Pointer<ffi.Void> data)>>
-      callback,
-  ffi.Pointer<ffi.Void> data,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Uint8>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void capture(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Uint8> pixelBuffer,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Void>, ffi.Uint32,
-        ffi.Uint32)>(isLeaf: true)
-external void create_swap_chain(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Void> window,
-  int width,
-  int height,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void destroy_swap_chain(
-  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
@@ -1111,19 +1150,6 @@ external ffi.Pointer<ffi.Char> get_entity_name_at(
   bool renderableOnly,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool)>(isLeaf: true)
-external void set_recording(
-  ffi.Pointer<TViewer> viewer,
-  bool recording,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>)>(
-    isLeaf: true)
-external void set_recording_output_directory(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Char> outputDirectory,
-);
-
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void ios_dummy();
 
@@ -1484,56 +1510,71 @@ external void create_filament_viewer_render_thread(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TViewer>,
-        ffi.Pointer<ffi.Void>,
-        ffi.Uint32,
-        ffi.Uint32,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void create_swap_chain_render_thread(
+        ffi.Void Function(
+            ffi.Pointer<TViewer>,
+            ffi.Pointer<ffi.Void>,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TSwapChain>)>>)>(
+    isLeaf: true)
+external void Viewer_createSwapChainRenderThread(
   ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Void> surface,
   int width,
   int height,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSwapChain>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<TSwapChain>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_destroySwapChainRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TSwapChain> swapChain,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<TSwapChain>)>(
+    isLeaf: true)
+external void Viewer_renderRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TSwapChain> swapChain,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TViewer>,
+        ffi.Pointer<TSwapChain>,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_captureRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TSwapChain> swapChain,
+  ffi.Pointer<ffi.Uint8> out,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>,
+    ffi.Void Function(
+        ffi.Pointer<TViewer>,
+        ffi.Pointer<TSwapChain>,
+        ffi.Pointer<TRenderTarget>,
+        ffi.Pointer<ffi.Uint8>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void destroy_swap_chain_render_thread(
+external void Viewer_captureRenderTargetRenderThread(
   ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.IntPtr, ffi.Uint32, ffi.Uint32,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void create_render_target_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  int nativeTextureId,
-  int width,
-  int height,
+  ffi.Pointer<TSwapChain> swapChain,
+  ffi.Pointer<TRenderTarget> renderTarget,
+  ffi.Pointer<ffi.Uint8> out,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_filament_viewer_render_thread(
   ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void render_render_thread(
-  ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Uint8>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void capture_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Uint8> out,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<FilamentRenderCallback Function(FilamentRenderCallback)>(
@@ -1926,6 +1967,10 @@ final class TEntityManager extends ffi.Opaque {}
 final class TViewer extends ffi.Opaque {}
 
 final class TSceneManager extends ffi.Opaque {}
+
+final class TRenderTarget extends ffi.Opaque {}
+
+final class TSwapChain extends ffi.Opaque {}
 
 final class TMaterialKey extends ffi.Struct {
   @ffi.Bool()

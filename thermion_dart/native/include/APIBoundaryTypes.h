@@ -15,6 +15,8 @@ extern "C"
 	typedef struct TEntityManager TEntityManager;
 	typedef struct TViewer TViewer;
 	typedef struct TSceneManager TSceneManager;
+	typedef struct TRenderTarget TRenderTarget;
+	typedef struct TSwapChain TSwapChain;
 
 	struct TMaterialKey {
 		bool doubleSided = 1;

@@ -10,6 +10,8 @@ import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 
+import 'shared_types/swap_chain.dart';
+
 const double kNear = 0.05;
 const double kFar = 1000.0;
 const double kFocalLength = 28.0;
@@ -60,7 +62,7 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame immediately.
   ///
-  Future render();
+  Future render(covariant SwapChain swapChain);
 
   ///
   /// Requests a single frame to be rendered. This is only intended to be used internally.
@@ -70,7 +72,23 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame and copy the pixel buffer to [out].
   ///
-  Future<Uint8List> capture();
+  Future<Uint8List> capture(covariant SwapChain swapChain, { covariant RenderTarget? renderTarget });
+
+  ///
+  ///
+  ///
+  Future<SwapChain> createSwapChain(int width, int height);
+
+  ///
+  ///
+  ///
+  Future<RenderTarget> createRenderTarget(int width, int height, int textureHandle);
+
+  ///
+  ///
+  ///
+  Future setRenderTarget(covariant RenderTarget renderTarget);
+
 
   ///
   /// Sets the framerate for continuous rendering when [setRendering] is enabled.
@@ -368,7 +386,8 @@ abstract class ThermionViewer {
   /// Sets multiple transforms (relative to parent) simultaneously for [entity].
   /// Uses mutex to ensure that transform updates aren't split across frames.
   ///
-  Future queueTransformUpdates(List<ThermionEntity> entities, List<Matrix4> transforms);
+  Future queueTransformUpdates(
+      List<ThermionEntity> entities, List<Matrix4> transforms);
 
   ///
   /// Updates the bone matrices for [entity] (which must be the ThermionEntity
@@ -756,17 +775,6 @@ abstract class ThermionViewer {
   ///
   Future<List<String>> getChildEntityNames(ThermionEntity entity,
       {bool renderableOnly = true});
-
-  ///
-  /// If [recording] is set to true, each frame the framebuffer/texture will be written to /tmp/output_*.png.
-  /// This will impact performance; handle with care.
-  ///
-  Future setRecording(bool recording);
-
-  ///
-  /// Sets the output directory where recorded PNGs will be placed.
-  ///
-  Future setRecordingOutputDirectory(String outputDirectory);
 
   ///
   /// An [entity] will only be animatable after an animation component is attached.

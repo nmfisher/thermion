@@ -57,13 +57,37 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TViewer *create_filament_viewer(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
 	EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TSceneManager *Viewer_getSceneManager(TViewer *viewer);
+	EMSCRIPTEN_KEEPALIVE TRenderTarget* Viewer_createRenderTarget(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height);
+	EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTarget(TViewer *viewer, TRenderTarget* tRenderTarget);
+	EMSCRIPTEN_KEEPALIVE void Viewer_setRenderTarget(TViewer *viewer, TRenderTarget* tRenderTarget);
+	EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *viewer, const void *const window, uint32_t width, uint32_t height);
+	EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChain(TViewer *viewer, TSwapChain* swapChain);
+	EMSCRIPTEN_KEEPALIVE bool Viewer_render(
+		TViewer *viewer,
+		TSwapChain *swapChain,
+		uint64_t frameTimeInNanos,
+		void *pixelBuffer,
+		void (*callback)(void *buf, size_t size, void *data),
+		void *data);
+	EMSCRIPTEN_KEEPALIVE void Viewer_capture(
+		TViewer *viewer,
+		TSwapChain *swapChain,
+		uint8_t *pixelBuffer,
+		void (*callback)(void));
+	EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTarget(
+		TViewer *viewer,
+		TSwapChain *swapChain,
+		TRenderTarget *renderTarget,
+		uint8_t *pixelBuffer,
+		void (*callback)(void));
+	
 	
 	// Engine
 	EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer);
 	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void Engine_setTransform(TEngine* tEngine, EntityId entity, double4x4 transform);
 
-	EMSCRIPTEN_KEEPALIVE void create_render_target(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height);
+	
 	EMSCRIPTEN_KEEPALIVE void clear_background_image(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE void set_background_image(TViewer *viewer, const char *path, bool fillHeight);
 	EMSCRIPTEN_KEEPALIVE void set_background_image_position(TViewer *viewer, float x, float y, bool clamp);
@@ -108,18 +132,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE bool set_camera(TViewer *viewer, EntityId entity, const char *nodeName);
 	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(TViewer *viewer, bool enabled);
-	EMSCRIPTEN_KEEPALIVE bool render(
-		TViewer *viewer,
-		uint64_t frameTimeInNanos,
-		void *pixelBuffer,
-		void (*callback)(void *buf, size_t size, void *data),
-		void *data);
-	EMSCRIPTEN_KEEPALIVE void capture(
-		TViewer *viewer,
-		uint8_t *pixelBuffer,
-		void (*callback)(void));
-	EMSCRIPTEN_KEEPALIVE void create_swap_chain(TViewer *viewer, const void *const window, uint32_t width, uint32_t height);
-	EMSCRIPTEN_KEEPALIVE void destroy_swap_chain(TViewer *viewer);
+	
+
 	EMSCRIPTEN_KEEPALIVE void set_frame_interval(TViewer *viewer, float interval);
 	EMSCRIPTEN_KEEPALIVE void update_viewport(TViewer *viewer, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void scroll_begin(TViewer *viewer);
@@ -271,8 +285,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE int get_entity_count(TSceneManager *sceneManager, const EntityId target, bool renderableOnly);
 	EMSCRIPTEN_KEEPALIVE void get_entities(TSceneManager *sceneManager, const EntityId target, bool renderableOnly, EntityId *out);
 	EMSCRIPTEN_KEEPALIVE const char *get_entity_name_at(TSceneManager *sceneManager, const EntityId target, int index, bool renderableOnly);
-	EMSCRIPTEN_KEEPALIVE void set_recording(TViewer *viewer, bool recording);
-	EMSCRIPTEN_KEEPALIVE void set_recording_output_directory(TViewer *viewer, const char *outputDirectory);
+	
 	EMSCRIPTEN_KEEPALIVE void ios_dummy();
 	EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void *ptr);
 	EMSCRIPTEN_KEEPALIVE void add_collision_component(TSceneManager *sceneManager, EntityId entityId, void (*callback)(const EntityId entityId1, const EntityId entityId2), bool affectsCollidingTransform);

@@ -77,6 +77,7 @@ namespace thermion_filament
         void updateViewport(uint32_t width, uint32_t height);
         bool render(
             uint64_t frameTimeInNanos,
+            SwapChain* swapChain,
             void *pixelBuffer,
             void (*callback)(void *buf, size_t size, void *data),
             void *data);
@@ -90,10 +91,12 @@ namespace thermion_filament
         float getCameraFov(bool horizontal);
         void setCameraFov(double fovDegrees, bool horizontal);
 
-        void createSwapChain(const void *surface, uint32_t width, uint32_t height);
-        void destroySwapChain();
+        SwapChain* createSwapChain(const void *surface, uint32_t width, uint32_t height);
+        void destroySwapChain(SwapChain* swapChain);
 
-        void createRenderTarget(intptr_t textureId, uint32_t width, uint32_t height);
+        RenderTarget* createRenderTarget(intptr_t textureId, uint32_t width, uint32_t height);
+        void destroyRenderTarget(RenderTarget* renderTarget);
+        void setRenderTarget(RenderTarget* renderTarget);
 
         Renderer *getRenderer();
 
@@ -139,9 +142,8 @@ namespace thermion_filament
         void clearLights();
         void setPostProcessing(bool enabled);
 
-        void setRecording(bool recording);
-        void setRecordingOutputDirectory(const char *path);
-        void capture(uint8_t *out, bool useFence, void (*onComplete)());
+        void capture(uint8_t *out, bool useFence, SwapChain* swapChain, void (*onComplete)());
+        void capture(uint8_t *out, bool useFence, SwapChain* swapChain, RenderTarget* renderTarget, void (*onComplete)());
 
         void setAntiAliasing(bool msaaEnabled, bool fxaaEnabled, bool taaEnabled);
         void setDepthOfField();
@@ -164,10 +166,11 @@ namespace thermion_filament
         Engine *_engine = nullptr;
         thermion_filament::ThreadPool *_tp = nullptr;
         Renderer *_renderer = nullptr;
-        SwapChain *_swapChain = nullptr;
         SceneManager *_sceneManager = nullptr;
+        std::vector<RenderTarget*> _renderTargets;
+        std::vector<SwapChain*> _swapChains;
 
-        std::mutex mtx; // mutex to ensure thread safety when removing assets
+        std::mutex _renderMutex; // mutex to ensure thread safety when removing assets
 
         std::vector<utils::Entity> _lights;
         Texture *_skyboxTexture = nullptr;
@@ -208,12 +211,10 @@ namespace thermion_filament
         void savePng(void *data, size_t size, int frameNumber);
         void createBackgroundImage();
 
-        time_point_t _recordingStartTime = std::chrono::high_resolution_clock::now();
+        
         time_point_t _fpsCounterStartTime = std::chrono::high_resolution_clock::now();
 
-        bool _recording = false;
-        std::string _recordingOutputDirectory = std::string("/tmp");
-        std::mutex _recordingMutex;
+
         std::mutex _imageMutex;
         double _cumulativeAnimationUpdateTime = 0;
         int _frameCount = 0;
