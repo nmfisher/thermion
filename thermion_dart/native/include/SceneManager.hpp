@@ -109,8 +109,9 @@ namespace thermion_filament
         void setScale(EntityId e, float scale);
         void setPosition(EntityId e, float x, float y, float z);
         void setRotation(EntityId e, float rads, float x, float y, float z, float w);
-        void queuePositionUpdate(EntityId e, float x, float y, float z, bool relative);
-        void queueRotationUpdate(EntityId e, float rads, float x, float y, float z, float w, bool relative);
+        
+        void queueTransformUpdates(EntityId* entities, math::mat4* transforms, int numEntities);
+                
         void queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z);
         void queueRelativePositionUpdateFromViewportVector(EntityId entityId, float viewportCoordX, float viewportCoordY);
         const utils::Entity *getCameraEntities(EntityId e);
@@ -171,7 +172,10 @@ namespace thermion_filament
 
         std::unique_ptr<std::vector<math::mat4f>> getBoneRestTranforms(EntityId entityId, int skinIndex);
         void resetBones(EntityId entityId);
+        
         bool setTransform(EntityId entityId, math::mat4f transform);
+        bool setTransform(EntityId entityId, math::mat4 transform);
+        
         bool updateBoneMatrices(EntityId entityId);
         void playAnimation(EntityId e, int index, bool loop, bool reverse, bool replaceActive, float crossfade = 0.3f, float startOffset = 0.0f);
         void stopAnimation(EntityId e, int index);
@@ -337,7 +341,7 @@ namespace thermion_filament
         tsl::robin_map<EntityId, gltfio::FilamentAsset *> _assets;
         tsl::robin_map<EntityId, unique_ptr<CustomGeometry>> _geometry;
         tsl::robin_map<EntityId, unique_ptr<HighlightOverlay>> _highlighted;        
-        tsl::robin_map<EntityId, std::tuple<math::float3, bool, math::quatf, bool, float>> _transformUpdates;
+        tsl::robin_map<EntityId, math::mat4> _transformUpdates;
         std::set<Texture*> _textures;
         std::vector<Camera*> _cameras;
 

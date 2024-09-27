@@ -1137,6 +1137,19 @@ namespace thermion_filament
         return true;
     }
 
+    bool SceneManager::setTransform(EntityId entityId, math::mat4 transform)
+    {
+        auto &tm = _engine->getTransformManager();
+        const auto &entity = Entity::import(entityId);
+        auto transformInstance = tm.getInstance(entity);
+        if (!transformInstance)
+        {
+            return false;
+        }
+        tm.setTransform(transformInstance, transform);
+        return true;
+    }
+
     bool SceneManager::addBoneAnimation(EntityId parentEntity,
                                         int skinIndex,
                                         int boneIndex,
@@ -1757,6 +1770,7 @@ namespace thermion_filament
         std::lock_guard lock(_mutex);
 
         auto &tm = _engine->getTransformManager();
+        tm.openLocalTransformTransaction();
 
         for (const auto &[entityId, transformUpdate] : _transformUpdates)
         {
@@ -1782,43 +1796,6 @@ namespace thermion_filament
             transformInstance = tm.getInstance(entity);
             transform = tm.getTransform(transformInstance);
 
-            math::float3 newTranslation = std::get<0>(transformUpdate);
-            bool newTranslationRelative = std::get<1>(transformUpdate);
-            math::quatf newRotation = std::get<2>(transformUpdate);
-            bool newRotationRelative = std::get<3>(transformUpdate);
-            float newScale = std::get<4>(transformUpdate);
-
-            math::float3 translation;
-            math::quatf rotation;
-            math::float3 scale;
-
-            decomposeMatrix(transform, &translation, &rotation, &scale);
-
-            if (newRotationRelative)
-            {
-                rotation = normalize(rotation * newRotation);
-            }
-            else
-            {
-                rotation = newRotation;
-            }
-
-            math::float3 relativeTranslation;
-
-            if (newTranslationRelative)
-            {
-                math::mat3f rotationMatrix(rotation);
-                relativeTranslation = rotationMatrix * newTranslation;
-                translation += relativeTranslation;
-            }
-            else
-            {
-                relativeTranslation = newTranslation - translation;
-                translation = newTranslation;
-            }
-
-            transform = composeMatrix(translation, rotation, scale);
-
             if (isCollidable)
             {
                 auto transformedBB = boundingBox.transform(transform);
@@ -1827,21 +1804,22 @@ namespace thermion_filament
 
                 if (collisionAxes.size() == 1)
                 {
-                    auto globalAxis = collisionAxes[0];
-                    globalAxis *= norm(relativeTranslation);
-                    auto newRelativeTranslation = relativeTranslation + globalAxis;
-                    translation -= relativeTranslation;
-                    translation += newRelativeTranslation;
-                    transform = composeMatrix(translation, rotation, scale);
+                    // auto globalAxis = collisionAxes[0];
+                    // globalAxis *= norm(relativeTranslation);
+                    // auto newRelativeTranslation = relativeTranslation + globalAxis;
+                    // translation -= relativeTranslation;
+                    // translation += newRelativeTranslation;
+                    // transform = composeMatrix(translation, rotation, scale);
                 }
                 else if (collisionAxes.size() > 1)
                 {
-                    translation -= relativeTranslation;
-                    transform = composeMatrix(translation, rotation, scale);
+                    // translation -= relativeTranslation;
+                    // transform = composeMatrix(translation, rotation, scale);
                 }
             }
-            tm.setTransform(transformInstance, transform);
+            tm.setTransform(transformInstance, transformUpdate);
         }
+        tm.commitLocalTransformTransaction();
         _transformUpdates.clear();
     }
 
@@ -1953,174 +1931,23 @@ namespace thermion_filament
         auto entityPlaneInWorldSpace = camera.getModelMatrix() * entityPlaneInCameraSpace;
 
         // Queue the position update (as a relative movement)
-        queuePositionUpdate(entityId, entityPlaneInWorldSpace.x, entityPlaneInWorldSpace.y, entityPlaneInWorldSpace.z, false);
+        
     }
-    void SceneManager::queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z)
-    {
-        auto worldAxis = math::float3{x, y, z};
-
-        // Get the camera
-        const auto &camera = _view->getCamera();
-        const auto &vp = _view->getViewport();
-        auto viewMatrix = camera.getViewMatrix();
-
-        math::float3 cameraPosition = camera.getPosition();
-        math::float3 cameraForward = -viewMatrix.upperLeft()[2];
-
-        // Scale the viewport movement to NDC coordinates view axis
-        math::float2 viewportMovementNDC(viewportCoordX / (vp.width / 2), viewportCoordY / (vp.height / 2));
-
-        // calculate the translation axis in view space
-        math::float3 viewSpaceAxis = viewMatrix.upperLeft() * worldAxis;
-
-        // Apply projection matrix to get clip space axis
-        math::float4 clipAxis = camera.getProjectionMatrix() * math::float4(viewSpaceAxis, 0.0f);
-
-        // Perform perspective division to get the translation axis in normalized device coordinates (NDC)
-        math::float2 ndcAxis = (clipAxis.xyz / clipAxis.w).xy;
-
-        const float epsilon = 1e-6f;
-        bool isAligned = false;
-        if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y) || length(ndcAxis) < epsilon || std::abs(dot(normalize(worldAxis), cameraForward)) > 0.99f)
-        {
-            isAligned = true;
-            // Find a suitable perpendicular axis:
-            math::float3 perpendicularAxis;
-            if (std::abs(worldAxis.x) < epsilon && std::abs(worldAxis.z) < epsilon)
-            {
-                // If worldAxis is (0, y, 0), use (1, 0, 0)
-                perpendicularAxis = {1.0f, 0.0f, 0.0f};
-            }
-            else
-            {
-                // Otherwise, calculate a perpendicular vector
-                perpendicularAxis = normalize(cross(cameraForward, worldAxis));
-            }
-
-            ndcAxis = (camera.getProjectionMatrix() * math::float4(viewMatrix.upperLeft() * perpendicularAxis, 0.0f)).xy;
-
-            if (std::isnan(ndcAxis.x) || std::isnan(ndcAxis.y))
-            {
-                return;
-            }
-        }
-
-        // project the viewport movement (i.e pointer drag) vector onto the translation axis
-        // this gives the proportion of the pointer drag vector to translate along the translation axis
-        float projectedMovement = dot(viewportMovementNDC, normalize(ndcAxis));
-        auto translationNDC = projectedMovement * normalize(ndcAxis);
-
-        float dotProduct = dot(normalize(worldAxis), cameraForward);
-
-        // Ensure minimum translation and correct direction
-        const float minTranslation = 0.01f;
-        if (isAligned || std::abs(projectedMovement) < minTranslation)
-        {
-            // Use the dominant component of the viewport movement
-            float dominantMovement = std::abs(viewportMovementNDC.x) > std::abs(viewportMovementNDC.y) ? viewportMovementNDC.x : viewportMovementNDC.y;
-            projectedMovement = (std::abs(dominantMovement) < minTranslation) ? minTranslation : std::abs(dominantMovement);
-            projectedMovement *= (dominantMovement >= 0) ? 1.0f : -1.0f;
-            translationNDC = projectedMovement * normalize(ndcAxis);
-        }
-
-        // Log("projectedMovement %f dotProduct %f", projectedMovement, dotProduct);
-
-        // Get the camera's field of view and aspect ratio
-        float fovY = camera.getFieldOfViewInDegrees(filament::Camera::Fov::VERTICAL);
-        float fovX = camera.getFieldOfViewInDegrees(filament::Camera::Fov::HORIZONTAL);
-
-        // Convert to radians
-        fovY = (fovY / 180) * M_PI;
-        fovX = (fovX / 180) * M_PI;
-
-        float aspectRatio = static_cast<float>(vp.width) / vp.height;
-
-        auto &transformManager = _engine->getTransformManager();
-        auto transformInstance = transformManager.getInstance(Entity::import(entity));
-        const auto &transform = transformManager.getWorldTransform(transformInstance);
-
-        math::float3 translation;
-        math::quatf rotation;
-        math::float3 scale;
-
-        decomposeMatrix(transform, &translation, &rotation, &scale);
-
-        const auto entityWorldPosition = transform * math::float4{0.0f, 0.0f, 0.0f, 1.0f};
-
-        float distanceToCamera = length(entityWorldPosition.xyz - camera.getPosition());
-
-        // Calculate the height of the view frustum at the given distance
-        float frustumHeight = 2.0f * distanceToCamera * tan(fovY * 0.5f);
-
-        // Calculate the width of the view frustum at the given distance
-        float frustumWidth = frustumHeight * aspectRatio;
-
-        // Convert projected viewport movement to world space distance
-        float worldDistance = length(math::float2{(translationNDC / 2) * math::float2{frustumWidth, frustumHeight}});
-
-        // Determine the sign based on the alignment of world axis and camera forward
-        float sign = (dotProduct >= 0) ? -1.0f : 1.0f;
-
-        // If aligned, use the sign of the projected movement instead
-        if (isAligned)
-        {
-            sign = (projectedMovement >= 0) ? 1.0f : -1.0f;
-        }
-        else if (projectedMovement < 0)
-        {
-            sign *= -1.0f;
-        }
-
-        // Flip the sign for the Z-axis
-        if (std::abs(z) > 0.001)
-        {
-            sign *= -1.0f;
-        }
-
-        worldDistance *= sign;
-
-        auto newWorldTranslation = worldAxis * worldDistance;
-
-        queuePositionUpdate(entity, newWorldTranslation.x, newWorldTranslation.y, newWorldTranslation.z, true);
-    }
-
-    void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
+    
+    void SceneManager::queueTransformUpdates(EntityId* entities, math::mat4* transforms, int numEntities)
     {
         std::lock_guard lock(_mutex);
 
-        const auto &pos = _transformUpdates.find(entity);
-        if (pos == _transformUpdates.end())
-        {
-            _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
+        for(int i= 0; i < numEntities; i++) {
+            auto entity = entities[i];
+            const auto &pos = _transformUpdates.find(entity);
+            if (pos == _transformUpdates.end())
+            {
+                _transformUpdates.emplace(entity, transforms[i]);
+            }
+            auto curr = _transformUpdates[entity];
+            _transformUpdates[entity] = curr;
         }
-        auto curr = _transformUpdates[entity];
-        auto &trans = std::get<0>(curr);
-        trans.x = x;
-        trans.y = y;
-        trans.z = z;
-
-        auto &isRelative = std::get<1>(curr);
-        isRelative = relative;
-        _transformUpdates[entity] = curr;
-    }
-
-    void SceneManager::queueRotationUpdate(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
-    {
-        std::lock_guard lock(_mutex);
-        const auto &pos = _transformUpdates.find(entity);
-        if (pos == _transformUpdates.end())
-        {
-            _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
-        }
-        auto curr = _transformUpdates[entity];
-        auto &rot = std::get<2>(curr);
-        rot.w = w;
-        rot.x = x;
-        rot.y = y;
-        rot.z = z;
-        auto &isRelative = std::get<3>(curr);
-        isRelative = relative;
-        _transformUpdates[entity] = curr;
     }
 
     const utils::Entity *SceneManager::getCameraEntities(EntityId entityId)
@@ -2532,7 +2359,9 @@ EntityId SceneManager::createGeometry(
         texture->setImage(*_engine, 0, std::move(pbd));
 
         // Create a sampler
-        TextureSampler sampler(TextureSampler::MinFilter::LINEAR, TextureSampler::MagFilter::LINEAR);
+        TextureSampler sampler(TextureSampler::MinFilter::NEAREST, TextureSampler::MagFilter::NEAREST);
+        sampler.setWrapModeS(TextureSampler::WrapMode::REPEAT);
+        sampler.setWrapModeT(TextureSampler::WrapMode::REPEAT);
 
         // Set the texture and sampler to the material instance
         materialInstance->setParameter("baseColorMap", texture, sampler);
@@ -2641,6 +2470,7 @@ EntityId SceneManager::createGeometry(
     MaterialInstance* SceneManager::createUnlitMaterialInstance() {
         UvMap uvmap;
         auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
+        instance->setParameter("uvScale", filament::math::float2 { 1.0f, 1.0f });
         return instance;
     }
 
