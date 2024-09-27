@@ -91,7 +91,6 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
     var inverted = newPlayerTransform.clone()..invert();
 
     // camera is always looking at -Z, whereas models generally face towards +Z
-    // therefore
     if (_queuedRotationDelta.length2 > 0.0) {
       double deltaX =
           _queuedRotationDelta.x * rotationSensitivity * viewer.pixelRatio;
@@ -115,80 +114,3 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
   }
 }
 
-
-    // Quaternion relativeCameraRotation = Quaternion.identity();
-
-    // // Apply rotation
-   
-
-    // // transform the translation from player space to world space
-    // var rotation = (await camera.getModelMatrix()).getRotation();
-    // // Extract yaw angle from the original matrix
-    // double yaw = atan2(rotation.entry(2, 0), rotation.entry(0, 0));
-
-    // // Create a new matrix with only the yaw rotation
-    // double cosYaw = cos(yaw);
-    // double sinYaw = sin(yaw);
-
-    // rotation = Matrix3(cosYaw, 0, sinYaw, 0, 1, 0, -sinYaw, 0, cosYaw);
-
-    // relativeTranslation = rotation * relativeTranslation;
-
-    // // Compose relative transform
-    // relativeTransform =
-    //     Matrix4.compose(relativeTranslation, currentRotation, Vector3(1, 1, 1));
-
-    // // Apply relative transform to current transform
-    // Matrix4 newTransform = currentTransform * relativeTransform;
-
-    // // Extract new position and constrain it
-    // Vector3 newPosition = newTransform.getTranslation();
-
-    // // Recompose final transform with constrained position
-    // Matrix4 finalTransform = Matrix4.compose(newPosition,
-    //     Quaternion.fromRotation(newTransform.getRotation()), Vector3(1, 1, 1));
-
-    //     Quaternion relativeCameraRotation = Quaternion.identity();
-
-    // // Apply rotation
-    // if (_queuedRotationDelta.length2 > 0.0) {
-    //   double deltaX =
-    //       _queuedRotationDelta.x * rotationSensitivity * viewer.pixelRatio;
-    //   double deltaY =
-    //       _queuedRotationDelta.y * rotationSensitivity * viewer.pixelRatio;
-
-    //   Quaternion yawRotation = Quaternion.axisAngle(_up, -deltaX);
-    //   Quaternion pitchRotation = Quaternion.axisAngle(_right, -deltaY);
-
-    //   relativeCameraRotation = pitchRotation * yawRotation;
-    //   _queuedRotationDelta = Vector2.zero();
-    // } 
-
-    // // transform the translation from player space to world space
-    // var rotation = (await camera.getModelMatrix()).getRotation();
-    // // Extract yaw angle from the original matrix
-    // double yaw = atan2(rotation.entry(2, 0), rotation.entry(0, 0));
-
-    // // Create a new matrix with only the yaw rotation
-    // double cosYaw = cos(yaw);
-    // double sinYaw = sin(yaw);
-
-    // rotation = Matrix3(cosYaw, 0, sinYaw, 0, 1, 0, -sinYaw, 0, cosYaw);
-
-    // relativeTranslation = rotation * relativeTranslation;
-
-    // // Compose relative transform
-    // relativeTransform =
-    //     Matrix4.compose(relativeTranslation, currentRotation, Vector3(1, 1, 1));
-
-    // // Apply relative transform to current transform
-    // Matrix4 newTransform = currentTransform * relativeTransform;
-
-    // // Extract new position and constrain it
-    // Vector3 newPosition = newTransform.getTranslation();
-
-    // // Recompose final transform with constrained position
-    // Matrix4 finalTransform = Matrix4.compose(newPosition,
-    //     Quaternion.fromRotation(newTransform.getRotation()), Vector3(1, 1, 1));
-
-    // // Update camera
