@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:thermion_dart/src/viewer/src/shared_types/swap_chain.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
@@ -724,12 +725,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future<Uint8List> capture() {
-    // TODO: implement capture
-    throw UnimplementedError();
-  }
-  
-  @override
   Future<Aabb2> getBoundingBox(ThermionEntity entity) {
     // TODO: implement getBoundingBox
     throw UnimplementedError();
@@ -1017,6 +1012,24 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future queueTransformUpdates(List<ThermionEntity> entities, List<Matrix4> transforms) {
     // TODO: implement queueTransformUpdates
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<SwapChain> createSwapChain(int width, int height) {
+    // TODO: implement createSwapChain
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<RenderTarget> createRenderTarget(int width, int height, int textureHandle) {
+    // TODO: implement createRenderTarget
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setRenderTarget(covariant RenderTarget renderTarget) {
+    // TODO: implement setRenderTarget
     throw UnimplementedError();
   }
 

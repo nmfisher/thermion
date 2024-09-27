@@ -739,7 +739,12 @@ namespace thermion_filament
   FilamentViewer::~FilamentViewer()
   {
     clearLights();
-    destroySwapChain();
+    for(auto swapChain : _swapChains) {
+      _engine->destroy(swapChain);
+    }
+
+    _swapChains.clear();
+    
     if (!_imageEntity.isNull())
     {
       _engine->destroy(_imageEntity);
@@ -760,25 +765,29 @@ namespace thermion_filament
 
   Renderer *FilamentViewer::getRenderer() { return _renderer; }
 
-  void FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_t height)
+  SwapChain* FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_t height)
   {
+    std::lock_guard lock(_renderMutex);
+    SwapChain* swapChain;
 #if TARGET_OS_IPHONE
-    _swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
+    swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
 #else
     if (window)
     {
-      _swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
+      swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
       Log("Created window swapchain.");
     }
     else
     {
       Log("Created headless swapchain.");
-      _swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
+      swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
     }
 #endif
+    _swapChains.push_back(swapChain);
+    return swapChain;
   }
 
-  void FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32_t height)
+  RenderTarget* FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32_t height)
   {
     // Create filament textures and render targets (note the color buffer has the import call)
     auto rtColor = filament::Texture::Builder()
@@ -796,40 +805,44 @@ namespace thermion_filament
                    .usage(filament::Texture::Usage::DEPTH_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
                    .format(filament::Texture::InternalFormat::DEPTH32F)
                    .build(*_engine);
-    _rt = filament::RenderTarget::Builder()
+    auto rt = filament::RenderTarget::Builder()
               .texture(RenderTarget::AttachmentPoint::COLOR, rtColor)
               .texture(RenderTarget::AttachmentPoint::DEPTH, rtDepth)
               .build(*_engine);
-
-    _view->setRenderTarget(_rt);
-    
-    Log("Created render target for texture id %ld (%u x %u)", (long)texture, width, height);
+    return rt;    
   }
 
-  void FilamentViewer::destroySwapChain()
+  void FilamentViewer::destroyRenderTarget(RenderTarget* renderTarget) {
+    std::lock_guard lock(_renderMutex);
+    auto rtDepth = renderTarget->getTexture(RenderTarget::AttachmentPoint::DEPTH);
+    if(rtDepth) {
+      _engine->destroy(rtDepth);
+    }
+    auto rtColor = renderTarget->getTexture(RenderTarget::AttachmentPoint::COLOR);
+    if(rtColor) {
+      _engine->destroy(rtColor);
+    }
+    _engine->destroy(renderTarget); 
+    auto it = std::find(_renderTargets.begin(), _renderTargets.end(), renderTarget);
+    if(it != _renderTargets.end()) {
+      _renderTargets.erase(it);
+    }
+  }
+
+  void FilamentViewer::setRenderTarget(RenderTarget *renderTarget) {
+    std::lock_guard lock(_renderMutex);
+    _view->setRenderTarget(renderTarget);
+  }
+
+  void FilamentViewer::destroySwapChain(SwapChain *swapChain)
   {
-    if (_rt)
-    {
-      _view->setRenderTarget(nullptr);
-      auto rtDepth = _rt->getTexture(RenderTarget::AttachmentPoint::DEPTH);
-      if(rtDepth) {
-        _engine->destroy(rtDepth);
-        Log("destroyed depth");
-      }
-      auto rtColor = _rt->getTexture(RenderTarget::AttachmentPoint::COLOR);
-      if(rtColor) {
-        _engine->destroy(rtColor);
-        Log("destroyed color");
-      }
-      _engine->destroy(_rt);
-      _rt = nullptr;      
+    std::lock_guard lock(_renderMutex);
+    auto it = std::find(_swapChains.begin(), _swapChains.end(), swapChain);
+    if(it != _swapChains.end()) {
+      _swapChains.erase(it);
     }
-    if (_swapChain)
-    {
-      _engine->destroy(_swapChain);
-      _swapChain = nullptr;
-      Log("Swapchain destroyed.");
-    }
+    _engine->destroy(swapChain);
+    Log("Swapchain destroyed.");
 #ifdef __EMSCRIPTEN__
     _engine->execute();
 #else
@@ -845,10 +858,10 @@ namespace thermion_filament
 
   void FilamentViewer::removeEntity(EntityId asset)
   {
-    mtx.lock();
+    _renderMutex.lock();
     // todo - what if we are using a camera from this asset?
     _sceneManager->remove(asset);
-    mtx.unlock();
+    _renderMutex.unlock();
   }
 
   ///
@@ -987,7 +1000,6 @@ namespace thermion_filament
 
   void FilamentViewer::removeSkybox()
   {
-    Log("Removing skybox");
     _scene->setSkybox(nullptr);
     if (_skybox)
     {
@@ -1114,12 +1126,13 @@ namespace thermion_filament
 
   bool FilamentViewer::render(
       uint64_t frameTimeInNanos,
+      SwapChain* swapChain,
       void *pixelBuffer,
       void (*callback)(void *buf, size_t size, void *data),
       void *data)
   {
 
-    if (!_view || !_swapChain)
+    if (!_view || !swapChain)
     {
       return false;
     }
@@ -1152,7 +1165,7 @@ namespace thermion_filament
     }
 
     // Render the scene, unless the renderer wants to skip the frame.
-    bool beginFrame = _renderer->beginFrame(_swapChain, frameTimeInNanos);
+    bool beginFrame = _renderer->beginFrame(swapChain, frameTimeInNanos);
     if (!beginFrame)
     {
       _skippedFrames++;
@@ -1165,33 +1178,6 @@ namespace thermion_filament
 
       _frameCount++;
 
-      if (_recording)
-      {
-        Viewport const &vp = _view->getViewport();
-        size_t pixelBufferSize = vp.width * vp.height * 4;
-        auto *pixelBuffer = new uint8_t[pixelBufferSize];
-        auto callback = [](void *buf, size_t size, void *data)
-        {
-          auto frameCallbackData = (FrameCallbackData *)data;
-          auto viewer = (FilamentViewer *)frameCallbackData->viewer;
-          viewer->savePng(buf, size, frameCallbackData->frameNumber);
-          delete frameCallbackData;
-        };
-
-        auto now = std::chrono::high_resolution_clock::now();
-        auto elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - _recordingStartTime).count());
-
-        auto frameNumber = uint32_t(floor(elapsed / _frameInterval));
-
-        auto userData = new FrameCallbackData{this, frameNumber};
-
-        auto pbd = Texture::PixelBufferDescriptor(
-            pixelBuffer, pixelBufferSize,
-            Texture::Format::RGBA,
-            Texture::Type::UBYTE, nullptr, callback, userData);
-
-        _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
-      }
       _renderer->endFrame();
     }
 #ifdef __EMSCRIPTEN__
@@ -1206,8 +1192,13 @@ namespace thermion_filament
       }
   };
 
-  void FilamentViewer::capture(uint8_t *out, bool useFence, void (*onComplete)())
+  void FilamentViewer::capture(uint8_t *out, bool useFence, SwapChain* swapChain, void (*onComplete)())
   {
+
+    if(!swapChain) {
+      Log("NO SWAPCHAIN");
+      return;
+    }
 
     Viewport const &vp = _view->getViewport();
     size_t pixelBufferSize = vp.width * vp.height * 4;
@@ -1240,18 +1231,9 @@ namespace thermion_filament
         pixelBuffer, pixelBufferSize,
         Texture::Format::RGBA,
         Texture::Type::UBYTE, dispatcher, callback, userData);
-    _renderer->beginFrame(_swapChain, 0);
-
-    _renderer->render(_view);
-    
-    if (_rt)
-    {
-      _renderer->readPixels(_rt, 0, 0, vp.width, vp.height, std::move(pbd));
-    }
-    else
-    {
-      _renderer->readPixels(0, 0, vp.width, vp.height, std::move(pbd));
-    }
+    _renderer->beginFrame(swapChain, 0);
+    _renderer->render(_view);    
+    _renderer->readPixels(0, 0, vp.width, vp.height, std::move(pbd));
     _renderer->endFrame();
 
 #ifdef __EMSCRIPTEN__
@@ -1263,74 +1245,57 @@ namespace thermion_filament
   }
   }
 
-  void FilamentViewer::savePng(void *buf, size_t size, int frameNumber)
+  void FilamentViewer::capture(uint8_t *out, bool useFence, SwapChain* swapChain, RenderTarget* renderTarget, void (*onComplete)())
   {
-    // std::lock_guard lock(_recordingMutex);
-    // if (!_recording)
-    // {
-    //   delete[] static_cast<uint8_t *>(buf);
-    //   return;
-    // }
+
+    if(!renderTarget) {
+      Log("NO SWAPCHAIN");
+      return;
+    }
 
     Viewport const &vp = _view->getViewport();
+    size_t pixelBufferSize = vp.width * vp.height * 4;
+    auto *pixelBuffer = new uint8_t[pixelBufferSize];
+    auto callback = [](void *buf, size_t size, void *data)
+    {
+      auto frameCallbackData = (std::vector<void *> *)data;
+      uint8_t *out = (uint8_t *)(frameCallbackData->at(0));
+      void *callbackPtr = frameCallbackData->at(1);
 
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-                                        int digits = 6;
-                                        std::ostringstream stringStream;
-                                        stringStream << _recordingOutputDirectory << "/output_";
-                                        stringStream << std::setfill('0') << std::setw(digits);
-                                        stringStream << std::to_string(frameNumber);
-                                        stringStream << ".png";
+      memcpy(out, buf, size);
+      delete frameCallbackData;
+      if(callbackPtr) {
+        void (*callback)(void) = (void (*)(void))callbackPtr;
+        callback();
+      }
+    };
 
-                                        std::string filename = stringStream.str();
+    // Create a fence
+    Fence* fence = nullptr;
+    if(useFence) {
+      fence = _engine->createFence();
+    }
 
-                                        std::ofstream wf(filename, std::ios::out | std::ios::binary);
+    auto userData = new std::vector<void *>{out, (void *)onComplete};
 
-                                        LinearImage image(toLinearWithAlpha<uint8_t>(vp.width, vp.height, vp.width * 4,
-                                                                                     static_cast<uint8_t *>(buf)));
+    auto dispatcher = new CaptureCallbackHandler();
 
-                                        auto result = image::ImageEncoder::encode(
-                                            wf, image::ImageEncoder::Format::PNG, image, std::string(""), std::string(""));
+    auto pbd = Texture::PixelBufferDescriptor(
+        pixelBuffer, pixelBufferSize,
+        Texture::Format::RGBA,
+        Texture::Type::UBYTE, dispatcher, callback, userData);
+    _renderer->beginFrame(swapChain, 0);
+    _renderer->render(_view);    
+    _renderer->readPixels(renderTarget, 0, 0, vp.width, vp.height, std::move(pbd));
+    _renderer->endFrame();
 
-                                        delete[] static_cast<uint8_t *>(buf);
-
-                                        if (!result)
-                                        {
-                                          Log("Failed to encode");
-                                        }
-
-                                        wf.close();
-                                        if (!wf.good())
-                                        {
-                                          Log("Write failed!");
-                                        } });
-    _tp->add_task(lambda);
+#ifdef __EMSCRIPTEN__
+    _engine->execute();
+    emscripten_webgl_commit_frame();
+#endif
+  if(fence) {
+    Fence::waitAndDestroy(fence);
   }
-
-  void FilamentViewer::setRecordingOutputDirectory(const char *path)
-  {
-    _recordingOutputDirectory = std::string(path);
-    auto outputDirAsPath = std::filesystem::path(path);
-    if (!std::filesystem::is_directory(outputDirAsPath))
-    {
-      std::filesystem::create_directories(outputDirAsPath);
-    }
-  }
-
-  void FilamentViewer::setRecording(bool recording)
-  {
-    // std::lock_guard lock(_recordingMutex);
-    if (recording)
-    {
-      _tp = new thermion_filament::ThreadPool(16);
-      _recordingStartTime = std::chrono::high_resolution_clock::now();
-    }
-    else
-    {
-      delete _tp;
-    }
-    this->_recording = recording;
   }
 
   Camera* FilamentViewer::getCamera(EntityId entity) { 
@@ -1381,7 +1346,7 @@ namespace thermion_filament
 
   void FilamentViewer::grabBegin(float x, float y, bool pan)
   {
-    if (!_view || !_mainCamera || !_swapChain)
+    if (!_view || !_mainCamera)
     {
       Log("View not ready, ignoring grab");
       return;
@@ -1395,7 +1360,7 @@ namespace thermion_filament
 
   void FilamentViewer::grabUpdate(float x, float y)
   {
-    if (!_view || !_swapChain)
+    if (!_view )
     {
       Log("View not ready, ignoring grab");
       return;
@@ -1413,7 +1378,7 @@ namespace thermion_filament
 
   void FilamentViewer::grabEnd()
   {
-    if (!_view || !_mainCamera || !_swapChain)
+    if (!_view || !_mainCamera )
     {
       Log("View not ready, ignoring grab");
       return;

@@ -8,7 +8,7 @@ void main() async {
 
   group("skybox", () {
     test('load skybox', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.loadSkybox(
           "file:///${testHelper.testDir}/assets/default_env_skybox.ktx");
       await testHelper.capture(viewer, "load_skybox");

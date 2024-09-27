@@ -8,7 +8,7 @@ void main() async {
 
   group('camera', () {
     test('getCameraModelMatrix, getCameraPosition, rotation', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       var matrix = await viewer.getCameraModelMatrix();
       expect(matrix.trace(), 4);
 
@@ -26,7 +26,7 @@ void main() async {
     });
 
     test('getCameraViewMatrix', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       var modelMatrix = await viewer.getCameraModelMatrix();
       var viewMatrix = await viewer.getCameraViewMatrix();
@@ -49,20 +49,20 @@ void main() async {
     });
 
     test('getCameraProjectionMatrix', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       var projectionMatrix = await viewer.getCameraProjectionMatrix();
       print(projectionMatrix);
     });
 
     test('getCameraCullingProjectionMatrix', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       var matrix = await viewer.getCameraCullingProjectionMatrix();
       print(matrix);
       throw Exception("TODO");
     });
 
     test('getCameraFrustum', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       var frustum = await viewer.getCameraFrustum();
       print(frustum.plane5.normal);
       print(frustum.plane5.constant);
@@ -76,7 +76,7 @@ void main() async {
 
     test('set custom projection/culling matrix', () async {
       var viewer =
-          await createViewer(bg: kRed, cameraPosition: Vector3(0, 0, 4));
+          await testHelper.createViewer(bg: kRed, cameraPosition: Vector3(0, 0, 4));
       var camera = await viewer.getMainCamera();
       final cube = await viewer.createGeometry(GeometryHelper.cube());
 
@@ -98,7 +98,7 @@ void main() async {
 
     test('setting transform on camera updates model matrix (no parent)',
         () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       var cameraEntity = await viewer.getMainCameraEntity();
       var camera = await viewer.getMainCamera();
@@ -114,7 +114,7 @@ void main() async {
 
     test('setting transform on camera updates model matrix (with parent)',
         () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       var cameraEntity = await viewer.getMainCameraEntity();
       var camera = await viewer.getMainCamera();
@@ -140,7 +140,7 @@ void main() async {
     });
 
     test('create camera', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       await viewer.setCameraPosition(0, 0, 5);
       await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);

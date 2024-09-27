@@ -56,9 +56,23 @@ extern "C"
         return reinterpret_cast<TEngine*>(engine);
     }
 
-    EMSCRIPTEN_KEEPALIVE void create_render_target(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE TRenderTarget* Viewer_createRenderTarget(TViewer *tViewer, intptr_t texture, uint32_t width, uint32_t height)
     {
-        ((FilamentViewer *)viewer)->createRenderTarget(texture, width, height);
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto renderTarget = viewer->createRenderTarget(texture, width, height);
+        return reinterpret_cast<TRenderTarget*>(renderTarget);
+    }
+
+	EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTarget(TViewer *tViewer, TRenderTarget* tRenderTarget) {
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto renderTarget = reinterpret_cast<RenderTarget*>(tRenderTarget);
+        viewer->destroyRenderTarget(renderTarget);
+    }
+	
+    EMSCRIPTEN_KEEPALIVE void Viewer_setRenderTarget(TViewer *tViewer, TRenderTarget* tRenderTarget) {
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto renderTarget = reinterpret_cast<RenderTarget*>(tRenderTarget);
+        viewer->setRenderTarget(renderTarget);
     }
 
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer)
@@ -349,18 +363,22 @@ extern "C"
         cam->setModelMatrix(mat);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool render(
-        TViewer *viewer,
+    EMSCRIPTEN_KEEPALIVE bool Viewer_render(
+        TViewer *tViewer,
+        TSwapChain *tSwapChain,
         uint64_t frameTimeInNanos,
         void *pixelBuffer,
         void (*callback)(void *buf, size_t size, void *data),
         void *data)
     {
-    return ((FilamentViewer *)viewer)->render(frameTimeInNanos, pixelBuffer, callback, data);
+        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
+        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        return viewer->render(frameTimeInNanos, swapChain, pixelBuffer, callback, data);
     }
 
-    EMSCRIPTEN_KEEPALIVE void capture(
-        TViewer *viewer,
+    EMSCRIPTEN_KEEPALIVE void Viewer_capture(
+        TViewer *tViewer,
+        TSwapChain* tSwapChain,
         uint8_t *pixelBuffer,
         void (*callback)(void))
     {
@@ -369,7 +387,27 @@ extern "C"
 #else
         bool useFence = false;
 #endif
-        ((FilamentViewer *)viewer)->capture(pixelBuffer, useFence, callback);
+        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
+        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        viewer->capture(pixelBuffer, useFence, swapChain, callback);
+    };
+
+    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTarget(
+        TViewer *tViewer,
+        TSwapChain* tSwapChain,
+        TRenderTarget *tRenderTarget,
+        uint8_t *pixelBuffer,
+        void (*callback)(void))
+    {
+#ifdef __EMSCRIPTEN__
+        bool useFence = true;
+#else
+        bool useFence = false;
+#endif
+        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
+        auto renderTarget = reinterpret_cast<RenderTarget*>(tRenderTarget);
+        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        viewer->capture(pixelBuffer, useFence, swapChain, renderTarget, callback);
     };
 
     EMSCRIPTEN_KEEPALIVE void set_frame_interval(
@@ -379,14 +417,17 @@ extern "C"
         ((FilamentViewer *)viewer)->setFrameInterval(frameInterval);
     }
 
-    EMSCRIPTEN_KEEPALIVE void destroy_swap_chain(TViewer *viewer)
+    EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChain(TViewer *tViewer, TSwapChain* tSwapChain)
     {
-        ((FilamentViewer *)viewer)->destroySwapChain();
+        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
+        viewer->destroySwapChain(swapChain);
     }
 
-    EMSCRIPTEN_KEEPALIVE void create_swap_chain(TViewer *viewer, const void *const window, uint32_t width, uint32_t height)
-    {
-        ((FilamentViewer *)viewer)->createSwapChain(window, width, height);
+    EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *tViewer, const void *const window, uint32_t width, uint32_t height) {
+        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        auto swapChain = viewer->createSwapChain(window, width, height);
+        return reinterpret_cast<TSwapChain*>(swapChain);
     }
 
     EMSCRIPTEN_KEEPALIVE void update_viewport(TViewer *viewer, uint32_t width, uint32_t height)
@@ -835,16 +876,6 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE const char *get_entity_name_at(TSceneManager *sceneManager, const EntityId target, int index, bool renderableOnly)
     {
         return ((SceneManager *)sceneManager)->getEntityNameAt(target, index, renderableOnly);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_recording(TViewer *viewer, bool recording)
-    {
-        ((FilamentViewer *)viewer)->setRecording(recording);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_recording_output_directory(TViewer *viewer, const char *outputDirectory)
-    {
-        ((FilamentViewer *)viewer)->setRecordingOutputDirectory(outputDirectory);
     }
 
     EMSCRIPTEN_KEEPALIVE void ios_dummy()

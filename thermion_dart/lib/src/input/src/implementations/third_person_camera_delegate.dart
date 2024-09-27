@@ -29,13 +29,16 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
   final cameraUp = Vector3(0, 1, 0);
   var cameraLookAt = Vector3(0, 0.5, 3);
 
+  final void Function(Matrix4 transform)? onUpdate;
+
   OverTheShoulderCameraDelegate(this.viewer, this.player, this.camera,
       {this.rotationSensitivity = 0.001,
       this.movementSensitivity = 0.1,
       this.zoomSensitivity = 0.1,
       this.panSensitivity = 0.1,
       this.clampY,
-      ThermionEntity? entity}) {}
+      ThermionEntity? entity,
+      this.onUpdate}) {}
 
   @override
   Future<void> queue(InputAction action, Vector3? delta) async {
@@ -97,7 +100,9 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
       double deltaY =
           _queuedRotationDelta.y * rotationSensitivity * viewer.pixelRatio;
 
-      cameraLookAt = Matrix4.rotationY(-deltaX) * Matrix4.rotationX(-deltaY) * cameraLookAt;
+      cameraLookAt = Matrix4.rotationY(-deltaX) *
+          Matrix4.rotationX(-deltaY) *
+          cameraLookAt;
       _queuedRotationDelta = Vector2.zero();
     }
 
@@ -109,8 +114,7 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
 
     await viewer.queueTransformUpdates(
         [camera.getEntity(), player], [newCameraTransform, newPlayerTransform]);
-
+    onUpdate?.call(newPlayerTransform);
     _executing = false;
   }
 }
-

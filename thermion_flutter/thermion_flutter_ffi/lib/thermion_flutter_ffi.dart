@@ -20,6 +20,9 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
 
   ThermionFlutterFFI._() {}
 
+  RenderTarget? _renderTarget;
+  SwapChain? _swapChain;
+
   static void registerWith() {
     ThermionFlutterPlatform.instance = ThermionFlutterFFI._();
   }
@@ -125,7 +128,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
         return _textures.first;
       } else {
         await _viewer!.setRendering(false);
-        await _viewer!.destroySwapChain();
+        await _swapChain?.destroy();
         await destroyTexture(_textures.first);
         _textures.clear();
       }
@@ -152,27 +155,26 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     final texture = ThermionFlutterTexture(flutterTextureId, hardwareTextureId,
         physicalWidth, physicalHeight, surfaceAddress);
 
-    await _viewer?.createSwapChain(
-        physicalWidth.toDouble(), physicalHeight.toDouble(),
+    await _viewer?.createSwapChain(physicalWidth, physicalHeight,
         surface: texture.surfaceAddress == null
             ? nullptr
             : Pointer<Void>.fromAddress(texture.surfaceAddress!));
 
     if (texture.hardwareTextureId != null) {
+      if (_renderTarget != null) {
+        await _renderTarget!.destroy();
+      }
       // ignore: unused_local_variable
-      var renderTarget = await _viewer?.createRenderTarget(
-          physicalWidth.toDouble(),
-          physicalHeight.toDouble(),
+      _renderTarget = await _viewer?.createRenderTarget(
+          physicalWidth,
+          physicalHeight,
           texture.hardwareTextureId!);
     }
 
     await _viewer?.updateViewportAndCameraProjection(
         physicalWidth.toDouble(), physicalHeight.toDouble());
-    _viewer?.render();
     _creatingTexture = false;
-
     _textures.add(texture);
-
     return texture;
   }
 
@@ -217,7 +219,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     _resizing = true;
     bool wasRendering = _viewer!.rendering;
     await _viewer!.setRendering(false);
-    await _viewer!.destroySwapChain();
+    await _swapChain?.destroy();
     await destroyTexture(texture);
 
     var result = await _channel
@@ -230,7 +232,7 @@ class ThermionFlutterFFI extends ThermionFlutterPlatform {
     var newTexture =
         ThermionFlutterTexture(result[0], result[1], width, height, result[2]);
 
-    await _viewer!.createSwapChain(width.toDouble(), height.toDouble(),
+    await _viewer!.createSwapChain(width, height,
         surface: newTexture.surfaceAddress == null
             ? nullptr
             : Pointer<Void>.fromAddress(newTexture.surfaceAddress!));

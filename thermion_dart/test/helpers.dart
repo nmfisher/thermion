@@ -8,6 +8,7 @@ import 'package:image/image.dart';
 import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
 import 'package:thermion_dart/src/utils/dart_resources.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -55,7 +56,6 @@ extension on Uri {
   String get name => pathSegments.where((e) => e != '').last;
 }
 
-
 Future<Uint8List> savePixelBufferToBmp(
     Uint8List pixelBuffer, int width, int height, String outputPath) async {
   var data = await pixelBufferToBmp(pixelBuffer, width, height);
@@ -65,7 +65,8 @@ Future<Uint8List> savePixelBufferToBmp(
 }
 
 class TestHelper {
-  
+  late SwapChain swapChain;
+  late RenderTarget renderTarget;
   late Directory outDir;
   late String testDir;
 
@@ -81,13 +82,60 @@ class TestHelper {
   Future capture(ThermionViewer viewer, String outputFilename) async {
     await Future.delayed(Duration(milliseconds: 10));
     var outPath = p.join(outDir.path, "$outputFilename.bmp");
-    var pixelBuffer = await viewer.capture();
+    var pixelBuffer = await viewer.capture(swapChain); //, renderTarget: renderTarget);
     await savePixelBufferToBmp(
         pixelBuffer,
         viewer.viewportDimensions.$1.toInt(),
         viewer.viewportDimensions.$2.toInt(),
         outPath);
     return pixelBuffer;
+  }
+
+  Future<ThermionViewer> createViewer(
+      {img.Color? bg,
+      Vector3? cameraPosition,
+      viewportDimensions = (width: 500, height: 500)}) async {
+    final packageUri = findPackageRoot('thermion_dart');
+
+    final lib = ThermionDartTexture1(DynamicLibrary.open(
+        '${packageUri.toFilePath()}/native/lib/macos/swift/libthermion_swift.dylib'));
+    final object = ThermionDartTexture.new1(lib);
+    object.initWithWidth_height_(
+        viewportDimensions.width, viewportDimensions.height);
+
+    final resourceLoader = calloc<ResourceLoaderWrapper>(1);
+    var loadToOut = NativeCallable<
+        Void Function(Pointer<Char>,
+            Pointer<ResourceBuffer>)>.listener(DartResourceLoader.loadResource);
+
+    resourceLoader.ref.loadToOut = loadToOut.nativeFunction;
+    var freeResource = NativeCallable<Void Function(ResourceBuffer)>.listener(
+        DartResourceLoader.freeResource);
+    resourceLoader.ref.freeResource = freeResource.nativeFunction;
+
+    var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
+
+    await viewer.initialized;
+    swapChain = await viewer.createSwapChain(
+        viewportDimensions.width, viewportDimensions.height);
+    renderTarget = await viewer.createRenderTarget(
+        viewportDimensions.width,
+        viewportDimensions.height,
+        object.metalTextureAddress);
+    await viewer.setRenderTarget(renderTarget as FFIRenderTarget);
+    await viewer.updateViewportAndCameraProjection(
+        viewportDimensions.width.toDouble(),
+        viewportDimensions.height.toDouble());
+    if (bg != null) {
+      await viewer.setBackgroundColor(
+          bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());
+    }
+
+    if (cameraPosition != null) {
+      await viewer.setCameraPosition(
+          cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    }
+    return viewer;
   }
 }
 
@@ -201,50 +249,6 @@ int _linearToSRGB(double linearValue) {
         .round()
         .clamp(0, 255);
   }
-}
-
-Future<ThermionViewer> createViewer(
-    {img.Color? bg,
-    Vector3? cameraPosition,
-    viewportDimensions = (width: 500, height: 500)}) async {
-  final packageUri = findPackageRoot('thermion_dart');
-
-  final lib = ThermionDartTexture1(DynamicLibrary.open(
-      '${packageUri.toFilePath()}/native/lib/macos/swift/libthermion_swift.dylib'));
-  final object = ThermionDartTexture.new1(lib);
-  object.initWithWidth_height_(
-      viewportDimensions.width, viewportDimensions.height);
-
-  final resourceLoader = calloc<ResourceLoaderWrapper>(1);
-  var loadToOut = NativeCallable<
-      Void Function(Pointer<Char>,
-          Pointer<ResourceBuffer>)>.listener(DartResourceLoader.loadResource);
-
-  resourceLoader.ref.loadToOut = loadToOut.nativeFunction;
-  var freeResource = NativeCallable<Void Function(ResourceBuffer)>.listener(
-      DartResourceLoader.freeResource);
-  resourceLoader.ref.freeResource = freeResource.nativeFunction;
-
-  var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
-
-  await viewer.initialized;
-  await viewer.createSwapChain(viewportDimensions.width.toDouble(),
-      viewportDimensions.height.toDouble());
-  await viewer.createRenderTarget(viewportDimensions.width.toDouble(),
-      viewportDimensions.height.toDouble(), object.metalTextureAddress);
-  await viewer.updateViewportAndCameraProjection(
-      viewportDimensions.width.toDouble(),
-      viewportDimensions.height.toDouble());
-  if (bg != null) {
-    await viewer.setBackgroundColor(
-        bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());
-  }
-
-  if (cameraPosition != null) {
-    await viewer.setCameraPosition(
-        cameraPosition.x, cameraPosition.y, cameraPosition.z);
-  }
-  return viewer;
 }
 
 Uint8List poissonBlend(List<Uint8List> textures, int width, int height) {

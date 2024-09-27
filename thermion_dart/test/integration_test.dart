@@ -15,24 +15,22 @@ void main() async {
 
   group('background', () {
     test('set background color to solid green', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await testHelper.capture(viewer, "set_background_color_to_solid_green");
       await viewer.dispose();
     });
 
     test('set background color to full transparency', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 0.0);
       await testHelper.capture(
           viewer, "set_background_color_to_transparent_green");
       await viewer.dispose();
     });
 
-
-
     test('set background image', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundImage(
           "file:///${testHelper.testDir}/assets/cube_texture_512x512.png");
       await viewer.setPostProcessing(true);
@@ -42,57 +40,11 @@ void main() async {
     });
   });
 
-  group("gltf", () {
-    test('load glb from file', () async {
-      var viewer = await createViewer();
-      var model = await viewer.loadGlb("file://${testHelper.testDir}/cube.glb");
-      await viewer.transformToUnitCube(model);
-      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
-      await viewer.setCameraPosition(0, 1, 5);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
-      await testHelper.capture(viewer, "load_glb_from_file");
-    });
-
-    test('load glb from buffer', () async {
-      var viewer = await createViewer();
-      var buffer = File("${testHelper.testDir}/cube.glb").readAsBytesSync();
-      var model = await viewer.loadGlbFromBuffer(buffer);
-      await viewer.transformToUnitCube(model);
-      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
-      await viewer.setCameraPosition(0, 1, 5);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
-      await testHelper.capture(viewer, "load_glb_from_buffer");
-    });
-
-    test('load glb from buffer with priority', () async {
-      var viewer = await createViewer();
-      await viewer.addDirectLight(DirectLight.sun());
-      await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
-      await viewer.setCameraPosition(0, 3, 5);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
-
-      var buffer = File("${testHelper.testDir}/cube.glb").readAsBytesSync();
-      var model1 = await viewer.loadGlbFromBuffer(buffer, priority: 7);
-      var model2 = await viewer.loadGlbFromBuffer(buffer, priority: 0);
-
-      for (final entity in await viewer.getChildEntities(model1, true)) {
-        await viewer.setMaterialPropertyFloat4(
-            entity, "baseColorFactor", 0, 0, 0, 1.0, 1.0);
-      }
-      for (final entity in await viewer.getChildEntities(model2, true)) {
-        await viewer.setMaterialPropertyFloat4(
-            entity, "baseColorFactor", 0, 0, 1.0, 0.0, 1.0);
-      }
-      await testHelper.capture(viewer, "load_glb_from_buffer_with_priority");
-    });
-  });
+  
 
   group("scene update events", () {
     test('add light fires SceneUpdateEvent', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       final success = Completer<bool>();
       var light = DirectLight(
@@ -116,7 +68,7 @@ void main() async {
     });
 
     test('remove light fires SceneUpdateEvent', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       final success = Completer<bool>();
       var light = await viewer.addDirectLight(DirectLight.point());
@@ -135,7 +87,7 @@ void main() async {
     });
 
     test('add geometry fires SceneUpdateEvent', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       final success = Completer<bool>();
       var geometry = GeometryHelper.cube();
@@ -153,7 +105,7 @@ void main() async {
     });
 
     test('remove geometry fires SceneUpdateEvent', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       var geometry = await viewer.createGeometry(GeometryHelper.cube());
       final success = Completer<bool>();
 
@@ -171,7 +123,7 @@ void main() async {
     });
 
     test('loadGlb fires SceneUpdateEvent', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       final success = Completer<bool>();
 
@@ -191,7 +143,7 @@ void main() async {
     });
 
     test('remove glb fires SceneUpdateEvent', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       final uri = "${testHelper.testDir}/cube.glb";
       var entity = await viewer.loadGlb(uri, keepData: false);
 
@@ -211,7 +163,7 @@ void main() async {
 
   group("custom geometry", () {
     test('create cube (no uvs/normals)', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
       await viewer.setCameraPosition(0, 2, 6);
       await viewer
@@ -224,7 +176,7 @@ void main() async {
     });
 
     test('create cube (no normals)', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       var light = await viewer.addLight(
           LightType.POINT, 6500, 10000000, 0, 2, 0, 0, 0, 0,
           falloffRadius: 100.0);
@@ -238,7 +190,7 @@ void main() async {
     });
 
     test('create cube (with normals)', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       var light = await viewer.addLight(
           LightType.POINT, 6500, 10000000, 0, 2, 0, 0, 0, 0,
@@ -254,7 +206,7 @@ void main() async {
 
     test('create cube with custom ubershader material instance (color)',
         () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
       await viewer.setCameraPosition(0, 2, 6);
       await viewer
@@ -276,7 +228,7 @@ void main() async {
 
     test('create cube with custom ubershader material instance (texture)',
         () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
       await viewer.setCameraPosition(0, 2, 6);
       await viewer
@@ -299,7 +251,7 @@ void main() async {
     });
 
     test('unlit material with color only', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
       await viewer.setPostProcessing(true);
@@ -318,7 +270,7 @@ void main() async {
     });
 
     test('create cube with custom material instance (unlit)', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setCameraPosition(0, 2, 6);
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
@@ -367,7 +319,7 @@ void main() async {
     });
 
     test('create sphere (no normals)', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
       await viewer.setCameraPosition(0, 0, 6);
       await viewer
@@ -378,7 +330,7 @@ void main() async {
 
   group("MaterialInstance", () {
     test('disable depth write', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.addDirectLight(
@@ -467,7 +419,7 @@ void main() async {
 
   group("materials", () {
     test('set float4 material property for custom geometry', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
@@ -482,7 +434,7 @@ void main() async {
       await testHelper.capture(viewer, "set_material_float4_post");
     });
     test('set float material property for custom geometry', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
@@ -500,7 +452,7 @@ void main() async {
 
     test('set float material property (roughness) for custom geometry',
         () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       await viewer.setCameraPosition(0, 0, 6);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
@@ -522,7 +474,7 @@ void main() async {
   group("transforms & parenting", () {
     test('set multiple transforms simultaneously with setTransforms', () async {
       var viewer =
-          await createViewer(bg: kRed, cameraPosition: Vector3(0, 0, 5));
+          await testHelper.createViewer(bg: kRed, cameraPosition: Vector3(0, 0, 5));
       final cube1 = await viewer.createGeometry(GeometryHelper.cube());
       final cube2 = await viewer.createGeometry(GeometryHelper.cube());
 
@@ -534,14 +486,14 @@ void main() async {
         Matrix4.translation(Vector3(1, 0, 0))
       ]);
 
-      await viewer.render();
+      await viewer.render(testHelper.swapChain);
 
       await testHelper.capture(viewer, "set_multiple_transforms");
     });
 
     test('getParent and getAncestor both return null when entity has no parent',
         () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       final cube = await viewer.createGeometry(GeometryHelper.cube());
 
@@ -552,7 +504,7 @@ void main() async {
     test(
         'getParent returns the parent entity after one has been set via setParent',
         () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       final cube1 = await viewer.createGeometry(GeometryHelper.cube());
 
@@ -566,7 +518,7 @@ void main() async {
     });
 
     test('getAncestor returns the ultimate parent entity', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       final grandparent = await viewer.createGeometry(GeometryHelper.cube());
       final parent = await viewer.createGeometry(GeometryHelper.cube());
@@ -579,7 +531,7 @@ void main() async {
     });
 
     test('set position based on screenspace coord', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       print(await viewer.getCameraFov(true));
       await viewer.createIbl(1.0, 1.0, 1.0, 1000);
       await viewer.setCameraPosition(0, 0, 6);
@@ -591,7 +543,7 @@ void main() async {
       await viewer.queuePositionUpdateFromViewportCoords(cube, 0, 0);
 
       // we need an explicit render call here to process the transform queue
-      await viewer.render();
+      await viewer.render(testHelper.swapChain);
 
       await testHelper.capture(viewer, "set_position_from_viewport_coords");
     });
@@ -599,7 +551,7 @@ void main() async {
 
   group("layers & overlays", () {
     test('enable grid overlay', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(0, 0, 0, 1);
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
@@ -612,7 +564,7 @@ void main() async {
     });
 
     test('load glb from buffer with layer', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       await viewer.setBackgroundColor(1, 0, 1, 1);
       await viewer.setCameraPosition(0, 2, 5);
@@ -629,7 +581,7 @@ void main() async {
     });
 
     test('change layer visibility at runtime', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       await viewer.setBackgroundColor(1, 0, 1, 1);
       await viewer.setCameraPosition(0, 2, 5);
@@ -719,7 +671,7 @@ void main() async {
 
   group("stencil", () {
     test('set stencil highlight for glb', () async {
-      final viewer = await createViewer();
+      final viewer = await testHelper.createViewer();
       var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
       await viewer.setPostProcessing(true);
 
@@ -736,7 +688,7 @@ void main() async {
     });
 
     test('set stencil highlight for geometry', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 2, 5);
@@ -754,7 +706,7 @@ void main() async {
     });
 
     test('set stencil highlight for gltf asset', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 1, 5);
@@ -774,7 +726,7 @@ void main() async {
     });
 
     test('set stencil highlight for multiple geometry ', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 1, 5);
@@ -797,7 +749,7 @@ void main() async {
     });
 
     test('set stencil highlight for multiple gltf assets ', () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       await viewer.setPostProcessing(true);
       await viewer.setBackgroundColor(0.0, 1.0, 0.0, 1.0);
       await viewer.setCameraPosition(0, 1, 5);
@@ -824,7 +776,7 @@ void main() async {
 
   group("texture", () {
     test("create/apply/dispose texture", () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
 
       var textureData =
           File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
@@ -863,7 +815,7 @@ void main() async {
 
   group("render thread", () {
     test("request frame on render thread", () async {
-      var viewer = await createViewer();
+      var viewer = await testHelper.createViewer();
       viewer.requestFrame();
 
       await Future.delayed(Duration(milliseconds: 20));
@@ -875,7 +827,7 @@ void main() async {
   //   test("unproject", () async {
   //     final dimensions = (width: 1280, height: 768);
 
-  //     var viewer = await createViewer(viewportDimensions: dimensions);
+  //     var viewer = await testHelper.createViewer(viewportDimensions: dimensions);
   //     await viewer.setPostProcessing(false);
   //     // await viewer.setToneMapping(ToneMapper.LINEAR);
   //     await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
