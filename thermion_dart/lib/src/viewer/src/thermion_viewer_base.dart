@@ -365,6 +365,12 @@ abstract class ThermionViewer {
   Future setTransform(ThermionEntity entity, Matrix4 transform);
 
   ///
+  /// Sets multiple transforms (relative to parent) simultaneously for [entity].
+  /// Uses mutex to ensure that transform updates aren't split across frames.
+  ///
+  Future queueTransformUpdates(List<ThermionEntity> entities, List<Matrix4> transforms);
+
+  ///
   /// Updates the bone matrices for [entity] (which must be the ThermionEntity
   /// returned by [loadGlb/loadGltf]).
   /// Under the hood, this just calls [updateBoneMatrices] on the Animator
@@ -648,14 +654,6 @@ abstract class ThermionViewer {
       ThermionEntity entity, double rads, double x, double y, double z);
 
   ///
-  /// Queues an update to the worldspace position for [entity] to {x,y,z}.
-  /// The actual update will occur on the next frame, and will be subject to collision detection.
-  ///
-  Future queuePositionUpdate(
-      ThermionEntity entity, double x, double y, double z,
-      {bool relative = false});
-
-  ///
   /// TODO
   ///
   Future queuePositionUpdateFromViewportCoords(
@@ -666,20 +664,6 @@ abstract class ThermionViewer {
   ///
   Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
       double viewportX, double viewportY, double x, double y, double z);
-
-  ///
-  /// Queues an update to the worldspace rotation for [entity].
-  /// The actual update will occur on the next frame, and will be subject to collision detection.
-  ///
-  Future queueRotationUpdate(
-      ThermionEntity entity, double rads, double x, double y, double z,
-      {bool relative = false});
-
-  ///
-  /// Same as [queueRotationUpdate].
-  ///
-  Future queueRotationUpdateQuat(ThermionEntity entity, Quaternion quat,
-      {bool relative = false});
 
   ///
   /// Enable/disable postprocessing (disabled by default).
