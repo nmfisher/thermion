@@ -48,13 +48,12 @@ namespace thermion_filament
     using namespace filament::gltfio;
     using std::unique_ptr;
 
-    SceneManager::SceneManager(View *view,
-                               const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
+    SceneManager::SceneManager(const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
                                Engine *engine,
                                Scene *scene,
                                const char *uberArchivePath,
                                 Camera *mainCamera)
-        : _view(view),
+        : 
           _resourceLoaderWrapper(resourceLoaderWrapper),
           _engine(engine),
           _scene(scene),
@@ -99,21 +98,16 @@ namespace thermion_filament
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
 
-        gizmo = new Gizmo(*_engine, _view, _scene);
+        gizmo = new Gizmo(*_engine, _scene);
         _gridOverlay = new GridOverlay(*_engine);
 
         _scene->addEntity(_gridOverlay->sphere());
         _scene->addEntity(_gridOverlay->grid());
 
-        _view->setLayerEnabled(SceneManager::LAYERS::DEFAULT_ASSETS, true);
-        _view->setLayerEnabled(SceneManager::LAYERS::BACKGROUND, true); // skybox + image
-        _view->setLayerEnabled(SceneManager::LAYERS::OVERLAY, false); // world grid + gizmo
     }
 
     SceneManager::~SceneManager()
     {
-        _view->setScene(nullptr);
-        _view->setCamera(nullptr);
         for(auto camera : _cameras) {
             auto entity = camera->getEntity();
             _engine->destroyCameraComponent(entity);
@@ -1894,11 +1888,11 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
-    void SceneManager::queueRelativePositionUpdateFromViewportVector(EntityId entityId, float viewportCoordX, float viewportCoordY)
+    void SceneManager::queueRelativePositionUpdateFromViewportVector(View* view, EntityId entityId, float viewportCoordX, float viewportCoordY)
     {
         // Get the camera and viewport
-        const auto &camera = _view->getCamera();
-        const auto &vp = _view->getViewport();
+        const auto &camera = view->getCamera();
+        const auto &vp = view->getViewport();
 
         // Convert viewport coordinates to NDC space
         float ndcX = (2.0f * viewportCoordX) / vp.width - 1.0f;
@@ -2170,10 +2164,10 @@ namespace thermion_filament
         rm.setPriority(renderableInstance, priority);
     }
 
-    Aabb2 SceneManager::getBoundingBox(EntityId entityId)
+    Aabb2 SceneManager::getBoundingBox(View *view, EntityId entityId)
     {
-        const auto &camera = _view->getCamera();
-        const auto &viewport = _view->getViewport();
+        const auto &camera = view->getCamera();
+        const auto &viewport = view->getViewport();
 
         auto &tcm = _engine->getTransformManager();
         auto &rcm = _engine->getRenderableManager();
@@ -2240,11 +2234,6 @@ namespace thermion_filament
         }
 
         return Aabb2{minX, minY, maxX, maxY};
-    }
-
-    void SceneManager::setLayerVisibility(LAYERS layer, bool enabled)
-    {
-        _view->setLayerEnabled(layer, enabled);
     }
 
     void SceneManager::removeStencilHighlight(EntityId entityId)
@@ -2491,10 +2480,6 @@ EntityId SceneManager::createGeometry(
         }
     }
 
-    void SceneManager::setCamera(Camera* camera) {
-        _view->setCamera(camera);
-    }
-
     size_t SceneManager::getCameraCount() {
         return _cameras.size() + 1;
     }
@@ -2507,11 +2492,6 @@ EntityId SceneManager::createGeometry(
             return nullptr;
         }
         return _cameras[index-1];
-    }
-
-    Camera* SceneManager::getActiveCamera() { 
-        auto& camera = _view->getCamera();
-        return &camera;
     }
        
 

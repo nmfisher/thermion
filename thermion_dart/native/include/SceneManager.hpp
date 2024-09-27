@@ -46,7 +46,7 @@ namespace thermion_filament
     class SceneManager
     {
     public:
-        SceneManager(View* view,
+        SceneManager(
                     const ResourceLoaderWrapperImpl *const loader,
                      Engine *engine,
                      Scene *scene,
@@ -111,9 +111,9 @@ namespace thermion_filament
         void setRotation(EntityId e, float rads, float x, float y, float z, float w);
         
         void queueTransformUpdates(EntityId* entities, math::mat4* transforms, int numEntities);
-                
         void queueRelativePositionUpdateWorldAxis(EntityId entity, float viewportCoordX, float viewportCoordY, float x, float y, float z);
-        void queueRelativePositionUpdateFromViewportVector(EntityId entityId, float viewportCoordX, float viewportCoordY);
+        void queueRelativePositionUpdateFromViewportVector(View* view, EntityId entityId, float viewportCoordX, float viewportCoordY);
+        
         const utils::Entity *getCameraEntities(EntityId e);
         size_t getCameraEntityCount(EntityId e);
         const utils::Entity *getLightEntities(EntityId e) noexcept;
@@ -231,12 +231,7 @@ namespace thermion_filament
         /// @param out a pointer large enough to store four floats (the min/max coordinates of the bounding box)
         /// @return
         ///
-        Aabb2 getBoundingBox(EntityId entity);
-
-        ///
-        /// Toggles the visibility of the given layer.
-        ///
-        void setLayerVisibility(SceneManager::LAYERS layer, bool enabled);
+        Aabb2 getBoundingBox(View* view, EntityId entity);
 
         ///
         /// Creates an entity with the specified geometry/material/normals and adds to the scene.
@@ -308,20 +303,15 @@ namespace thermion_filament
         
         void destroyCamera(Camera* camera);
 
-        void setCamera(Camera* camera);
-
         size_t getCameraCount();
 
         Camera* getCameraAt(size_t index);
-
-        Camera* getActiveCamera();
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         Engine *_engine = nullptr;
         Scene *_scene = nullptr;       
-        View* _view = nullptr;
         Camera* _mainCamera;
 
         gltfio::MaterialProvider *_ubershaderProvider = nullptr;

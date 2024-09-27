@@ -59,11 +59,11 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TSceneManager *Viewer_getSceneManager(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TRenderTarget* Viewer_createRenderTarget(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTarget(TViewer *viewer, TRenderTarget* tRenderTarget);
-	EMSCRIPTEN_KEEPALIVE void Viewer_setRenderTarget(TViewer *viewer, TRenderTarget* tRenderTarget);
 	EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *viewer, const void *const window, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChain(TViewer *viewer, TSwapChain* swapChain);
 	EMSCRIPTEN_KEEPALIVE bool Viewer_render(
 		TViewer *viewer,
+		TView *view,
 		TSwapChain *swapChain,
 		uint64_t frameTimeInNanos,
 		void *pixelBuffer,
@@ -71,16 +71,20 @@ extern "C"
 		void *data);
 	EMSCRIPTEN_KEEPALIVE void Viewer_capture(
 		TViewer *viewer,
+		TView *view,
 		TSwapChain *swapChain,
 		uint8_t *pixelBuffer,
 		void (*callback)(void));
 	EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTarget(
 		TViewer *viewer,
+		TView *view,
 		TSwapChain *swapChain,
 		TRenderTarget *renderTarget,
 		uint8_t *pixelBuffer,
 		void (*callback)(void));
-	
+	EMSCRIPTEN_KEEPALIVE TView* Viewer_createView(TViewer *viewer);
+	EMSCRIPTEN_KEEPALIVE TView* Viewer_getViewAt(TViewer *viewer, int index);
+	EMSCRIPTEN_KEEPALIVE void Viewer_setMainCamera(TViewer *tViewer, TView *tView);	
 	
 	// Engine
 	EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer);
@@ -92,7 +96,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_background_image(TViewer *viewer, const char *path, bool fillHeight);
 	EMSCRIPTEN_KEEPALIVE void set_background_image_position(TViewer *viewer, float x, float y, bool clamp);
 	EMSCRIPTEN_KEEPALIVE void set_background_color(TViewer *viewer, const float r, const float g, const float b, const float a);
-	EMSCRIPTEN_KEEPALIVE void set_tone_mapping(TViewer *viewer, int toneMapping);
+	
 	EMSCRIPTEN_KEEPALIVE void set_bloom(TViewer *viewer, float strength);
 	EMSCRIPTEN_KEEPALIVE void load_skybox(TViewer *viewer, const char *skyboxPath);
 	EMSCRIPTEN_KEEPALIVE void load_ibl(TViewer *viewer, const char *iblPath, float intensity);
@@ -128,20 +132,12 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE EntityId create_instance(TSceneManager *sceneManager, EntityId id);
 	EMSCRIPTEN_KEEPALIVE int get_instance_count(TSceneManager *sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void get_instances(TSceneManager *sceneManager, EntityId entityId, EntityId *out);
-	EMSCRIPTEN_KEEPALIVE void set_main_camera(TViewer *viewer);
+	
 	EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(TViewer *viewer);
-	EMSCRIPTEN_KEEPALIVE bool set_camera(TViewer *viewer, EntityId entity, const char *nodeName);
 	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(TViewer *viewer, bool enabled);
 	
-
 	EMSCRIPTEN_KEEPALIVE void set_frame_interval(TViewer *viewer, float interval);
-	EMSCRIPTEN_KEEPALIVE void update_viewport(TViewer *viewer, uint32_t width, uint32_t height);
-	EMSCRIPTEN_KEEPALIVE void scroll_begin(TViewer *viewer);
-	EMSCRIPTEN_KEEPALIVE void scroll_update(TViewer *viewer, float x, float y, float z);
-	EMSCRIPTEN_KEEPALIVE void scroll_end(TViewer *viewer);
-	EMSCRIPTEN_KEEPALIVE void grab_begin(TViewer *viewer, float x, float y, bool pan);
-	EMSCRIPTEN_KEEPALIVE void grab_update(TViewer *viewer, float x, float y);
-	EMSCRIPTEN_KEEPALIVE void grab_end(TViewer *viewer);
+	
 	EMSCRIPTEN_KEEPALIVE void apply_weights(
 		TSceneManager *sceneManager,
 		EntityId entity,
@@ -213,6 +209,9 @@ extern "C"
 	
 	EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform);
 	EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *sceneManager, EntityId* entities, const double* const transforms, int numEntities);
+	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_findCameraByName(TSceneManager* tSceneManager, EntityId entity, const char* name);
+	EMSCRIPTEN_KEEPALIVE void SceneManager_setVisibilityLayer(TSceneManager *tSceneManager, EntityId entity, int layer);
+	EMSCRIPTEN_KEEPALIVE TGizmo* SceneManager_getGizmo(TSceneManager *tSceneManager);
 
 	EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void get_morph_target_name(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index);
@@ -223,7 +222,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void transform_to_unit_cube(TSceneManager *sceneManager, EntityId asset);
 	
 	EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z);
-	EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY);
+	EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(TSceneManager *sceneManager, TView *view, EntityId entity, float viewportX, float viewportY);
 
 	EMSCRIPTEN_KEEPALIVE void set_position(TSceneManager *sceneManager, EntityId entity, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void set_rotation(TSceneManager *sceneManager, EntityId entity, float rads, float x, float y, float z, float w);
@@ -252,7 +251,6 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(TCamera *camera);
 	EMSCRIPTEN_KEEPALIVE float get_camera_fov(TCamera *camera, bool horizontal);
 	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(TCamera *camera, float focusDistance);
-	EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(TViewer *viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed);
 	
 	EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* camera, double4x4 projectionMatrix, double near, double far);
 	EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera* camera, double4x4 modelMatrix);
@@ -264,22 +262,15 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
 
 	// SceneManager
-
 	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_createCamera(TSceneManager *sceneManager);
 	EMSCRIPTEN_KEEPALIVE void SceneManager_destroyCamera(TSceneManager *sceneManager, TCamera* camera);
-	EMSCRIPTEN_KEEPALIVE void SceneManager_setCamera(TSceneManager *sceneManager, TCamera* camera);
 	EMSCRIPTEN_KEEPALIVE size_t SceneManager_getCameraCount(TSceneManager *sceneManager);	
 	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraAt(TSceneManager *sceneManager, size_t index);	
-	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getActiveCamera(TSceneManager *sceneManager);	
 
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE int reveal_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
-	EMSCRIPTEN_KEEPALIVE void set_post_processing(TViewer *viewer, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void set_shadows_enabled(TViewer *viewer, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void set_shadow_type(TViewer *viewer, int shadowType);
-	EMSCRIPTEN_KEEPALIVE void set_soft_shadow_options(TViewer *viewer, float penumbraScale, float penumbraRatioScale);
-	EMSCRIPTEN_KEEPALIVE void set_antialiasing(TViewer *viewer, bool msaa, bool fxaa, bool taa);
-	EMSCRIPTEN_KEEPALIVE void filament_pick(TViewer *viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y));
+	
+	EMSCRIPTEN_KEEPALIVE void filament_pick(TViewer *viewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y));
 	EMSCRIPTEN_KEEPALIVE const char *get_name_for_entity(TSceneManager *sceneManager, const EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(TSceneManager *sceneManager, const EntityId parent, const char *name);
 	EMSCRIPTEN_KEEPALIVE int get_entity_count(TSceneManager *sceneManager, const EntityId target, bool renderableOnly);
@@ -312,11 +303,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void test_collisions(TSceneManager *sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_priority(TSceneManager *sceneManager, EntityId entityId, int priority);
 	EMSCRIPTEN_KEEPALIVE void get_gizmo(TSceneManager *sceneManager, EntityId *out);
-	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, EntityId entity, float *minX, float *minY, float *maxX, float *maxY);
-	EMSCRIPTEN_KEEPALIVE void set_layer_visibility(TSceneManager *sceneManager, int layer, bool visible);
-	EMSCRIPTEN_KEEPALIVE void set_visibility_layer(TSceneManager *sceneManager, EntityId entity, int layer);
-	EMSCRIPTEN_KEEPALIVE void pick_gizmo(TSceneManager *sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y));
+	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, TView *view, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, TView *view, EntityId entity, float *minX, float *minY, float *maxX, float *maxY);
+	
 	EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(TSceneManager *sceneManager, bool visible);
 	EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(TSceneManager *sceneManager, EntityId entity, float r, float g, float b);
 	EMSCRIPTEN_KEEPALIVE void remove_stencil_highlight(TSceneManager *sceneManager, EntityId entity);

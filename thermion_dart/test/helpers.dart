@@ -79,10 +79,11 @@ class TestHelper {
     outDir.createSync();
   }
 
-  Future capture(ThermionViewer viewer, String outputFilename) async {
+  Future capture(ThermionViewer viewer, String outputFilename, { SwapChain? swapChain, RenderTarget? renderTarget}) async {
     await Future.delayed(Duration(milliseconds: 10));
     var outPath = p.join(outDir.path, "$outputFilename.bmp");
-    var pixelBuffer = await viewer.capture(swapChain); //, renderTarget: renderTarget);
+    var pixelBuffer =
+        await viewer.capture(swapChain ?? this.swapChain, renderTarget:  renderTarget);
     await savePixelBufferToBmp(
         pixelBuffer,
         viewer.viewportDimensions.$1.toInt(),
@@ -91,17 +92,21 @@ class TestHelper {
     return pixelBuffer;
   }
 
+  Future<int> createTexture(int width, int height) async {
+    final packageUri = findPackageRoot('thermion_dart');
+    final lib = ThermionDartTexture1(DynamicLibrary.open(
+        '${packageUri.toFilePath()}/native/lib/macos/swift/libthermion_swift.dylib'));
+    final object = ThermionDartTexture.new1(lib);
+    object.initWithWidth_height_(width, height);
+    return object.metalTextureAddress;
+  }
+
   Future<ThermionViewer> createViewer(
       {img.Color? bg,
       Vector3? cameraPosition,
       viewportDimensions = (width: 500, height: 500)}) async {
-    final packageUri = findPackageRoot('thermion_dart');
-
-    final lib = ThermionDartTexture1(DynamicLibrary.open(
-        '${packageUri.toFilePath()}/native/lib/macos/swift/libthermion_swift.dylib'));
-    final object = ThermionDartTexture.new1(lib);
-    object.initWithWidth_height_(
-        viewportDimensions.width, viewportDimensions.height);
+    final texture =
+        await createTexture(viewportDimensions.width, viewportDimensions.height);
 
     final resourceLoader = calloc<ResourceLoaderWrapper>(1);
     var loadToOut = NativeCallable<
@@ -118,11 +123,10 @@ class TestHelper {
     await viewer.initialized;
     swapChain = await viewer.createSwapChain(
         viewportDimensions.width, viewportDimensions.height);
-    renderTarget = await viewer.createRenderTarget(
-        viewportDimensions.width,
-        viewportDimensions.height,
-        object.metalTextureAddress);
-    await viewer.setRenderTarget(renderTarget as FFIRenderTarget);
+    renderTarget = await viewer.createRenderTarget(viewportDimensions.width,
+        viewportDimensions.height, texture);
+
+    // await viewer.setRenderTarget(renderTarget as FFIRenderTarget);
     await viewer.updateViewportAndCameraProjection(
         viewportDimensions.width.toDouble(),
         viewportDimensions.height.toDouble());

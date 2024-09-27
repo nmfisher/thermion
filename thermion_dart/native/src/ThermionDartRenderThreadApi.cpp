@@ -82,9 +82,10 @@ public:
     }
   }
 
-  void requestFrame(SwapChain* swapChain, void (*callback)())
+  void requestFrame(TView* tView, TSwapChain* tSwapChain, void (*callback)())
   {
-    this->target = swapChain;
+    this->target = tSwapChain;
+    this->view = tView;
     this->_requestFrameRenderCallback = callback;
   }
 
@@ -93,7 +94,7 @@ public:
     std::unique_lock<std::mutex> lock(_mutex);
     if (target)
     {
-      doRender(target);
+      doRender(view, target);
       this->_requestFrameRenderCallback();
       target = nullptr;
 
@@ -176,7 +177,7 @@ public:
     fut.wait();
   }
 
-  bool doRender(SwapChain *swapChain)
+  bool doRender(TView* tView, TSwapChain *tSwapChain)
   {
 #ifdef __EMSCRIPTEN__
     if (emscripten_is_webgl_context_lost(_context) == EM_TRUE)
@@ -187,8 +188,7 @@ public:
       return;
     }
 #endif
-    TSwapChain *tSwapChain = reinterpret_cast<TSwapChain*>(swapChain);
-    auto rendered = Viewer_render(_viewer, tSwapChain, 0, nullptr, nullptr, nullptr);
+    auto rendered = Viewer_render(_viewer, tView, tSwapChain, 0, nullptr, nullptr, nullptr);
     if (_renderCallback)
     {
       _renderCallback(_renderCallbackOwner);
@@ -218,7 +218,8 @@ public:
   }
 
 public:
-  SwapChain* target;
+  TSwapChain *target;
+  TView *view;
 
 private:
   void(*_requestFrameRenderCallback)()  = nullptr;
@@ -306,7 +307,7 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TSwapChain* tSwapChain, void(*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TView* view, TSwapChain* tSwapChain, void(*onComplete)())
   {
     if (!_rl)
     {
@@ -314,7 +315,7 @@ extern "C"
     }
     else
     {
-      _rl->requestFrame(reinterpret_cast<SwapChain*>(tSwapChain), onComplete);
+      _rl->requestFrame(view, tSwapChain, onComplete);
     }
   }
 
@@ -327,24 +328,24 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TSwapChain *tSwapChain)
+  EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView *tView, TSwapChain *tSwapChain)
   {
     std::packaged_task<void()> lambda([=]() mutable
-                                      { _rl->doRender(reinterpret_cast<SwapChain*>(tSwapChain)); });
+                                      { _rl->doRender(tView, tSwapChain); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TSwapChain *tSwapChain, uint8_t *pixelBuffer, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, uint8_t *pixelBuffer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]() mutable
-                                      { Viewer_capture(viewer, tSwapChain, pixelBuffer, onComplete); });
+                                      { Viewer_capture(viewer, view, tSwapChain, pixelBuffer, onComplete); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TSwapChain *tSwapChain, TRenderTarget* tRenderTarget, uint8_t *pixelBuffer, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, TRenderTarget* tRenderTarget, uint8_t *pixelBuffer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]() mutable
-                                      { Viewer_captureRenderTarget(viewer, tSwapChain, tRenderTarget, pixelBuffer, onComplete); });
+                                      { Viewer_captureRenderTarget(viewer, view, tSwapChain, tRenderTarget, pixelBuffer, onComplete); });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -449,20 +450,7 @@ extern "C"
         { set_background_image_position(viewer, x, y, clamp); });
     auto fut = _rl->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void set_tone_mapping_render_thread(TViewer *viewer,
-                                                           int toneMapping)
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        { set_tone_mapping(viewer, toneMapping); });
-    auto fut = _rl->add_task(lambda);
-  }
-  EMSCRIPTEN_KEEPALIVE void set_bloom_render_thread(TViewer *viewer, float strength)
-  {
-    std::packaged_task<void()> lambda([=]
-                                      { set_bloom(viewer, strength); });
-    auto fut = _rl->add_task(lambda);
-  }
+  
   EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer,
                                                       const char *skyboxPath,
                                                       void (*onComplete)())
@@ -530,22 +518,6 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void set_camera_render_thread(TViewer *viewer, EntityId asset,
-                                                     const char *nodeName, void (*callback)(bool))
-  {
-    std::packaged_task<bool()> lambda(
-        [=]
-        {
-          auto success = set_camera(viewer, asset, nodeName);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, success);
-#else
-          callback(success);
-#endif
-          return success;
-        });
-    auto fut = _rl->add_task(lambda);
-  }
 
   EMSCRIPTEN_KEEPALIVE void
   get_morph_target_name_render_thread(TSceneManager *sceneManager, EntityId assetEntity,
@@ -634,15 +606,6 @@ extern "C"
           callback();
 #endif
         });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void set_post_processing_render_thread(TViewer *viewer,
-                                                              bool enabled)
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        { set_post_processing(viewer, enabled); });
     auto fut = _rl->add_task(lambda);
   }
 

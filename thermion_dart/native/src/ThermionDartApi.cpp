@@ -48,31 +48,27 @@ extern "C"
     {
         const auto *loaderImpl = new ResourceLoaderWrapperImpl((ResourceLoaderWrapper *)loader);
         auto viewer = new FilamentViewer(context, loaderImpl, platform, uberArchivePath);
-        return reinterpret_cast<TViewer*>(viewer);
+        return reinterpret_cast<TViewer *>(viewer);
     }
 
-    EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer) { 
-        auto* engine = reinterpret_cast<FilamentViewer*>(viewer)->getEngine();
-        return reinterpret_cast<TEngine*>(engine);
+    EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer *viewer)
+    {
+        auto *engine = reinterpret_cast<FilamentViewer *>(viewer)->getEngine();
+        return reinterpret_cast<TEngine *>(engine);
     }
 
-    EMSCRIPTEN_KEEPALIVE TRenderTarget* Viewer_createRenderTarget(TViewer *tViewer, intptr_t texture, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE TRenderTarget *Viewer_createRenderTarget(TViewer *tViewer, intptr_t texture, uint32_t width, uint32_t height)
     {
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
         auto renderTarget = viewer->createRenderTarget(texture, width, height);
-        return reinterpret_cast<TRenderTarget*>(renderTarget);
+        return reinterpret_cast<TRenderTarget *>(renderTarget);
     }
 
-	EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTarget(TViewer *tViewer, TRenderTarget* tRenderTarget) {
+    EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTarget(TViewer *tViewer, TRenderTarget *tRenderTarget)
+    {
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
-        auto renderTarget = reinterpret_cast<RenderTarget*>(tRenderTarget);
+        auto renderTarget = reinterpret_cast<RenderTarget *>(tRenderTarget);
         viewer->destroyRenderTarget(renderTarget);
-    }
-	
-    EMSCRIPTEN_KEEPALIVE void Viewer_setRenderTarget(TViewer *tViewer, TRenderTarget* tRenderTarget) {
-        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
-        auto renderTarget = reinterpret_cast<RenderTarget*>(tRenderTarget);
-        viewer->setRenderTarget(renderTarget);
     }
 
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer)
@@ -92,23 +88,14 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE void set_background_image(TViewer *viewer, const char *path, bool fillHeight)
     {
-        ((FilamentViewer *)viewer)->setBackgroundImage(path, fillHeight);
+        ((FilamentViewer *)viewer)->setBackgroundImage(path, fillHeight, 100, 100);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_background_image_position(TViewer *viewer, float x, float y, bool clamp)
     {
-        ((FilamentViewer *)viewer)->setBackgroundImagePosition(x, y, clamp);
+        ((FilamentViewer *)viewer)->setBackgroundImagePosition(x, y, clamp, 100, 100);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_tone_mapping(TViewer *viewer, int toneMapping)
-    {
-        ((FilamentViewer *)viewer)->setToneMapping((ToneMapping)toneMapping);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_bloom(TViewer *viewer, float strength)
-    {
-        ((FilamentViewer *)viewer)->setBloom(strength);
-    }
 
     EMSCRIPTEN_KEEPALIVE void load_skybox(TViewer *viewer, const char *skyboxPath)
     {
@@ -221,19 +208,16 @@ extern "C"
         return ((SceneManager *)sceneManager)->loadGltf(assetPath, relativePath, keepData);
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_main_camera(TViewer *viewer)
+    EMSCRIPTEN_KEEPALIVE void Viewer_setMainCamera(TViewer *tViewer, TView *tView)
     {
-        return ((FilamentViewer *)viewer)->setMainCamera();
+        auto *viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        auto *view = reinterpret_cast<View*>(tView);
+        viewer->setMainCamera(view);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(TViewer *viewer)
     {
         return ((FilamentViewer *)viewer)->getMainCamera();
-    }
-
-    EMSCRIPTEN_KEEPALIVE bool set_camera(TViewer *viewer, EntityId asset, const char *nodeName)
-    {
-        return ((FilamentViewer *)viewer)->setCamera(asset, nodeName);
     }
 
     EMSCRIPTEN_KEEPALIVE float get_camera_fov(TCamera *camera, bool horizontal)
@@ -334,15 +318,7 @@ extern "C"
         return array;
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_camera_manipulator_options(TViewer *viewer, _ManipulatorMode mode, double orbitSpeedX, double orbitSpeedY, double zoomSpeed)
-    {
-        ((FilamentViewer *)viewer)->setCameraManipulatorOptions((filament::camutils::Mode)mode, orbitSpeedX, orbitSpeedY, zoomSpeed);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(TViewer *viewer, bool enabled)
-    {
-        ((FilamentViewer *)viewer)->setViewFrustumCulling(enabled);
-    }
+    
 
     EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(TCamera *camera, float distance)
     {
@@ -365,20 +341,23 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE bool Viewer_render(
         TViewer *tViewer,
+        TView *tView,
         TSwapChain *tSwapChain,
         uint64_t frameTimeInNanos,
         void *pixelBuffer,
         void (*callback)(void *buf, size_t size, void *data),
         void *data)
     {
-        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
-        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
-        return viewer->render(frameTimeInNanos, swapChain, pixelBuffer, callback, data);
+        auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto *view = reinterpret_cast<View*>(tView);
+        return viewer->render(frameTimeInNanos, view, swapChain, pixelBuffer, callback, data);
     }
 
     EMSCRIPTEN_KEEPALIVE void Viewer_capture(
         TViewer *tViewer,
-        TSwapChain* tSwapChain,
+        TView *tView,
+        TSwapChain *tSwapChain,
         uint8_t *pixelBuffer,
         void (*callback)(void))
     {
@@ -387,14 +366,16 @@ extern "C"
 #else
         bool useFence = false;
 #endif
-        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
-        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
-        viewer->capture(pixelBuffer, useFence, swapChain, callback);
+        auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto *view = reinterpret_cast<View*>(tView);
+        viewer->capture(view, pixelBuffer, useFence, swapChain, callback);
     };
 
     EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTarget(
         TViewer *tViewer,
-        TSwapChain* tSwapChain,
+        TView *tView,
+        TSwapChain *tSwapChain,
         TRenderTarget *tRenderTarget,
         uint8_t *pixelBuffer,
         void (*callback)(void))
@@ -404,10 +385,11 @@ extern "C"
 #else
         bool useFence = false;
 #endif
-        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
-        auto renderTarget = reinterpret_cast<RenderTarget*>(tRenderTarget);
-        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
-        viewer->capture(pixelBuffer, useFence, swapChain, renderTarget, callback);
+        auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
+        auto renderTarget = reinterpret_cast<RenderTarget *>(tRenderTarget);
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto *view = reinterpret_cast<View*>(tView);
+        viewer->capture(view, pixelBuffer, useFence, swapChain, renderTarget, callback);
     };
 
     EMSCRIPTEN_KEEPALIVE void set_frame_interval(
@@ -417,59 +399,41 @@ extern "C"
         ((FilamentViewer *)viewer)->setFrameInterval(frameInterval);
     }
 
-    EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChain(TViewer *tViewer, TSwapChain* tSwapChain)
+    EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChain(TViewer *tViewer, TSwapChain *tSwapChain)
     {
-        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
-        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
         viewer->destroySwapChain(swapChain);
     }
 
-    EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *tViewer, const void *const window, uint32_t width, uint32_t height) {
-        auto viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+    EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *tViewer, const void *const window, uint32_t width, uint32_t height)
+    {
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
         auto swapChain = viewer->createSwapChain(window, width, height);
-        return reinterpret_cast<TSwapChain*>(swapChain);
+        return reinterpret_cast<TSwapChain *>(swapChain);
     }
 
-    EMSCRIPTEN_KEEPALIVE void update_viewport(TViewer *viewer, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE TView *Viewer_createView(TViewer *tViewer)
     {
-        return ((FilamentViewer *)viewer)->updateViewport(width, height);
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto view = viewer->createView();
+        return reinterpret_cast<TView *>(view);
     }
 
-    EMSCRIPTEN_KEEPALIVE void scroll_update(TViewer *viewer, float x, float y, float delta)
+    EMSCRIPTEN_KEEPALIVE TView *Viewer_getViewAt(TViewer *tViewer, int32_t index)
     {
-        ((FilamentViewer *)viewer)->scrollUpdate(x, y, delta);
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto view = viewer->getViewAt(index);
+        return reinterpret_cast<TView *>(view);
     }
 
-    EMSCRIPTEN_KEEPALIVE void scroll_begin(TViewer *viewer)
-    {
-        ((FilamentViewer *)viewer)->scrollBegin();
-    }
+    
 
-    EMSCRIPTEN_KEEPALIVE void scroll_end(TViewer *viewer)
+    EMSCRIPTEN_KEEPALIVE TSceneManager *Viewer_getSceneManager(TViewer *tViewer)
     {
-        ((FilamentViewer *)viewer)->scrollEnd();
-    }
-
-    EMSCRIPTEN_KEEPALIVE void grab_begin(TViewer *viewer, float x, float y, bool pan)
-    {
-        ((FilamentViewer *)viewer)->grabBegin(x, y, pan);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void grab_update(TViewer *viewer, float x, float y)
-    {
-        ((FilamentViewer *)viewer)->grabUpdate(x, y);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void grab_end(TViewer *viewer)
-    {
-        ((FilamentViewer *)viewer)->grabEnd();
-    }
-
-    EMSCRIPTEN_KEEPALIVE TSceneManager* Viewer_getSceneManager(TViewer *tViewer)
-    {
-        auto * viewer = reinterpret_cast<FilamentViewer*>(tViewer);
-        auto * sceneManager = viewer->getSceneManager();
-        return reinterpret_cast<TSceneManager*>(sceneManager);
+        auto *viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto *sceneManager = viewer->getSceneManager();
+        return reinterpret_cast<TSceneManager *>(sceneManager);
     }
 
     EMSCRIPTEN_KEEPALIVE void apply_weights(
@@ -527,31 +491,6 @@ extern "C"
         float maxDelta)
     {
         ((SceneManager *)sceneManager)->addBoneAnimation(asset, skinIndex, boneIndex, frameData, numFrames, frameLengthInMs, fadeOutInSecs, fadeInInSecs, maxDelta);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_post_processing(TViewer *viewer, bool enabled)
-    {
-        ((FilamentViewer *)viewer)->setPostProcessing(enabled);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_shadows_enabled(TViewer *viewer, bool enabled)
-    {
-        ((FilamentViewer *)viewer)->setShadowsEnabled(enabled);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_shadow_type(TViewer *viewer, int shadowType)
-    {
-        ((FilamentViewer *)viewer)->setShadowType((ShadowType)shadowType);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_soft_shadow_options(TViewer *viewer, float penumbraScale, float penumbraRatioScale)
-    {
-        ((FilamentViewer *)viewer)->setSoftShadowOptions(penumbraScale, penumbraRatioScale);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_antialiasing(TViewer *viewer, bool msaa, bool fxaa, bool taa)
-    {
-        ((FilamentViewer *)viewer)->setAntiAliasing(msaa, fxaa, taa);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId get_bone(TSceneManager *sceneManager,
@@ -737,6 +676,17 @@ extern "C"
         }
     }
 
+    EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraByName(TSceneManager *tSceneManager, EntityId entityId, const char* name) {
+        auto *sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
+        return nullptr;
+    }
+
+    EMSCRIPTEN_KEEPALIVE TGizmo* SceneManager_getGizmo(TSceneManager *tSceneManager) {
+        auto *sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
+        auto *gizmo = sceneManager->gizmo;
+        return reinterpret_cast<TGizmo*>(gizmo);
+    }
+
     EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform)
     {
         auto matrix = math::mat4(
@@ -757,25 +707,27 @@ extern "C"
         return ((SceneManager *)sceneManager)->setTransform(entityId, matrix);
     }
 
-    EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *tSceneManager, EntityId* entities, const double* const transforms, int numEntities) {
-        auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager); 
+    EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *tSceneManager, EntityId *entities, const double *const transforms, int numEntities)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         math::mat4 matrices[numEntities];
-        for(int i = 0; i < numEntities; i++) {
-            matrices[i] =  math::mat4(
-            transforms[i * 16], transforms[i*16+1], transforms[i*16+2],
-            transforms[i*16+3],
-            transforms[i*16+4],
-            transforms[i*16+5],
-            transforms[i*16+6],
-            transforms[i*16+7],
-            transforms[i*16+8],
-            transforms[i*16+9],
-            transforms[i*16+10],
-            transforms[i*16+11],
-            transforms[i*16+12],
-            transforms[i*16+13],
-            transforms[i*16+14],
-            transforms[i*16+15]);
+        for (int i = 0; i < numEntities; i++)
+        {
+            matrices[i] = math::mat4(
+                transforms[i * 16], transforms[i * 16 + 1], transforms[i * 16 + 2],
+                transforms[i * 16 + 3],
+                transforms[i * 16 + 4],
+                transforms[i * 16 + 5],
+                transforms[i * 16 + 6],
+                transforms[i * 16 + 7],
+                transforms[i * 16 + 8],
+                transforms[i * 16 + 9],
+                transforms[i * 16 + 10],
+                transforms[i * 16 + 11],
+                transforms[i * 16 + 12],
+                transforms[i * 16 + 13],
+                transforms[i * 16 + 14],
+                transforms[i * 16 + 15]);
         }
         sceneManager->queueTransformUpdates(entities, matrices, numEntities);
     }
@@ -833,9 +785,10 @@ extern "C"
         ((SceneManager *)sceneManager)->setScale(asset, scale);
     }
 
-    EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY)
+    EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(TSceneManager *sceneManager, TView *tView, EntityId entity, float viewportX, float viewportY)
     {
-        ((SceneManager *)sceneManager)->queueRelativePositionUpdateFromViewportVector(entity, viewportX, viewportY);
+        auto *view = reinterpret_cast<View*>(tView);
+        ((SceneManager *)sceneManager)->queueRelativePositionUpdateFromViewportVector(view, entity, viewportX, viewportY);
     }
 
     EMSCRIPTEN_KEEPALIVE void stop_animation(TSceneManager *sceneManager, EntityId asset, int index)
@@ -853,9 +806,11 @@ extern "C"
         return ((SceneManager *)sceneManager)->reveal(asset, meshName);
     }
 
-    EMSCRIPTEN_KEEPALIVE void filament_pick(TViewer *viewer, int x, int y, void (*callback)(EntityId entityId, int x, int y))
+    EMSCRIPTEN_KEEPALIVE void filament_pick(TViewer *tViewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y))
     {
-        ((FilamentViewer *)viewer)->pick(static_cast<uint32_t>(x), static_cast<uint32_t>(y), callback);
+        auto *viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        auto *view = reinterpret_cast<View*>(tView);
+        ((FilamentViewer *)viewer)->pick(view, static_cast<uint32_t>(x), static_cast<uint32_t>(y), callback);
     }
 
     EMSCRIPTEN_KEEPALIVE const char *get_name_for_entity(TSceneManager *sceneManager, const EntityId entityId)
@@ -965,38 +920,31 @@ extern "C"
         out[3] = Entity::smuggle(gizmo->center());
     }
 
-    EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, EntityId entity)
+    EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, TView *tView, EntityId entity)
     {
-        return ((SceneManager *)sceneManager)->getBoundingBox(entity);
+        auto view = reinterpret_cast<View*>(tView);
+        return ((SceneManager *)sceneManager)->getBoundingBox(view, entity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, EntityId entity, float *minX, float *minY, float *maxX, float *maxY)
+    EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, TView *tView, EntityId entity, float *minX, float *minY, float *maxX, float *maxY)
     {
-        auto box = ((SceneManager *)sceneManager)->getBoundingBox(entity);
+        auto view = reinterpret_cast<View*>(tView);
+        auto box = ((SceneManager *)sceneManager)->getBoundingBox(view, entity);
         *minX = box.minX;
         *minY = box.minY;
         *maxX = box.maxX;
         *maxY = box.maxY;
     }
 
-    EMSCRIPTEN_KEEPALIVE void set_visibility_layer(TSceneManager *sceneManager, EntityId entity, int layer) {
-        ((SceneManager*)sceneManager)->setVisibilityLayer(entity, layer);
-    }
-
-
-    EMSCRIPTEN_KEEPALIVE void set_layer_visibility(TSceneManager *sceneManager, int layer, bool visible)
+    EMSCRIPTEN_KEEPALIVE void SceneManager_setVisibilityLayer(TSceneManager *tSceneManager, EntityId entity, int layer)
     {
-        ((SceneManager *)sceneManager)->setLayerVisibility((SceneManager::LAYERS)layer, visible);
+        auto *sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
+        sceneManager->setVisibilityLayer(entity, layer);
     }
 
     EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void *ptr)
     {
         free(ptr);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void pick_gizmo(TSceneManager *sceneManager, int x, int y, void (*callback)(EntityId entityId, int x, int y))
-    {
-        ((SceneManager *)sceneManager)->gizmo->pick(x, y, callback);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(TSceneManager *sceneManager, bool visible)
@@ -1019,9 +967,10 @@ extern "C"
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, value);
     }
 
-    EMSCRIPTEN_KEEPALIVE TMaterialInstance* get_material_instance_at(TSceneManager *sceneManager, EntityId entity, int materialIndex) {
+    EMSCRIPTEN_KEEPALIVE TMaterialInstance *get_material_instance_at(TSceneManager *sceneManager, EntityId entity, int materialIndex)
+    {
         auto instance = ((SceneManager *)sceneManager)->getMaterialInstanceAt(entity, materialIndex);
-        return reinterpret_cast<TMaterialInstance*>(instance);
+        return reinterpret_cast<TMaterialInstance *>(instance);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_material_property_int(TSceneManager *sceneManager, EntityId entity, int materialIndex, const char *property, int32_t value)
@@ -1030,7 +979,7 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE void set_material_property_float4(TSceneManager *sceneManager, EntityId entity, int materialIndex, const char *property, double4 value)
-    {        
+    {
         filament::math::float4 filamentValue;
         filamentValue.x = static_cast<float32_t>(value.x);
         filamentValue.y = static_cast<float32_t>(value.y);
@@ -1039,7 +988,7 @@ extern "C"
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
     }
 
-    EMSCRIPTEN_KEEPALIVE void unproject_texture(TViewer *viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
+    EMSCRIPTEN_KEEPALIVE void unproject_texture(TViewer *viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
     {
         ((FilamentViewer *)viewer)->unprojectTexture(entity, input, inputWidth, inputHeight, out, outWidth, outHeight);
     }
@@ -1059,146 +1008,154 @@ extern "C"
         ((SceneManager *)sceneManager)->destroyTexture(reinterpret_cast<Texture *>(texture));
     }
 
+    EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_material_instance(TSceneManager *sceneManager, TMaterialKey materialConfig)
+    {
 
- EMSCRIPTEN_KEEPALIVE TMaterialInstance* create_material_instance(TSceneManager *sceneManager, TMaterialKey materialConfig)
-{
+        filament::gltfio::MaterialKey config;
+        memset(&config, 0, sizeof(MaterialKey));
 
-    filament::gltfio::MaterialKey config;
-    memset(&config, 0, sizeof(MaterialKey));
-
-    // Set and log each field
-    config.unlit = materialConfig.unlit;
-    config.doubleSided = materialConfig.doubleSided;
-    config.useSpecularGlossiness = materialConfig.useSpecularGlossiness;
-    config.alphaMode = static_cast<filament::gltfio::AlphaMode>(materialConfig.alphaMode);
-    config.hasBaseColorTexture = materialConfig.hasBaseColorTexture;
-    config.hasClearCoat = materialConfig.hasClearCoat;
-    config.hasClearCoatNormalTexture = materialConfig.hasClearCoatNormalTexture;
-    config.hasClearCoatRoughnessTexture = materialConfig.hasClearCoatRoughnessTexture;
-    config.hasEmissiveTexture = materialConfig.hasEmissiveTexture;
-    config.hasIOR = materialConfig.hasIOR;
-    config.hasMetallicRoughnessTexture = materialConfig.hasMetallicRoughnessTexture;
-    config.hasNormalTexture = materialConfig.hasNormalTexture;
-    config.hasOcclusionTexture = materialConfig.hasOcclusionTexture;
-    config.hasSheen = materialConfig.hasSheen;
-    config.hasSheenColorTexture = materialConfig.hasSheenColorTexture;
-    config.hasSheenRoughnessTexture = materialConfig.hasSheenRoughnessTexture;
-    config.hasTextureTransforms = materialConfig.hasTextureTransforms;
-    config.hasTransmission = materialConfig.hasTransmission;
-    config.hasTransmissionTexture = materialConfig.hasTransmissionTexture;
-    config.hasVolume = materialConfig.hasVolume;
-    config.hasVolumeThicknessTexture = materialConfig.hasVolumeThicknessTexture;
-    config.baseColorUV = materialConfig.baseColorUV;
-    config.hasVertexColors = materialConfig.hasVertexColors;
-    auto materialInstance = ((SceneManager *)sceneManager)->createUbershaderMaterialInstance(config);
-    return reinterpret_cast<TMaterialInstance*>(materialInstance);
-}
-
-EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(TSceneManager *sceneManager) { 
-    auto * instance = ((SceneManager*)sceneManager)->createUnlitMaterialInstance();
-    return reinterpret_cast<TMaterialInstance*>(instance);
-}
-
-EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance) {
-    ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance*>(instance));
-}
-
-EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance* materialInstance, bool enabled) {
-    reinterpret_cast<MaterialInstance*>(materialInstance)->setDepthWrite(enabled);
-}
-
-EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance* materialInstance, bool enabled) {
-    reinterpret_cast<MaterialInstance*>(materialInstance)->setDepthCulling(enabled);
-}
-
-EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance* materialInstance, const char* propertyName, double x, double y) {
-    filament::math::float2 data { static_cast<float>(x), static_cast<float>(y) };
-    reinterpret_cast<MaterialInstance*>(materialInstance)->setParameter(propertyName, data);
-}
-
-EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* tCamera, double4x4 projectionMatrix, double near, double far) {
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    camera->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), near, far);
-}
-
-EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* tCamera) {
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    return convert_mat4_to_double4x4(camera->getModelMatrix());
-}
-
-EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const tCamera) {
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    return convert_mat4_to_double4x4(camera->getViewMatrix());
-}
-
-EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera* tCamera) {
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    return Entity::smuggle(camera->getEntity());
-}
-
-EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const tCamera) { 
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    return camera->getFocalLength();
-}
-
-EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const tCamera) {
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    return camera->getNear();
-}
-
-EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const tCamera) {
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    return camera->getCullingFar();
-}
-
-EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId) {
-    auto * engine = reinterpret_cast<Engine*>(tEngine);
-    auto * camera = engine->getCameraComponent(utils::Entity::import(entityId));
-    return reinterpret_cast<TCamera*>(camera);
-}
-
-EMSCRIPTEN_KEEPALIVE void Engine_setTransform(TEngine* tEngine, EntityId entity, double4x4 transform) {
-    auto * engine = reinterpret_cast<Engine*>(tEngine);
-    auto& transformManager = engine->getTransformManager();
-    
-    auto transformInstance = transformManager.getInstance(utils::Entity::import(entity));
-    if(!transformInstance.isValid()) {
-        Log("Transform instance not valid");
+        // Set and log each field
+        config.unlit = materialConfig.unlit;
+        config.doubleSided = materialConfig.doubleSided;
+        config.useSpecularGlossiness = materialConfig.useSpecularGlossiness;
+        config.alphaMode = static_cast<filament::gltfio::AlphaMode>(materialConfig.alphaMode);
+        config.hasBaseColorTexture = materialConfig.hasBaseColorTexture;
+        config.hasClearCoat = materialConfig.hasClearCoat;
+        config.hasClearCoatNormalTexture = materialConfig.hasClearCoatNormalTexture;
+        config.hasClearCoatRoughnessTexture = materialConfig.hasClearCoatRoughnessTexture;
+        config.hasEmissiveTexture = materialConfig.hasEmissiveTexture;
+        config.hasIOR = materialConfig.hasIOR;
+        config.hasMetallicRoughnessTexture = materialConfig.hasMetallicRoughnessTexture;
+        config.hasNormalTexture = materialConfig.hasNormalTexture;
+        config.hasOcclusionTexture = materialConfig.hasOcclusionTexture;
+        config.hasSheen = materialConfig.hasSheen;
+        config.hasSheenColorTexture = materialConfig.hasSheenColorTexture;
+        config.hasSheenRoughnessTexture = materialConfig.hasSheenRoughnessTexture;
+        config.hasTextureTransforms = materialConfig.hasTextureTransforms;
+        config.hasTransmission = materialConfig.hasTransmission;
+        config.hasTransmissionTexture = materialConfig.hasTransmissionTexture;
+        config.hasVolume = materialConfig.hasVolume;
+        config.hasVolumeThicknessTexture = materialConfig.hasVolumeThicknessTexture;
+        config.baseColorUV = materialConfig.baseColorUV;
+        config.hasVertexColors = materialConfig.hasVertexColors;
+        auto materialInstance = ((SceneManager *)sceneManager)->createUbershaderMaterialInstance(config);
+        return reinterpret_cast<TMaterialInstance *>(materialInstance);
     }
-    transformManager.setTransform(transformInstance, convert_double4x4_to_mat4(transform));
-}
 
-EMSCRIPTEN_KEEPALIVE TCamera *SceneManager_createCamera(TSceneManager* tSceneManager) {
-    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
-    return reinterpret_cast<TCamera*>(sceneManager->createCamera());
-}
+    EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(TSceneManager *sceneManager)
+    {
+        auto *instance = ((SceneManager *)sceneManager)->createUnlitMaterialInstance();
+        return reinterpret_cast<TMaterialInstance *>(instance);
+    }
 
-EMSCRIPTEN_KEEPALIVE void SceneManager_destroyCamera(TSceneManager* tSceneManager, TCamera* tCamera) {
-    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    sceneManager->destroyCamera(camera);
-}
+    EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance)
+    {
+        ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance *>(instance));
+    }
 
-EMSCRIPTEN_KEEPALIVE void SceneManager_setCamera(TSceneManager* tSceneManager, TCamera* tCamera) {
-    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
-    auto * camera = reinterpret_cast<Camera*>(tCamera);
-    sceneManager->setCamera(camera);
-}
+    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance *materialInstance, bool enabled)
+    {
+        reinterpret_cast<MaterialInstance *>(materialInstance)->setDepthWrite(enabled);
+    }
 
-EMSCRIPTEN_KEEPALIVE size_t SceneManager_getCameraCount(TSceneManager *tSceneManager) { 
-    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
-    return sceneManager->getCameraCount();
-}
-EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraAt(TSceneManager *tSceneManager, size_t index) {
-    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
-    auto * camera = sceneManager->getCameraAt(index);
-    return reinterpret_cast<TCamera*>(camera);
-}
+    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance *materialInstance, bool enabled)
+    {
+        reinterpret_cast<MaterialInstance *>(materialInstance)->setDepthCulling(enabled);
+    }
 
-EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getActiveCamera(TSceneManager *tSceneManager) { 
-    auto * sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);    
-    auto * camera = sceneManager->getActiveCamera();
-    return reinterpret_cast<TCamera*>(camera);
-}
+    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance *materialInstance, const char *propertyName, double x, double y)
+    {
+        filament::math::float2 data{static_cast<float>(x), static_cast<float>(y)};
+        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera *tCamera, double4x4 projectionMatrix, double near, double far)
+    {
+        auto *camera = reinterpret_cast<Camera *>(tCamera);
+        camera->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), near, far);
+    }
+
+    EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera *tCamera)
+    {
+        auto *camera = reinterpret_cast<Camera *>(tCamera);
+        return convert_mat4_to_double4x4(camera->getModelMatrix());
+    }
+
+    EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const tCamera)
+    {
+        auto *camera = reinterpret_cast<Camera *>(tCamera);
+        return convert_mat4_to_double4x4(camera->getViewMatrix());
+    }
+
+    EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera *tCamera)
+    {
+        auto *camera = reinterpret_cast<Camera *>(tCamera);
+        return Entity::smuggle(camera->getEntity());
+    }
+
+    EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const tCamera)
+    {
+        auto *camera = reinterpret_cast<Camera *>(tCamera);
+        return camera->getFocalLength();
+    }
+
+    EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const tCamera)
+    {
+        auto *camera = reinterpret_cast<Camera *>(tCamera);
+        return camera->getNear();
+    }
+
+    EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const tCamera)
+    {
+        auto *camera = reinterpret_cast<Camera *>(tCamera);
+        return camera->getCullingFar();
+    }
+
+    EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)
+    {
+        auto *engine = reinterpret_cast<Engine *>(tEngine);
+        auto *camera = engine->getCameraComponent(utils::Entity::import(entityId));
+        return reinterpret_cast<TCamera *>(camera);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void Engine_setTransform(TEngine *tEngine, EntityId entity, double4x4 transform)
+    {
+        auto *engine = reinterpret_cast<Engine *>(tEngine);
+        auto &transformManager = engine->getTransformManager();
+
+        auto transformInstance = transformManager.getInstance(utils::Entity::import(entity));
+        if (!transformInstance.isValid())
+        {
+            Log("Transform instance not valid");
+        }
+        transformManager.setTransform(transformInstance, convert_double4x4_to_mat4(transform));
+    }
+
+    EMSCRIPTEN_KEEPALIVE TCamera *SceneManager_createCamera(TSceneManager *tSceneManager)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
+        return reinterpret_cast<TCamera *>(sceneManager->createCamera());
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneManager_destroyCamera(TSceneManager *tSceneManager, TCamera *tCamera)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
+        auto *camera = reinterpret_cast<Camera *>(tCamera);
+        sceneManager->destroyCamera(camera);
+    }
+
+    EMSCRIPTEN_KEEPALIVE size_t SceneManager_getCameraCount(TSceneManager *tSceneManager)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
+        return sceneManager->getCameraCount();
+    }
+
+    EMSCRIPTEN_KEEPALIVE TCamera *SceneManager_getCameraAt(TSceneManager *tSceneManager, size_t index)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
+        auto *camera = sceneManager->getCameraAt(index);
+        return reinterpret_cast<TCamera *>(camera);
+    }
+
 
 }

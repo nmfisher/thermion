@@ -58,7 +58,7 @@ class Gizmo {
     };
 
     public:
-        Gizmo(Engine& engine, View *view, Scene *scene);
+        Gizmo(Engine& engine, Scene *scene);
         ~Gizmo();
 
         Entity x() {
@@ -73,15 +73,12 @@ class Gizmo {
         Entity center() {
             return _entities[3];
         };
-        View* view() { 
-            return _view;
-        }
 
         bool isActive() { 
             return _isActive;
         }
 
-        void pick(uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y));
+        void pick(View* view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y));
         bool isGizmoEntity(Entity entity);
         void setVisibility(bool visible);
 
@@ -90,9 +87,7 @@ class Gizmo {
         void highlight(Entity entity);
         void unhighlight();
         Engine &_engine;
-        View *_view;
         Scene *_scene;
-        filament::Camera *_camera;
         utils::Entity _entities[7] = { utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity() };
         Material* _material;
         MaterialInstance* _materialInstances[7];
