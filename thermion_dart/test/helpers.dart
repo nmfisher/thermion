@@ -77,6 +77,8 @@ class TestHelper {
     outDir = Directory("$testDir/output/${dir}");
     // outDir.deleteSync(recursive: true);
     outDir.createSync();
+    DynamicLibrary.open('${testDir}/libThermionTextureSwift.dylib');
+
   }
 
   Future capture(ThermionViewer viewer, String outputFilename,
@@ -84,33 +86,28 @@ class TestHelper {
     await Future.delayed(Duration(milliseconds: 10));
     var outPath = p.join(outDir.path, "$outputFilename.bmp");
     var pixelBuffer = await viewer.capture(
-        view: view, swapChain ?? this.swapChain, renderTarget: renderTarget);
+        view: view,
+        swapChain: swapChain ?? this.swapChain,
+        renderTarget: renderTarget);
     view ??= await viewer.getViewAt(0);
     var vp = await view.getViewport();
-    await savePixelBufferToBmp(
-        pixelBuffer,
-        vp.width,
-        vp.height,
-        outPath);
+    await savePixelBufferToBmp(pixelBuffer, vp.width, vp.height, outPath);
     return pixelBuffer;
   }
 
-  Future<int> createTexture(int width, int height) async {
+  Future<ThermionTextureSwift> createTexture(int width, int height) async {
     final packageUri = findPackageRoot('thermion_dart');
-    final lib = ThermionDartTexture1(DynamicLibrary.open(
-        '${packageUri.toFilePath()}/native/lib/macos/swift/libthermion_swift.dylib'));
-    final object = ThermionDartTexture.new1(lib);
+    var testDir = Directory("${packageUri.toFilePath()}/test").path;
+   
+    final object = ThermionTextureSwift.new1();
     object.initWithWidth_height_(width, height);
-    return object.metalTextureAddress;
+    return object;
   }
 
   Future<ThermionViewer> createViewer(
       {img.Color? bg,
       Vector3? cameraPosition,
       viewportDimensions = (width: 500, height: 500)}) async {
-    final texture = await createTexture(
-        viewportDimensions.width, viewportDimensions.height);
-
     final resourceLoader = calloc<ResourceLoaderWrapper>(1);
     var loadToOut = NativeCallable<
         Void Function(Pointer<Char>,

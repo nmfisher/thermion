@@ -14,7 +14,7 @@
 #include "ResourceBuffer.hpp"
 
 using namespace filament;
-using namespace thermion_filament;
+using namespace thermion;
 using namespace std;
 
 int _i = 0;

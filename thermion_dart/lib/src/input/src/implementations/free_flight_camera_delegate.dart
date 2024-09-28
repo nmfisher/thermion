@@ -93,9 +93,9 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
     // Apply rotation
     if (_queuedRotationDelta.length2 > 0.0) {
       double deltaX =
-          _queuedRotationDelta.x * rotationSensitivity * viewer.pixelRatio;
+          _queuedRotationDelta.x * rotationSensitivity;
       double deltaY =
-          _queuedRotationDelta.y * rotationSensitivity * viewer.pixelRatio;
+          _queuedRotationDelta.y * rotationSensitivity;
 
       Quaternion yawRotation = Quaternion.axisAngle(_up, -deltaX);
       Quaternion pitchRotation = Quaternion.axisAngle(_right, -deltaY);
@@ -109,8 +109,8 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
       Vector3 right = _right.clone()..applyQuaternion(currentRotation);
       Vector3 up = _up.clone()..applyQuaternion(currentRotation);
 
-      double deltaX = _queuedPanDelta.x * panSensitivity * viewer.pixelRatio;
-      double deltaY = _queuedPanDelta.y * panSensitivity * viewer.pixelRatio;
+      double deltaX = _queuedPanDelta.x * panSensitivity;
+      double deltaY = _queuedPanDelta.y * panSensitivity;
 
       relativeTranslation += right * deltaX + up * deltaY;
       _queuedPanDelta = Vector2.zero();

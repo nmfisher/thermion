@@ -55,14 +55,7 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
         let instance:SwiftThermionFlutterPlugin = Unmanaged<SwiftThermionFlutterPlugin>.fromOpaque(resourcesPtr!).takeUnretainedValue()
         instance.resources.removeValue(forKey:UInt32(rbuf.id))
     }
-
-    var markTextureFrameAvailable : @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
-        let instance:SwiftThermionFlutterPlugin = Unmanaged<SwiftThermionFlutterPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
-        if(instance.texture != nil) {
-            instance.registry.textureFrameAvailable(instance.texture!.flutterTextureId)
-        }
-    }
-       
+      
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let _messenger = registrar.messenger;
@@ -88,12 +81,12 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
                     resourceLoaderWrapper = make_resource_loader(loadResource, freeResource, Unmanaged.passUnretained(self).toOpaque())
                 }
                 result(Int64(Int(bitPattern: resourceLoaderWrapper!)))
+            case "markTextureFrameAvailable":
+                let flutterTextureId = call.arguments as! Int64
+                registry.textureFrameAvailable(flutterTextureId)
+                result(nil)
             case "getRenderCallback":
-                if(renderCallbackHolder.isEmpty) {
-                    renderCallbackHolder.append(unsafeBitCast(markTextureFrameAvailable, to:Int64.self))
-                    renderCallbackHolder.append(unsafeBitCast(Unmanaged.passUnretained(self), to:UInt64.self))
-                }
-                result(renderCallbackHolder)
+                result(nil)
             case "getDriverPlatform":
                 result(nil)
             case "getSharedContext":

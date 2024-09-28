@@ -3,6 +3,7 @@
 #include <filament/Engine.h>
 #include <filament/ToneMapper.h>
 #include <filament/ColorGrading.h>
+#include <filament/Camera.h>
 
 #include "ThermionDartApi.h"
 #include "TView.h"
@@ -148,6 +149,11 @@ using namespace filament;
     EMSCRIPTEN_KEEPALIVE TScene* View_getScene(TView* tView) {
         auto view = reinterpret_cast<View *>(tView);
         return reinterpret_cast<TScene*>(view->getScene());
+    }
+
+    EMSCRIPTEN_KEEPALIVE TCamera* View_getCamera(TView *tView) {
+        auto view = reinterpret_cast<View *>(tView);
+        return reinterpret_cast<TCamera*>(&(view->getCamera()));
     }
 
 

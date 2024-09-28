@@ -35,7 +35,7 @@ extern "C"
     
     EMSCRIPTEN_KEEPALIVE FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
     EMSCRIPTEN_KEEPALIVE void set_rendering_render_thread(TViewer *viewer, bool rendering, void(*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(TViewer *viewer, void(*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, void(*onComplete)());
     EMSCRIPTEN_KEEPALIVE void set_frame_interval_render_thread(TViewer *viewer, float frameInterval);
     EMSCRIPTEN_KEEPALIVE void set_background_color_render_thread(TViewer *viewer, const float r, const float g, const float b, const float a);
     EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer);

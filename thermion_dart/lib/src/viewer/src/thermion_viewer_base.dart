@@ -1,6 +1,5 @@
 import 'package:thermion_dart/src/viewer/src/events.dart';
-import '../../entities/abstract_gizmo.dart';
-import 'shared_types/camera.dart';
+import '../../utils/gizmo.dart';
 import 'shared_types/shared_types.dart';
 export 'shared_types/shared_types.dart';
 
@@ -10,7 +9,6 @@ import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 
-import 'shared_types/swap_chain.dart';
 import 'shared_types/view.dart';
 
 const double kNear = 0.05;
@@ -24,26 +22,11 @@ abstract class ThermionViewer {
   Future<bool> get initialized;
 
   ///
-  /// The current dimensions of the viewport (in physical pixels).
-  ///
-  var viewportDimensions = (0.0, 0.0);
-
-  ///
-  /// The current ratio of logical to physical pixels.
-  ///
-  late double pixelRatio;
-
-  ///
   /// The result(s) of calling [pick] (see below).
   /// This may be a broadcast stream, so you should ensure you have subscribed to this stream before calling [pick].
   /// If [pick] is called without an active subscription to this stream, the results will be silently discarded.
   ///
   Stream<FilamentPickResult> get pickResult;
-
-  ///
-  /// The result(s) of calling [pickGizmo] (see below).
-  ///
-  Stream<FilamentPickResult> get gizmoPickResult;
 
   ///
   /// A Stream containing entities added/removed to/from to the scene.
@@ -63,7 +46,7 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame immediately.
   ///
-  Future render(covariant SwapChain swapChain);
+  Future render({covariant SwapChain? swapChain});
 
   ///
   /// Requests a single frame to be rendered. This is only intended to be used internally.
@@ -73,8 +56,8 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame and copy the pixel buffer to [out].
   ///
-  Future<Uint8List> capture(covariant SwapChain swapChain,
-      {covariant View? view, covariant RenderTarget? renderTarget});
+  Future<Uint8List> capture({covariant SwapChain? swapChain,
+      covariant View? view, covariant RenderTarget? renderTarget});
 
   ///
   ///
@@ -96,7 +79,7 @@ abstract class ThermionViewer {
   ///
   ///
   Future<View> createView();
-  
+
   ///
   ///
   ///
@@ -400,7 +383,6 @@ abstract class ThermionViewer {
   ///
   Future clearEntities();
 
-
   ///
   /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
   ///
@@ -492,15 +474,6 @@ abstract class ThermionViewer {
   /// Get the distance (in world units) to the far culling plane for the active camera.
   ///
   Future<double> getCameraCullingFar();
-
-  ///
-  ///
-  ///
-  Future setCameraLensProjection(
-      {double near = kNear,
-      double far = kFar,
-      double? aspect,
-      double focalLength = kFocalLength});
 
   ///
   /// Sets the focus distance for the camera.
@@ -702,14 +675,6 @@ abstract class ThermionViewer {
   void pick(int x, int y);
 
   ///
-  /// Used to test whether a Gizmo is at the given viewport coordinates.
-  /// Called by `FilamentGestureDetector` on a mouse/finger down event. You probably don't want to call this yourself.
-  /// This is asynchronous and will require 2-3 frames to complete - subscribe to the [gizmoPickResult] stream to receive the results of this method.
-  /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the ThermionWidget).
-  ///
-  void pickGizmo(int x, int y);
-
-  ///
   /// Retrieves the name assigned to the given ThermionEntity (usually corresponds to the glTF mesh name).
   ///
   String? getNameForEntity(ThermionEntity entity);
@@ -793,9 +758,9 @@ abstract class ThermionViewer {
   Future setPriority(ThermionEntity entityId, int priority);
 
   ///
-  /// The gizmo for translating/rotating objects. Only one gizmo is present in the scene.
+  /// The gizmo for translating/rotating objects. Only one gizmo can be active for a given view.
   ///
-  AbstractGizmo? get gizmo;
+  Future<Gizmo> createGizmo(covariant View view);
 
   ///
   /// Register a callback to be invoked when this viewer is disposed.
@@ -818,11 +783,6 @@ abstract class ThermionViewer {
   /// Assigns [entity] to visibility layer [layer].
   ///
   Future setVisibilityLayer(ThermionEntity entity, int layer);
-
-  ///
-  /// Show/hide the translation gizmo.
-  ///
-  Future setGizmoVisibility(bool visible);
 
   ///
   /// Renders an outline around [entity] with the given color.

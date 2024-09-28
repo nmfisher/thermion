@@ -1,14 +1,13 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:thermion_dart/src/utils/gizmo.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/swap_chain.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-
-import '../../entities/abstract_gizmo.dart';
 import 'events.dart';
 import 'shared_types/camera.dart';
 
@@ -241,10 +240,6 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement getWorldTransform
     throw UnimplementedError();
   }
-
-  @override
-  // TODO: implement gizmo
-  AbstractGizmo? get gizmo => throw UnimplementedError();
 
   @override
   Future hide(ThermionEntity entity, String? meshName) {
@@ -1028,12 +1023,6 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement setRenderTarget
     throw UnimplementedError();
   }
-  
-  @override
-  Future<Uint8List> capture(covariant SwapChain swapChain, {covariant RenderTarget? renderTarget}) {
-    // TODO: implement capture
-    throw UnimplementedError();
-  }
 
   @override
   Future<View> createView() {
@@ -1050,6 +1039,18 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future render(covariant SwapChain swapChain) {
     // TODO: implement render
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Uint8List> capture(covariant SwapChain swapChain, {covariant View? view, covariant RenderTarget? renderTarget}) {
+    // TODO: implement capture
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Gizmo> createGizmo(covariant View view) {
+    // TODO: implement createGizmo
     throw UnimplementedError();
   }
 

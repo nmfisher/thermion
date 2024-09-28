@@ -85,6 +85,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TView* Viewer_createView(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TView* Viewer_getViewAt(TViewer *viewer, int index);
 	EMSCRIPTEN_KEEPALIVE void Viewer_setMainCamera(TViewer *tViewer, TView *tView);	
+	EMSCRIPTEN_KEEPALIVE TSwapChain* Viewer_getSwapChainAt(TViewer *tViewer, int index);	
 	
 	// Engine
 	EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer);

@@ -56,6 +56,9 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
       return;
     }
 
+    final view = await viewer.getViewAt(0);
+    final viewport = await view.getViewport();
+
     var viewMatrix = await viewer.getCameraViewMatrix();
     var modelMatrix = await viewer.getCameraModelMatrix();
     var projectionMatrix = await viewer.getCameraProjectionMatrix();
@@ -80,12 +83,8 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
         intersectionInClipSpace / intersectionInClipSpace.w;
 
     // Calculate new camera position based on rotation
-    final ndcX = 2 *
-        ((-_queuedRotationDelta.x * viewer.pixelRatio) /
-            viewer.viewportDimensions.$1);
-    final ndcY = 2 *
-        ((_queuedRotationDelta.y * viewer.pixelRatio) /
-            viewer.viewportDimensions.$2);
+    final ndcX = 2 * ((-_queuedRotationDelta.x) / viewport.width);
+    final ndcY = 2 * ((_queuedRotationDelta.y) / viewport.height);
     final ndc = Vector4(ndcX, ndcY, intersectionInNdcSpace.z, 1.0);
 
     var clipSpace = Vector4(

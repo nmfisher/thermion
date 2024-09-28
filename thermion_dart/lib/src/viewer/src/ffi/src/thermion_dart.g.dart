@@ -139,6 +139,13 @@ external void Viewer_setMainCamera(
   ffi.Pointer<TView> tView,
 );
 
+@ffi.Native<ffi.Pointer<TSwapChain> Function(ffi.Pointer<TViewer>, ffi.Int)>(
+    isLeaf: true)
+external ffi.Pointer<TSwapChain> Viewer_getSwapChainAt(
+  ffi.Pointer<TViewer> tViewer,
+  int index,
+);
+
 @ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external ffi.Pointer<TEngine> Viewer_getEngine(
   ffi.Pointer<TViewer> viewer,
@@ -662,9 +669,9 @@ external void SceneManager_setVisibilityLayer(
   int layer,
 );
 
-@ffi.Native<ffi.Pointer<TGizmo> Function(ffi.Pointer<TSceneManager>)>(
+@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TSceneManager>)>(
     isLeaf: true)
-external ffi.Pointer<TGizmo> SceneManager_getGizmo(
+external ffi.Pointer<TScene> SceneManager_getScene(
   ffi.Pointer<TSceneManager> tSceneManager,
 );
 
@@ -1177,14 +1184,6 @@ external void set_priority(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>, ffi.Pointer<EntityId>)>(isLeaf: true)
-external void get_gizmo(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<EntityId> out,
-);
-
-@ffi.Native<
     Aabb2 Function(
         ffi.Pointer<TSceneManager>, ffi.Pointer<TView>, EntityId)>(isLeaf: true)
 external Aabb2 get_bounding_box(
@@ -1210,13 +1209,6 @@ external void get_bounding_box_to_out(
   ffi.Pointer<ffi.Float> minY,
   ffi.Pointer<ffi.Float> maxX,
   ffi.Pointer<ffi.Float> maxY,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, ffi.Bool)>(
-    isLeaf: true)
-external void set_gizmo_visibility(
-  ffi.Pointer<TSceneManager> sceneManager,
-  bool visible,
 );
 
 @ffi.Native<
@@ -1480,10 +1472,15 @@ external void set_rendering_render_thread(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>,
+    ffi.Void Function(
+        ffi.Pointer<TViewer>,
+        ffi.Pointer<TView>,
+        ffi.Pointer<TSwapChain>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void request_frame_render_thread(
+external void Viewer_requestFrameRenderThread(
   ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TView> view,
+  ffi.Pointer<TSwapChain> tSwapChain,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
@@ -1892,7 +1889,7 @@ external void View_setBloom(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Int)>(isLeaf: true)
+        ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Int32)>(isLeaf: true)
 external void View_setToneMapping(
   ffi.Pointer<TView> tView,
   ffi.Pointer<TEngine> tEngine,
@@ -1924,30 +1921,39 @@ external void View_setCamera(
   ffi.Pointer<TCamera> tCamera,
 );
 
+@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TView>)>(isLeaf: true)
+external ffi.Pointer<TScene> View_getScene(
+  ffi.Pointer<TView> tView,
+);
+
 @ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TView>)>(isLeaf: true)
 external ffi.Pointer<TCamera> View_getCamera(
   ffi.Pointer<TView> tView,
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TGizmo>,
-        ffi.Pointer<TView>,
-        ffi.Int,
-        ffi.Int,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(
-                    EntityId entityId, ffi.Int x, ffi.Int y)>>)>(isLeaf: true)
+    ffi.Pointer<TGizmo> Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>,
+        ffi.Pointer<TScene>)>(isLeaf: true)
+external ffi.Pointer<TGizmo> Gizmo_new(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32,
+        GizmoPickCallback)>(isLeaf: true)
 external void Gizmo_pick(
   ffi.Pointer<TGizmo> tGizmo,
-  ffi.Pointer<TView> tView,
   int x,
   int y,
-  ffi.Pointer<
-          ffi.NativeFunction<
-              ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y)>>
-      callback,
+  GizmoPickCallback callback,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Bool)>(isLeaf: true)
+external void Gizmo_setVisibility(
+  ffi.Pointer<TGizmo> tGizmo,
+  bool visible,
 );
 
 final class TCamera extends ffi.Opaque {}
@@ -1969,6 +1975,8 @@ final class TSwapChain extends ffi.Opaque {}
 final class TView extends ffi.Opaque {}
 
 final class TGizmo extends ffi.Opaque {}
+
+final class TScene extends ffi.Opaque {}
 
 final class TMaterialKey extends ffi.Struct {
   @ffi.Bool()
@@ -2215,6 +2223,19 @@ final class TViewport extends ffi.Struct {
   @ffi.Uint32()
   external int height;
 }
+
+abstract class ToneMapping {
+  static const int ACES = 0;
+  static const int FILMIC = 1;
+  static const int LINEAR = 2;
+}
+
+typedef GizmoPickCallback
+    = ffi.Pointer<ffi.NativeFunction<GizmoPickCallbackFunction>>;
+typedef GizmoPickCallbackFunction = ffi.Void Function(
+    EntityId entityId, ffi.Uint32 x, ffi.Uint32 y, ffi.Pointer<TView> view);
+typedef DartGizmoPickCallbackFunction = void Function(
+    DartEntityId entityId, int x, int y, ffi.Pointer<TView> view);
 
 const int __bool_true_false_are_defined = 1;
 

@@ -1,19 +1,31 @@
 import 'dart:async';
-import 'package:thermion_dart/src/entities/abstract_gizmo.dart';
 
+import 'package:thermion_dart/src/viewer/viewer.dart';
 import 'package:vector_math/vector_math_64.dart';
-import '../viewer/viewer.dart';
 
-class Gizmo extends AbstractGizmo {
+abstract class Gizmo {
+  bool get isVisible;
+  bool get isHovered;
+
+  void reset();
+
+  Future attach(ThermionEntity entity);
+  Future detach();
+
+  Stream<Aabb2> get boundingBox;
+
+  void checkHover(int x, int y);
+}
+
+abstract class BaseGizmo extends Gizmo {
   final ThermionEntity x;
   final ThermionEntity y;
   final ThermionEntity z;
   final ThermionEntity center;
 
-  final ThermionViewer _viewer;
-
   ThermionEntity? _activeAxis;
   ThermionEntity? _activeEntity;
+  ThermionViewer viewer;
 
   bool _visible = false;
   bool get isVisible => _visible;
@@ -26,10 +38,9 @@ class Gizmo extends AbstractGizmo {
   Stream<Aabb2> get boundingBox => _boundingBoxController.stream;
   final _boundingBoxController = StreamController<Aabb2>.broadcast();
 
-  Gizmo(this.x, this.y, this.z, this.center, this._viewer,
-      {this.ignore = const <ThermionEntity>{}}) {
-    _viewer.gizmoPickResult.listen(_onGizmoPickResult);
-    _viewer.pickResult.listen(_onPickResult);
+  BaseGizmo({required this.x, required this.y, required this.z, required this.center, required this.viewer,
+      this.ignore = const <ThermionEntity>{}}) {
+    onPick(_onGizmoPickResult);
   }
 
   final _stopwatch = Stopwatch();
@@ -52,12 +63,10 @@ class Gizmo extends AbstractGizmo {
     final axis = Vector3(_activeAxis == x ? 1.0 : 0.0,
         _activeAxis == y ? 1.0 : 0.0, _activeAxis == z ? 1.0 : 0.0);
 
-    await _viewer.queueRelativePositionUpdateWorldAxis(
+    await viewer.queueRelativePositionUpdateWorldAxis(
         _activeEntity!,
-        _transX * _viewer.pixelRatio,
-        -_transY *
-            _viewer
-                .pixelRatio, // flip the sign because "up" in NDC Y axis is positive, but negative in Flutter
+        _transX,
+        -_transY, // flip the sign because "up" in NDC Y axis is positive, but negative in Flutter
         axis.x,
         axis.y,
         axis.z);
@@ -68,10 +77,6 @@ class Gizmo extends AbstractGizmo {
 
   void reset() {
     _activeAxis = null;
-  }
-
-  void _onPickResult(FilamentPickResult result) async {
-    await attach(result.entity);
   }
 
   void _onGizmoPickResult(FilamentPickResult result) async {
@@ -98,21 +103,25 @@ class Gizmo extends AbstractGizmo {
     _visible = true;
 
     if (_activeEntity != null) {
-      await _viewer.removeStencilHighlight(_activeEntity!);
+      await viewer.removeStencilHighlight(_activeEntity!);
     }
     _activeEntity = entity;
-    await _viewer.setGizmoVisibility(true);
-    await _viewer.setParent(center, entity, preserveScaling: false);
-    _boundingBoxController.sink.add(await _viewer.getViewportBoundingBox(x));
 
+    await viewer.setParent(center, entity, preserveScaling: false);
+    _boundingBoxController.sink.add(await viewer.getViewportBoundingBox(x));
   }
 
   Future detach() async {
-    await _viewer.setGizmoVisibility(false);
+    await setVisibility(false);
   }
 
   @override
-  void checkHover(double x, double y) {
-    _viewer.pickGizmo(x.toInt(), y.toInt());
+  void checkHover(int x, int y) {
+    pick(x, y);
   }
+
+  Future pick(int x, int y);
+
+  Future setVisibility(bool visible);
+  void onPick(void Function(PickResult result) callback);
 }

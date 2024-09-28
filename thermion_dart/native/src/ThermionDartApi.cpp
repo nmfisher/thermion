@@ -348,8 +348,13 @@ extern "C"
         void (*callback)(void *buf, size_t size, void *data),
         void *data)
     {
-        auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
+
+        if(!swapChain) {
+            swapChain = viewer->getSwapChainAt(0);
+        }
+        
         auto *view = reinterpret_cast<View*>(tView);
         return viewer->render(frameTimeInNanos, view, swapChain, pixelBuffer, callback, data);
     }
@@ -410,6 +415,12 @@ extern "C"
     {
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
         auto swapChain = viewer->createSwapChain(window, width, height);
+        return reinterpret_cast<TSwapChain *>(swapChain);
+    }
+
+    EMSCRIPTEN_KEEPALIVE TSwapChain* Viewer_getSwapChainAt(TViewer *tViewer, int index) { 
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto swapChain = viewer->getSwapChainAt(index);
         return reinterpret_cast<TSwapChain *>(swapChain);
     }
 

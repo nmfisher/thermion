@@ -45,4 +45,28 @@ class ThermionWasmCamera extends Camera {
     // TODO: implement setModelMatrix
     throw UnimplementedError();
   }
+  
+  @override
+  Future<double> getCullingFar() {
+    // TODO: implement getCullingFar
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<double> getFocalLength() {
+    // TODO: implement getFocalLength
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<double> getNear() {
+    // TODO: implement getNear
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Matrix4> getViewMatrix() {
+    // TODO: implement getViewMatrix
+    throw UnimplementedError();
+  }
 }
