@@ -6,11 +6,11 @@ public class ThermionFlutterTexture : NSObject, FlutterTexture {
     
     var flutterTextureId: Int64 = -1
     var registry: FlutterTextureRegistry
-    var texture: ThermionDartTexture 
+    var texture: ThermionTexture 
     
     init(registry:FlutterTextureRegistry, width:Int64, height:Int64) {
         self.registry = registry
-        self.texture = ThermionDartTexture(width:width, height: height)
+        self.texture = ThermionTexture(width:width, height: height)
         super.init()
         self.flutterTextureId = registry.register(self)
     }
