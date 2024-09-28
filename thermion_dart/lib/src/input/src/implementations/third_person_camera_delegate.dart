@@ -96,9 +96,9 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
     // camera is always looking at -Z, whereas models generally face towards +Z
     if (_queuedRotationDelta.length2 > 0.0) {
       double deltaX =
-          _queuedRotationDelta.x * rotationSensitivity * viewer.pixelRatio;
+          _queuedRotationDelta.x * rotationSensitivity;
       double deltaY =
-          _queuedRotationDelta.y * rotationSensitivity * viewer.pixelRatio;
+          _queuedRotationDelta.y * rotationSensitivity;
 
       cameraLookAt = Matrix4.rotationY(-deltaX) *
           Matrix4.rotationX(-deltaY) *

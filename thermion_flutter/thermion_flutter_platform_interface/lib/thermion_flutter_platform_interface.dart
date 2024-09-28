@@ -9,7 +9,6 @@ class ThermionFlutterOptions {
 
   ThermionFlutterOptions({this.uberarchivePath});
   const ThermionFlutterOptions.empty() : uberarchivePath = null;
-
 }
 
 abstract class ThermionFlutterPlatform extends PlatformInterface {
@@ -25,17 +24,23 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<ThermionViewer> createViewerWithOptions(
-      covariant ThermionFlutterOptions options);
+  ///
+  ///
+  ///
+  Future<ThermionViewer> createViewer(
+      {covariant ThermionFlutterOptions? options});
 
-  @deprecated
-  Future<ThermionViewer> createViewer({String? uberarchivePath});
+  ///
+  /// Create a rendering surface.
+  ///
+  /// This is internal; unless you are [thermion_*] package developer, don't
+  /// call this yourself. May not be supported on all platforms.
+  ///
+  Future<ThermionFlutterTexture?> createTexture(int width, int height);
 
-  Future<ThermionFlutterTexture?> createTexture(double width, double height,
-      double offsetLeft, double offsetTop, double pixelRatio);
-
-  Future destroyTexture(ThermionFlutterTexture texture);
-
-  Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
-      int width, int height, int offsetTop, int offsetRight, double pixelRatio);
+  ///
+  ///
+  ///
+  Future resizeWindow(
+      int width, int height, int offsetTop, int offsetRight);
 }

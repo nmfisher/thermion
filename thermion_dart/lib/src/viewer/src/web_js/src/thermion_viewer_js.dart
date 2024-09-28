@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
 import 'package:vector_math/vector_math_64.dart';
-import '../../../../entities/abstract_gizmo.dart';
+import '../../shared_types/internal/gizmo.dart';
 import '../../../viewer.dart';
 import '../../events.dart';
 import '../../shared_types/camera.dart';

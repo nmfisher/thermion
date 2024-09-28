@@ -11,13 +11,13 @@ flutter:
     implements: thermion_flutter_platform_interface
     platforms:
       ios:
-        dartPluginClass: ThermionFlutterFFI
+        dartPluginClass: ThermionFlutterIOS
       android:
-        dartPluginClass: ThermionFlutterFFI
+        dartPluginClass: ThermionFlutterAndroid
       macos:
-        dartPluginClass: ThermionFlutterFFI
+        dartPluginClass: ThermionFlutterMacOS
       windows:
-        dartPluginClass: ThermionFlutterFFI
+        dartPluginClass: ThermionFlutterWindows
 dependencies:
   flutter:
     sdk: flutter

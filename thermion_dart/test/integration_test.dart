@@ -647,16 +647,6 @@ void main() async {
     });
   });
 
-  group("render thread", () {
-    test("request frame on render thread", () async {
-      var viewer = await testHelper.createViewer();
-      viewer.requestFrame();
-
-      await Future.delayed(Duration(milliseconds: 20));
-      await viewer.dispose();
-    });
-  });
-
   // group("unproject", () {
   //   test("unproject", () async {
   //     final dimensions = (width: 1280, height: 768);

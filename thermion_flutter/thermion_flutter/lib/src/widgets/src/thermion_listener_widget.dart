@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_flutter/src/widgets/src/pixel_ratio_aware.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 extension OffsetExtension on Offset {
@@ -79,54 +80,64 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
   }
 
-  Widget _desktop() {
+  Widget _desktop(double pixelRatio) {
     return Listener(
-      onPointerHover: (event) => widget.gestureHandler
-          .onPointerHover(event.localPosition.toVector2(), event.delta.toVector2()),
+      onPointerHover: (event) => widget.gestureHandler.onPointerHover(
+          event.localPosition.toVector2() * pixelRatio,
+          event.delta.toVector2() * pixelRatio),
       onPointerSignal: (PointerSignalEvent pointerSignal) {
         if (pointerSignal is PointerScrollEvent) {
           widget.gestureHandler.onPointerScroll(
-              pointerSignal.localPosition.toVector2(),
-              pointerSignal.scrollDelta.dy);
+              pointerSignal.localPosition.toVector2() * pixelRatio,
+              pointerSignal.scrollDelta.dy * pixelRatio);
         }
       },
       onPointerPanZoomStart: (pzs) {
         throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
       },
-      onPointerDown: (d) => widget.gestureHandler
-          .onPointerDown(d.localPosition.toVector2(), d.buttons & kMiddleMouseButton != 0),
-      onPointerMove: (d) => widget.gestureHandler
-          .onPointerMove(d.localPosition.toVector2(), d.delta.toVector2(), d.buttons & kMiddleMouseButton != 0),
-      onPointerUp: (d) => widget.gestureHandler.onPointerUp(d.buttons & kMiddleMouseButton != 0),
+      onPointerDown: (d) => widget.gestureHandler.onPointerDown(
+          d.localPosition.toVector2() * pixelRatio,
+          d.buttons & kMiddleMouseButton != 0),
+      onPointerMove: (d) => widget.gestureHandler.onPointerMove(
+          d.localPosition.toVector2() * pixelRatio,
+          d.delta.toVector2() * pixelRatio,
+          d.buttons & kMiddleMouseButton != 0),
+      onPointerUp: (d) => widget.gestureHandler
+          .onPointerUp(d.buttons & kMiddleMouseButton != 0),
       child: widget.child,
     );
   }
 
-  Widget _mobile() {
-    return _MobileListenerWidget(gestureHandler: widget.gestureHandler);
+  Widget _mobile(double pixelRatio) {
+    return _MobileListenerWidget(
+        gestureHandler: widget.gestureHandler, pixelRatio: pixelRatio);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: widget.gestureHandler.initialized,
-        builder: (_, initialized) {
-          if (initialized.data != true) {
-            return widget.child ?? Container();
-          }
-          return Stack(children: [
-            if (widget.child != null) Positioned.fill(child: widget.child!),
-            if (isDesktop) Positioned.fill(child: _desktop()),
-            if (!isDesktop) Positioned.fill(child: _mobile())
-          ]);
-        });
+    return PixelRatioAware(builder: (ctx, pixelRatio) {
+      return FutureBuilder(
+          initialData: 1.0,
+          future: widget.gestureHandler.initialized,
+          builder: (_, initialized) {
+            if (initialized.data != true) {
+              return widget.child ?? Container();
+            }
+            return Stack(children: [
+              if (widget.child != null) Positioned.fill(child: widget.child!),
+              if (isDesktop) Positioned.fill(child: _desktop(pixelRatio)),
+              if (!isDesktop) Positioned.fill(child: _mobile(pixelRatio))
+            ]);
+          });
+    });
   }
 }
 
 class _MobileListenerWidget extends StatefulWidget {
   final InputHandler gestureHandler;
+  final double pixelRatio;
 
-  const _MobileListenerWidget({Key? key, required this.gestureHandler})
+  const _MobileListenerWidget({Key? key, required this.gestureHandler, required this.pixelRatio})
       : super(key: key);
 
   @override
@@ -146,7 +157,7 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTapDown: (details) => widget.gestureHandler
-          .onPointerDown(details.localPosition.toVector2(), false),
+          .onPointerDown(details.localPosition.toVector2() * widget.pixelRatio, false),
       onDoubleTap: () {
         widget.gestureHandler.setActionForType(InputType.SCALE1,
             isPan ? InputAction.TRANSLATE : InputAction.ROTATE);

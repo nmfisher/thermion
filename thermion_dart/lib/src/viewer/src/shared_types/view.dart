@@ -12,7 +12,7 @@ class Viewport {
 abstract class View {
   Future<Viewport> getViewport();
   Future updateViewport(int width, int height);
-  Future setRenderTarget(covariant RenderTarget renderTarget);
+  Future setRenderTarget(covariant RenderTarget? renderTarget);
   Future setCamera(covariant Camera camera);
-  
+  Camera getCamera();
 }

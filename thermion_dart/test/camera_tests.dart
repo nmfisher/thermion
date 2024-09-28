@@ -67,7 +67,9 @@ void main() async {
       print(frustum.plane5.normal);
       print(frustum.plane5.constant);
 
-      await viewer.setCameraLensProjection(
+      var camera = await viewer.getMainCamera();
+
+      await camera.setLensProjection(
           near: 10.0, far: 1000.0, aspect: 1.0, focalLength: 28.0);
       frustum = await viewer.getCameraFrustum();
       print(frustum.plane5.normal);
@@ -75,8 +77,8 @@ void main() async {
     });
 
     test('set custom projection/culling matrix', () async {
-      var viewer =
-          await testHelper.createViewer(bg: kRed, cameraPosition: Vector3(0, 0, 4));
+      var viewer = await testHelper.createViewer(
+          bg: kRed, cameraPosition: Vector3(0, 0, 4));
       var camera = await viewer.getMainCamera();
       final cube = await viewer.createGeometry(GeometryHelper.cube());
 
@@ -155,7 +157,7 @@ void main() async {
       expect(await viewer.getActiveCamera(), newCamera);
 
       await testHelper.capture(viewer, "create_camera_new_camera");
-      
+
       final mainCamera = await viewer.getMainCamera();
       await viewer.setActiveCamera(mainCamera);
       expect(await viewer.getActiveCamera(), mainCamera);

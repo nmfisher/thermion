@@ -132,6 +132,14 @@ namespace thermion
             return (SceneManager *const)_sceneManager;
         }
 
+        SwapChain* getSwapChainAt(int index) {
+            if(index < _swapChains.size()) {
+                return _swapChains[index];
+            }
+            Log("Error: index %d is greater than available swapchains", index);
+            return nullptr;
+        }
+
         void unprojectTexture(EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight);  
 
     private:
