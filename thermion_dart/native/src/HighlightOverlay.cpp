@@ -4,7 +4,7 @@
 
 #include "SceneManager.hpp"
 
-namespace thermion_filament
+namespace thermion
 {
 
     SceneManager::HighlightOverlay::HighlightOverlay(

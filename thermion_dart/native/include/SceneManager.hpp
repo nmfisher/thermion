@@ -19,10 +19,8 @@
 #include <filament/InstanceBuffer.h>
 #include <utils/NameComponentManager.h>
 
-#include "material/gizmo.h"
-
 #include "CustomGeometry.hpp"
-#include "Gizmo.hpp"
+
 #include "APIBoundaryTypes.h"
 #include "GridOverlay.hpp"
 #include "ResourceBuffer.hpp"
@@ -32,7 +30,7 @@
 #include "tsl/robin_map.h"
 
 
-namespace thermion_filament
+namespace thermion
 {
     typedef int32_t EntityId;
 
@@ -253,8 +251,6 @@ namespace thermion_filament
 
         friend class FilamentViewer;
 
-        Gizmo* gizmo = nullptr;
-
         gltfio::MaterialProvider * const unlitMaterialProvider() {
             return _unlitMaterialProvider;
         }
@@ -265,10 +261,6 @@ namespace thermion_filament
 
         const CustomGeometry* const getGeometry(EntityId entityId) {
             return _geometry[entityId].get();
-        }
-
-        Scene* const getScene() { 
-            return _scene;
         }
 
         bool isGltfAsset(EntityId entity) {
@@ -306,6 +298,12 @@ namespace thermion_filament
         size_t getCameraCount();
 
         Camera* getCameraAt(size_t index);
+
+        bool isGizmoEntity(utils::Entity entity);
+
+        Scene* getScene() { 
+            return _scene;
+        }
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;

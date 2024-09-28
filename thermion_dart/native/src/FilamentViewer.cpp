@@ -105,7 +105,7 @@ namespace filament
   class LightManager;
 } // namespace filament
 
-namespace thermion_filament
+namespace thermion
 {
 
   using namespace filament;
@@ -349,7 +349,7 @@ namespace thermion_filament
   void FilamentViewer::loadPngTexture(string path, ResourceBuffer rb)
   {
 
-    thermion_filament::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
+    thermion::StreamBufferAdapter sb((char *)rb.data, (char *)rb.data + rb.size);
 
     std::istream inputStream(&sb);
 
@@ -1209,10 +1209,9 @@ namespace thermion_filament
   void FilamentViewer::pick(View *view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
   {
 
-    view->pick(x, y, [=](filament::View::PickingQueryResult const &result)
-               { 
+    view->pick(x, y, [=](filament::View::PickingQueryResult const &result) { 
 
-      if(_sceneManager->gizmo->isGizmoEntity(result.renderable)) {
+      if(_sceneManager->isGizmoEntity(result.renderable)) {
         Log("Gizmo entity, ignoring");
         return;
       }
@@ -1243,4 +1242,4 @@ namespace thermion_filament
     // unproject.unproject(utils::Entity::import(entityId), input, out, inputWidth, inputHeight, outWidth, outHeight);
   }
 
-} // namespace thermion_filament
+} // namespace thermion

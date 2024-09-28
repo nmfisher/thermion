@@ -17,7 +17,7 @@
 
 #include "CustomGeometry.hpp"
 
-namespace thermion_filament {
+namespace thermion {
 
 class UnprojectTexture {
 public:

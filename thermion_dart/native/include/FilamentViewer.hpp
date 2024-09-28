@@ -36,7 +36,7 @@
 #include "SceneManager.hpp"
 #include "ThreadPool.hpp"
 
-namespace thermion_filament
+namespace thermion
 {
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
@@ -139,7 +139,7 @@ namespace thermion_filament
         void* _context = nullptr;
         Scene *_scene = nullptr;
         Engine *_engine = nullptr;
-        thermion_filament::ThreadPool *_tp = nullptr;
+        thermion::ThreadPool *_tp = nullptr;
         Renderer *_renderer = nullptr;
         SceneManager *_sceneManager = nullptr;
         std::vector<RenderTarget*> _renderTargets;

@@ -1,29 +1,40 @@
-#ifdef _WIN32
-#pragma comment(lib, "Shlwapi.lib")
-#pragma comment(lib, "opengl32.lib")
-#endif
+#include <filament/View.h>
+#include <filament/Engine.h>
+#include <filament/Scene.h>
 
-#include "ResourceBuffer.hpp"
-#include "FilamentViewer.hpp"
-#include "filament/LightManager.h"
+#include "ThermionDartApi.h"
+#include "TGizmo.h"
+#include "Gizmo.hpp"
 #include "Log.hpp"
-#include "ThreadPool.hpp"
 
-#include <thread>
-#include <functional>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-#endif
-
-using namespace thermion_filament;
-
+#ifdef __cplusplus
+namespace thermion {
 extern "C"
 {
-    EMSCRIPTEN_KEEPALIVE void Gizmo_pick(TGizmo *tGizmo, TView *tView, int x, int y, void (*callback)(EntityId entityId, int x, int y))
+using namespace filament;
+#endif
+
+    EMSCRIPTEN_KEEPALIVE TGizmo* Gizmo_new(TEngine *tEngine, TView *tView, TScene *tScene)
+    {
+        auto *view = reinterpret_cast<View*>(tView);
+        auto *engine = reinterpret_cast<Engine*>(tEngine);
+        auto *scene = reinterpret_cast<Scene*>(tScene);
+        auto gizmo = new Gizmo(engine, view, scene);
+        return reinterpret_cast<TGizmo*>(gizmo);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void Gizmo_pick(TGizmo *tGizmo, uint32_t x, uint32_t y, GizmoPickCallback callback)
     {
         auto *gizmo = reinterpret_cast<Gizmo*>(tGizmo);
-        auto *view = reinterpret_cast<View*>(tView);
-        gizmo->pick(view, x, y, callback);
+        gizmo->pick(x, y, reinterpret_cast<Gizmo::PickCallback>(callback));
     }
+
+    EMSCRIPTEN_KEEPALIVE void Gizmo_setVisibility(TGizmo *tGizmo, bool visible) { 
+        auto *gizmo = reinterpret_cast<Gizmo*>(tGizmo);
+        gizmo->setVisibility(visible);
+    }
+
+#ifdef __cplusplus
 }
+}
+#endif
