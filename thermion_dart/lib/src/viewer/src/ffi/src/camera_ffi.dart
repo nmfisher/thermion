@@ -6,12 +6,12 @@ import '../../../../utils/matrix.dart';
 import '../../thermion_viewer_base.dart';
 import 'thermion_dart.g.dart';
 
-class ThermionFFICamera extends Camera {
+class FFICamera extends Camera {
   final Pointer<TCamera> camera;
   final Pointer<TEngine> engine;
   late ThermionEntity _entity;
 
-  ThermionFFICamera(this.camera, this.engine) {
+  FFICamera(this.camera, this.engine) {
     _entity = Camera_getEntity(camera);
   }
 
@@ -54,7 +54,7 @@ class ThermionFFICamera extends Camera {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ThermionFFICamera &&
+      other is FFICamera &&
           runtimeType == other.runtimeType &&
           camera == other.camera;
 

@@ -1832,6 +1832,19 @@ external void unproject_texture_render_thread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
+@ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
+external TViewport View_getViewport(
+  ffi.Pointer<TView> view,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(
+    isLeaf: true)
+external void View_updateViewport(
+  ffi.Pointer<TView> view,
+  int width,
+  int height,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TRenderTarget>)>(
     isLeaf: true)
 external void View_setRenderTarget(
@@ -1843,14 +1856,6 @@ external void View_setRenderTarget(
 external void View_setFrustumCullingEnabled(
   ffi.Pointer<TView> view,
   bool enabled,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(
-    isLeaf: true)
-external void View_updateViewport(
-  ffi.Pointer<TView> tView,
-  int width,
-  int height,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
@@ -2196,6 +2201,20 @@ typedef FilamentRenderCallbackFunction = ffi.Void Function(
     ffi.Pointer<ffi.Void> owner);
 typedef DartFilamentRenderCallbackFunction = void Function(
     ffi.Pointer<ffi.Void> owner);
+
+final class TViewport extends ffi.Struct {
+  @ffi.Int32()
+  external int left;
+
+  @ffi.Int32()
+  external int bottom;
+
+  @ffi.Uint32()
+  external int width;
+
+  @ffi.Uint32()
+  external int height;
+}
 
 const int __bool_true_false_are_defined = 1;
 

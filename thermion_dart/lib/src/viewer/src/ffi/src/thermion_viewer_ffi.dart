@@ -162,7 +162,7 @@ class ThermionViewerFFI extends ThermionViewer {
       {Pointer<Void>? surface}) async {
     var swapChain = await withPointerCallback<TSwapChain>((callback) {
       return Viewer_createSwapChainRenderThread(_viewer!, surface ?? nullptr,
-          width.toInt(), height.toInt(), callback);
+          width, height, callback);
     });
     return FFISwapChain(swapChain, _viewer!);
   }
@@ -234,19 +234,19 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<Uint8List> capture(FFISwapChain swapChain,
-      {FFIRenderTarget? renderTarget}) async {
+      {FFIView? view, FFIRenderTarget? renderTarget}) async {
     final length = this.viewportDimensions.$1.toInt() *
         this.viewportDimensions.$2.toInt() *
         4;
     final out = Uint8List(length);
-    final view = (await getViewAt(0)) as FFIView;
+    view ??= (await getViewAt(0)) as FFIView;
     await withVoidCallback((cb) {
       if (renderTarget != null) {
-        Viewer_captureRenderTargetRenderThread(_viewer!, view.view,
+        Viewer_captureRenderTargetRenderThread(_viewer!, view!.view,
             swapChain.swapChain, renderTarget.renderTarget, out.address, cb);
       } else {
         Viewer_captureRenderThread(
-            _viewer!, view.view, swapChain.swapChain, out.address, cb);
+            _viewer!, view!.view, swapChain.swapChain, out.address, cb);
       }
     });
     return out;
@@ -1131,7 +1131,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<Camera?> getCameraComponent(ThermionEntity cameraEntity) async {
     var engine = Viewer_getEngine(_viewer!);
     var camera = Engine_getCameraComponent(engine, cameraEntity);
-    return ThermionFFICamera(camera, engine);
+    return FFICamera(camera, engine);
   }
 
   ///
@@ -1224,7 +1224,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<double> getCameraFov(bool horizontal) async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     return get_camera_fov(mainCamera.camera, horizontal);
   }
 
@@ -1253,7 +1253,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<double> getCameraNear() async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     return get_camera_near(mainCamera.camera);
   }
 
@@ -1262,7 +1262,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<double> getCameraCullingFar() async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     return get_camera_culling_far(mainCamera.camera);
   }
 
@@ -1271,7 +1271,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraFocusDistance(double focusDistance) async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     set_camera_focus_distance(mainCamera.camera, focusDistance);
   }
 
@@ -1307,7 +1307,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     set_camera_exposure(mainCamera.camera, aperture, shutterSpeed, sensitivity);
   }
 
@@ -1336,7 +1336,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraModelMatrix4(Matrix4 modelMatrix) async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     final out = matrix4ToDouble4x4(modelMatrix);
     set_camera_model_matrix(mainCamera.camera, out);
   }
@@ -1546,7 +1546,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var matrixStruct = get_camera_view_matrix(mainCamera.camera);
     return double4x4ToMatrix4(matrixStruct);
   }
@@ -1559,7 +1559,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var matrixStruct = get_camera_model_matrix(mainCamera.camera);
     return double4x4ToMatrix4(matrixStruct);
   }
@@ -1572,7 +1572,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var matrixStruct = get_camera_projection_matrix(mainCamera.camera);
     return double4x4ToMatrix4(matrixStruct);
   }
@@ -1585,7 +1585,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var matrixStruct = get_camera_culling_projection_matrix(mainCamera.camera);
     return double4x4ToMatrix4(matrixStruct);
   }
@@ -1624,7 +1624,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var arrayPtr = get_camera_frustum(mainCamera.camera);
     var doubleList = arrayPtr.asTypedList(24);
 
@@ -2096,18 +2096,18 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<Camera> createCamera() async {
     var cameraPtr = SceneManager_createCamera(_sceneManager!);
     var engine = Viewer_getEngine(_viewer!);
-    var camera = ThermionFFICamera(cameraPtr, engine);
+    var camera = FFICamera(cameraPtr, engine);
     return camera;
   }
 
-  Future destroyCamera(ThermionFFICamera camera) async {
+  Future destroyCamera(FFICamera camera) async {
     SceneManager_destroyCamera(_sceneManager!, camera.camera);
   }
 
   ///
   ///
   ///
-  Future setActiveCamera(ThermionFFICamera camera) async {
+  Future setActiveCamera(FFICamera camera) async {
     final view = (await getViewAt(0)) as FFIView;
     View_setCamera(view.view, camera.camera);
   }
@@ -2118,7 +2118,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<Camera> getActiveCamera() async {
     final view = (await getViewAt(0)) as FFIView;
     final ptr = View_getCamera(view.view);
-    return ThermionFFICamera(ptr, Viewer_getEngine(_viewer!));
+    return FFICamera(ptr, Viewer_getEngine(_viewer!));
   }
 
   final _hooks = <Future Function()>[];
@@ -2153,7 +2153,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (camera == nullptr) {
       throw Exception("No camera at index $index");
     }
-    return ThermionFFICamera(camera, Viewer_getEngine(_viewer!));
+    return FFICamera(camera, Viewer_getEngine(_viewer!));
   }
 
   @override
@@ -2234,4 +2234,16 @@ class FFIView extends View {
   Future setRenderTarget(covariant FFIRenderTarget renderTarget) async {
     View_setRenderTarget(view, renderTarget.renderTarget);
   }
+
+  @override
+  Future setCamera(FFICamera camera) async {
+    View_setCamera(view, camera.camera);
+  }
+  
+  @override
+  Future<Viewport> getViewport() async {
+    TViewport vp = View_getViewport(view);
+    return Viewport(vp.left, vp.bottom, vp.width, vp.height);
+  }
+
 }

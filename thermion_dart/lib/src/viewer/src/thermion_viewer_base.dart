@@ -74,7 +74,7 @@ abstract class ThermionViewer {
   /// Render a single frame and copy the pixel buffer to [out].
   ///
   Future<Uint8List> capture(covariant SwapChain swapChain,
-      {covariant RenderTarget? renderTarget});
+      {covariant View? view, covariant RenderTarget? renderTarget});
 
   ///
   ///

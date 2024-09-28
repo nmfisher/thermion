@@ -10,6 +10,7 @@ import 'package:thermion_dart/src/utils/dart_resources.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:path/path.dart' as p;
@@ -66,7 +67,6 @@ Future<Uint8List> savePixelBufferToBmp(
 
 class TestHelper {
   late SwapChain swapChain;
-  late RenderTarget renderTarget;
   late Directory outDir;
   late String testDir;
 
@@ -79,15 +79,18 @@ class TestHelper {
     outDir.createSync();
   }
 
-  Future capture(ThermionViewer viewer, String outputFilename, { SwapChain? swapChain, RenderTarget? renderTarget}) async {
+  Future capture(ThermionViewer viewer, String outputFilename,
+      {View? view, SwapChain? swapChain, RenderTarget? renderTarget}) async {
     await Future.delayed(Duration(milliseconds: 10));
     var outPath = p.join(outDir.path, "$outputFilename.bmp");
-    var pixelBuffer =
-        await viewer.capture(swapChain ?? this.swapChain, renderTarget:  renderTarget);
+    var pixelBuffer = await viewer.capture(
+        view: view, swapChain ?? this.swapChain, renderTarget: renderTarget);
+    view ??= await viewer.getViewAt(0);
+    var vp = await view.getViewport();
     await savePixelBufferToBmp(
         pixelBuffer,
-        viewer.viewportDimensions.$1.toInt(),
-        viewer.viewportDimensions.$2.toInt(),
+        vp.width,
+        vp.height,
         outPath);
     return pixelBuffer;
   }
@@ -105,8 +108,8 @@ class TestHelper {
       {img.Color? bg,
       Vector3? cameraPosition,
       viewportDimensions = (width: 500, height: 500)}) async {
-    final texture =
-        await createTexture(viewportDimensions.width, viewportDimensions.height);
+    final texture = await createTexture(
+        viewportDimensions.width, viewportDimensions.height);
 
     final resourceLoader = calloc<ResourceLoaderWrapper>(1);
     var loadToOut = NativeCallable<
@@ -123,10 +126,7 @@ class TestHelper {
     await viewer.initialized;
     swapChain = await viewer.createSwapChain(
         viewportDimensions.width, viewportDimensions.height);
-    renderTarget = await viewer.createRenderTarget(viewportDimensions.width,
-        viewportDimensions.height, texture);
 
-    // await viewer.setRenderTarget(renderTarget as FFIRenderTarget);
     await viewer.updateViewportAndCameraProjection(
         viewportDimensions.width.toDouble(),
         viewportDimensions.height.toDouble());

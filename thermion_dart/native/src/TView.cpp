@@ -1,27 +1,33 @@
-#ifdef _WIN32
-#pragma comment(lib, "Shlwapi.lib")
-#pragma comment(lib, "opengl32.lib")
-#endif
-
-#include "ResourceBuffer.hpp"
-#include "FilamentViewer.hpp"
-#include "filament/LightManager.h"
-#include "Log.hpp"
-#include "ThreadPool.hpp"
-
-#include <thread>
-#include <functional>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-#endif
-
-using namespace thermion_filament;
-
-extern "C"
-{
+#include <filament/View.h>
+#include <filament/Viewport.h>
+#include <filament/Engine.h>
+#include <filament/ToneMapper.h>
+#include <filament/ColorGrading.h>
 
 #include "ThermionDartApi.h"
+#include "TView.h"
+#include "Log.hpp"
+
+
+#ifdef __cplusplus
+namespace thermion {
+extern "C"
+{
+using namespace filament;
+
+#endif
+
+    EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *tView)
+    {
+        auto view = reinterpret_cast<View *>(tView);
+        auto & vp = view->getViewport();
+        TViewport tvp;
+        tvp.left = vp.left;
+        tvp.bottom = vp.bottom;
+        tvp.width = vp.width;
+        tvp.height = vp.height;
+        return tvp;
+    }
 
     EMSCRIPTEN_KEEPALIVE void View_updateViewport(TView *tView, uint32_t width, uint32_t height)
     {
@@ -54,10 +60,10 @@ extern "C"
         view->setShadowingEnabled(enabled);
     }
 
-    EMSCRIPTEN_KEEPALIVE void View_setShadowType(TView *tView, ShadowType shadowType)
+    EMSCRIPTEN_KEEPALIVE void View_setShadowType(TView *tView, int shadowType)
     {
         auto view = reinterpret_cast<View *>(tView);
-        view->setShadowType(shadowType);
+        view->setShadowType((ShadowType)shadowType);
     }
 
     EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView *tView, float penumbraScale, float penumbraRatioScale)
@@ -80,7 +86,7 @@ extern "C"
 #endif
     }
 
-    EMSCRIPTEN_KEEPALIVE void View_setToneMapping(TView *tView, TEngine *tEngine, int toneMapping)
+    EMSCRIPTEN_KEEPALIVE void View_setToneMapping(TView *tView, TEngine *tEngine, ToneMapping toneMapping)
     {
         auto view = reinterpret_cast<View *>(tView);
         auto engine = reinterpret_cast<Engine *>(tEngine);
@@ -139,4 +145,8 @@ extern "C"
         view->setCamera(camera);
     }
 
+
+#ifdef __cplusplus
 }
+}
+#endif

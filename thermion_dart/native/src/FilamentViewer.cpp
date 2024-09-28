@@ -677,7 +677,7 @@ namespace thermion_filament
     }
     else
     {
-      Log("Created headless swapchain.");
+      Log("Created headless swapchain %dx%d.", width, height);
       swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
     }
 #endif
@@ -1135,10 +1135,22 @@ namespace thermion_filament
   void FilamentViewer::capture(View *view, uint8_t *out, bool useFence, SwapChain *swapChain, RenderTarget *renderTarget, void (*onComplete)())
   {
 
-    if (!renderTarget)
-    {
-      Log("NO SWAPCHAIN");
+    if (!(renderTarget || swapChain)) {
+      Log("NO RENDER TARGET OR SWAPCHAIN");
       return;
+    }
+
+    if(swapChain && !_engine->isValid(swapChain)) {
+      Log("SWAPCHAIN PROVIDED BUT NOT VALID");
+      return;
+    }
+
+    int i =0 ;
+    for(auto sc : _swapChains) {
+      if(sc == swapChain) {
+        Log("Using swapchain at index %d", i);
+      }
+      i++;
     }
 
     Viewport const &vp = view->getViewport();
