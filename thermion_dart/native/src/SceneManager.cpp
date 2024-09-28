@@ -38,7 +38,7 @@ extern "C"
 #include "material/image.h"
 }
 
-namespace thermion_filament
+namespace thermion
 {
 
     using namespace std::chrono;
@@ -98,7 +98,6 @@ namespace thermion_filament
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
 
-        gizmo = new Gizmo(*_engine, _scene);
         _gridOverlay = new GridOverlay(*_engine);
 
         _scene->addEntity(_gridOverlay->sphere());
@@ -114,7 +113,7 @@ namespace thermion_filament
             _engine->getEntityManager().destroy(entity);
         }
         _cameras.clear();
-        delete gizmo;
+        
         _gridOverlay->destroy();
         destroyAll();
 
@@ -130,6 +129,10 @@ namespace thermion_filament
         delete _ktxDecoder;
         delete _ubershaderProvider;
         AssetLoader::destroy(&_assetLoader);
+    }
+
+    bool SceneManager::isGizmoEntity(Entity entity) {
+        return false; // TODO    
     }
 
     int SceneManager::getInstanceCount(EntityId entityId)
@@ -2502,4 +2505,4 @@ EntityId SceneManager::createGeometry(
     }
        
 
-} // namespace thermion_filament
+} // namespace thermion

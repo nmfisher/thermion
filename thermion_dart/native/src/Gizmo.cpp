@@ -10,23 +10,21 @@
 #include "material/gizmo.h"
 #include "Log.hpp"
 
-namespace thermion_filament {
+namespace thermion {
 
 using namespace filament::gltfio;
 
-Gizmo::Gizmo(Engine &engine, Scene* scene) : _engine(engine)
+Gizmo::Gizmo(Engine *engine, View *view, Scene* scene) : _engine(engine), _view(view), _scene(scene)
 {
-    
-    _scene = scene;
-    
+        
     auto &entityManager = EntityManager::get();
 
-    auto &transformManager = engine.getTransformManager();
+    auto &transformManager = _engine->getTransformManager();
 
     _material =
         Material::Builder()
             .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
-            .build(engine);
+            .build(*_engine);
 
     // First, create the black cube at the center
     // The axes widgets will be parented to this entity 
@@ -60,13 +58,13 @@ Gizmo::Gizmo(Engine &engine, Scene* scene) : _engine(engine)
                             .vertexCount(8)
                             .bufferCount(1)
                             .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-                            .build(engine);
+                            .build(*engine);
 
-    centerCubeVb->setBufferAt(engine, 0, VertexBuffer::BufferDescriptor(centerCubeVertices, 8 * sizeof(filament::math::float3), [](void *buffer, size_t size, void *)
+    centerCubeVb->setBufferAt(*engine, 0, VertexBuffer::BufferDescriptor(centerCubeVertices, 8 * sizeof(filament::math::float3), [](void *buffer, size_t size, void *)
                                                                         { delete[] static_cast<float *>(buffer); }));
 
-    auto centerCubeIb = IndexBuffer::Builder().indexCount(36).bufferType(IndexBuffer::IndexType::USHORT).build(engine);
-    centerCubeIb->setBuffer(engine, IndexBuffer::BufferDescriptor(
+    auto centerCubeIb = IndexBuffer::Builder().indexCount(36).bufferType(IndexBuffer::IndexType::USHORT).build(*engine);
+    centerCubeIb->setBuffer(*engine, IndexBuffer::BufferDescriptor(
                                         centerCubeIndices, 36 * sizeof(uint16_t),
                                         [](void *buffer, size_t size, void *)
                                         { delete[] static_cast<uint16_t *>(buffer); }));
@@ -79,7 +77,7 @@ Gizmo::Gizmo(Engine &engine, Scene* scene) : _engine(engine)
         .priority(7)
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, centerCubeVb, centerCubeIb, 0, 36)
         .culling(false)
-        .build(engine, _entities[3]);
+        .build(*engine, _entities[3]);
 
     auto cubeTransformInstance = transformManager.getInstance(_entities[3]);
     math::mat4f cubeTransform;
@@ -126,13 +124,13 @@ Gizmo::Gizmo(Engine &engine, Scene* scene) : _engine(engine)
                   .vertexCount(13)
                   .bufferCount(1)
                   .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-                  .build(engine);
+                  .build(*engine);
 
-    vb->setBufferAt(engine, 0, VertexBuffer::BufferDescriptor(vertices, 13 * sizeof(filament::math::float3), [](void *buffer, size_t size, void *)
+    vb->setBufferAt(*engine, 0, VertexBuffer::BufferDescriptor(vertices, 13 * sizeof(filament::math::float3), [](void *buffer, size_t size, void *)
                                                               { delete[] static_cast<float *>(buffer); }));
 
-    auto ib = IndexBuffer::Builder().indexCount(54).bufferType(IndexBuffer::IndexType::USHORT).build(engine);
-    ib->setBuffer(engine, IndexBuffer::BufferDescriptor(
+    auto ib = IndexBuffer::Builder().indexCount(54).bufferType(IndexBuffer::IndexType::USHORT).build(*engine);
+    ib->setBuffer(*engine, IndexBuffer::BufferDescriptor(
                               indices, 54 * sizeof(uint16_t),
                               [](void *buffer, size_t size, void *)
                               { delete[] static_cast<uint16_t *>(buffer); }));
@@ -174,7 +172,7 @@ Gizmo::Gizmo(Engine &engine, Scene* scene) : _engine(engine)
             .culling(false)
             .receiveShadows(false)
             .castShadows(false)
-            .build(engine, _entities[i]);
+            .build(*engine, _entities[i]);
 
 
         auto instance = transformManager.getInstance(_entities[i]);
@@ -192,21 +190,21 @@ Gizmo::~Gizmo() {
     _scene->removeEntities(_entities, 7);
     
     for(int i = 0; i < 7; i++) {
-        _engine.destroy(_entities[i]);    
+        _engine->destroy(_entities[i]);    
     }
     
     for(int i = 0; i < 7; i++) {
-        _engine.destroy(_materialInstances[i]);    
+        _engine->destroy(_materialInstances[i]);    
     }
     
-    _engine.destroy(_material);
+    _engine->destroy(_material);
     
 }
 
 void Gizmo::createTransparentRectangles()
 {
     auto &entityManager = EntityManager::get();
-    auto &transformManager = _engine.getTransformManager();
+    auto &transformManager = _engine->getTransformManager();
 
     float volumeWidth = 0.2f;
     float volumeLength = 1.2f;
@@ -236,9 +234,9 @@ void Gizmo::createTransparentRectangles()
         .vertexCount(8)
         .bufferCount(1)
         .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-        .build(_engine);
+        .build(*_engine);
 
-    volumeVb->setBufferAt(_engine, 0, VertexBuffer::BufferDescriptor(
+    volumeVb->setBufferAt(*_engine, 0, VertexBuffer::BufferDescriptor(
         volumeVertices, 8 * sizeof(filament::math::float3),
         [](void *buffer, size_t size, void *) { delete[] static_cast<float *>(buffer); }
     ));
@@ -246,9 +244,9 @@ void Gizmo::createTransparentRectangles()
     auto volumeIb = IndexBuffer::Builder()
         .indexCount(36)
         .bufferType(IndexBuffer::IndexType::USHORT)
-        .build(_engine);
+        .build(*_engine);
 
-    volumeIb->setBuffer(_engine, IndexBuffer::BufferDescriptor(
+    volumeIb->setBuffer(*_engine, IndexBuffer::BufferDescriptor(
         volumeIndices, 36 * sizeof(uint16_t),
         [](void *buffer, size_t size, void *) { delete[] static_cast<uint16_t *>(buffer); }
     ));
@@ -282,7 +280,7 @@ void Gizmo::createTransparentRectangles()
             .culling(false)
             .receiveShadows(false)
             .castShadows(false)
-            .build(_engine, _entities[i]);
+            .build(*_engine, _entities[i]);
 
         auto instance = transformManager.getInstance(_entities[i]);
         transformManager.setTransform(instance, transform);
@@ -293,7 +291,7 @@ void Gizmo::createTransparentRectangles()
 }
 
 void Gizmo::highlight(Entity entity) {
-    auto &rm = _engine.getRenderableManager();
+    auto &rm = _engine->getRenderableManager();
     auto renderableInstance = rm.getInstance(entity);
     auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
 
@@ -313,7 +311,7 @@ void Gizmo::highlight(Entity entity) {
 }
 
 void Gizmo::unhighlight() {
-    auto &rm = _engine.getRenderableManager();
+    auto &rm = _engine->getRenderableManager();
     
     for(int i = 0; i < 3; i++) { 
         auto renderableInstance = rm.getInstance(_entities[i]);
@@ -324,10 +322,10 @@ void Gizmo::unhighlight() {
     }
 }
 
-void Gizmo::pick(View *view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
+void Gizmo::pick(uint32_t x, uint32_t y, PickCallback callback)
   {
     auto handler = new Gizmo::PickCallbackHandler(this, callback);
-    view->pick(x, y,  [=](filament::View::PickingQueryResult const &result) { 
+    _view->pick(x, y,  [=](filament::View::PickingQueryResult const &result) { 
         handler->handle(result);
     });
   }

@@ -16,7 +16,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
-using namespace thermion_filament;
+using namespace thermion;
 
 extern "C"
 {
@@ -681,11 +681,6 @@ extern "C"
         return nullptr;
     }
 
-    EMSCRIPTEN_KEEPALIVE TGizmo* SceneManager_getGizmo(TSceneManager *tSceneManager) {
-        auto *sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
-        auto *gizmo = sceneManager->gizmo;
-        return reinterpret_cast<TGizmo*>(gizmo);
-    }
 
     EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform)
     {
@@ -911,15 +906,7 @@ extern "C"
         ((SceneManager *)sceneManager)->setPriority(entity, priority);
     }
 
-    EMSCRIPTEN_KEEPALIVE void get_gizmo(TSceneManager *sceneManager, EntityId *out)
-    {
-        auto gizmo = ((SceneManager *)sceneManager)->gizmo;
-        out[0] = Entity::smuggle(gizmo->x());
-        out[1] = Entity::smuggle(gizmo->y());
-        out[2] = Entity::smuggle(gizmo->z());
-        out[3] = Entity::smuggle(gizmo->center());
-    }
-
+    
     EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, TView *tView, EntityId entity)
     {
         auto view = reinterpret_cast<View*>(tView);
@@ -945,11 +932,6 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void *ptr)
     {
         free(ptr);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_gizmo_visibility(TSceneManager *sceneManager, bool visible)
-    {
-        ((SceneManager *)sceneManager)->gizmo->setVisibility(visible);
     }
 
     EMSCRIPTEN_KEEPALIVE void set_stencil_highlight(TSceneManager *sceneManager, EntityId entityId, float r, float g, float b)

@@ -11,7 +11,7 @@
 #include <filament/Viewport.h>
 #include <filament/Frustum.h>
 
-namespace thermion_filament
+namespace thermion
 {
 
     using namespace filament;

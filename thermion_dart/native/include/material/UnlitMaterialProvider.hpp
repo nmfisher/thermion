@@ -10,7 +10,7 @@
 #include <math/vec3.h>
 #include <math/vec4.h>
 
-namespace thermion_filament {
+namespace thermion {
 
 class UnlitMaterialProvider : public filament::gltfio::MaterialProvider {
 private:
@@ -63,6 +63,6 @@ public:
     }
 };
 
-} // namespace thermion_filament
+} // namespace thermion
 
 #endif // UNLIT_MATERIAL_PROVIDER_HPP

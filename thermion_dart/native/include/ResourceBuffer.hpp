@@ -8,7 +8,7 @@
 using namespace std::chrono_literals;
 #endif
 
-namespace thermion_filament
+namespace thermion
 {
 
   struct ResourceLoaderWrapperImpl : public ResourceLoaderWrapper

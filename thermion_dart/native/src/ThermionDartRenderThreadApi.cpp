@@ -26,7 +26,7 @@ extern "C"
 #include <thread>
 #include <stdlib.h>
 
-using namespace thermion_filament;
+using namespace thermion;
 using namespace std::chrono_literals;
 #include <time.h>
 

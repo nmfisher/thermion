@@ -8,7 +8,6 @@ extern "C"
 #include <stdint.h>
 
 	typedef int32_t EntityId;
-	typedef int32_t _ManipulatorMode;
 	typedef struct TCamera TCamera;
 	typedef struct TMaterialInstance TMaterialInstance;
 	typedef struct TEngine TEngine;
@@ -19,6 +18,7 @@ extern "C"
 	typedef struct TSwapChain TSwapChain;
 	typedef struct TView TView;
 	typedef struct TGizmo TGizmo;
+	typedef struct TScene TScene;
 
 	struct TMaterialKey {
 		bool doubleSided = 1;

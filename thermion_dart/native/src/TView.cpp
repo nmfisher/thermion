@@ -145,6 +145,11 @@ using namespace filament;
         view->setCamera(camera);
     }
 
+    EMSCRIPTEN_KEEPALIVE TScene* View_getScene(TView* tView) {
+        auto view = reinterpret_cast<View *>(tView);
+        return reinterpret_cast<TScene*>(view->getScene());
+    }
+
 
 #ifdef __cplusplus
 }

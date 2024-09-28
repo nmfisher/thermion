@@ -11,7 +11,7 @@
 #include "Log.hpp"
 #include "CustomGeometry.hpp"
 
-namespace thermion_filament {
+namespace thermion {
 
 using namespace filament;
 
