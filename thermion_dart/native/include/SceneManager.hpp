@@ -321,6 +321,7 @@ namespace thermion_filament
         gltfio::TextureProvider *_ktxDecoder = nullptr;
         std::mutex _mutex;
         std::mutex _stencilMutex;
+        std::vector<MaterialInstance*> _materialInstances;
 
         utils::NameComponentManager *_ncm;
 

@@ -45,13 +45,6 @@ namespace thermion_filament
     using namespace gltfio;
     using namespace camutils;
 
-    enum ToneMapping
-    {
-        ACES,
-        FILMIC,
-        LINEAR
-    };
-
     class FilamentViewer
     {
 

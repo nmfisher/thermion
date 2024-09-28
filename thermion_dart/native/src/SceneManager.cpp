@@ -528,13 +528,18 @@ namespace thermion_filament
                                    asset.second->getLightEntityCount());
             _assetLoader->destroyAsset(asset.second);
         }
-        for(auto* texture : _textures) {
+        for(auto *texture : _textures) {
             _engine->destroy(texture);
+        }
+
+        for(auto *materialInstance : _materialInstances) {
+            _engine->destroy(materialInstance);
         }
 
         // TODO - free geometry?
         _textures.clear();
         _assets.clear();
+        _materialInstances.clear();
     }
 
     FilamentInstance *SceneManager::getInstanceByEntityId(EntityId entityId)
@@ -2453,6 +2458,7 @@ EntityId SceneManager::createGeometry(
         }
         materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 0.0f, 1.0f, 1.0f});
         materialInstance->setParameter("baseColorIndex", 0);
+        _materialInstances.push_back(materialInstance);
         return materialInstance;
     }
 
@@ -2460,6 +2466,7 @@ EntityId SceneManager::createGeometry(
         UvMap uvmap;
         auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
         instance->setParameter("uvScale", filament::math::float2 { 1.0f, 1.0f });
+        _materialInstances.push_back(instance);
         return instance;
     }
 
