@@ -11,18 +11,18 @@ import 'package:logging/logging.dart';
 /// Flutter platform channels to create a rendering context,
 /// resource loaders, and surface/render target(s).
 ///
-class ThermionFlutterMacOS extends ThermionFlutterMethodChannelInterface {
+class ThermionFlutterTextureBackedPlatform extends ThermionFlutterMethodChannelInterface {
   final _channel = const MethodChannel("dev.thermion.flutter/event");
-  final _logger = Logger("ThermionFlutterMacOS");
+  final _logger = Logger("ThermionFlutterTextureBackedPlatform");
 
   static SwapChain? _swapChain;
 
-  ThermionFlutterMacOS._();
+  ThermionFlutterTextureBackedPlatform._();
 
-  static ThermionFlutterMacOS? instance;
+  static ThermionFlutterTextureBackedPlatform? instance;
 
   static void registerWith() {
-    instance ??= ThermionFlutterMacOS._();
+    instance ??= ThermionFlutterTextureBackedPlatform._();
     ThermionFlutterPlatform.instance = instance!;
   }
 
@@ -32,15 +32,16 @@ class ThermionFlutterMacOS extends ThermionFlutterMethodChannelInterface {
     if (_swapChain != null) {
       throw Exception("Only a single swapchain can be created");
     }
-    // this is the headless swap chain
-    // since we will be using render targets, the actual dimensions don't matter
+    // this implementation renders directly into a texture/render target
+    // we still need to create a (headless) swapchain, but the actual dimensions 
+    // don't matter
     _swapChain = await viewer.createSwapChain(1, 1);
     return viewer;
   }
 
   // On desktop platforms, textures are always created
   Future<ThermionFlutterTexture?> createTexture(int width, int height) async {
-    var texture = MacOSMethodChannelFlutterTexture(_channel);
+    var texture = ThermionFlutterTexture(_channel);
     await texture.resize(width, height, 0, 0);
     return texture;
   }
@@ -65,8 +66,8 @@ class TextureCacheEntry {
 }
 
 
-class MacOSMethodChannelFlutterTexture extends MethodChannelFlutterTexture {
-  final _logger = Logger("MacOSMethodChannelFlutterTexture");
+class ThermionFlutterTexture extends MethodChannelFlutterTexture {
+  final _logger = Logger("ThermionFlutterTexture");
 
   int flutterId = -1;
   int hardwareId = -1;
@@ -75,7 +76,7 @@ class MacOSMethodChannelFlutterTexture extends MethodChannelFlutterTexture {
 
   static final Map<String, List<TextureCacheEntry>> _textureCache = {};
 
-  MacOSMethodChannelFlutterTexture(super.channel);
+  ThermionFlutterTexture(super.channel);
 
   @override
   Future<void> resize(
@@ -115,7 +116,7 @@ class MacOSMethodChannelFlutterTexture extends MethodChannelFlutterTexture {
       final newEntry = TextureCacheEntry(flutterId, hardwareId, inUse: true);
       _textureCache.putIfAbsent(cacheKey, () => []).add(newEntry);
       _logger.info(
-          "Created new MacOS texture: flutter id $flutterId, hardware id $hardwareId");
+          "Created new  texture: flutter id $flutterId, hardware id $hardwareId");
     }
 
     // Mark old texture as not in use
@@ -160,7 +161,7 @@ class MacOSMethodChannelFlutterTexture extends MethodChannelFlutterTexture {
     }
   }
 
-  Future<void> _destroyTexture(int flutterId, int hardwareId) async {
+  Future<void> _destroyTexture(int flutterId, int? hardwareId) async {
     try {
       await channel.invokeMethod("destroyTexture", [flutterId, hardwareId]);
       _logger.info("Destroyed old texture: flutter id $flutterId, hardware id $hardwareId");

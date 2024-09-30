@@ -669,9 +669,6 @@ namespace thermion
   {
     std::lock_guard lock(_renderMutex);
     SwapChain *swapChain;
-#if TARGET_OS_IPHONE
-    swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER);
-#else
     if (window)
     {
       swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
@@ -682,7 +679,6 @@ namespace thermion
       Log("Created headless swapchain %dx%d.", width, height);
       swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
     }
-#endif
     _swapChains.push_back(swapChain);
     return swapChain;
   }

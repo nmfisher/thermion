@@ -11,11 +11,11 @@ flutter:
     implements: thermion_flutter_platform_interface
     platforms:
       ios:
-        dartPluginClass: ThermionFlutterIOS
+        dartPluginClass: ThermionFlutterTextureBackedPlatform
       android:
         dartPluginClass: ThermionFlutterAndroid
       macos:
-        dartPluginClass: ThermionFlutterMacOS
+        dartPluginClass: ThermionFlutterTextureBackedPlatform
       windows:
         dartPluginClass: ThermionFlutterWindows
 dependencies:

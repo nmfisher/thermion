@@ -91,40 +91,45 @@ public:
 
    void iter()
   {
-    std::unique_lock<std::mutex> lock(_mutex);
-    if (swapChain)
     {
-      doRender(swapChain);
-      this->_requestFrameRenderCallback();
-      swapChain = nullptr;
-
-      // Calculate and print FPS
-      auto currentTime = std::chrono::high_resolution_clock::now();
-      float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _lastFrameTime).count();
-      _lastFrameTime = currentTime;
-
-      _frameCount++;
-      _accumulatedTime += deltaTime;
-
-      if (_accumulatedTime >= 1.0f) // Update FPS every second
+      std::unique_lock<std::mutex> lock(_mutex);
+      if (swapChain)
       {
-        _fps = _frameCount / _accumulatedTime;
-        std::cout << "FPS: " << _fps << std::endl;
-        _frameCount = 0;
-        _accumulatedTime = 0.0f;
+        doRender(swapChain);
+        lock.unlock();
+        this->_requestFrameRenderCallback();
+        swapChain = nullptr;
+
+        // Calculate and print FPS
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _lastFrameTime).count();
+        _lastFrameTime = currentTime;
+
+        _frameCount++;
+        _accumulatedTime += deltaTime;
+
+        if (_accumulatedTime >= 1.0f) // Update FPS every second
+        {
+          _fps = _frameCount / _accumulatedTime;
+          std::cout << "FPS: " << _fps << std::endl;
+          _frameCount = 0;
+          _accumulatedTime = 0.0f;
+        }
       }
     }
+    std::unique_lock<std::mutex> taskLock(_taskMutex);
+
     if (!_tasks.empty())
     {
       auto task = std::move(_tasks.front());
       _tasks.pop_front();
-      lock.unlock();
+      taskLock.unlock();
       task();
-      lock.lock();
+      taskLock.lock();
     }
 
-    _cv.wait_for(lock, std::chrono::microseconds(1000), [this]
-                 { return !_tasks.empty() || _stop; });
+    _cv.wait_for(taskLock, std::chrono::microseconds(1000), [this]
+    { return !_tasks.empty() || _stop; });
 
   }
 
@@ -199,14 +204,13 @@ public:
 
   void setFrameIntervalInMilliseconds(float frameIntervalInMilliseconds)
   {
-    std::unique_lock<std::mutex> lock(_mutex);
     _frameIntervalInMicroseconds = static_cast<int>(1000.0f * frameIntervalInMilliseconds);
   }
 
   template <class Rt>
   auto add_task(std::packaged_task<Rt()> &pt) -> std::future<Rt>
   {
-    std::unique_lock<std::mutex> lock(_mutex);
+    std::unique_lock<std::mutex> lock(_taskMutex);
     auto ret = pt.get_future();
     _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(
                           std::move(pt))]
@@ -223,6 +227,7 @@ private:
   bool _stop = false;
   int _frameIntervalInMicroseconds = 1000000 / 60;
   std::mutex _mutex;
+  std::mutex _taskMutex;
   std::condition_variable _cv;
   void (*_renderCallback)(void *const) = nullptr;
   void *_renderCallbackOwner = nullptr;
