@@ -70,7 +70,6 @@ namespace thermion
 
         bool render(
             uint64_t frameTimeInNanos,
-            View* view,
             SwapChain* swapChain,
             void *pixelBuffer,
             void (*callback)(void *buf, size_t size, void *data),
@@ -91,6 +90,22 @@ namespace thermion
         void destroyRenderTarget(RenderTarget* renderTarget);
 
         Renderer *getRenderer();
+
+        std::vector<View*> _renderable;
+        void setRenderable(View* view, bool renderable) {
+            auto it = std::find(_renderable.begin(), _renderable.end(), view);
+            
+            if(renderable) { 
+                if(it == _renderable.end()) {
+                    _renderable.push_back(view);
+                }
+            } else {
+                if(it != _renderable.end()) {
+                    _renderable.erase(it);
+                }
+            } 
+
+        }
 
         void setBackgroundColor(const float r, const float g, const float b, const float a);
         void setBackgroundImage(const char *resourcePath, bool fillHeight, uint32_t width, uint32_t height);

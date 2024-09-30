@@ -341,7 +341,6 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE bool Viewer_render(
         TViewer *tViewer,
-        TView *tView,
         TSwapChain *tSwapChain,
         uint64_t frameTimeInNanos,
         void *pixelBuffer,
@@ -355,8 +354,14 @@ extern "C"
             swapChain = viewer->getSwapChainAt(0);
         }
         
+        return viewer->render(frameTimeInNanos, swapChain, pixelBuffer, callback, data);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void Viewer_markViewRenderable(TViewer *tViewer, TView* tView, bool renderable) {
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        
         auto *view = reinterpret_cast<View*>(tView);
-        return viewer->render(frameTimeInNanos, view, swapChain, pixelBuffer, callback, data);
+        viewer->setRenderable(view, renderable);
     }
 
     EMSCRIPTEN_KEEPALIVE void Viewer_capture(

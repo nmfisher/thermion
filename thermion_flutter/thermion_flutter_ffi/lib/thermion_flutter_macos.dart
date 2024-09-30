@@ -13,47 +13,36 @@ import 'package:logging/logging.dart';
 ///
 class ThermionFlutterMacOS extends ThermionFlutterMethodChannelInterface {
   final _channel = const MethodChannel("dev.thermion.flutter/event");
-  final _logger = Logger("ThermionFlutterFFI");
+  final _logger = Logger("ThermionFlutterMacOS");
 
-  SwapChain? _swapChain;
+  static SwapChain? _swapChain;
 
-  ThermionFlutterMacOS._() {}
+  ThermionFlutterMacOS._();
+
+  static ThermionFlutterMacOS? instance;
 
   static void registerWith() {
-    ThermionFlutterPlatform.instance = ThermionFlutterMacOS._();
+    instance ??= ThermionFlutterMacOS._();
+    ThermionFlutterPlatform.instance = instance!;
+  }
+
+  @override
+  Future<ThermionViewer> createViewer({ThermionFlutterOptions? options}) async {
+    var viewer = await super.createViewer(options: options);
+    if (_swapChain != null) {
+      throw Exception("Only a single swapchain can be created");
+    }
+    // this is the headless swap chain
+    // since we will be using render targets, the actual dimensions don't matter
+    _swapChain = await viewer.createSwapChain(1, 1);
+    return viewer;
   }
 
   // On desktop platforms, textures are always created
   Future<ThermionFlutterTexture?> createTexture(int width, int height) async {
-    if (_swapChain == null) {
-      // this is the headless swap chain
-      // since we will be using render targets, the actual dimensions don't matter
-      _swapChain = await viewer!.createSwapChain(width, height);
-    }
-    // Get screen width and height
-    int screenWidth = width; //1920;
-    int screenHeight = height; //1080;
-
-    if (width > screenWidth || height > screenHeight) {
-      throw Exception("TODO - unsupported");
-    }
-
-    var result = await _channel
-        .invokeMethod("createTexture", [screenWidth, screenHeight, 0, 0]);
-
-    if (result == null || (result[0] == -1)) {
-      throw Exception("Failed to create texture");
-    }
-    final flutterTextureId = result[0] as int?;
-    final hardwareTextureId = result[1] as int?;
-    final surfaceAddress = result[2] as int?;
-    
-
-    _logger.info(
-        "Created texture with flutter texture id ${flutterTextureId}, hardwareTextureId $hardwareTextureId and surfaceAddress $surfaceAddress");
-
-    return MacOSMethodChannelFlutterTexture(_channel, flutterTextureId!,
-        hardwareTextureId!, screenWidth, screenHeight);
+    var texture = MacOSMethodChannelFlutterTexture(_channel);
+    await texture.resize(width, height, 0, 0);
+    return texture;
   }
 
   // On MacOS, we currently use textures/render targets, so there's no window to resize
@@ -64,14 +53,119 @@ class ThermionFlutterMacOS extends ThermionFlutterMethodChannelInterface {
   }
 }
 
+class TextureCacheEntry {
+  final int flutterId;
+  final int hardwareId;
+  final DateTime creationTime;
+  DateTime? removalTime;
+  bool inUse;
+
+  TextureCacheEntry(this.flutterId, this.hardwareId, {this.removalTime, this.inUse = true})
+      : creationTime = DateTime.now();
+}
+
+
 class MacOSMethodChannelFlutterTexture extends MethodChannelFlutterTexture {
-  MacOSMethodChannelFlutterTexture(super.channel, super.flutterId,
-      super.hardwareId, super.width, super.height);
+  final _logger = Logger("MacOSMethodChannelFlutterTexture");
+
+  int flutterId = -1;
+  int hardwareId = -1;
+  int width = -1;
+  int height = -1;
+
+  static final Map<String, List<TextureCacheEntry>> _textureCache = {};
+
+  MacOSMethodChannelFlutterTexture(super.channel);
 
   @override
-  Future resize(int width, int height, int left, int top) async {
-    if (width > this.width || height > this.height || left != 0 || top != 0) {
-      throw Exception();
+  Future<void> resize(
+      int newWidth, int newHeight, int newLeft, int newTop) async {
+    if (newWidth == this.width &&
+        newHeight == this.height &&
+        newLeft == 0 &&
+        newTop == 0) {
+      return;
+    }
+
+    this.width = newWidth;
+    this.height = newHeight;
+
+    // Clean up old textures
+    await _cleanupOldTextures();
+
+    final cacheKey = '${width}x$height';
+    final availableTextures =
+        _textureCache[cacheKey]?.where((entry) => !entry.inUse) ?? [];
+    if (availableTextures.isNotEmpty) {
+      final cachedTexture = availableTextures.first;
+      flutterId = cachedTexture.flutterId;
+      hardwareId = cachedTexture.hardwareId;
+      cachedTexture.inUse = true;
+      _logger.info(
+          "Using cached texture: flutter id $flutterId, hardware id $hardwareId");
+    } else {
+      var result =
+          await channel.invokeMethod("createTexture", [width, height, 0, 0]);
+      if (result == null || (result[0] == -1)) {
+        throw Exception("Failed to create texture");
+      }
+      flutterId = result[0] as int;
+      hardwareId = result[1] as int;
+
+      final newEntry = TextureCacheEntry(flutterId, hardwareId, inUse: true);
+      _textureCache.putIfAbsent(cacheKey, () => []).add(newEntry);
+      _logger.info(
+          "Created new MacOS texture: flutter id $flutterId, hardware id $hardwareId");
+    }
+
+    // Mark old texture as not in use
+    if (this.width != -1 && this.height != -1) {
+      final oldCacheKey = '${this.width}x${this.height}';
+      final oldEntry = _textureCache[oldCacheKey]?.firstWhere(
+        (entry) => entry.flutterId == this.flutterId,
+        orElse: () => TextureCacheEntry(-1, -1),
+      );
+      if (oldEntry != null && oldEntry.flutterId != -1) {
+        oldEntry.inUse = false;
+        oldEntry.removalTime = DateTime.now();
+      }
+    }
+  }
+
+  Future _cleanupOldTextures() async {
+    final now = DateTime.now();
+    final entriesToRemove = <String, List<TextureCacheEntry>>{};
+
+    for (var entry in _textureCache.entries) {
+      final expiredTextures = entry.value.where((texture) {
+        return !texture.inUse &&
+               texture.removalTime != null &&
+               now.difference(texture.removalTime!).inSeconds > 5;
+      }).toList();
+
+      if (expiredTextures.isNotEmpty) {
+        entriesToRemove[entry.key] = expiredTextures;
+      }
+    }
+
+    for (var entry in entriesToRemove.entries) {
+      for (var texture in entry.value) {
+        await _destroyTexture(texture.flutterId, texture.hardwareId);
+        _logger.info("Destroying texture: ${texture.flutterId}");
+        _textureCache[entry.key]?.remove(texture);
+      }
+      if (_textureCache[entry.key]?.isEmpty ?? false) {
+        _textureCache.remove(entry.key);
+      }
+    }
+  }
+
+  Future<void> _destroyTexture(int flutterId, int hardwareId) async {
+    try {
+      await channel.invokeMethod("destroyTexture", [flutterId, hardwareId]);
+      _logger.info("Destroyed old texture: flutter id $flutterId, hardware id $hardwareId");
+    } catch (e) {
+      _logger.severe("Failed to destroy texture: $e");
     }
   }
 }

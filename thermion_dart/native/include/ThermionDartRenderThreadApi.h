@@ -30,12 +30,13 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView* view, TSwapChain* swapChain);
     EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, uint8_t* out, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TSwapChain* tSwapChain, void(*onComplete)());
 
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer);
     
     EMSCRIPTEN_KEEPALIVE FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
     EMSCRIPTEN_KEEPALIVE void set_rendering_render_thread(TViewer *viewer, bool rendering, void(*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, void(*onComplete)());
+    
     EMSCRIPTEN_KEEPALIVE void set_frame_interval_render_thread(TViewer *viewer, float frameInterval);
     EMSCRIPTEN_KEEPALIVE void set_background_color_render_thread(TViewer *viewer, const float r, const float g, const float b, const float a);
     EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer);

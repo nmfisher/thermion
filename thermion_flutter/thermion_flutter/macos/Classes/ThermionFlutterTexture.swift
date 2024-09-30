@@ -23,7 +23,7 @@ public class ThermionFlutterTexture : NSObject, FlutterTexture {
     }
     
     public func onTextureUnregistered(_ texture:FlutterTexture) {
-        print("Texture unregistered")
+
     }
     
     public func destroy() {

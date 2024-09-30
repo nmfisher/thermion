@@ -1,6 +1,7 @@
 library shared_types;
 
 export 'swap_chain.dart';
+export 'view.dart';
 export 'render_target.dart';
 export 'camera.dart';
 export 'material.dart';

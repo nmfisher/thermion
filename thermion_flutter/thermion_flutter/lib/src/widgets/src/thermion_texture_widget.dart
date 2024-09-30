@@ -26,14 +26,21 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
   ThermionFlutterTexture? _texture;
   RenderTarget? _renderTarget;
 
+  static final _views = <t.View>[];
+
   @override
   void dispose() {
     super.dispose();
+    _views.remove(widget.view);
     _texture?.destroy();
   }
 
   @override
   void initState() {
+    if (_views.contains(widget.view)) {
+      throw Exception("View already embedded in a widget");
+    }
+    _views.add(widget.view);
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       await widget.viewer.initialized;
 
@@ -51,9 +58,10 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
       await widget.view.setRenderTarget(_renderTarget!);
 
-      await widget.view.updateViewport(width, height);
+      await widget.view.updateViewport(_texture!.width, _texture!.height);
       var camera = await widget.view.getCamera();
-      await camera.setLensProjection(aspect: width / height);
+      await camera.setLensProjection(
+          aspect: _texture!.width / _texture!.height);
 
       if (mounted) {
         setState(() {});
@@ -73,18 +81,29 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
           await _renderTarget!.destroy();
           texture.destroy();
         }
+        _views.clear();
       });
     });
+    _callbackId = _numCallbacks;
+    _numCallbacks++;
     super.initState();
   }
 
   bool _rendering = false;
 
+  static int _numCallbacks = 0;
+  static int _primaryCallback = 0;
+  late int _callbackId;
+  int lastRender = 0;
+
   void _requestFrame() {
     WidgetsBinding.instance.scheduleFrameCallback((d) async {
-      if (!_rendering) {
+      if (widget.viewer.rendering && !_rendering) {
         _rendering = true;
-        await widget.viewer.requestFrame();
+        if (_callbackId == _primaryCallback) {
+          await widget.viewer.requestFrame();
+          lastRender = d.inMilliseconds;
+        }
         await _texture?.markFrameAvailable();
         _rendering = false;
       }
@@ -92,28 +111,36 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     });
   }
 
-  bool _resizing = false;
+  final _resizing = <Future>[];
+
   Timer? _resizeTimer;
 
-  Future _resize(Size newSize) async {
-    
+  Future _resize(Size oldSize, Size newSize) async {
+    await Future.wait(_resizing);
+
     _resizeTimer?.cancel();
 
-    _resizeTimer = Timer(const Duration(milliseconds: 10), () async {
-      if (_resizing || !mounted) {
-        return;
-      }
-      _resizeTimer!.cancel();
-      _resizing = true;
-
+    _resizeTimer = Timer(const Duration(milliseconds: 100), () async {
+      await Future.wait(_resizing);
       if (!mounted) {
         return;
       }
+
+      if (newSize.width == _texture?.width &&
+          newSize.height == _texture?.height) {
+        return;
+      }
+
+      final completer = Completer();
+
+      _resizing.add(completer.future);
 
       newSize *= MediaQuery.of(context).devicePixelRatio;
 
       var newWidth = newSize.width.ceil();
       var newHeight = newSize.height.ceil();
+
+      var lastTextureId = _texture?.hardwareId;
 
       await _texture?.resize(
         newWidth,
@@ -122,12 +149,23 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         0,
       );
 
-      await widget.view.updateViewport(newWidth, newHeight);
-      var camera = await widget.view.getCamera();
-      await camera.setLensProjection(aspect: newWidth / newHeight);
+      if (_texture?.hardwareId != lastTextureId) {
+        await _renderTarget?.destroy();
+        _renderTarget = await widget.viewer.createRenderTarget(
+            _texture!.width, _texture!.height, _texture!.hardwareId);
+        await widget.view.setRenderTarget(_renderTarget!);
+      }
 
+      await widget.view.updateViewport(_texture!.width, _texture!.height);
+      var camera = await widget.view.getCamera();
+      await camera.setLensProjection(
+          aspect: _texture!.width.toDouble() / _texture!.height.toDouble());
+      if (!mounted) {
+        return;
+      }
       setState(() {});
-      _resizing = false;
+      completer.complete();
+      _resizing.remove(completer.future);
     });
   }
 
@@ -137,30 +175,17 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       return widget.initial ?? Container(color: Colors.red);
     }
 
-    return Stack(children: [
-      Positioned.fill(
-          child: ResizeObserver(
-              onResized: _resize,
-              child: Stack(children: [
-                Positioned.fill(
-                    child: Texture(
-                  key: ObjectKey("flutter_texture_${_texture!.flutterId}"),
-                  textureId: _texture!.flutterId,
-                  filterQuality: FilterQuality.none,
-                  freeze: false,
-                ))
-              ]))),
-      Align(
-        alignment: Alignment.bottomLeft,
-        child: ElevatedButton(
-            onPressed: () async {
-              var img =
-                  await widget.viewer.capture(renderTarget: _renderTarget!);
-              print(img);
-            },
-            child: Text("CAPTURE")),
-      )
-    ]);
+    return ResizeObserver(
+        onResized: _resize,
+        child: Stack(children: [
+          Positioned.fill(
+              child: Texture(
+            key: ObjectKey("flutter_texture_${_texture!.flutterId}"),
+            textureId: _texture!.flutterId,
+            filterQuality: FilterQuality.none,
+            freeze: false,
+          ))
+        ]));
   }
 }
 

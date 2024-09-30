@@ -124,7 +124,6 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
               return widget.child ?? Container();
             }
             return Stack(children: [
-              if (widget.child != null) Positioned.fill(child: widget.child!),
               if (isDesktop) Positioned.fill(child: _desktop(pixelRatio)),
               if (!isDesktop) Positioned.fill(child: _mobile(pixelRatio))
             ]);

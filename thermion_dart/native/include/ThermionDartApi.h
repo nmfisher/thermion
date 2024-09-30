@@ -63,7 +63,6 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChain(TViewer *viewer, TSwapChain* swapChain);
 	EMSCRIPTEN_KEEPALIVE bool Viewer_render(
 		TViewer *viewer,
-		TView *view,
 		TSwapChain *swapChain,
 		uint64_t frameTimeInNanos,
 		void *pixelBuffer,
@@ -85,13 +84,13 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TView* Viewer_createView(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TView* Viewer_getViewAt(TViewer *viewer, int index);
 	EMSCRIPTEN_KEEPALIVE void Viewer_setMainCamera(TViewer *tViewer, TView *tView);	
-	EMSCRIPTEN_KEEPALIVE TSwapChain* Viewer_getSwapChainAt(TViewer *tViewer, int index);	
+	EMSCRIPTEN_KEEPALIVE TSwapChain* Viewer_getSwapChainAt(TViewer *tViewer, int index);
+	EMSCRIPTEN_KEEPALIVE void Viewer_markViewRenderable(TViewer *viewer, TView* view, bool renderable);	
 	
 	// Engine
 	EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer);
 	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void Engine_setTransform(TEngine* tEngine, EntityId entity, double4x4 transform);
-
 	
 	EMSCRIPTEN_KEEPALIVE void clear_background_image(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE void set_background_image(TViewer *viewer, const char *path, bool fillHeight);

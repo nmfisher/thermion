@@ -69,11 +69,15 @@ class DelegateInputHandler implements InputHandler {
           });
 
   factory DelegateInputHandler.flight(ThermionViewer viewer,
-          {PickDelegate? pickDelegate, bool freeLook=false, double? clampY, ThermionEntity? entity}) =>
+          {PickDelegate? pickDelegate,
+          bool freeLook = false,
+          double? clampY,
+          ThermionEntity? entity}) =>
       DelegateInputHandler(
           viewer: viewer,
           pickDelegate: pickDelegate,
-          transformDelegate: FreeFlightInputHandlerDelegate(viewer, clampY:clampY, entity:entity),
+          transformDelegate: FreeFlightInputHandlerDelegate(viewer,
+              clampY: clampY, entity: entity),
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
             InputType.SCROLLWHEEL: InputAction.TRANSLATE,
@@ -82,8 +86,7 @@ class DelegateInputHandler implements InputHandler {
             InputType.KEYDOWN_W: InputAction.TRANSLATE,
             InputType.KEYDOWN_S: InputAction.TRANSLATE,
             InputType.KEYDOWN_D: InputAction.TRANSLATE,
-            if(freeLook)
-            InputType.POINTER_MOVE: InputAction.ROTATE,
+            if (freeLook) InputType.POINTER_MOVE: InputAction.ROTATE,
           });
 
   bool _processing = false;
@@ -160,15 +163,13 @@ class DelegateInputHandler implements InputHandler {
     }
     if (isMiddle) {
       _inputDeltas[InputType.MMB_HOLD_AND_MOVE] =
-          (_inputDeltas[InputType.MMB_HOLD_AND_MOVE] ?? Vector3.zero()) + Vector3(delta.x, delta.y, 0.0);
+          (_inputDeltas[InputType.MMB_HOLD_AND_MOVE] ?? Vector3.zero()) +
+              Vector3(delta.x, delta.y, 0.0);
     } else {
       _inputDeltas[InputType.LMB_HOLD_AND_MOVE] =
-          (_inputDeltas[InputType.LMB_HOLD_AND_MOVE] ?? Vector3.zero()) + Vector3(delta.x, delta.y, 0.0);
+          (_inputDeltas[InputType.LMB_HOLD_AND_MOVE] ?? Vector3.zero()) +
+              Vector3(delta.x, delta.y, 0.0);
     }
-    // else {
-    //   _inputDeltas[InputType.POINTER_MOVE] =
-    //       (_inputDeltas[InputType.POINTER_MOVE] ?? Vector3.zero()) + delta;
-    // }
   }
 
   @override
@@ -180,7 +181,8 @@ class DelegateInputHandler implements InputHandler {
       return;
     }
     _inputDeltas[InputType.POINTER_MOVE] =
-        (_inputDeltas[InputType.POINTER_MOVE] ?? Vector3.zero()) + Vector3(delta.x, delta.y, 0.0);
+        (_inputDeltas[InputType.POINTER_MOVE] ?? Vector3.zero()) +
+            Vector3(delta.x, delta.y, 0.0);
   }
 
   @override
@@ -191,8 +193,8 @@ class DelegateInputHandler implements InputHandler {
     }
     try {
       _inputDeltas[InputType.SCROLLWHEEL] =
-          (_inputDeltas[InputType.SCROLLWHEEL] ?? Vector3.zero())
-              + Vector3(0,0, scrollDelta > 0 ? 1 : -1);
+          (_inputDeltas[InputType.SCROLLWHEEL] ?? Vector3.zero()) +
+              Vector3(0, 0, scrollDelta > 0 ? 1 : -1);
     } catch (e) {
       _logger.warning("Error during scroll accumulation: $e");
     }

@@ -1,7 +1,7 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-typedef ResizeCallback = void Function(Size newSize);
+typedef ResizeCallback = void Function(Size oldSize, Size newSize);
 
 class ResizeObserver extends SingleChildRenderObjectWidget {
   final ResizeCallback onResized;
@@ -34,7 +34,7 @@ class _RenderResizeObserver extends RenderProxyBox {
   void performLayout() async {
     super.performLayout();
     if (size.width != _oldSize.width || size.height != _oldSize.height) {
-      onLayoutChangedCallback(size);
+      onLayoutChangedCallback(_oldSize, size);
       _oldSize = Size(size.width, size.height);
     }
   }
