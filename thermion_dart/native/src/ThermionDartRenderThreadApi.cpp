@@ -160,10 +160,7 @@ public:
                                         _viewer = (FilamentViewer *)Viewer_create((void *const)_context, loader, platform, uberArchivePath);
                                         MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, _viewer);
 #else
-    Log("CREATING1");
-
                                         auto viewer = (FilamentViewer *)Viewer_create(context, loader, platform, uberArchivePath);
-                                        Log("CREATING2");
                                         _viewer = reinterpret_cast<TViewer*>(viewer);
                                         callback(_viewer);
 #endif

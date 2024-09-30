@@ -15,13 +15,6 @@ extern "C" {
     return window;
   }
 
-//   int ThermionAndroid_createGLTexture(jobject )
-
-//   int ASurfaceTexture_attachToGLContext(
-//   ASurfaceTexture *st,
-//   uint32_t texName
-// )
-
   ResourceLoaderWrapper* make_resource_loader_wrapper_android(LoadFilamentResourceFromOwner loadFn, FreeFilamentResourceFromOwner freeFn, void* owner) {
     ResourceLoaderWrapper *rlw = (ResourceLoaderWrapper *)malloc(sizeof(ResourceLoaderWrapper));
     rlw->loadToOut = nullptr;
