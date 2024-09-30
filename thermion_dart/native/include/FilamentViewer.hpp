@@ -68,12 +68,9 @@ namespace thermion
         void removeEntity(EntityId asset);
         void clearEntities();
 
-        bool render(
-            uint64_t frameTimeInNanos,
-            SwapChain* swapChain,
-            void *pixelBuffer,
-            void (*callback)(void *buf, size_t size, void *data),
-            void *data);
+        void render(
+            uint64_t frameTimeInNanos
+        );
         void setFrameInterval(float interval);
 
         void setMainCamera(View *view);
@@ -83,7 +80,8 @@ namespace thermion
         float getCameraFov(bool horizontal);
         void setCameraFov(double fovDegrees, bool horizontal);
 
-        SwapChain* createSwapChain(const void *surface, uint32_t width, uint32_t height);
+        SwapChain* createSwapChain(const void *surface);
+        SwapChain* createSwapChain(uint32_t width, uint32_t height);
         void destroySwapChain(SwapChain* swapChain);
 
         RenderTarget* createRenderTarget(intptr_t textureId, uint32_t width, uint32_t height);
@@ -91,21 +89,9 @@ namespace thermion
 
         Renderer *getRenderer();
 
-        std::vector<View*> _renderable;
-        void setRenderable(View* view, bool renderable) {
-            auto it = std::find(_renderable.begin(), _renderable.end(), view);
-            
-            if(renderable) { 
-                if(it == _renderable.end()) {
-                    _renderable.push_back(view);
-                }
-            } else {
-                if(it != _renderable.end()) {
-                    _renderable.erase(it);
-                }
-            } 
-
-        }
+        std::map<SwapChain*, std::vector<View*>> _renderable;
+        
+        void setRenderable(View* view, SwapChain* swapChain, bool renderable);
 
         void setBackgroundColor(const float r, const float g, const float b, const float a);
         void setBackgroundImage(const char *resourcePath, bool fillHeight, uint32_t width, uint32_t height);

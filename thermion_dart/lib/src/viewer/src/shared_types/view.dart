@@ -1,4 +1,5 @@
 import 'package:thermion_dart/thermion_dart.dart';
+import 'swap_chain.dart';
 
 class Viewport {
   final int left;
@@ -17,5 +18,5 @@ abstract class View {
   Camera getCamera();
   Future setPostProcessing(bool enabled);
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
-  Future setRenderable(bool renderable);
+  Future setRenderable(bool renderable, covariant SwapChain swapChain);
 }

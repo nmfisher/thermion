@@ -2,6 +2,7 @@ import 'dart:ffi';
 
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/camera.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
 
 import '../../shared_types/view.dart';
 import '../thermion_viewer_ffi.dart';
@@ -50,7 +51,7 @@ class FFIView extends View {
     View_setPostProcessing(view, enabled);
   }
 
-  Future setRenderable(bool renderable) async {
-    Viewer_markViewRenderable(viewer, view, renderable);
+  Future setRenderable(bool renderable, FFISwapChain swapChain) async {
+    Viewer_setViewRenderable(viewer, swapChain.swapChain, view, renderable);
   }
 }

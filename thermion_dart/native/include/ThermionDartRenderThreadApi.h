@@ -17,7 +17,7 @@ extern "C"
     typedef int32_t EntityId;
     typedef void (*FilamentRenderCallback)(void *const owner);
 
-    EMSCRIPTEN_KEEPALIVE void create_filament_viewer_render_thread(
+    EMSCRIPTEN_KEEPALIVE void Viewer_createOnRenderThread(
         void *const context,
         void *const platform,
         const char *uberArchivePath,
@@ -25,12 +25,13 @@ extern "C"
         void (*renderCallback)(void *const renderCallbackOwner),
         void *const renderCallbackOwner,
         void (*callback)(TViewer *viewer));
-    EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer, void *const surface, uint32_t width, uint32_t height, void (*onComplete)(TSwapChain*));
+    EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer, void *const surface, void (*onComplete)(TSwapChain*));
+    EMSCRIPTEN_KEEPALIVE void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer, uint32_t width, uint32_t height, void (*onComplete)(TSwapChain*));
     EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain* swapChain, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView* view, TSwapChain* swapChain);
     EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, uint8_t* out, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TSwapChain* tSwapChain, void(*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)());
 
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer);
     

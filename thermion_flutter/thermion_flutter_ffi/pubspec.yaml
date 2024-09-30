@@ -13,7 +13,7 @@ flutter:
       ios:
         dartPluginClass: ThermionFlutterTextureBackedPlatform
       android:
-        dartPluginClass: ThermionFlutterAndroid
+        dartPluginClass: ThermionFlutterTextureBackedPlatform
       macos:
         dartPluginClass: ThermionFlutterTextureBackedPlatform
       windows:

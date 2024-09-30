@@ -54,20 +54,16 @@ extern "C"
 {
 #endif
 
-	EMSCRIPTEN_KEEPALIVE TViewer *create_filament_viewer(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
+	EMSCRIPTEN_KEEPALIVE TViewer *Viewer_create(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
 	EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TSceneManager *Viewer_getSceneManager(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TRenderTarget* Viewer_createRenderTarget(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTarget(TViewer *viewer, TRenderTarget* tRenderTarget);
-	EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *viewer, const void *const window, uint32_t width, uint32_t height);
+	EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *viewer, const void *const window);
+	EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createHeadlessSwapChain(TViewer *viewer, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChain(TViewer *viewer, TSwapChain* swapChain);
-	EMSCRIPTEN_KEEPALIVE bool Viewer_render(
-		TViewer *viewer,
-		TSwapChain *swapChain,
-		uint64_t frameTimeInNanos,
-		void *pixelBuffer,
-		void (*callback)(void *buf, size_t size, void *data),
-		void *data);
+	EMSCRIPTEN_KEEPALIVE void Viewer_render(
+		TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE void Viewer_capture(
 		TViewer *viewer,
 		TView *view,
@@ -85,7 +81,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TView* Viewer_getViewAt(TViewer *viewer, int index);
 	EMSCRIPTEN_KEEPALIVE void Viewer_setMainCamera(TViewer *tViewer, TView *tView);	
 	EMSCRIPTEN_KEEPALIVE TSwapChain* Viewer_getSwapChainAt(TViewer *tViewer, int index);
-	EMSCRIPTEN_KEEPALIVE void Viewer_markViewRenderable(TViewer *viewer, TView* view, bool renderable);	
+	EMSCRIPTEN_KEEPALIVE void Viewer_setViewRenderable(TViewer *viewer, TSwapChain *swapChain, TView* view, bool renderable);	
 	
 	// Engine
 	EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer);

@@ -50,13 +50,8 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       var width = (size.width * dpr).ceil();
       var height = (size.height * dpr).ceil();
 
-      _texture =
-          await ThermionFlutterPlatform.instance.createTexture(width, height);
-
-      _renderTarget = await widget.viewer.createRenderTarget(
-          _texture!.width, _texture!.height, _texture!.hardwareId);
-
-      await widget.view.setRenderTarget(_renderTarget!);
+      _texture = await ThermionFlutterPlatform.instance
+          .createTexture(widget.view, width, height);
 
       await widget.view.updateViewport(_texture!.width, _texture!.height);
       var camera = await widget.view.getCamera();
@@ -74,13 +69,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         if (mounted) {
           setState(() {});
         }
-        if (texture != null) {
-          _renderTarget = await widget.viewer.createRenderTarget(
-              texture.width, texture.height, texture.flutterId);
-          await widget.view.setRenderTarget(null);
-          await _renderTarget!.destroy();
-          texture.destroy();
-        }
+        await texture?.destroy();
         _views.clear();
       });
     });
@@ -100,7 +89,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     WidgetsBinding.instance.scheduleFrameCallback((d) async {
       if (widget.viewer.rendering && !_rendering) {
         _rendering = true;
-        if (_callbackId == _primaryCallback) {
+        if (_callbackId == _primaryCallback && _texture != null) {
           await widget.viewer.requestFrame();
           lastRender = d.inMilliseconds;
         }
@@ -140,8 +129,6 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       var newWidth = newSize.width.ceil();
       var newHeight = newSize.height.ceil();
 
-      var lastTextureId = _texture?.hardwareId;
-
       await _texture?.resize(
         newWidth,
         newHeight,
@@ -149,12 +136,6 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         0,
       );
 
-      if (_texture?.hardwareId != lastTextureId) {
-        await _renderTarget?.destroy();
-        _renderTarget = await widget.viewer.createRenderTarget(
-            _texture!.width, _texture!.height, _texture!.hardwareId);
-        await widget.view.setRenderTarget(_renderTarget!);
-      }
 
       await widget.view.updateViewport(_texture!.width, _texture!.height);
       var camera = await widget.view.getCamera();

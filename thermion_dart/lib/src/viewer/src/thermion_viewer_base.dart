@@ -62,7 +62,12 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future<SwapChain> createSwapChain(int width, int height);
+  Future<SwapChain> createHeadlessSwapChain(int width, int height);
+
+  ///
+  ///
+  ///
+  Future<SwapChain> createSwapChain(int handle);
 
   ///
   ///

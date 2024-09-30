@@ -149,11 +149,24 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  Future<SwapChain> createSwapChain(int width, int height,
-      {Pointer<Void>? surface}) async {
+  ///
+  ///
+  ///
+  Future<SwapChain> createHeadlessSwapChain(int width, int height) async {
+    var swapChain = await withPointerCallback<TSwapChain>((callback) {
+      return Viewer_createHeadlessSwapChainRenderThread(
+          _viewer!, width, height, callback);
+    });
+    return FFISwapChain(swapChain, _viewer!);
+  }
+
+  ///
+  ///
+  ///
+  Future<SwapChain> createSwapChain(int surface) async {
     var swapChain = await withPointerCallback<TSwapChain>((callback) {
       return Viewer_createSwapChainRenderThread(
-          _viewer!, surface ?? nullptr, width, height, callback);
+          _viewer!, Pointer<Void>.fromAddress(surface), callback);
     });
     return FFISwapChain(swapChain, _viewer!);
   }
@@ -167,7 +180,7 @@ class ThermionViewerFFI extends ThermionViewer {
             nullptr;
     _viewer = await withPointerCallback(
         (Pointer<NativeFunction<Void Function(Pointer<TViewer>)>> callback) {
-      create_filament_viewer_render_thread(
+      Viewer_createOnRenderThread(
           _sharedContext,
           _driver,
           uberarchivePtr,
@@ -2039,10 +2052,8 @@ class ThermionViewerFFI extends ThermionViewer {
       completer.complete(true);
     });
 
-    final swapChain = Viewer_getSwapChainAt(_viewer!, 0);
-
     Viewer_requestFrameRenderThread(
-        _viewer!, swapChain, callback.nativeFunction);
+        _viewer!, callback.nativeFunction);
 
     await completer.future.timeout(Duration(seconds: 1));
   }

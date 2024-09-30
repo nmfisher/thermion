@@ -127,7 +127,16 @@ namespace thermion
   FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapperImpl *const resourceLoader, void *const platform, const char *uberArchivePath)
       : _resourceLoaderWrapper(resourceLoader)
   {
+    
     _context = (void *)sharedContext;
+
+    if(!_context) {
+      Log("Creating, no shared context");
+    } else { 
+      Log("Creating with shared context");
+    }
+    
+    
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
 #if TARGET_OS_IPHONE
@@ -165,8 +174,6 @@ namespace thermion
     _mainCamera = _engine->createCamera(camera);
 
     createView();
-
-    setRenderable(_views[0], true);
 
     const float aperture = _mainCamera->getAperture();
     const float shutterSpeed = _mainCamera->getShutterSpeed();
@@ -665,20 +672,19 @@ namespace thermion
 
   Renderer *FilamentViewer::getRenderer() { return _renderer; }
 
-  SwapChain *FilamentViewer::createSwapChain(const void *window, uint32_t width, uint32_t height)
+  SwapChain *FilamentViewer::createSwapChain(const void *window)
+  {
+    std::lock_guard lock(_renderMutex);
+    SwapChain *swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
+    _swapChains.push_back(swapChain);
+    return swapChain;
+  }
+
+  SwapChain *FilamentViewer::createSwapChain(uint32_t width, uint32_t height)
   {
     std::lock_guard lock(_renderMutex);
     SwapChain *swapChain;
-    if (window)
-    {
-      swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE);
-      Log("Created window swapchain.");
-    }
-    else
-    {
-      Log("Created headless swapchain %dx%d.", width, height);
-      swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
-    }
+    swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
     _swapChains.push_back(swapChain);
     return swapChain;
   }
@@ -734,13 +740,13 @@ namespace thermion
   void FilamentViewer::destroySwapChain(SwapChain *swapChain)
   {
     std::lock_guard lock(_renderMutex);
+    _renderable[swapChain].clear();
     auto it = std::find(_swapChains.begin(), _swapChains.end(), swapChain);
     if (it != _swapChains.end())
     {
       _swapChains.erase(it);
     }
     _engine->destroy(swapChain);
-    Log("Swapchain destroyed.");
 #ifdef __EMSCRIPTEN__
     _engine->execute();
 #else
@@ -1016,53 +1022,49 @@ namespace thermion
     }
   }
 
-  bool FilamentViewer::render(
-      uint64_t frameTimeInNanos,
-      SwapChain *swapChain,
-      void *pixelBuffer,
-      void (*callback)(void *buf, size_t size, void *data),
-      void *data)
+  void FilamentViewer::setRenderable(View* view, SwapChain* swapChain, bool renderable) {
+
+      std::lock_guard lock(_renderMutex);
+
+      auto views = _renderable[swapChain];
+      
+      auto it = std::find(views.begin(), views.end(), view);
+      
+      if(renderable) { 
+          if(it == views.end()) {
+              views.push_back(view);
+          }
+      } else {
+          if(it != views.end()) {
+              views.erase(it);
+          }
+      } 
+      _renderable[swapChain] = views;
+  }
+
+
+  void FilamentViewer::render(
+      uint64_t frameTimeInNanos)
   {
-
-    if (!swapChain)
-    {
-      return false;
-    }
-
-    auto now = std::chrono::high_resolution_clock::now();
-    auto secsSinceLastFpsCheck = float(std::chrono::duration_cast<std::chrono::seconds>(now - _fpsCounterStartTime).count());
-
-    if (secsSinceLastFpsCheck >= 1)
-    {
-      auto fps = _frameCount / secsSinceLastFpsCheck;
-      _frameCount = 0;
-      _skippedFrames = 0;
-      _fpsCounterStartTime = now;
-    }
-
-    Timer tmr;
 
     _sceneManager->updateTransforms();
     _sceneManager->updateAnimations();
 
-    _cumulativeAnimationUpdateTime += tmr.elapsed();
-
-    // Render the scene, unless the renderer wants to skip the frame.
-    bool beginFrame = _renderer->beginFrame(swapChain, frameTimeInNanos);
-    if (!beginFrame)
-    {
-      _skippedFrames++;
-    } else  {
-      for(auto *view : _renderable) {
-        _renderer->render(view);
+    for(auto swapChain : _swapChains) {
+      auto views = _renderable[swapChain];
+      if(views.size() > 0) {
+        bool beginFrame = _renderer->beginFrame(swapChain, frameTimeInNanos);
+        if (beginFrame) {
+          for(auto view : views) {
+            _renderer->render(view);
+          } 
+        }
       }
-      _frameCount++;
       _renderer->endFrame();
     }
 #ifdef __EMSCRIPTEN__
     _engine->execute();
 #endif
-    return beginFrame;
   }
 
   class CaptureCallbackHandler : public filament::backend::CallbackHandler
