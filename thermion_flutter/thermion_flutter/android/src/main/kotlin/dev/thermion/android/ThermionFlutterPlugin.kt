@@ -25,7 +25,6 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import java.io.File
 import java.util.*
-import android.opengl.GLES20;
 
 
 class LoadFilamentResourceFromOwnerImpl(plugin:ThermionFlutterPlugin) : LoadFilamentResourceFromOwner {
@@ -206,7 +205,6 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
                 val textureId = (call.arguments as Int).toLong()
                 val textureEntry = textures[textureId]
                 if (textureEntry != null) {
-                    //textureEntry.surfaceTexture.updateTexImage()
                     result.success(null)
                 } else {
                     result.error("TEXTURE_NOT_FOUND", "Texture with id $textureId not found", null)

@@ -46,7 +46,6 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE TViewer *Viewer_create(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
     {
-        Log("CREATE");
         const auto *loaderImpl = new ResourceLoaderWrapperImpl((ResourceLoaderWrapper *)loader);
         auto viewer = new FilamentViewer(context, loaderImpl, platform, uberArchivePath);
         return reinterpret_cast<TViewer *>(viewer);

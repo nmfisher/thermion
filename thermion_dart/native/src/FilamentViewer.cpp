@@ -128,14 +128,7 @@ namespace thermion
       : _resourceLoaderWrapper(resourceLoader)
   {
     
-    _context = (void *)sharedContext;
-
-    if(!_context) {
-      Log("Creating, no shared context");
-    } else { 
-      Log("Creating with shared context");
-    }
-    
+    _context = (void *)sharedContext;  
     
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
