@@ -65,7 +65,6 @@ external void Viewer_destroySwapChain(
 @ffi.Native<
     ffi.Bool Function(
         ffi.Pointer<TViewer>,
-        ffi.Pointer<TView>,
         ffi.Pointer<TSwapChain>,
         ffi.Uint64,
         ffi.Pointer<ffi.Void>,
@@ -76,7 +75,6 @@ external void Viewer_destroySwapChain(
         ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external bool Viewer_render(
   ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<TView> view,
   ffi.Pointer<TSwapChain> swapChain,
   int frameTimeInNanos,
   ffi.Pointer<ffi.Void> pixelBuffer,
@@ -144,6 +142,15 @@ external void Viewer_setMainCamera(
 external ffi.Pointer<TSwapChain> Viewer_getSwapChainAt(
   ffi.Pointer<TViewer> tViewer,
   int index,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TViewer>, ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void Viewer_markViewRenderable(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TView> view,
+  bool renderable,
 );
 
 @ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
@@ -1451,6 +1458,15 @@ external void Viewer_captureRenderTargetRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<TSwapChain>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_requestFrameRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TSwapChain> tSwapChain,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_filament_viewer_render_thread(
   ffi.Pointer<TViewer> viewer,
@@ -1468,19 +1484,6 @@ external FilamentRenderCallback make_render_callback_fn_pointer(
 external void set_rendering_render_thread(
   ffi.Pointer<TViewer> viewer,
   bool rendering,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TViewer>,
-        ffi.Pointer<TView>,
-        ffi.Pointer<TSwapChain>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void Viewer_requestFrameRenderThread(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<TView> view,
-  ffi.Pointer<TSwapChain> tSwapChain,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
@@ -1888,13 +1891,24 @@ external void View_setBloom(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Int32)>(isLeaf: true)
-external void View_setToneMapping(
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>,
+        ffi.UnsignedInt)>(symbol: "View_setToneMapping", isLeaf: true)
+external void _View_setToneMapping(
   ffi.Pointer<TView> tView,
   ffi.Pointer<TEngine> tEngine,
   int toneMapping,
 );
+
+void View_setToneMapping(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  ToneMapping toneMapping,
+) =>
+    _View_setToneMapping(
+      tView,
+      tEngine,
+      toneMapping.value,
+    );
 
 @ffi.Native<
     ffi.Void Function(
@@ -2224,10 +2238,20 @@ final class TViewport extends ffi.Struct {
   external int height;
 }
 
-abstract class ToneMapping {
-  static const int ACES = 0;
-  static const int FILMIC = 1;
-  static const int LINEAR = 2;
+enum ToneMapping {
+  ACES(0),
+  FILMIC(1),
+  LINEAR(2);
+
+  final int value;
+  const ToneMapping(this.value);
+
+  static ToneMapping fromValue(int value) => switch (value) {
+        0 => ACES,
+        1 => FILMIC,
+        2 => LINEAR,
+        _ => throw ArgumentError("Unknown value for ToneMapping: $value"),
+      };
 }
 
 typedef GizmoPickCallback

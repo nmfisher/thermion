@@ -2040,10 +2040,8 @@ class ThermionViewerFFI extends ThermionViewer {
     });
 
     final swapChain = Viewer_getSwapChainAt(_viewer!, 0);
-    final view = Viewer_getViewAt(_viewer!, 0);
 
-    Viewer_requestFrameRenderThread(
-        _viewer!, view, swapChain, callback.nativeFunction);
+    Viewer_requestFrameRenderThread(_viewer!,      swapChain, callback.nativeFunction);
 
     await completer.future;
   }

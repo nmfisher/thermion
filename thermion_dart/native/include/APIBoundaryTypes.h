@@ -19,7 +19,7 @@ extern "C"
 	typedef struct TView TView;
 	typedef struct TGizmo TGizmo;
 	typedef struct TScene TScene;
-
+	
 	struct TMaterialKey {
 		bool doubleSided = 1;
 		bool unlit = 1;

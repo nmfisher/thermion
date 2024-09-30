@@ -166,6 +166,8 @@ namespace thermion
 
     createView();
 
+    setRenderable(_views[0], true);
+
     const float aperture = _mainCamera->getAperture();
     const float shutterSpeed = _mainCamera->getShutterSpeed();
     const float sens = _mainCamera->getSensitivity();
@@ -687,6 +689,7 @@ namespace thermion
 
   RenderTarget *FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32_t height)
   {
+    Log("Creating render target with size %d x %d", width, height);
     // Create filament textures and render targets (note the color buffer has the import call)
     auto rtColor = filament::Texture::Builder()
                        .width(width)
@@ -707,6 +710,7 @@ namespace thermion
                   .texture(RenderTarget::AttachmentPoint::COLOR, rtColor)
                   .texture(RenderTarget::AttachmentPoint::DEPTH, rtDepth)
                   .build(*_engine);
+    _renderTargets.push_back(rt);
     return rt;
   }
 
@@ -800,6 +804,9 @@ namespace thermion
     _sceneManager->destroyAll();
   }
 
+  /// @brief 
+  /// @param asset 
+  ///
   void FilamentViewer::removeEntity(EntityId asset)
   {
     _renderMutex.lock();
@@ -1015,14 +1022,13 @@ namespace thermion
 
   bool FilamentViewer::render(
       uint64_t frameTimeInNanos,
-      View *view,
       SwapChain *swapChain,
       void *pixelBuffer,
       void (*callback)(void *buf, size_t size, void *data),
       void *data)
   {
 
-    if (!view || !swapChain)
+    if (!swapChain)
     {
       return false;
     }
@@ -1050,15 +1056,11 @@ namespace thermion
     if (!beginFrame)
     {
       _skippedFrames++;
-    }
-
-    if (beginFrame)
-    {
-
-      _renderer->render(view);
-
+    } else  {
+      for(auto *view : _renderable) {
+        _renderer->render(view);
+      }
       _frameCount++;
-
       _renderer->endFrame();
     }
 #ifdef __EMSCRIPTEN__

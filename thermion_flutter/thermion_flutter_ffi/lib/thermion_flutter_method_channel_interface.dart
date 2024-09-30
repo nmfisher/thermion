@@ -18,6 +18,7 @@ abstract class ThermionFlutterMethodChannelInterface
   final _logger = Logger("ThermionFlutterMethodChannelInterface");
 
   ThermionViewerFFI? viewer;
+  SwapChain? _swapChain;
 
   Future<ThermionViewer> createViewer({ThermionFlutterOptions? options}) async {
     if (viewer != null) {
@@ -31,9 +32,13 @@ abstract class ThermionFlutterMethodChannelInterface
     if (resourceLoader == nullptr) {
       throw Exception("Failed to get resource loader");
     }
-    
+
+    // var renderCallbackResult = await _channel.invokeMethod("getRenderCallback");
     var renderCallback = nullptr;
+    //     Pointer<NativeFunction<Void Function(Pointer<Void>)>>.fromAddress(
+    //         renderCallbackResult[0]);
     var renderCallbackOwner = nullptr;
+    //     Pointer<Void>.fromAddress(renderCallbackResult[1]);
 
     var driverPlatform = await _channel.invokeMethod("getDriverPlatform");
     var driverPtr = driverPlatform == null
@@ -54,33 +59,33 @@ abstract class ThermionFlutterMethodChannelInterface
         sharedContext: sharedContextPtr,
         uberArchivePath: options?.uberarchivePath);
     await viewer!.initialized;
+
     return viewer!;
   }
 }
 
 abstract class MethodChannelFlutterTexture extends ThermionFlutterTexture {
-  final MethodChannel _channel;
+  final MethodChannel channel;
 
-  MethodChannelFlutterTexture(
-      this._channel, this.flutterId, this.hardwareId, this.width, this.height);
+  MethodChannelFlutterTexture(this.channel);
 
   Future destroy() async {
-    await _channel.invokeMethod("destroyTexture", hardwareId);
+    await channel.invokeMethod("destroyTexture", hardwareId);
   }
 
   @override
-  final int flutterId;
+  int get flutterId;
 
   @override
-  final int hardwareId;
+  int get hardwareId;
 
   @override
-  final int height;
+  int get height;
 
   @override
-  final int width;
+  int get width;
 
   Future markFrameAvailable() async {
-    await _channel.invokeMethod("markTextureFrameAvailable", this.flutterId);
+    await channel.invokeMethod("markTextureFrameAvailable", this.flutterId);
   }
 }

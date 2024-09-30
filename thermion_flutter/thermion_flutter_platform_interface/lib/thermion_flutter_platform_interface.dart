@@ -41,6 +41,6 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   ///
   ///
   ///
-  Future resizeWindow(
+Future resizeWindow(
       int width, int height, int offsetTop, int offsetRight);
 }

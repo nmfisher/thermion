@@ -39,4 +39,18 @@ class FFIView extends View {
     final engine = Viewer_getEngine(viewer);
     return FFICamera(View_getCamera(view), engine);
   }
+
+  @override
+  Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
+    View_setAntiAliasing(view, msaa, fxaa, taa);
+  }
+
+  @override
+  Future setPostProcessing(bool enabled) async {
+    View_setPostProcessing(view, enabled);
+  }
+
+  Future setRenderable(bool renderable) async {
+    Viewer_markViewRenderable(viewer, view, renderable);
+  }
 }

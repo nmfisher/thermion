@@ -50,7 +50,7 @@ public:
   ~RenderLoop()
   {
     _stop = true;
-    target = nullptr;
+    swapChain = nullptr;
     _cv.notify_one();
 #ifdef __EMSCRIPTEN__
     pthread_join(t, NULL);
@@ -82,21 +82,21 @@ public:
     }
   }
 
-  void requestFrame(TView* tView, TSwapChain* tSwapChain, void (*callback)())
+  void requestFrame(TSwapChain* tSwapChain, void (*callback)())
   {
-    this->target = tSwapChain;
-    this->view = tView;
+    std::unique_lock<std::mutex> lock(_mutex);
+    this->swapChain = tSwapChain;
     this->_requestFrameRenderCallback = callback;
   }
 
    void iter()
   {
     std::unique_lock<std::mutex> lock(_mutex);
-    if (target)
+    if (swapChain)
     {
-      doRender(view, target);
+      doRender(swapChain);
       this->_requestFrameRenderCallback();
-      target = nullptr;
+      swapChain = nullptr;
 
       // Calculate and print FPS
       auto currentTime = std::chrono::high_resolution_clock::now();
@@ -126,8 +126,6 @@ public:
     _cv.wait_for(lock, std::chrono::microseconds(1000), [this]
                  { return !_tasks.empty() || _stop; });
 
-    if (_stop)
-      return;
   }
 
   void createViewer(void *const context,
@@ -170,14 +168,14 @@ public:
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       {
-      target = nullptr;
+      swapChain = nullptr;
       _viewer = nullptr;
       destroy_filament_viewer(reinterpret_cast<TViewer*>(viewer)); });
     auto fut = add_task(lambda);
     fut.wait();
   }
 
-  bool doRender(TView* tView, TSwapChain *tSwapChain)
+  bool doRender(TSwapChain *tSwapChain)
   {
 #ifdef __EMSCRIPTEN__
     if (emscripten_is_webgl_context_lost(_context) == EM_TRUE)
@@ -188,7 +186,7 @@ public:
       return;
     }
 #endif
-    auto rendered = Viewer_render(_viewer, tView, tSwapChain, 0, nullptr, nullptr, nullptr);
+    bool rendered = Viewer_render(_viewer, tSwapChain, 0, nullptr, nullptr, nullptr);
     if (_renderCallback)
     {
       _renderCallback(_renderCallbackOwner);
@@ -218,8 +216,7 @@ public:
   }
 
 public:
-  TSwapChain *target;
-  TView *view;
+  TSwapChain *swapChain;
 
 private:
   void(*_requestFrameRenderCallback)()  = nullptr;
@@ -307,7 +304,7 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TView* view, TSwapChain* tSwapChain, void(*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, TSwapChain* tSwapChain, void(*onComplete)())
   {
     if (!_rl)
     {
@@ -315,7 +312,7 @@ extern "C"
     }
     else
     {
-      _rl->requestFrame(view, tSwapChain, onComplete);
+      _rl->requestFrame(tSwapChain, onComplete);
     }
   }
 
@@ -331,7 +328,9 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView *tView, TSwapChain *tSwapChain)
   {
     std::packaged_task<void()> lambda([=]() mutable
-                                      { _rl->doRender(tView, tSwapChain); });
+                                      { 
+                                        _rl->doRender(tSwapChain); 
+                                        });
     auto fut = _rl->add_task(lambda);
   }
 
