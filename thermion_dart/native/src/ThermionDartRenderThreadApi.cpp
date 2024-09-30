@@ -1,20 +1,3 @@
-#ifdef __EMSCRIPTEN__
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-#include <GL/glext.h>
-
-#include <emscripten/emscripten.h>
-#include <emscripten/bind.h>
-#include <emscripten/html5.h>
-#include <emscripten/threading.h>
-#include <emscripten/val.h>
-
-extern "C"
-{
-  extern EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE thermion_dart_web_create_gl_context();
-}
-#endif
-
 #include "ThermionDartRenderThreadApi.h"
 #include "FilamentViewer.hpp"
 #include "Log.hpp"
@@ -36,15 +19,8 @@ public:
   explicit RenderLoop()
   {
     srand(time(NULL));
-#ifdef __EMSCRIPTEN__
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    emscripten_pthread_attr_settransferredcanvases(&attr, "canvas");
-    pthread_create(&t, &attr, &RenderLoop::startHelper, this);
-#else
     t = new std::thread([this]()
                         { start(); });
-#endif
   }
 
   ~RenderLoop()
@@ -52,11 +28,7 @@ public:
     _stop = true;
     swapChain = nullptr;
     _cv.notify_one();
-#ifdef __EMSCRIPTEN__
-    pthread_join(t, NULL);
-#else
     t->join();
-#endif
   }
 
   static void mainLoop(void *arg)
@@ -66,11 +38,7 @@ public:
 
   static void *startHelper(void *parm)
   {
-#ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop_arg(&RenderLoop::mainLoop, parm, 0, true);
-#else
     ((RenderLoop *)parm)->start();
-#endif
     return nullptr;
   }
 
@@ -144,26 +112,9 @@ public:
     _renderCallbackOwner = owner;
     std::packaged_task<void()> lambda([=]() mutable
                                       {
-#ifdef __EMSCRIPTEN__
-                                        _context = thermion_dart_web_create_gl_context();
-
-                                        auto success = emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)_context);
-                                        if (success != EMSCRIPTEN_RESULT_SUCCESS)
-                                        {
-                                          std::cout << "Failed to make context current." << std::endl;
-                                          return;
-                                        }
-                                        glClearColor(0.0, 0.5, 0.5, 1.0);
-                                        glClear(GL_COLOR_BUFFER_BIT);
-                                        // emscripten_webgl_commit_frame();
-
-                                        _viewer = (FilamentViewer *)Viewer_create((void *const)_context, loader, platform, uberArchivePath);
-                                        MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, _viewer);
-#else
                                         auto viewer = (FilamentViewer *)Viewer_create(context, loader, platform, uberArchivePath);
                                         _viewer = reinterpret_cast<TViewer*>(viewer);
                                         callback(_viewer);
-#endif
                                       });
     auto fut = add_task(lambda);
   }
@@ -223,13 +174,7 @@ private:
   int _frameCount = 0;
   float _accumulatedTime = 0.0f;
   float _fps = 0.0f;
-
-#ifdef __EMSCRIPTEN__
-  pthread_t t;
-  EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _context;
-#else
   std::thread *t = nullptr;
-#endif
 };
 
 extern "C"
@@ -237,7 +182,7 @@ extern "C"
 
   static RenderLoop *_rl;
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_createOnRenderThread(
+  void Viewer_createOnRenderThread(
       void *const context, void *const platform, const char *uberArchivePath,
       const void *const loader,
       void (*renderCallback)(void *const renderCallbackOwner),
@@ -253,14 +198,14 @@ extern "C"
                       renderCallback, renderCallbackOwner, callback);
   }
 
-  EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer)
+  void destroy_filament_viewer_render_thread(TViewer *viewer)
   {
     _rl->destroyViewer((FilamentViewer *)viewer);
     delete _rl;
     _rl = nullptr;
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer,
+  void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer,
                                                             uint32_t width,
                                                             uint32_t height,
                                                             void (*onComplete)(TSwapChain*))
@@ -274,7 +219,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer,
+  void Viewer_createSwapChainRenderThread(TViewer *viewer,
                                                             void *const surface,
                                                             void (*onComplete)(TSwapChain*))
   {
@@ -287,23 +232,19 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain *swapChain, void (*onComplete)())
+  void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain *swapChain, void (*onComplete)())
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           Viewer_destroySwapChain(viewer, swapChain);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, onComplete);
-#else
           onComplete();
-#endif
         });
     auto fut = _rl->add_task(lambda);
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)())
+  void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)())
   {
     if (!_rl)
     {
@@ -315,7 +256,7 @@ extern "C"
     }
   }
 
-  EMSCRIPTEN_KEEPALIVE void
+  void
   set_frame_interval_render_thread(TViewer *viewer, float frameIntervalInMilliseconds)
   {
     _rl->setFrameIntervalInMilliseconds(frameIntervalInMilliseconds);
@@ -324,7 +265,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView *tView, TSwapChain *tSwapChain)
+  void Viewer_renderRenderThread(TViewer *viewer, TView *tView, TSwapChain *tSwapChain)
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { 
@@ -333,21 +274,21 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, uint8_t *pixelBuffer, void (*onComplete)())
+  void Viewer_captureRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, uint8_t *pixelBuffer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { Viewer_capture(viewer, view, tSwapChain, pixelBuffer, onComplete); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, TRenderTarget* tRenderTarget, uint8_t *pixelBuffer, void (*onComplete)())
+  void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, TRenderTarget* tRenderTarget, uint8_t *pixelBuffer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { Viewer_captureRenderTarget(viewer, view, tSwapChain, tRenderTarget, pixelBuffer, onComplete); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void
+  void
   set_background_color_render_thread(TViewer *viewer, const float r, const float g,
                                      const float b, const float a)
   {
@@ -357,7 +298,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(TSceneManager *sceneManager,
+  void load_gltf_render_thread(TSceneManager *sceneManager,
                                                     const char *path,
                                                     const char *relativeResourcePath,
                                                     bool keepData,
@@ -366,18 +307,12 @@ extern "C"
     std::packaged_task<EntityId()> lambda([=]() mutable
                                           {
     auto entity = load_gltf(sceneManager, path, relativeResourcePath, keepData);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({
-            moduleArg.dartFilamentResolveCallback($0, $1);
-          }, callback, entity);
-#else
-      callback(entity);
-#endif
+    callback(entity);
     return entity; });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(TSceneManager *sceneManager,
+  void load_glb_render_thread(TSceneManager *sceneManager,
                                                    const char *path,
                                                    int numInstances,
                                                    bool keepData,
@@ -387,17 +322,13 @@ extern "C"
         [=]() mutable
         {
           auto entity = load_glb(sceneManager, path, numInstances, keepData);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, entity);
-#else
           callback(entity);
-#endif
           return entity;
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_render_thread(TSceneManager *sceneManager,
+  void load_glb_from_buffer_render_thread(TSceneManager *sceneManager,
                                                                const uint8_t *const data,
                                                                size_t length,
                                                                int numInstances,
@@ -416,14 +347,14 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer)
+  void clear_background_image_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { clear_background_image(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void set_background_image_render_thread(TViewer *viewer,
+  void set_background_image_render_thread(TViewer *viewer,
                                                                const char *path,
                                                                bool fillHeight, void (*callback)())
   {
@@ -431,15 +362,11 @@ extern "C"
         [=]
         {
           set_background_image(viewer, path, fillHeight);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, callback);
-#else
           callback();
-#endif
         });
     auto fut = _rl->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void set_background_image_position_render_thread(TViewer *viewer,
+  void set_background_image_position_render_thread(TViewer *viewer,
                                                                         float x, float y,
                                                                         bool clamp)
   {
@@ -449,23 +376,19 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
   
-  EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer,
+  void load_skybox_render_thread(TViewer *viewer,
                                                       const char *skyboxPath,
                                                       void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
                                         load_skybox(viewer, skyboxPath);
-#ifdef __EMSCRIPTEN__
-                                        MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, onComplete);
-#else
                                         onComplete();
-#endif
                                       });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_ibl_render_thread(TViewer *viewer, const char *iblPath,
+  void load_ibl_render_thread(TViewer *viewer, const char *iblPath,
                                                    float intensity)
   {
     std::packaged_task<void()> lambda(
@@ -473,85 +396,67 @@ extern "C"
         { load_ibl(viewer, iblPath, intensity); });
     auto fut = _rl->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer)
+  void remove_skybox_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_skybox(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void remove_ibl_render_thread(TViewer *viewer)
+  void remove_ibl_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_ibl(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void remove_entity_render_thread(TViewer *viewer,
+  void remove_entity_render_thread(TViewer *viewer,
                                                         EntityId asset, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
                                         remove_entity(viewer, asset);
-#ifdef __EMSCRIPTEN__
-                                        MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, callback);
-#else
                                         callback();
-#endif
                                       });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void clear_entities_render_thread(TViewer *viewer, void (*callback)())
+  void clear_entities_render_thread(TViewer *viewer, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
                                         clear_entities(viewer);
-#ifdef __EMSCRIPTEN__
-                                        MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, callback);
-#else
                                         callback();
-#endif
                                       });
     auto fut = _rl->add_task(lambda);
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void
+  void
   get_morph_target_name_render_thread(TSceneManager *sceneManager, EntityId assetEntity,
                                       EntityId childEntity, char *const outPtr, int index, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
                                         get_morph_target_name(sceneManager, assetEntity, childEntity, outPtr, index);
-#ifdef __EMSCRIPTEN__
-                                        MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, callback);
-#else
                                         callback();
-#endif
                                       });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void
+  void
   get_morph_target_name_count_render_thread(TSceneManager *sceneManager, EntityId assetEntity,
                                             EntityId childEntity, void (*callback)(int))
   {
     std::packaged_task<int()> lambda([=]
                                      {
     auto count = get_morph_target_name_count(sceneManager, assetEntity, childEntity);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({
-            moduleArg.dartFilamentResolveCallback($0,$1);
-          }, callback, count);
-#else
     callback(count);
-#endif
     return count; });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void set_animation_frame_render_thread(TSceneManager *sceneManager,
+  void set_animation_frame_render_thread(TSceneManager *sceneManager,
                                                               EntityId asset,
                                                               int animationIndex,
                                                               int animationFrame)
@@ -561,7 +466,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void stop_animation_render_thread(TSceneManager *sceneManager,
+  void stop_animation_render_thread(TSceneManager *sceneManager,
                                                          EntityId asset, int index)
   {
     std::packaged_task<void()> lambda(
@@ -570,7 +475,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void get_animation_count_render_thread(TSceneManager *sceneManager,
+  void get_animation_count_render_thread(TSceneManager *sceneManager,
                                                               EntityId asset,
                                                               void (*callback)(int))
   {
@@ -578,17 +483,13 @@ extern "C"
         [=]
         {
           auto count = get_animation_count(sceneManager, asset);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, count);
-#else
           callback(count);
-#endif
           return count;
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void get_animation_name_render_thread(TSceneManager *sceneManager,
+  void get_animation_name_render_thread(TSceneManager *sceneManager,
                                                              EntityId asset,
                                                              char *const outPtr,
                                                              int index,
@@ -598,27 +499,19 @@ extern "C"
         [=]
         {
           get_animation_name(sceneManager, asset, outPtr, index);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, callback);
-#else
           callback();
-#endif
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void
+  void
   get_name_for_entity_render_thread(TSceneManager *sceneManager, const EntityId entityId, void (*callback)(const char *))
   {
     std::packaged_task<const char *()> lambda(
         [=]
         {
           auto name = get_name_for_entity(sceneManager, entityId);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, name);
-#else
           callback(name);
-#endif
           return name;
         });
     auto fut = _rl->add_task(lambda);
@@ -634,16 +527,12 @@ extern "C"
         [=]
         {
           auto result = set_morph_target_weights(sceneManager, asset, morphData, numWeights);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, result);
-#else
           callback(result);
-#endif
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void set_bone_transform_render_thread(
+  void set_bone_transform_render_thread(
       TSceneManager *sceneManager,
       EntityId asset,
       int skinIndex,
@@ -655,48 +544,36 @@ extern "C"
         [=]
         {
           auto success = set_bone_transform(sceneManager, asset, skinIndex, boneIndex, transform);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, success);
-#else
           callback(success);
-#endif
           return success;
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void update_bone_matrices_render_thread(TSceneManager *sceneManager,
+  void update_bone_matrices_render_thread(TSceneManager *sceneManager,
                                                                EntityId entity, void (*callback)(bool))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
           auto success = update_bone_matrices(sceneManager, entity);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, callback, success);
-#else
           callback(success);
-#endif
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)())
+  void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]
         {
           reset_to_rest_pose(sceneManager, entityId);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0); }, callback);
-#else
           callback();
-#endif
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void create_geometry_render_thread(
+  void create_geometry_render_thread(
       TSceneManager *sceneManager,
       float *vertices,
       int numVertices,
@@ -715,17 +592,13 @@ extern "C"
         [=]
         {
           auto entity = create_geometry(sceneManager, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, materialInstance, keepData);
-#ifdef __EMSCRIPTEN__
-          MAIN_THREAD_EM_ASM({ moduleArg.dartFilamentResolveCallback($0, $1); }, callback, entity);
-#else
           callback(entity);
-#endif
           return entity;
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
+  void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]

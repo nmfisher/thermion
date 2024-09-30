@@ -17,7 +17,7 @@ extern "C"
     typedef int32_t EntityId;
     typedef void (*FilamentRenderCallback)(void *const owner);
 
-    EMSCRIPTEN_KEEPALIVE void Viewer_createOnRenderThread(
+    void Viewer_createOnRenderThread(
         void *const context,
         void *const platform,
         const char *uberArchivePath,
@@ -25,66 +25,66 @@ extern "C"
         void (*renderCallback)(void *const renderCallbackOwner),
         void *const renderCallbackOwner,
         void (*callback)(TViewer *viewer));
-    EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer, void *const surface, void (*onComplete)(TSwapChain*));
-    EMSCRIPTEN_KEEPALIVE void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer, uint32_t width, uint32_t height, void (*onComplete)(TSwapChain*));
-    EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain* swapChain, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView* view, TSwapChain* swapChain);
-    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, uint8_t* out, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)());
+    void Viewer_createSwapChainRenderThread(TViewer *viewer, void *const surface, void (*onComplete)(TSwapChain*));
+    void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer, uint32_t width, uint32_t height, void (*onComplete)(TSwapChain*));
+    void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain* swapChain, void (*onComplete)());
+    void Viewer_renderRenderThread(TViewer *viewer, TView* view, TSwapChain* swapChain);
+    void Viewer_captureRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, uint8_t* out, void (*onComplete)());
+    void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
+    void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)());
 
-    EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer);
+    void destroy_filament_viewer_render_thread(TViewer *viewer);
     
-    EMSCRIPTEN_KEEPALIVE FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
-    EMSCRIPTEN_KEEPALIVE void set_rendering_render_thread(TViewer *viewer, bool rendering, void(*onComplete)());
+    FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
+    void set_rendering_render_thread(TViewer *viewer, bool rendering, void(*onComplete)());
     
-    EMSCRIPTEN_KEEPALIVE void set_frame_interval_render_thread(TViewer *viewer, float frameInterval);
-    EMSCRIPTEN_KEEPALIVE void set_background_color_render_thread(TViewer *viewer, const float r, const float g, const float b, const float a);
-    EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer);
-    EMSCRIPTEN_KEEPALIVE void set_background_image_render_thread(TViewer *viewer, const char *path, bool fillHeight, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void set_background_image_position_render_thread(TViewer *viewer, float x, float y, bool clamp);
-    EMSCRIPTEN_KEEPALIVE void set_tone_mapping_render_thread(TViewer *viewer, int toneMapping);
-    EMSCRIPTEN_KEEPALIVE void set_bloom_render_thread(TViewer *viewer, float strength);
-    EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer, const char *skyboxPath, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer);
+    void set_frame_interval_render_thread(TViewer *viewer, float frameInterval);
+    void set_background_color_render_thread(TViewer *viewer, const float r, const float g, const float b, const float a);
+    void clear_background_image_render_thread(TViewer *viewer);
+    void set_background_image_render_thread(TViewer *viewer, const char *path, bool fillHeight, void (*onComplete)());
+    void set_background_image_position_render_thread(TViewer *viewer, float x, float y, bool clamp);
+    void set_tone_mapping_render_thread(TViewer *viewer, int toneMapping);
+    void set_bloom_render_thread(TViewer *viewer, float strength);
+    void load_skybox_render_thread(TViewer *viewer, const char *skyboxPath, void (*onComplete)());
+    void remove_skybox_render_thread(TViewer *viewer);
 
-    EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_render_thread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void create_instance_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void remove_entity_render_thread(TViewer *viewer, EntityId asset, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void clear_entities_render_thread(TViewer *viewer, void (*callback)());
+    void load_glb_render_thread(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
+    void load_glb_from_buffer_render_thread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, void (*callback)(EntityId));
+    void load_gltf_render_thread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));
+    void create_instance_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)(EntityId));
+    void remove_entity_render_thread(TViewer *viewer, EntityId asset, void (*callback)());
+    void clear_entities_render_thread(TViewer *viewer, void (*callback)());
     
-    EMSCRIPTEN_KEEPALIVE void apply_weights_render_thread(
+    void apply_weights_render_thread(
         TSceneManager *sceneManager,
         EntityId asset,
         const char *const entityName,
         float *const weights,
         int count);
-    EMSCRIPTEN_KEEPALIVE void set_animation_frame_render_thread(TSceneManager *sceneManager, EntityId asset, int animationIndex, int animationFrame);
-    EMSCRIPTEN_KEEPALIVE void stop_animation_render_thread(TSceneManager *sceneManager, EntityId asset, int index);
-    EMSCRIPTEN_KEEPALIVE void get_animation_count_render_thread(TSceneManager *sceneManager, EntityId asset, void (*callback)(int));
-    EMSCRIPTEN_KEEPALIVE void get_animation_name_render_thread(TSceneManager *sceneManager, EntityId asset, char *const outPtr, int index, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_render_thread(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void get_morph_target_name_count_render_thread(TSceneManager *sceneManager, EntityId asset, EntityId childEntity, void (*callback)(int32_t));
-    EMSCRIPTEN_KEEPALIVE void set_morph_target_weights_render_thread(TSceneManager *sceneManager,
+    void set_animation_frame_render_thread(TSceneManager *sceneManager, EntityId asset, int animationIndex, int animationFrame);
+    void stop_animation_render_thread(TSceneManager *sceneManager, EntityId asset, int index);
+    void get_animation_count_render_thread(TSceneManager *sceneManager, EntityId asset, void (*callback)(int));
+    void get_animation_name_render_thread(TSceneManager *sceneManager, EntityId asset, char *const outPtr, int index, void (*callback)());
+    void get_morph_target_name_render_thread(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index, void (*callback)());
+    void get_morph_target_name_count_render_thread(TSceneManager *sceneManager, EntityId asset, EntityId childEntity, void (*callback)(int32_t));
+    void set_morph_target_weights_render_thread(TSceneManager *sceneManager,
                                                             EntityId asset,
                                                             const float *const morphData,
                                                             int numWeights,
                                                             void (*callback)(bool));
 
-    EMSCRIPTEN_KEEPALIVE void update_bone_matrices_render_thread(TSceneManager *sceneManager,
+    void update_bone_matrices_render_thread(TSceneManager *sceneManager,
         EntityId asset, void(*callback)(bool));
-    EMSCRIPTEN_KEEPALIVE void set_bone_transform_render_thread(
+    void set_bone_transform_render_thread(
         TSceneManager *sceneManager,
         EntityId asset,
         int skinIndex, 
         int boneIndex,
         const float *const transform,
         void (*callback)(bool));
-    EMSCRIPTEN_KEEPALIVE void set_post_processing_render_thread(TViewer *viewer, bool enabled);
-    EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void(*callback)());
-    EMSCRIPTEN_KEEPALIVE void create_geometry_render_thread(
+    void set_post_processing_render_thread(TViewer *viewer, bool enabled);
+    void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void(*callback)());
+    void create_geometry_render_thread(
         TSceneManager *sceneManager, 
         float *vertices, 
         int numVertices, 
@@ -98,7 +98,7 @@ extern "C"
         TMaterialInstance *materialInstance, 
         bool keepData, 
         void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)());
+    void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)());
 
 
 #ifdef __cplusplus
