@@ -34,6 +34,7 @@ class ThermionWidget extends StatefulWidget {
       {Key? key, this.initial, required this.viewer, this.view, this.options})
       : super(key: key);
 
+  @override
   State<ThermionWidget> createState() => _ThermionWidgetState();
 }
 

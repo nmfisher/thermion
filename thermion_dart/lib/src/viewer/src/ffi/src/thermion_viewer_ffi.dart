@@ -2041,9 +2041,10 @@ class ThermionViewerFFI extends ThermionViewer {
 
     final swapChain = Viewer_getSwapChainAt(_viewer!, 0);
 
-    Viewer_requestFrameRenderThread(_viewer!,      swapChain, callback.nativeFunction);
+    Viewer_requestFrameRenderThread(
+        _viewer!, swapChain, callback.nativeFunction);
 
-    await completer.future;
+    await completer.future.timeout(Duration(seconds: 1));
   }
 
   Future<Camera> createCamera() async {
