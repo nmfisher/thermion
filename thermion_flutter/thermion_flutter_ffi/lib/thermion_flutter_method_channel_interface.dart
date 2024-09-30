@@ -14,11 +14,11 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dar
 ///
 abstract class ThermionFlutterMethodChannelInterface
     extends ThermionFlutterPlatform {
-  final _channel = const MethodChannel("dev.thermion.flutter/event");
+  
+  final channel = const MethodChannel("dev.thermion.flutter/event");
   final _logger = Logger("ThermionFlutterMethodChannelInterface");
 
   ThermionViewerFFI? viewer;
-  SwapChain? _swapChain;
 
   Future<ThermionViewer> createViewer({ThermionFlutterOptions? options}) async {
     if (viewer != null) {
@@ -27,25 +27,18 @@ abstract class ThermionFlutterMethodChannelInterface
     }
 
     var resourceLoader = Pointer<Void>.fromAddress(
-        await _channel.invokeMethod("getResourceLoaderWrapper"));
+        await channel.invokeMethod("getResourceLoaderWrapper"));
 
     if (resourceLoader == nullptr) {
       throw Exception("Failed to get resource loader");
     }
 
-    // var renderCallbackResult = await _channel.invokeMethod("getRenderCallback");
-    var renderCallback = nullptr;
-    //     Pointer<NativeFunction<Void Function(Pointer<Void>)>>.fromAddress(
-    //         renderCallbackResult[0]);
-    var renderCallbackOwner = nullptr;
-    //     Pointer<Void>.fromAddress(renderCallbackResult[1]);
-
-    var driverPlatform = await _channel.invokeMethod("getDriverPlatform");
+    var driverPlatform = await channel.invokeMethod("getDriverPlatform");
     var driverPtr = driverPlatform == null
         ? nullptr
         : Pointer<Void>.fromAddress(driverPlatform);
 
-    var sharedContext = await _channel.invokeMethod("getSharedContext");
+    var sharedContext = await channel.invokeMethod("getSharedContext");
 
     var sharedContextPtr = sharedContext == null
         ? nullptr
@@ -53,8 +46,6 @@ abstract class ThermionFlutterMethodChannelInterface
 
     viewer = ThermionViewerFFI(
         resourceLoader: resourceLoader,
-        renderCallback: renderCallback,
-        renderCallbackOwner: renderCallbackOwner,
         driver: driverPtr,
         sharedContext: sharedContextPtr,
         uberArchivePath: options?.uberarchivePath);
@@ -69,9 +60,7 @@ abstract class MethodChannelFlutterTexture extends ThermionFlutterTexture {
 
   MethodChannelFlutterTexture(this.channel);
 
-  Future destroy() async {
-    await channel.invokeMethod("destroyTexture", hardwareId);
-  }
+  
 
   @override
   int get flutterId;
@@ -85,7 +74,5 @@ abstract class MethodChannelFlutterTexture extends ThermionFlutterTexture {
   @override
   int get width;
 
-  Future markFrameAvailable() async {
-    await channel.invokeMethod("markTextureFrameAvailable", this.flutterId);
-  }
+
 }

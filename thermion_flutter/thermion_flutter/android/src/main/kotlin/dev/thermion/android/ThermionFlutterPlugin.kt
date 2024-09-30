@@ -25,6 +25,8 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import java.io.File
 import java.util.*
+import android.opengl.GLES20;
+
 
 class LoadFilamentResourceFromOwnerImpl(plugin:ThermionFlutterPlugin) : LoadFilamentResourceFromOwner {
   var plugin = plugin
@@ -66,10 +68,18 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
   private var lifecycle: Lifecycle? = null
 
   private lateinit var _lib : FilamentInterop
+
+  private data class TextureEntry(
+      val surfaceTextureEntry: SurfaceTextureEntry,
+      val surfaceTexture: SurfaceTexture,
+      val surface: Surface
+  )
   
   var _surfaceTexture: SurfaceTexture? = null
   private var _surfaceTextureEntry: SurfaceTextureEntry? = null
   var _surface: Surface? = null
+  private val textures: MutableMap<Long, TextureEntry> = mutableMapOf()
+
       
   private lateinit var activity:Activity
 
@@ -153,35 +163,55 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
   @RequiresApi(Build.VERSION_CODES.M)
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-    Log.e("thermion_flutter", call.method, null)
     when (call.method) {
         "createTexture" -> {
-          if(_surfaceTextureEntry != null) {
-            result.error("TEXTURE_EXISTS", "Texture already exist. Make sure you call destroyTexture first", null)
-            return
-          }
-          val args = call.arguments as List<*>
-          val width = args[0] as Int
-          val height = args[1] as Int
-          if(width <1 || height < 1) {
-              result.error("DIMENSION_MISMATCH","Both dimensions must be greater than zero (you provided $width x $height)", null);
-              return;
-          }
-          Log.i("thermion_flutter", "Creating SurfaceTexture ${width}x${height}");
-          
-          _surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
-          _surfaceTexture = _surfaceTextureEntry!!.surfaceTexture();
-          _surfaceTexture!!.setDefaultBufferSize(width, height)
+                val args = call.arguments as List<*>
+                val width = args[0] as Int
+                val height = args[1] as Int
+                if (width < 1 || height < 1) {
+                    result.error("DIMENSION_MISMATCH", "Both dimensions must be greater than zero (you provided $width x $height)", null)
+                    return
+                }
+                Log.i("thermion_flutter", "Creating SurfaceTexture ${width}x${height}")
+                
+                val surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
+                val surfaceTexture = surfaceTextureEntry.surfaceTexture()
+                surfaceTexture.setDefaultBufferSize(width, height)
 
-          _surface = Surface(_surfaceTexture)
+                val surface = Surface(surfaceTexture)
 
-          if(!_surface!!.isValid) {
-            result.error("SURFACE_INVALID", "Failed to create valid surface", null)
-          } else {
-            val nativeWindow = _lib.get_native_window_from_surface(_surface!! as Object, JNIEnv.CURRENT)
-            result.success(listOf(_surfaceTextureEntry!!.id(), null, Pointer.nativeValue(nativeWindow)))
-          }
-        }
+                if (!surface.isValid) {
+                    result.error("SURFACE_INVALID", "Failed to create valid surface", null)
+                } else {
+                    val flutterTextureId = surfaceTextureEntry.id()   
+                    textures[flutterTextureId] = TextureEntry(surfaceTextureEntry, surfaceTexture, surface)
+                    val nativeWindow = _lib.get_native_window_from_surface(surface as Object, JNIEnv.CURRENT)
+                    result.success(listOf(flutterTextureId, flutterTextureId, Pointer.nativeValue(nativeWindow)))
+                }
+            }
+            "destroyTexture" -> {
+                val args = call.arguments as List<*>
+                val textureId = (args[0] as Int).toLong()
+                val textureEntry = textures[textureId]
+                if (textureEntry != null) {
+                    textureEntry.surface.release()
+                    textureEntry.surfaceTextureEntry.release()
+                    textures.remove(textureId)
+                    result.success(true)
+                } else {
+                    result.error("TEXTURE_NOT_FOUND", "Texture with id $textureId not found", null)
+                }
+            }
+            "markTextureFrameAvailable" -> {
+                val textureId = (call.arguments as Int).toLong()
+                val textureEntry = textures[textureId]
+                if (textureEntry != null) {
+                    //textureEntry.surfaceTexture.updateTexImage()
+                    result.success(null)
+                } else {
+                    result.error("TEXTURE_NOT_FOUND", "Texture with id $textureId not found", null)
+                }
+            }
         "getResourceLoaderWrapper" -> { 
           val resourceLoader = _lib.make_resource_loader_wrapper_android(loadResourceWrapper, freeResourceWrapper, Pointer(0))
           result.success(Pointer.nativeValue(resourceLoader))
@@ -196,13 +226,6 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
           val renderCallbackFnPointer = _lib.make_render_callback_fn_pointer(RenderCallbackImpl(this))
           result.success(listOf(Pointer.nativeValue(renderCallbackFnPointer), 0))
         }
-        "destroyTexture" -> {
-          _surface!!.release();
-          _surfaceTextureEntry!!.release();
-          _surface = null
-          _surfaceTextureEntry = null 
-          result.success(true)
-        }
         else -> {
           result.notImplemented()
         }
@@ -210,7 +233,13 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 }
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-    channel.setMethodCallHandler(null)
+      channel.setMethodCallHandler(null)
+        // Release all textures
+        for ((_, textureEntry) in textures) {
+            textureEntry.surface.release()
+            textureEntry.surfaceTextureEntry.release()
+        }
+        textures.clear()
   }
 
   

@@ -1007,12 +1007,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future<SwapChain> createSwapChain(int width, int height) {
-    // TODO: implement createSwapChain
-    throw UnimplementedError();
-  }
-  
-  @override
   Future<RenderTarget> createRenderTarget(int width, int height, int textureHandle) {
     // TODO: implement createRenderTarget
     throw UnimplementedError();
@@ -1036,21 +1030,34 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
 
-  @override
-  Future render(covariant SwapChain swapChain) {
-    // TODO: implement render
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<Uint8List> capture(covariant SwapChain swapChain, {covariant View? view, covariant RenderTarget? renderTarget}) {
-    // TODO: implement capture
-    throw UnimplementedError();
-  }
 
   @override
   Future<Gizmo> createGizmo(covariant View view) {
     // TODO: implement createGizmo
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<SwapChain> createHeadlessSwapChain(int width, int height) {
+    // TODO: implement createHeadlessSwapChain
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Uint8List> capture({covariant SwapChain? swapChain, covariant View? view, covariant RenderTarget? renderTarget}) {
+    // TODO: implement capture
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<SwapChain> createSwapChain(handle) {
+    // TODO: implement createSwapChain
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future render({covariant SwapChain? swapChain}) {
+    // TODO: implement render
     throw UnimplementedError();
   }
 

@@ -32,8 +32,9 @@ class ThermionFlutterWindows
   ///
   /// Not supported on Windows. Throws an exception.
   ///
-  Future<ThermionFlutterTexture?> createTexture(int width, int height) async {
-    throw Exception("Texture not supported on Windows");
+  @override
+  Future<ThermionFlutterTexture?> createTexture(View view, int width, int height) {
+    throw UnimplementedError();
   }
 
   bool _resizing = false;
@@ -94,4 +95,6 @@ class ThermionFlutterWindows
     // _resizing = false;
     // return newTexture;
   }
+  
+  
 }

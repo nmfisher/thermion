@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:thermion_dart/thermion_dart.dart' as t;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'thermion_flutter_texture.dart';
@@ -36,11 +37,11 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   /// This is internal; unless you are [thermion_*] package developer, don't
   /// call this yourself. May not be supported on all platforms.
   ///
-  Future<ThermionFlutterTexture?> createTexture(int width, int height);
+  Future<ThermionFlutterTexture?> createTexture(
+      t.View view, int width, int height);
 
   ///
   ///
   ///
-Future resizeWindow(
-      int width, int height, int offsetTop, int offsetRight);
+  Future resizeWindow(int width, int height, int offsetTop, int offsetRight);
 }

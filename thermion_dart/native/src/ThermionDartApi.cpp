@@ -44,8 +44,9 @@ extern "C"
             filament::math::float4{float(d_mat.col4[0]), float(d_mat.col4[1]), float(d_mat.col4[2]), float(d_mat.col4[3])}};
     }
 
-    EMSCRIPTEN_KEEPALIVE TViewer *create_filament_viewer(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
+    EMSCRIPTEN_KEEPALIVE TViewer *Viewer_create(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
     {
+        Log("CREATE");
         const auto *loaderImpl = new ResourceLoaderWrapperImpl((ResourceLoaderWrapper *)loader);
         auto viewer = new FilamentViewer(context, loaderImpl, platform, uberArchivePath);
         return reinterpret_cast<TViewer *>(viewer);
@@ -339,29 +340,18 @@ extern "C"
         cam->setModelMatrix(mat);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool Viewer_render(
-        TViewer *tViewer,
-        TSwapChain *tSwapChain,
-        uint64_t frameTimeInNanos,
-        void *pixelBuffer,
-        void (*callback)(void *buf, size_t size, void *data),
-        void *data)
+    EMSCRIPTEN_KEEPALIVE void Viewer_render(
+        TViewer *tViewer)
     {
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
-        auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
-
-        if(!swapChain) {
-            swapChain = viewer->getSwapChainAt(0);
-        }
-        
-        return viewer->render(frameTimeInNanos, swapChain, pixelBuffer, callback, data);
+        viewer->render(0);
     }
 
-    EMSCRIPTEN_KEEPALIVE void Viewer_markViewRenderable(TViewer *tViewer, TView* tView, bool renderable) {
+    EMSCRIPTEN_KEEPALIVE void Viewer_setViewRenderable(TViewer *tViewer, TSwapChain *tSwapChain, TView *tView, bool renderable) {
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
-        
+        auto swapChain = reinterpret_cast<SwapChain*>(tSwapChain);
         auto *view = reinterpret_cast<View*>(tView);
-        viewer->setRenderable(view, renderable);
+        viewer->setRenderable(view, swapChain, renderable);
     }
 
     EMSCRIPTEN_KEEPALIVE void Viewer_capture(
@@ -416,10 +406,17 @@ extern "C"
         viewer->destroySwapChain(swapChain);
     }
 
-    EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *tViewer, const void *const window, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createHeadlessSwapChain(TViewer *tViewer, uint32_t width, uint32_t height)
     {
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
-        auto swapChain = viewer->createSwapChain(window, width, height);
+        auto swapChain = viewer->createSwapChain(width, height);
+        return reinterpret_cast<TSwapChain *>(swapChain);
+    }
+
+    EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *tViewer, const void *const window)
+    {
+        auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        auto swapChain = viewer->createSwapChain(window);
         return reinterpret_cast<TSwapChain *>(swapChain);
     }
 
@@ -721,7 +718,8 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *tSceneManager, EntityId *entities, const double *const transforms, int numEntities)
     {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        math::mat4 matrices[numEntities];
+        math::mat4 matrices[
+            numEntities];
         for (int i = 0; i < numEntities; i++)
         {
             matrices[i] = math::mat4(
