@@ -11,6 +11,45 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 Packages with breaking changes:
 
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.0`](#thermion_dart---v020)
+ - [`thermion_flutter` - `v0.2.0`](#thermion_flutter---v020)
+ - [`thermion_flutter_ffi` - `v0.2.0`](#thermion_flutter_ffi---v020)
+ - [`thermion_flutter_platform_interface` - `v0.2.0`](#thermion_flutter_platform_interface---v020)
+ - [`thermion_flutter_web` - `v0.1.0`](#thermion_flutter_web---v010)
+
+Packages graduated to a stable release (see pre-releases prior to the stable version for changelog entries):
+
+ - `thermion_dart` - `v0.2.0`
+ - `thermion_flutter` - `v0.2.0`
+ - `thermion_flutter_ffi` - `v0.2.0`
+ - `thermion_flutter_platform_interface` - `v0.2.0`
+ - `thermion_flutter_web` - `v0.1.0`
+
+---
+
+#### `thermion_dart` - `v0.2.0`
+
+#### `thermion_flutter` - `v0.2.0`
+
+#### `thermion_flutter_ffi` - `v0.2.0`
+
+#### `thermion_flutter_platform_interface` - `v0.2.0`
+
+#### `thermion_flutter_web` - `v0.1.0`
+
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
  - [`thermion_dart` - `v0.2.0-dev.8.0.0`](#thermion_dart---v020-dev800)
  - [`thermion_flutter_ffi` - `v0.2.0-dev.8.0.0`](#thermion_flutter_ffi---v020-dev800)
 
