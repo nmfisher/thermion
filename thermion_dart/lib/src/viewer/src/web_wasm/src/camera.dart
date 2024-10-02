@@ -69,4 +69,10 @@ class ThermionWasmCamera extends Camera {
     // TODO: implement getViewMatrix
     throw UnimplementedError();
   }
+  
+  @override
+  Future setProjection(Projection projection, double left, double right, double bottom, double top, double near, double far) {
+    // TODO: implement setProjection
+    throw UnimplementedError();
+  }
 }
