@@ -4,7 +4,6 @@ import '../../../viewer/src/shared_types/camera.dart';
 import '../../../viewer/viewer.dart';
 import '../../input.dart';
 import '../input_handler.dart';
-import 'dart:math';
 
 class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
   final ThermionViewer viewer;
@@ -46,7 +45,7 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
         _queuedRotationDelta += Vector2(delta.x, delta.y);
         break;
       case InputAction.TRANSLATE:
-        _queuedZoomDelta += delta!.z;
+        _queuedZoomDelta += delta.z;
         break;
       case InputAction.PICK:
         // Assuming PICK is used for zoom in this context

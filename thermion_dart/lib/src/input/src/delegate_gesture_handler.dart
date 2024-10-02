@@ -134,6 +134,7 @@ class DelegateInputHandler implements InputHandler {
           break;
       }
 
+      // ignore: unnecessary_null_comparison
       if (keyType != null) {
         keyAction = _actions[keyType];
 
