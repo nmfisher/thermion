@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#import "../../../native/include/generated/ThermionTextureSwiftObjCAPI.h"
+#import "../../native/include/generated/ThermionTextureSwiftObjCAPI.h"
 
 typedef void  (^ListenerBlock)(NSDictionary* , struct _NSRange , BOOL * );
 ListenerBlock wrapListenerBlock_ObjCBlock_ffiVoid_NSDictionary_NSRange_bool(ListenerBlock block) {

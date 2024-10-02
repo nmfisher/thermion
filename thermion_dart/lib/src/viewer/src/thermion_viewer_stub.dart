@@ -993,13 +993,7 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement getCameraCount
     throw UnimplementedError();
   }
-  
-  @override
-  Future getActiveCamera() {
-    // TODO: implement getActiveCamera
-    throw UnimplementedError();
-  }
-  
+
   @override
   Future queueTransformUpdates(List<ThermionEntity> entities, List<Matrix4> transforms) {
     // TODO: implement queueTransformUpdates
@@ -1058,6 +1052,12 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future render({covariant SwapChain? swapChain}) {
     // TODO: implement render
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Camera> getActiveCamera() {
+    // TODO: implement getActiveCamera
     throw UnimplementedError();
   }
 
