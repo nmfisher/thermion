@@ -9,6 +9,10 @@ import 'implementations/free_flight_camera_delegate.dart';
 class DelegateInputHandler implements InputHandler {
   final ThermionViewer viewer;
 
+  Stream<List<InputType>> get gestures => _gesturesController.stream;
+
+  final _gesturesController = StreamController<List<InputType>>.broadcast();
+
   final _logger = Logger("DelegateInputHandler");
 
   InputHandlerDelegate? transformDelegate;
@@ -54,7 +58,7 @@ class DelegateInputHandler implements InputHandler {
 
   factory DelegateInputHandler.fixedOrbit(ThermionViewer viewer,
           {double minimumDistance = 10.0,
-          double? Function(Vector3)? getDistanceToTarget,
+          Future<double?> Function(Vector3)? getDistanceToTarget,
           ThermionEntity? entity,
           PickDelegate? pickDelegate}) =>
       DelegateInputHandler(
@@ -105,39 +109,51 @@ class DelegateInputHandler implements InputHandler {
 
       await transformDelegate?.queue(action, vector);
     }
-
+    final keyTypes = <InputType>[];
     for (final key in _pressedKeys) {
       InputAction? keyAction;
+      InputType? keyType = null;
       Vector3? vector;
 
       switch (key) {
         case PhysicalKey.W:
-          keyAction = _actions[InputType.KEYDOWN_W];
+          keyType = InputType.KEYDOWN_W;
           vector = Vector3(0, 0, -1);
           break;
         case PhysicalKey.A:
-          keyAction = _actions[InputType.KEYDOWN_A];
+          keyType = InputType.KEYDOWN_A;
           vector = Vector3(-1, 0, 0);
           break;
         case PhysicalKey.S:
-          keyAction = _actions[InputType.KEYDOWN_S];
+          keyType = InputType.KEYDOWN_S;
           vector = Vector3(0, 0, 1);
           break;
         case PhysicalKey.D:
-          keyAction = _actions[InputType.KEYDOWN_D];
+          keyType = InputType.KEYDOWN_D;
           vector = Vector3(1, 0, 0);
           break;
       }
-      if (keyAction != null) {
-        var transform = _axes[keyAction];
-        if (transform != null) {
-          vector = transform * vector;
+
+      if (keyType != null) {
+        keyAction = _actions[keyType];
+
+        if (keyAction != null) {
+          var transform = _axes[keyAction];
+          if (transform != null) {
+            vector = transform * vector;
+          }
+          transformDelegate?.queue(keyAction, vector!);
+          keyTypes.add(keyType);
         }
-        transformDelegate?.queue(keyAction, vector!);
       }
     }
 
     await transformDelegate?.execute();
+    var updates = _inputDeltas.keys.followedBy(keyTypes).toList();
+    if(updates.isNotEmpty) {
+      _gesturesController.add(updates);
+    }
+    
     _inputDeltas.clear();
     _processing = false;
   }

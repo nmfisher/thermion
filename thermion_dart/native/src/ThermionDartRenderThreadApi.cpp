@@ -1,5 +1,6 @@
 #include "ThermionDartRenderThreadApi.h"
 #include "FilamentViewer.hpp"
+#include "TView.h"
 #include "Log.hpp"
 #include "ThreadPool.hpp"
 #include "filament/LightManager.h"
@@ -328,7 +329,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void load_glb_from_buffer_render_thread(TSceneManager *sceneManager,
+  void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager,
                                                                const uint8_t *const data,
                                                                size_t length,
                                                                int numInstances,
@@ -340,7 +341,7 @@ extern "C"
     std::packaged_task<EntityId()> lambda(
         [=]() mutable
         {
-          auto entity = load_glb_from_buffer(sceneManager, data, length, keepData, priority, layer);
+          auto entity = SceneManager_loadGlbFromBuffer(sceneManager, data, length, keepData, priority, layer);
           callback(entity);
           return entity;
         });
@@ -558,6 +559,24 @@ extern "C"
         {
           auto success = update_bone_matrices(sceneManager, entity);
           callback(success);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping) { 
+      std::packaged_task<void()> lambda(
+        [=]
+        {
+          View_setToneMapping(tView, tEngine, toneMapping);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+  
+  void View_setBloomRenderThread(TView *tView, double bloom) { 
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          View_setBloom(tView, bloom);
         });
     auto fut = _rl->add_task(lambda);
   }

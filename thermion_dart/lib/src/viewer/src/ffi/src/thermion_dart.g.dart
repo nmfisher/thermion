@@ -16,6 +16,16 @@ external ffi.Pointer<ffi.Void> make_resource_loader(
   ffi.Pointer<ffi.Void> owner,
 );
 
+@ffi.Native<
+    ffi.Pointer<TViewer> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+external ffi.Pointer<TViewer> Viewer_create(
+  ffi.Pointer<ffi.Void> context,
+  ffi.Pointer<ffi.Void> loader,
+  ffi.Pointer<ffi.Void> platform,
+  ffi.Pointer<ffi.Char> uberArchivePath,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_filament_viewer(
   ffi.Pointer<TViewer> viewer,
@@ -197,12 +207,6 @@ external void set_background_color(
   double a,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
-external void set_bloom(
-  ffi.Pointer<TViewer> viewer,
-  double strength,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
 external void load_skybox(
@@ -330,18 +334,6 @@ external int load_glb(
 );
 
 @ffi.Native<
-    EntityId Function(ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Void>,
-        ffi.Size, ffi.Bool, ffi.Int, ffi.Int)>(isLeaf: true)
-external int load_glb_from_buffer(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Void> data,
-  int length,
-  bool keepData,
-  int priority,
-  int layer,
-);
-
-@ffi.Native<
     EntityId Function(ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Char>,
         ffi.Pointer<ffi.Char>, ffi.Bool)>(isLeaf: true)
 external int load_gltf(
@@ -377,12 +369,6 @@ external void get_instances(
 @ffi.Native<EntityId Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external int get_main_camera(
   ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool)>(isLeaf: true)
-external void set_view_frustum_culling(
-  ffi.Pointer<TViewer> viewer,
-  bool enabled,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
@@ -671,6 +657,18 @@ external ffi.Pointer<TScene> SceneManager_getScene(
   ffi.Pointer<TSceneManager> tSceneManager,
 );
 
+@ffi.Native<
+    EntityId Function(ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Uint8>,
+        ffi.Size, ffi.Bool, ffi.Int, ffi.Int)>(isLeaf: true)
+external int SceneManager_loadGlbFromBuffer(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<ffi.Uint8> arg1,
+  int length,
+  bool keepData,
+  int priority,
+  int layer,
+);
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId)>(
     isLeaf: true)
 external bool update_bone_matrices(
@@ -790,161 +788,6 @@ external void set_scale(
   ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   double scale,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TCamera>, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
-external void set_camera_exposure(
-  ffi.Pointer<TCamera> camera,
-  double aperture,
-  double shutterSpeed,
-  double sensitivity,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4)>(isLeaf: true)
-external void set_camera_model_matrix(
-  ffi.Pointer<TCamera> camera,
-  double4x4 matrix,
-);
-
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TViewer>, EntityId)>(
-    isLeaf: true)
-external ffi.Pointer<TCamera> get_camera(
-  ffi.Pointer<TViewer> viewer,
-  int entity,
-);
-
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double4x4 get_camera_model_matrix(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double4x4 get_camera_view_matrix(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double4x4 get_camera_projection_matrix(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double4x4 get_camera_culling_projection_matrix(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<TCamera>)>(
-    isLeaf: true)
-external ffi.Pointer<ffi.Double> get_camera_frustum(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TCamera>, double4x4, ffi.Double, ffi.Double)>(isLeaf: true)
-external void set_camera_projection_matrix(
-  ffi.Pointer<TCamera> camera,
-  double4x4 matrix,
-  double near,
-  double far,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double,
-        ffi.Double, ffi.Bool)>(isLeaf: true)
-external void set_camera_projection_from_fov(
-  ffi.Pointer<TCamera> camera,
-  double fovInDegrees,
-  double aspect,
-  double near,
-  double far,
-  bool horizontal,
-);
-
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double get_camera_focal_length(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double Camera_getFocalLength(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double Camera_getNear(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double Camera_getCullingFar(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double4x4 Camera_getViewMatrix(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double4x4 Camera_getModelMatrix(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double get_camera_near(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external double get_camera_culling_far(
-  ffi.Pointer<TCamera> camera,
-);
-
-@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>, ffi.Bool)>(isLeaf: true)
-external double get_camera_fov(
-  ffi.Pointer<TCamera> camera,
-  bool horizontal,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float)>(isLeaf: true)
-external void set_camera_focus_distance(
-  ffi.Pointer<TCamera> camera,
-  double focusDistance,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TCamera>, double4x4, ffi.Double, ffi.Double)>(isLeaf: true)
-external void Camera_setCustomProjectionWithCulling(
-  ffi.Pointer<TCamera> camera,
-  double4x4 projectionMatrix,
-  double near,
-  double far,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4)>(isLeaf: true)
-external void Camera_setModelMatrix(
-  ffi.Pointer<TCamera> camera,
-  double4x4 modelMatrix,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double,
-        ffi.Double)>(isLeaf: true)
-external void Camera_setLensProjection(
-  ffi.Pointer<TCamera> camera,
-  double near,
-  double far,
-  double aspect,
-  double focalLength,
-);
-
-@ffi.Native<EntityId Function(ffi.Pointer<TCamera>)>(isLeaf: true)
-external int Camera_getEntity(
-  ffi.Pointer<TCamera> camera,
 );
 
 @ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>(
@@ -1350,6 +1193,119 @@ external void MaterialInstance_setParameterFloat2(
   double y,
 );
 
+@ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
+external TViewport View_getViewport(
+  ffi.Pointer<TView> view,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(
+    isLeaf: true)
+external void View_updateViewport(
+  ffi.Pointer<TView> view,
+  int width,
+  int height,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TRenderTarget>)>(
+    isLeaf: true)
+external void View_setRenderTarget(
+  ffi.Pointer<TView> view,
+  ffi.Pointer<TRenderTarget> renderTarget,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setFrustumCullingEnabled(
+  ffi.Pointer<TView> view,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setPostProcessing(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setShadowsEnabled(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int)>(isLeaf: true)
+external void View_setShadowType(
+  ffi.Pointer<TView> tView,
+  int shadowType,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Float, ffi.Float)>(
+    isLeaf: true)
+external void View_setSoftShadowOptions(
+  ffi.Pointer<TView> tView,
+  double penumbraScale,
+  double penumbraRatioScale,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Float)>(isLeaf: true)
+external void View_setBloom(
+  ffi.Pointer<TView> tView,
+  double strength,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>,
+        ffi.UnsignedInt)>(symbol: "View_setToneMapping", isLeaf: true)
+external void _View_setToneMapping(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  int toneMapping,
+);
+
+void View_setToneMapping(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  ToneMapping toneMapping,
+) =>
+    _View_setToneMapping(
+      tView,
+      tEngine,
+      toneMapping.value,
+    );
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Bool, ffi.Bool)>(isLeaf: true)
+external void View_setAntiAliasing(
+  ffi.Pointer<TView> tView,
+  bool msaa,
+  bool fxaa,
+  bool taa,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int, ffi.Bool)>(
+    isLeaf: true)
+external void View_setLayerEnabled(
+  ffi.Pointer<TView> tView,
+  int layer,
+  bool visible,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TCamera>)>(
+    isLeaf: true)
+external void View_setCamera(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TCamera> tCamera,
+);
+
+@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TView>)>(isLeaf: true)
+external ffi.Pointer<TScene> View_getScene(
+  ffi.Pointer<TView> tView,
+);
+
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TView>)>(isLeaf: true)
+external ffi.Pointer<TCamera> View_getCamera(
+  ffi.Pointer<TView> tView,
+);
+
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
@@ -1468,6 +1424,21 @@ external void Viewer_requestFrameRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Int)>(isLeaf: true)
+external void View_setToneMappingRenderThread(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  int arg2,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Double)>(isLeaf: true)
+external void View_setBloomRenderThread(
+  ffi.Pointer<TView> tView,
+  double bloom,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_filament_viewer_render_thread(
   ffi.Pointer<TViewer> viewer,
@@ -1530,18 +1501,6 @@ external void set_background_image_position_render_thread(
   bool clamp,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Int)>(isLeaf: true)
-external void set_tone_mapping_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  int toneMapping,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
-external void set_bloom_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  double strength,
-);
-
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
@@ -1559,6 +1518,28 @@ external void remove_skybox_render_thread(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TSceneManager>,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Int,
+            ffi.Bool,
+            ffi.Int,
+            ffi.Int,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
+    isLeaf: true)
+external void SceneManager_loadGlbFromBufferRenderThread(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+  int numInstances,
+  bool keepData,
+  int priority,
+  int layer,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TSceneManager>,
             ffi.Pointer<ffi.Char>,
             ffi.Int,
             ffi.Bool,
@@ -1569,28 +1550,6 @@ external void load_glb_render_thread(
   ffi.Pointer<ffi.Char> assetPath,
   int numInstances,
   bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Uint8>,
-            ffi.Size,
-            ffi.Int,
-            ffi.Bool,
-            ffi.Int,
-            ffi.Int,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void load_glb_from_buffer_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Uint8> data,
-  int length,
-  int numInstances,
-  bool keepData,
-  int priority,
-  int layer,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 
@@ -1833,118 +1792,202 @@ external void unproject_texture_render_thread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
-@ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
-external TViewport View_getViewport(
-  ffi.Pointer<TView> view,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(
-    isLeaf: true)
-external void View_updateViewport(
-  ffi.Pointer<TView> view,
-  int width,
-  int height,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TRenderTarget>)>(
-    isLeaf: true)
-external void View_setRenderTarget(
-  ffi.Pointer<TView> view,
-  ffi.Pointer<TRenderTarget> renderTarget,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
-external void View_setFrustumCullingEnabled(
-  ffi.Pointer<TView> view,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
-external void View_setPostProcessing(
-  ffi.Pointer<TView> tView,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
-external void View_setShadowsEnabled(
-  ffi.Pointer<TView> tView,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int)>(isLeaf: true)
-external void View_setShadowType(
-  ffi.Pointer<TView> tView,
-  int shadowType,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Float, ffi.Float)>(
-    isLeaf: true)
-external void View_setSoftShadowOptions(
-  ffi.Pointer<TView> tView,
-  double penumbraScale,
-  double penumbraRatioScale,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Float)>(isLeaf: true)
-external void View_setBloom(
-  ffi.Pointer<TView> tView,
-  double strength,
-);
-
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>,
-        ffi.UnsignedInt)>(symbol: "View_setToneMapping", isLeaf: true)
-external void _View_setToneMapping(
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TEngine> tEngine,
-  int toneMapping,
+    ffi.Void Function(
+        ffi.Pointer<TCamera>, ffi.Float, ffi.Float, ffi.Float)>(isLeaf: true)
+external void set_camera_exposure(
+  ffi.Pointer<TCamera> camera,
+  double aperture,
+  double shutterSpeed,
+  double sensitivity,
 );
 
-void View_setToneMapping(
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TEngine> tEngine,
-  ToneMapping toneMapping,
-) =>
-    _View_setToneMapping(
-      tView,
-      tEngine,
-      toneMapping.value,
-    );
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4)>(isLeaf: true)
+external void set_camera_model_matrix(
+  ffi.Pointer<TCamera> camera,
+  double4x4 matrix,
+);
+
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TViewer>, EntityId)>(
+    isLeaf: true)
+external ffi.Pointer<TCamera> get_camera(
+  ffi.Pointer<TViewer> viewer,
+  int entity,
+);
+
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 get_camera_model_matrix(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 get_camera_view_matrix(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 get_camera_projection_matrix(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 get_camera_culling_projection_matrix(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Pointer<ffi.Double> Function(ffi.Pointer<TCamera>)>(
+    isLeaf: true)
+external ffi.Pointer<ffi.Double> get_camera_frustum(
+  ffi.Pointer<TCamera> camera,
+);
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<TView>, ffi.Bool, ffi.Bool, ffi.Bool)>(isLeaf: true)
-external void View_setAntiAliasing(
-  ffi.Pointer<TView> tView,
-  bool msaa,
-  bool fxaa,
-  bool taa,
+        ffi.Pointer<TCamera>, double4x4, ffi.Double, ffi.Double)>(isLeaf: true)
+external void set_camera_projection_matrix(
+  ffi.Pointer<TCamera> camera,
+  double4x4 matrix,
+  double near,
+  double far,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int, ffi.Bool)>(
-    isLeaf: true)
-external void View_setLayerEnabled(
-  ffi.Pointer<TView> tView,
-  int layer,
-  bool visible,
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double,
+        ffi.Double, ffi.Bool)>(isLeaf: true)
+external void set_camera_projection_from_fov(
+  ffi.Pointer<TCamera> camera,
+  double fovInDegrees,
+  double aspect,
+  double near,
+  double far,
+  bool horizontal,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TCamera>)>(
-    isLeaf: true)
-external void View_setCamera(
-  ffi.Pointer<TView> tView,
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double get_camera_focal_length(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double Camera_getFocalLength(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double Camera_getNear(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double Camera_getCullingFar(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 Camera_getViewMatrix(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double4x4 Camera_getModelMatrix(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double get_camera_near(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double get_camera_culling_far(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<ffi.Float Function(ffi.Pointer<TCamera>, ffi.Bool)>(isLeaf: true)
+external double get_camera_fov(
+  ffi.Pointer<TCamera> camera,
+  bool horizontal,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float)>(isLeaf: true)
+external void set_camera_focus_distance(
+  ffi.Pointer<TCamera> camera,
+  double focusDistance,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TCamera>, double4x4, ffi.Double, ffi.Double)>(isLeaf: true)
+external void Camera_setCustomProjectionWithCulling(
+  ffi.Pointer<TCamera> camera,
+  double4x4 projectionMatrix,
+  double near,
+  double far,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4)>(isLeaf: true)
+external void Camera_setModelMatrix(
+  ffi.Pointer<TCamera> camera,
+  double4x4 modelMatrix,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Double, ffi.Double, ffi.Double,
+        ffi.Double)>(isLeaf: true)
+external void Camera_setLensProjection(
+  ffi.Pointer<TCamera> camera,
+  double near,
+  double far,
+  double aspect,
+  double focalLength,
+);
+
+@ffi.Native<EntityId Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external int Camera_getEntity(
+  ffi.Pointer<TCamera> camera,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TCamera>,
+        ffi.UnsignedInt,
+        ffi.Double,
+        ffi.Double,
+        ffi.Double,
+        ffi.Double,
+        ffi.Double,
+        ffi.Double)>(symbol: "Camera_setProjection", isLeaf: true)
+external void _Camera_setProjection(
   ffi.Pointer<TCamera> tCamera,
+  int projection,
+  double left,
+  double right,
+  double bottom,
+  double top,
+  double near,
+  double far,
 );
 
-@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TView>)>(isLeaf: true)
-external ffi.Pointer<TScene> View_getScene(
-  ffi.Pointer<TView> tView,
-);
-
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TView>)>(isLeaf: true)
-external ffi.Pointer<TCamera> View_getCamera(
-  ffi.Pointer<TView> tView,
-);
+void Camera_setProjection(
+  ffi.Pointer<TCamera> tCamera,
+  Projection projection,
+  double left,
+  double right,
+  double bottom,
+  double top,
+  double near,
+  double far,
+) =>
+    _Camera_setProjection(
+      tCamera,
+      projection.value,
+      left,
+      right,
+      bottom,
+      top,
+      near,
+      far,
+    );
 
 @ffi.Native<
     ffi.Pointer<TGizmo> Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>,
@@ -2218,12 +2261,6 @@ typedef DartLoadFilamentResourceIntoOutPointerFunction = void Function(
 /// - setting up a render loop
 typedef EntityId = ffi.Int32;
 typedef DartEntityId = int;
-typedef FilamentRenderCallback
-    = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
-typedef FilamentRenderCallbackFunction = ffi.Void Function(
-    ffi.Pointer<ffi.Void> owner);
-typedef DartFilamentRenderCallbackFunction = void Function(
-    ffi.Pointer<ffi.Void> owner);
 
 final class TViewport extends ffi.Struct {
   @ffi.Int32()
@@ -2252,6 +2289,27 @@ enum ToneMapping {
         1 => FILMIC,
         2 => LINEAR,
         _ => throw ArgumentError("Unknown value for ToneMapping: $value"),
+      };
+}
+
+typedef FilamentRenderCallback
+    = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
+typedef FilamentRenderCallbackFunction = ffi.Void Function(
+    ffi.Pointer<ffi.Void> owner);
+typedef DartFilamentRenderCallbackFunction = void Function(
+    ffi.Pointer<ffi.Void> owner);
+
+enum Projection {
+  Perspective(0),
+  Orthographic(1);
+
+  final int value;
+  const Projection(this.value);
+
+  static Projection fromValue(int value) => switch (value) {
+        0 => Perspective,
+        1 => Orthographic,
+        _ => throw ArgumentError("Unknown value for Projection: $value"),
       };
 }
 

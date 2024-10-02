@@ -887,7 +887,7 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future getActiveCamera();
+  Future<Camera> getActiveCamera();
 
   ///
   ///

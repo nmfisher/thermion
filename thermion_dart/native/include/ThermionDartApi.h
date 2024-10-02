@@ -48,11 +48,14 @@
 
 #include "APIBoundaryTypes.h"
 #include "ResourceBuffer.hpp"
+#include "ThermionDartAPIUtils.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+
 
 	EMSCRIPTEN_KEEPALIVE TViewer *Viewer_create(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
 	EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer);
@@ -93,7 +96,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_background_image_position(TViewer *viewer, float x, float y, bool clamp);
 	EMSCRIPTEN_KEEPALIVE void set_background_color(TViewer *viewer, const float r, const float g, const float b, const float a);
 	
-	EMSCRIPTEN_KEEPALIVE void set_bloom(TViewer *viewer, float strength);
+	
 	EMSCRIPTEN_KEEPALIVE void load_skybox(TViewer *viewer, const char *skyboxPath);
 	EMSCRIPTEN_KEEPALIVE void load_ibl(TViewer *viewer, const char *iblPath, float intensity);
 	EMSCRIPTEN_KEEPALIVE void create_ibl(TViewer *viewer, float r, float g, float b, float intensity);
@@ -123,14 +126,12 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_light_position(TViewer *viewer, EntityId light, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void set_light_direction(TViewer *viewer, EntityId light, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE EntityId load_glb(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData);
-	EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(TSceneManager *sceneManager, const void *const data, size_t length, bool keepData, int priority, int layer);
 	EMSCRIPTEN_KEEPALIVE EntityId load_gltf(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData);
 	EMSCRIPTEN_KEEPALIVE EntityId create_instance(TSceneManager *sceneManager, EntityId id);
 	EMSCRIPTEN_KEEPALIVE int get_instance_count(TSceneManager *sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void get_instances(TSceneManager *sceneManager, EntityId entityId, EntityId *out);
 	
 	EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(TViewer *viewer);
-	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(TViewer *viewer, bool enabled);
 	
 	EMSCRIPTEN_KEEPALIVE void set_frame_interval(TViewer *viewer, float interval);
 	
@@ -208,6 +209,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_findCameraByName(TSceneManager* tSceneManager, EntityId entity, const char* name);
 	EMSCRIPTEN_KEEPALIVE void SceneManager_setVisibilityLayer(TSceneManager *tSceneManager, EntityId entity, int layer);
 	EMSCRIPTEN_KEEPALIVE TScene* SceneManager_getScene(TSceneManager *tSceneManager);
+	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_loadGlbFromBuffer(TSceneManager *sceneManager, const uint8_t *const, size_t length, bool keepData, int priority, int layer);
 	
 
 	EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId);
@@ -225,37 +227,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_rotation(TSceneManager *sceneManager, EntityId entity, float rads, float x, float y, float z, float w);
 	EMSCRIPTEN_KEEPALIVE void set_scale(TSceneManager *sceneManager, EntityId entity, float scale);
 
-	// Camera methods
-	EMSCRIPTEN_KEEPALIVE void set_view_frustum_culling(TViewer *viewer, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void set_camera_exposure(TCamera *camera, float aperture, float shutterSpeed, float sensitivity);
-	EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(TCamera *camera, double4x4 matrix);
-	EMSCRIPTEN_KEEPALIVE TCamera *get_camera(TViewer *viewer, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 get_camera_culling_projection_matrix(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(TCamera *camera, double4x4 matrix, double near, double far);
-	EMSCRIPTEN_KEEPALIVE void set_camera_projection_from_fov(TCamera *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal);
-	EMSCRIPTEN_KEEPALIVE double get_camera_focal_length(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const camera);
-	EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* camera);
-
-	EMSCRIPTEN_KEEPALIVE double get_camera_near(TCamera *camera);
-	EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(TCamera *camera);
-	EMSCRIPTEN_KEEPALIVE float get_camera_fov(TCamera *camera, bool horizontal);
-	EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(TCamera *camera, float focusDistance);
-	
-	EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera* camera, double4x4 projectionMatrix, double near, double far);
-	EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera* camera, double4x4 modelMatrix);
-	EMSCRIPTEN_KEEPALIVE void Camera_setLensProjection(TCamera *camera, double near, double far, double aspect, double focalLength);
-	
-	EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera* camera);
 	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *engine, EntityId entity);
-
 	EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
 
 	// SceneManager

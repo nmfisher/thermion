@@ -76,6 +76,17 @@ void main() async {
       print(frustum.plane5.constant);
     });
 
+    test('set orthographic projection', () async {
+      var viewer = await testHelper.createViewer(
+          bg: kRed, cameraPosition: Vector3(0, 0, 4));
+      var camera = await viewer.getMainCamera();
+      await viewer.createGeometry(GeometryHelper.cube());
+
+      await camera.setProjection(Projection.Orthographic, -0.05, 0.05, -0.05, 0.05, 0.05, 10000);
+      await testHelper.capture(
+          viewer, "camera_set_orthographic_projection");
+    });
+
     test('set custom projection/culling matrix', () async {
       var viewer = await testHelper.createViewer(
           bg: kRed, cameraPosition: Vector3(0, 0, 4));

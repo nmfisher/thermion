@@ -2,8 +2,10 @@
 #define _DART_FILAMENT_FFI_API_H
 
 #include "ThermionDartApi.h"
+#include "TView.h"
 
 #ifdef __cplusplus
+namespace thermion {
 extern "C"
 {
 #endif
@@ -33,6 +35,10 @@ extern "C"
     void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
     void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)());
 
+    void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping);
+    void View_setBloomRenderThread(TView *tView, double bloom);
+
+
     void destroy_filament_viewer_render_thread(TViewer *viewer);
     
     FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
@@ -43,13 +49,11 @@ extern "C"
     void clear_background_image_render_thread(TViewer *viewer);
     void set_background_image_render_thread(TViewer *viewer, const char *path, bool fillHeight, void (*onComplete)());
     void set_background_image_position_render_thread(TViewer *viewer, float x, float y, bool clamp);
-    void set_tone_mapping_render_thread(TViewer *viewer, int toneMapping);
-    void set_bloom_render_thread(TViewer *viewer, float strength);
     void load_skybox_render_thread(TViewer *viewer, const char *skyboxPath, void (*onComplete)());
     void remove_skybox_render_thread(TViewer *viewer);
 
+    void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, void (*callback)(EntityId));
     void load_glb_render_thread(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
-    void load_glb_from_buffer_render_thread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, void (*callback)(EntityId));
     void load_gltf_render_thread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));
     void create_instance_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)(EntityId));
     void remove_entity_render_thread(TViewer *viewer, EntityId asset, void (*callback)());
@@ -102,6 +106,7 @@ extern "C"
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 
