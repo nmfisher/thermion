@@ -1,3 +1,5 @@
+## 0.2.1-dev.0.0.4
+
 ## 0.2.1-dev.0.0.3
 
  - Bump "thermion_dart" to `0.2.1-dev.0.0.3`.
