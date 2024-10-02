@@ -1,6 +1,6 @@
 name: thermion_flutter
 description: Flutter plugin for 3D rendering with the Thermion toolkit.
-version: 0.2.0-dev.7.0
+version: 0.2.0-dev.8.0.0
 homepage: https://thermion.dev
 repository: https://github.com/nmfisher/thermion
 
@@ -17,10 +17,10 @@ dependencies:
   plugin_platform_interface: ^2.0.0
   ffi: ^2.1.2
   animation_tools_dart: ^0.0.4
-  thermion_dart: ^0.2.0-dev.7.0
-  thermion_flutter_platform_interface: ^0.2.0-dev.7.0
-  thermion_flutter_ffi: ^0.2.0-dev.7.0
-  thermion_flutter_web: ^0.1.0-dev.7.0
+  thermion_dart: ^0.2.0-dev.8.0.0
+  thermion_flutter_platform_interface: ^0.2.0-dev.8.0.0
+  thermion_flutter_ffi: ^0.2.0-dev.8.0.0
+  thermion_flutter_web: ^0.1.0-dev.8.0.0
   logging: ^1.2.0
   web: ^1.0.0
 

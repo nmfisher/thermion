@@ -1,5 +1,82 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - [`thermion_dart` - `v0.2.0-dev.8.0.0`](#thermion_dart---v020-dev800)
+ - [`thermion_flutter_ffi` - `v0.2.0-dev.8.0.0`](#thermion_flutter_ffi---v020-dev800)
+
+Packages with other changes:
+
+ - [`thermion_flutter` - `v0.2.0-dev.8.0.0`](#thermion_flutter---v020-dev800)
+ - [`thermion_flutter_platform_interface` - `v0.2.0-dev.8.0.0`](#thermion_flutter_platform_interface---v020-dev800)
+ - [`thermion_flutter_web` - `v0.1.0-dev.8.0.0`](#thermion_flutter_web---v010-dev800)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0-dev.8.0.0`
+
+---
+
+#### `thermion_dart` - `v0.2.0-dev.8.0.0`
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: more work on multiple views/swapchains.
+ - **FEAT**: add setParameterFloat2 method.
+ - **FEAT**: add setParameterFloat2 method.
+ - **FEAT**: add uvScale to unlit material.
+ - **FEAT**: add ThirdPersonCameraDelegate.
+ - **FEAT**: set camera model matrix directly.
+ - **FEAT**: expose more camera methods.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **REFACTOR**: remove RenderThread methods no longer needed.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+ - **BREAKING** **FEAT**: set baseColorIndex to -1 by default in unlit materialss.
+
+#### `thermion_flutter_ffi` - `v0.2.0-dev.8.0.0`
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+
+#### `thermion_flutter` - `v0.2.0-dev.8.0.0`
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: add rendering check to ThermionWidget ticker.
+
+#### `thermion_flutter_platform_interface` - `v0.2.0-dev.8.0.0`
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: working implementation of multiple widgets on macos.
+
+# Change Log
+
 v0.2.0
 
 - **BREAKING** Dart SDK 3.6.0 required 

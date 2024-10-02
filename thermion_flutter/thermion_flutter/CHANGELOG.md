@@ -1,3 +1,12 @@
+## 0.2.0-dev.8.0.0
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: add rendering check to ThermionWidget ticker.
+
 ## 0.2.0-dev.7.0
 
  - Update a dependency to the latest release.
