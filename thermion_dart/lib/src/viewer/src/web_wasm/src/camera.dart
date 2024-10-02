@@ -1,6 +1,5 @@
 import 'package:vector_math/vector_math_64.dart';
 
-import '../../shared_types/camera.dart';
 import '../../thermion_viewer_base.dart';
 
 class ThermionWasmCamera extends Camera {
