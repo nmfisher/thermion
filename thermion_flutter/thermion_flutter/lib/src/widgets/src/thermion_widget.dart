@@ -25,7 +25,7 @@ class ThermionWidget extends StatefulWidget {
   final ThermionViewer viewer;
 
   ///
-  /// The [View] associated with this widget. If null, the default View will be used.
+  /// The [t.View] associated with this widget. If null, the default View will be used.
   ///
   final t.View? view;
 
