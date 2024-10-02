@@ -1,3 +1,14 @@
+## 0.2.0-dev.8.0.0
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+
 ## 0.2.0-dev.7.0
 
  - Update a dependency to the latest release.

@@ -1,3 +1,9 @@
+## 0.2.0-dev.8.0.0
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: working implementation of multiple widgets on macos.
+
 ## 0.2.0-dev.7.0
 
  - Update a dependency to the latest release.

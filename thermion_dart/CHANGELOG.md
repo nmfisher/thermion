@@ -1,3 +1,28 @@
+## 0.2.0-dev.8.0.0
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: more work on multiple views/swapchains.
+ - **FEAT**: add setParameterFloat2 method.
+ - **FEAT**: add setParameterFloat2 method.
+ - **FEAT**: add uvScale to unlit material.
+ - **FEAT**: add ThirdPersonCameraDelegate.
+ - **FEAT**: set camera model matrix directly.
+ - **FEAT**: expose more camera methods.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **REFACTOR**: remove RenderThread methods no longer needed.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+ - **BREAKING** **FEAT**: set baseColorIndex to -1 by default in unlit materialss.
+
 ## 0.2.0-dev.7.0
 
 > Note: This release has breaking changes.
