@@ -783,7 +783,6 @@ namespace thermion
   ///
   View *FilamentViewer::getViewAt(int32_t index)
   {
-    Log("Getting view at %d", index);
     if (index < _views.size())
     {
       return _views[index];

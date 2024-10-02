@@ -27,11 +27,13 @@ enum PhysicalKey { W, A, S, D }
 enum InputAction { TRANSLATE, ROTATE, PICK, NONE }
 
 abstract class InputHandler {
-  
+  Stream<List<InputType>> get gestures;
+
   Future<void> onPointerHover(Vector2 localPosition, Vector2 delta);
   Future<void> onPointerScroll(Vector2 localPosition, double scrollDelta);
   Future<void> onPointerDown(Vector2 localPosition, bool isMiddle);
-  Future<void> onPointerMove(Vector2 localPosition, Vector2 delta, bool isMiddle);
+  Future<void> onPointerMove(
+      Vector2 localPosition, Vector2 delta, bool isMiddle);
   Future<void> onPointerUp(bool isMiddle);
   Future<void> onScaleStart();
   Future<void> onScaleUpdate();

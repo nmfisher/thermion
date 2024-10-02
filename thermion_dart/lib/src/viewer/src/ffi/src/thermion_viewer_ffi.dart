@@ -13,7 +13,7 @@ import '../../thermion_viewer_base.dart';
 import 'package:logging/logging.dart';
 
 import 'callbacks.dart';
-import 'camera_ffi.dart';
+import 'ffi_camera.dart';
 import 'ffi_view.dart';
 
 // ignore: constant_identifier_names
@@ -180,14 +180,8 @@ class ThermionViewerFFI extends ThermionViewer {
             nullptr;
     _viewer = await withPointerCallback(
         (Pointer<NativeFunction<Void Function(Pointer<TViewer>)>> callback) {
-      Viewer_createOnRenderThread(
-          _sharedContext,
-          _driver,
-          uberarchivePtr,
-          resourceLoader,
-          _renderCallback,
-          _renderCallbackOwner,
-          callback);
+      Viewer_createOnRenderThread(_sharedContext, _driver, uberarchivePtr,
+          resourceLoader, _renderCallback, _renderCallbackOwner, callback);
     });
 
     allocator.free(uberarchivePtr);
@@ -529,8 +523,9 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Not yet implemented");
     }
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
-    var entity = await withIntCallback((callback) => load_glb_render_thread(
-        _sceneManager!, pathPtr, numInstances, keepData, callback));
+    var entity = await withIntCallback((callback)=> load_glb_render_thread(
+         _sceneManager!, pathPtr, numInstances, keepData, callback));
+
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
@@ -561,7 +556,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var entity = await withIntCallback((callback) =>
-        load_glb_from_buffer_render_thread(_sceneManager!, data.address,
+        SceneManager_loadGlbFromBufferRenderThread(_sceneManager!, data.address,
             data.length, numInstances, keepData, priority, layer, callback));
 
     if (entity == _FILAMENT_ASSET_ERROR) {
@@ -1160,7 +1155,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setToneMapping(ToneMapper mapper) async {
-    set_tone_mapping_render_thread(_viewer!, mapper.index);
+    final view = await getViewAt(0);
+    view.setToneMapper(mapper);
   }
 
   ///
@@ -1302,7 +1298,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setViewFrustumCulling(bool enabled) async {
-    set_view_frustum_culling(_viewer!, enabled);
+    var view = await getViewAt(0);
+    view.setFrustumCullingEnabled(enabled);
   }
 
   ///
@@ -2052,10 +2049,13 @@ class ThermionViewerFFI extends ThermionViewer {
       completer.complete(true);
     });
 
-    Viewer_requestFrameRenderThread(
-        _viewer!, callback.nativeFunction);
+    Viewer_requestFrameRenderThread(_viewer!, callback.nativeFunction);
 
-    await completer.future.timeout(Duration(seconds: 1));
+    try {
+      await completer.future.timeout(Duration(seconds: 1));
+    } catch (err) {
+      print("WARNING - render call timed out");
+    }
   }
 
   Future<Camera> createCamera() async {

@@ -121,7 +121,7 @@ class TestHelper {
     var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
 
     await viewer.initialized;
-    swapChain = await viewer.createSwapChain(
+    swapChain = await viewer.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height);
 
     await viewer.updateViewportAndCameraProjection(

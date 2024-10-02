@@ -23,27 +23,6 @@ extern "C"
 
 #include "ThermionDartApi.h"
 
-    // Helper function to convert filament::math::mat4 to double4x4
-    static double4x4 convert_mat4_to_double4x4(const filament::math::mat4 &mat)
-    {
-        return double4x4{
-            {mat[0][0], mat[0][1], mat[0][2], mat[0][3]},
-            {mat[1][0], mat[1][1], mat[1][2], mat[1][3]},
-            {mat[2][0], mat[2][1], mat[2][2], mat[2][3]},
-            {mat[3][0], mat[3][1], mat[3][2], mat[3][3]},
-        };
-    }
-
-    // Helper function to convert double4x4 to filament::math::mat4
-    static filament::math::mat4 convert_double4x4_to_mat4(const double4x4 &d_mat)
-    {
-        return filament::math::mat4{
-            filament::math::float4{float(d_mat.col1[0]), float(d_mat.col1[1]), float(d_mat.col1[2]), float(d_mat.col1[3])},
-            filament::math::float4{float(d_mat.col2[0]), float(d_mat.col2[1]), float(d_mat.col2[2]), float(d_mat.col2[3])},
-            filament::math::float4{float(d_mat.col3[0]), float(d_mat.col3[1]), float(d_mat.col3[2]), float(d_mat.col3[3])},
-            filament::math::float4{float(d_mat.col4[0]), float(d_mat.col4[1]), float(d_mat.col4[2]), float(d_mat.col4[3])}};
-    }
-
     EMSCRIPTEN_KEEPALIVE TViewer *Viewer_create(const void *context, const void *const loader, void *const platform, const char *uberArchivePath)
     {
         const auto *loaderImpl = new ResourceLoaderWrapperImpl((ResourceLoaderWrapper *)loader);
@@ -183,7 +162,7 @@ extern "C"
         return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances, keepData);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId load_glb_from_buffer(TSceneManager *sceneManager, const void *const data, size_t length, bool keepData, int priority, int layer)
+    EMSCRIPTEN_KEEPALIVE EntityId SceneManager_loadGlbFromBuffer(TSceneManager *sceneManager, const uint8_t *const data, size_t length, bool keepData, int priority, int layer)
     {
         return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer);
     }
@@ -1064,47 +1043,6 @@ extern "C"
         reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
     }
 
-    EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera *tCamera, double4x4 projectionMatrix, double near, double far)
-    {
-        auto *camera = reinterpret_cast<Camera *>(tCamera);
-        camera->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), near, far);
-    }
-
-    EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera *tCamera)
-    {
-        auto *camera = reinterpret_cast<Camera *>(tCamera);
-        return convert_mat4_to_double4x4(camera->getModelMatrix());
-    }
-
-    EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const tCamera)
-    {
-        auto *camera = reinterpret_cast<Camera *>(tCamera);
-        return convert_mat4_to_double4x4(camera->getViewMatrix());
-    }
-
-    EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera *tCamera)
-    {
-        auto *camera = reinterpret_cast<Camera *>(tCamera);
-        return Entity::smuggle(camera->getEntity());
-    }
-
-    EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const tCamera)
-    {
-        auto *camera = reinterpret_cast<Camera *>(tCamera);
-        return camera->getFocalLength();
-    }
-
-    EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const tCamera)
-    {
-        auto *camera = reinterpret_cast<Camera *>(tCamera);
-        return camera->getNear();
-    }
-
-    EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const tCamera)
-    {
-        auto *camera = reinterpret_cast<Camera *>(tCamera);
-        return camera->getCullingFar();
-    }
 
     EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)
     {

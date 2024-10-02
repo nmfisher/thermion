@@ -1,11 +1,7 @@
 import 'dart:ffi';
-
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/camera.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
-
-import '../../shared_types/view.dart';
-import '../thermion_viewer_ffi.dart';
+import 'ffi_camera.dart';
 import 'thermion_viewer_ffi.dart';
 
 class FFIView extends View {
@@ -53,5 +49,21 @@ class FFIView extends View {
 
   Future setRenderable(bool renderable, FFISwapChain swapChain) async {
     Viewer_setViewRenderable(viewer, swapChain.swapChain, view, renderable);
+  }
+
+  @override
+  Future setFrustumCullingEnabled(bool enabled) async {
+    View_setFrustumCullingEnabled(view, enabled);
+  }
+
+  @override
+  Future setBloom(double strength) async {
+    View_setBloom(view, strength);
+  }
+
+  @override
+  Future setToneMapper(ToneMapper mapper) async {
+    final engine = await Viewer_getEngine(viewer);
+    View_setToneMappingRenderThread(view, engine, mapper.index);
   }
 }

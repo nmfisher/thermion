@@ -9,7 +9,6 @@
 #include "TView.h"
 #include "Log.hpp"
 
-
 #ifdef __cplusplus
 namespace thermion {
 extern "C"

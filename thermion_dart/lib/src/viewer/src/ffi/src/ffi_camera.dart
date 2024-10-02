@@ -4,32 +4,32 @@ import 'package:vector_math/vector_math_64.dart';
 
 import '../../../../utils/matrix.dart';
 import '../../thermion_viewer_base.dart';
-import 'thermion_dart.g.dart';
+import 'thermion_dart.g.dart' as g;
 
 class FFICamera extends Camera {
-  final Pointer<TCamera> camera;
-  final Pointer<TEngine> engine;
+  final Pointer<g.TCamera> camera;
+  final Pointer<g.TEngine> engine;
   late ThermionEntity _entity;
 
   FFICamera(this.camera, this.engine) {
-    _entity = Camera_getEntity(camera);
+    _entity = g.Camera_getEntity(camera);
   }
 
   @override
   Future setProjectionMatrixWithCulling(
       Matrix4 projectionMatrix, double near, double far) async {
-    Camera_setCustomProjectionWithCulling(
+    g.Camera_setCustomProjectionWithCulling(
         camera, matrix4ToDouble4x4(projectionMatrix), near, far);
   }
 
   Future<Matrix4> getModelMatrix() async {
-    return double4x4ToMatrix4(Camera_getModelMatrix(camera));
+    return double4x4ToMatrix4(g.Camera_getModelMatrix(camera));
   }
 
   @override
   Future setTransform(Matrix4 transform) async {
-    var entity = Camera_getEntity(camera);
-    Engine_setTransform(engine, entity, matrix4ToDouble4x4(transform));
+    var entity = g.Camera_getEntity(camera);
+    g.Engine_setTransform(engine, entity, matrix4ToDouble4x4(transform));
   }
 
   @override
@@ -38,7 +38,7 @@ class FFICamera extends Camera {
       double far = kFar,
       double aspect = 1.0,
       double focalLength = kFocalLength}) async {
-    Camera_setLensProjection(camera, near, far, aspect, focalLength);
+    g.Camera_setLensProjection(camera, near, far, aspect, focalLength);
   }
 
   @override
@@ -48,7 +48,7 @@ class FFICamera extends Camera {
 
   @override
   Future setModelMatrix(Matrix4 matrix) async {
-    Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix));
+    g.Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix));
   }
 
   @override
@@ -63,21 +63,29 @@ class FFICamera extends Camera {
 
   @override
   Future<double> getCullingFar() async {
-    return Camera_getCullingFar(camera);
+    return g.Camera_getCullingFar(camera);
   }
 
   @override
   Future<double> getNear() async {
-    return Camera_getNear(camera);
+    return g.Camera_getNear(camera);
   }
 
   @override
   Future<double> getFocalLength() async {
-    return Camera_getFocalLength(camera);
+    return g.Camera_getFocalLength(camera);
   }
 
   @override
   Future<Matrix4> getViewMatrix() async {
-    return double4x4ToMatrix4(Camera_getViewMatrix(camera));
+    return double4x4ToMatrix4(g.Camera_getViewMatrix(camera));
+  }
+
+  @override
+  Future setProjection(Projection projection, double left, double right,
+      double bottom, double top, double near, double far) async  {
+    var pType = g.Projection.values[projection.index];
+    g.Camera_setProjection(camera, pType, left,
+        right, bottom, top, near, far);
   }
 }
