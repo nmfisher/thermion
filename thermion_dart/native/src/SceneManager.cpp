@@ -806,7 +806,7 @@ namespace thermion
     bool SceneManager::setMorphAnimationBuffer(
         EntityId entityId,
         const float *const morphData,
-        const int *const morphIndices,
+        const uint32_t *const morphIndices,
         int numMorphTargets,
         int numFrames,
         float frameLengthInMs)

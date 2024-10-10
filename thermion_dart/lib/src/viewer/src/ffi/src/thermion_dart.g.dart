@@ -16,16 +16,6 @@ external ffi.Pointer<ffi.Void> make_resource_loader(
   ffi.Pointer<ffi.Void> owner,
 );
 
-@ffi.Native<
-    ffi.Pointer<TViewer> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
-external ffi.Pointer<TViewer> Viewer_create(
-  ffi.Pointer<ffi.Void> context,
-  ffi.Pointer<ffi.Void> loader,
-  ffi.Pointer<ffi.Void> platform,
-  ffi.Pointer<ffi.Char> uberArchivePath,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void destroy_filament_viewer(
   ffi.Pointer<TViewer> viewer,
@@ -150,6 +140,28 @@ external void Viewer_setViewRenderable(
   ffi.Pointer<TSwapChain> swapChain,
   ffi.Pointer<TView> view,
   bool renderable,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TViewer>,
+        ffi.Pointer<TView>,
+        ffi.Int,
+        ffi.Int,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y,
+                    ffi.Pointer<TView> tView)>>)>(isLeaf: true)
+external void Viewer_pick(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TView> tView,
+  int x,
+  int y,
+  ffi.Pointer<
+          ffi.NativeFunction<
+              ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y,
+                  ffi.Pointer<TView> tView)>>
+      callback,
 );
 
 @ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
@@ -396,25 +408,6 @@ external bool set_morph_target_weights(
   int entity,
   ffi.Pointer<ffi.Float> morphData,
   int numWeights,
-);
-
-@ffi.Native<
-    ffi.Bool Function(
-        ffi.Pointer<TSceneManager>,
-        EntityId,
-        ffi.Pointer<ffi.Float>,
-        ffi.Pointer<ffi.Int>,
-        ffi.Int,
-        ffi.Int,
-        ffi.Float)>(isLeaf: true)
-external bool set_morph_animation(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int entity,
-  ffi.Pointer<ffi.Float> morphData,
-  ffi.Pointer<ffi.Int> morphIndices,
-  int numMorphTargets,
-  int numFrames,
-  double frameLengthInMs,
 );
 
 @ffi.Native<
@@ -669,6 +662,25 @@ external int SceneManager_loadGlbFromBuffer(
   int layer,
 );
 
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TSceneManager>,
+        EntityId,
+        ffi.Pointer<ffi.Float>,
+        ffi.Pointer<ffi.Uint32>,
+        ffi.Int,
+        ffi.Int,
+        ffi.Float)>(isLeaf: true)
+external bool SceneManager_setMorphAnimation(
+  ffi.Pointer<TSceneManager> sceneManager,
+  int entity,
+  ffi.Pointer<ffi.Float> morphData,
+  ffi.Pointer<ffi.Uint32> morphIndices,
+  int numMorphTargets,
+  int numFrames,
+  double frameLengthInMs,
+);
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId)>(
     isLeaf: true)
 external bool update_bone_matrices(
@@ -839,27 +851,6 @@ external int reveal_mesh(
   ffi.Pointer<TSceneManager> sceneManager,
   int entity,
   ffi.Pointer<ffi.Char> meshName,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TViewer>,
-        ffi.Pointer<TView>,
-        ffi.Int,
-        ffi.Int,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(
-                    EntityId entityId, ffi.Int x, ffi.Int y)>>)>(isLeaf: true)
-external void filament_pick(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<TView> tView,
-  int x,
-  int y,
-  ffi.Pointer<
-          ffi.NativeFunction<
-              ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y)>>
-      callback,
 );
 
 @ffi.Native<
@@ -1430,7 +1421,7 @@ external void Viewer_requestFrameRenderThread(
 external void View_setToneMappingRenderThread(
   ffi.Pointer<TView> tView,
   ffi.Pointer<TEngine> tEngine,
-  int arg2,
+  int thermion,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Double)>(isLeaf: true)

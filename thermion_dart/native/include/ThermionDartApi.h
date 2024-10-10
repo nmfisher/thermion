@@ -85,6 +85,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void Viewer_setMainCamera(TViewer *tViewer, TView *tView);	
 	EMSCRIPTEN_KEEPALIVE TSwapChain* Viewer_getSwapChainAt(TViewer *tViewer, int index);
 	EMSCRIPTEN_KEEPALIVE void Viewer_setViewRenderable(TViewer *viewer, TSwapChain *swapChain, TView* view, bool renderable);	
+	EMSCRIPTEN_KEEPALIVE void Viewer_pick(TViewer *viewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y, TView *tView));
 	
 	// Engine
 	EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer);
@@ -146,14 +147,6 @@ extern "C"
 		EntityId entity,
 		const float *const morphData,
 		int numWeights);
-	EMSCRIPTEN_KEEPALIVE bool set_morph_animation(
-		TSceneManager *sceneManager,
-		EntityId entity,
-		const float *const morphData,
-		const int *const morphIndices,
-		int numMorphTargets,
-		int numFrames,
-		float frameLengthInMs);
 	
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_material_instance(TSceneManager *sceneManager, TMaterialKey materialConfig);
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(TSceneManager *sceneManager);
@@ -210,6 +203,14 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void SceneManager_setVisibilityLayer(TSceneManager *tSceneManager, EntityId entity, int layer);
 	EMSCRIPTEN_KEEPALIVE TScene* SceneManager_getScene(TSceneManager *tSceneManager);
 	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_loadGlbFromBuffer(TSceneManager *sceneManager, const uint8_t *const, size_t length, bool keepData, int priority, int layer);
+	EMSCRIPTEN_KEEPALIVE bool SceneManager_setMorphAnimation(
+		TSceneManager *sceneManager,
+		EntityId entity,
+		const float *const morphData,
+		const uint32_t *const morphIndices,
+		int numMorphTargets,
+		int numFrames,
+		float frameLengthInMs);
 	
 
 	EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId);
@@ -239,7 +240,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE int reveal_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
 	
-	EMSCRIPTEN_KEEPALIVE void filament_pick(TViewer *viewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y));
+
 	EMSCRIPTEN_KEEPALIVE const char *get_name_for_entity(TSceneManager *sceneManager, const EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(TSceneManager *sceneManager, const EntityId parent, const char *name);
 	EMSCRIPTEN_KEEPALIVE int get_entity_count(TSceneManager *sceneManager, const EntityId target, bool renderableOnly);
