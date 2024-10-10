@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:thermion_dart/src/utils/gizmo.dart';
+import 'package:thermion_dart/src/utils/src/gizmo.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/swap_chain.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
@@ -893,11 +893,7 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
   
-  @override
-  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0}) {
-    // TODO: implement loadGlbFromBuffer
-    throw UnimplementedError();
-  }
+  
   
   @override
   Future setMaterialPropertyInt(ThermionEntity entity, String propertyName, int materialIndex, int value) {
@@ -1058,6 +1054,12 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future<Camera> getActiveCamera() {
     // TODO: implement getActiveCamera
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync= false}) {
+    // TODO: implement loadGlbFromBuffer
     throw UnimplementedError();
   }
 
