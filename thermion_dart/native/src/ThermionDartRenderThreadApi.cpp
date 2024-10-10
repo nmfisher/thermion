@@ -55,9 +55,10 @@ public:
   {
     std::unique_lock<std::mutex> lock(_mutex);
     this->_requestFrameRenderCallback = callback;
+    _cv.notify_one();
   }
 
-   void iter()
+  void iter()
   {
     {
       std::unique_lock<std::mutex> lock(_mutex);
@@ -79,7 +80,7 @@ public:
         if (_accumulatedTime >= 1.0f) // Update FPS every second
         {
           _fps = _frameCount / _accumulatedTime;
-          std::cout << "FPS: " << _fps << std::endl;
+          // std::cout << "FPS: " << _fps << std::endl;
           _frameCount = 0;
           _accumulatedTime = 0.0f;
         }
@@ -96,7 +97,7 @@ public:
       taskLock.lock();
     }
 
-    _cv.wait_for(taskLock, std::chrono::microseconds(1000), [this]
+    _cv.wait_for(taskLock, std::chrono::microseconds(2000), [this]
     { return !_tasks.empty() || _stop; });
 
   }
