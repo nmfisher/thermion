@@ -17,6 +17,7 @@ dependencies:
   web: ^1.0.0
   logging: ^1.2.0
   http: ^1.2.2
+  native_assets_cli: ^0.6.1
   
 dev_dependencies:
   ffigen: ^13.0.0
