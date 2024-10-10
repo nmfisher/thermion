@@ -5,8 +5,8 @@ import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
-import '../../../../utils/gizmo.dart';
-import '../../../../utils/matrix.dart';
+import '../../../../utils/src/gizmo.dart';
+import '../../../../utils/src/matrix.dart';
 import '../../events.dart';
 import '../../shared_types/view.dart';
 import '../../thermion_viewer_base.dart';
@@ -546,7 +546,7 @@ class ThermionViewerFFI extends ThermionViewer {
       int numInstances = 1,
       bool keepData = false,
       int priority = 4,
-      int layer = 0}) async {
+      int layer = 0, bool loadResourcesAsync=false}) async {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
@@ -557,7 +557,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
     var entity = await withIntCallback((callback) =>
         SceneManager_loadGlbFromBufferRenderThread(_sceneManager!, data.address,
-            data.length, numInstances, keepData, priority, layer, callback));
+            data.length, numInstances, keepData, priority, layer, loadResourcesAsync, callback));
 
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading GLB from buffer");

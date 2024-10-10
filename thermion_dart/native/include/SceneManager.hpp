@@ -92,7 +92,7 @@ namespace thermion
         /// @return an Entity representing the FilamentAsset associated with the loaded FilamentAsset.
         ///
         EntityId loadGlb(const char *uri, int numInstances, bool keepData);
-        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0);
+        EntityId loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false);
         EntityId createInstance(EntityId entityId);
 
         void remove(EntityId entity);

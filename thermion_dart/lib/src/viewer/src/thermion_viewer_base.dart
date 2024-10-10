@@ -1,5 +1,5 @@
 import 'package:thermion_dart/src/viewer/src/events.dart';
-import '../../utils/gizmo.dart';
+import '../../utils/src/gizmo.dart';
 import 'shared_types/shared_types.dart';
 export 'shared_types/shared_types.dart';
 
@@ -56,8 +56,10 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame and copy the pixel buffer to [out].
   ///
-  Future<Uint8List> capture({covariant SwapChain? swapChain,
-      covariant View? view, covariant RenderTarget? renderTarget});
+  Future<Uint8List> capture(
+      {covariant SwapChain? swapChain,
+      covariant View? view,
+      covariant RenderTarget? renderTarget});
 
   ///
   ///
@@ -214,12 +216,16 @@ abstract class ThermionViewer {
   /// Specify [numInstances] to create multiple instances (this is more efficient than dynamically instantating at a later time). You can then retrieve the created instances with [getInstances].
   /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
   /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
+  /// If [loadResourcesAsync] is true, resources (textures, materials, etc) will 
+  /// be loaded asynchronously (so expect some material/texture pop-in);
+  ///
   ///
   Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
       {int numInstances = 1,
       bool keepData = false,
       int priority = 4,
-      int layer = 0});
+      int layer = 0,
+      bool loadResourcesAsync});
 
   ///
   /// Create a new instance of [entity].
