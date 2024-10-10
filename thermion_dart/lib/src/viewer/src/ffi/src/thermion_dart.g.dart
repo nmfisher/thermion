@@ -652,7 +652,7 @@ external ffi.Pointer<TScene> SceneManager_getScene(
 
 @ffi.Native<
     EntityId Function(ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Uint8>,
-        ffi.Size, ffi.Bool, ffi.Int, ffi.Int)>(isLeaf: true)
+        ffi.Size, ffi.Bool, ffi.Int, ffi.Int, ffi.Bool)>(isLeaf: true)
 external int SceneManager_loadGlbFromBuffer(
   ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Uint8> arg1,
@@ -660,6 +660,7 @@ external int SceneManager_loadGlbFromBuffer(
   bool keepData,
   int priority,
   int layer,
+  bool loadResourcesAsync,
 );
 
 @ffi.Native<
@@ -1515,6 +1516,7 @@ external void remove_skybox_render_thread(
             ffi.Bool,
             ffi.Int,
             ffi.Int,
+            ffi.Bool,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
 external void SceneManager_loadGlbFromBufferRenderThread(
@@ -1525,6 +1527,7 @@ external void SceneManager_loadGlbFromBufferRenderThread(
   bool keepData,
   int priority,
   int layer,
+  bool loadResourcesAsync,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 

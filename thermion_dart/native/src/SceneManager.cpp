@@ -257,7 +257,7 @@ namespace thermion
 
     }
 
-    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer)
+    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync)
     {
 
         FilamentAsset *asset = nullptr;
@@ -304,10 +304,18 @@ namespace thermion
             _gltfResourceLoader->asyncUpdateLoad();
         }
 #else
-        if (!_gltfResourceLoader->loadResources(asset))
-        {
-            Log("Unknown error loading glb asset");
-            return 0;
+        if(loadResourcesAsync) {
+            if (!_gltfResourceLoader->asyncBeginLoad(asset))
+            {
+                Log("Unknown error loading glb asset");
+                return 0;
+            }
+        } else {
+            if (!_gltfResourceLoader->loadResources(asset))
+            {
+                Log("Unknown error loading glb asset");
+                return 0;
+            }
         }
 #endif
 

@@ -336,12 +336,13 @@ extern "C"
                                                                bool keepData,
                                                                int priority,
                                                                int layer,
+                                                               bool loadResourcesAsync,
                                                                void (*callback)(EntityId))
   {
     std::packaged_task<EntityId()> lambda(
         [=]() mutable
         {
-          auto entity = SceneManager_loadGlbFromBuffer(sceneManager, data, length, keepData, priority, layer);
+          auto entity = SceneManager_loadGlbFromBuffer(sceneManager, data, length, keepData, priority, layer, loadResourcesAsync);
           callback(entity);
           return entity;
         });
