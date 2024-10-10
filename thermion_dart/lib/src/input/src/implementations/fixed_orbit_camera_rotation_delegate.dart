@@ -48,11 +48,12 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
         _queuedZoomDelta += delta.z;
         break;
       case InputAction.PICK:
-        // Assuming PICK is used for zoom in this context
-        _queuedZoomDelta += delta.z;
         break;
       case InputAction.NONE:
         // Do nothing
+        break;
+      case InputAction.ZOOM:
+        _queuedZoomDelta += delta.z;
         break;
     }
   }
