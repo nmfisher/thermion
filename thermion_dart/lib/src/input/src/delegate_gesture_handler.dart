@@ -10,8 +10,10 @@ class DelegateInputHandler implements InputHandler {
   final ThermionViewer viewer;
 
   Stream<List<InputType>> get gestures => _gesturesController.stream;
-
   final _gesturesController = StreamController<List<InputType>>.broadcast();
+
+  Stream get cameraUpdated => _cameraUpdatedController.stream;
+  final _cameraUpdatedController = StreamController.broadcast();
 
   final _logger = Logger("DelegateInputHandler");
 
@@ -75,13 +77,20 @@ class DelegateInputHandler implements InputHandler {
   factory DelegateInputHandler.flight(ThermionViewer viewer,
           {PickDelegate? pickDelegate,
           bool freeLook = false,
+          double panSensitivity = 0.1,
+          double movementSensitivity = 0.1,
+          double rotateSensitivity = 0.01,
           double? clampY,
           ThermionEntity? entity}) =>
       DelegateInputHandler(
           viewer: viewer,
           pickDelegate: pickDelegate,
           transformDelegate: FreeFlightInputHandlerDelegate(viewer,
-              clampY: clampY, entity: entity),
+              clampY: clampY,
+              entity: entity,
+              rotationSensitivity: rotateSensitivity,
+              panSensitivity: panSensitivity,
+              movementSensitivity: movementSensitivity),
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
             InputType.SCROLLWHEEL: InputAction.TRANSLATE,
@@ -151,10 +160,11 @@ class DelegateInputHandler implements InputHandler {
 
     await transformDelegate?.execute();
     var updates = _inputDeltas.keys.followedBy(keyTypes).toList();
-    if(updates.isNotEmpty) {
+    if (updates.isNotEmpty) {
       _gesturesController.add(updates);
+      _cameraUpdatedController.add(true);
     }
-    
+
     _inputDeltas.clear();
     _processing = false;
   }
