@@ -56,6 +56,8 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
         break;
       case InputAction.NONE:
         break;
+      case InputAction.ZOOM:
+        break;
     }
   }
 
