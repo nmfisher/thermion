@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 import 'package:image/image.dart';
 import 'swift/swift_bindings.g.dart';
-import 'package:thermion_dart/src/utils/dart_resources.dart';
+import 'package:thermion_dart/src/utils/src/dart_resources.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
