@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import '../../thermion_dart.dart';
+import '../../../thermion_dart.dart';
 
 class GeometryHelper {
   static Geometry sphere({bool normals = true, bool uvs = true}) {
