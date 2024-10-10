@@ -3,7 +3,7 @@ import 'dart:ffi';
 
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 
-import '../../../../utils/gizmo.dart';
+import '../../../../utils/src/gizmo.dart';
 import '../../../viewer.dart';
 
 class FFIGizmo extends BaseGizmo {

@@ -2,7 +2,7 @@ import 'dart:ffi';
 
 import 'package:vector_math/vector_math_64.dart';
 
-import '../../../../utils/matrix.dart';
+import '../../../../utils/src/matrix.dart';
 import '../../thermion_viewer_base.dart';
 import 'thermion_dart.g.dart' as g;
 
