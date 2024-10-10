@@ -50,6 +50,13 @@ extern "C"
         viewer->destroyRenderTarget(renderTarget);
     }
 
+    EMSCRIPTEN_KEEPALIVE void Viewer_pick(TViewer *tViewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y, TView *tView))
+    {
+        auto *viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        auto *view = reinterpret_cast<View*>(tView);
+        ((FilamentViewer *)viewer)->pick(view, static_cast<uint32_t>(x), static_cast<uint32_t>(y), reinterpret_cast<void (*)(EntityId entityId, int x, int y, View *view)>(callback));
+    }
+
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer)
     {
         delete ((FilamentViewer *)viewer);
@@ -446,11 +453,11 @@ extern "C"
         return ((SceneManager *)sceneManager)->setMorphTargetWeights(asset, weights, numWeights);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool set_morph_animation(
+    EMSCRIPTEN_KEEPALIVE bool SceneManager_setMorphAnimation(
         TSceneManager *sceneManager,
         EntityId asset,
         const float *const morphData,
-        const int *const morphIndices,
+        const uint32_t *const morphIndices,
         int numMorphTargets,
         int numFrames,
         float frameLengthInMs)
@@ -791,13 +798,6 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE int reveal_mesh(TSceneManager *sceneManager, EntityId asset, const char *meshName)
     {
         return ((SceneManager *)sceneManager)->reveal(asset, meshName);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void filament_pick(TViewer *tViewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y))
-    {
-        auto *viewer = reinterpret_cast<FilamentViewer*>(tViewer);
-        auto *view = reinterpret_cast<View*>(tView);
-        ((FilamentViewer *)viewer)->pick(view, static_cast<uint32_t>(x), static_cast<uint32_t>(y), callback);
     }
 
     EMSCRIPTEN_KEEPALIVE const char *get_name_for_entity(TSceneManager *sceneManager, const EntityId entityId)

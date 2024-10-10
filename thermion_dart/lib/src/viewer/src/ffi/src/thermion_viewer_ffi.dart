@@ -83,9 +83,9 @@ class ThermionViewerFFI extends ThermionViewer {
     this._driver = driver ?? nullptr;
     this._sharedContext = sharedContext ?? nullptr;
 
-    // _onPickResultCallable =
-    //     NativeCallable<Void Function(EntityId entityId, Int x, Int y)>.listener(
-    //         _onPickResult);
+    _onPickResultCallable =
+        NativeCallable<Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view)>.listener(
+            _onPickResult);
 
     _initialize();
   }
@@ -523,8 +523,8 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Not yet implemented");
     }
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
-    var entity = await withIntCallback((callback)=> load_glb_render_thread(
-         _sceneManager!, pathPtr, numInstances, keepData, callback));
+    var entity = await withIntCallback((callback) => load_glb_render_thread(
+        _sceneManager!, pathPtr, numInstances, keepData, callback));
 
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
@@ -729,7 +729,7 @@ class ThermionViewerFFI extends ThermionViewer {
       var meshEntity = meshEntities[i];
 
       if (targetMeshNames?.contains(meshName) == false) {
-        _logger.info("Skipping $meshName, not contained in target");
+        // _logger.info("Skipping $meshName, not contained in target");
         continue;
       }
 
@@ -749,39 +749,24 @@ class ThermionViewerFFI extends ThermionViewer {
             Child meshes: ${meshNames}""");
       }
 
-      var indices =
-          intersection.map((m) => meshMorphTargets.indexOf(m)).toList();
+      var indices = Uint32List.fromList(
+          intersection.map((m) => meshMorphTargets.indexOf(m)).toList());
 
-      var frameData = animation.extract(morphTargets: intersection);
+      // var frameData = animation.data;
+      var frameData = animation.subset(intersection);
 
-      assert(frameData.length == animation.numFrames * intersection.length);
+      assert(
+          frameData.data.length == animation.numFrames * intersection.length);
 
-      var dataPtr = allocator<Float>(frameData.length);
-
-      // not currently working on WASM :( wasted a lot of time figuring that out as no error is thrown
-      // dataPtr
-      //     .asTypedList(frameData.length)
-      //     .setRange(0, frameData.length, frameData);
-      for (int i = 0; i < frameData.length; i++) {
-        dataPtr[i] = frameData[i];
-      }
-
-      final idxPtr = allocator<Int>(indices.length);
-
-      for (int i = 0; i < indices.length; i++) {
-        idxPtr[i] = indices[i];
-      }
-
-      var result = set_morph_animation(
+      var result = SceneManager_setMorphAnimation(
           _sceneManager!,
           meshEntity,
-          dataPtr,
-          idxPtr,
+          frameData.data.address,
+          indices.address,
           indices.length,
           animation.numFrames,
           animation.frameLengthInMs);
-      allocator.free(dataPtr);
-      allocator.free(idxPtr);
+
       if (!result) {
         throw Exception("Failed to set morph animation data for ${meshName}");
       }
@@ -1484,14 +1469,11 @@ class ThermionViewerFFI extends ThermionViewer {
     final view = FFIView(viewPtr, _viewer!);
     final viewport = await view.getViewport();
 
-    // _pickResultController.add((
-    //   entity: entityId,
-    //   x: (x / pixelRatio).toDouble(),
-    //   y: (viewport.height - y) / pixelRatio
-    // ));
+    _pickResultController
+        .add((entity: entityId, x: x.ceil(), y: (viewport.height - y).ceil()));
   }
 
-  late NativeCallable<Void Function(EntityId entityId, Int x, Int y)>
+  late NativeCallable<Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view)>
       _onPickResultCallable;
 
   ///
@@ -1499,11 +1481,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   void pick(int x, int y) async {
-    // x = (x * pixelRatio).ceil();
-    // y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
-    // final view = (await getViewAt(0)) as FFIView;
-    // filament_pick(
-    //     _viewer!, view.view, x, y, _onPickResultCallable.nativeFunction);
+    final view = (await getViewAt(0)) as FFIView;
+    var viewport = await view.getViewport();
+    y = (viewport.height - y).ceil();
+    Viewer_pick(
+        _viewer!, view.view, x, y, _onPickResultCallable.nativeFunction);
   }
 
   ///

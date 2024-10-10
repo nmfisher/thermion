@@ -98,7 +98,7 @@ namespace thermion
         void clearBackgroundImage();
         void setBackgroundImagePosition(float x, float y, bool clamp, uint32_t width, uint32_t height);
         
-        void pick(View *view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y));
+        void pick(View *view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y, View *view));
         Engine* getEngine() { 
             return _engine;
         }
