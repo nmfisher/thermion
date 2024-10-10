@@ -11,7 +11,7 @@ dependencies:
   vector_math: ^2.1.2
   plugin_platform_interface: ^2.0.0
   ffi: ^2.1.2
-  animation_tools_dart: ^0.0.4
+  animation_tools_dart: ^0.1.0
   native_toolchain_c: ^0.4.2
   archive: ^3.6.1
   web: ^1.0.0
