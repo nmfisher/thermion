@@ -764,10 +764,10 @@ namespace thermion
     view->setStereoscopicOptions({.enabled = true});
 #endif
 
-    // there's a glitch on certain iGPUs where nothing will render when postprocessing is enabled and bloom is disabled
-    // set bloom to a small value here
-    view->setBloomOptions({.strength = 0.01});
-    view->setDithering(filament::Dithering::NONE);
+    // bloom can be a bit glitchy (some Intel iGPUs won't render when postprocessing is enabled and bloom is disabled,
+    // and render targets on MacOS flicker when bloom is disabled.  
+    // Here, we enable bloom, but set to 0 strength
+    view->setBloomOptions({.enabled=true, .strength = 0});
     view->setShadowingEnabled(false);
     view->setScreenSpaceRefractionEnabled(false);
     view->setPostProcessingEnabled(false);
@@ -1198,9 +1198,8 @@ namespace thermion
     return _engine->getCameraComponent(Entity::import(entity));
   }
 
-  void FilamentViewer::pick(View *view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y))
+  void FilamentViewer::pick(View *view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y, View *view))
   {
-
     view->pick(x, y, [=](filament::View::PickingQueryResult const &result) { 
 
       if(_sceneManager->isGizmoEntity(result.renderable)) {
@@ -1214,7 +1213,7 @@ namespace thermion
       };
 
       if (nonPickableEntities.find(result.renderable) == nonPickableEntities.end()) {
-        callback(Entity::smuggle(result.renderable), x, y);
+        callback(Entity::smuggle(result.renderable), x, y, view);
       } });
   }
 
