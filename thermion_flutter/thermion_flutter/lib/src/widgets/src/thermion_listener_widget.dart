@@ -110,7 +110,7 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 
   Widget _mobile(double pixelRatio) {
     return _MobileListenerWidget(
-        gestureHandler: widget.gestureHandler, pixelRatio: pixelRatio);
+        gestureHandler: widget.gestureHandler, pixelRatio: pixelRatio, child:widget.child);
   }
 
   @override
@@ -135,8 +135,10 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 class _MobileListenerWidget extends StatefulWidget {
   final InputHandler gestureHandler;
   final double pixelRatio;
+  final Widget? child;
 
-  const _MobileListenerWidget({Key? key, required this.gestureHandler, required this.pixelRatio})
+  const _MobileListenerWidget(
+      {Key? key, required this.gestureHandler, required this.pixelRatio, this.child})
       : super(key: key);
 
   @override
@@ -154,22 +156,29 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTapDown: (details) => widget.gestureHandler
-          .onPointerDown(details.localPosition.toVector2() * widget.pixelRatio, false),
-      onDoubleTap: () {
-        widget.gestureHandler.setActionForType(InputType.SCALE1,
-            isPan ? InputAction.TRANSLATE : InputAction.ROTATE);
-      },
-      onScaleStart: (details) async {
-        await widget.gestureHandler.onScaleStart();
-      },
-      onScaleUpdate: (details) async {
-        await widget.gestureHandler.onScaleUpdate();
-      },
-      onScaleEnd: (details) async {
-        await widget.gestureHandler.onScaleUpdate();
-      },
-    );
+        behavior: HitTestBehavior.translucent,
+        onTapDown: (details) => widget.gestureHandler.onPointerDown(
+            details.localPosition.toVector2() * widget.pixelRatio, false),
+        onDoubleTap: () {
+          widget.gestureHandler.setActionForType(InputType.SCALE1,
+              isPan ? InputAction.TRANSLATE : InputAction.ROTATE);
+        },
+        onScaleStart: (details) async {
+          await widget.gestureHandler.onScaleStart(
+              details.localFocalPoint.toVector2(), details.pointerCount);
+        },
+        onScaleUpdate: (ScaleUpdateDetails details) async {
+          await widget.gestureHandler.onScaleUpdate(
+              details.localFocalPoint.toVector2(),
+              details.focalPointDelta.toVector2(),
+              details.horizontalScale,
+              details.verticalScale,
+              details.scale,
+              details.pointerCount);
+        },
+        onScaleEnd: (details) async {
+          await widget.gestureHandler.onScaleEnd(details.pointerCount);
+        },
+        child: widget.child);
   }
 }
