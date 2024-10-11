@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -26,6 +27,8 @@ class DelegateInputHandler implements InputHandler {
 
   Map<InputType, InputAction> _actions = {
     InputType.LMB_HOLD_AND_MOVE: InputAction.TRANSLATE,
+    InputType.SCALE1: InputAction.TRANSLATE,
+    InputType.SCALE2: InputAction.ZOOM,
     InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
     InputType.SCROLLWHEEL: InputAction.TRANSLATE,
     InputType.POINTER_MOVE: InputAction.NONE,
@@ -99,6 +102,8 @@ class DelegateInputHandler implements InputHandler {
             InputType.KEYDOWN_W: InputAction.TRANSLATE,
             InputType.KEYDOWN_S: InputAction.TRANSLATE,
             InputType.KEYDOWN_D: InputAction.TRANSLATE,
+            InputType.SCALE1: InputAction.TRANSLATE,
+            InputType.SCALE2: InputAction.ZOOM,
             if (freeLook) InputType.POINTER_MOVE: InputAction.ROTATE,
           });
 
@@ -236,15 +241,6 @@ class DelegateInputHandler implements InputHandler {
   Future<bool> get initialized => viewer.initialized;
 
   @override
-  Future<void> onScaleEnd() async {}
-
-  @override
-  Future<void> onScaleStart() async {}
-
-  @override
-  Future<void> onScaleUpdate() async {}
-
-  @override
   void setActionForType(InputType gestureType, InputAction gestureAction) {
     _actions[gestureType] = gestureAction;
   }
@@ -260,5 +256,27 @@ class DelegateInputHandler implements InputHandler {
 
   void keyUp(PhysicalKey key) {
     _pressedKeys.remove(key);
+  }
+
+  @override
+  Future<void> onScaleEnd(int pointerCount) async {}
+
+  @override
+  Future<void> onScaleStart(Vector2 localPosition, int pointerCount) async {
+    // noop
+  }
+
+  @override
+  Future<void> onScaleUpdate(Vector2 focalPoint, Vector2 focalPointDelta,
+      double horizontalScale, double verticalScale, double scale, int pointerCount) async {
+    if (pointerCount == 1) {
+      _inputDeltas[InputType.SCALE1] =
+          Vector3(focalPointDelta.x, focalPointDelta.y, 0);
+    } else if (pointerCount == 2) {
+      _inputDeltas[InputType.SCALE2] =
+          Vector3(0, 0, max(horizontalScale, verticalScale));
+    } else {
+      throw UnimplementedError("Only pointerCount <= 2 supported");
+    }
   }
 }

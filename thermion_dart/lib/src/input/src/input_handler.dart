@@ -35,9 +35,9 @@ abstract class InputHandler {
   Future<void> onPointerMove(
       Vector2 localPosition, Vector2 delta, bool isMiddle);
   Future<void> onPointerUp(bool isMiddle);
-  Future<void> onScaleStart();
-  Future<void> onScaleUpdate();
-  Future<void> onScaleEnd();
+  Future<void> onScaleStart(Vector2 focalPoint, int pointerCount);
+  Future<void> onScaleUpdate(Vector2 focalPoint, Vector2 focalPointDelta, double horizontalScale, double verticalScale, double scale, int pointerCount);
+  Future<void> onScaleEnd(int pointerCount);
   Future<bool> get initialized;
   Future dispose();
 
