@@ -184,7 +184,7 @@ extern "C"
 
   static RenderLoop *_rl;
 
-  void Viewer_createOnRenderThread(
+  EMSCRIPTEN_KEEPALIVE void Viewer_createOnRenderThread(
       void *const context, void *const platform, const char *uberArchivePath,
       const void *const loader,
       void (*renderCallback)(void *const renderCallbackOwner),
@@ -200,14 +200,14 @@ extern "C"
                       renderCallback, renderCallbackOwner, callback);
   }
 
-  void destroy_filament_viewer_render_thread(TViewer *viewer)
+  EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer)
   {
     _rl->destroyViewer((FilamentViewer *)viewer);
     delete _rl;
     _rl = nullptr;
   }
 
-  void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer,
+  EMSCRIPTEN_KEEPALIVE void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer,
                                                             uint32_t width,
                                                             uint32_t height,
                                                             void (*onComplete)(TSwapChain*))
@@ -221,7 +221,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void Viewer_createSwapChainRenderThread(TViewer *viewer,
+  EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer,
                                                             void *const surface,
                                                             void (*onComplete)(TSwapChain*))
   {
@@ -234,7 +234,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain *swapChain, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain *swapChain, void (*onComplete)())
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -246,7 +246,7 @@ extern "C"
   }
 
 
-  void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)())
   {
     if (!_rl)
     {
@@ -258,7 +258,7 @@ extern "C"
     }
   }
 
-  void
+  EMSCRIPTEN_KEEPALIVE void
   set_frame_interval_render_thread(TViewer *viewer, float frameIntervalInMilliseconds)
   {
     _rl->setFrameIntervalInMilliseconds(frameIntervalInMilliseconds);
@@ -267,7 +267,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void Viewer_renderRenderThread(TViewer *viewer, TView *tView, TSwapChain *tSwapChain)
+  EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView *tView, TSwapChain *tSwapChain)
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { 
@@ -276,21 +276,21 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void Viewer_captureRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, uint8_t *pixelBuffer, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, uint8_t *pixelBuffer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { Viewer_capture(viewer, view, tSwapChain, pixelBuffer, onComplete); });
     auto fut = _rl->add_task(lambda);
   }
 
-  void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, TRenderTarget* tRenderTarget, uint8_t *pixelBuffer, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, TRenderTarget* tRenderTarget, uint8_t *pixelBuffer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { Viewer_captureRenderTarget(viewer, view, tSwapChain, tRenderTarget, pixelBuffer, onComplete); });
     auto fut = _rl->add_task(lambda);
   }
 
-  void
+  EMSCRIPTEN_KEEPALIVE void
   set_background_color_render_thread(TViewer *viewer, const float r, const float g,
                                      const float b, const float a)
   {
@@ -300,7 +300,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void load_gltf_render_thread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(TSceneManager *sceneManager,
                                                     const char *path,
                                                     const char *relativeResourcePath,
                                                     bool keepData,
@@ -314,7 +314,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void load_glb_render_thread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(TSceneManager *sceneManager,
                                                    const char *path,
                                                    int numInstances,
                                                    bool keepData,
@@ -330,7 +330,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager,
                                                                const uint8_t *const data,
                                                                size_t length,
                                                                int numInstances,
@@ -350,14 +350,14 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void clear_background_image_render_thread(TViewer *viewer)
+  EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { clear_background_image(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  void set_background_image_render_thread(TViewer *viewer,
+  EMSCRIPTEN_KEEPALIVE void set_background_image_render_thread(TViewer *viewer,
                                                                const char *path,
                                                                bool fillHeight, void (*callback)())
   {
@@ -369,7 +369,8 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
-  void set_background_image_position_render_thread(TViewer *viewer,
+  
+  EMSCRIPTEN_KEEPALIVE void set_background_image_position_render_thread(TViewer *viewer,
                                                                         float x, float y,
                                                                         bool clamp)
   {
@@ -379,7 +380,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
   
-  void load_skybox_render_thread(TViewer *viewer,
+  EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer,
                                                       const char *skyboxPath,
                                                       void (*onComplete)())
   {
@@ -391,7 +392,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void load_ibl_render_thread(TViewer *viewer, const char *iblPath,
+  EMSCRIPTEN_KEEPALIVE void load_ibl_render_thread(TViewer *viewer, const char *iblPath,
                                                    float intensity)
   {
     std::packaged_task<void()> lambda(
@@ -399,21 +400,22 @@ extern "C"
         { load_ibl(viewer, iblPath, intensity); });
     auto fut = _rl->add_task(lambda);
   }
-  void remove_skybox_render_thread(TViewer *viewer)
+  
+  EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_skybox(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  void remove_ibl_render_thread(TViewer *viewer)
+  EMSCRIPTEN_KEEPALIVE void remove_ibl_render_thread(TViewer *viewer)
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_ibl(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 
-  void remove_entity_render_thread(TViewer *viewer,
+  EMSCRIPTEN_KEEPALIVE void remove_entity_render_thread(TViewer *viewer,
                                                         EntityId asset, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
@@ -424,7 +426,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void clear_entities_render_thread(TViewer *viewer, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void clear_entities_render_thread(TViewer *viewer, void (*callback)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
@@ -435,7 +437,7 @@ extern "C"
   }
 
 
-  void
+  EMSCRIPTEN_KEEPALIVE void
   get_morph_target_name_render_thread(TSceneManager *sceneManager, EntityId assetEntity,
                                       EntityId childEntity, char *const outPtr, int index, void (*callback)())
   {
@@ -447,7 +449,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void
+  EMSCRIPTEN_KEEPALIVE void
   get_morph_target_name_count_render_thread(TSceneManager *sceneManager, EntityId assetEntity,
                                             EntityId childEntity, void (*callback)(int))
   {
@@ -459,7 +461,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void set_animation_frame_render_thread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void set_animation_frame_render_thread(TSceneManager *sceneManager,
                                                               EntityId asset,
                                                               int animationIndex,
                                                               int animationFrame)
@@ -469,7 +471,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void stop_animation_render_thread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void stop_animation_render_thread(TSceneManager *sceneManager,
                                                          EntityId asset, int index)
   {
     std::packaged_task<void()> lambda(
@@ -478,7 +480,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void get_animation_count_render_thread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void get_animation_count_render_thread(TSceneManager *sceneManager,
                                                               EntityId asset,
                                                               void (*callback)(int))
   {
@@ -492,7 +494,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void get_animation_name_render_thread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void get_animation_name_render_thread(TSceneManager *sceneManager,
                                                              EntityId asset,
                                                              char *const outPtr,
                                                              int index,
@@ -507,7 +509,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void
+  EMSCRIPTEN_KEEPALIVE void
   get_name_for_entity_render_thread(TSceneManager *sceneManager, const EntityId entityId, void (*callback)(const char *))
   {
     std::packaged_task<const char *()> lambda(
@@ -520,7 +522,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void set_morph_target_weights_render_thread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void set_morph_target_weights_render_thread(TSceneManager *sceneManager,
                                               EntityId asset,
                                               const float *const morphData,
                                               int numWeights,
@@ -535,7 +537,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void set_bone_transform_render_thread(
+  EMSCRIPTEN_KEEPALIVE void set_bone_transform_render_thread(
       TSceneManager *sceneManager,
       EntityId asset,
       int skinIndex,
@@ -553,7 +555,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void update_bone_matrices_render_thread(TSceneManager *sceneManager,
+  EMSCRIPTEN_KEEPALIVE void update_bone_matrices_render_thread(TSceneManager *sceneManager,
                                                                EntityId entity, void (*callback)(bool))
   {
     std::packaged_task<void()> lambda(
@@ -565,7 +567,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping) { 
+  EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping) { 
       std::packaged_task<void()> lambda(
         [=]
         {
@@ -574,7 +576,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
   
-  void View_setBloomRenderThread(TView *tView, double bloom) { 
+  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, double bloom) { 
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -583,7 +585,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]
@@ -594,7 +596,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void create_geometry_render_thread(
+  EMSCRIPTEN_KEEPALIVE void create_geometry_render_thread(
       TSceneManager *sceneManager,
       float *vertices,
       int numVertices,
@@ -619,7 +621,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]

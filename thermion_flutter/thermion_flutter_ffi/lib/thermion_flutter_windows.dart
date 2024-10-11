@@ -1,32 +1,43 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'dart:ffi';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
 import 'package:thermion_flutter_ffi/thermion_flutter_method_channel_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:logging/logging.dart';
+import 'package:thermion_flutter_platform_interface/thermion_flutter_window.dart';
 
 ///
-/// An implementation of [ThermionFlutterPlatform] that uses
-/// Flutter platform channels to create a rendering context,
-/// resource loaders, and surface/render target(s).
+/// A Windows-only implementation of [ThermionFlutterPlatform] that uses
+/// a Flutter platform channel to create a rendering context,
+/// resource loader and a native HWND that will be sit behind the running 
+/// Flutter application.
 ///
 class ThermionFlutterWindows
     extends ThermionFlutterMethodChannelInterface {
+  
   final _channel = const MethodChannel("dev.thermion.flutter/event");
 
   final _logger = Logger("ThermionFlutterWindows");
 
-  ThermionViewerFFI? _viewer;
-
-  ThermionFlutterWindows._() {}
+  ThermionViewer? _viewer;
 
   SwapChain? _swapChain;
 
+  ThermionFlutterWindows._() {}
+
   static void registerWith() {
     ThermionFlutterPlatform.instance = ThermionFlutterWindows._();
+  }
+
+  @override
+  Future<ThermionViewer> createViewer({ThermionFlutterOptions? options}) async {
+    if(_viewer != null) {
+      throw Exception("Only one viewer should be instantiated over the life of the app");
+    }
+    _viewer = await super.createViewer(options: options);
+    return _viewer!;
   }
 
   ///
@@ -37,64 +48,85 @@ class ThermionFlutterWindows
     throw UnimplementedError();
   }
 
-  bool _resizing = false;
+  
+  @override
+  Future<ThermionFlutterWindow> createWindow(int width, int height, int offsetLeft, int offsetTop) async {
 
+
+    var result = await _channel
+        .invokeMethod("createWindow", [width, height, offsetLeft, offsetLeft]);
+
+    if (result == null || result[2] == -1) {
+      throw Exception("Failed to create window");
+    }
+
+    var window =
+        ThermionFlutterWindowImpl(result[2], _channel, viewer!);
+    await window.resize(width, height, offsetLeft, offsetTop);
+    throw Exception();
+    // var view = await _viewer!.getViewAt(0);
+    // await view.updateViewport(width, height);
+    // print("Set viewport dimensions to ${width} ${height}");
+    // _swapChain = await _viewer!.createSwapChain(window.handle);    
+    // return window;
+  }
+  
+  
+}
+
+class ThermionFlutterWindowImpl extends ThermionFlutterWindow {
+
+  final ThermionViewer viewer;
+  final int handle;
+  int height = 0;
+  int width = 0;
+  int offsetLeft = 0;
+  int offsetTop = 0;
+  final MethodChannel _channel;
+  
+
+
+  ThermionFlutterWindowImpl(this.handle, this._channel, this.viewer);
+
+  @override
+  Future destroy() async {
+      await _channel
+        .invokeMethod("destroyWindow", [width, height, offsetLeft, offsetLeft]);
+  }
+
+  @override
+  Future markFrameAvailable() {
+    // TODO: implement markFrameAvailable
+    throw UnimplementedError();
+  }
+
+  bool _resizing = false;
+  
   ///
-  /// Called by [ThermionWidget] to resize a texture. Don't call this yourself.
+  /// Called by [ThermionWidget] to resize the window. Don't call this yourself.
   ///
   @override
-  Future resizeWindow(
+  Future resize(
       int width, int height, int offsetLeft, int offsetTop) async {
     if (_resizing) {
       throw Exception("Resize underway");
     }
 
-    throw Exception("TODO");
+    if (width == this.width && height == this.height) {
+      return;
+    }
 
-    // final view = await this._viewer!.getViewAt(0);
-    // final viewport = await view.getViewport();
-    // final swapChain = await this._viewer.getSwapChainAt(0);
+    this.width = width;
+    this.height = height;
+    this.offsetLeft = offsetLeft;
+    this.offsetTop = offsetTop;
 
-    // if (width == viewport.width && height - viewport.height == 0) {
-    //   return;
-    // }
+    _resizing = true;
 
-    // _resizing = true;
-    // bool wasRendering = _viewer!.rendering;
-    // await _viewer!.setRendering(false);
-    // await _swapChain?.destroy();
-
-    // var result = await _channel
-    //     .invokeMethod("createTexture", [width, height, offsetLeft, offsetLeft]);
-
-    // if (result == null || result[0] == -1) {
-    //   throw Exception("Failed to create texture");
-    // }
-
-    // var newTexture =
-    //     ThermionFlutterTexture(result[0], result[1], width, height, result[2]);
-
-    // await _viewer!.createSwapChain(width, height,
-    //     surface: newTexture.surfaceAddress == null
-    //         ? nullptr
-    //         : Pointer<Void>.fromAddress(newTexture.surfaceAddress!));
-
-    // if (newTexture.hardwareTextureId != null) {
-    //   // ignore: unused_local_variable
-    //   var renderTarget = await _viewer!
-    //       .createRenderTarget(width, height, newTexture.hardwareTextureId!);
-    // }
-
-    // await _viewer!
-    //     .updateViewportAndCameraProjection(width.toDouble(), height.toDouble());
-
-    // if (wasRendering) {
-    //   await _viewer!.setRendering(true);
-    // }
-    // _textures.add(newTexture);
-    // _resizing = false;
-    // return newTexture;
+    await _channel
+        .invokeMethod("resizeWindow", [width, height, offsetLeft, offsetLeft]);
+    _resizing = false;
   }
-  
+
   
 }

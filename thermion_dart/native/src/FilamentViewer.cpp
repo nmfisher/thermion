@@ -669,6 +669,10 @@ namespace thermion
   {
     std::lock_guard lock(_renderMutex);
     SwapChain *swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
+
+      if(!_engine->isValid(swapChain)) {
+        Log("SWAPCHAIN NOT VALID!!");
+      }
     _swapChains.push_back(swapChain);
     return swapChain;
   }
@@ -767,7 +771,7 @@ namespace thermion
     // bloom can be a bit glitchy (some Intel iGPUs won't render when postprocessing is enabled and bloom is disabled,
     // and render targets on MacOS flicker when bloom is disabled.  
     // Here, we enable bloom, but set to 0 strength
-    view->setBloomOptions({.enabled=true, .strength = 0});
+    view->setBloomOptions({.strength = 0, .enabled=true });
     view->setShadowingEnabled(false);
     view->setScreenSpaceRefractionEnabled(false);
     view->setPostProcessingEnabled(false);
@@ -1045,6 +1049,10 @@ namespace thermion
     for(auto swapChain : _swapChains) {
       auto views = _renderable[swapChain];
       if(views.size() > 0) {
+        if(!_engine->isValid(swapChain)) {
+          Log("SWAPCHAIN NOT VALID!!");
+          continue;
+        }
         bool beginFrame = _renderer->beginFrame(swapChain, frameTimeInNanos);
         if (beginFrame) {
           for(auto view : views) {

@@ -177,6 +177,8 @@ namespace filament
             case Mode::ORBIT:
                 return new OrbitManipulator<FLOAT>(mode, details);
             }
+            // just to make MSVC happy
+            return new OrbitManipulator<FLOAT>(mode, details);
         }
 
         template <typename FLOAT>

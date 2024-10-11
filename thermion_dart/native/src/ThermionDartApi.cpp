@@ -1,13 +1,6 @@
 #ifdef _WIN32
-#pragma comment(lib, "Shlwapi.lib")
-#pragma comment(lib, "opengl32.lib")
+#include "ThermionWin32.h"
 #endif
-
-#include "ResourceBuffer.hpp"
-#include "FilamentViewer.hpp"
-#include "filament/LightManager.h"
-#include "Log.hpp"
-#include "ThreadPool.hpp"
 
 #include <thread>
 #include <functional>
@@ -15,6 +8,12 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
+
+#include "filament/LightManager.h"
+#include "ResourceBuffer.hpp"
+#include "FilamentViewer.hpp"
+#include "Log.hpp"
+#include "ThreadPool.hpp"
 
 using namespace thermion;
 
@@ -230,62 +229,62 @@ extern "C"
         return reinterpret_cast<TCamera *>(filamentCamera);
     }
 
-    double4x4 get_camera_model_matrix(TCamera *camera)
+    EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getModelMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_view_matrix(TCamera *camera)
+    EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getViewMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_projection_matrix(TCamera *camera)
+    EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getProjectionMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    double4x4 get_camera_culling_projection_matrix(TCamera *camera)
+    EMSCRIPTEN_KEEPALIVE double4x4 get_camera_culling_projection_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getCullingProjectionMatrix();
         return convert_mat4_to_double4x4(mat);
     }
 
-    void set_camera_projection_matrix(TCamera *camera, double4x4 matrix, double near, double far)
+    EMSCRIPTEN_KEEPALIVE void set_camera_projection_matrix(TCamera *camera, double4x4 matrix, double near, double far)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         const auto &mat = convert_double4x4_to_mat4(matrix);
         cam->setCustomProjection(mat, near, far);
     }
 
-    void Camera_setLensProjection(TCamera *camera, double near, double far, double aspect, double focalLength)
+    EMSCRIPTEN_KEEPALIVE void Camera_setLensProjection(TCamera *camera, double near, double far, double aspect, double focalLength)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setLensProjection(focalLength, aspect, near, far);
     }
 
-    void Camera_setModelMatrix(TCamera *camera, double4x4 matrix)
+    EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *camera, double4x4 matrix)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         cam->setModelMatrix(convert_double4x4_to_mat4(matrix));
     }
 
-    double get_camera_near(TCamera *camera)
+    EMSCRIPTEN_KEEPALIVE double get_camera_near(TCamera *camera)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getNear();
     }
 
-    double get_camera_culling_far(TCamera *camera)
+    EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(TCamera *camera)
     {
         auto cam = reinterpret_cast<filament::Camera *>(camera);
         return cam->getCullingFar();
     }
 
-    const double *const get_camera_frustum(TCamera *camera)
+    EMSCRIPTEN_KEEPALIVE const double *const get_camera_frustum(TCamera *camera)
     {
 
         const auto frustum = reinterpret_cast<filament::Camera *>(camera)->getFrustum();
@@ -304,7 +303,6 @@ extern "C"
         return array;
     }
 
-    
 
     EMSCRIPTEN_KEEPALIVE void set_camera_focus_distance(TCamera *camera, float distance)
     {
@@ -703,8 +701,9 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *tSceneManager, EntityId *entities, const double *const transforms, int numEntities)
     {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        math::mat4 matrices[
-            numEntities];
+
+        std::vector<math::mat4> matrices(
+            numEntities);
         for (int i = 0; i < numEntities; i++)
         {
             matrices[i] = math::mat4(
@@ -723,7 +722,7 @@ extern "C"
                 transforms[i * 16 + 14],
                 transforms[i * 16 + 15]);
         }
-        sceneManager->queueTransformUpdates(entities, matrices, numEntities);
+        sceneManager->queueTransformUpdates(entities, matrices.data(), numEntities);
     }
 
     EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId)
@@ -955,10 +954,10 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void set_material_property_float4(TSceneManager *sceneManager, EntityId entity, int materialIndex, const char *property, double4 value)
     {
         filament::math::float4 filamentValue;
-        filamentValue.x = static_cast<float32_t>(value.x);
-        filamentValue.y = static_cast<float32_t>(value.y);
-        filamentValue.z = static_cast<float32_t>(value.z);
-        filamentValue.w = static_cast<float32_t>(value.w);
+        filamentValue.x = static_cast<float>(value.x);
+        filamentValue.y = static_cast<float>(value.y);
+        filamentValue.z = static_cast<float>(value.z);
+        filamentValue.w = static_cast<float>(value.w);
         ((SceneManager *)sceneManager)->setMaterialProperty(entity, materialIndex, property, filamentValue);
     }
 

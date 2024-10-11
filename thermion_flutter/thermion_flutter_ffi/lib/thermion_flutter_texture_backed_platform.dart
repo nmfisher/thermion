@@ -7,16 +7,19 @@ import 'package:thermion_flutter_ffi/thermion_flutter_method_channel_interface.d
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
+import 'package:thermion_flutter_platform_interface/thermion_flutter_window.dart';
 
 import 'platform_texture.dart';
 
 ///
 /// An implementation of [ThermionFlutterPlatform] that uses
 /// Flutter platform channels to create a rendering context,
-/// resource loaders, and surface/render target(s).
+/// resource loaders, and a texture that will be used as a render target 
+/// for a headless swapchain.
 ///
 class ThermionFlutterTextureBackedPlatform
     extends ThermionFlutterMethodChannelInterface {
+  
   final _logger = Logger("ThermionFlutterTextureBackedPlatform");
 
   static SwapChain? _swapChain;
@@ -52,11 +55,10 @@ class ThermionFlutterTextureBackedPlatform
     await texture.resize(width, height, 0, 0);
     return texture;
   }
-
-  // On MacOS, we currently use textures/render targets, so there's no window to resize
+  
   @override
-  Future<ThermionFlutterTexture?> resizeWindow(
-      int width, int height, int offsetTop, int offsetRight) {
+  Future<ThermionFlutterWindow> createWindow(int width, int height, int offsetLeft, int offsetTop) {
+    // TODO: implement createWindow
     throw UnimplementedError();
   }
 }

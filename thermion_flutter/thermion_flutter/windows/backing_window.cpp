@@ -152,8 +152,20 @@ LRESULT CALLBACK FilamentWindowProc(HWND const window, UINT const message,
     break;
   }
   case WM_ERASEBKGND: {
-    // Prevent erasing of |window| when it is unfocused and minimized or
-    // moved out of screen etc.
+      HDC hdc = (HDC)wparam;
+      RECT rect;
+      GetClientRect(window, &rect);
+      
+      // Get the BackingWindow instance associated with this window
+      BackingWindow* backing_window = reinterpret_cast<BackingWindow*>(
+          GetWindowLongPtr(window, GWLP_USERDATA));
+      
+      if (backing_window) {
+        HBRUSH brush = CreateSolidBrush(RGB(0, 255, 0));
+        FillRect(hdc, &rect, brush);
+        DeleteObject(brush);
+      }
+    
     break;
   }
   case WM_SIZE:
@@ -346,8 +358,6 @@ void BackingWindow::Resize(int width, int height, int left, int top) {
   _top = top;
   RECT flutterViewRect;
   ::GetWindowRect(_flutterViewWindow, &flutterViewRect);
-    std::cout << "Resizing to " << _width << " x " << _height << " with LT" << _left << " " << _top << " flutter view rect" << flutterViewRect.left << " " << flutterViewRect.top  << " " << flutterViewRect.right << " " << flutterViewRect.bottom << std::endl;
-
   ::SetWindowPos(_windowHandle, _flutterRootWindow, flutterViewRect.left + _left,
                  flutterViewRect.top + _top, _width, _height,
                  SWP_NOACTIVATE);

@@ -4,6 +4,7 @@ import 'package:thermion_dart/thermion_dart.dart' as t;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'thermion_flutter_texture.dart';
+import 'thermion_flutter_window.dart';
 
 class ThermionFlutterOptions {
   final String? uberarchivePath;
@@ -41,7 +42,13 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
       t.View view, int width, int height);
 
   ///
+  /// Create a rendering window.
   ///
+  /// This is internal; unless you are [thermion_*] package developer, don't
+  /// call this yourself. May not be supported on all platforms.
   ///
-  Future resizeWindow(int width, int height, int offsetTop, int offsetRight);
+  Future<ThermionFlutterWindow> createWindow(
+      int width, int height, int offsetLeft, int offsetTop);
+
+  
 }
