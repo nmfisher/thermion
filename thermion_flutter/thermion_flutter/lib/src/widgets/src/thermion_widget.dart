@@ -95,7 +95,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
     }
 
     if (Platform.isWindows) {
-      return ThermionWidgetWindows(viewer: widget.viewer);
+      return ThermionWidgetWindows(viewer: widget.viewer, view: view!, initial: widget.initial, onResize: widget.onResize);
     }
 
     return ThermionTextureWidget(

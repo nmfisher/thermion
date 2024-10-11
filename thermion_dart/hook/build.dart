@@ -32,8 +32,8 @@ void main(List<String> args) async {
       final name = "thermion_dart.dart";
       final libUri = config.outputDirectory
           .resolve(config.targetOS.libraryFileName(name, linkMode));
-      output.addAssets(
-        [
+      output.addAsset(
+        
           NativeCodeAsset(
             package: config.packageName,
             name: name,
@@ -42,8 +42,7 @@ void main(List<String> args) async {
             os: config.targetOS,
             architecture: config.dryRun ? null : config.targetArchitecture,
           )
-        ],
-        linkInPackage: null,
+        
       );
       return;
     }
@@ -58,7 +57,7 @@ void main(List<String> args) async {
         .map((f) => f.path)
         .toList();
     sources.addAll([
-      "${config.packageRoot.toFilePath()}/native/include/material/gizmo.c",
+      "${config.packageRoot.toFilePath()}/native/include/material/gizmo_material.c",
       "${config.packageRoot.toFilePath()}/native/include/material/image.c",
       "${config.packageRoot.toFilePath()}/native/include/material/grid.c",
       "${config.packageRoot.toFilePath()}/native/include/material/unlit.c",
@@ -118,7 +117,7 @@ void main(List<String> args) async {
       defines["WIN32"] = "1";
       defines["_DEBUG"] = "1";
       defines["_DLL"] = "1";
-      flags.addAll(["/std:c++20", "/MDd"]);
+      flags.addAll(["/std:c++20", "/MDd",  "/VERBOSE", ...defines.keys.map((k) => "/D$k=${defines[k]}").toList()]);
     }
 
     if (platform == "ios") {
@@ -149,16 +148,28 @@ void main(List<String> args) async {
       name: packageName,
       language: Language.cpp,
       assetName: 'thermion_dart.dart',
-      sources: sources,
-      includes: ['native/include', 'native/include/filament'],
-      defines: defines,
+      sources:         platform == "windows" ? [] :
+sources,
+      includes:[], //  ['native/include', 'native/include/filament'],
+      defines: {}, //defines,
       flags: [
         if (platform == "macos") '-mmacosx-version-min=13.0',
         if (platform == "ios") '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
+        if (platform != "windows") 
         ...libs.map((lib) => "-l$lib"),
+        if (platform != "windows") 
         "-L$libDir",
+        if(platform == "windows") 
+        ...[
+          "/IF:\\Projects\\thermion\\thermion_dart\\native\\include", "/IF:\\Projects\\thermion\\thermion_dart\\native\\include\\filament",
+          ...sources,
+          '/link', 
+          "/LIBPATH:$libDir",
+          '/DLL',
+          // '/out:foo.dll',
+        ]
       ],
       dartBuildFiles: ['hook/build.dart'],
     );
@@ -201,7 +212,7 @@ void main(List<String> args) async {
     if (config.targetOS == "windows") {
       output.addAsset(
           NativeCodeAsset(
-              package: "thermion_dart",
+              package: config.packageName,
               name: "thermion_dart.dll",
               linkMode: DynamicLoadingBundled(),
               os: config.targetOS,
