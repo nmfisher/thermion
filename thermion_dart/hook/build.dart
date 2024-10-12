@@ -150,8 +150,8 @@ void main(List<String> args) async {
       assetName: 'thermion_dart.dart',
       sources:         platform == "windows" ? [] :
 sources,
-      includes:[], //  ['native/include', 'native/include/filament'],
-      defines: {}, //defines,
+      includes: platform == "windows"? [] :  ['native/include', 'native/include/filament'],
+      defines: platform == "windows" ? {} : defines,
       flags: [
         if (platform == "macos") '-mmacosx-version-min=13.0',
         if (platform == "ios") '-mios-version-min=13.0',
@@ -163,12 +163,11 @@ sources,
         "-L$libDir",
         if(platform == "windows") 
         ...[
-          "/IF:\\Projects\\thermion\\thermion_dart\\native\\include", "/IF:\\Projects\\thermion\\thermion_dart\\native\\include\\filament",
+          "/I${config.packageRoot.toFilePath()}\\native\\include", "/I${config.packageRoot.toFilePath()}native\\include\\filament",
           ...sources,
           '/link', 
           "/LIBPATH:$libDir",
           '/DLL',
-          // '/out:foo.dll',
         ]
       ],
       dartBuildFiles: ['hook/build.dart'],
