@@ -63,12 +63,12 @@ class ThermionFlutterWindows
     var window =
         ThermionFlutterWindowImpl(result[2], _channel, viewer!);
     await window.resize(width, height, offsetLeft, offsetTop);
-    throw Exception();
-    // var view = await _viewer!.getViewAt(0);
-    // await view.updateViewport(width, height);
-    // print("Set viewport dimensions to ${width} ${height}");
-    // _swapChain = await _viewer!.createSwapChain(window.handle);    
-    // return window;
+    var view = await _viewer!.getViewAt(0);
+    
+    await view.updateViewport(width, height);
+    _swapChain = await _viewer!.createSwapChain(window.handle);    
+    await view.setRenderable(true, _swapChain!);
+    return window;
   }
   
   
