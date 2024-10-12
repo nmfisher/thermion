@@ -669,10 +669,6 @@ namespace thermion
   {
     std::lock_guard lock(_renderMutex);
     SwapChain *swapChain = _engine->createSwapChain((void *)window, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
-
-      if(!_engine->isValid(swapChain)) {
-        Log("SWAPCHAIN NOT VALID!!");
-      }
     _swapChains.push_back(swapChain);
     return swapChain;
   }
@@ -1049,18 +1045,14 @@ namespace thermion
     for(auto swapChain : _swapChains) {
       auto views = _renderable[swapChain];
       if(views.size() > 0) {
-        if(!_engine->isValid(swapChain)) {
-          Log("SWAPCHAIN NOT VALID!!");
-          continue;
-        }
         bool beginFrame = _renderer->beginFrame(swapChain, frameTimeInNanos);
         if (beginFrame) {
           for(auto view : views) {
             _renderer->render(view);
           } 
         }
+        _renderer->endFrame();
       }
-      _renderer->endFrame();
     }
 #ifdef __EMSCRIPTEN__
     _engine->execute();
