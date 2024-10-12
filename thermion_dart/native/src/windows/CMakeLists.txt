@@ -8,8 +8,6 @@ add_compile_definitions(WGL_USE_BACKING_WINDOW)
 add_compile_definitions(UNICODE)
 
 add_library(${PROJECT_NAME} SHARED
-  # "wgl_context.cpp"
-  # "backing_window.cpp"
   "thermion_window.cpp"
 )
 
