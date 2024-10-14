@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#define _USE_MATH_DEFINES
+#include <cmath>
+#endif
+
 #include "GridOverlay.hpp"
 
 #include <filament/Engine.h>
@@ -11,7 +16,7 @@
 #include "SceneManager.hpp"
 #include "Log.hpp"
 
-namespace thermion_filament {
+namespace thermion {
 
 using namespace filament::gltfio;
 
@@ -194,4 +199,4 @@ void GridOverlay::destroy()
     _engine.destroy(_gridEntity);
 }
 
-} // namespace thermion_filament
+} // namespace thermion

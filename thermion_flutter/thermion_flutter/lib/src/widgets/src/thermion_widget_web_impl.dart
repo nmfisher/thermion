@@ -2,18 +2,28 @@ import 'dart:js_util';
 import 'dart:ui' as ui;
 import 'dart:ui_web' as ui_web;
 import 'package:logging/logging.dart';
+import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:web/web.dart';
 import 'package:flutter/widgets.dart';
 
 class ThermionWidgetWeb extends StatelessWidget {
   final ThermionFlutterWebOptions options;
+  final ThermionViewer viewer;
 
   const ThermionWidgetWeb(
-      {super.key, this.options = const ThermionFlutterWebOptions.empty()});
+      {super.key, this.options = const ThermionFlutterWebOptions.empty(), required this.viewer});
 
   @override
   Widget build(BuildContext context) {
+    if (_texture == null || _resizing) {
+      return widget.initial ?? Container(color: Colors.red);
+    }
+    return ResizeObserver(
+        onResized: _resizeTexture,
+        child: ThermionWidgetWeb(
+            options: widget.options as ThermionFlutterWebOptions?));
+
     if (options?.importCanvasAsWidget == true) {
       return _ImageCopyingWidget();
     }

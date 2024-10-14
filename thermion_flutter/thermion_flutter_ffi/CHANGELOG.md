@@ -1,3 +1,46 @@
+## 0.2.1-dev.5
+
+ - Update a dependency to the latest release.
+
+## 0.2.1-dev.4
+
+ - Update a dependency to the latest release.
+
+## 0.2.1-dev.3
+
+ - Update a dependency to the latest release.
+
+## 0.2.1-dev.2
+
+ - Update a dependency to the latest release.
+
+## 0.2.1-dev.1
+
+ - Update a dependency to the latest release.
+
+## 0.2.1-dev.0
+
+ - Update a dependency to the latest release.
+
+## 0.2.1-dev.0.0.0
+
+ - y
+
+## 0.2.0
+
+ - Graduate package to a stable release. See pre-releases prior to this version for changelog entries.
+
+## 0.2.0-dev.8.0.0
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+
 ## 0.2.0-dev.7.0
 
  - Update a dependency to the latest release.

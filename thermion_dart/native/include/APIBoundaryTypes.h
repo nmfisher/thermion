@@ -8,23 +8,27 @@ extern "C"
 #include <stdint.h>
 
 	typedef int32_t EntityId;
-	typedef int32_t _ManipulatorMode;
 	typedef struct TCamera TCamera;
 	typedef struct TMaterialInstance TMaterialInstance;
 	typedef struct TEngine TEngine;
 	typedef struct TEntityManager TEntityManager;
 	typedef struct TViewer TViewer;
 	typedef struct TSceneManager TSceneManager;
-
+	typedef struct TRenderTarget TRenderTarget;
+	typedef struct TSwapChain TSwapChain;
+	typedef struct TView TView;
+	typedef struct TGizmo TGizmo;
+	typedef struct TScene TScene;
+	
 	struct TMaterialKey {
-		bool doubleSided = 1;
-		bool unlit = 1;
-		bool hasVertexColors = 1;
-		bool hasBaseColorTexture = 1;
-		bool hasNormalTexture = 1;
-		bool hasOcclusionTexture = 1;
-		bool hasEmissiveTexture = 1;
-		bool useSpecularGlossiness = 1;
+		bool doubleSided = true;
+		bool unlit = true;
+		bool hasVertexColors = true;
+		bool hasBaseColorTexture = true;
+		bool hasNormalTexture = true;
+		bool hasOcclusionTexture = true;
+		bool hasEmissiveTexture = true;
+		bool useSpecularGlossiness = true;
 		int alphaMode = 4;
 		bool enableDiagnostics = 4;
 		union {
@@ -39,42 +43,42 @@ extern "C"
 			};
 			#else
 			struct {
-				bool hasMetallicRoughnessTexture = 1;
+				bool hasMetallicRoughnessTexture = true;
 				uint8_t metallicRoughnessUV = 7;
 			};
 			struct {
-				bool hasSpecularGlossinessTexture = 1;
+				bool hasSpecularGlossinessTexture = true;
 				uint8_t specularGlossinessUV = 7;
 			};
 			#endif
 		};
 		uint8_t baseColorUV;
 		// -- 32 bit boundary --
-		bool hasClearCoatTexture = 1;
+		bool hasClearCoatTexture = true;
 		uint8_t clearCoatUV = 7;
-		bool hasClearCoatRoughnessTexture = 1;
+		bool hasClearCoatRoughnessTexture = true;
 		uint8_t clearCoatRoughnessUV = 7;
-		bool hasClearCoatNormalTexture = 1;
+		bool hasClearCoatNormalTexture = true;
 		uint8_t clearCoatNormalUV = 7;
-		bool hasClearCoat = 1;
-		bool hasTransmission = 1;
+		bool hasClearCoat = true;
+		bool hasTransmission = true;
 		bool hasTextureTransforms = 6;
 		// -- 32 bit boundary --
 		uint8_t emissiveUV;
 		uint8_t aoUV;
 		uint8_t normalUV;
-		bool hasTransmissionTexture = 1;
+		bool hasTransmissionTexture = true;
 		uint8_t transmissionUV = 7;
 		// -- 32 bit boundary --
-		bool hasSheenColorTexture = 1;
+		bool hasSheenColorTexture = true;
 		uint8_t sheenColorUV = 7;
-		bool hasSheenRoughnessTexture = 1;
+		bool hasSheenRoughnessTexture = true;
 		uint8_t sheenRoughnessUV = 7;
-		bool hasVolumeThicknessTexture = 1;
+		bool hasVolumeThicknessTexture = true;
 		uint8_t volumeThicknessUV = 7;
-		bool hasSheen = 1;
-		bool hasIOR = 1;
-		bool hasVolume = 1;
+		bool hasSheen = true;
+		bool hasIOR = true;
+		bool hasVolume = true;
 	} ;
 	typedef struct TMaterialKey TMaterialKey; 
 

@@ -20,7 +20,7 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
   static final Vector3 _right = Vector3(1, 0, 0);
 
   Vector2 _queuedRotationDelta = Vector2.zero();
-  Vector2 _queuedPanDelta = Vector2.zero();
+  Vector3 _queuedTranslateDelta = Vector3.zero();
   double _queuedZoomDelta = 0.0;
   Vector3 _queuedMoveDelta = Vector3.zero();
 
@@ -49,15 +49,15 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
         _queuedRotationDelta += Vector2(delta.x, delta.y);
         break;
       case InputAction.TRANSLATE:
-        _queuedPanDelta += Vector2(delta.x, delta.y);
-        _queuedZoomDelta += delta.z;
+        _queuedTranslateDelta += delta;
         break;
       case InputAction.PICK:
-        // Assuming PICK is used for zoom in this context
         _queuedZoomDelta += delta.z;
         break;
       case InputAction.NONE:
-        // Do nothing
+        break;
+      case InputAction.ZOOM:
+        _queuedZoomDelta += delta.z;
         break;
     }
   }
@@ -73,7 +73,7 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
     _executing = true;
 
     if (_queuedRotationDelta.length2 == 0.0 &&
-        _queuedPanDelta.length2 == 0.0 &&
+        _queuedTranslateDelta.length2 == 0.0 &&
         _queuedZoomDelta == 0.0 &&
         _queuedMoveDelta.length2 == 0.0) {
       _executing = false;
@@ -81,48 +81,43 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
     }
 
     final activeCamera = await viewer.getActiveCamera();
-    Matrix4 currentViewMatrix = activeCamera.getViewMatrix();
-    
 
     Matrix4 currentTransform = await viewer.getLocalTransform(await entity);
-    Vector3 currentPosition = currentTransform.getTranslation();
+
     Quaternion currentRotation =
         Quaternion.fromRotation(currentTransform.getRotation());
 
+    // Calculate relative transform
+    Matrix4 relativeTransform = Matrix4.identity();
+    Vector3 relativeTranslation = Vector3.zero();
+    Quaternion relativeRotation = Quaternion.identity();
+
     // Apply rotation
     if (_queuedRotationDelta.length2 > 0.0) {
-      double deltaX =
-          _queuedRotationDelta.x * rotationSensitivity * viewer.pixelRatio;
-      double deltaY =
-          _queuedRotationDelta.y * rotationSensitivity * viewer.pixelRatio;
+      double deltaX = _queuedRotationDelta.x * rotationSensitivity;
+      double deltaY = _queuedRotationDelta.y * rotationSensitivity;
 
       Quaternion yawRotation = Quaternion.axisAngle(_up, -deltaX);
       Quaternion pitchRotation = Quaternion.axisAngle(_right, -deltaY);
 
-      currentRotation = currentRotation * pitchRotation * yawRotation;
-      currentRotation.normalize();
-
+      relativeRotation = pitchRotation * yawRotation;
       _queuedRotationDelta = Vector2.zero();
     }
 
     // Apply pan
-    if (_queuedPanDelta.length2 > 0.0) {
-      Vector3 right = _right.clone()..applyQuaternion(currentRotation);
-      Vector3 up = _up.clone()..applyQuaternion(currentRotation);
+    if (_queuedTranslateDelta.length2 > 0.0) {
+      double deltaX = _queuedTranslateDelta.x * panSensitivity;
+      double deltaY = _queuedTranslateDelta.y * panSensitivity;
+      double deltaZ = -_queuedTranslateDelta.z * panSensitivity;
 
-      double deltaX = _queuedPanDelta.x * panSensitivity * viewer.pixelRatio;
-      double deltaY = _queuedPanDelta.y * panSensitivity * viewer.pixelRatio;
-
-      Vector3 panOffset = right * deltaX + up * deltaY;
-      currentPosition += panOffset;
-
-      _queuedPanDelta = Vector2.zero();
+      relativeTranslation += _right * deltaX + _up * deltaY + _forward * deltaZ;
+      _queuedTranslateDelta = Vector3.zero();
     }
 
     // Apply zoom
     if (_queuedZoomDelta != 0.0) {
       Vector3 forward = _forward.clone()..applyQuaternion(currentRotation);
-      currentPosition += forward * -_queuedZoomDelta * zoomSensitivity;
+      relativeTranslation += forward * -_queuedZoomDelta * zoomSensitivity;
       _queuedZoomDelta = 0.0;
     }
 
@@ -132,21 +127,38 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
       Vector3 right = _right.clone()..applyQuaternion(currentRotation);
       Vector3 up = _up.clone()..applyQuaternion(currentRotation);
 
-      Vector3 moveOffset = right * _queuedMoveDelta.x +
-          up * _queuedMoveDelta.y +
-          forward * _queuedMoveDelta.z;
-      currentPosition += moveOffset;
+      relativeTranslation += (right * _queuedMoveDelta.x +
+              up * _queuedMoveDelta.y +
+              forward * _queuedMoveDelta.z) *
+          movementSensitivity;
 
       _queuedMoveDelta = Vector3.zero();
     }
 
-    // Constrain position
-    currentPosition = _constrainPosition(currentPosition);
+    // If the managed entity is not the active camera, we need to apply the rotation from the current camera model matrix
+    // to the entity's translation
+    if (await entity != activeCamera.getEntity()) {
+      Matrix4 modelMatrix = await activeCamera.getModelMatrix();
+      relativeTranslation = modelMatrix.getRotation() * relativeTranslation;
+    }
+
+    // Compose relative transform
+    relativeTransform = Matrix4.compose(
+        relativeTranslation, relativeRotation, Vector3(1, 1, 1));
+
+    // Apply relative transform to current transform
+    Matrix4 newTransform = currentTransform * relativeTransform;
+
+    // Extract new position and constrain it
+    Vector3 newPosition = newTransform.getTranslation();
+    newPosition = _constrainPosition(newPosition);
+
+    // Recompose final transform with constrained position
+    Matrix4 finalTransform = Matrix4.compose(newPosition,
+        Quaternion.fromRotation(newTransform.getRotation()), Vector3(1, 1, 1));
 
     // Update camera
-    Matrix4 newModelMatrix =
-        Matrix4.compose(currentPosition, currentRotation, Vector3(1, 1, 1));
-    await viewer.setTransform(await entity, newModelMatrix);
+    await viewer.setTransform(await entity, finalTransform);
 
     _executing = false;
   }

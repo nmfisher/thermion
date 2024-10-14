@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -8,6 +9,12 @@ import 'implementations/free_flight_camera_delegate.dart';
 
 class DelegateInputHandler implements InputHandler {
   final ThermionViewer viewer;
+
+  Stream<List<InputType>> get gestures => _gesturesController.stream;
+  final _gesturesController = StreamController<List<InputType>>.broadcast();
+
+  Stream get cameraUpdated => _cameraUpdatedController.stream;
+  final _cameraUpdatedController = StreamController.broadcast();
 
   final _logger = Logger("DelegateInputHandler");
 
@@ -20,6 +27,8 @@ class DelegateInputHandler implements InputHandler {
 
   Map<InputType, InputAction> _actions = {
     InputType.LMB_HOLD_AND_MOVE: InputAction.TRANSLATE,
+    InputType.SCALE1: InputAction.TRANSLATE,
+    InputType.SCALE2: InputAction.ZOOM,
     InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
     InputType.SCROLLWHEEL: InputAction.TRANSLATE,
     InputType.POINTER_MOVE: InputAction.NONE,
@@ -54,7 +63,7 @@ class DelegateInputHandler implements InputHandler {
 
   factory DelegateInputHandler.fixedOrbit(ThermionViewer viewer,
           {double minimumDistance = 10.0,
-          double? Function(Vector3)? getDistanceToTarget,
+          Future<double?> Function(Vector3)? getDistanceToTarget,
           ThermionEntity? entity,
           PickDelegate? pickDelegate}) =>
       DelegateInputHandler(
@@ -69,11 +78,22 @@ class DelegateInputHandler implements InputHandler {
           });
 
   factory DelegateInputHandler.flight(ThermionViewer viewer,
-          {PickDelegate? pickDelegate, bool freeLook=false, double? clampY, ThermionEntity? entity}) =>
+          {PickDelegate? pickDelegate,
+          bool freeLook = false,
+          double panSensitivity = 0.1,
+          double movementSensitivity = 0.1,
+          double rotateSensitivity = 0.01,
+          double? clampY,
+          ThermionEntity? entity}) =>
       DelegateInputHandler(
           viewer: viewer,
           pickDelegate: pickDelegate,
-          transformDelegate: FreeFlightInputHandlerDelegate(viewer, clampY:clampY, entity:entity),
+          transformDelegate: FreeFlightInputHandlerDelegate(viewer,
+              clampY: clampY,
+              entity: entity,
+              rotationSensitivity: rotateSensitivity,
+              panSensitivity: panSensitivity,
+              movementSensitivity: movementSensitivity),
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
             InputType.SCROLLWHEEL: InputAction.TRANSLATE,
@@ -82,8 +102,9 @@ class DelegateInputHandler implements InputHandler {
             InputType.KEYDOWN_W: InputAction.TRANSLATE,
             InputType.KEYDOWN_S: InputAction.TRANSLATE,
             InputType.KEYDOWN_D: InputAction.TRANSLATE,
-            if(freeLook)
-            InputType.POINTER_MOVE: InputAction.ROTATE,
+            InputType.SCALE1: InputAction.TRANSLATE,
+            InputType.SCALE2: InputAction.ZOOM,
+            if (freeLook) InputType.POINTER_MOVE: InputAction.ROTATE,
           });
 
   bool _processing = false;
@@ -102,39 +123,53 @@ class DelegateInputHandler implements InputHandler {
 
       await transformDelegate?.queue(action, vector);
     }
-
+    final keyTypes = <InputType>[];
     for (final key in _pressedKeys) {
       InputAction? keyAction;
+      InputType? keyType = null;
       Vector3? vector;
 
       switch (key) {
         case PhysicalKey.W:
-          keyAction = _actions[InputType.KEYDOWN_W];
+          keyType = InputType.KEYDOWN_W;
           vector = Vector3(0, 0, -1);
           break;
         case PhysicalKey.A:
-          keyAction = _actions[InputType.KEYDOWN_A];
+          keyType = InputType.KEYDOWN_A;
           vector = Vector3(-1, 0, 0);
           break;
         case PhysicalKey.S:
-          keyAction = _actions[InputType.KEYDOWN_S];
+          keyType = InputType.KEYDOWN_S;
           vector = Vector3(0, 0, 1);
           break;
         case PhysicalKey.D:
-          keyAction = _actions[InputType.KEYDOWN_D];
+          keyType = InputType.KEYDOWN_D;
           vector = Vector3(1, 0, 0);
           break;
       }
-      if (keyAction != null) {
-        var transform = _axes[keyAction];
-        if (transform != null) {
-          vector = transform * vector;
+
+      // ignore: unnecessary_null_comparison
+      if (keyType != null) {
+        keyAction = _actions[keyType];
+
+        if (keyAction != null) {
+          var transform = _axes[keyAction];
+          if (transform != null) {
+            vector = transform * vector;
+          }
+          transformDelegate?.queue(keyAction, vector!);
+          keyTypes.add(keyType);
         }
-        transformDelegate?.queue(keyAction, vector!);
       }
     }
 
     await transformDelegate?.execute();
+    var updates = _inputDeltas.keys.followedBy(keyTypes).toList();
+    if (updates.isNotEmpty) {
+      _gesturesController.add(updates);
+      _cameraUpdatedController.add(true);
+    }
+
     _inputDeltas.clear();
     _processing = false;
   }
@@ -160,15 +195,13 @@ class DelegateInputHandler implements InputHandler {
     }
     if (isMiddle) {
       _inputDeltas[InputType.MMB_HOLD_AND_MOVE] =
-          (_inputDeltas[InputType.MMB_HOLD_AND_MOVE] ?? Vector3.zero()) + Vector3(delta.x, delta.y, 0.0);
+          (_inputDeltas[InputType.MMB_HOLD_AND_MOVE] ?? Vector3.zero()) +
+              Vector3(delta.x, delta.y, 0.0);
     } else {
       _inputDeltas[InputType.LMB_HOLD_AND_MOVE] =
-          (_inputDeltas[InputType.LMB_HOLD_AND_MOVE] ?? Vector3.zero()) + Vector3(delta.x, delta.y, 0.0);
+          (_inputDeltas[InputType.LMB_HOLD_AND_MOVE] ?? Vector3.zero()) +
+              Vector3(delta.x, delta.y, 0.0);
     }
-    // else {
-    //   _inputDeltas[InputType.POINTER_MOVE] =
-    //       (_inputDeltas[InputType.POINTER_MOVE] ?? Vector3.zero()) + delta;
-    // }
   }
 
   @override
@@ -180,7 +213,8 @@ class DelegateInputHandler implements InputHandler {
       return;
     }
     _inputDeltas[InputType.POINTER_MOVE] =
-        (_inputDeltas[InputType.POINTER_MOVE] ?? Vector3.zero()) + Vector3(delta.x, delta.y, 0.0);
+        (_inputDeltas[InputType.POINTER_MOVE] ?? Vector3.zero()) +
+            Vector3(delta.x, delta.y, 0.0);
   }
 
   @override
@@ -191,8 +225,8 @@ class DelegateInputHandler implements InputHandler {
     }
     try {
       _inputDeltas[InputType.SCROLLWHEEL] =
-          (_inputDeltas[InputType.SCROLLWHEEL] ?? Vector3.zero())
-              + Vector3(0,0, scrollDelta > 0 ? 1 : -1);
+          (_inputDeltas[InputType.SCROLLWHEEL] ?? Vector3.zero()) +
+              Vector3(0, 0, scrollDelta > 0 ? 1 : -1);
     } catch (e) {
       _logger.warning("Error during scroll accumulation: $e");
     }
@@ -205,15 +239,6 @@ class DelegateInputHandler implements InputHandler {
 
   @override
   Future<bool> get initialized => viewer.initialized;
-
-  @override
-  Future<void> onScaleEnd() async {}
-
-  @override
-  Future<void> onScaleStart() async {}
-
-  @override
-  Future<void> onScaleUpdate() async {}
 
   @override
   void setActionForType(InputType gestureType, InputAction gestureAction) {
@@ -231,5 +256,27 @@ class DelegateInputHandler implements InputHandler {
 
   void keyUp(PhysicalKey key) {
     _pressedKeys.remove(key);
+  }
+
+  @override
+  Future<void> onScaleEnd(int pointerCount) async {}
+
+  @override
+  Future<void> onScaleStart(Vector2 localPosition, int pointerCount) async {
+    // noop
+  }
+
+  @override
+  Future<void> onScaleUpdate(Vector2 focalPoint, Vector2 focalPointDelta,
+      double horizontalScale, double verticalScale, double scale, int pointerCount) async {
+    if (pointerCount == 1) {
+      _inputDeltas[InputType.SCALE1] =
+          Vector3(focalPointDelta.x, focalPointDelta.y, 0);
+    } else if (pointerCount == 2) {
+      _inputDeltas[InputType.SCALE2] =
+          Vector3(0, 0, max(horizontalScale, verticalScale));
+    } else {
+      throw UnimplementedError("Only pointerCount <= 2 supported");
+    }
   }
 }

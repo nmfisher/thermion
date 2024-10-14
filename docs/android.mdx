@@ -1,5 +1,19 @@
 ## Android
 
+### Min SDK version
+
+Thermion requires Android SDK version 22, so change your `app/android/build.gradle` to match this version or higher：
+
+```groovy
+ defaultConfig {
+    ...
+        minSdk = 22
+    ...
+    }
+```
+
+### Shrink/Minify Resources
+
 In release mode, you must add the following to your `app/build.gradle`:
 
 ```

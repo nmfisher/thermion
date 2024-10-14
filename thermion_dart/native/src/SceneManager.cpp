@@ -38,7 +38,7 @@ extern "C"
 #include "material/image.h"
 }
 
-namespace thermion_filament
+namespace thermion
 {
 
     using namespace std::chrono;
@@ -48,13 +48,12 @@ namespace thermion_filament
     using namespace filament::gltfio;
     using std::unique_ptr;
 
-    SceneManager::SceneManager(View *view,
-                               const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
+    SceneManager::SceneManager(const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
                                Engine *engine,
                                Scene *scene,
                                const char *uberArchivePath,
                                 Camera *mainCamera)
-        : _view(view),
+        : 
           _resourceLoaderWrapper(resourceLoaderWrapper),
           _engine(engine),
           _scene(scene),
@@ -99,28 +98,22 @@ namespace thermion_filament
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
 
-        gizmo = new Gizmo(*_engine, _view, _scene);
         _gridOverlay = new GridOverlay(*_engine);
 
         _scene->addEntity(_gridOverlay->sphere());
         _scene->addEntity(_gridOverlay->grid());
 
-        _view->setLayerEnabled(SceneManager::LAYERS::DEFAULT_ASSETS, true);
-        _view->setLayerEnabled(SceneManager::LAYERS::BACKGROUND, true); // skybox + image
-        _view->setLayerEnabled(SceneManager::LAYERS::OVERLAY, false); // world grid + gizmo
     }
 
     SceneManager::~SceneManager()
     {
-        _view->setScene(nullptr);
-        _view->setCamera(nullptr);
         for(auto camera : _cameras) {
             auto entity = camera->getEntity();
             _engine->destroyCameraComponent(entity);
             _engine->getEntityManager().destroy(entity);
         }
         _cameras.clear();
-        delete gizmo;
+        
         _gridOverlay->destroy();
         destroyAll();
 
@@ -136,6 +129,10 @@ namespace thermion_filament
         delete _ktxDecoder;
         delete _ubershaderProvider;
         AssetLoader::destroy(&_assetLoader);
+    }
+
+    bool SceneManager::isGizmoEntity(Entity entity) {
+        return false; // TODO    
     }
 
     int SceneManager::getInstanceCount(EntityId entityId)
@@ -260,7 +257,7 @@ namespace thermion_filament
 
     }
 
-    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer)
+    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync)
     {
 
         FilamentAsset *asset = nullptr;
@@ -307,10 +304,18 @@ namespace thermion_filament
             _gltfResourceLoader->asyncUpdateLoad();
         }
 #else
-        if (!_gltfResourceLoader->loadResources(asset))
-        {
-            Log("Unknown error loading glb asset");
-            return 0;
+        if(loadResourcesAsync) {
+            if (!_gltfResourceLoader->asyncBeginLoad(asset))
+            {
+                Log("Unknown error loading glb asset");
+                return 0;
+            }
+        } else {
+            if (!_gltfResourceLoader->loadResources(asset))
+            {
+                Log("Unknown error loading glb asset");
+                return 0;
+            }
         }
 #endif
 
@@ -534,13 +539,18 @@ namespace thermion_filament
                                    asset.second->getLightEntityCount());
             _assetLoader->destroyAsset(asset.second);
         }
-        for(auto* texture : _textures) {
+        for(auto *texture : _textures) {
             _engine->destroy(texture);
+        }
+
+        for(auto *materialInstance : _materialInstances) {
+            _engine->destroy(materialInstance);
         }
 
         // TODO - free geometry?
         _textures.clear();
         _assets.clear();
+        _materialInstances.clear();
     }
 
     FilamentInstance *SceneManager::getInstanceByEntityId(EntityId entityId)
@@ -804,7 +814,7 @@ namespace thermion_filament
     bool SceneManager::setMorphAnimationBuffer(
         EntityId entityId,
         const float *const morphData,
-        const int *const morphIndices,
+        const uint32_t *const morphIndices,
         int numMorphTargets,
         int numFrames,
         float frameLengthInMs)
@@ -1894,11 +1904,11 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
-    void SceneManager::queueRelativePositionUpdateFromViewportVector(EntityId entityId, float viewportCoordX, float viewportCoordY)
+    void SceneManager::queueRelativePositionUpdateFromViewportVector(View* view, EntityId entityId, float viewportCoordX, float viewportCoordY)
     {
         // Get the camera and viewport
-        const auto &camera = _view->getCamera();
-        const auto &vp = _view->getViewport();
+        const auto &camera = view->getCamera();
+        const auto &vp = view->getViewport();
 
         // Convert viewport coordinates to NDC space
         float ndcX = (2.0f * viewportCoordX) / vp.width - 1.0f;
@@ -2170,10 +2180,10 @@ namespace thermion_filament
         rm.setPriority(renderableInstance, priority);
     }
 
-    Aabb2 SceneManager::getBoundingBox(EntityId entityId)
+    Aabb2 SceneManager::getBoundingBox(View *view, EntityId entityId)
     {
-        const auto &camera = _view->getCamera();
-        const auto &viewport = _view->getViewport();
+        const auto &camera = view->getCamera();
+        const auto &viewport = view->getViewport();
 
         auto &tcm = _engine->getTransformManager();
         auto &rcm = _engine->getRenderableManager();
@@ -2240,11 +2250,6 @@ namespace thermion_filament
         }
 
         return Aabb2{minX, minY, maxX, maxY};
-    }
-
-    void SceneManager::setLayerVisibility(LAYERS layer, bool enabled)
-    {
-        _view->setLayerEnabled(layer, enabled);
     }
 
     void SceneManager::removeStencilHighlight(EntityId entityId)
@@ -2464,6 +2469,7 @@ EntityId SceneManager::createGeometry(
         }
         materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 0.0f, 1.0f, 1.0f});
         materialInstance->setParameter("baseColorIndex", 0);
+        _materialInstances.push_back(materialInstance);
         return materialInstance;
     }
 
@@ -2471,6 +2477,7 @@ EntityId SceneManager::createGeometry(
         UvMap uvmap;
         auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
         instance->setParameter("uvScale", filament::math::float2 { 1.0f, 1.0f });
+        _materialInstances.push_back(instance);
         return instance;
     }
 
@@ -2491,10 +2498,6 @@ EntityId SceneManager::createGeometry(
         }
     }
 
-    void SceneManager::setCamera(Camera* camera) {
-        _view->setCamera(camera);
-    }
-
     size_t SceneManager::getCameraCount() {
         return _cameras.size() + 1;
     }
@@ -2508,11 +2511,6 @@ EntityId SceneManager::createGeometry(
         }
         return _cameras[index-1];
     }
-
-    Camera* SceneManager::getActiveCamera() { 
-        auto& camera = _view->getCamera();
-        return &camera;
-    }
        
 
-} // namespace thermion_filament
+} // namespace thermion

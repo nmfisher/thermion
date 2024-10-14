@@ -2,8 +2,10 @@
 #define _DART_FILAMENT_FFI_API_H
 
 #include "ThermionDartApi.h"
+#include "TView.h"
 
 #ifdef __cplusplus
+namespace thermion {
 extern "C"
 {
 #endif
@@ -17,7 +19,7 @@ extern "C"
     typedef int32_t EntityId;
     typedef void (*FilamentRenderCallback)(void *const owner);
 
-    EMSCRIPTEN_KEEPALIVE void create_filament_viewer_render_thread(
+    EMSCRIPTEN_KEEPALIVE void Viewer_createOnRenderThread(
         void *const context,
         void *const platform,
         const char *uberArchivePath,
@@ -25,32 +27,38 @@ extern "C"
         void (*renderCallback)(void *const renderCallbackOwner),
         void *const renderCallbackOwner,
         void (*callback)(TViewer *viewer));
-    EMSCRIPTEN_KEEPALIVE void create_swap_chain_render_thread(TViewer *viewer, void *const surface, uint32_t width, uint32_t height, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void destroy_swap_chain_render_thread(TViewer *viewer, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void create_render_target_render_thread(TViewer *viewer, intptr_t nativeTextureId, uint32_t width, uint32_t height, void (*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer, void *const surface, void (*onComplete)(TSwapChain*));
+    EMSCRIPTEN_KEEPALIVE void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer, uint32_t width, uint32_t height, void (*onComplete)(TSwapChain*));
+    EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain* swapChain, void (*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView* view, TSwapChain* swapChain);
+    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, uint8_t* out, void (*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void Viewer_loadIblRenderThread(TViewer *viewer, const char *iblPath, float intensity, void(*onComplete)());
+    EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping);
+    EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, double bloom);
+
+
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer);
-    EMSCRIPTEN_KEEPALIVE void render_render_thread(TViewer *viewer);
-    EMSCRIPTEN_KEEPALIVE void capture_render_thread(TViewer *viewer, uint8_t* out, void (*onComplete)());
-    EMSCRIPTEN_KEEPALIVE FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
+    
+    FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
     EMSCRIPTEN_KEEPALIVE void set_rendering_render_thread(TViewer *viewer, bool rendering, void(*onComplete)());
-    EMSCRIPTEN_KEEPALIVE void request_frame_render_thread(TViewer *viewer, void(*onComplete)());
+    
     EMSCRIPTEN_KEEPALIVE void set_frame_interval_render_thread(TViewer *viewer, float frameInterval);
     EMSCRIPTEN_KEEPALIVE void set_background_color_render_thread(TViewer *viewer, const float r, const float g, const float b, const float a);
     EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer);
     EMSCRIPTEN_KEEPALIVE void set_background_image_render_thread(TViewer *viewer, const char *path, bool fillHeight, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void set_background_image_position_render_thread(TViewer *viewer, float x, float y, bool clamp);
-    EMSCRIPTEN_KEEPALIVE void set_tone_mapping_render_thread(TViewer *viewer, int toneMapping);
-    EMSCRIPTEN_KEEPALIVE void set_bloom_render_thread(TViewer *viewer, float strength);
     EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer, const char *skyboxPath, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer);
 
+    EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
-    EMSCRIPTEN_KEEPALIVE void load_glb_from_buffer_render_thread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void create_instance_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void remove_entity_render_thread(TViewer *viewer, EntityId asset, void (*callback)());
     EMSCRIPTEN_KEEPALIVE void clear_entities_render_thread(TViewer *viewer, void (*callback)());
-    EMSCRIPTEN_KEEPALIVE void set_camera_render_thread(TViewer *viewer, EntityId asset, const char *nodeName, void (*callback)(bool));
+    
     EMSCRIPTEN_KEEPALIVE void apply_weights_render_thread(
         TSceneManager *sceneManager,
         EntityId asset,
@@ -98,6 +106,7 @@ extern "C"
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

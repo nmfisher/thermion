@@ -20,7 +20,7 @@
 #include "CustomGeometry.hpp"
 #include "UnprojectTexture.hpp"
 
-namespace thermion_filament
+namespace thermion
 {
 
     bool UnprojectTexture::isInsideTriangle(const math::float2 &p, const math::float2 &a, const math::float2 &b, const math::float2 &c)
@@ -207,5 +207,5 @@ namespace thermion_filament
         }
     }
 
-} // namespace thermion_filament
+} // namespace thermion
 

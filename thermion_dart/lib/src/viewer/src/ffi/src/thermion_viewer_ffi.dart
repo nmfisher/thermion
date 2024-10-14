@@ -1,20 +1,20 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_gizmo.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
-import '../../../../entities/gizmo.dart';
-import '../../../../utils/matrix.dart';
+import '../../../../utils/src/gizmo.dart';
+import '../../../../utils/src/matrix.dart';
 import '../../events.dart';
-import '../../shared_types/camera.dart';
+import '../../shared_types/view.dart';
 import '../../thermion_viewer_base.dart';
 import 'package:logging/logging.dart';
 
 import 'callbacks.dart';
-import 'camera_ffi.dart';
-import 'thermion_dart.g.dart';
+import 'ffi_camera.dart';
+import 'ffi_view.dart';
 
 // ignore: constant_identifier_names
 const ThermionEntity _FILAMENT_ASSET_ERROR = 0;
@@ -23,8 +23,6 @@ typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
 class ThermionViewerFFI extends ThermionViewer {
   final _logger = Logger("ThermionViewerFFI");
-
-  double pixelRatio = 1.0;
 
   Pointer<TSceneManager>? _sceneManager;
 
@@ -86,25 +84,47 @@ class ThermionViewerFFI extends ThermionViewer {
     this._sharedContext = sharedContext ?? nullptr;
 
     _onPickResultCallable =
-        NativeCallable<Void Function(EntityId entityId, Int x, Int y)>.listener(
+        NativeCallable<Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view)>.listener(
             _onPickResult);
-
-    _onGizmoPickResultCallable =
-        NativeCallable<Void Function(EntityId entityId, Int x, Int y)>.listener(
-            _onGizmoPickResult);
 
     _initialize();
   }
 
-  Future createRenderTarget(
-      double width, double height, int textureHandle) async {
-    await withVoidCallback((callback) => create_render_target_render_thread(
-        _viewer!, textureHandle, width.toInt(), height.toInt(), callback));
+  ///
+  ///
+  ///
+  Future<RenderTarget> createRenderTarget(
+      int width, int height, int textureHandle) async {
+    final renderTarget =
+        Viewer_createRenderTarget(_viewer!, textureHandle, width, height);
+    return FFIRenderTarget(renderTarget, _viewer!);
   }
 
+  ///
+  ///
+  ///
+  Future setRenderTarget(FFIRenderTarget renderTarget) async {
+    final view = (await getViewAt(0)) as FFIView;
+    View_setRenderTarget(view.view, renderTarget.renderTarget);
+  }
+
+  ///
+  ///
+  ///
+  Future<View> createView() async {
+    var view = Viewer_createView(_viewer!);
+    if (view == nullptr) {
+      throw Exception("Failed to create view");
+    }
+    return FFIView(view, _viewer!);
+  }
+
+  ///
+  ///
+  ///
   Future updateViewportAndCameraProjection(double width, double height) async {
-    viewportDimensions = (width * pixelRatio, height * pixelRatio);
-    update_viewport(_viewer!, width.toInt(), height.toInt());
+    var mainView = FFIView(Viewer_getViewAt(_viewer!, 0), _viewer!);
+    mainView.updateViewport(width.toInt(), height.toInt());
 
     final cameraCount = await getCameraCount();
 
@@ -119,7 +139,7 @@ class ThermionViewerFFI extends ThermionViewer {
         far = kFar;
       }
 
-      var aspect = viewportDimensions.$1 / viewportDimensions.$2;
+      var aspect = width / height;
       var focalLength = await camera.getFocalLength();
       if (focalLength.abs() < 0.1) {
         focalLength = kFocalLength;
@@ -129,18 +149,26 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  Future createSwapChain(double width, double height,
-      {Pointer<Void>? surface}) async {
-    await withVoidCallback((callback) {
-      create_swap_chain_render_thread(_viewer!, surface ?? nullptr,
-          width.toInt(), height.toInt(), callback);
+  ///
+  ///
+  ///
+  Future<SwapChain> createHeadlessSwapChain(int width, int height) async {
+    var swapChain = await withPointerCallback<TSwapChain>((callback) {
+      return Viewer_createHeadlessSwapChainRenderThread(
+          _viewer!, width, height, callback);
     });
+    return FFISwapChain(swapChain, _viewer!);
   }
 
-  Future destroySwapChain() async {
-    await withVoidCallback((callback) {
-      destroy_swap_chain_render_thread(_viewer!, callback);
+  ///
+  ///
+  ///
+  Future<SwapChain> createSwapChain(int surface) async {
+    var swapChain = await withPointerCallback<TSwapChain>((callback) {
+      return Viewer_createSwapChainRenderThread(
+          _viewer!, Pointer<Void>.fromAddress(surface), callback);
     });
+    return FFISwapChain(swapChain, _viewer!);
   }
 
   Gizmo? _gizmo;
@@ -150,18 +178,12 @@ class ThermionViewerFFI extends ThermionViewer {
     final uberarchivePtr =
         uberArchivePath?.toNativeUtf8(allocator: allocator).cast<Char>() ??
             nullptr;
-    var viewer = await withPointerCallback(
+    _viewer = await withPointerCallback(
         (Pointer<NativeFunction<Void Function(Pointer<TViewer>)>> callback) {
-      create_filament_viewer_render_thread(
-          _sharedContext,
-          _driver,
-          uberarchivePtr,
-          resourceLoader,
-          _renderCallback,
-          _renderCallbackOwner,
-          callback);
+      Viewer_createOnRenderThread(_sharedContext, _driver, uberarchivePtr,
+          resourceLoader, _renderCallback, _renderCallbackOwner, callback);
     });
-    _viewer = Pointer.fromAddress(viewer);
+
     allocator.free(uberarchivePtr);
     if (_viewer!.address == 0) {
       throw Exception("Failed to create viewer. Check logs for details");
@@ -169,13 +191,6 @@ class ThermionViewerFFI extends ThermionViewer {
 
     _sceneManager = Viewer_getSceneManager(_viewer!);
 
-    await setCameraManipulatorOptions(zoomSpeed: 1.0);
-
-    final gizmoEntities = allocator<Int32>(4);
-    get_gizmo(_sceneManager!, gizmoEntities);
-    _gizmo = Gizmo(gizmoEntities[0], gizmoEntities[1], gizmoEntities[2],
-        gizmoEntities[3], this);
-    allocator.free(gizmoEntities);
     this._initialized.complete(true);
   }
 
@@ -202,25 +217,37 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future render() async {
-    render_render_thread(_viewer!);
+  Future render({FFISwapChain? swapChain}) async {
+    final view = (await getViewAt(0)) as FFIView;
+    swapChain ??= FFISwapChain(Viewer_getSwapChainAt(_viewer!, 0), _viewer!);
+    Viewer_renderRenderThread(_viewer!, view.view, swapChain.swapChain);
   }
 
   ///
   ///
   ///
   @override
-  Future<Uint8List> capture() async {
-    final length = this.viewportDimensions.$1.toInt() *
-        this.viewportDimensions.$2.toInt() *
-        4;
-    final out = allocator<Uint8>(length);
+  Future<Uint8List> capture(
+      {FFIView? view,
+      FFISwapChain? swapChain,
+      FFIRenderTarget? renderTarget}) async {
+    view ??= (await getViewAt(0)) as FFIView;
+    final vp = await view.getViewport();
+    final length = vp.width * vp.height * 4;
+    final out = Uint8List(length);
+
+    swapChain ??= FFISwapChain(Viewer_getSwapChainAt(_viewer!, 0), _viewer!);
+
     await withVoidCallback((cb) {
-      capture_render_thread(_viewer!, out, cb);
+      if (renderTarget != null) {
+        Viewer_captureRenderTargetRenderThread(_viewer!, view!.view,
+            swapChain!.swapChain, renderTarget.renderTarget, out.address, cb);
+      } else {
+        Viewer_captureRenderThread(
+            _viewer!, view!.view, swapChain!.swapChain, out.address, cb);
+      }
     });
-    final data = Uint8List.fromList(out.asTypedList(length));
-    allocator.free(out);
-    return data;
+    return out;
   }
 
   ///
@@ -246,9 +273,7 @@ class ThermionViewerFFI extends ThermionViewer {
     await setRendering(false);
     await clearEntities();
     await clearLights();
-    print("DESTROYING");
     destroy_filament_viewer_render_thread(_viewer!);
-    print("DESTROYED");
     _sceneManager = null;
     _viewer = null;
     await _pickResultController.close();
@@ -259,7 +284,6 @@ class ThermionViewerFFI extends ThermionViewer {
       await callback.call();
     }
     _onDispose.clear();
-    print("DONE");
   }
 
   ///
@@ -336,7 +360,12 @@ class ThermionViewerFFI extends ThermionViewer {
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
     final pathPtr =
         lightingPath.toNativeUtf8(allocator: allocator).cast<Char>();
-    load_ibl(_viewer!, pathPtr, intensity);
+
+    await withVoidCallback((cb) {
+      Viewer_loadIblRenderThread(_viewer!, pathPtr, intensity, cb);
+    });
+
+    
   }
 
   ///
@@ -409,24 +438,24 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
     var entity = add_light(
-        _viewer!,
-        directLight.type.index,
-        directLight.color,
-        directLight.intensity,
-        directLight.position.x,
-        directLight.position.y,
-        directLight.position.z,
-        directLight.direction.x,
-        directLight.direction.y,
-        directLight.direction.z,
-        directLight.falloffRadius,
-        directLight.spotLightConeInner,
-        directLight.spotLightConeOuter,
-        directLight.sunAngularRadius,
-        directLight.sunHaloSize,
-        directLight.sunHaloFallof,
-        directLight.castShadows,
-        );
+      _viewer!,
+      directLight.type.index,
+      directLight.color,
+      directLight.intensity,
+      directLight.position.x,
+      directLight.position.y,
+      directLight.position.z,
+      directLight.direction.x,
+      directLight.direction.y,
+      directLight.direction.z,
+      directLight.falloffRadius,
+      directLight.spotLightConeInner,
+      directLight.spotLightConeOuter,
+      directLight.sunAngularRadius,
+      directLight.sunHaloSize,
+      directLight.sunHaloFallof,
+      directLight.castShadows,
+    );
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to add light to scene");
     }
@@ -501,6 +530,7 @@ class ThermionViewerFFI extends ThermionViewer {
     final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
     var entity = await withIntCallback((callback) => load_glb_render_thread(
         _sceneManager!, pathPtr, numInstances, keepData, callback));
+
     allocator.free(pathPtr);
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading the asset at $path");
@@ -521,7 +551,7 @@ class ThermionViewerFFI extends ThermionViewer {
       int numInstances = 1,
       bool keepData = false,
       int priority = 4,
-      int layer = 0}) async {
+      int layer = 0, bool loadResourcesAsync=false}) async {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
@@ -531,8 +561,8 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var entity = await withIntCallback((callback) =>
-        load_glb_from_buffer_render_thread(_sceneManager!, data.address,
-            data.length, numInstances, keepData, priority, layer, callback));
+        SceneManager_loadGlbFromBufferRenderThread(_sceneManager!, data.address,
+            data.length, numInstances, keepData, priority, layer, loadResourcesAsync, callback));
 
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading GLB from buffer");
@@ -558,54 +588,6 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     return entity;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future panStart(double x, double y) async {
-    grab_begin(_viewer!, x * pixelRatio, y * pixelRatio, true);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future panUpdate(double x, double y) async {
-    grab_update(_viewer!, x * pixelRatio, y * pixelRatio);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future panEnd() async {
-    grab_end(_viewer!);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future rotateStart(double x, double y) async {
-    grab_begin(_viewer!, x * pixelRatio, y * pixelRatio, false);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future rotateUpdate(double x, double y) async {
-    grab_update(_viewer!, x * pixelRatio, y * pixelRatio);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future rotateEnd() async {
-    grab_end(_viewer!);
   }
 
   ///
@@ -752,7 +734,7 @@ class ThermionViewerFFI extends ThermionViewer {
       var meshEntity = meshEntities[i];
 
       if (targetMeshNames?.contains(meshName) == false) {
-        _logger.info("Skipping $meshName, not contained in target");
+        // _logger.info("Skipping $meshName, not contained in target");
         continue;
       }
 
@@ -772,39 +754,24 @@ class ThermionViewerFFI extends ThermionViewer {
             Child meshes: ${meshNames}""");
       }
 
-      var indices =
-          intersection.map((m) => meshMorphTargets.indexOf(m)).toList();
+      var indices = Uint32List.fromList(
+          intersection.map((m) => meshMorphTargets.indexOf(m)).toList());
 
-      var frameData = animation.extract(morphTargets: intersection);
+      // var frameData = animation.data;
+      var frameData = animation.subset(intersection);
 
-      assert(frameData.length == animation.numFrames * intersection.length);
+      assert(
+          frameData.data.length == animation.numFrames * intersection.length);
 
-      var dataPtr = allocator<Float>(frameData.length);
-
-      // not currently working on WASM :( wasted a lot of time figuring that out as no error is thrown
-      // dataPtr
-      //     .asTypedList(frameData.length)
-      //     .setRange(0, frameData.length, frameData);
-      for (int i = 0; i < frameData.length; i++) {
-        dataPtr[i] = frameData[i];
-      }
-
-      final idxPtr = allocator<Int>(indices.length);
-
-      for (int i = 0; i < indices.length; i++) {
-        idxPtr[i] = indices[i];
-      }
-
-      var result = set_morph_animation(
+      var result = SceneManager_setMorphAnimation(
           _sceneManager!,
           meshEntity,
-          dataPtr,
-          idxPtr,
+          frameData.data.address,
+          indices.address,
           indices.length,
           animation.numFrames,
           animation.frameLengthInMs);
-      allocator.free(dataPtr);
-      allocator.free(idxPtr);
+
       if (!result) {
         throw Exception("Failed to set morph animation data for ${meshName}");
       }
@@ -1066,33 +1033,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  ///
-  ///
-  ///
-  @override
-  Future zoomBegin() async {
-    scroll_begin(_viewer!);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future zoomUpdate(double x, double y, double z) async {
-    scroll_update(_viewer!, x, y, z);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future zoomEnd() async {
-    scroll_end(_viewer!);
-  }
-
-  ///
-  ///
-  ///
   @override
   Future playAnimation(ThermionEntity entity, int index,
       {bool loop = false,
@@ -1158,7 +1098,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setMainCamera() async {
-    set_main_camera(_viewer!);
+    final view = (await getViewAt(0)) as FFIView;
+    Viewer_setMainCamera(_viewer!, view.view);
   }
 
   ///
@@ -1179,7 +1120,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<Camera?> getCameraComponent(ThermionEntity cameraEntity) async {
     var engine = Viewer_getEngine(_viewer!);
     var camera = Engine_getCameraComponent(engine, cameraEntity);
-    return ThermionFFICamera(camera, engine);
+    return FFICamera(camera, engine);
   }
 
   ///
@@ -1189,11 +1130,14 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setCamera(ThermionEntity entity, String? name) async {
     var cameraNamePtr =
         name?.toNativeUtf8(allocator: allocator).cast<Char>() ?? nullptr;
-    var result = set_camera(_viewer!, entity, cameraNamePtr);
-    allocator.free(cameraNamePtr);
-    if (!result) {
+    final camera =
+        SceneManager_findCameraByName(_sceneManager!, entity, cameraNamePtr);
+    if (camera == nullptr) {
       throw Exception("Failed to set camera");
     }
+    final view = (await getViewAt(0)) as FFIView;
+    View_setCamera(view.view, camera);
+    allocator.free(cameraNamePtr);
   }
 
   ///
@@ -1201,7 +1145,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setToneMapping(ToneMapper mapper) async {
-    set_tone_mapping_render_thread(_viewer!, mapper.index);
+    final view = await getViewAt(0);
+    view.setToneMapper(mapper);
   }
 
   ///
@@ -1209,7 +1154,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setPostProcessing(bool enabled) async {
-    set_post_processing_render_thread(_viewer!, enabled);
+    final view = await getViewAt(0) as FFIView;
+    View_setPostProcessing(view.view, enabled);
   }
 
   ///
@@ -1217,14 +1163,16 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setShadowsEnabled(bool enabled) async {
-    set_shadows_enabled(_viewer!, enabled);
+    final view = await getViewAt(0) as FFIView;
+    View_setShadowsEnabled(view.view, enabled);
   }
 
   ///
   ///
   ///
   Future setShadowType(ShadowType shadowType) async {
-    set_shadow_type(_viewer!, shadowType.index);
+    final view = await getViewAt(0) as FFIView;
+    View_setShadowType(view.view, shadowType.index);
   }
 
   ///
@@ -1232,7 +1180,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setSoftShadowOptions(
       double penumbraScale, double penumbraRatioScale) async {
-    set_soft_shadow_options(_viewer!, penumbraScale, penumbraRatioScale);
+    final view = await getViewAt(0) as FFIView;
+    View_setSoftShadowOptions(view.view, penumbraScale, penumbraRatioScale);
   }
 
   ///
@@ -1240,7 +1189,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    set_antialiasing(_viewer!, msaa, fxaa, taa);
+    final view = await getViewAt(0) as FFIView;
+    View_setAntiAliasing(view.view, msaa, fxaa, taa);
   }
 
   ///
@@ -1248,7 +1198,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setBloom(double bloom) async {
-    set_bloom_render_thread(_viewer!, bloom);
+    final view = await getViewAt(0) as FFIView;
+    View_setBloom(view.view, bloom);
   }
 
   ///
@@ -1263,7 +1214,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<double> getCameraFov(bool horizontal) async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     return get_camera_fov(mainCamera.camera, horizontal);
   }
 
@@ -1292,7 +1243,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<double> getCameraNear() async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     return get_camera_near(mainCamera.camera);
   }
 
@@ -1301,7 +1252,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<double> getCameraCullingFar() async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     return get_camera_culling_far(mainCamera.camera);
   }
 
@@ -1310,7 +1261,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraFocusDistance(double focusDistance) async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     set_camera_focus_distance(mainCamera.camera, focusDistance);
   }
 
@@ -1337,7 +1288,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setViewFrustumCulling(bool enabled) async {
-    set_view_frustum_culling(_viewer!, enabled);
+    var view = await getViewAt(0);
+    view.setFrustumCullingEnabled(enabled);
   }
 
   ///
@@ -1346,7 +1298,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     set_camera_exposure(mainCamera.camera, aperture, shutterSpeed, sensitivity);
   }
 
@@ -1375,23 +1327,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setCameraModelMatrix4(Matrix4 modelMatrix) async {
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     final out = matrix4ToDouble4x4(modelMatrix);
     set_camera_model_matrix(mainCamera.camera, out);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future setCameraLensProjection(
-      {double near = kNear,
-      double far = kFar,
-      double? aspect,
-      double focalLength = kFocalLength}) async {
-    aspect ??= viewportDimensions.$1 / viewportDimensions.$2;
-    var mainCamera = get_camera(_viewer!, get_main_camera(_viewer!));
-    Camera_setLensProjection(mainCamera, near, far, aspect, focalLength);
   }
 
   ///
@@ -1480,7 +1418,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future queuePositionUpdateFromViewportCoords(
       ThermionEntity entity, double x, double y) async {
-    queue_position_update_from_viewport_coords(_sceneManager!, entity, x, y);
+    final view = (await getViewAt(0)) as FFIView;
+    queue_position_update_from_viewport_coords(
+        _sceneManager!, view.view, entity, x, y);
   }
 
   ///
@@ -1529,46 +1469,28 @@ class ThermionViewerFFI extends ThermionViewer {
     return result.cast<Utf8>().toDartString();
   }
 
-  void _onPickResult(ThermionEntity entityId, int x, int y) {
-    _pickResultController.add((
-      entity: entityId,
-      x: (x / pixelRatio).toDouble(),
-      y: (viewportDimensions.$2 - y) / pixelRatio
-    ));
+  void _onPickResult(
+      ThermionEntity entityId, int x, int y, Pointer<TView> viewPtr) async {
+    final view = FFIView(viewPtr, _viewer!);
+    final viewport = await view.getViewport();
+
+    _pickResultController
+        .add((entity: entityId, x: x.ceil(), y: (viewport.height - y).ceil()));
   }
 
-  void _onGizmoPickResult(ThermionEntity entityId, int x, int y) {
-    _gizmoPickResultController.add((
-      entity: entityId,
-      x: (x / pixelRatio).toDouble(),
-      y: (viewportDimensions.$2 - y) / pixelRatio
-    ));
-  }
-
-  late NativeCallable<Void Function(EntityId entityId, Int x, Int y)>
+  late NativeCallable<Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view)>
       _onPickResultCallable;
-  late NativeCallable<Void Function(EntityId entityId, Int x, Int y)>
-      _onGizmoPickResultCallable;
 
   ///
   ///
   ///
   @override
   void pick(int x, int y) async {
-    x = (x * pixelRatio).ceil();
-    y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
-
-    filament_pick(_viewer!, x, y, _onPickResultCallable.nativeFunction);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  void pickGizmo(int x, int y) async {
-    x = (x * pixelRatio).ceil();
-    y = (viewportDimensions.$2 - (y * pixelRatio)).ceil();
-    pick_gizmo(_sceneManager!, x, y, _onGizmoPickResultCallable.nativeFunction);
+    final view = (await getViewAt(0)) as FFIView;
+    var viewport = await view.getViewport();
+    y = (viewport.height - y).ceil();
+    Viewer_pick(
+        _viewer!, view.view, x, y, _onPickResultCallable.nativeFunction);
   }
 
   ///
@@ -1579,7 +1501,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var matrixStruct = get_camera_view_matrix(mainCamera.camera);
     return double4x4ToMatrix4(matrixStruct);
   }
@@ -1592,7 +1514,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var matrixStruct = get_camera_model_matrix(mainCamera.camera);
     return double4x4ToMatrix4(matrixStruct);
   }
@@ -1605,7 +1527,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var matrixStruct = get_camera_projection_matrix(mainCamera.camera);
     return double4x4ToMatrix4(matrixStruct);
   }
@@ -1618,7 +1540,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var matrixStruct = get_camera_culling_projection_matrix(mainCamera.camera);
     return double4x4ToMatrix4(matrixStruct);
   }
@@ -1649,27 +1571,6 @@ class ThermionViewerFFI extends ThermionViewer {
     return rotationMatrix;
   }
 
-  ManipulatorMode _cameraMode = ManipulatorMode.ORBIT;
-
-  ///
-  ///
-  ///
-  @override
-  Future setCameraManipulatorOptions(
-      {ManipulatorMode? mode,
-      double orbitSpeedX = 0.01,
-      double orbitSpeedY = 0.01,
-      double zoomSpeed = 0.01}) async {
-    if (mode != null) {
-      _cameraMode = mode;
-    }
-    if (_cameraMode != ManipulatorMode.ORBIT) {
-      throw Exception("Manipulator mode $mode not yet implemented");
-    }
-    set_camera_manipulator_options(
-        _viewer!, _cameraMode.index, orbitSpeedX, orbitSpeedX, zoomSpeed);
-  }
-
   ///
   ///
   ///
@@ -1678,7 +1579,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (_viewer == null) {
       throw Exception("No viewer available");
     }
-    var mainCamera = await getMainCamera() as ThermionFFICamera;
+    var mainCamera = await getMainCamera() as FFICamera;
     var arrayPtr = get_camera_frustum(mainCamera.camera);
     var doubleList = arrayPtr.asTypedList(24);
 
@@ -1745,24 +1646,6 @@ class ThermionViewerFFI extends ThermionViewer {
       names.add(name.cast<Utf8>().toDartString());
     }
     return names;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future setRecording(bool recording) async {
-    set_recording(_viewer!, recording);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future setRecordingOutputDirectory(String outputDir) async {
-    var pathPtr = outputDir.toNativeUtf8(allocator: allocator);
-    set_recording_output_directory(_viewer!, pathPtr.cast<Char>());
-    allocator.free(pathPtr);
   }
 
   final _collisions = <ThermionEntity, NativeCallable>{};
@@ -1917,7 +1800,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<v64.Aabb2> getViewportBoundingBox(ThermionEntity entityId) async {
-    final result = get_bounding_box(_sceneManager!, entityId);
+    final view = (await getViewAt(0)) as FFIView;
+    final result = get_bounding_box(_sceneManager!, view.view, entityId);
     return v64.Aabb2.minMax(v64.Vector2(result.minX, result.minY),
         v64.Vector2(result.maxX, result.maxY));
   }
@@ -1925,24 +1809,16 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future setLayerVisibility(int layer, bool visible) {
-    set_layer_visibility(_sceneManager!, layer, visible);
-    return Future.value();
+  Future setLayerVisibility(int layer, bool visible) async {
+    final view = (await getViewAt(0)) as FFIView;
+    View_setLayerEnabled(view.view, layer, visible);
   }
 
   ///
   ///
   ///
-  Future setVisibilityLayer(ThermionEntity entity, int layer) {
-    set_visibility_layer(_sceneManager!, entity, layer);
-    return Future.value();
-  }
-
-  ///
-  ///
-  ///
-  Future setGizmoVisibility(bool visible) async {
-    set_gizmo_visibility(_sceneManager!, visible);
+  Future setVisibilityLayer(ThermionEntity entity, int layer) async {
+    SceneManager_setVisibilityLayer(_sceneManager!, entity, layer);
   }
 
   ///
@@ -2160,35 +2036,41 @@ class ThermionViewerFFI extends ThermionViewer {
       completer.complete(true);
     });
 
-    request_frame_render_thread(_viewer!, callback.nativeFunction);
+    Viewer_requestFrameRenderThread(_viewer!, callback.nativeFunction);
 
-    await completer.future;
+    try {
+      await completer.future.timeout(Duration(seconds: 1));
+    } catch (err) {
+      print("WARNING - render call timed out");
+    }
   }
 
   Future<Camera> createCamera() async {
     var cameraPtr = SceneManager_createCamera(_sceneManager!);
     var engine = Viewer_getEngine(_viewer!);
-    var camera = ThermionFFICamera(cameraPtr, engine);
+    var camera = FFICamera(cameraPtr, engine);
     return camera;
   }
 
-  Future destroyCamera(ThermionFFICamera camera) async {
+  Future destroyCamera(FFICamera camera) async {
     SceneManager_destroyCamera(_sceneManager!, camera.camera);
   }
 
   ///
   ///
   ///
-  Future setActiveCamera(ThermionFFICamera camera) async {
-    SceneManager_setCamera(_sceneManager!, camera.camera);
+  Future setActiveCamera(FFICamera camera) async {
+    final view = (await getViewAt(0)) as FFIView;
+    View_setCamera(view.view, camera.camera);
   }
 
   ///
   ///
   ///
   Future<Camera> getActiveCamera() async {
-    final ptr = SceneManager_getActiveCamera(_sceneManager!);
-    return ThermionFFICamera(ptr, Viewer_getEngine(_viewer!));
+    final view = (await getViewAt(0)) as FFIView;
+    final ptr = View_getCamera(view.view);
+    return FFICamera(ptr, Viewer_getEngine(_viewer!));
   }
 
   final _hooks = <Future Function()>[];
@@ -2223,7 +2105,24 @@ class ThermionViewerFFI extends ThermionViewer {
     if (camera == nullptr) {
       throw Exception("No camera at index $index");
     }
-    return ThermionFFICamera(camera, Viewer_getEngine(_viewer!));
+    return FFICamera(camera, Viewer_getEngine(_viewer!));
+  }
+
+  @override
+  Future<View> getViewAt(int index) async {
+    var view = Viewer_getViewAt(_viewer!, index);
+    if (view == nullptr) {
+      throw Exception("Failed to get view");
+    }
+    return FFIView(view, _viewer!);
+  }
+
+  @override
+  Future<Gizmo> createGizmo(FFIView view) async {
+    var view = (await getViewAt(0)) as FFIView;
+    var scene = View_getScene(view.view);
+    final gizmo = Gizmo_new(Viewer_getEngine(_viewer!), view.view, scene);
+    return FFIGizmo(gizmo, this);
   }
 }
 
@@ -2252,5 +2151,30 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
   Future setParameterFloat2(String name, double x, double y) async {
     MaterialInstance_setParameterFloat2(
         _pointer, name.toNativeUtf8().cast<Char>(), x, y);
+  }
+}
+
+class FFIRenderTarget extends RenderTarget {
+  final Pointer<TRenderTarget> renderTarget;
+  final Pointer<TViewer> viewer;
+
+  FFIRenderTarget(this.renderTarget, this.viewer);
+
+  @override
+  Future destroy() async {
+    Viewer_destroyRenderTarget(viewer, renderTarget);
+  }
+}
+
+class FFISwapChain extends SwapChain {
+  final Pointer<TSwapChain> swapChain;
+  final Pointer<TViewer> viewer;
+
+  FFISwapChain(this.swapChain, this.viewer);
+
+  Future destroy() async {
+    await withVoidCallback((callback) {
+      Viewer_destroySwapChainRenderThread(viewer, swapChain, callback);
+    });
   }
 }

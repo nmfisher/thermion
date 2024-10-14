@@ -1,19 +1,49 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:thermion_flutter/src/widgets/src/thermion_texture_widget.dart';
 import 'package:thermion_flutter/src/widgets/src/thermion_widget_web.dart';
-import 'package:thermion_flutter/src/widgets/src/transparent_filament_widget.dart';
-import 'dart:async';
-
-import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
-import 'resize_observer.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
+import 'thermion_widget_windows.dart';
+
+Future kDefaultResizeCallback(Size size, t.View view, double pixelRatio) async {
+  var camera = await view.getCamera();
+  var near = await camera.getNear();
+  var far = await camera.getCullingFar();
+  var focalLength = await camera.getFocalLength();
+
+  await camera.setLensProjection(near:near, far:far, focalLength: focalLength,
+      aspect: size.width.toDouble() / size.height.toDouble());
+}
 
 class ThermionWidget extends StatefulWidget {
+  ///
+  /// The viewer.
+  ///
   final ThermionViewer viewer;
-  final ThermionFlutterOptions? options;
+
+  ///
+  /// The [t.View] associated with this widget. If null, the default View will be used.
+  ///
+  final t.View? view;
+
+  ///
+  /// A callback to invoke whenever this widget and the underlying surface are 
+  /// resized. If a callback is not explicitly provided, the default callback 
+  /// will be run, which changes the aspect ratio for the active camera in 
+  /// the View managed by this widget. If you specify your own callback, 
+  /// you probably want to preserve this behaviour (otherwise the aspect ratio)
+  /// will be incorrect. 
+  /// 
+  /// To completely disable the resize callback, pass [null].
+  /// 
+  /// IMPORTANT - size is specified in physical pixels, not logical pixels. 
+  /// If you need to work with Flutter dimensions, divide [size] by 
+  /// [pixelRatio].
+  ///
+  final Future Function(Size size, t.View view, double pixelRatio)? onResize;
 
   ///
   /// The content to render before the texture widget is available.
@@ -22,130 +52,57 @@ class ThermionWidget extends StatefulWidget {
   final Widget? initial;
 
   const ThermionWidget(
-      {Key? key, this.initial, required this.viewer, this.options})
+      {Key? key,
+      this.initial,
+      required this.viewer,
+      this.view,
+      this.onResize = kDefaultResizeCallback})
       : super(key: key);
 
   @override
-  _ThermionWidgetState createState() => _ThermionWidgetState();
+  State<ThermionWidget> createState() => _ThermionWidgetState();
 }
 
 class _ThermionWidgetState extends State<ThermionWidget> {
-  ThermionFlutterTexture? _texture;
+  t.View? view;
 
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      await widget.viewer.initialized;
-      widget.viewer.onDispose(() async {
-        if (_texture != null) {
-          var texture = _texture;
-          _texture = null;
-          if (mounted) {
-            setState(() {});
-          }
-          await ThermionFlutterPlugin.destroyTexture(texture!);
-        }
-      });
-      var dpr = MediaQuery.of(context).devicePixelRatio;
-
-      var size = ((context.findRenderObject()) as RenderBox).size;
-      _texture = await ThermionFlutterPlugin.createTexture(
-          size.width, size.height, 0, 0, dpr);
-
-      if (mounted) {
-        setState(() {});
-      }
-
-      _requestFrame();
-    });
     super.initState();
+    initialize();
   }
 
-
-bool _rendering = false;
-
-void _requestFrame() {
-  WidgetsBinding.instance.scheduleFrameCallback((d) async {
-    if (!_rendering) {
-      _rendering = true;
-      await widget.viewer.requestFrame();
-      _rendering = false;
+  Future initialize() async {
+    if (widget.view != null) {
+      view = widget.view;
+    } else {
+      view = await widget.viewer.getViewAt(0);
     }
-    _requestFrame();
-  });
-}
-
-  bool _resizing = false;
-  Timer? _resizeTimer;
-
-  Future _resizeTexture(Size newSize) async {
-    _resizeTimer?.cancel();
-    _resizeTimer = Timer(const Duration(milliseconds: 500), () async {
-      if (_resizing || !mounted) {
-        return;
-      }
-      _resizeTimer!.cancel();
-      _resizing = true;
-      var oldTexture = _texture;
-      _texture = null;
-      if (!mounted) {
-        return;
-      }
-
-      var dpr = MediaQuery.of(context).devicePixelRatio;
-
-      _texture = await ThermionFlutterPlugin.resizeTexture(
-          oldTexture!, newSize.width.ceil(), newSize.height.ceil(), 0, 0, dpr);
-      setState(() {});
-      _resizing = false;
-    });
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    if (view == null) {
+      return widget.initial ?? Container(color: Colors.red);
+    }
+
+    // Windows & Web don't support imported textures yet
     if (kIsWeb) {
-      if (_texture == null || _resizing) {
-        return widget.initial ?? Container(color: Colors.red);
-      }
-      return ResizeObserver(
-          onResized: _resizeTexture,
-          child: ThermionWidgetWeb(
-              options: widget.options as ThermionFlutterWebOptions?));
+      return ThermionWidgetWeb(
+          viewer: widget.viewer,
+          options: ThermionFlutterPlugin.options as ThermionFlutterWebOptions?);
     }
 
-    if (_texture?.usesBackingWindow == true) {
-      return ResizeObserver(
-          onResized: _resizeTexture,
-          child: Stack(children: [
-            Positioned.fill(child: CustomPaint(painter: TransparencyPainter()))
-          ]));
+    if (Platform.isWindows) {
+      return ThermionWidgetWindows(viewer: widget.viewer, view: view!, initial: widget.initial, onResize: widget.onResize);
     }
 
-    if (_texture == null || _resizing) {
-      return widget.initial ??
-          Container(
-              color:
-                  kIsWeb ? const Color.fromARGB(0, 170, 129, 129) : Colors.red);
-    }
-
-    var textureWidget = Texture(
-      key: ObjectKey("texture_${_texture!.flutterTextureId}"),
-      textureId: _texture!.flutterTextureId!,
-      filterQuality: FilterQuality.none,
-      freeze: false,
-    );
-
-    return ResizeObserver(
-        onResized: _resizeTexture,
-        child: Stack(children: [
-          Positioned.fill(
-              child: Platform.isLinux || Platform.isWindows
-                  ? Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.rotationX(
-                          pi), // TODO - this rotation is due to OpenGL texture coordinate working in a different space from Flutter, can we move this to the C++ side somewhere?
-                      child: textureWidget)
-                  : textureWidget)
-        ]));
+    return ThermionTextureWidget(
+        key: ObjectKey(view!),
+        initial: widget.initial,
+        viewer: widget.viewer,
+        view: view!,
+        onResize: widget.onResize);
   }
 }

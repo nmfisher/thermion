@@ -1,6 +1,5 @@
 import 'package:thermion_dart/src/viewer/src/events.dart';
-import '../../entities/abstract_gizmo.dart';
-import 'shared_types/camera.dart';
+import '../../utils/src/gizmo.dart';
 import 'shared_types/shared_types.dart';
 export 'shared_types/shared_types.dart';
 
@@ -9,6 +8,8 @@ import 'dart:typed_data';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
+
+import 'shared_types/view.dart';
 
 const double kNear = 0.05;
 const double kFar = 1000.0;
@@ -21,26 +22,11 @@ abstract class ThermionViewer {
   Future<bool> get initialized;
 
   ///
-  /// The current dimensions of the viewport (in physical pixels).
-  ///
-  var viewportDimensions = (0.0, 0.0);
-
-  ///
-  /// The current ratio of logical to physical pixels.
-  ///
-  late double pixelRatio;
-
-  ///
   /// The result(s) of calling [pick] (see below).
   /// This may be a broadcast stream, so you should ensure you have subscribed to this stream before calling [pick].
   /// If [pick] is called without an active subscription to this stream, the results will be silently discarded.
   ///
   Stream<FilamentPickResult> get pickResult;
-
-  ///
-  /// The result(s) of calling [pickGizmo] (see below).
-  ///
-  Stream<FilamentPickResult> get gizmoPickResult;
 
   ///
   /// A Stream containing entities added/removed to/from to the scene.
@@ -60,7 +46,7 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame immediately.
   ///
-  Future render();
+  Future render({covariant SwapChain? swapChain});
 
   ///
   /// Requests a single frame to be rendered. This is only intended to be used internally.
@@ -70,7 +56,41 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame and copy the pixel buffer to [out].
   ///
-  Future<Uint8List> capture();
+  Future<Uint8List> capture(
+      {covariant SwapChain? swapChain,
+      covariant View? view,
+      covariant RenderTarget? renderTarget});
+
+  ///
+  ///
+  ///
+  Future<SwapChain> createHeadlessSwapChain(int width, int height);
+
+  ///
+  ///
+  ///
+  Future<SwapChain> createSwapChain(int handle);
+
+  ///
+  ///
+  ///
+  Future<RenderTarget> createRenderTarget(
+      int width, int height, int textureHandle);
+
+  ///
+  ///
+  ///
+  Future setRenderTarget(covariant RenderTarget renderTarget);
+
+  ///
+  ///
+  ///
+  Future<View> createView();
+
+  ///
+  ///
+  ///
+  Future<View> getViewAt(int index);
 
   ///
   /// Sets the framerate for continuous rendering when [setRendering] is enabled.
@@ -196,12 +216,16 @@ abstract class ThermionViewer {
   /// Specify [numInstances] to create multiple instances (this is more efficient than dynamically instantating at a later time). You can then retrieve the created instances with [getInstances].
   /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
   /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
+  /// If [loadResourcesAsync] is true, resources (textures, materials, etc) will 
+  /// be loaded asynchronously (so expect some material/texture pop-in);
+  ///
   ///
   Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
       {int numInstances = 1,
       bool keepData = false,
       int priority = 4,
-      int layer = 0});
+      int layer = 0,
+      bool loadResourcesAsync});
 
   ///
   /// Create a new instance of [entity].
@@ -227,36 +251,6 @@ abstract class ThermionViewer {
   ///
   Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
       {bool keepData = false});
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future panStart(double x, double y);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future panUpdate(double x, double y);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future panEnd();
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future rotateStart(double x, double y);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future rotateUpdate(double x, double y);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future rotateEnd();
 
   ///
   /// Set the weights for all morph targets in [entity] to [weights].
@@ -368,7 +362,8 @@ abstract class ThermionViewer {
   /// Sets multiple transforms (relative to parent) simultaneously for [entity].
   /// Uses mutex to ensure that transform updates aren't split across frames.
   ///
-  Future queueTransformUpdates(List<ThermionEntity> entities, List<Matrix4> transforms);
+  Future queueTransformUpdates(
+      List<ThermionEntity> entities, List<Matrix4> transforms);
 
   ///
   /// Updates the bone matrices for [entity] (which must be the ThermionEntity
@@ -398,21 +393,6 @@ abstract class ThermionViewer {
   /// All [ThermionEntity] handles will no longer be valid after this method is called; ensure you immediately discard all references to all entities once this method is complete.
   ///
   Future clearEntities();
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future zoomBegin();
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future zoomUpdate(double x, double y, double z);
-
-  ///
-  /// Called by `FilamentGestureDetector`. You probably don't want to call this yourself.
-  ///
-  Future zoomEnd();
 
   ///
   /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
@@ -505,15 +485,6 @@ abstract class ThermionViewer {
   /// Get the distance (in world units) to the far culling plane for the active camera.
   ///
   Future<double> getCameraCullingFar();
-
-  ///
-  ///
-  ///
-  Future setCameraLensProjection(
-      {double near = kNear,
-      double far = kFar,
-      double? aspect,
-      double focalLength = kFocalLength});
 
   ///
   /// Sets the focus distance for the camera.
@@ -715,28 +686,9 @@ abstract class ThermionViewer {
   void pick(int x, int y);
 
   ///
-  /// Used to test whether a Gizmo is at the given viewport coordinates.
-  /// Called by `FilamentGestureDetector` on a mouse/finger down event. You probably don't want to call this yourself.
-  /// This is asynchronous and will require 2-3 frames to complete - subscribe to the [gizmoPickResult] stream to receive the results of this method.
-  /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the ThermionWidget).
-  ///
-  void pickGizmo(int x, int y);
-
-  ///
   /// Retrieves the name assigned to the given ThermionEntity (usually corresponds to the glTF mesh name).
   ///
   String? getNameForEntity(ThermionEntity entity);
-
-  ///
-  /// Sets the options for manipulating the camera via the viewport.
-  /// ManipulatorMode.FREE_FLIGHT and ManipulatorMode.MAP are currently unsupported and will throw an exception.
-  ///
-  @Deprecated("Use InputHandler instead")
-  Future setCameraManipulatorOptions(
-      {ManipulatorMode mode = ManipulatorMode.ORBIT,
-      double orbitSpeedX = 0.01,
-      double orbitSpeedY = 0.01,
-      double zoomSpeed = 0.01});
 
   ///
   /// Returns all child entities under [parent].
@@ -756,17 +708,6 @@ abstract class ThermionViewer {
   ///
   Future<List<String>> getChildEntityNames(ThermionEntity entity,
       {bool renderableOnly = true});
-
-  ///
-  /// If [recording] is set to true, each frame the framebuffer/texture will be written to /tmp/output_*.png.
-  /// This will impact performance; handle with care.
-  ///
-  Future setRecording(bool recording);
-
-  ///
-  /// Sets the output directory where recorded PNGs will be placed.
-  ///
-  Future setRecordingOutputDirectory(String outputDirectory);
 
   ///
   /// An [entity] will only be animatable after an animation component is attached.
@@ -828,9 +769,9 @@ abstract class ThermionViewer {
   Future setPriority(ThermionEntity entityId, int priority);
 
   ///
-  /// The gizmo for translating/rotating objects. Only one gizmo is present in the scene.
+  /// The gizmo for translating/rotating objects. Only one gizmo can be active for a given view.
   ///
-  AbstractGizmo? get gizmo;
+  Future<Gizmo> createGizmo(covariant View view);
 
   ///
   /// Register a callback to be invoked when this viewer is disposed.
@@ -853,11 +794,6 @@ abstract class ThermionViewer {
   /// Assigns [entity] to visibility layer [layer].
   ///
   Future setVisibilityLayer(ThermionEntity entity, int layer);
-
-  ///
-  /// Show/hide the translation gizmo.
-  ///
-  Future setGizmoVisibility(bool visible);
 
   ///
   /// Renders an outline around [entity] with the given color.
@@ -957,7 +893,7 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future getActiveCamera();
+  Future<Camera> getActiveCamera();
 
   ///
   ///

@@ -22,7 +22,7 @@
 #include "material/gizmo.h"
 
 
-namespace thermion_filament {
+namespace thermion {
 
 using namespace filament;
 using namespace utils;

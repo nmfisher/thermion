@@ -32,19 +32,14 @@ void main(List<String> args) async {
       final name = "thermion_dart.dart";
       final libUri = config.outputDirectory
           .resolve(config.targetOS.libraryFileName(name, linkMode));
-      output.addAssets(
-        [
-          NativeCodeAsset(
-            package: config.packageName,
-            name: name,
-            file: libUri,
-            linkMode: linkMode,
-            os: config.targetOS,
-            architecture: config.dryRun ? null : config.targetArchitecture,
-          )
-        ],
-        linkInPackage: null,
-      );
+      output.addAsset(NativeCodeAsset(
+        package: config.packageName,
+        name: name,
+        file: libUri,
+        linkMode: linkMode,
+        os: config.targetOS,
+        architecture: config.dryRun ? null : config.targetArchitecture,
+      ));
       return;
     }
 
@@ -58,7 +53,7 @@ void main(List<String> args) async {
         .map((f) => f.path)
         .toList();
     sources.addAll([
-      "${config.packageRoot.toFilePath()}/native/include/material/gizmo.c",
+      "${config.packageRoot.toFilePath()}/native/include/material/gizmo_material.c",
       "${config.packageRoot.toFilePath()}/native/include/material/image.c",
       "${config.packageRoot.toFilePath()}/native/include/material/grid.c",
       "${config.packageRoot.toFilePath()}/native/include/material/unlit.c",
@@ -92,7 +87,6 @@ void main(List<String> args) async {
       "basis_transcoder"
     ];
 
-
     if (platform == "windows") {
       libDir = Directory(libDir).uri.toFilePath();
       libs = libs.map((lib) => "${libDir}${lib}.lib").toList();
@@ -118,7 +112,12 @@ void main(List<String> args) async {
       defines["WIN32"] = "1";
       defines["_DEBUG"] = "1";
       defines["_DLL"] = "1";
-      flags.addAll(["/std:c++20", "/MDd"]);
+      flags.addAll([
+        "/std:c++20",
+        "/MDd",
+        "/VERBOSE",
+        ...defines.keys.map((k) => "/D$k=${defines[k]}").toList()
+      ]);
     }
 
     if (platform == "ios") {
@@ -149,16 +148,26 @@ void main(List<String> args) async {
       name: packageName,
       language: Language.cpp,
       assetName: 'thermion_dart.dart',
-      sources: sources,
-      includes: ['native/include', 'native/include/filament'],
-      defines: defines,
+      sources: platform == "windows" ? [] : sources,
+      includes: platform == "windows"
+          ? []
+          : ['native/include', 'native/include/filament'],
+      defines: platform == "windows" ? {} : defines,
       flags: [
         if (platform == "macos") '-mmacosx-version-min=13.0',
         if (platform == "ios") '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
-        ...libs.map((lib) => "-l$lib"),
-        "-L$libDir",
+        if (platform != "windows") ...libs.map((lib) => "-l$lib"),
+        if (platform != "windows") "-L$libDir",
+        if (platform == "windows") ...[
+          "/I${config.packageRoot.toFilePath()}\\native\\include",
+          "/I${config.packageRoot.toFilePath()}native\\include\\filament",
+          ...sources,
+          '/link',
+          "/LIBPATH:$libDir",
+          '/DLL',
+        ]
       ],
       dartBuildFiles: ['hook/build.dart'],
     );
@@ -177,17 +186,24 @@ void main(List<String> args) async {
           Architecture.ia32 => "i686-linux-android",
           _ => throw FormatException('Invalid')
         };
-          
+
         var compilerPath = config.cCompiler.compiler!.path;
-        
-        if(Platform.isWindows && compilerPath.startsWith("/")) {
+
+        if (Platform.isWindows && compilerPath.startsWith("/")) {
           compilerPath = compilerPath.substring(1);
         }
-        
-        var ndkRoot = File(compilerPath).parent.parent.uri.toFilePath(windows:true);
 
-        var stlPath =
-            File([ndkRoot, "sysroot", "usr", "lib", archExtension, "libc++_shared.so"].join(Platform.pathSeparator));
+        var ndkRoot =
+            File(compilerPath).parent.parent.uri.toFilePath(windows: true);
+
+        var stlPath = File([
+          ndkRoot,
+          "sysroot",
+          "usr",
+          "lib",
+          archExtension,
+          "libc++_shared.so"
+        ].join(Platform.pathSeparator));
         output.addAsset(NativeCodeAsset(
             package: "thermion_dart",
             name: "libc++_shared.so",
@@ -201,7 +217,7 @@ void main(List<String> args) async {
     if (config.targetOS == "windows") {
       output.addAsset(
           NativeCodeAsset(
-              package: "thermion_dart",
+              package: config.packageName,
               name: "thermion_dart.dll",
               linkMode: DynamicLoadingBundled(),
               os: config.targetOS,

@@ -172,8 +172,6 @@ void ThermionFlutterPlugin::CreateTexture(
   auto height = (uint32_t)round(dHeight );
   auto left = (uint32_t)round(dLeft );
   auto top = (uint32_t)round(dTop );
-
-  std::cout << "Using " << width << "x" << height << std::endl;
   
   // create a single shared context for the life of the application
   // this will be used to create a backing texture and passed to Filament
@@ -182,8 +180,10 @@ void ThermionFlutterPlugin::CreateTexture(
     _context = std::make_unique<FlutterEGLContext>(_pluginRegistrar, _textureRegistrar);
 #else
     _context = std::make_unique<WGLContext>(_pluginRegistrar, _textureRegistrar);
+    std::cout << "Created WGL context" << std::endl;
 #endif
   }
+        
   _context->CreateRenderingSurface(width, height, std::move(result), left, top);
 }
 
@@ -210,7 +210,7 @@ void ThermionFlutterPlugin::DestroyTexture(
 void ThermionFlutterPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-
+  // std::cout << methodCall.method_name().c_str() << std::endl;
   if (methodCall.method_name() == "usesBackingWindow") {
     result->Success(flutter::EncodableValue(
       #ifdef WGL_USE_BACKING_WINDOW
@@ -239,18 +239,19 @@ void ThermionFlutterPlugin::HandleMethodCall(
       int dHeight = *(std::get_if<int>(&(args->at(1))));
       int dLeft = *(std::get_if<int>(&(args->at(2))));
       int dTop = *(std::get_if<int>(&(args->at(3))));
-      auto width = (uint32_t)round(dWidth );
-      auto height = (uint32_t)round(dHeight );
-      auto left = (uint32_t)round(dLeft );
-      auto top = (uint32_t)round(dTop );
+      auto width = static_cast<uint32_t>(dWidth);
+      auto height = static_cast<uint32_t>(dHeight);
+      auto left = static_cast<uint32_t>(dLeft);
+      auto top = static_cast<uint32_t>(dTop );
+      
       _context->ResizeRenderingSurface(width, height, left, top);
       result->Success();
     #else
       result->Error("ERROR", "resizeWindow is only available when using a backing window");
     #endif
-  } else if (methodCall.method_name() == "createTexture") {
+  } else if (methodCall.method_name() == "createWindow") {
     CreateTexture(methodCall, std::move(result));
-  } else if (methodCall.method_name() == "destroyTexture") {
+  } else if (methodCall.method_name() == "destroyWindow") {
     DestroyTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "getRenderCallback") {
     flutter::EncodableList resultList;

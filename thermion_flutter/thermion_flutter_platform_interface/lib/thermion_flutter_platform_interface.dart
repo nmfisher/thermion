@@ -1,15 +1,16 @@
 import 'dart:async';
 
+import 'package:thermion_dart/thermion_dart.dart' as t;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'thermion_flutter_texture.dart';
+import 'thermion_flutter_window.dart';
 
 class ThermionFlutterOptions {
   final String? uberarchivePath;
 
   ThermionFlutterOptions({this.uberarchivePath});
   const ThermionFlutterOptions.empty() : uberarchivePath = null;
-
 }
 
 abstract class ThermionFlutterPlatform extends PlatformInterface {
@@ -25,17 +26,29 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<ThermionViewer> createViewerWithOptions(
-      covariant ThermionFlutterOptions options);
+  ///
+  ///
+  ///
+  Future<ThermionViewer> createViewer(
+      {covariant ThermionFlutterOptions? options});
 
-  @deprecated
-  Future<ThermionViewer> createViewer({String? uberarchivePath});
+  ///
+  /// Create a rendering surface.
+  ///
+  /// This is internal; unless you are [thermion_*] package developer, don't
+  /// call this yourself. May not be supported on all platforms.
+  ///
+  Future<ThermionFlutterTexture?> createTexture(
+      t.View view, int width, int height);
 
-  Future<ThermionFlutterTexture?> createTexture(double width, double height,
-      double offsetLeft, double offsetTop, double pixelRatio);
+  ///
+  /// Create a rendering window.
+  ///
+  /// This is internal; unless you are [thermion_*] package developer, don't
+  /// call this yourself. May not be supported on all platforms.
+  ///
+  Future<ThermionFlutterWindow> createWindow(
+      int width, int height, int offsetLeft, int offsetTop);
 
-  Future destroyTexture(ThermionFlutterTexture texture);
-
-  Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
-      int width, int height, int offsetTop, int offsetRight, double pixelRatio);
+  
 }

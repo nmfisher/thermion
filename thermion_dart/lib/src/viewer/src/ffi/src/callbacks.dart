@@ -26,7 +26,7 @@ Future<void> withVoidCallback(
   nativeCallable.close();
 }
 
-Future<int> withPointerCallback<T extends NativeType>(
+Future<Pointer<T>> withPointerCallback<T extends NativeType>(
     Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>)
         func) async {
   final completer = Completer<Pointer<T>>();
@@ -39,7 +39,7 @@ Future<int> withPointerCallback<T extends NativeType>(
   func.call(nativeCallable.nativeFunction);
   var ptr = await completer.future;
   nativeCallable.close();
-  return ptr.address;
+  return ptr;
 }
 
 Future<bool> withBoolCallback(

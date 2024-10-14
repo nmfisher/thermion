@@ -36,7 +36,7 @@ thermion_dart/native/lib/macos/debug/libmatlang.a filter=lfs diff=lfs merge=lfs 
 thermion_dart/native/lib/macos/debug/libibl.a filter=lfs diff=lfs merge=lfs -text
 thermion_dart/native/lib/macos/debug/libmikktspace.a filter=lfs diff=lfs merge=lfs -text
 thermion_dart/native/lib/macos/libmatdbg_combined.a filter=lfs diff=lfs merge=lfs -text
-thermion_dart/native/lib/macos/swift/ThermionDartTexture.h filter=lfs diff=lfs merge=lfs -text
+thermion_dart/native/lib/macos/swift/ThermionTexture.h filter=lfs diff=lfs merge=lfs -text
 thermion_dart/native/lib/macos/debug/libfilamat_combined.a filter=lfs diff=lfs merge=lfs -text
 thermion_dart/native/lib/macos/debug/libfilament.a filter=lfs diff=lfs merge=lfs -text
 thermion_dart/native/lib/macos/libibl.a filter=lfs diff=lfs merge=lfs -text

@@ -1,6 +1,5 @@
 import 'package:vector_math/vector_math_64.dart';
 
-import '../../shared_types/camera.dart';
 import '../../thermion_viewer_base.dart';
 
 class ThermionWasmCamera extends Camera {
@@ -43,6 +42,36 @@ class ThermionWasmCamera extends Camera {
   @override
   Future setModelMatrix(Matrix4 matrix) {
     // TODO: implement setModelMatrix
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<double> getCullingFar() {
+    // TODO: implement getCullingFar
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<double> getFocalLength() {
+    // TODO: implement getFocalLength
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<double> getNear() {
+    // TODO: implement getNear
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Matrix4> getViewMatrix() {
+    // TODO: implement getViewMatrix
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setProjection(Projection projection, double left, double right, double bottom, double top, double near, double far) {
+    // TODO: implement setProjection
     throw UnimplementedError();
   }
 }

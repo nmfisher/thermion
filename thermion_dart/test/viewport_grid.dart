@@ -1,8 +1,8 @@
 import 'dart:ffi';
 import 'dart:io';
 import 'package:ffi/ffi.dart';
-import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
-import 'package:thermion_dart/src/utils/dart_resources.dart';
+import 'swift/swift_bindings.g.dart';
+import 'package:thermion_dart/src/utils/src/dart_resources.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
 
@@ -43,9 +43,9 @@ late String testDir;
 void main() async {
   final packageUri = findPackageRoot('thermion_dart');
   testDir = Directory("${packageUri.toFilePath()}/test").path;
-  final lib = ThermionDartTexture1(DynamicLibrary.open(
+  final lib = ThermionTexture1(DynamicLibrary.open(
       '${packageUri.toFilePath()}/native/lib/macos/swift/libthermion_swift.dylib'));
-  final object = ThermionDartTexture.new1(lib);
+  final object = ThermionTexture.new1(lib);
   object.initWithWidth_height_(500, 500);
 
   final resourceLoader = calloc<ResourceLoaderWrapper>(1);

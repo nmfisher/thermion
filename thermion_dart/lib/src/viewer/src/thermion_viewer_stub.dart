@@ -1,12 +1,13 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:thermion_dart/src/utils/src/gizmo.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/swap_chain.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-
-import '../../entities/abstract_gizmo.dart';
 import 'events.dart';
 import 'shared_types/camera.dart';
 
@@ -241,10 +242,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  // TODO: implement gizmo
-  AbstractGizmo? get gizmo => throw UnimplementedError();
-
-  @override
   Future hide(ThermionEntity entity, String? meshName) {
     // TODO: implement hide
     throw UnimplementedError();
@@ -384,12 +381,7 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
 
-  @override
-  Future render() {
-    // TODO: implement render
-    throw UnimplementedError();
-  }
-
+ 
   @override
   // TODO: implement rendering
   bool get rendering => throw UnimplementedError();
@@ -724,12 +716,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future<Uint8List> capture() {
-    // TODO: implement capture
-    throw UnimplementedError();
-  }
-  
-  @override
   Future<Aabb2> getBoundingBox(ThermionEntity entity) {
     // TODO: implement getBoundingBox
     throw UnimplementedError();
@@ -907,11 +893,7 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
   
-  @override
-  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0}) {
-    // TODO: implement loadGlbFromBuffer
-    throw UnimplementedError();
-  }
+  
   
   @override
   Future setMaterialPropertyInt(ThermionEntity entity, String propertyName, int materialIndex, int value) {
@@ -1007,16 +989,77 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement getCameraCount
     throw UnimplementedError();
   }
+
+  @override
+  Future queueTransformUpdates(List<ThermionEntity> entities, List<Matrix4> transforms) {
+    // TODO: implement queueTransformUpdates
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RenderTarget> createRenderTarget(int width, int height, int textureHandle) {
+    // TODO: implement createRenderTarget
+    throw UnimplementedError();
+  }
   
   @override
-  Future getActiveCamera() {
+  Future setRenderTarget(covariant RenderTarget renderTarget) {
+    // TODO: implement setRenderTarget
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<View> createView() {
+    // TODO: implement createView
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<View> getViewAt(int index) {
+    // TODO: implement getViewAt
+    throw UnimplementedError();
+  }
+
+
+  @override
+  Future<Gizmo> createGizmo(covariant View view) {
+    // TODO: implement createGizmo
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<SwapChain> createHeadlessSwapChain(int width, int height) {
+    // TODO: implement createHeadlessSwapChain
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Uint8List> capture({covariant SwapChain? swapChain, covariant View? view, covariant RenderTarget? renderTarget}) {
+    // TODO: implement capture
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<SwapChain> createSwapChain(handle) {
+    // TODO: implement createSwapChain
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future render({covariant SwapChain? swapChain}) {
+    // TODO: implement render
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Camera> getActiveCamera() {
     // TODO: implement getActiveCamera
     throw UnimplementedError();
   }
   
   @override
-  Future queueTransformUpdates(List<ThermionEntity> entities, List<Matrix4> transforms) {
-    // TODO: implement queueTransformUpdates
+  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync= false}) {
+    // TODO: implement loadGlbFromBuffer
     throw UnimplementedError();
   }
 
