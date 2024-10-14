@@ -258,6 +258,16 @@ extern "C"
     }
   }
 
+  EMSCRIPTEN_KEEPALIVE void Viewer_loadIblRenderThread(TViewer *viewer, const char *iblPath, float intensity, void(*onComplete)()) { 
+      std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Viewer_loadIbl(viewer, iblPath, intensity);
+          onComplete();
+        });
+      auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void
   set_frame_interval_render_thread(TViewer *viewer, float frameIntervalInMilliseconds)
   {
@@ -389,15 +399,6 @@ extern "C"
                                         load_skybox(viewer, skyboxPath);
                                         onComplete();
                                       });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void load_ibl_render_thread(TViewer *viewer, const char *iblPath,
-                                                   float intensity)
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        { load_ibl(viewer, iblPath, intensity); });
     auto fut = _rl->add_task(lambda);
   }
   

@@ -143,6 +143,17 @@ external void Viewer_setViewRenderable(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Float,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_loadIblRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<ffi.Char> iblPath,
+  double intensity,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TViewer>,
         ffi.Pointer<TView>,

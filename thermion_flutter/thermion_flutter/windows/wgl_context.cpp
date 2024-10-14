@@ -118,7 +118,7 @@ void WGLContext::CreateRenderingSurface(
     ResizeRenderingSurface(width, height, left, top);
   }
 
-  std::cout << "created window size " << width << "x" << height << " at "  << left << "," << top << " with backing handle" << _backingWindow->GetHandle() << std::endl;
+  // std::cout << "created window size " << width << "x" << height << " at "  << left << "," << top << " with backing handle" << _backingWindow->GetHandle() << std::endl;
   std::vector<flutter::EncodableValue> resultList;
   resultList.push_back(flutter::EncodableValue()); // return null for Flutter texture ID
   resultList.push_back(flutter::EncodableValue()); // return null for hardware texture ID

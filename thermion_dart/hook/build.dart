@@ -32,18 +32,14 @@ void main(List<String> args) async {
       final name = "thermion_dart.dart";
       final libUri = config.outputDirectory
           .resolve(config.targetOS.libraryFileName(name, linkMode));
-      output.addAsset(
-        
-          NativeCodeAsset(
-            package: config.packageName,
-            name: name,
-            file: libUri,
-            linkMode: linkMode,
-            os: config.targetOS,
-            architecture: config.dryRun ? null : config.targetArchitecture,
-          )
-        
-      );
+      output.addAsset(NativeCodeAsset(
+        package: config.packageName,
+        name: name,
+        file: libUri,
+        linkMode: linkMode,
+        os: config.targetOS,
+        architecture: config.dryRun ? null : config.targetArchitecture,
+      ));
       return;
     }
 
@@ -91,7 +87,6 @@ void main(List<String> args) async {
       "basis_transcoder"
     ];
 
-
     if (platform == "windows") {
       libDir = Directory(libDir).uri.toFilePath();
       libs = libs.map((lib) => "${libDir}${lib}.lib").toList();
@@ -117,7 +112,12 @@ void main(List<String> args) async {
       defines["WIN32"] = "1";
       defines["_DEBUG"] = "1";
       defines["_DLL"] = "1";
-      flags.addAll(["/std:c++20", "/MDd",  "/VERBOSE", ...defines.keys.map((k) => "/D$k=${defines[k]}").toList()]);
+      flags.addAll([
+        "/std:c++20",
+        "/MDd",
+        "/VERBOSE",
+        ...defines.keys.map((k) => "/D$k=${defines[k]}").toList()
+      ]);
     }
 
     if (platform == "ios") {
@@ -148,24 +148,23 @@ void main(List<String> args) async {
       name: packageName,
       language: Language.cpp,
       assetName: 'thermion_dart.dart',
-      sources:         platform == "windows" ? [] :
-sources,
-      includes: platform == "windows"? [] :  ['native/include', 'native/include/filament'],
+      sources: platform == "windows" ? [] : sources,
+      includes: platform == "windows"
+          ? []
+          : ['native/include', 'native/include/filament'],
       defines: platform == "windows" ? {} : defines,
       flags: [
         if (platform == "macos") '-mmacosx-version-min=13.0',
         if (platform == "ios") '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
-        if (platform != "windows") 
-        ...libs.map((lib) => "-l$lib"),
-        if (platform != "windows") 
-        "-L$libDir",
-        if(platform == "windows") 
-        ...[
-          "/I${config.packageRoot.toFilePath()}\\native\\include", "/I${config.packageRoot.toFilePath()}native\\include\\filament",
+        if (platform != "windows") ...libs.map((lib) => "-l$lib"),
+        if (platform != "windows") "-L$libDir",
+        if (platform == "windows") ...[
+          "/I${config.packageRoot.toFilePath()}\\native\\include",
+          "/I${config.packageRoot.toFilePath()}native\\include\\filament",
           ...sources,
-          '/link', 
+          '/link',
           "/LIBPATH:$libDir",
           '/DLL',
         ]
@@ -187,17 +186,24 @@ sources,
           Architecture.ia32 => "i686-linux-android",
           _ => throw FormatException('Invalid')
         };
-          
+
         var compilerPath = config.cCompiler.compiler!.path;
-        
-        if(Platform.isWindows && compilerPath.startsWith("/")) {
+
+        if (Platform.isWindows && compilerPath.startsWith("/")) {
           compilerPath = compilerPath.substring(1);
         }
-        
-        var ndkRoot = File(compilerPath).parent.parent.uri.toFilePath(windows:true);
 
-        var stlPath =
-            File([ndkRoot, "sysroot", "usr", "lib", archExtension, "libc++_shared.so"].join(Platform.pathSeparator));
+        var ndkRoot =
+            File(compilerPath).parent.parent.uri.toFilePath(windows: true);
+
+        var stlPath = File([
+          ndkRoot,
+          "sysroot",
+          "usr",
+          "lib",
+          archExtension,
+          "libc++_shared.so"
+        ].join(Platform.pathSeparator));
         output.addAsset(NativeCodeAsset(
             package: "thermion_dart",
             name: "libc++_shared.so",

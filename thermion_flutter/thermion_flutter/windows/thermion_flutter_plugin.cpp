@@ -210,7 +210,7 @@ void ThermionFlutterPlugin::DestroyTexture(
 void ThermionFlutterPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  std::cout << methodCall.method_name().c_str() << std::endl;
+  // std::cout << methodCall.method_name().c_str() << std::endl;
   if (methodCall.method_name() == "usesBackingWindow") {
     result->Success(flutter::EncodableValue(
       #ifdef WGL_USE_BACKING_WINDOW
@@ -239,13 +239,12 @@ void ThermionFlutterPlugin::HandleMethodCall(
       int dHeight = *(std::get_if<int>(&(args->at(1))));
       int dLeft = *(std::get_if<int>(&(args->at(2))));
       int dTop = *(std::get_if<int>(&(args->at(3))));
-      auto width = (uint32_t)round(dWidth );
-      auto height = (uint32_t)round(dHeight );
-      auto left = (uint32_t)round(dLeft );
-      auto top = (uint32_t)round(dTop );
+      auto width = static_cast<uint32_t>(dWidth);
+      auto height = static_cast<uint32_t>(dHeight);
+      auto left = static_cast<uint32_t>(dLeft);
+      auto top = static_cast<uint32_t>(dTop );
       
       _context->ResizeRenderingSurface(width, height, left, top);
-      std::cout << "resized window to " << width << "x" << height << " at "  << left << "," << top << std::endl;
       result->Success();
     #else
       result->Error("ERROR", "resizeWindow is only available when using a backing window");

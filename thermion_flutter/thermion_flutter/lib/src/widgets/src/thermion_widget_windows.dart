@@ -43,11 +43,16 @@ class _ThermionWidgetWindowsState extends State<ThermionWidgetWindows> {
 
       var dpr = MediaQuery.of(context).devicePixelRatio;
 
-      var size = ((context.findRenderObject()) as RenderBox).size;
+      final renderBox = ((context.findRenderObject()) as RenderBox);
+      var size = renderBox.size;
       var width = (size.width * dpr).ceil();
       var height = (size.height * dpr).ceil();
 
-      _window = await t.ThermionFlutterPlatform.instance.createWindow(width, height, 0, 0);
+       final offset = renderBox.localToGlobal(Offset.zero);
+       final offsetLeft = (offset.dx * dpr).toInt();
+       final offsetTop = (offset.dy * dpr).toInt();
+
+      _window = await t.ThermionFlutterPlatform.instance.createWindow(width, height, offsetLeft, offsetTop);
 
       await widget.view.updateViewport(_window!.width, _window!.height);
 
@@ -121,11 +126,16 @@ class _ThermionWidgetWindowsState extends State<ThermionWidgetWindows> {
       var newWidth = newSize.width.ceil();
       var newHeight = newSize.height.ceil();
 
+      final renderBox = context.findRenderObject() as RenderBox;      
+      final offset = renderBox.localToGlobal(Offset.zero);
+      final offsetLeft = (offset.dx * dpr).toInt();
+      final offsetTop = (offset.dy * dpr).toInt();
+
       await _window?.resize(
         newWidth,
         newHeight,
-        0,
-        0,
+        offsetLeft,
+        offsetTop,
       );
 
       await widget.view.updateViewport(_window!.width, _window!.height);
