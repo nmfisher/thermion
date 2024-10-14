@@ -360,7 +360,12 @@ class ThermionViewerFFI extends ThermionViewer {
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
     final pathPtr =
         lightingPath.toNativeUtf8(allocator: allocator).cast<Char>();
-    load_ibl(_viewer!, pathPtr, intensity);
+
+    await withVoidCallback((cb) {
+      Viewer_loadIblRenderThread(_viewer!, pathPtr, intensity, cb);
+    });
+
+    
   }
 
   ///

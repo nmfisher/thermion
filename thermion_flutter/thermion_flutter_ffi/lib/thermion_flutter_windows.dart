@@ -91,7 +91,7 @@ class ThermionFlutterWindowImpl extends ThermionFlutterWindow {
   @override
   Future destroy() async {
       await _channel
-        .invokeMethod("destroyWindow", [width, height, offsetLeft, offsetLeft]);
+        .invokeMethod("destroyWindow", this.handle);
   }
 
   @override
@@ -112,7 +112,7 @@ class ThermionFlutterWindowImpl extends ThermionFlutterWindow {
       throw Exception("Resize underway");
     }
 
-    if (width == this.width && height == this.height) {
+    if (width == this.width && height == this.height && this.offsetLeft == offsetLeft && this.offsetTop == offsetTop) {
       return;
     }
 
@@ -124,7 +124,7 @@ class ThermionFlutterWindowImpl extends ThermionFlutterWindow {
     _resizing = true;
 
     await _channel
-        .invokeMethod("resizeWindow", [width, height, offsetLeft, offsetLeft]);
+        .invokeMethod("resizeWindow", [width, height, offsetLeft, offsetTop]);
     _resizing = false;
   }
 

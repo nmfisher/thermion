@@ -92,7 +92,7 @@ extern "C"
         ((FilamentViewer *)viewer)->createIbl(r, g, b, intensity);
     }
 
-    EMSCRIPTEN_KEEPALIVE void load_ibl(TViewer *viewer, const char *iblPath, float intensity)
+    EMSCRIPTEN_KEEPALIVE void Viewer_loadIbl(TViewer *viewer, const char *iblPath, float intensity)
     {
         ((FilamentViewer *)viewer)->loadIbl(iblPath, intensity);
     }
