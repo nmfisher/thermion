@@ -15,6 +15,40 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`thermion_dart` - `v0.2.1-dev.0.0.8`](#thermion_dart---v021-dev008)
+ - [`thermion_flutter_web` - `v0.1.0+9`](#thermion_flutter_web---v0109)
+ - [`thermion_flutter` - `v0.2.1-dev.7`](#thermion_flutter---v021-dev7)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.7`](#thermion_flutter_platform_interface---v021-dev7)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.7`](#thermion_flutter_ffi---v021-dev7)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+9`
+ - `thermion_flutter` - `v0.2.1-dev.7`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.7`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.7`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.8`
+
+ - **FIX**: move ThermionWin32.h to include.
+
+
+## 2024-10-14
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`thermion_dart` - `v0.2.1-dev.0.0.7`](#thermion_dart---v021-dev007)
  - [`thermion_flutter_web` - `v0.1.0+8`](#thermion_flutter_web---v0108)
  - [`thermion_flutter` - `v0.2.1-dev.6`](#thermion_flutter---v021-dev6)
