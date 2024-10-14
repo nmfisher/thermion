@@ -1,3 +1,7 @@
+## 0.2.1-dev.0.0.8
+
+ - **FIX**: move ThermionWin32.h to include.
+
 ## 0.2.1-dev.0.0.7
 
  - Bump "thermion_dart" to `0.2.1-dev.0.0.7`.
