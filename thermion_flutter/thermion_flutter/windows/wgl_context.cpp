@@ -12,9 +12,9 @@ WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
                        flutter::TextureRegistrar *textureRegistrar)
     : FlutterRenderContext(pluginRegistrar, textureRegistrar) {
 
-  #if WGL_USE_BACKING_WINDOW
-  return;
-  #endif
+#if WGL_USE_BACKING_WINDOW
+  
+#else
 
   auto hwnd = pluginRegistrar->GetView()->GetNativeWindow();
 
@@ -98,6 +98,7 @@ WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
     std::cout << "Failed to create OpenGL context." << std::endl;
     return;
   }
+  #endif
 }
 
 void WGLContext::ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
@@ -105,6 +106,33 @@ void WGLContext::ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_
   _backingWindow->Resize(width, height, left, top);
   #endif
 }
+
+void WGLContext::DestroyRenderingSurface(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  #if WGL_USE_BACKING_WINDOW
+  _backingWindow->Destroy();
+  _backingWindow = nullptr;
+  #else
+  
+      //     if (!_active) {
+      //         result->Success("Texture has already been detroyed, ignoring");
+      //         return;
+      //     }
+
+      //     auto sh = std::make_shared<
+      //         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>>(
+      //             std::move(result));
+
+      //     _textureRegistrar->UnregisterTexture(
+      //         _active->flutterTextureId, [=, sharedResult = std::move(sh)]() {
+      //             this->_inactive = std::move(this->_active);
+      //             auto unique = std::move(*(sharedResult.get()));
+      //             unique->Success(flutter::EncodableValue(true));
+      //             std::cout << "Unregistered/destroyed texture." << std::endl;
+      //         });
+      // }
+  #endif
+}
+
 
 void WGLContext::CreateRenderingSurface(
     uint32_t width, uint32_t height,

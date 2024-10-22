@@ -16,6 +16,9 @@ namespace thermion_flutter {
         void CreateRenderingSurface(
             uint32_t width, uint32_t height,
             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, uint32_t left, uint32_t top);
+        
+        void DestroyRenderingSurface(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
         void ResizeRenderingSurface(
             uint32_t width, uint32_t height, uint32_t left, uint32_t top
         );
