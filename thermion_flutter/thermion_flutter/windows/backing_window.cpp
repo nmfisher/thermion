@@ -351,6 +351,39 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
   ::SetWindowLong(_flutterRootWindow, GWL_EXSTYLE, ex_style);
 }
 
+void BackingWindow::Destroy() {
+      if (_windowHandle) {
+        // Hide the window first
+        ::ShowWindow(_windowHandle, SW_HIDE);
+        
+        // Remove the window from taskbar if needed
+        ITaskbarList3* taskbar = nullptr;
+        if (SUCCEEDED(::CoCreateInstance(CLSID_TaskbarList, 0, CLSCTX_INPROC_SERVER,
+                                       IID_PPV_ARGS(&taskbar)))) {
+            taskbar->DeleteTab(_windowHandle);
+            taskbar->Release();
+        }
+
+        // Clear any user data we set
+        ::SetWindowLongPtr(_windowHandle, GWLP_USERDATA, 0);
+
+        // Destroy the window
+        ::DestroyWindow(_windowHandle);
+        _windowHandle = nullptr;
+    }
+
+    // Clean up the window class registration
+    ::UnregisterClass(kClassName, GetModuleHandle(nullptr));
+
+    // Reset member variables
+    _flutterViewWindow = nullptr;
+    _flutterRootWindow = nullptr;
+    _width = 0;
+    _height = 0;
+    _left = 0;
+    _top = 0;
+}
+
 void BackingWindow::Resize(int width, int height, int left, int top) {
   _width = width;
   _height = height;
