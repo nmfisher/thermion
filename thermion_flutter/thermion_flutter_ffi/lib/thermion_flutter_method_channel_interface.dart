@@ -14,7 +14,6 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dar
 ///
 abstract class ThermionFlutterMethodChannelInterface
     extends ThermionFlutterPlatform {
-  
   final channel = const MethodChannel("dev.thermion.flutter/event");
   final _logger = Logger("ThermionFlutterMethodChannelInterface");
 
@@ -23,7 +22,7 @@ abstract class ThermionFlutterMethodChannelInterface
   Future<ThermionViewer> createViewer({ThermionFlutterOptions? options}) async {
     if (viewer != null) {
       throw Exception(
-          "Only one viewer can be created over the lifetime of an application");
+          "Only one ThermionViewer can be created at any given time; ensure you have called [dispose] on the previous instance before constructing a new instance.");
     }
 
     var resourceLoader = Pointer<Void>.fromAddress(
@@ -51,6 +50,10 @@ abstract class ThermionFlutterMethodChannelInterface
         uberArchivePath: options?.uberarchivePath);
     await viewer!.initialized;
 
+    viewer!.onDispose(() async {
+      this.viewer = null;
+    });
+
     return viewer!;
   }
 }
@@ -59,8 +62,6 @@ abstract class MethodChannelFlutterTexture extends ThermionFlutterTexture {
   final MethodChannel channel;
 
   MethodChannelFlutterTexture(this.channel);
-
-  
 
   @override
   int get flutterId;
@@ -73,6 +74,4 @@ abstract class MethodChannelFlutterTexture extends ThermionFlutterTexture {
 
   @override
   int get width;
-
-
 }
