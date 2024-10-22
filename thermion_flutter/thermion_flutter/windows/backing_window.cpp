@@ -326,7 +326,7 @@ BackingWindow::BackingWindow(flutter::PluginRegistrarWindows *pluginRegistrar,
   ::SetWindowLong(_windowHandle, GWL_STYLE, style);
   
   ::SetWindowLongPtr(_windowHandle, GWLP_USERDATA,
-                     reinterpret_cast<LONG>(_flutterRootWindow));
+                     reinterpret_cast<LONG_PTR>(_flutterRootWindow));
 
   RECT flutterViewRect;
   ::GetWindowRect(_flutterViewWindow, &flutterViewRect);
