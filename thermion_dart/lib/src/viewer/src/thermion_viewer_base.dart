@@ -9,13 +9,12 @@ import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 
-import 'shared_types/view.dart';
-
 const double kNear = 0.05;
 const double kFar = 1000.0;
 const double kFocalLength = 28.0;
 
 abstract class ThermionViewer {
+  
   ///
   /// A Future that resolves when the underlying rendering context has been successfully created.
   ///
@@ -543,11 +542,6 @@ abstract class ThermionViewer {
   /// Get the camera rotation matrix.
   ///
   Future<Matrix3> getCameraRotation();
-
-  ///
-  /// Repositions the camera to the last vertex of the bounding box of [entity], looking at the penultimate vertex.
-  ///
-  Future moveCameraToAsset(ThermionEntity entity);
 
   ///
   /// Enables/disables frustum culling.
