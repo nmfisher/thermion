@@ -23,13 +23,7 @@ dependencies:
   thermion_flutter_web: ^0.1.0+9
   logging: ^1.2.0
   web: ^1.0.0
-dependency_overrides:
-  thermion_dart:
-    path: ../../thermion_dart
-  thermion_flutter_platform_interface:
-    path: ../thermion_flutter_platform_interface
-  thermion_flutter_ffi:
-    path: ../thermion_flutter_ffi
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
