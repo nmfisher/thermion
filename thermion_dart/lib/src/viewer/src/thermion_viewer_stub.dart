@@ -1062,6 +1062,18 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement loadGlbFromBuffer
     throw UnimplementedError();
   }
+  
+  @override
+  Future destroyRenderTarget(covariant RenderTarget renderTarget) {
+    // TODO: implement destroyRenderTarget
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future destroySwapChain(covariant SwapChain swapChain) {
+    // TODO: implement destroySwapChain
+    throw UnimplementedError();
+  }
 
   
 }
