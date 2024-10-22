@@ -634,10 +634,17 @@ namespace thermion
 
     for (auto view : _views)
     {
+      view->setRenderTarget(nullptr);
       _engine->destroy(view);
     }
 
     _views.clear();
+
+    for(auto rt : _renderTargets) {
+      destroyRenderTarget(rt);
+    }
+
+    _renderTargets.clear();
 
     for (auto swapChain : _swapChains)
     {
