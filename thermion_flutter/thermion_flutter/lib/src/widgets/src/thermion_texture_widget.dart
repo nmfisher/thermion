@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
@@ -42,15 +43,17 @@ class ThermionTextureWidget extends StatefulWidget {
 
 class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
   ThermionFlutterTexture? _texture;
-  RenderTarget? _renderTarget;
 
   static final _views = <t.View>[];
+
+  final _logger = Logger("_ThermionTextureWidgetState");
 
   @override
   void dispose() {
     super.dispose();
     _views.remove(widget.view);
     _texture?.destroy();
+    _states.remove(this);
   }
 
   @override
@@ -79,13 +82,15 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
             widget.view,
             dpr);
       } catch (err, st) {
-        print(err);
-        print(st);
+        _logger.severe(err);
+        _logger.severe(st);
       }
 
       if (mounted) {
         setState(() {});
       }
+
+      _states.add(this);
 
       _requestFrame();
 
@@ -98,23 +103,39 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         _views.clear();
       });
     });
-    _callbackId = _numCallbacks;
-    _numCallbacks++;
     super.initState();
   }
 
   bool _rendering = false;
 
-  static int _numCallbacks = 0;
-  static int _primaryCallback = 0;
-  late int _callbackId;
+  static final _states = <_ThermionTextureWidgetState>{};
+
   int lastRender = 0;
 
+  ///
+  /// Each instance of ThermionTextureWidget in the widget hierarchy must
+  /// call[markFrameAvailable] on every frame to notify Flutter that the content
+  /// of its backing texture has changed.
+  ///
+  /// Calling [requestFrame] on [ThermionViewer], however, will render all
+  /// views/swapchains that have been marked as renderable (see [setRenderable]).
+  ///
+  /// Only need one instance of [ThermionTextureWidget] needs to call
+  /// [requestFrame]. We manage this by storing all instances of
+  /// [_ThermionTextureWidgetState] in a static set, and allowing the first
+  /// instance to call [requestFrame].
+  ///
   void _requestFrame() {
+    if (!mounted) {
+      return;
+    }
     WidgetsBinding.instance.scheduleFrameCallback((d) async {
+      if (!mounted) {
+        return;
+      }
       if (widget.viewer.rendering && !_rendering) {
         _rendering = true;
-        if (_callbackId == _primaryCallback && _texture != null) {
+        if (this == _states.first && _texture != null) {
           await widget.viewer.requestFrame();
           lastRender = d.inMilliseconds;
         }
