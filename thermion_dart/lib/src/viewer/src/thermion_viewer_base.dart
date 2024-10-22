@@ -74,13 +74,25 @@ abstract class ThermionViewer {
   ///
   ///
   ///
+  Future destroySwapChain(
+      covariant SwapChain swapChain);
+
+  ///
+  ///
+  ///
   Future<RenderTarget> createRenderTarget(
       int width, int height, int textureHandle);
 
   ///
   ///
   ///
-  Future setRenderTarget(covariant RenderTarget renderTarget);
+  Future destroyRenderTarget(
+      covariant RenderTarget renderTarget);
+
+  ///
+  ///
+  ///
+  Future setRenderTarget(covariant RenderTarget? renderTarget);
 
   ///
   ///
