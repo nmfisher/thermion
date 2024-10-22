@@ -8,7 +8,6 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 import '../../../../utils/src/gizmo.dart';
 import '../../../../utils/src/matrix.dart';
 import '../../events.dart';
-import '../../shared_types/view.dart';
 import '../../thermion_viewer_base.dart';
 import 'package:logging/logging.dart';
 
@@ -83,9 +82,9 @@ class ThermionViewerFFI extends ThermionViewer {
     this._driver = driver ?? nullptr;
     this._sharedContext = sharedContext ?? nullptr;
 
-    _onPickResultCallable =
-        NativeCallable<Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view)>.listener(
-            _onPickResult);
+    _onPickResultCallable = NativeCallable<
+        Void Function(EntityId entityId, Int x, Int y,
+            Pointer<TView> view)>.listener(_onPickResult);
 
     _initialize();
   }
@@ -103,9 +102,26 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future setRenderTarget(FFIRenderTarget renderTarget) async {
+  @override
+  Future destroyRenderTarget(FFIRenderTarget renderTarget) async {
+    if (_disposing || _viewer == null) {
+      _logger.info(
+          "Viewer is being (or has been) disposed; this will clean up all render targets.");
+    } else {
+      Viewer_destroyRenderTarget(_viewer!, renderTarget.renderTarget);
+    }
+  }
+
+  ///
+  ///
+  ///
+  Future setRenderTarget(FFIRenderTarget? renderTarget) async {
     final view = (await getViewAt(0)) as FFIView;
-    View_setRenderTarget(view.view, renderTarget.renderTarget);
+    if (renderTarget != null) {
+      View_setRenderTarget(view.view, renderTarget.renderTarget);
+    } else {
+      View_setRenderTarget(view.view, nullptr);
+    }
   }
 
   ///
@@ -169,6 +185,18 @@ class ThermionViewerFFI extends ThermionViewer {
           _viewer!, Pointer<Void>.fromAddress(surface), callback);
     });
     return FFISwapChain(swapChain, _viewer!);
+  }
+
+  ///
+  ///
+  ///
+  Future destroySwapChain(FFISwapChain swapChain) async {
+    if (_viewer != null) {
+      await withVoidCallback((callback) {
+        Viewer_destroySwapChainRenderThread(
+            _viewer!, swapChain.swapChain, callback);
+      });
+    }
   }
 
   Gizmo? _gizmo;
@@ -260,6 +288,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   final _onDispose = <Future Function()>[];
+  bool _disposing = false;
 
   ///
   ///
@@ -267,23 +296,26 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future dispose() async {
     if (_viewer == null) {
-      // we've already cleaned everything up, ignore the call to dispose
+      _logger.info("Viewer already disposed, ignoring");
       return;
     }
+    _disposing = true;
+    
     await setRendering(false);
     await clearEntities();
     await clearLights();
-    destroy_filament_viewer_render_thread(_viewer!);
-    _sceneManager = null;
-    _viewer = null;
     await _pickResultController.close();
     await _gizmoPickResultController.close();
     await _sceneUpdateEventController.close();
+    Viewer_destroyOnRenderThread(_viewer!);
+    _sceneManager = null;
+    _viewer = null;
 
     for (final callback in _onDispose) {
       await callback.call();
     }
     _onDispose.clear();
+    _disposing = false;
   }
 
   ///
@@ -364,8 +396,6 @@ class ThermionViewerFFI extends ThermionViewer {
     await withVoidCallback((cb) {
       Viewer_loadIblRenderThread(_viewer!, pathPtr, intensity, cb);
     });
-
-    
   }
 
   ///
@@ -551,7 +581,8 @@ class ThermionViewerFFI extends ThermionViewer {
       int numInstances = 1,
       bool keepData = false,
       int priority = 4,
-      int layer = 0, bool loadResourcesAsync=false}) async {
+      int layer = 0,
+      bool loadResourcesAsync = false}) async {
     if (unlit) {
       throw Exception("Not yet implemented");
     }
@@ -561,8 +592,16 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var entity = await withIntCallback((callback) =>
-        SceneManager_loadGlbFromBufferRenderThread(_sceneManager!, data.address,
-            data.length, numInstances, keepData, priority, layer, loadResourcesAsync, callback));
+        SceneManager_loadGlbFromBufferRenderThread(
+            _sceneManager!,
+            data.address,
+            data.length,
+            numInstances,
+            keepData,
+            priority,
+            layer,
+            loadResourcesAsync,
+            callback));
 
     if (entity == _FILAMENT_ASSET_ERROR) {
       throw Exception("An error occurred loading GLB from buffer");
@@ -1478,7 +1517,8 @@ class ThermionViewerFFI extends ThermionViewer {
         .add((entity: entityId, x: x.ceil(), y: (viewport.height - y).ceil()));
   }
 
-  late NativeCallable<Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view)>
+  late NativeCallable<
+          Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view)>
       _onPickResultCallable;
 
   ///
@@ -2159,11 +2199,6 @@ class FFIRenderTarget extends RenderTarget {
   final Pointer<TViewer> viewer;
 
   FFIRenderTarget(this.renderTarget, this.viewer);
-
-  @override
-  Future destroy() async {
-    Viewer_destroyRenderTarget(viewer, renderTarget);
-  }
 }
 
 class FFISwapChain extends SwapChain {
@@ -2171,10 +2206,4 @@ class FFISwapChain extends SwapChain {
   final Pointer<TViewer> viewer;
 
   FFISwapChain(this.swapChain, this.viewer);
-
-  Future destroy() async {
-    await withVoidCallback((callback) {
-      Viewer_destroySwapChainRenderThread(viewer, swapChain, callback);
-    });
-  }
 }
