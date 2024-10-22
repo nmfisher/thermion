@@ -143,17 +143,6 @@ external void Viewer_setViewRenderable(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Float,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void Viewer_loadIblRenderThread(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Char> iblPath,
-  double intensity,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
-);
-
-
-@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TViewer>,
         ffi.Pointer<TView>,
@@ -240,7 +229,7 @@ external void load_skybox(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Float)>(isLeaf: true)
-external void load_ibl(
+external void Viewer_loadIbl(
   ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> iblPath,
   double intensity,
@@ -1337,6 +1326,11 @@ external void Viewer_createOnRenderThread(
       callback,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
+external void Viewer_destroyOnRenderThread(
+  ffi.Pointer<TViewer> viewer,
+);
+
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TViewer>,
@@ -1428,6 +1422,16 @@ external void Viewer_requestFrameRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Float,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_loadIblRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<ffi.Char> iblPath,
+  double intensity,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Int)>(isLeaf: true)
 external void View_setToneMappingRenderThread(
@@ -1440,11 +1444,6 @@ external void View_setToneMappingRenderThread(
 external void View_setBloomRenderThread(
   ffi.Pointer<TView> tView,
   double bloom,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void destroy_filament_viewer_render_thread(
-  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<FilamentRenderCallback Function(FilamentRenderCallback)>(
