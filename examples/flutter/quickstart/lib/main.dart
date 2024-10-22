@@ -58,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Geometry and models are represented as "entities". Here, we load a glTF
     // file containing a plain cube.
-    // By default, all paths are treated as asset paths. To load from a file 
+    // By default, all paths are treated as asset paths. To load from a file
     // instead, use file:// URIs.
     var entity =
         await _thermionViewer!.loadGlb("assets/cube.glb", keepData: true);
@@ -79,6 +79,13 @@ class _MyHomePageState extends State<MyHomePage> {
     await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
     await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
 
+    // The underlying Filament rendering engine exposes a number of 
+    // post-processing options (anti-aliasing, bloom, etc).
+    // Post-processing is disabled by default, but most users will want to 
+    // enable it for color correction.
+    // If you're not sure what you're doing, always set this to true.
+    await _thermionViewer!.setPostProcessing(true);
+
     // Finally, you need to explicitly enable rendering. Setting rendering to
     // false is designed to allow you to pause rendering to conserve battery life
     await _thermionViewer!.setRendering(true);
@@ -87,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future _unload() async {
-    // when you are no longer need the 3D viewport:
+    // when you've finished rendering and you no longer need a 3D viewport:
     // 1) remove all instances of ThermionWidget from the widget tree
     // 2) remove all local references to the ThermionViewer
     // 3) call dispose on the ThermionViewer
@@ -120,14 +127,14 @@ class _MyHomePageState extends State<MyHomePage> {
       Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child:Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-            if (_thermionViewer == null) _loadButton(),
-            if (_thermionViewer != null) _unloadButton(),
-          ])))
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (_thermionViewer == null) _loadButton(),
+                    if (_thermionViewer != null) _unloadButton(),
+                  ])))
     ]);
   }
 }
