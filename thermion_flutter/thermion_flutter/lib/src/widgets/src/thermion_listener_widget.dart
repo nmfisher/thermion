@@ -29,11 +29,11 @@ class ThermionListenerWidget extends StatefulWidget {
   ///
   /// The handler to use for interpreting gestures/pointer movements.
   ///
-  final InputHandler gestureHandler;
+  final InputHandler inputHandler;
 
   const ThermionListenerWidget({
     Key? key,
-    required this.gestureHandler,
+    required this.inputHandler,
     this.child,
   }) : super(key: key);
 
@@ -66,9 +66,9 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     }
 
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
-      widget.gestureHandler.keyDown(key!);
+      widget.inputHandler.keyDown(key!);
     } else if (event is KeyUpEvent) {
-      widget.gestureHandler.keyUp(key!);
+      widget.inputHandler.keyUp(key!);
       return true;
     }
     return false;
@@ -82,12 +82,12 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 
   Widget _desktop(double pixelRatio) {
     return Listener(
-      onPointerHover: (event) => widget.gestureHandler.onPointerHover(
+      onPointerHover: (event) => widget.inputHandler.onPointerHover(
           event.localPosition.toVector2() * pixelRatio,
           event.delta.toVector2() * pixelRatio),
       onPointerSignal: (PointerSignalEvent pointerSignal) {
         if (pointerSignal is PointerScrollEvent) {
-          widget.gestureHandler.onPointerScroll(
+          widget.inputHandler.onPointerScroll(
               pointerSignal.localPosition.toVector2() * pixelRatio,
               pointerSignal.scrollDelta.dy * pixelRatio);
         }
@@ -95,14 +95,14 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
       onPointerPanZoomStart: (pzs) {
         throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
       },
-      onPointerDown: (d) => widget.gestureHandler.onPointerDown(
+      onPointerDown: (d) => widget.inputHandler.onPointerDown(
           d.localPosition.toVector2() * pixelRatio,
           d.buttons & kMiddleMouseButton != 0),
-      onPointerMove: (d) => widget.gestureHandler.onPointerMove(
+      onPointerMove: (d) => widget.inputHandler.onPointerMove(
           d.localPosition.toVector2() * pixelRatio,
           d.delta.toVector2() * pixelRatio,
           d.buttons & kMiddleMouseButton != 0),
-      onPointerUp: (d) => widget.gestureHandler
+      onPointerUp: (d) => widget.inputHandler
           .onPointerUp(d.buttons & kMiddleMouseButton != 0),
       child: widget.child,
     );
@@ -110,7 +110,7 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 
   Widget _mobile(double pixelRatio) {
     return _MobileListenerWidget(
-        gestureHandler: widget.gestureHandler, pixelRatio: pixelRatio, child:widget.child);
+        inputHandler: widget.inputHandler, pixelRatio: pixelRatio, child:widget.child);
   }
 
   @override
@@ -118,7 +118,7 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     return PixelRatioAware(builder: (ctx, pixelRatio) {
       return FutureBuilder(
           initialData: 1.0,
-          future: widget.gestureHandler.initialized,
+          future: widget.inputHandler.initialized,
           builder: (_, initialized) {
             if (initialized.data != true) {
               return widget.child ?? Container();
@@ -133,12 +133,12 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 }
 
 class _MobileListenerWidget extends StatefulWidget {
-  final InputHandler gestureHandler;
+  final InputHandler inputHandler;
   final double pixelRatio;
   final Widget? child;
 
   const _MobileListenerWidget(
-      {Key? key, required this.gestureHandler, required this.pixelRatio, this.child})
+      {Key? key, required this.inputHandler, required this.pixelRatio, this.child})
       : super(key: key);
 
   @override
@@ -157,18 +157,18 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
   Widget build(BuildContext context) {
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTapDown: (details) => widget.gestureHandler.onPointerDown(
+        onTapDown: (details) => widget.inputHandler.onPointerDown(
             details.localPosition.toVector2() * widget.pixelRatio, false),
         onDoubleTap: () {
-          widget.gestureHandler.setActionForType(InputType.SCALE1,
+          widget.inputHandler.setActionForType(InputType.SCALE1,
               isPan ? InputAction.TRANSLATE : InputAction.ROTATE);
         },
         onScaleStart: (details) async {
-          await widget.gestureHandler.onScaleStart(
+          await widget.inputHandler.onScaleStart(
               details.localFocalPoint.toVector2(), details.pointerCount);
         },
         onScaleUpdate: (ScaleUpdateDetails details) async {
-          await widget.gestureHandler.onScaleUpdate(
+          await widget.inputHandler.onScaleUpdate(
               details.localFocalPoint.toVector2(),
               details.focalPointDelta.toVector2(),
               details.horizontalScale,
@@ -177,7 +177,7 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
               details.pointerCount);
         },
         onScaleEnd: (details) async {
-          await widget.gestureHandler.onScaleEnd(details.pointerCount);
+          await widget.inputHandler.onScaleEnd(details.pointerCount);
         },
         child: widget.child);
   }

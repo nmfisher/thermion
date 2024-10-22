@@ -63,18 +63,17 @@ class DelegateInputHandler implements InputHandler {
 
   factory DelegateInputHandler.fixedOrbit(ThermionViewer viewer,
           {double minimumDistance = 10.0,
-          Future<double?> Function(Vector3)? getDistanceToTarget,
+          Vector3? target,
           ThermionEntity? entity,
           PickDelegate? pickDelegate}) =>
       DelegateInputHandler(
           viewer: viewer,
           pickDelegate: pickDelegate,
           transformDelegate: FixedOrbitRotateInputHandlerDelegate(viewer,
-              getDistanceToTarget: getDistanceToTarget,
               minimumDistance: minimumDistance),
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
-            InputType.SCROLLWHEEL: InputAction.TRANSLATE
+            InputType.SCROLLWHEEL: InputAction.ZOOM
           });
 
   factory DelegateInputHandler.flight(ThermionViewer viewer,
