@@ -1,0 +1,29 @@
+## Camera Manipulation (Flutter)
+
+> You can find the entire project below in the [flutter/quickstart](https://github.com/nmfisher/thermion/examples/flutter/camera_manipulation) folder.
+
+A `ThermionListenerWidget` is one option for manipulating the camera with an input device (e.g. mouse or touchscreen gestures). 
+
+This will generally wrap a `ThermionWidget`, meaning the entire viewport will act as a receiver for gesture events. 
+
+> You can position this independently (for example, stacked vertically beneath the viewport), but this will not translate picking queries correctly.
+
+```
+@override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      if (_thermionViewer != null)
+        Positioned.fill(
+            child: ThermionListenerWidget(
+                inputHandler:
+                    DelegateInputHandler.fixedOrbit(_thermionViewer!),
+                child: ThermionWidget(
+                  viewer: _thermionViewer!,
+                ))),
+    ]);
+```
+
+`ThermionListenerWidget` is a very simple widget; it simply forwards pointer, gesture and keyboard events to an instance of [InputHandler] that you provide.
+
+
+

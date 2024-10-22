@@ -5,26 +5,30 @@ import '../../../viewer/viewer.dart';
 import '../../input.dart';
 import '../input_handler.dart';
 
+///
+/// An [InputHandlerDelegate] that orbits the camera around a fixed
+/// point.
+///
 class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
   final ThermionViewer viewer;
   late Future<Camera> _camera;
   final double minimumDistance;
-  Future<double?> Function(Vector3)? getDistanceToTarget;
+  late final Vector3 target;
 
   Vector2 _queuedRotationDelta = Vector2.zero();
   double _queuedZoomDelta = 0.0;
 
-  static final _up = Vector3(0, 1, 0);
   Timer? _updateTimer;
 
   FixedOrbitRotateInputHandlerDelegate(
     this.viewer, {
-    this.getDistanceToTarget,
+    Vector3? target,
     this.minimumDistance = 10.0,
   }) {
+    this.target = target ?? Vector3.zero();
     _camera = viewer.getMainCamera().then((Camera cam) async {
       var viewMatrix = makeViewMatrix(Vector3(0.0, 0, -minimumDistance),
-          Vector3.zero(), Vector3(0.0, 1.0, 0.0));
+          this.target, Vector3(0.0, 1.0, 0.0));
       viewMatrix.invert();
 
       await cam.setTransform(viewMatrix);
@@ -81,98 +85,52 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
     var inverseProjectionMatrix = projectionMatrix.clone()..invert();
     Vector3 currentPosition = modelMatrix.getTranslation();
 
-    Vector3 forward = -currentPosition.normalized();
+    Vector3 forward = modelMatrix.forward;
 
     if (forward.length == 0) {
       forward = Vector3(0, 0, -1);
       currentPosition = Vector3(0, 0, minimumDistance);
     }
 
-    Vector3 right = _up.cross(forward).normalized();
-    Vector3 up = forward.cross(right);
-
-    // Calculate the point where the camera forward ray intersects with the
-    // surface of the target sphere
-    var distanceToTarget =
-        (await getDistanceToTarget?.call(currentPosition)) ?? 0;
-
-    Vector3 intersection =
-        (-forward).scaled(currentPosition.length - distanceToTarget);
-
-    final intersectionInViewSpace = viewMatrix *
-        Vector4(intersection.x, intersection.y, intersection.z, 1.0);
-    final intersectionInClipSpace = projectionMatrix * intersectionInViewSpace;
-    final intersectionInNdcSpace =
-        intersectionInClipSpace / intersectionInClipSpace.w;
-
-    // Calculate new camera position based on rotation
-    final ndcX = 2 * ((-_queuedRotationDelta.x) / viewport.width);
-    final ndcY = 2 * ((_queuedRotationDelta.y) / viewport.height);
-    final ndc = Vector4(ndcX, ndcY, intersectionInNdcSpace.z, 1.0);
-
-    var clipSpace = Vector4(
-        ndc.x * intersectionInClipSpace.w,
-        ndcY * intersectionInClipSpace.w,
-        ndc.z * intersectionInClipSpace.w,
-        intersectionInClipSpace.w);
-    Vector4 cameraSpace = inverseProjectionMatrix * clipSpace;
-    Vector4 worldSpace = modelMatrix * cameraSpace;
-
-    var worldSpace3 = worldSpace.xyz.normalized() * currentPosition.length;
-    currentPosition = worldSpace3;
-
     // Zoom
     if (_queuedZoomDelta != 0.0) {
-      var distToIntersection =
-          (currentPosition - intersection).length - minimumDistance;
+      var newPosition = currentPosition +
+          (currentPosition - target).scaled(_queuedZoomDelta * 0.1);
+
+      var distToTarget = (newPosition - target).length;
 
       // if we somehow overshot the minimum distance, reset the camera to the minimum distance
-      if (distToIntersection < 0) {
-        currentPosition +=
-            (intersection.normalized().scaled(-distToIntersection * 10));
-      } else {
-        bool zoomingOut = _queuedZoomDelta > 0;
-        late Vector3 offset;
+      if (distToTarget >= minimumDistance) {
+        currentPosition = newPosition;
+        // Calculate view matrix
+        forward = (currentPosition - target).normalized();
+        var right = modelMatrix.up.cross(forward).normalized();
+        var up = forward.cross(right);
 
-        // when zooming, we don't always use fractions of the distance from
-        // the camera to the target (this is due to float precision issues at
-        // large distances, and also it doesn't work well for UI).
+        Matrix4 newViewMatrix = makeViewMatrix(currentPosition, target, up);
+        newViewMatrix.invert();
 
-        // if we're zooming out and the distance is less than 10m, we zoom out by 1 unit
-        if (zoomingOut) {
-          if (distToIntersection < 10) {
-            offset = intersection.normalized();
-          } else {
-            offset = intersection.normalized().scaled(distToIntersection / 10);
-          }
-          // if we're zooming in and the distance is less than 5m, zoom in by 1/2 the distance,
-          // otherwise 1/10 of the distance each time
-        } else {
-          if (distToIntersection < 5) {
-            offset = intersection.normalized().scaled(-distToIntersection / 2);
-          } else {
-            offset = intersection.normalized().scaled(-distToIntersection / 10);
-          }
-
-          if (offset.length > distToIntersection) {
-            offset = Vector3.zero();
-          }
-        }
-        currentPosition += offset;
+        await (await _camera).setModelMatrix(newViewMatrix);
       }
+    } else if (_queuedRotationDelta.length != 0) {
+      double rotateX = _queuedRotationDelta.x * 0.01;
+      double rotateY = _queuedRotationDelta.y * 0.01;
+
+      var modelMatrix = await viewer.getCameraModelMatrix();
+
+      // for simplicity, we always assume a fixed coordinate system where
+      // we are rotating around world Y and camera X
+      var rot1 = Matrix4.identity()
+        ..setRotation(Quaternion.axisAngle(Vector3(0, 1, 0), -rotateX)
+            .asRotationMatrix());
+      var rot2 = Matrix4.identity()
+        ..setRotation(Quaternion.axisAngle(modelMatrix.right, rotateY)
+            .asRotationMatrix());
+      
+      modelMatrix = rot1 *
+          rot2 * modelMatrix;
+      await (await _camera).setModelMatrix(modelMatrix);
     }
-
-    // Calculate view matrix
-    forward = -currentPosition.normalized();
-    right = _up.cross(forward).normalized();
-    up = forward.cross(right);
-
-    Matrix4 newViewMatrix = makeViewMatrix(currentPosition, Vector3.zero(), up);
-    newViewMatrix.invert();
-
-    // Set the camera model matrix
-    var camera = await _camera;
-    await camera.setModelMatrix(newViewMatrix);
 
     // Reset queued deltas
     _queuedRotationDelta = Vector2.zero();

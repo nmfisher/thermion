@@ -27,6 +27,7 @@
 ```
 flutter channel master
 flutter upgrade
+flutter config --enable-native-assets  
 ```
 
 ```
