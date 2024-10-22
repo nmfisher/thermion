@@ -138,36 +138,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future updateViewportAndCameraProjection(double width, double height) async {
-    var mainView = FFIView(Viewer_getViewAt(_viewer!, 0), _viewer!);
-    mainView.updateViewport(width.toInt(), height.toInt());
-
-    final cameraCount = await getCameraCount();
-
-    for (int i = 0; i < cameraCount; i++) {
-      var camera = await getCameraAt(i);
-      var near = await camera.getNear();
-      if (near.abs() < 0.000001) {
-        near = kNear;
-      }
-      var far = await camera.getCullingFar();
-      if (far.abs() < 0.000001) {
-        far = kFar;
-      }
-
-      var aspect = width / height;
-      var focalLength = await camera.getFocalLength();
-      if (focalLength.abs() < 0.1) {
-        focalLength = kFocalLength;
-      }
-      camera.setLensProjection(
-          near: near, far: far, aspect: aspect, focalLength: focalLength);
-    }
-  }
-
-  ///
-  ///
-  ///
   Future<SwapChain> createHeadlessSwapChain(int width, int height) async {
     var swapChain = await withPointerCallback<TSwapChain>((callback) {
       return Viewer_createHeadlessSwapChainRenderThread(
@@ -1312,14 +1282,6 @@ class ThermionViewerFFI extends ThermionViewer {
     var modelMatrix = await getCameraModelMatrix();
     modelMatrix.setTranslation(Vector3(x, y, z));
     return setCameraModelMatrix4(modelMatrix);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future moveCameraToAsset(ThermionEntity entity) async {
-    throw Exception("DON'T USE");
   }
 
   ///
