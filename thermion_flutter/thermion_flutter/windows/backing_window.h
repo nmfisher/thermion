@@ -17,6 +17,7 @@ class BackingWindow {
         int top);
     HWND GetHandle();
     void Resize(int width, int height, int left, int top);
+    void Destroy();
     private:
         HWND _windowHandle;
         HWND _flutterRootWindow;
