@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
-import 'package:thermion_flutter_ffi/thermion_flutter_method_channel_interface.dart';
+import 'package:thermion_flutter_ffi/src/thermion_flutter_method_channel_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 import 'package:logging/logging.dart';
@@ -37,6 +36,9 @@ class ThermionFlutterWindows
       throw Exception("Only one viewer should be instantiated over the life of the app");
     }
     _viewer = await super.createViewer(options: options);
+    _viewer!.onDispose(() async {
+      _viewer = null;
+    });
     return _viewer!;
   }
 
@@ -51,7 +53,6 @@ class ThermionFlutterWindows
   
   @override
   Future<ThermionFlutterWindow> createWindow(int width, int height, int offsetLeft, int offsetTop) async {
-
 
     var result = await _channel
         .invokeMethod("createWindow", [width, height, offsetLeft, offsetLeft]);
@@ -84,8 +85,6 @@ class ThermionFlutterWindowImpl extends ThermionFlutterWindow {
   int offsetTop = 0;
   final MethodChannel _channel;
   
-
-
   ThermionFlutterWindowImpl(this.handle, this._channel, this.viewer);
 
   @override
