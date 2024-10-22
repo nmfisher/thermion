@@ -21,3 +21,50 @@
 - glTF, KTX, PNG & JPEG texture support
 - camera/entity manipulation with mouse (desktop) and gestures (mobile)
 - skinning + morph animations
+
+### Quickstart (Flutter)
+
+```
+_thermionViewer = await ThermionFlutterPlugin.createViewer();
+
+// Geometry and models are represented as "entities". Here, we load a glTF
+// file containing a plain cube.
+// By default, all paths are treated as asset paths. To load from a file 
+// instead, use file:// URIs.
+var entity =
+    await _thermionViewer!.loadGlb("assets/cube.glb", keepData: true);
+
+// Thermion uses a right-handed coordinate system where +Y is up and -Z is
+// "into" the screen.
+// By default, the camera is located at (0,0,0) looking at (0,0,-1); this
+// would place it directly inside the cube we just loaded.
+//
+// Let's move the camera to (0,0,10) to ensure the cube is visible in the
+// viewport.
+await _thermionViewer!.setCameraPosition(0, 0, 10);
+
+// Without a light source, your scene will be totally black. Let's load a skybox
+// (a cubemap image that is rendered behind everything else in the scene)
+// and an image-based indirect light that has been precomputed from the same
+// skybox.
+await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
+await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
+
+// Finally, you need to explicitly enable rendering. Setting rendering to
+// false is designed to allow you to pause rendering to conserve battery life
+await _thermionViewer!.setRendering(true);
+```
+
+and then in your Flutter application:
+```
+ @override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      if (_thermionViewer != null)
+        Positioned.fill(
+            child: ThermionWidget(
+          viewer: _thermionViewer!,
+        )),
+    ]);
+  }
+```
