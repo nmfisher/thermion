@@ -13,26 +13,10 @@ namespace thermion_flutter {
     class FlutterRenderContext {
     public:
 
-        void CreateRenderingSurface(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, uint32_t left, uint32_t top );
+        void CreateRenderingSurface(uint32_t width, uint32_t height, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, uint32_t left, uint32_t top);
 
-        void DestroyTexture(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-            if (!_active) {
-                result->Success("Texture has already been detroyed, ignoring");
-                return;
-            }
-
-            auto sh = std::make_shared<
-                std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>>(
-                    std::move(result));
-
-            _textureRegistrar->UnregisterTexture(
-                _active->flutterTextureId, [=, sharedResult = std::move(sh)]() {
-                    this->_inactive = std::move(this->_active);
-                    auto unique = std::move(*(sharedResult.get()));
-                    unique->Success(flutter::EncodableValue(true));
-                    std::cout << "Unregistered/destroyed texture." << std::endl;
-                });
-        }
+        void DestroyRenderingSurface(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+        
         int64_t GetFlutterTextureId() {
             if(!_active) {
                 return -1;
