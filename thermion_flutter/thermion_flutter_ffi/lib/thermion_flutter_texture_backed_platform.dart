@@ -14,12 +14,11 @@ import 'platform_texture.dart';
 ///
 /// An implementation of [ThermionFlutterPlatform] that uses
 /// Flutter platform channels to create a rendering context,
-/// resource loaders, and a texture that will be used as a render target 
+/// resource loaders, and a texture that will be used as a render target
 /// for a headless swapchain.
 ///
 class ThermionFlutterTextureBackedPlatform
     extends ThermionFlutterMethodChannelInterface {
-  
   final _logger = Logger("ThermionFlutterTextureBackedPlatform");
 
   static SwapChain? _swapChain;
@@ -46,20 +45,27 @@ class ThermionFlutterTextureBackedPlatform
     if (Platform.isMacOS || Platform.isIOS) {
       _swapChain = await viewer.createHeadlessSwapChain(1, 1);
     }
+
+    viewer.onDispose(() async {
+      _swapChain = null;
+    });
+
     return viewer;
   }
 
   // On desktop platforms, textures are always created
-  Future<ThermionFlutterTexture?> createTexture(t.View view, int width, int height) async {
-    var texture = FlutterPlatformTexture(channel, viewer!, view, (Platform.isMacOS || Platform.isIOS)? _swapChain : null);
+  Future<ThermionFlutterTexture?> createTexture(
+      t.View view, int width, int height) async {
+    var texture = FlutterPlatformTexture(channel, viewer!, view,
+        (Platform.isMacOS || Platform.isIOS) ? _swapChain : null);
     await texture.resize(width, height, 0, 0);
     return texture;
   }
-  
+
   @override
-  Future<ThermionFlutterWindow> createWindow(int width, int height, int offsetLeft, int offsetTop) {
+  Future<ThermionFlutterWindow> createWindow(
+      int width, int height, int offsetLeft, int offsetTop) {
     // TODO: implement createWindow
     throw UnimplementedError();
   }
 }
-
