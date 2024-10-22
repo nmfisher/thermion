@@ -83,7 +83,7 @@ ResourceBuffer ThermionFlutterPlugin::loadResource(const char *name) {
 
     TCHAR pBuf[512];
     size_t len = sizeof(pBuf);
-    int bytes = GetModuleFileName(NULL, pBuf, len);
+    int bytes = GetModuleFileName(NULL, pBuf, static_cast<DWORD>(len));
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
     std::wstring assetPath = converter.from_bytes(name_str.c_str());
 
@@ -190,16 +190,9 @@ void ThermionFlutterPlugin::CreateTexture(
 void ThermionFlutterPlugin::DestroyTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-
-  const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
-
-  if (!flutterTextureId) {
-    result->Error("NOT_IMPLEMENTED", "Flutter texture ID must be provided");
-    return;
-  }
   
   if (_context) {
-      _context->DestroyTexture(std::move(result));
+      _context->DestroyRenderingSurface(std::move(result));
   }
   else {
       result->Error("NO_CONTEXT", "No rendering context is active");
