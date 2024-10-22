@@ -60,12 +60,11 @@ class FlutterPlatformTexture extends MethodChannelFlutterTexture {
 
     _logger.info("Created texture ${flutterId} / ${hardwareId}");
 
-    if (destroySwapChainOnResize && swapChain != null) {
-      await viewer.destroySwapChain(swapChain!);
-      swapChain = await viewer.createSwapChain(result[2]);
-    }
-
     if (destroySwapChainOnResize) {
+      if (swapChain != null) {
+        await viewer.destroySwapChain(swapChain!);
+      }
+      swapChain = await viewer.createSwapChain(result[2]);
       await view.setRenderable(true, swapChain!);
     } else if (hardwareId != _lastHardwareId) {
       if (_renderTarget != null) {
