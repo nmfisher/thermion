@@ -49,9 +49,11 @@ class ThermionFlutterWindows
   }
 
   
+  ///
+  ///
+  ///
   @override
   Future<ThermionFlutterWindow> createWindow(int width, int height, int offsetLeft, int offsetTop) async {
-
 
     var result = await _channel
         .invokeMethod("createWindow", [width, height, offsetLeft, offsetLeft]);
@@ -71,7 +73,6 @@ class ThermionFlutterWindows
     return window;
   }
   
-  
 }
 
 class ThermionFlutterWindowImpl extends ThermionFlutterWindow {
@@ -84,8 +85,6 @@ class ThermionFlutterWindowImpl extends ThermionFlutterWindow {
   int offsetTop = 0;
   final MethodChannel _channel;
   
-
-
   ThermionFlutterWindowImpl(this.handle, this._channel, this.viewer);
 
   @override

@@ -267,8 +267,6 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
   @JS('getCameraRotation')
   external JSPromise<JSArray<JSNumber>> getCameraRotation();
 
-  @JS('moveCameraToAsset')
-  external JSPromise moveCameraToAsset(ThermionEntity entity);
 
   @JS('setViewFrustumCulling')
   external JSPromise setViewFrustumCulling(JSBoolean enabled);

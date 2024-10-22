@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:thermion_flutter/src/widgets/src/thermion_texture_widget.dart';
-import 'package:thermion_flutter/src/widgets/src/thermion_widget_web.dart';
+import 'package:thermion_flutter/src/widgets/src/web/thermion_widget_web.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
@@ -90,6 +90,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
     // Windows & Web don't support imported textures yet
     if (kIsWeb) {
       return ThermionWidgetWeb(
+          view: widget.view!,
           viewer: widget.viewer,
           options: ThermionFlutterPlugin.options as ThermionFlutterWebOptions?);
     }

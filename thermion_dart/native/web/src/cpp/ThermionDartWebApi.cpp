@@ -31,11 +31,11 @@ extern "C"
 
   std::string _assetPathPrefix;
 
-  EMSCRIPTEN_KEEPALIVE void thermion_dart_web_set_asset_path_prefix(const char* prefix) {
+  EMSCRIPTEN_KEEPALIVE void ThermionWeb_setAssetPathPrefix(const char* prefix) {
     _assetPathPrefix = std::string(prefix);
   }
 
-  EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE thermion_dart_web_create_gl_context() {
+  EMSCRIPTEN_KEEPALIVE EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ThermionWeb_createGlContext() {
 
     EM_ASM(
       FS.mkdir('/indexed');
@@ -83,7 +83,7 @@ extern "C"
 
   int _lastResourceId = 0;
 
-  ResourceBuffer thermion_filament_web_load_resource(const char* path)
+  ResourceBuffer ThermionWeb_loadResource(const char* path)
   {
     // ideally we should bounce the call to Flutter then wait for callback
     // this isn't working for large assets though - seems like it's deadlocked
@@ -204,19 +204,15 @@ extern "C"
     return ResourceBuffer { data, numBytes, _lastResourceId  } ;   
   }
 
-  void thermion_filament_web_free_resource(ResourceBuffer rb) {
+  void ThermionWeb_freeResource(ResourceBuffer rb) {
     free((void*)rb.data);
   }
-  
-  EMSCRIPTEN_KEEPALIVE void thermion_filament_web_free(void* ptr) {
-    free(ptr);
-  }
 
-  EMSCRIPTEN_KEEPALIVE void* thermion_dart_web_get_resource_loader_wrapper() {
+  EMSCRIPTEN_KEEPALIVE void* ThermionWeb_getResourceLoaderWrapper() {
     ResourceLoaderWrapper *rlw = (ResourceLoaderWrapper *)malloc(sizeof(ResourceLoaderWrapper));
-    rlw->loadResource = thermion_filament_web_load_resource;
+    rlw->loadResource = ThermionWeb_loadResource;
     rlw->loadFromOwner = nullptr;
-    rlw->freeResource = thermion_filament_web_free_resource;
+    rlw->freeResource = ThermionWeb_freeResource;
     rlw->freeFromOwner = nullptr;
     rlw->loadToOut = nullptr;
     rlw->owner = nullptr;

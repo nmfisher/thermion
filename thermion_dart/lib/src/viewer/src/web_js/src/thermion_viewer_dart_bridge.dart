@@ -489,11 +489,6 @@
 //   }
 
 //   @JSExport()
-//   JSPromise moveCameraToAsset(ThermionEntity entity) =>
-//       throw UnimplementedError();
-// // viewer.moveCameraToAsset(entity)).toJS;
-
-//   @JSExport()
 //   JSPromise setViewFrustumCulling(JSBoolean enabled) =>
 //       throw UnimplementedError();
 // // viewer.setViewFrustumCulling(enabled).toJS;

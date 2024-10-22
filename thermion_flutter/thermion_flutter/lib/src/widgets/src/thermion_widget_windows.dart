@@ -2,13 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:logging/logging.dart';
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
-import 'package:thermion_flutter/src/widgets/src/transparent_filament_widget.dart';
+import 'package:thermion_flutter/src/widgets/src/transparency_painter.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' as t;
 import 'package:thermion_flutter_platform_interface/thermion_flutter_window.dart';
 
 class ThermionWidgetWindows extends StatefulWidget {
-  
+
   final t.ThermionViewer viewer;
 
   final t.View view;
@@ -23,14 +24,20 @@ class ThermionWidgetWindows extends StatefulWidget {
   ///
   final Future Function(Size size, t.View view, double pixelRatio)? onResize;
 
-  const ThermionWidgetWindows({super.key, required this.viewer, this.initial, this.onResize, required this.view});
-  
-  
+  const ThermionWidgetWindows(
+      {super.key,
+      required this.viewer,
+      this.initial,
+      this.onResize,
+      required this.view});
+
   @override
   State<StatefulWidget> createState() => _ThermionWidgetWindowsState();
 }
 
 class _ThermionWidgetWindowsState extends State<ThermionWidgetWindows> {
+
+  static final _logger = Logger("_ThermionWidgetWindowsState");
 
   ThermionFlutterWindow? _window;
 
@@ -38,7 +45,7 @@ class _ThermionWidgetWindowsState extends State<ThermionWidgetWindows> {
   void initState() {
     super.initState();
 
-     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       await widget.viewer.initialized;
 
       var dpr = MediaQuery.of(context).devicePixelRatio;
@@ -48,11 +55,12 @@ class _ThermionWidgetWindowsState extends State<ThermionWidgetWindows> {
       var width = (size.width * dpr).ceil();
       var height = (size.height * dpr).ceil();
 
-       final offset = renderBox.localToGlobal(Offset.zero);
-       final offsetLeft = (offset.dx * dpr).toInt();
-       final offsetTop = (offset.dy * dpr).toInt();
+      final offset = renderBox.localToGlobal(Offset.zero);
+      final offsetLeft = (offset.dx * dpr).toInt();
+      final offsetTop = (offset.dy * dpr).toInt();
 
-      _window = await t.ThermionFlutterPlatform.instance.createWindow(width, height, offsetLeft, offsetTop);
+      _window = await t.ThermionFlutterPlatform.instance
+          .createWindow(width, height, offsetLeft, offsetTop);
 
       await widget.view.updateViewport(_window!.width, _window!.height);
 
@@ -62,8 +70,8 @@ class _ThermionWidgetWindowsState extends State<ThermionWidgetWindows> {
             widget.view,
             dpr);
       } catch (err, st) {
-        print(err);
-        print(st);
+        _logger.severe(err);
+        _logger.severe(st);
       }
 
       if (mounted) {
@@ -126,7 +134,7 @@ class _ThermionWidgetWindowsState extends State<ThermionWidgetWindows> {
       var newWidth = newSize.width.ceil();
       var newHeight = newSize.height.ceil();
 
-      final renderBox = context.findRenderObject() as RenderBox;      
+      final renderBox = context.findRenderObject() as RenderBox;
       final offset = renderBox.localToGlobal(Offset.zero);
       final offsetLeft = (offset.dx * dpr).toInt();
       final offsetTop = (offset.dy * dpr).toInt();
@@ -161,8 +169,6 @@ class _ThermionWidgetWindowsState extends State<ThermionWidgetWindows> {
     }
 
     return ResizeObserver(
-        onResized: _resize,
-        child: CustomPaint(painter:TransparencyPainter()));
+        onResized: _resize, child: CustomPaint(painter: TransparencyPainter()));
   }
-
 }

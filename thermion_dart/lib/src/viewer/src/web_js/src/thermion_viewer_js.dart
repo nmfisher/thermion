@@ -517,12 +517,6 @@
 //     // final JSMatrix3 jsRotation = await _shim.getCameraRotation().toDart;
 //     // return Matrix3.fromList(jsRotation.storage).toDart;
 //   }
-
-//   @override
-//   Future<void> moveCameraToAsset(ThermionEntity entity) async {
-//     await _shim.moveCameraToAsset(entity).toDart;
-//   }
-
 //   @override
 //   Future<void> setViewFrustumCulling(bool enabled) async {
 //     throw UnimplementedError();
