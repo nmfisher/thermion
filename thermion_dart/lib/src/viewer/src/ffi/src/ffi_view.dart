@@ -16,8 +16,12 @@ class FFIView extends View {
   }
 
   @override
-  Future setRenderTarget(covariant FFIRenderTarget renderTarget) async {
-    View_setRenderTarget(view, renderTarget.renderTarget);
+  Future setRenderTarget(covariant FFIRenderTarget? renderTarget) async {
+    if(renderTarget != null) {
+      View_setRenderTarget(view, renderTarget.renderTarget);
+    } else {
+      View_setRenderTarget(view, nullptr);
+    }
   }
 
   @override
