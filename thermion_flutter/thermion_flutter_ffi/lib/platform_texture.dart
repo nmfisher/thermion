@@ -21,6 +21,8 @@ class FlutterPlatformTexture extends MethodChannelFlutterTexture {
 
   late bool destroySwapChainOnResize;
 
+  bool destroyed = false;
+
   FlutterPlatformTexture(
       super.channel, this.viewer, this.view, this.swapChain) {
     if (swapChain == null) {
@@ -33,10 +35,13 @@ class FlutterPlatformTexture extends MethodChannelFlutterTexture {
   @override
   Future<void> resize(
       int newWidth, int newHeight, int newLeft, int newTop) async {
+    _logger.info(
+        "Resizing texture to $newWidth x $newHeight (offset $newLeft, $newTop)");
     if (newWidth == this.width &&
         newHeight == this.height &&
         newLeft == 0 &&
         newTop == 0) {
+      _logger.info("Existing texture matches requested dimensions");
       return;
     }
 
@@ -51,44 +56,65 @@ class FlutterPlatformTexture extends MethodChannelFlutterTexture {
     _lastFlutterId = flutterId;
     _lastHardwareId = hardwareId;
     flutterId = result[0] as int;
-
     hardwareId = result[1] as int;
 
-    if (destroySwapChainOnResize) {
-      await swapChain?.destroy();
+    _logger.info("Created texture ${flutterId} / ${hardwareId}");
+
+    if (destroySwapChainOnResize && swapChain != null) {
+      await viewer.destroySwapChain(swapChain!);
       swapChain = await viewer.createSwapChain(result[2]);
     }
-
-    _logger.info(
-        "Created new texture: flutter id $flutterId, hardware id $hardwareId");
 
     if (destroySwapChainOnResize) {
       await view.setRenderable(true, swapChain!);
     } else if (hardwareId != _lastHardwareId) {
-      await _renderTarget?.destroy();
+      if (_renderTarget != null) {
+        await viewer.destroyRenderTarget(_renderTarget!);
+      }
       _renderTarget =
           await viewer.createRenderTarget(width, height, hardwareId);
       await view.setRenderTarget(_renderTarget!);
       await view.setRenderable(true, swapChain!);
-      await _destroyTexture(_lastFlutterId, _lastHardwareId);
+      if (_lastFlutterId != -1 && _lastHardwareId != -1) {
+        await _destroyTexture(_lastFlutterId, _lastHardwareId);
+        _lastFlutterId = -1;
+        _lastHardwareId = -1;
+      }
     }
   }
 
-  Future<void> _destroyTexture(int flutterId, int? hardwareId) async {
+  Future<void> _destroyTexture(
+      int flutterTextureId, int hardwareTextureId) async {
     try {
-      await channel.invokeMethod("destroyTexture", [flutterId, hardwareId]);
-      _logger.info(
-          "Destroyed old texture: flutter id $flutterId, hardware id $hardwareId");
+      await channel.invokeMethod(
+          "destroyTexture", [flutterTextureId, hardwareTextureId]);
+      _logger.info("Destroyed texture $flutterTextureId / $hardwareTextureId");
     } catch (e) {
       _logger.severe("Failed to destroy texture: $e");
     }
   }
 
+  bool destroying = false;
   Future destroy() async {
+    if (destroyed || destroying) {
+      return;
+    }
+    destroying = true;
     await view.setRenderTarget(null);
-    await _renderTarget?.destroy();
-    await swapChain?.destroy();
-    await channel.invokeMethod("destroyTexture", hardwareId);
+    if (_renderTarget != null) {
+      await viewer.destroyRenderTarget(_renderTarget!);
+      _renderTarget = null;
+    }
+
+    if (destroySwapChainOnResize && swapChain != null) {
+      await viewer.destroySwapChain(swapChain!);
+      swapChain = null;
+    }
+    await _destroyTexture(flutterId, hardwareId);
+    flutterId = -1;
+    hardwareId = -1;
+    destroying = false;
+    destroyed = true;
   }
 
   Future markFrameAvailable() async {
