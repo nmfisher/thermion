@@ -1,5 +1,5 @@
 name: thermion_flutter_ffi
-description: An FFI interface for the thermion_flutter plugin (all platforms except web).
+description: An FFI implementation for thermion_flutter (i.e. all platforms except web).
 repository: https://github.com/nmfisher/thermion_flutter/thermion_flutter
 version: 0.2.1-dev.7
 
@@ -18,6 +18,7 @@ flutter:
         dartPluginClass: ThermionFlutterTextureBackedPlatform
       windows:
         dartPluginClass: ThermionFlutterWindows
+
 dependencies:
   flutter:
     sdk: flutter
@@ -26,13 +27,7 @@ dependencies:
   thermion_dart: ^0.2.1-dev.0.0.8
   logging: ^1.2.0
 
-dependency_overrides:
-  thermion_dart:
-    path: ../../thermion_dart
-  thermion_flutter_platform_interface:
-    path: ../thermion_flutter_platform_interface
 dev_dependencies:
-
   flutter_test:
     sdk: flutter
   mockito: ^5.0.0
