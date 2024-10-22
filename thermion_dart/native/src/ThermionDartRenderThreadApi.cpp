@@ -27,7 +27,6 @@ public:
   ~RenderLoop()
   {
     _stop = true;
-    swapChain = nullptr;
     _cv.notify_one();
     t->join();
   }
@@ -125,7 +124,6 @@ public:
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       {
-      swapChain = nullptr;
       _viewer = nullptr;
       destroy_filament_viewer(reinterpret_cast<TViewer*>(viewer)); });
     auto fut = add_task(lambda);
@@ -157,9 +155,6 @@ public:
     _cv.notify_one();
     return ret;
   }
-
-public:
-  TSwapChain *swapChain;
 
 private:
   void(*_requestFrameRenderCallback)()  = nullptr;
@@ -200,7 +195,7 @@ extern "C"
                       renderCallback, renderCallbackOwner, callback);
   }
 
-  EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer)
+  EMSCRIPTEN_KEEPALIVE void Viewer_destroyOnRenderThread(TViewer *viewer)
   {
     _rl->destroyViewer((FilamentViewer *)viewer);
     delete _rl;

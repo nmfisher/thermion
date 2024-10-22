@@ -27,6 +27,7 @@ extern "C"
         void (*renderCallback)(void *const renderCallbackOwner),
         void *const renderCallbackOwner,
         void (*callback)(TViewer *viewer));
+    EMSCRIPTEN_KEEPALIVE void Viewer_destroyOnRenderThread(TViewer *viewer);
     EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer, void *const surface, void (*onComplete)(TSwapChain*));
     EMSCRIPTEN_KEEPALIVE void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer, uint32_t width, uint32_t height, void (*onComplete)(TSwapChain*));
     EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain* swapChain, void (*onComplete)());
@@ -35,11 +36,9 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView* view,  TSwapChain* swapChain, TRenderTarget* renderTarget, uint8_t* out, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, void(*onComplete)());
     EMSCRIPTEN_KEEPALIVE void Viewer_loadIblRenderThread(TViewer *viewer, const char *iblPath, float intensity, void(*onComplete)());
+    
     EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping);
     EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, double bloom);
-
-
-    EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer_render_thread(TViewer *viewer);
     
     FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
     EMSCRIPTEN_KEEPALIVE void set_rendering_render_thread(TViewer *viewer, bool rendering, void(*onComplete)());
