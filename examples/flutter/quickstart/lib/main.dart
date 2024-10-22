@@ -118,7 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
+    return Scaffold(body:Stack(children: [
       if (_thermionViewer != null)
         Positioned.fill(
             child: ThermionWidget(
@@ -135,6 +135,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     if (_thermionViewer == null) _loadButton(),
                     if (_thermionViewer != null) _unloadButton(),
                   ])))
-    ]);
+    ]));
   }
 }
