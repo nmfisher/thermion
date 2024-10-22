@@ -13,21 +13,6 @@ Delete the `/WX`:
 `target_compile_options(${TARGET} PRIVATE /W4 /wd"4100")`
 
 
-## pubspec.yaml
-
-On Windows, you will need to add a custom version of `native_toolchain_c` to your `dependency_overrides`. This is currently needed to link static libraries when building a DLL.
-
-```
-dependency_overrides:
-  native_toolchain_c:
-    git:
-      url: https://github.com/nmfisher/native.git
-      path: pkgs/native_toolchain_c
-      ref: windows_dll_fix
-```
-
-This will eventually be fixed upstream in the `native_toolchain_c` package, so this should be a short-term/temporary issue only.
-
 ## ANGLE build (not currently working)
 To support embedding GPU textures in Flutter (rather than copying to a CPU pixel buffer on every frame), we need to build a slightly customized version of Filament that uses GLES on Windows (rather than the default, which uses OpenGL).
 

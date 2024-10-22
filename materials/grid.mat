@@ -1,0 +1,53 @@
+material {
+    name : Grid,
+    parameters : [
+        {
+            type : float,
+            name : maxDistance
+        },
+        {
+            type : float3,
+            name : color
+        }
+    ],
+    depthWrite : true,
+    depthCulling : false,
+    shadingModel : unlit,
+    blending: transparent,
+    variantFilter : [ skinning, shadowReceiver, vsm ],
+    culling: none,
+    instanced: false,
+    vertexDomain: object
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.worldPosition = getWorldFromModelMatrix() * getPosition();
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        
+        // Convert world position to view space
+        float4 viewPos = getViewFromWorldMatrix() * float4(getWorldPosition(), 1.0);
+        
+        // Calculate distance in view space (camera is at 0,0,0 in view space)
+        float distance = length(viewPos.xz);
+        
+        // Discard fragment if it's too far from the camera
+        if (distance > materialParams.maxDistance) {
+            material.baseColor = float4(0.0);
+        } else {
+            material.baseColor = float4(materialParams.color, 1.0);
+            
+            // Optional: fade out as we approach maxDistance
+            float fadeStart = materialParams.maxDistance * 0.8;
+            if (distance > fadeStart) {
+                float fade = 1.0 - (distance - fadeStart) / (materialParams.maxDistance - fadeStart);
+                material.baseColor.a = fade;
+            }
+        }
+    }
+}

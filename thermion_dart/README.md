@@ -21,3 +21,4 @@
 - glTF, KTX, PNG & JPEG texture support
 - camera/entity manipulation with mouse (desktop) and gestures (mobile)
 - skinning + morph animations
+

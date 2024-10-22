@@ -45,7 +45,7 @@ WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
       0,
       0,
       0,
-      16, // Number of bits for the depthbuffer
+      24, // Number of bits for the depthbuffer
       0,  // Number of bits for the stencilbuffer
       0,  // Number of Aux buffers in the framebuffer.
       PFD_MAIN_PLANE,
@@ -117,6 +117,8 @@ void WGLContext::CreateRenderingSurface(
   } else { 
     ResizeRenderingSurface(width, height, left, top);
   }
+
+  // std::cout << "created window size " << width << "x" << height << " at "  << left << "," << top << " with backing handle" << _backingWindow->GetHandle() << std::endl;
   std::vector<flutter::EncodableValue> resultList;
   resultList.push_back(flutter::EncodableValue()); // return null for Flutter texture ID
   resultList.push_back(flutter::EncodableValue()); // return null for hardware texture ID

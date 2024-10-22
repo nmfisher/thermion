@@ -3,6 +3,587 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-10-14
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.8`](#thermion_dart---v021-dev008)
+ - [`thermion_flutter_web` - `v0.1.0+9`](#thermion_flutter_web---v0109)
+ - [`thermion_flutter` - `v0.2.1-dev.7`](#thermion_flutter---v021-dev7)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.7`](#thermion_flutter_platform_interface---v021-dev7)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.7`](#thermion_flutter_ffi---v021-dev7)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+9`
+ - `thermion_flutter` - `v0.2.1-dev.7`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.7`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.7`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.8`
+
+ - **FIX**: move ThermionWin32.h to include.
+
+
+## 2024-10-14
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.7`](#thermion_dart---v021-dev007)
+ - [`thermion_flutter_web` - `v0.1.0+8`](#thermion_flutter_web---v0108)
+ - [`thermion_flutter` - `v0.2.1-dev.6`](#thermion_flutter---v021-dev6)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.6`](#thermion_flutter_platform_interface---v021-dev6)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.6`](#thermion_flutter_ffi---v021-dev6)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+8`
+ - `thermion_flutter` - `v0.2.1-dev.6`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.6`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.6`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.7`
+
+ - Bump "thermion_dart" to `0.2.1-dev.0.0.7`.
+
+
+## 2024-10-10
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.6`](#thermion_dart---v021-dev006)
+ - [`thermion_flutter_web` - `v0.1.0+7`](#thermion_flutter_web---v0107)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.5`](#thermion_flutter_platform_interface---v021-dev5)
+ - [`thermion_flutter` - `v0.2.1-dev.5`](#thermion_flutter---v021-dev5)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.5`](#thermion_flutter_ffi---v021-dev5)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+7`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.5`
+ - `thermion_flutter` - `v0.2.1-dev.5`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.5`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.6`
+
+ - Bump "thermion_dart" to `0.2.1-dev.0.0.6`.
+
+
+## 2024-10-10
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.5`](#thermion_dart---v021-dev005)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.4`](#thermion_flutter_platform_interface---v021-dev4)
+ - [`thermion_flutter_web` - `v0.1.0+6`](#thermion_flutter_web---v0106)
+ - [`thermion_flutter` - `v0.2.1-dev.4`](#thermion_flutter---v021-dev4)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.4`](#thermion_flutter_ffi---v021-dev4)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.4`
+ - `thermion_flutter_web` - `v0.1.0+6`
+ - `thermion_flutter` - `v0.2.1-dev.4`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.4`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.5`
+
+ - Bump "thermion_dart" to `0.2.1-dev.0.0.5`.
+
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.4`](#thermion_dart---v021-dev004)
+ - [`thermion_flutter_web` - `v0.1.0+5`](#thermion_flutter_web---v0105)
+ - [`thermion_flutter` - `v0.2.1-dev.3`](#thermion_flutter---v021-dev3)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.3`](#thermion_flutter_platform_interface---v021-dev3)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.3`](#thermion_flutter_ffi---v021-dev3)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+5`
+ - `thermion_flutter` - `v0.2.1-dev.3`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.3`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.3`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.4`
+
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.3`](#thermion_dart---v021-dev003)
+ - [`thermion_flutter_web` - `v0.1.0+4`](#thermion_flutter_web---v0104)
+ - [`thermion_flutter` - `v0.2.1-dev.2`](#thermion_flutter---v021-dev2)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.2`](#thermion_flutter_platform_interface---v021-dev2)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.2`](#thermion_flutter_ffi---v021-dev2)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+4`
+ - `thermion_flutter` - `v0.2.1-dev.2`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.2`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.2`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.3`
+
+ - Bump "thermion_dart" to `0.2.1-dev.0.0.3`.
+
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.2`](#thermion_dart---v021-dev002)
+ - [`thermion_flutter_web` - `v0.1.0+3`](#thermion_flutter_web---v0103)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.1`](#thermion_flutter_ffi---v021-dev1)
+ - [`thermion_flutter` - `v0.2.1-dev.1`](#thermion_flutter---v021-dev1)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.1`](#thermion_flutter_platform_interface---v021-dev1)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+3`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.1`
+ - `thermion_flutter` - `v0.2.1-dev.1`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.1`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.2`
+
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.1`](#thermion_dart---v021-dev001)
+ - [`thermion_flutter_web` - `v0.1.0+2`](#thermion_flutter_web---v0102)
+ - [`thermion_flutter` - `v0.2.1-dev.0`](#thermion_flutter---v021-dev0)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.0`](#thermion_flutter_platform_interface---v021-dev0)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.0`](#thermion_flutter_ffi---v021-dev0)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+2`
+ - `thermion_flutter` - `v0.2.1-dev.0`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.0`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.0`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.1`
+
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.0`](#thermion_dart---v021-dev000)
+ - [`thermion_flutter` - `v0.2.1-dev.0.0.0`](#thermion_flutter---v021-dev000)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.0.0.0`](#thermion_flutter_ffi---v021-dev000)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.0.0.0`](#thermion_flutter_platform_interface---v021-dev000)
+ - [`thermion_flutter_web` - `v0.1.0+1`](#thermion_flutter_web---v0101)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0+1`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.0`
+
+ - y
+
+#### `thermion_flutter` - `v0.2.1-dev.0.0.0`
+
+ - y
+
+#### `thermion_flutter_ffi` - `v0.2.1-dev.0.0.0`
+
+ - y
+
+#### `thermion_flutter_platform_interface` - `v0.2.1-dev.0.0.0`
+
+ - y
+
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.0`](#thermion_dart---v020)
+ - [`thermion_flutter` - `v0.2.0`](#thermion_flutter---v020)
+ - [`thermion_flutter_ffi` - `v0.2.0`](#thermion_flutter_ffi---v020)
+ - [`thermion_flutter_platform_interface` - `v0.2.0`](#thermion_flutter_platform_interface---v020)
+ - [`thermion_flutter_web` - `v0.1.0`](#thermion_flutter_web---v010)
+
+Packages graduated to a stable release (see pre-releases prior to the stable version for changelog entries):
+
+ - `thermion_dart` - `v0.2.0`
+ - `thermion_flutter` - `v0.2.0`
+ - `thermion_flutter_ffi` - `v0.2.0`
+ - `thermion_flutter_platform_interface` - `v0.2.0`
+ - `thermion_flutter_web` - `v0.1.0`
+
+---
+
+#### `thermion_dart` - `v0.2.0`
+
+#### `thermion_flutter` - `v0.2.0`
+
+#### `thermion_flutter_ffi` - `v0.2.0`
+
+#### `thermion_flutter_platform_interface` - `v0.2.0`
+
+#### `thermion_flutter_web` - `v0.1.0`
+
+
+## 2024-10-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - [`thermion_dart` - `v0.2.0-dev.8.0.0`](#thermion_dart---v020-dev800)
+ - [`thermion_flutter_ffi` - `v0.2.0-dev.8.0.0`](#thermion_flutter_ffi---v020-dev800)
+
+Packages with other changes:
+
+ - [`thermion_flutter` - `v0.2.0-dev.8.0.0`](#thermion_flutter---v020-dev800)
+ - [`thermion_flutter_platform_interface` - `v0.2.0-dev.8.0.0`](#thermion_flutter_platform_interface---v020-dev800)
+ - [`thermion_flutter_web` - `v0.1.0-dev.8.0.0`](#thermion_flutter_web---v010-dev800)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.1.0-dev.8.0.0`
+
+---
+
+#### `thermion_dart` - `v0.2.0-dev.8.0.0`
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: more work on multiple views/swapchains.
+ - **FEAT**: add setParameterFloat2 method.
+ - **FEAT**: add setParameterFloat2 method.
+ - **FEAT**: add uvScale to unlit material.
+ - **FEAT**: add ThirdPersonCameraDelegate.
+ - **FEAT**: set camera model matrix directly.
+ - **FEAT**: expose more camera methods.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **REFACTOR**: remove RenderThread methods no longer needed.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FIX**: replace queuePosition/Rotation with queueTransforms.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+ - **BREAKING** **FEAT**: set baseColorIndex to -1 by default in unlit materialss.
+
+#### `thermion_flutter_ffi` - `v0.2.0-dev.8.0.0`
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+
+#### `thermion_flutter` - `v0.2.0-dev.8.0.0`
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: add rendering check to ThermionWidget ticker.
+
+#### `thermion_flutter_platform_interface` - `v0.2.0-dev.8.0.0`
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: working implementation of multiple widgets on macos.
+
+# Change Log
+
+v0.2.0
+
+- **BREAKING** Dart SDK 3.6.0 required 
+- **BREAKING** Libraries have been restructured so you should only need to import `package:thermion_dart/thermion_dart.dart`, `package:thermion_flutter/thermion_flutter.dart`
+- **BREAKING** The former GestureDetector widgets and EntityControllerMouseWidget/EntityTransformController have been removed and replaced with ThermionListenerWidget. that accepts an InputHandler.
+- **BREAKING** The former debugging widgets and Scene class have been removed.
+- **REFACTOR** The creation of the main camera has been refactored; the default projection & near/far planes should not have changed, but pay close attention.
+- **REFACTOR**: add methods for create/destroy material instance, add priority/layer to load_glb_from_buffer.
+- **FEAT**: Translation gizmo, stencil highlight & overlays.
+- **FEAT**: new setLightDirection and setLightPosition.
+- **FEAT**: move HighlightOverlay to nested class, move createGeometry to SceneManager, add queueRelativePositionUpdateFromViewportVector.
+ - **FEAT**: move createGeometry to SceneManager, add queueRelativePositionUpdateFromViewportVector and removeStencilHighlight.
+ - **FEAT**: add setGizmoVisibility/pickGizmo methods to ThermionViewer.
+ - **FEAT**: remove gizmo view references, exclude gizmo entities from picking, add createIbl.
+ - **FEAT**: set stencil highlight on gizmo attach.
+ - **FEAT**: add getAncestor method.
+ - **FEAT**: expose API methods for create_ibl, pick/set gizmo visibility.
+ - **FEAT**: create transparent overlay for gizmo for easier picking.
+ - **FEAT**: rescale gizmo based on distance from camera.
+ - **FEAT**: rescale gizmo based on distance from camera.
+ - **FEAT**: add getAncestor method.
+ - **FEAT**: add startOffset parameter to gltf playAnimation.
+ - **FEAT**: layers, grid.
+ - **FEAT**: layers, grid.
+ - **FEAT**: ignore grid overlay and gizmo center when picking, implement highlighting.
+ - **FEAT**: SceneManager updates (setLayer, add grid, queueRelativePositionUpdateWorld.
+ - **FEAT**: expose set_layer_enabled, get_camera_fov and queue_relative_position_updateg_world_axis to ThermionDartApi.h.
+ - **FEAT**: add getCameraFov to FilamentViewer.
+ - **FEAT**: add new grid overlay files to web CmakeLists.
+ - **FEAT**: re-implement (native) Gizmo class, expose preserveScaling parameter for setParent, add methods for getting viewport bounding box from renderable entity.
+ - **FEAT**: expose setLayerEnabled, viewportDimensions and getCameraFov on ThermionView.
+ - **FEAT**: download WASM module directly on web (no need to embed in index.html any more) and expose updateViewportAndCameraProjection.
+ - **FEAT**: add capture() function and expose viewportDimensions on ThermionViewer (allows easier saving of captured images to PNG).
+ - **FEAT**: (web) allow table growth in emscripten module for passing C-style callback function pointers.
+ - **FEAT**: (web) add capture() method and missing camera navigation controls.
+ - **FEAT**: createIbl.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: update web/http dependencies.
+ - **FIX**: (flutter) pass ThermionFlutterOptions to ThermionWidget, use dpr for resizeTexture, delete unnecessary TransparencyPainter class.
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FIX**: (flutter) desktop gesture detector changes for new Gizmo methods.
+ - **FEAT**: allow passing null options to ThermionWidget.
+ - **FEAT**: (flutter) (web) if importCanvasAsWidget is false, render transparency.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: highlight gizmo on hover.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+ - **BREAKING** **CHORE**: rename controller to viewer in gesture detector widgets.
+ - **FEAT**: (flutter) move DPR calculation to resizeTexture and add createViewerWithOptions method to ThermionFlutterFFI.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add ThermionFlutterOptions classes, rename interface parameter for offsetTop and ensure pixelRatio is passed to resizeTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FEAT**: (flutter) (web) use options to determine whether to create canvas, and set fixed position + offset.
+ - **FEAT**: add ThermionFlutterOptions classes, rename interface parameter for offsetTop and ensure pixelRatio is passed to resizeTexture.
+ - **BREAKING** **FEAT**: (flutter) (web) upgrade package:web dep to 1.0.0.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+
+
+## v0.1.3
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FEAT**: add clearMorphAnimationData function.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+#### `thermion_flutter_ffi` - `v0.1.0+12`
+
+ - **FIX**: add logging dependency.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: add logging dependency.
+ - **FIX**: web/JS bool checks need to compare to int.
+
+#### `thermion_flutter_web` - `v0.0.3`
+
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+
+## 2024-07-11
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_flutter_ffi` - `v0.1.0+11`](#thermion_flutter_ffi---v01011)
+ - [`thermion_flutter` - `v0.1.1+12`](#thermion_flutter---v01112)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter` - `v0.1.1+12`
+
+---
+
+#### `thermion_flutter_ffi` - `v0.1.0+11`
+
+ - **FIX**: add logging dependency.
+
+
+## 2024-07-11
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.1.2`](#thermion_dart---v012)
+ - [`thermion_flutter_ffi` - `v0.1.0+10`](#thermion_flutter_ffi---v01010)
+ - [`thermion_flutter_web` - `v0.0.2`](#thermion_flutter_web---v002)
+ - [`thermion_flutter` - `v0.1.1+11`](#thermion_flutter---v01111)
+ - [`thermion_flutter_platform_interface` - `v0.1.0+10`](#thermion_flutter_platform_interface---v01010)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter` - `v0.1.1+11`
+ - `thermion_flutter_platform_interface` - `v0.1.0+10`
+
+---
+
+#### `thermion_dart` - `v0.1.2`
+
+ - **FIX**: manually remove leading slash for compiler path on Windows when building for Android.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FIX**: shadow JS<->WASM bridge methods.
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+#### `thermion_flutter_ffi` - `v0.1.0+10`
+
+ - **FIX**: web/JS bool checks need to compare to int.
+
+#### `thermion_flutter_web` - `v0.0.2`
+
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+
 ## 2024-07-04
 
 ### Changes

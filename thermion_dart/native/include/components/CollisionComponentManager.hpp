@@ -8,7 +8,7 @@
 #include "gltfio/FilamentInstance.h"
 #include "Log.hpp"
 
-namespace thermion_filament
+namespace thermion
 {
 
 typedef void(*CollisionCallback)(int32_t entityId1, int32_t entityId2) ;

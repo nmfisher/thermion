@@ -11,7 +11,7 @@
 #include <math/norm.h>
 #include "Log.hpp"
 
-namespace thermion_filament {
+namespace thermion {
 
 
   class FileMaterialProvider : public filament::gltfio::MaterialProvider {

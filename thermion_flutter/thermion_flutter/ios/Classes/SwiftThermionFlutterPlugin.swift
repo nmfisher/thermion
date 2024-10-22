@@ -6,7 +6,7 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     
     var registrar : FlutterPluginRegistrar
     var registry: FlutterTextureRegistry
-    var texture: ThermionFlutterTexture?
+    var textures: [Int64: ThermionFlutterTexture] = [:]
         
     var createdAt = Date()
         
@@ -116,13 +116,12 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
         instance.resources.removeObject(forKey:rbuf.id)
     }
 
-    var markTextureFrameAvailable : @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
-        let instance:SwiftThermionFlutterPlugin = Unmanaged<SwiftThermionFlutterPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
-        if(instance.texture != nil) {
-            instance.registry.textureFrameAvailable(instance.texture!.flutterTextureId)
+    var markTextureFrameAvailable: @convention(c) (UnsafeMutableRawPointer?) -> () = { instancePtr in
+        let instance: SwiftThermionFlutterPlugin = Unmanaged<SwiftThermionFlutterPlugin>.fromOpaque(instancePtr!).takeUnretainedValue()
+        for (_, texture) in instance.textures {
+            instance.registry.textureFrameAvailable(texture.flutterTextureId)
         }
     }
-
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let _messenger = registrar.messenger();
@@ -151,22 +150,35 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
                 result(nil)
             case "getSharedContext":
                 result(nil)
+            case "markTextureFrameAvailable":
+                let flutterTextureId = call.arguments as! Int64
+                registry.textureFrameAvailable(flutterTextureId)
+                result(nil)
             case "createTexture":
                 let args = call.arguments as! [Any]
                 let width = args[0] as! Int64
                 let height = args[1] as! Int64
-                
-                self.texture = ThermionFlutterTexture(width: width, height: height, registry: registry)
-                let pixelBufferPtr = unsafeBitCast(self.texture!.pixelBuffer, to:UnsafeRawPointer.self)
-                let pixelBufferAddress = Int(bitPattern:pixelBufferPtr);
+            
+                let texture = ThermionFlutterTexture(registry: registry, width: width, height: height)
 
-                result([self.texture!.flutterTextureId as Any, nil, pixelBufferAddress])
+                if texture.texture.metalTextureAddress == -1 {
+                    result(nil)
+                } else {
+                    textures[texture.flutterTextureId] = texture
+                    result([texture.flutterTextureId, texture.texture.metalTextureAddress, nil])
+                }
             case "destroyTexture":
-                let texture = self.texture
-                self.texture = nil
-                texture?.destroy()
+                let args = call.arguments as! [Any]
+                let flutterTextureId = args[0] as! Int64
                 
-                result(true)
+                if let texture = textures[flutterTextureId] {
+                    registry.unregisterTexture(flutterTextureId)
+                    texture.destroy()
+                    textures.removeValue(forKey: flutterTextureId)
+                    result(true)
+                } else {
+                    result(false)
+                }
             default:
                 result(FlutterMethodNotImplemented)
         }

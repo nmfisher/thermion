@@ -24,7 +24,7 @@
 #include <utils/NameComponentManager.h>
 
 template class std::vector<float>;
-namespace thermion_filament
+namespace thermion
 {
     using namespace filament;
     using namespace filament::gltfio;
@@ -43,6 +43,7 @@ namespace thermion_filament
     struct AnimationStatus
     {
         time_point_t start = time_point_t::max();
+        float startOffset;
         bool loop = false;
         bool reverse = false;
         float durationInSecs = 0;
@@ -182,7 +183,7 @@ namespace thermion_filament
 
                             auto animationStatus = animationComponent.gltfAnimations[i];
 
-                            auto elapsedInSecs = float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count()) / 1000.0f;
+                            auto elapsedInSecs = animationStatus.startOffset + float(std::chrono::duration_cast<std::chrono::milliseconds>(now - animationStatus.start).count()) / 1000.0f;
 
                             if (!animationStatus.loop && elapsedInSecs >= animationStatus.durationInSecs)
                             {

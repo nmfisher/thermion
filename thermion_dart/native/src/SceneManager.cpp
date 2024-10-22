@@ -9,6 +9,8 @@
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
 #include <filament/RenderableManager.h>
+#include <filament/Viewport.h>
+#include <filament/Frustum.h>
 
 #include <utils/EntityManager.h>
 
@@ -18,22 +20,25 @@
 #include <gltfio/ResourceLoader.h>
 #include <gltfio/TextureProvider.h>
 #include <gltfio/math.h>
-
+#include <gltfio/materials/uberarchive.h>
 #include <imageio/ImageDecoder.h>
 
 #include "material/FileMaterialProvider.hpp"
+#include "material/UnlitMaterialProvider.hpp"
+#include "material/unlit.h"
+
 #include "StreamBufferAdapter.hpp"
 #include "Log.hpp"
 #include "SceneManager.hpp"
-
-#include "gltfio/materials/uberarchive.h"
+#include "CustomGeometry.hpp"
+#include "UnprojectTexture.hpp"
 
 extern "C"
 {
 #include "material/image.h"
 }
 
-namespace thermion_filament
+namespace thermion
 {
 
     using namespace std::chrono;
@@ -46,10 +51,13 @@ namespace thermion_filament
     SceneManager::SceneManager(const ResourceLoaderWrapperImpl *const resourceLoaderWrapper,
                                Engine *engine,
                                Scene *scene,
-                               const char *uberArchivePath)
-        : _resourceLoaderWrapper(resourceLoaderWrapper),
+                               const char *uberArchivePath,
+                                Camera *mainCamera)
+        : 
+          _resourceLoaderWrapper(resourceLoaderWrapper),
           _engine(engine),
-          _scene(scene)
+          _scene(scene),
+          _mainCamera(mainCamera)
     {
 
         _stbDecoder = createStbProvider(_engine);
@@ -73,12 +81,14 @@ namespace thermion_filament
                 _engine, UBERARCHIVE_DEFAULT_DATA, UBERARCHIVE_DEFAULT_SIZE);
         }
 
+        _unlitMaterialProvider = new UnlitMaterialProvider(_engine, UNLIT_PACKAGE, UNLIT_UNLIT_SIZE);
+
         utils::EntityManager &em = utils::EntityManager::get();
 
         _ncm = new NameComponentManager(em);
-        
+
         _assetLoader = AssetLoader::create({_engine, _ubershaderProvider, _ncm, &em});
-    
+
         _gltfResourceLoader->addTextureProvider("image/ktx2", _ktxDecoder);
         _gltfResourceLoader->addTextureProvider("image/png", _stbDecoder);
         _gltfResourceLoader->addTextureProvider("image/jpeg", _stbDecoder);
@@ -87,24 +97,29 @@ namespace thermion_filament
 
         _collisionComponentManager = new CollisionComponentManager(tm);
         _animationComponentManager = new AnimationComponentManager(tm, _engine->getRenderableManager());
-        
-        addGizmo();
+
+        _gridOverlay = new GridOverlay(*_engine);
+
+        _scene->addEntity(_gridOverlay->sphere());
+        _scene->addEntity(_gridOverlay->grid());
+
     }
 
     SceneManager::~SceneManager()
     {
-        
-        destroyAll();
-        
-        for(int i =0; i < 3; i++) {
-            _engine->destroy(_gizmo[i]);
-            _engine->destroy(_gizmoMaterialInstances[i]);
+        for(auto camera : _cameras) {
+            auto entity = camera->getEntity();
+            _engine->destroyCameraComponent(entity);
+            _engine->getEntityManager().destroy(entity);
         }
+        _cameras.clear();
         
-        _engine->destroy(_gizmoMaterial);
+        _gridOverlay->destroy();
+        destroyAll();
+
         _gltfResourceLoader->asyncCancelLoad();
         _ubershaderProvider->destroyMaterials();
-        
+
         delete _animationComponentManager;
         delete _collisionComponentManager;
         delete _ncm;
@@ -114,7 +129,10 @@ namespace thermion_filament
         delete _ktxDecoder;
         delete _ubershaderProvider;
         AssetLoader::destroy(&_assetLoader);
-        
+    }
+
+    bool SceneManager::isGizmoEntity(Entity entity) {
+        return false; // TODO    
     }
 
     int SceneManager::getInstanceCount(EntityId entityId)
@@ -144,7 +162,8 @@ namespace thermion_filament
     }
 
     EntityId SceneManager::loadGltf(const char *uri,
-                                    const char *relativeResourcePath)
+                                    const char *relativeResourcePath,
+                                    bool keepData)
     {
         ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
 
@@ -164,7 +183,6 @@ namespace thermion_filament
         for (size_t i = 0; i < resourceUriCount; i++)
         {
             std::string uri = std::string(relativeResourcePath) + std::string("/") + std::string(resourceUris[i]);
-            Log("Loading resource URI from relative path %s", resourceUris[i], uri.c_str());
             ResourceBuffer buf = _resourceLoaderWrapper->load(uri.c_str());
 
             resourceBuffers.push_back(buf);
@@ -208,7 +226,10 @@ namespace thermion_filament
         inst->getAnimator()->updateBoneMatrices();
         inst->recomputeBoundingBoxes();
 
-        asset->releaseSourceData();
+        if (!keepData)
+        {
+            asset->releaseSourceData();
+        }
 
         EntityId eid = Entity::smuggle(asset->getRoot());
 
@@ -225,10 +246,19 @@ namespace thermion_filament
         return eid;
     }
 
-    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances)
-    {
+    void SceneManager::setVisibilityLayer(EntityId entityId, int layer) {
+        auto& rm = _engine->getRenderableManager();
+        auto renderable = rm.getInstance(utils::Entity::import(entityId));
+        if(!renderable.isValid()) {
+            Log("Warning: no renderable found");
+        }
 
-        Log("Loading GLB from buffer of length %d", length);
+        rm.setLayerMask(renderable, 0xFF, 1u << layer);
+
+    }
+
+    EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync)
+    {
 
         FilamentAsset *asset = nullptr;
         if (numInstances > 1)
@@ -251,6 +281,18 @@ namespace thermion_filament
 
         _scene->addEntities(asset->getEntities(), entityCount);
 
+        auto & rm = _engine->getRenderableManager();
+
+        for(int i=0; i < entityCount; i++) {
+            auto instance = rm.getInstance(asset->getEntities()[i]);
+            if(!instance.isValid()) {
+                Log("No valid renderable for entity");
+                continue;
+            }
+            rm.setPriority(instance, priority);
+            rm.setLayerMask(instance, 0xFF, 1u << (uint8_t)layer);
+        }
+
 #ifdef __EMSCRIPTEN__
         if (!_gltfResourceLoader->asyncBeginLoad(asset))
         {
@@ -262,10 +304,18 @@ namespace thermion_filament
             _gltfResourceLoader->asyncUpdateLoad();
         }
 #else
-        if (!_gltfResourceLoader->loadResources(asset))
-        {
-            Log("Unknown error loading glb asset");
-            return 0;
+        if(loadResourcesAsync) {
+            if (!_gltfResourceLoader->asyncBeginLoad(asset))
+            {
+                Log("Unknown error loading glb asset");
+                return 0;
+            }
+        } else {
+            if (!_gltfResourceLoader->loadResources(asset))
+            {
+                Log("Unknown error loading glb asset");
+                return 0;
+            }
         }
 #endif
 
@@ -282,7 +332,10 @@ namespace thermion_filament
             _instances.emplace(instanceEntityId, inst);
         }
 
-        asset->releaseSourceData();
+        if (!keepData)
+        {
+            asset->releaseSourceData();
+        }
 
         EntityId eid = Entity::smuggle(asset->getRoot());
         _assets.emplace(eid, asset);
@@ -344,18 +397,27 @@ namespace thermion_filament
         if (pos == _assets.end())
         {
             Log("Couldn't find asset under specified entity id.");
-            return false;
+            return 0;
         }
+
         const auto asset = pos->second;
         auto instance = _assetLoader->createInstance(asset);
 
-        return Entity::smuggle(instance->getRoot());
+        if (!instance)
+        {
+            Log("Failed to create instance");
+            return 0;
+        }
+        auto root = instance->getRoot();
+        _scene->addEntities(instance->getEntities(), instance->getEntityCount());
+
+        return Entity::smuggle(root);
     }
 
-    EntityId SceneManager::loadGlb(const char *uri, int numInstances)
+    EntityId SceneManager::loadGlb(const char *uri, int numInstances, bool keepData)
     {
         ResourceBuffer rbuf = _resourceLoaderWrapper->load(uri);
-        auto entity = loadGlbFromBuffer((const uint8_t *)rbuf.data, rbuf.size, numInstances);
+        auto entity = loadGlbFromBuffer((const uint8_t *)rbuf.data, rbuf.size, numInstances, keepData);
         _resourceLoaderWrapper->free(rbuf);
         return entity;
     }
@@ -454,7 +516,8 @@ namespace thermion_filament
         for (auto &asset : _assets)
         {
             auto numInstances = asset.second->getAssetInstanceCount();
-            for(int i = 0; i < numInstances; i++) {
+            for (int i = 0; i < numInstances; i++)
+            {
                 auto instance = asset.second->getAssetInstances()[i];
                 for (int j = 0; j < instance->getEntityCount(); j++)
                 {
@@ -476,7 +539,18 @@ namespace thermion_filament
                                    asset.second->getLightEntityCount());
             _assetLoader->destroyAsset(asset.second);
         }
+        for(auto *texture : _textures) {
+            _engine->destroy(texture);
+        }
+
+        for(auto *materialInstance : _materialInstances) {
+            _engine->destroy(materialInstance);
+        }
+
+        // TODO - free geometry?
+        _textures.clear();
         _assets.clear();
+        _materialInstances.clear();
     }
 
     FilamentInstance *SceneManager::getInstanceByEntityId(EntityId entityId)
@@ -499,21 +573,24 @@ namespace thermion_filament
         return pos->second;
     }
 
-    math::mat4f SceneManager::getLocalTransform(EntityId entityId) {
+    math::mat4f SceneManager::getLocalTransform(EntityId entityId)
+    {
         auto entity = Entity::import(entityId);
-        auto& tm = _engine->getTransformManager();
-        auto transformInstance = tm.getInstance(entity);        
+        auto &tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(entity);
         return tm.getTransform(transformInstance);
     }
 
-    math::mat4f SceneManager::getWorldTransform(EntityId entityId) {
+    math::mat4f SceneManager::getWorldTransform(EntityId entityId)
+    {
         auto entity = Entity::import(entityId);
-        auto& tm = _engine->getTransformManager();
-        auto transformInstance = tm.getInstance(entity);        
+        auto &tm = _engine->getTransformManager();
+        auto transformInstance = tm.getInstance(entity);
         return tm.getWorldTransform(transformInstance);
     }
 
-    EntityId SceneManager::getBone(EntityId entityId, int skinIndex, int boneIndex) { 
+    EntityId SceneManager::getBone(EntityId entityId, int skinIndex, int boneIndex)
+    {
         auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
@@ -533,7 +610,8 @@ namespace thermion_filament
         return Entity::smuggle(joint);
     }
 
-    math::mat4f SceneManager::getInverseBindMatrix(EntityId entityId, int skinIndex, int boneIndex) { 
+    math::mat4f SceneManager::getInverseBindMatrix(EntityId entityId, int skinIndex, int boneIndex)
+    {
         auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
@@ -551,7 +629,6 @@ namespace thermion_filament
         auto inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[boneIndex];
         return inverseBindMatrix;
     }
-
 
     bool SceneManager::setBoneTransform(EntityId entityId, int32_t skinIndex, int boneIndex, math::mat4f transform)
     {
@@ -579,9 +656,11 @@ namespace thermion_filament
 
     void SceneManager::remove(EntityId entityId)
     {
+
         std::lock_guard lock(_mutex);
 
         auto entity = Entity::import(entityId);
+
 
         if (_animationComponentManager->hasComponent(entity))
         {
@@ -594,6 +673,10 @@ namespace thermion_filament
         }
 
         _scene->remove(entity);
+
+        if(isGeometryEntity(entityId)) {
+            return;
+        }
 
         const auto *instance = getInstanceByEntityId(entityId);
 
@@ -620,7 +703,6 @@ namespace thermion_filament
 
             if (!asset)
             {
-                Log("ERROR: could not find FilamentInstance or FilamentAsset associated with the given entity id");
                 return;
             }
             _assets.erase(entityId);
@@ -732,7 +814,7 @@ namespace thermion_filament
     bool SceneManager::setMorphAnimationBuffer(
         EntityId entityId,
         const float *const morphData,
-        const int *const morphIndices,
+        const uint32_t *const morphIndices,
         int numMorphTargets,
         int numFrames,
         float frameLengthInMs)
@@ -779,6 +861,27 @@ namespace thermion_filament
 
         morphAnimations.emplace_back(morphAnimation);
         return true;
+    }
+
+    void SceneManager::clearMorphAnimationBuffer(
+        EntityId entityId)
+    {
+        std::lock_guard lock(_mutex);
+
+        auto entity = Entity::import(entityId);
+
+        if (entity.isNull())
+        {
+            Log("ERROR: invalid entity %d.", entityId);
+            return;
+        }
+
+        auto animationComponentInstance = _animationComponentManager->getInstance(entity);
+        auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
+        auto &morphAnimations = animationComponent.morphAnimations;
+
+        morphAnimations.clear();
+        return;
     }
 
     bool SceneManager::setMaterialColor(EntityId entityId, const char *meshName, int materialIndex, const float r, const float g, const float b, const float a)
@@ -844,12 +947,12 @@ namespace thermion_filament
         TransformManager &transformManager = _engine->getTransformManager();
 
         //
-        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(), 
-        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices() 
-        // may result in unexpected poses, because that method uses each bone's transform to calculate 
+        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(),
+        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices()
+        // may result in unexpected poses, because that method uses each bone's transform to calculate
         // the bone matrices (and resetBoneMatrices does not affect this transform).
         // To "fully" reset the bone, we need to set its local transform (i.e. relative to its parent)
-        // to its original orientation in rest pose. 
+        // to its original orientation in rest pose.
         //
         // This can be calculated as:
         //
@@ -858,7 +961,7 @@ namespace thermion_filament
         // (where bindMatrix is the inverse of the inverseBindMatrix).
         //
         // The only requirement is that parent bone transforms are reset before child bone transforms.
-        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance. 
+        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance.
         // We ensure that parents are reset before children by:
         // - pushing all bones onto a stack
         // - iterate over the stack
@@ -870,16 +973,16 @@ namespace thermion_filament
         //              - pop the bone, reset its transform and mark it as completed
         for (int skinIndex = 0; skinIndex < skinCount; skinIndex++)
         {
-            std::unordered_set<Entity,Entity::Hasher> joints;
-            std::unordered_set<Entity,Entity::Hasher> completed;
+            std::unordered_set<Entity, Entity::Hasher> joints;
+            std::unordered_set<Entity, Entity::Hasher> completed;
             std::stack<Entity> stack;
 
             auto transforms = getBoneRestTranforms(entityId, skinIndex);
-            
+
             for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
             {
                 auto restTransform = transforms->at(i);
-                const auto& joint = instance->getJointsAt(skinIndex)[i];
+                const auto &joint = instance->getJointsAt(skinIndex)[i];
                 auto transformInstance = transformManager.getInstance(joint);
                 transformManager.setTransform(transformInstance, restTransform);
             }
@@ -887,7 +990,8 @@ namespace thermion_filament
         instance->getAnimator()->updateBoneMatrices();
     }
 
-    std::unique_ptr<std::vector<math::mat4f>> SceneManager::getBoneRestTranforms(EntityId entityId, int skinIndex) {
+    std::unique_ptr<std::vector<math::mat4f>> SceneManager::getBoneRestTranforms(EntityId entityId, int skinIndex)
+    {
 
         auto transforms = std::make_unique<std::vector<math::mat4f>>();
 
@@ -912,12 +1016,12 @@ namespace thermion_filament
         transforms->resize(instance->getJointCountAt(skinIndex));
 
         //
-        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(), 
-        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices() 
-        // may result in unexpected poses, because that method uses each bone's transform to calculate 
+        // To reset the skeleton to its rest pose, we could just call animator->resetBoneMatrices(),
+        // which sets all bone matrices to the identity matrix. However, any subsequent calls to animator->updateBoneMatrices()
+        // may result in unexpected poses, because that method uses each bone's transform to calculate
         // the bone matrices (and resetBoneMatrices does not affect this transform).
         // To "fully" reset the bone, we need to set its local transform (i.e. relative to its parent)
-        // to its original orientation in rest pose. 
+        // to its original orientation in rest pose.
         //
         // This can be calculated as:
         //
@@ -926,7 +1030,7 @@ namespace thermion_filament
         // (where bindMatrix is the inverse of the inverseBindMatrix).
         //
         // The only requirement is that parent bone transforms are reset before child bone transforms.
-        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance. 
+        // glTF/Filament does not guarantee that parent bones are listed before child bones under a FilamentInstance.
         // We ensure that parents are reset before children by:
         // - pushing all bones onto a stack
         // - iterate over the stack
@@ -937,22 +1041,23 @@ namespace thermion_filament
         //          - otherwise
         //              - pop the bone, reset its transform and mark it as completed
         std::vector<Entity> joints;
-        std::unordered_set<Entity,Entity::Hasher> completed;
+        std::unordered_set<Entity, Entity::Hasher> completed;
         std::stack<Entity> stack;
-        
+
         for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
         {
-            const auto& joint = instance->getJointsAt(skinIndex)[i];
+            const auto &joint = instance->getJointsAt(skinIndex)[i];
             joints.push_back(joint);
             stack.push(joint);
         }
 
-        while(!stack.empty())
+        while (!stack.empty())
         {
-            const auto& joint = stack.top();
+            const auto &joint = stack.top();
 
             // if we've already handled this node previously (e.g. when we encountered it as a parent), then skip
-            if(completed.find(joint) != completed.end()) {
+            if (completed.find(joint) != completed.end())
+            {
                 stack.pop();
                 continue;
             }
@@ -960,23 +1065,25 @@ namespace thermion_filament
             const auto transformInstance = transformManager.getInstance(joint);
             auto parent = transformManager.getParent(transformInstance);
 
-            // we need to handle parent joints before handling their children 
-            // therefore, if this joint has a parent that hasn't been handled yet, 
+            // we need to handle parent joints before handling their children
+            // therefore, if this joint has a parent that hasn't been handled yet,
             // push the parent to the top of the stack and start the loop again
-            const auto& jointIter = std::find(joints.begin(), joints.end(), joint);
+            const auto &jointIter = std::find(joints.begin(), joints.end(), joint);
             auto parentIter = std::find(joints.begin(), joints.end(), parent);
 
-            if(parentIter != joints.end() && completed.find(parent) == completed.end()) {
+            if (parentIter != joints.end() && completed.find(parent) == completed.end())
+            {
                 stack.push(parent);
                 continue;
             }
-            
-            // otherwise let's get the inverse bind matrix for the joint 
+
+            // otherwise let's get the inverse bind matrix for the joint
             math::mat4f inverseBindMatrix;
             bool found = false;
             for (int i = 0; i < instance->getJointCountAt(skinIndex); i++)
             {
-                if(instance->getJointsAt(skinIndex)[i] == joint) { 
+                if (instance->getJointsAt(skinIndex)[i] == joint)
+                {
                     inverseBindMatrix = instance->getInverseBindMatricesAt(skinIndex)[i];
                     found = true;
                     break;
@@ -986,7 +1093,8 @@ namespace thermion_filament
 
             // now we need to ascend back up the hierarchy to calculate the modelSpaceTransform
             math::mat4f modelSpaceTransform;
-            while(parentIter != joints.end()) {
+            while (parentIter != joints.end())
+            {
                 const auto transformInstance = transformManager.getInstance(parent);
                 const auto parentIndex = distance(joints.begin(), parentIter);
                 const auto transform = transforms->at(parentIndex);
@@ -995,9 +1103,9 @@ namespace thermion_filament
                 parentIter = std::find(joints.begin(), joints.end(), parent);
             }
 
-            const auto bindMatrix = inverse(inverseBindMatrix);              
-            
-            const auto inverseModelSpaceTransform = inverse(modelSpaceTransform);   
+            const auto bindMatrix = inverse(inverseBindMatrix);
+
+            const auto inverseModelSpaceTransform = inverse(modelSpaceTransform);
 
             const auto jointIndex = distance(joints.begin(), jointIter);
             transforms->at(jointIndex) = inverseModelSpaceTransform * bindMatrix;
@@ -1007,7 +1115,8 @@ namespace thermion_filament
         return transforms;
     }
 
-    bool SceneManager::updateBoneMatrices(EntityId entityId) {
+    bool SceneManager::updateBoneMatrices(EntityId entityId)
+    {
         auto *instance = getInstanceByEntityId(entityId);
         if (!instance)
         {
@@ -1025,11 +1134,26 @@ namespace thermion_filament
         return true;
     }
 
-    bool SceneManager::setTransform(EntityId entityId, math::mat4f transform) {
-        auto& tm = _engine->getTransformManager();
-        const auto& entity = Entity::import(entityId);
+    bool SceneManager::setTransform(EntityId entityId, math::mat4f transform)
+    {
+        auto &tm = _engine->getTransformManager();
+        const auto &entity = Entity::import(entityId);
         auto transformInstance = tm.getInstance(entity);
-        if(!transformInstance) { 
+        if (!transformInstance)
+        {
+            return false;
+        }
+        tm.setTransform(transformInstance, transform);
+        return true;
+    }
+
+    bool SceneManager::setTransform(EntityId entityId, math::mat4 transform)
+    {
+        auto &tm = _engine->getTransformManager();
+        const auto &entity = Entity::import(entityId);
+        auto transformInstance = tm.getInstance(entity);
+        if (!transformInstance)
+        {
             return false;
         }
         tm.setTransform(transformInstance, transform);
@@ -1038,11 +1162,11 @@ namespace thermion_filament
 
     bool SceneManager::addBoneAnimation(EntityId parentEntity,
                                         int skinIndex,
-                                        int boneIndex,                      
+                                        int boneIndex,
                                         const float *const frameData,
                                         int numFrames,
                                         float frameLengthInMs,
-                                        float fadeOutInSecs, 
+                                        float fadeOutInSecs,
                                         float fadeInInSecs,
                                         float maxDelta)
     {
@@ -1101,7 +1225,8 @@ namespace thermion_filament
         animation.fadeInInSecs = fadeInInSecs;
         animation.maxDelta = maxDelta;
         animation.skinIndex = skinIndex;
-        if(!_animationComponentManager->hasComponent(instance->getRoot())) { 
+        if (!_animationComponentManager->hasComponent(instance->getRoot()))
+        {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return false;
         }
@@ -1115,7 +1240,7 @@ namespace thermion_filament
         return true;
     }
 
-    void SceneManager::playAnimation(EntityId entityId, int index, bool loop, bool reverse, bool replaceActive, float crossfade)
+    void SceneManager::playAnimation(EntityId entityId, int index, bool loop, bool reverse, bool replaceActive, float crossfade, float startOffset)
     {
         std::lock_guard lock(_mutex);
 
@@ -1139,7 +1264,7 @@ namespace thermion_filament
             }
         }
 
-    if (!_animationComponentManager->hasComponent(instance->getRoot()))
+        if (!_animationComponentManager->hasComponent(instance->getRoot()))
         {
             Log("ERROR: specified entity is not animatable (has no animation component attached).");
             return;
@@ -1179,6 +1304,7 @@ namespace thermion_filament
         }
 
         GltfAnimation animation;
+        animation.startOffset = startOffset;
         animation.index = index;
         animation.start = std::chrono::high_resolution_clock::now();
         animation.loop = loop;
@@ -1188,13 +1314,16 @@ namespace thermion_filament
         bool found = false;
 
         // don't play the animation if it's already running
-        for(int i=0; i < animationComponent.gltfAnimations.size(); i++) {
-            if(animationComponent.gltfAnimations[i].index == index) { 
+        for (int i = 0; i < animationComponent.gltfAnimations.size(); i++)
+        {
+            if (animationComponent.gltfAnimations[i].index == index)
+            {
                 found = true;
                 break;
             }
         }
-        if(!found) {
+        if (!found)
+        {
             animationComponent.gltfAnimations.push_back(animation);
         }
     }
@@ -1222,85 +1351,107 @@ namespace thermion_filament
         auto &animationComponent = _animationComponentManager->elementAt<0>(animationComponentInstance);
 
         auto erased = std::remove_if(animationComponent.gltfAnimations.begin(),
-                                                               animationComponent.gltfAnimations.end(),
-                                                               [=](GltfAnimation &anim)
-                                                               { return anim.index == index; });
+                                     animationComponent.gltfAnimations.end(),
+                                     [=](GltfAnimation &anim)
+                                     { return anim.index == index; });
         animationComponent.gltfAnimations.erase(erased,
                                                 animationComponent.gltfAnimations.end());
     }
 
-    void SceneManager::loadTexture(EntityId entity, const char *resourcePath, int renderableIndex)
+    Texture *SceneManager::createTexture(const uint8_t *data, size_t length, const char *name)
     {
+        using namespace filament;
 
-        // const auto &pos = _instances.find(entity);
-        // if (pos == _instances.end())
-        // {
-        //     Log("ERROR: asset not found for entity.");
-        //     return;
-        // }
-        // const auto *instance = pos->second;
+        // Create an input stream from the data
+        std::istringstream stream(std::string(reinterpret_cast<const char *>(data), length));
 
-        // Log("Loading texture at %s for renderableIndex %d", resourcePath, renderableIndex);
+        // Decode the image
+        image::LinearImage linearImage = image::ImageDecoder::decode(stream, name, image::ImageDecoder::ColorSpace::SRGB);
 
-        // string rp(resourcePath);
+        if (!linearImage.isValid())
+        {
+            Log("Failed to decode image.");
+            return nullptr;
+        }
 
-        // if (asset.texture)
-        // {
-        //     _engine->destroy(asset.texture);
-        //     asset.texture = nullptr;
-        // }
+        uint32_t w = linearImage.getWidth();
+        uint32_t h = linearImage.getHeight();
+        uint32_t channels = linearImage.getChannels();
 
-        // ResourceBuffer imageResource = _resourceLoaderWrapper->load(rp.c_str());
+        Texture::InternalFormat textureFormat = channels == 3 ? Texture::InternalFormat::RGB16F
+                                                              : Texture::InternalFormat::RGBA16F;
+        Texture::Format bufferFormat = channels == 3 ? Texture::Format::RGB
+                                                     : Texture::Format::RGBA;
 
-        // StreamBufferAdapter sb((char *)imageResource.data, (char *)imageResource.data + imageResource.size);
+        Texture *texture = Texture::Builder()
+                               .width(w)
+                               .height(h)
+                               .levels(1)
+                               .format(textureFormat)
+                               .sampler(Texture::Sampler::SAMPLER_2D)
+                               .build(*_engine);
 
-        // istream *inputStream = new std::istream(&sb);
+        if (!texture)
+        {
+            Log("Failed to create texture: ");
+            return nullptr;
+        }
 
-        // LinearImage *image = new LinearImage(ImageDecoder::decode(
-        //     *inputStream, rp.c_str(), ImageDecoder::ColorSpace::SRGB));
+        Texture::PixelBufferDescriptor buffer(
+            linearImage.getPixelRef(),
+            size_t(w * h * channels * sizeof(float)),
+            bufferFormat,
+            Texture::Type::FLOAT);
 
-        // if (!image->isValid())
-        // {
-        //     Log("Invalid image : %s", rp.c_str());
-        //     delete inputStream;
-        //     _resourceLoaderWrapper->free(imageResource);
-        //     return;
-        // }
+        texture->setImage(*_engine, 0, std::move(buffer));
 
-        // uint32_t channels = image->getChannels();
-        // uint32_t w = image->getWidth();
-        // uint32_t h = image->getHeight();
-        // asset.texture = Texture::Builder()
-        //                      .width(w)
-        //                      .height(h)
-        //                      .levels(0xff)
-        //                      .format(channels == 3 ? Texture::InternalFormat::RGB16F
-        //                                            : Texture::InternalFormat::RGBA16F)
-        //                      .sampler(Texture::Sampler::SAMPLER_2D)
-        //                      .build(*_engine);
+        Log("Created texture: %s (%d x %d, %d channels)", name, w, h, channels);
 
-        // Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
-        //                                                            void *data)
-        // {
-        //     delete reinterpret_cast<LinearImage *>(data);
-        // };
+        _textures.insert(texture);
 
-        // Texture::PixelBufferDescriptor buffer(
-        //     image->getPixelRef(), size_t(w * h * channels * sizeof(float)),
-        //     channels == 3 ? Texture::Format::RGB : Texture::Format::RGBA,
-        //     Texture::Type::FLOAT, freeCallback);
+        return texture;
+    }
 
-        // asset.texture->setImage(*_engine, 0, std::move(buffer));
-        // MaterialInstance *const *inst = instance->getMaterialInstances();
-        // size_t mic = instance->getMaterialInstanceCount();
-        // Log("Material instance count : %d", mic);
+    bool SceneManager::applyTexture(EntityId entityId, Texture *texture, const char* parameterName, int materialIndex)
+    {
+        auto entity = Entity::import(entityId);
 
-        // auto sampler = TextureSampler();
-        // inst[0]->setParameter("baseColorIndex", 0);
-        // inst[0]->setParameter("baseColorMap", asset.texture, sampler);
-        // delete inputStream;
+        if (entity.isNull())
+        {
+            Log("Entity %d is null?", entityId);
+            return false;
+        }
 
-        // _resourceLoaderWrapper->free(imageResource);
+        RenderableManager &rm = _engine->getRenderableManager();
+
+        auto renderable = rm.getInstance(entity);
+
+        if (!renderable.isValid())
+        {
+            Log("Renderable not valid, was the entity id correct (%d)?", entityId);
+            return false;
+        }
+
+        MaterialInstance *mi = rm.getMaterialInstanceAt(renderable, materialIndex);
+
+        if (!mi)
+        {
+            Log("ERROR: material index must be less than number of material instances");
+            return false;
+        }
+
+        auto sampler = TextureSampler();
+        mi->setParameter(parameterName, texture, sampler);
+        Log("Applied texture to entity %d", entityId);
+        return true;
+    }
+
+    void SceneManager::destroyTexture(Texture* texture) {
+        if(_textures.find(texture) == _textures.end()) {
+            Log("Warning: couldn't find texture");
+        } 
+        _textures.erase(texture);
+        _engine->destroy(texture);
     }
 
     void SceneManager::setAnimationFrame(EntityId entityId, int animationIndex, int animationFrame)
@@ -1369,7 +1520,7 @@ namespace thermion_filament
         unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
         const auto *instance = getInstanceByEntityId(assetEntityId);
-        
+
         if (!instance)
         {
             auto asset = getAssetByEntityId(assetEntityId);
@@ -1379,7 +1530,8 @@ namespace thermion_filament
                 return names;
             }
             instance = asset->getInstance();
-            if(!instance) {
+            if (!instance)
+            {
                 Log("Warning - failed to find instance for specified asset. This is unexpected and probably indicates you are passing the wrong entity");
                 return names;
             }
@@ -1393,7 +1545,7 @@ namespace thermion_filament
 
         for (int i = 0; i < asset->getEntityCount(); i++)
         {
-            
+
             utils::Entity e = entities[i];
             if (e == target)
             {
@@ -1409,7 +1561,8 @@ namespace thermion_filament
         return names;
     }
 
-    unique_ptr<vector<string>> SceneManager::getBoneNames(EntityId assetEntityId, int skinIndex) {
+    unique_ptr<vector<string>> SceneManager::getBoneNames(EntityId assetEntityId, int skinIndex)
+    {
 
         unique_ptr<std::vector<std::string>> names = std::make_unique<std::vector<std::string>>();
 
@@ -1446,7 +1599,6 @@ namespace thermion_filament
         return names;
     }
 
-
     void SceneManager::transformToUnitCube(EntityId entityId)
     {
         const auto *instance = getInstanceByEntityId(entityId);
@@ -1474,7 +1626,8 @@ namespace thermion_filament
         tm.setTransform(tm.getInstance(instance->getRoot()), transform);
     }
 
-    EntityId SceneManager::getParent(EntityId childEntityId) {
+    EntityId SceneManager::getParent(EntityId childEntityId)
+    {
         auto &tm = _engine->getTransformManager();
         const auto child = Entity::import(childEntityId);
         const auto &childInstance = tm.getInstance(child);
@@ -1482,7 +1635,28 @@ namespace thermion_filament
         return Entity::smuggle(parent);
     }
 
-    void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId)
+    EntityId SceneManager::getAncestor(EntityId childEntityId)
+    {
+        auto &tm = _engine->getTransformManager();
+        const auto child = Entity::import(childEntityId);
+        auto transformInstance = tm.getInstance(child);
+        Entity parent;
+
+        while (true)
+        {
+            auto newParent = tm.getParent(transformInstance);
+            if (newParent.isNull())
+            {
+                break;
+            }
+            parent = newParent;
+            transformInstance = tm.getInstance(parent);
+        }
+
+        return Entity::smuggle(parent);
+    }
+
+    void SceneManager::setParent(EntityId childEntityId, EntityId parentEntityId, bool preserveScaling)
     {
         auto &tm = _engine->getTransformManager();
         const auto child = Entity::import(childEntityId);
@@ -1490,6 +1664,42 @@ namespace thermion_filament
 
         const auto &parentInstance = tm.getInstance(parent);
         const auto &childInstance = tm.getInstance(child);
+
+        if (!parentInstance.isValid())
+        {
+            Log("Parent instance is not valid");
+            return;
+        }
+
+        if (!childInstance.isValid())
+        {
+            Log("Child instance is not valid");
+            return;
+        }
+
+        if (preserveScaling)
+        {
+            auto parentTransform = tm.getWorldTransform(parentInstance);
+            math::float3 parentTranslation;
+            math::quatf parentRotation;
+            math::float3 parentScale;
+
+            decomposeMatrix(parentTransform, &parentTranslation, &parentRotation, &parentScale);
+
+            auto childTransform = tm.getTransform(childInstance);
+            math::float3 childTranslation;
+            math::quatf childRotation;
+            math::float3 childScale;
+
+            decomposeMatrix(childTransform, &childTranslation, &childRotation, &childScale);
+
+            childScale = childScale * (1 / parentScale);
+
+            childTransform = composeMatrix(childTranslation, childRotation, childScale);
+
+            tm.setTransform(childInstance, childTransform);
+        }
+
         tm.setParent(childInstance, parentInstance);
     }
 
@@ -1570,6 +1780,7 @@ namespace thermion_filament
         std::lock_guard lock(_mutex);
 
         auto &tm = _engine->getTransformManager();
+        tm.openLocalTransformTransaction();
 
         for (const auto &[entityId, transformUpdate] : _transformUpdates)
         {
@@ -1595,43 +1806,6 @@ namespace thermion_filament
             transformInstance = tm.getInstance(entity);
             transform = tm.getTransform(transformInstance);
 
-            math::float3 newTranslation = std::get<0>(transformUpdate);
-            bool newTranslationRelative = std::get<1>(transformUpdate);
-            math::quatf newRotation = std::get<2>(transformUpdate);
-            bool newRotationRelative = std::get<3>(transformUpdate);
-            float newScale = std::get<4>(transformUpdate);
-
-            math::float3 translation;
-            math::quatf rotation;
-            math::float3 scale;
-
-            decomposeMatrix(transform, &translation, &rotation, &scale);
-
-            if (newRotationRelative)
-            {
-                rotation = normalize(rotation * newRotation);
-            }
-            else
-            {
-                rotation = newRotation;
-            }
-
-            math::float3 relativeTranslation;
-
-            if (newTranslationRelative)
-            {
-                math::mat3f rotationMatrix(rotation);
-                relativeTranslation = rotationMatrix * newTranslation;
-                translation += relativeTranslation;
-            }
-            else
-            {
-                relativeTranslation = newTranslation - translation;
-                translation = newTranslation;
-            }
-
-            transform = composeMatrix(translation, rotation, scale);
-
             if (isCollidable)
             {
                 auto transformedBB = boundingBox.transform(transform);
@@ -1640,21 +1814,22 @@ namespace thermion_filament
 
                 if (collisionAxes.size() == 1)
                 {
-                    auto globalAxis = collisionAxes[0];
-                    globalAxis *= norm(relativeTranslation);
-                    auto newRelativeTranslation = relativeTranslation + globalAxis;
-                    translation -= relativeTranslation;
-                    translation += newRelativeTranslation;
-                    transform = composeMatrix(translation, rotation, scale);
+                    // auto globalAxis = collisionAxes[0];
+                    // globalAxis *= norm(relativeTranslation);
+                    // auto newRelativeTranslation = relativeTranslation + globalAxis;
+                    // translation -= relativeTranslation;
+                    // translation += newRelativeTranslation;
+                    // transform = composeMatrix(translation, rotation, scale);
                 }
                 else if (collisionAxes.size() > 1)
                 {
-                    translation -= relativeTranslation;
-                    transform = composeMatrix(translation, rotation, scale);
+                    // translation -= relativeTranslation;
+                    // transform = composeMatrix(translation, rotation, scale);
                 }
             }
-            tm.setTransform(transformInstance, transform);
+            tm.setTransform(transformInstance, transformUpdate);
         }
+        tm.commitLocalTransformTransaction();
         _transformUpdates.clear();
     }
 
@@ -1729,43 +1904,60 @@ namespace thermion_filament
         tm.setTransform(transformInstance, newTransform);
     }
 
-    void SceneManager::queuePositionUpdate(EntityId entity, float x, float y, float z, bool relative)
+    void SceneManager::queueRelativePositionUpdateFromViewportVector(View* view, EntityId entityId, float viewportCoordX, float viewportCoordY)
     {
-        std::lock_guard lock(_mutex);
+        // Get the camera and viewport
+        const auto &camera = view->getCamera();
+        const auto &vp = view->getViewport();
 
-        const auto &pos = _transformUpdates.find(entity);
-        if (pos == _transformUpdates.end())
-        {
-            _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
-        }
-        auto curr = _transformUpdates[entity];
-        auto &trans = std::get<0>(curr);
-        trans.x = x;
-        trans.y = y;
-        trans.z = z;
+        // Convert viewport coordinates to NDC space
+        float ndcX = (2.0f * viewportCoordX) / vp.width - 1.0f;
+        float ndcY = 1.0f - (2.0f * viewportCoordY) / vp.height;
 
-        auto &isRelative = std::get<1>(curr);
-        isRelative = relative;
-        _transformUpdates[entity] = curr;
+        // Get the current position of the entity
+        auto &tm = _engine->getTransformManager();
+        auto entity = Entity::import(entityId);
+        auto transformInstance = tm.getInstance(entity);
+        auto currentTransform = tm.getTransform(transformInstance);
+
+        // get entity model origin in camera space
+        auto entityPositionInCameraSpace = camera.getViewMatrix() * currentTransform * filament::math::float4{0.0f, 0.0f, 0.0f, 1.0f};
+        // get entity model origin in clip space
+        auto entityPositionInClipSpace = camera.getProjectionMatrix() * entityPositionInCameraSpace;
+        auto entityPositionInNdcSpace = entityPositionInClipSpace / entityPositionInClipSpace.w;
+
+        // Viewport coords in NDC space (use entity position in camera space Z to project onto near plane)
+        math::float4 ndcNearPlanePos = {ndcX, ndcY, -1.0f, 1.0f};
+        math::float4 ndcFarPlanePos = {ndcX, ndcY, 0.99f, 1.0f};
+        math::float4 ndcEntityPlanePos = {ndcX, ndcY, entityPositionInNdcSpace.z, 1.0f};
+
+        // Get viewport coords in clip space
+        math::float4 nearPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcNearPlanePos;
+        auto nearPlaneInCameraSpace = nearPlaneInClipSpace / nearPlaneInClipSpace.w;
+        math::float4 farPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcFarPlanePos;
+        auto farPlaneInCameraSpace = farPlaneInClipSpace / farPlaneInClipSpace.w;
+        math::float4 entityPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcEntityPlanePos;
+        auto entityPlaneInCameraSpace = entityPlaneInClipSpace / entityPlaneInClipSpace.w;
+        auto entityPlaneInWorldSpace = camera.getModelMatrix() * entityPlaneInCameraSpace;
+
+        // Queue the position update (as a relative movement)
+        
     }
-
-    void SceneManager::queueRotationUpdate(EntityId entity, float rads, float x, float y, float z, float w, bool relative)
+    
+    void SceneManager::queueTransformUpdates(EntityId* entities, math::mat4* transforms, int numEntities)
     {
         std::lock_guard lock(_mutex);
-        const auto &pos = _transformUpdates.find(entity);
-        if (pos == _transformUpdates.end())
-        {
-            _transformUpdates.emplace(entity, std::make_tuple(math::float3(), true, math::quatf(1.0f), true, 1.0f));
+
+        for(int i= 0; i < numEntities; i++) {
+            auto entity = entities[i];
+            const auto &pos = _transformUpdates.find(entity);
+            if (pos == _transformUpdates.end())
+            {
+                _transformUpdates.emplace(entity, transforms[i]);
+            }
+            auto curr = _transformUpdates[entity];
+            _transformUpdates[entity] = curr;
         }
-        auto curr = _transformUpdates[entity];
-        auto &rot = std::get<2>(curr);
-        rot.w = w;
-        rot.x = x;
-        rot.y = y;
-        rot.z = z;
-        auto &isRelative = std::get<3>(curr);
-        isRelative = relative;
-        _transformUpdates[entity] = curr;
     }
 
     const utils::Entity *SceneManager::getCameraEntities(EntityId entityId)
@@ -1986,134 +2178,339 @@ namespace thermion_filament
             return;
         }
         rm.setPriority(renderableInstance, priority);
-        Log("Set instance renderable priority to %d", priority);
     }
 
-    EntityId SceneManager::addGizmo()
+    Aabb2 SceneManager::getBoundingBox(View *view, EntityId entityId)
     {
-        _gizmoMaterial =
-            Material::Builder()
-                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
-                .build(*_engine);
+        const auto &camera = view->getCamera();
+        const auto &viewport = view->getViewport();
 
-        auto vertexCount = 9;
+        auto &tcm = _engine->getTransformManager();
+        auto &rcm = _engine->getRenderableManager();
 
-        float *vertices = new float[vertexCount * 3]{
-            -0.05, 0.0f, 0.05f,
-            0.05f, 0.0f, 0.05f,
-            0.05f, 0.0f, -0.05f,
-            -0.05f, 0.0f, -0.05f,
-            -0.05f, 1.0f, 0.05f,
-            0.05f, 1.0f, 0.05f,
-            0.05f, 1.0f, -0.05f,
-            -0.05f, 1.0f, -0.05f,
-            0.00f, 1.1f, 0.0f};
+        // Get the projection and view matrices
+        math::mat4 projMatrix = camera.getProjectionMatrix();
+        math::mat4 viewMatrix = camera.getViewMatrix();
+        math::mat4 vpMatrix = projMatrix * viewMatrix;
 
-        VertexBuffer::BufferDescriptor::Callback vertexCallback = [](void *buf, size_t,
-                                                                     void *data)
+        auto entity = Entity::import(entityId);
+
+        auto renderable = rcm.getInstance(entity);
+        auto worldTransform = tcm.getWorldTransform(tcm.getInstance(entity));
+
+        // Get the axis-aligned bounding box in model space
+        Box aabb = rcm.getAxisAlignedBoundingBox(renderable);
+
+        auto min = aabb.getMin();
+        auto max = aabb.getMax();
+
+        // Transform the 8 corners of the AABB to clip space
+        std::array<math::float4, 8> corners = {
+            worldTransform * math::float4(min.x, min.y, min.z, 1.0f),
+            worldTransform * math::float4(max.x, min.y, min.z, 1.0f),
+            worldTransform * math::float4(min.x, max.y, min.z, 1.0f),
+            worldTransform * math::float4(max.x, max.y, min.z, 1.0f),
+            worldTransform * math::float4(min.x, min.y, max.z, 1.0f),
+            worldTransform * math::float4(max.x, min.y, max.z, 1.0f),
+            worldTransform * math::float4(min.x, max.y, max.z, 1.0f),
+            worldTransform * math::float4(max.x, max.y, max.z, 1.0f)};
+
+        // Project corners to clip space and convert to viewport space
+        float minX = std::numeric_limits<float>::max();
+        float minY = std::numeric_limits<float>::max();
+        float maxX = std::numeric_limits<float>::lowest();
+        float maxY = std::numeric_limits<float>::lowest();
+
+        for (const auto &corner : corners)
         {
-            free((void *)buf);
-        };
 
-        auto indexCount = 42;
-        uint16_t *indices = new uint16_t[indexCount]{
-            // bottom quad
-            0, 1, 2,
-            0, 2, 3,
-            // top "cone"
-            4, 5, 8,
-            5, 6, 8,
-            4, 7, 8,
-            6, 7, 8,
-            // front
-            0, 1, 4,
-            1, 5, 4,
-            // right
-            1, 2, 5,
-            2, 6, 5,
-            // back
-            2, 6, 7,
-            7, 3, 2,
-            // left
-            0, 4, 7,
-            7, 3, 0
+            math::float4 clipSpace = vpMatrix * corner;
 
-        };
+            // Check if the point is behind the camera
+            if (clipSpace.w <= 0)
+            {
+                continue; // Skip this point
+            }
 
-        IndexBuffer::BufferDescriptor::Callback indexCallback = [](void *buf, size_t,
-                                                                   void *data)
-        {
-            free((void *)buf);
-        };
+            // Perform perspective division
+            math::float3 ndcSpace = clipSpace.xyz / clipSpace.w;
 
-        auto vb = VertexBuffer::Builder()
-                      .vertexCount(vertexCount)
-                      .bufferCount(1)
-                      .attribute(
-                          VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
-                      .build(*_engine);
+            // Clamp NDC coordinates to [-1, 1] range
+            ndcSpace.x = std::max(-1.0f, std::min(1.0f, ndcSpace.x));
+            ndcSpace.y = std::max(-1.0f, std::min(1.0f, ndcSpace.y));
 
-        vb->setBufferAt(
-            *_engine,
-            0,
-            VertexBuffer::BufferDescriptor(vertices, vb->getVertexCount() * sizeof(filament::math::float3), 0, vertexCallback));
+            // Convert NDC to viewport space
+            float viewportX = (ndcSpace.x * 0.5f + 0.5f) * viewport.width;
+            float viewportY = (1.0f - (ndcSpace.y * 0.5f + 0.5f)) * viewport.height; // Flip Y-axis
 
-        auto ib = IndexBuffer::Builder().indexCount(indexCount).bufferType(IndexBuffer::IndexType::USHORT).build(*_engine);
-        ib->setBuffer(*_engine, IndexBuffer::BufferDescriptor(indices, ib->getIndexCount() * sizeof(uint16_t), 0, indexCallback));
+            minX = std::min(minX, viewportX);
+            minY = std::min(minY, viewportY);
+            maxX = std::max(maxX, viewportX);
+            maxY = std::max(maxY, viewportY);
+        }
 
-        auto &entityManager = EntityManager::get();
-
-        _gizmo[1] = entityManager.create();
-        _gizmoMaterialInstances[1] = _gizmoMaterial->createInstance();
-        _gizmoMaterialInstances[1]->setParameter("color", math::float3{1.0f, 0.0f, 0.0f});
-        RenderableManager::Builder(1)
-            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-            .material(0, _gizmoMaterialInstances[1])
-            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                      ib, 0, indexCount)
-            .culling(false)
-            .build(*_engine, _gizmo[1]);
-
-        _gizmo[0] = entityManager.create();
-        _gizmoMaterialInstances[0] = _gizmoMaterial->createInstance();
-        _gizmoMaterialInstances[0]->setParameter("color", math::float3{0.0f, 1.0f, 0.0f});
-        auto xTransform = math::mat4f::translation(math::float3{0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(-math::F_PI_2, math::float3{0, 0, 1});
-        auto *instanceBufferX = InstanceBuffer::Builder(1).localTransforms(&xTransform).build(*_engine);
-        RenderableManager::Builder(1)
-            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-            .instances(1, instanceBufferX)
-            .material(0, _gizmoMaterialInstances[0])
-            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                      ib, 0, indexCount)
-            .culling(false)
-            .build(*_engine, _gizmo[0]);
-
-        _gizmo[2] = entityManager.create();
-        _gizmoMaterialInstances[2] = _gizmoMaterial->createInstance();
-        _gizmoMaterialInstances[2]->setParameter("color", math::float3{0.0f, 0.0f, 1.0f});
-        auto zTransform = math::mat4f::translation(math::float3{0.0f, 0.05f, -0.05f}) * math::mat4f::rotation(3 * math::F_PI_2, math::float3{1, 0, 0});
-        auto *instanceBufferZ = InstanceBuffer::Builder(1).localTransforms(&zTransform).build(*_engine);
-        RenderableManager::Builder(1)
-            .boundingBox({{}, {1.0f, 1.0f, 1.0f}})
-            .instances(1, instanceBufferZ)
-            .material(0, _gizmoMaterialInstances[2])
-            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb,
-                      ib, 0, indexCount)
-            .culling(false)
-            .build(*_engine, _gizmo[2]);
-
-        auto &rm = _engine->getRenderableManager();
-        rm.setPriority(rm.getInstance(_gizmo[0]), 7);
-        rm.setPriority(rm.getInstance(_gizmo[1]), 7);
-        rm.setPriority(rm.getInstance(_gizmo[2]), 7);
-        return Entity::smuggle(_gizmo[0]);
+        return Aabb2{minX, minY, maxX, maxY};
     }
 
-    void SceneManager::getGizmo(EntityId *out)
+    void SceneManager::removeStencilHighlight(EntityId entityId)
     {
-        out[0] = Entity::smuggle(_gizmo[0]);
-        out[1] = Entity::smuggle(_gizmo[1]);
-        out[2] = Entity::smuggle(_gizmo[2]);
+        std::lock_guard lock(_stencilMutex);
+        auto found = _highlighted.find(entityId);
+        if (found == _highlighted.end())
+        {
+            Log("Entity %d has no stencil highlight, skipping removal", entityId);
+            return;
+        }
+        Log("Erasing entity id %d from highlighted", entityId);
+
+        _highlighted.erase(entityId);
     }
 
-} // namespace thermion_filament
+    void SceneManager::setStencilHighlight(EntityId entityId, float r, float g, float b)
+    {
+
+        std::lock_guard lock(_stencilMutex);
+
+        auto highlightEntity = std::make_unique<HighlightOverlay>(entityId, this, _engine, r, g, b);
+
+        if (highlightEntity->isValid())
+        {
+            _highlighted.emplace(entityId, std::move(highlightEntity));
+        }
+    }
+
+EntityId SceneManager::createGeometry(
+    float *vertices,
+    uint32_t numVertices,
+    float *normals,
+    uint32_t numNormals,
+    float *uvs,
+    uint32_t numUvs,
+    uint16_t *indices,
+    uint32_t numIndices,
+    filament::RenderableManager::PrimitiveType primitiveType,
+    filament::MaterialInstance* materialInstance,
+    bool keepData)
+{
+    auto geometry = std::make_unique<CustomGeometry>(vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, _engine);
+
+    auto entity = utils::EntityManager::get().create();
+    RenderableManager::Builder builder(1);
+
+    builder.boundingBox(geometry->getBoundingBox())
+        .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
+        .culling(true)
+        .receiveShadows(true)
+        .castShadows(true);
+
+    filament::Material *mat = nullptr;
+    
+    if (!materialInstance) {
+        Log("Using default ubershader material");
+        filament::gltfio::MaterialKey config;
+
+        memset(&config, 0, sizeof(config));  // Initialize all bits to zero
+
+        config.unlit = false;
+        config.doubleSided = false;
+        config.useSpecularGlossiness = false;
+        config.alphaMode = filament::gltfio::AlphaMode::OPAQUE;
+        config.hasBaseColorTexture = numUvs > 0;
+        config.hasClearCoat = false;
+        config.hasClearCoatNormalTexture = false;
+        config.hasClearCoatRoughnessTexture = false;
+        config.hasEmissiveTexture = false;
+        config.hasIOR = false;
+        config.hasMetallicRoughnessTexture = false;
+        config.hasNormalTexture = false;
+        config.hasOcclusionTexture = false;
+        config.hasSheen = false;
+        config.hasSheenColorTexture = false;
+        config.hasSheenRoughnessTexture = false;
+        config.hasSpecularGlossinessTexture = false;
+        config.hasTextureTransforms = false;
+        config.hasTransmission = false;
+        config.hasTransmissionTexture = false;
+        config.hasVolume = false;
+        config.hasVolumeThicknessTexture = false;
+        config.baseColorUV = 0;
+        config.hasVertexColors = false;
+        config.hasVolume = false;
+        
+        materialInstance = createUbershaderMaterialInstance(config); 
+
+        if(!materialInstance) { 
+            Log("Failed to create material instance");
+            return Entity::smuggle(Entity());
+        }
+    }    
+
+    // Set up texture and sampler if UVs are available
+    if (uvs != nullptr && numUvs > 0)
+    {
+        // Create a default white texture
+        static constexpr uint32_t textureSize = 1;
+        static constexpr uint32_t white = 0x00ffffff;
+        Texture* texture = Texture::Builder()
+            .width(textureSize)
+            .height(textureSize)
+            .levels(1)
+            .format(Texture::InternalFormat::RGBA8)
+            .build(*_engine);
+
+        _textures.insert(texture);
+       
+        filament::backend::PixelBufferDescriptor pbd(&white, 4, Texture::Format::RGBA, Texture::Type::UBYTE);
+        texture->setImage(*_engine, 0, std::move(pbd));
+
+        // Create a sampler
+        TextureSampler sampler(TextureSampler::MinFilter::NEAREST, TextureSampler::MagFilter::NEAREST);
+        sampler.setWrapModeS(TextureSampler::WrapMode::REPEAT);
+        sampler.setWrapModeT(TextureSampler::WrapMode::REPEAT);
+
+        // Set the texture and sampler to the material instance
+        materialInstance->setParameter("baseColorMap", texture, sampler);
+    }
+
+    builder.material(0, materialInstance);
+    builder.build(*_engine, entity);
+
+    _scene->addEntity(entity);
+
+    auto entityId = Entity::smuggle(entity);
+
+    _geometry.emplace(entityId, std::move(geometry));
+
+    return entityId;
+}
+
+    MaterialInstance* SceneManager::getMaterialInstanceAt(EntityId entityId, int materialIndex) {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("Error retrieving material instance: no renderable found for entity %d");
+            return std::nullptr_t();
+        }
+        return rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+    }
+
+    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, float value)
+    {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("Error setting material property for entity %d: no renderable");
+            return;
+        }
+        auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+
+        if (!materialInstance->getMaterial()->hasParameter(property))
+        {
+            Log("Parameter %s not found", property);
+            return;
+        }
+        materialInstance->setParameter(property, value);
+    }
+
+    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, int32_t value)
+    {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("Error setting material property for entity %d: no renderable");
+            return;
+        }
+        auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+
+        if (!materialInstance->getMaterial()->hasParameter(property))
+        {
+            Log("Parameter %s not found", property);
+            return;
+        }
+        materialInstance->setParameter(property, value);
+    }
+
+    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, filament::math::float4& value)
+    {
+        auto entity = Entity::import(entityId);
+        const auto &rm = _engine->getRenderableManager();
+        auto renderableInstance = rm.getInstance(entity);
+        if (!renderableInstance.isValid())
+        {
+            Log("Error setting material property for entity %d: no renderable");
+            return;
+        }
+        auto materialInstance = rm.getMaterialInstanceAt(renderableInstance, materialIndex);
+
+        if (!materialInstance->getMaterial()->hasParameter(property))
+        {
+            Log("Parameter %s not found", property);
+            return;
+        }
+        materialInstance->setParameter(property, filament::math::float4 { value.x, value.y, value.z, value.w });
+    }
+
+    void SceneManager::destroy(MaterialInstance* instance) {
+        _engine->destroy(instance);
+    }
+
+    MaterialInstance* SceneManager::createUbershaderMaterialInstance(filament::gltfio::MaterialKey config) {
+        filament::gltfio::UvMap uvmap {};
+        auto * materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
+        if(!materialInstance) {
+            Log("Invalid material configuration");
+            return nullptr;
+        }
+        materialInstance->setParameter("baseColorFactor", RgbaType::sRGB, filament::math::float4{1.0f, 0.0f, 1.0f, 1.0f});
+        materialInstance->setParameter("baseColorIndex", 0);
+        _materialInstances.push_back(materialInstance);
+        return materialInstance;
+    }
+
+    MaterialInstance* SceneManager::createUnlitMaterialInstance() {
+        UvMap uvmap;
+        auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
+        instance->setParameter("uvScale", filament::math::float2 { 1.0f, 1.0f });
+        _materialInstances.push_back(instance);
+        return instance;
+    }
+
+    Camera* SceneManager::createCamera() {
+        auto entity = EntityManager::get().create();
+        auto camera = _engine->createCamera(entity);
+        _cameras.push_back(camera);
+        return camera;
+    }
+
+    void SceneManager::destroyCamera(Camera* camera) {
+        auto entity = camera->getEntity();
+        _engine->destroyCameraComponent(entity);
+        _engine->getEntityManager().destroy(entity);
+        auto it = std::find(_cameras.begin(), _cameras.end(), camera);
+        if(it != _cameras.end()) {
+            _cameras.erase(it);
+        }
+    }
+
+    size_t SceneManager::getCameraCount() {
+        return _cameras.size() + 1;
+    }
+
+    Camera* SceneManager::getCameraAt(size_t index) {
+        if(index == 0) {
+            return _mainCamera;
+        }
+        if(index - 1 > _cameras.size() - 1) {
+            return nullptr;
+        }
+        return _cameras[index-1];
+    }
+       
+
+} // namespace thermion
