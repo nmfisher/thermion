@@ -263,11 +263,6 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
 
-  @override
-  Future moveCameraToAsset(ThermionEntity entity) {
-    // TODO: implement moveCameraToAsset
-    throw UnimplementedError();
-  }
 
   @override
   void onDispose(Future Function() callback) {
@@ -744,22 +739,7 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement createIbl
     throw UnimplementedError();
   }
-  
-  @override
-  // TODO: implement gizmoPickResult
-  Stream<FilamentPickResult> get gizmoPickResult => throw UnimplementedError();
-  
-  @override
-  void pickGizmo(int x, int y) {
-    // TODO: implement pickGizmo
-  }
-  
-  @override
-  Future setGizmoVisibility(bool visible) {
-    // TODO: implement setGizmoVisibility
-    throw UnimplementedError();
-  }
-  
+    
   @override
   Future<ThermionEntity?> getAncestor(ThermionEntity entity) {
     // TODO: implement getAncestor
