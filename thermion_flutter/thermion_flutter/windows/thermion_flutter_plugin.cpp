@@ -81,11 +81,13 @@ ResourceBuffer ThermionFlutterPlugin::loadResource(const char *name) {
       name_str = name_str.substr(8);
     }
 
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, name_str.c_str(), -1, nullptr, 0);
+    std::wstring assetPath(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, name_str.c_str(), -1, &assetPath[0], size_needed);
+
     TCHAR pBuf[512];
     size_t len = sizeof(pBuf);
-    int bytes = GetModuleFileName(NULL, pBuf, static_cast<DWORD>(len));
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring assetPath = converter.from_bytes(name_str.c_str());
+    GetModuleFileName(NULL, pBuf, static_cast<DWORD>(len));
 
     std::wstring exePathBuf(pBuf);
     std::filesystem::path exePath(exePathBuf);
@@ -108,8 +110,8 @@ ResourceBuffer ThermionFlutterPlugin::loadResource(const char *name) {
   is.seekg(0, std::ios::beg);
   is.read(buffer, length);
   is.close();
-  auto id = _resources.size();
-  auto rb = ResourceBuffer(buffer, length, id);
+  int32_t id = static_cast<int32_t>(_resources.size());
+  auto rb = ResourceBuffer(buffer, static_cast<int32_t>(length), id);
   _resources.emplace(id, rb);
 
   std::wcout << "Loaded resource of length " << length << " from path "

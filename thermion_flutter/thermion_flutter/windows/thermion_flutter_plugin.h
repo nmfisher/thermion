@@ -45,7 +45,7 @@ public:
   flutter::PluginRegistrarWindows *_pluginRegistrar;
   flutter::TextureRegistrar *_textureRegistrar;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> _channel;
-  std::map<uint32_t, ResourceBuffer> _resources;
+  std::map<int32_t, ResourceBuffer> _resources;
  
   void CreateTexture(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
