@@ -6,12 +6,11 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 
 void main(List<String> args) async {
   await build(args, (config, output) async {
-    var logDir = Directory(
-        "${config.packageRoot.toFilePath()}.dart_tool/thermion_dart/log/");
-    if (!logDir.existsSync()) {
-      logDir.createSync(recursive: true);
+    var logFile = File(
+        "${config.packageRoot.toFilePath()}.dart_tool/thermion_dart/log/build.log");
+    if (!logFile.parent.existsSync()) {
+      logFile.parent.createSync(recursive: true);
     }
-    var logFile = File(logDir.path + "/build.log");
 
     final logger = Logger("")
       ..level = Level.ALL
@@ -21,6 +20,8 @@ void main(List<String> args) async {
           flush: true));
 
     var platform = config.targetOS.toString().toLowerCase();
+
+    logger.info("Building Thermion for ${config.targetOS} in mode ${config.buildMode.name}");
 
     // We don't support Linux (yet), so the native/Filament libraries won't be
     // compiled/available. However, we still want to be able to run the Dart
@@ -110,11 +111,19 @@ void main(List<String> args) async {
       flags.addAll(['-std=c++17']);
     } else {
       defines["WIN32"] = "1";
-      defines["_DEBUG"] = "1";
       defines["_DLL"] = "1";
+      if(config.buildMode == BuildMode.debug) {
+        defines["_DEBUG"] = "1";
+      } else { 
+        defines["RELEASE"] = "1";
+        defines["NDEBUG"] = "1";
+      }
       flags.addAll([
         "/std:c++20",
+        if(config.buildMode == BuildMode.debug)
         "/MDd",
+        if(config.buildMode == BuildMode.release)
+        "/MD",
         "/VERBOSE",
         ...defines.keys.map((k) => "/D$k=${defines[k]}").toList()
       ]);
@@ -271,6 +280,8 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
           "Unsupported architecture : ${config.targetArchitecture}");
     }
   }
+
+  logger.info("Searching for Filament libraries under ${libDir.path}");
 
   final url = _getLibraryUrl(platform, mode);
 
