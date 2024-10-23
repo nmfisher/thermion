@@ -51,7 +51,22 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer, const char *skyboxPath, void (*onComplete)());
     EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer);
 
+    EMSCRIPTEN_KEEPALIVE void SceneManager_createGeometryRenderThread(
+        TSceneManager *sceneManager, 
+        float *vertices, 
+        int numVertices, 
+        float *normals, 
+        int numNormals, 
+        float *uvs, 
+        int numUvs, 
+        uint16_t *indices, 
+        int numIndices, 
+        int primitiveType, 
+        TMaterialInstance *materialInstance, 
+        bool keepData, 
+        void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync, void (*callback)(EntityId));
+    EMSCRIPTEN_KEEPALIVE void SceneManager_createUnlitMaterialInstanceRenderThread(TSceneManager *sceneManager, void (*callback)(TMaterialInstance*));
     EMSCRIPTEN_KEEPALIVE void load_glb_render_thread(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void load_gltf_render_thread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(EntityId));
     EMSCRIPTEN_KEEPALIVE void create_instance_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)(EntityId));
@@ -87,20 +102,7 @@ extern "C"
         void (*callback)(bool));
     EMSCRIPTEN_KEEPALIVE void set_post_processing_render_thread(TViewer *viewer, bool enabled);
     EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void(*callback)());
-    EMSCRIPTEN_KEEPALIVE void create_geometry_render_thread(
-        TSceneManager *sceneManager, 
-        float *vertices, 
-        int numVertices, 
-        float *normals, 
-        int numNormals, 
-        float *uvs, 
-        int numUvs, 
-        uint16_t *indices, 
-        int numIndices, 
-        int primitiveType, 
-        TMaterialInstance *materialInstance, 
-        bool keepData, 
-        void (*callback)(EntityId));
+    
     EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight, void(*callback)());
 
 
