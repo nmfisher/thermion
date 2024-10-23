@@ -149,7 +149,7 @@ extern "C"
 		int numWeights);
 	
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_material_instance(TSceneManager *sceneManager, TMaterialKey materialConfig);
-	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(TSceneManager *sceneManager);
+
 	EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance);
 
 	EMSCRIPTEN_KEEPALIVE void clear_morph_animation(
@@ -197,6 +197,20 @@ extern "C"
 										   int skinIndex,
 										   int boneIndex);
 	
+	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_createGeometry(
+		TSceneManager *sceneManager, 
+		float *vertices, 
+		int numVertices, 
+		float *normals, 
+		int numNormals, 
+		float *uvs, 
+		int numUvs, 
+		uint16_t *indices, 
+		int numIndices, 
+		int primitiveType, 
+		TMaterialInstance *materialInstance, 
+		bool keepData);
+	EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitMaterialInstance(TSceneManager *sceneManager);
 	EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform);
 	EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *sceneManager, EntityId* entities, const double* const transforms, int numEntities);
 	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_findCameraByName(TSceneManager* tSceneManager, EntityId entity, const char* name);
@@ -254,19 +268,6 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE bool add_animation_component(TSceneManager *sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void remove_animation_component(TSceneManager *sceneManager, EntityId entityId);
 
-	EMSCRIPTEN_KEEPALIVE EntityId create_geometry(
-		TSceneManager *sceneManager, 
-		float *vertices, 
-		int numVertices, 
-		float *normals, 
-		int numNormals, 
-		float *uvs, 
-		int numUvs, 
-		uint16_t *indices, 
-		int numIndices, 
-		int primitiveType, 
-		TMaterialInstance *materialInstance, 
-		bool keepData);
 	EMSCRIPTEN_KEEPALIVE EntityId get_parent(TSceneManager *sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE EntityId get_ancestor(TSceneManager *sceneManager, EntityId child);
 	EMSCRIPTEN_KEEPALIVE void set_parent(TSceneManager *sceneManager, EntityId child, EntityId parent, bool preserveScaling);
