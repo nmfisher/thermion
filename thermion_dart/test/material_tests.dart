@@ -11,7 +11,26 @@ import 'helpers.dart';
 void main() async {
   final testHelper = TestHelper("integration");
 
-  group("texture tests", () {
+  group("material tests", () {
+      test('unlit material with color only', () async {
+        var viewer = await testHelper.createViewer();
+        await viewer.setCameraPosition(0, 0, 6);
+        await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
+        await viewer.setPostProcessing(true);
+        await viewer.setToneMapping(ToneMapper.LINEAR);
+
+        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var cube = await viewer.createGeometry(GeometryHelper.cube(),
+            materialInstance: materialInstance);
+
+        await viewer.setMaterialPropertyFloat4(
+            cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
+
+        await testHelper.capture(viewer, "unlit_material_base_color");
+
+        await viewer.dispose();
+    });
+
     test('apply texture to custom ubershader material instance', () async {
       var viewer = await testHelper.createViewer();
       await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
@@ -34,25 +53,6 @@ void main() async {
       await viewer.removeEntity(cube);
       await viewer.destroyMaterialInstance(materialInstance);
       await viewer.destroyTexture(texture);
-      await viewer.dispose();
-    });
-
-    test('unlit material with color only', () async {
-      var viewer = await testHelper.createViewer();
-      await viewer.setCameraPosition(0, 0, 6);
-      await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
-      await viewer.setPostProcessing(true);
-      await viewer.setToneMapping(ToneMapper.LINEAR);
-
-      var materialInstance = await viewer.createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(GeometryHelper.cube(),
-          materialInstance: materialInstance);
-
-      await viewer.setMaterialPropertyFloat4(
-          cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
-
-      await testHelper.capture(viewer, "unlit_material_base_color");
-
       await viewer.dispose();
     });
 
