@@ -24,8 +24,6 @@ void main() {
       when(mockViewer.getCameraViewMatrix()).thenAnswer((_) async => Matrix4.identity());
       when(mockViewer.getCameraModelMatrix()).thenAnswer((_) async => Matrix4.translationValues(0, 0, 5));
       when(mockViewer.getCameraProjectionMatrix()).thenAnswer((_) async => Matrix4.identity());
-      mockViewer.viewportDimensions = (800, 600);
-      mockViewer.pixelRatio = 1.0;
 
       delegate = FixedOrbitRotateInputHandlerDelegate(
         mockViewer,
