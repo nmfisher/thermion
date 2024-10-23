@@ -34,3 +34,4 @@
 #pragma comment(lib, "uberarchive.lib")
 #pragma comment(lib, "zstd.lib")
 #pragma comment(lib, "basis_transcoder.lib")
+#pragma comment(lib, "meshoptimizer.lib")
