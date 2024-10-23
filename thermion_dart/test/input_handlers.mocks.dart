@@ -8,12 +8,12 @@ import 'dart:typed_data' as _i8;
 
 import 'package:animation_tools_dart/animation_tools_dart.dart' as _i9;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:thermion_dart/src/utils/src/gizmo.dart' as _i4;
 import 'package:thermion_dart/src/viewer/src/events.dart' as _i7;
-import 'package:thermion_dart/src/viewer/src/shared_types/camera.dart' as _i3;
 import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart'
-    as _i4;
+    as _i2;
 import 'package:thermion_dart/src/viewer/src/thermion_viewer_base.dart' as _i5;
-import 'package:vector_math/vector_math_64.dart' as _i2;
+import 'package:vector_math/vector_math_64.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -28,8 +28,8 @@ import 'package:vector_math/vector_math_64.dart' as _i2;
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
-class _FakeMatrix4_0 extends _i1.SmartFake implements _i2.Matrix4 {
-  _FakeMatrix4_0(
+class _FakeSwapChain_0 extends _i1.SmartFake implements _i2.SwapChain {
+  _FakeSwapChain_0(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -38,8 +38,8 @@ class _FakeMatrix4_0 extends _i1.SmartFake implements _i2.Matrix4 {
         );
 }
 
-class _FakeCamera_1 extends _i1.SmartFake implements _i3.Camera {
-  _FakeCamera_1(
+class _FakeRenderTarget_1 extends _i1.SmartFake implements _i2.RenderTarget {
+  _FakeRenderTarget_1(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -48,8 +48,8 @@ class _FakeCamera_1 extends _i1.SmartFake implements _i3.Camera {
         );
 }
 
-class _FakeVector3_2 extends _i1.SmartFake implements _i2.Vector3 {
-  _FakeVector3_2(
+class _FakeView_2 extends _i1.SmartFake implements _i2.View {
+  _FakeView_2(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -58,8 +58,8 @@ class _FakeVector3_2 extends _i1.SmartFake implements _i2.Vector3 {
         );
 }
 
-class _FakeFrustum_3 extends _i1.SmartFake implements _i2.Frustum {
-  _FakeFrustum_3(
+class _FakeMatrix4_3 extends _i1.SmartFake implements _i3.Matrix4 {
+  _FakeMatrix4_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -68,8 +68,8 @@ class _FakeFrustum_3 extends _i1.SmartFake implements _i2.Frustum {
         );
 }
 
-class _FakeMatrix3_4 extends _i1.SmartFake implements _i2.Matrix3 {
-  _FakeMatrix3_4(
+class _FakeCamera_4 extends _i1.SmartFake implements _i2.Camera {
+  _FakeCamera_4(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -78,8 +78,8 @@ class _FakeMatrix3_4 extends _i1.SmartFake implements _i2.Matrix3 {
         );
 }
 
-class _FakeAabb2_5 extends _i1.SmartFake implements _i2.Aabb2 {
-  _FakeAabb2_5(
+class _FakeVector3_5 extends _i1.SmartFake implements _i3.Vector3 {
+  _FakeVector3_5(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -88,9 +88,8 @@ class _FakeAabb2_5 extends _i1.SmartFake implements _i2.Aabb2 {
         );
 }
 
-class _FakeThermionTexture_6 extends _i1.SmartFake
-    implements _i4.ThermionTexture {
-  _FakeThermionTexture_6(
+class _FakeFrustum_6 extends _i1.SmartFake implements _i3.Frustum {
+  _FakeFrustum_6(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -99,9 +98,50 @@ class _FakeThermionTexture_6 extends _i1.SmartFake
         );
 }
 
-class _FakeMaterialInstance_7 extends _i1.SmartFake
-    implements _i4.MaterialInstance {
-  _FakeMaterialInstance_7(
+class _FakeMatrix3_7 extends _i1.SmartFake implements _i3.Matrix3 {
+  _FakeMatrix3_7(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeGizmo_8 extends _i1.SmartFake implements _i4.Gizmo {
+  _FakeGizmo_8(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeAabb2_9 extends _i1.SmartFake implements _i3.Aabb2 {
+  _FakeAabb2_9(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeThermionTexture_10 extends _i1.SmartFake
+    implements _i2.ThermionTexture {
+  _FakeThermionTexture_10(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeMaterialInstance_11 extends _i1.SmartFake
+    implements _i2.MaterialInstance {
+  _FakeMaterialInstance_11(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -119,55 +159,17 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
   }
 
   @override
-  (double, double) get viewportDimensions => (super.noSuchMethod(
-        Invocation.getter(#viewportDimensions),
-        returnValue: (0.0, 0.0),
-      ) as (double, double));
-
-  @override
-  set viewportDimensions((double, double)? _viewportDimensions) =>
-      super.noSuchMethod(
-        Invocation.setter(
-          #viewportDimensions,
-          _viewportDimensions,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  double get pixelRatio => (super.noSuchMethod(
-        Invocation.getter(#pixelRatio),
-        returnValue: 0.0,
-      ) as double);
-
-  @override
-  set pixelRatio(double? _pixelRatio) => super.noSuchMethod(
-        Invocation.setter(
-          #pixelRatio,
-          _pixelRatio,
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
   _i6.Future<bool> get initialized => (super.noSuchMethod(
         Invocation.getter(#initialized),
         returnValue: _i6.Future<bool>.value(false),
       ) as _i6.Future<bool>);
 
   @override
-  _i6.Stream<({int entity, double x, double y})> get pickResult =>
+  _i6.Stream<({int entity, int x, int y})> get pickResult =>
       (super.noSuchMethod(
         Invocation.getter(#pickResult),
-        returnValue: _i6.Stream<({int entity, double x, double y})>.empty(),
-      ) as _i6.Stream<({int entity, double x, double y})>);
-
-  @override
-  _i6.Stream<({int entity, double x, double y})> get gizmoPickResult =>
-      (super.noSuchMethod(
-        Invocation.getter(#gizmoPickResult),
-        returnValue: _i6.Stream<({int entity, double x, double y})>.empty(),
-      ) as _i6.Stream<({int entity, double x, double y})>);
+        returnValue: _i6.Stream<({int entity, int x, int y})>.empty(),
+      ) as _i6.Stream<({int entity, int x, int y})>);
 
   @override
   _i6.Stream<_i7.SceneUpdateEvent> get sceneUpdated => (super.noSuchMethod(
@@ -191,10 +193,11 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> render() => (super.noSuchMethod(
+  _i6.Future<dynamic> render({_i2.SwapChain? swapChain}) => (super.noSuchMethod(
         Invocation.method(
           #render,
           [],
+          {#swapChain: swapChain},
         ),
         returnValue: _i6.Future<dynamic>.value(),
       ) as _i6.Future<dynamic>);
@@ -209,13 +212,151 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<_i8.Uint8List> capture() => (super.noSuchMethod(
+  _i6.Future<_i8.Uint8List> capture({
+    _i2.SwapChain? swapChain,
+    _i2.View? view,
+    _i2.RenderTarget? renderTarget,
+  }) =>
+      (super.noSuchMethod(
         Invocation.method(
           #capture,
           [],
+          {
+            #swapChain: swapChain,
+            #view: view,
+            #renderTarget: renderTarget,
+          },
         ),
         returnValue: _i6.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
       ) as _i6.Future<_i8.Uint8List>);
+
+  @override
+  _i6.Future<_i2.SwapChain> createHeadlessSwapChain(
+    int? width,
+    int? height,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createHeadlessSwapChain,
+          [
+            width,
+            height,
+          ],
+        ),
+        returnValue: _i6.Future<_i2.SwapChain>.value(_FakeSwapChain_0(
+          this,
+          Invocation.method(
+            #createHeadlessSwapChain,
+            [
+              width,
+              height,
+            ],
+          ),
+        )),
+      ) as _i6.Future<_i2.SwapChain>);
+
+  @override
+  _i6.Future<_i2.SwapChain> createSwapChain(int? handle) => (super.noSuchMethod(
+        Invocation.method(
+          #createSwapChain,
+          [handle],
+        ),
+        returnValue: _i6.Future<_i2.SwapChain>.value(_FakeSwapChain_0(
+          this,
+          Invocation.method(
+            #createSwapChain,
+            [handle],
+          ),
+        )),
+      ) as _i6.Future<_i2.SwapChain>);
+
+  @override
+  _i6.Future<dynamic> destroySwapChain(_i2.SwapChain? swapChain) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #destroySwapChain,
+          [swapChain],
+        ),
+        returnValue: _i6.Future<dynamic>.value(),
+      ) as _i6.Future<dynamic>);
+
+  @override
+  _i6.Future<_i2.RenderTarget> createRenderTarget(
+    int? width,
+    int? height,
+    int? textureHandle,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createRenderTarget,
+          [
+            width,
+            height,
+            textureHandle,
+          ],
+        ),
+        returnValue: _i6.Future<_i2.RenderTarget>.value(_FakeRenderTarget_1(
+          this,
+          Invocation.method(
+            #createRenderTarget,
+            [
+              width,
+              height,
+              textureHandle,
+            ],
+          ),
+        )),
+      ) as _i6.Future<_i2.RenderTarget>);
+
+  @override
+  _i6.Future<dynamic> destroyRenderTarget(_i2.RenderTarget? renderTarget) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #destroyRenderTarget,
+          [renderTarget],
+        ),
+        returnValue: _i6.Future<dynamic>.value(),
+      ) as _i6.Future<dynamic>);
+
+  @override
+  _i6.Future<dynamic> setRenderTarget(_i2.RenderTarget? renderTarget) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #setRenderTarget,
+          [renderTarget],
+        ),
+        returnValue: _i6.Future<dynamic>.value(),
+      ) as _i6.Future<dynamic>);
+
+  @override
+  _i6.Future<_i2.View> createView() => (super.noSuchMethod(
+        Invocation.method(
+          #createView,
+          [],
+        ),
+        returnValue: _i6.Future<_i2.View>.value(_FakeView_2(
+          this,
+          Invocation.method(
+            #createView,
+            [],
+          ),
+        )),
+      ) as _i6.Future<_i2.View>);
+
+  @override
+  _i6.Future<_i2.View> getViewAt(int? index) => (super.noSuchMethod(
+        Invocation.method(
+          #getViewAt,
+          [index],
+        ),
+        returnValue: _i6.Future<_i2.View>.value(_FakeView_2(
+          this,
+          Invocation.method(
+            #getViewAt,
+            [index],
+          ),
+        )),
+      ) as _i6.Future<_i2.View>);
 
   @override
   _i6.Future<dynamic> setFrameRate(int? framerate) => (super.noSuchMethod(
@@ -349,7 +490,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> rotateIbl(_i2.Matrix3? rotation) => (super.noSuchMethod(
+  _i6.Future<dynamic> rotateIbl(_i3.Matrix3? rotation) => (super.noSuchMethod(
         Invocation.method(
           #rotateIbl,
           [rotation],
@@ -368,7 +509,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
 
   @override
   _i6.Future<int> addLight(
-    _i4.LightType? type,
+    _i2.LightType? type,
     double? colour,
     double? intensity,
     double? posX,
@@ -413,7 +554,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<int>);
 
   @override
-  _i6.Future<int> addDirectLight(_i4.DirectLight? light) => (super.noSuchMethod(
+  _i6.Future<int> addDirectLight(_i2.DirectLight? light) => (super.noSuchMethod(
         Invocation.method(
           #addDirectLight,
           [light],
@@ -464,6 +605,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
     bool? keepData = false,
     int? priority = 4,
     int? layer = 0,
+    bool? loadResourcesAsync,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -474,6 +616,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
             #keepData: keepData,
             #priority: priority,
             #layer: layer,
+            #loadResourcesAsync: loadResourcesAsync,
           },
         ),
         returnValue: _i6.Future<int>.value(0),
@@ -523,88 +666,6 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
         ),
         returnValue: _i6.Future<int>.value(0),
       ) as _i6.Future<int>);
-
-  @override
-  _i6.Future<dynamic> panStart(
-    double? x,
-    double? y,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #panStart,
-          [
-            x,
-            y,
-          ],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> panUpdate(
-    double? x,
-    double? y,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #panUpdate,
-          [
-            x,
-            y,
-          ],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> panEnd() => (super.noSuchMethod(
-        Invocation.method(
-          #panEnd,
-          [],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> rotateStart(
-    double? x,
-    double? y,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #rotateStart,
-          [
-            x,
-            y,
-          ],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> rotateUpdate(
-    double? x,
-    double? y,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #rotateUpdate,
-          [
-            x,
-            y,
-          ],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> rotateEnd() => (super.noSuchMethod(
-        Invocation.method(
-          #rotateEnd,
-          [],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
 
   @override
   _i6.Future<dynamic> setMorphTargetWeights(
@@ -760,37 +821,37 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<int>);
 
   @override
-  _i6.Future<_i2.Matrix4> getLocalTransform(int? entity) => (super.noSuchMethod(
+  _i6.Future<_i3.Matrix4> getLocalTransform(int? entity) => (super.noSuchMethod(
         Invocation.method(
           #getLocalTransform,
           [entity],
         ),
-        returnValue: _i6.Future<_i2.Matrix4>.value(_FakeMatrix4_0(
+        returnValue: _i6.Future<_i3.Matrix4>.value(_FakeMatrix4_3(
           this,
           Invocation.method(
             #getLocalTransform,
             [entity],
           ),
         )),
-      ) as _i6.Future<_i2.Matrix4>);
+      ) as _i6.Future<_i3.Matrix4>);
 
   @override
-  _i6.Future<_i2.Matrix4> getWorldTransform(int? entity) => (super.noSuchMethod(
+  _i6.Future<_i3.Matrix4> getWorldTransform(int? entity) => (super.noSuchMethod(
         Invocation.method(
           #getWorldTransform,
           [entity],
         ),
-        returnValue: _i6.Future<_i2.Matrix4>.value(_FakeMatrix4_0(
+        returnValue: _i6.Future<_i3.Matrix4>.value(_FakeMatrix4_3(
           this,
           Invocation.method(
             #getWorldTransform,
             [entity],
           ),
         )),
-      ) as _i6.Future<_i2.Matrix4>);
+      ) as _i6.Future<_i3.Matrix4>);
 
   @override
-  _i6.Future<_i2.Matrix4> getInverseBindMatrix(
+  _i6.Future<_i3.Matrix4> getInverseBindMatrix(
     int? parent,
     int? boneIndex, {
     int? skinIndex = 0,
@@ -804,7 +865,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
           ],
           {#skinIndex: skinIndex},
         ),
-        returnValue: _i6.Future<_i2.Matrix4>.value(_FakeMatrix4_0(
+        returnValue: _i6.Future<_i3.Matrix4>.value(_FakeMatrix4_3(
           this,
           Invocation.method(
             #getInverseBindMatrix,
@@ -815,12 +876,12 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
             {#skinIndex: skinIndex},
           ),
         )),
-      ) as _i6.Future<_i2.Matrix4>);
+      ) as _i6.Future<_i3.Matrix4>);
 
   @override
   _i6.Future<dynamic> setTransform(
     int? entity,
-    _i2.Matrix4? transform,
+    _i3.Matrix4? transform,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -828,6 +889,22 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
           [
             entity,
             transform,
+          ],
+        ),
+        returnValue: _i6.Future<dynamic>.value(),
+      ) as _i6.Future<dynamic>);
+
+  @override
+  _i6.Future<dynamic> queueTransformUpdates(
+    List<int>? entities,
+    List<_i3.Matrix4>? transforms,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #queueTransformUpdates,
+          [
+            entities,
+            transforms,
           ],
         ),
         returnValue: _i6.Future<dynamic>.value(),
@@ -846,7 +923,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
   _i6.Future<dynamic> setBoneTransform(
     int? entity,
     int? boneIndex,
-    _i2.Matrix4? transform, {
+    _i3.Matrix4? transform, {
     int? skinIndex = 0,
   }) =>
       (super.noSuchMethod(
@@ -875,42 +952,6 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
   _i6.Future<dynamic> clearEntities() => (super.noSuchMethod(
         Invocation.method(
           #clearEntities,
-          [],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> zoomBegin() => (super.noSuchMethod(
-        Invocation.method(
-          #zoomBegin,
-          [],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> zoomUpdate(
-    double? x,
-    double? y,
-    double? z,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #zoomUpdate,
-          [
-            x,
-            y,
-            z,
-          ],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> zoomEnd() => (super.noSuchMethod(
-        Invocation.method(
-          #zoomEnd,
           [],
         ),
         returnValue: _i6.Future<dynamic>.value(),
@@ -1055,19 +1096,19 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<int>);
 
   @override
-  _i6.Future<_i3.Camera> getMainCamera() => (super.noSuchMethod(
+  _i6.Future<_i2.Camera> getMainCamera() => (super.noSuchMethod(
         Invocation.method(
           #getMainCamera,
           [],
         ),
-        returnValue: _i6.Future<_i3.Camera>.value(_FakeCamera_1(
+        returnValue: _i6.Future<_i2.Camera>.value(_FakeCamera_4(
           this,
           Invocation.method(
             #getMainCamera,
             [],
           ),
         )),
-      ) as _i6.Future<_i3.Camera>);
+      ) as _i6.Future<_i2.Camera>);
 
   @override
   _i6.Future<dynamic> setCameraFov(
@@ -1093,7 +1134,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<double>);
 
   @override
-  _i6.Future<dynamic> setToneMapping(_i4.ToneMapper? mapper) =>
+  _i6.Future<dynamic> setToneMapping(_i2.ToneMapper? mapper) =>
       (super.noSuchMethod(
         Invocation.method(
           #setToneMapping,
@@ -1165,27 +1206,6 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<double>);
 
   @override
-  _i6.Future<dynamic> setCameraLensProjection({
-    double? near = 0.05,
-    double? far = 1000.0,
-    double? aspect,
-    double? focalLength = 28.0,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #setCameraLensProjection,
-          [],
-          {
-            #near: near,
-            #far: far,
-            #aspect: aspect,
-            #focalLength: focalLength,
-          },
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
   _i6.Future<dynamic> setCameraFocusDistance(double? focusDistance) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1196,95 +1216,95 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<_i2.Vector3> getCameraPosition() => (super.noSuchMethod(
+  _i6.Future<_i3.Vector3> getCameraPosition() => (super.noSuchMethod(
         Invocation.method(
           #getCameraPosition,
           [],
         ),
-        returnValue: _i6.Future<_i2.Vector3>.value(_FakeVector3_2(
+        returnValue: _i6.Future<_i3.Vector3>.value(_FakeVector3_5(
           this,
           Invocation.method(
             #getCameraPosition,
             [],
           ),
         )),
-      ) as _i6.Future<_i2.Vector3>);
+      ) as _i6.Future<_i3.Vector3>);
 
   @override
-  _i6.Future<_i2.Matrix4> getCameraModelMatrix() => (super.noSuchMethod(
+  _i6.Future<_i3.Matrix4> getCameraModelMatrix() => (super.noSuchMethod(
         Invocation.method(
           #getCameraModelMatrix,
           [],
         ),
-        returnValue: _i6.Future<_i2.Matrix4>.value(_FakeMatrix4_0(
+        returnValue: _i6.Future<_i3.Matrix4>.value(_FakeMatrix4_3(
           this,
           Invocation.method(
             #getCameraModelMatrix,
             [],
           ),
         )),
-      ) as _i6.Future<_i2.Matrix4>);
+      ) as _i6.Future<_i3.Matrix4>);
 
   @override
-  _i6.Future<_i2.Matrix4> getCameraViewMatrix() => (super.noSuchMethod(
+  _i6.Future<_i3.Matrix4> getCameraViewMatrix() => (super.noSuchMethod(
         Invocation.method(
           #getCameraViewMatrix,
           [],
         ),
-        returnValue: _i6.Future<_i2.Matrix4>.value(_FakeMatrix4_0(
+        returnValue: _i6.Future<_i3.Matrix4>.value(_FakeMatrix4_3(
           this,
           Invocation.method(
             #getCameraViewMatrix,
             [],
           ),
         )),
-      ) as _i6.Future<_i2.Matrix4>);
+      ) as _i6.Future<_i3.Matrix4>);
 
   @override
-  _i6.Future<_i2.Matrix4> getCameraProjectionMatrix() => (super.noSuchMethod(
+  _i6.Future<_i3.Matrix4> getCameraProjectionMatrix() => (super.noSuchMethod(
         Invocation.method(
           #getCameraProjectionMatrix,
           [],
         ),
-        returnValue: _i6.Future<_i2.Matrix4>.value(_FakeMatrix4_0(
+        returnValue: _i6.Future<_i3.Matrix4>.value(_FakeMatrix4_3(
           this,
           Invocation.method(
             #getCameraProjectionMatrix,
             [],
           ),
         )),
-      ) as _i6.Future<_i2.Matrix4>);
+      ) as _i6.Future<_i3.Matrix4>);
 
   @override
-  _i6.Future<_i2.Matrix4> getCameraCullingProjectionMatrix() =>
+  _i6.Future<_i3.Matrix4> getCameraCullingProjectionMatrix() =>
       (super.noSuchMethod(
         Invocation.method(
           #getCameraCullingProjectionMatrix,
           [],
         ),
-        returnValue: _i6.Future<_i2.Matrix4>.value(_FakeMatrix4_0(
+        returnValue: _i6.Future<_i3.Matrix4>.value(_FakeMatrix4_3(
           this,
           Invocation.method(
             #getCameraCullingProjectionMatrix,
             [],
           ),
         )),
-      ) as _i6.Future<_i2.Matrix4>);
+      ) as _i6.Future<_i3.Matrix4>);
 
   @override
-  _i6.Future<_i2.Frustum> getCameraFrustum() => (super.noSuchMethod(
+  _i6.Future<_i3.Frustum> getCameraFrustum() => (super.noSuchMethod(
         Invocation.method(
           #getCameraFrustum,
           [],
         ),
-        returnValue: _i6.Future<_i2.Frustum>.value(_FakeFrustum_3(
+        returnValue: _i6.Future<_i3.Frustum>.value(_FakeFrustum_6(
           this,
           Invocation.method(
             #getCameraFrustum,
             [],
           ),
         )),
-      ) as _i6.Future<_i2.Frustum>);
+      ) as _i6.Future<_i3.Frustum>);
 
   @override
   _i6.Future<dynamic> setCameraPosition(
@@ -1305,19 +1325,19 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<_i2.Matrix3> getCameraRotation() => (super.noSuchMethod(
+  _i6.Future<_i3.Matrix3> getCameraRotation() => (super.noSuchMethod(
         Invocation.method(
           #getCameraRotation,
           [],
         ),
-        returnValue: _i6.Future<_i2.Matrix3>.value(_FakeMatrix3_4(
+        returnValue: _i6.Future<_i3.Matrix3>.value(_FakeMatrix3_7(
           this,
           Invocation.method(
             #getCameraRotation,
             [],
           ),
         )),
-      ) as _i6.Future<_i2.Matrix3>);
+      ) as _i6.Future<_i3.Matrix3>);
 
   @override
   _i6.Future<dynamic> moveCameraToAsset(int? entity) => (super.noSuchMethod(
@@ -1357,7 +1377,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> setCameraRotation(_i2.Quaternion? quaternion) =>
+  _i6.Future<dynamic> setCameraRotation(_i3.Quaternion? quaternion) =>
       (super.noSuchMethod(
         Invocation.method(
           #setCameraRotation,
@@ -1377,7 +1397,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> setCameraModelMatrix4(_i2.Matrix4? matrix) =>
+  _i6.Future<dynamic> setCameraModelMatrix4(_i3.Matrix4? matrix) =>
       (super.noSuchMethod(
         Invocation.method(
           #setCameraModelMatrix4,
@@ -1530,7 +1550,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
   @override
   _i6.Future<dynamic> setLightDirection(
     int? lightEntity,
-    _i2.Vector3? direction,
+    _i3.Vector3? direction,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1582,28 +1602,6 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> queuePositionUpdate(
-    int? entity,
-    double? x,
-    double? y,
-    double? z, {
-    bool? relative = false,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #queuePositionUpdate,
-          [
-            entity,
-            x,
-            y,
-            z,
-          ],
-          {#relative: relative},
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
   _i6.Future<dynamic> queuePositionUpdateFromViewportCoords(
     int? entity,
     double? x,
@@ -1646,48 +1644,6 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> queueRotationUpdate(
-    int? entity,
-    double? rads,
-    double? x,
-    double? y,
-    double? z, {
-    bool? relative = false,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #queueRotationUpdate,
-          [
-            entity,
-            rads,
-            x,
-            y,
-            z,
-          ],
-          {#relative: relative},
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> queueRotationUpdateQuat(
-    int? entity,
-    _i2.Quaternion? quat, {
-    bool? relative = false,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #queueRotationUpdateQuat,
-          [
-            entity,
-            quat,
-          ],
-          {#relative: relative},
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
   _i6.Future<dynamic> setPostProcessing(bool? enabled) => (super.noSuchMethod(
         Invocation.method(
           #setPostProcessing,
@@ -1706,7 +1662,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> setShadowType(_i4.ShadowType? shadowType) =>
+  _i6.Future<dynamic> setShadowType(_i2.ShadowType? shadowType) =>
       (super.noSuchMethod(
         Invocation.method(
           #setShadowType,
@@ -1752,7 +1708,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
   @override
   _i6.Future<dynamic> setRotationQuat(
     int? entity,
-    _i2.Quaternion? rotation,
+    _i3.Quaternion? rotation,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1814,48 +1770,11 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       );
 
   @override
-  void pickGizmo(
-    int? x,
-    int? y,
-  ) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #pickGizmo,
-          [
-            x,
-            y,
-          ],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
   String? getNameForEntity(int? entity) =>
       (super.noSuchMethod(Invocation.method(
         #getNameForEntity,
         [entity],
       )) as String?);
-
-  @override
-  _i6.Future<dynamic> setCameraManipulatorOptions({
-    _i4.ManipulatorMode? mode = _i4.ManipulatorMode.ORBIT,
-    double? orbitSpeedX = 0.01,
-    double? orbitSpeedY = 0.01,
-    double? zoomSpeed = 0.01,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #setCameraManipulatorOptions,
-          [],
-          {
-            #mode: mode,
-            #orbitSpeedX: orbitSpeedX,
-            #orbitSpeedY: orbitSpeedY,
-            #zoomSpeed: zoomSpeed,
-          },
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
 
   @override
   _i6.Future<List<int>> getChildEntities(
@@ -1902,25 +1821,6 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
         ),
         returnValue: _i6.Future<List<String>>.value(<String>[]),
       ) as _i6.Future<List<String>>);
-
-  @override
-  _i6.Future<dynamic> setRecording(bool? recording) => (super.noSuchMethod(
-        Invocation.method(
-          #setRecording,
-          [recording],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> setRecordingOutputDirectory(String? outputDirectory) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #setRecordingOutputDirectory,
-          [outputDirectory],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
 
   @override
   _i6.Future<dynamic> addAnimationComponent(int? entity) => (super.noSuchMethod(
@@ -1974,8 +1874,8 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
 
   @override
   _i6.Future<dynamic> createGeometry(
-    _i4.Geometry? geometry, {
-    _i4.MaterialInstance? materialInstance,
+    _i2.Geometry? geometry, {
+    _i2.MaterialInstance? materialInstance,
     bool? keepData = false,
   }) =>
       (super.noSuchMethod(
@@ -2052,6 +1952,21 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
+  _i6.Future<_i4.Gizmo> createGizmo(_i2.View? view) => (super.noSuchMethod(
+        Invocation.method(
+          #createGizmo,
+          [view],
+        ),
+        returnValue: _i6.Future<_i4.Gizmo>.value(_FakeGizmo_8(
+          this,
+          Invocation.method(
+            #createGizmo,
+            [view],
+          ),
+        )),
+      ) as _i6.Future<_i4.Gizmo>);
+
+  @override
   void onDispose(_i6.Future<dynamic> Function()? callback) =>
       super.noSuchMethod(
         Invocation.method(
@@ -2062,20 +1977,20 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       );
 
   @override
-  _i6.Future<_i2.Aabb2> getViewportBoundingBox(int? entity) =>
+  _i6.Future<_i3.Aabb2> getViewportBoundingBox(int? entity) =>
       (super.noSuchMethod(
         Invocation.method(
           #getViewportBoundingBox,
           [entity],
         ),
-        returnValue: _i6.Future<_i2.Aabb2>.value(_FakeAabb2_5(
+        returnValue: _i6.Future<_i3.Aabb2>.value(_FakeAabb2_9(
           this,
           Invocation.method(
             #getViewportBoundingBox,
             [entity],
           ),
         )),
-      ) as _i6.Future<_i2.Aabb2>);
+      ) as _i6.Future<_i3.Aabb2>);
 
   @override
   _i6.Future<dynamic> setLayerVisibility(
@@ -2105,15 +2020,6 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
             entity,
             layer,
           ],
-        ),
-        returnValue: _i6.Future<dynamic>.value(),
-      ) as _i6.Future<dynamic>);
-
-  @override
-  _i6.Future<dynamic> setGizmoVisibility(bool? visible) => (super.noSuchMethod(
-        Invocation.method(
-          #setGizmoVisibility,
-          [visible],
         ),
         returnValue: _i6.Future<dynamic>.value(),
       ) as _i6.Future<dynamic>);
@@ -2149,25 +2055,25 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<_i4.ThermionTexture> createTexture(_i8.Uint8List? data) =>
+  _i6.Future<_i2.ThermionTexture> createTexture(_i8.Uint8List? data) =>
       (super.noSuchMethod(
         Invocation.method(
           #createTexture,
           [data],
         ),
         returnValue:
-            _i6.Future<_i4.ThermionTexture>.value(_FakeThermionTexture_6(
+            _i6.Future<_i2.ThermionTexture>.value(_FakeThermionTexture_10(
           this,
           Invocation.method(
             #createTexture,
             [data],
           ),
         )),
-      ) as _i6.Future<_i4.ThermionTexture>);
+      ) as _i6.Future<_i2.ThermionTexture>);
 
   @override
   _i6.Future<dynamic> applyTexture(
-    _i4.ThermionTexture? texture,
+    _i2.ThermionTexture? texture,
     int? entity, {
     int? materialIndex = 0,
     String? parameterName = r'baseColorMap',
@@ -2188,7 +2094,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> destroyTexture(_i4.ThermionTexture? texture) =>
+  _i6.Future<dynamic> destroyTexture(_i2.ThermionTexture? texture) =>
       (super.noSuchMethod(
         Invocation.method(
           #destroyTexture,
@@ -2198,7 +2104,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<_i4.MaterialInstance> createUbershaderMaterialInstance({
+  _i6.Future<_i2.MaterialInstance> createUbershaderMaterialInstance({
     bool? doubleSided = false,
     bool? unlit = false,
     bool? hasVertexColors = false,
@@ -2207,7 +2113,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
     bool? hasOcclusionTexture = false,
     bool? hasEmissiveTexture = false,
     bool? useSpecularGlossiness = false,
-    _i4.AlphaMode? alphaMode = _i4.AlphaMode.OPAQUE,
+    _i2.AlphaMode? alphaMode = _i2.AlphaMode.OPAQUE,
     bool? enableDiagnostics = false,
     bool? hasMetallicRoughnessTexture = false,
     int? metallicRoughnessUV = 0,
@@ -2280,7 +2186,7 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
           },
         ),
         returnValue:
-            _i6.Future<_i4.MaterialInstance>.value(_FakeMaterialInstance_7(
+            _i6.Future<_i2.MaterialInstance>.value(_FakeMaterialInstance_11(
           this,
           Invocation.method(
             #createUbershaderMaterialInstance,
@@ -2325,11 +2231,11 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
             },
           ),
         )),
-      ) as _i6.Future<_i4.MaterialInstance>);
+      ) as _i6.Future<_i2.MaterialInstance>);
 
   @override
   _i6.Future<dynamic> destroyMaterialInstance(
-          _i4.MaterialInstance? materialInstance) =>
+          _i2.MaterialInstance? materialInstance) =>
       (super.noSuchMethod(
         Invocation.method(
           #destroyMaterialInstance,
@@ -2339,24 +2245,24 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<_i4.MaterialInstance> createUnlitMaterialInstance() =>
+  _i6.Future<_i2.MaterialInstance> createUnlitMaterialInstance() =>
       (super.noSuchMethod(
         Invocation.method(
           #createUnlitMaterialInstance,
           [],
         ),
         returnValue:
-            _i6.Future<_i4.MaterialInstance>.value(_FakeMaterialInstance_7(
+            _i6.Future<_i2.MaterialInstance>.value(_FakeMaterialInstance_11(
           this,
           Invocation.method(
             #createUnlitMaterialInstance,
             [],
           ),
         )),
-      ) as _i6.Future<_i4.MaterialInstance>);
+      ) as _i6.Future<_i2.MaterialInstance>);
 
   @override
-  _i6.Future<_i4.MaterialInstance?> getMaterialInstanceAt(
+  _i6.Future<_i2.MaterialInstance?> getMaterialInstanceAt(
     int? entity,
     int? index,
   ) =>
@@ -2368,26 +2274,26 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
             index,
           ],
         ),
-        returnValue: _i6.Future<_i4.MaterialInstance?>.value(),
-      ) as _i6.Future<_i4.MaterialInstance?>);
+        returnValue: _i6.Future<_i2.MaterialInstance?>.value(),
+      ) as _i6.Future<_i2.MaterialInstance?>);
 
   @override
-  _i6.Future<_i3.Camera> createCamera() => (super.noSuchMethod(
+  _i6.Future<_i2.Camera> createCamera() => (super.noSuchMethod(
         Invocation.method(
           #createCamera,
           [],
         ),
-        returnValue: _i6.Future<_i3.Camera>.value(_FakeCamera_1(
+        returnValue: _i6.Future<_i2.Camera>.value(_FakeCamera_4(
           this,
           Invocation.method(
             #createCamera,
             [],
           ),
         )),
-      ) as _i6.Future<_i3.Camera>);
+      ) as _i6.Future<_i2.Camera>);
 
   @override
-  _i6.Future<dynamic> setActiveCamera(_i3.Camera? camera) =>
+  _i6.Future<dynamic> setActiveCamera(_i2.Camera? camera) =>
       (super.noSuchMethod(
         Invocation.method(
           #setActiveCamera,
@@ -2395,6 +2301,21 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
         ),
         returnValue: _i6.Future<dynamic>.value(),
       ) as _i6.Future<dynamic>);
+
+  @override
+  _i6.Future<_i2.Camera> getActiveCamera() => (super.noSuchMethod(
+        Invocation.method(
+          #getActiveCamera,
+          [],
+        ),
+        returnValue: _i6.Future<_i2.Camera>.value(_FakeCamera_4(
+          this,
+          Invocation.method(
+            #getActiveCamera,
+            [],
+          ),
+        )),
+      ) as _i6.Future<_i2.Camera>);
 
   @override
   _i6.Future<dynamic> registerRequestFrameHook(
@@ -2417,4 +2338,28 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
         ),
         returnValue: _i6.Future<dynamic>.value(),
       ) as _i6.Future<dynamic>);
+
+  @override
+  int getCameraCount() => (super.noSuchMethod(
+        Invocation.method(
+          #getCameraCount,
+          [],
+        ),
+        returnValue: 0,
+      ) as int);
+
+  @override
+  _i2.Camera getCameraAt(int? index) => (super.noSuchMethod(
+        Invocation.method(
+          #getCameraAt,
+          [index],
+        ),
+        returnValue: _FakeCamera_4(
+          this,
+          Invocation.method(
+            #getCameraAt,
+            [index],
+          ),
+        ),
+      ) as _i2.Camera);
 }
