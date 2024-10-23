@@ -335,6 +335,42 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void SceneManager_createGeometryRenderThread(
+      TSceneManager *sceneManager,
+      float *vertices,
+      int numVertices,
+      float *normals,
+      int numNormals,
+      float *uvs,
+      int numUvs,
+      uint16_t *indices,
+      int numIndices,
+      int primitiveType,
+      TMaterialInstance *materialInstance,
+      bool keepData,
+      void (*callback)(EntityId))
+  {
+    std::packaged_task<EntityId()> lambda(
+        [=]
+        {
+          auto entity = SceneManager_createGeometry(sceneManager, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, materialInstance, keepData);
+          callback(entity);
+          return entity;
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+
+  EMSCRIPTEN_KEEPALIVE void SceneManager_createUnlitMaterialInstanceRenderThread(TSceneManager *sceneManager, void (*callback)(TMaterialInstance*)) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto instance = SceneManager_createUnlitMaterialInstance(sceneManager);
+          callback(instance);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager,
                                                                const uint8_t *const data,
                                                                size_t length,
@@ -562,9 +598,9 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
-
+  
   EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping) { 
-      std::packaged_task<void()> lambda(
+    std::packaged_task<void()> lambda(
         [=]
         {
           View_setToneMapping(tView, tEngine, toneMapping);
@@ -592,30 +628,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void create_geometry_render_thread(
-      TSceneManager *sceneManager,
-      float *vertices,
-      int numVertices,
-      float *normals,
-      int numNormals,
-      float *uvs,
-      int numUvs,
-      uint16_t *indices,
-      int numIndices,
-      int primitiveType,
-      TMaterialInstance *materialInstance,
-      bool keepData,
-      void (*callback)(EntityId))
-  {
-    std::packaged_task<EntityId()> lambda(
-        [=]
-        {
-          auto entity = create_geometry(sceneManager, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, materialInstance, keepData);
-          callback(entity);
-          return entity;
-        });
-    auto fut = _rl->add_task(lambda);
-  }
+  
 
   EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer* viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
   {
