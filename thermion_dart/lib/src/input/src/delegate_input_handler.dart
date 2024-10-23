@@ -74,6 +74,7 @@ class DelegateInputHandler implements InputHandler {
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
             InputType.SCALE1: InputAction.ROTATE,
+            InputType.SCALE2: InputAction.ZOOM,
             InputType.SCROLLWHEEL: InputAction.ZOOM
           });
 
