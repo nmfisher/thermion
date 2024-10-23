@@ -20,7 +20,7 @@ void main() async {
 
     test('load glb from buffer', () async {
       var viewer = await testHelper.createViewer();
-      var buffer = File("${testHelper.testDir}/cube.glb").readAsBytesSync();
+      var buffer = File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
       var model = await viewer.loadGlbFromBuffer(buffer);
       await viewer.transformToUnitCube(model);
       await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
@@ -28,6 +28,7 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
       await testHelper.capture(viewer, "load_glb_from_buffer");
+      await viewer.dispose();
     });
 
     test('load glb from buffer with priority', () async {
@@ -38,7 +39,7 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var buffer = File("${testHelper.testDir}/cube.glb").readAsBytesSync();
+      var buffer = File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
       var model1 = await viewer.loadGlbFromBuffer(buffer, priority: 7);
       var model2 = await viewer.loadGlbFromBuffer(buffer, priority: 0);
 
@@ -51,6 +52,8 @@ void main() async {
             entity, "baseColorFactor", 0, 0, 1.0, 0.0, 1.0);
       }
       await testHelper.capture(viewer, "load_glb_from_buffer_with_priority");
+
+      await viewer.dispose();
     });
   });
 }
