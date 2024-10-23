@@ -73,6 +73,7 @@ class DelegateInputHandler implements InputHandler {
               minimumDistance: minimumDistance),
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
+            InputType.SCALE1: InputAction.ROTATE,
             InputType.SCROLLWHEEL: InputAction.ZOOM
           });
 
