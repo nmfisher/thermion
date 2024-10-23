@@ -1076,23 +1076,13 @@ namespace thermion
 
   void FilamentViewer::capture(View *view, uint8_t *out, bool useFence, SwapChain *swapChain, void (*onComplete)())
   {
-
-    if (!swapChain)
-    {
-      Log("NO SWAPCHAIN");
-      return;
-    }
-
     Viewport const &vp = view->getViewport();
     size_t pixelBufferSize = vp.width * vp.height * 4;
-    auto *pixelBuffer = new uint8_t[pixelBufferSize];
     auto callback = [](void *buf, size_t size, void *data)
     {
       auto frameCallbackData = (std::vector<void *> *)data;
-      uint8_t *out = (uint8_t *)(frameCallbackData->at(0));
       void *callbackPtr = frameCallbackData->at(1);
-
-      memcpy(out, buf, size);
+      
       delete frameCallbackData;
       if (callbackPtr)
       {
@@ -1113,7 +1103,7 @@ namespace thermion
     auto dispatcher = new CaptureCallbackHandler();
 
     auto pbd = Texture::PixelBufferDescriptor(
-        pixelBuffer, pixelBufferSize,
+        out, pixelBufferSize,
         Texture::Format::RGBA,
         Texture::Type::UBYTE, dispatcher, callback, userData);
     _renderer->beginFrame(swapChain, 0);
@@ -1124,6 +1114,8 @@ namespace thermion
 #ifdef __EMSCRIPTEN__
     _engine->execute();
     emscripten_webgl_commit_frame();
+#else
+    _engine->flushAndWait();
 #endif
     if (fence)
     {
@@ -1133,11 +1125,6 @@ namespace thermion
 
   void FilamentViewer::capture(View *view, uint8_t *out, bool useFence, SwapChain *swapChain, RenderTarget *renderTarget, void (*onComplete)())
   {
-
-    if (!(renderTarget || swapChain)) {
-      Log("NO RENDER TARGET OR SWAPCHAIN");
-      return;
-    }
 
     if(swapChain && !_engine->isValid(swapChain)) {
       Log("SWAPCHAIN PROVIDED BUT NOT VALID");
@@ -1154,14 +1141,11 @@ namespace thermion
 
     Viewport const &vp = view->getViewport();
     size_t pixelBufferSize = vp.width * vp.height * 4;
-    auto *pixelBuffer = new uint8_t[pixelBufferSize];
+    
     auto callback = [](void *buf, size_t size, void *data)
     {
       auto frameCallbackData = (std::vector<void *> *)data;
-      uint8_t *out = (uint8_t *)(frameCallbackData->at(0));
       void *callbackPtr = frameCallbackData->at(1);
-
-      memcpy(out, buf, size);
       delete frameCallbackData;
       if (callbackPtr)
       {
@@ -1182,7 +1166,7 @@ namespace thermion
     auto dispatcher = new CaptureCallbackHandler();
 
     auto pbd = Texture::PixelBufferDescriptor(
-        pixelBuffer, pixelBufferSize,
+        out, pixelBufferSize,
         Texture::Format::RGBA,
         Texture::Type::UBYTE, dispatcher, callback, userData);
     _renderer->beginFrame(swapChain, 0);
@@ -1193,6 +1177,8 @@ namespace thermion
 #ifdef __EMSCRIPTEN__
     _engine->execute();
     emscripten_webgl_commit_frame();
+#else
+    _engine->flushAndWait();
 #endif
     if (fence)
     {
