@@ -1,3 +1,23 @@
+## 0.2.1-dev.0.0.9
+
+> Note: This release has breaking changes.
+
+ - Fix release builds on Windows
+
+ - **FIX**: move createUnlitMaterialInstance and createGeometry to render thread.
+ - **FIX**: move createUnlitMaterialInstance and createGeometry to render thread.
+ - **FIX**: move createUnlitMaterialInstance and createGeometry to render thread.
+ - **FIX**: dont calculate surface orientation for non-triangle geometry.
+ - **FIX**: set View render target to nullptr if Dart renderTarget is null.
+ - **FIX**: set render target to null for each view and then destroy render targets when viewer disposed.
+ - **FEAT**: produce debug symbols on Windows.
+ - **FEAT**: simplify FixedOrbitCameraRotationDelegate.
+ - **DOCS**: add quickstart to README.
+ - **BREAKING** **FIX**: (windows) add flushAndWait call to capture() to prevent stalling on Windows; use provided buffer as pixelBuffer rather than duplicate allocation.
+ - **BREAKING** **FIX**: add meshoptimizer lib on Windows.
+ - **BREAKING** **FIX**: Dart-only release mode builds on Window.
+ - **BREAKING** **CHORE**: View.getCamera returns Future<Camera>.
+
 ## 0.2.1-dev.0.0.8
 
  - **FIX**: move ThermionWin32.h to include.

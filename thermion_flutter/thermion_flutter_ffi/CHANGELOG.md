@@ -1,3 +1,11 @@
+## 0.2.1-dev.8
+
+ - **FIX**: on resize, destroy swapchain if destroySwapChainOnResize is true.
+ - **FIX**: add listener in ThermionFlutterTextureBackedPlatform to unset viewer on dispose.
+ - **FIX**: add listener in ThermionFlutterMethodChannelInterface to unset viewer on dispose.
+ - **FIX**: clean up destruction logic for FlutterPlatformTexture.
+ - **FIX**: web/JS bool checks need to compare to int.
+
 ## 0.2.1-dev.7
 
  - Update a dependency to the latest release.
