@@ -7,7 +7,7 @@
       "Getting Started",
       [
         ["Overview", "/"],
-        ["Quick Start", "/quickstart"]
+        ["Quick Start", "/quickstart"],
         ["Camera Manipulation", "/camera_manipulation"]
       ]
     ],
