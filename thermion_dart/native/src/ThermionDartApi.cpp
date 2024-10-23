@@ -849,7 +849,7 @@ extern "C"
         ((SceneManager *)sceneManager)->removeAnimationComponent(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId create_geometry(
+    EMSCRIPTEN_KEEPALIVE EntityId SceneManager_createGeometry(
         TSceneManager *sceneManager,
         float *vertices,
         int numVertices,
@@ -1015,7 +1015,7 @@ extern "C"
         return reinterpret_cast<TMaterialInstance *>(materialInstance);
     }
 
-    EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_unlit_material_instance(TSceneManager *sceneManager)
+    EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitMaterialInstance(TSceneManager *sceneManager)
     {
         auto *instance = ((SceneManager *)sceneManager)->createUnlitMaterialInstance();
         return reinterpret_cast<TMaterialInstance *>(instance);
