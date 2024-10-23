@@ -21,7 +21,9 @@ void main(List<String> args) async {
 
     var platform = config.targetOS.toString().toLowerCase();
 
-    logger.info("Building Thermion for ${config.targetOS} in mode ${config.buildMode.name}");
+    if(!config.dryRun) {
+      logger.info("Building Thermion for ${config.targetOS} in mode ${config.buildMode.name}");
+    }
 
     // We don't support Linux (yet), so the native/Filament libraries won't be
     // compiled/available. However, we still want to be able to run the Dart
@@ -109,7 +111,7 @@ void main(List<String> args) async {
 
     if (platform != "windows") {
       flags.addAll(['-std=c++17']);
-    } else {
+    } else if(!config.dryRun) {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
       if(config.buildMode == BuildMode.debug) {
@@ -121,7 +123,7 @@ void main(List<String> args) async {
       flags.addAll([
         "/std:c++20",
         if(config.buildMode == BuildMode.debug)
-        "/MDd",
+        ...["/MDd","/Zi"],
         if(config.buildMode == BuildMode.release)
         "/MD",
         "/VERBOSE",
