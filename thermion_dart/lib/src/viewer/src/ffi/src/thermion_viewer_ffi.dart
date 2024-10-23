@@ -1751,7 +1751,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var entity = await withIntCallback((callback) =>
-        create_geometry_render_thread(
+        SceneManager_createGeometryRenderThread(
             _sceneManager!,
             geometry.vertices.address,
             geometry.vertices.length,
@@ -2036,7 +2036,9 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<ThermionFFIMaterialInstance> createUnlitMaterialInstance() async {
-    var instance = create_unlit_material_instance(_sceneManager!);
+    var instance = await withPointerCallback<TMaterialInstance>((cb) {
+      SceneManager_createUnlitMaterialInstanceRenderThread(_sceneManager!, cb);
+    });
     if (instance == nullptr) {
       throw Exception("Failed to create material instance");
     }
@@ -2109,8 +2111,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future<Camera> getActiveCamera() async {
     final view = (await getViewAt(0)) as FFIView;
-    final ptr = View_getCamera(view.view);
-    return FFICamera(ptr, Viewer_getEngine(_viewer!));
+    var camera = view.getCamera();
+    return camera;
   }
 
   final _hooks = <Future Function()>[];
