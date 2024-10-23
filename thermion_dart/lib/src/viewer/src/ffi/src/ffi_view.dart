@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
+import 'callbacks.dart';
 import 'ffi_camera.dart';
 import 'thermion_viewer_ffi.dart';
 
@@ -36,9 +37,10 @@ class FFIView extends View {
   }
 
   @override
-  Camera getCamera() {
+  Future<Camera> getCamera() async {
     final engine = Viewer_getEngine(viewer);
-    return FFICamera(View_getCamera(view), engine);
+    final cameraPtr = View_getCamera(view);    
+    return FFICamera(cameraPtr, engine);
   }
 
   @override

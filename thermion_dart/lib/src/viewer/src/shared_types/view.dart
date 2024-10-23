@@ -20,7 +20,7 @@ abstract class View {
   Future updateViewport(int width, int height);
   Future setRenderTarget(covariant RenderTarget? renderTarget);
   Future setCamera(covariant Camera camera);
-  Camera getCamera();
+  Future<Camera> getCamera();
   Future setPostProcessing(bool enabled);
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
   Future setRenderable(bool renderable, covariant SwapChain swapChain);
