@@ -1,3 +1,66 @@
+## 0.2.1-dev.9
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FIX**: (flutter) pass ThermionFlutterOptions to ThermionWidget, use dpr for resizeTexture, delete unnecessary TransparencyPainter class.
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FIX**: use internal Set for determining first ThermionTextureWidget to call requestFrame and cleanup destruction logic.
+ - **FIX**: (flutter) pass ThermionFlutterOptions to ThermionWidget, use dpr for resizeTexture, delete unnecessary TransparencyPainter class.
+ - **FIX**: fix all Windows warnings so apps will compile with /WX.
+ - **FIX**: (flutter) desktop gesture detector changes for new Gizmo methods.
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FIX**: use internal Set for determining first ThermionTextureWidget to call requestFrame and cleanup destruction logic.
+ - **FIX**: fix all Windows warnings so apps will compile with /WX.
+ - **FIX**: (flutter) desktop gesture detector changes for new Gizmo methods.
+ - **FEAT**: highlight gizmo on hover.
+ - **FEAT**: add rendering check to ThermionWidget ticker.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: allow passing null options to ThermionWidget.
+ - **FEAT**: (flutter) (web) if importCanvasAsWidget is false, render transparency.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: highlight gizmo on hover.
+ - **FEAT**: (flutter) (web) if importCanvasAsWidget is false, render transparency.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: add rendering check to ThermionWidget ticker.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add Destroy() to BackingWindow.
+ - **FEAT**: (flutter) (windows) add Destroy() to BackingWindow.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: allow passing null options to ThermionWidget.
+ - **FEAT**: use imported texture on iOS.
+ - **BREAKING** **FIX**: remove EntityControllerMouseWidget (replace with GestureHandler).
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: remove EntityControllerMouseWidget (replace with GestureHandler).
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+ - **BREAKING** **CHORE**: remove superseded HardwareKeyboard* classes.
+ - **BREAKING** **CHORE**: (flutter) cleanup for pub.dev publishing.
+ - **BREAKING** **CHORE**: remove EntityListWidget - will replace with new Scene.
+ - **BREAKING** **CHORE**: rename controller to viewer in gesture detector widgets.
+ - **BREAKING** **CHORE**: rename controller to viewer in gesture detector widgets.
+ - **BREAKING** **CHORE**: remove EntityListWidget - will replace with new Scene.
+ - **BREAKING** **CHORE**: (flutter) cleanup for pub.dev publishing.
+ - **BREAKING** **CHORE**: remove superseded HardwareKeyboard* classes.
+
 ## 0.2.1-dev.8
 
  - **FIX**: fix all Windows warnings so apps will compile with /WX.

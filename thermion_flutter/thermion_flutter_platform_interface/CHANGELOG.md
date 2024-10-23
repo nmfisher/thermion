@@ -1,3 +1,20 @@
+## 0.2.1-dev.9
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add ThermionFlutterOptions classes, rename interface parameter for offsetTop and ensure pixelRatio is passed to resizeTexture.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add ThermionFlutterOptions classes, rename interface parameter for offsetTop and ensure pixelRatio is passed to resizeTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+
 ## 0.2.1-dev.8
 
  - Update a dependency to the latest release.
