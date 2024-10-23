@@ -1,3 +1,12 @@
+## 0.2.1-dev.8
+
+ - **FIX**: fix all Windows warnings so apps will compile with /WX.
+ - **FIX**: use internal Set for determining first ThermionTextureWidget to call requestFrame and cleanup destruction logic.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add Destroy() to BackingWindow.
+
 ## 0.2.1-dev.7
 
  - Update a dependency to the latest release.

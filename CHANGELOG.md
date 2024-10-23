@@ -3,6 +3,71 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-10-23
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.9`](#thermion_dart---v021-dev009)
+
+Packages with other changes:
+
+ - [`thermion_flutter` - `v0.2.1-dev.8`](#thermion_flutter---v021-dev8)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.8`](#thermion_flutter_ffi---v021-dev8)
+ - [`thermion_flutter_web` - `v0.1.1`](#thermion_flutter_web---v011)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.8`](#thermion_flutter_platform_interface---v021-dev8)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.8`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.9`
+
+ - Fix release builds on Windows
+
+ - **FIX**: move createUnlitMaterialInstance and createGeometry to render thread.
+ - **FIX**: move createUnlitMaterialInstance and createGeometry to render thread.
+ - **FIX**: move createUnlitMaterialInstance and createGeometry to render thread.
+ - **FIX**: dont calculate surface orientation for non-triangle geometry.
+ - **FIX**: set View render target to nullptr if Dart renderTarget is null.
+ - **FIX**: set render target to null for each view and then destroy render targets when viewer disposed.
+ - **FEAT**: produce debug symbols on Windows.
+ - **FEAT**: simplify FixedOrbitCameraRotationDelegate.
+ - **DOCS**: add quickstart to README.
+ - **BREAKING** **FIX**: (windows) add flushAndWait call to capture() to prevent stalling on Windows; use provided buffer as pixelBuffer rather than duplicate allocation.
+ - **BREAKING** **FIX**: add meshoptimizer lib on Windows.
+ - **BREAKING** **FIX**: Dart-only release mode builds on Window.
+ - **BREAKING** **CHORE**: View.getCamera returns Future<Camera>.
+
+#### `thermion_flutter` - `v0.2.1-dev.8`
+
+ - **FIX**: fix all Windows warnings so apps will compile with /WX.
+ - **FIX**: use internal Set for determining first ThermionTextureWidget to call requestFrame and cleanup destruction logic.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add Destroy() to BackingWindow.
+
+#### `thermion_flutter_ffi` - `v0.2.1-dev.8`
+
+ - **FIX**: on resize, destroy swapchain if destroySwapChainOnResize is true.
+ - **FIX**: add listener in ThermionFlutterTextureBackedPlatform to unset viewer on dispose.
+ - **FIX**: add listener in ThermionFlutterMethodChannelInterface to unset viewer on dispose.
+ - **FIX**: clean up destruction logic for FlutterPlatformTexture.
+ - **FIX**: web/JS bool checks need to compare to int.
+
+#### `thermion_flutter_web` - `v0.1.1`
+
+ - **FEAT**: allow passing assetPathPrefix to ThermionViewerWasm to account for Flutter build asset paths.
+
+
 ## 2024-10-14
 
 ### Changes
