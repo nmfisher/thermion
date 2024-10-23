@@ -76,19 +76,24 @@ class TestHelper {
 
     outDir = Directory("$testDir/output/${dir}");
     // outDir.deleteSync(recursive: true);
-    outDir.createSync();
-    DynamicLibrary.open('${testDir}/libThermionTextureSwift.dylib');
-
+    outDir.createSync(recursive: true);
+    if(Platform.isMacOS) {
+      DynamicLibrary.open('${testDir}/libThermionTextureSwift.dylib');
+    }
   }
 
   Future capture(ThermionViewer viewer, String outputFilename,
       {View? view, SwapChain? swapChain, RenderTarget? renderTarget}) async {
+    
     await Future.delayed(Duration(milliseconds: 10));
     var outPath = p.join(outDir.path, "$outputFilename.bmp");
+    
     var pixelBuffer = await viewer.capture(
         view: view,
         swapChain: swapChain ?? this.swapChain,
         renderTarget: renderTarget);
+    await viewer.render();
+    
     view ??= await viewer.getViewAt(0);
     var vp = await view.getViewport();
     await savePixelBufferToBmp(pixelBuffer, vp.width, vp.height, outPath);

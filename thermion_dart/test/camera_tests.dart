@@ -7,6 +7,7 @@ void main() async {
   final testHelper = TestHelper("integration");
 
   group('camera', () {
+
     test('getCameraModelMatrix, getCameraPosition, rotation', () async {
       var viewer = await testHelper.createViewer();
       var matrix = await viewer.getCameraModelMatrix();
@@ -23,6 +24,8 @@ void main() async {
       expect(position.x, 2.0);
       expect(position.y, 2.0);
       expect(position.z, 2.0);
+      
+      await viewer.dispose();
     });
 
     test('getCameraViewMatrix', () async {
@@ -46,19 +49,24 @@ void main() async {
       expect(position.x, closeTo(3.0, 1e-6));
       expect(position.y, closeTo(4.0, 1e-6));
       expect(position.z, closeTo(5.0, 1e-6));
+      await viewer.dispose();
+
     });
 
     test('getCameraProjectionMatrix', () async {
       var viewer = await testHelper.createViewer();
       var projectionMatrix = await viewer.getCameraProjectionMatrix();
       print(projectionMatrix);
+      await viewer.dispose();
     });
 
     test('getCameraCullingProjectionMatrix', () async {
+      throw Exception("TODO");
       var viewer = await testHelper.createViewer();
       var matrix = await viewer.getCameraCullingProjectionMatrix();
       print(matrix);
-      throw Exception("TODO");
+      await viewer.dispose();
+      
     });
 
     test('getCameraFrustum', () async {
@@ -74,6 +82,8 @@ void main() async {
       frustum = await viewer.getCameraFrustum();
       print(frustum.plane5.normal);
       print(frustum.plane5.constant);
+
+      await viewer.dispose();
     });
 
     test('set orthographic projection', () async {
@@ -85,6 +95,7 @@ void main() async {
       await camera.setProjection(Projection.Orthographic, -0.05, 0.05, -0.05, 0.05, 0.05, 10000);
       await testHelper.capture(
           viewer, "camera_set_orthographic_projection");
+      await viewer.dispose();
     });
 
     test('set custom projection/culling matrix', () async {
@@ -92,12 +103,13 @@ void main() async {
           bg: kRed, cameraPosition: Vector3(0, 0, 4));
       var camera = await viewer.getMainCamera();
       final cube = await viewer.createGeometry(GeometryHelper.cube());
-
+      
       // cube is visible when inside the frustum, cube is visible
       var projectionMatrix =
           makeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, 0.05, 10000);
       await camera.setProjectionMatrixWithCulling(
           projectionMatrix, 0.05, 10000);
+      
       await testHelper.capture(
           viewer, "camera_projection_culling_matrix_object_in_frustum");
 
@@ -107,6 +119,8 @@ void main() async {
       await camera.setProjectionMatrixWithCulling(projectionMatrix, 0.05, 1);
       await testHelper.capture(
           viewer, "camera_projection_culling_matrix_object_outside_frustum");
+      
+      await viewer.dispose();
     });
 
     test('setting transform on camera updates model matrix (no parent)',
@@ -123,6 +137,8 @@ void main() async {
       expect(modelMatrix.getColumn(3).y, 0.0);
       expect(modelMatrix.getColumn(3).z, 0.0);
       expect(modelMatrix.getColumn(3).w, 1.0);
+
+      await viewer.dispose();
     });
 
     test('setting transform on camera updates model matrix (with parent)',
@@ -150,6 +166,7 @@ void main() async {
       expect(modelMatrix.getColumn(3).y, 1.0);
       expect(modelMatrix.getColumn(3).z, 0.0);
       expect(modelMatrix.getColumn(3).w, 1.0);
+      await viewer.dispose();
     });
 
     test('create camera', () async {
@@ -178,6 +195,8 @@ void main() async {
       expect(viewer.getCameraAt(0), await viewer.getMainCamera());
       expect(viewer.getCameraAt(1), newCamera);
       await expectLater(() => viewer.getCameraAt(2), throwsA(isA<Exception>()));
+
+      await viewer.dispose();
     });
   });
 }

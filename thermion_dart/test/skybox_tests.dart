@@ -10,10 +10,11 @@ void main() async {
     test('load skybox', () async {
       var viewer = await testHelper.createViewer();
       await viewer.loadSkybox(
-          "file:///${testHelper.testDir}/assets/default_env_skybox.ktx");
+          "file://${testHelper.testDir}/assets/default_env_skybox.ktx");
       await testHelper.capture(viewer, "load_skybox");
       await viewer.removeSkybox();
       await testHelper.capture(viewer, "remove_skybox");
+      await viewer.dispose();
     });
   });
 }

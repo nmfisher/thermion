@@ -13,6 +13,9 @@ void main() async {
       var viewer = await testHelper.createViewer();
       var view = await viewer.getViewAt(0);
       expect(await view.getCamera(), isNotNull);
+
+      await viewer.dispose();
+
     });
 
     test('one swapchain, render view to render target', () async {
@@ -32,6 +35,9 @@ void main() async {
           viewer,
           renderTarget: renderTarget,
           "default_swapchain_default_view_render_target");
+
+      await viewer.dispose();
+
     });
 
     test('create secondary view, default swapchain', () async {
