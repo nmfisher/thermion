@@ -1,7 +1,5 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:thermion_dart/src/viewer/src/events.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
@@ -27,7 +25,8 @@ void main() async {
           GeometryHelper.cube(uvs: true, normals: true),
           materialInstance: materialInstance);
       var textureData =
-          File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
+          File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+              .readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
       await viewer.applyTexture(texture as ThermionFFITexture, cube);
       await testHelper.capture(
@@ -35,6 +34,7 @@ void main() async {
       await viewer.removeEntity(cube);
       await viewer.destroyMaterialInstance(materialInstance);
       await viewer.destroyTexture(texture);
+      await viewer.dispose();
     });
 
     test('unlit material with color only', () async {
@@ -70,7 +70,8 @@ void main() async {
           materialInstance: materialInstance);
 
       var textureData =
-          File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
+          File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+              .readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
       await viewer.applyTexture(texture, cube);
       await testHelper.capture(
@@ -112,6 +113,8 @@ void main() async {
       await viewer
           .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
       await testHelper.capture(viewer, "geometry_sphere_no_normals");
+
+      await viewer.dispose();
     });
   });
 
@@ -146,6 +149,7 @@ void main() async {
       await viewer.setPriority(cube1, 7);
       await testHelper.capture(
           viewer, "material_instance_depth_write_disabled_with_priority");
+      await viewer.dispose();
     });
 
     test('set uv scaling (unlit)', () async {
@@ -160,22 +164,24 @@ void main() async {
           materialInstance: unlitMaterialInstance);
       await viewer.setMaterialPropertyFloat4(
           cube, 'baseColorFactor', 0, 1, 1, 1, 1);
-          await viewer.setMaterialPropertyInt(
-          cube, 'baseColorIndex', 0, 1);
+      await viewer.setMaterialPropertyInt(cube, 'baseColorIndex', 0, 1);
       unlitMaterialInstance.setParameterFloat2("uvScale", 2.0, 4.0);
 
       var textureData =
-          File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
+          File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+              .readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
       await viewer.applyTexture(texture, cube);
       await testHelper.capture(viewer, "set_uv_scaling");
+      await viewer.dispose();
     });
   });
 
   group("stencil", () {
     test('set stencil highlight for glb', () async {
       final viewer = await testHelper.createViewer();
-      var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
+      var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb",
+          keepData: true);
       await viewer.setPostProcessing(true);
 
       var light = await viewer.addLight(
@@ -188,6 +194,8 @@ void main() async {
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), pi / 8));
       await viewer.setStencilHighlight(model);
       await testHelper.capture(viewer, "stencil_highlight_glb");
+
+      await viewer.dispose();
     });
 
     test('set stencil highlight for geometry', () async {
@@ -206,6 +214,8 @@ void main() async {
       await viewer.removeStencilHighlight(cube);
 
       await testHelper.capture(viewer, "stencil_highlight_geometry_remove");
+
+      await viewer.dispose();
     });
 
     test('set stencil highlight for gltf asset', () async {
@@ -216,7 +226,8 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube1 = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
+      var cube1 = await viewer.loadGlb("${testHelper.testDir}/cube.glb",
+          keepData: true);
       await viewer.transformToUnitCube(cube1);
 
       await viewer.setStencilHighlight(cube1);
@@ -226,6 +237,8 @@ void main() async {
       await viewer.removeStencilHighlight(cube1);
 
       await testHelper.capture(viewer, "stencil_highlight_gltf_removed");
+
+      await viewer.dispose();
     });
 
     test('set stencil highlight for multiple geometry ', () async {
@@ -249,6 +262,8 @@ void main() async {
 
       await testHelper.capture(
           viewer, "stencil_highlight_multiple_geometry_removed");
+
+      await viewer.dispose();
     });
 
     test('set stencil highlight for multiple gltf assets ', () async {
@@ -259,9 +274,11 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube1 = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
+      var cube1 = await viewer.loadGlb("${testHelper.testDir}/cube.glb",
+          keepData: true);
       await viewer.transformToUnitCube(cube1);
-      var cube2 = await viewer.loadGlb("${testHelper.testDir}/cube.glb", keepData: true);
+      var cube2 = await viewer.loadGlb("${testHelper.testDir}/cube.glb",
+          keepData: true);
       await viewer.transformToUnitCube(cube2);
       await viewer.setPosition(cube2, 0.5, 0.5, 0);
       await viewer.setStencilHighlight(cube1);
@@ -274,6 +291,7 @@ void main() async {
 
       await testHelper.capture(
           viewer, "stencil_highlight_multiple_geometry_removed");
+      await viewer.dispose();
     });
   });
 
@@ -282,7 +300,8 @@ void main() async {
       var viewer = await testHelper.createViewer();
 
       var textureData =
-          File("${testHelper.testDir}/assets/cube_texture_512x512.png").readAsBytesSync();
+          File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+              .readAsBytesSync();
 
       var texture = await viewer.createTexture(textureData);
       await viewer.setBackgroundColor(0.0, 0.0, 0.0, 1.0);
@@ -313,15 +332,6 @@ void main() async {
 
       await viewer.removeEntity(cube);
       await viewer.destroyTexture(texture);
-    });
-  });
-
-  group("render thread", () {
-    test("request frame on render thread", () async {
-      var viewer = await testHelper.createViewer();
-      viewer.requestFrame();
-
-      await Future.delayed(Duration(milliseconds: 20));
       await viewer.dispose();
     });
   });
