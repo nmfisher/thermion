@@ -1,3 +1,33 @@
+## 0.2.1-dev.9
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FIX**: on resize, destroy swapchain if destroySwapChainOnResize is true.
+ - **FIX**: add listener in ThermionFlutterTextureBackedPlatform to unset viewer on dispose.
+ - **FIX**: add listener in ThermionFlutterMethodChannelInterface to unset viewer on dispose.
+ - **FIX**: clean up destruction logic for FlutterPlatformTexture.
+ - **FIX**: on resize, destroy swapchain if destroySwapChainOnResize is true.
+ - **FIX**: add listener in ThermionFlutterTextureBackedPlatform to unset viewer on dispose.
+ - **FIX**: add listener in ThermionFlutterMethodChannelInterface to unset viewer on dispose.
+ - **FIX**: clean up destruction logic for FlutterPlatformTexture.
+ - **FIX**: web/JS bool checks need to compare to int.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: (flutter) move DPR calculation to resizeTexture and add createViewerWithOptions method to ThermionFlutterFFI.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: (flutter) move DPR calculation to resizeTexture and add createViewerWithOptions method to ThermionFlutterFFI.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **REFACTOR**: refactor to support multiple Views/Render Targets.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+ - **BREAKING** **FEAT**: big refactor to support multiple swapchains.
+
 ## 0.2.1-dev.8
 
  - **FIX**: on resize, destroy swapchain if destroySwapChainOnResize is true.

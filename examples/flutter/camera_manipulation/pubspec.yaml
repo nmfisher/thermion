@@ -15,7 +15,7 @@ dependencies:
 
   win32: 5.5.1
   web: 1.0.0
-  thermion_flutter: ^0.2.1-dev.8
+  thermion_flutter: ^0.2.1-dev.9
 
 dev_dependencies:
   flutter_test:
