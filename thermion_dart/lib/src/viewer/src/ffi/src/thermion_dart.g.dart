@@ -421,8 +421,18 @@ external ffi.Pointer<TMaterialInstance> create_material_instance(
 @ffi.Native<
     ffi.Pointer<TMaterialInstance> Function(
         ffi.Pointer<TSceneManager>)>(isLeaf: true)
-external ffi.Pointer<TMaterialInstance> create_unlit_material_instance(
+external ffi.Pointer<TMaterialInstance> SceneManager_createUnlitMaterialInstance(
   ffi.Pointer<TSceneManager> sceneManager,
+);
+
+
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
+external ffi.Pointer<TMaterialInstance> SceneManager_createUnlitMaterialInstanceRenderThread(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
+      onComplete
 );
 
 @ffi.Native<
@@ -960,7 +970,7 @@ external void remove_animation_component(
         ffi.Int,
         ffi.Pointer<TMaterialInstance>,
         ffi.Bool)>(isLeaf: true)
-external int create_geometry(
+external int SceneManager_createGeometry(
   ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
@@ -1757,7 +1767,7 @@ external void reset_to_rest_pose_render_thread(
             ffi.Bool,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
-external void create_geometry_render_thread(
+external void SceneManager_createGeometryRenderThread(
   ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Float> vertices,
   int numVertices,
