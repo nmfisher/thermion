@@ -14,6 +14,7 @@ enum InputType {
   MMB_HOVER,
   SCALE1,
   SCALE2,
+  SCALE2_ROTATE,
   SCROLLWHEEL,
   POINTER_MOVE,
   KEYDOWN_W,
@@ -35,9 +36,9 @@ abstract class InputHandler {
   Future<void> onPointerMove(
       Vector2 localPosition, Vector2 delta, bool isMiddle);
   Future<void> onPointerUp(bool isMiddle);
-  Future<void> onScaleStart(Vector2 focalPoint, int pointerCount);
-  Future<void> onScaleUpdate(Vector2 focalPoint, Vector2 focalPointDelta, double horizontalScale, double verticalScale, double scale, int pointerCount);
-  Future<void> onScaleEnd(int pointerCount);
+  Future<void> onScaleStart(Vector2 focalPoint, int pointerCount, Duration? sourceTimestamp);
+  Future<void> onScaleUpdate(Vector2 focalPoint, Vector2 focalPointDelta, double horizontalScale, double verticalScale, double scale, int pointerCount, double rotation, Duration? sourceTimestamp);
+  Future<void> onScaleEnd(int pointerCount, double velocity);
   Future<bool> get initialized;
   Future dispose();
 

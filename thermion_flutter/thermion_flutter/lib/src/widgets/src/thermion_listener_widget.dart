@@ -165,7 +165,7 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
         },
         onScaleStart: (details) async {
           await widget.inputHandler.onScaleStart(
-              details.localFocalPoint.toVector2(), details.pointerCount);
+              details.localFocalPoint.toVector2(), details.pointerCount, details.sourceTimeStamp);
         },
         onScaleUpdate: (ScaleUpdateDetails details) async {
           await widget.inputHandler.onScaleUpdate(
@@ -174,10 +174,12 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
               details.horizontalScale,
               details.verticalScale,
               details.scale,
-              details.pointerCount);
+              details.pointerCount,
+              details.rotation,
+              details.sourceTimeStamp);
         },
         onScaleEnd: (details) async {
-          await widget.inputHandler.onScaleEnd(details.pointerCount);
+          await widget.inputHandler.onScaleEnd(details.pointerCount, details.scaleVelocity);
         },
         child: widget.child);
   }
