@@ -1,3 +1,10 @@
+## 0.2.1-dev.0.0.11
+
+> Note: This release has breaking changes.
+
+ - **FEAT**: add SCALE2_ROTATE to InputHandler.
+ - **BREAKING** **FEAT**: expose velocity, rotation and timestamp for scale events in listener. accept rotationSensitivity/zoomSensitivity for FixedOrbitRotateInputHandlerDelegate.
+
 ## 0.2.1-dev.0.0.10
 
 > Note: This release has breaking changes.
