@@ -260,10 +260,10 @@ class DelegateInputHandler implements InputHandler {
   }
 
   @override
-  Future<void> onScaleEnd(int pointerCount) async {}
+  Future<void> onScaleEnd(int pointerCount, double velocity) async {}
 
   @override
-  Future<void> onScaleStart(Vector2 localPosition, int pointerCount) async {
+  Future<void> onScaleStart(Vector2 localPosition, int pointerCount, Duration? sourceTimestamp ) async {
     // noop
   }
 
@@ -276,7 +276,9 @@ class DelegateInputHandler implements InputHandler {
       double horizontalScale,
       double verticalScale,
       double scale,
-      int pointerCount) async {
+      int pointerCount,
+      double rotation,
+      Duration? sourceTimestamp) async {
     if (pointerCount == 1) {
       _inputDeltas[InputType.SCALE1] =
           Vector3(focalPointDelta.x, focalPointDelta.y, 0);

@@ -14,6 +14,9 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
   late Future<Camera> _camera;
   final double minimumDistance;
   late final Vector3 target;
+  
+  final double rotationSensitivity;
+  final double zoomSensitivity;
 
   Vector2 _queuedRotationDelta = Vector2.zero();
   double _queuedZoomDelta = 0.0;
@@ -24,6 +27,8 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
     this.viewer, {
     Vector3? target,
     this.minimumDistance = 10.0,
+    this.rotationSensitivity = 0.01,
+    this.zoomSensitivity = 0.1,
   }) {
     this.target = target ?? Vector3.zero();
     _camera = viewer.getMainCamera().then((Camera cam) async {
@@ -95,7 +100,7 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
     // Zoom
     if (_queuedZoomDelta != 0.0) {
       var newPosition = currentPosition +
-          (currentPosition - target).scaled(_queuedZoomDelta * 0.1);
+          (currentPosition - target).scaled(_queuedZoomDelta * zoomSensitivity);
 
       var distToTarget = (newPosition - target).length;
 
@@ -113,8 +118,8 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
         await (await _camera).setModelMatrix(newViewMatrix);
       }
     } else if (_queuedRotationDelta.length != 0) {
-      double rotateX = _queuedRotationDelta.x * 0.01;
-      double rotateY = _queuedRotationDelta.y * 0.01;
+      double rotateX = _queuedRotationDelta.x * rotationSensitivity;
+      double rotateY = _queuedRotationDelta.y * rotationSensitivity;
 
       var modelMatrix = await viewer.getCameraModelMatrix();
 
@@ -126,9 +131,8 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
       var rot2 = Matrix4.identity()
         ..setRotation(Quaternion.axisAngle(modelMatrix.right, rotateY)
             .asRotationMatrix());
-      
-      modelMatrix = rot1 *
-          rot2 * modelMatrix;
+
+      modelMatrix = rot1 * rot2 * modelMatrix;
       await (await _camera).setModelMatrix(modelMatrix);
     }
 
