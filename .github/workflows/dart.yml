@@ -24,6 +24,12 @@ jobs:
         # Enable debug logging for Actions
       - name: Enable debug logging
         run: echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
+
+      # Setup Visual Studio environment
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.26.0-0.1.pre'  # Specify Flutter version
@@ -33,6 +39,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get # even though this is a Dart package, it has as dev_dependency on objective_c for testing which for some reason has a Flutter dependency
 
+      # Ensure Visual C++ runtime is available
+      - name: Install Visual C++ redistributable
+        run: |
+          choco install visualstudio2019-workload-vctools -y
+          choco install vcredist140 -y
+
       # Uncomment this step to verify the use of 'dart format' on each commit.
       # - name: Verify formatting
       #   run: dart format --output=none --set-exit-if-changed .
@@ -40,8 +52,11 @@ jobs:
       #- name: Analyze project source
       #  run: dart analyze
 
-      - name: Run tests
-        run: dart --enable-experiment=native-assets test test/dummy_tests.dart
+      - name: Build and Test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          dart --enable-experiment=native-assets test test/dummy_tests.dart
 
       # Upload logs on failure
       - name: Upload logs
