@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -62,6 +64,7 @@ void main() async {
 
     test('getCameraCullingProjectionMatrix', () async {
       throw Exception("TODO");
+      // ignore: dead_code
       var viewer = await testHelper.createViewer();
       var matrix = await viewer.getCameraCullingProjectionMatrix();
       print(matrix);
