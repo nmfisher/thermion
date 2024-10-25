@@ -27,7 +27,7 @@ jobs:
           cache: true               # Caches dependencies between runs
           architecture: arm64         # Explicitly specify architecture
       - name: Install dependencies
-        run: dart pub get
+        run: flutter pub get
 
       # Uncomment this step to verify the use of 'dart format' on each commit.
       # - name: Verify formatting
