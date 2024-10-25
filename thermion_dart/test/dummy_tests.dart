@@ -5,9 +5,11 @@ import 'helpers.dart';
 
 void main() async {
   group("test", () {
-    test("test", () {
+    test("test", () async {
       print("Creating test helper");
       final testHelper = TestHelper("dummy");
+      var viewer = await testHelper.createViewer();
+
       expect(1, 1);
     });
   });
