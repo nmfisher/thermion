@@ -1,3 +1,8 @@
+## 0.2.1-dev.0.0.12
+
+ - **FIX**: properly pass through loadResourcesAsync flag for loadGlbFromBuffer.
+ - **FEAT**: add SCALE2_MOVE InputType.
+
 ## 0.2.1-dev.0.0.11
 
 > Note: This release has breaking changes.
