@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';

@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
@@ -10,7 +12,6 @@ import 'package:thermion_dart/src/utils/src/dart_resources.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:path/path.dart' as p;
@@ -101,9 +102,7 @@ class TestHelper {
   }
 
   Future<ThermionTextureSwift> createTexture(int width, int height) async {
-    final packageUri = findPackageRoot('thermion_dart');
-    var testDir = Directory("${packageUri.toFilePath()}/test").path;
-   
+  
     final object = ThermionTextureSwift.new1();
     object.initWithWidth_height_(width, height);
     return object;
@@ -191,7 +190,7 @@ Future<Uint8List> pixelBufferToBmp(
 }
 
 Future<Uint8List> pixelsToPng(Uint8List pixelBuffer, int width, int height,
-    {bool linearToSrgb = false}) async {
+    {bool linearToSrgb = false, bool invertAces=false}) async {
   final image = img.Image(width: width, height: height);
 
   for (int y = 0; y < height; y++) {
@@ -203,7 +202,6 @@ Future<Uint8List> pixelsToPng(Uint8List pixelBuffer, int width, int height,
       int a = pixelBuffer[pixelIndex + 3];
 
       // Apply inverse ACES tone mapping
-      bool invertAces = false;
       if (invertAces) {
         r = _inverseACESToneMapping(r);
         g = _inverseACESToneMapping(g);
