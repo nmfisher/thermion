@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.26.0-1.0.pre.373'  # Specify Flutter version
+          flutter-version: '3.26.0'  # Specify Flutter version
           channel: 'master'          # or 'beta', 'dev', 'master'
           cache: true               # Caches dependencies between runs
           architecture: arm64         # Explicitly specify architecture
