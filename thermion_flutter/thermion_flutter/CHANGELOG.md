@@ -1,3 +1,38 @@
+## 0.2.1-dev.10
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: continual refactor to support multiple render targets.
+ - **FIX**: fix all Windows warnings so apps will compile with /WX.
+ - **FIX**: use internal Set for determining first ThermionTextureWidget to call requestFrame and cleanup destruction logic.
+ - **FIX**: (flutter) pass ThermionFlutterOptions to ThermionWidget, use dpr for resizeTexture, delete unnecessary TransparencyPainter class.
+ - **FIX**: (flutter/web) use window.devicePixelRatio for viewport.
+ - **FIX**: (flutter) desktop gesture detector changes for new Gizmo methods.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add DestroyRenderingSurface method.
+ - **FEAT**: (flutter) (windows) add Destroy() to BackingWindow.
+ - **FEAT**: camera and resizing improvements.
+ - **FEAT**: support multiple ThermionWidget on Android.
+ - **FEAT**: use imported texture on iOS.
+ - **FEAT**: working implementation of multiple widgets on macos.
+ - **FEAT**: add rendering check to ThermionWidget ticker.
+ - **FEAT**: allow passing null options to ThermionWidget.
+ - **FEAT**: (flutter) (web) if importCanvasAsWidget is false, render transparency.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: add createViewerWithOptions to ThermionFlutterPlugin and mark createViewer as deprecated.
+ - **FEAT**: highlight gizmo on hover.
+ - **BREAKING** **FIX**: remove EntityControllerMouseWidget (replace with GestureHandler).
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FIX**: (flutter) pass pixelRatio to createTexture.
+ - **BREAKING** **FEAT**: expose velocity, rotation and timestamp for scale events in listener. accept rotationSensitivity/zoomSensitivity for FixedOrbitRotateInputHandlerDelegate.
+ - **BREAKING** **FEAT**: (web) (flutter) create canvas when createViewer is called (no longer need to manually add canvas element to web HTML).
+ - **BREAKING** **FEAT**: resize canvas on web.
+ - **BREAKING** **CHORE**: remove superseded HardwareKeyboard* classes.
+ - **BREAKING** **CHORE**: (flutter) cleanup for pub.dev publishing.
+ - **BREAKING** **CHORE**: remove EntityListWidget - will replace with new Scene.
+ - **BREAKING** **CHORE**: rename controller to viewer in gesture detector widgets.
+
 ## 0.2.1-dev.9
 
 > Note: This release has breaking changes.

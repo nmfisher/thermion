@@ -796,14 +796,23 @@ abstract class ThermionViewer {
   Future<Aabb2> getViewportBoundingBox(ThermionEntity entity);
 
   ///
-  /// Filament assigns renderables to a numeric layer.
-  /// We place all scene assets in layer 0 (enabled by default), gizmos in layer 1 (enabled by default), world grid in layer 2 (disabled by default).
-  /// Use this method to toggle visibility of the respective layer.
+  /// Toggles the visibility of the respective layer.
   ///
   Future setLayerVisibility(int layer, bool visible);
 
   ///
-  /// Assigns [entity] to visibility layer [layer].
+  /// All renderable entities are assigned a layer mask. 
+  /// 
+  /// By calling [setLayerVisibility], all renderable entities allocated to 
+  /// the given layer can be efficiently hidden/revealed. 
+  /// 
+  /// By default, all renderable entities are assigned to layer 0 (and this 
+  /// layer is enabled by default). Call [setVisibilityLayer] to change the 
+  /// layer for the specified entity.
+  /// 
+  /// Note that we currently also assign gizmos to layer 1 (enabled by default) 
+  /// and the world grid to layer 2 (disabled by default). We suggest you avoid 
+  /// using these layers.
   ///
   Future setVisibilityLayer(ThermionEntity entity, int layer);
 
