@@ -26,6 +26,7 @@ jobs:
           flutter-version: '3.26.0-0.1.pre'  # Specify Flutter version
           channel: 'master'          # or 'beta', 'dev', 'master'
           cache: true               # Caches dependencies between runs
+          architecture: x64 # Explicitly specify x64 architecture
       - name: Install dependencies
         run: flutter pub get # even though this is a Dart package, it has as dev_dependency on objective_c for testing which for some reason has a Flutter dependency
 
