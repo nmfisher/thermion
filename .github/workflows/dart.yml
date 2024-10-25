@@ -37,7 +37,7 @@ jobs:
       #  run: dart analyze
 
       - name: Run tests
-        run: dart --enable-experiment=native-assets test
+        run: dart --enable-experiment=native-assets test test/*tests.dart
 
       # Upload logs on failure
       - name: Upload logs
