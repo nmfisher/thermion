@@ -20,11 +20,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
+      - uses: subosito/flutter-action@v2
         with:
-          sdk: '3.6.0-326.0.dev'
-          channel: 'dev'  
+          flutter-version: '3.26.0-1.0.pre.373'  # Specify Flutter version
+          channel: 'master'          # or 'beta', 'dev', 'master'
+          cache: true               # Caches dependencies between runs
+          architecture: arm64         # Explicitly specify architecture
       - name: Install dependencies
         run: dart pub get
 
