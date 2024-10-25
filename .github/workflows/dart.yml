@@ -2,7 +2,6 @@
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
 # documentation.
-
 name: Dart
 
 on:
@@ -12,18 +11,20 @@ on:
     branches: [ "develop" ]
 
 jobs:
-  build:
+  thermion_dart:
+    name: thermion_dart
     runs-on: macos-13
+    defaults:
+      run:
+        working-directory: thermion_dart  # Adjust this path
 
     steps:
       - uses: actions/checkout@v4
-
-      # Note: This workflow uses the latest stable version of the Dart SDK.
-      # You can specify other versions if desired, see documentation here:
-      # https://github.com/dart-lang/setup-dart/blob/main/README.md
-      # - uses: dart-lang/setup-dart@v1
+      
       - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
-
+        with:
+          sdk: '3.6.0-326.0.dev'
+          channel: 'dev'  
       - name: Install dependencies
         run: dart pub get
 
@@ -31,12 +32,33 @@ jobs:
       # - name: Verify formatting
       #   run: dart format --output=none --set-exit-if-changed .
 
-      # Consider passing '--fatal-infos' for slightly stricter analysis.
       - name: Analyze project source
         run: dart analyze
 
-      # Your project will need to have tests in test/ and a dependency on
-      # package:test for this step to succeed. Note that Flutter projects will
-      # want to change this to 'flutter test'.
       - name: Run tests
         run: dart --enable-experiment=native-assets test
+
+  # thermion_flutter:
+  #   name: thermion_flutter
+  #   runs-on: macos-13
+  #   defaults:
+  #     run:
+  #       working-directory: thermion_flutter/thermion_flutter  # Adjust this path
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+      
+  #     - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
+
+  #     - name: Install dependencies
+  #       run: dart pub get
+
+  #     # Uncomment this step to verify the use of 'dart format' on each commit.
+  #     # - name: Verify formatting
+  #     #   run: dart format --output=none --set-exit-if-changed .
+
+  #     - name: Analyze project source
+  #       run: dart analyze
+
+  #     - name: Run tests
+  #       run: dart --enable-experiment=native-assets test

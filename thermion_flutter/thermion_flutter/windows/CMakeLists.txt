@@ -33,7 +33,6 @@ add_library(${PLUGIN_NAME} SHARED
   "include/thermion_flutter/thermion_flutter_plugin_c_api.h"
   "thermion_flutter_plugin_c_api.cpp"
   ${PLUGIN_SOURCES}
-  "include/material/image.c"
 )
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)

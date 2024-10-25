@@ -13,8 +13,9 @@ enum InputType {
   MMB_UP,
   MMB_HOVER,
   SCALE1,
-  SCALE2,
-  SCALE2_ROTATE,
+  SCALE2, // two fingers pinchin in/out
+  SCALE2_ROTATE, // two fingers rotating in a circle
+  SCALE2_MOVE, // two fingers sliding along a line
   SCROLLWHEEL,
   POINTER_MOVE,
   KEYDOWN_W,

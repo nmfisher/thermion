@@ -170,7 +170,7 @@ extern "C"
 
     EMSCRIPTEN_KEEPALIVE EntityId SceneManager_loadGlbFromBuffer(TSceneManager *sceneManager, const uint8_t *const data, size_t length, bool keepData, int priority, int layer, bool loadResourcesAsync)
     {
-        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer);
+        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer, loadResourcesAsync);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId create_instance(TSceneManager *sceneManager, EntityId entityId)
