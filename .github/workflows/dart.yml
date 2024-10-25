@@ -21,6 +21,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        # Enable debug logging for Actions
+      - name: Enable debug logging
+        run: echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.26.0-0.1.pre'  # Specify Flutter version
@@ -50,6 +53,17 @@ jobs:
             D:\a\thermion\thermion\thermion_dart\.dart_tool\thermion_dart\log\build.log
             # /Users/runner/work/thermion/thermion/thermion_dart//.dart_tool/thermion_dart/log/build.log
           retention-days: 5
+
+      # Capture crash dumps if they exist
+      - name: Collect crash dumps
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: crash-dumps
+          path: |
+            ${{ runner.temp }}/*.dmp
+            ${{ env.LOCALAPPDATA }}/Temp/*.dmp
+            ${{ env.LOCALAPPDATA }}/CrashDumps/*.dmp
 
   # thermion_flutter:
   #   name: thermion_flutter
