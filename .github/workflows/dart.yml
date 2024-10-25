@@ -45,7 +45,8 @@ jobs:
         with:
           name: build-logs
           path: |
-            /Users/runner/work/thermion/thermion/thermion_dart//.dart_tool/thermion_dart/log/build.log
+            D:\a\thermion\thermion\thermion_dart\.dart_tool\thermio_dart\log\build.log
+            # /Users/runner/work/thermion/thermion/thermion_dart//.dart_tool/thermion_dart/log/build.log
           retention-days: 5
 
   # thermion_flutter:
