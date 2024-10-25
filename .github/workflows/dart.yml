@@ -13,10 +13,11 @@ on:
 jobs:
   thermion_dart:
     name: thermion_dart
-    runs-on: windows-latest
+    runs-on: windows-2019
     defaults:
       run:
         working-directory: thermion_dart  # Adjust this path
+        shell: bash # This helps ensure consistent behavior across platforms
 
     steps:
       - uses: actions/checkout@v4
