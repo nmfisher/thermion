@@ -73,28 +73,31 @@ class TestHelper {
 
   TestHelper(String dir) {
     final packageUri = findPackageRoot('thermion_dart');
+    print("Package URIL $packageUri");
     testDir = Directory("${packageUri.toFilePath()}/test").path;
+    print("Test dir : $packageUri");
 
     outDir = Directory("$testDir/output/${dir}");
+    print("Out dir : $packageUri");
     // outDir.deleteSync(recursive: true);
     outDir.createSync(recursive: true);
-    if(Platform.isMacOS) {
+    print("Created out dir : $packageUri");
+    if (Platform.isMacOS) {
       DynamicLibrary.open('${testDir}/libThermionTextureSwift.dylib');
     }
   }
 
   Future capture(ThermionViewer viewer, String outputFilename,
       {View? view, SwapChain? swapChain, RenderTarget? renderTarget}) async {
-    
     await Future.delayed(Duration(milliseconds: 10));
     var outPath = p.join(outDir.path, "$outputFilename.bmp");
-    
+
     var pixelBuffer = await viewer.capture(
         view: view,
         swapChain: swapChain ?? this.swapChain,
         renderTarget: renderTarget);
     await viewer.render();
-    
+
     view ??= await viewer.getViewAt(0);
     var vp = await view.getViewport();
     await savePixelBufferToBmp(pixelBuffer, vp.width, vp.height, outPath);
@@ -102,7 +105,6 @@ class TestHelper {
   }
 
   Future<ThermionTextureSwift> createTexture(int width, int height) async {
-  
     final object = ThermionTextureSwift.new1();
     object.initWithWidth_height_(width, height);
     return object;
@@ -190,7 +192,7 @@ Future<Uint8List> pixelBufferToBmp(
 }
 
 Future<Uint8List> pixelsToPng(Uint8List pixelBuffer, int width, int height,
-    {bool linearToSrgb = false, bool invertAces=false}) async {
+    {bool linearToSrgb = false, bool invertAces = false}) async {
   final image = img.Image(width: width, height: height);
 
   for (int y = 0; y < height; y++) {
