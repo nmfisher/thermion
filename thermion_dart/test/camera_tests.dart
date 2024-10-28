@@ -1,5 +1,7 @@
 // ignore_for_file: unused_local_variable
 
+import 'dart:math';
+
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -9,7 +11,6 @@ void main() async {
   final testHelper = TestHelper("integration");
 
   group('camera', () {
-
     test('getCameraModelMatrix, getCameraPosition, rotation', () async {
       var viewer = await testHelper.createViewer();
       var matrix = await viewer.getCameraModelMatrix();
@@ -26,7 +27,7 @@ void main() async {
       expect(position.x, 2.0);
       expect(position.y, 2.0);
       expect(position.z, 2.0);
-      
+
       await viewer.dispose();
     });
 
@@ -52,7 +53,6 @@ void main() async {
       expect(position.y, closeTo(4.0, 1e-6));
       expect(position.z, closeTo(5.0, 1e-6));
       await viewer.dispose();
-
     });
 
     test('getCameraProjectionMatrix', () async {
@@ -69,7 +69,6 @@ void main() async {
       var matrix = await viewer.getCameraCullingProjectionMatrix();
       print(matrix);
       await viewer.dispose();
-      
     });
 
     test('getCameraFrustum', () async {
@@ -95,24 +94,48 @@ void main() async {
       var camera = await viewer.getMainCamera();
       await viewer.createGeometry(GeometryHelper.cube());
 
-      await camera.setProjection(Projection.Orthographic, -0.05, 0.05, -0.05, 0.05, 0.05, 10000);
-      await testHelper.capture(
-          viewer, "camera_set_orthographic_projection");
+      await camera.setProjection(
+          Projection.Orthographic, -0.05, 0.05, -0.05, 0.05, 0.05, 10000);
+      await testHelper.capture(viewer, "camera_set_orthographic_projection");
       await viewer.dispose();
     });
 
-    test('set custom projection/culling matrix', () async {
+    test('set perspective projection/culling matrix', () async {
       var viewer = await testHelper.createViewer(
           bg: kRed, cameraPosition: Vector3(0, 0, 4));
       var camera = await viewer.getMainCamera();
       final cube = await viewer.createGeometry(GeometryHelper.cube());
+
+      var fovY = pi / 2;
+      await camera.setProjectionMatrixWithCulling(
+          makePerspectiveMatrix(fovY, 1.0, 0.05, 10000), 0.05, 10000);
+
+      await testHelper.capture(
+          viewer, "camera_set_perspective_projection_culling_matrix_object_fov90");
+
+      // cube no longer visible when the far plane is moved closer to camera so cube is outside
+      fovY = 2*(pi/3);
+      await camera.setProjectionMatrixWithCulling(
+          makePerspectiveMatrix(fovY, 1.0, 0.05, 10000), 0.05, 10000);
       
+      await testHelper.capture(
+          viewer, "camera_set_perspective_projection_culling_matrix_object_fov120");
+
+      await viewer.dispose();
+    });
+
+    test('set custom projection/culling matrix (orthographic)', () async {
+      var viewer = await testHelper.createViewer(
+          bg: kRed, cameraPosition: Vector3(0, 0, 4));
+      var camera = await viewer.getMainCamera();
+      final cube = await viewer.createGeometry(GeometryHelper.cube());
+
       // cube is visible when inside the frustum, cube is visible
       var projectionMatrix =
           makeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, 0.05, 10000);
       await camera.setProjectionMatrixWithCulling(
           projectionMatrix, 0.05, 10000);
-      
+
       await testHelper.capture(
           viewer, "camera_projection_culling_matrix_object_in_frustum");
 
@@ -122,7 +145,7 @@ void main() async {
       await camera.setProjectionMatrixWithCulling(projectionMatrix, 0.05, 1);
       await testHelper.capture(
           viewer, "camera_projection_culling_matrix_object_outside_frustum");
-      
+
       await viewer.dispose();
     });
 
