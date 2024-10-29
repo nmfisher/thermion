@@ -150,8 +150,15 @@ external void Viewer_setViewRenderable(
         ffi.Int,
         ffi.Pointer<
             ffi.NativeFunction<
-                ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y,
-                    ffi.Pointer<TView> tView)>>)>(isLeaf: true)
+                ffi.Void Function(
+                    EntityId entityId,
+                    ffi.Int x,
+                    ffi.Int y,
+                    ffi.Pointer<TView> tView,
+                    ffi.Float depth,
+                    ffi.Float fragX,
+                    ffi.Float fragY,
+                    ffi.Float fragZ)>>)>(isLeaf: true)
 external void Viewer_pick(
   ffi.Pointer<TViewer> viewer,
   ffi.Pointer<TView> tView,
@@ -159,8 +166,15 @@ external void Viewer_pick(
   int y,
   ffi.Pointer<
           ffi.NativeFunction<
-              ffi.Void Function(EntityId entityId, ffi.Int x, ffi.Int y,
-                  ffi.Pointer<TView> tView)>>
+              ffi.Void Function(
+                  EntityId entityId,
+                  ffi.Int x,
+                  ffi.Int y,
+                  ffi.Pointer<TView> tView,
+                  ffi.Float depth,
+                  ffi.Float fragX,
+                  ffi.Float fragY,
+                  ffi.Float fragZ)>>
       callback,
 );
 
@@ -419,23 +433,6 @@ external ffi.Pointer<TMaterialInstance> create_material_instance(
 );
 
 @ffi.Native<
-    ffi.Pointer<TMaterialInstance> Function(
-        ffi.Pointer<TSceneManager>)>(isLeaf: true)
-external ffi.Pointer<TMaterialInstance> SceneManager_createUnlitMaterialInstance(
-  ffi.Pointer<TSceneManager> sceneManager,
-);
-
-
-@ffi.Native<
-    ffi.Pointer<TMaterialInstance> Function(
-        ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
-external ffi.Pointer<TMaterialInstance> SceneManager_createUnlitMaterialInstanceRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
-      onComplete
-);
-
-@ffi.Native<
     ffi.Void Function(ffi.Pointer<TSceneManager>,
         ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
 external void destroy_material_instance(
@@ -616,6 +613,43 @@ external int get_bone(
   int entityId,
   int skinIndex,
   int boneIndex,
+);
+
+@ffi.Native<
+    EntityId Function(
+        ffi.Pointer<TSceneManager>,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
+        ffi.Pointer<ffi.Float>,
+        ffi.Int,
+        ffi.Pointer<ffi.Uint16>,
+        ffi.Int,
+        ffi.Int,
+        ffi.Pointer<TMaterialInstance>,
+        ffi.Bool)>(isLeaf: true)
+external int SceneManager_createGeometry(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<ffi.Float> vertices,
+  int numVertices,
+  ffi.Pointer<ffi.Float> normals,
+  int numNormals,
+  ffi.Pointer<ffi.Float> uvs,
+  int numUvs,
+  ffi.Pointer<ffi.Uint16> indices,
+  int numIndices,
+  int primitiveType,
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  bool keepData,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<TSceneManager>)>(isLeaf: true)
+external ffi.Pointer<TMaterialInstance>
+    SceneManager_createUnlitMaterialInstance(
+  ffi.Pointer<TSceneManager> sceneManager,
 );
 
 @ffi.Native<
@@ -954,35 +988,6 @@ external bool add_animation_component(
 external void remove_animation_component(
   ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
-);
-
-@ffi.Native<
-    EntityId Function(
-        ffi.Pointer<TSceneManager>,
-        ffi.Pointer<ffi.Float>,
-        ffi.Int,
-        ffi.Pointer<ffi.Float>,
-        ffi.Int,
-        ffi.Pointer<ffi.Float>,
-        ffi.Int,
-        ffi.Pointer<ffi.Uint16>,
-        ffi.Int,
-        ffi.Int,
-        ffi.Pointer<TMaterialInstance>,
-        ffi.Bool)>(isLeaf: true)
-external int SceneManager_createGeometry(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Float> vertices,
-  int numVertices,
-  ffi.Pointer<ffi.Float> normals,
-  int numNormals,
-  ffi.Pointer<ffi.Float> uvs,
-  int numUvs,
-  ffi.Pointer<ffi.Uint16> indices,
-  int numIndices,
-  int primitiveType,
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  bool keepData,
 );
 
 @ffi.Native<EntityId Function(ffi.Pointer<TSceneManager>, EntityId)>(
@@ -1530,6 +1535,38 @@ external void remove_skybox_render_thread(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TSceneManager>,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Pointer<ffi.Float>,
+            ffi.Int,
+            ffi.Pointer<ffi.Uint16>,
+            ffi.Int,
+            ffi.Int,
+            ffi.Pointer<TMaterialInstance>,
+            ffi.Bool,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
+    isLeaf: true)
+external void SceneManager_createGeometryRenderThread(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<ffi.Float> vertices,
+  int numVertices,
+  ffi.Pointer<ffi.Float> normals,
+  int numNormals,
+  ffi.Pointer<ffi.Float> uvs,
+  int numUvs,
+  ffi.Pointer<ffi.Uint16> indices,
+  int numIndices,
+  int primitiveType,
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  bool keepData,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TSceneManager>,
             ffi.Pointer<ffi.Uint8>,
             ffi.Size,
             ffi.Int,
@@ -1549,6 +1586,20 @@ external void SceneManager_loadGlbFromBufferRenderThread(
   int layer,
   bool loadResourcesAsync,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneManager>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
+external void SceneManager_createUnlitMaterialInstanceRenderThread(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
+      callback,
 );
 
 @ffi.Native<
@@ -1749,38 +1800,6 @@ external void reset_to_rest_pose_render_thread(
   ffi.Pointer<TSceneManager> sceneManager,
   int entityId,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Uint16>,
-            ffi.Int,
-            ffi.Int,
-            ffi.Pointer<TMaterialInstance>,
-            ffi.Bool,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void SceneManager_createGeometryRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Float> vertices,
-  int numVertices,
-  ffi.Pointer<ffi.Float> normals,
-  int numNormals,
-  ffi.Pointer<ffi.Float> uvs,
-  int numUvs,
-  ffi.Pointer<ffi.Uint16> indices,
-  int numIndices,
-  int primitiveType,
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
 );
 
 @ffi.Native<

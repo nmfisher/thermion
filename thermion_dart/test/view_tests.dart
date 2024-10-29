@@ -17,7 +17,6 @@ void main() async {
       expect(await view.getCamera(), isNotNull);
 
       await viewer.dispose();
-
     });
 
     test('one swapchain, render view to render target', () async {
@@ -39,7 +38,6 @@ void main() async {
           "default_swapchain_default_view_render_target");
 
       await viewer.dispose();
-
     });
 
     test('create secondary view, default swapchain', () async {
@@ -115,22 +113,29 @@ void main() async {
 
     test('pick', () async {
       var viewer = await testHelper.createViewer(
-          bg: kRed, cameraPosition: Vector3(0, 0, 5));
+          bg: kRed, cameraPosition: Vector3(0, 0, 3));
+
+      final view = await viewer.getViewAt(0);
+
+      await view.setRenderable(true, testHelper.swapChain);
 
       final cube = await viewer.createGeometry(GeometryHelper.cube());
+
+      await testHelper.capture(viewer, "view_pick");
 
       final completer = Completer();
       late StreamSubscription listener;
       listener = viewer.pickResult.listen((result) async {
         completer.complete(result.entity);
         await listener.cancel();
+        print("Pick result : ${result.fragX} ${result.fragY} ${result.fragZ}");
       });
 
-      viewer.pick(250, 250);
+      await viewer.pick(250, 250);
 
-      for (int i = 0; i < 10; i++) {
-        await viewer.requestFrame();
-        await Future.delayed(Duration(milliseconds: 100));
+      for (int i = 0; i < 3; i++) {
+        await viewer.render();
+        await Future.delayed(Duration(milliseconds: 16));
       }
 
       expect(completer.isCompleted, true);
