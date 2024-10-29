@@ -130,7 +130,6 @@ class TestHelper {
     var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
     print("created viewer");
     await viewer.initialized;
-    print("creating swapchain");
     swapChain = await viewer.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height);
     print("created headless swapchain");
