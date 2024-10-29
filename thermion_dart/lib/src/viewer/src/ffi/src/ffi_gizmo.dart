@@ -29,7 +29,7 @@ class FFIGizmo extends BaseGizmo {
   }
 
   void _onPickResult(DartEntityId entityId, int x, int y, Pointer<TView> view) {
-    _callback?.call((entity: entityId, x: x, y: y));
+    _callback?.call((entity: entityId, x: x, y: y, depth: 0, fragX: 0, fragY: 0, fragZ: 0));
   }
 
   ///

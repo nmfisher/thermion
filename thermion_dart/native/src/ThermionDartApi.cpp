@@ -49,11 +49,11 @@ extern "C"
         viewer->destroyRenderTarget(renderTarget);
     }
 
-    EMSCRIPTEN_KEEPALIVE void Viewer_pick(TViewer *tViewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y, TView *tView))
+    EMSCRIPTEN_KEEPALIVE void Viewer_pick(TViewer *tViewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y, TView *tView, float depth, float fragX, float fragY, float fragZ))
     {
         auto *viewer = reinterpret_cast<FilamentViewer*>(tViewer);
         auto *view = reinterpret_cast<View*>(tView);
-        ((FilamentViewer *)viewer)->pick(view, static_cast<uint32_t>(x), static_cast<uint32_t>(y), reinterpret_cast<void (*)(EntityId entityId, int x, int y, View *view)>(callback));
+        ((FilamentViewer *)viewer)->pick(view, static_cast<uint32_t>(x), static_cast<uint32_t>(y), reinterpret_cast<FilamentViewer::PickCallback>(callback));
     }
 
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer)

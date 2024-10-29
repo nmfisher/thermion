@@ -1191,7 +1191,7 @@ namespace thermion
     return _engine->getCameraComponent(Entity::import(entity));
   }
 
-  void FilamentViewer::pick(View *view, uint32_t x, uint32_t y, void (*callback)(EntityId entityId, int x, int y, View *view))
+  void FilamentViewer::pick(View *view, uint32_t x, uint32_t y, PickCallback callback)
   {
     view->pick(x, y, [=](filament::View::PickingQueryResult const &result) { 
 
@@ -1206,7 +1206,7 @@ namespace thermion
       };
 
       if (nonPickableEntities.find(result.renderable) == nonPickableEntities.end()) {
-        callback(Entity::smuggle(result.renderable), x, y, view);
+        callback(Entity::smuggle(result.renderable), x, y, view, result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z);
       } });
   }
 

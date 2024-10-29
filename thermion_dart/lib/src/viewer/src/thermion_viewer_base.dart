@@ -695,7 +695,7 @@ abstract class ThermionViewer {
   /// This is asynchronous and will require 2-3 frames to complete - subscribe to the [pickResult] stream to receive the results of this method.
   /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the ThermionWidget).
   ///
-  void pick(int x, int y);
+  Future pick(int x, int y);
 
   ///
   /// Retrieves the name assigned to the given ThermionEntity (usually corresponds to the glTF mesh name).

@@ -84,7 +84,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
     _onPickResultCallable = NativeCallable<
         Void Function(EntityId entityId, Int x, Int y,
-            Pointer<TView> view)>.listener(_onPickResult);
+            Pointer<TView> view, Float depth, Float fragX, Float fragY, Float fragZ)>.listener(_onPickResult);
 
     _initialize();
   }
@@ -1509,23 +1509,23 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   void _onPickResult(
-      ThermionEntity entityId, int x, int y, Pointer<TView> viewPtr) async {
+      ThermionEntity entityId, int x, int y, Pointer<TView> viewPtr, double depth, double fragX, double fragY, double fragZ) async {
     final view = FFIView(viewPtr, _viewer!);
     final viewport = await view.getViewport();
 
     _pickResultController
-        .add((entity: entityId, x: x.ceil(), y: (viewport.height - y).ceil()));
+        .add((entity: entityId, x: x.ceil(), y: (viewport.height - y).ceil(), depth: depth, fragX: fragX, fragY: viewport.height - fragY, fragZ: fragZ ));
   }
 
   late NativeCallable<
-          Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view)>
+          Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view, Float depth, Float fragX, Float fragY, Float fragZ)>
       _onPickResultCallable;
 
   ///
   ///
   ///
   @override
-  void pick(int x, int y) async {
+  Future pick(int x, int y) async {
     final view = (await getViewAt(0)) as FFIView;
     var viewport = await view.getViewport();
     y = (viewport.height - y).ceil();
