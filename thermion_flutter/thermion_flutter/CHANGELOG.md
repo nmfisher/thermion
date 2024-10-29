@@ -1,3 +1,7 @@
+## 0.2.1-dev.13
+
+ - Update a dependency to the latest release.
+
 ## 0.2.1-dev.12
 
  - **FIX**: (flutter) (windows) remove deleted source file from Windows CMakeLists.
