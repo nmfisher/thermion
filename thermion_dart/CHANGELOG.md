@@ -1,3 +1,11 @@
+## 0.2.1-dev.0.0.13
+
+ - **FIX**: properly pass through loadResourcesAsync flag for loadGlbFromBuffer.
+ - **FIX**: properly pass through loadResourcesAsync flag for loadGlbFromBuffer.
+ - **FEAT**: pass through fragment coordinates for picking.
+ - **FEAT**: add SCALE2_MOVE InputType.
+ - **FEAT**: add SCALE2_MOVE InputType.
+
 ## 0.2.1-dev.0.0.12
 
  - **FIX**: properly pass through loadResourcesAsync flag for loadGlbFromBuffer.
