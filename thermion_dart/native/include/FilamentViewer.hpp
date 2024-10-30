@@ -99,6 +99,12 @@ namespace thermion
         void setBackgroundImagePosition(float x, float y, bool clamp, uint32_t width, uint32_t height);
         
         typedef void (*PickCallback)(EntityId entityId, int x, int y, View *view, float depth, float fragX, float fragY, float fragZ);
+        
+        ///
+        /// Returns true if the specified entity is a gizmo, grid or background image entity.
+        ///
+        bool isNonPickableEntity(EntityId entityId);
+
         void pick(View *view, uint32_t x, uint32_t y, PickCallback callback);
         
         Engine* getEngine() { 

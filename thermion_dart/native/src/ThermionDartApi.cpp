@@ -56,6 +56,11 @@ extern "C"
         ((FilamentViewer *)viewer)->pick(view, static_cast<uint32_t>(x), static_cast<uint32_t>(y), reinterpret_cast<FilamentViewer::PickCallback>(callback));
     }
 
+    EMSCRIPTEN_KEEPALIVE bool Viewer_isNonPickableEntity(TViewer *tViewer, EntityId entityId) {
+        auto *viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        return viewer->isNonPickableEntity(entityId);
+    }
+
     EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer)
     {
         delete ((FilamentViewer *)viewer);
