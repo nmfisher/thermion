@@ -3,11 +3,15 @@ import 'package:archive/archive.dart';
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
+import 'package:path/path.dart' as path;
 
 void main(List<String> args) async {
   await build(args, (config, output) async {
-    var logFile = File(
-        "${config.packageRoot.toFilePath()}.dart_tool/thermion_dart/log/build.log");
+
+    var pkgRootFilePath = config.packageRoot.toFilePath(windows: Platform.isWindows);
+
+    var logPath = path.join(pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
+    var logFile = File(logPath);
     if (!logFile.parent.existsSync()) {
       logFile.parent.createSync(recursive: true);
     }
@@ -50,16 +54,16 @@ void main(List<String> args) async {
 
     final packageName = config.packageName;
 
-    final sources = Directory("${config.packageRoot.toFilePath()}/native/src")
+    final sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
         .whereType<File>()
         .map((f) => f.path)
         .toList();
     sources.addAll([
-      "${config.packageRoot.toFilePath()}/native/include/material/gizmo_material.c",
-      "${config.packageRoot.toFilePath()}/native/include/material/image.c",
-      "${config.packageRoot.toFilePath()}/native/include/material/grid.c",
-      "${config.packageRoot.toFilePath()}/native/include/material/unlit.c",
+      path.join(pkgRootFilePath, "native", "include", "material", "gizmo_material.c"),
+      path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
+      path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
+      path.join(pkgRootFilePath, "native", "include", "material", "unlit.c"),
     ]);
 
     var libs = [
@@ -91,9 +95,9 @@ void main(List<String> args) async {
     ];
 
     if (platform == "windows") {
-      libDir = Directory(libDir).uri.toFilePath();
-      libs = libs.map((lib) => "${libDir}${lib}.lib").toList();
-      libs.addAll(["${libDir}bluevk.lib", "${libDir}bluegl.lib"]);
+      libDir = Directory(libDir).uri.toFilePath(windows: config.targetOS == OS.windows);
+      libs = libs.map((lib) => path.join(libDir, "${lib}.lib")).toList();
+      libs.addAll([path.join(libDir,"bluevk.lib"), path.join(libDir,"bluegl.lib")]);
       libs.addAll([
         "gdi32.lib",
         "user32.lib",
@@ -172,8 +176,8 @@ void main(List<String> args) async {
         if (platform != "windows") ...libs.map((lib) => "-l$lib"),
         if (platform != "windows") "-L$libDir",
         if (platform == "windows") ...[
-          "/I${config.packageRoot.toFilePath()}\\native\\include",
-          "/I${config.packageRoot.toFilePath()}native\\include\\filament",
+          "/I${path.join(pkgRootFilePath, "native", "include")}",
+          "/I${path.join(pkgRootFilePath, "native", "include", "filament")}",
           ...sources,
           '/link',
           "/LIBPATH:$libDir",
@@ -232,8 +236,7 @@ void main(List<String> args) async {
               name: "thermion_dart.dll",
               linkMode: DynamicLoadingBundled(),
               os: config.targetOS,
-              file: Uri.file(
-                  config.outputDirectory.toFilePath() + "/thermion_dart.dll"),
+              file: Uri.file(path.join(pkgRootFilePath, "thermion_dart.dll")),
               architecture: config.targetArchitecture),
           linkInPackage: config.packageName);
     }
@@ -263,9 +266,9 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
   if (platform == "windows") {
     mode = config.buildMode == BuildMode.debug ? "debug" : "release";
   }
-
+  
   var libDir = Directory(
-      "${config.packageRoot.toFilePath()}/.dart_tool/thermion_dart/lib/${_FILAMENT_VERSION}/$platform/$mode/");
+      path.join(config.packageRoot.toFilePath(windows:Platform.isWindows), ".dart_tool", "thermion_dart", "lib", _FILAMENT_VERSION, platform, mode));
 
   if (platform == "android") {
     final archExtension = switch (config.targetArchitecture) {
@@ -275,7 +278,7 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
       Architecture.ia32 => "x86",
       _ => throw FormatException('Invalid')
     };
-    libDir = Directory("${libDir.path}/$archExtension/");
+    libDir = Directory(path.join(libDir.path, archExtension));
   } else if (platform == "windows") {
     if (config.targetArchitecture != Architecture.x64) {
       throw Exception(
@@ -292,8 +295,8 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
   // If this file already exists, we assume everything has been successfully extracted and skip
   final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
-  final successToken = File("$unzipDir/success");
-  final libraryZip = File("$unzipDir/$filename");
+  final successToken = File(path.join(unzipDir, "success"));
+  final libraryZip = File(path.join(unzipDir, filename));
 
   if (!successToken.existsSync()) {
     if (libraryZip.existsSync()) {
