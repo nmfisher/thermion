@@ -1,3 +1,10 @@
+## 0.2.1-dev.0.0.14
+
+ - **FIX**: reduce size of pick functor for compatibility with armeabi-v7a.
+ - **FEAT**: sanitize file paths in build.dart for Windows compatibility.
+ - **FEAT**: pass through fragment coordinates for picking.
+ - **FEAT**: pass through fragment coordinates for picking.
+
 ## 0.2.1-dev.0.0.13
 
  - **FIX**: properly pass through loadResourcesAsync flag for loadGlbFromBuffer.
