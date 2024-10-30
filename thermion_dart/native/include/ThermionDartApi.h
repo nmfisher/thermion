@@ -86,6 +86,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TSwapChain* Viewer_getSwapChainAt(TViewer *tViewer, int index);
 	EMSCRIPTEN_KEEPALIVE void Viewer_setViewRenderable(TViewer *viewer, TSwapChain *swapChain, TView* view, bool renderable);	
 	EMSCRIPTEN_KEEPALIVE void Viewer_pick(TViewer *viewer, TView* tView, int x, int y, void (*callback)(EntityId entityId, int x, int y, TView *tView, float depth, float fragX, float fragY, float fragZ));
+	EMSCRIPTEN_KEEPALIVE bool Viewer_isNonPickableEntity(TViewer *viewer, EntityId entityId);
 	
 	// Engine
 	EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer);

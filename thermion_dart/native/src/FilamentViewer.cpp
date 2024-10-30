@@ -1191,23 +1191,16 @@ namespace thermion
     return _engine->getCameraComponent(Entity::import(entity));
   }
 
+  bool FilamentViewer::isNonPickableEntity(EntityId entityId) {
+    auto renderable = Entity::import(entityId);
+    return _sceneManager->isGizmoEntity(renderable) || renderable == _imageEntity || renderable == _sceneManager->_gridOverlay->sphere() || _sceneManager->_gridOverlay->grid();
+  }
+
   void FilamentViewer::pick(View *view, uint32_t x, uint32_t y, PickCallback callback)
   {
-    view->pick(x, y, [=](filament::View::PickingQueryResult const &result) { 
-
-      if(_sceneManager->isGizmoEntity(result.renderable)) {
-        Log("Gizmo entity, ignoring");
-        return;
-      }
-      std::unordered_set<Entity, Entity::Hasher> nonPickableEntities = {
-        _imageEntity,
-        _sceneManager->_gridOverlay->sphere(),
-        _sceneManager->_gridOverlay->grid(),
-      };
-
-      if (nonPickableEntities.find(result.renderable) == nonPickableEntities.end()) {
-        callback(Entity::smuggle(result.renderable), x, y, view, result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z);
-      } });
+    view->pick(x, y, [=](filament::View::PickingQueryResult const &result) {       
+      callback(Entity::smuggle(result.renderable), x, y, view, result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z);
+    });
   }
 
   void FilamentViewer::unprojectTexture(EntityId entityId, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)

@@ -178,6 +178,12 @@ external void Viewer_pick(
       callback,
 );
 
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TViewer>, EntityId)>(isLeaf: true)
+external bool Viewer_isNonPickableEntity(
+  ffi.Pointer<TViewer> viewer,
+  int entityId,
+);
+
 @ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external ffi.Pointer<TEngine> Viewer_getEngine(
   ffi.Pointer<TViewer> viewer,
