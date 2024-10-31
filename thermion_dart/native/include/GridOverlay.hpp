@@ -19,9 +19,6 @@
 #include <filament/IndexBuffer.h>
 #include <filament/InstanceBuffer.h>
 
-#include "material/gizmo.h"
-
-
 namespace thermion {
 
 using namespace filament;

@@ -2035,9 +2035,25 @@ class ThermionViewerFFI extends ThermionViewer {
     destroy_material_instance(_sceneManager!, materialInstance._pointer);
   }
 
+  ///
+  ///
+  ///
   Future<ThermionFFIMaterialInstance> createUnlitMaterialInstance() async {
     var instance = await withPointerCallback<TMaterialInstance>((cb) {
       SceneManager_createUnlitMaterialInstanceRenderThread(_sceneManager!, cb);
+    });
+    if (instance == nullptr) {
+      throw Exception("Failed to create material instance");
+    }
+    return ThermionFFIMaterialInstance(instance);
+  }
+
+  ///
+  ///
+  ///
+  Future<ThermionFFIMaterialInstance> createUnlitFixedSizeMaterialInstance() async {
+    var instance = await withPointerCallback<TMaterialInstance>((cb) {
+      SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(_sceneManager!, cb);
     });
     if (instance == nullptr) {
       throw Exception("Failed to create material instance");
@@ -2163,7 +2179,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<Gizmo> createGizmo(FFIView view) async {
     var view = (await getViewAt(0)) as FFIView;
     var scene = View_getScene(view.view);
-    final gizmo = Gizmo_new(Viewer_getEngine(_viewer!), view.view, scene);
+    final gizmo = SceneManager_createGizmo(_sceneManager!, view.view, scene);
     return FFIGizmo(gizmo, this);
   }
 }
@@ -2193,6 +2209,12 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
   Future setParameterFloat2(String name, double x, double y) async {
     MaterialInstance_setParameterFloat2(
         _pointer, name.toNativeUtf8().cast<Char>(), x, y);
+  }
+
+  @override
+  Future setParameterFloat(String name, double value) async {
+    MaterialInstance_setParameterFloat(
+        _pointer, name.toNativeUtf8().cast<Char>(), value);
   }
 }
 

@@ -371,6 +371,16 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(TSceneManager *sceneManager, void (*callback)(TMaterialInstance*)) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto instance = SceneManager_createUnlitFixedSizeMaterialInstance(sceneManager);
+          callback(instance);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager,
                                                                const uint8_t *const data,
                                                                size_t length,

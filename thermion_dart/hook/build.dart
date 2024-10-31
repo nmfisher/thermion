@@ -60,7 +60,7 @@ void main(List<String> args) async {
         .map((f) => f.path)
         .toList();
     sources.addAll([
-      path.join(pkgRootFilePath, "native", "include", "material", "gizmo_material.c"),
+      path.join(pkgRootFilePath, "native", "include", "material", "unlit_fixed_size.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "unlit.c"),

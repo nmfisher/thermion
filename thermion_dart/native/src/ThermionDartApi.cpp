@@ -173,6 +173,14 @@ extern "C"
         return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances, keepData);
     }
 
+    EMSCRIPTEN_KEEPALIVE TGizmo* SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene) {
+        auto sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
+        auto *scene = reinterpret_cast<Scene*>(tScene);
+        auto *view = reinterpret_cast<View*>(tView);
+        auto gizmo = sceneManager->createGizmo(view, scene);
+        return reinterpret_cast<TGizmo*>(gizmo);
+    }
+    
     EMSCRIPTEN_KEEPALIVE EntityId SceneManager_loadGlbFromBuffer(TSceneManager *sceneManager, const uint8_t *const data, size_t length, bool keepData, int priority, int layer, bool loadResourcesAsync)
     {
         return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer, loadResourcesAsync);
@@ -1026,6 +1034,12 @@ extern "C"
         return reinterpret_cast<TMaterialInstance *>(instance);
     }
 
+    EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitFixedSizeMaterialInstance(TSceneManager *sceneManager)
+    {
+        auto *instance = ((SceneManager *)sceneManager)->createUnlitFixedSizeMaterialInstance();
+        return reinterpret_cast<TMaterialInstance *>(instance);
+    }
+
     EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance)
     {
         ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance *>(instance));
@@ -1047,6 +1061,10 @@ extern "C"
         reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
     }
 
+    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *materialInstance, const char *propertyName, double value)
+    {
+        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, static_cast<float>(value));
+    }
 
     EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)
     {

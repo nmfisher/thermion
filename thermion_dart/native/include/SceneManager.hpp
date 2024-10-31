@@ -19,15 +19,16 @@
 #include <filament/InstanceBuffer.h>
 #include <utils/NameComponentManager.h>
 
-#include "CustomGeometry.hpp"
+#include "tsl/robin_map.h"
+
 
 #include "APIBoundaryTypes.h"
+#include "CustomGeometry.hpp"
+#include "Gizmo.hpp"
 #include "GridOverlay.hpp"
 #include "ResourceBuffer.hpp"
 #include "components/CollisionComponentManager.hpp"
 #include "components/AnimationComponentManager.hpp"
-
-#include "tsl/robin_map.h"
 
 
 namespace thermion
@@ -287,6 +288,8 @@ namespace thermion
             return _ubershaderProvider;
         }
 
+        MaterialInstance* createUnlitFixedSizeMaterialInstance();
+
         MaterialInstance* createUnlitMaterialInstance();
 
         void setVisibilityLayer(EntityId entityId, int layer);
@@ -298,6 +301,8 @@ namespace thermion
         size_t getCameraCount();
 
         Camera* getCameraAt(size_t index);
+        
+        Gizmo *createGizmo(View *view, Scene *scene);
 
         bool isGizmoEntity(utils::Entity entity);
 
@@ -320,6 +325,8 @@ namespace thermion
         std::mutex _mutex;
         std::mutex _stencilMutex;
         std::vector<MaterialInstance*> _materialInstances;
+
+        Material* _gizmoMaterial = nullptr;
 
         utils::NameComponentManager *_ncm;
 
