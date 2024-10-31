@@ -17,8 +17,6 @@
 #include <filament/IndexBuffer.h>
 #include <filament/InstanceBuffer.h>
 
-#include "material/gizmo.h"
-
 #include "ThermionDartApi.h"
 
 namespace thermion {
@@ -31,7 +29,7 @@ class Gizmo {
     enum Axis { X, Y, Z};
     
     public:
-        Gizmo(Engine *engine, View *view, Scene *scene);
+        Gizmo(Engine *engine, View *view, Scene *scene, Material* material);
         ~Gizmo();
 
         typedef void (*PickCallback)(EntityId entityId, uint32_t x, uint32_t y, View *view);
@@ -91,8 +89,10 @@ class Gizmo {
         Engine *_engine;
         Scene *_scene;
         View *_view;
-        utils::Entity _entities[7] = { utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity() };
         Material* _material;
+        
+        utils::Entity _entities[7] = { utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity(), utils::Entity() };
+        
         MaterialInstance* _materialInstances[7];
         math::float4 inactiveColors[3] {
             math::float4 { 1.0f, 0.0f, 0.0f, 0.5f },

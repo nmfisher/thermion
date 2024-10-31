@@ -23,7 +23,7 @@ bindings:
 # 
 materials: FORCE
 	@echo "Using Filament build from ${FILAMENT_PATH}"
-	@for material in unlit image gizmo grid; do \
+	@for material in unlit image unlit_fixed_size grid; do \
 		${FILAMENT_PATH}/matc -a opengl -a metal -o materials/$$material.filamat materials/$$material.mat; \
 		$(FILAMENT_PATH)/resgen -c -p $$material -x thermion_dart/native/include/material/ materials/$$material.filamat; \
 		echo '#include "'$$material'.h"' | cat - thermion_dart/native/include/material/$$material.c > thermion_dart/native/include/material/$$material.c.new; \

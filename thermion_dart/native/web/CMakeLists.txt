@@ -62,7 +62,7 @@ add_executable(${MODULE_NAME}
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Manipulator.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Bookmark.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/image.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/gizmo.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/unlit_fixed_size.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionDartWebApi.cpp"
 )
 set_target_properties(${MODULE_NAME} PROPERTIES

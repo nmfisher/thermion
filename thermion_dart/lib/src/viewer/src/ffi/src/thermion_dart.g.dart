@@ -622,6 +622,15 @@ external int get_bone(
 );
 
 @ffi.Native<
+    ffi.Pointer<TGizmo> Function(ffi.Pointer<TSceneManager>, ffi.Pointer<TView>,
+        ffi.Pointer<TScene>)>(isLeaf: true)
+external ffi.Pointer<TGizmo> SceneManager_createGizmo(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+);
+
+@ffi.Native<
     EntityId Function(
         ffi.Pointer<TSceneManager>,
         ffi.Pointer<ffi.Float>,
@@ -655,6 +664,14 @@ external int SceneManager_createGeometry(
         ffi.Pointer<TSceneManager>)>(isLeaf: true)
 external ffi.Pointer<TMaterialInstance>
     SceneManager_createUnlitMaterialInstance(
+  ffi.Pointer<TSceneManager> sceneManager,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<TSceneManager>)>(isLeaf: true)
+external ffi.Pointer<TMaterialInstance>
+    SceneManager_createUnlitFixedSizeMaterialInstance(
   ffi.Pointer<TSceneManager> sceneManager,
 );
 
@@ -1206,6 +1223,15 @@ external void MaterialInstance_setParameterFloat2(
   double y,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  double value,
+);
+
 @ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
 external TViewport View_getViewport(
   ffi.Pointer<TView> view,
@@ -1602,6 +1628,20 @@ external void SceneManager_loadGlbFromBufferRenderThread(
                 ffi.Void Function(
                     ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
 external void SceneManager_createUnlitMaterialInstanceRenderThread(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
+      callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneManager>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
+external void SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(
   ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
@@ -2027,15 +2067,6 @@ void Camera_setProjection(
       near,
       far,
     );
-
-@ffi.Native<
-    ffi.Pointer<TGizmo> Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>,
-        ffi.Pointer<TScene>)>(isLeaf: true)
-external ffi.Pointer<TGizmo> Gizmo_new(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TScene> tScene,
-);
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32,

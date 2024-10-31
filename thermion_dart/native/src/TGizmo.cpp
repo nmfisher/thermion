@@ -14,15 +14,6 @@ extern "C"
 using namespace filament;
 #endif
 
-    EMSCRIPTEN_KEEPALIVE TGizmo* Gizmo_new(TEngine *tEngine, TView *tView, TScene *tScene)
-    {
-        auto *view = reinterpret_cast<View*>(tView);
-        auto *engine = reinterpret_cast<Engine*>(tEngine);
-        auto *scene = reinterpret_cast<Scene*>(tScene);
-        auto gizmo = new Gizmo(engine, view, scene);
-        return reinterpret_cast<TGizmo*>(gizmo);
-    }
-
     EMSCRIPTEN_KEEPALIVE void Gizmo_pick(TGizmo *tGizmo, uint32_t x, uint32_t y, GizmoPickCallback callback)
     {
         auto *gizmo = reinterpret_cast<Gizmo*>(tGizmo);

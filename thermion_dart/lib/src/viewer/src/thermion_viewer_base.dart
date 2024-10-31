@@ -898,6 +898,11 @@ abstract class ThermionViewer {
   ///
   ///
   ///
+  Future<MaterialInstance> createUnlitFixedSizeMaterialInstance();
+
+  ///
+  ///
+  ///
   Future<MaterialInstance?> getMaterialInstanceAt(
       ThermionEntity entity, int index);
 
