@@ -68,11 +68,21 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       var dpr = MediaQuery.of(context).devicePixelRatio;
 
       var size = ((context.findRenderObject()) as RenderBox).size;
+
+      _logger.info(
+          "Widget size in logical pixels ${size} (pixel ratio : $dpr)");
+      
       var width = (size.width * dpr).ceil();
       var height = (size.height * dpr).ceil();
 
+      _logger.info(
+          "Target texture dimensions ${width}x${height} (pixel ratio : $dpr)");
+
       _texture = await ThermionFlutterPlatform.instance
           .createTexture(widget.view, width, height);
+
+      _logger.info(
+          "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
 
       await widget.view.updateViewport(_texture!.width, _texture!.height);
 
@@ -177,12 +187,18 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       var newWidth = newSize.width.ceil();
       var newHeight = newSize.height.ceil();
 
+      _logger.info(
+          "Resizing texture to dimensions ${newWidth}x${newHeight} (pixel ratio : $dpr)");
+
       await _texture?.resize(
         newWidth,
         newHeight,
         0,
         0,
       );
+
+      _logger.info(
+          "Resized texture to dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
 
       await widget.view.updateViewport(_texture!.width, _texture!.height);
 
