@@ -24,11 +24,15 @@
 
 ### Quickstart (Flutter)
 
+From the command line:
+
 ```bash
 flutter channel master
 flutter upgrade
 flutter config --enable-native-assets  
 ```
+
+In your Flutter app:
 
 ```dart
 _thermionViewer = await ThermionFlutterPlugin.createViewer();
@@ -61,8 +65,8 @@ await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
 await _thermionViewer!.setRendering(true);
 ```
 
-and then in your Flutter application:
-```
+and then in your widget tree:
+```dart
  @override
   Widget build(BuildContext context) {
     return Stack(children: [
