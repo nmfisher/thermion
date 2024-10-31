@@ -1,3 +1,7 @@
+## 0.2.1-dev.0.0.16
+
+ - **FEAT**: Rename Gizmo material to UnlitFixedSize, and expose methods for using this material on other entities. Also exposes new methods for setting single float parameters.
+
 ## 0.2.1-dev.0.0.15
 
  - **FIX**: remove superfluous ceil() calls for picking coordinates.
