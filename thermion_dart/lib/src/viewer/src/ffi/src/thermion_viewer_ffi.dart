@@ -1514,7 +1514,7 @@ class ThermionViewerFFI extends ThermionViewer {
     final viewport = await view.getViewport();
 
     _pickResultController
-        .add((entity: entityId, x: x.ceil(), y: (viewport.height - y).ceil(), depth: depth, fragX: fragX, fragY: viewport.height - fragY, fragZ: fragZ ));
+        .add((entity: entityId, x: x, y: (viewport.height - y), depth: depth, fragX: fragX, fragY: viewport.height - fragY, fragZ: fragZ ));
   }
 
   late NativeCallable<
@@ -1528,7 +1528,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future pick(int x, int y) async {
     final view = (await getViewAt(0)) as FFIView;
     var viewport = await view.getViewport();
-    y = (viewport.height - y).ceil();
+    y = viewport.height - y;
     Viewer_pick(
         _viewer!, view.view, x, y, _onPickResultCallable.nativeFunction);
   }
