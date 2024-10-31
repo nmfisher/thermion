@@ -24,13 +24,13 @@
 
 ### Quickstart (Flutter)
 
-```
+```bash
 flutter channel master
 flutter upgrade
 flutter config --enable-native-assets  
 ```
 
-```
+```dart
 _thermionViewer = await ThermionFlutterPlugin.createViewer();
 
 // Geometry and models are represented as "entities". Here, we load a glTF
