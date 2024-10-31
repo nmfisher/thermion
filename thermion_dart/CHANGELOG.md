@@ -1,3 +1,8 @@
+## 0.2.1-dev.0.0.15
+
+ - **FIX**: remove superfluous ceil() calls for picking coordinates.
+ - **FEAT**: expose zoomSensitivity argument for flight input handler.
+
 ## 0.2.1-dev.0.0.14
 
  - **FIX**: reduce size of pick functor for compatibility with armeabi-v7a.

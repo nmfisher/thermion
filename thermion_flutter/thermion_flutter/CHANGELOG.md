@@ -1,3 +1,7 @@
+## 0.2.1-dev.15
+
+ - **FIX**: multiply coordinates by pixelRatio for scale events.
+
 ## 0.2.1-dev.14
 
  - Update a dependency to the latest release.
