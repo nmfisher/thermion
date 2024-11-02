@@ -32,7 +32,7 @@ jobs:
 
       - name: Build and Test
         shell: cmd
-        run: dart --enable-experiment=native-assets test test
+        run: dart --enable-experiment=native-assets test
 
       # Upload logs on failure
       - name: Upload logs
