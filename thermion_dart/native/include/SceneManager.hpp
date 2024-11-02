@@ -230,7 +230,12 @@ namespace thermion
         /// @param out a pointer large enough to store four floats (the min/max coordinates of the bounding box)
         /// @return
         ///
-        Aabb2 getBoundingBox(View* view, EntityId entity);
+        Aabb2 getScreenSpaceBoundingBox(View* view, EntityId entity);
+
+        /// @brief returns the 3D bounding box of the renderable instance for the given entity.
+        /// @return the bounding box
+        ///
+        Aabb3 getRenderableBoundingBox(EntityId entity);
 
         ///
         /// Creates an entity with the specified geometry/material/normals and adds to the scene.
@@ -256,11 +261,15 @@ namespace thermion
             return _unlitMaterialProvider;
         }
 
+        bool isGeometryInstance(EntityId entity) {
+            return std::find(_geometryInstances.begin(), _geometryInstances.end(), entity) != _geometryInstances.end();
+        }
+
         bool isGeometryEntity(EntityId entity) {
             return _geometry.find(entity) != _geometry.end();
         }
 
-        const CustomGeometry* const getGeometry(EntityId entityId) {
+        CustomGeometry* const getGeometry(EntityId entityId) {
             return _geometry[entityId].get();
         }
 
@@ -336,6 +345,7 @@ namespace thermion
             _instances;
         tsl::robin_map<EntityId, gltfio::FilamentAsset *> _assets;
         tsl::robin_map<EntityId, unique_ptr<CustomGeometry>> _geometry;
+        std::vector<EntityId> _geometryInstances;
         tsl::robin_map<EntityId, unique_ptr<HighlightOverlay>> _highlighted;        
         tsl::robin_map<EntityId, math::mat4> _transformUpdates;
         std::set<Texture*> _textures;

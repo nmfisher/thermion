@@ -3,13 +3,16 @@
 #include <stddef.h>
 
 #include <filament/Engine.h>
+#include <filament/Frustum.h>
 #include <filament/VertexBuffer.h>
 #include <filament/IndexBuffer.h>
 #include <filament/TransformManager.h>
 #include <filament/Texture.h>
 #include <filament/RenderableManager.h>
 #include <filament/Viewport.h>
-#include <filament/Frustum.h>
+
+#include <utils/Entity.h>
+#include <utils/EntityManager.h>
 
 namespace thermion
 {
@@ -32,9 +35,13 @@ public:
         Engine* engine);
     ~CustomGeometry();
 
-    VertexBuffer* vertexBuffer() const;
-    IndexBuffer* indexBuffer() const;
-    Box getBoundingBox() const;
+    utils::Entity createInstance(MaterialInstance *materialInstance);
+    
+private:
+    Engine* _engine;
+
+    VertexBuffer* vertexBuffer;
+    IndexBuffer* indexBuffer;
 
     float* vertices = nullptr;
     float* normals = nullptr;
@@ -44,11 +51,6 @@ public:
     uint32_t numIndices = 0;
     Box boundingBox;
     RenderableManager::PrimitiveType primitiveType;
-
-private:
-    Engine* _engine;
-    bool _vertexBufferFreed = false;
-    bool _indexBufferFreed = false;
 
     void computeBoundingBox();
 
