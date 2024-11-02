@@ -1,18 +1,131 @@
-#include "thermion_window.h"
+#pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "opengl32.lib")
+#pragma comment(lib, "Gdi32.lib")
+#pragma comment(lib, "User32.lib")
 
 #include <cstdint>
-#include <iostream>
 #include <chrono> 
 #include <thread>
-
+#include <algorithm>
 #include <Windows.h>
 #include <dwmapi.h>
 #include <ShObjIdl.h>
 
-#pragma comment(lib, "dwmapi.lib")
-#pragma comment(lib, "comctl32.lib")
+#include <iostream>
+#include <Windows.h>
+
+#include "thermion_window.h"
 
 namespace thermion {
+
+  ///
+/// Instantiating a ThermionWindow creates a HWND that can be passed 
+/// to Filament to create a swapchain.
+///
+///
+class ThermionWindow {
+    public:
+    ThermionWindow(
+        int width, 
+        int height, 
+        int left,
+        int top);
+    HWND GetHandle();
+    void Resize(int width, int height, int left, int top);
+    uint32_t _width = 0;
+    uint32_t _height = 0;
+    uint32_t _left = 0;
+    uint32_t _top = 0;
+    private:
+        HWND _windowHandle;
+
+};
+
+static ThermionWindow* _window;
+
+
+static bool _running = false;
+static std::thread _renderThread;
+
+// Add these for timing and stats
+static int _frameCount = 0;
+static std::chrono::time_point<std::chrono::steady_clock> _lastFpsLog;
+
+static void RenderLoop() {
+    _lastFpsLog = std::chrono::steady_clock::now();
+    auto lastFrame = std::chrono::steady_clock::now();
+
+    while (_running) {
+        auto now = std::chrono::steady_clock::now();
+        auto frameDuration = std::chrono::duration_cast<std::chrono::microseconds>(now - lastFrame).count();
+        
+        // Force a redraw
+        InvalidateRect(_window->GetHandle(), NULL, FALSE);
+
+        // Process any pending messages
+        MSG msg;
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) {
+                _running = false;
+                break;
+            }
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        // Wait for vsync
+        DwmFlush();
+
+        // Update timing stats
+        lastFrame = now;
+        _frameCount++;
+
+        // Log FPS every second
+        auto timeSinceLastLog = std::chrono::duration_cast<std::chrono::milliseconds>(now - _lastFpsLog).count();
+        if (timeSinceLastLog >= 1000) {  // Every second
+            float fps = (_frameCount * 1000.0f) / timeSinceLastLog;
+            float avgFrameTime = timeSinceLastLog / (float)_frameCount;
+            std::cout << "FPS: " << fps << " Frame Time: " << avgFrameTime << "ms" 
+                     << " Last Frame: " << frameDuration / 1000.0f << "ms" << std::endl;
+            
+            _frameCount = 0;
+            _lastFpsLog = now;
+        }
+    }
+}
+
+extern "C" {
+  
+ EMSCRIPTEN_KEEPALIVE intptr_t create_thermion_window(int width, int height, int left, int top) { 
+                _window = new ThermionWindow(width, height, left, top);
+        
+        // Start the render thread
+        _running = true;
+        _renderThread = std::thread(RenderLoop);
+        
+        return (intptr_t)_window->GetHandle();
+    }
+
+     // Update function can now be simplified or removed since rendering happens in the thread
+    EMSCRIPTEN_KEEPALIVE void update() {     
+        // This could be used to trigger specific updates if needed
+        InvalidateRect(_window->GetHandle(), NULL, FALSE);
+    }
+
+       // Add a cleanup function
+    EMSCRIPTEN_KEEPALIVE void cleanup() {
+        _running = false;
+        if (_renderThread.joinable()) {
+            _renderThread.join();
+        }
+        if (_window) {
+            delete _window;
+            _window = nullptr;
+        }
+    }
+}
 
 static constexpr auto kClassName = L"THERMION_WINDOW";
 static constexpr auto kWindowName = L"thermion_window";
@@ -131,114 +244,126 @@ void SetWindowComposition(HWND window, int32_t accent_state,
 }
 
 
+// Add tracking for drag state
+static bool isDragging = false;
+static POINT dragStart = {0, 0};
+static POINT windowStart = {0, 0};
+
+
 LRESULT CALLBACK FilamentWindowProc(HWND const window, UINT const message,
                                     WPARAM const wparam,
                                     LPARAM const lparam) noexcept {
-  switch (message) {
-    std::cout << message <<std::endl;
-  case WM_MOUSEMOVE: {
-    TRACKMOUSEEVENT event;
-    event.cbSize = sizeof(event);
-    event.hwndTrack = window;
-    event.dwFlags = TME_HOVER;
-    event.dwHoverTime = 200;
-    auto user_data = ::GetWindowLongPtr(window, GWLP_USERDATA);
-    if (user_data) {
-      HWND flutterRootWindow = reinterpret_cast<HWND>(user_data);
-      ::SetForegroundWindow(flutterRootWindow);
-      LONG ex_style = ::GetWindowLong(flutterRootWindow, GWL_EXSTYLE);
-      ex_style &= ~(WS_EX_TRANSPARENT | WS_EX_LAYERED);
-      ::SetWindowLong(flutterRootWindow, GWL_EXSTYLE, ex_style);
+    switch (message) {
+        case WM_DESTROY: {
+            PostQuitMessage(0);
+            return 0;
+        }
+        case WM_NCHITTEST: {
+            POINT pt = { LOWORD(lparam), HIWORD(lparam) };
+            ScreenToClient(window, &pt);
+            return HTCAPTION;
+        }
+        
+        case WM_MOUSEMOVE: {
+            TRACKMOUSEEVENT event;
+            event.cbSize = sizeof(event);
+            event.hwndTrack = window;
+            event.dwFlags = TME_HOVER;
+            event.dwHoverTime = 200;
+            auto user_data = ::GetWindowLongPtr(window, GWLP_USERDATA);
+            if (user_data) {
+                HWND flutterRootWindow = reinterpret_cast<HWND>(user_data);
+                LONG ex_style = ::GetWindowLong(flutterRootWindow, GWL_EXSTYLE);
+                ex_style &= ~(WS_EX_TRANSPARENT | WS_EX_LAYERED);
+                ::SetWindowLong(flutterRootWindow, GWL_EXSTYLE, ex_style);
+            }
+            break;
+        }
+
+        case WM_ERASEBKGND: {
+            HDC hdc = (HDC)wparam;
+            RECT rect;
+            GetClientRect(window, &rect);
+            
+            ThermionWindow* thermionWindow = reinterpret_cast<ThermionWindow*>(
+                GetWindowLongPtr(window, GWLP_USERDATA));
+            
+            if (thermionWindow) {
+                HBRUSH brush = CreateSolidBrush(RGB(0, 0, 255));
+                FillRect(hdc, &rect, brush);
+                DeleteObject(brush);
+            }
+            return TRUE;
+        }
+
+        case WM_SIZE:
+        case WM_MOVE:
+        case WM_MOVING:
+        case WM_WINDOWPOSCHANGED: {
+            auto user_data = ::GetWindowLongPtr(window, GWLP_USERDATA);
+            if (user_data) {
+                HWND flutterRootWindow = reinterpret_cast<HWND>(user_data);
+                LONG ex_style = ::GetWindowLong(flutterRootWindow, GWL_EXSTYLE);
+                ex_style &= ~(WS_EX_TRANSPARENT | WS_EX_LAYERED);
+                ::SetWindowLong(flutterRootWindow, GWL_EXSTYLE, ex_style);
+            }
+            break;
+        }
+
+        default:
+            return ::DefWindowProc(window, message, wparam, lparam);
     }
-    break;
-  }
-  case WM_ERASEBKGND: {
-      HDC hdc = (HDC)wparam;
-      RECT rect;
-      GetClientRect(window, &rect);
-      
-      // Get the ThermionWindow instance associated with this window
-      ThermionWindow* thermionWindow = reinterpret_cast<ThermionWindow*>(
-          GetWindowLongPtr(window, GWLP_USERDATA));
-      
-      if (thermionWindow) {
-        HBRUSH brush = CreateSolidBrush(RGB(0, 0, 255));
-        FillRect(hdc, &rect, brush);
-        DeleteObject(brush);
-      }
-    
-    break;
-  }
-  case WM_SIZE:
-    break;
-  case WM_MOVE:
-  case WM_MOVING:
-  case WM_ACTIVATE:
-  case WM_WINDOWPOSCHANGED: {
-    // NativeViewCore::GetInstance()->SetHitTestBehavior(0);
-    auto user_data = ::GetWindowLongPtr(window, GWLP_USERDATA);
-    if (user_data) {
-      HWND flutterRootWindow = reinterpret_cast<HWND>(user_data);
-      ::SetForegroundWindow(flutterRootWindow);
-      // NativeViewCore::GetInstance()->SetHitTestBehavior(0);
-      LONG ex_style = ::GetWindowLong(flutterRootWindow, GWL_EXSTYLE);
-      ex_style &= ~(WS_EX_TRANSPARENT | WS_EX_LAYERED);
-      ::SetWindowLong(flutterRootWindow, GWL_EXSTYLE, ex_style);
-    }
-    break;
-  }
-  default:
-    break;
-  }
-  return ::DefWindowProc(window, message, wparam, lparam);
+    return 0;
 }
 
 ThermionWindow::ThermionWindow(int width, 
                             int height,
                             int left,
                             int top) : _width(width), _height(height), _left(left), _top(top) {
-  // create the HWND for Filament
-  auto window_class = WNDCLASSEX{};
-  ::SecureZeroMemory(&window_class, sizeof(window_class));
-  window_class.cbSize = sizeof(window_class);
-  window_class.style = CS_HREDRAW | CS_VREDRAW;
-  window_class.lpfnWndProc = FilamentWindowProc;
-  window_class.hInstance = 0;
-  window_class.lpszClassName = kClassName;
-  window_class.hCursor = ::LoadCursorW(nullptr, IDC_ARROW);
-  window_class.hbrBackground = ::CreateSolidBrush(RGB(0,255,0));
-  ::RegisterClassExW(&window_class);
-  _windowHandle = ::CreateWindow(kClassName, kWindowName, WS_OVERLAPPEDWINDOW,
-                                 0, 0, _width, _height, nullptr,
-                                 nullptr, GetModuleHandle(nullptr), nullptr);
+    auto window_class = WNDCLASSEX{};
+    ::SecureZeroMemory(&window_class, sizeof(window_class));
+    window_class.cbSize = sizeof(window_class);
+    window_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+    window_class.lpfnWndProc = FilamentWindowProc;
+    window_class.hInstance = GetModuleHandle(nullptr);
+    window_class.lpszClassName = L"THERMION_WINDOW";
+    window_class.hCursor = ::LoadCursorW(nullptr, IDC_ARROW);
+    window_class.hbrBackground = ::CreateSolidBrush(RGB(0,255,0));
+    ::RegisterClassExW(&window_class);
 
-  // Disable DWM animations
-  auto disable_window_transitions = TRUE;
-  DwmSetWindowAttribute(_windowHandle, DWMWA_TRANSITIONS_FORCEDISABLED,
+    // Create a normal popup window without forcing it to be topmost
+    _windowHandle = ::CreateWindowW(
+        L"THERMION_WINDOW", 
+        L"thermion_window",
+        WS_OVERLAPPEDWINDOW,
+        left, top, width, height,
+        nullptr, nullptr,
+        GetModuleHandle(nullptr), 
+        nullptr
+    );
+
+    // Store the this pointer for use in window procedure
+    ::SetWindowLongPtr(_windowHandle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+
+    // Disable DWM animations
+    auto disable_window_transitions = TRUE;
+    DwmSetWindowAttribute(_windowHandle, DWMWA_TRANSITIONS_FORCEDISABLED,
                         &disable_window_transitions,
                         sizeof(disable_window_transitions));
 
-  auto style = ::GetWindowLong(_windowHandle, GWL_STYLE);
-  style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX |
-             WS_EX_APPWINDOW);
-  ::SetWindowLong(_windowHandle, GWL_STYLE, style);
-  
-  // // remove taskbar entry for the window we created
-  // ITaskbarList3* taskbar = nullptr;
-  // ::CoCreateInstance(CLSID_TaskbarList, 0, CLSCTX_INPROC_SERVER,
-  //                    IID_PPV_ARGS(&taskbar));
-  // taskbar->DeleteTab(_windowHandle);
-  // taskbar->Release();
-  ::ShowWindow(_windowHandle, SW_SHOW);
-  UpdateWindow(_windowHandle);
+    ::ShowWindow(_windowHandle, SW_SHOW);
+    UpdateWindow(_windowHandle);
 }
 
 void ThermionWindow::Resize(int width, int height, int left, int top) {
-  _width = width;
-  _height = height;
-  _left = left;
-  _top = top;
+    _width = width;
+    _height = height;
+    _left = left;
+    _top = top;
+    ::SetWindowPos(_windowHandle, nullptr, left, top, width, height,
+                   SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 HWND ThermionWindow::GetHandle() { return _windowHandle; }
-} // namespace thermion_flutter
+
+} // namespace thermion
