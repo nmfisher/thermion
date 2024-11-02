@@ -55,8 +55,6 @@ namespace thermion
         if (_isGeometryEntity)
         {
 
-            Log("Entity %d is geometry", entityId);
-
             auto geometryEntity = Entity::import(entityId);
             auto renderable = rm.getInstance(geometryEntity);
 
@@ -74,17 +72,7 @@ namespace thermion
 
             auto geometry = sceneManager->getGeometry(entityId);
 
-            _entity = utils::EntityManager::get().create();
-            RenderableManager::Builder builder(1);
-            builder.boundingBox(geometry->getBoundingBox())
-                .geometry(0, geometry->primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, geometry->numIndices)
-                .culling(true)
-                .material(0, _highlightMaterialInstance)
-                .priority(0)
-                .receiveShadows(false)
-                .castShadows(false);
-
-            builder.build(*engine, _entity);
+            _entity = geometry->createInstance(materialInstance);
 
             scene->addEntity(_entity);
             auto outlineTransformInstance = tm.getInstance(_entity);

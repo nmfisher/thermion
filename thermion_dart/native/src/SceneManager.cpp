@@ -412,6 +412,15 @@ namespace thermion
     {
         std::lock_guard lock(_mutex);
 
+        if(isGeometryEntity(entityId)) {
+            auto geometry = getGeometry(entityId);
+            auto materialInstance = createUnlitMaterialInstance();
+            auto instanceEntity = geometry->createInstance(materialInstance);
+            _scene->addEntity(instanceEntity);
+
+            return Entity::smuggle(instanceEntity);
+        }
+
         const auto &pos = _assets.find(entityId);
         if (pos == _assets.end())
         {
@@ -696,9 +705,19 @@ namespace thermion
 
         if (isGeometryEntity(entityId))
         {
+            return;            
+        } else if(isGeometryInstance(entityId)) {
+            // destroy renderable
+            auto & rm = _engine->getRenderableManager();
+            auto & em = _engine->getEntityManager();
+            auto instanceEntity = utils::Entity::import(entityId);
+            auto it = std::find(_geometryInstances.begin(), _geometryInstances.end(), entityId);
+            _geometryInstances.erase(it);
+            rm.destroy(instanceEntity);
+            em.destroy(instanceEntity);
+            _engine->destroy(instanceEntity);
             return;
-        }
-
+        } 
         const auto *instance = getInstanceByEntityId(entityId);
 
         if (instance)
@@ -2203,7 +2222,17 @@ namespace thermion
         rm.setPriority(renderableInstance, priority);
     }
 
-    Aabb2 SceneManager::getBoundingBox(View *view, EntityId entityId)
+    Aabb3 SceneManager::getRenderableBoundingBox(EntityId entityId) {
+        auto& rm = _engine->getRenderableManager();
+        auto instance = rm.getInstance(Entity::import(entityId));
+        if(!instance.isValid()) {
+            return Aabb3 {};
+        }
+        auto box = rm.getAxisAlignedBoundingBox(instance);
+        return Aabb3 { box.center.x, box.center.y, box.center.z, box.halfExtent.x, box.halfExtent.y, box.halfExtent.z };
+    }
+
+    Aabb2 SceneManager::getScreenSpaceBoundingBox(View *view, EntityId entityId)
     {
         const auto &camera = view->getCamera();
         const auto &viewport = view->getViewport();
@@ -2316,16 +2345,7 @@ namespace thermion
         bool keepData)
     {
         auto geometry = std::make_unique<CustomGeometry>(vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, _engine);
-
-        auto entity = utils::EntityManager::get().create();
-        RenderableManager::Builder builder(1);
-
-        builder.boundingBox(geometry->getBoundingBox())
-            .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
-            .culling(true)
-            .receiveShadows(true)
-            .castShadows(true);
-
+    
         filament::Material *mat = nullptr;
 
         if (!materialInstance)
@@ -2399,16 +2419,14 @@ namespace thermion
             }
         }
 
-        builder.material(0, materialInstance);
-        builder.build(*_engine, entity);
+        auto instanceEntity = geometry->createInstance(materialInstance); 
+        auto instanceEntityId = Entity::smuggle(instanceEntity);
+        _scene->addEntity(instanceEntity);
+        _geometryInstances.push_back(instanceEntityId);
 
-        _scene->addEntity(entity);
+        _geometry.emplace(instanceEntityId, std::move(geometry));
 
-        auto entityId = Entity::smuggle(entity);
-
-        _geometry.emplace(entityId, std::move(geometry));
-
-        return entityId;
+        return instanceEntityId;
     }
 
     MaterialInstance *SceneManager::getMaterialInstanceAt(EntityId entityId, int materialIndex)
