@@ -23,8 +23,10 @@ void main() async {
         var cube = await viewer.createGeometry(GeometryHelper.cube(),
             materialInstance: materialInstance);
 
-        await viewer.setMaterialPropertyFloat4(
-            cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+        await materialInstance.setParameterInt(
+            "baseColorIndex", -1);
 
         await testHelper.capture(viewer, "unlit_material_base_color");
 
