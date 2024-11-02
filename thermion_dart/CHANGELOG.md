@@ -1,3 +1,19 @@
+## 0.2.1-dev.0.0.16
+
+ - **FEAT**: Rename Gizmo material to UnlitFixedSize, and expose methods for using this material on other entities. Also exposes new methods for setting single float parameters.
+
+## 0.2.1-dev.0.0.15
+
+ - **FIX**: remove superfluous ceil() calls for picking coordinates.
+ - **FEAT**: expose zoomSensitivity argument for flight input handler.
+
+## 0.2.1-dev.0.0.14
+
+ - **FIX**: reduce size of pick functor for compatibility with armeabi-v7a.
+ - **FEAT**: sanitize file paths in build.dart for Windows compatibility.
+ - **FEAT**: pass through fragment coordinates for picking.
+ - **FEAT**: pass through fragment coordinates for picking.
+
 ## 0.2.1-dev.0.0.13
 
  - **FIX**: properly pass through loadResourcesAsync flag for loadGlbFromBuffer.

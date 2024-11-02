@@ -20,10 +20,13 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
       await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
-      await viewer
+      final cube = await viewer
           .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
 
       await testHelper.capture(viewer, "geometry_cube_no_uv_no_normal");
+      await viewer.removeEntity(cube);
+      await testHelper.capture(viewer, "geometry_cube_removed");
+      await viewer.dispose();
     });
 
     test('create cube (no normals)', () async {
@@ -178,6 +181,17 @@ void main() async {
       await viewer
           .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
       await testHelper.capture(viewer, "geometry_sphere_no_normals");
+    });
+
+    test('create geometry instance', () async {
+      var viewer = await testHelper.createViewer(
+          cameraPosition: Vector3(0, 0, 6), bg: kRed);
+      final cube = await viewer
+          .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
+      await viewer.setTransform(cube, Matrix4.translation(Vector3(2, 1, 1)));
+      final cube2 = await viewer.createInstance(cube);
+      await viewer.setTransform(cube2, Matrix4.translation(Vector3(-2, 1, 1)));
+      await testHelper.capture(viewer, "geometry_instance");
     });
   });
 }

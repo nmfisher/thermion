@@ -1,5 +1,5 @@
     material {
-        name : Gizmo,
+        name : UnlitFixedSize,
         parameters : [
             {
                 type : mat4,
@@ -8,8 +8,13 @@
             },
             {
                 type : float4,
-                name : color,
+                name : baseColorFactor,
                 precision : low
+            },
+            {
+                type: float, // the number of world-space units between the camera and the (unscaled) gizmo
+                name: scale,
+                precision: low
             }
         ],
         depthWrite : true,
@@ -24,14 +29,13 @@
 
     vertex {
         void materialVertex(inout MaterialVertexInputs material) {	
-
-            // we want to ensure the gizmo has the same size (in screen-space), no matter the distance from the camera
-            // we do this by scaling the model-space vertex positions by the distance from the camera
+            // the object should have the same size (in screen-space), no matter the distance from the camera
+            // scale the model-space vertex positions by the distance from the camera
             vec4 modelSpace = getPosition();
             vec4 worldSpace = getWorldFromModelMatrix() * modelSpace;
             vec4 viewSpace = getViewFromWorldMatrix() * worldSpace;           
             float distanceFromCamera = length(viewSpace.xyz);
-            modelSpace.xyz *= (distanceFromCamera / 4.0f); // divide by 4 so that the size is equivalent to the camera being 4 world-space units away from the (unscaled) gizmo
+            modelSpace.xyz *= (distanceFromCamera / materialParams.scale); 
 
             worldSpace = getWorldFromModelMatrix() * modelSpace;
             material.worldPosition = worldSpace;
@@ -44,7 +48,7 @@
     fragment {
         void material(inout MaterialInputs material) {
             prepareMaterial(material);
-            material.baseColor = materialParams.color;
+            material.baseColor = materialParams.baseColorFactor;
         }
     }
 

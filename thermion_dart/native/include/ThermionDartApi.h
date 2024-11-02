@@ -198,6 +198,7 @@ extern "C"
 										   int skinIndex,
 										   int boneIndex);
 	
+	EMSCRIPTEN_KEEPALIVE TGizmo* SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene);
 	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_createGeometry(
 		TSceneManager *sceneManager, 
 		float *vertices, 
@@ -212,6 +213,7 @@ extern "C"
 		TMaterialInstance *materialInstance, 
 		bool keepData);
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitMaterialInstance(TSceneManager *sceneManager);
+	EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitFixedSizeMaterialInstance(TSceneManager *sceneManager);
 	EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform);
 	EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *sceneManager, EntityId* entities, const double* const transforms, int numEntities);
 	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_findCameraByName(TSceneManager* tSceneManager, EntityId entity, const char* name);
@@ -275,6 +277,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void test_collisions(TSceneManager *sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_priority(TSceneManager *sceneManager, EntityId entityId, int priority);
 	
+	EMSCRIPTEN_KEEPALIVE Aabb3 SceneManager_getRenderableBoundingBox(TSceneManager *sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, TView *view, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, TView *view, EntityId entity, float *minX, float *minY, float *maxX, float *maxY);
 	
@@ -294,7 +297,10 @@ extern "C"
 	
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance* materialInstance, bool enabled);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance* materialInstance, bool enabled);
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat4(TMaterialInstance* materialInstance, const char* name, double x, double y, double w, double z);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance* materialInstance, const char* name, double x, double y);
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance* materialInstance, const char* name, double value);
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance* materialInstance, const char* name, int value);
 
 
 #ifdef __cplusplus

@@ -82,6 +82,7 @@ class DelegateInputHandler implements InputHandler {
           {PickDelegate? pickDelegate,
           bool freeLook = false,
           double panSensitivity = 0.1,
+          double zoomSensitivity = 0.1,
           double movementSensitivity = 0.1,
           double rotateSensitivity = 0.01,
           double? clampY,
@@ -93,6 +94,7 @@ class DelegateInputHandler implements InputHandler {
               clampY: clampY,
               entity: entity,
               rotationSensitivity: rotateSensitivity,
+              zoomSensitivity:zoomSensitivity,
               panSensitivity: panSensitivity,
               movementSensitivity: movementSensitivity),
           actions: {

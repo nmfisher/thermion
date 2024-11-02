@@ -19,15 +19,16 @@
 #include <filament/InstanceBuffer.h>
 #include <utils/NameComponentManager.h>
 
-#include "CustomGeometry.hpp"
+#include "tsl/robin_map.h"
+
 
 #include "APIBoundaryTypes.h"
+#include "CustomGeometry.hpp"
+#include "Gizmo.hpp"
 #include "GridOverlay.hpp"
 #include "ResourceBuffer.hpp"
 #include "components/CollisionComponentManager.hpp"
 #include "components/AnimationComponentManager.hpp"
-
-#include "tsl/robin_map.h"
 
 
 namespace thermion
@@ -229,7 +230,12 @@ namespace thermion
         /// @param out a pointer large enough to store four floats (the min/max coordinates of the bounding box)
         /// @return
         ///
-        Aabb2 getBoundingBox(View* view, EntityId entity);
+        Aabb2 getScreenSpaceBoundingBox(View* view, EntityId entity);
+
+        /// @brief returns the 3D bounding box of the renderable instance for the given entity.
+        /// @return the bounding box
+        ///
+        Aabb3 getRenderableBoundingBox(EntityId entity);
 
         ///
         /// Creates an entity with the specified geometry/material/normals and adds to the scene.
@@ -255,11 +261,15 @@ namespace thermion
             return _unlitMaterialProvider;
         }
 
+        bool isGeometryInstance(EntityId entity) {
+            return std::find(_geometryInstances.begin(), _geometryInstances.end(), entity) != _geometryInstances.end();
+        }
+
         bool isGeometryEntity(EntityId entity) {
             return _geometry.find(entity) != _geometry.end();
         }
 
-        const CustomGeometry* const getGeometry(EntityId entityId) {
+        CustomGeometry* const getGeometry(EntityId entityId) {
             return _geometry[entityId].get();
         }
 
@@ -287,6 +297,8 @@ namespace thermion
             return _ubershaderProvider;
         }
 
+        MaterialInstance* createUnlitFixedSizeMaterialInstance();
+
         MaterialInstance* createUnlitMaterialInstance();
 
         void setVisibilityLayer(EntityId entityId, int layer);
@@ -298,6 +310,8 @@ namespace thermion
         size_t getCameraCount();
 
         Camera* getCameraAt(size_t index);
+        
+        Gizmo *createGizmo(View *view, Scene *scene);
 
         bool isGizmoEntity(utils::Entity entity);
 
@@ -321,6 +335,8 @@ namespace thermion
         std::mutex _stencilMutex;
         std::vector<MaterialInstance*> _materialInstances;
 
+        Material* _gizmoMaterial = nullptr;
+
         utils::NameComponentManager *_ncm;
 
         tsl::robin_map<
@@ -329,6 +345,7 @@ namespace thermion
             _instances;
         tsl::robin_map<EntityId, gltfio::FilamentAsset *> _assets;
         tsl::robin_map<EntityId, unique_ptr<CustomGeometry>> _geometry;
+        std::vector<EntityId> _geometryInstances;
         tsl::robin_map<EntityId, unique_ptr<HighlightOverlay>> _highlighted;        
         tsl::robin_map<EntityId, math::mat4> _transformUpdates;
         std::set<Texture*> _textures;

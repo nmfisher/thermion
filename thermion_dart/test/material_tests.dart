@@ -23,10 +23,35 @@ void main() async {
         var cube = await viewer.createGeometry(GeometryHelper.cube(),
             materialInstance: materialInstance);
 
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+        await materialInstance.setParameterInt(
+            "baseColorIndex", -1);
+
+        await testHelper.capture(viewer, "unlit_material_base_color");
+
+        await viewer.dispose();
+    });
+
+    test('unlit fixed size material', () async {
+        var viewer = await testHelper.createViewer();
+        await viewer.setCameraPosition(0, 0, 6);
+        await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
+        await viewer.setPostProcessing(true);
+        await viewer.setToneMapping(ToneMapper.LINEAR);
+
+        var materialInstance = await viewer.createUnlitFixedSizeMaterialInstance();
+        var cube = await viewer.createGeometry(GeometryHelper.cube(),
+            materialInstance: materialInstance);
+
         await viewer.setMaterialPropertyFloat4(
             cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
 
-        await testHelper.capture(viewer, "unlit_material_base_color");
+        await testHelper.capture(viewer, "unlit_fixed_size_default_scale");
+
+        await materialInstance.setParameterFloat("scale", 10.0);
+
+        await testHelper.capture(viewer, "unlit_fixed_size_scale_10");
 
         await viewer.dispose();
     });

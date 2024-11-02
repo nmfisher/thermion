@@ -3,7 +3,7 @@
 <p align="center">
   <a href="https://thermion.dev/quickstart">Quickstart (Flutter)</a> •
   <a href="https://thermion.dev/">Documentation</a> •
-  <a href="https://thermion.dev/examples">Showcase</a> •
+  <a href="https://thermion.dev/showcase">Showcase</a> •
   <a href="https://dartpad.thermion.dev/">Playground</a> •
   <a href="https://discord.gg/h2VdDK3EAQ">Discord</a>
 </p>
@@ -24,13 +24,17 @@
 
 ### Quickstart (Flutter)
 
-```
+From the command line:
+
+```bash
 flutter channel master
 flutter upgrade
 flutter config --enable-native-assets  
 ```
 
-```
+In your Flutter app:
+
+```dart
 _thermionViewer = await ThermionFlutterPlugin.createViewer();
 
 // Geometry and models are represented as "entities". Here, we load a glTF
@@ -61,8 +65,8 @@ await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
 await _thermionViewer!.setRendering(true);
 ```
 
-and then in your Flutter application:
-```
+and then in your widget tree:
+```dart
  @override
   Widget build(BuildContext context) {
     return Stack(children: [

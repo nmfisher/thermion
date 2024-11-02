@@ -173,6 +173,14 @@ extern "C"
         return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances, keepData);
     }
 
+    EMSCRIPTEN_KEEPALIVE TGizmo* SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene) {
+        auto sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
+        auto *scene = reinterpret_cast<Scene*>(tScene);
+        auto *view = reinterpret_cast<View*>(tView);
+        auto gizmo = sceneManager->createGizmo(view, scene);
+        return reinterpret_cast<TGizmo*>(gizmo);
+    }
+    
     EMSCRIPTEN_KEEPALIVE EntityId SceneManager_loadGlbFromBuffer(TSceneManager *sceneManager, const uint8_t *const data, size_t length, bool keepData, int priority, int layer, bool loadResourcesAsync)
     {
         return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer, loadResourcesAsync);
@@ -868,7 +876,7 @@ extern "C"
         TMaterialInstance *materialInstance,
         bool keepData)
     {
-        return ((SceneManager *)sceneManager)->createGeometry(vertices, (uint32_t)numVertices, normals, (uint32_t)numNormals, uvs, numUvs, indices, numIndices, (filament::RenderableManager::PrimitiveType)primitiveType, reinterpret_cast<MaterialInstance *>(materialInstance), keepData);
+        return ((SceneManager *)sceneManager)->createGeometry(vertices, static_cast<uint32_t>(numVertices), normals, static_cast<uint32_t>(numNormals), uvs, static_cast<uint32_t>(numUvs), indices, static_cast<uint32_t>(numIndices), (filament::RenderableManager::PrimitiveType)primitiveType, reinterpret_cast<MaterialInstance *>(materialInstance), keepData);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(TSceneManager *sceneManager, const EntityId parent, const char *name)
@@ -902,17 +910,22 @@ extern "C"
         ((SceneManager *)sceneManager)->setPriority(entity, priority);
     }
 
+    EMSCRIPTEN_KEEPALIVE Aabb3 SceneManager_getRenderableBoundingBox(TSceneManager *tSceneManager, EntityId entity) {
+        auto sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
+        return sceneManager->getRenderableBoundingBox(entity);
+    }
+
     
     EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, TView *tView, EntityId entity)
     {
         auto view = reinterpret_cast<View*>(tView);
-        return ((SceneManager *)sceneManager)->getBoundingBox(view, entity);
+        return ((SceneManager *)sceneManager)->getScreenSpaceBoundingBox(view, entity);
     }
 
     EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, TView *tView, EntityId entity, float *minX, float *minY, float *maxX, float *maxY)
     {
         auto view = reinterpret_cast<View*>(tView);
-        auto box = ((SceneManager *)sceneManager)->getBoundingBox(view, entity);
+        auto box = ((SceneManager *)sceneManager)->getScreenSpaceBoundingBox(view, entity);
         *minX = box.minX;
         *minY = box.minY;
         *maxX = box.maxX;
@@ -1026,6 +1039,12 @@ extern "C"
         return reinterpret_cast<TMaterialInstance *>(instance);
     }
 
+    EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitFixedSizeMaterialInstance(TSceneManager *sceneManager)
+    {
+        auto *instance = ((SceneManager *)sceneManager)->createUnlitFixedSizeMaterialInstance();
+        return reinterpret_cast<TMaterialInstance *>(instance);
+    }
+
     EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance)
     {
         ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance *>(instance));
@@ -1041,12 +1060,27 @@ extern "C"
         reinterpret_cast<MaterialInstance *>(materialInstance)->setDepthCulling(enabled);
     }
 
+    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat4(TMaterialInstance *materialInstance, const char *propertyName, double x, double y, double w, double z)
+    {
+        filament::math::float4 data{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(w)};
+        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
+    }
+
     EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance *materialInstance, const char *propertyName, double x, double y)
     {
         filament::math::float2 data{static_cast<float>(x), static_cast<float>(y)};
         reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
     }
 
+    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *materialInstance, const char *propertyName, double value)
+    {
+        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, static_cast<float>(value));
+    }
+
+    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *materialInstance, const char *propertyName, int value)
+    {
+        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, value);
+    }
 
     EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)
     {

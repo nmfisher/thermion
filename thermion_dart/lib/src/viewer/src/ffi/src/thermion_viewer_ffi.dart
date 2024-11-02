@@ -83,8 +83,15 @@ class ThermionViewerFFI extends ThermionViewer {
     this._sharedContext = sharedContext ?? nullptr;
 
     _onPickResultCallable = NativeCallable<
-        Void Function(EntityId entityId, Int x, Int y,
-            Pointer<TView> view, Float depth, Float fragX, Float fragY, Float fragZ)>.listener(_onPickResult);
+        Void Function(
+            EntityId entityId,
+            Int x,
+            Int y,
+            Pointer<TView> view,
+            Float depth,
+            Float fragX,
+            Float fragY,
+            Float fragZ)>.listener(_onPickResult);
 
     _initialize();
   }
@@ -300,7 +307,7 @@ class ThermionViewerFFI extends ThermionViewer {
       return;
     }
     _disposing = true;
-    
+
     await setRendering(false);
     await clearEntities();
     await clearLights();
@@ -1509,17 +1516,38 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   void _onPickResult(
-      ThermionEntity entityId, int x, int y, Pointer<TView> viewPtr, double depth, double fragX, double fragY, double fragZ) async {
+      ThermionEntity entityId,
+      int x,
+      int y,
+      Pointer<TView> viewPtr,
+      double depth,
+      double fragX,
+      double fragY,
+      double fragZ) async {
     final view = FFIView(viewPtr, _viewer!);
     final viewport = await view.getViewport();
 
-    _pickResultController
-        .add((entity: entityId, x: x.ceil(), y: (viewport.height - y).ceil(), depth: depth, fragX: fragX, fragY: viewport.height - fragY, fragZ: fragZ ));
+    _pickResultController.add((
+      entity: entityId,
+      x: x,
+      y: (viewport.height - y),
+      depth: depth,
+      fragX: fragX,
+      fragY: viewport.height - fragY,
+      fragZ: fragZ
+    ));
   }
 
   late NativeCallable<
-          Void Function(EntityId entityId, Int x, Int y, Pointer<TView> view, Float depth, Float fragX, Float fragY, Float fragZ)>
-      _onPickResultCallable;
+      Void Function(
+          EntityId entityId,
+          Int x,
+          Int y,
+          Pointer<TView> view,
+          Float depth,
+          Float fragX,
+          Float fragY,
+          Float fragZ)> _onPickResultCallable;
 
   ///
   ///
@@ -1528,7 +1556,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future pick(int x, int y) async {
     final view = (await getViewAt(0)) as FFIView;
     var viewport = await view.getViewport();
-    y = (viewport.height - y).ceil();
+    y = viewport.height - y;
     Viewer_pick(
         _viewer!, view.view, x, y, _onPickResultCallable.nativeFunction);
   }
@@ -1750,6 +1778,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Viewer must not be null");
     }
 
+    
     var entity = await withIntCallback((callback) =>
         SceneManager_createGeometryRenderThread(
             _sceneManager!,
@@ -1833,6 +1862,18 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setPriority(ThermionEntity entityId, int priority) async {
     set_priority(_sceneManager!, entityId, priority);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<v64.Aabb3> getRenderableBoundingBox(ThermionEntity entityId) async {
+    final result =
+        SceneManager_getRenderableBoundingBox(_sceneManager!, entityId);
+    return v64.Aabb3.centerAndHalfExtents(
+        Vector3(result.centerX, result.centerY, result.centerZ),
+        Vector3(result.halfExtentX, result.halfExtentY, result.halfExtentZ));
   }
 
   ///
@@ -2035,9 +2076,27 @@ class ThermionViewerFFI extends ThermionViewer {
     destroy_material_instance(_sceneManager!, materialInstance._pointer);
   }
 
+  ///
+  ///
+  ///
   Future<ThermionFFIMaterialInstance> createUnlitMaterialInstance() async {
     var instance = await withPointerCallback<TMaterialInstance>((cb) {
       SceneManager_createUnlitMaterialInstanceRenderThread(_sceneManager!, cb);
+    });
+    if (instance == nullptr) {
+      throw Exception("Failed to create material instance");
+    }
+    return ThermionFFIMaterialInstance(instance);
+  }
+
+  ///
+  ///
+  ///
+  Future<ThermionFFIMaterialInstance>
+      createUnlitFixedSizeMaterialInstance() async {
+    var instance = await withPointerCallback<TMaterialInstance>((cb) {
+      SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(
+          _sceneManager!, cb);
     });
     if (instance == nullptr) {
       throw Exception("Failed to create material instance");
@@ -2163,7 +2222,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<Gizmo> createGizmo(FFIView view) async {
     var view = (await getViewAt(0)) as FFIView;
     var scene = View_getScene(view.view);
-    final gizmo = Gizmo_new(Viewer_getEngine(_viewer!), view.view, scene);
+    final gizmo = SceneManager_createGizmo(_sceneManager!, view.view, scene);
     return FFIGizmo(gizmo, this);
   }
 }
@@ -2190,10 +2249,30 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
   }
 
   @override
+  Future setParameterFloat4(String name, double x, double y, double z, double w) async {
+    MaterialInstance_setParameterFloat4(
+        _pointer, name.toNativeUtf8().cast<Char>(), x, y, z, w);
+  }
+
+  @override
   Future setParameterFloat2(String name, double x, double y) async {
     MaterialInstance_setParameterFloat2(
         _pointer, name.toNativeUtf8().cast<Char>(), x, y);
   }
+
+  @override
+  Future setParameterFloat(String name, double value) async {
+    MaterialInstance_setParameterFloat(
+        _pointer, name.toNativeUtf8().cast<Char>(), value);
+  }
+
+  @override
+  Future setParameterInt(String name, int value) async {
+    MaterialInstance_setParameterInt(
+        _pointer, name.toNativeUtf8().cast<Char>(), value);
+  }
+
+
 }
 
 class FFIRenderTarget extends RenderTarget {

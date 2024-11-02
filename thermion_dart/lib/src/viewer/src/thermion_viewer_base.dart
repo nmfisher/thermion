@@ -791,6 +791,11 @@ abstract class ThermionViewer {
   void onDispose(Future Function() callback);
 
   ///
+  /// Gets the 3D axis aligned bounding box for the given entity.
+  ///
+  Future<Aabb3> getRenderableBoundingBox(ThermionEntity entity);
+
+  ///
   /// Gets the 2D bounding box (in viewport coordinates) for the given entity.
   ///
   Future<Aabb2> getViewportBoundingBox(ThermionEntity entity);
@@ -894,6 +899,11 @@ abstract class ThermionViewer {
   ///
   ///
   Future<MaterialInstance> createUnlitMaterialInstance();
+
+  ///
+  ///
+  ///
+  Future<MaterialInstance> createUnlitFixedSizeMaterialInstance();
 
   ///
   ///

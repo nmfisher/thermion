@@ -165,12 +165,12 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
         },
         onScaleStart: (details) async {
           await widget.inputHandler.onScaleStart(
-              details.localFocalPoint.toVector2(), details.pointerCount, details.sourceTimeStamp);
+              details.localFocalPoint.toVector2() * widget.pixelRatio, details.pointerCount, details.sourceTimeStamp);
         },
         onScaleUpdate: (ScaleUpdateDetails details) async {
           await widget.inputHandler.onScaleUpdate(
-              details.localFocalPoint.toVector2(),
-              details.focalPointDelta.toVector2(),
+              details.localFocalPoint.toVector2() * widget.pixelRatio,
+              details.focalPointDelta.toVector2() * widget.pixelRatio,
               details.horizontalScale,
               details.verticalScale,
               details.scale,

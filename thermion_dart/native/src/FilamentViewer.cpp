@@ -1206,11 +1206,11 @@ namespace thermion
   void FilamentViewer::unprojectTexture(EntityId entityId, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
   {
     const auto *geometry = _sceneManager->getGeometry(entityId);
-    if (!geometry->uvs)
-    {
-      Log("No UVS");
-      return;
-    }
+    // if (!geometry->uvs)
+    // {
+    //   Log("No UVS");
+    //   return;
+    // }
 
     // UnprojectTexture unproject(geometry, _view->getCamera(), _engine);
 

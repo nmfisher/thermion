@@ -622,6 +622,15 @@ external int get_bone(
 );
 
 @ffi.Native<
+    ffi.Pointer<TGizmo> Function(ffi.Pointer<TSceneManager>, ffi.Pointer<TView>,
+        ffi.Pointer<TScene>)>(isLeaf: true)
+external ffi.Pointer<TGizmo> SceneManager_createGizmo(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+);
+
+@ffi.Native<
     EntityId Function(
         ffi.Pointer<TSceneManager>,
         ffi.Pointer<ffi.Float>,
@@ -655,6 +664,14 @@ external int SceneManager_createGeometry(
         ffi.Pointer<TSceneManager>)>(isLeaf: true)
 external ffi.Pointer<TMaterialInstance>
     SceneManager_createUnlitMaterialInstance(
+  ffi.Pointer<TSceneManager> sceneManager,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<TSceneManager>)>(isLeaf: true)
+external ffi.Pointer<TMaterialInstance>
+    SceneManager_createUnlitFixedSizeMaterialInstance(
   ffi.Pointer<TSceneManager> sceneManager,
 );
 
@@ -1035,6 +1052,12 @@ external void set_priority(
   int priority,
 );
 
+@ffi.Native<Aabb3 Function(ffi.Pointer<TSceneManager>, EntityId)>(isLeaf: true)
+external Aabb3 SceneManager_getRenderableBoundingBox(
+  ffi.Pointer<TSceneManager> sceneManager,
+  int entity,
+);
+
 @ffi.Native<
     Aabb2 Function(
         ffi.Pointer<TSceneManager>, ffi.Pointer<TView>, EntityId)>(isLeaf: true)
@@ -1198,12 +1221,42 @@ external void MaterialInstance_setDepthCulling(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat4(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  double x,
+  double y,
+  double w,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
         ffi.Double, ffi.Double)>(isLeaf: true)
 external void MaterialInstance_setParameterFloat2(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> name,
   double x,
   double y,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  double value,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Int)>(isLeaf: true)
+external void MaterialInstance_setParameterInt(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  int value,
 );
 
 @ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
@@ -1602,6 +1655,20 @@ external void SceneManager_loadGlbFromBufferRenderThread(
                 ffi.Void Function(
                     ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
 external void SceneManager_createUnlitMaterialInstanceRenderThread(
+  ffi.Pointer<TSceneManager> sceneManager,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
+      callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneManager>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
+external void SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(
   ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
@@ -2029,15 +2096,6 @@ void Camera_setProjection(
     );
 
 @ffi.Native<
-    ffi.Pointer<TGizmo> Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>,
-        ffi.Pointer<TScene>)>(isLeaf: true)
-external ffi.Pointer<TGizmo> Gizmo_new(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TScene> tScene,
-);
-
-@ffi.Native<
     ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32,
         GizmoPickCallback)>(isLeaf: true)
 external void Gizmo_pick(
@@ -2243,6 +2301,26 @@ final class Aabb2 extends ffi.Struct {
 
   @ffi.Float()
   external double maxY;
+}
+
+final class Aabb3 extends ffi.Struct {
+  @ffi.Float()
+  external double centerX;
+
+  @ffi.Float()
+  external double centerY;
+
+  @ffi.Float()
+  external double centerZ;
+
+  @ffi.Float()
+  external double halfExtentX;
+
+  @ffi.Float()
+  external double halfExtentY;
+
+  @ffi.Float()
+  external double halfExtentZ;
 }
 
 final class ResourceBuffer extends ffi.Struct {

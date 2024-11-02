@@ -21,4 +21,10 @@ class ThermionWasmMaterialInstance extends MaterialInstance {
     // TODO: implement setParameterFloat2
     throw UnimplementedError();
   }
+  
+  @override
+  Future setParameterFloat(String name, double x) {
+    // TODO: implement setParameterFloat
+    throw UnimplementedError();
+  }
 }

@@ -33,9 +33,12 @@
 #include "CustomGeometry.hpp"
 #include "UnprojectTexture.hpp"
 
+#include "Gizmo.hpp"
+
 extern "C"
 {
 #include "material/image.h"
+#include "material/unlit_fixed_size.h"
 }
 
 namespace thermion
@@ -52,9 +55,8 @@ namespace thermion
                                Engine *engine,
                                Scene *scene,
                                const char *uberArchivePath,
-                                Camera *mainCamera)
-        : 
-          _resourceLoaderWrapper(resourceLoaderWrapper),
+                               Camera *mainCamera)
+        : _resourceLoaderWrapper(resourceLoaderWrapper),
           _engine(engine),
           _scene(scene),
           _mainCamera(mainCamera)
@@ -103,17 +105,22 @@ namespace thermion
         _scene->addEntity(_gridOverlay->sphere());
         _scene->addEntity(_gridOverlay->grid());
 
+        _gizmoMaterial =
+            Material::Builder()
+                .package(UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_DATA, UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_SIZE)
+                .build(*_engine);
     }
 
     SceneManager::~SceneManager()
     {
-        for(auto camera : _cameras) {
+        for (auto camera : _cameras)
+        {
             auto entity = camera->getEntity();
             _engine->destroyCameraComponent(entity);
             _engine->getEntityManager().destroy(entity);
         }
         _cameras.clear();
-        
+
         _gridOverlay->destroy();
         destroyAll();
 
@@ -131,8 +138,14 @@ namespace thermion
         AssetLoader::destroy(&_assetLoader);
     }
 
-    bool SceneManager::isGizmoEntity(Entity entity) {
-        return false; // TODO    
+    Gizmo *SceneManager::createGizmo(View *view, Scene *scene)
+    {
+        return new Gizmo(_engine, view, scene, _gizmoMaterial);
+    }
+
+    bool SceneManager::isGizmoEntity(Entity entity)
+    {
+        return false; // TODO
     }
 
     int SceneManager::getInstanceCount(EntityId entityId)
@@ -246,15 +259,16 @@ namespace thermion
         return eid;
     }
 
-    void SceneManager::setVisibilityLayer(EntityId entityId, int layer) {
-        auto& rm = _engine->getRenderableManager();
+    void SceneManager::setVisibilityLayer(EntityId entityId, int layer)
+    {
+        auto &rm = _engine->getRenderableManager();
         auto renderable = rm.getInstance(utils::Entity::import(entityId));
-        if(!renderable.isValid()) {
+        if (!renderable.isValid())
+        {
             Log("Warning: no renderable found");
         }
 
         rm.setLayerMask(renderable, 0xFF, 1u << layer);
-
     }
 
     EntityId SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync)
@@ -281,11 +295,13 @@ namespace thermion
 
         _scene->addEntities(asset->getEntities(), entityCount);
 
-        auto & rm = _engine->getRenderableManager();
+        auto &rm = _engine->getRenderableManager();
 
-        for(int i=0; i < entityCount; i++) {
+        for (int i = 0; i < entityCount; i++)
+        {
             auto instance = rm.getInstance(asset->getEntities()[i]);
-            if(!instance.isValid()) {
+            if (!instance.isValid())
+            {
                 Log("No valid renderable for entity");
                 continue;
             }
@@ -304,13 +320,16 @@ namespace thermion
             _gltfResourceLoader->asyncUpdateLoad();
         }
 #else
-        if(loadResourcesAsync) {
+        if (loadResourcesAsync)
+        {
             if (!_gltfResourceLoader->asyncBeginLoad(asset))
             {
                 Log("Unknown error loading glb asset");
                 return 0;
             }
-        } else {
+        }
+        else
+        {
             if (!_gltfResourceLoader->loadResources(asset))
             {
                 Log("Unknown error loading glb asset");
@@ -392,6 +411,15 @@ namespace thermion
     EntityId SceneManager::createInstance(EntityId entityId)
     {
         std::lock_guard lock(_mutex);
+
+        if(isGeometryEntity(entityId)) {
+            auto geometry = getGeometry(entityId);
+            auto materialInstance = createUnlitMaterialInstance();
+            auto instanceEntity = geometry->createInstance(materialInstance);
+            _scene->addEntity(instanceEntity);
+
+            return Entity::smuggle(instanceEntity);
+        }
 
         const auto &pos = _assets.find(entityId);
         if (pos == _assets.end())
@@ -539,11 +567,13 @@ namespace thermion
                                    asset.second->getLightEntityCount());
             _assetLoader->destroyAsset(asset.second);
         }
-        for(auto *texture : _textures) {
+        for (auto *texture : _textures)
+        {
             _engine->destroy(texture);
         }
 
-        for(auto *materialInstance : _materialInstances) {
+        for (auto *materialInstance : _materialInstances)
+        {
             _engine->destroy(materialInstance);
         }
 
@@ -661,7 +691,6 @@ namespace thermion
 
         auto entity = Entity::import(entityId);
 
-
         if (_animationComponentManager->hasComponent(entity))
         {
             _animationComponentManager->removeComponent(entity);
@@ -674,10 +703,21 @@ namespace thermion
 
         _scene->remove(entity);
 
-        if(isGeometryEntity(entityId)) {
+        if (isGeometryEntity(entityId))
+        {
+            return;            
+        } else if(isGeometryInstance(entityId)) {
+            // destroy renderable
+            auto & rm = _engine->getRenderableManager();
+            auto & em = _engine->getEntityManager();
+            auto instanceEntity = utils::Entity::import(entityId);
+            auto it = std::find(_geometryInstances.begin(), _geometryInstances.end(), entityId);
+            _geometryInstances.erase(it);
+            rm.destroy(instanceEntity);
+            em.destroy(instanceEntity);
+            _engine->destroy(instanceEntity);
             return;
-        }
-
+        } 
         const auto *instance = getInstanceByEntityId(entityId);
 
         if (instance)
@@ -1412,7 +1452,7 @@ namespace thermion
         return texture;
     }
 
-    bool SceneManager::applyTexture(EntityId entityId, Texture *texture, const char* parameterName, int materialIndex)
+    bool SceneManager::applyTexture(EntityId entityId, Texture *texture, const char *parameterName, int materialIndex)
     {
         auto entity = Entity::import(entityId);
 
@@ -1446,10 +1486,12 @@ namespace thermion
         return true;
     }
 
-    void SceneManager::destroyTexture(Texture* texture) {
-        if(_textures.find(texture) == _textures.end()) {
+    void SceneManager::destroyTexture(Texture *texture)
+    {
+        if (_textures.find(texture) == _textures.end())
+        {
             Log("Warning: couldn't find texture");
-        } 
+        }
         _textures.erase(texture);
         _engine->destroy(texture);
     }
@@ -1904,7 +1946,7 @@ namespace thermion
         tm.setTransform(transformInstance, newTransform);
     }
 
-    void SceneManager::queueRelativePositionUpdateFromViewportVector(View* view, EntityId entityId, float viewportCoordX, float viewportCoordY)
+    void SceneManager::queueRelativePositionUpdateFromViewportVector(View *view, EntityId entityId, float viewportCoordX, float viewportCoordY)
     {
         // Get the camera and viewport
         const auto &camera = view->getCamera();
@@ -1941,14 +1983,14 @@ namespace thermion
         auto entityPlaneInWorldSpace = camera.getModelMatrix() * entityPlaneInCameraSpace;
 
         // Queue the position update (as a relative movement)
-        
     }
-    
-    void SceneManager::queueTransformUpdates(EntityId* entities, math::mat4* transforms, int numEntities)
+
+    void SceneManager::queueTransformUpdates(EntityId *entities, math::mat4 *transforms, int numEntities)
     {
         std::lock_guard lock(_mutex);
 
-        for(int i= 0; i < numEntities; i++) {
+        for (int i = 0; i < numEntities; i++)
+        {
             auto entity = entities[i];
             const auto &pos = _transformUpdates.find(entity);
             if (pos == _transformUpdates.end())
@@ -2180,7 +2222,17 @@ namespace thermion
         rm.setPriority(renderableInstance, priority);
     }
 
-    Aabb2 SceneManager::getBoundingBox(View *view, EntityId entityId)
+    Aabb3 SceneManager::getRenderableBoundingBox(EntityId entityId) {
+        auto& rm = _engine->getRenderableManager();
+        auto instance = rm.getInstance(Entity::import(entityId));
+        if(!instance.isValid()) {
+            return Aabb3 {};
+        }
+        auto box = rm.getAxisAlignedBoundingBox(instance);
+        return Aabb3 { box.center.x, box.center.y, box.center.z, box.halfExtent.x, box.halfExtent.y, box.halfExtent.z };
+    }
+
+    Aabb2 SceneManager::getScreenSpaceBoundingBox(View *view, EntityId entityId)
     {
         const auto &camera = view->getCamera();
         const auto &viewport = view->getViewport();
@@ -2279,112 +2331,106 @@ namespace thermion
         }
     }
 
-EntityId SceneManager::createGeometry(
-    float *vertices,
-    uint32_t numVertices,
-    float *normals,
-    uint32_t numNormals,
-    float *uvs,
-    uint32_t numUvs,
-    uint16_t *indices,
-    uint32_t numIndices,
-    filament::RenderableManager::PrimitiveType primitiveType,
-    filament::MaterialInstance* materialInstance,
-    bool keepData)
-{
-    auto geometry = std::make_unique<CustomGeometry>(vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, _engine);
-
-    auto entity = utils::EntityManager::get().create();
-    RenderableManager::Builder builder(1);
-
-    builder.boundingBox(geometry->getBoundingBox())
-        .geometry(0, primitiveType, geometry->vertexBuffer(), geometry->indexBuffer(), 0, numIndices)
-        .culling(true)
-        .receiveShadows(true)
-        .castShadows(true);
-
-    filament::Material *mat = nullptr;
-    
-    if (!materialInstance) {
-        Log("Using default ubershader material");
-        filament::gltfio::MaterialKey config;
-
-        memset(&config, 0, sizeof(config));  // Initialize all bits to zero
-
-        config.unlit = false;
-        config.doubleSided = false;
-        config.useSpecularGlossiness = false;
-        config.alphaMode = filament::gltfio::AlphaMode::OPAQUE;
-        config.hasBaseColorTexture = numUvs > 0;
-        config.hasClearCoat = false;
-        config.hasClearCoatNormalTexture = false;
-        config.hasClearCoatRoughnessTexture = false;
-        config.hasEmissiveTexture = false;
-        config.hasIOR = false;
-        config.hasMetallicRoughnessTexture = false;
-        config.hasNormalTexture = false;
-        config.hasOcclusionTexture = false;
-        config.hasSheen = false;
-        config.hasSheenColorTexture = false;
-        config.hasSheenRoughnessTexture = false;
-        config.hasSpecularGlossinessTexture = false;
-        config.hasTextureTransforms = false;
-        config.hasTransmission = false;
-        config.hasTransmissionTexture = false;
-        config.hasVolume = false;
-        config.hasVolumeThicknessTexture = false;
-        config.baseColorUV = 0;
-        config.hasVertexColors = false;
-        config.hasVolume = false;
-        
-        materialInstance = createUbershaderMaterialInstance(config); 
-
-        if(!materialInstance) { 
-            Log("Failed to create material instance");
-            return Entity::smuggle(Entity());
-        }
-    }    
-
-    // Set up texture and sampler if UVs are available
-    if (uvs != nullptr && numUvs > 0)
+    EntityId SceneManager::createGeometry(
+        float *vertices,
+        uint32_t numVertices,
+        float *normals,
+        uint32_t numNormals,
+        float *uvs,
+        uint32_t numUvs,
+        uint16_t *indices,
+        uint32_t numIndices,
+        filament::RenderableManager::PrimitiveType primitiveType,
+        filament::MaterialInstance *materialInstance,
+        bool keepData)
     {
-        // Create a default white texture
-        static constexpr uint32_t textureSize = 1;
-        static constexpr uint32_t white = 0x00ffffff;
-        Texture* texture = Texture::Builder()
-            .width(textureSize)
-            .height(textureSize)
-            .levels(1)
-            .format(Texture::InternalFormat::RGBA8)
-            .build(*_engine);
+        auto geometry = std::make_unique<CustomGeometry>(vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, _engine);
+    
+        filament::Material *mat = nullptr;
 
-        _textures.insert(texture);
-       
-        filament::backend::PixelBufferDescriptor pbd(&white, 4, Texture::Format::RGBA, Texture::Type::UBYTE);
-        texture->setImage(*_engine, 0, std::move(pbd));
+        if (!materialInstance)
+        {
+            Log("Using default ubershader material");
+            filament::gltfio::MaterialKey config;
 
-        // Create a sampler
-        TextureSampler sampler(TextureSampler::MinFilter::NEAREST, TextureSampler::MagFilter::NEAREST);
-        sampler.setWrapModeS(TextureSampler::WrapMode::REPEAT);
-        sampler.setWrapModeT(TextureSampler::WrapMode::REPEAT);
+            memset(&config, 0, sizeof(config)); // Initialize all bits to zero
 
-        // Set the texture and sampler to the material instance
-        materialInstance->setParameter("baseColorMap", texture, sampler);
+            config.unlit = false;
+            config.doubleSided = false;
+            config.useSpecularGlossiness = false;
+            config.alphaMode = filament::gltfio::AlphaMode::OPAQUE;
+            config.hasBaseColorTexture = numUvs > 0;
+            config.hasClearCoat = false;
+            config.hasClearCoatNormalTexture = false;
+            config.hasClearCoatRoughnessTexture = false;
+            config.hasEmissiveTexture = false;
+            config.hasIOR = false;
+            config.hasMetallicRoughnessTexture = false;
+            config.hasNormalTexture = false;
+            config.hasOcclusionTexture = false;
+            config.hasSheen = false;
+            config.hasSheenColorTexture = false;
+            config.hasSheenRoughnessTexture = false;
+            config.hasSpecularGlossinessTexture = false;
+            config.hasTextureTransforms = false;
+            config.hasTransmission = false;
+            config.hasTransmissionTexture = false;
+            config.hasVolume = false;
+            config.hasVolumeThicknessTexture = false;
+            config.baseColorUV = 0;
+            config.hasVertexColors = false;
+            config.hasVolume = false;
+
+            materialInstance = createUbershaderMaterialInstance(config);
+
+            if (!materialInstance)
+            {
+                Log("Failed to create material instance");
+                return Entity::smuggle(Entity());
+            }
+        }
+
+        // Set up texture and sampler if UVs are available
+        if (uvs != nullptr && numUvs > 0)
+        {
+            if(materialInstance->getMaterial()->hasParameter("baseColorMap")) {
+                // Create a default white texture
+                static constexpr uint32_t textureSize = 1;
+                static constexpr uint32_t white = 0x00ffffff;
+                Texture *texture = Texture::Builder()
+                                    .width(textureSize)
+                                    .height(textureSize)
+                                    .levels(1)
+                                    .format(Texture::InternalFormat::RGBA8)
+                                    .build(*_engine);
+
+                _textures.insert(texture);
+
+                filament::backend::PixelBufferDescriptor pbd(&white, 4, Texture::Format::RGBA, Texture::Type::UBYTE);
+                texture->setImage(*_engine, 0, std::move(pbd));
+
+                // Create a sampler
+                TextureSampler sampler(TextureSampler::MinFilter::NEAREST, TextureSampler::MagFilter::NEAREST);
+                sampler.setWrapModeS(TextureSampler::WrapMode::REPEAT);
+                sampler.setWrapModeT(TextureSampler::WrapMode::REPEAT);
+
+                // Set the texture and sampler to the material instance
+                materialInstance->setParameter("baseColorMap", texture, sampler);
+            }
+        }
+
+        auto instanceEntity = geometry->createInstance(materialInstance); 
+        auto instanceEntityId = Entity::smuggle(instanceEntity);
+        _scene->addEntity(instanceEntity);
+        _geometryInstances.push_back(instanceEntityId);
+
+        _geometry.emplace(instanceEntityId, std::move(geometry));
+
+        return instanceEntityId;
     }
 
-    builder.material(0, materialInstance);
-    builder.build(*_engine, entity);
-
-    _scene->addEntity(entity);
-
-    auto entityId = Entity::smuggle(entity);
-
-    _geometry.emplace(entityId, std::move(geometry));
-
-    return entityId;
-}
-
-    MaterialInstance* SceneManager::getMaterialInstanceAt(EntityId entityId, int materialIndex) {
+    MaterialInstance *SceneManager::getMaterialInstanceAt(EntityId entityId, int materialIndex)
+    {
         auto entity = Entity::import(entityId);
         const auto &rm = _engine->getRenderableManager();
         auto renderableInstance = rm.getInstance(entity);
@@ -2436,7 +2482,7 @@ EntityId SceneManager::createGeometry(
         materialInstance->setParameter(property, value);
     }
 
-    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, filament::math::float4& value)
+    void SceneManager::setMaterialProperty(EntityId entityId, int materialIndex, const char *property, filament::math::float4 &value)
     {
         auto entity = Entity::import(entityId);
         const auto &rm = _engine->getRenderableManager();
@@ -2453,17 +2499,20 @@ EntityId SceneManager::createGeometry(
             Log("Parameter %s not found", property);
             return;
         }
-        materialInstance->setParameter(property, filament::math::float4 { value.x, value.y, value.z, value.w });
+        materialInstance->setParameter(property, filament::math::float4{value.x, value.y, value.z, value.w});
     }
 
-    void SceneManager::destroy(MaterialInstance* instance) {
+    void SceneManager::destroy(MaterialInstance *instance)
+    {
         _engine->destroy(instance);
     }
 
-    MaterialInstance* SceneManager::createUbershaderMaterialInstance(filament::gltfio::MaterialKey config) {
-        filament::gltfio::UvMap uvmap {};
-        auto * materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
-        if(!materialInstance) {
+    MaterialInstance *SceneManager::createUbershaderMaterialInstance(filament::gltfio::MaterialKey config)
+    {
+        filament::gltfio::UvMap uvmap{};
+        auto *materialInstance = _ubershaderProvider->createMaterialInstance(&config, &uvmap);
+        if (!materialInstance)
+        {
             Log("Invalid material configuration");
             return nullptr;
         }
@@ -2473,44 +2522,58 @@ EntityId SceneManager::createGeometry(
         return materialInstance;
     }
 
-    MaterialInstance* SceneManager::createUnlitMaterialInstance() {
+    MaterialInstance *SceneManager::createUnlitFixedSizeMaterialInstance()
+    {
+        auto instance = _gizmoMaterial->createInstance();
+        instance->setParameter("scale", 1.0f);
+        return instance;
+    }
+
+    MaterialInstance *SceneManager::createUnlitMaterialInstance()
+    {
         UvMap uvmap;
         auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
-        instance->setParameter("uvScale", filament::math::float2 { 1.0f, 1.0f });
+        instance->setParameter("uvScale", filament::math::float2{1.0f, 1.0f});
         _materialInstances.push_back(instance);
         return instance;
     }
 
-    Camera* SceneManager::createCamera() {
+    Camera *SceneManager::createCamera()
+    {
         auto entity = EntityManager::get().create();
         auto camera = _engine->createCamera(entity);
         _cameras.push_back(camera);
         return camera;
     }
 
-    void SceneManager::destroyCamera(Camera* camera) {
+    void SceneManager::destroyCamera(Camera *camera)
+    {
         auto entity = camera->getEntity();
         _engine->destroyCameraComponent(entity);
         _engine->getEntityManager().destroy(entity);
         auto it = std::find(_cameras.begin(), _cameras.end(), camera);
-        if(it != _cameras.end()) {
+        if (it != _cameras.end())
+        {
             _cameras.erase(it);
         }
     }
 
-    size_t SceneManager::getCameraCount() {
+    size_t SceneManager::getCameraCount()
+    {
         return _cameras.size() + 1;
     }
 
-    Camera* SceneManager::getCameraAt(size_t index) {
-        if(index == 0) {
+    Camera *SceneManager::getCameraAt(size_t index)
+    {
+        if (index == 0)
+        {
             return _mainCamera;
         }
-        if(index - 1 > _cameras.size() - 1) {
+        if (index - 1 > _cameras.size() - 1)
+        {
             return nullptr;
         }
-        return _cameras[index-1];
+        return _cameras[index - 1];
     }
-       
 
 } // namespace thermion

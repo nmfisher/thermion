@@ -3,6 +3,115 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-10-31
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.16`](#thermion_dart---v021-dev0016)
+ - [`thermion_flutter` - `v0.2.1-dev.16`](#thermion_flutter---v021-dev16)
+ - [`thermion_flutter_web` - `v0.2.0+7`](#thermion_flutter_web---v0207)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.16`](#thermion_flutter_platform_interface---v021-dev16)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.16`](#thermion_flutter_ffi---v021-dev16)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter` - `v0.2.1-dev.16`
+ - `thermion_flutter_web` - `v0.2.0+7`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.16`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.16`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.16`
+
+ - **FEAT**: Rename Gizmo material to UnlitFixedSize, and expose methods for using this material on other entities. Also exposes new methods for setting single float parameters.
+
+
+## 2024-10-31
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.15`](#thermion_dart---v021-dev0015)
+ - [`thermion_flutter` - `v0.2.1-dev.15`](#thermion_flutter---v021-dev15)
+ - [`thermion_flutter_web` - `v0.2.0+6`](#thermion_flutter_web---v0206)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.15`](#thermion_flutter_platform_interface---v021-dev15)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.15`](#thermion_flutter_ffi---v021-dev15)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.2.0+6`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.15`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.15`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.15`
+
+ - **FIX**: remove superfluous ceil() calls for picking coordinates.
+ - **FEAT**: expose zoomSensitivity argument for flight input handler.
+
+#### `thermion_flutter` - `v0.2.1-dev.15`
+
+ - **FIX**: multiply coordinates by pixelRatio for scale events.
+
+
+## 2024-10-30
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.0.0.14`](#thermion_dart---v021-dev0014)
+ - [`thermion_flutter` - `v0.2.1-dev.14`](#thermion_flutter---v021-dev14)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.14`](#thermion_flutter_platform_interface---v021-dev14)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.14`](#thermion_flutter_ffi---v021-dev14)
+ - [`thermion_flutter_web` - `v0.2.0+5`](#thermion_flutter_web---v0205)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter` - `v0.2.1-dev.14`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.14`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.14`
+ - `thermion_flutter_web` - `v0.2.0+5`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.0.0.14`
+
+ - **FIX**: reduce size of pick functor for compatibility with armeabi-v7a.
+ - **FEAT**: sanitize file paths in build.dart for Windows compatibility.
+ - **FEAT**: pass through fragment coordinates for picking.
+ - **FEAT**: pass through fragment coordinates for picking.
+
+
 ## 2024-10-29
 
 ### Changes

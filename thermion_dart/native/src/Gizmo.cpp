@@ -7,31 +7,26 @@
 #include <filament/TransformManager.h>
 #include <gltfio/math.h>
 #include "SceneManager.hpp"
-#include "material/gizmo.h"
+#include "material/unlit_fixed_size.h"
 #include "Log.hpp"
 
 namespace thermion {
 
 using namespace filament::gltfio;
 
-Gizmo::Gizmo(Engine *engine, View *view, Scene* scene) : _engine(engine), _view(view), _scene(scene)
+Gizmo::Gizmo(Engine *engine, View *view, Scene* scene, Material* material) : _engine(engine), _view(view), _scene(scene), _material(material)
 {
         
     auto &entityManager = EntityManager::get();
 
     auto &transformManager = _engine->getTransformManager();
 
-    _material =
-        Material::Builder()
-            .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
-            .build(*_engine);
-
     // First, create the black cube at the center
     // The axes widgets will be parented to this entity 
     _entities[3] = entityManager.create();
 
     _materialInstances[3] = _material->createInstance();
-    _materialInstances[3]->setParameter("color", math::float4{0.0f, 0.0f, 0.0f, 1.0f}); // Black color
+    _materialInstances[3]->setParameter("baseColorFactor", math::float4{0.0f, 0.0f, 0.0f, 1.0f}); // Black color
 
     // Create center cube vertices
     float centerCubeSize = 0.01f;
@@ -160,7 +155,7 @@ Gizmo::Gizmo(Engine *engine, View *view, Scene* scene) : _engine(engine), _view(
             break;
         }
 
-        _materialInstances[i]->setParameter("color", baseColor);
+        _materialInstances[i]->setParameter("baseColorFactor", baseColor);
 
         RenderableManager::Builder(1)
              .boundingBox({{-arrowWidth, -arrowWidth, 0}, 
