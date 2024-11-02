@@ -32,9 +32,7 @@ jobs:
 
       - name: Build and Test
         shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          dart --enable-experiment=native-assets test test/dummy_tests.dart
+        run: dart --enable-experiment=native-assets test test
 
       # Upload logs on failure
       - name: Upload logs
