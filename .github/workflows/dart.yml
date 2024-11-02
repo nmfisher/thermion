@@ -13,7 +13,7 @@ on:
 jobs:
   thermion_dart:
     name: thermion_dart
-    runs-on: WIN10
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: thermion_dart  # Adjust this path
