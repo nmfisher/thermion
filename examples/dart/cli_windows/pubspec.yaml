@@ -10,9 +10,29 @@ environment:
 dependencies:
   args: ^2.5.0
   thermion_dart:
-    path: F:\Projects\thermion\thermion_dart
+    path: ../../../thermion_dart
   ffi: ^2.1.3
+  vector_math: ^2.1.4
+  native_toolchain_c: ^0.4.2
+  native_assets_cli: ^0.6.1
 
 dev_dependencies:
   lints: ^5.0.0
   test: ^1.24.0
+  ffigen: ^13.0.0
+ffigen:
+  output: 'lib/thermion_window.g.dart'
+  headers:
+    entry-points:
+      - 'native/thermion_window.h'
+    include-directives:
+      - 'native/thermion_window.h'
+  ffi-native:
+    assetId: package:thermion_window/thermion_window.dart
+  ignore-source-errors: true
+  functions:
+    leaf:
+      include:
+        - '.*'
+
+

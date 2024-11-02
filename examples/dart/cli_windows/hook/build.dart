@@ -11,6 +11,8 @@ void main(List<String> args) async {
       ..onRecord.listen((record) => print(
           record.message + "\n"));
 
+
+
   await build(args, (config, output) async {
     final cbuilder = CBuilder.library(
       name: "thermion_window",
@@ -22,6 +24,8 @@ void main(List<String> args) async {
       flags:[],
       dartBuildFiles: ['hook/build.dart'],
     );
+
+
 
     await cbuilder.run(
       buildConfig: config,
