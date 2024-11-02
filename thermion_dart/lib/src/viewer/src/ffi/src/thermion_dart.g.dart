@@ -1052,6 +1052,12 @@ external void set_priority(
   int priority,
 );
 
+@ffi.Native<Aabb3 Function(ffi.Pointer<TSceneManager>, EntityId)>(isLeaf: true)
+external Aabb3 SceneManager_getRenderableBoundingBox(
+  ffi.Pointer<TSceneManager> sceneManager,
+  int entity,
+);
+
 @ffi.Native<
     Aabb2 Function(
         ffi.Pointer<TSceneManager>, ffi.Pointer<TView>, EntityId)>(isLeaf: true)
@@ -1215,6 +1221,18 @@ external void MaterialInstance_setDepthCulling(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat4(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  double x,
+  double y,
+  double w,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
         ffi.Double, ffi.Double)>(isLeaf: true)
 external void MaterialInstance_setParameterFloat2(
   ffi.Pointer<TMaterialInstance> materialInstance,
@@ -1230,6 +1248,15 @@ external void MaterialInstance_setParameterFloat(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> name,
   double value,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Int)>(isLeaf: true)
+external void MaterialInstance_setParameterInt(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  int value,
 );
 
 @ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
@@ -2274,6 +2301,26 @@ final class Aabb2 extends ffi.Struct {
 
   @ffi.Float()
   external double maxY;
+}
+
+final class Aabb3 extends ffi.Struct {
+  @ffi.Float()
+  external double centerX;
+
+  @ffi.Float()
+  external double centerY;
+
+  @ffi.Float()
+  external double centerZ;
+
+  @ffi.Float()
+  external double halfExtentX;
+
+  @ffi.Float()
+  external double halfExtentY;
+
+  @ffi.Float()
+  external double halfExtentZ;
 }
 
 final class ResourceBuffer extends ffi.Struct {
