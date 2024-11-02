@@ -105,6 +105,17 @@ extern "C"
 
     typedef struct Aabb2 Aabb2;
 
+	struct Aabb3 {
+        float centerX;
+        float centerY;
+        float centerZ; 
+        float halfExtentX;
+		float halfExtentY;
+		float halfExtentZ;
+    };
+
+    typedef struct Aabb3 Aabb3;
+
 #ifdef __cplusplus
 }
 #endif
