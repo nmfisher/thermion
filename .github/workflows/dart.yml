@@ -21,10 +21,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        # Enable debug logging for Actions
-      - name: Enable debug logging
-        run: echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
-
       # Setup Visual Studio environment
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
