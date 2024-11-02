@@ -17,7 +17,6 @@ jobs:
     defaults:
       run:
         working-directory: thermion_dart  # Adjust this path
-        shell: bash # This helps ensure consistent behavior across platforms
 
     steps:
       - uses: actions/checkout@v4
