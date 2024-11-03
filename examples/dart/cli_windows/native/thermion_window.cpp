@@ -4,7 +4,9 @@
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "User32.lib")
+#pragma comment(lib, "dxgi.lib")
 
+#include <dxgi.h>
 #include <cstdint>
 #include <chrono> 
 #include <thread>
@@ -19,6 +21,22 @@
 #include "thermion_window.h"
 
 namespace thermion {
+
+void PrintDefaultGPU() {
+    IDXGIFactory* factory = nullptr;
+    CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);
+    
+    IDXGIAdapter* adapter = nullptr;
+    factory->EnumAdapters(0, &adapter); // 0 is the default adapter
+
+    DXGI_ADAPTER_DESC desc;
+    adapter->GetDesc(&desc);
+    
+    std::wcout << L"GPU: " << desc.Description << std::endl;
+
+    adapter->Release();
+    factory->Release();
+}
 
   ///
 /// Instantiating a ThermionWindow creates a HWND that can be passed 
@@ -320,6 +338,9 @@ ThermionWindow::ThermionWindow(int width,
                             int height,
                             int left,
                             int top) : _width(width), _height(height), _left(left), _top(top) {
+
+                              PrintDefaultGPU();
+
     auto window_class = WNDCLASSEX{};
     ::SecureZeroMemory(&window_class, sizeof(window_class));
     window_class.cbSize = sizeof(window_class);
