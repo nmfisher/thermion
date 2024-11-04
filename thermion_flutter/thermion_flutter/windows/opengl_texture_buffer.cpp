@@ -121,9 +121,8 @@ OpenGLTextureBuffer::OpenGLTextureBuffer(
   if (flutterTextureId != -1) {
     std::vector<flutter::EncodableValue> resultList;
     resultList.push_back(flutter::EncodableValue(flutterTextureId));
-    resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
     resultList.push_back(flutter::EncodableValue(glTextureId));
-    resultList.push_back(flutter::EncodableValue((int64_t)_context));
+    resultList.push_back(flutter::EncodableValue((int64_t)nullptr));
     result->Success(resultList);      
   }
 }

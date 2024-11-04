@@ -42,7 +42,7 @@ class ThermionFlutterTextureBackedPlatform
     // this implementation renders directly into a texture/render target
     // we still need to create a (headless) swapchain, but the actual dimensions
     // don't matter
-    if (Platform.isMacOS || Platform.isIOS) {
+    if (Platform.isMacOS || Platform.isIOS || Platform.isWindows) {
       _swapChain = await viewer.createHeadlessSwapChain(1, 1);
     }
 
@@ -57,7 +57,7 @@ class ThermionFlutterTextureBackedPlatform
   Future<ThermionFlutterTexture?> createTexture(
       t.View view, int width, int height) async {
     var texture = FlutterPlatformTexture(channel, viewer!, view,
-        (Platform.isMacOS || Platform.isIOS) ? _swapChain : null);
+        (Platform.isMacOS || Platform.isIOS || Platform.isWindows) ? _swapChain : null);
     await texture.resize(width, height, 0, 0);
     return texture;
   }

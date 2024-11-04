@@ -94,10 +94,6 @@ class _ThermionWidgetState extends State<ThermionWidget> {
           options: ThermionFlutterPlugin.options as ThermionFlutterWebOptions?);
     }
 
-    if (Platform.isWindows) {
-      return ThermionWidgetWindows(viewer: widget.viewer, view: view!, initial: widget.initial, onResize: widget.onResize);
-    }
-
     return ThermionTextureWidget(
         key: ObjectKey(view!),
         initial: widget.initial,

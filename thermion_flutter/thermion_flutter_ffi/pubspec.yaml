@@ -17,7 +17,7 @@ flutter:
       macos:
         dartPluginClass: ThermionFlutterTextureBackedPlatform
       windows:
-        dartPluginClass: ThermionFlutterWindows
+        dartPluginClass: ThermionFlutterTextureBackedPlatform
 
 dependencies:
   flutter:
