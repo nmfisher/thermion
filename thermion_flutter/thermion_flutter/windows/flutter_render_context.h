@@ -23,6 +23,8 @@ namespace thermion_flutter {
             }
             return _active->flutterTextureId;
         }
+
+        void *GetSharedContext();
        
     protected:
         FlutterRenderContext( flutter::PluginRegistrarWindows* pluginRegistrar, flutter::TextureRegistrar* textureRegistrar) : _pluginRegistrar(pluginRegistrar), _textureRegistrar(textureRegistrar) {};
