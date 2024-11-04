@@ -18,6 +18,7 @@ target_include_directories(${PROJECT_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include/filament"
   "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include"
+  "${CMAKE_SOURCE_DIR}/../../../../thermion_flutter/thermion_flutter/windows"
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
