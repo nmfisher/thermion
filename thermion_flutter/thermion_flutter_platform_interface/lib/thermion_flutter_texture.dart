@@ -1,17 +1,13 @@
-abstract class ThermionFlutterTexture {
+class ThermionFlutterTexture {
 
-  int get width;
-  int get height;
+  final int width;
+  final int height;
 
-  int get flutterId;
-  int get hardwareId;
+  final int flutterId;
+  final int hardwareId;
 
-  ///
-  /// Destroy a texture and clean up the texture cache (if applicable).
-  ///
-  Future destroy();
+  final int window;
 
-  Future resize(int width, int height, int left, int top);
+  ThermionFlutterTexture({required this.width, required this.height, required this.flutterId, required this.hardwareId, required this.window});
 
-  Future markFrameAvailable();
 }

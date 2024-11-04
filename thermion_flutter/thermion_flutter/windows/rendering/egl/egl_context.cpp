@@ -6,7 +6,7 @@
 
 namespace thermion::windows::egl {
 
-FlutterEGLContext::FlutterEGLContext() {
+ThermionEGLContext::ThermionEGLContext() {
     
   // D3D starts here
   IDXGIAdapter *adapter_ = nullptr;
@@ -144,7 +144,7 @@ FlutterEGLContext::FlutterEGLContext() {
   }
 }
 
-void FlutterEGLContext::CreateRenderingSurface(
+EGLTexture* ThermionEGLContext::CreateRenderingSurface(
     uint32_t width, uint32_t height,
     uint32_t left, uint32_t top
     ) {
@@ -152,17 +152,16 @@ void FlutterEGLContext::CreateRenderingSurface(
   // glext::importGLESExtensionsEntryPoints();
 
   if(left != 0 || top != 0) {
-    // result->Error("ERROR",
-    //               "Rendering with EGL uses a Texture render target/Flutter widget and does not need a window offset.");
-    return;
+    std::cout << "ERROR Rendering with EGL uses a Texture render target/Flutter widget and does not need a window offset." << std::endl;
+    return nullptr;
   }
 
-  if (_active.get()) {
-    // result->Error("ERROR",
-    //               "Texture already exists. You must call destroyTexture before "
-    //               "attempting to create a new one.");
-    return;
-  }
+  //if (_active && _active.get()) {
+  //  // result->Error("ERROR",
+  //  //               "Texture already exists. You must call destroyTexture before "
+  //  //               "attempting to create a new one.");
+  //  return nullptr;
+  //}
 
   _active = std::make_unique<EGLTexture>(
       width, height,
@@ -176,17 +175,25 @@ void FlutterEGLContext::CreateRenderingSurface(
           // this->_channel->InvokeMethod("resize", std::move(val), nullptr);
       });
 
+      return _active.get();
 }
 
-void FlutterEGLContext::RenderCallback() {
-  if(_active.get()) {
-    ((EGLTexture*)_active.get())->RenderCallback();
-  }
-}
-
-void* FlutterEGLContext::GetSharedContext() { 
+void* ThermionEGLContext::GetSharedContext() { 
   return (void*)_context;
 }
+
+void ThermionEGLContext::ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
+
+}
+
+void ThermionEGLContext::DestroyRenderingSurface() {
+
+}
+
+EGLTexture *ThermionEGLContext::GetActiveTexture() { 
+  return _active.get();
+}
+
 
 }
 

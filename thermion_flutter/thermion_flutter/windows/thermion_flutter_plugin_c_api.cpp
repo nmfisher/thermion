@@ -6,7 +6,7 @@
 
 void ThermionFlutterPluginCApiRegisterWithRegistrar(
     FlutterDesktopPluginRegistrarRef registrar) {
-  thermion_flutter::ThermionFlutterPlugin::RegisterWithRegistrar(
+  thermion::tflutter::windows::ThermionFlutterPlugin::RegisterWithRegistrar(
       flutter::PluginRegistrarManager::GetInstance()
           ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
 }

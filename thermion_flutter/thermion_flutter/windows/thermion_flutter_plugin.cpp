@@ -27,15 +27,10 @@
 #include <vector>
 #include <thread>
 
-#include "flutter_render_context.h"
+#include "flutter_egl_texture.h"
+#include "rendering/egl/egl_context.h"
 
-#if THERMION_EGL
-#include "egl_context.h"
-#else
-#include "wgl_context.h"
-#endif
-
-namespace thermion_flutter {
+namespace thermion::tflutter::windows {
 
 using namespace std::chrono_literals;
 
@@ -133,9 +128,15 @@ static void _freeResource(ResourceBuffer rbf, void *const plugin) {
   ((ThermionFlutterPlugin *)plugin)->freeResource(rbf);
 }
 
+static std::unique_ptr<FlutterEGLTexture> _texture;
+
 void ThermionFlutterPlugin::CreateTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+
+  if (!_context) {
+    _context = std::make_unique<thermion::windows::egl::ThermionEGLContext>();
+  }
 
   const auto *args =
       std::get_if<flutter::EncodableList>(methodCall.arguments());
@@ -146,14 +147,17 @@ void ThermionFlutterPlugin::CreateTexture(
   int dTop = *(std::get_if<int>(&(args->at(3))));
   auto width = (uint32_t)round(dWidth );
   auto height = (uint32_t)round(dHeight );
-  auto left = (uint32_t)round(dLeft );
-  auto top = (uint32_t)round(dTop );
+  auto left = (uint32_t)round(dLeft);
+  auto top = (uint32_t)round(dTop);
           
-  _context->CreateRenderingSurface(width, height, std::move(result), left, top);
-  auto texture = _context->GetActiveTexture();
+  thermion::windows::egl::EGLTexture* eglTexture = _context->CreateRenderingSurface(width, height, left, top);
 
-  auto flutterTextureId = _textureRegistrar->RegisterTexture(texture.GetFlutterTextureId());
-  texture.RegisterFlutterTextureId(flutterTextureId);
+  _texture = std::make_unique<FlutterEGLTexture>(eglTexture->GetTextureHandle(), width, height);
+
+  auto flutterTextureId = _textureRegistrar->RegisterTexture(_texture->GetFlutterTexture());
+  _texture->SetFlutterTextureId(flutterTextureId);
+  auto glTextureId = 0; // _texture.GetGLTextureId();
+  
   std::cout << "Registered Flutter texture ID " << flutterTextureId
             << std::endl;
 
@@ -169,7 +173,8 @@ void ThermionFlutterPlugin::DestroyTexture(
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   
   if (_context) {
-      _context->DestroyRenderingSurface(std::move(result));
+      _context->DestroyRenderingSurface();
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
   }
   else {
       result->Error("NO_CONTEXT", "No rendering context is active");
@@ -192,15 +197,11 @@ void ThermionFlutterPlugin::HandleMethodCall(
     result->Success(flutter::EncodableValue((int64_t)wrapper));
   } else if(methodCall.method_name() == "getSharedContext")  {
     if (!_context) {
-    #ifdef THERMION_EGL
-        _context = std::make_unique<FlutterEGLContext>(_pluginRegistrar, _textureRegistrar);
-    #else
-        _context = std::make_unique<WGLContext>(_pluginRegistrar, _textureRegistrar);
-    #endif
+        _context = std::make_unique<thermion::windows::egl::ThermionEGLContext>();
     }
     result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
   } else if (methodCall.method_name() == "resizeWindow") {
-    #if WGL_USE_BACKING_WINDOW
+    
       const auto *args =
       std::get_if<flutter::EncodableList>(methodCall.arguments());
     
@@ -215,9 +216,6 @@ void ThermionFlutterPlugin::HandleMethodCall(
       
       _context->ResizeRenderingSurface(width, height, left, top);
       result->Success();
-    #else
-      result->Error("ERROR", "resizeWindow is only available when using a backing window");
-    #endif
   } else if (methodCall.method_name() == "createTexture") {
     CreateTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "createWindow") {
@@ -226,18 +224,17 @@ void ThermionFlutterPlugin::HandleMethodCall(
     DestroyTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "markTextureFrameAvailable") {
      if (_context) {
-          auto texture = context->GetActiveTexture();
-          auto flutterTextureId = texture.GetFlutterTextureId();
-          if(flutterTextureId == -1) {
+
+          auto texture = _context->GetActiveTexture();
+          texture->Flush();
+          const auto* flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
+          
+          if(!flutterTextureId || *flutterTextureId == -1) {
             std::cout << "Bad texture" << std::endl;
             return;
           }
-    #ifdef THERMION_EGL
-        _context->RenderCallback();
-    #endif
-    #if !WGL_USE_BACKING_WINDOW
-        _textureRegistrar->MarkTextureFrameAvailable(flutterTextureId);
-    #endif
+          std::cout << "Marking texture" << flutterTextureId << "available" << std::endl;
+          _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
       }
     result->Success(flutter::EncodableValue((int64_t)nullptr));
   } else if (methodCall.method_name() == "getDriverPlatform") {

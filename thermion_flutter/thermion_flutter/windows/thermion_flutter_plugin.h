@@ -1,5 +1,4 @@
-#ifndef FLUTTER_PLUGIN_FLUTTER_FILAMENT_PLUGIN_H_
-#define FLUTTER_PLUGIN_FLUTTER_FILAMENT_PLUGIN_H_
+#pragma once
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
@@ -15,18 +14,13 @@
 #include "GL/GLu.h"
 
 #include "ResourceBuffer.h"
+#include "rendering/egl/egl_context.h"
 
-#if THERMION_EGL
-#include "egl_context.h"
-#else
-#include "wgl_context.h"
-#endif
+namespace thermion::tflutter::windows {
 
-namespace thermion_flutter {
-
-class ThermionFlutterPlugin : public flutter::Plugin {
+class ThermionFlutterPlugin : public ::flutter::Plugin {
 public:
-  static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
+  static void RegisterWithRegistrar(::flutter::PluginRegistrarWindows *registrar);
 
   ThermionFlutterPlugin(flutter::TextureRegistrar *textureRegistrar,
                         flutter::PluginRegistrarWindows *registrar,
@@ -59,13 +53,9 @@ public:
   void freeResource(ResourceBuffer rbuf);
 
   private:
-    #ifdef THERMION_EGL
-    std::unique_ptr<FlutterEGLContext> _context = nullptr;
-    #else 
-    std::unique_ptr<WGLContext> _context = nullptr;
-    #endif
+    std::unique_ptr<thermion::windows::egl::ThermionEGLContext> _context = nullptr;
 };
 
 } // namespace thermion_flutter
 
-#endif // FLUTTER_PLUGIN_FLUTTER_FILAMENT_PLUGIN_H_
+
