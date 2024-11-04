@@ -153,7 +153,6 @@ namespace thermion
 
     private:
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
-        void* _context = nullptr;
         Scene *_scene = nullptr;
         Engine *_engine = nullptr;
         thermion::ThreadPool *_tp = nullptr;

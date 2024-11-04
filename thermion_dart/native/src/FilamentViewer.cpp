@@ -127,8 +127,7 @@ namespace thermion
   FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapperImpl *const resourceLoader, void *const platform, const char *uberArchivePath)
       : _resourceLoaderWrapper(resourceLoader)
   {
-    
-    _context = (void *)sharedContext;  
+    Log("Creating engine wiht sharedContext %d", sharedContext);
     
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
@@ -147,7 +146,7 @@ namespace thermion
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
 #endif
-
+    Log("Engine created");
     _engine->setAutomaticInstancingEnabled(true);
 
     _renderer = _engine->createRenderer();
