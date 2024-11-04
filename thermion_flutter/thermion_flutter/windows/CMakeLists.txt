@@ -14,11 +14,11 @@ list(APPEND PLUGIN_SOURCES
   "thermion_flutter_plugin.h"
 )
 
-set(USE_ANGLE FALSE)
+set(THERMION_EGL FALSE)
 set(WGL_USE_BACKING_WINDOW FALSE)
 
-if(USE_ANGLE)
-  add_compile_definitions(USE_ANGLE)
+if(THERMION_EGL)
+  add_compile_definitions(THERMION_EGL)
   list(APPEND PLUGIN_SOURCES    "flutter_angle_texture.cpp"   "egl_context.cpp"   )
 else() 
   if(WGL_USE_BACKING_WINDOW)
@@ -52,7 +52,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include"
 )
 
-if(USE_ANGLE)
+if(THERMION_EGL)
   list(APPEND GL_LIBS
     EGL
     GLESv2
@@ -87,7 +87,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin
-if(USE_ANGLE)
+if(THERMION_EGL)
 set(thermion_flutter_bundled_libraries
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libEGL.dll
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/Debug/angle/libGLESv2.dll

@@ -1,20 +1,13 @@
+#include <functional>
+#include <iostream>
+#include <vector>
 
 #include "egl_context.h"
 
-#define FILAMENT_USE_EXTERNAL_GLES3
-#include <gl_headers.h>
+namespace thermion::windows::egl {
 
-#pragma comment(lib, "dwmapi.lib")
-#pragma comment(lib, "comctl32.lib")
-
-namespace thermion_flutter {
-
-FlutterEGLContext::FlutterEGLContext(
-  flutter::PluginRegistrarWindows* pluginRegistrar, 
-  flutter::TextureRegistrar* textureRegistrar) : FlutterRenderContext(pluginRegistrar, textureRegistrar) {
+FlutterEGLContext::FlutterEGLContext() {
     
-  _platform = new filament::backend::PlatformEGL();
-
   // D3D starts here
   IDXGIAdapter *adapter_ = nullptr;
 
@@ -81,13 +74,17 @@ FlutterEGLContext::FlutterEGLContext(
   // *                 *
   // *******************
   EGLBoolean bindAPI = eglBindAPI(EGL_OPENGL_ES_API);
-  if (UTILS_UNLIKELY(!bindAPI)) {
+  if (!bindAPI) {
     std::cout << "eglBindAPI EGL_OPENGL_ES_API failed" << std::endl;
     return;
   }
 
   _eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-  assert_invariant(_eglDisplay != EGL_NO_DISPLAY);
+  if (_eglDisplay == EGL_NO_DISPLAY) {
+      std::cout << "eglBindAPI EGL_OPENGL_ES_API failed" << std::endl;
+      return;
+  }
+ 
 
   EGLint major, minor;
   EGLBoolean initialized = false;
@@ -113,12 +110,12 @@ FlutterEGLContext::FlutterEGLContext(
 
   std::cout << "Got major " << major << " and minor " << minor << std::endl;
 
-  if (UTILS_UNLIKELY(!initialized)) {
+  if (!initialized) {
     std::cout << "eglInitialize failed" << std::endl;
     return;
   }
 
-  glext::importGLESExtensionsEntryPoints();
+  // glext::importGLESExtensionsEntryPoints();
 
   EGLint configsCount;
 
@@ -142,34 +139,33 @@ FlutterEGLContext::FlutterEGLContext(
   auto ctx = eglCreateContext(_eglDisplay, _eglConfig, EGL_NO_CONTEXT,contextAttribs);
   _context = (void*)ctx;
 
-  if (UTILS_UNLIKELY(_context == EGL_NO_CONTEXT)) {
+  if (_context == EGL_NO_CONTEXT) {
     return;
   }
 }
 
 void FlutterEGLContext::CreateRenderingSurface(
     uint32_t width, uint32_t height,
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result, 
     uint32_t left, uint32_t top
     ) {
   
-  glext::importGLESExtensionsEntryPoints();
+  // glext::importGLESExtensionsEntryPoints();
 
   if(left != 0 || top != 0) {
-    result->Error("ERROR",
-                  "Rendering with EGL uses a Texture render target/Flutter widget and does not need a window offset.");
+    // result->Error("ERROR",
+    //               "Rendering with EGL uses a Texture render target/Flutter widget and does not need a window offset.");
     return;
   }
 
   if (_active.get()) {
-    result->Error("ERROR",
-                  "Texture already exists. You must call destroyTexture before "
-                  "attempting to create a new one.");
+    // result->Error("ERROR",
+    //               "Texture already exists. You must call destroyTexture before "
+    //               "attempting to create a new one.");
     return;
   }
 
-  std::unique_ptr<FlutterTextureBuffer> active = std::make_unique<FlutterAngleTexture>(
-      _pluginRegistrar, _textureRegistrar, std::move(result), width, height,
+  _active = std::make_unique<EGLTexture>(
+      width, height,
       _D3D11Device, _D3D11DeviceContext, _eglConfig, _eglDisplay, _context,
       [=](size_t width, size_t height) {
         std::cout << "RESIZE" << std::endl;
@@ -179,13 +175,12 @@ void FlutterEGLContext::CreateRenderingSurface(
           // auto val = std::make_unique<flutter::EncodableValue>(list);
           // this->_channel->InvokeMethod("resize", std::move(val), nullptr);
       });
-  _active = std::move(active);
 
 }
 
 void FlutterEGLContext::RenderCallback() {
   if(_active.get()) {
-    ((FlutterAngleTexture*)_active.get())->RenderCallback();
+    ((EGLTexture*)_active.get())->RenderCallback();
   }
 }
 
@@ -193,8 +188,5 @@ void* FlutterEGLContext::GetSharedContext() {
   return (void*)_context;
 }
 
-void* FlutterEGLContext::GetPlatform() { 
-  return (void*)_platform;
 }
 
-}

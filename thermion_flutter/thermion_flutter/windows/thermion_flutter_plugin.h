@@ -16,7 +16,7 @@
 
 #include "ResourceBuffer.h"
 
-#if USE_ANGLE
+#if THERMION_EGL
 #include "egl_context.h"
 #else
 #include "wgl_context.h"
@@ -59,7 +59,7 @@ public:
   void freeResource(ResourceBuffer rbuf);
 
   private:
-    #ifdef USE_ANGLE
+    #ifdef THERMION_EGL
     std::unique_ptr<FlutterEGLContext> _context = nullptr;
     #else 
     std::unique_ptr<WGLContext> _context = nullptr;
