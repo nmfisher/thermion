@@ -133,32 +133,6 @@ static void _freeResource(ResourceBuffer rbf, void *const plugin) {
   ((ThermionFlutterPlugin *)plugin)->freeResource(rbf);
 }
 
-// this is the C-style function that will be returned via getRenderCallback
-// called on every frame by the FFI API
-// this is just a convenient wrapper to call RenderCallback on the actual plugin
-// instance
-void render_callback(void *owner) {
-  ((ThermionFlutterPlugin *)owner)->RenderCallback();
-}
-
-// this is the method on ThermionFlutterPlugin that will copy between D3D
-// textures
-void ThermionFlutterPlugin::RenderCallback() {
-  if (_context) {
-      auto flutterTextureId = _context->GetFlutterTextureId();
-      if(flutterTextureId == -1) {
-        std::cout << "Bad texture" << std::endl;
-        return;
-      }
-#ifdef USE_ANGLE
-    _context->RenderCallback();
-#endif
-#if !WGL_USE_BACKING_WINDOW
-    _textureRegistrar->MarkTextureFrameAvailable(flutterTextureId);
-#endif
-  }
-}
-
 void ThermionFlutterPlugin::CreateTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
@@ -174,18 +148,7 @@ void ThermionFlutterPlugin::CreateTexture(
   auto height = (uint32_t)round(dHeight );
   auto left = (uint32_t)round(dLeft );
   auto top = (uint32_t)round(dTop );
-  
-  // create a single shared context for the life of the application
-  // this will be used to create a backing texture and passed to Filament
-  if (!_context) {
-#ifdef USE_ANGLE
-    _context = std::make_unique<FlutterEGLContext>(_pluginRegistrar, _textureRegistrar);
-#else
-    _context = std::make_unique<WGLContext>(_pluginRegistrar, _textureRegistrar);
-    std::cout << "Created WGL context" << std::endl;
-#endif
-  }
-        
+          
   _context->CreateRenderingSurface(width, height, std::move(result), left, top);
 }
 
@@ -206,15 +169,7 @@ void ThermionFlutterPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   // std::cout << methodCall.method_name().c_str() << std::endl;
-  if (methodCall.method_name() == "usesBackingWindow") {
-    result->Success(flutter::EncodableValue(
-      #ifdef WGL_USE_BACKING_WINDOW
-      true
-      #else
-      false
-      #endif
-    ));
-  } else if (methodCall.method_name() == "getResourceLoaderWrapper") {
+  if (methodCall.method_name() == "getResourceLoaderWrapper") {
     auto wrapper = (ResourceLoaderWrapper*)malloc(sizeof(ResourceLoaderWrapper));
     wrapper->loadFromOwner = _loadResource;
     wrapper->freeFromOwner = _freeResource, 
@@ -224,7 +179,14 @@ void ThermionFlutterPlugin::HandleMethodCall(
     wrapper->freeResource = nullptr;
     result->Success(flutter::EncodableValue((int64_t)wrapper));
   } else if(methodCall.method_name() == "getSharedContext")  {
-      result->Success(NULL);
+    if (!_context) {
+    #ifdef USE_ANGLE
+        _context = std::make_unique<FlutterEGLContext>(_pluginRegistrar, _textureRegistrar);
+    #else
+        _context = std::make_unique<WGLContext>(_pluginRegistrar, _textureRegistrar);
+    #endif
+    }
+    result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
   } else if (methodCall.method_name() == "resizeWindow") {
     #if WGL_USE_BACKING_WINDOW
       const auto *args =
@@ -244,20 +206,27 @@ void ThermionFlutterPlugin::HandleMethodCall(
     #else
       result->Error("ERROR", "resizeWindow is only available when using a backing window");
     #endif
+  } else if (methodCall.method_name() == "createTexture") {
+    CreateTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "createWindow") {
     CreateTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "destroyWindow") {
     DestroyTexture(methodCall, std::move(result));
-  } else if (methodCall.method_name() == "getRenderCallback") {
-    flutter::EncodableList resultList;
-    #if !ANGLE && WGL_USE_BACKING_WINDOW
-        resultList.push_back(flutter::EncodableValue((int64_t)nullptr));
-        resultList.push_back(flutter::EncodableValue((int64_t)nullptr));
-    #else
-        resultList.push_back(flutter::EncodableValue((int64_t)&render_callback));
-        resultList.push_back(flutter::EncodableValue((int64_t)this));
+  } else if (methodCall.method_name() == "markTextureFrameAvailable") {
+     if (_context) {
+          auto flutterTextureId = _context->GetFlutterTextureId();
+          if(flutterTextureId == -1) {
+            std::cout << "Bad texture" << std::endl;
+            return;
+          }
+    #ifdef USE_ANGLE
+        _context->RenderCallback();
     #endif
-    result->Success(resultList);
+    #if !WGL_USE_BACKING_WINDOW
+        _textureRegistrar->MarkTextureFrameAvailable(flutterTextureId);
+    #endif
+      }
+    result->Success(flutter::EncodableValue((int64_t)nullptr));
   } else if (methodCall.method_name() == "getDriverPlatform") {
 #ifdef USE_ANGLE
     result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));

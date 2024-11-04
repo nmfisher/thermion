@@ -7,6 +7,8 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dar
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_window.dart';
 
+import 'platform_texture.dart';
+
 ///
 /// A Windows-only implementation of [ThermionFlutterPlatform] that uses
 /// a Flutter platform channel to create a rendering context,
@@ -46,8 +48,10 @@ class ThermionFlutterWindows
   /// Not supported on Windows. Throws an exception.
   ///
   @override
-  Future<ThermionFlutterTexture?> createTexture(View view, int width, int height) {
-    throw UnimplementedError();
+  Future<ThermionFlutterTexture?> createTexture(View view, int width, int height) async {
+    var texture = FlutterPlatformTexture(channel, viewer!, view, null);
+    await texture.resize(width, height, 0, 0);
+    return texture;
   }
 
   
