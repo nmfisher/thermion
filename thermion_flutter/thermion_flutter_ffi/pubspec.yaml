@@ -11,13 +11,13 @@ flutter:
     implements: thermion_flutter_platform_interface
     platforms:
       ios:
-        dartPluginClass: ThermionFlutterTextureBackedPlatform
+        dartPluginClass: ThermionFlutterMethodChannelPlatform
       android:
-        dartPluginClass: ThermionFlutterTextureBackedPlatform
+        dartPluginClass: ThermionFlutterMethodChannelPlatform
       macos:
-        dartPluginClass: ThermionFlutterTextureBackedPlatform
+        dartPluginClass: ThermionFlutterMethodChannelPlatform
       windows:
-        dartPluginClass: ThermionFlutterTextureBackedPlatform
+        dartPluginClass: ThermionFlutterMethodChannelPlatform
 
 dependencies:
   flutter:
@@ -26,7 +26,9 @@ dependencies:
   thermion_flutter_platform_interface: ^0.2.1-dev.16
   thermion_dart: ^0.2.1-dev.0.0.16
   logging: ^1.2.0
-
+dependency_overrides:
+  thermion_flutter_platform_interface:
+    path: ../thermion_flutter_platform_interface
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -34,9 +34,14 @@ class EGLTexture {
     );    
     ~EGLTexture();
 
-    void RenderCallback();
+    void Flush();
+    HANDLE GetTextureHandle();
    
     GLuint glTextureId = 0;
+
+    void FillBlueAndSaveToBMP(const char* filename);
+    bool SaveTextureAsBMP(ID3D11Texture2D* texture, const char* filename);
+
       
   private:
     bool _error = false;
@@ -57,8 +62,6 @@ class EGLTexture {
     EGLConfig _eglConfig = EGL_NO_CONFIG_KHR;
     EGLSurface _eglSurface = EGL_NO_SURFACE;
     
-    // std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> _textureDescriptor = nullptr;
-
 };
 
 }

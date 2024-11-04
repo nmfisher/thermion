@@ -39,7 +39,34 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   /// call this yourself. May not be supported on all platforms.
   ///
   Future<ThermionFlutterTexture?> createTexture(
-      t.View view, int width, int height);
+      int width, int height);
+
+  ///
+  ///
+  ///
+  ///
+  Future<ThermionFlutterTexture?> resizeTexture(
+    ThermionFlutterTexture texture, 
+      int width, int height);
+
+  ///
+  ///
+  ///
+  Future destroyTexture(ThermionFlutterTexture texture);
+
+  ///
+  ///
+  ///
+  Future markTextureFrameAvailable(ThermionFlutterTexture texture);
+ 
+  ///
+  /// Binds a rendering surface to the given View.
+  ///
+  /// This is internal; unless you are [thermion_*] package developer, don't
+  /// call this yourself. May not be supported on all platforms.
+  ///
+  Future bind(
+      t.View view, ThermionFlutterTexture texture);
 
   ///
   /// Create a rendering window.

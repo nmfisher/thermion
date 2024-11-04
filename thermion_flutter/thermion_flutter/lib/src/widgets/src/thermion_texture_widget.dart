@@ -5,7 +5,6 @@ import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
-import 'package:vector_math/vector_math_64.dart' hide Colors;
 
 class ThermionTextureWidget extends StatefulWidget {
   ///
@@ -52,7 +51,10 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
   void dispose() {
     super.dispose();
     _views.remove(widget.view);
-    _texture?.destroy();
+    if(_texture != null) {
+      ThermionFlutterPlatform.instance.destroyTexture(_texture!);
+    }
+
     _states.remove(this);
   }
 
@@ -79,7 +81,10 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
           "Target texture dimensions ${width}x${height} (pixel ratio : $dpr)");
 
       _texture = await ThermionFlutterPlatform.instance
-          .createTexture(widget.view, width, height);
+          .createTexture(width, height);
+
+      await ThermionFlutterPlatform.instance
+          .bind(widget.view, _texture!);
 
       _logger.info(
           "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
@@ -109,7 +114,10 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         if (mounted) {
           setState(() {});
         }
-        await texture?.destroy();
+        if(texture != null) {
+          ThermionFlutterPlatform.instance.destroyTexture(texture);
+        }
+
         _views.clear();
       });
     });
@@ -124,7 +132,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
   ///
   /// Each instance of ThermionTextureWidget in the widget hierarchy must
-  /// call[markFrameAvailable] on every frame to notify Flutter that the content
+  /// call [markFrameAvailable] on every frame to notify Flutter that the content
   /// of its backing texture has changed.
   ///
   /// Calling [requestFrame] on [ThermionViewer], however, will render all
@@ -149,7 +157,9 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
           await widget.viewer.requestFrame();
           lastRender = d.inMilliseconds;
         }
-        await _texture?.markFrameAvailable();
+        if(_texture != null) {
+          await ThermionFlutterPlatform.instance.markTextureFrameAvailable(_texture!);
+        }
         _rendering = false;
       }
       _requestFrame();
@@ -190,12 +200,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       _logger.info(
           "Resizing texture to dimensions ${newWidth}x${newHeight} (pixel ratio : $dpr)");
 
-      await _texture?.resize(
-        newWidth,
-        newHeight,
-        0,
-        0,
-      );
+      await ThermionFlutterPlatform.instance.resizeTexture(_texture!, newWidth, newHeight);
 
       _logger.info(
           "Resized texture to dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");

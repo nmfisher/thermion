@@ -7,12 +7,15 @@
 
 namespace thermion::windows::egl {
 
-class FlutterEGLContext {
+class ThermionEGLContext {
 public:
-  FlutterEGLContext();
+  ThermionEGLContext();
   void* GetSharedContext();    
-  void RenderCallback();
-  void CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top);
+  EGLTexture * CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top);
+  void DestroyRenderingSurface();
+  void ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top);
+
+  EGLTexture * GetActiveTexture();
 
 private:
   void* _context = nullptr;
@@ -20,7 +23,7 @@ private:
   EGLDisplay _eglDisplay = NULL;
   ID3D11Device* _D3D11Device = nullptr;
   ID3D11DeviceContext* _D3D11DeviceContext = nullptr;
-  std::unique_ptr<EGLTexture> _active;
+  std::unique_ptr<EGLTexture> _active = nullptr;
 };
 
 }
