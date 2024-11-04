@@ -61,8 +61,6 @@ static void logEglError(const char *name) noexcept {
 
 void EGLTexture::RenderCallback() {
   glFinish();
-  _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
-                                    _internalD3DTexture2D.Get());
   _D3D11DeviceContext->Flush();
 }
 
@@ -74,8 +72,7 @@ EGLTexture::~EGLTexture() {
   if(success != EGL_TRUE) {
     std::cout << "Failed to destroy EGL Surface" << std::endl;
   }
-  _internalD3DTexture2D->Release();
-  _externalD3DTexture2D->Release();
+  _d3dTexture2D->Release();
   glDeleteTextures(1, &this->glTextureId);
 }
 
@@ -103,49 +100,23 @@ EGLTexture::EGLTexture(
   d3d11_texture2D_desc.CPUAccessFlags = 0;
   d3d11_texture2D_desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
-  // create internal texture
+  // external
   auto hr = _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr,
-                                          &_internalD3DTexture2D);
+                                     &_d3dTexture2D);
   if FAILED (hr) {
     // result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
     ;
   }
   auto resource = Microsoft::WRL::ComPtr<IDXGIResource>{};
-  hr = _internalD3DTexture2D.As(&resource);
+  hr = _d3dTexture2D.As(&resource);
 
   if FAILED (hr) {
     // result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
     ;
   }
-  hr = resource->GetSharedHandle(&_internalD3DTextureHandle);
-  if FAILED (hr) {
-    // result->Error("ERROR", "Failed to get shared handle to D3D texture",
-    //               nullptr);
-    return;
-    ;
-  }
-  _internalD3DTexture2D->AddRef();
-
-  std::cout << "Created internal D3D texture" << std::endl;
-
-  // external
-  hr = _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr,
-                                     &_externalD3DTexture2D);
-  if FAILED (hr) {
-    // result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
-    ;
-  }
-  hr = _externalD3DTexture2D.As(&resource);
-
-  if FAILED (hr) {
-    // result->Error("ERROR", "Failed to create D3D texture", nullptr);
-    return;
-    ;
-  }
-  hr = resource->GetSharedHandle(&_externalD3DTextureHandle);
+  hr = resource->GetSharedHandle(&_d3dTexture2DHandle);
   if FAILED (hr) {
     // result->Error("ERROR",
     //               "Failed to get shared handle to external D3D texture",
@@ -153,7 +124,7 @@ EGLTexture::EGLTexture(
     return;
     ;
   }
-  _externalD3DTexture2D->AddRef();
+  _d3dTexture2D->AddRef();
 
   std::cout << "Created external D3D texture" << std::endl;
 
@@ -165,7 +136,7 @@ EGLTexture::EGLTexture(
 
   _eglSurface = eglCreatePbufferFromClientBuffer(
       _eglDisplay, EGL_D3D_TEXTURE_2D_SHARE_HANDLE_ANGLE,
-      _internalD3DTextureHandle, _eglConfig, pbufferAttribs);
+      _d3dTexture2DHandle, _eglConfig, pbufferAttribs);
 
   if (!eglMakeCurrent(_eglDisplay, _eglSurface, _eglSurface, _eglContext)) {
     // eglMakeCurrent failed
@@ -203,7 +174,7 @@ EGLTexture::EGLTexture(
 
   // _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
   // _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
-  // _textureDescriptor->handle = _externalD3DTextureHandle;
+  // _textureDescriptor->handle = _d3dTexture2DHandle;
   // _textureDescriptor->width = _textureDescriptor->visible_width = width;
   // _textureDescriptor->height = _textureDescriptor->visible_height = height;
   // _textureDescriptor->release_context = nullptr;

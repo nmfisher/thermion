@@ -49,10 +49,8 @@ class EGLTexture {
     ID3D11Device* _D3D11Device = nullptr;
     ID3D11DeviceContext* _D3D11DeviceContext = nullptr;
     // Texture objects/shared handles
-    Microsoft::WRL::ComPtr<ID3D11Texture2D> _externalD3DTexture2D;
-    Microsoft::WRL::ComPtr<ID3D11Texture2D> _internalD3DTexture2D;
-    HANDLE _externalD3DTextureHandle = nullptr;
-    HANDLE _internalD3DTextureHandle = nullptr;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> _d3dTexture2D;
+    HANDLE _d3dTexture2DHandle = nullptr;
 
     EGLDisplay _eglDisplay = EGL_NO_DISPLAY;
     EGLContext _eglContext = EGL_NO_CONTEXT;
