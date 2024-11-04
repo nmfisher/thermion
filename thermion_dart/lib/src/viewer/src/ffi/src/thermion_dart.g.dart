@@ -1488,6 +1488,19 @@ external void Viewer_captureRenderTargetRenderThread(
 );
 
 @ffi.Native<
+    ffi.Pointer<TRenderTarget> Function(
+        ffi.Pointer<TViewer>, ffi.IntPtr, ffi.Uint32, ffi.Uint32, 
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>>
+        )>(isLeaf: true)
+external ffi.Pointer<TRenderTarget> Viewer_createRenderTargetRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  int texture,
+  int width,
+  int height,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>> onComplete,
+);
+
+@ffi.Native<
     ffi.Void Function(ffi.Pointer<TViewer>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void Viewer_requestFrameRenderThread(

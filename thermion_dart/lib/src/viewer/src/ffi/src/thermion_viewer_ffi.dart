@@ -101,8 +101,10 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future<RenderTarget> createRenderTarget(
       int width, int height, int textureHandle) async {
-    final renderTarget =
-        Viewer_createRenderTarget(_viewer!, textureHandle, width, height);
+    final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
+      Viewer_createRenderTargetRenderThread(_viewer!, textureHandle, width, height, cb);
+    });
+        
     return FFIRenderTarget(renderTarget, _viewer!);
   }
 

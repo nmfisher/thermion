@@ -263,6 +263,16 @@ extern "C"
       auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Viewer_createRenderTargetRenderThread(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height, void(*onComplete)(TRenderTarget*)) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto renderTarget = Viewer_createRenderTarget(viewer, texture, width, height);
+          onComplete(renderTarget);
+        });
+      auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void
   set_frame_interval_render_thread(TViewer *viewer, float frameIntervalInMilliseconds)
   {
