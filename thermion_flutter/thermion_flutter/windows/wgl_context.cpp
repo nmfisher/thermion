@@ -8,14 +8,109 @@
 
 namespace thermion_flutter {
 
+// Add error checking function
+void checkWGLError(const char* step, HDC hdc) {
+    DWORD error = GetLastError();
+    if (error != 0) {
+        std::cout << "WGL Error at " << step << ": " << error << std::endl;
+    }
+    
+    // Check if the DC is still valid
+    if (!hdc || !wglGetCurrentDC()) {
+        std::cout << "Invalid DC at " << step << std::endl;
+    }
+}
+
+// Modified context creation with error checking
+HGLRC createWGLContext(HDC whdc) {
+  std::cout << "creating wgl context on HDC" << whdc << std::endl;
+    PIXELFORMATDESCRIPTOR pfd = {
+        sizeof(PIXELFORMATDESCRIPTOR),
+        1,
+        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+        PFD_TYPE_RGBA,
+        32,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        32, // Depth buffer
+        8,  // Stencil buffer - Added this
+        0,
+        PFD_MAIN_PLANE,
+        0, 0, 0, 0
+    };
+
+    // Choose pixel format
+    int pixelFormat = ChoosePixelFormat(whdc, &pfd);
+    if (pixelFormat == 0) {
+        checkWGLError("ChoosePixelFormat", whdc);
+        return nullptr;
+    }
+
+    // Set pixel format
+    if (!SetPixelFormat(whdc, pixelFormat, &pfd)) {
+        checkWGLError("SetPixelFormat", whdc);
+        return nullptr;
+    }
+
+    // Create temporary context
+    HGLRC tempContext = wglCreateContext(whdc);
+    if (!tempContext) {
+        checkWGLError("wglCreateContext", whdc);
+        return nullptr;
+    }
+
+    // Make temporary context current
+    if (!wglMakeCurrent(whdc, tempContext)) {
+        checkWGLError("wglMakeCurrent", whdc);
+        wglDeleteContext(tempContext);
+        return nullptr;
+    }
+
+    // Get modern context creation function
+    PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs =
+        (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+    
+    if (!wglCreateContextAttribs) {
+        std::cout << "Failed to get wglCreateContextAttribsARB" << std::endl;
+        wglMakeCurrent(NULL, NULL);
+        wglDeleteContext(tempContext);
+        return nullptr;
+    }
+
+    // Try creating modern context with different versions
+    HGLRC context = nullptr;
+    for (int minor = 5; minor >= 1; minor--) {
+        const int attribs[] = {
+            WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+            WGL_CONTEXT_MINOR_VERSION_ARB, minor, 0
+        };
+        
+        context = wglCreateContextAttribs(whdc, nullptr, attribs);
+        if (context) break;
+        checkWGLError("wglCreateContextAttribs", whdc);
+    }
+
+    // Clean up temporary context
+    wglMakeCurrent(NULL, NULL);
+    wglDeleteContext(tempContext);
+
+    // Activate new context if created
+    if (context && !wglMakeCurrent(whdc, context)) {
+        checkWGLError("Final wglMakeCurrent", whdc);
+        wglDeleteContext(context);
+        std::cout << "Delete context" << std::endl;
+        return nullptr;
+    }
+    wglMakeCurrent(NULL, NULL);
+
+    return context;
+}  
+  
+
 WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
                        flutter::TextureRegistrar *textureRegistrar)
     : FlutterRenderContext(pluginRegistrar, textureRegistrar) {
 
-#if WGL_USE_BACKING_WINDOW
-  
-#else
-
+#if !WGL_USE_BACKING_WINDOW
   auto hwnd = pluginRegistrar->GetView()->GetNativeWindow();
 
   HDC whdc = GetDC(hwnd);
@@ -26,80 +121,12 @@ WGLContext::WGLContext(flutter::PluginRegistrarWindows *pluginRegistrar,
 
   std::cout << "No GL context exists, creating" << std::endl;
 
-  PIXELFORMATDESCRIPTOR pfd = {
-      sizeof(PIXELFORMATDESCRIPTOR),
-      1,
-      PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, // Flags
-      PFD_TYPE_RGBA, // The kind of framebuffer. RGBA or palette.
-      24,            // Colordepth of the framebuffer.
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      24, // Number of bits for the depthbuffer
-      0,  // Number of bits for the stencilbuffer
-      0,  // Number of Aux buffers in the framebuffer.
-      PFD_MAIN_PLANE,
-      0,
-      0,
-      0,
-      0};
+  _context = createWGLContext(whdc);
 
-  int pixelFormat = ChoosePixelFormat(whdc, &pfd);
-  SetPixelFormat(whdc, pixelFormat, &pfd);
+  std::cout << "Created context " << _context << std::endl;
 
-  // We need a tmp context to retrieve and call wglCreateContextAttribsARB.
-  HGLRC tempContext = wglCreateContext(whdc);
-  if (!wglMakeCurrent(whdc, tempContext)) {
-    std::cout << "Failed to acquire temporary context" << std::endl;
-    return;
-  }
-
-  GLenum err = glGetError();
-
-  if (err != GL_NO_ERROR) {
-    std::cout << "GL Error @ 455 %d" << std::endl;
-    return;
-  }
-
-  PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribs = nullptr;
-
-  wglCreateContextAttribs =
-      (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress(
-          "wglCreateContextAttribsARB");
-
-  if (!wglCreateContextAttribs) {
-    std::cout << "Failed to resolve wglCreateContextAttribsARB" << std::endl;
-    return;
-  }
-
-  for (int minor = 5; minor >= 1; minor--) {
-    std::vector<int> mAttribs = {WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-                                 WGL_CONTEXT_MINOR_VERSION_ARB, minor, 0};
-    _context = wglCreateContextAttribs(whdc, nullptr, mAttribs.data());
-    if (_context) {
-      break;
+#endif
     }
-  }
-
-  wglMakeCurrent(NULL, NULL);
-  wglDeleteContext(tempContext);
-
-  if (!_context || !wglMakeCurrent(whdc, _context)) {
-    std::cout << "Failed to create OpenGL context." << std::endl;
-    return;
-  }
-  #endif
-}
 
 void WGLContext::ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
   #if WGL_USE_BACKING_WINDOW
