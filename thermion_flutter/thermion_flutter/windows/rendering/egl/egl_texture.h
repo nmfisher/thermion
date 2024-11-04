@@ -1,13 +1,7 @@
 #pragma once
 
-#ifndef _FLUTTER_ANGLE_TEXTURE_H 
-#define _FLUTTER_ANGLE_TEXTURE_H
-
+#include <functional>
 #include <mutex>
-
-#include <flutter/texture_registrar.h>
-#include <flutter/method_channel.h>
-#include <flutter/plugin_registrar_windows.h>
 
 #include <d3d.h>
 #include <d3d11.h>
@@ -22,18 +16,13 @@
 #include <Windows.h>
 #include <wrl.h>
 
-#include "flutter_texture_buffer.h"
-
 typedef uint32_t GLuint;
 
-namespace thermion_flutter {
+namespace thermion::windows::egl {
 
-class FlutterAngleTexture : public FlutterTextureBuffer {
+class EGLTexture {
   public:
-    FlutterAngleTexture(
-        flutter::PluginRegistrarWindows* pluginRegistrar,
-        flutter::TextureRegistrar* textureRegistrar,
-        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result,
+    EGLTexture(
         uint32_t width,
         uint32_t height,
         ID3D11Device* D3D11Device,
@@ -43,16 +32,14 @@ class FlutterAngleTexture : public FlutterTextureBuffer {
         EGLContext eglContext,
         std::function<void(size_t, size_t)> onResizeRequested
     );    
-    ~FlutterAngleTexture();
+    ~EGLTexture();
 
     void RenderCallback();
-    
+   
     GLuint glTextureId = 0;
-    std::unique_ptr<flutter::TextureVariant> texture;
       
   private:
-    flutter::PluginRegistrarWindows* _pluginRegistrar;
-    flutter::TextureRegistrar* _textureRegistrar;
+    bool _error = false;
     uint32_t _width = 0;
     uint32_t _height = 0;
     bool logged = false;
@@ -72,9 +59,8 @@ class FlutterAngleTexture : public FlutterTextureBuffer {
     EGLConfig _eglConfig = EGL_NO_CONFIG_KHR;
     EGLSurface _eglSurface = EGL_NO_SURFACE;
     
-    std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> _textureDescriptor = nullptr;
+    // std::unique_ptr<FlutterDesktopGpuSurfaceDescriptor> _textureDescriptor = nullptr;
 
 };
 
 }
-#endif // _FLUTTER_ANGLE_TEXTURE 

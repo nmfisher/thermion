@@ -29,7 +29,7 @@
 
 #include "flutter_render_context.h"
 
-#if USE_ANGLE
+#if THERMION_EGL
 #include "egl_context.h"
 #else
 #include "wgl_context.h"
@@ -150,6 +150,18 @@ void ThermionFlutterPlugin::CreateTexture(
   auto top = (uint32_t)round(dTop );
           
   _context->CreateRenderingSurface(width, height, std::move(result), left, top);
+  auto texture = _context->GetActiveTexture();
+
+  auto flutterTextureId = _textureRegistrar->RegisterTexture(texture.GetFlutterTextureId());
+  texture.RegisterFlutterTextureId(flutterTextureId);
+  std::cout << "Registered Flutter texture ID " << flutterTextureId
+            << std::endl;
+
+  std::vector<flutter::EncodableValue> resultList;
+  resultList.push_back(flutter::EncodableValue(flutterTextureId));
+  resultList.push_back(flutter::EncodableValue(glTextureId));
+  resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
+  result->Success(resultList);
 }
 
 void ThermionFlutterPlugin::DestroyTexture(
@@ -180,7 +192,7 @@ void ThermionFlutterPlugin::HandleMethodCall(
     result->Success(flutter::EncodableValue((int64_t)wrapper));
   } else if(methodCall.method_name() == "getSharedContext")  {
     if (!_context) {
-    #ifdef USE_ANGLE
+    #ifdef THERMION_EGL
         _context = std::make_unique<FlutterEGLContext>(_pluginRegistrar, _textureRegistrar);
     #else
         _context = std::make_unique<WGLContext>(_pluginRegistrar, _textureRegistrar);
@@ -214,12 +226,13 @@ void ThermionFlutterPlugin::HandleMethodCall(
     DestroyTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "markTextureFrameAvailable") {
      if (_context) {
-          auto flutterTextureId = _context->GetFlutterTextureId();
+          auto texture = context->GetActiveTexture();
+          auto flutterTextureId = texture.GetFlutterTextureId();
           if(flutterTextureId == -1) {
             std::cout << "Bad texture" << std::endl;
             return;
           }
-    #ifdef USE_ANGLE
+    #ifdef THERMION_EGL
         _context->RenderCallback();
     #endif
     #if !WGL_USE_BACKING_WINDOW
@@ -228,11 +241,7 @@ void ThermionFlutterPlugin::HandleMethodCall(
       }
     result->Success(flutter::EncodableValue((int64_t)nullptr));
   } else if (methodCall.method_name() == "getDriverPlatform") {
-#ifdef USE_ANGLE
-    result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));
-#else
     result->Success(flutter::EncodableValue((int64_t) nullptr));
-#endif
   } else {
     result->Error("NOT_IMPLEMENTED", "Method is not implemented %s",
                   methodCall.method_name());

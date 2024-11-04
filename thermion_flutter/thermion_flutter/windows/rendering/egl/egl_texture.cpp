@@ -1,13 +1,11 @@
-#include "flutter_angle_texture.h"
+#include "egl_texture.h"
 
-#include <flutter/method_channel.h>
-#include <flutter/plugin_registrar_windows.h>
-#include <flutter/standard_method_codec.h>
-#include <flutter/texture_registrar.h>
-
+#include <functional>
+#include <iostream>
+#include <memory>
 #include <thread>
 
-namespace thermion_flutter {
+namespace thermion::windows::egl {
 
 static void logEglError(const char *name) noexcept {
   const char *err;
@@ -61,14 +59,14 @@ static void logEglError(const char *name) noexcept {
   std::cout << name << " failed with " << err << std::endl;
 }
 
-void FlutterAngleTexture::RenderCallback() {
+void EGLTexture::RenderCallback() {
   glFinish();
   _D3D11DeviceContext->CopyResource(_externalD3DTexture2D.Get(),
                                     _internalD3DTexture2D.Get());
   _D3D11DeviceContext->Flush();
 }
 
-FlutterAngleTexture::~FlutterAngleTexture() {
+EGLTexture::~EGLTexture() {
   if (_eglDisplay != EGL_NO_DISPLAY && _eglSurface != EGL_NO_SURFACE) {
     eglReleaseTexImage(_eglDisplay, _eglSurface, EGL_BACK_BUFFER);
   }
@@ -81,17 +79,13 @@ FlutterAngleTexture::~FlutterAngleTexture() {
   glDeleteTextures(1, &this->glTextureId);
 }
 
-FlutterAngleTexture::FlutterAngleTexture(
-    flutter::PluginRegistrarWindows *pluginRegistrar,
-    flutter::TextureRegistrar *textureRegistrar,
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result,
+EGLTexture::EGLTexture(
     uint32_t width, uint32_t height, ID3D11Device *D3D11Device,
     ID3D11DeviceContext *D3D11DeviceContext, EGLConfig eglConfig,
     EGLDisplay eglDisplay, EGLContext eglContext,
     std::function<void(size_t, size_t)> onResizeRequested
     )
-    : _pluginRegistrar(pluginRegistrar), _textureRegistrar(textureRegistrar),
-      _width(width), _height(height), _D3D11Device(D3D11Device),
+    : _width(width), _height(height), _D3D11Device(D3D11Device),
       _D3D11DeviceContext(D3D11DeviceContext), _eglConfig(eglConfig),
       _eglDisplay(eglDisplay), _eglContext(eglContext), _onResizeRequested(onResizeRequested) {
 
@@ -113,7 +107,7 @@ FlutterAngleTexture::FlutterAngleTexture(
   auto hr = _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr,
                                           &_internalD3DTexture2D);
   if FAILED (hr) {
-    result->Error("ERROR", "Failed to create D3D texture", nullptr);
+    // result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
     ;
   }
@@ -121,14 +115,14 @@ FlutterAngleTexture::FlutterAngleTexture(
   hr = _internalD3DTexture2D.As(&resource);
 
   if FAILED (hr) {
-    result->Error("ERROR", "Failed to create D3D texture", nullptr);
+    // result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
     ;
   }
   hr = resource->GetSharedHandle(&_internalD3DTextureHandle);
   if FAILED (hr) {
-    result->Error("ERROR", "Failed to get shared handle to D3D texture",
-                  nullptr);
+    // result->Error("ERROR", "Failed to get shared handle to D3D texture",
+    //               nullptr);
     return;
     ;
   }
@@ -140,22 +134,22 @@ FlutterAngleTexture::FlutterAngleTexture(
   hr = _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr,
                                      &_externalD3DTexture2D);
   if FAILED (hr) {
-    result->Error("ERROR", "Failed to create D3D texture", nullptr);
+    // result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
     ;
   }
   hr = _externalD3DTexture2D.As(&resource);
 
   if FAILED (hr) {
-    result->Error("ERROR", "Failed to create D3D texture", nullptr);
+    // result->Error("ERROR", "Failed to create D3D texture", nullptr);
     return;
     ;
   }
   hr = resource->GetSharedHandle(&_externalD3DTextureHandle);
   if FAILED (hr) {
-    result->Error("ERROR",
-                  "Failed to get shared handle to external D3D texture",
-                  nullptr);
+    // result->Error("ERROR",
+    //               "Failed to get shared handle to external D3D texture",
+    //               nullptr);
     return;
     ;
   }
@@ -207,37 +201,27 @@ FlutterAngleTexture::FlutterAngleTexture(
   glGetIntegerv(GL_MAJOR_VERSION, &major);
   glGetIntegerv(GL_MINOR_VERSION, &minor);
 
-  _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
-  _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
-  _textureDescriptor->handle = _externalD3DTextureHandle;
-  _textureDescriptor->width = _textureDescriptor->visible_width = width;
-  _textureDescriptor->height = _textureDescriptor->visible_height = height;
-  _textureDescriptor->release_context = nullptr;
-  _textureDescriptor->release_callback = [](void *release_context) {
+  // _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
+  // _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
+  // _textureDescriptor->handle = _externalD3DTextureHandle;
+  // _textureDescriptor->width = _textureDescriptor->visible_width = width;
+  // _textureDescriptor->height = _textureDescriptor->visible_height = height;
+  // _textureDescriptor->release_context = nullptr;
+  // _textureDescriptor->release_callback = [](void *release_context) {
 
-  };
-  _textureDescriptor->format = kFlutterDesktopPixelFormatBGRA8888;
+  // };
+  // _textureDescriptor->format = kFlutterDesktopPixelFormatBGRA8888;
 
-  texture =
-      std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
-          kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
-          [&](size_t width, size_t height) { 
-            if(width != this->_width || height != this->_height) {
-              this->_onResizeRequested(width, height);
-            }
-            return _textureDescriptor.get(); 
-          }));
+  // texture =
+  //     std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
+  //         kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
+  //         [&](size_t width, size_t height) { 
+  //           if(width != this->_width || height != this->_height) {
+  //             this->_onResizeRequested(width, height);
+  //           }
+  //           return _textureDescriptor.get(); 
+  //         }));
 
-  flutterTextureId = _textureRegistrar->RegisterTexture(texture.get());
-  std::cout << "Registered Flutter texture ID " << flutterTextureId
-            << std::endl;
-
-  std::vector<flutter::EncodableValue> resultList;
-  resultList.push_back(flutter::EncodableValue(flutterTextureId));
-  resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
-  resultList.push_back(flutter::EncodableValue(glTextureId));
-  resultList.push_back(flutter::EncodableValue((int64_t) eglContext));
-  result->Success(resultList);
 }
 
 } // namespace thermion_flutter
