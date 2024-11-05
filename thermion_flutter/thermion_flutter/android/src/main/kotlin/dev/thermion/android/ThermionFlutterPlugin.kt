@@ -189,8 +189,7 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
                 }
             }
             "destroyTexture" -> {
-                val args = call.arguments as List<*>
-                val textureId = (args[0] as Int).toLong()
+                val textureId = (call.arguments as Int).toLong()
                 val textureEntry = textures[textureId]
                 if (textureEntry != null) {
                     textureEntry.surface.release()

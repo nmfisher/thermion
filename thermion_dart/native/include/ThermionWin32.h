@@ -9,6 +9,7 @@
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "filament.lib")
 #pragma comment(lib, "bluevk.lib")
+#pragma comment(lib, "vkshaders.lib")
 #pragma comment(lib, "bluegl.lib")
 #pragma comment(lib, "backend.lib")
 #pragma comment(lib, "filamat.lib")
@@ -33,3 +34,7 @@
 #pragma comment(lib, "zstd.lib")
 #pragma comment(lib, "basis_transcoder.lib")
 #pragma comment(lib, "meshoptimizer.lib")
+#pragma comment(lib, "vulkan-1.lib")
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "d3d11.lib")
+ 

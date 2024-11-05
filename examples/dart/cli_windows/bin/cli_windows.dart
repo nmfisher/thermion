@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:ffi/ffi.dart';
-// import 'package:thermion_dart/thermion_dart/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/src/utils/src/dart_resources.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
@@ -14,8 +13,6 @@ import 'package:cli_windows/thermion_window.g.dart';
 void main(List<String> arguments) async {
   var hwnd = create_thermion_window(500, 500, 0, 0);
   update();
-
-  print("VISIBLE");
 
   final resourceLoader = calloc<ResourceLoaderWrapper>(1);
   
@@ -32,7 +29,7 @@ void main(List<String> arguments) async {
     resourceLoader: resourceLoader.cast<Void>());
 
   await viewer.initialized;
-  var swapChain = await viewer.createSwapChain(hwnd);
+  var swapChain = await viewer.createHeadlessSwapChain(500,500);
   var view = await viewer.getViewAt(0);
   await view.updateViewport(500, 500);
   var camera = await viewer.getMainCamera();
@@ -61,8 +58,8 @@ void main(List<String> arguments) async {
     var modelMatrix = Matrix4.compose(position, rotation, Vector3.all(1));
     await viewer.setCameraModelMatrix4(modelMatrix);
     await viewer.render();
-    await Future.delayed(Duration(milliseconds: 16));
     update();
+    await Future.delayed(Duration(milliseconds: 17));
   }
   
 

@@ -10,11 +10,8 @@
 #include <Windows.h>
 #include <wrl.h>
 
-#include "GL/GL.h"
-#include "GL/GLu.h"
-
 #include "ResourceBuffer.h"
-#include "rendering/egl/egl_context.h"
+#include "windows/vulkan/vulkan_context.h"
 
 namespace thermion::tflutter::windows {
 
@@ -53,7 +50,9 @@ public:
   void freeResource(ResourceBuffer rbuf);
 
   private:
-    std::unique_ptr<thermion::windows::egl::ThermionEGLContext> _context = nullptr;
+    std::unique_ptr<thermion::windows::vulkan::ThermionVulkanContext> _context = nullptr;
+    bool OnTextureUnregistered(int64_t flutterTextureId);
+
 };
 
 } // namespace thermion_flutter

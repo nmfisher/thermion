@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -199,11 +200,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future destroySwapChain(FFISwapChain swapChain) async {
+  Future destroySwapChain(SwapChain swapChain) async {
     if (_viewer != null) {
       await withVoidCallback((callback) {
         Viewer_destroySwapChainRenderThread(
-            _viewer!, swapChain.swapChain, callback);
+            _viewer!, (swapChain as FFISwapChain).swapChain, callback);
       });
     }
   }
@@ -1237,6 +1238,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
+    if(Platform.isWindows && msaa) { 
+      throw Exception("MSAA is not currently supported on Windows");
+    }
     final view = await getViewAt(0) as FFIView;
     View_setAntiAliasing(view.view, msaa, fxaa, taa);
   }
