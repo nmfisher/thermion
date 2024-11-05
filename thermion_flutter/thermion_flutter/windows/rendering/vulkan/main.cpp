@@ -362,11 +362,10 @@ int main()
     if (result != VK_SUCCESS)
     {
         std::cout << "Failed to create iamge " << std::endl;
+        return 1;
     }
-    else
-    {
-        std::cout << "Successfully created image " << std::endl;
-    }
+    
+    std::cout << "Successfully created image " << std::endl;
 
     VkMemoryDedicatedRequirements MemoryDedicatedRequirements{
         .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS,
@@ -382,6 +381,7 @@ int main()
     vkGetImageMemoryRequirements2(device, &ImageMemoryRequirementsInfo2, &MemoryRequirements2);
     //       ... if we happen to be here, MemoryRequirements2 is empty
     VkMemoryRequirements &MemoryRequirements = MemoryRequirements2.memoryRequirements;
+    std::cout << "Got mem reqs " << std::endl;
 
     const VkMemoryDedicatedAllocateInfo MemoryDedicatedAllocateInfo{
         .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
@@ -400,8 +400,10 @@ int main()
     uint32_t memoryTypeIndex = findOptimalMemoryType(
         physicalDevice,
         MemoryRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT // You might need to adjust these flags
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT     // You might need to adjust these flags
     );
+
+    std::cout << "memoryTypeIndex" << memoryTypeIndex << std::endl;
 
     VkMemoryAllocateInfo allocInfo{
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
