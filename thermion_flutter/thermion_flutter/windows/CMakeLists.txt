@@ -9,10 +9,8 @@ set(PLUGIN_NAME "thermion_flutter_plugin")
 list(APPEND PLUGIN_SOURCES
   "thermion_flutter_plugin.cpp"
   "thermion_flutter_plugin.h"
-  "flutter_egl_texture.cpp"
+  "flutter_d3d_texture.cpp"
 )
-
-add_subdirectory("rendering/egl")
 
 add_library(${PLUGIN_NAME} SHARED
   "include/thermion_flutter/thermion_flutter_plugin_c_api.h"
@@ -30,32 +28,34 @@ target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/filament"
   "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 include_directories(
-  "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include/filament"
-  "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include"
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/filament
+  ${runner_BINARY_DIR}/../../../native_assets/windows/
 )
+
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "FOO${_variableName}=${${_variableName}}")
+endforeach()
+
+target_link_directories(${PLUGIN_NAME} PRIVATE ${runner_BINARY_DIR}/../../../native_assets/windows/)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
  flutter
  flutter_wrapper_plugin 
  Shlwapi
- thermion_egl
-)
-
-# Copy thermion_egl library to the Flutter build directory
-add_custom_command(TARGET ${PLUGIN_NAME} POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  $<TARGET_FILE:thermion_egl>
-  $<TARGET_FILE_DIR:${PLUGIN_NAME}>
+ thermion_dart
 )
 
 set(thermion_flutter_bundled_libraries
   ${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.dll
-  $<TARGET_FILE:thermion_egl>
+  ${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.lib
   PARENT_SCOPE
 )
 

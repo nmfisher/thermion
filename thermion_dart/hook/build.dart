@@ -7,10 +7,11 @@ import 'package:path/path.dart' as path;
 
 void main(List<String> args) async {
   await build(args, (config, output) async {
+    var pkgRootFilePath =
+        config.packageRoot.toFilePath(windows: Platform.isWindows);
 
-    var pkgRootFilePath = config.packageRoot.toFilePath(windows: Platform.isWindows);
-
-    var logPath = path.join(pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
+    var logPath = path.join(
+        pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
     var logFile = File(logPath);
     if (!logFile.parent.existsSync()) {
       logFile.parent.createSync(recursive: true);
@@ -25,8 +26,9 @@ void main(List<String> args) async {
 
     var platform = config.targetOS.toString().toLowerCase();
 
-    if(!config.dryRun) {
-      logger.info("Building Thermion for ${config.targetOS} in mode ${config.buildMode.name}");
+    if (!config.dryRun) {
+      logger.info(
+          "Building Thermion for ${config.targetOS} in mode ${config.buildMode.name}");
     }
 
     // We don't support Linux (yet), so the native/Filament libraries won't be
@@ -54,13 +56,20 @@ void main(List<String> args) async {
 
     final packageName = config.packageName;
 
-    final sources = Directory(path.join(pkgRootFilePath, "native", "src"))
+    var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
         .whereType<File>()
         .map((f) => f.path)
+        .where((f) => !(f.contains("CMakeLists") || f.contains("main.cpp")))
         .toList();
+
+    if (config.targetOS != OS.windows) {
+      sources = sources.where((p) => !p.contains("windows")).toList();
+    }
+
     sources.addAll([
-      path.join(pkgRootFilePath, "native", "include", "material", "unlit_fixed_size.c"),
+      path.join(pkgRootFilePath, "native", "include", "material",
+          "unlit_fixed_size.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "unlit.c"),
@@ -95,17 +104,11 @@ void main(List<String> args) async {
     ];
 
     if (platform == "windows") {
-      libDir = Directory(libDir).uri.toFilePath(windows: config.targetOS == OS.windows);
-      libs = libs.map((lib) => path.join(libDir, "${lib}.lib")).toList();
-      libs.addAll([path.join(libDir,"bluevk.lib"), path.join(libDir,"bluegl.lib")]);
-      libs.addAll([
-        "gdi32.lib",
-        "user32.lib",
-        "shell32.lib",
-        "opengl32.lib",
-        "dwmapi.lib",
-        "comctl32.lib"
-      ]);
+      // we just need the libDir and don't need to explicitly link the actual libs
+      // (these are linked via ThermionWin32.h)
+      libDir = Directory(libDir)
+          .uri
+          .toFilePath(windows: config.targetOS == OS.windows);
     } else {
       libs.add("stdc++");
     }
@@ -115,21 +118,19 @@ void main(List<String> args) async {
 
     if (platform != "windows") {
       flags.addAll(['-std=c++17']);
-    } else if(!config.dryRun) {
+    } else if (!config.dryRun) {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
-      if(config.buildMode == BuildMode.debug) {
+      if (config.buildMode == BuildMode.debug) {
         defines["_DEBUG"] = "1";
-      } else { 
+      } else {
         defines["RELEASE"] = "1";
         defines["NDEBUG"] = "1";
       }
       flags.addAll([
         "/std:c++20",
-        if(config.buildMode == BuildMode.debug)
-        ...["/MDd","/Zi"],
-        if(config.buildMode == BuildMode.release)
-        "/MD",
+        if (config.buildMode == BuildMode.debug) ...["/MDd", "/Zi"],
+        if (config.buildMode == BuildMode.release) "/MD",
         "/VERBOSE",
         ...defines.keys.map((k) => "/D$k=${defines[k]}").toList()
       ]);
@@ -173,11 +174,14 @@ void main(List<String> args) async {
         if (platform == "ios") '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
-        if (platform != "windows") ...libs.map((lib) => "-l$lib"),
-        if (platform != "windows") "-L$libDir",
+        if (platform != "windows") ...[
+          ...libs.map((lib) => "-l$lib"),
+          "-L$libDir"
+        ],
         if (platform == "windows") ...[
           "/I${path.join(pkgRootFilePath, "native", "include")}",
           "/I${path.join(pkgRootFilePath, "native", "include", "filament")}",
+          "/I${path.join(pkgRootFilePath, "native", "include", "windows", "vulkan")}",
           ...sources,
           '/link',
           "/LIBPATH:$libDir",
@@ -228,17 +232,46 @@ void main(List<String> args) async {
             architecture: config.targetArchitecture));
       }
     }
-    // do we need this?
-    if (config.targetOS == "windows") {
-      output.addAsset(
-          NativeCodeAsset(
+
+    if (config.targetOS == OS.windows) {
+      var importLib = File(path.join(
+          config.outputDirectory.path.substring(1).replaceAll("/", "\\"),
+          "thermion_dart.lib"));
+
+      output.addAsset(NativeCodeAsset(
+          package: config.packageName,
+          name: "thermion_dart.lib",
+          linkMode: DynamicLoadingBundled(),
+          os: config.targetOS,
+          file: importLib.uri,
+          architecture: config.targetArchitecture));
+
+      for(final dir in ["windows/vulkan"]) { // , "filament/bluevk", "filament/vulkan"
+      final targetSubdir = path
+          .join(config.outputDirectory.path, "include", dir)
+          .substring(1);
+      if (!Directory(targetSubdir).existsSync()) {
+        Directory(targetSubdir).createSync(recursive: true);
+      }
+
+      for (var file in Directory(path.join(
+              pkgRootFilePath, "native", "include", dir))
+          .listSync()) {
+        if (file is File) {
+          final targetPath = path.join(targetSubdir, path.basename(file.path));
+          file.copySync(targetPath);
+          output.addAsset(NativeCodeAsset(
               package: config.packageName,
-              name: "thermion_dart.dll",
+              name: "include/$dir/${path.basename(file.path)}",
               linkMode: DynamicLoadingBundled(),
               os: config.targetOS,
-              file: Uri.file(path.join(pkgRootFilePath, "thermion_dart.dll")),
-              architecture: config.targetArchitecture),
-          linkInPackage: config.packageName);
+              file: file.uri,
+              architecture: config.targetArchitecture));
+        }
+      }
+      }
+
+
     }
   });
 }
@@ -266,9 +299,15 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
   if (platform == "windows") {
     mode = config.buildMode == BuildMode.debug ? "debug" : "release";
   }
-  
-  var libDir = Directory(
-      path.join(config.packageRoot.toFilePath(windows:Platform.isWindows), ".dart_tool", "thermion_dart", "lib", _FILAMENT_VERSION, platform, mode));
+
+  var libDir = Directory(path.join(
+      config.packageRoot.toFilePath(windows: Platform.isWindows),
+      ".dart_tool",
+      "thermion_dart",
+      "lib",
+      _FILAMENT_VERSION,
+      platform,
+      mode));
 
   if (platform == "android") {
     final archExtension = switch (config.targetArchitecture) {
@@ -288,14 +327,19 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  final url = _getLibraryUrl(platform, mode);
+  var url = _getLibraryUrl(platform, mode);
+
+  if (config.targetOS == OS.windows) {
+    url = url.replaceAll(".zip", "-vulkan.zip");
+  }
 
   final filename = url.split("/").last;
 
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
   // If this file already exists, we assume everything has been successfully extracted and skip
   final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
-  final successToken = File(path.join(unzipDir, "success"));
+  final successToken = File(path.join(
+      unzipDir, config.targetOS == OS.windows ? "success-vulkan" : "success"));
   final libraryZip = File(path.join(unzipDir, filename));
 
   if (!successToken.existsSync()) {

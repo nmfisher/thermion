@@ -16,13 +16,10 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_window.dart
 /// Flutter platform channels to create a rendering context,
 /// resource loaders, and surface/render target(s).
 ///
-class ThermionFlutterMethodChannelPlatform
-    extends ThermionFlutterPlatform {
-  
+class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   final channel = const MethodChannel("dev.thermion.flutter/event");
   final _logger = Logger("ThermionFlutterMethodChannelPlatform");
 
-  
   static SwapChain? _swapChain;
 
   ThermionFlutterMethodChannelPlatform._();
@@ -72,21 +69,22 @@ class ThermionFlutterMethodChannelPlatform
       this.viewer = null;
     });
 
-     if (_swapChain != null) {
+    if (_swapChain != null) {
       throw Exception("Only a single swapchain can be created");
     }
 
     // this implementation renders directly into a texture/render target
     // we still need to create a (headless) swapchain, but the actual dimensions
     // don't matter
-    if (Platform.isMacOS || Platform.isIOS || Platform.isWindows) {
+    if (Platform.isMacOS || Platform.isIOS) {
       _swapChain = await viewer!.createHeadlessSwapChain(1, 1);
     }
 
     return viewer!;
   }
 
-  Future<ThermionFlutterTexture?> createTexture(int width, int height) async {
+  Future<ThermionFlutterTexture?> createTexture(
+      t.View view, int width, int height) async {
     var result =
         await channel.invokeMethod("createTexture", [width, height, 0, 0]);
     if (result == null || (result[0] == -1)) {
@@ -94,39 +92,69 @@ class ThermionFlutterMethodChannelPlatform
     }
     final flutterId = result[0] as int;
     final hardwareId = result[1] as int;
-    var window = result[2] as int; // usually 0 for nullptr
+    var window = result[2] as int?; // usually 0 for nullptr
 
-    return ThermionFlutterTexture(flutterId:flutterId, hardwareId:hardwareId, height:height, width:width, window:window);
+    var texture = ThermionFlutterTexture(
+        flutterId: flutterId,
+        hardwareId: hardwareId,
+        height: height,
+        width: width,
+        window: window ?? 0);
+
+    if (Platform.isWindows) {
+      if (_swapChain != null) {
+        await view!.setRenderable(false, _swapChain!);
+        await viewer!.destroySwapChain(_swapChain!);
+      }
+      
+        _swapChain = await viewer!
+            .createHeadlessSwapChain(texture.width, texture.height);
+    } else if(Platform.isAndroid) {
+    if (_swapChain != null) {
+        await view!.setRenderable(false, _swapChain!);
+        await viewer!.destroySwapChain(_swapChain!);
+      }  
+        _swapChain = await viewer!
+            .createSwapChain(texture.window);
+      
+    } else {
+      var renderTarget = await viewer!.createRenderTarget(
+          texture.width, texture.height, texture.hardwareId);
+
+      await view.setRenderTarget(renderTarget!);
+    }
+    await view.setRenderable(true, _swapChain!);
+
+    return texture;
   }
 
   @override
-  Future bind(view, ThermionFlutterTexture texture) {
-    // TODO: implement bind
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionFlutterWindow> createWindow(int width, int height, int offsetLeft, int offsetTop) {
+  Future<ThermionFlutterWindow> createWindow(
+      int width, int height, int offsetLeft, int offsetTop) {
     // TODO: implement createWindow
     throw UnimplementedError();
   }
 
   @override
-  Future destroyTexture(ThermionFlutterTexture texture) {
-    // TODO: implement destroyTexture
-    throw UnimplementedError();
+  Future destroyTexture(ThermionFlutterTexture texture) async {
+    await channel.invokeMethod("destroyTexture", texture.flutterId);
   }
 
   @override
   Future markTextureFrameAvailable(ThermionFlutterTexture texture) async {
-     await channel.invokeMethod("markTextureFrameAvailable", texture.flutterId);
+    await channel.invokeMethod("markTextureFrameAvailable", texture.flutterId);
   }
 
   @override
-  Future<ThermionFlutterTexture> resizeTexture(ThermionFlutterTexture texture, int width, int height) async {
-    return texture;
+  Future<ThermionFlutterTexture> resizeTexture(ThermionFlutterTexture texture,
+      t.View view, int width, int height) async {
+    var newTexture = await createTexture(view, width, height);
+    if (newTexture == null) {
+      throw Exception();
+    }
+
+    await destroyTexture(texture);
+
+    return newTexture;
   }
-
-
 }
-

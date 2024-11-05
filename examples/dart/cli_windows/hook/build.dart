@@ -11,27 +11,25 @@ void main(List<String> args) async {
       ..onRecord.listen((record) => print(
           record.message + "\n"));
 
-
-
   await build(args, (config, output) async {
+
     final cbuilder = CBuilder.library(
       name: "thermion_window",
       language: Language.cpp,
       assetName: 'thermion_window.dart',
       sources: ['native/thermion_window.cpp'],
-      includes: ['native'],
+      includes: ['native', '../../../thermion_dart/native/include'],
       defines: {"UNICODE":"1"},
       flags:[],
       dartBuildFiles: ['hook/build.dart'],
     );
-
-
 
     await cbuilder.run(
       buildConfig: config,
       buildOutput: output,
       logger: logger,
     );
+
   });
 }
 

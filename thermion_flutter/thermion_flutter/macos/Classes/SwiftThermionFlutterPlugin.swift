@@ -116,8 +116,7 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
                     result([texture.flutterTextureId, texture.texture.metalTextureAddress, nil])
                 }
             case "destroyTexture":
-                let args = call.arguments as! [Any]
-                let flutterTextureId = args[0] as! Int64
+                let flutterTextureId = call.arguments as! Int64
                 
                 if let texture = textures[flutterTextureId] {
                     texture.destroy()

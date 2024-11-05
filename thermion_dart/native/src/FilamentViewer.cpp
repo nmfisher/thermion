@@ -127,8 +127,7 @@ namespace thermion
   FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapperImpl *const resourceLoader, void *const platform, const char *uberArchivePath)
       : _resourceLoaderWrapper(resourceLoader)
   {
-    Log("Creating engine wiht sharedContext %d", sharedContext);
-    
+   
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
 #if TARGET_OS_IPHONE
@@ -142,11 +141,12 @@ namespace thermion
 #elif defined(_WIN32)
     Engine::Config config;
     config.stereoscopicEyeCount = 1;
-    _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, &config);
+    config.disableHandleUseAfterFreeCheck = true;
+    _engine = Engine::create(Engine::Backend::VULKAN, (backend::Platform *)platform, (void *)sharedContext, &config);
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
-#endif
-    Log("Engine created");
+ #endif
+
     _engine->setAutomaticInstancingEnabled(true);
 
     _renderer = _engine->createRenderer();
@@ -685,6 +685,7 @@ namespace thermion
     SwapChain *swapChain;
     swapChain = _engine->createSwapChain(width, height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);
     _swapChains.push_back(swapChain);
+    _engine->flushAndWait();
     return swapChain;
   }
 
@@ -767,7 +768,7 @@ namespace thermion
     view->setAmbientOcclusionOptions({.enabled = false});
     view->setDynamicResolutionOptions({.enabled = false});
 #if defined(_WIN32)
-    view->setStereoscopicOptions({.enabled = true});
+    view->setStereoscopicOptions({.enabled = false});
 #endif
 
     // bloom can be a bit glitchy (some Intel iGPUs won't render when postprocessing is enabled and bloom is disabled,
