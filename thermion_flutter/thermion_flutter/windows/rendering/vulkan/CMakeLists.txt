@@ -17,12 +17,17 @@ add_library(${PROJECT_NAME} SHARED
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 include_directories(${PROJECT_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/../../include"
+  E:\\VulkanSDK\\1.3.296.0\\Include
+)
+target_link_directories(${PROJECT_NAME} PRIVATE
+    E:\\VulkanSDK\\1.3.296.0\\Lib
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
  Shlwapi
  dxgi
  d3d11
+ vulkan-1
 )
 
 # Test executable

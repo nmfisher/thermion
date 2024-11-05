@@ -1,4 +1,5 @@
 #include "d3d_texture.h"
+#include "utils.h"
 
 #include <functional>
 #include <iostream>
@@ -82,11 +83,6 @@ if (SUCCEEDED(dxgi->QueryInterface(IID_PPV_ARGS(&factory2)))) {
     dxgi_device->SetGPUThreadPriority(5); // Must be in interval [-7, 7].
   }
 
-  if(IsNTHandleSupported(_D3D11Device))  {
-    std::cout << "NT HANDLE SUPPORT" << std::endl;
-  } else { 
-    std::cout << "NT HANDLE NOT SUPPORT" << std::endl;
-  }
   auto level = _D3D11Device->GetFeatureLevel();
   std::cout << "Direct3D Feature Level: "
             << (((unsigned)level) >> 12) << "_"
@@ -96,7 +92,7 @@ if (SUCCEEDED(dxgi->QueryInterface(IID_PPV_ARGS(&factory2)))) {
   auto d3d11_texture2D_desc = D3D11_TEXTURE2D_DESC{0};        
   d3d11_texture2D_desc.Width = width;
   d3d11_texture2D_desc.Height = height;
-  d3d11_texture2D_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  d3d11_texture2D_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
   d3d11_texture2D_desc.MipLevels = 1;
   d3d11_texture2D_desc.ArraySize = 1;
   d3d11_texture2D_desc.SampleDesc.Count = 1;
@@ -130,24 +126,6 @@ if (SUCCEEDED(dxgi->QueryInterface(IID_PPV_ARGS(&factory2)))) {
   _d3dTexture2D->AddRef();
 
   std::cout << "Created external D3D texture " << width << "x" << height << std::endl;
-
-      // Create render target view of the texture
-    ID3D11RenderTargetView* rtv = nullptr;
-    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-    rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    rtvDesc.Texture2D.MipSlice = 0;
-    
-    hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
-    if (FAILED(hr)) {
-        std::cout << "Failed to create render target view" << std::endl;
-        return;
-    }
-
-    // Clear the texture to blue
-    float blueColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f }; // RGBA
-    _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
-     _D3D11DeviceContext->Flush();  
 
 }
 
@@ -211,27 +189,6 @@ bool D3DTexture::SaveTextureAsBMP(ID3D11Texture2D* texture, const char* filename
         std::cout << "Failed to map texture" << std::endl;
         return false;
     }
-
-    // BMP file header
-    #pragma pack(push, 1)
-    struct BMPHeader {
-        uint16_t signature;
-        uint32_t fileSize;
-        uint32_t reserved;
-        uint32_t dataOffset;
-        uint32_t headerSize;
-        int32_t width;
-        int32_t height;
-        uint16_t planes;
-        uint16_t bitsPerPixel;
-        uint32_t compression;
-        uint32_t imageSize;
-        int32_t xPixelsPerMeter;
-        int32_t yPixelsPerMeter;
-        uint32_t totalColors;
-        uint32_t importantColors;
-    };
-    #pragma pack(pop)
 
     // Create and fill header
     BMPHeader header = {};
