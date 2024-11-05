@@ -105,7 +105,7 @@ if (SUCCEEDED(dxgi->QueryInterface(IID_PPV_ARGS(&factory2)))) {
   d3d11_texture2D_desc.BindFlags =
       D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
   d3d11_texture2D_desc.CPUAccessFlags = 0;
-  d3d11_texture2D_desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED; 
+  d3d11_texture2D_desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
   
     hr = _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr, &_d3dTexture2D);
   if FAILED (hr) {
@@ -120,7 +120,8 @@ if (SUCCEEDED(dxgi->QueryInterface(IID_PPV_ARGS(&factory2)))) {
     return;
     ;
   }
-  hr = resource->GetSharedHandle(&_d3dTexture2DHandle);
+  //hr = resource->GetSharedHandle(&_d3dTexture2DHandle);
+  hr = resource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &_d3dTexture2DHandle);
   if FAILED (hr) {
     std::cout << "Failed to get shared handle to external D3D texture" << std::endl;
     return;
