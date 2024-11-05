@@ -6,12 +6,12 @@
 #include <flutter/texture_registrar.h>
 #include <flutter_texture_registrar.h>
 
-#include "flutter_egl_texture.h"
+#include "flutter_d3d_texture.h"
 
 namespace thermion::tflutter::windows
 {
 
-  FlutterEGLTexture::FlutterEGLTexture(HANDLE d3dTexture2DHandle, uint32_t width, uint32_t height) : _width(width), _height(height)
+  FlutterD3DTexture::FlutterD3DTexture(HANDLE d3dTexture2DHandle, uint32_t width, uint32_t height) : _width(width), _height(height)
   {
     _textureDescriptor = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
     _textureDescriptor->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
@@ -37,15 +37,15 @@ namespace thermion::tflutter::windows
             }));
   }
   
-  ::flutter::TextureVariant* FlutterEGLTexture::GetFlutterTexture() {
+  ::flutter::TextureVariant* FlutterD3DTexture::GetFlutterTexture() {
       return _texture.get();
   }
 
-  void FlutterEGLTexture::SetFlutterTextureId(int64_t textureId) {
+  void FlutterD3DTexture::SetFlutterTextureId(int64_t textureId) {
     _flutterTextureId = textureId;
   }
 
-  int64_t FlutterEGLTexture::GetFlutterTextureId()
+  int64_t FlutterD3DTexture::GetFlutterTextureId()
   {
     return _flutterTextureId;
   }

@@ -12,9 +12,9 @@
 
 namespace thermion::tflutter::windows {
 
-    class FlutterEGLTexture {
+    class FlutterD3DTexture {
         public:
-            FlutterEGLTexture(HANDLE d3dTexture2DHandle, uint32_t width, uint32_t height);
+            FlutterD3DTexture(HANDLE d3dTexture2DHandle, uint32_t width, uint32_t height);
             ::flutter::TextureVariant* GetFlutterTexture();
             int64_t GetFlutterTextureId();
             void SetFlutterTextureId(int64_t textureId);

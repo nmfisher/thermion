@@ -14,7 +14,7 @@
 #include "GL/GLu.h"
 
 #include "ResourceBuffer.h"
-#include "rendering/egl/egl_context.h"
+#include "rendering/vulkan/vulkan_context.h"
 
 namespace thermion::tflutter::windows {
 
@@ -53,7 +53,7 @@ public:
   void freeResource(ResourceBuffer rbuf);
 
   private:
-    std::unique_ptr<thermion::windows::egl::ThermionEGLContext> _context = nullptr;
+    std::unique_ptr<thermion::windows::vulkan::ThermionVulkanContext> _context = nullptr;
 };
 
 } // namespace thermion_flutter

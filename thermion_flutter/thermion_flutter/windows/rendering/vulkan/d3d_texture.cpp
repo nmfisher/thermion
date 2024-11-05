@@ -127,9 +127,26 @@ if (SUCCEEDED(dxgi->QueryInterface(IID_PPV_ARGS(&factory2)))) {
 
   std::cout << "Created external D3D texture " << width << "x" << height << std::endl;
 
+      // Create render target view of the texture
+    ID3D11RenderTargetView* rtv = nullptr;
+    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+    rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    rtvDesc.Texture2D.MipSlice = 0;
+    
+    hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
+    if (FAILED(hr)) {
+        std::cout << "Failed to create render target view" << std::endl;
+        return;
+    }
+
+    // Clear the texture to blue
+    float blueColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f }; // RGBA
+    _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
+
 }
 
-void D3DTexture::FillBlueAndSaveToBMP(const char* filename) {
+void D3DTexture::SaveToBMP(const char* filename) {
     // Create render target view of the texture
     ID3D11RenderTargetView* rtv = nullptr;
     D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -142,10 +159,6 @@ void D3DTexture::FillBlueAndSaveToBMP(const char* filename) {
         std::cout << "Failed to create render target view" << std::endl;
         return;
     }
-
-    // Clear the texture to blue
-    float blueColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f }; // RGBA
-    _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
     
     // Create staging texture for CPU read access
     D3D11_TEXTURE2D_DESC stagingDesc = {};

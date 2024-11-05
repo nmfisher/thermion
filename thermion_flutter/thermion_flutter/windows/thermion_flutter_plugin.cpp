@@ -27,8 +27,9 @@
 #include <vector>
 #include <thread>
 
-#include "flutter_egl_texture.h"
-#include "rendering/egl/egl_context.h"
+#include "flutter_d3d_texture.h"
+
+#include "rendering/vulkan/vulkan_context.h"
 
 namespace thermion::tflutter::windows {
 
@@ -128,14 +129,14 @@ static void _freeResource(ResourceBuffer rbf, void *const plugin) {
   ((ThermionFlutterPlugin *)plugin)->freeResource(rbf);
 }
 
-static std::unique_ptr<FlutterEGLTexture> _texture;
+static std::unique_ptr<FlutterD3DTexture> _texture;
 
 void ThermionFlutterPlugin::CreateTexture(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
 
   if (!_context) {
-    _context = std::make_unique<thermion::windows::egl::ThermionEGLContext>();
+    _context = std::make_unique<thermion::windows::vulkan::ThermionVulkanContext>();
   }
 
   const auto *args =
@@ -150,17 +151,16 @@ void ThermionFlutterPlugin::CreateTexture(
   auto left = (uint32_t)round(dLeft);
   auto top = (uint32_t)round(dTop);
           
-  thermion::windows::egl::EGLTexture* eglTexture = _context->CreateRenderingSurface(width, height, left, top);
+  _context->CreateRenderingSurface(width, height, left, top);
 
-  _texture = std::make_unique<FlutterEGLTexture>(eglTexture->GetTextureHandle(), width, height);
+  _texture = std::make_unique<FlutterD3DTexture>(_context->GetTexture()->GetTextureHandle(), width, height);
 
   auto flutterTextureId = _textureRegistrar->RegisterTexture(_texture->GetFlutterTexture());
   _texture->SetFlutterTextureId(flutterTextureId);
-  auto glTextureId = 0; // _texture.GetGLTextureId();
   
   std::cout << "Registered Flutter texture ID " << flutterTextureId
             << std::endl;
-
+  int64_t glTextureId;
   std::vector<flutter::EncodableValue> resultList;
   resultList.push_back(flutter::EncodableValue(flutterTextureId));
   resultList.push_back(flutter::EncodableValue(glTextureId));
@@ -197,9 +197,10 @@ void ThermionFlutterPlugin::HandleMethodCall(
     result->Success(flutter::EncodableValue((int64_t)wrapper));
   } else if(methodCall.method_name() == "getSharedContext")  {
     if (!_context) {
-        _context = std::make_unique<thermion::windows::egl::ThermionEGLContext>();
+        _context = std::make_unique<thermion::windows::vulkan::ThermionVulkanContext>();
     }
-    result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
+    // result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
+    result->Success(flutter::EncodableValue((int64_t)nullptr));
   } else if (methodCall.method_name() == "resizeWindow") {
     
       const auto *args =
@@ -224,9 +225,7 @@ void ThermionFlutterPlugin::HandleMethodCall(
     DestroyTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "markTextureFrameAvailable") {
      if (_context) {
-
-          auto texture = _context->GetActiveTexture();
-          texture->Flush();
+          _context->Flush();
           const auto* flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
           
           if(!flutterTextureId || *flutterTextureId == -1) {

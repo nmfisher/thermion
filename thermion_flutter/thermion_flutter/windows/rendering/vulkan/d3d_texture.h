@@ -28,7 +28,7 @@ class D3DTexture {
    
     GLuint glTextureId = 0;
 
-    void FillBlueAndSaveToBMP(const char* filename);
+    void SaveToBMP(const char* filename);
     bool SaveTextureAsBMP(ID3D11Texture2D* texture, const char* filename);
     // Device
     ID3D11Device* _D3D11Device = nullptr;
