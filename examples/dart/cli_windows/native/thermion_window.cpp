@@ -128,8 +128,8 @@ extern "C" {
 
      // Update function can now be simplified or removed since rendering happens in the thread
     EMSCRIPTEN_KEEPALIVE void update() {     
-        // This could be used to trigger specific updates if needed
-        InvalidateRect(_window->GetHandle(), NULL, FALSE);
+        
+        
     }
 
        // Add a cleanup function
