@@ -12,7 +12,11 @@
 #include <iostream>
 #include <memory>
 #include <thread>
-#include <d3d11_1.h>
+
+#include "ThermionWin32.h"
+#include <Windows.h>
+
+using namespace bluevk;
 
 // Helper function to convert VkResult to string for error reporting
 const char *VkResultToString(VkResult result)
@@ -540,9 +544,9 @@ void readVkImageToBitmap(
 VkResult createLogicalDevice(VkInstance instance, VkPhysicalDevice *physicalDevice, VkDevice *device)
 {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    bluevk::vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
+    bluevk::vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
 
     if (deviceCount == 0)
     {

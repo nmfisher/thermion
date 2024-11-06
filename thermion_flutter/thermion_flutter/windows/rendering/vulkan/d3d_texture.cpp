@@ -188,7 +188,47 @@ void D3DTexture::SaveToBMP(const char* filename) {
     
     if (success) {
         std::cout << "Successfully saved texture to " << filename << std::endl;
+    } else { 
+        std::cout << "Texture save failed to " << filename << std::endl;
     }
+}
+
+bool D3DTexture::SavePixelsAsBMP(uint8_t* pixels, uint32_t width, uint32_t height, int rowPitch, const char* filename) {
+// Create and fill header
+    BMPHeader header = {};
+    header.signature = 0x4D42;  // 'BM'
+    header.fileSize = sizeof(BMPHeader) + width * height * 4;
+    header.dataOffset = sizeof(BMPHeader);
+    header.headerSize = 40;
+    header.width = width;
+    header.height = height;
+    header.planes = 1;
+    header.bitsPerPixel = 32;
+    header.compression = 0;
+    header.imageSize = width * height * 4;
+    header.xPixelsPerMeter = 2835;  // 72 DPI
+    header.yPixelsPerMeter = 2835;  // 72 DPI
+
+    // Write to file
+    FILE* file = nullptr;
+    fopen_s(&file, filename, "wb");
+       
+    if (!file) {
+        std::cout << "Couldn't open file for pixels" << std::endl;
+        return false;
+    }
+
+    fwrite(&header, sizeof(header), 1, file);
+
+    // Write pixel data (need to flip rows as BMP is bottom-up)
+    for (int y = height - 1; y >= 0; y--) {
+        uint8_t* rowData = pixels + y * rowPitch;
+        fwrite(rowData, width * 4, 1, file);
+    }
+
+    fclose(file);
+    return true;
+
 }
 
 bool D3DTexture::SaveTextureAsBMP(ID3D11Texture2D* texture, const char* filename) {
@@ -203,41 +243,14 @@ bool D3DTexture::SaveTextureAsBMP(ID3D11Texture2D* texture, const char* filename
         return false;
     }
 
-    // Create and fill header
-    BMPHeader header = {};
-    header.signature = 0x4D42;  // 'BM'
-    header.fileSize = sizeof(BMPHeader) + desc.Width * desc.Height * 4;
-    header.dataOffset = sizeof(BMPHeader);
-    header.headerSize = 40;
-    header.width = desc.Width;
-    header.height = desc.Height;
-    header.planes = 1;
-    header.bitsPerPixel = 32;
-    header.compression = 0;
-    header.imageSize = desc.Width * desc.Height * 4;
-    header.xPixelsPerMeter = 2835;  // 72 DPI
-    header.yPixelsPerMeter = 2835;  // 72 DPI
+    auto success = SavePixelsAsBMP(reinterpret_cast<uint8_t*>(mappedResource.pData), desc.Width, desc.Height, mappedResource.RowPitch, filename);
 
-    // Write to file
-    FILE* file = nullptr;
-    fopen_s(&file, filename, "wb");
-    if (!file) {
-        _D3D11DeviceContext->Unmap(texture, 0);
-        return false;
+    if(!success) {
+      std::cout << "BMP write failed" << std::endl;
     }
-
-    fwrite(&header, sizeof(header), 1, file);
-
-    // Write pixel data (need to flip rows as BMP is bottom-up)
-    uint8_t* srcData = reinterpret_cast<uint8_t*>(mappedResource.pData);
-    for (int y = desc.Height - 1; y >= 0; y--) {
-        uint8_t* rowData = srcData + y * mappedResource.RowPitch;
-        fwrite(rowData, desc.Width * 4, 1, file);
-    }
-
-    fclose(file);
+    
     _D3D11DeviceContext->Unmap(texture, 0);
-    return true;
+    return success;
 }
 
 } // namespace thermion_flutter

@@ -4,13 +4,11 @@
 #include <mutex>
 
 #include <d3d.h>
-#include <d3d11.h>
+#include <d3d11_1.h>
 #include <dxgi1_2.h>  // Add this line
 #include <d3d11_4.h>
 #include <Windows.h>
 #include <wrl.h>
-
-typedef uint32_t GLuint;
 
 namespace thermion::windows::d3d {
 
@@ -25,8 +23,8 @@ class D3DTexture {
 
     void Flush();
     HANDLE GetTextureHandle();
-   
-    GLuint glTextureId = 0;
+       
+    static bool SavePixelsAsBMP(uint8_t* pixels, uint32_t width, uint32_t height, int rowPitch, const char* filename);
 
     void SaveToBMP(const char* filename);
     bool SaveTextureAsBMP(ID3D11Texture2D* texture, const char* filename);

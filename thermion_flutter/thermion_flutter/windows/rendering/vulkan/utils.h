@@ -1,9 +1,6 @@
 #pragma once
 
-#include <Windows.h>
-
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_win32.h>
+#include <bluevk/BlueVK.h>
 
 #pragma pack(push, 1)
 struct BMPHeader {
