@@ -199,11 +199,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future destroySwapChain(FFISwapChain swapChain) async {
+  Future destroySwapChain(SwapChain swapChain) async {
     if (_viewer != null) {
       await withVoidCallback((callback) {
         Viewer_destroySwapChainRenderThread(
-            _viewer!, swapChain.swapChain, callback);
+            _viewer!, (swapChain as FFISwapChain).swapChain, callback);
       });
     }
   }

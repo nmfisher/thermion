@@ -83,11 +83,14 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       _texture = await ThermionFlutterPlatform.instance
           .createTexture(width, height);
 
+      _logger.info(
+          "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
+
       await ThermionFlutterPlatform.instance
           .bind(widget.view, _texture!);
 
       _logger.info(
-          "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
+          "Bound texture to view");
 
       await widget.view.updateViewport(_texture!.width, _texture!.height);
 

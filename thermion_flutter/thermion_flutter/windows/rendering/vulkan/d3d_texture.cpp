@@ -9,7 +9,6 @@
 namespace thermion::windows::d3d {
 
 void D3DTexture::Flush() {
-  // glFlush();  // Ensure GL commands are completed
   _D3D11DeviceContext->Flush();  
 }
 
@@ -27,10 +26,8 @@ bool IsNTHandleSupported(ID3D11Device* device) {
 }
 
 D3DTexture::D3DTexture(
-    uint32_t width, uint32_t height,
-    std::function<void(size_t, size_t)> onResizeRequested
-    ) 
-    : _width(width), _height(height), _onResizeRequested(onResizeRequested) {
+    uint32_t width, uint32_t height
+    ) : _width(width), _height(height) {
 
   IDXGIAdapter *adapter_ = nullptr;
 
@@ -128,21 +125,21 @@ if (SUCCEEDED(dxgi->QueryInterface(IID_PPV_ARGS(&factory2)))) {
   std::cout << "Created external D3D texture " << width << "x" << height << std::endl;
 
       // Create render target view of the texture
-    ID3D11RenderTargetView* rtv = nullptr;
-    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-    rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    rtvDesc.Texture2D.MipSlice = 0;
+    // ID3D11RenderTargetView* rtv = nullptr;
+    // D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+    // rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    // rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    // rtvDesc.Texture2D.MipSlice = 0;
     
-    hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
-    if (FAILED(hr)) {
-        std::cout << "Failed to create render target view" << std::endl;
-        return;
-    }
+    // hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
+    // if (FAILED(hr)) {
+    //     std::cout << "Failed to create render target view" << std::endl;
+    //     return;
+    // }
 
-    // Clear the texture to blue
-    float blueColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f }; // RGBA
-    _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
+    // // Clear the texture to blue
+    // float blueColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f }; // RGBA
+    // _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
 
 }
 
@@ -193,43 +190,6 @@ void D3DTexture::SaveToBMP(const char* filename) {
     }
 }
 
-bool D3DTexture::SavePixelsAsBMP(uint8_t* pixels, uint32_t width, uint32_t height, int rowPitch, const char* filename) {
-// Create and fill header
-    BMPHeader header = {};
-    header.signature = 0x4D42;  // 'BM'
-    header.fileSize = sizeof(BMPHeader) + width * height * 4;
-    header.dataOffset = sizeof(BMPHeader);
-    header.headerSize = 40;
-    header.width = width;
-    header.height = height;
-    header.planes = 1;
-    header.bitsPerPixel = 32;
-    header.compression = 0;
-    header.imageSize = width * height * 4;
-    header.xPixelsPerMeter = 2835;  // 72 DPI
-    header.yPixelsPerMeter = 2835;  // 72 DPI
-
-    // Write to file
-    FILE* file = nullptr;
-    fopen_s(&file, filename, "wb");
-       
-    if (!file) {
-        std::cout << "Couldn't open file for pixels" << std::endl;
-        return false;
-    }
-
-    fwrite(&header, sizeof(header), 1, file);
-
-    // Write pixel data (need to flip rows as BMP is bottom-up)
-    for (int y = height - 1; y >= 0; y--) {
-        uint8_t* rowData = pixels + y * rowPitch;
-        fwrite(rowData, width * 4, 1, file);
-    }
-
-    fclose(file);
-    return true;
-
-}
 
 bool D3DTexture::SaveTextureAsBMP(ID3D11Texture2D* texture, const char* filename) {
     D3D11_TEXTURE2D_DESC desc;

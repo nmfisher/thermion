@@ -9,18 +9,25 @@
 #include <memory>
 #include <thread>
 
+#include "filament/backend/platforms/VulkanPlatform.h"
+#include "filament/Engine.h"
+#include "filament/Renderer.h"
+#include "filament/View.h"
+#include "filament/Viewport.h"
+#include "filament/Scene.h"
+#include "filament/SwapChain.h"
+#include "filament/Texture.h"
+
 #include "Log.hpp"
 
 namespace thermion::windows::vulkan {
 
-    using namespace bluevk;
+using namespace bluevk;
 
 ThermionVulkanContext::ThermionVulkanContext() {
     bluevk::initialize();
 
-        std::cout << "Creatring Vulkan instance " << std::endl;
-
-  // Create Vulkan instance
+    // Create Vulkan instance
     VkResult result = createVulkanInstance(&instance);
     if (result != VK_SUCCESS)
     {
@@ -28,7 +35,6 @@ ThermionVulkanContext::ThermionVulkanContext() {
         return;
     }
     bluevk::bindInstance(instance);
-    std::cout << "createLogicalDevice " << std::endl;
 
     result = createLogicalDevice(instance, &physicalDevice, &device);
     if (result != VK_SUCCESS)
@@ -39,13 +45,8 @@ ThermionVulkanContext::ThermionVulkanContext() {
     }
 
     uint32_t queueFamilyIndex;
-
-            std::cout << "createDeviceWithGraphicsQueue " << std::endl;
-
     
     createDeviceWithGraphicsQueue(physicalDevice,queueFamilyIndex, &device);
-
-    std::cout << "createCommandResources " << std::endl;
     
     CommandResources cmdResources = createCommandResources(device, physicalDevice);
 
@@ -87,7 +88,8 @@ ThermionVulkanContext::ThermionVulkanContext() {
         return;
     }
 
-    std::cout << "VM environment supports required external memory features" << std::endl;
+    _platform = new TVulkanPlatform();
+
 }
 
 void ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
@@ -95,9 +97,7 @@ void ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t heig
     Log("Creating Vulkan texture %dx%d", width, height);
 
     // creates the D3D texture
-    _texture = new thermion::windows::d3d::D3DTexture(width, height, [=](size_t width, size_t height) {
-        std::cout << "RESIZE REQUESTED" << std::endl;
-        });
+    _texture = new thermion::windows::d3d::D3DTexture(width, height);
 
     // Create image with external memory support
     VkExternalMemoryImageCreateInfo extImageInfo = {
@@ -127,8 +127,6 @@ void ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t heig
         return;
     }
 
-    std::cout << "Successfully created image " << std::endl;
-
     VkMemoryDedicatedRequirements MemoryDedicatedRequirements{
         .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS,
         .pNext = nullptr };
@@ -143,7 +141,6 @@ void ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t heig
     vkGetImageMemoryRequirements2(device, &ImageMemoryRequirementsInfo2, &MemoryRequirements2);
     //       ... if we happen to be here, MemoryRequirements2 is empty
     VkMemoryRequirements& MemoryRequirements = MemoryRequirements2.memoryRequirements;
-    std::cout << "Got mem reqs " << std::endl;
 
     const VkMemoryDedicatedAllocateInfo MemoryDedicatedAllocateInfo{
         .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
@@ -165,8 +162,6 @@ void ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t heig
         MemoryRequirements.memoryTypeBits,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT     // You might need to adjust these flags
     );
-
-    std::cout << "memoryTypeIndex" << memoryTypeIndex << std::endl;
 
     VkMemoryAllocateInfo allocInfo{
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -224,45 +219,40 @@ void ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t heig
 
     if (result != VK_SUCCESS)
     {
-        std::cout << "bindimagememory2 failed" << std::endl;
+        std::cout << "vkBindImageMemory2 failed" << std::endl;
         return;
     }
 
-    fillImageWithColor(device, commandPool, queue, image, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,  // Current image layout
-        { width, height, 1 }, // Image extent
-        0.0f, 1.0f, 0.0f, 1.0f);    // Red color (RGBA))
-
-    // readVkImageToBitmap(physicalDevice, device, commandPool, queue, image, width, height, "vulkan.bmp");
-
-    // // Cleanup
-    // std::cout << "\n[Step 6] Cleaning up resources..." << std::endl;
-    // vkDestroyImage(device, image, nullptr);
-    // // vkFreeMemory(device, memory, nullptr);
-    // vkDestroyDevice(device, nullptr);
-    // vkDestroyInstance(instance, nullptr);
-    // std::cout << "[Complete] All resources cleaned up successfully" << std::endl;
+    // fillImageWithColor(device, commandPool, queue, image, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,  // Current image layout
+    //     { width, height, 1 }, // Image extent
+    //     0.0f, 1.0f, 0.0f, 1.0f);    // Red color (RGBA))
 
     return ;
 }
 
 void ThermionVulkanContext::ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
-
+    _inactive = std::move(_texture);
+    CreateRenderingSurface(width, height, left, top);
 }
 
 void ThermionVulkanContext::DestroyRenderingSurface() {
-    std::cout <<   "DESTROYING" << std::endl;
+    std::cout << "DESTROYING" << std::endl;
 }
 
 void ThermionVulkanContext::Flush() {
-    // std::cout <<     "FLUSH" << std::endl;
+    // ?? what to do here
 }
 
 // Function to perform the blit operation
-void ThermionVulkanContext::BlitFromSwapchain(
-    VkImage swapchainImage,
-    uint32_t width,
-    uint32_t height) {
-// Command buffer allocation
+void ThermionVulkanContext::BlitFromSwapchain() {
+    std::lock_guard lock(_platform->mutex);
+
+    auto height = _texture->GetHeight();
+    auto width = _texture->GetWidth();
+
+    auto bundle = _platform->getSwapChainBundle(_platform->_current);
+    VkImage swapchainImage = bundle.colors[0];
+    // Command buffer allocation
     VkCommandBufferAllocateInfo cmdBufInfo{};
     cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     cmdBufInfo.commandPool = commandPool;
@@ -287,7 +277,7 @@ void ThermionVulkanContext::BlitFromSwapchain(
         return;
     }
 
-    std::cout << "Starting blit operation..." << std::endl;
+    // std::cout << "Starting blit operation..." << std::endl;
     
     // Pre-transition barriers
     VkImageMemoryBarrier srcBarrier{};
@@ -318,7 +308,7 @@ void ThermionVulkanContext::BlitFromSwapchain(
         0, 1, 0, 1
     };
 
-    std::cout << "Transitioning images to transfer layouts..." << std::endl;
+    // std::cout << "Transitioning images to transfer layouts..." << std::endl;
 
     // Pre-blit barriers
     VkImageMemoryBarrier preBlitBarriers[] = {srcBarrier, dstBarrier};
@@ -341,9 +331,9 @@ void ThermionVulkanContext::BlitFromSwapchain(
     blit.dstOffsets[0] = {0, 0, 0};
     blit.dstOffsets[1] = {static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
 
-    std::cout << "Executing blit command..." << std::endl;
-    std::cout << "Source dimensions: " << width << "x" << height << std::endl;
-    std::cout << "Destination dimensions: " << width << "x" << height << std::endl;
+    // std::cout << "Executing blit command..." << std::endl;
+    // std::cout << "Source dimensions: " << width << "x" << height << std::endl;
+    // std::cout << "Destination dimensions: " << width << "x" << height << std::endl;
 
     // Perform blit with validation
     bluevk::vkCmdBlitImage(
@@ -365,7 +355,7 @@ void ThermionVulkanContext::BlitFromSwapchain(
     dstBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     dstBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    std::cout << "Transitioning images back to original layouts..." << std::endl;
+    // std::cout << "Transitioning images back to original layouts..." << std::endl;
 
     // Post-blit barriers
     VkImageMemoryBarrier postBlitBarriers[] = {srcBarrier, dstBarrier};
@@ -387,42 +377,42 @@ void ThermionVulkanContext::BlitFromSwapchain(
     }
 
     // Create fence for synchronization
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    // VkFenceCreateInfo fenceInfo{};
+    // fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     
-    VkFence fence;
-    result = bluevk::vkCreateFence(device, &fenceInfo, nullptr, &fence);
-    if (result != VK_SUCCESS) {
-        std::cout << "Failed to create fence: " << result << std::endl;
-        return;
-    }
+    // VkFence fence;
+    // result = bluevk::vkCreateFence(device, &fenceInfo, nullptr, &fence);
+    // if (result != VK_SUCCESS) {
+    //     std::cout << "Failed to create fence: " << result << std::endl;
+    //     return;
+    // }
 
-    // Submit with fence
+    // // Submit with fence
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
 
-    result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, fence);
+    result = bluevk::vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE); //fence);
     if (result != VK_SUCCESS) {
         std::cout << "Failed to submit queue: " << result << std::endl;
-        bluevk::vkDestroyFence(device, fence, nullptr);
+        // bluevk::vkDestroyFence(device, fence, nullptr);
         return;
     }
 
-    // Wait for fence with timeout
-    result = bluevk::vkWaitForFences(device, 1, &fence, VK_TRUE, 5000000000); // 5 second timeout
-    if (result != VK_SUCCESS) {
-        std::cout << "Failed to wait for fence: " << result << std::endl;
-        vkDestroyFence(device, fence, nullptr);
-        return;
-    }
+    // // Wait for fence with timeout
+    // result = bluevk::vkWaitForFences(device, 1, &fence, VK_TRUE, 5000000000); // 5 second timeout
+    // if (result != VK_SUCCESS) {
+    //     std::cout << "Failed to wait for fence: " << result << std::endl;
+    //     vkDestroyFence(device, fence, nullptr);
+    //     return;
+    // }
 
-    std::cout << "Blit operation completed successfully" << std::endl;
+    // std::cout << "Blit operation completed successfully" << std::endl;
 
-    // Cleanup
-    bluevk::vkDestroyFence(device, fence, nullptr);
-    bluevk::vkFreeCommandBuffers(device, commandPool, 1, &cmd);
+    // // Cleanup
+    // bluevk::vkDestroyFence(device, fence, nullptr);
+    // bluevk::vkFreeCommandBuffers(device, commandPool, 1, &cmd);
 }
 
 // Helper function to find suitable memory type
@@ -445,8 +435,7 @@ void ThermionVulkanContext::readPixelsFromImage(
     uint32_t height,
     std::vector<uint8_t>& outPixels
 ) {
-    std::cout << "Starting readPixelsFromImage..." << std::endl;
-    
+   
     VkDeviceSize bufferSize = width * height * 4; // RGBA8 format
     
     // Create staging buffer

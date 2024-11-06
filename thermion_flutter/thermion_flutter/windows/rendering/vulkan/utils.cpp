@@ -718,3 +718,41 @@ void fillImageWithColor(
     // Cleanup
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
+
+bool SavePixelsAsBMP(uint8_t* pixels, uint32_t width, uint32_t height, int rowPitch, const char* filename) {
+// Create and fill header
+    BMPHeader header = {};
+    header.signature = 0x4D42;  // 'BM'
+    header.fileSize = sizeof(BMPHeader) + width * height * 4;
+    header.dataOffset = sizeof(BMPHeader);
+    header.headerSize = 40;
+    header.width = width;
+    header.height = height;
+    header.planes = 1;
+    header.bitsPerPixel = 32;
+    header.compression = 0;
+    header.imageSize = width * height * 4;
+    header.xPixelsPerMeter = 2835;  // 72 DPI
+    header.yPixelsPerMeter = 2835;  // 72 DPI
+
+    // Write to file
+    FILE* file = nullptr;
+    fopen_s(&file, filename, "wb");
+       
+    if (!file) {
+        std::cout << "Couldn't open file for pixels" << std::endl;
+        return false;
+    }
+
+    fwrite(&header, sizeof(header), 1, file);
+
+    // Write pixel data (need to flip rows as BMP is bottom-up)
+    for (int y = height - 1; y >= 0; y--) {
+        uint8_t* rowData = pixels + y * rowPitch;
+        fwrite(rowData, width * 4, 1, file);
+    }
+
+    fclose(file);
+    return true;
+
+}

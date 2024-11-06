@@ -160,10 +160,10 @@ void ThermionFlutterPlugin::CreateTexture(
   
   std::cout << "Registered Flutter texture ID " << flutterTextureId
             << std::endl;
-  int64_t glTextureId;
+  
   std::vector<flutter::EncodableValue> resultList;
   resultList.push_back(flutter::EncodableValue(flutterTextureId));
-  resultList.push_back(flutter::EncodableValue(glTextureId));
+  resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
   resultList.push_back(flutter::EncodableValue((int64_t) nullptr));
   result->Success(resultList);
 }
@@ -185,7 +185,7 @@ void ThermionFlutterPlugin::DestroyTexture(
 void ThermionFlutterPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &methodCall,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  // std::cout << methodCall.method_name().c_str() << std::endl;
+    // std::cout << methodCall.method_name().c_str() << std::endl;
   if (methodCall.method_name() == "getResourceLoaderWrapper") {
     auto wrapper = (ResourceLoaderWrapper*)malloc(sizeof(ResourceLoaderWrapper));
     wrapper->loadFromOwner = _loadResource;
@@ -225,19 +225,24 @@ void ThermionFlutterPlugin::HandleMethodCall(
     DestroyTexture(methodCall, std::move(result));
   } else if (methodCall.method_name() == "markTextureFrameAvailable") {
      if (_context) {
+      
           _context->Flush();
+          _context->BlitFromSwapchain();
           const auto* flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
           
           if(!flutterTextureId || *flutterTextureId == -1) {
             std::cout << "Bad texture" << std::endl;
             return;
           }
-          std::cout << "Marking texture" << flutterTextureId << "available" << std::endl;
+          // std::cout << "Marking texture" << (*flutterTextureId) << "available" << std::endl;
           _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
       }
     result->Success(flutter::EncodableValue((int64_t)nullptr));
   } else if (methodCall.method_name() == "getDriverPlatform") {
-    result->Success(flutter::EncodableValue((int64_t) nullptr));
+    if (!_context) {
+        _context = std::make_unique<thermion::windows::vulkan::ThermionVulkanContext>();
+    }
+    result->Success(flutter::EncodableValue((int64_t) _context->GetPlatform()));
   } else {
     result->Error("NOT_IMPLEMENTED", "Method is not implemented %s",
                   methodCall.method_name());

@@ -66,3 +66,5 @@ void fillImageWithColor(
     VkExtent3D extent,
     float r, float g, float b, float a
 );
+
+bool SavePixelsAsBMP(uint8_t* pixels, uint32_t width, uint32_t height, int rowPitch, const char* filename);

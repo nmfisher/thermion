@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 void main(List<String> args) async {
   await build(args, (config, output) async {
 
+
     var pkgRootFilePath = config.packageRoot.toFilePath(windows: Platform.isWindows);
 
     var logPath = path.join(pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
@@ -181,11 +182,13 @@ void main(List<String> args) async {
           ...sources,
           '/link',
           "/LIBPATH:$libDir",
+          "/LIBPATH:E:\\VulkanSDK\\1.3.296.0\\Lib",
           '/DLL',
         ]
       ],
       dartBuildFiles: ['hook/build.dart'],
     );
+    
 
     await cbuilder.run(
       buildConfig: config,

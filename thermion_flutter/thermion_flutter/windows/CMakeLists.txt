@@ -40,6 +40,11 @@ include_directories(
   E:\\VulkanSDK\\1.3.296.0\\Include
 )
 
+target_link_directories(${PLUGIN_NAME} PRIVATE 
+    E:\\thermion\\thermion_dart\\.dart_tool\\thermion_dart\\lib\\v1.51.2\\windows\\debug
+    E:\\VulkanSDK\\1.3.296.0\\Lib
+)
+
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
  flutter
  flutter_wrapper_plugin 
