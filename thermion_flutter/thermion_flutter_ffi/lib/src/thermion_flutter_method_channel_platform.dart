@@ -101,8 +101,11 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
         window: window);
   }
 
+  t.View? view;
+
   @override
   Future bind(t.View view, ThermionFlutterTexture texture) async {
+    this.view = view;
     if (Platform.isWindows) {
       _swapChain =
           await viewer!.createHeadlessSwapChain(texture.width, texture.height);
@@ -115,7 +118,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     await view.setRenderable(true, _swapChain!);
   }
 
-  @override
+    @override
   Future<ThermionFlutterWindow> createWindow(
       int width, int height, int offsetLeft, int offsetTop) {
     // TODO: implement createWindow
@@ -123,9 +126,8 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   }
 
   @override
-  Future destroyTexture(ThermionFlutterTexture texture) {
-    // TODO: implement destroyTexture
-    throw UnimplementedError();
+  Future destroyTexture(ThermionFlutterTexture texture) async {
+    await channel.invokeMethod("destroyTexture", texture.flutterId);
   }
 
   @override
@@ -136,17 +138,25 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   @override
   Future<ThermionFlutterTexture> resizeTexture(
       ThermionFlutterTexture texture, int width, int height) async {
-
+        SwapChain? oldSwapChain;
     if(Platform.isWindows) {
         if(_swapChain != null) {
-          await viewer!.destroySwapChain(_swapChain!);
-          _swapChain = await viewer!.createHeadlessSwapChain(width, height);
+          oldSwapChain = _swapChain;
+          await this.view!.setRenderable(false, _swapChain!);
+          // _swapChain = await viewer!.createHeadlessSwapChain(width, height);
+          // print("Created headless swapcahin");
         }
     }
-    var texture = await createTexture(width, height);
-    if(texture == null) {
+    var newTexture = await createTexture(width, height);
+    if(newTexture == null) {
       throw Exception();
     }
-    return texture;
+    if(oldSwapChain != null) {
+      await viewer!.destroySwapChain(oldSwapChain);
+    }
+
+    await destroyTexture(texture);
+
+    return newTexture;
   }
 }

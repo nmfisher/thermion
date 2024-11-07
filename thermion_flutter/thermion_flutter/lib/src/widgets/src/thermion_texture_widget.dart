@@ -154,7 +154,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       if (!mounted) {
         return;
       }
-      if (widget.viewer.rendering && !_rendering) {
+      if (widget.viewer.rendering && !_rendering && _resizing.isEmpty) {
         _rendering = true;
         if (this == _states.first && _texture != null) {
           await widget.viewer.requestFrame();
@@ -203,10 +203,12 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       _logger.info(
           "Resizing texture to dimensions ${newWidth}x${newHeight} (pixel ratio : $dpr)");
 
-      await ThermionFlutterPlatform.instance.resizeTexture(_texture!, newWidth, newHeight);
+      _texture = await ThermionFlutterPlatform.instance.resizeTexture(_texture!, newWidth, newHeight);
 
       _logger.info(
           "Resized texture to dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
+
+      await ThermionFlutterPlatform.instance.bind(widget.view, _texture!);
 
       await widget.view.updateViewport(_texture!.width, _texture!.height);
 
