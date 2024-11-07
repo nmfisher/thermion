@@ -28,10 +28,13 @@
 
 int main()
 {
-   // auto ctx = new thermion::windows::vulkan::ThermionVulkanContext();
-   // uint32_t width = 100;
-   // uint32_t height = 100;
-   // ctx->CreateRenderingSurface(width, height, 0, 0);
+   auto ctx = new thermion::windows::vulkan::ThermionVulkanContext();
+   uint32_t width = 100;
+   uint32_t height = 100;
+   auto handle = ctx->CreateRenderingSurface(width, height, 0, 0);
+   std::cout << "CREATED" << std::endl;
+   ctx->DestroyRenderingSurface(handle);
+   std::cout << "FINISHED" << std::endl;
    
    // auto *engine = filament::Engine::create(filament::Engine::Backend::VULKAN, ctx->GetPlatform(), nullptr, nullptr);
    // auto *swapChain = engine->createSwapChain(width,height, filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT | filament::backend::SWAP_CHAIN_CONFIG_READABLE | filament::SwapChain::CONFIG_HAS_STENCIL_BUFFER);

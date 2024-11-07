@@ -15,6 +15,8 @@ namespace thermion::windows::d3d {
 class D3DTexture {
   public:
     D3DTexture(
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> d3dTexture2D,
+        HANDLE d3dTexture2DHandle,
         uint32_t width,
         uint32_t height
     );    
@@ -24,8 +26,6 @@ class D3DTexture {
     HANDLE GetTextureHandle();
        
     void SaveToBMP(const char* filename);
-    // Device
-    ID3D11Device* _D3D11Device = nullptr;
 
     uint32_t GetWidth() {
       return _width;
@@ -38,8 +38,6 @@ class D3DTexture {
   private:
     uint32_t _width = 0;
     uint32_t _height = 0;
-
-    ID3D11DeviceContext* _D3D11DeviceContext = nullptr;
     
     Microsoft::WRL::ComPtr<ID3D11Texture2D> _d3dTexture2D;
     HANDLE _d3dTexture2DHandle = nullptr;

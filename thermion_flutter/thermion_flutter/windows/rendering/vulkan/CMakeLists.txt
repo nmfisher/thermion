@@ -20,9 +20,11 @@ add_definitions(-DUNICODE)
 add_definitions(-D_UNICODE)
 
 add_library(${PROJECT_NAME} SHARED
+  "d3d_context.cpp"
   "vulkan_context.cpp"
   "utils.cpp"
   "d3d_texture.cpp"
+  "vulkan_texture.cpp"
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)

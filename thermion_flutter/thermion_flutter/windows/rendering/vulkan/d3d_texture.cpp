@@ -6,211 +6,123 @@
 #include <memory>
 #include <thread>
 
-namespace thermion::windows::d3d {
+namespace thermion::windows::d3d
+{
 
-void D3DTexture::Flush() {
-  _D3D11DeviceContext->Flush();  
-}
-
-HANDLE D3DTexture::GetTextureHandle() {
-  return _d3dTexture2DHandle;
-}
-
-D3DTexture::~D3DTexture() {
-  _d3dTexture2D->Release();
-}
-
-bool IsNTHandleSupported(ID3D11Device* device) {
+  bool IsNTHandleSupported(ID3D11Device *device)
+  {
     Microsoft::WRL::ComPtr<ID3D11Device5> device5;
     return SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&device5)));
-}
-
-D3DTexture::D3DTexture(
-    uint32_t width, uint32_t height
-    ) : _width(width), _height(height) {
-
-  IDXGIAdapter *adapter_ = nullptr;
-
-  auto feature_levels = {
-      D3D_FEATURE_LEVEL_12_0,
-      D3D_FEATURE_LEVEL_11_1,
-      D3D_FEATURE_LEVEL_11_0,
-      D3D_FEATURE_LEVEL_10_1,
-      D3D_FEATURE_LEVEL_10_0,
-      D3D_FEATURE_LEVEL_9_3,
-  };
-  
-  IDXGIFactory1 *dxgi = nullptr;
-  HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **)&dxgi);
-  if (FAILED(hr)) {
-      std::cout << "Failed to create DXGI 1.1 factory" << std::endl;
-      return;
-  }
-  dxgi->EnumAdapters(0, &adapter_);
-  dxgi->Release();
-  if (!adapter_) {
-    std::cout << "Failed to locate default D3D adapter" << std::endl;
-    return;
   }
 
-  Microsoft::WRL::ComPtr<IDXGIFactory2> factory2;
-if (SUCCEEDED(dxgi->QueryInterface(IID_PPV_ARGS(&factory2)))) {
-    std::cout << "DXGI 1.2 or higher supported" << std::endl;
-}
-
-  DXGI_ADAPTER_DESC adapter_desc_;
-  adapter_->GetDesc(&adapter_desc_);
-  std::wcout << L"D3D adapter description: " << adapter_desc_.Description
-             << std::endl;
-
-  hr = ::D3D11CreateDevice(
-      adapter_, D3D_DRIVER_TYPE_UNKNOWN, 0, D3D11_CREATE_DEVICE_BGRA_SUPPORT, feature_levels.begin(),
-      static_cast<UINT>(feature_levels.size()), D3D11_SDK_VERSION,
-      &_D3D11Device, 0, &_D3D11DeviceContext);
-
-  if (FAILED(hr)) {
-    std::cout << "Failed to create D3D device" << std::endl;
-    return;
+  D3DTexture::D3DTexture(
+      Microsoft::WRL::ComPtr<ID3D11Texture2D> d3dTexture2D,
+      HANDLE d3dTexture2DHandle, uint32_t width, uint32_t height) : _d3dTexture2D(d3dTexture2D), _d3dTexture2DHandle(d3dTexture2DHandle), _width(width), _height(height)
+  {
   }
 
-  Microsoft::WRL::ComPtr<IDXGIDevice> dxgi_device = nullptr;
-  auto dxgi_device_success = _D3D11Device->QueryInterface(
-      __uuidof(IDXGIDevice), (void **)&dxgi_device);
-  if (SUCCEEDED(dxgi_device_success) && dxgi_device != nullptr) {
-    dxgi_device->SetGPUThreadPriority(5); // Must be in interval [-7, 7].
+  D3DTexture::~D3DTexture() {
+    if (_d3dTexture2DHandle) {
+      CloseHandle(_d3dTexture2DHandle);
+      _d3dTexture2DHandle = nullptr;
+    }
+    if (_d3dTexture2D) {
+      _d3dTexture2D->Release();
+      _d3dTexture2D = nullptr;
+    }  
   }
 
-  auto level = _D3D11Device->GetFeatureLevel();
-  std::cout << "Direct3D Feature Level: "
-            << (((unsigned)level) >> 12) << "_"
-            << ((((unsigned)level) >> 8) & 0xf) << std::endl;
-
-  // Create texture
-  auto d3d11_texture2D_desc = D3D11_TEXTURE2D_DESC{0};        
-  d3d11_texture2D_desc.Width = width;
-  d3d11_texture2D_desc.Height = height;
-  d3d11_texture2D_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-  d3d11_texture2D_desc.MipLevels = 1;
-  d3d11_texture2D_desc.ArraySize = 1;
-  d3d11_texture2D_desc.SampleDesc.Count = 1;
-  d3d11_texture2D_desc.SampleDesc.Quality = 0;
-  d3d11_texture2D_desc.Usage = D3D11_USAGE_DEFAULT;
-  d3d11_texture2D_desc.BindFlags =
-      D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-  d3d11_texture2D_desc.CPUAccessFlags = 0;
-  d3d11_texture2D_desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
-  
-    hr = _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr, &_d3dTexture2D);
-  if FAILED (hr) {
-    std::cout << "Failed to create D3D texture (" << hr << ")" << std::endl;
-    return;
+  HANDLE D3DTexture::GetTextureHandle() { 
+    return _d3dTexture2DHandle;
   }
-  auto resource = Microsoft::WRL::ComPtr<IDXGIResource1>{};
-  hr = _d3dTexture2D.As(&resource);
 
-  if FAILED (hr) {
-    std::cout << "Failed to create D3D texture" << std::endl;
-    return;
-    ;
-  }
-  //hr = resource->GetSharedHandle(&_d3dTexture2DHandle);
-  hr = resource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &_d3dTexture2DHandle);
-  if FAILED (hr) {
-    std::cout << "Failed to get shared handle to external D3D texture" << std::endl;
-    return;
-    ;
-  }
-  _d3dTexture2D->AddRef();
-
-  std::cout << "Created external D3D texture " << width << "x" << height << std::endl;
-
-      // Create render target view of the texture
+  void D3DTexture::SaveToBMP(const char *filename)
+  {
+    // // Create render target view of the texture
     // ID3D11RenderTargetView* rtv = nullptr;
     // D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
     // rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     // rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
     // rtvDesc.Texture2D.MipSlice = 0;
-    
-    // hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
+
+    // HRESULT hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
     // if (FAILED(hr)) {
     //     std::cout << "Failed to create render target view" << std::endl;
     //     return;
     // }
 
-    // // Clear the texture to blue
-    // float blueColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f }; // RGBA
-    // _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
+    // // Create staging texture for CPU read access
+    // D3D11_TEXTURE2D_DESC stagingDesc = {};
+    // _d3dTexture2D->GetDesc(&stagingDesc);
+    // stagingDesc.Usage = D3D11_USAGE_STAGING;
+    // stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    // stagingDesc.BindFlags = 0;
+    // stagingDesc.MiscFlags = 0;
 
-}
+    // ID3D11Texture2D* stagingTexture = nullptr;
+    // hr = _D3D11Device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture);
+    // if (FAILED(hr)) {
+    //     rtv->Release();
+    //     std::cout << "Failed to create staging texture" << std::endl;
+    //     return;
+    // }
 
-void D3DTexture::SaveToBMP(const char* filename) {
-    // Create render target view of the texture
-    ID3D11RenderTargetView* rtv = nullptr;
-    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-    rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    rtvDesc.Texture2D.MipSlice = 0;
-    
-    HRESULT hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
-    if (FAILED(hr)) {
-        std::cout << "Failed to create render target view" << std::endl;
-        return;
-    }
-    
-    // Create staging texture for CPU read access
-    D3D11_TEXTURE2D_DESC stagingDesc = {};
-    _d3dTexture2D->GetDesc(&stagingDesc);
-    stagingDesc.Usage = D3D11_USAGE_STAGING;
-    stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    stagingDesc.BindFlags = 0;
-    stagingDesc.MiscFlags = 0;
+    // // Copy to staging texture
+    // _D3D11DeviceContext->CopyResource(stagingTexture, _d3dTexture2D.Get());
 
-    ID3D11Texture2D* stagingTexture = nullptr;
-    hr = _D3D11Device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture);
-    if (FAILED(hr)) {
-        rtv->Release();
-        std::cout << "Failed to create staging texture" << std::endl;
-        return;
-    }
+    // // Save to BMP
+    // bool success = SaveTextureAsBMP(stagingTexture, filename);
 
-    // Copy to staging texture
-    _D3D11DeviceContext->CopyResource(stagingTexture, _d3dTexture2D.Get());
-    
-    // Save to BMP
-    bool success = SaveTextureAsBMP(stagingTexture, filename);
-    
-    // Cleanup
-    stagingTexture->Release();
-    rtv->Release();
-    
-    if (success) {
-        std::cout << "Successfully saved texture to " << filename << std::endl;
-    } else { 
-        std::cout << "Texture save failed to " << filename << std::endl;
-    }
-}
+    // // Cleanup
+    // stagingTexture->Release();
+    // rtv->Release();
 
+    // if (success) {
+    //     std::cout << "Successfully saved texture to " << filename << std::endl;
+    // } else {
+    //     std::cout << "Texture save failed to " << filename << std::endl;
+    // }
+  }
 
-bool D3DTexture::SaveTextureAsBMP(ID3D11Texture2D* texture, const char* filename) {
-    D3D11_TEXTURE2D_DESC desc;
-    texture->GetDesc(&desc);
-    
-    // Map texture to get pixel data
-    D3D11_MAPPED_SUBRESOURCE mappedResource;
-    HRESULT hr = _D3D11DeviceContext->Map(texture, 0, D3D11_MAP_READ, 0, &mappedResource);
-    if (FAILED(hr)) {
-        std::cout << "Failed to map texture" << std::endl;
-        return false;
-    }
+  bool D3DTexture::SaveTextureAsBMP(ID3D11Texture2D *texture, const char *filename)
+  {
+    return false;
+    // D3D11_TEXTURE2D_DESC desc;
+    // texture->GetDesc(&desc);
 
-    auto success = SavePixelsAsBMP(reinterpret_cast<uint8_t*>(mappedResource.pData), desc.Width, desc.Height, mappedResource.RowPitch, filename);
+    // // Map texture to get pixel data
+    // D3D11_MAPPED_SUBRESOURCE mappedResource;
+    // HRESULT hr = _D3D11DeviceContext->Map(texture, 0, D3D11_MAP_READ, 0, &mappedResource);
+    // if (FAILED(hr)) {
+    //     std::cout << "Failed to map texture" << std::endl;
+    //     return false;
+    // }
 
-    if(!success) {
-      std::cout << "BMP write failed" << std::endl;
-    }
-    
-    _D3D11DeviceContext->Unmap(texture, 0);
-    return success;
-}
+    // auto success = SavePixelsAsBMP(reinterpret_cast<uint8_t*>(mappedResource.pData), desc.Width, desc.Height, mappedResource.RowPitch, filename);
+
+    // if(!success) {
+    //   std::cout << "BMP write failed" << std::endl;
+    // }
+
+    // _D3D11DeviceContext->Unmap(texture, 0);
+    // return success;
+  }
 
 } // namespace thermion_flutter
+
+// Create render target view of the texture
+// ID3D11RenderTargetView* rtv = nullptr;
+// D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+// rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+// rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+// rtvDesc.Texture2D.MipSlice = 0;
+
+// hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
+// if (FAILED(hr)) {
+//     std::cout << "Failed to create render target view" << std::endl;
+//     return;
+// }
+
+// // Clear the texture to blue
+// float blueColor[4] = { 0.0f, 0.0f, 1.0f, 1.0f }; // RGBA
+// _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);

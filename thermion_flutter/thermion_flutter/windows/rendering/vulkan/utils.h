@@ -30,6 +30,8 @@ uint32_t findOptimalMemoryType(VkPhysicalDevice physicalDevice,
                               VkMemoryPropertyFlags requiredProperties,
                               VkMemoryPropertyFlags preferredProperties = 0);
 
+uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice physicalDevice);
+
 VkResult createVulkanInstance(VkInstance *instance);
 
 uint32_t findGraphicsQueueFamily(VkPhysicalDevice physicalDevice);

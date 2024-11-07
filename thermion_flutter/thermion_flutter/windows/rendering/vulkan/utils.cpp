@@ -166,6 +166,21 @@ const char *VkResultToString(VkResult result)
 //     return supportsInterop;
 // }
 
+// Helper function to find suitable memory type
+uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice physicalDevice) {
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+    
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        if ((typeFilter & (1 << i)) && 
+            (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
+        }
+    }
+    
+    throw std::runtime_error("Failed to find suitable memory type");
+}
+
 
 // Modified memory type selection function with more detailed requirements checking
 uint32_t findOptimalMemoryType(VkPhysicalDevice physicalDevice,
