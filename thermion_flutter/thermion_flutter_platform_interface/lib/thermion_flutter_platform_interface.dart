@@ -33,20 +33,20 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
       {covariant ThermionFlutterOptions? options});
 
   ///
-  /// Create a rendering surface.
+  /// Create a rendering surface and binds to the given [View]
   ///
   /// This is internal; unless you are [thermion_*] package developer, don't
   /// call this yourself. May not be supported on all platforms.
   ///
   Future<ThermionFlutterTexture?> createTexture(
-      int width, int height);
+      t.View view, int width, int height);
 
   ///
   ///
   ///
   ///
   Future<ThermionFlutterTexture?> resizeTexture(
-    ThermionFlutterTexture texture, 
+    ThermionFlutterTexture texture, t.View view,
       int width, int height);
 
   ///
@@ -59,15 +59,6 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   ///
   Future markTextureFrameAvailable(ThermionFlutterTexture texture);
  
-  ///
-  /// Binds a rendering surface to the given View.
-  ///
-  /// This is internal; unless you are [thermion_*] package developer, don't
-  /// call this yourself. May not be supported on all platforms.
-  ///
-  Future bind(
-      t.View view, ThermionFlutterTexture texture);
-
   ///
   /// Create a rendering window.
   ///

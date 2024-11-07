@@ -83,7 +83,8 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     return viewer!;
   }
 
-  Future<ThermionFlutterTexture?> createTexture(int width, int height) async {
+  Future<ThermionFlutterTexture?> createTexture(
+      t.View view, int width, int height) async {
     var result =
         await channel.invokeMethod("createTexture", [width, height, 0, 0]);
     if (result == null || (result[0] == -1)) {
@@ -93,20 +94,18 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     final hardwareId = result[1] as int;
     var window = result[2] as int; // usually 0 for nullptr
 
-    return ThermionFlutterTexture(
+    var texture = ThermionFlutterTexture(
         flutterId: flutterId,
         hardwareId: hardwareId,
         height: height,
         width: width,
         window: window);
-  }
 
-  t.View? view;
-
-  @override
-  Future bind(t.View view, ThermionFlutterTexture texture) async {
-    this.view = view;
     if (Platform.isWindows) {
+      if (_swapChain != null) {
+        await view!.setRenderable(false, _swapChain!);
+        await viewer!.destroySwapChain(_swapChain!);
+      }
       _swapChain =
           await viewer!.createHeadlessSwapChain(texture.width, texture.height);
     } else {
@@ -116,9 +115,11 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       await view.setRenderTarget(renderTarget!);
     }
     await view.setRenderable(true, _swapChain!);
+
+    return texture;
   }
 
-    @override
+  @override
   Future<ThermionFlutterWindow> createWindow(
       int width, int height, int offsetLeft, int offsetTop) {
     // TODO: implement createWindow
@@ -136,23 +137,11 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   }
 
   @override
-  Future<ThermionFlutterTexture> resizeTexture(
-      ThermionFlutterTexture texture, int width, int height) async {
-        SwapChain? oldSwapChain;
-    if(Platform.isWindows) {
-        if(_swapChain != null) {
-          oldSwapChain = _swapChain;
-          await this.view!.setRenderable(false, _swapChain!);
-          // _swapChain = await viewer!.createHeadlessSwapChain(width, height);
-          // print("Created headless swapcahin");
-        }
-    }
-    var newTexture = await createTexture(width, height);
-    if(newTexture == null) {
+  Future<ThermionFlutterTexture> resizeTexture(ThermionFlutterTexture texture,
+      t.View view, int width, int height) async {
+    var newTexture = await createTexture(view, width, height);
+    if (newTexture == null) {
       throw Exception();
-    }
-    if(oldSwapChain != null) {
-      await viewer!.destroySwapChain(oldSwapChain);
     }
 
     await destroyTexture(texture);
