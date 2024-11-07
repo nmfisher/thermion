@@ -54,6 +54,8 @@ public:
 
   private:
     std::unique_ptr<thermion::windows::vulkan::ThermionVulkanContext> _context = nullptr;
+    bool OnTextureUnregistered(int64_t flutterTextureId);
+
 };
 
 } // namespace thermion_flutter

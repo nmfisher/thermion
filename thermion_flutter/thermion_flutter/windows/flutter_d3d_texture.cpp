@@ -29,16 +29,23 @@ namespace thermion::tflutter::windows
             kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
             [&](size_t width, size_t height)
             {
-              if (width != this->_width || height != this->_height)
-              {
-                //this->_onResizeRequested(width, height);
+              if(width != this->_width || height != this->_height) {
+                return (FlutterDesktopGpuSurfaceDescriptor*)nullptr;
               }
               return _textureDescriptor.get();
             }));
   }
+
+  FlutterD3DTexture::~FlutterD3DTexture() {
+    std::cout << "Destructor for FlutterD3DTexture" << std::endl;
+  }
   
   ::flutter::TextureVariant* FlutterD3DTexture::GetFlutterTexture() {
       return _texture.get();
+  }
+
+  HANDLE FlutterD3DTexture::GetD3DTextureHandle() { 
+    return _textureDescriptor->handle;
   }
 
   void FlutterD3DTexture::SetFlutterTextureId(int64_t textureId) {
