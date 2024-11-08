@@ -139,7 +139,9 @@ namespace thermion
 #elif defined(__EMSCRIPTEN__)
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)new filament::backend::PlatformWebGL(), (void *)sharedContext, nullptr);
 #elif defined(_WIN32)
-    _engine = Engine::create(Engine::Backend::VULKAN, (backend::Platform *)platform, (void *)sharedContext, nullptr);
+    Engine::Config config;
+    config.stereoscopicEyeCount = 1;
+    _engine = Engine::create(Engine::Backend::VULKAN, (backend::Platform *)platform, (void *)sharedContext, &config);
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
  #endif
