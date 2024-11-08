@@ -12,8 +12,6 @@ list(APPEND PLUGIN_SOURCES
   "flutter_d3d_texture.cpp"
 )
 
-add_subdirectory("rendering/vulkan")
-
 add_library(${PLUGIN_NAME} SHARED
   "include/thermion_flutter/thermion_flutter_plugin_c_api.h"
   "thermion_flutter_plugin_c_api.cpp"
@@ -37,31 +35,26 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include/filament"
   "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include"
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  E:\\VulkanSDK\\1.3.296.0\\Include
 )
 
-target_link_directories(${PLUGIN_NAME} PRIVATE 
-    E:\\thermion\\thermion_dart\\.dart_tool\\thermion_dart\\lib\\v1.51.2\\windows\\debug
-    E:\\VulkanSDK\\1.3.296.0\\Lib
-)
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+
+target_link_directories(${PLUGIN_NAME} PRIVATE ${runner_BINARY_DIR}/../../../native_assets/windows/)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE 
  flutter
  flutter_wrapper_plugin 
  Shlwapi
- thermion_vulkan
-)
-
-# Copy thermion_egl library to the Flutter build directory
-add_custom_command(TARGET ${PLUGIN_NAME} POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  $<TARGET_FILE:thermion_vulkan>
-  $<TARGET_FILE_DIR:${PLUGIN_NAME}>
+ thermion_dart
 )
 
 set(thermion_flutter_bundled_libraries
   ${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.dll
-  $<TARGET_FILE:thermion_vulkan>
+  ${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.lib
   PARENT_SCOPE
 )
 

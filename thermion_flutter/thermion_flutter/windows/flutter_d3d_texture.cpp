@@ -37,7 +37,7 @@ namespace thermion::tflutter::windows
   }
 
   FlutterD3DTexture::~FlutterD3DTexture() {
-    std::cout << "Destructor for FlutterD3DTexture" << std::endl;
+
   }
   
   ::flutter::TextureVariant* FlutterD3DTexture::GetFlutterTexture() {
