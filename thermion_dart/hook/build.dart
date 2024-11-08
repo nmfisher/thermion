@@ -8,7 +8,6 @@ import 'package:path/path.dart' as path;
 void main(List<String> args) async {
   await build(args, (config, output) async {
 
-
     var pkgRootFilePath = config.packageRoot.toFilePath(windows: Platform.isWindows);
 
     var logPath = path.join(pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
@@ -55,11 +54,18 @@ void main(List<String> args) async {
 
     final packageName = config.packageName;
 
-    final sources = Directory(path.join(pkgRootFilePath, "native", "src"))
+
+    var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
         .whereType<File>()
         .map((f) => f.path)
+        .where((f) => !(f.contains("CMakeLists") || f.contains("main.cpp")))
         .toList();
+    
+    if(config.targetOS != OS.windows) {
+      sources = sources.where((p) => !p.contains("windows")).toList();
+    }
+
     sources.addAll([
       path.join(pkgRootFilePath, "native", "include", "material", "unlit_fixed_size.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
@@ -96,17 +102,9 @@ void main(List<String> args) async {
     ];
 
     if (platform == "windows") {
+      // we just need the libDir and don't need to explicitly link the actual libs
+      // (these are linked via ThermionWin32.h)
       libDir = Directory(libDir).uri.toFilePath(windows: config.targetOS == OS.windows);
-      libs = libs.map((lib) => path.join(libDir, "${lib}.lib")).toList();
-      libs.addAll([path.join(libDir,"bluevk.lib"), path.join(libDir,"bluegl.lib")]);
-      libs.addAll([
-        "gdi32.lib",
-        "user32.lib",
-        "shell32.lib",
-        "opengl32.lib",
-        "dwmapi.lib",
-        "comctl32.lib"
-      ]);
     } else {
       libs.add("stdc++");
     }
@@ -174,15 +172,16 @@ void main(List<String> args) async {
         if (platform == "ios") '-mios-version-min=13.0',
         ...flags,
         ...frameworks,
-        if (platform != "windows") ...libs.map((lib) => "-l$lib"),
-        if (platform != "windows") "-L$libDir",
+        if (platform != "windows") ...[
+          ...libs.map((lib) => "-l$lib"),
+          "-L$libDir"
+        ],
         if (platform == "windows") ...[
           "/I${path.join(pkgRootFilePath, "native", "include")}",
           "/I${path.join(pkgRootFilePath, "native", "include", "filament")}",
           ...sources,
           '/link',
           "/LIBPATH:$libDir",
-          "/LIBPATH:E:\\VulkanSDK\\1.3.296.0\\Lib",
           '/DLL',
         ]
       ],
@@ -231,17 +230,19 @@ void main(List<String> args) async {
             architecture: config.targetArchitecture));
       }
     }
-    // do we need this?
-    if (config.targetOS == "windows") {
+    
+    if (config.targetOS == OS.windows) {
+      
+      var importLib = File(path.join(config.outputDirectory.path.substring(1).replaceAll("/", "\\"), "thermion_dart.lib"));
+      
       output.addAsset(
           NativeCodeAsset(
               package: config.packageName,
-              name: "thermion_dart.dll",
+              name: "thermion_dart.lib",
               linkMode: DynamicLoadingBundled(),
               os: config.targetOS,
-              file: Uri.file(path.join(pkgRootFilePath, "thermion_dart.dll")),
-              architecture: config.targetArchitecture),
-          linkInPackage: config.packageName);
+              file: importLib.uri,
+              architecture: config.targetArchitecture));
     }
   });
 }
@@ -291,14 +292,18 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
 
   logger.info("Searching for Filament libraries under ${libDir.path}");
 
-  final url = _getLibraryUrl(platform, mode);
+  var url = _getLibraryUrl(platform, mode);
+
+  if(config.targetOS == OS.windows) {
+    url = url.replaceAll(".zip", "-vulkan.zip");
+  }
 
   final filename = url.split("/").last;
 
   // We will write an empty file called success to the unzip directory after successfully downloading/extracting the prebuilt libraries.
   // If this file already exists, we assume everything has been successfully extracted and skip
   final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
-  final successToken = File(path.join(unzipDir, "success"));
+  final successToken = File(path.join(unzipDir, config.targetOS == OS.windows ? "success-vulkan" : "success"));
   final libraryZip = File(path.join(unzipDir, filename));
 
   if (!successToken.existsSync()) {
