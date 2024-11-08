@@ -29,8 +29,6 @@
 
 #include "flutter_d3d_texture.h"
 
-#include "rendering/vulkan/vulkan_context.h"
-
 namespace thermion::tflutter::windows
 {
 
