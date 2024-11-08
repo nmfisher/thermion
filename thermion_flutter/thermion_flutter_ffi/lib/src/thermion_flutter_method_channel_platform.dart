@@ -92,22 +92,31 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     }
     final flutterId = result[0] as int;
     final hardwareId = result[1] as int;
-    var window = result[2] as int; // usually 0 for nullptr
+    var window = result[2] as int?; // usually 0 for nullptr
 
     var texture = ThermionFlutterTexture(
         flutterId: flutterId,
         hardwareId: hardwareId,
         height: height,
         width: width,
-        window: window);
+        window: window ?? 0);
 
     if (Platform.isWindows) {
       if (_swapChain != null) {
         await view!.setRenderable(false, _swapChain!);
         await viewer!.destroySwapChain(_swapChain!);
       }
-      _swapChain =
-          await viewer!.createHeadlessSwapChain(texture.width, texture.height);
+      
+        _swapChain = await viewer!
+            .createHeadlessSwapChain(texture.width, texture.height);
+    } else if(Platform.isAndroid) {
+    if (_swapChain != null) {
+        await view!.setRenderable(false, _swapChain!);
+        await viewer!.destroySwapChain(_swapChain!);
+      }  
+        _swapChain = await viewer!
+            .createSwapChain(texture.window);
+      
     } else {
       var renderTarget = await viewer!.createRenderTarget(
           texture.width, texture.height, texture.hardwareId);
