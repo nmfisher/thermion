@@ -1,6 +1,6 @@
-#include "vulkan_texture.h"
+#include "windows/vulkan/vulkan_texture.h"
 #include "bluevk/BlueVK.h"
-#include "utils.h"
+#include "windows/vulkan/utils.h"
 
 #include <iostream>
 

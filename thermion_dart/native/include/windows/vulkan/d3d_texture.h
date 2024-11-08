@@ -1,5 +1,7 @@
 #pragma once
 
+#include "import.h"
+
 #include <functional>
 #include <mutex>
 
@@ -10,9 +12,10 @@
 #include <Windows.h>
 #include <wrl.h>
 
+
 namespace thermion::windows::d3d {
 
-class D3DTexture {
+class EMSCRIPTEN_KEEPALIVE D3DTexture {
   public:
     D3DTexture(
         Microsoft::WRL::ComPtr<ID3D11Texture2D> d3dTexture2D,

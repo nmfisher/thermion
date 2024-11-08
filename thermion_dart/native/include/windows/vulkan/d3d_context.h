@@ -1,4 +1,7 @@
-#include "d3d_texture.h"
+#pragma once
+
+#include "import.h"
+#include "windows/vulkan/d3d_texture.h"
 
 #include <d3d.h>
 #include <d3d11_1.h>
@@ -7,9 +10,11 @@
 #include <Windows.h>
 #include <wrl.h>
 
+
+
 namespace thermion::windows::d3d { 
 
-    class D3DContext {
+    class EMSCRIPTEN_KEEPALIVE D3DContext {
         public:
             D3DContext();
             ~D3DContext();

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "d3d_context.h"
+#include "windows/vulkan/d3d_context.h"
 
-#include "vulkan_texture.h"
+#include "windows/vulkan/vulkan_texture.h"
 
-#include "utils.h"
+#include "windows/vulkan/utils.h"
 
 #include <fstream>
 
@@ -20,11 +20,12 @@
 #include <thread>
 #include <mutex>
 
-#include "ThermionWin32.h"
 #include <Windows.h>
 
 #include "filament/backend/Platform.h"
 #include "filament/backend/platforms/VulkanPlatform.h"
+
+#include "windows/vulkan/import.h"
 
 namespace thermion::windows::vulkan {
 
@@ -63,7 +64,7 @@ namespace thermion::windows::vulkan {
 
 };
 
-class ThermionVulkanContext {
+class EMSCRIPTEN_KEEPALIVE ThermionVulkanContext {
 public:
   ThermionVulkanContext();
   void* GetSharedContext();    

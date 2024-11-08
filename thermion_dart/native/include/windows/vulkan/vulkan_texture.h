@@ -2,11 +2,13 @@
 #include <memory>
 #include "bluevk/BlueVK.h"
 
+#include "import.h"
+
 namespace thermion::windows::vulkan { 
 
 typedef void *HANDLE;
 
-class VulkanTexture {
+class EMSCRIPTEN_KEEPALIVE VulkanTexture {
     public:
         VulkanTexture(VkImage image, VkDevice device, VkDeviceMemory imageMemory, uint32_t width, uint32_t height, HANDLE d3dTextureHandle);
         ~VulkanTexture();

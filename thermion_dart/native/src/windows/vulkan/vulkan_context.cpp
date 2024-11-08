@@ -1,4 +1,8 @@
-#include "vulkan_context.h"
+
+#define THERMION_WIN32_KHR_BUILD
+#include "windows/vulkan/vulkan_context.h"
+
+#include "ThermionWin32.h"
 
 #include <functional>
 #include <vector>
