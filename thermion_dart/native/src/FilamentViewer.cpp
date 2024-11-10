@@ -141,6 +141,7 @@ namespace thermion
 #elif defined(_WIN32)
     Engine::Config config;
     config.stereoscopicEyeCount = 1;
+    config.disableHandleUseAfterFreeCheck = true;
     _engine = Engine::create(Engine::Backend::VULKAN, (backend::Platform *)platform, (void *)sharedContext, &config);
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
@@ -767,7 +768,7 @@ namespace thermion
     view->setAmbientOcclusionOptions({.enabled = false});
     view->setDynamicResolutionOptions({.enabled = false});
 #if defined(_WIN32)
-    view->setStereoscopicOptions({.enabled = true});
+    view->setStereoscopicOptions({.enabled = false});
 #endif
 
     // bloom can be a bit glitchy (some Intel iGPUs won't render when postprocessing is enabled and bloom is disabled,
