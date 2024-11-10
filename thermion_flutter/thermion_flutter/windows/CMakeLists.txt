@@ -28,19 +28,20 @@ target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/filament"
   "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 include_directories(
-  "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include/filament"
-  "${CMAKE_SOURCE_DIR}/../../../../thermion_dart/native/include"
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/filament
+  ${runner_BINARY_DIR}/../../../native_assets/windows/
 )
 
 get_cmake_property(_variableNames VARIABLES)
 list (SORT _variableNames)
 foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
+    message(STATUS "FOO${_variableName}=${${_variableName}}")
 endforeach()
 
 target_link_directories(${PLUGIN_NAME} PRIVATE ${runner_BINARY_DIR}/../../../native_assets/windows/)
