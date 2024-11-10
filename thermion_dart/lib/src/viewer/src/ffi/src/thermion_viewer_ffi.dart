@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
@@ -1237,6 +1238,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
+    if(Platform.isWindows && msaa) { 
+      throw Exception("MSAA is not currently supported on Windows");
+    }
     final view = await getViewAt(0) as FFIView;
     View_setAntiAliasing(view.view, msaa, fxaa, taa);
   }
