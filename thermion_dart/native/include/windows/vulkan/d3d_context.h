@@ -1,7 +1,7 @@
 #pragma once
 
 #include "import.h"
-#include "windows/vulkan/d3d_texture.h"
+#include "d3d_texture.h"
 
 #include <d3d.h>
 #include <d3d11_1.h>

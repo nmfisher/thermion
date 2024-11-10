@@ -1,10 +1,10 @@
 #pragma once
 
-#include "windows/vulkan/d3d_context.h"
+#include "d3d_context.h"
 
-#include "windows/vulkan/vulkan_texture.h"
+#include "vulkan_texture.h"
 
-#include "windows/vulkan/utils.h"
+#include "utils.h"
 
 #include <fstream>
 
@@ -25,17 +25,17 @@
 #include "filament/backend/Platform.h"
 #include "filament/backend/platforms/VulkanPlatform.h"
 
-#include "windows/vulkan/import.h"
+#include "import.h"
 
 namespace thermion::windows::vulkan {
 
   class TVulkanPlatform : public filament::backend::VulkanPlatform {
    public:
-      SwapChainPtr createSwapChain(void* nativeWindow, uint64_t flags = 0,
+      SwapChainPtr createSwapChain(void* nativeWindow, uint64_t flags,
             VkExtent2D extent = {0, 0}) override {
               std::lock_guard lock(mutex);
               _current = filament::backend::VulkanPlatform::createSwapChain(nativeWindow, flags, extent);
-              std::cout << "Created swap chain" << std::endl;
+              std::cout << "Created swap chain with flags " << flags << std::endl;
               return _current;
             }
       
