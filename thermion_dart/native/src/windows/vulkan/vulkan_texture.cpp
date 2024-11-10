@@ -1,6 +1,6 @@
-#include "windows/vulkan/vulkan_texture.h"
+#include "vulkan_texture.h"
 #include "bluevk/BlueVK.h"
-#include "windows/vulkan/utils.h"
+#include "utils.h"
 
 #include <iostream>
 
@@ -35,7 +35,7 @@ namespace thermion::windows::vulkan
             .pNext = &extImageInfo,
             .flags = 0,
             .imageType = VK_IMAGE_TYPE_2D,
-            .format = VK_FORMAT_R8G8B8A8_UNORM,
+            .format = VK_FORMAT_B8G8R8A8_UNORM,
             .extent = {width, height, 1},
             .mipLevels = 1,
             .arrayLayers = 1,

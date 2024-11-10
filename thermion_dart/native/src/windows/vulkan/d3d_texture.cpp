@@ -1,5 +1,5 @@
-#include "windows/vulkan/d3d_texture.h"
-#include "windows/vulkan/utils.h"
+#include "d3d_texture.h"
+#include "utils.h"
 
 #include <functional>
 #include <iostream>

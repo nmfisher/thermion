@@ -1,6 +1,6 @@
 
 #define THERMION_WIN32_KHR_BUILD
-#include "windows/vulkan/vulkan_context.h"
+#include "vulkan_context.h"
 
 #include "ThermionWin32.h"
 
