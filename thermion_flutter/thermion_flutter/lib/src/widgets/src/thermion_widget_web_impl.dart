@@ -16,13 +16,13 @@ class ThermionWidgetWeb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (_texture == null || _resizing) {
-      return widget.initial ?? Container(color: Colors.red);
-    }
-    return ResizeObserver(
-        onResized: _resizeTexture,
-        child: ThermionWidgetWeb(
-            options: widget.options as ThermionFlutterWebOptions?));
+    // if (_texture == null || _resizing) {
+    //   return widget.initial ?? Container(color: Colors.red);
+    // }
+    // return ResizeObserver(
+    //     onResized: _resizeTexture,
+    //     child: ThermionWidgetWeb(
+    //         options: widget.options as ThermionFlutterWebOptions?));
 
     if (options?.importCanvasAsWidget == true) {
       return _ImageCopyingWidget();
