@@ -25,8 +25,8 @@ dependencies:
   web: ^1.0.0
 
 dependency_overrides:
-  thermion_flutter_ffi:
-    path: ../thermion_flutter_ffi
+  thermion_flutter_method_channel:
+    path: ../thermion_flutter_method_channel
   thermion_flutter_platform_interface:
     path: ../thermion_flutter_platform_interface
 dev_dependencies:
