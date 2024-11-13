@@ -6,7 +6,7 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_in
 /// Handles all platform-specific initialization to create a backing rendering
 /// surface in a Flutter application and lifecycle listeners to pause rendering
 /// when the app is inactive or in the background.
-/// Call [createViewerWithOptions] to create an instance of [ThermionViewer].
+/// Call [createViewer] to create an instance of [ThermionViewer].
 ///
 class ThermionFlutterPlugin {
   ThermionFlutterPlugin._();
