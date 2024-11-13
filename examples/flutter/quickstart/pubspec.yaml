@@ -21,8 +21,8 @@ dependency_overrides:
     path: ../../../thermion_dart
   thermion_flutter:
     path: ../../../thermion_flutter/thermion_flutter
-  thermion_flutter_ffi:
-    path: ../../../thermion_flutter/thermion_flutter_ffi
+  thermion_flutter_method_channel:
+    path: ../../../thermion_flutter/thermion_flutter_method_channel
   thermion_flutter_platform_interface:
     path: ../../../thermion_flutter/thermion_flutter_platform_interface
 
