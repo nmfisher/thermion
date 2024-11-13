@@ -85,7 +85,7 @@ import GLKit
 
                for row in 0..<bufferHeight {
                    var pixel = baseAddress + row * bytesPerRow
-                   for col in 0..<bufferWidth {
+                   for _ in 0..<bufferWidth {
                        let blue = pixel
                        blue.storeBytes(of: 255, as: UInt8.self)
 
