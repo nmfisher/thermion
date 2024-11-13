@@ -4,7 +4,6 @@ import 'package:thermion_dart/thermion_dart.dart' as t;
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'thermion_flutter_texture.dart';
-import 'thermion_flutter_window.dart';
 
 class ThermionFlutterOptions {
   final String? uberarchivePath;
@@ -12,6 +11,9 @@ class ThermionFlutterOptions {
   ThermionFlutterOptions({this.uberarchivePath});
   const ThermionFlutterOptions.empty() : uberarchivePath = null;
 }
+
+typedef PlatformTextureDescriptor = (
+    {int flutterTextureId, int hardwareId, int? windowHandle}) ;
 
 abstract class ThermionFlutterPlatform extends PlatformInterface {
   ThermionFlutterPlatform() : super(token: _token);
@@ -33,12 +35,20 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
       {covariant ThermionFlutterOptions? options});
 
   ///
+  /// Creates a raw rendering surface.  
+  ///
+  /// This is internal; unless you are [thermion_*] package developer, don't
+  /// call this yourself. May not be supported on all platforms.
+  ///
+  Future<PlatformTextureDescriptor?> createTexture(int width, int height);
+
+  ///
   /// Create a rendering surface and binds to the given [View]
   ///
   /// This is internal; unless you are [thermion_*] package developer, don't
   /// call this yourself. May not be supported on all platforms.
   ///
-  Future<ThermionFlutterTexture?> createTexture(
+  Future<ThermionFlutterTexture?> createTextureAndBindToView(
       t.View view, int width, int height);
 
   ///
@@ -46,8 +56,7 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   ///
   ///
   Future<ThermionFlutterTexture?> resizeTexture(
-    ThermionFlutterTexture texture, t.View view,
-      int width, int height);
+      ThermionFlutterTexture texture, t.View view, int width, int height);
 
   ///
   ///
@@ -58,15 +67,4 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   ///
   ///
   Future markTextureFrameAvailable(ThermionFlutterTexture texture);
- 
-  ///
-  /// Create a rendering window.
-  ///
-  /// This is internal; unless you are [thermion_*] package developer, don't
-  /// call this yourself. May not be supported on all platforms.
-  ///
-  Future<ThermionFlutterWindow> createWindow(
-      int width, int height, int offsetLeft, int offsetTop);
-
-  
 }
