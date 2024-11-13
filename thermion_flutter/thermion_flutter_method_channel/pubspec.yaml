@@ -1,5 +1,5 @@
-name: thermion_flutter_ffi
-description: An FFI implementation for thermion_flutter (i.e. all platforms except web).
+name: thermion_flutter_method_channel
+description: Desktop + mobile implementation for texture creation + registration with Flutter.
 repository: https://github.com/nmfisher/thermion_flutter/thermion_flutter
 version: 0.2.1-dev.19.0
 
