@@ -6,7 +6,6 @@ import 'package:thermion_flutter/src/widgets/src/thermion_widget_web.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
-import 'thermion_widget_windows.dart';
 
 Future kDefaultResizeCallback(Size size, t.View view, double pixelRatio) async {
   var camera = await view.getCamera();
@@ -87,7 +86,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
       return widget.initial ?? Container(color: Colors.red);
     }
 
-    // Windows & Web don't support imported textures yet
+    // Web doesn't support imported textures yet
     if (kIsWeb) {
       return ThermionWidgetWeb(
           viewer: widget.viewer,
