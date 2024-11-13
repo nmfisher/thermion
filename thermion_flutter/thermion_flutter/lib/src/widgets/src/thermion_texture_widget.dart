@@ -4,7 +4,6 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
-import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
 
 class ThermionTextureWidget extends StatefulWidget {
   ///
@@ -81,7 +80,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
           "Target texture dimensions ${width}x${height} (pixel ratio : $dpr)");
 
       _texture = await ThermionFlutterPlatform.instance
-          .createTexture(widget.view, width, height);
+          .createTextureAndBindToView(widget.view, width, height);
 
       _logger.info(
           "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
