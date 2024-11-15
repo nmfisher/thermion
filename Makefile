@@ -22,6 +22,9 @@ bindings:
 # eg: FILAMENT_PATH=/path/to/filament/out/release/bin make materials
 # 
 materials: FORCE
+ifndef FILAMENT_PATH
+	$(error FILAMENT_PATH is not set)
+else
 	@echo "Using Filament build from ${FILAMENT_PATH}"
 	@for material in unlit image unlit_fixed_size grid; do \
 		${FILAMENT_PATH}/matc -a opengl -a metal -o materials/$$material.filamat materials/$$material.mat; \
@@ -29,8 +32,6 @@ materials: FORCE
 		echo '#include "'$$material'.h"' | cat - thermion_dart/native/include/material/$$material.c > thermion_dart/native/include/material/$$material.c.new; \
 		mv thermion_dart/native/include/material/$$material.c.new thermion_dart/native/include/material/$$material.c; \
 	done
-
-	#rm materials/*.filamat
+endif
 
 FORCE: ;
-	
