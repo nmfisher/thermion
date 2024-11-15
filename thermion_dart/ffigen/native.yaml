@@ -13,6 +13,7 @@ headers:
     - '../native/include/TView.h'
     - '../native/include/TCamera.h'
     - '../native/include/TGizmo.h'
+    - '../native/include/TMaterialInstance.h'
     - '../native/include/ResourceBuffer.h'
     - '../native/include/APIBoundaryTypes.h'
 ffi-native:
