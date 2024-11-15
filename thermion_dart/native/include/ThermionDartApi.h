@@ -55,8 +55,6 @@ extern "C"
 {
 #endif
 
-
-
 	EMSCRIPTEN_KEEPALIVE TViewer *Viewer_create(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
 	EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TSceneManager *Viewer_getSceneManager(TViewer *viewer);
@@ -295,14 +293,6 @@ extern "C"
 
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance* get_material_instance_at(TSceneManager *sceneManager, EntityId entity, int materialIndex);
 	
-	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance* materialInstance, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance* materialInstance, bool enabled);
-	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat4(TMaterialInstance* materialInstance, const char* name, double x, double y, double w, double z);
-	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance* materialInstance, const char* name, double x, double y);
-	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance* materialInstance, const char* name, double value);
-	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance* materialInstance, const char* name, int value);
-
-
 #ifdef __cplusplus
 }
 #endif

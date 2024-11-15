@@ -1050,37 +1050,7 @@ extern "C"
         ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance *>(instance));
     }
 
-    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthWrite(TMaterialInstance *materialInstance, bool enabled)
-    {
-        reinterpret_cast<MaterialInstance *>(materialInstance)->setDepthWrite(enabled);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthCulling(TMaterialInstance *materialInstance, bool enabled)
-    {
-        reinterpret_cast<MaterialInstance *>(materialInstance)->setDepthCulling(enabled);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat4(TMaterialInstance *materialInstance, const char *propertyName, double x, double y, double w, double z)
-    {
-        filament::math::float4 data{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(w)};
-        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance *materialInstance, const char *propertyName, double x, double y)
-    {
-        filament::math::float2 data{static_cast<float>(x), static_cast<float>(y)};
-        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *materialInstance, const char *propertyName, double value)
-    {
-        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, static_cast<float>(value));
-    }
-
-    EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *materialInstance, const char *propertyName, int value)
-    {
-        reinterpret_cast<MaterialInstance *>(materialInstance)->setParameter(propertyName, value);
-    }
+    
 
     EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)
     {
