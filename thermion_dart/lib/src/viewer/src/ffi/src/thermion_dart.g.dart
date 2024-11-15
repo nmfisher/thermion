@@ -7,6 +7,76 @@ library;
 
 import 'dart:ffi' as ffi;
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(
+    isLeaf: true)
+external void MaterialInstance_setDepthWrite(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(
+    isLeaf: true)
+external void MaterialInstance_setDepthCulling(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  bool enabled,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat4(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  double x,
+  double y,
+  double w,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double, ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat2(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  double x,
+  double y,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  double value,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Int)>(isLeaf: true)
+external void MaterialInstance_setParameterInt(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> name,
+  int value,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(
+    symbol: "MaterialInstance_setDepthFunc", isLeaf: true)
+external void _MaterialInstance_setDepthFunc(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  int depthFunc,
+);
+
+void MaterialInstance_setDepthFunc(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  TDepthFunc depthFunc,
+) =>
+    _MaterialInstance_setDepthFunc(
+      materialInstance,
+      depthFunc.value,
+    );
+
 @ffi.Native<
     ffi.Pointer<ffi.Void> Function(LoadFilamentResourceFromOwner,
         FreeFilamentResourceFromOwner, ffi.Pointer<ffi.Void>)>(isLeaf: true)
@@ -1205,60 +1275,6 @@ external ffi.Pointer<TMaterialInstance> get_material_instance_at(
   int materialIndex,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(
-    isLeaf: true)
-external void MaterialInstance_setDepthWrite(
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Bool)>(
-    isLeaf: true)
-external void MaterialInstance_setDepthCulling(
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  bool enabled,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
-        ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
-external void MaterialInstance_setParameterFloat4(
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  ffi.Pointer<ffi.Char> name,
-  double x,
-  double y,
-  double w,
-  double z,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
-        ffi.Double, ffi.Double)>(isLeaf: true)
-external void MaterialInstance_setParameterFloat2(
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  ffi.Pointer<ffi.Char> name,
-  double x,
-  double y,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
-        ffi.Double)>(isLeaf: true)
-external void MaterialInstance_setParameterFloat(
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  ffi.Pointer<ffi.Char> name,
-  double value,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
-        ffi.Int)>(isLeaf: true)
-external void MaterialInstance_setParameterInt(
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  ffi.Pointer<ffi.Char> name,
-  int value,
-);
-
 @ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
 external TViewport View_getViewport(
   ffi.Pointer<TView> view,
@@ -1488,19 +1504,6 @@ external void Viewer_captureRenderTargetRenderThread(
 );
 
 @ffi.Native<
-    ffi.Pointer<TRenderTarget> Function(
-        ffi.Pointer<TViewer>, ffi.IntPtr, ffi.Uint32, ffi.Uint32, 
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>>
-        )>(isLeaf: true)
-external ffi.Pointer<TRenderTarget> Viewer_createRenderTargetRenderThread(
-  ffi.Pointer<TViewer> viewer,
-  int texture,
-  int width,
-  int height,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>> onComplete,
-);
-
-@ffi.Native<
     ffi.Void Function(ffi.Pointer<TViewer>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void Viewer_requestFrameRenderThread(
@@ -1516,6 +1519,24 @@ external void Viewer_loadIblRenderThread(
   ffi.Pointer<ffi.Char> iblPath,
   double intensity,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TViewer>,
+        ffi.IntPtr,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TRenderTarget>)>>)>(isLeaf: true)
+external void Viewer_createRenderTargetRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  int texture,
+  int width,
+  int height,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>>
+      onComplete,
 );
 
 @ffi.Native<
@@ -2124,9 +2145,50 @@ external void Gizmo_setVisibility(
   bool visible,
 );
 
-final class TCamera extends ffi.Opaque {}
-
 final class TMaterialInstance extends ffi.Opaque {}
+
+enum TDepthFunc {
+  /// !< Less or equal
+  LE(0),
+
+  /// !< Greater or equal
+  GE(1),
+
+  /// !< Strictly less than
+  L(2),
+
+  /// !< Strictly greater than
+  G(3),
+
+  /// !< Equal
+  E(4),
+
+  /// !< Not equal
+  NE(5),
+
+  /// !< Always. Depth / stencil testing is deactivated.
+  A(6),
+
+  /// !< Never. The depth / stencil test always fails.
+  N(7);
+
+  final int value;
+  const TDepthFunc(this.value);
+
+  static TDepthFunc fromValue(int value) => switch (value) {
+        0 => LE,
+        1 => GE,
+        2 => L,
+        3 => G,
+        4 => E,
+        5 => NE,
+        6 => A,
+        7 => N,
+        _ => throw ArgumentError("Unknown value for TDepthFunc: $value"),
+      };
+}
+
+final class TCamera extends ffi.Opaque {}
 
 final class TEngine extends ffi.Opaque {}
 

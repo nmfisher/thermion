@@ -45,9 +45,21 @@
 #include <stddef.h>
 #endif
 
-#include "APIBoundaryTypes.h"
-#include "ResourceBuffer.hpp"
-#include "ThermionDartAPIUtils.h"
+typedef struct TMaterialInstance TMaterialInstance;
+
+// copied from SamplerCompareFunc in DriverEnums.h
+enum TDepthFunc { 
+	// don't change the enums values
+	LE = 0,     //!< Less or equal
+	GE,         //!< Greater or equal
+	L,          //!< Strictly less than
+	G,          //!< Strictly greater than
+	E,          //!< Equal
+	NE,         //!< Not equal
+	A,          //!< Always. Depth / stencil testing is deactivated.
+	N           //!< Never. The depth / stencil test always fails.
+};
+	
 
 #ifdef __cplusplus
 extern "C"
@@ -59,6 +71,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance* materialInstance, const char* name, double x, double y);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance* materialInstance, const char* name, double value);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance* materialInstance, const char* name, int value);
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthFunc(TMaterialInstance* materialInstance, TDepthFunc depthFunc);
     #ifdef __cplusplus
 }
 #endif

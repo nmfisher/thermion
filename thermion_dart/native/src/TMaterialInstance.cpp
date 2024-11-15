@@ -45,6 +45,12 @@ namespace thermion
         {
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, value);
         }
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthFunc(TMaterialInstance *tMaterialInstance, TDepthFunc tDepthFunc) {
+            auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
+            auto depthFunc = static_cast<filament::MaterialInstance::DepthFunc>(tDepthFunc);
+            materialInstance->setDepthFunc(depthFunc);
+        }
 #ifdef __cplusplus
     }
 }

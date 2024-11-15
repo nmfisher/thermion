@@ -2277,6 +2277,11 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
     MaterialInstance_setParameterInt(
         _pointer, name.toNativeUtf8().cast<Char>(), value);
   }
+  
+  @override
+  Future setDepthFunc(SampleCompareFunction depthFunc) async {
+    MaterialInstance_setDepthFunc(_pointer, TDepthFunc.values[depthFunc.index]);
+  }
 
 
 }

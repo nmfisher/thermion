@@ -49,6 +49,7 @@
 #include "APIBoundaryTypes.h"
 #include "ResourceBuffer.hpp"
 #include "ThermionDartAPIUtils.h"
+#include "TMaterialInstance.h"
 
 #ifdef __cplusplus
 extern "C"

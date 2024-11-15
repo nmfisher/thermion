@@ -146,6 +146,34 @@ void main() async {
   });
 
   group("MaterialInstance", () {
+    test('set depth func to always', () async {
+      var viewer = await testHelper.createViewer(
+          bg: kRed, cameraPosition: Vector3(0, 0, 6));
+
+      var materialInstance1 = await viewer.createUnlitMaterialInstance();
+      final cube1 = await viewer.createGeometry(GeometryHelper.cube(),
+          materialInstance: materialInstance1);
+
+      await materialInstance1!
+          .setParameterFloat4("baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+
+      var materialInstance2 = await viewer.createUnlitMaterialInstance();
+      final cube2 = await viewer.createGeometry(GeometryHelper.cube(),
+          materialInstance: materialInstance2);
+      await viewer.setPosition(cube2, 1.0, 0.0, -1.0);
+
+      await materialInstance2!
+          .setParameterFloat4("baseColorFactor", 0.0, 0.0, 1.0, 1.0);
+
+      // with default depth func, blue cube renders behind the green cube
+      await testHelper.capture(viewer, "material_instance_depth_func_default");
+
+      await materialInstance2.setDepthFunc(SampleCompareFunction.A);
+
+      await testHelper.capture(viewer, "material_instance_depth_func_always");
+      await viewer.dispose();
+    });
+
     test('disable depth write', () async {
       var viewer = await testHelper.createViewer();
       await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
