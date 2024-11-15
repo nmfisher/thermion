@@ -1,3 +1,19 @@
+## 0.2.1-dev.0.0.17
+
+ - **FIX**: remove superfluous ceil() calls for picking coordinates.
+ - **FIX**: remove superfluous ceil() calls for picking coordinates.
+ - **FIX**: reduce size of pick functor for compatibility with armeabi-v7a.
+ - **FIX**: reduce size of pick functor for compatibility with armeabi-v7a.
+ - **FEAT**: add Dart methods for getRenderableBoundingBox, setParameterInt and setParameterFloat4.
+ - **FEAT**: Rename Gizmo material to UnlitFixedSize, and expose methods for using this material on other entities. Also exposes new methods for setting single float parameters.
+ - **FEAT**: expose zoomSensitivity argument for flight input handler.
+ - **FEAT**: Rename Gizmo material to UnlitFixedSize, and expose methods for using this material on other entities. Also exposes new methods for setting single float parameters.
+ - **FEAT**: expose zoomSensitivity argument for flight input handler.
+ - **FEAT**: sanitize file paths in build.dart for Windows compatibility.
+ - **FEAT**: pass through fragment coordinates for picking.
+ - **FEAT**: sanitize file paths in build.dart for Windows compatibility.
+ - **FEAT**: pass through fragment coordinates for picking.
+
 ## 0.2.1-dev.0.0.16
 
  - **FEAT**: Rename Gizmo material to UnlitFixedSize, and expose methods for using this material on other entities. Also exposes new methods for setting single float parameters.
