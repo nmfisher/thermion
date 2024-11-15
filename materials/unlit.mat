@@ -13,10 +13,6 @@ material {
         { 
             type : int, 
             name : baseColorIndex 
-        },
-        { 
-            type : float2, 
-            name : uvScale
         }
     ],
     depthWrite : true,
