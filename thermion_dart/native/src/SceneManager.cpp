@@ -265,7 +265,8 @@ namespace thermion
         auto renderable = rm.getInstance(utils::Entity::import(entityId));
         if (!renderable.isValid())
         {
-            Log("Warning: no renderable found");
+            Log("SceneManager::setVisibilityLayer - entity %d has no Renderable component", entityId);
+            return;
         }
 
         rm.setLayerMask(renderable, 0xFF, 1u << layer);
@@ -2216,7 +2217,7 @@ namespace thermion
         auto renderableInstance = rm.getInstance(Entity::import(entityId));
         if (!renderableInstance.isValid())
         {
-            Log("Error: invalid renderable, did you pass the correct entity?", priority);
+            Log("SceneManager::setPriority entity %d has no renderable component", entityId);
             return;
         }
         rm.setPriority(renderableInstance, priority);
@@ -2533,7 +2534,6 @@ namespace thermion
     {
         UvMap uvmap;
         auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
-        instance->setParameter("uvScale", filament::math::float2{1.0f, 1.0f});
         _materialInstances.push_back(instance);
         return instance;
     }
