@@ -29,7 +29,7 @@ class ThermionWasmMaterialInstance extends MaterialInstance {
   }
   
   @override
-  Future setDepthFunc(SampleCompareFunction depthFunc) {
+  Future setDepthFunc(SamplerCompareFunction depthFunc) {
     // TODO: implement setDepthFunc
     throw UnimplementedError();
   }

@@ -168,7 +168,7 @@ void main() async {
       // with default depth func, blue cube renders behind the green cube
       await testHelper.capture(viewer, "material_instance_depth_func_default");
 
-      await materialInstance2.setDepthFunc(SampleCompareFunction.A);
+      await materialInstance2.setDepthFunc(SamplerCompareFunction.A);
 
       await testHelper.capture(viewer, "material_instance_depth_func_always");
       await viewer.dispose();

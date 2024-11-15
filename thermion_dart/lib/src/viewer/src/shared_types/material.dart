@@ -1,6 +1,6 @@
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 
-enum SampleCompareFunction { 
+enum SamplerCompareFunction { 
   /// !< Less or equal
   LE,
   /// !< Greater or equal
@@ -20,7 +20,7 @@ enum SampleCompareFunction {
 }
 abstract class MaterialInstance {
   Future setDepthWriteEnabled(bool enabled);
-  Future setDepthFunc(SampleCompareFunction depthFunc);
+  Future setDepthFunc(SamplerCompareFunction depthFunc);
   
   Future setDepthCullingEnabled(bool enabled);
   Future setParameterFloat4(String name, double x, double y, double z, double w);

@@ -2279,7 +2279,7 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
   }
   
   @override
-  Future setDepthFunc(SampleCompareFunction depthFunc) async {
+  Future setDepthFunc(SamplerCompareFunction depthFunc) async {
     MaterialInstance_setDepthFunc(_pointer, TDepthFunc.values[depthFunc.index]);
   }
 
