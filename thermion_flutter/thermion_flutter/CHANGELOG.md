@@ -1,3 +1,7 @@
+## 0.2.1-dev.18.0
+
+ - **FIX**: fix windows import header.
+
 ## 0.2.1-dev.17
 
  - **FIX**: multiply coordinates by pixelRatio for scale events.

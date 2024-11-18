@@ -1,3 +1,7 @@
+## 0.2.1-dev.18.0
+
+ - **FEAT**: add MaterialInstance.setDepthFunc.
+
 ## 0.2.1-dev.0.0.17
 
  - **FIX**: remove superfluous ceil() calls for picking coordinates.

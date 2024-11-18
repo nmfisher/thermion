@@ -3,6 +3,43 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-11-18
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.18.0`](#thermion_dart---v021-dev180)
+ - [`thermion_flutter` - `v0.2.1-dev.18.0`](#thermion_flutter---v021-dev180)
+ - [`thermion_flutter_web` - `v0.2.0+9`](#thermion_flutter_web---v0209)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.18.0`](#thermion_flutter_platform_interface---v021-dev180)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.18.0`](#thermion_flutter_ffi---v021-dev180)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter_web` - `v0.2.0+9`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.18.0`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.18.0`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.18.0`
+
+ - **FEAT**: add MaterialInstance.setDepthFunc.
+
+#### `thermion_flutter` - `v0.2.1-dev.18.0`
+
+ - **FIX**: fix windows import header.
+
+
 ## 2024-11-15
 
 ### Changes

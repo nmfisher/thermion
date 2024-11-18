@@ -1,7 +1,7 @@
 name: thermion_flutter_ffi
 description: An FFI implementation for thermion_flutter (i.e. all platforms except web).
 repository: https://github.com/nmfisher/thermion_flutter/thermion_flutter
-version: 0.2.1-dev.17
+version: 0.2.1-dev.18.0
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -23,8 +23,8 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.1.0
-  thermion_flutter_platform_interface: ^0.2.1-dev.17
-  thermion_dart: ^0.2.1-dev.0.0.17
+  thermion_flutter_platform_interface: ^0.2.1-dev.18.0
+  thermion_dart: ^0.2.1-dev.18.0
   logging: ^1.2.0
 dependency_overrides:
   thermion_flutter_platform_interface:
