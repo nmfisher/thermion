@@ -11,7 +11,7 @@
 #include <wrl.h>
 
 #include "ResourceBuffer.h"
-#include "windows/vulkan/vulkan_context.h"
+#include "vulkan_context.h"
 
 namespace thermion::tflutter::windows {
 
