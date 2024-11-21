@@ -2079,7 +2079,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future destroyMaterialInstance(
       ThermionFFIMaterialInstance materialInstance) async {
-    destroy_material_instance(_sceneManager!, materialInstance._pointer);
+    SceneManager_destroyMaterialInstance(_sceneManager!, materialInstance._pointer);
   }
 
   ///
