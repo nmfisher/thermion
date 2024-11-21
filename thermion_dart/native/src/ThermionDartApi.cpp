@@ -61,7 +61,7 @@ extern "C"
         return viewer->isNonPickableEntity(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer)
+    EMSCRIPTEN_KEEPALIVE void Viewer_destroy(TViewer *viewer)
     {
         delete ((FilamentViewer *)viewer);
     }
@@ -926,13 +926,6 @@ extern "C"
         auto materialInstance = ((SceneManager *)sceneManager)->createUbershaderMaterialInstance(config);
         return reinterpret_cast<TMaterialInstance *>(materialInstance);
     }
-
-    EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance)
-    {
-        ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance *>(instance));
-    }
-
-    
 
     EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)
     {
