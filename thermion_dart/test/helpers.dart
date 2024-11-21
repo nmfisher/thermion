@@ -115,29 +115,28 @@ class TestHelper {
       Vector3? cameraPosition,
       viewportDimensions = (width: 500, height: 500)}) async {
     final resourceLoader = calloc<ResourceLoaderWrapper>(1);
-    print("resourceLoader");
+    
     var loadToOut = NativeCallable<
         Void Function(Pointer<Char>,
             Pointer<ResourceBuffer>)>.listener(DartResourceLoader.loadResource);
-    print("loadToOut");
+    
     resourceLoader.ref.loadToOut = loadToOut.nativeFunction;
-    print("set ref");
+    
     var freeResource = NativeCallable<Void Function(ResourceBuffer)>.listener(
         DartResourceLoader.freeResource);
-    print("freeResource");
+    
     resourceLoader.ref.freeResource = freeResource.nativeFunction;
-    print("set freeResource ref");
+    
     var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
-    print("created viewer");
+    
     await viewer.initialized;
     swapChain = await viewer.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height);
-    print("created headless swapchain");
-
+    
     await viewer.updateViewportAndCameraProjection(
         viewportDimensions.width.toDouble(),
         viewportDimensions.height.toDouble());
-    print("updated camera");
+    
     if (bg != null) {
       await viewer.setBackgroundColor(
           bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());

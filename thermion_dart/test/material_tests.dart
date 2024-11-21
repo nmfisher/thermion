@@ -235,7 +235,7 @@ void main() async {
   group("stencil", () {
     test('set stencil highlight for glb', () async {
       final viewer = await testHelper.createViewer();
-      var model = await viewer.loadGlb("${testHelper.testDir}/cube.glb",
+      var model = await viewer.loadGlb("${testHelper.testDir}/assets/cube.glb",
           keepData: true);
       await viewer.setPostProcessing(true);
 
@@ -281,7 +281,7 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube1 = await viewer.loadGlb("${testHelper.testDir}/cube.glb",
+      var cube1 = await viewer.loadGlb("${testHelper.testDir}/assets/cube.glb",
           keepData: true);
       await viewer.transformToUnitCube(cube1);
 
@@ -329,10 +329,10 @@ void main() async {
       await viewer
           .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
 
-      var cube1 = await viewer.loadGlb("${testHelper.testDir}/cube.glb",
+      var cube1 = await viewer.loadGlb("${testHelper.testDir}/assets/cube.glb",
           keepData: true);
       await viewer.transformToUnitCube(cube1);
-      var cube2 = await viewer.loadGlb("${testHelper.testDir}/cube.glb",
+      var cube2 = await viewer.loadGlb("${testHelper.testDir}/assets/cube.glb",
           keepData: true);
       await viewer.transformToUnitCube(cube2);
       await viewer.setPosition(cube2, 0.5, 0.5, 0);
