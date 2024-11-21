@@ -173,19 +173,6 @@ extern "C"
         return ((SceneManager *)sceneManager)->loadGlb(assetPath, numInstances, keepData);
     }
 
-    EMSCRIPTEN_KEEPALIVE TGizmo* SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene) {
-        auto sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
-        auto *scene = reinterpret_cast<Scene*>(tScene);
-        auto *view = reinterpret_cast<View*>(tView);
-        auto gizmo = sceneManager->createGizmo(view, scene);
-        return reinterpret_cast<TGizmo*>(gizmo);
-    }
-    
-    EMSCRIPTEN_KEEPALIVE EntityId SceneManager_loadGlbFromBuffer(TSceneManager *sceneManager, const uint8_t *const data, size_t length, bool keepData, int priority, int layer, bool loadResourcesAsync)
-    {
-        return ((SceneManager *)sceneManager)->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer, loadResourcesAsync);
-    }
-
     EMSCRIPTEN_KEEPALIVE EntityId create_instance(TSceneManager *sceneManager, EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->createInstance(entityId);
@@ -464,19 +451,7 @@ extern "C"
         return ((SceneManager *)sceneManager)->setMorphTargetWeights(asset, weights, numWeights);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool SceneManager_setMorphAnimation(
-        TSceneManager *sceneManager,
-        EntityId asset,
-        const float *const morphData,
-        const uint32_t *const morphIndices,
-        int numMorphTargets,
-        int numFrames,
-        float frameLengthInMs)
-    {
-        auto result = ((SceneManager *)sceneManager)->setMorphAnimationBuffer(asset, morphData, morphIndices, numMorphTargets, numFrames, frameLengthInMs);
-        return result;
-    }
-
+    
     EMSCRIPTEN_KEEPALIVE void clear_morph_animation(TSceneManager *sceneManager, EntityId asset)
     {
         ((SceneManager *)sceneManager)->clearMorphAnimationBuffer(asset);
@@ -685,59 +660,6 @@ extern "C"
         }
     }
 
-    EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraByName(TSceneManager *tSceneManager, EntityId entityId, const char* name) {
-        auto *sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
-        return nullptr;
-    }
-
-
-    EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform)
-    {
-        auto matrix = math::mat4(
-            transform[0], transform[1], transform[2],
-            transform[3],
-            transform[4],
-            transform[5],
-            transform[6],
-            transform[7],
-            transform[8],
-            transform[9],
-            transform[10],
-            transform[11],
-            transform[12],
-            transform[13],
-            transform[14],
-            transform[15]);
-        return ((SceneManager *)sceneManager)->setTransform(entityId, matrix);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *tSceneManager, EntityId *entities, const double *const transforms, int numEntities)
-    {
-        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-
-        std::vector<math::mat4> matrices(
-            numEntities);
-        for (int i = 0; i < numEntities; i++)
-        {
-            matrices[i] = math::mat4(
-                transforms[i * 16], transforms[i * 16 + 1], transforms[i * 16 + 2],
-                transforms[i * 16 + 3],
-                transforms[i * 16 + 4],
-                transforms[i * 16 + 5],
-                transforms[i * 16 + 6],
-                transforms[i * 16 + 7],
-                transforms[i * 16 + 8],
-                transforms[i * 16 + 9],
-                transforms[i * 16 + 10],
-                transforms[i * 16 + 11],
-                transforms[i * 16 + 12],
-                transforms[i * 16 + 13],
-                transforms[i * 16 + 14],
-                transforms[i * 16 + 15]);
-        }
-        sceneManager->queueTransformUpdates(entities, matrices.data(), numEntities);
-    }
-
     EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->updateBoneMatrices(entityId);
@@ -862,23 +784,7 @@ extern "C"
         ((SceneManager *)sceneManager)->removeAnimationComponent(entityId);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId SceneManager_createGeometry(
-        TSceneManager *sceneManager,
-        float *vertices,
-        int numVertices,
-        float *normals,
-        int numNormals,
-        float *uvs,
-        int numUvs,
-        uint16_t *indices,
-        int numIndices,
-        int primitiveType,
-        TMaterialInstance *materialInstance,
-        bool keepData)
-    {
-        return ((SceneManager *)sceneManager)->createGeometry(vertices, static_cast<uint32_t>(numVertices), normals, static_cast<uint32_t>(numNormals), uvs, static_cast<uint32_t>(numUvs), indices, static_cast<uint32_t>(numIndices), (filament::RenderableManager::PrimitiveType)primitiveType, reinterpret_cast<MaterialInstance *>(materialInstance), keepData);
-    }
-
+    
     EMSCRIPTEN_KEEPALIVE EntityId find_child_entity_by_name(TSceneManager *sceneManager, const EntityId parent, const char *name)
     {
         auto entity = ((SceneManager *)sceneManager)->findChildEntityByName(parent, name);
@@ -909,12 +815,6 @@ extern "C"
     {
         ((SceneManager *)sceneManager)->setPriority(entity, priority);
     }
-
-    EMSCRIPTEN_KEEPALIVE Aabb3 SceneManager_getRenderableBoundingBox(TSceneManager *tSceneManager, EntityId entity) {
-        auto sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
-        return sceneManager->getRenderableBoundingBox(entity);
-    }
-
     
     EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, TView *tView, EntityId entity)
     {
@@ -930,12 +830,6 @@ extern "C"
         *minY = box.minY;
         *maxX = box.maxX;
         *maxY = box.maxY;
-    }
-
-    EMSCRIPTEN_KEEPALIVE void SceneManager_setVisibilityLayer(TSceneManager *tSceneManager, EntityId entity, int layer)
-    {
-        auto *sceneManager = reinterpret_cast<SceneManager*>(tSceneManager);
-        sceneManager->setVisibilityLayer(entity, layer);
     }
 
     EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void *ptr)
@@ -1033,18 +927,6 @@ extern "C"
         return reinterpret_cast<TMaterialInstance *>(materialInstance);
     }
 
-    EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitMaterialInstance(TSceneManager *sceneManager)
-    {
-        auto *instance = ((SceneManager *)sceneManager)->createUnlitMaterialInstance();
-        return reinterpret_cast<TMaterialInstance *>(instance);
-    }
-
-    EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitFixedSizeMaterialInstance(TSceneManager *sceneManager)
-    {
-        auto *instance = ((SceneManager *)sceneManager)->createUnlitFixedSizeMaterialInstance();
-        return reinterpret_cast<TMaterialInstance *>(instance);
-    }
-
     EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance)
     {
         ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance *>(instance));
@@ -1072,31 +954,6 @@ extern "C"
         transformManager.setTransform(transformInstance, convert_double4x4_to_mat4(transform));
     }
 
-    EMSCRIPTEN_KEEPALIVE TCamera *SceneManager_createCamera(TSceneManager *tSceneManager)
-    {
-        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        return reinterpret_cast<TCamera *>(sceneManager->createCamera());
-    }
-
-    EMSCRIPTEN_KEEPALIVE void SceneManager_destroyCamera(TSceneManager *tSceneManager, TCamera *tCamera)
-    {
-        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        auto *camera = reinterpret_cast<Camera *>(tCamera);
-        sceneManager->destroyCamera(camera);
-    }
-
-    EMSCRIPTEN_KEEPALIVE size_t SceneManager_getCameraCount(TSceneManager *tSceneManager)
-    {
-        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        return sceneManager->getCameraCount();
-    }
-
-    EMSCRIPTEN_KEEPALIVE TCamera *SceneManager_getCameraAt(TSceneManager *tSceneManager, size_t index)
-    {
-        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        auto *camera = sceneManager->getCameraAt(index);
-        return reinterpret_cast<TCamera *>(camera);
-    }
 
 
 }

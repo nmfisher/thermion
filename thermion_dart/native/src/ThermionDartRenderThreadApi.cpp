@@ -1,14 +1,16 @@
+#include <functional>
+#include <mutex>
+#include <thread>
+#include <stdlib.h>
+
 #include "ThermionDartRenderThreadApi.h"
 #include "FilamentViewer.hpp"
 #include "TView.h"
 #include "Log.hpp"
 #include "ThreadPool.hpp"
-#include "filament/LightManager.h"
+#include "TSceneManager.h"
 
-#include <functional>
-#include <mutex>
-#include <thread>
-#include <stdlib.h>
+#include "filament/LightManager.h"
 
 using namespace thermion;
 using namespace std::chrono_literals;

@@ -1,51 +1,7 @@
 #ifndef _FLUTTER_FILAMENT_API_H
 #define _FLUTTER_FILAMENT_API_H
 
-#ifdef _WIN32
-#ifdef IS_DLL
-#define EMSCRIPTEN_KEEPALIVE __declspec(dllimport)
-#else
-#define EMSCRIPTEN_KEEPALIVE __declspec(dllexport)
-#endif
-#else
-#ifndef EMSCRIPTEN_KEEPALIVE
-#define EMSCRIPTEN_KEEPALIVE __attribute__((visibility("default")))
-#endif
-#endif
-
-// we copy the LLVM <stdbool.h> here rather than including,
-// because on Windows it's difficult to pin the exact location which confuses dart ffigen
-
-#ifndef __STDBOOL_H
-#define __STDBOOL_H
-
-#define __bool_true_false_are_defined 1
-
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L
-/* FIXME: We should be issuing a deprecation warning here, but cannot yet due
- * to system headers which include this header file unconditionally.
- */
-#elif !defined(__cplusplus)
-#define bool _Bool
-#define true 1
-#define false 0
-#elif defined(__GNUC__) && !defined(__STRICT_ANSI__)
-/* Define _Bool as a GNU extension. */
-#define _Bool bool
-#if defined(__cplusplus) && __cplusplus < 201103L
-/* For C++98, define bool, false, true as a GNU extension. */
-#define bool bool
-#define false false
-#define true true
-#endif
-#endif
-
-#endif /* __STDBOOL_H */
-
-#if defined(__APPLE__) || defined(__EMSCRIPTEN__)
-#include <stddef.h>
-#endif
-
+#include "APIExport.h"
 #include "APIBoundaryTypes.h"
 #include "ResourceBuffer.hpp"
 #include "ThermionDartAPIUtils.h"
@@ -197,37 +153,6 @@ extern "C"
 										   int skinIndex,
 										   int boneIndex);
 	
-	EMSCRIPTEN_KEEPALIVE TGizmo* SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene);
-	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_createGeometry(
-		TSceneManager *sceneManager, 
-		float *vertices, 
-		int numVertices, 
-		float *normals, 
-		int numNormals, 
-		float *uvs, 
-		int numUvs, 
-		uint16_t *indices, 
-		int numIndices, 
-		int primitiveType, 
-		TMaterialInstance *materialInstance, 
-		bool keepData);
-	EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitMaterialInstance(TSceneManager *sceneManager);
-	EMSCRIPTEN_KEEPALIVE TMaterialInstance *SceneManager_createUnlitFixedSizeMaterialInstance(TSceneManager *sceneManager);
-	EMSCRIPTEN_KEEPALIVE bool SceneManager_setTransform(TSceneManager *sceneManager, EntityId entityId, const double *const transform);
-	EMSCRIPTEN_KEEPALIVE void SceneManager_queueTransformUpdates(TSceneManager *sceneManager, EntityId* entities, const double* const transforms, int numEntities);
-	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_findCameraByName(TSceneManager* tSceneManager, EntityId entity, const char* name);
-	EMSCRIPTEN_KEEPALIVE void SceneManager_setVisibilityLayer(TSceneManager *tSceneManager, EntityId entity, int layer);
-	EMSCRIPTEN_KEEPALIVE TScene* SceneManager_getScene(TSceneManager *tSceneManager);
-	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_loadGlbFromBuffer(TSceneManager *sceneManager, const uint8_t *const, size_t length, bool keepData, int priority, int layer, bool loadResourcesAsync);
-	EMSCRIPTEN_KEEPALIVE bool SceneManager_setMorphAnimation(
-		TSceneManager *sceneManager,
-		EntityId entity,
-		const float *const morphData,
-		const uint32_t *const morphIndices,
-		int numMorphTargets,
-		int numFrames,
-		float frameLengthInMs);
-	
 
 	EMSCRIPTEN_KEEPALIVE bool update_bone_matrices(TSceneManager *sceneManager, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE void get_morph_target_name(TSceneManager *sceneManager, EntityId assetEntity, EntityId childEntity, char *const outPtr, int index);
@@ -246,12 +171,6 @@ extern "C"
 
 	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *engine, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
-
-	// SceneManager
-	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_createCamera(TSceneManager *sceneManager);
-	EMSCRIPTEN_KEEPALIVE void SceneManager_destroyCamera(TSceneManager *sceneManager, TCamera* camera);
-	EMSCRIPTEN_KEEPALIVE size_t SceneManager_getCameraCount(TSceneManager *sceneManager);	
-	EMSCRIPTEN_KEEPALIVE TCamera* SceneManager_getCameraAt(TSceneManager *sceneManager, size_t index);	
 
 	EMSCRIPTEN_KEEPALIVE int hide_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
 	EMSCRIPTEN_KEEPALIVE int reveal_mesh(TSceneManager *sceneManager, EntityId entity, const char *meshName);
@@ -276,7 +195,6 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void test_collisions(TSceneManager *sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void set_priority(TSceneManager *sceneManager, EntityId entityId, int priority);
 	
-	EMSCRIPTEN_KEEPALIVE Aabb3 SceneManager_getRenderableBoundingBox(TSceneManager *sceneManager, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, TView *view, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, TView *view, EntityId entity, float *minX, float *minY, float *maxX, float *maxY);
 	
