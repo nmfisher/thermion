@@ -293,11 +293,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  void pick(int x, int y) {
-    // TODO: implement pick
-  }
-
-  @override
   // TODO: implement pickResult
   Stream<FilamentPickResult> get pickResult => throw UnimplementedError();
 
@@ -1072,6 +1067,18 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future destroySwapChain(covariant SwapChain swapChain) {
     // TODO: implement destroySwapChain
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<MaterialInstance> createUnlitFixedSizeMaterialInstance() {
+    // TODO: implement createUnlitFixedSizeMaterialInstance
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Aabb3> getRenderableBoundingBox(ThermionEntity entity) {
+    // TODO: implement getRenderableBoundingBox
     throw UnimplementedError();
   }
 
