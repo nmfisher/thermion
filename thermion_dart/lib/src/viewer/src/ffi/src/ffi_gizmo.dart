@@ -1,50 +1,69 @@
 import 'dart:async';
-import 'dart:ffi';
+import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/entities.dart';
+import 'package:thermion_dart/thermion_dart.dart';
+import 'package:vector_math/vector_math_64.dart';
 
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
+import 'ffi_view.dart';
 
-import '../../../../utils/src/gizmo.dart';
-import '../../../viewer.dart';
-
-class FFIGizmo extends BaseGizmo {
-  Pointer<TGizmo> pointer;
-
+class FFIGizmo extends FFIAsset implements GizmoAsset {
+  final Set<ThermionEntity> nonPickableEntities;
   late NativeCallable<GizmoPickCallbackFunction> _nativeCallback;
+
+  void Function(GizmoPickResultType axis, Vector3 coords)? _callback;
+
+  late FFIView _view;
+
+  void _onPickResult(int resultType, double x, double y, double z) {
+    _callback?.call(GizmoPickResultType.values[resultType], Vector3(x, y, z));
+  }
+
   FFIGizmo(
-      this.pointer, ThermionViewer viewer) : super(x: 0, y: 0, z: 0, center: 0, viewer: viewer) {
+    this._view,
+    super.pointer,
+    super.sceneManager,
+    super.renderableManager,
+    super.unlitMaterialProvider,
+    this.nonPickableEntities
+  ) {
     _nativeCallback =
         NativeCallable<GizmoPickCallbackFunction>.listener(_onPickResult);
   }
 
-  ///
-  /// The result(s) of calling [pickGizmo] (see below).
-  ///
-  // Stream<PickResult> get onPick => _pickResultController.stream;
-  // final _pickResultController = StreamController<PickResult>.broadcast();
-
-  void Function(PickResult)? _callback;
-
-  void onPick(void Function(PickResult) callback) {
-    _callback = callback;
-  }
-
-  void _onPickResult(DartEntityId entityId, int x, int y, Pointer<TView> view) {
-    _callback?.call((entity: entityId, x: x, y: y, depth: 0, fragX: 0, fragY: 0, fragZ: 0));
-  }
-
-  ///
-  /// Used to test whether a Gizmo is at the given viewport coordinates.
-  /// Called by `FilamentGestureDetector` on a mouse/finger down event. You probably don't want to call this yourself.
-  /// This is asynchronous and will require 2-3 frames to complete - subscribe to the [gizmoPickResult] stream to receive the results of this method.
-  /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the ThermionWidget).
-  ///
   @override
-  Future pick(int x, int y) async {
-    Gizmo_pick(pointer, x.toInt(), y, _nativeCallback.nativeFunction);
+  Future removeStencilHighlight() async {
+    throw Exception("Not supported for gizmo");
   }
 
   @override
-  Future setVisibility(bool visible) async {
-    Gizmo_setVisibility(pointer, visible);
+  Future setStencilHighlight(
+      {double r = 1.0,
+      double g = 0.0,
+      double b = 0.0,
+      int? entityIndex}) async {
+    throw Exception("Not supported for gizmo");
+  }
+
+  @override
+  Future pick(int x, int y,
+      {Future Function(GizmoPickResultType result, Vector3 coords)?
+          handler}) async {
+    _callback = handler;
+    final viewport = await _view.getViewport();
+    y = viewport.height - y;
+
+    Gizmo_pick(pointer.cast<TGizmo>(), x, y, _nativeCallback.nativeFunction);
+  }
+
+  @override
+  Future highlight(Axis axis) async {
+    Gizmo_unhighlight(pointer.cast<TGizmo>());
+    Gizmo_highlight(pointer.cast<TGizmo>(), TGizmoAxis.values[axis.index]);
+  }
+
+  @override
+  Future unhighlight() async {
+    Gizmo_unhighlight(pointer.cast<TGizmo>());
   }
 }

@@ -39,9 +39,9 @@
 
             worldSpace = getWorldFromModelMatrix() * modelSpace;
             material.worldPosition = worldSpace;
-            //vec4 clipSpace = getClipFromWorldMatrix() * worldSpace;
-            //clipSpace.z = 0.99f;
-            //material.worldPosition = getWorldFromClipMatrix() * clipSpace;
+            vec4 clipSpace = getClipFromWorldMatrix() * worldSpace;
+            clipSpace.z = 0.99f;
+            material.worldPosition = getWorldFromClipMatrix() * clipSpace;
         }
     }
 

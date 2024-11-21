@@ -82,9 +82,11 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 
   Widget _desktop(double pixelRatio) {
     return Listener(
-      onPointerHover: (event) => widget.inputHandler.onPointerHover(
-          event.localPosition.toVector2() * pixelRatio,
-          event.delta.toVector2() * pixelRatio),
+      onPointerHover: (event) {
+        widget.inputHandler.onPointerHover(
+            event.localPosition.toVector2() * pixelRatio,
+            event.delta.toVector2() * pixelRatio);
+      },
       onPointerSignal: (PointerSignalEvent pointerSignal) {
         if (pointerSignal is PointerScrollEvent) {
           widget.inputHandler.onPointerScroll(
@@ -95,22 +97,26 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
       onPointerPanZoomStart: (pzs) {
         throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
       },
-      onPointerDown: (d) => widget.inputHandler.onPointerDown(
-          d.localPosition.toVector2() * pixelRatio,
-          d.buttons & kMiddleMouseButton != 0),
-      onPointerMove: (d) => widget.inputHandler.onPointerMove(
+      onPointerDown: (d) {
+        widget.inputHandler.onPointerDown(
+            d.localPosition.toVector2() * pixelRatio,
+            d.buttons & kMiddleMouseButton != 0);
+      },
+      onPointerMove: (PointerMoveEvent d) => widget.inputHandler.onPointerMove(
           d.localPosition.toVector2() * pixelRatio,
           d.delta.toVector2() * pixelRatio,
           d.buttons & kMiddleMouseButton != 0),
-      onPointerUp: (d) => widget.inputHandler
-          .onPointerUp(d.buttons & kMiddleMouseButton != 0),
+      onPointerUp: (d) =>
+          widget.inputHandler.onPointerUp(d.buttons & kMiddleMouseButton != 0),
       child: widget.child,
     );
   }
 
   Widget _mobile(double pixelRatio) {
     return _MobileListenerWidget(
-        inputHandler: widget.inputHandler, pixelRatio: pixelRatio, child:widget.child);
+        inputHandler: widget.inputHandler,
+        pixelRatio: pixelRatio,
+        child: widget.child);
   }
 
   @override
@@ -138,7 +144,10 @@ class _MobileListenerWidget extends StatefulWidget {
   final Widget? child;
 
   const _MobileListenerWidget(
-      {Key? key, required this.inputHandler, required this.pixelRatio, this.child})
+      {Key? key,
+      required this.inputHandler,
+      required this.pixelRatio,
+      this.child})
       : super(key: key);
 
   @override
@@ -165,7 +174,9 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
         },
         onScaleStart: (details) async {
           await widget.inputHandler.onScaleStart(
-              details.localFocalPoint.toVector2() * widget.pixelRatio, details.pointerCount, details.sourceTimeStamp);
+              details.localFocalPoint.toVector2() * widget.pixelRatio,
+              details.pointerCount,
+              details.sourceTimeStamp);
         },
         onScaleUpdate: (ScaleUpdateDetails details) async {
           await widget.inputHandler.onScaleUpdate(
@@ -179,7 +190,8 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
               details.sourceTimeStamp);
         },
         onScaleEnd: (details) async {
-          await widget.inputHandler.onScaleEnd(details.pointerCount, details.scaleVelocity);
+          await widget.inputHandler
+              .onScaleEnd(details.pointerCount, details.scaleVelocity);
         },
         child: widget.child);
   }

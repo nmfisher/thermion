@@ -17,7 +17,7 @@
 
 #include <iostream>
 
-#include "CustomGeometry.hpp"
+#include "scene/CustomGeometry.hpp"
 #include "UnprojectTexture.hpp"
 
 namespace thermion

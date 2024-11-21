@@ -3,6 +3,7 @@
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
+
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
@@ -79,7 +80,6 @@ class TestHelper {
 
     outDir = Directory("$testDir/output/${dir}");
     print("Out dir : $packageUri");
-    // outDir.deleteSync(recursive: true);
     outDir.createSync(recursive: true);
     print("Created out dir : $packageUri");
     if (Platform.isMacOS) {
@@ -110,42 +110,63 @@ class TestHelper {
     return object;
   }
 
+  Future withViewer(Future Function(ThermionViewer viewer) fn,
+      {img.Color? bg,
+      Vector3? cameraPosition,
+      viewportDimensions = (width: 500, height: 500),
+      bool postProcessing = false}) async {
+    var viewer = await createViewer(
+        bg: bg,
+        cameraPosition: cameraPosition,
+        viewportDimensions: viewportDimensions,
+        postProcessing: postProcessing);
+
+    await fn.call(viewer);
+    await viewer.dispose();
+  }
+
   Future<ThermionViewer> createViewer(
       {img.Color? bg,
       Vector3? cameraPosition,
+      bool postProcessing = false,
       viewportDimensions = (width: 500, height: 500)}) async {
     final resourceLoader = calloc<ResourceLoaderWrapper>(1);
-    
+
+    cameraPosition ??= Vector3(0, 2, 6);
+
     var loadToOut = NativeCallable<
         Void Function(Pointer<Char>,
             Pointer<ResourceBuffer>)>.listener(DartResourceLoader.loadResource);
-    
+
     resourceLoader.ref.loadToOut = loadToOut.nativeFunction;
-    
+
     var freeResource = NativeCallable<Void Function(ResourceBuffer)>.listener(
         DartResourceLoader.freeResource);
-    
+
     resourceLoader.ref.freeResource = freeResource.nativeFunction;
-    
+
     var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
-    
+
     await viewer.initialized;
     swapChain = await viewer.createHeadlessSwapChain(
         viewportDimensions.width, viewportDimensions.height);
-    
+
     await viewer.updateViewportAndCameraProjection(
         viewportDimensions.width.toDouble(),
         viewportDimensions.height.toDouble());
-    
+
     if (bg != null) {
       await viewer.setBackgroundColor(
           bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());
     }
 
-    if (cameraPosition != null) {
-      await viewer.setCameraPosition(
-          cameraPosition.x, cameraPosition.y, cameraPosition.z);
-    }
+    await viewer.setCameraPosition(
+        cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+    await viewer.setPostProcessing(postProcessing);
+
+    await viewer.setToneMapping(ToneMapper.LINEAR);
+
     return viewer;
   }
 }

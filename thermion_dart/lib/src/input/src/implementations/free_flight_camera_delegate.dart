@@ -86,13 +86,14 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
     if (_queuedRotationDelta.length2 > 0.0) {
       double deltaX = _queuedRotationDelta.x * rotationSensitivity;
       double deltaY = _queuedRotationDelta.y * rotationSensitivity;
-      relativeRotation = Quaternion.axisAngle(current.up, -deltaX) * Quaternion.axisAngle(current.right, -deltaY);
+      relativeRotation = Quaternion.axisAngle(current.up, -deltaX) *
+          Quaternion.axisAngle(current.right, -deltaY);
       _queuedRotationDelta = Vector2.zero();
     }
 
     // Apply (mouse) pan
     if (_queuedTranslateDelta.length2 > 0.0) {
-      double deltaX = _queuedTranslateDelta.x * panSensitivity;
+      double deltaX = -_queuedTranslateDelta.x * panSensitivity;
       double deltaY = _queuedTranslateDelta.y * panSensitivity;
       double deltaZ = -_queuedTranslateDelta.z * panSensitivity;
 
@@ -104,8 +105,9 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
 
     // Apply zoom
     if (_queuedZoomDelta != 0.0) {
-      relativeTranslation += current.forward
-        ..scaled(_queuedZoomDelta * zoomSensitivity);
+      var zoomTranslation = current.forward..scaled(zoomSensitivity);
+      zoomTranslation.scale(_queuedZoomDelta);
+      relativeTranslation += zoomTranslation;
       _queuedZoomDelta = 0.0;
     }
 
@@ -128,11 +130,10 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
 
     await viewer.setTransform(
         await entity,
-        
-            Matrix4.compose(
-                relativeTranslation, relativeRotation, Vector3(1, 1, 1)) * current );
+        Matrix4.compose(
+                relativeTranslation, relativeRotation, Vector3(1, 1, 1)) *
+            current);
 
     _executing = false;
   }
-
 }

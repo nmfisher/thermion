@@ -9,9 +9,10 @@ import 'thermion_dart.g.dart' as g;
 class FFICamera extends Camera {
   final Pointer<g.TCamera> camera;
   final Pointer<g.TEngine> engine;
+  final Pointer<g.TTransformManager> transformManager;
   late ThermionEntity _entity;
 
-  FFICamera(this.camera, this.engine) {
+  FFICamera(this.camera, this.engine, this.transformManager) {
     _entity = g.Camera_getEntity(camera);
   }
 
@@ -29,7 +30,7 @@ class FFICamera extends Camera {
   @override
   Future setTransform(Matrix4 transform) async {
     var entity = g.Camera_getEntity(camera);
-    g.Engine_setTransform(engine, entity, matrix4ToDouble4x4(transform));
+    g.TransformManager_setTransform(transformManager, entity, matrix4ToDouble4x4(transform));
   }
 
   @override
