@@ -23,11 +23,11 @@ bindings:
 # 
 materials: FORCE
 ifndef FILAMENT_PATH
-	$(error FILAMENT_PATH is not set)
+	@echo "FILAMENT_PATH is not set"
 else
 	@echo "Using Filament build from ${FILAMENT_PATH}"
 	@for material in unlit image unlit_fixed_size grid; do \
-		${FILAMENT_PATH}/matc -a opengl -a metal -o materials/$$material.filamat materials/$$material.mat; \
+		${FILAMENT_PATH}/matc -a opengl -a metal -a vulkan -o materials/$$material.filamat materials/$$material.mat; \
 		$(FILAMENT_PATH)/resgen -c -p $$material -x thermion_dart/native/include/material/ materials/$$material.filamat; \
 		echo '#include "'$$material'.h"' | cat - thermion_dart/native/include/material/$$material.c > thermion_dart/native/include/material/$$material.c.new; \
 		mv thermion_dart/native/include/material/$$material.c.new thermion_dart/native/include/material/$$material.c; \
