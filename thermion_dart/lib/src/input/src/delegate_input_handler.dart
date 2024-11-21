@@ -99,7 +99,7 @@ class DelegateInputHandler implements InputHandler {
               movementSensitivity: movementSensitivity),
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
-            InputType.SCROLLWHEEL: InputAction.TRANSLATE,
+            InputType.SCROLLWHEEL: InputAction.ZOOM,
             InputType.LMB_HOLD_AND_MOVE: InputAction.TRANSLATE,
             InputType.KEYDOWN_A: InputAction.TRANSLATE,
             InputType.KEYDOWN_W: InputAction.TRANSLATE,
