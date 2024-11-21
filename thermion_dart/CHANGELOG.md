@@ -1,3 +1,11 @@
+## 0.2.1-dev.19.0
+
+> Note: This release has breaking changes.
+
+ - **FEAT**: use InputAction.ZOOM for scroll wheel in free flight handler.
+ - **FEAT**: free flight camera improvements.
+ - **BREAKING** **FIX**: update Makefile & rebuild materials for Vulkan.
+
 ## 0.2.1-dev.18.0
 
  - **FEAT**: add MaterialInstance.setDepthFunc.

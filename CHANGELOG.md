@@ -3,6 +3,41 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2024-11-21
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - [`thermion_dart` - `v0.2.1-dev.19.0`](#thermion_dart---v021-dev190)
+
+Packages with other changes:
+
+ - [`thermion_flutter` - `v0.2.1-dev.19.0`](#thermion_flutter---v021-dev190)
+ - [`thermion_flutter_web` - `v0.2.0+10`](#thermion_flutter_web---v02010)
+ - [`thermion_flutter_platform_interface` - `v0.2.1-dev.19.0`](#thermion_flutter_platform_interface---v021-dev190)
+ - [`thermion_flutter_ffi` - `v0.2.1-dev.19.0`](#thermion_flutter_ffi---v021-dev190)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `thermion_flutter` - `v0.2.1-dev.19.0`
+ - `thermion_flutter_web` - `v0.2.0+10`
+ - `thermion_flutter_platform_interface` - `v0.2.1-dev.19.0`
+ - `thermion_flutter_ffi` - `v0.2.1-dev.19.0`
+
+---
+
+#### `thermion_dart` - `v0.2.1-dev.19.0`
+
+ - **FEAT**: use InputAction.ZOOM for scroll wheel in free flight handler.
+ - **FEAT**: free flight camera improvements.
+ - **BREAKING** **FIX**: update Makefile & rebuild materials for Vulkan.
+
+
 ## 2024-11-18
 
 ### Changes
