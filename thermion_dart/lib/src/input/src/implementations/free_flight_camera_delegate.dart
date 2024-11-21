@@ -135,21 +135,4 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
     _executing = false;
   }
 
-  Vector3 _constrainPosition(Vector3 position) {
-    if (minBounds != null) {
-      position.x = position.x.clamp(minBounds!.x, double.infinity);
-      position.y = position.y.clamp(minBounds!.y, double.infinity);
-      position.z = position.z.clamp(minBounds!.z, double.infinity);
-    }
-    if (maxBounds != null) {
-      position.x = position.x.clamp(double.negativeInfinity, maxBounds!.x);
-      position.y = position.y.clamp(double.negativeInfinity, maxBounds!.y);
-      position.z = position.z.clamp(double.negativeInfinity, maxBounds!.z);
-    }
-
-    if (clampY != null) {
-      position.y = clampY!;
-    }
-    return position;
-  }
 }
