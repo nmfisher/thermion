@@ -87,7 +87,7 @@ external ffi.Pointer<ffi.Void> make_resource_loader(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void destroy_filament_viewer(
+external void Viewer_destroy(
   ffi.Pointer<TViewer> viewer,
 );
 
@@ -511,7 +511,7 @@ external ffi.Pointer<TMaterialInstance> create_material_instance(
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TSceneManager>,
         ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
-external void destroy_material_instance(
+external void SceneManager_destroyMaterialInstance(
   ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<TMaterialInstance> instance,
 );

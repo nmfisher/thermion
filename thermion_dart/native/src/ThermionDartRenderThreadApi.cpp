@@ -127,7 +127,7 @@ public:
     std::packaged_task<void()> lambda([=]() mutable
                                       {
       _viewer = nullptr;
-      destroy_filament_viewer(reinterpret_cast<TViewer*>(viewer)); });
+      Viewer_destroy(reinterpret_cast<TViewer*>(viewer)); });
     auto fut = add_task(lambda);
     fut.wait();
   }
