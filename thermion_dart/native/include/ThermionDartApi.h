@@ -13,7 +13,7 @@ extern "C"
 #endif
 
 	EMSCRIPTEN_KEEPALIVE TViewer *Viewer_create(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
-	EMSCRIPTEN_KEEPALIVE void destroy_filament_viewer(TViewer *viewer);
+	EMSCRIPTEN_KEEPALIVE void Viewer_destroy(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TSceneManager *Viewer_getSceneManager(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TRenderTarget* Viewer_createRenderTarget(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTarget(TViewer *viewer, TRenderTarget* tRenderTarget);
@@ -105,8 +105,6 @@ extern "C"
 		int numWeights);
 	
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *create_material_instance(TSceneManager *sceneManager, TMaterialKey materialConfig);
-
-	EMSCRIPTEN_KEEPALIVE void destroy_material_instance(TSceneManager *sceneManager, TMaterialInstance *instance);
 
 	EMSCRIPTEN_KEEPALIVE void clear_morph_animation(
 		TSceneManager *sceneManager,

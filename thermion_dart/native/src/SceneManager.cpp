@@ -578,6 +578,7 @@ namespace thermion
             _engine->destroy(materialInstance);
         }
 
+
         // TODO - free geometry?
         _textures.clear();
         _assets.clear();
@@ -2503,8 +2504,12 @@ namespace thermion
         materialInstance->setParameter(property, filament::math::float4{value.x, value.y, value.z, value.w});
     }
 
-    void SceneManager::destroy(MaterialInstance *instance)
+    void SceneManager::destroy(filament::MaterialInstance *instance)
     {
+        auto it = std::find(_materialInstances.begin(), _materialInstances.end(), instance);
+        if(it != _materialInstances.end()) {
+            _materialInstances.erase(it);    
+        }
         _engine->destroy(instance);
     }
 

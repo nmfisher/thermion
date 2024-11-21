@@ -130,4 +130,11 @@ extern "C"
     {
         return ((SceneManager *)sceneManager)->createGeometry(vertices, static_cast<uint32_t>(numVertices), normals, static_cast<uint32_t>(numNormals), uvs, static_cast<uint32_t>(numUvs), indices, static_cast<uint32_t>(numIndices), (filament::RenderableManager::PrimitiveType)primitiveType, reinterpret_cast<MaterialInstance *>(materialInstance), keepData);
     }
+
+    EMSCRIPTEN_KEEPALIVE void SceneManager_destroyMaterialInstance(TSceneManager *sceneManager, TMaterialInstance *instance)
+    {
+        ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance *>(instance));
+    }
+
+    
 }
