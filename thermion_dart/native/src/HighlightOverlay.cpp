@@ -33,8 +33,8 @@ namespace thermion
         _highlightMaterialInstance->setStencilCompareFunction(filament::backend::SamplerCompareFunc::NE);
         _highlightMaterialInstance->setStencilReferenceValue(1);
 
-        _highlightMaterialInstance->setParameter("color", filament::math::float3{r, g, b});
-        _highlightMaterialInstance->setParameter("scale", 1.04f);
+        _highlightMaterialInstance->setParameter("baseColorFactor", filament::math::float3{r, g, b});
+        _highlightMaterialInstance->setParameter("vertexScale", 1.04f);
         _highlightMaterialInstance->setCullingMode(filament::backend::CullingMode::FRONT);
 
 
