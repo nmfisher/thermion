@@ -36,6 +36,8 @@ public:
                                                        const char* extras = nullptr) override {
         auto instance = mUnlitMaterial->createInstance();
         instance->setParameter("baseColorIndex", -1);
+        instance->setParameter("vertexScale", 1.0f);
+        instance->setParameter("uvScale", filament::math::float2 { 1.0f, 1.0f });
         return instance;
     }
 

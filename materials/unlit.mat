@@ -13,6 +13,14 @@ material {
         { 
             type : int, 
             name : baseColorIndex 
+        },
+        {
+            type: float2,
+            name: uvScale
+        },
+        {
+            type: float,
+            name: vertexScale
         }
     ],
     depthWrite : true,
@@ -24,15 +32,25 @@ material {
     vertexDomain: object,
 }
    
-    fragment {
-        void material(inout MaterialInputs material) {
-            prepareMaterial(material);           
-            material.baseColor = materialParams.baseColorFactor;
-            
-            if (materialParams.baseColorIndex > -1) {
-                highp float2 uv = getUV0();
-                uv.y = 1.0 - uv.y;
-                material.baseColor *= texture(materialParams_baseColorMap, uv);
-            }
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);           
+        material.baseColor = materialParams.baseColorFactor;
+        
+        if (materialParams.baseColorIndex > -1) {
+            highp float2 uv = getUV0();
+            uv.y = 1.0 - uv.y;
+            uv *= materialParams.uvScale;
+            material.baseColor *= texture(materialParams_baseColorMap, uv);
         }
     }
+}
+
+vertex { 
+    void materialVertex(inout MaterialVertexInputs material) {
+        float4 position = getPosition();
+        position.xyz *= materialParams.vertexScale;
+        material.worldPosition = getWorldFromModelMatrix() * position;
+    }
+}
+
