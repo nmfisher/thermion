@@ -241,7 +241,7 @@
 //   }
 
 //   void _destroyViewer() {
-//     _module!.ccall("destroy_filament_viewer", "void", ["void*".toJS].toJS,
+//     _module!.ccall("Viewer_destroy", "void", ["void*".toJS].toJS,
 //         [_viewer].toJS, null);
 //   }
 
