@@ -120,7 +120,8 @@ namespace thermion
   static constexpr filament::math::float4 sFullScreenTriangleVertices[3] = {
       {-1.0f, -1.0f, 1.0f, 1.0f},
       {3.0f, -1.0f, 1.0f, 1.0f},
-      {-1.0f, 3.0f, 1.0f, 1.0f}};
+      {-1.0f, 3.0f, 1.0f, 1.0f}
+    };
 
   static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
@@ -705,8 +706,8 @@ namespace thermion
                        .width(width)
                        .height(height)
                        .levels(1)
-                       .usage(filament::Texture::Usage::DEPTH_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
-                       .format(filament::Texture::InternalFormat::DEPTH32F)
+                       .usage(filament::Texture::Usage::DEPTH_ATTACHMENT | filament::Texture::Usage::STENCIL_ATTACHMENT |  filament::Texture::Usage::SAMPLEABLE)
+                       .format(filament::Texture::InternalFormat::DEPTH24_STENCIL8)
                        .build(*_engine);
     auto rt = filament::RenderTarget::Builder()
                   .texture(RenderTarget::AttachmentPoint::COLOR, rtColor)
@@ -767,6 +768,9 @@ namespace thermion
     view->setStencilBufferEnabled(true);
     view->setAmbientOcclusionOptions({.enabled = false});
     view->setDynamicResolutionOptions({.enabled = false});
+    ACESToneMapper tm;
+    auto colorGrading = ColorGrading::Builder().toneMapper(&tm).build(*_engine);
+    view->setColorGrading(colorGrading);
 #if defined(_WIN32)
     view->setStereoscopicOptions({.enabled = false});
 #endif
@@ -795,25 +799,6 @@ namespace thermion
       return _views[index];
     }
     return nullptr;
-  }
-
-  /// @brief
-  ///
-  ///
-  void FilamentViewer::clearEntities()
-  {
-    _sceneManager->destroyAll();
-  }
-
-  /// @brief 
-  /// @param asset 
-  ///
-  void FilamentViewer::removeEntity(EntityId asset)
-  {
-    _renderMutex.lock();
-    // todo - what if we are using a camera from this asset?
-    _sceneManager->remove(asset);
-    _renderMutex.unlock();
   }
 
   ///
@@ -1046,8 +1031,7 @@ namespace thermion
       uint64_t frameTimeInNanos)
   {
 
-    _sceneManager->updateTransforms();
-    _sceneManager->updateAnimations();
+    _sceneManager->update();
 
     for(auto swapChain : _swapChains) {
       auto views = _renderable[swapChain];
@@ -1091,7 +1075,6 @@ namespace thermion
       }
     };
 
-    // Create a fence
     Fence *fence = nullptr;
     if (useFence)
     {
@@ -1127,7 +1110,7 @@ namespace thermion
   {
 
     if(swapChain && !_engine->isValid(swapChain)) {
-      Log("SWAPCHAIN PROVIDED BUT NOT VALID");
+      Log("SwapChain exists, but is not valid");
       return;
     }
 
@@ -1191,21 +1174,9 @@ namespace thermion
     return _engine->getCameraComponent(Entity::import(entity));
   }
 
-  bool FilamentViewer::isNonPickableEntity(EntityId entityId) {
-    auto renderable = Entity::import(entityId);
-    return _sceneManager->isGizmoEntity(renderable) || renderable == _imageEntity || renderable == _sceneManager->_gridOverlay->sphere() || _sceneManager->_gridOverlay->grid();
-  }
-
-  void FilamentViewer::pick(View *view, uint32_t x, uint32_t y, PickCallback callback)
-  {
-    view->pick(x, y, [=](filament::View::PickingQueryResult const &result) {       
-      callback(Entity::smuggle(result.renderable), x, y, view, result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z);
-    });
-  }
-
   void FilamentViewer::unprojectTexture(EntityId entityId, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
   {
-    const auto *geometry = _sceneManager->getGeometry(entityId);
+    // const auto *geometry = _sceneManager->getGeometry(entityId);
     // if (!geometry->uvs)
     // {
     //   Log("No UVS");

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -54,6 +53,13 @@ class DelegateInputHandler implements InputHandler {
       _actions = actions;
     }
 
+    if (pickDelegate != null) {
+      if (_actions[InputType.LMB_DOWN] != null) {
+        throw Exception();
+      }
+      _actions[InputType.LMB_DOWN] = InputAction.PICK;
+    }
+
     for (var gestureType in InputType.values) {
       _inputDeltas[gestureType] = Vector3.zero();
     }
@@ -94,7 +100,7 @@ class DelegateInputHandler implements InputHandler {
               clampY: clampY,
               entity: entity,
               rotationSensitivity: rotateSensitivity,
-              zoomSensitivity:zoomSensitivity,
+              zoomSensitivity: zoomSensitivity,
               panSensitivity: panSensitivity,
               movementSensitivity: movementSensitivity),
           actions: {
@@ -265,7 +271,8 @@ class DelegateInputHandler implements InputHandler {
   Future<void> onScaleEnd(int pointerCount, double velocity) async {}
 
   @override
-  Future<void> onScaleStart(Vector2 localPosition, int pointerCount, Duration? sourceTimestamp ) async {
+  Future<void> onScaleStart(Vector2 localPosition, int pointerCount,
+      Duration? sourceTimestamp) async {
     // noop
   }
 

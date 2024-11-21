@@ -12,50 +12,81 @@ void main() async {
   final testHelper = TestHelper("gltf");
   group("gltf", () {
     test('load glb from file', () async {
-      var viewer = await testHelper.createViewer(bg: kRed, cameraPosition: Vector3(0, 1, 5));
-      var model = await viewer.loadGlb("file://${testHelper.testDir}/assets/cube.glb");
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
-      await testHelper.capture(viewer, "load_glb_from_file");
-      await viewer.dispose();
+      await testHelper.withViewer((viewer) async {
+        var model = await viewer
+            .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+        await testHelper.capture(viewer, "load_glb_from_file");
+        await viewer.removeEntity(model);
+      });
     });
 
     test('load glb from buffer', () async {
-      var viewer = await testHelper.createViewer();
-      var buffer = File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
-      var model = await viewer.loadGlbFromBuffer(buffer);
-      await viewer.transformToUnitCube(model);
-      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
-      await viewer.setCameraPosition(0, 1, 5);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
-      await testHelper.capture(viewer, "load_glb_from_buffer");
-      await viewer.dispose();
+      await testHelper.withViewer((viewer) async {
+        var buffer =
+            File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
+        var model = await viewer.loadGlbFromBuffer(buffer);
+        await testHelper.capture(viewer, "load_glb_from_buffer");
+      });
     });
 
     test('load glb from buffer with priority', () async {
-      var viewer = await testHelper.createViewer();
-      await viewer.addDirectLight(DirectLight.sun());
-      await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
-      await viewer.setCameraPosition(0, 3, 5);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -0.5));
+      await testHelper.withViewer((viewer) async {
+        viewer.addDirectLight(DirectLight.sun());
+        var buffer =
+            File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
 
-      var buffer = File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
-      var model1 = await viewer.loadGlbFromBuffer(buffer, priority: 7);
-      var model2 = await viewer.loadGlbFromBuffer(buffer, priority: 0);
+        // priority 0 gets drawn first
+        var greenModel = await viewer.loadGlbFromBuffer(buffer, priority: 0);
+        for (final entity in await viewer.getChildEntities(greenModel)) {
+          final material = await viewer.getMaterialInstanceAt(entity, 0);
+          await material!.setParameterFloat4("baseColorFactor", 0, 1, 0.0, 1.0);
+        }
 
-      for (final entity in await viewer.getChildEntities(model1, true)) {
-        await viewer.setMaterialPropertyFloat4(
-            entity, "baseColorFactor", 0, 0, 0, 1.0, 1.0);
-      }
-      for (final entity in await viewer.getChildEntities(model2, true)) {
-        await viewer.setMaterialPropertyFloat4(
-            entity, "baseColorFactor", 0, 0, 1.0, 0.0, 1.0);
-      }
-      await testHelper.capture(viewer, "load_glb_from_buffer_with_priority");
+        // priority 7 gets drawn last
+        var blueModel = await viewer.loadGlbFromBuffer(buffer, priority: 7);
+        for (final entity in await viewer.getChildEntities(blueModel)) {
+          final material = await viewer.getMaterialInstanceAt(entity, 0);
+          await material!.setParameterFloat4("baseColorFactor", 0, 0, 1.0, 1.0);
+        }
 
-      await viewer.dispose();
+        // blue model rendered in front
+        await testHelper.capture(viewer, "load_glb_from_buffer_with_priority");
+      });
+    });
+
+    test('create instance from gltf', () async {
+      await testHelper.withViewer((viewer) async {
+        var model = await viewer.loadGlb(
+            "file://${testHelper.testDir}/assets/cube.glb",
+            numInstances: 2);
+        await testHelper.capture(viewer, "gltf_create_instance_0");
+        var instance = await model.createInstance();
+        await instance.addToScene();
+        await viewer.setRendering(true);
+
+        await viewer.setTransform(
+            instance.entity, Matrix4.translation(Vector3.all(1)));
+        await testHelper.capture(viewer, "gltf_create_instance_1");
+      });
+    });
+
+    test('create instance from gltf with new material', () async {
+      await testHelper.withViewer((viewer) async {
+        var model = await viewer.loadGlb(
+            "file://${testHelper.testDir}/assets/cube.glb",
+            numInstances: 2);
+        await testHelper.capture(viewer, "gltf_create_instance_with_material_0");
+
+        final materialInstance = await viewer.createUnlitMaterialInstance();
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+        var instance = await model.createInstance(materialInstances: [materialInstance]);
+        await instance.addToScene();
+
+        await viewer.setTransform(
+            instance.entity, Matrix4.translation(Vector3.all(1)));
+        await testHelper.capture(viewer, "gltf_create_instance_with_material_1");
+      });
     });
   });
 }

@@ -1,5 +1,5 @@
 import 'package:thermion_dart/thermion_dart.dart';
-import 'swap_chain.dart';
+
 
 ///
 /// The viewport currently attached to a [View].
@@ -27,4 +27,6 @@ abstract class View {
   Future setFrustumCullingEnabled(bool enabled);
   Future setToneMapper(ToneMapper mapper);
   Future setBloom(double strength);
+  Future setStencilBufferEnabled(bool enabled);
+  Future<bool> isStencilBufferEnabled();
 }

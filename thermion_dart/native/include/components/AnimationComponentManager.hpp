@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Log.hpp"
-
 #include <chrono>
 #include <variant>
 
@@ -18,10 +16,11 @@
 #include <math/norm.h>
 
 #include <gltfio/Animator.h>
-#include <gltfio/AssetLoader.h>
-#include <gltfio/ResourceLoader.h>
 #include <gltfio/math.h>
-#include <utils/NameComponentManager.h>
+
+#include <utils/SingleInstanceComponentManager.h>
+
+#include "Log.hpp"
 
 template class std::vector<float>;
 namespace thermion
@@ -170,7 +169,6 @@ namespace thermion
 
                 if (std::holds_alternative<FilamentInstance *>(animationComponent.target))
                 {
-
                     auto target = std::get<FilamentInstance *>(animationComponent.target);
                     auto animator = target->getAnimator();
                     auto &gltfAnimations = animationComponent.gltfAnimations;
@@ -225,7 +223,6 @@ namespace thermion
                         if (elapsedInSecs >= (animationStatus.durationInSecs + animationStatus.fadeInInSecs + animationStatus.fadeOutInSecs))
                         {
                             if(!animationStatus.loop) {
-                                Log("Bone animation %d finished", i);
                                 boneAnimations.erase(boneAnimations.begin() + i);
                                 continue;
                             }

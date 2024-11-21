@@ -15,7 +15,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "CustomGeometry.hpp"
+#include "scene/CustomGeometry.hpp"
 
 namespace thermion {
 

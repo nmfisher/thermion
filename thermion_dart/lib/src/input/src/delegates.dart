@@ -24,4 +24,5 @@ abstract class VelocityDelegate {
 abstract class PickDelegate {
   const PickDelegate();
   void pick(Vector2 location);
+  Future dispose();
 }

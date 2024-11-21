@@ -13,71 +13,118 @@ import 'helpers.dart';
 void main() async {
   final testHelper = TestHelper("geometry");
   group("custom geometry", () {
-    test('create cube (no uvs/normals)', () async {
-      var viewer = await testHelper.createViewer();
-      await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
-      await viewer.setCameraPosition(0, 2, 6);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
-      await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
-      final cube = await viewer
-          .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
-
-      await testHelper.capture(viewer, "geometry_cube_no_uv_no_normal");
-      await viewer.removeEntity(cube);
-      await testHelper.capture(viewer, "geometry_cube_removed");
-      await viewer.dispose();
-    });
-
-    test('create cube (no normals)', () async {
-      var viewer = await testHelper.createViewer();
-      var light = await viewer.addLight(
-          LightType.POINT, 6500, 10000000, 0, 2, 0, 0, 0, 0,
-          falloffRadius: 100.0);
-      await viewer.setCameraPosition(0, 2, 6);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
-      await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
-      await viewer
-          .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
-      await testHelper.capture(viewer, "geometry_cube_no_normals");
+    test('create cube', () async {
+      await testHelper.withViewer((viewer) async {
+        final cube = await viewer
+            .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+        await testHelper.capture(viewer, "geometry_add_cube");
+        await viewer.removeEntity(cube);
+        await testHelper.capture(viewer, "geometry_remove_cube");
+      });
     });
 
     test('create cube (with normals)', () async {
       var viewer = await testHelper.createViewer();
-
-      var light = await viewer.addLight(
-          LightType.POINT, 6500, 10000000, 0, 2, 0, 0, 0, 0,
-          falloffRadius: 100.0);
-      await viewer.setCameraPosition(0, 2, 6);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
-      await viewer.setBackgroundColor(1.0, 1.0, 1.0, 1.0);
       await viewer
           .createGeometry(GeometryHelper.cube(normals: true, uvs: false));
       await testHelper.capture(viewer, "geometry_cube_with_normals");
     });
 
+    test('create instance', () async {
+      await testHelper.withViewer((viewer) async {
+        final cube = await viewer
+            .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+        await viewer.setTransform(
+            cube.entity, Matrix4.translation(Vector3.all(-1)));
+        final instance = await cube.createInstance();
+        await instance.addToScene();
+        await viewer.setTransform(
+            instance.entity, Matrix4.translation(Vector3.all(1)));
+
+        await testHelper.capture(viewer, "geometry_instanced");
+      });
+    });
+
+    // test('create instance (shared material)', () async {
+    //   await testHelper.withViewer((viewer) async {
+    //     final materialInstance = await viewer.createUnlitMaterialInstance();
+    //     await materialInstance.setParameterFloat4(
+    //         "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+    //     final cube = await viewer.createGeometry(
+    //         GeometryHelper.cube(normals: true, uvs: false),
+    //         materialInstances: [materialInstance]);
+
+    //     final instance = await viewer
+    //         .createInstance(cube, materialInstances: [materialInstance]);
+    //     await viewer.setTransform(
+    //         instance.entity, Matrix4.translation(Vector3.all(1)));
+
+    //     await testHelper.capture(
+    //         viewer, "geometry_instanced_with_shared_material_instance");
+    //   });
+    // });
+
+    // test('create instance (no material on second instance)', () async {
+    //   await testHelper.withViewer((viewer) async {
+    //     final materialInstance = await viewer.createUnlitMaterialInstance();
+    //     await materialInstance.setParameterFloat4(
+    //         "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+    //     final cube = await viewer.createGeometry(
+    //         GeometryHelper.cube(normals: true, uvs: false),
+    //         materialInstances: [materialInstance]);
+
+    //     final instance = await viewer
+    //         .createInstance(cube);
+    //     await viewer.setTransform(
+    //         instance.entity, Matrix4.translation(Vector3.all(1)));
+
+    //     await testHelper.capture(
+    //         viewer, "geometry_instanced_with_no_material_instance");
+    //   });
+    // });
+
+    // test('create instance (separate materials)', () async {
+    //   await testHelper.withViewer((viewer) async {
+    //     final materialInstance = await viewer.createUnlitMaterialInstance();
+    //     await materialInstance.setParameterFloat4(
+    //         "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+    //     final cube = await viewer.createGeometry(
+    //         GeometryHelper.cube(normals: true, uvs: false),
+    //         materialInstances: [materialInstance]);
+
+    //     final materialInstance2 = await viewer.createUnlitMaterialInstance();
+    //     await materialInstance2.setParameterFloat4(
+    //         "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+    //     final instance = await viewer
+    //         .createInstance(cube, materialInstances: [materialInstance2]);
+    //     await viewer.setTransform(
+    //         instance.entity, Matrix4.translation(Vector3.all(1)));
+
+    //     await testHelper.capture(
+    //         viewer, "geometry_instanced_with_separate_material_instances");
+    //   });
+    // });
+
     test('create cube with custom ubershader material instance (color)',
         () async {
-      var viewer = await testHelper.createViewer();
-      await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
-      await viewer.setCameraPosition(0, 2, 6);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
-      await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
+      await testHelper.withViewer((viewer) async {
+        await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);
+        await viewer.setCameraPosition(0, 2, 6);
+        await viewer
+            .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
+        await viewer.setBackgroundColor(1.0, 0.0, 1.0, 1.0);
 
-      var materialInstance =
-          await viewer.createUbershaderMaterialInstance(unlit: true);
-      final cube = await viewer.createGeometry(
-          GeometryHelper.cube(uvs: false, normals: true),
-          materialInstance: materialInstance);
-      await viewer.setMaterialPropertyFloat4(
-          cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 0.0);
-      await testHelper.capture(
-          viewer, "geometry_cube_with_custom_material_ubershader");
-      await viewer.removeEntity(cube);
-      await viewer.destroyMaterialInstance(materialInstance);
+        var materialInstance =
+            await viewer.createUbershaderMaterialInstance(unlit: true);
+        final cube = await viewer.createGeometry(
+            GeometryHelper.cube(uvs: false, normals: true),
+            materialInstances: [materialInstance]);
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 0.0, 1.0, 0.0, 0.0);
+        await testHelper.capture(
+            viewer, "geometry_cube_with_custom_material_ubershader");
+        await viewer.removeEntity(cube);
+      });
     });
 
     test('create cube with custom ubershader material instance (texture)',
@@ -92,86 +139,68 @@ void main() async {
       var materialInstance = await viewer.createUbershaderMaterialInstance();
       final cube = await viewer.createGeometry(
           GeometryHelper.cube(uvs: true, normals: true),
-          materialInstance: materialInstance);
+          materialInstances: [materialInstance]);
       var textureData =
           File("${testHelper.testDir}/assets/cube_texture_512x512.png")
               .readAsBytesSync();
       var texture = await viewer.createTexture(textureData);
-      await viewer.applyTexture(texture as ThermionFFITexture, cube);
+      await viewer.applyTexture(texture as ThermionFFITexture, cube.entity);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_ubershader_texture");
       await viewer.removeEntity(cube);
-      await viewer.destroyMaterialInstance(materialInstance);
       await viewer.destroyTexture(texture);
     });
 
     test('unlit material with color only', () async {
-      var viewer = await testHelper.createViewer();
-      await viewer.setCameraPosition(0, 0, 6);
-      await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
-      await viewer.setPostProcessing(true);
-      await viewer.setToneMapping(ToneMapper.LINEAR);
+      await testHelper.withViewer((viewer) async {
+        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var cube = await viewer.createGeometry(GeometryHelper.cube(),
+            materialInstances: [materialInstance]);
 
-      var materialInstance = await viewer.createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(GeometryHelper.cube(),
-          materialInstance: materialInstance);
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
 
-      await viewer.setMaterialPropertyFloat4(
-          cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
-
-      await testHelper.capture(viewer, "unlit_material_base_color");
-
-      await viewer.dispose();
+        await testHelper.capture(viewer, "unlit_material_base_color");
+      });
     });
 
-    test('create cube with custom material instance (unlit)', () async {
-      var viewer = await testHelper.createViewer();
-      await viewer.setCameraPosition(0, 2, 6);
-      await viewer
-          .setCameraRotation(Quaternion.axisAngle(Vector3(1, 0, 0), -pi / 8));
-      await viewer.setBackgroundColor(1.0, 0.0, 0.0, 1.0);
-      await viewer.setPostProcessing(true);
-      await viewer.setToneMapping(ToneMapper.LINEAR);
+    test('unlit material with texture', () async {
+      await testHelper.withViewer((viewer) async {
+        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var cube = await viewer.createGeometry(GeometryHelper.cube(),
+            materialInstances: [materialInstance]);
 
-      var materialInstance = await viewer.createUnlitMaterialInstance();
-      var cube = await viewer.createGeometry(GeometryHelper.cube(),
-          materialInstance: materialInstance);
+        await materialInstance.setParameterInt("baseColorIndex", 0);
+        var textureData =
+            File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+                .readAsBytesSync();
+        var texture = await viewer.createTexture(textureData);
+        await viewer.applyTexture(texture, cube.entity);
+        await testHelper.capture(viewer, "unlit_material_texture_only");
+        await viewer.removeEntity(cube);
+      });
+    });
 
-      var textureData =
-          File("${testHelper.testDir}/assets/cube_texture_512x512.png")
-              .readAsBytesSync();
-      var texture = await viewer.createTexture(textureData);
-      await viewer.applyTexture(texture, cube);
-      await testHelper.capture(
-          viewer, "geometry_cube_with_custom_material_unlit_texture_only");
-      await viewer.removeEntity(cube);
+    test('shared material instance with texture and base color', () async {
+      await testHelper.withViewer((viewer) async {
+        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var cube1 = await viewer.createGeometry(GeometryHelper.cube(),
+            materialInstances: [materialInstance]);
+        var cube2 = await viewer.createGeometry(GeometryHelper.cube(),
+            materialInstances: [materialInstance]);
+        await viewer.setTransform(
+            cube2.entity, Matrix4.translation(Vector3(1, 1, 1)));
 
-      cube = await viewer.createGeometry(GeometryHelper.cube(),
-          materialInstance: materialInstance);
-      // reusing same material instance, so set baseColorIndex to -1 to disable the texture
-      await viewer.setMaterialPropertyInt(cube, "baseColorIndex", 0, -1);
-      await viewer.setMaterialPropertyFloat4(
-          cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 1.0);
-      await testHelper.capture(
-          viewer, "geometry_cube_with_custom_material_unlit_color_only");
-      await viewer.removeEntity(cube);
-
-      cube = await viewer.createGeometry(GeometryHelper.cube(),
-          materialInstance: materialInstance);
-      // now set baseColorIndex to 0 to enable the texture and the base color
-      await viewer.setMaterialPropertyInt(cube, "baseColorIndex", 0, 0);
-      await viewer.setMaterialPropertyFloat4(
-          cube, "baseColorFactor", 0, 0.0, 1.0, 0.0, 0.5);
-      await viewer.applyTexture(texture, cube);
-
-      await testHelper.capture(
-          viewer, "geometry_cube_with_custom_material_unlit_color_and_texture");
-
-      await viewer.removeEntity(cube);
-
-      await viewer.destroyTexture(texture);
-      await viewer.destroyMaterialInstance(materialInstance);
-      await viewer.dispose();
+        await materialInstance.setParameterInt("baseColorIndex", 0);
+        var textureData =
+            File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+                .readAsBytesSync();
+        var texture = await viewer.createTexture(textureData);
+        await viewer.applyTexture(texture, cube1.entity);
+        await viewer.applyTexture(texture, cube2.entity);
+        await testHelper.capture(viewer, "unlit_material_shared");
+        await viewer.destroyTexture(texture);
+      });
     });
 
     test('create sphere (no normals)', () async {
@@ -183,15 +212,15 @@ void main() async {
       await testHelper.capture(viewer, "geometry_sphere_no_normals");
     });
 
-    test('create geometry instance', () async {
-      var viewer = await testHelper.createViewer(
-          cameraPosition: Vector3(0, 0, 6), bg: kRed);
-      final cube = await viewer
-          .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
-      await viewer.setTransform(cube, Matrix4.translation(Vector3(2, 1, 1)));
-      final cube2 = await viewer.createInstance(cube);
-      await viewer.setTransform(cube2, Matrix4.translation(Vector3(-2, 1, 1)));
-      await testHelper.capture(viewer, "geometry_instance");
-    });
+    // test('create geometry instance', () async {
+    //   var viewer = await testHelper.createViewer(
+    //       cameraPosition: Vector3(0, 0, 6), bg: kRed);
+    //   final cube = await viewer
+    //       .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
+    //   await viewer.setTransform(cube.entity, Matrix4.translation(Vector3(2, 1, 1)));
+    //   final cube2 = await viewer.createInstance(cube);
+    //   await viewer.setTransform(cube2.entity, Matrix4.translation(Vector3(-2, 1, 1)));
+    //   await testHelper.capture(viewer, "geometry_instance");
+    // });
   });
 }

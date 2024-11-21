@@ -18,7 +18,7 @@ class FFIView extends View {
 
   @override
   Future setRenderTarget(covariant FFIRenderTarget? renderTarget) async {
-    if(renderTarget != null) {
+    if (renderTarget != null) {
       View_setRenderTarget(view, renderTarget.renderTarget);
     } else {
       View_setRenderTarget(view, nullptr);
@@ -39,8 +39,9 @@ class FFIView extends View {
   @override
   Future<Camera> getCamera() async {
     final engine = Viewer_getEngine(viewer);
-    final cameraPtr = View_getCamera(view);    
-    return FFICamera(cameraPtr, engine);
+    final transformManager = Engine_getTransformManager(engine);
+    final cameraPtr = View_getCamera(view);
+    return FFICamera(cameraPtr, engine, transformManager);
   }
 
   @override
@@ -71,5 +72,13 @@ class FFIView extends View {
   Future setToneMapper(ToneMapper mapper) async {
     final engine = await Viewer_getEngine(viewer);
     View_setToneMappingRenderThread(view, engine, mapper.index);
+  }
+
+  Future setStencilBufferEnabled(bool enabled) async {
+    return View_setStencilBufferEnabled(view, enabled);
+  }
+
+  Future<bool> isStencilBufferEnabled() async {
+    return View_isStencilBufferEnabled(view);
   }
 }

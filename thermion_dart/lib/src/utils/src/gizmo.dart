@@ -1,127 +1,120 @@
 import 'dart:async';
-
 import 'package:thermion_dart/src/viewer/viewer.dart';
-import 'package:vector_math/vector_math_64.dart';
 
-abstract class Gizmo {
-  bool get isVisible;
-  bool get isHovered;
 
-  void reset();
 
-  Future attach(ThermionEntity entity);
-  Future detach();
+// abstract class BaseGizmo extends Gizmo {
+//   final ThermionEntity x;
+//   final ThermionEntity y;
+//   final ThermionEntity z;
+//   final ThermionEntity center;
 
-  Stream<Aabb2> get boundingBox;
+//   ThermionEntity? _activeAxis;
+//   ThermionEntity? _activeEntity;
+//   ThermionViewer viewer;
 
-  void checkHover(int x, int y);
-}
+//   bool _visible = false;
+//   bool get isVisible => _visible;
 
-abstract class BaseGizmo extends Gizmo {
-  final ThermionEntity x;
-  final ThermionEntity y;
-  final ThermionEntity z;
-  final ThermionEntity center;
+//   bool _isHovered = false;
+//   bool get isHovered => _isHovered;
 
-  ThermionEntity? _activeAxis;
-  ThermionEntity? _activeEntity;
-  ThermionViewer viewer;
+//   final Set<ThermionEntity> ignore;
 
-  bool _visible = false;
-  bool get isVisible => _visible;
+//   Stream<Aabb2> get boundingBox => _boundingBoxController.stream;
+//   final _boundingBoxController = StreamController<Aabb2>.broadcast();
 
-  bool _isHovered = false;
-  bool get isHovered => _isHovered;
+//   ThermionEntity get entity => center;
 
-  final Set<ThermionEntity> ignore;
+//   BaseGizmo(
+//       {required this.x,
+//       required this.y,
+//       required this.z,
+//       required this.center,
+//       required this.viewer,
+//       this.ignore = const <ThermionEntity>{}}) {
+//     onPick(_onGizmoPickResult);
+//   }
 
-  Stream<Aabb2> get boundingBox => _boundingBoxController.stream;
-  final _boundingBoxController = StreamController<Aabb2>.broadcast();
+//   final _stopwatch = Stopwatch();
 
-  BaseGizmo({required this.x, required this.y, required this.z, required this.center, required this.viewer,
-      this.ignore = const <ThermionEntity>{}}) {
-    onPick(_onGizmoPickResult);
-  }
+//   double _transX = 0.0;
+//   double _transY = 0.0;
 
-  final _stopwatch = Stopwatch();
+//   Future translate(double transX, double transY) async {
+//     if (!_stopwatch.isRunning) {
+//       _stopwatch.start();
+//     }
 
-  double _transX = 0.0;
-  double _transY = 0.0;
+//     _transX += transX;
+//     _transY += transY;
 
-  Future translate(double transX, double transY) async {
-    if (!_stopwatch.isRunning) {
-      _stopwatch.start();
-    }
+//     if (_stopwatch.elapsedMilliseconds < 16) {
+//       return;
+//     }
 
-    _transX += transX;
-    _transY += transY;
+//     final axis = Vector3(_activeAxis == x ? 1.0 : 0.0,
+//         _activeAxis == y ? 1.0 : 0.0, _activeAxis == z ? 1.0 : 0.0);
 
-    if (_stopwatch.elapsedMilliseconds < 16) {
-      return;
-    }
+//     await viewer.queueRelativePositionUpdateWorldAxis(
+//         _activeEntity!,
+//         _transX,
+//         -_transY, // flip the sign because "up" in NDC Y axis is positive, but negative in Flutter
+//         axis.x,
+//         axis.y,
+//         axis.z);
+//     _transX = 0;
+//     _transY = 0;
+//     _stopwatch.reset();
+//   }
 
-    final axis = Vector3(_activeAxis == x ? 1.0 : 0.0,
-        _activeAxis == y ? 1.0 : 0.0, _activeAxis == z ? 1.0 : 0.0);
+//   void reset() {
+//     _activeAxis = null;
+//   }
 
-    await viewer.queueRelativePositionUpdateWorldAxis(
-        _activeEntity!,
-        _transX,
-        -_transY, // flip the sign because "up" in NDC Y axis is positive, but negative in Flutter
-        axis.x,
-        axis.y,
-        axis.z);
-    _transX = 0;
-    _transY = 0;
-    _stopwatch.reset();
-  }
+//   void _onGizmoPickResult(FilamentPickResult result) async {
+//     if (result.entity == x || result.entity == y || result.entity == z) {
+//       _activeAxis = result.entity;
+//       _isHovered = true;
+//     } else if (result.entity == 0) {
+//       _activeAxis = null;
+//       _isHovered = false;
+//     } else {
+//       throw Exception("Unexpected gizmo pick result");
+//     }
+//   }
 
-  void reset() {
-    _activeAxis = null;
-  }
+//   Future attach(ThermionEntity entity) async {
+//     _activeAxis = null;
+//     if (entity == _activeEntity) {
+//       return;
+//     }
+//     if (entity == center) {
+//       _activeEntity = null;
+//       return;
+//     }
+//     _visible = true;
 
-  void _onGizmoPickResult(FilamentPickResult result) async {
-    if (result.entity == x || result.entity == y || result.entity == z) {
-      _activeAxis = result.entity;
-      _isHovered = true;
-    } else if (result.entity == 0) {
-      _activeAxis = null;
-      _isHovered = false;
-    } else {
-      throw Exception("Unexpected gizmo pick result");
-    }
-  }
+//     if (_activeEntity != null) {
+//       // await viewer.removeStencilHighlight(_activeEntity!);
+//     }
+//     _activeEntity = entity;
 
-  Future attach(ThermionEntity entity) async {
-    _activeAxis = null;
-    if (entity == _activeEntity) {
-      return;
-    }
-    if (entity == center) {
-      _activeEntity = null;
-      return;
-    }
-    _visible = true;
+//     await viewer.setParent(center, entity, preserveScaling: false);
+//     _boundingBoxController.sink.add(await viewer.getViewportBoundingBox(x));
+//   }
 
-    if (_activeEntity != null) {
-      await viewer.removeStencilHighlight(_activeEntity!);
-    }
-    _activeEntity = entity;
+//   Future detach() async {
+//     await setVisibility(false);
+//   }
 
-    await viewer.setParent(center, entity, preserveScaling: false);
-    _boundingBoxController.sink.add(await viewer.getViewportBoundingBox(x));
-  }
+//   @override
+//   void checkHover(int x, int y) {
+//     pick(x, y);
+//   }
 
-  Future detach() async {
-    await setVisibility(false);
-  }
+//   Future pick(int x, int y);
 
-  @override
-  void checkHover(int x, int y) {
-    pick(x, y);
-  }
-
-  Future pick(int x, int y);
-
-  Future setVisibility(bool visible);
-  void onPick(void Function(PickResult result) callback);
-}
+//   Future setVisibility(bool visible);
+//   void onPick(void Function(PickResult result) callback);
+// }

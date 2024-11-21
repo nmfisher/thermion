@@ -35,6 +35,8 @@ class ThermionFlutterPlugin {
     _viewer =
         await ThermionFlutterPlatform.instance.createViewer(options: options);
 
+    await _viewer!.initialized;
+
     var camera = await _viewer!.getActiveCamera();
     await camera.setLensProjection();
 

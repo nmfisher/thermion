@@ -33,7 +33,7 @@
 #include <chrono>
 
 #include "ResourceBuffer.hpp"
-#include "SceneManager.hpp"
+#include "scene/SceneManager.hpp"
 #include "ThreadPool.hpp"
 
 namespace thermion
@@ -65,9 +65,6 @@ namespace thermion
         void rotateIbl(const math::mat3f &matrix);
         void createIbl(float r, float g, float b, float intensity);
 
-        void removeEntity(EntityId asset);
-        void clearEntities();
-
         void render(
             uint64_t frameTimeInNanos
         );
@@ -97,15 +94,6 @@ namespace thermion
         void setBackgroundImage(const char *resourcePath, bool fillHeight, uint32_t width, uint32_t height);
         void clearBackgroundImage();
         void setBackgroundImagePosition(float x, float y, bool clamp, uint32_t width, uint32_t height);
-        
-        typedef void (*PickCallback)(EntityId entityId, int x, int y, View *view, float depth, float fragX, float fragY, float fragZ);
-        
-        ///
-        /// Returns true if the specified entity is a gizmo, grid or background image entity.
-        ///
-        bool isNonPickableEntity(EntityId entityId);
-
-        void pick(View *view, uint32_t x, uint32_t y, PickCallback callback);
         
         Engine* getEngine() { 
             return _engine;

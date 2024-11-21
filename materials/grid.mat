@@ -10,10 +10,10 @@ material {
             name : color
         }
     ],
-    depthWrite : true,
-    depthCulling : false,
+    depthWrite : false,
+    depthCulling : true,
     shadingModel : unlit,
-    blending: transparent,
+    blending: opaque,
     variantFilter : [ skinning, shadowReceiver, vsm ],
     culling: none,
     instanced: false,
@@ -22,7 +22,11 @@ material {
 
 vertex {
     void materialVertex(inout MaterialVertexInputs material) {
-        material.worldPosition = getWorldFromModelMatrix() * getPosition();
+        vec4 modelSpace = getPosition();
+        vec4 worldSpace = getWorldFromModelMatrix() * modelSpace;
+        vec4 clipSpace = getClipFromWorldMatrix() * worldSpace;
+        clipSpace.z = 0.01f;
+        material.worldPosition = getWorldFromClipMatrix() * clipSpace;
     }
 }
 

@@ -1,4 +1,3 @@
-import 'package:thermion_dart/src/viewer/src/events.dart';
 import '../../utils/src/gizmo.dart';
 import 'shared_types/shared_types.dart';
 export 'shared_types/shared_types.dart';
@@ -9,29 +8,29 @@ import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 
-import 'shared_types/view.dart';
-
 const double kNear = 0.05;
 const double kFar = 1000.0;
 const double kFocalLength = 28.0;
+
+enum VisibilityLayers {
+  DEFAULT_ASSET(0),
+  LAYER_1(1),
+  LAYER_2(2),
+  LAYER_3(3),
+  LAYER_4(4),
+  LAYER_5(5),
+  BACKGROUND(6),
+  OVERLAY(7);
+
+  final int value;
+  const VisibilityLayers(this.value);
+}
 
 abstract class ThermionViewer {
   ///
   /// A Future that resolves when the underlying rendering context has been successfully created.
   ///
   Future<bool> get initialized;
-
-  ///
-  /// The result(s) of calling [pick] (see below).
-  /// This may be a broadcast stream, so you should ensure you have subscribed to this stream before calling [pick].
-  /// If [pick] is called without an active subscription to this stream, the results will be silently discarded.
-  ///
-  Stream<FilamentPickResult> get pickResult;
-
-  ///
-  /// A Stream containing entities added/removed to/from to the scene.
-  ///
-  Stream<SceneUpdateEvent> get sceneUpdated;
 
   ///
   /// Whether the controller is currently rendering at [framerate].
@@ -74,8 +73,7 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future destroySwapChain(
-      covariant SwapChain swapChain);
+  Future destroySwapChain(covariant SwapChain swapChain);
 
   ///
   ///
@@ -86,8 +84,7 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future destroyRenderTarget(
-      covariant RenderTarget renderTarget);
+  Future destroyRenderTarget(covariant RenderTarget renderTarget);
 
   ///
   ///
@@ -215,24 +212,24 @@ abstract class ThermionViewer {
   Future clearLights();
 
   ///
-  /// Load the .glb asset at the given path and insert into the scene.
+  /// Load the .glb asset at the given path, adding all entities to the scene.
   /// Specify [numInstances] to create multiple instances (this is more efficient than dynamically instantating at a later time). You can then retrieve the created instances with [getInstances].
   /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
   /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
   ///
-  Future<ThermionEntity> loadGlb(String path,
+  Future<ThermionAsset> loadGlb(String path,
       {int numInstances = 1, bool keepData = false});
 
   ///
-  /// Load the .glb asset from the specified buffer and insert into the scene.
+  /// Load the .glb asset from the specified buffer, adding all entities to the scene.
   /// Specify [numInstances] to create multiple instances (this is more efficient than dynamically instantating at a later time). You can then retrieve the created instances with [getInstances].
   /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
   /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
-  /// If [loadResourcesAsync] is true, resources (textures, materials, etc) will 
+  /// If [loadResourcesAsync] is true, resources (textures, materials, etc) will
   /// be loaded asynchronously (so expect some material/texture pop-in);
   ///
   ///
-  Future<ThermionEntity> loadGlbFromBuffer(Uint8List data,
+  Future<ThermionAsset> loadGlbFromBuffer(Uint8List data,
       {int numInstances = 1,
       bool keepData = false,
       int priority = 4,
@@ -240,28 +237,13 @@ abstract class ThermionViewer {
       bool loadResourcesAsync});
 
   ///
-  /// Create a new instance of [entity].
-  ///
-  Future<ThermionEntity> createInstance(ThermionEntity entity);
-
-  ///
-  /// Returns the number of instances of the asset associated with [entity].
-  ///
-  Future<int> getInstanceCount(ThermionEntity entity);
-
-  ///
-  /// Returns all instances of [entity].
-  ///
-  Future<List<ThermionEntity>> getInstances(ThermionEntity entity);
-
-  ///
-  /// Load the .gltf asset at the given path and insert into the scene.
+  /// Load the .gltf asset at the given path, adding all entities to the scene.
   /// [relativeResourcePath] is the folder path where the glTF resources are stored;
   /// this is usually the parent directory of the .gltf file itself.
   ///
   /// See [loadGlb] for an explanation of [keepData].
   ///
-  Future<ThermionEntity> loadGltf(String path, String relativeResourcePath,
+  Future<ThermionAsset> loadGltf(String path, String relativeResourcePath,
       {bool keepData = false});
 
   ///
@@ -277,32 +259,34 @@ abstract class ThermionViewer {
   /// Gets the names of all morph targets for the child renderable [childEntity] under [entity].
   ///
   Future<List<String>> getMorphTargetNames(
-      ThermionEntity entity, ThermionEntity childEntity);
+      covariant ThermionAsset asset, ThermionEntity childEntity);
 
   ///
   /// Gets the names of all bones for the armature at [skinIndex] under the specified [entity].
   ///
-  Future<List<String>> getBoneNames(ThermionEntity entity, {int skinIndex = 0});
+  Future<List<String>> getBoneNames(covariant ThermionAsset asset,
+      {int skinIndex = 0});
 
   ///
   /// Gets the names of all glTF animations embedded in the specified entity.
   ///
-  Future<List<String>> getAnimationNames(ThermionEntity entity);
+  Future<List<String>> getAnimationNames(covariant ThermionAsset asset);
 
   ///
   /// Returns the length (in seconds) of the animation at the given index.
   ///
   Future<double> getAnimationDuration(
-      ThermionEntity entity, int animationIndex);
+      covariant ThermionAsset asset, int animationIndex);
 
   ///
-  /// Animate the morph targets in [entity]. See [MorphTargetAnimation] for an explanation as to how to construct the animation frame data.
+  /// Construct animation(s) for every entity under [asset]. If [targetMeshNames] is provided, only entities with matching names will be animated.
+  /// [MorphTargetAnimation] for an explanation as to how to construct the animation frame data.
   /// This method will check the morph target names specified in [animation] against the morph target names that actually exist exist under [meshName] in [entity],
   /// throwing an exception if any cannot be found.
   /// It is permissible for [animation] to omit any targets that do exist under [meshName]; these simply won't be animated.
   ///
   Future setMorphAnimationData(
-      ThermionEntity entity, MorphAnimationData animation,
+      covariant ThermionAsset asset, MorphAnimationData animation,
       {List<String>? targetMeshNames});
 
   ///
@@ -314,7 +298,7 @@ abstract class ThermionViewer {
   /// Resets all bones in the given entity to their rest pose.
   /// This should be done before every call to addBoneAnimation.
   ///
-  Future resetBones(ThermionEntity entity);
+  Future resetBones(ThermionAsset asset);
 
   ///
   /// Enqueues and plays the [animation] for the specified bone(s).
@@ -334,7 +318,7 @@ abstract class ThermionViewer {
   /// This will be applied in reverse after [fadeOutInSecs].
   ///
   ///
-  Future addBoneAnimation(ThermionEntity entity, BoneAnimationData animation,
+  Future addBoneAnimation(ThermionAsset asset, BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeInInSecs = 0.0,
       double fadeOutInSecs = 0.0,
@@ -344,7 +328,7 @@ abstract class ThermionViewer {
   /// Gets the entity representing the bone at [boneIndex]/[skinIndex].
   /// The returned entity is only intended for use with [getWorldTransform].
   ///
-  Future<ThermionEntity> getBone(ThermionEntity parent, int boneIndex,
+  Future<ThermionEntity> getBone(covariant ThermionAsset asset, int boneIndex,
       {int skinIndex = 0});
 
   ///
@@ -362,7 +346,8 @@ abstract class ThermionViewer {
   /// Note that [parent] must be the ThermionEntity returned by [loadGlb/loadGltf], not any other method ([getChildEntity] etc).
   /// This is because all joint information is internally stored with the parent entity.
   ///
-  Future<Matrix4> getInverseBindMatrix(ThermionEntity parent, int boneIndex,
+  Future<Matrix4> getInverseBindMatrix(
+      covariant ThermionAsset asset, int boneIndex,
       {int skinIndex = 0});
 
   ///
@@ -398,7 +383,7 @@ abstract class ThermionViewer {
   /// Removes/destroys the specified entity from the scene.
   /// [entity] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
   ///
-  Future removeEntity(ThermionEntity entity);
+  Future removeEntity(ThermionAsset asset);
 
   ///
   /// Removes/destroys all renderable entities from the scene (including cameras).
@@ -407,9 +392,9 @@ abstract class ThermionViewer {
   Future clearEntities();
 
   ///
-  /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
+  /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.
   ///
-  Future playAnimation(ThermionEntity entity, int index,
+  Future playAnimation(ThermionAsset asset, int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
@@ -419,17 +404,27 @@ abstract class ThermionViewer {
   ///
   /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
   ///
-  Future playAnimationByName(ThermionEntity entity, String name,
+  Future playAnimationByName(covariant ThermionAsset asset, String name,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0});
 
-  Future setAnimationFrame(
-      ThermionEntity entity, int index, int animationFrame);
+  ///
+  ///
+  ///
+  Future setGltfAnimationFrame(
+      covariant ThermionAsset asset, int index, int animationFrame);
 
-  Future stopAnimation(ThermionEntity entity, int animationIndex);
-  Future stopAnimationByName(ThermionEntity entity, String name);
+  ///
+  ///
+  ///
+  Future stopAnimation(covariant ThermionAsset asset, int animationIndex);
+
+  ///
+  ///
+  ///
+  Future stopAnimationByName(covariant ThermionAsset asset, String name);
 
   ///
   /// Sets the current scene camera to the glTF camera under [name] in [entity].
@@ -577,42 +572,9 @@ abstract class ThermionViewer {
   Future setCameraModelMatrix4(Matrix4 matrix);
 
   ///
-  /// Sets the `baseColorFactor` property for the material at index [materialIndex] in [entity] under node [meshName] to [color].
-  ///
-  @Deprecated("Use setMaterialPropertyFloat4 instead")
-  Future setMaterialColor(ThermionEntity entity, String meshName,
-      int materialIndex, double r, double g, double b, double a);
-
-  ///
-  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
-  /// [entity] must have a Renderable attached.
-  ///
-  Future setMaterialPropertyFloat4(ThermionEntity entity, String propertyName,
-      int materialIndex, double f1, double f2, double f3, double f4);
-
-  ///
-  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
-  /// [entity] must have a Renderable attached.
-  ///
-  Future setMaterialPropertyFloat(ThermionEntity entity, String propertyName,
-      int materialIndex, double value);
-
-  ///
-  /// Sets the material property [propertyName] under material [materialIndex] for [entity] to [value].
-  /// [entity] must have a Renderable attached.
-  ///
-  Future setMaterialPropertyInt(
-      ThermionEntity entity, String propertyName, int materialIndex, int value);
-
-  ///
   /// Scale [entity] to fit within the unit cube.
   ///
   Future transformToUnitCube(ThermionEntity entity);
-
-  ///
-  /// Directly sets the world space position for [entity] to the given coordinates.
-  ///
-  Future setPosition(ThermionEntity entity, double x, double y, double z);
 
   ///
   /// Set the world space position for [lightEntity] to the given coordinates.
@@ -624,17 +586,6 @@ abstract class ThermionViewer {
   /// Sets the world space direction for [lightEntity] to the given vector.
   ///
   Future setLightDirection(ThermionEntity lightEntity, Vector3 direction);
-
-  ///
-  /// Directly sets the scale for [entity], skipping all collision detection.
-  ///
-  Future setScale(ThermionEntity entity, double scale);
-
-  ///
-  /// Directly sets the rotation for [entity] to [rads] around the axis {x,y,z}, skipping all collision detection.
-  ///
-  Future setRotation(
-      ThermionEntity entity, double rads, double x, double y, double z);
 
   ///
   /// TODO
@@ -674,28 +625,22 @@ abstract class ThermionViewer {
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
 
   ///
-  /// Sets the rotation for [entity] to the specified quaternion.
+  /// Adds a single [entity] to the scene.
   ///
-  Future setRotationQuat(ThermionEntity entity, Quaternion rotation);
+  Future addEntityToScene(ThermionEntity entity);
 
   ///
-  /// Reveal the node [meshName] under [entity]. Only applicable if [hide] had previously been called; this is a no-op otherwise.
+  /// Removes a single [entity] from the scene.
   ///
-  Future reveal(ThermionEntity entity, String? meshName);
+  Future removeEntityFromScene(ThermionEntity entity);
 
   ///
-  /// If [meshName] is provided, hide the node [meshName] under [entity], otherwise hide the root node for [entity].
-  /// The entity still exists in memory, but is no longer being rendered into the scene. Call [reveal] to re-commence rendering.
-  ///
-  Future hide(ThermionEntity entity, String? meshName);
-
-  ///
-  /// Used to select the entity in the scene at the given viewport coordinates.
-  /// Called by `FilamentGestureDetector` on a mouse/finger down event. You probably don't want to call this yourself.
-  /// This is asynchronous and will require 2-3 frames to complete - subscribe to the [pickResult] stream to receive the results of this method.
+  /// Hit test the viewport at the given coordinates. If the coordinates intersect
+  /// with a renderable entity, [resultHandler] will be called.
+  /// This is asynchronous and will require 2-3 frames to complete (so ensure you are calling render())
   /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the ThermionWidget).
   ///
-  Future pick(int x, int y);
+  Future pick(int x, int y, void Function(PickResult) resultHandler);
 
   ///
   /// Retrieves the name assigned to the given ThermionEntity (usually corresponds to the glTF mesh name).
@@ -703,23 +648,16 @@ abstract class ThermionViewer {
   String? getNameForEntity(ThermionEntity entity);
 
   ///
-  /// Returns all child entities under [parent].
+  /// Returns all child entities under [asset].
   ///
-  Future<List<ThermionEntity>> getChildEntities(
-      ThermionEntity parent, bool renderableOnly);
+  Future<List<ThermionEntity>> getChildEntities(covariant ThermionAsset asset);
 
   ///
   /// Finds the child entity named [childName] associated with the given parent.
   /// Usually, [parent] will be the return value from [loadGlb]/[loadGltf] and [childName] will be the name of a node/mesh.
   ///
-  Future<ThermionEntity> getChildEntity(
-      ThermionEntity parent, String childName);
-
-  ///
-  /// List the name of all child entities under the given entity.
-  ///
-  Future<List<String>> getChildEntityNames(ThermionEntity entity,
-      {bool renderableOnly = true});
+  Future<ThermionEntity?> getChildEntity(
+      covariant ThermionAsset asset, String childName);
 
   ///
   /// An [entity] will only be animatable after an animation component is attached.
@@ -750,8 +688,9 @@ abstract class ThermionViewer {
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
   /// If [keepData] is true, the source data will not be released.
   ///
-  Future createGeometry(Geometry geometry,
-      {MaterialInstance? materialInstance, bool keepData = false});
+  Future<ThermionAsset> createGeometry(Geometry geometry,
+      {covariant List<MaterialInstance>? materialInstances,
+      bool keepData = false});
 
   ///
   /// Gets the parent entity of [entity]. Returns null if the entity has no parent.
@@ -783,7 +722,8 @@ abstract class ThermionViewer {
   ///
   /// The gizmo for translating/rotating objects. Only one gizmo can be active for a given view.
   ///
-  Future<Gizmo> createGizmo(covariant View view);
+  Future<GizmoAsset> createGizmo(covariant View view,
+      GizmoType type);
 
   ///
   /// Register a callback to be invoked when this viewer is disposed.
@@ -803,34 +743,23 @@ abstract class ThermionViewer {
   ///
   /// Toggles the visibility of the respective layer.
   ///
-  Future setLayerVisibility(int layer, bool visible);
+  Future setLayerVisibility(VisibilityLayers layer, bool visible);
 
   ///
-  /// All renderable entities are assigned a layer mask. 
-  /// 
-  /// By calling [setLayerVisibility], all renderable entities allocated to 
-  /// the given layer can be efficiently hidden/revealed. 
-  /// 
-  /// By default, all renderable entities are assigned to layer 0 (and this 
-  /// layer is enabled by default). Call [setVisibilityLayer] to change the 
+  /// All renderable entities are assigned a layer mask.
+  ///
+  /// By calling [setLayerVisibility], all renderable entities allocated to
+  /// the given layer can be efficiently hidden/revealed.
+  ///
+  /// By default, all renderable entities are assigned to layer 0 (and this
+  /// layer is enabled by default). Call [setVisibilityLayer] to change the
   /// layer for the specified entity.
-  /// 
-  /// Note that we currently also assign gizmos to layer 1 (enabled by default) 
-  /// and the world grid to layer 2 (disabled by default). We suggest you avoid 
+  ///
+  /// Note that we currently also assign gizmos to layer 1 (enabled by default)
+  /// and the world grid to layer 2 (disabled by default). We suggest you avoid
   /// using these layers.
   ///
-  Future setVisibilityLayer(ThermionEntity entity, int layer);
-
-  ///
-  /// Renders an outline around [entity] with the given color.
-  ///
-  Future setStencilHighlight(ThermionEntity entity,
-      {double r = 1.0, double g = 0.0, double b = 0.0});
-
-  ///
-  /// Removes the outline around [entity]. Noop if there was no highlight.
-  ///
-  Future removeStencilHighlight(ThermionEntity entity);
+  Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer);
 
   ///
   /// Decodes the specified image data and creates a texture.
@@ -908,7 +837,7 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future<MaterialInstance?> getMaterialInstanceAt(
+  Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int index);
 
   ///
