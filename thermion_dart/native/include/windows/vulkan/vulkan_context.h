@@ -31,36 +31,40 @@ namespace thermion::windows::vulkan {
 
   class TVulkanPlatform : public filament::backend::VulkanPlatform {
    public:
+
+      TVulkanPlatform() {
+        _customization.gpu.index = 0;
+      }
+
+      virtual VulkanPlatform::Customization getCustomization() const noexcept override {
+        return _customization;
+      }
+
       SwapChainPtr createSwapChain(void* nativeWindow, uint64_t flags,
             VkExtent2D extent = {0, 0}) override {
               std::lock_guard lock(mutex);
-              _current = filament::backend::VulkanPlatform::createSwapChain(nativeWindow, flags, extent);
+              current = filament::backend::VulkanPlatform::createSwapChain(nativeWindow, flags, extent);
               std::cout << "Created swap chain with flags " << flags << std::endl;
-              return _current;
+              return current;
             }
       
       void destroy(SwapChainPtr handle) override {
         std::lock_guard lock(mutex);
-        _current = nullptr;
+        current = nullptr;
         std::cout << "Destroyed swap chain" << std::endl;
       }
 
-      // VkResult acquire(SwapChainPtr handle, VkSemaphore clientSignal, uint32_t* index) override {
-      //   auto result = filament::backend::VulkanPlatform::acquire(handle, clientSignal, index);
-      //   _currentColorIndex = *index;
-      //   return result;
-      // }
-
       VkResult present(SwapChainPtr handle, uint32_t index, VkSemaphore finishedDrawing) override {
         auto result = filament::backend::VulkanPlatform::present(handle, index, finishedDrawing);
-        _currentColorIndex = index;
+        currentColorIndex = index;
         return result;
       }
+    SwapChainPtr current;
+    std::mutex mutex;
+    uint32_t currentColorIndex = 0;
 
-
-      SwapChainPtr _current;
-      std::mutex mutex;
-      uint32_t _currentColorIndex = 0;
+    private:  
+      filament::backend::VulkanPlatform::Customization _customization;
 
 };
 
