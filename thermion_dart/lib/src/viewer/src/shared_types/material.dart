@@ -67,7 +67,7 @@ enum StencilFace {
   BACK,
 
   /// Both front and back faces
-  FRONT_AND_BACK 
+  FRONT_AND_BACK
 }
 
 enum AlphaMode { OPAQUE, MASK, BLEND }
@@ -109,4 +109,5 @@ abstract class MaterialInstance {
 
   Future setStencilReadMask(int mask);
   Future setStencilWriteMask(int mask);
+
 }

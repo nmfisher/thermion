@@ -41,9 +41,6 @@
 #include "scene/GeometrySceneAssetBuilder.hpp"
 #include "UnprojectTexture.hpp"
 
-
-
-
 extern "C"
 {
 #include "material/image.h"
@@ -130,11 +127,12 @@ namespace thermion
             _engine->getEntityManager().destroy(entity);
         }
 
+        destroyAll();
+
         _engine->destroy(_unlitFixedSizeMaterial);
         _cameras.clear();
 
         _gridOverlay->destroy();
-        destroyAll();
 
         _gltfResourceLoader->asyncCancelLoad();
         _ubershaderProvider->destroyMaterials();
@@ -153,7 +151,7 @@ namespace thermion
     Gizmo *SceneManager::createGizmo(View *view, Scene *scene)
     {
         auto gizmo = std::make_unique<Gizmo>(_engine, view, scene, _unlitFixedSizeMaterial);
-        auto *raw =gizmo.get();
+        auto *raw = gizmo.get();
         _sceneAssets.push_back(std::move(gizmo));
         return raw;
     }
@@ -682,7 +680,6 @@ namespace thermion
         math::float4 entityPlaneInClipSpace = Camera::inverseProjection(camera.getProjectionMatrix()) * ndcEntityPlanePos;
         auto entityPlaneInCameraSpace = entityPlaneInClipSpace / entityPlaneInClipSpace.w;
         auto entityPlaneInWorldSpace = camera.getModelMatrix() * entityPlaneInCameraSpace;
-
     }
 
     void SceneManager::queueTransformUpdates(EntityId *entities, math::mat4 *transforms, int numEntities)

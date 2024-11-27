@@ -13,13 +13,27 @@ import 'helpers.dart';
 void main() async {
   final testHelper = TestHelper("geometry");
   group("custom geometry", () {
-    test('create cube', () async {
+    test('create cube (no normals/uvs)', () async {
       await testHelper.withViewer((viewer) async {
         final cube = await viewer
             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
-        await testHelper.capture(viewer, "geometry_add_cube");
+        await testHelper.capture(viewer, "geometry_cube_no_normals_uvs");
         await viewer.removeEntity(cube);
         await testHelper.capture(viewer, "geometry_remove_cube");
+      });
+    });
+
+    test('create cube with unlit ubershader material (no normals/uvs)',
+        () async {
+      await testHelper.withViewer((viewer) async {
+        final materialInstance =
+            await viewer.createUbershaderMaterialInstance(unlit: true);
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+        final cube = await viewer.createGeometry(
+            GeometryHelper.cube(normals: false, uvs: false),
+            materialInstances: [materialInstance]);
+        await testHelper.capture(viewer, "geometry_cube_ubershader");
       });
     });
 
@@ -28,6 +42,36 @@ void main() async {
       await viewer
           .createGeometry(GeometryHelper.cube(normals: true, uvs: false));
       await testHelper.capture(viewer, "geometry_cube_with_normals");
+    });
+
+    test('create cube with lit ubershader material (normals/ no uvs)',
+        () async {
+      await testHelper.withViewer((viewer) async {
+        final materialInstance =
+            await viewer.createUbershaderMaterialInstance(
+              unlit: false,
+              alphaMode: AlphaMode.BLEND,
+            hasVertexColors:false);
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+        final cube = await viewer.createGeometry(
+          GeometryHelper.cube(normals: true, uvs: false),
+          materialInstances: [materialInstance]
+        );
+
+        await viewer.addDirectLight(DirectLight.sun(
+          intensity: 100000,
+          castShadows: false,
+          direction: Vector3(0,-0.5,-1)));
+        // await viewer.addDirectLight(DirectLight.spot(
+        //   intensity: 1000000,
+        //   position: Vector3(0,3,3),
+        //   direction: Vector3(0,-1.5,-1),
+        //   falloffRadius: 10));
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
+        await testHelper.capture(viewer, "geometry_cube_lit_ubershader");
+      });
     });
 
     test('create instance', () async {
