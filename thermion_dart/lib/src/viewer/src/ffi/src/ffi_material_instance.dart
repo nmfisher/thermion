@@ -6,8 +6,9 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 class ThermionFFIMaterialInstance extends MaterialInstance {
   final Pointer<TMaterialInstance> pointer;
+  final Pointer<TSceneManager> sceneManager;
 
-  ThermionFFIMaterialInstance(this.pointer) {
+  ThermionFFIMaterialInstance(this.pointer, this.sceneManager) {
     if (pointer == nullptr) {
       throw Exception("MaterialInstance not found");
     }
@@ -50,14 +51,17 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
 
   @override
   Future setDepthFunc(SamplerCompareFunction depthFunc) async {
-    MaterialInstance_setDepthFunc(pointer, TSamplerCompareFunc.values[depthFunc.index]);
+    MaterialInstance_setDepthFunc(
+        pointer, TSamplerCompareFunc.values[depthFunc.index]);
   }
 
   @override
   Future setStencilCompareFunction(SamplerCompareFunction func,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
     MaterialInstance_setStencilCompareFunction(
-        pointer, TSamplerCompareFunc.values[func.index], TStencilFace.values[face.index]);
+        pointer,
+        TSamplerCompareFunc.values[func.index],
+        TStencilFace.values[face.index]);
   }
 
   @override
@@ -112,5 +116,9 @@ class ThermionFFIMaterialInstance extends MaterialInstance {
   @override
   Future setStencilWriteMask(int mask) async {
     MaterialInstance_setStencilWriteMask(pointer, mask);
+  }
+
+  Future dispose() async {
+    SceneManager_destroyMaterialInstance(sceneManager, pointer);
   }
 }

@@ -282,6 +282,8 @@ class ThermionViewerFFI extends ThermionViewer {
   final _onDispose = <Future Function()>[];
   bool _disposing = false;
 
+  final _materialInstances = <ThermionFFIMaterialInstance>[];
+
   ///
   ///
   ///
@@ -291,12 +293,13 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Viewer has already been disposed.");
     }
     _disposing = true;
-
     await setRendering(false);
     await clearEntities();
+    for (final mInstance in _materialInstances) {
+      await mInstance.dispose();
+    }
     await clearLights();
 
-    // await _sceneUpdateEventController.close();
     Viewer_destroyOnRenderThread(_viewer!);
     _sceneManager = null;
     _viewer = null;
@@ -984,9 +987,6 @@ class ThermionViewerFFI extends ThermionViewer {
         _sceneManager!, asset.pointer, callback));
   }
 
-  ///
-  ///
-  ///
   ///
   ///
   ///
@@ -1880,7 +1880,10 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create material instance");
     }
 
-    return ThermionFFIMaterialInstance(materialInstance);
+    var instance =
+        ThermionFFIMaterialInstance(materialInstance, _sceneManager!);
+    _materialInstances.add(instance);
+    return instance;
   }
 
   ///
@@ -1888,21 +1891,20 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future destroyMaterialInstance(
       ThermionFFIMaterialInstance materialInstance) async {
-    SceneManager_destroyMaterialInstance(
-        _sceneManager!, materialInstance.pointer);
+    await materialInstance.dispose();
+    _materialInstances.remove(materialInstance);
   }
 
   ///
   ///
   ///
   Future<ThermionFFIMaterialInstance> createUnlitMaterialInstance() async {
-    var instance = await withPointerCallback<TMaterialInstance>((cb) {
+    var instancePtr = await withPointerCallback<TMaterialInstance>((cb) {
       SceneManager_createUnlitMaterialInstanceRenderThread(_sceneManager!, cb);
     });
-    if (instance == nullptr) {
-      throw Exception("Failed to create material instance");
-    }
-    return ThermionFFIMaterialInstance(instance);
+    final instance = ThermionFFIMaterialInstance(instancePtr, _sceneManager!);
+    _materialInstances.add(instance);
+    return instance;
   }
 
   ///
@@ -1910,14 +1912,13 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future<ThermionFFIMaterialInstance>
       createUnlitFixedSizeMaterialInstance() async {
-    var instance = await withPointerCallback<TMaterialInstance>((cb) {
+    var instancePtr = await withPointerCallback<TMaterialInstance>((cb) {
       SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(
           _sceneManager!, cb);
     });
-    if (instance == nullptr) {
-      throw Exception("Failed to create material instance");
-    }
-    return ThermionFFIMaterialInstance(instance);
+    final instance = ThermionFFIMaterialInstance(instancePtr, _sceneManager!);
+    _materialInstances.add(instance);
+    return instance;
   }
 
   ///
@@ -1925,12 +1926,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int index) async {
-    final instance = RenderableManager_getMaterialInstanceAt(
+    final instancePtr = RenderableManager_getMaterialInstanceAt(
         _renderableManager!, entity, index);
-    if (instance == nullptr) {
-      throw Exception("Failed to get material instance");
-    }
-    return ThermionFFIMaterialInstance(instance);
+
+    final instance = ThermionFFIMaterialInstance(instancePtr, _sceneManager!);
+    return instance;
   }
 
   @override
@@ -2036,8 +2036,8 @@ class ThermionViewerFFI extends ThermionViewer {
         SceneManager_getOverlayEntityCount(_sceneManager!);
     final overlayEntities = List<ThermionEntity>.generate(overlayEntityCount,
         (i) => SceneManager_getOverlayEntityAt(_sceneManager!, i)).toSet();
-    return FFIGizmo(
-        view, gizmo.cast<TSceneAsset>(), _sceneManager!, _engine!, nullptr, overlayEntities);
+    return FFIGizmo(view, gizmo.cast<TSceneAsset>(), _sceneManager!, _engine!,
+        nullptr, overlayEntities);
   }
 }
 

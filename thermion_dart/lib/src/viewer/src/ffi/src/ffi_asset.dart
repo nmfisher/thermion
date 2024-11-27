@@ -122,7 +122,7 @@ class FFIAsset extends ThermionAsset {
       }
       var sourceMaterialInstance = ThermionFFIMaterialInstance(
           RenderableManager_getMaterialInstanceAt(
-              renderableManager, targetEntity, 0));
+              renderableManager, targetEntity, 0), sceneManager);
 
       await sourceMaterialInstance.setStencilWriteEnabled(true);
       await sourceMaterialInstance.setDepthWriteEnabled(true);
@@ -138,7 +138,7 @@ class FFIAsset extends ThermionAsset {
             _unlitMaterialProvider, key.address, cb);
       });
       final highlightMaterialInstance =
-          ThermionFFIMaterialInstance(materialInstancePtr);
+          ThermionFFIMaterialInstance(materialInstancePtr, sceneManager);
       await highlightMaterialInstance
           .setStencilCompareFunction(SamplerCompareFunction.NE);
       await highlightMaterialInstance.setStencilReferenceValue(1);
