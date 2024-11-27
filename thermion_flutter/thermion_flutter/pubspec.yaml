@@ -19,7 +19,7 @@ dependencies:
   animation_tools_dart: ^0.1.0
   thermion_dart: ^0.2.1-dev.19.0
   thermion_flutter_platform_interface: ^0.2.1-dev.19.0
-  thermion_flutter_ffi: ^0.2.1-dev.19.0
+  thermion_flutter_method_channel: ^0.2.1-dev.19.0
   thermion_flutter_web: ^0.2.0+10
   logging: ^1.2.0
   web: ^1.0.0
