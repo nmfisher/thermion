@@ -15,6 +15,10 @@ void main() async {
   group("custom geometry", () {
     test('create cube (no normals/uvs)', () async {
       await testHelper.withViewer((viewer) async {
+        var viewMatrix =
+            makeViewMatrix(Vector3(0, 2, 5), Vector3.zero(), Vector3(0, 1, 0));
+        viewMatrix.invert();
+        await viewer.setCameraModelMatrix4(viewMatrix);
         final cube = await viewer
             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
         await testHelper.capture(viewer, "geometry_cube_no_normals_uvs");
@@ -47,22 +51,18 @@ void main() async {
     test('create cube with lit ubershader material (normals/ no uvs)',
         () async {
       await testHelper.withViewer((viewer) async {
-        final materialInstance =
-            await viewer.createUbershaderMaterialInstance(
-              unlit: false,
-              alphaMode: AlphaMode.BLEND,
-            hasVertexColors:false);
+        final materialInstance = await viewer.createUbershaderMaterialInstance(
+            unlit: false, alphaMode: AlphaMode.BLEND, hasVertexColors: false);
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
         final cube = await viewer.createGeometry(
-          GeometryHelper.cube(normals: true, uvs: false),
-          materialInstances: [materialInstance]
-        );
+            GeometryHelper.cube(normals: true, uvs: false),
+            materialInstances: [materialInstance]);
 
         await viewer.addDirectLight(DirectLight.sun(
-          intensity: 100000,
-          castShadows: false,
-          direction: Vector3(0,-0.5,-1)));
+            intensity: 100000,
+            castShadows: false,
+            direction: Vector3(0, -0.5, -1)));
         // await viewer.addDirectLight(DirectLight.spot(
         //   intensity: 1000000,
         //   position: Vector3(0,3,3),
@@ -256,15 +256,13 @@ void main() async {
       await testHelper.capture(viewer, "geometry_sphere_no_normals");
     });
 
-    // test('create geometry instance', () async {
-    //   var viewer = await testHelper.createViewer(
-    //       cameraPosition: Vector3(0, 0, 6), bg: kRed);
-    //   final cube = await viewer
-    //       .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
-    //   await viewer.setTransform(cube.entity, Matrix4.translation(Vector3(2, 1, 1)));
-    //   final cube2 = await viewer.createInstance(cube);
-    //   await viewer.setTransform(cube2.entity, Matrix4.translation(Vector3(-2, 1, 1)));
-    //   await testHelper.capture(viewer, "geometry_instance");
-    // });
+    test('create camera geometry', () async {
+      await testHelper.withViewer((viewer) async {
+        final camera = await viewer.createGeometry(
+            GeometryHelper.wireframeCamera(normals: false, uvs: false));
+        await viewer.setTransform(camera.entity, Matrix4.rotationY(pi / 4));
+        await testHelper.capture(viewer, "camera_geometry");
+      });
+    });
   });
 }
