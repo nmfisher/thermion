@@ -331,4 +331,229 @@ static Geometry cube({bool normals = true, bool uvs = true}) {
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
+
+  static Geometry wireframeCamera({
+  double sphereRadius = 0.2,
+  double frustumDistance = 1.0,
+  double frustumNear = 0.5,
+  double frustumFar = 1.0,
+  double fov = pi / 3,
+  bool normals = true,
+  bool uvs = true,
+}) {
+  List<double> verticesList = [];
+  List<double> normalsList = [];
+  List<double> uvsList = [];
+  List<int> indices = [];
+  
+  // Create sphere vertices - keeping bands low for wireframe and to stay within Uint16 limits
+  int latitudeBands = 6;  // Reduced bands for simpler wireframe
+  int longitudeBands = 6;
+  
+  // Generate sphere vertices
+  for (int latNumber = 0; latNumber <= latitudeBands; latNumber++) {
+    double theta = latNumber * pi / latitudeBands;
+    double sinTheta = sin(theta);
+    double cosTheta = cos(theta);
+    
+    for (int longNumber = 0; longNumber <= longitudeBands; longNumber++) {
+      double phi = longNumber * 2 * pi / longitudeBands;
+      double sinPhi = sin(phi);
+      double cosPhi = cos(phi);
+      
+      double x = sphereRadius * cosPhi * sinTheta;
+      double y = sphereRadius * cosTheta;
+      double z = sphereRadius * sinPhi * sinTheta;
+      
+      verticesList.addAll([x, y, z]);
+      normalsList.addAll([x / sphereRadius, y / sphereRadius, z / sphereRadius]);
+      uvsList.addAll([longNumber / longitudeBands, latNumber / latitudeBands]);
+    }
+  }
+  
+  // Generate sphere line indices
+  for (int latNumber = 0; latNumber < latitudeBands; latNumber++) {
+    for (int longNumber = 0; longNumber < longitudeBands; longNumber++) {
+      int first = (latNumber * (longitudeBands + 1)) + longNumber;
+      int second = first + longitudeBands + 1;
+      int third = first + 1;
+      
+      // Add vertical lines
+      indices.addAll([first, second]);
+      
+      // Add horizontal lines
+      if (longNumber < longitudeBands - 1) {
+        indices.addAll([first, third]);
+      } else {
+        // Connect back to first vertex of this latitude
+        indices.addAll([first, latNumber * (longitudeBands + 1)]);
+      }
+    }
+  }
+  
+  // Add center point of sphere for frustum lines
+  int sphereCenterIndex = verticesList.length ~/ 3;
+  verticesList.addAll([0, 0, 0]);  // Sphere center at origin
+  normalsList.addAll([0, 0, 1]);   // Forward-facing normal
+  uvsList.addAll([0.5, 0.5]);      // Center UV coordinate
+  
+  // Calculate frustum corners
+  double nearHeight = 2.0 * frustumNear * tan(fov / 2);
+  double nearWidth = nearHeight * 1.333;  // Assuming 4:3 aspect ratio
+  double farHeight = 2.0 * frustumFar * tan(fov / 2);
+  double farWidth = farHeight * 1.333;
+  
+  // Store starting index for frustum vertices
+  int nearBaseIndex = verticesList.length ~/ 3;
+  
+  // Add near rectangle vertices
+  verticesList.addAll([
+    -nearWidth/2, -nearHeight/2, frustumNear,  // Bottom-left
+    nearWidth/2, -nearHeight/2, frustumNear,   // Bottom-right
+    nearWidth/2, nearHeight/2, frustumNear,    // Top-right
+    -nearWidth/2, nearHeight/2, frustumNear,   // Top-left
+  ]);
+  
+  // Add far rectangle vertices
+  int farBaseIndex = verticesList.length ~/ 3;
+  verticesList.addAll([
+    -farWidth/2, -farHeight/2, frustumFar,     // Bottom-left
+    farWidth/2, -farHeight/2, frustumFar,      // Bottom-right
+    farWidth/2, farHeight/2, frustumFar,       // Top-right
+    -farWidth/2, farHeight/2, frustumFar,      // Top-left
+  ]);
+  
+  // Add normals and UVs for frustum vertices
+  for (int i = 0; i < 8; i++) {
+    normalsList.addAll([0, 0, 1]);
+    uvsList.addAll([0, 0]);
+  }
+  
+  // Add line indices for near rectangle
+  indices.addAll([
+    nearBaseIndex, nearBaseIndex + 1,     // Bottom
+    nearBaseIndex + 1, nearBaseIndex + 2, // Right
+    nearBaseIndex + 2, nearBaseIndex + 3, // Top
+    nearBaseIndex + 3, nearBaseIndex      // Left
+  ]);
+  
+  // Add line indices for far rectangle
+  indices.addAll([
+    farBaseIndex, farBaseIndex + 1,     // Bottom
+    farBaseIndex + 1, farBaseIndex + 2, // Right
+    farBaseIndex + 2, farBaseIndex + 3, // Top
+    farBaseIndex + 3, farBaseIndex      // Left
+  ]);
+  
+  // Add lines connecting near and far rectangles
+  indices.addAll([
+    nearBaseIndex, farBaseIndex,         // Bottom-left
+    nearBaseIndex + 1, farBaseIndex + 1, // Bottom-right
+    nearBaseIndex + 2, farBaseIndex + 2, // Top-right
+    nearBaseIndex + 3, farBaseIndex + 3  // Top-left
+  ]);
+  
+  // Add lines from sphere center (using actual center point 0,0,0) to near corners
+  indices.addAll([
+    sphereCenterIndex, nearBaseIndex,     // To near bottom-left
+    sphereCenterIndex, nearBaseIndex + 1, // To near bottom-right
+    sphereCenterIndex, nearBaseIndex + 2, // To near top-right
+    sphereCenterIndex, nearBaseIndex + 3  // To near top-left
+  ]);
+  
+  Float32List vertices = Float32List.fromList(verticesList);
+  Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+  Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+  
+  return Geometry(
+    vertices, 
+    indices, 
+    normals: _normals, 
+    uvs: _uvs,
+    primitiveType: PrimitiveType.LINES
+  );
+}
+
+static Geometry wireframeCameraContainer({
+  double sphereRadius = 0.2,
+  double frustumDistance = 1.0,
+  double frustumNear = 0.5, 
+  double frustumFar = 1.0,
+  double fov = pi / 3,
+  bool normals = true,
+  bool uvs = true,
+}) {
+  List<double> verticesList = [];
+  List<double> normalsList = [];
+  List<double> uvsList = [];
+  List<int> indices = [];
+
+  // Calculate frustum corners
+  double nearHeight = 2.0 * frustumNear * tan(fov / 2);
+  double nearWidth = nearHeight * 1.333;  // 4:3 aspect ratio
+  double farHeight = 2.0 * frustumFar * tan(fov / 2);
+  double farWidth = farHeight * 1.333;
+
+  // Add padding to fully encompass the camera
+  double padding = sphereRadius * 0.5;
+  
+  // Calculate container dimensions to encompass both sphere and frustum
+  double containerWidth = max(farWidth, sphereRadius * 2) + padding * 2;
+  double containerHeight = max(farHeight, sphereRadius * 2) + padding * 2;
+  double containerDepth = frustumFar + sphereRadius + padding * 2;
+  
+  // Center offset to position container around camera
+  double offsetZ = (frustumFar - sphereRadius) / 2;
+
+  // Define container vertices
+  List<List<double>> containerPoints = [
+    // Front face
+    [-containerWidth/2, -containerHeight/2, -sphereRadius - padding + offsetZ],
+    [containerWidth/2, -containerHeight/2, -sphereRadius - padding + offsetZ],
+    [containerWidth/2, containerHeight/2, -sphereRadius - padding + offsetZ],
+    [-containerWidth/2, containerHeight/2, -sphereRadius - padding + offsetZ],
+    // Back face
+    [-containerWidth/2, -containerHeight/2, frustumFar + padding + offsetZ],
+    [containerWidth/2, -containerHeight/2, frustumFar + padding + offsetZ],
+    [containerWidth/2, containerHeight/2, frustumFar + padding + offsetZ],
+    [-containerWidth/2, containerHeight/2, frustumFar + padding + offsetZ],
+  ];
+
+  // Add vertices
+  for (var point in containerPoints) {
+    verticesList.addAll(point);
+    normalsList.addAll([0, 0, 1]); // Simplified normals
+    uvsList.addAll([0, 0]); // Basic UVs
+  }
+
+  // Define triangles for faces (12 triangles = 6 faces)
+  var triangleIndices = [
+    // Front face
+    0, 1, 2, 0, 2, 3,
+    // Back face
+    4, 6, 5, 4, 7, 6,
+    // Top face
+    3, 2, 6, 3, 6, 7,
+    // Bottom face
+    0, 5, 1, 0, 4, 5,
+    // Left face
+    0, 3, 7, 0, 7, 4,
+    // Right face
+    1, 5, 6, 1, 6, 2
+  ];
+  
+  indices.addAll(triangleIndices);
+
+  Float32List vertices = Float32List.fromList(verticesList);
+  Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+  Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+  
+  return Geometry(
+    vertices,
+    indices,
+    normals: _normals,
+    uvs: _uvs,
+    primitiveType: PrimitiveType.TRIANGLES
+  );
+}
 }
