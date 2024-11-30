@@ -12,6 +12,17 @@ void main() async {
   final testHelper = TestHelper("overlay");
 
   group("overlay tests", () {
+    group("grid", () {
+      test('enable grid', () async {
+        await testHelper.withViewer((viewer) async {
+          await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+          await testHelper.capture(viewer, "enable_grid");
+          await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, false);
+          await testHelper.capture(viewer, "disable_grid");
+        }, postProcessing: true);
+      });
+    });
+
     group("stencil", () {
       test('set stencil highlight for geometry', () async {
         await testHelper.withViewer((viewer) async {
@@ -47,24 +58,6 @@ void main() async {
         }, postProcessing: true, bg: kWhite);
       });
 
-      test('add gizmo', () async {
-        await testHelper.withViewer((viewer) async {
-          var cube = await viewer.createGeometry(GeometryHelper.cube());
-
-          final view = await viewer.getViewAt(0);
-          final gizmo = await viewer.createGizmo(view);
-          await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-          await viewer.addEntityToScene(gizmo);
-          await viewer.setTransform(gizmo, Matrix4.identity());
-          // await gizmo.attach(cube.entity);
-
-          await testHelper.capture(viewer, "gizmo_attached");
-
-          // await gizmo.detach();
-
-          // await testHelper.capture(viewer, "gizmo_detached");
-        }, postProcessing: true, bg: kWhite);
-      });
     });
   });
 
