@@ -15,10 +15,14 @@ void main() async {
     group("grid", () {
       test('enable grid', () async {
         await testHelper.withViewer((viewer) async {
+          await viewer.showGridOverlay();
           await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-          await testHelper.capture(viewer, "enable_grid");
+          await testHelper.capture(viewer, "grid_added_layer_visible");
           await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, false);
-          await testHelper.capture(viewer, "disable_grid");
+          await testHelper.capture(viewer, "grid_added_layer_invisible");
+          await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+          await viewer.removeGridOverlay();
+          await testHelper.capture(viewer, "grid_remove_layer_visible");
         }, postProcessing: true);
       });
     });
@@ -57,7 +61,6 @@ void main() async {
           await testHelper.capture(viewer, "glb_remove_stencil_highlight");
         }, postProcessing: true, bg: kWhite);
       });
-
     });
   });
 
