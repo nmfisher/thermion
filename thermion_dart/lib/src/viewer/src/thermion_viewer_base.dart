@@ -26,6 +26,8 @@ enum VisibilityLayers {
   const VisibilityLayers(this.value);
 }
 
+final ThermionEntity FILAMENT_ENTITY_NULL = 0;
+
 abstract class ThermionViewer {
   ///
   /// A Future that resolves when the underlying rendering context has been successfully created.
@@ -705,7 +707,7 @@ abstract class ThermionViewer {
   ///
   /// Sets the parent transform of [child] to [parent].
   ///
-  Future setParent(ThermionEntity child, ThermionEntity parent,
+  Future setParent(ThermionEntity child, ThermionEntity? parent,
       {bool preserveScaling});
 
   ///
@@ -873,6 +875,8 @@ abstract class ThermionViewer {
   ///
   /// Returns the camera specified by the given index. Note that the camera at
   /// index 0 is always the main camera; this cannot be destroyed.
+  /// 
+  /// Throws an exception if the index is out-of-bounds.
   ///
   Camera getCameraAt(int index);
 }
