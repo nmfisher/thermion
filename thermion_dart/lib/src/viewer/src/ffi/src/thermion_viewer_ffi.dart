@@ -1661,13 +1661,13 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setParent(ThermionEntity child, ThermionEntity parent,
+  Future setParent(ThermionEntity child, ThermionEntity? parent,
       {bool preserveScaling = false}) async {
     if (_sceneManager == null) {
       throw Exception("Asset manager must be non-null");
     }
-    TransformManager_setParent(
-        _transformManager!, child, parent, preserveScaling);
+    TransformManager_setParent(_transformManager!, child,
+        parent ?? FILAMENT_ENTITY_NULL, preserveScaling);
   }
 
   ///
@@ -1954,9 +1954,12 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future<Camera> createCamera() async {
-    var cameraPtr = SceneManager_createCamera(_sceneManager!);
+    var cameraPtr = await withPointerCallback<TCamera>((cb) {
+      SceneManager_createCameraRenderThread(_sceneManager!, cb);
+    });
     var engine = Viewer_getEngine(_viewer!);
     var camera = FFICamera(cameraPtr, engine, _transformManager!);
+    await camera.setLensProjection();
     return camera;
   }
 
@@ -1969,7 +1972,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setActiveCamera(FFICamera camera) async {
     final view = (await getViewAt(0)) as FFIView;
-    View_setCamera(view.view, camera.camera);
+    await withVoidCallback((cb) {
+      View_setCameraRenderThread(view.view, camera.camera, cb);
+    });
   }
 
   ///
@@ -2036,8 +2041,22 @@ class ThermionViewerFFI extends ThermionViewer {
         SceneManager_getOverlayEntityCount(_sceneManager!);
     final overlayEntities = List<ThermionEntity>.generate(overlayEntityCount,
         (i) => SceneManager_getOverlayEntityAt(_sceneManager!, i)).toSet();
-    return FFIGizmo(view, gizmo.cast<TSceneAsset>(), _sceneManager!, _engine!,
-        nullptr, overlayEntities);
+
+    final gizmoEntityCount =
+        SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
+    final gizmoEntities = Int32List(gizmoEntityCount);
+    SceneAsset_getChildEntities(
+        gizmo.cast<TSceneAsset>(), gizmoEntities.address);
+
+    return FFIGizmo(
+        view,
+        gizmo.cast<TSceneAsset>(),
+        _sceneManager!,
+        _engine!,
+        nullptr,
+        overlayEntities,
+        gizmoEntities.toSet()
+          ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }
 }
 
