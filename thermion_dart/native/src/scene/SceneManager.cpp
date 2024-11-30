@@ -107,11 +107,6 @@ namespace thermion
 
         _animationManager = std::make_unique<AnimationManager>(_engine, _scene);
 
-        _gridOverlay = new GridOverlay(*_engine);
-
-        _scene->addEntity(_gridOverlay->sphere());
-        _scene->addEntity(_gridOverlay->grid());
-
         _unlitFixedSizeMaterial =
             Material::Builder()
                 .package(UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_DATA, UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_SIZE)
@@ -131,8 +126,8 @@ namespace thermion
 
         _engine->destroy(_unlitFixedSizeMaterial);
         _cameras.clear();
-
-        _gridOverlay->destroy();
+        
+        _grid = nullptr;
 
         _gltfResourceLoader->asyncCancelLoad();
         _ubershaderProvider->destroyMaterials();
@@ -146,6 +141,28 @@ namespace thermion
         delete _ktxDecoder;
         delete _ubershaderProvider;
         AssetLoader::destroy(&_assetLoader);
+    }
+
+    SceneAsset *SceneManager::createGrid() { 
+        if(!_grid) {
+            _grid = std::make_unique<GridOverlay>(*_engine);
+        }
+        return _grid.get();
+    }
+
+    bool SceneManager::isGridEntity(utils::Entity entity) {
+        if(!_grid) {
+            return false;
+        }
+        if(entity == _grid->getEntity()) {
+            return true;
+        }
+        for(int i =0; i < _grid->getChildEntityCount(); i++) {
+            if(entity == _grid->getChildEntities()[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 
     Gizmo *SceneManager::createGizmo(View *view, Scene *scene)

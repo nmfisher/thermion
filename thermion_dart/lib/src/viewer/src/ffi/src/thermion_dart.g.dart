@@ -1905,16 +1905,17 @@ external ffi.Pointer<TNameComponentManager>
   ffi.Pointer<TSceneManager> tSceneManager,
 );
 
-@ffi.Native<ffi.Size Function(ffi.Pointer<TSceneManager>)>(isLeaf: true)
-external int SceneManager_getOverlayEntityCount(
+@ffi.Native<ffi.Pointer<TSceneAsset> Function(ffi.Pointer<TSceneManager>)>(
+    isLeaf: true)
+external ffi.Pointer<TSceneAsset> SceneManager_createGrid(
   ffi.Pointer<TSceneManager> tSceneManager,
 );
 
-@ffi.Native<EntityId Function(ffi.Pointer<TSceneManager>, ffi.Size)>(
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId)>(
     isLeaf: true)
-external int SceneManager_getOverlayEntityAt(
+external bool SceneManager_isGridEntity(
   ffi.Pointer<TSceneManager> tSceneManager,
-  int index,
+  int entityId,
 );
 
 @ffi.Native<

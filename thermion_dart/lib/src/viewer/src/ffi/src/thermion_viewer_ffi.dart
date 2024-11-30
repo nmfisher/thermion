@@ -1755,6 +1755,31 @@ class ThermionViewerFFI extends ThermionViewer {
     SceneManager_setVisibilityLayer(_sceneManager!, entity, layer.value);
   }
 
+  FFIAsset? _grid;
+
+  ///
+  ///
+  ///
+  Future showGridOverlay() async {
+    final ptr = SceneManager_createGrid(_sceneManager!);
+    _grid ??= FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!);
+    await _grid!.addToScene();
+  }
+
+  ///
+  ///
+  ///
+  Future removeGridOverlay() async {
+    if (_grid != null) {
+      await _grid!.removeFromScene();
+      SceneManager_destroyAsset(_sceneManager!, _grid!.pointer);
+      _grid = null;
+    }
+  }
+
+  ///
+  ///
+  ///
   Future<Uint8List> unproject(ThermionEntity entity, Uint8List input,
       int inputWidth, int inputHeight, int outWidth, int outHeight) async {
     final outPtr = Uint8List(outWidth * outHeight * 4);
@@ -1933,6 +1958,9 @@ class ThermionViewerFFI extends ThermionViewer {
     return instance;
   }
 
+  ///
+  ///
+  ///
   @override
   Future requestFrame() async {
     for (final hook in _hooks) {
@@ -1963,6 +1991,9 @@ class ThermionViewerFFI extends ThermionViewer {
     return camera;
   }
 
+  ///
+  ///
+  ///
   Future destroyCamera(FFICamera camera) async {
     SceneManager_destroyCamera(_sceneManager!, camera.camera);
   }
@@ -2037,10 +2068,6 @@ class ThermionViewerFFI extends ThermionViewer {
     if (gizmo == nullptr) {
       throw Exception("Failed to create gizmo");
     }
-    final overlayEntityCount =
-        SceneManager_getOverlayEntityCount(_sceneManager!);
-    final overlayEntities = List<ThermionEntity>.generate(overlayEntityCount,
-        (i) => SceneManager_getOverlayEntityAt(_sceneManager!, i)).toSet();
 
     final gizmoEntityCount =
         SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
@@ -2054,7 +2081,6 @@ class ThermionViewerFFI extends ThermionViewer {
         _sceneManager!,
         _engine!,
         nullptr,
-        overlayEntities,
         gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }

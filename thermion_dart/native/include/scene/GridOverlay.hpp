@@ -1,49 +1,56 @@
 #pragma once
 
-#include <vector> 
+#include <memory>
+#include <vector>
 
-#include <utils/Entity.h>
 #include <filament/Engine.h>
 #include <filament/Material.h>
 #include <filament/MaterialInstance.h>
-#include <filament/Scene.h>
-#include <filament/Camera.h>
-#include <filament/View.h>
-#include <filament/Viewport.h>
-
-#include <gltfio/AssetLoader.h>
-#include <gltfio/FilamentAsset.h>
-#include <gltfio/FilamentInstance.h>
-#include <gltfio/ResourceLoader.h>
-
-#include <filament/IndexBuffer.h>
-#include <filament/InstanceBuffer.h>
+#include <utils/Entity.h>
+#include "scene/SceneAsset.hpp"
 
 namespace thermion {
 
 using namespace filament;
-using namespace utils;
 
-class GridOverlay { 
-    public:
-        GridOverlay(Engine& engine);
-        void destroy();
+class GridOverlay : public SceneAsset {
+public:
+    GridOverlay(Engine& engine);
+    ~GridOverlay();
 
-        utils::Entity sphere() {
-            return _sphereEntity;
-        }
+    SceneAssetType getType() override { return SceneAsset::SceneAssetType::Gizmo; }
+    bool isInstance() override { return false; }
+    
+    SceneAsset* createInstance(MaterialInstance** materialInstances = nullptr, 
+                              size_t materialInstanceCount = 0) override;
+                              
+    MaterialInstance** getMaterialInstances() override { return &_materialInstance; }
+    size_t getMaterialInstanceCount() override { return 1; }
+    
+    void addAllEntities(Scene* scene) override;
+    void removeAllEntities(Scene* scene) override;
+    
+    void setPriority(RenderableManager& rm, int priority) override;
+    void setLayer(RenderableManager& rm, int layer) override;
 
-        utils::Entity grid() {
-            return _gridEntity;
-        }
-        
-    private:
-        Engine &_engine;
-        utils::Entity _gridEntity;
-        utils::Entity _sphereEntity;
-        Material* _material;
-        MaterialInstance* _materialInstance;
-        MaterialInstance* _sphereMaterialInstance;
+    size_t getInstanceCount() override { return _instances.size(); }
+    SceneAsset* getInstanceByEntity(utils::Entity entity) override;
+    SceneAsset* getInstanceAt(size_t index) override;
+    size_t getChildEntityCount() override { return 2; }
+    const Entity* getChildEntities() override;
+    Entity findEntityByName(const char* name) override;
+
+private:
+    Engine& _engine;
+    utils::Entity _gridEntity;
+    utils::Entity _sphereEntity;
+    Entity _childEntities[2];
+    Material* _material;
+    MaterialInstance* _materialInstance;
+    std::vector<std::unique_ptr<GridOverlay>> _instances;
+    
+    void createGrid();
+    void createSphere();
 };
 
-}
+} // namespace thermion

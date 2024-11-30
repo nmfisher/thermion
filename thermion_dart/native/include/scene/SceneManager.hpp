@@ -299,21 +299,9 @@ namespace thermion
             return _ncm;
         }
 
-        Entity getOverlayEntity(size_t index) {
-            if(index == 0) {
-                return _gridOverlay->grid();
-            } else if(index == 1) {
-                return _gridOverlay->sphere();
-            } else { 
-                return Entity();
-            }
-        }
+        SceneAsset *createGrid();
 
-        size_t getOverlayEntityCount() {
-            return 2;
-        }
-
-
+        bool isGridEntity(utils::Entity entity);
 
     private:
         gltfio::AssetLoader *_assetLoader = nullptr;
@@ -345,7 +333,7 @@ namespace thermion
         std::unique_ptr<AnimationManager> _animationManager = std::nullptr_t();
         std::unique_ptr<CollisionComponentManager> _collisionComponentManager = std::nullptr_t();
 
-        GridOverlay *_gridOverlay = std::nullptr_t();
+        std::unique_ptr<GridOverlay> _grid = std::nullptr_t();
 
         void _updateTransforms();
     };

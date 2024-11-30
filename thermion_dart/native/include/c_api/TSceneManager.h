@@ -57,8 +57,9 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAll(TSceneManager *tSceneManager);
 	EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAsset(TSceneManager *tSceneManager, TSceneAsset *sceneAsset);
 	EMSCRIPTEN_KEEPALIVE TNameComponentManager *SceneManager_getNameComponentManager(TSceneManager *tSceneManager);
-	EMSCRIPTEN_KEEPALIVE size_t SceneManager_getOverlayEntityCount(TSceneManager *tSceneManager);
-	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_getOverlayEntityAt(TSceneManager *tSceneManager, size_t index);
+
+	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager);
+	EMSCRIPTEN_KEEPALIVE bool SceneManager_isGridEntity(TSceneManager *tSceneManager, EntityId entityId);
 
 
 #ifdef __cplusplus

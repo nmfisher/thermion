@@ -207,13 +207,15 @@ extern "C"
         return reinterpret_cast<TNameComponentManager*>(sceneManager->getNameComponentManager());
     }
 
-    EMSCRIPTEN_KEEPALIVE size_t SceneManager_getOverlayEntityCount(TSceneManager *tSceneManager) {
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager) {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        return sceneManager->getOverlayEntityCount();
+        auto *grid = sceneManager->createGrid();
+        return reinterpret_cast<TSceneAsset*>(grid);
     }
-	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_getOverlayEntityAt(TSceneManager *tSceneManager, size_t index) {
+
+    EMSCRIPTEN_KEEPALIVE bool SceneManager_isGridEntity(TSceneManager *tSceneManager, EntityId entityId) {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        auto entity = sceneManager->getOverlayEntity(index);
-        return utils::Entity::smuggle(entity);
+        return sceneManager->isGridEntity(utils::Entity::import(entityId));
     }
+
 }
