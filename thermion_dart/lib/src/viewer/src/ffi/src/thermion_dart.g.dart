@@ -817,6 +817,17 @@ external bool View_isStencilBufferEnabled(
   ffi.Pointer<TView> tView,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setDitheringEnabled(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
+external bool View_isDitheringEnabled(
+  ffi.Pointer<TView> tView,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32,
         PickCallback)>(isLeaf: true)
@@ -1292,6 +1303,15 @@ external void View_setBloomRenderThread(
   double bloom,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TCamera>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void View_setCameraRenderThread(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TCamera> tCamera,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
 @ffi.Native<FilamentRenderCallback Function(FilamentRenderCallback)>(
     isLeaf: true)
 external FilamentRenderCallback make_render_callback_fn_pointer(
@@ -1510,6 +1530,18 @@ external ffi.Pointer<ffi.Void> SceneManager_destroyAssetRenderThread(
   ffi.Pointer<TSceneManager> tSceneManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
+@ffi.Native<
+        ffi.Pointer<ffi.Void> Function(
+            ffi.Pointer<TSceneManager>,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>>)>(
+    isLeaf: true)
+external ffi.Pointer<ffi.Void> SceneManager_createCameraRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>>
+      callback,
 );
 
 @ffi.Native<
