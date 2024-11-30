@@ -840,8 +840,7 @@ namespace thermion
             return std::nullptr_t();
         }
 
-        entity = sceneAsset->getEntity();
-        _scene->addEntity(entity);
+        sceneAsset->addAllEntities(_scene);
         auto *raw = sceneAsset.get();
         _sceneAssets.push_back(std::move(sceneAsset));
         return raw;
