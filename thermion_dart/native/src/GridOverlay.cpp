@@ -89,15 +89,15 @@ namespace thermion
 
         _materialInstance = _material->createInstance();
 
-        _materialInstance->setParameter("maxDistance", 50.0f);                    // Adjust as needed
-        _materialInstance->setParameter("color", math::float3{0.5f, 0.5f, 0.5f}); // Gray color for the grid
+        _materialInstance->setParameter("maxDistance", 50.0f);                       // Adjust as needed
+        _materialInstance->setParameter("color", math::float3{0.05f, 0.05f, 0.05f}); // Gray color for the grid
 
         RenderableManager::Builder(1)
             .boundingBox({{-gridSize * gridSpacing / 2, 0, -gridSize * gridSpacing / 2},
                           {gridSize * gridSpacing / 2, 0, gridSize * gridSpacing / 2}})
             .material(0, _materialInstance)
             .geometry(0, RenderableManager::PrimitiveType::LINES, vb, ib, 0, vertexCount)
-            .priority(0)
+            .priority(7)
             .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
             .culling(true)
             .receiveShadows(false)
@@ -179,7 +179,7 @@ namespace thermion
             .boundingBox({{-sphereRadius, -sphereRadius, -sphereRadius},
                           {sphereRadius, sphereRadius, sphereRadius}})
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, sphereVb, sphereIb, 0, indexCount)
-            .priority(0)
+            .priority(7)
             .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
             .culling(true)
             .receiveShadows(false)
