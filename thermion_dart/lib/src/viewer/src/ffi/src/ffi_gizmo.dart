@@ -2,13 +2,13 @@ import 'dart:async';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/entities.dart';
+import 'thermion_dart.g.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'ffi_view.dart';
 
 class FFIGizmo extends FFIAsset implements GizmoAsset {
-  final Set<ThermionEntity> nonPickableEntities;
   final Set<ThermionEntity> gizmoEntities;
   late NativeCallable<GizmoPickCallbackFunction> _nativeCallback;
 
@@ -20,8 +20,10 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
     _callback?.call(GizmoPickResultType.values[resultType], Vector3(x, y, z));
   }
 
-  bool isNonPickable(ThermionEntity entity) =>
-      nonPickableEntities.contains(entity);
+  bool isNonPickable(ThermionEntity entity) {
+    return SceneManager_isGridEntity(sceneManager!, entity);
+  }
+
   bool isGizmoEntity(ThermionEntity entity) => gizmoEntities.contains(entity);
 
   FFIGizmo(
@@ -30,7 +32,6 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
       super.sceneManager,
       super.renderableManager,
       super.unlitMaterialProvider,
-      this.nonPickableEntities,
       this.gizmoEntities) {
     _nativeCallback =
         NativeCallable<GizmoPickCallbackFunction>.listener(_onPickResult);

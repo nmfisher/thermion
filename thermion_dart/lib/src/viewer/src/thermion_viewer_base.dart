@@ -724,8 +724,7 @@ abstract class ThermionViewer {
   ///
   /// The gizmo for translating/rotating objects. Only one gizmo can be active for a given view.
   ///
-  Future<GizmoAsset> createGizmo(covariant View view,
-      GizmoType type);
+  Future<GizmoAsset> createGizmo(covariant View view, GizmoType type);
 
   ///
   /// Register a callback to be invoked when this viewer is disposed.
@@ -762,6 +761,16 @@ abstract class ThermionViewer {
   /// using these layers.
   ///
   Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer);
+
+  ///
+  ///
+  ///
+  Future showGridOverlay();
+  
+  ///
+  ///
+  ///
+  Future removeGridOverlay();
 
   ///
   /// Decodes the specified image data and creates a texture.
@@ -875,7 +884,7 @@ abstract class ThermionViewer {
   ///
   /// Returns the camera specified by the given index. Note that the camera at
   /// index 0 is always the main camera; this cannot be destroyed.
-  /// 
+  ///
   /// Throws an exception if the index is out-of-bounds.
   ///
   Camera getCameraAt(int index);
