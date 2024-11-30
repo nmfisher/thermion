@@ -81,4 +81,12 @@ class FFIView extends View {
   Future<bool> isStencilBufferEnabled() async {
     return View_isStencilBufferEnabled(view);
   }
+
+  Future setDithering(bool enabled) async {
+    View_setDitheringEnabled(view, enabled);
+  }
+  
+  Future<bool> isDitheringEnabled() async {
+    return View_isDitheringEnabled(view);
+  }
 }
