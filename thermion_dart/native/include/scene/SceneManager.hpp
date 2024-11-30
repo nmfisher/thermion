@@ -304,6 +304,8 @@ namespace thermion
                 return _gridOverlay->grid();
             } else if(index == 1) {
                 return _gridOverlay->sphere();
+            } else { 
+                return Entity();
             }
         }
 
