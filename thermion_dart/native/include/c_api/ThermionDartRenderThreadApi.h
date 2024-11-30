@@ -42,6 +42,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping);
         EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, double bloom);
+        EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)());
 
         FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
         EMSCRIPTEN_KEEPALIVE void set_rendering_render_thread(TViewer *viewer, bool rendering, void (*onComplete)());
@@ -76,6 +77,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void SceneManager_loadGltfRenderThread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(TSceneAsset *));
         EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAllRenderThread(TSceneManager *tSceneManager, void (*callback)());
         EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *sceneAsset, void (*callback)());
+        EMSCRIPTEN_KEEPALIVE void *SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera*));
 
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
 
