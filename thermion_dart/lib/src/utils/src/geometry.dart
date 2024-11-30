@@ -394,7 +394,7 @@ static Geometry cube({bool normals = true, bool uvs = true}) {
   // Add center point of sphere for frustum lines
   int sphereCenterIndex = verticesList.length ~/ 3;
   verticesList.addAll([0, 0, 0]);  // Sphere center at origin
-  normalsList.addAll([0, 0, 1]);   // Forward-facing normal
+  normalsList.addAll([0, 0, -1]);  // Backward-facing normal
   uvsList.addAll([0.5, 0.5]);      // Center UV coordinate
   
   // Calculate frustum corners
@@ -406,26 +406,26 @@ static Geometry cube({bool normals = true, bool uvs = true}) {
   // Store starting index for frustum vertices
   int nearBaseIndex = verticesList.length ~/ 3;
   
-  // Add near rectangle vertices
+  // Add near rectangle vertices (negative z)
   verticesList.addAll([
-    -nearWidth/2, -nearHeight/2, frustumNear,  // Bottom-left
-    nearWidth/2, -nearHeight/2, frustumNear,   // Bottom-right
-    nearWidth/2, nearHeight/2, frustumNear,    // Top-right
-    -nearWidth/2, nearHeight/2, frustumNear,   // Top-left
+    -nearWidth/2, -nearHeight/2, -frustumNear,  // Bottom-left
+    nearWidth/2, -nearHeight/2, -frustumNear,   // Bottom-right
+    nearWidth/2, nearHeight/2, -frustumNear,    // Top-right
+    -nearWidth/2, nearHeight/2, -frustumNear,   // Top-left
   ]);
   
-  // Add far rectangle vertices
+  // Add far rectangle vertices (negative z)
   int farBaseIndex = verticesList.length ~/ 3;
   verticesList.addAll([
-    -farWidth/2, -farHeight/2, frustumFar,     // Bottom-left
-    farWidth/2, -farHeight/2, frustumFar,      // Bottom-right
-    farWidth/2, farHeight/2, frustumFar,       // Top-right
-    -farWidth/2, farHeight/2, frustumFar,      // Top-left
+    -farWidth/2, -farHeight/2, -frustumFar,     // Bottom-left
+    farWidth/2, -farHeight/2, -frustumFar,      // Bottom-right
+    farWidth/2, farHeight/2, -frustumFar,       // Top-right
+    -farWidth/2, farHeight/2, -frustumFar,      // Top-left
   ]);
   
   // Add normals and UVs for frustum vertices
   for (int i = 0; i < 8; i++) {
-    normalsList.addAll([0, 0, 1]);
+    normalsList.addAll([0, 0, -1]);  // Backward-facing normal
     uvsList.addAll([0, 0]);
   }
   
@@ -453,7 +453,7 @@ static Geometry cube({bool normals = true, bool uvs = true}) {
     nearBaseIndex + 3, farBaseIndex + 3  // Top-left
   ]);
   
-  // Add lines from sphere center (using actual center point 0,0,0) to near corners
+  // Add lines from sphere center to near corners
   indices.addAll([
     sphereCenterIndex, nearBaseIndex,     // To near bottom-left
     sphereCenterIndex, nearBaseIndex + 1, // To near bottom-right
