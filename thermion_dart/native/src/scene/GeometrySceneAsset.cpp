@@ -45,8 +45,6 @@ namespace thermion
         builder.build(*_engine, _entity);
     }
 
-  
-
     GeometrySceneAsset::~GeometrySceneAsset()
     {
         if (_engine)
