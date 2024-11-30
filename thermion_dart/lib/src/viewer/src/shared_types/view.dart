@@ -1,6 +1,5 @@
 import 'package:thermion_dart/thermion_dart.dart';
 
-
 ///
 /// The viewport currently attached to a [View].
 ///
@@ -29,4 +28,6 @@ abstract class View {
   Future setBloom(double strength);
   Future setStencilBufferEnabled(bool enabled);
   Future<bool> isStencilBufferEnabled();
+  Future setDithering(bool enabled);
+  Future<bool> isDitheringEnabled();  
 }
