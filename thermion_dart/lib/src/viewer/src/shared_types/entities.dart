@@ -81,5 +81,6 @@ abstract class GizmoAsset extends ThermionAsset {
       {Future Function(GizmoPickResultType axis, Vector3 coords)? handler});
   Future highlight(Axis axis);
   Future unhighlight();
-  Set<ThermionEntity> get nonPickableEntities;
+  bool isNonPickable(ThermionEntity entity);
+  bool isGizmoEntity(ThermionEntity entity);
 }

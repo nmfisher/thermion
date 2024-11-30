@@ -28,11 +28,12 @@ namespace thermion
 
         auto parent = entityManager.create();
 
-        auto *parentMaterialInstance = _material->createInstance();
-        parentMaterialInstance->setParameter("baseColorFactor", math::float4{0.0f, 1.0f, 1.0f, 1.0f});
-        parentMaterialInstance->setParameter("scale", 4.0f);
+        // auto *parentMaterialInstance = _material->createInstance();
+        // parentMaterialInstance->setParameter("baseColorFactor", math::float4{1.0f, 1.0f, 1.0f, 0.0f});
+        // parentMaterialInstance->setParameter("scale", 4.0f);
+        // parentMaterialInstance->setDoubleSided(false);
 
-        _materialInstances.push_back(parentMaterialInstance);
+        // _materialInstances.push_back(parentMaterialInstance);
 
         // Create center cube vertices
         float centerCubeSize = 0.1f;
@@ -73,11 +74,11 @@ namespace thermion
         RenderableManager::Builder(1)
             .boundingBox({{-centerCubeSize, -centerCubeSize, -centerCubeSize},
                           {centerCubeSize, centerCubeSize, centerCubeSize}})
-            .material(0, parentMaterialInstance)
+            // .material(0, parentMaterialInstance)
             .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
-            .priority(7)
+            .priority(0)
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, centerCubeVb, centerCubeIb, 0, 36)
-            .culling(false)
+            .culling(true)
             .build(*_engine, parent);
 
         auto parentTransformInstance = transformManager.getInstance(parent);
@@ -265,6 +266,7 @@ namespace thermion
         _materialInstances.push_back(materialInstance);
         materialInstance->setParameter("baseColorFactor", math::float4{0.0f, 0.0f, 0.0f, 0.0f});
         materialInstance->setParameter("scale", 4.0f);
+        materialInstance->setDepthFunc(MaterialInstance::DepthFunc::A);
 
         RenderableManager::Builder(1)
             .boundingBox({{-volumeWidth / 2, -volumeDepth / 2, 0}, {volumeWidth / 2, volumeDepth / 2, volumeLength}})

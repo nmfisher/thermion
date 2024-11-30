@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 enum InputType {
@@ -37,8 +38,17 @@ abstract class InputHandler {
   Future<void> onPointerMove(
       Vector2 localPosition, Vector2 delta, bool isMiddle);
   Future<void> onPointerUp(bool isMiddle);
-  Future<void> onScaleStart(Vector2 focalPoint, int pointerCount, Duration? sourceTimestamp);
-  Future<void> onScaleUpdate(Vector2 focalPoint, Vector2 focalPointDelta, double horizontalScale, double verticalScale, double scale, int pointerCount, double rotation, Duration? sourceTimestamp);
+  Future<void> onScaleStart(
+      Vector2 focalPoint, int pointerCount, Duration? sourceTimestamp);
+  Future<void> onScaleUpdate(
+      Vector2 focalPoint,
+      Vector2 focalPointDelta,
+      double horizontalScale,
+      double verticalScale,
+      double scale,
+      int pointerCount,
+      double rotation,
+      Duration? sourceTimestamp);
   Future<void> onScaleEnd(int pointerCount, double velocity);
   Future<bool> get initialized;
   Future dispose();
@@ -48,4 +58,6 @@ abstract class InputHandler {
 
   void keyDown(PhysicalKey key);
   void keyUp(PhysicalKey key);
+
+  // Future setCamera(Camera camera);
 }

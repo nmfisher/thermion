@@ -9,6 +9,7 @@ import 'ffi_view.dart';
 
 class FFIGizmo extends FFIAsset implements GizmoAsset {
   final Set<ThermionEntity> nonPickableEntities;
+  final Set<ThermionEntity> gizmoEntities;
   late NativeCallable<GizmoPickCallbackFunction> _nativeCallback;
 
   void Function(GizmoPickResultType axis, Vector3 coords)? _callback;
@@ -19,14 +20,18 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
     _callback?.call(GizmoPickResultType.values[resultType], Vector3(x, y, z));
   }
 
+  bool isNonPickable(ThermionEntity entity) =>
+      nonPickableEntities.contains(entity);
+  bool isGizmoEntity(ThermionEntity entity) => gizmoEntities.contains(entity);
+
   FFIGizmo(
-    this._view,
-    super.pointer,
-    super.sceneManager,
-    super.renderableManager,
-    super.unlitMaterialProvider,
-    this.nonPickableEntities
-  ) {
+      this._view,
+      super.pointer,
+      super.sceneManager,
+      super.renderableManager,
+      super.unlitMaterialProvider,
+      this.nonPickableEntities,
+      this.gizmoEntities) {
     _nativeCallback =
         NativeCallable<GizmoPickCallbackFunction>.listener(_onPickResult);
   }
