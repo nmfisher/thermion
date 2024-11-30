@@ -81,8 +81,22 @@ extern "C"
         const auto child = Entity::import(childId);
         const auto parent = Entity::import(parentId);
 
-        const auto &parentInstance = tm->getInstance(parent);
+
         const auto &childInstance = tm->getInstance(child);
+
+        if (!childInstance.isValid())
+        {
+            Log("Child instance is not valid");
+            return;
+        }
+
+        if(parent.isNull()) {
+            Log("Unparenting child instance");
+            tm->setParent(childInstance, TransformManager::Instance());
+            return;
+        }
+
+        const auto &parentInstance = tm->getInstance(parent);
 
         if (!parentInstance.isValid())
         {
@@ -90,11 +104,7 @@ extern "C"
             return;
         }
 
-        if (!childInstance.isValid())
-        {
-            Log("Child instance is not valid");
-            return;
-        }
+
 
         if (preserveScaling)
         {
