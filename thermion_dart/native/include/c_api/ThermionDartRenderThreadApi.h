@@ -77,7 +77,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void SceneManager_loadGltfRenderThread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(TSceneAsset *));
         EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAllRenderThread(TSceneManager *tSceneManager, void (*callback)());
         EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *sceneAsset, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void *SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera*));
+        EMSCRIPTEN_KEEPALIVE void SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera*));
 
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
 

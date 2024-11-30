@@ -548,7 +548,7 @@ extern "C"
     return nullptr;
   }
 
-  EMSCRIPTEN_KEEPALIVE void *SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera*)) {
+  EMSCRIPTEN_KEEPALIVE void SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera*)) {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
