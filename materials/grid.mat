@@ -25,7 +25,7 @@ vertex {
         vec4 modelSpace = getPosition();
         vec4 worldSpace = getWorldFromModelMatrix() * modelSpace;
         vec4 clipSpace = getClipFromWorldMatrix() * worldSpace;
-        clipSpace.z = 0.01f;
+        clipSpace.z = 0.02f;
         material.worldPosition = getWorldFromClipMatrix() * clipSpace;
     }
 }
