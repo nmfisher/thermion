@@ -514,6 +514,16 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)()) {
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          View_setCamera(tView, tCamera);
+          callback();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAllRenderThread(TSceneManager *tSceneManager, void (*callback)())
   {
     std::packaged_task<void()> lambda(
@@ -537,6 +547,17 @@ extern "C"
     auto fut = _rl->add_task(lambda);
     return nullptr;
   }
+
+  EMSCRIPTEN_KEEPALIVE void *SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera*)) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *camera = SceneManager_createCamera(tSceneManager);
+          callback(reinterpret_cast<TCamera*>(camera));
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
 
   EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer *viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
   {
