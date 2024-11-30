@@ -126,10 +126,12 @@ using namespace filament;
         auto view = reinterpret_cast<View *>(tView);
         View::MultiSampleAntiAliasingOptions multiSampleAntiAliasingOptions;
         multiSampleAntiAliasingOptions.enabled = msaa;
-
+        multiSampleAntiAliasingOptions.sampleCount = 2;
         view->setMultiSampleAntiAliasingOptions(multiSampleAntiAliasingOptions);
+        
         TemporalAntiAliasingOptions taaOpts;
         taaOpts.enabled = taa;
+
         view->setTemporalAntiAliasingOptions(taaOpts);
         view->setAntiAliasing(fxaa ? AntiAliasing::FXAA : AntiAliasing::NONE);
     }
@@ -173,6 +175,20 @@ using namespace filament;
         view->pick(x, y, [=](filament::View::PickingQueryResult const &result) {       
             callback(requestId, utils::Entity::smuggle(result.renderable), result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z);
         });
+    }
+
+    EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabled(TView *tView, bool enabled) {
+        auto *view = reinterpret_cast<View *>(tView);
+        if(enabled) {
+            view->setDithering(Dithering::TEMPORAL);
+        } else {
+            view->setDithering(Dithering::NONE);
+        }
+    }
+    
+    EMSCRIPTEN_KEEPALIVE bool View_isDitheringEnabled(TView *tView) {
+        auto *view = reinterpret_cast<View *>(tView);
+        return view->getDithering() == Dithering::TEMPORAL;
     }
 
 #ifdef __cplusplus
