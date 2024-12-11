@@ -173,7 +173,6 @@ class FFIAsset extends ThermionAsset {
   @override
   Future addToScene() async {
     SceneAsset_addToScene(pointer, SceneManager_getScene(sceneManager));
-
   }
 
   @override
