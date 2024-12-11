@@ -27,11 +27,21 @@ ifndef FILAMENT_PATH
 else
 	@echo "Using Filament build from ${FILAMENT_PATH}"
 	@for material in unlit image unlit_fixed_size grid; do \
-		${FILAMENT_PATH}/matc -a opengl -a metal -a vulkan -o materials/$$material.filamat materials/$$material.mat; \
+		${FILAMENT_PATH}/matc -a opengl -a metal -a vulkan -o materials/$$material.filamat materials/$$material.mat || exit 1; \
 		$(FILAMENT_PATH)/resgen -c -p $$material -x thermion_dart/native/include/material/ materials/$$material.filamat; \
 		echo '#include "'$$material'.h"' | cat - thermion_dart/native/include/material/$$material.c > thermion_dart/native/include/material/$$material.c.new; \
 		mv thermion_dart/native/include/material/$$material.c.new thermion_dart/native/include/material/$$material.c; \
 	done
+endif
+
+resources: FORCE
+ifndef FILAMENT_PATH
+	@echo "FILAMENT_PATH is not set"
+else
+	@echo "Using Filament build from ${FILAMENT_PATH}"
+	$(FILAMENT_PATH)/resgen -c -p gizmo_glb -x thermion_dart/native/include/resources assets/gizmo.glb || exit 1; 
+	echo '#include "gizmo_glb.h"' | cat - thermion_dart/native/include/resources/gizmo_glb.c > thermion_dart/native/include/resources/gizmo_glb.c.new;
+	mv thermion_dart/native/include/resources/gizmo_glb.c.new thermion_dart/native/include/resources/gizmo_glb.c; 
 endif
 
 FORCE: ;
