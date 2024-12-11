@@ -31,7 +31,12 @@ namespace thermion
     {
 
     public:
-        Gizmo(Engine *engine, View *view, Scene *scene, Material *material);
+        Gizmo(
+            SceneAsset *sceneAsset,
+            Engine *engine, 
+            View *view, 
+            Scene *scene, 
+            Material *material);
         ~Gizmo() override;
 
         enum Axis
@@ -48,15 +53,20 @@ namespace thermion
             Parent,
             None
         };
+
+
+        const Aabb getBoundingBox() const override
+        {
+            return Aabb { };
+        }
         
         typedef void (*GizmoPickCallback)(Gizmo::GizmoPickResultType result, float x, float y, float z);
-
 
         void pick(uint32_t x, uint32_t y, GizmoPickCallback callback);
         bool isGizmoEntity(Entity entity);
 
         SceneAssetType getType() override { return SceneAssetType::Gizmo; }
-        utils::Entity getEntity() override { return _entities[0]; }
+        utils::Entity getEntity() override { return _parent; }
         bool isInstance() override { return false; }
         SceneAsset *createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount) override { return nullptr; }
         MaterialInstance **getMaterialInstances() override { return _materialInstances.data(); }
@@ -71,7 +81,6 @@ namespace thermion
                     continue;
                 }
                 scene->addEntity(entity);
-
             }
         }
 
@@ -126,17 +135,17 @@ namespace thermion
                 {
                     resultType = Gizmo::GizmoPickResultType::Parent;
                 }
-                else if (result.renderable == _gizmo->_x || result.renderable == _gizmo->_xHitTest)
+                else if (result.renderable == _gizmo->_x->getEntity())
                 {
                     resultType = Gizmo::GizmoPickResultType::AxisX;
                     _gizmo->highlight(Gizmo::Axis::X);
                 }
-                else if (result.renderable == _gizmo->_y || result.renderable == _gizmo->_yHitTest)
+                else if (result.renderable == _gizmo->_y->getEntity())
                 {
                     _gizmo->highlight(Gizmo::Axis::Y);
                     resultType = Gizmo::GizmoPickResultType::AxisY;
                 }
-                else if (result.renderable == _gizmo->_z || result.renderable == _gizmo->_zHitTest)
+                else if (result.renderable == _gizmo->_z->getEntity())
                 {
                     _gizmo->highlight(Gizmo::Axis::Z);
                     resultType = Gizmo::GizmoPickResultType::AxisZ;
@@ -153,8 +162,7 @@ namespace thermion
         };
 
         Entity createParentEntity();
-        Entity createHitTestEntity(Gizmo::Axis axis, Entity parent);
-        Entity createAxisEntity(Gizmo::Axis axis, Entity parent);
+        SceneAsset *createAxisInstance(Gizmo::Axis axis);
 
         math::mat4f getRotationForAxis(Gizmo::Axis axis);
         Entity getEntityForAxis(Gizmo::Axis axis)
@@ -162,26 +170,24 @@ namespace thermion
             switch (axis)
             {
             case Gizmo::Axis::X:
-                return _x;
+                return _x->getEntity();
             case Gizmo::Axis::Y:
-                return _y;
+                return _y->getEntity();
             case Gizmo::Axis::Z:
-                return _z;
+                return _z->getEntity();
             }
         }
 
+        SceneAsset *_source;
         Engine *_engine;
         Scene *_scene;
         View *_view;
         Material *_material;
 
         utils::Entity _parent;
-        utils::Entity _x;
-        utils::Entity _y;
-        utils::Entity _z;
-        utils::Entity _xHitTest;
-        utils::Entity _yHitTest;
-        utils::Entity _zHitTest;
+        SceneAsset *_x;
+        SceneAsset *_y;
+        SceneAsset *_z;
 
         std::vector<utils::Entity> _entities;
         std::vector<MaterialInstance *> _materialInstances;
