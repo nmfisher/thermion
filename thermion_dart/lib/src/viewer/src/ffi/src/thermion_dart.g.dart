@@ -1384,6 +1384,22 @@ external void remove_skybox_render_thread(
 );
 
 @ffi.Native<
+        ffi.Pointer<TGizmo> Function(
+            ffi.Pointer<TSceneManager>,
+            ffi.Pointer<TView>,
+            ffi.Pointer<TScene>,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>)>(
+    isLeaf: true)
+external ffi.Pointer<TGizmo> SceneManager_createGizmoRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>
+      onComplete,
+);
+
+@ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TSceneManager>,
             ffi.Pointer<ffi.Float>,
@@ -1533,12 +1549,12 @@ external ffi.Pointer<ffi.Void> SceneManager_destroyAssetRenderThread(
 );
 
 @ffi.Native<
-        ffi.Pointer<ffi.Void> Function(
+        ffi.Void Function(
             ffi.Pointer<TSceneManager>,
             ffi.Pointer<
                 ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>>)>(
     isLeaf: true)
-external ffi.Pointer<ffi.Void> SceneManager_createCameraRenderThread(
+external void SceneManager_createCameraRenderThread(
   ffi.Pointer<TSceneManager> tSceneManager,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>>
       callback,
