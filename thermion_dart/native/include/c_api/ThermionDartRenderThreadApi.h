@@ -55,6 +55,13 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer, const char *skyboxPath, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer);
 
+        EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmoRenderThread(
+            TSceneManager *tSceneManager, 
+            TView *tView, 
+            TScene *tScene,
+            void (*onComplete)(TGizmo*)
+        );
+
         EMSCRIPTEN_KEEPALIVE void SceneManager_createGeometryRenderThread(
             TSceneManager *sceneManager,
             float *vertices,
