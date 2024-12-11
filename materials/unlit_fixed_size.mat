@@ -2,11 +2,6 @@
         name : UnlitFixedSize,
         parameters : [
             {
-                type : mat4,
-                name : transform,
-                precision : high
-            },
-            {
                 type : float4,
                 name : baseColorFactor,
                 precision : low
@@ -35,7 +30,7 @@
             vec4 worldSpace = getWorldFromModelMatrix() * modelSpace;
             vec4 viewSpace = getViewFromWorldMatrix() * worldSpace;           
             float distanceFromCamera = length(viewSpace.xyz);
-            modelSpace.xyz *= (distanceFromCamera / materialParams.scale); 
+            modelSpace.xyz *= (distanceFromCamera / materialParams.scale);  
 
             worldSpace = getWorldFromModelMatrix() * modelSpace;
             material.worldPosition = worldSpace;
