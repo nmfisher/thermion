@@ -30,11 +30,15 @@ namespace thermion
         auto& rm = _engine->getRenderableManager();
 
         if(materialInstanceCount > 0) {
+            
+            TRACE("Instance entity count : %d", instance->getEntityCount());
+
             for(int i = 0; i < instance->getEntityCount(); i++) {
                 auto renderableInstance = rm.getInstance(instance->getEntities()[i]);
                 if(!renderableInstance.isValid()) {
-                    Log("Instance is not renderable");
+                    TRACE("Instance child entity %d not renderable", i);
                 } else {
+                    TRACE("Instance child entity %d renderable", i);
                     for(int i = 0; i < materialInstanceCount; i++) {
                         rm.setMaterialInstanceAt(renderableInstance, i, materialInstances[i]);
                     }

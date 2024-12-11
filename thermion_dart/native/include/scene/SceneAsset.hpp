@@ -22,6 +22,9 @@ class SceneAsset {
         virtual ~SceneAsset() {
             
         }
+
+        virtual const Aabb getBoundingBox() const = 0;
+
         virtual SceneAssetType getType() = 0;
         
         virtual utils::Entity getEntity() {
