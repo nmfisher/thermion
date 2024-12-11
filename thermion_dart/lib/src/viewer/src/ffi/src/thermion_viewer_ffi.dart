@@ -2064,7 +2064,10 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<GizmoAsset> createGizmo(FFIView view, GizmoType gizmoType) async {
     var scene = View_getScene(view.view);
-    final gizmo = SceneManager_createGizmo(_sceneManager!, view.view, scene);
+    final gizmo = await withPointerCallback<TGizmo>((cb) {
+      SceneManager_createGizmoRenderThread(
+          _sceneManager!, view.view, scene, cb);
+    });
     if (gizmo == nullptr) {
       throw Exception("Failed to create gizmo");
     }
