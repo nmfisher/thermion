@@ -536,6 +536,22 @@ extern "C"
     return nullptr;
   }
 
+  EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmoRenderThread(
+      TSceneManager *tSceneManager, 
+      TView *tView, 
+      TScene *tScene,
+      void (*onComplete)(TGizmo*)
+  ) {
+      std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *gizmo = SceneManager_createGizmo(tSceneManager, tView, tScene);
+          onComplete(gizmo);
+        });
+      auto fut = _rl->add_task(lambda);
+      return nullptr;
+  }
+
   EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *tSceneAsset, void (*callback)())
   {
     std::packaged_task<void()> lambda(
