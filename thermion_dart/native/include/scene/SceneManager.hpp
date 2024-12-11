@@ -85,7 +85,7 @@ namespace thermion
         /// @param layer 
         /// @param loadResourcesAsync 
         /// @return 
-        SceneAsset* loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false);
+        SceneAsset* loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false, bool addToScene = true);
 
         ///
         /// Creates an instance of the given entity.
@@ -321,6 +321,9 @@ namespace thermion
         std::vector<MaterialInstance *> _materialInstances;
 
         Material *_unlitFixedSizeMaterial = nullptr;
+        Material *_gizmoMaterial = nullptr;
+
+        SceneAsset *_gizmoGlb;
 
         utils::NameComponentManager *_ncm;
 
