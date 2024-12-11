@@ -27,6 +27,7 @@
 #include "material/FileMaterialProvider.hpp"
 #include "material/UnlitMaterialProvider.hpp"
 #include "material/unlit.h"
+#include "material/gizmo.h"
 
 #include "StreamBufferAdapter.hpp"
 
@@ -40,6 +41,8 @@
 #include "scene/SceneAsset.hpp"
 #include "scene/GeometrySceneAssetBuilder.hpp"
 #include "UnprojectTexture.hpp"
+
+#include "resources/gizmo_glb.h"
 
 extern "C"
 {
@@ -111,6 +114,11 @@ namespace thermion
             Material::Builder()
                 .package(UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_DATA, UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_SIZE)
                 .build(*_engine);
+
+        _gizmoMaterial =
+            Material::Builder()
+                .package(GIZMO_GIZMO_DATA, GIZMO_GIZMO_SIZE)
+                .build(*_engine);
     }
 
     SceneManager::~SceneManager()
@@ -125,6 +133,7 @@ namespace thermion
         destroyAll();
 
         _engine->destroy(_unlitFixedSizeMaterial);
+        _engine->destroy(_gizmoMaterial);
         _cameras.clear();
         
         _grid = nullptr;
@@ -167,9 +176,13 @@ namespace thermion
 
     Gizmo *SceneManager::createGizmo(View *view, Scene *scene)
     {
-        auto gizmo = std::make_unique<Gizmo>(_engine, view, scene, _unlitFixedSizeMaterial);
+        if(!_gizmoGlb) {
+            _gizmoGlb = loadGlbFromBuffer(GIZMO_GLB_GIZMO_DATA, GIZMO_GLB_GIZMO_SIZE, 100, true, 4, 0, false, false);
+        }
+        auto gizmo = std::make_unique<Gizmo>(_gizmoGlb, _engine, view, scene, _unlitFixedSizeMaterial);
         auto *raw = gizmo.get();
         _sceneAssets.push_back(std::move(gizmo));
+        
         return raw;
     }
 
@@ -312,7 +325,7 @@ namespace thermion
         }
     }
 
-    SceneAsset *SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync)
+    SceneAsset *SceneManager::loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync, bool addToScene)
     {
         auto &rm = _engine->getRenderableManager();
 
@@ -362,10 +375,12 @@ namespace thermion
             _engine);
 
         auto sceneAssetInstance = sceneAsset->createInstance();
-        sceneAssetInstance->addAllEntities(_scene);
+        if(addToScene) {
+            sceneAssetInstance->addAllEntities(_scene);
+        }
         sceneAssetInstance->setPriority(_engine->getRenderableManager(), priority);
         sceneAssetInstance->setLayer(_engine->getRenderableManager(), layer);
-
+        
         auto *raw = sceneAsset.get();
 
         _sceneAssets.push_back(std::move(sceneAsset));
