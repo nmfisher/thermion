@@ -6,6 +6,7 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:path/path.dart' as path;
 
 void main(List<String> args) async {
+
   await build(args, (config, output) async {
     var pkgRootFilePath =
         config.packageRoot.toFilePath(windows: Platform.isWindows);
@@ -55,6 +56,7 @@ void main(List<String> args) async {
     var libDir = config.dryRun ? "" : (await getLibDir(config, logger)).path;
 
     final packageName = config.packageName;
+    
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
@@ -73,6 +75,8 @@ void main(List<String> args) async {
       path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "unlit.c"),
+      path.join(pkgRootFilePath, "native", "include", "material", "gizmo.c"),
+      path.join(pkgRootFilePath, "native", "include", "resources", "gizmo_glb.c"),
     ]);
 
     var libs = [
@@ -153,6 +157,11 @@ void main(List<String> args) async {
         'Cocoa',
         "Metal",
       ]);
+  
+      if (!config.dryRun && config.buildMode == BuildMode.debug) {
+        flags.addAll(["-g", "-O0"]);
+      }
+
       libs.addAll(["bluegl", "bluevk"]);
     } else if (platform == "android") {
       libs.addAll(["GLESv3", "EGL", "bluevk", "dl", "android"]);
@@ -246,32 +255,31 @@ void main(List<String> args) async {
           file: importLib.uri,
           architecture: config.targetArchitecture));
 
-      for(final dir in ["windows/vulkan"]) { // , "filament/bluevk", "filament/vulkan"
-      final targetSubdir = path
-          .join(config.outputDirectory.path, "include", dir)
-          .substring(1);
-      if (!Directory(targetSubdir).existsSync()) {
-        Directory(targetSubdir).createSync(recursive: true);
-      }
+      for (final dir in ["windows/vulkan"]) {
+        // , "filament/bluevk", "filament/vulkan"
+        final targetSubdir =
+            path.join(config.outputDirectory.path, "include", dir).substring(1);
+        if (!Directory(targetSubdir).existsSync()) {
+          Directory(targetSubdir).createSync(recursive: true);
+        }
 
-      for (var file in Directory(path.join(
-              pkgRootFilePath, "native", "include", dir))
-          .listSync()) {
-        if (file is File) {
-          final targetPath = path.join(targetSubdir, path.basename(file.path));
-          file.copySync(targetPath);
-          output.addAsset(NativeCodeAsset(
-              package: config.packageName,
-              name: "include/$dir/${path.basename(file.path)}",
-              linkMode: DynamicLoadingBundled(),
-              os: config.targetOS,
-              file: file.uri,
-              architecture: config.targetArchitecture));
+        for (var file
+            in Directory(path.join(pkgRootFilePath, "native", "include", dir))
+                .listSync()) {
+          if (file is File) {
+            final targetPath =
+                path.join(targetSubdir, path.basename(file.path));
+            file.copySync(targetPath);
+            output.addAsset(NativeCodeAsset(
+                package: config.packageName,
+                name: "include/$dir/${path.basename(file.path)}",
+                linkMode: DynamicLoadingBundled(),
+                os: config.targetOS,
+                file: file.uri,
+                architecture: config.targetArchitecture));
+          }
         }
       }
-      }
-
-
     }
   });
 }
