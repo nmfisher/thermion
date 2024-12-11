@@ -73,6 +73,10 @@ namespace thermion
             return _asset;
         }
 
+        const Aabb getBoundingBox() const override {
+            return _asset->getBoundingBox();
+        }
+
         void addAllEntities(Scene *scene) override
         {
             scene->addEntities(_asset->getEntities(), _asset->getEntityCount());

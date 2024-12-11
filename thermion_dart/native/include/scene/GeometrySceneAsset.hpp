@@ -53,7 +53,14 @@ namespace thermion
             return _materialInstanceCount;
         }
 
-        const Box &getBoundingBox() const { return _boundingBox; }
+        const Aabb getBoundingBox() const override
+        {
+            return Aabb {
+
+                .min = _boundingBox.getMin(), // center - halfExtent
+                .max = _boundingBox.getMax()  // center + halfExtent
+            };
+        }
         VertexBuffer *getVertexBuffer() const { return _vertexBuffer; }
         IndexBuffer *getIndexBuffer() const { return _indexBuffer; }
 
@@ -137,7 +144,6 @@ namespace thermion
         utils::Entity _entity;
         RenderableManager::PrimitiveType _primitiveType;
         std::vector<std::unique_ptr<GeometrySceneAsset>> _instances;
-
     };
 
 } // namespace thermion
