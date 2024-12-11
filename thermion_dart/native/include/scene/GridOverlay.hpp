@@ -33,6 +33,12 @@ public:
     void setPriority(RenderableManager& rm, int priority) override;
     void setLayer(RenderableManager& rm, int layer) override;
 
+
+    const Aabb getBoundingBox() const override
+    {
+        return Aabb { };
+    }
+
     size_t getInstanceCount() override { return _instances.size(); }
     SceneAsset* getInstanceByEntity(utils::Entity entity) override;
     SceneAsset* getInstanceAt(size_t index) override;
