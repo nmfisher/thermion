@@ -31,4 +31,12 @@ static void Log(const char *fmt, ...) {
     va_end(args);
 }
 
+#ifdef __ANDROID__
+    #define TRACE(fmt, ...) Log("%s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+#elif defined __OBJC__
+    #define TRACE(fmt, ...) Log("%s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+    #define TRACE(fmt, ...) Log("%s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+#endif
+
 #endif
