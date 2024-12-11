@@ -12,7 +12,9 @@ export 'light_options.dart';
 typedef ThermionEntity = int;
 
 abstract class ThermionAsset {
+  
   ThermionEntity get entity;
+  
   Future<List<ThermionEntity>> getChildEntities();
 
   ///
