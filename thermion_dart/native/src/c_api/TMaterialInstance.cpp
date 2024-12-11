@@ -41,9 +41,11 @@ namespace thermion
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
         }
 
-        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *materialInstance, const char *propertyName, double value)
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *tMaterialInstance, const char *propertyName, double value)
         {
-            reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, static_cast<float>(value));
+            auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
+            auto fValue = static_cast<float>(value);
+            materialInstance->setParameter(propertyName, fValue);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *materialInstance, const char *propertyName, int value)
