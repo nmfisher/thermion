@@ -11,6 +11,8 @@
 #include <gltfio/FilamentInstance.h>
 #include <gltfio/MaterialProvider.h>
 
+#include <utils/NameComponentManager.h>
+
 #include "scene/SceneAsset.hpp"
 
 namespace thermion
@@ -24,9 +26,11 @@ namespace thermion
         GltfSceneAssetInstance(
             gltfio::FilamentInstance *instance,
             Engine *engine,
+            utils::NameComponentManager* ncm,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0,
-            int instanceIndex = -1) : _instance(instance),
+            int instanceIndex = -1) : _ncm(ncm), 
+                                      _instance(instance),
                                       _materialInstances(materialInstances),
                                       _materialInstanceCount(materialInstanceCount)
         {
@@ -102,7 +106,22 @@ namespace thermion
         }
 
         Entity findEntityByName(const char* name) override { 
-            return Entity(); // not currently implemented
+            
+            TRACE("Searching for entity with name %s", name);
+
+            for(int i = 0; i < getChildEntityCount(); i++) {
+                auto entity = getChildEntities()[i];
+                auto nameInstance = _ncm->getInstance(entity);
+                auto entityName = _ncm->getName(nameInstance);
+
+                if (strcmp(entityName, name) == 0) {
+                    TRACE("Found entity name : %s", entityName);
+                    return entity;
+                }
+                TRACE("Skipping entity : %s", entityName);
+
+            }
+            return Entity(); 
         }
 
         SceneAsset *getInstanceByEntity(utils::Entity entity) override {
@@ -139,6 +158,7 @@ namespace thermion
 
     private:
         filament::Engine *_engine;
+        utils::NameComponentManager *_ncm;
         gltfio::FilamentInstance *_instance;
         MaterialInstance **_materialInstances = nullptr;
         size_t _materialInstanceCount = 0;

@@ -285,7 +285,9 @@ namespace thermion
         auto sceneAsset = std::make_unique<GltfSceneAsset>(
             asset,
             _assetLoader,
-            _engine);
+            _engine,
+            _ncm
+        );
         auto filamentInstance = asset->getInstance();
         size_t entityCount = filamentInstance->getEntityCount();
 
@@ -372,7 +374,9 @@ namespace thermion
         auto sceneAsset = std::make_unique<GltfSceneAsset>(
             asset,
             _assetLoader,
-            _engine);
+            _engine,
+            _ncm
+        );
 
         auto sceneAssetInstance = sceneAsset->createInstance();
         if(addToScene) {
