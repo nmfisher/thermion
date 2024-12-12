@@ -21,60 +21,87 @@ namespace thermion
 
     Gizmo::Gizmo(
         SceneAsset *sceneAsset,
-        Engine *engine, 
-        View *view, 
-        Scene *scene, 
-        Material *material
-    ) : _source(sceneAsset), 
-        _engine(engine),
-        _view(view),
-        _scene(scene),
-        _material(material)
+        Engine *engine,
+        View *view,
+        Scene *scene,
+        Material *material) : _source(sceneAsset),
+                              _engine(engine),
+                              _view(view),
+                              _scene(scene),
+                              _material(material)
     {
         auto &entityManager = _engine->getEntityManager();
 
         _parent = entityManager.create();
+        TRACE("Created Gizmo parent entity %d", _parent);
+        _entities.push_back(_parent);
 
-        _z = createAxisInstance(Axis::Z);
-        _y = createAxisInstance(Axis::Y);
-        _x = createAxisInstance(Axis::X);
-
-        _entities = std::vector { _parent };
-        
-        for(auto axis : { _z, _y, _x}) {
-            
-            for(int i =0; i < axis->getChildEntityCount(); i++) {
-                auto entity = axis->getChildEntities()[i];
-                _entities.push_back(entity);
-            }
-        }
-
+        createAxisInstance(Axis::X);
+        createAxisInstance(Axis::Y);
+        createAxisInstance(Axis::Z);
     }
 
-
-    SceneAsset *Gizmo::createAxisInstance(Gizmo::Axis axis)
+    void Gizmo::createAxisInstance(Gizmo::Axis axis)
     {
+        auto &rm = _engine->getRenderableManager();
+
         auto *materialInstance = _material->createInstance();
         _materialInstances.push_back(materialInstance);
         auto instance = _source->createInstance(&materialInstance, 1);
 
-        auto box = _source->getBoundingBox();
-        Log("BB %f %f %f %f %f %f", box.center(), box.extent().x, box.extent().y, box.extent().z);
+        TRACE("Created Gizmo axis glTF instance with head entity %d", instance->getEntity());
 
-        // Set material properties
         materialInstance->setParameter("baseColorFactor", inactiveColors[axis]);
         materialInstance->setParameter("scale", 4.0f);
-        // materialInstance->setParameter("screenSpaceSize", 90.0f);
+
+        auto hitTestEntity = instance->findEntityByName("HitTest");
+        TRACE("Created hit test entity %d for axis %d", hitTestEntity, axis);
+        _hitTest.push_back(hitTestEntity);
+
+        if (hitTestEntity.isNull())
+        {
+            TRACE("Hit test entity not found");
+        }
+        else
+        {
+            auto renderableInstance = rm.getInstance(hitTestEntity);
+            if (!renderableInstance.isValid())
+            {
+                TRACE("Failed to find renderable for hit test entity");
+            }
+            else
+            {
+                auto *hitTestMaterialInstance = _material->createInstance();
+                _materialInstances.push_back(hitTestMaterialInstance);
+                hitTestMaterialInstance->setParameter("baseColorFactor", math::float4{1.0f, 0.0f, 1.0f, 0.5f});
+                hitTestMaterialInstance->setParameter("scale", 4.0f);
+                rm.setMaterialInstanceAt(renderableInstance, 0, hitTestMaterialInstance);
+            }
+        }
 
         auto transform = getRotationForAxis(axis);
 
-        Log("Created axis instance for %d", axis);
+        TRACE("Created Gizmo axis instance for axis %d", axis);
 
-        auto& tm = _engine->getTransformManager();
+        auto &tm = _engine->getTransformManager();
         auto transformInstance = tm.getInstance(instance->getEntity());
         tm.setTransform(transformInstance, transform);
+        
+        // parent this entity's transform to the Gizmo _parent entity
+        tm.setParent(transformInstance, tm.getInstance(_parent));
 
-        return instance;
+        _entities.push_back(instance->getEntity());
+
+        TRACE("Added entity %d for axis %d", instance->getEntity(), axis);
+
+        for (int i = 0; i < instance->getChildEntityCount(); i++)
+        {
+            auto entity = instance->getChildEntities()[i];
+            _entities.push_back(entity);
+            TRACE("Added entity %d for axis %d", entity, axis);
+        }
+
+        _axes.push_back(instance);
     }
 
     Gizmo::~Gizmo()
@@ -95,40 +122,46 @@ namespace thermion
     void Gizmo::highlight(Gizmo::Axis axis)
     {
         auto &rm = _engine->getRenderableManager();
-        auto entity = getEntityForAxis(axis);
-        if (entity.isNull())
-        {
-            return;
-        }
-        auto renderableInstance = rm.getInstance(entity);
+        auto instance = _axes[axis];
 
-        if (!renderableInstance.isValid())
+        for (int i = 0; i < instance->getChildEntityCount(); i++)
         {
-            Log("Invalid renderable for axis");
-            return;
+            auto childEntity = instance->getChildEntities()[i];
+            if (childEntity == _hitTest[axis])
+            {
+                continue;
+            }
+            auto renderableInstance = rm.getInstance(childEntity);
+            if (renderableInstance.isValid())
+            {
+                auto *materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
+                math::float4 baseColor = activeColors[axis];
+                materialInstance->setParameter("baseColorFactor", baseColor);
+            }
         }
-        auto *materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
-        math::float4 baseColor = activeColors[axis];
-        materialInstance->setParameter("baseColorFactor", baseColor);
     }
 
     void Gizmo::unhighlight(Gizmo::Axis axis)
     {
         auto &rm = _engine->getRenderableManager();
-        auto entity = getEntityForAxis(axis);
-        if (entity.isNull())
+
+        auto instance = _axes[axis];
+
+        for (int i = 0; i < instance->getChildEntityCount(); i++)
         {
-            return;
+            auto childEntity = instance->getChildEntities()[i];
+            if (childEntity == _hitTest[axis])
+            {
+                continue;
+            }
+            auto renderableInstance = rm.getInstance(childEntity);
+            if (renderableInstance.isValid())
+            {
+                auto *materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
+                math::float4 baseColor = inactiveColors[axis];
+                materialInstance->setParameter("baseColorFactor", baseColor);
+            }
         }
-        auto renderableInstance = rm.getInstance(entity);
-        if (!renderableInstance.isValid())
-        {
-            Log("Invalid renderable for axis");
-            return;
-        }
-        auto *materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
-        math::float4 baseColor = inactiveColors[axis];
-        materialInstance->setParameter("baseColorFactor", baseColor);
     }
 
     void Gizmo::pick(uint32_t x, uint32_t y, GizmoPickCallback callback)
