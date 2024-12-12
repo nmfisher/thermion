@@ -201,14 +201,17 @@ namespace thermion
                 }
                 else
                 {
-                    if(entity == axis->getEntity()) {
+                    if (entity == axis->getEntity())
+                    {
                         TRACE("MATCHED AXIS HEAD ENTITY");
                         result = GizmoPickResultType(axisIndex);
-                    } else {
+                    }
+                    else
+                    {
                         for (int entityIndex = 0; entityIndex < axis->getChildEntityCount(); entityIndex++)
                         {
                             auto childEntity = axis->getChildEntities()[entityIndex];
-                            
+
                             if (entity == childEntity)
                             {
                                 TRACE("MATCHED AXIS CHILD ENTITY %d (index %d)", childEntity, entityIndex);
