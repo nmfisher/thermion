@@ -36,7 +36,10 @@ namespace thermion
             Engine *engine,
             View *view,
             Scene *scene,
-            Material *material);
+            Material *material) noexcept;
+
+        Gizmo(Gizmo &&other) noexcept;
+
         ~Gizmo() override;
 
         enum Axis
@@ -152,6 +155,8 @@ namespace thermion
         View *_view;
         Material *_material;
 
+        float _scale = 8.0f;
+
         utils::Entity _parent;
         std::vector<SceneAsset *> _axes;
         std::vector<utils::Entity> _hitTest;
@@ -177,7 +182,7 @@ namespace thermion
                 return Gizmo::GizmoPickResultType::None;
             }
 
-            TRACE("Checking picked entity %d against gizmo axes (axis hit test entities are %d %d %d)", entity, _hitTest[0], _hitTest[1], _hitTest[2]);
+            TRACE("Checking picked entity %d against gizmo axes with (%d axis hit test entities : %d %d %d)", entity, _hitTest.size(), _hitTest[0], _hitTest[1], _hitTest[2]);
 
             if (entity == _parent)
             {
@@ -187,7 +192,7 @@ namespace thermion
             for (int axisIndex = 0; axisIndex < _axes.size(); axisIndex++)
             {
                 auto axis = _axes[axisIndex];
-                TRACE("Checking for axisindex %d", axisIndex);
+                TRACE("Checking for axisindex %d with %d child entities", axisIndex, axis->getChildEntityCount());
                 GizmoPickResultType result = GizmoPickResultType::None;
                 if (entity == _hitTest[axisIndex])
                 {
@@ -196,14 +201,21 @@ namespace thermion
                 }
                 else
                 {
-                    for (int entityIndex = 0; entityIndex < axis->getChildEntityCount(); entityIndex++)
-                    {
-                        auto childEntity = axis->getChildEntities()[entityIndex];
-                        if (entity == childEntity)
+                    if(entity == axis->getEntity()) {
+                        TRACE("MATCHED AXIS HEAD ENTITY");
+                        result = GizmoPickResultType(axisIndex);
+                    } else {
+                        for (int entityIndex = 0; entityIndex < axis->getChildEntityCount(); entityIndex++)
                         {
-                            TRACE("MATCHED AXIS CHILD ENTITY at index %d", entityIndex);
-                            result = GizmoPickResultType(axisIndex);
-                            break;
+                            auto childEntity = axis->getChildEntities()[entityIndex];
+                            
+                            if (entity == childEntity)
+                            {
+                                TRACE("MATCHED AXIS CHILD ENTITY %d (index %d)", childEntity, entityIndex);
+                                result = GizmoPickResultType(axisIndex);
+                                break;
+                            }
+                            TRACE("Failed to match entity %d against axis child entity %d", entity, childEntity);
                         }
                     }
                 }

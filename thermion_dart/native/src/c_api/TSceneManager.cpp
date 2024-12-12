@@ -30,12 +30,12 @@ extern "C"
         return reinterpret_cast<TMaterialProvider*>(provider);
     }
 
-    EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene)
+    EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene, TGizmoType tGizmoType)
     {
         auto sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         auto *scene = reinterpret_cast<Scene *>(tScene);
         auto *view = reinterpret_cast<View *>(tView);
-        auto gizmo = sceneManager->createGizmo(view, scene);
+        auto gizmo = sceneManager->createGizmo(view, scene, static_cast<SceneManager::GizmoType>(tGizmoType));
         return reinterpret_cast<TGizmo *>(gizmo);
     }
 

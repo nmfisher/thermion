@@ -128,6 +128,10 @@ class GizmoInputHandler extends InputHandler {
   final InputHandler wrapped;
   final ThermionViewer viewer;
   late final _Gizmo translationGizmo;
+  late final _Gizmo rotationGizmo;
+  _Gizmo get active =>
+      type == GizmoType.translation ? translationGizmo : rotationGizmo;
+  GizmoType type = GizmoType.translation;
 
   Stream<({ThermionEntity entity, Matrix4 transform})>
       get onEntityTransformUpdated =>
@@ -145,9 +149,12 @@ class GizmoInputHandler extends InputHandler {
     }
     await viewer.initialized;
     final view = await viewer.getViewAt(0);
-    var translationGizmoAsset =
-        await viewer.createGizmo(view, GizmoType.translation);
-    this.translationGizmo = _Gizmo(translationGizmoAsset, viewer);
+
+    var tg = await viewer.createGizmo(view, GizmoType.translation);
+    this.translationGizmo = _Gizmo(tg, viewer);
+    var rg = await viewer.createGizmo(view, GizmoType.rotation);
+    this.rotationGizmo = _Gizmo(rg, viewer);
+
     _initialized.complete(true);
   }
 
@@ -156,6 +163,7 @@ class GizmoInputHandler extends InputHandler {
 
   @override
   Future dispose() async {
+    await viewer.removeEntity(rotationGizmo._gizmo);
     await viewer.removeEntity(translationGizmo._gizmo);
   }
 
@@ -192,13 +200,13 @@ class GizmoInputHandler extends InputHandler {
 
     await viewer.pick(localPosition.x.toInt(), localPosition.y.toInt(),
         (result) async {
-      if (translationGizmo._gizmo.isNonPickable(result.entity) ||
+      if (active._gizmo.isNonPickable(result.entity) ||
           result.entity == FILAMENT_ENTITY_NULL) {
-        await translationGizmo.detach();
+        await active.detach();
         return;
       }
-      if (!translationGizmo._gizmo.isGizmoEntity(result.entity)) {
-        translationGizmo.attach(result.entity);
+      if (!active._gizmo.isGizmoEntity(result.entity)) {
+        active.attach(result.entity);
       }
     });
   }
@@ -208,19 +216,19 @@ class GizmoInputHandler extends InputHandler {
     if (!_initialized.isCompleted) {
       return;
     }
-    translationGizmo.checkHover(
+    active.checkHover(
         localPosition.x.floor(), localPosition.y.floor());
   }
 
   @override
   Future<void> onPointerMove(
       Vector2 localPosition, Vector2 delta, bool isMiddle) async {
-    if (!isMiddle && translationGizmo._active != null) {
+    if (!isMiddle && active._active != null) {
       final scaledDelta = Vector2(
         delta.x,
         delta.y,
       );
-      translationGizmo._updateTransform(localPosition, scaledDelta);
+      active._updateTransform(localPosition, scaledDelta);
       return;
     }
     return wrapped.onPointerMove(localPosition, delta, isMiddle);
@@ -268,21 +276,19 @@ class GizmoInputHandler extends InputHandler {
   }
 
   Future detach(ThermionAsset asset) async {
-    
-    if (translationGizmo._attachedTo == asset.entity) {
-      await translationGizmo.detach();
+    if (active._attachedTo == asset.entity) {
+      await active.detach();
       return;
     }
     final childEntities = await asset.getChildEntities();
-    for(final childEntity in childEntities) {
-      if(translationGizmo._attachedTo == childEntity) {
-        await translationGizmo.detach();
-      return;
+    for (final childEntity in childEntities) {
+      if (active._attachedTo == childEntity) {
+        await active.detach();
+        return;
       }
     }
-     
   }
-  
+
   // @override
   // Future setCamera(Camera camera) async  {
   //   await wrapped.setCamera(camera);

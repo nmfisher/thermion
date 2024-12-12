@@ -60,6 +60,11 @@ namespace thermion
             OVERLAY = 7,
         };
 
+        enum GizmoType {
+            TRANSLATION,
+            ROTATION
+        };
+
         ////
         /// @brief Load the glTF file from the specified path and adds all entities to the scene.
         /// @param uri the path to the asset. Should be either asset:// (representing a Flutter asset), or file:// (representing a filesystem file).
@@ -277,7 +282,7 @@ namespace thermion
         /// @param view 
         /// @param scene 
         /// @return 
-        Gizmo *createGizmo(View *view, Scene *scene);
+        Gizmo *createGizmo(View *view, Scene *scene, GizmoType type);
 
 
         /// @brief 
@@ -323,7 +328,8 @@ namespace thermion
         Material *_unlitFixedSizeMaterial = nullptr;
         Material *_gizmoMaterial = nullptr;
 
-        SceneAsset *_gizmoGlb;
+        SceneAsset *_translationGizmoGlb;
+        SceneAsset *_rotationGizmoGlb;
 
         utils::NameComponentManager *_ncm;
 

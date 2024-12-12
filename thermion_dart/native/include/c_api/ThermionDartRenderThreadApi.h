@@ -59,6 +59,7 @@ namespace thermion
             TSceneManager *tSceneManager, 
             TView *tView, 
             TScene *tScene,
+            TGizmoType tGizmoType,
             void (*onComplete)(TGizmo*)
         );
 

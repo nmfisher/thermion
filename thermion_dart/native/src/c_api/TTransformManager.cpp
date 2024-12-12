@@ -81,12 +81,11 @@ extern "C"
         const auto child = Entity::import(childId);
         const auto parent = Entity::import(parentId);
 
-
         const auto &childInstance = tm->getInstance(child);
 
         if (!childInstance.isValid())
         {
-            Log("Child instance is not valid");
+            TRACE("Can't set transform parent, child instance is not valid");
             return;
         }
 

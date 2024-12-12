@@ -2066,7 +2066,7 @@ class ThermionViewerFFI extends ThermionViewer {
     var scene = View_getScene(view.view);
     final gizmo = await withPointerCallback<TGizmo>((cb) {
       SceneManager_createGizmoRenderThread(
-          _sceneManager!, view.view, scene, cb);
+          _sceneManager!, view.view, scene, TGizmoType.values[gizmoType.index], cb);
     });
     if (gizmo == nullptr) {
       throw Exception("Failed to create gizmo");
