@@ -1,16 +1,16 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 class _Gizmo {
   bool isVisible = false;
-
   final ThermionViewer viewer;
   final GizmoAsset _gizmo;
-
   ThermionEntity? _attachedTo;
+  final GizmoType type;
 
-  _Gizmo(this._gizmo, this.viewer);
+  _Gizmo(this._gizmo, this.viewer, this.type);
 
   final _onEntityTransformUpdated = StreamController<
       ({ThermionEntity entity, Matrix4 transform})>.broadcast();
@@ -18,7 +18,21 @@ class _Gizmo {
   Axis? _active;
   Axis? get active => _active;
 
-  Vector3? _activeCords;
+
+  double _getAngleBetweenVectors(Vector2 v1, Vector2 v2) {
+    // Normalize vectors to ensure consistent rotation regardless of distance from center
+    v1.normalize();
+    v2.normalize();
+    
+    // Calculate angle using atan2
+    double angle = atan2(v2.y, v2.x) - atan2(v1.y, v1.x);
+    
+    // Ensure angle is between -π and π
+    if (angle > pi) angle -= 2 * pi;
+    if (angle < -pi) angle += 2 * pi;
+    
+    return angle;
+  }
 
   void checkHover(int x, int y) async {
     _gizmo.pick(x, y, handler: (result, coords) async {
@@ -29,16 +43,10 @@ class _Gizmo {
           break;
         case GizmoPickResultType.AxisX:
           _active = Axis.X;
-          _activeCords = coords;
-
         case GizmoPickResultType.AxisY:
           _active = Axis.Y;
-          _activeCords = coords;
-
         case GizmoPickResultType.AxisZ:
           _active = Axis.Z;
-          _activeCords = coords;
-
         default:
       }
     });
@@ -79,11 +87,20 @@ class _Gizmo {
       return;
     }
 
+    if (type == GizmoType.translation) {
+      await _updateTranslation(currentPosition, delta);
+    } else if (type == GizmoType.rotation) {
+      await _updateRotation(currentPosition, delta);
+    }
+
+    _onEntityTransformUpdated
+        .add((entity: _attachedTo!, transform: gizmoTransform!));
+  }
+
+  Future<void> _updateTranslation(Vector2 currentPosition, Vector2 delta) async {
     var view = await viewer.getViewAt(0);
     var camera = await viewer.getActiveCamera();
-
     var viewport = await view.getViewport();
-
     var projectionMatrix = await viewer.getCameraProjectionMatrix();
     var viewMatrix = await camera.getViewMatrix();
     var inverseViewMatrix = await camera.getModelMatrix();
@@ -98,13 +115,17 @@ class _Gizmo {
 
     var gizmoNdc = gizmoClipSpace / gizmoClipSpace.w;
 
-    var gizmoScreenSpace = Vector2(((gizmoNdc.x / 2) + 0.5) * viewport.width,
+    var gizmoScreenSpace = Vector2(
+        ((gizmoNdc.x / 2) + 0.5) * viewport.width,
         viewport.height - (((gizmoNdc.y / 2) + 0.5) * viewport.height));
 
     gizmoScreenSpace += delta;
 
-    gizmoNdc = Vector4(((gizmoScreenSpace.x / viewport.width) - 0.5) * 2,
-        (((gizmoScreenSpace.y / viewport.height)) - 0.5) * -2, gizmoNdc.z, 1.0);
+    gizmoNdc = Vector4(
+        ((gizmoScreenSpace.x / viewport.width) - 0.5) * 2,
+        (((gizmoScreenSpace.y / viewport.height)) - 0.5) * -2,
+        gizmoNdc.z,
+        1.0);
 
     var gizmoViewSpace = inverseProjectionMatrix * gizmoNdc;
     gizmoViewSpace /= gizmoViewSpace.w;
@@ -118,11 +139,78 @@ class _Gizmo {
         .setTranslation(gizmoTransform!.getTranslation() + worldSpaceDelta);
 
     await viewer.setTransform(_attachedTo!, gizmoTransform!);
+  }
 
-    _onEntityTransformUpdated
-        .add((entity: _attachedTo!, transform: gizmoTransform!));
+  Future<void> _updateRotation(Vector2 currentPosition, Vector2 delta) async {
+
+    var view = await viewer.getViewAt(0);
+    var camera = await viewer.getActiveCamera();
+    var viewport = await view.getViewport();
+    var projectionMatrix = await viewer.getCameraProjectionMatrix();
+    var viewMatrix = await camera.getViewMatrix();
+
+    // Get gizmo center in screen space
+    var gizmoPositionWorldSpace = gizmoTransform!.getTranslation();
+    Vector4 gizmoClipSpace = projectionMatrix *
+        viewMatrix *
+        Vector4(gizmoPositionWorldSpace.x, gizmoPositionWorldSpace.y,
+            gizmoPositionWorldSpace.z, 1.0);
+
+    var gizmoNdc = gizmoClipSpace / gizmoClipSpace.w;
+    var gizmoScreenSpace = Vector2(
+        ((gizmoNdc.x / 2) + 0.5) * viewport.width,
+        viewport.height - (((gizmoNdc.y / 2) + 0.5) * viewport.height));
+
+    // Calculate vectors from gizmo center to previous and current mouse positions
+    var prevVector = (currentPosition - delta) - gizmoScreenSpace;
+    var currentVector = currentPosition - gizmoScreenSpace;
+
+    // Calculate rotation angle based on the active axis
+    double rotationAngle = 0.0;
+    switch (_active) {
+      case Axis.X:
+        // For X axis, project onto YZ plane
+        var prev = Vector2(prevVector.y, -prevVector.x);
+        var curr = Vector2(currentVector.y, -currentVector.x);
+        rotationAngle = _getAngleBetweenVectors(prev, curr);
+        break;
+      case Axis.Y:
+        // For Y axis, project onto XZ plane
+        var prev = Vector2(prevVector.x, -prevVector.y);
+        var curr = Vector2(currentVector.x, -currentVector.y);
+        rotationAngle = _getAngleBetweenVectors(prev, curr);
+        break;
+      case Axis.Z:
+        // For Z axis, use screen plane directly
+        rotationAngle = -1 * _getAngleBetweenVectors(prevVector, currentVector);
+        break;
+      default:
+        return;
+    }
+
+    // Create rotation matrix based on the active axis
+    var rotationMatrix = Matrix4.identity();
+    switch (_active) {
+      case Axis.X:
+        rotationMatrix.setRotationX(rotationAngle);
+        break;
+      case Axis.Y:
+        rotationMatrix.setRotationY(rotationAngle);
+        break;
+      case Axis.Z:
+        rotationMatrix.setRotationZ(rotationAngle);
+        break;
+      default:
+        return;
+    }
+
+    // Apply rotation to the current transform
+    gizmoTransform = rotationMatrix * gizmoTransform!;
+    await viewer.setTransform(_attachedTo!, gizmoTransform!);
+    
   }
 }
+
 
 class GizmoInputHandler extends InputHandler {
   final InputHandler wrapped;
@@ -151,9 +239,9 @@ class GizmoInputHandler extends InputHandler {
     final view = await viewer.getViewAt(0);
 
     var tg = await viewer.createGizmo(view, GizmoType.translation);
-    this.translationGizmo = _Gizmo(tg, viewer);
+    this.translationGizmo = _Gizmo(tg, viewer, GizmoType.translation);
     var rg = await viewer.createGizmo(view, GizmoType.rotation);
-    this.rotationGizmo = _Gizmo(rg, viewer);
+    this.rotationGizmo = _Gizmo(rg, viewer, GizmoType.rotation);
 
     _initialized.complete(true);
   }

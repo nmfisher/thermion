@@ -155,7 +155,7 @@ namespace thermion
         View *_view;
         Material *_material;
 
-        float _scale = 8.0f;
+        float _scale = 10.0f;
 
         utils::Entity _parent;
         std::vector<SceneAsset *> _axes;
