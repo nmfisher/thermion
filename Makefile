@@ -39,9 +39,11 @@ ifndef FILAMENT_PATH
 	@echo "FILAMENT_PATH is not set"
 else
 	@echo "Using Filament build from ${FILAMENT_PATH}"
-	$(FILAMENT_PATH)/resgen -c -p gizmo_glb -x thermion_dart/native/include/resources assets/gizmo.glb || exit 1; 
-	echo '#include "gizmo_glb.h"' | cat - thermion_dart/native/include/resources/gizmo_glb.c > thermion_dart/native/include/resources/gizmo_glb.c.new;
-	mv thermion_dart/native/include/resources/gizmo_glb.c.new thermion_dart/native/include/resources/gizmo_glb.c; 
+	@for gizmo in translation rotation; do \
+		$(FILAMENT_PATH)/resgen -c -p $${gizmo}_gizmo_glb -x thermion_dart/native/include/resources assets/$${gizmo}_gizmo.glb || exit 1; \
+		echo '#include "'$${gizmo}_gizmo_glb.h'"' | cat - thermion_dart/native/include/resources/$${gizmo}_gizmo_glb.c > thermion_dart/native/include/resources/$${gizmo}_gizmo_glb.c.new; \
+		mv thermion_dart/native/include/resources/$${gizmo}_gizmo_glb.c.new thermion_dart/native/include/resources/$${gizmo}_gizmo_glb.c; \
+	done
 endif
 
 FORCE: ;
