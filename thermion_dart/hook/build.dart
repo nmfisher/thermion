@@ -76,7 +76,8 @@ void main(List<String> args) async {
       path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "unlit.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "gizmo.c"),
-      path.join(pkgRootFilePath, "native", "include", "resources", "gizmo_glb.c"),
+      path.join(pkgRootFilePath, "native", "include", "resources", "translation_gizmo_glb.c"),
+      path.join(pkgRootFilePath, "native", "include", "resources", "rotation_gizmo_glb.c"),
     ]);
 
     var libs = [
@@ -117,7 +118,9 @@ void main(List<String> args) async {
       libs.add("stdc++");
     }
     final flags = []; //"-fsanitize=address"];
-    final defines = <String, String?>{};
+    final defines = <String, String?>{
+      // "ENABLE_TRACING":"1"
+    };
     var frameworks = [];
 
     if (platform != "windows") {
