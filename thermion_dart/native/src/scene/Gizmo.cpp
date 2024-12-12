@@ -25,14 +25,25 @@ namespace thermion
         View *view,
         Scene *scene,
         Material *material) noexcept : _source(sceneAsset),
-                              _engine(engine),
-                              _view(view),
-                              _scene(scene),
-                              _material(material)
+                                       _engine(engine),
+                                       _view(view),
+                                       _scene(scene),
+                                       _material(material)
     {
         auto &entityManager = _engine->getEntityManager();
 
         _parent = entityManager.create();
+        RenderableManager::Builder(1)               // 1 primitive
+            .boundingBox({{-1, -1, -1}, {1, 1, 1}}) // Set a basic bounding box
+            .culling(false)                         // Disable culling since this is a UI element
+            .castShadows(false)                     // UI elements typically don't cast shadows
+            .receiveShadows(false)
+
+            .build(*_engine, _parent); // Bu
+        auto &tm = _engine->getTransformManager();
+        auto parentTransformInstance = tm.getInstance(_parent);
+        tm.setTransform(parentTransformInstance, math::mat4f());
+
         TRACE("Created Gizmo parent entity %d", _parent);
         _entities.push_back(_parent);
 
@@ -59,7 +70,7 @@ namespace thermion
         other._view = nullptr;
         other._scene = nullptr;
         other._material = nullptr;
-        other._parent = {}; 
+        other._parent = {};
     }
 
     void Gizmo::createAxisInstance(Gizmo::Axis axis)
@@ -71,7 +82,6 @@ namespace thermion
         auto instance = _source->createInstance(&materialInstance, 1);
 
         TRACE("Created Gizmo axis glTF instance with head entity %d", instance->getEntity());
-
         materialInstance->setParameter("baseColorFactor", inactiveColors[axis]);
         materialInstance->setParameter("scale", _scale);
 
@@ -109,7 +119,15 @@ namespace thermion
         tm.setTransform(transformInstance, transform);
 
         // parent this entity's transform to the Gizmo _parent entity
-        tm.setParent(transformInstance, tm.getInstance(_parent));
+        auto parentTransformInstance = tm.getInstance(_parent);
+        if (parentTransformInstance.isValid())
+        {
+            tm.setParent(transformInstance, parentTransformInstance);
+        }
+        else
+        {
+            TRACE("WARNING: parent transform instance not valid.");
+        }
 
         _entities.push_back(instance->getEntity());
 
@@ -120,6 +138,11 @@ namespace thermion
             auto entity = instance->getChildEntities()[i];
             _entities.push_back(entity);
             TRACE("Added entity %d for axis %d", entity, axis);
+            auto renderable = rm.getInstance(entity);
+            if (renderable.isValid())
+            {
+                rm.setPriority(renderable, 7);
+            }
         }
 
         _axes.push_back(instance);

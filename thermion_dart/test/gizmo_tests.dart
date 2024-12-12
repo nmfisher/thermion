@@ -9,27 +9,81 @@ void main() async {
   final testHelper = TestHelper("gizmo");
 
   group("gizmo tests", () {
-    test('add gizmo', () async {
+    test('add/remove translation gizmo', () async {
       await testHelper.withViewer((viewer) async {
+        var cameraPos = Vector3(1.5, 1.5, 3);
         var modelMatrix =
-            makeViewMatrix(Vector3(0.5, 0.5, 0.5), Vector3.zero(), Vector3(0, 1, 0));
+            makeViewMatrix(cameraPos, Vector3.zero(), Vector3(0, 1, 0));
         modelMatrix.invert();
         await viewer.setCameraModelMatrix4(modelMatrix);
 
         final view = await viewer.getViewAt(0);
+        await viewer.showGridOverlay();
         final gizmo = await viewer.createGizmo(view, GizmoType.translation);
         await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
         await gizmo.addToScene();
-        await testHelper.capture(
-            viewer, "gizmo_added_to_scene_unattached_close");
+        await testHelper.capture(viewer, "translation_gizmo_near");
 
-        modelMatrix =
-            makeViewMatrix(Vector3(0.5, 0.5, 0.5).scaled(10), Vector3.zero(), Vector3(0, 1, 0));
+        modelMatrix = makeViewMatrix(
+            cameraPos.scaled(10), Vector3.zero(), Vector3(0, 1, 0));
         modelMatrix.invert();
         await viewer.setCameraModelMatrix4(modelMatrix);
 
         // gizmo occupies same viewport size no matter the camera position
-        await testHelper.capture(viewer, "gizmo_added_to_scene_unattached_far");
+        await testHelper.capture(viewer, "translation_gizmo_far");
+
+        await gizmo.removeFromScene();
+
+        await testHelper.capture(viewer, "translation_gizmo_removed");
+      }, postProcessing: true, bg: kWhite);
+    });
+
+     test('add/remove rotation gizmo', () async {
+      await testHelper.withViewer((viewer) async {
+        var cameraPos = Vector3(1.5, 1.5, 3);
+        var modelMatrix =
+            makeViewMatrix(cameraPos, Vector3.zero(), Vector3(0, 1, 0));
+        modelMatrix.invert();
+        await viewer.setCameraModelMatrix4(modelMatrix);
+
+        final view = await viewer.getViewAt(0);
+        await viewer.showGridOverlay();
+        final gizmo = await viewer.createGizmo(view, GizmoType.rotation);
+        await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+        await gizmo.addToScene();
+        await testHelper.capture(viewer, "rotation_gizmo_near");
+
+        modelMatrix = makeViewMatrix(
+            cameraPos.scaled(10), Vector3.zero(), Vector3(0, 1, 0));
+        modelMatrix.invert();
+        await viewer.setCameraModelMatrix4(modelMatrix);
+
+        // gizmo occupies same viewport size no matter the camera position
+        await testHelper.capture(viewer, "rotation_gizmo_far");
+
+        await gizmo.removeFromScene();
+
+        await testHelper.capture(viewer, "rotation_gizmo_removed");
+      }, postProcessing: true, bg: kWhite);
+    });
+
+    test('set gizmo transform', () async {
+      await testHelper.withViewer((viewer) async {
+        var cameraPos = Vector3(1.5, 1.5, 3);
+        var modelMatrix =
+            makeViewMatrix(cameraPos, Vector3.zero(), Vector3(0, 1, 0));
+        modelMatrix.invert();
+        await viewer.setCameraModelMatrix4(modelMatrix);
+
+        final view = await viewer.getViewAt(0);
+        await viewer.showGridOverlay();
+        final gizmo = await viewer.createGizmo(view, GizmoType.translation);
+        await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+        await gizmo.addToScene();
+
+        await viewer.setTransform(gizmo.entity, Matrix4.translation(Vector3(0,2,0)));
+        
+        await testHelper.capture(viewer, "translation_gizmo_transformed");
       }, postProcessing: true, bg: kWhite);
     });
 
@@ -60,7 +114,7 @@ void main() async {
       }, postProcessing: true, bg: kWhite);
     });
 
-    test('pick gizmo when added to scene', () async {
+    test('pick translation gizmo when added to scene', () async {
       await testHelper.withViewer((viewer) async {
         await viewer.setCameraPosition(0, 0, 1);
         final view = await viewer.getViewAt(0);
@@ -73,7 +127,7 @@ void main() async {
 
         await testHelper.capture(viewer, "gizmo_before_pick_no_highlight");
 
-        await gizmo.pick(viewport.width ~/ 2, viewport.height ~/ 2 + 1,
+        await gizmo.pick(viewport.width ~/ 2 + 100, viewport.height ~/ 2,
             handler: (resultType, coords) async {
           completer.complete(resultType);
         });
@@ -86,17 +140,18 @@ void main() async {
         }
 
         assert(completer.isCompleted);
+        expect(await completer.future, GizmoPickResultType.AxisX);
       }, postProcessing: true, bg: kWhite);
     });
 
     test('highlight/unhighlight gizmo', () async {
       await testHelper.withViewer((viewer) async {
-        final modelMatrix =
-            makeViewMatrix(Vector3(0.5, 0.5, 0.5), Vector3.zero(), Vector3(0, 1, 0));
+        final modelMatrix = makeViewMatrix(
+            Vector3(0.5, 0.5, 0.5), Vector3.zero(), Vector3(0, 1, 0));
         modelMatrix.invert();
         await viewer.setCameraModelMatrix4(modelMatrix);
         final view = await viewer.getViewAt(0);
-        final viewport = await view.getViewport();
+
         final gizmo = await viewer.createGizmo(view, GizmoType.translation);
         await gizmo.addToScene();
         await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
