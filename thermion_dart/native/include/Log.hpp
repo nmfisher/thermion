@@ -31,12 +31,19 @@ static void Log(const char *fmt, ...) {
     va_end(args);
 }
 
-#ifdef __ANDROID__
-    #define TRACE(fmt, ...) Log("%s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
-#elif defined __OBJC__
-    #define TRACE(fmt, ...) Log("%s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+#ifdef ENABLE_TRACING
+    #ifdef __ANDROID__
+        #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+        #define TRACE(fmt, ...) Log("TRACE %s:%d " fmt, __FILENAME__, __LINE__, ##__VA_ARGS__)
+    #elif defined __OBJC__
+        #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+        #define TRACE(fmt, ...) Log("TRACE %s:%d " fmt, __FILENAME__, __LINE__, ##__VA_ARGS__)
+    #else
+        #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+        #define TRACE(fmt, ...) Log("TRACE %s:%d " fmt, __FILENAME__, __LINE__, ##__VA_ARGS__)
+    #endif
 #else
-    #define TRACE(fmt, ...) Log("%s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+    #define TRACE(fmt, ...) ((void)0)
 #endif
 
 #endif
