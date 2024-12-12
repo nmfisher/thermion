@@ -540,12 +540,13 @@ extern "C"
       TSceneManager *tSceneManager, 
       TView *tView, 
       TScene *tScene,
+      TGizmoType tGizmoType,
       void (*onComplete)(TGizmo*)
   ) {
       std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto *gizmo = SceneManager_createGizmo(tSceneManager, tView, tScene);
+          auto *gizmo = SceneManager_createGizmo(tSceneManager, tView, tScene, tGizmoType);
           onComplete(gizmo);
         });
       auto fut = _rl->add_task(lambda);

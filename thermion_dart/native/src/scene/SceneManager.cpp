@@ -42,7 +42,8 @@
 #include "scene/GeometrySceneAssetBuilder.hpp"
 #include "UnprojectTexture.hpp"
 
-#include "resources/gizmo_glb.h"
+#include "resources/translation_gizmo_glb.h"
+#include "resources/rotation_gizmo_glb.h"
 
 extern "C"
 {
@@ -135,7 +136,7 @@ namespace thermion
         _engine->destroy(_unlitFixedSizeMaterial);
         _engine->destroy(_gizmoMaterial);
         _cameras.clear();
-        
+
         _grid = nullptr;
 
         _gltfResourceLoader->asyncCancelLoad();
@@ -152,37 +153,62 @@ namespace thermion
         AssetLoader::destroy(&_assetLoader);
     }
 
-    SceneAsset *SceneManager::createGrid() { 
-        if(!_grid) {
+    SceneAsset *SceneManager::createGrid()
+    {
+        if (!_grid)
+        {
             _grid = std::make_unique<GridOverlay>(*_engine);
         }
         return _grid.get();
     }
 
-    bool SceneManager::isGridEntity(utils::Entity entity) {
-        if(!_grid) {
+    bool SceneManager::isGridEntity(utils::Entity entity)
+    {
+        if (!_grid)
+        {
             return false;
         }
-        if(entity == _grid->getEntity()) {
+        if (entity == _grid->getEntity())
+        {
             return true;
         }
-        for(int i =0; i < _grid->getChildEntityCount(); i++) {
-            if(entity == _grid->getChildEntities()[i]) {
+        for (int i = 0; i < _grid->getChildEntityCount(); i++)
+        {
+            if (entity == _grid->getChildEntities()[i])
+            {
                 return true;
             }
         }
         return false;
     }
 
-    Gizmo *SceneManager::createGizmo(View *view, Scene *scene)
+    Gizmo *SceneManager::createGizmo(View *view, Scene *scene, GizmoType type)
     {
-        if(!_gizmoGlb) {
-            _gizmoGlb = loadGlbFromBuffer(GIZMO_GLB_GIZMO_DATA, GIZMO_GLB_GIZMO_SIZE, 100, true, 4, 0, false, false);
+        TRACE("Creating gizmo type %d", type);
+        Gizmo *raw;
+        switch (type)
+        {
+        case GizmoType::TRANSLATION:
+            if (!_translationGizmoGlb)
+            {
+                TRACE("Translation gizmo source not found, loading");
+                _translationGizmoGlb = loadGlbFromBuffer(TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_DATA, TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_SIZE, 100, true, 4, 0, false, false);
+            }
+            raw = new Gizmo(_translationGizmoGlb, _engine, view, scene, _unlitFixedSizeMaterial);
+            TRACE("Built translation gizmo");
+            break;
+        case GizmoType::ROTATION:
+            if (!_rotationGizmoGlb)
+            {
+                TRACE("Rotation gizmo source not found, loading");
+                _rotationGizmoGlb = loadGlbFromBuffer(ROTATION_GIZMO_GLB_ROTATION_GIZMO_DATA, ROTATION_GIZMO_GLB_ROTATION_GIZMO_SIZE, 100, true, 4, 0, false, false);
+            }
+            raw = new Gizmo(_rotationGizmoGlb, _engine, view, scene, _unlitFixedSizeMaterial);
+            TRACE("Built rotation gizmo");
+            break;
         }
-        auto gizmo = std::make_unique<Gizmo>(_gizmoGlb, _engine, view, scene, _unlitFixedSizeMaterial);
-        auto *raw = gizmo.get();
-        _sceneAssets.push_back(std::move(gizmo));
-        
+
+        _sceneAssets.push_back(std::unique_ptr<Gizmo>(raw));
         return raw;
     }
 
@@ -286,8 +312,7 @@ namespace thermion
             asset,
             _assetLoader,
             _engine,
-            _ncm
-        );
+            _ncm);
         auto filamentInstance = asset->getInstance();
         size_t entityCount = filamentInstance->getEntityCount();
 
@@ -375,16 +400,16 @@ namespace thermion
             asset,
             _assetLoader,
             _engine,
-            _ncm
-        );
+            _ncm);
 
         auto sceneAssetInstance = sceneAsset->createInstance();
-        if(addToScene) {
+        if (addToScene)
+        {
             sceneAssetInstance->addAllEntities(_scene);
         }
         sceneAssetInstance->setPriority(_engine->getRenderableManager(), priority);
         sceneAssetInstance->setLayer(_engine->getRenderableManager(), layer);
-        
+
         auto *raw = sceneAsset.get();
 
         _sceneAssets.push_back(std::move(sceneAsset));

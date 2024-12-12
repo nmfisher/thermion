@@ -24,7 +24,7 @@ namespace thermion
         Engine *engine,
         View *view,
         Scene *scene,
-        Material *material) : _source(sceneAsset),
+        Material *material) noexcept : _source(sceneAsset),
                               _engine(engine),
                               _view(view),
                               _scene(scene),
@@ -41,6 +41,27 @@ namespace thermion
         createAxisInstance(Axis::Z);
     }
 
+    // move constructor so we don't re-create all entities/materials when moving
+    Gizmo::Gizmo(Gizmo &&other) noexcept : _source(other._source),
+                                           _engine(other._engine),
+                                           _view(other._view),
+                                           _scene(other._scene),
+                                           _material(other._material),
+                                           _parent(other._parent),
+                                           _scale(other._scale),
+                                           _entities(std::move(other._entities)),
+                                           _materialInstances(std::move(other._materialInstances)),
+                                           _hitTest(std::move(other._hitTest)),
+                                           _axes(std::move(other._axes))
+    {
+        other._source = nullptr;
+        other._engine = nullptr;
+        other._view = nullptr;
+        other._scene = nullptr;
+        other._material = nullptr;
+        other._parent = {}; 
+    }
+
     void Gizmo::createAxisInstance(Gizmo::Axis axis)
     {
         auto &rm = _engine->getRenderableManager();
@@ -52,7 +73,7 @@ namespace thermion
         TRACE("Created Gizmo axis glTF instance with head entity %d", instance->getEntity());
 
         materialInstance->setParameter("baseColorFactor", inactiveColors[axis]);
-        materialInstance->setParameter("scale", 4.0f);
+        materialInstance->setParameter("scale", _scale);
 
         auto hitTestEntity = instance->findEntityByName("HitTest");
         TRACE("Created hit test entity %d for axis %d", hitTestEntity, axis);
@@ -73,8 +94,8 @@ namespace thermion
             {
                 auto *hitTestMaterialInstance = _material->createInstance();
                 _materialInstances.push_back(hitTestMaterialInstance);
-                hitTestMaterialInstance->setParameter("baseColorFactor", math::float4{1.0f, 0.0f, 1.0f, 0.5f});
-                hitTestMaterialInstance->setParameter("scale", 4.0f);
+                hitTestMaterialInstance->setParameter("baseColorFactor", math::float4{0.0f, 0.0f, 0.0f, 0.0f});
+                hitTestMaterialInstance->setParameter("scale", _scale);
                 rm.setMaterialInstanceAt(renderableInstance, 0, hitTestMaterialInstance);
             }
         }
@@ -86,7 +107,7 @@ namespace thermion
         auto &tm = _engine->getTransformManager();
         auto transformInstance = tm.getInstance(instance->getEntity());
         tm.setTransform(transformInstance, transform);
-        
+
         // parent this entity's transform to the Gizmo _parent entity
         tm.setParent(transformInstance, tm.getInstance(_parent));
 

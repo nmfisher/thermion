@@ -11,7 +11,7 @@ extern "C"
 {
 #endif
 
-	EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene);
+	EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene, TGizmoType tGizmoType);
 	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGeometry(
 		TSceneManager *sceneManager,
 		float *vertices,

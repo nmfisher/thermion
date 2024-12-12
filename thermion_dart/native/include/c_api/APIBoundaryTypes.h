@@ -124,6 +124,11 @@ extern "C"
 
     typedef struct Aabb3 Aabb3;
 
+	enum TGizmoType {
+		TRANSLATION,
+		ROTATION
+	};
+
 #ifdef __cplusplus
 }
 #endif

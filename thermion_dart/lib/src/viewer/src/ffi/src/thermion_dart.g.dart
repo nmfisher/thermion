@@ -1388,16 +1388,34 @@ external void remove_skybox_render_thread(
             ffi.Pointer<TSceneManager>,
             ffi.Pointer<TView>,
             ffi.Pointer<TScene>,
+            ffi.UnsignedInt,
             ffi.Pointer<
                 ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>)>(
-    isLeaf: true)
-external ffi.Pointer<TGizmo> SceneManager_createGizmoRenderThread(
+    symbol: "SceneManager_createGizmoRenderThread", isLeaf: true)
+external ffi.Pointer<TGizmo> _SceneManager_createGizmoRenderThread(
   ffi.Pointer<TSceneManager> tSceneManager,
   ffi.Pointer<TView> tView,
   ffi.Pointer<TScene> tScene,
+  int tGizmoType,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>
       onComplete,
 );
+
+ffi.Pointer<TGizmo> SceneManager_createGizmoRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+  TGizmoType tGizmoType,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>
+      onComplete,
+) =>
+    _SceneManager_createGizmoRenderThread(
+      tSceneManager,
+      tView,
+      tScene,
+      tGizmoType.value,
+      onComplete,
+    );
 
 @ffi.Native<
         ffi.Void Function(
@@ -1688,13 +1706,30 @@ external void unproject_texture_render_thread(
 );
 
 @ffi.Native<
-    ffi.Pointer<TGizmo> Function(ffi.Pointer<TSceneManager>, ffi.Pointer<TView>,
-        ffi.Pointer<TScene>)>(isLeaf: true)
-external ffi.Pointer<TGizmo> SceneManager_createGizmo(
+    ffi.Pointer<TGizmo> Function(
+        ffi.Pointer<TSceneManager>,
+        ffi.Pointer<TView>,
+        ffi.Pointer<TScene>,
+        ffi.UnsignedInt)>(symbol: "SceneManager_createGizmo", isLeaf: true)
+external ffi.Pointer<TGizmo> _SceneManager_createGizmo(
   ffi.Pointer<TSceneManager> tSceneManager,
   ffi.Pointer<TView> tView,
   ffi.Pointer<TScene> tScene,
+  int tGizmoType,
 );
+
+ffi.Pointer<TGizmo> SceneManager_createGizmo(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+  TGizmoType tGizmoType,
+) =>
+    _SceneManager_createGizmo(
+      tSceneManager,
+      tView,
+      tScene,
+      tGizmoType.value,
+    );
 
 @ffi.Native<
     ffi.Pointer<TSceneAsset> Function(
@@ -2485,6 +2520,20 @@ final class Aabb3 extends ffi.Struct {
 
   @ffi.Float()
   external double halfExtentZ;
+}
+
+enum TGizmoType {
+  TRANSLATION(0),
+  ROTATION(1);
+
+  final int value;
+  const TGizmoType(this.value);
+
+  static TGizmoType fromValue(int value) => switch (value) {
+        0 => TRANSLATION,
+        1 => ROTATION,
+        _ => throw ArgumentError("Unknown value for TGizmoType: $value"),
+      };
 }
 
 enum TSamplerCompareFunc {
