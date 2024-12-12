@@ -22,7 +22,7 @@ namespace thermion
             Log("No instances available for reuse. When loading the asset, you must pre-allocate the number of instances you wish to make available for use. Try increasing this number.");
             return std::nullptr_t();
         }
-        Log("Creating instance %d", instanceNumber);
+        TRACE("Creating instance %d", instanceNumber);
         auto instance = _asset->getAssetInstances()[instanceNumber];
         instance->recomputeBoundingBoxes();
         instance->getAnimator()->updateBoneMatrices();
@@ -49,6 +49,7 @@ namespace thermion
         std::unique_ptr<GltfSceneAssetInstance> sceneAssetInstance = std::make_unique<GltfSceneAssetInstance>(
             instance,
             _engine,
+            _ncm,
             materialInstances, 
             materialInstanceCount
         );

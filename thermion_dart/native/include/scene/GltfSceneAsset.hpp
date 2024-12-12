@@ -11,6 +11,9 @@
 #include <gltfio/FilamentAsset.h>
 #include <gltfio/MaterialProvider.h>
 
+#include <utils/NameComponentManager.h>
+
+
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "components/AnimationComponentManager.hpp"
 #include "components/CollisionComponentManager.hpp"
@@ -29,11 +32,13 @@ namespace thermion
             gltfio::FilamentAsset *asset,
             gltfio::AssetLoader *assetLoader,
             Engine *engine,
+            utils::NameComponentManager* ncm,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0,
             int instanceIndex = -1) : _asset(asset),
                                       _assetLoader(assetLoader),
                                       _engine(engine),
+                                      _ncm(ncm),
                                       _materialInstances(materialInstances),
                                       _materialInstanceCount(materialInstanceCount)
         {
@@ -150,6 +155,7 @@ namespace thermion
         }
 
         Entity findEntityByName(const char* name) override { 
+            TRACE("Searching for entity with name %s", name);
             Entity entities[1];
             auto found =  _asset->getEntitiesByName(name, entities, 1);
             return entities[0];
@@ -159,6 +165,7 @@ namespace thermion
         gltfio::FilamentAsset *_asset;
         gltfio::AssetLoader *_assetLoader;
         Engine *_engine;
+        utils::NameComponentManager *_ncm;
         MaterialInstance **_materialInstances = nullptr;
         size_t _materialInstanceCount = 0;
         std::vector<std::unique_ptr<GltfSceneAssetInstance>> _instances;
