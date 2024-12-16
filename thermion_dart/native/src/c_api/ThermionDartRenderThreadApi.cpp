@@ -280,6 +280,37 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t* materialData, size_t length, void (*onComplete)(TMaterial *)) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto material = Engine_buildMaterial(tEngine, materialData, length);
+          onComplete(material);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Engine_destroyMaterial(tEngine, tMaterial);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance*)) { 
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *instance = Material_createInstance(tMaterial);
+          onComplete(instance);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+
   EMSCRIPTEN_KEEPALIVE void
   set_frame_interval_render_thread(TViewer *viewer, float frameIntervalInMilliseconds)
   {
