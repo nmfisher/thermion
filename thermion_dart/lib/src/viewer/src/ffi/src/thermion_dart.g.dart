@@ -7,6 +7,12 @@ library;
 
 import 'dart:ffi' as ffi;
 
+@ffi.Native<ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TMaterial>)>(
+    isLeaf: true)
+external ffi.Pointer<TMaterialInstance> Material_createInstance(
+  ffi.Pointer<TMaterial> tMaterial,
+);
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
 external bool MaterialInstance_isStencilWriteEnabled(
   ffi.Pointer<TMaterialInstance> materialInstance,
@@ -372,6 +378,40 @@ external ffi.Pointer<TCamera> Engine_getCameraComponent(
   int entityId,
 );
 
+@ffi.Native<ffi.Pointer<TTransformManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TTransformManager> Engine_getTransformManager(
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Pointer<TRenderableManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TRenderableManager> Engine_getRenderableManager(
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TEntityManager> Engine_getEntityManager(
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterial> Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Engine_buildMaterial(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Uint8> materialData,
+  int length,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>(
+    isLeaf: true)
+external void Engine_destroyMaterial(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterial> tMaterial,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external void clear_background_image(
   ffi.Pointer<TViewer> viewer,
@@ -556,24 +596,6 @@ external void queue_position_update_from_viewport_coords(
   int entity,
   double viewportX,
   double viewportY,
-);
-
-@ffi.Native<ffi.Pointer<TTransformManager> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
-external ffi.Pointer<TTransformManager> Engine_getTransformManager(
-  ffi.Pointer<TEngine> engine,
-);
-
-@ffi.Native<ffi.Pointer<TRenderableManager> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
-external ffi.Pointer<TRenderableManager> Engine_getRenderableManager(
-  ffi.Pointer<TEngine> engine,
-);
-
-@ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
-external ffi.Pointer<TEntityManager> Engine_getEntityManager(
-  ffi.Pointer<TEngine> engine,
 );
 
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
@@ -1289,6 +1311,46 @@ external void Viewer_createRenderTargetRenderThread(
 );
 
 @ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
+    isLeaf: true)
+external void Engine_buildMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Uint8> materialData,
+  int length,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Engine_destroyMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterial> tMaterial,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TMaterial>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
+external void Material_createInstanceRenderThread(
+  ffi.Pointer<TMaterial> tMaterial,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
+      onComplete,
+);
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Int)>(isLeaf: true)
 external void View_setToneMappingRenderThread(
@@ -1956,10 +2018,12 @@ external ffi.Pointer<TNameComponentManager>
   ffi.Pointer<TSceneManager> tSceneManager,
 );
 
-@ffi.Native<ffi.Pointer<TSceneAsset> Function(ffi.Pointer<TSceneManager>)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Pointer<TSceneAsset> Function(
+        ffi.Pointer<TSceneManager>, ffi.Pointer<TMaterial>)>(isLeaf: true)
 external ffi.Pointer<TSceneAsset> SceneManager_createGrid(
   ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<TMaterial> tMaterial,
 );
 
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TSceneManager>, EntityId)>(
@@ -2323,6 +2387,8 @@ final class TCollisionComponentManager extends ffi.Opaque {}
 final class TSceneAsset extends ffi.Opaque {}
 
 final class TNameComponentManager extends ffi.Opaque {}
+
+final class TMaterial extends ffi.Opaque {}
 
 final class TMaterialInstance extends ffi.Opaque {}
 

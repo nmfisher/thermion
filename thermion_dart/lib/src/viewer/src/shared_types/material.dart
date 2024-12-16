@@ -72,6 +72,11 @@ enum StencilFace {
 
 enum AlphaMode { OPAQUE, MASK, BLEND }
 
+abstract class Material {
+  Future<MaterialInstance> createInstance();
+  Future dispose();
+}
+
 abstract class MaterialInstance {
   Future<bool> isStencilWriteEnabled();
   Future setDepthWriteEnabled(bool enabled);
@@ -109,5 +114,7 @@ abstract class MaterialInstance {
 
   Future setStencilReadMask(int mask);
   Future setStencilWriteMask(int mask);
+
+  Future dispose();
 
 }

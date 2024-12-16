@@ -5,16 +5,15 @@ import 'dart:typed_data';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_gizmo.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
-import '../../../../utils/src/gizmo.dart';
 import '../../../../utils/src/matrix.dart';
 import '../../thermion_viewer_base.dart';
 import 'package:logging/logging.dart';
 
 import 'callbacks.dart';
 import 'ffi_camera.dart';
-import 'ffi_material_instance.dart';
 import 'ffi_view.dart';
 
 // ignore: constant_identifier_names
@@ -282,7 +281,7 @@ class ThermionViewerFFI extends ThermionViewer {
   final _onDispose = <Future Function()>[];
   bool _disposing = false;
 
-  final _materialInstances = <ThermionFFIMaterialInstance>[];
+  final _materialInstances = <FFIMaterialInstance>[];
 
   ///
   ///
@@ -1626,7 +1625,7 @@ class ThermionViewerFFI extends ThermionViewer {
             0,
             materialInstances.length,
             materialInstances
-                .cast<ThermionFFIMaterialInstance>()
+                .cast<FFIMaterialInstance>()
                 .map((mi) => mi.pointer.address)
                 .toList());
       }
@@ -1760,8 +1759,13 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future showGridOverlay() async {
-    final ptr = SceneManager_createGrid(_sceneManager!);
+  Future showGridOverlay({FFIMaterial? material}) async {
+    late Pointer<TSceneAsset> ptr;
+    if (material == null) {
+      ptr = SceneManager_createGrid(_sceneManager!, nullptr);
+    } else {
+      ptr = SceneManager_createGrid(_sceneManager!, material.pointer);
+    }
     _grid ??= FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!);
     await _grid!.addToScene();
   }
@@ -1817,6 +1821,16 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future destroyTexture(ThermionFFITexture texture) async {
     destroy_texture(_sceneManager!, texture.pointer);
+  }
+
+  ///
+  ///
+  ///
+  Future<Material> createMaterial(Uint8List data) async {
+    var ptr = await withPointerCallback<TMaterial>((cb) {
+      Engine_buildMaterialRenderThread(_engine!, data.address, data.length, cb);
+    });
+    return FFIMaterial(ptr, _engine!, _sceneManager!);
   }
 
   ///
@@ -1905,8 +1919,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create material instance");
     }
 
-    var instance =
-        ThermionFFIMaterialInstance(materialInstance, _sceneManager!);
+    var instance = FFIMaterialInstance(materialInstance, _sceneManager!);
     _materialInstances.add(instance);
     return instance;
   }
@@ -1914,8 +1927,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future destroyMaterialInstance(
-      ThermionFFIMaterialInstance materialInstance) async {
+  Future destroyMaterialInstance(FFIMaterialInstance materialInstance) async {
     await materialInstance.dispose();
     _materialInstances.remove(materialInstance);
   }
@@ -1923,11 +1935,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future<ThermionFFIMaterialInstance> createUnlitMaterialInstance() async {
+  Future<FFIMaterialInstance> createUnlitMaterialInstance() async {
     var instancePtr = await withPointerCallback<TMaterialInstance>((cb) {
       SceneManager_createUnlitMaterialInstanceRenderThread(_sceneManager!, cb);
     });
-    final instance = ThermionFFIMaterialInstance(instancePtr, _sceneManager!);
+    final instance = FFIMaterialInstance(instancePtr, _sceneManager!);
     _materialInstances.add(instance);
     return instance;
   }
@@ -1935,13 +1947,12 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future<ThermionFFIMaterialInstance>
-      createUnlitFixedSizeMaterialInstance() async {
+  Future<FFIMaterialInstance> createUnlitFixedSizeMaterialInstance() async {
     var instancePtr = await withPointerCallback<TMaterialInstance>((cb) {
       SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(
           _sceneManager!, cb);
     });
-    final instance = ThermionFFIMaterialInstance(instancePtr, _sceneManager!);
+    final instance = FFIMaterialInstance(instancePtr, _sceneManager!);
     _materialInstances.add(instance);
     return instance;
   }
@@ -1954,7 +1965,7 @@ class ThermionViewerFFI extends ThermionViewer {
     final instancePtr = RenderableManager_getMaterialInstanceAt(
         _renderableManager!, entity, index);
 
-    final instance = ThermionFFIMaterialInstance(instancePtr, _sceneManager!);
+    final instance = FFIMaterialInstance(instancePtr, _sceneManager!);
     return instance;
   }
 
@@ -2065,8 +2076,8 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<GizmoAsset> createGizmo(FFIView view, GizmoType gizmoType) async {
     var scene = View_getScene(view.view);
     final gizmo = await withPointerCallback<TGizmo>((cb) {
-      SceneManager_createGizmoRenderThread(
-          _sceneManager!, view.view, scene, TGizmoType.values[gizmoType.index], cb);
+      SceneManager_createGizmoRenderThread(_sceneManager!, view.view, scene,
+          TGizmoType.values[gizmoType.index], cb);
     });
     if (gizmo == nullptr) {
       throw Exception("Failed to create gizmo");
