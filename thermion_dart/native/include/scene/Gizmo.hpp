@@ -164,17 +164,6 @@ namespace thermion
         std::vector<utils::Entity> _entities;
         std::vector<MaterialInstance *> _materialInstances;
 
-        math::float4 activeColors[3]{
-            math::float4{1.0f, 1.0f, 0.0f, 0.5f},
-            math::float4{1.0f, 1.0f, 0.0f, 0.5f},
-            math::float4{1.0f, 1.0f, 0.0f, 0.5f},
-        };
-        math::float4 inactiveColors[3]{
-            math::float4{1.0f, 0.0f, 0.0f, 1.0f},
-            math::float4{0.0f, 1.0f, 0.0f, 1.0f},
-            math::float4{0.0f, 0.0f, 1.0f, 1.0f},
-        };
-
         GizmoPickResultType getPickResult(utils::Entity entity)
         {
             if (entity.isNull())
