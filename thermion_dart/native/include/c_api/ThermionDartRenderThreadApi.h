@@ -60,6 +60,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer, const char *skyboxPath, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer);
 
+        EMSCRIPTEN_KEEPALIVE void SceneManager_createGridRenderThread(TSceneManager *tSceneManager, TMaterial *tMaterial, void (*callback)(TSceneAsset *));
+
         EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmoRenderThread(
             TSceneManager *tSceneManager, 
             TView *tView, 
@@ -95,6 +97,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
 
         EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(TMaterialProvider *tMaterialProvider, TMaterialKey *tKey, void (*callback)(TMaterialInstance*));
+        EMSCRIPTEN_KEEPALIVE void SceneManager_destroyMaterialInstanceRenderThread(TSceneManager *tSceneManager, TMaterialInstance *tMaterialInstance, void (*callback)());
 
         EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
             TAnimationManager *tAnimationManager,

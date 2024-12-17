@@ -17,7 +17,6 @@
 
 #include "ThreadPool.hpp"
 
-
 using namespace thermion;
 using namespace std::chrono_literals;
 #include <time.h>
@@ -280,7 +279,8 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t* materialData, size_t length, void (*onComplete)(TMaterial *)) {
+  EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
+  {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -290,7 +290,8 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)())
+  {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -300,7 +301,8 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance*)) { 
+  EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
+  {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -309,7 +311,6 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
-
 
   EMSCRIPTEN_KEEPALIVE void
   set_frame_interval_render_thread(TViewer *viewer, float frameIntervalInMilliseconds)
@@ -348,6 +349,16 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]() mutable
         { set_background_color(viewer, r, g, b, a); });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneManager_createGridRenderThread(TSceneManager *tSceneManager, TMaterial *tMaterial, void (*callback)(TSceneAsset *))
+  {
+    std::packaged_task<void()> lambda([=]() mutable
+                                      {
+      auto *sceneAsset = SceneManager_createGrid(tSceneManager, tMaterial);
+      callback(sceneAsset); 
+    });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -425,6 +436,16 @@ extern "C"
         {
           auto materialInstance = MaterialProvider_createMaterialInstance(tMaterialProvider, tKey);
           callback(materialInstance);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyMaterialInstanceRenderThread(TSceneManager *tSceneManager, TMaterialInstance *tMaterialInstance, void (*callback)()) { 
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          SceneManager_destroyMaterialInstance(tSceneManager, tMaterialInstance);
+          callback();
         });
     auto fut = _rl->add_task(lambda);
   }
@@ -545,7 +566,8 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)()) {
+  EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)())
+  {
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -568,20 +590,20 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmoRenderThread(
-      TSceneManager *tSceneManager, 
-      TView *tView, 
+      TSceneManager *tSceneManager,
+      TView *tView,
       TScene *tScene,
       TGizmoType tGizmoType,
-      void (*onComplete)(TGizmo*)
-  ) {
-      std::packaged_task<void()> lambda(
+      void (*onComplete)(TGizmo *))
+  {
+    std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *gizmo = SceneManager_createGizmo(tSceneManager, tView, tScene, tGizmoType);
           onComplete(gizmo);
         });
-      auto fut = _rl->add_task(lambda);
-      return nullptr;
+    auto fut = _rl->add_task(lambda);
+    return nullptr;
   }
 
   EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *tSceneAsset, void (*callback)())
@@ -596,16 +618,16 @@ extern "C"
     return nullptr;
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera*)) {
+  EMSCRIPTEN_KEEPALIVE void SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera *))
+  {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto *camera = SceneManager_createCamera(tSceneManager);
-          callback(reinterpret_cast<TCamera*>(camera));
+          callback(reinterpret_cast<TCamera *>(camera));
         });
     auto fut = _rl->add_task(lambda);
   }
-
 
   EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer *viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
   {
