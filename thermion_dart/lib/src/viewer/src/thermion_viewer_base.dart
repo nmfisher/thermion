@@ -765,8 +765,8 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future showGridOverlay();
-  
+  Future showGridOverlay({covariant Material? material});
+
   ///
   ///
   ///
@@ -787,6 +787,11 @@ abstract class ThermionViewer {
   ///
   ///
   Future destroyTexture(covariant ThermionTexture texture);
+
+  ///
+  ///
+  ///
+  Future<Material> createMaterial(Uint8List data);
 
   ///
   ///
