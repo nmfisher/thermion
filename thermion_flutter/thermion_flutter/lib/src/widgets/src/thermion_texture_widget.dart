@@ -40,7 +40,8 @@ class ThermionTextureWidget extends StatefulWidget {
 }
 
 class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
-  ThermionFlutterTexture? _texture;
+  
+  PlatformTextureDescriptor? _texture;
 
   static final _views = <t.View>[];
 
@@ -51,7 +52,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     super.dispose();
     _views.remove(widget.view);
     if(_texture != null) {
-      ThermionFlutterPlatform.instance.destroyTexture(_texture!);
+      ThermionFlutterPlatform.instance.destroyTextureDescriptor(_texture!);
     }
 
     _states.remove(this);
@@ -111,7 +112,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
           setState(() {});
         }
         if(texture != null) {
-          ThermionFlutterPlatform.instance.destroyTexture(texture);
+          ThermionFlutterPlatform.instance.destroyTextureDescriptor(texture);
         }
 
         _views.clear();
@@ -228,8 +229,8 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         child: Stack(children: [
           Positioned.fill(
               child: Texture(
-            key: ObjectKey("flutter_texture_${_texture!.flutterId}"),
-            textureId: _texture!.flutterId,
+            key: ObjectKey("flutter_texture_${_texture!.flutterTextureId}"),
+            textureId: _texture!.flutterTextureId,
             filterQuality: FilterQuality.none,
             freeze: false,
           ))
