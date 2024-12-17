@@ -116,7 +116,7 @@ namespace thermion
             mPrimitiveType,
             boundingBox);
 
-        Log("Asset created: %p", asset.get());
+        TRACE("Asset created: %p", asset.get());
         return asset;
     }
 
