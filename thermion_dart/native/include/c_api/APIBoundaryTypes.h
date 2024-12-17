@@ -23,6 +23,7 @@ extern "C"
 	typedef struct TCollisionComponentManager TCollisionComponentManager;
 	typedef struct TSceneAsset TSceneAsset;
 	typedef struct TNameComponentManager TNameComponentManager;
+	typedef struct TMaterial TMaterial;
 	typedef struct TMaterialInstance TMaterialInstance;
 	typedef struct TMaterialProvider TMaterialProvider;
 	typedef struct TRenderableManager TRenderableManager;
