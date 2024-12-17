@@ -139,6 +139,14 @@ namespace thermion
             auto *instance = reinterpret_cast<::filament::MaterialInstance *>(materialInstance);
             instance->setStencilWriteMask(mask);
         }
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setTransparencyMode(
+            TMaterialInstance *materialInstance,
+            TTransparencyMode transparencyMode)
+        {
+            auto *instance = reinterpret_cast<::filament::MaterialInstance *>(materialInstance);
+            instance->setTransparencyMode((filament::TransparencyMode)transparencyMode);
+        }
 #ifdef __cplusplus
     }
 }

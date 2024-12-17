@@ -139,7 +139,14 @@ class FFIMaterialInstance extends MaterialInstance {
 
   Future dispose() async {
     await withVoidCallback((cb) {
-      SceneManager_destroyMaterialInstanceRenderThread(sceneManager, pointer, cb);
+      SceneManager_destroyMaterialInstanceRenderThread(
+          sceneManager, pointer, cb);
     });
+  }
+
+  @override
+  Future setTransparencyMode(TransparencyMode mode) async {
+    MaterialInstance_setTransparencyMode(
+        pointer, TTransparencyMode.values[mode.index]);
   }
 }

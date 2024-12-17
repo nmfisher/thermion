@@ -70,7 +70,28 @@ enum StencilFace {
   FRONT_AND_BACK
 }
 
-enum AlphaMode { OPAQUE, MASK, BLEND }
+enum AlphaMode { 
+  OPAQUE, 
+  MASK, 
+  BLEND 
+}
+
+enum TransparencyMode { 
+  	//! the transparent object is drawn honoring the raster state
+		DEFAULT,
+		/**
+		 * the transparent object is first drawn in the depth buffer,
+		 * then in the color buffer, honoring the culling mode, but ignoring the depth test function
+		 */
+		TWO_PASSES_ONE_SIDE,
+
+		/**
+		 * the transparent object is drawn twice in the color buffer,
+		 * first with back faces only, then with front faces; the culling
+		 * mode is ignored. Can be combined with two-sided lighting
+		 */
+		TWO_PASSES_TWO_SIDES
+}
 
 abstract class Material {
   Future<MaterialInstance> createInstance();
@@ -115,6 +136,7 @@ abstract class MaterialInstance {
   Future setStencilReadMask(int mask);
   Future setStencilWriteMask(int mask);
 
-  Future dispose();
+  Future setTransparencyMode(TransparencyMode mode);
 
+  Future dispose();
 }

@@ -35,7 +35,6 @@ extern "C"
 		INVERT	   // Invert the current value
 	};
 
-	// StencilFace equivalent
 	enum TStencilFace
 	{
 		STENCIL_FACE_FRONT = 1,
@@ -43,13 +42,29 @@ extern "C"
 		STENCIL_FACE_FRONT_AND_BACK = 3
 	};
 
-	// Add these enum definitions at the top with the other enums
 	enum TCullingMode
 	{
 		CULLING_MODE_NONE = 0,
 		CULLING_MODE_FRONT,
 		CULLING_MODE_BACK,
 		CULLING_MODE_FRONT_AND_BACK
+	};
+
+	enum TTransparencyMode { 
+		//! the transparent object is drawn honoring the raster state
+		DEFAULT,
+		/**
+		 * the transparent object is first drawn in the depth buffer,
+		 * then in the color buffer, honoring the culling mode, but ignoring the depth test function
+		 */
+		TWO_PASSES_ONE_SIDE,
+
+		/**
+		 * the transparent object is drawn twice in the color buffer,
+		 * first with back faces only, then with front faces; the culling
+		 * mode is ignored. Can be combined with two-sided lighting
+		 */
+		TWO_PASSES_TWO_SIDES
 	};
 
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial);
@@ -97,6 +112,10 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilWriteMask(
 		TMaterialInstance *materialInstance,
 		uint8_t mask);
+
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setTransparencyMode(
+            TMaterialInstance *materialInstance,
+            TTransparencyMode transparencyMode);
 
 
 #ifdef __cplusplus
