@@ -1,4 +1,5 @@
 #include <filament/MaterialInstance.h>
+#include <filament/Material.h>
 #include <math/mat4.h>
 #include <math/vec4.h>
 #include <math/vec2.h>
@@ -12,6 +13,12 @@ namespace thermion
     extern "C"
     {
 #endif
+
+        EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial) {
+            auto *material = reinterpret_cast<filament::Material*>(tMaterial);
+            auto *instance = material->createInstance();
+            return reinterpret_cast<TMaterialInstance*>(instance);
+        }
 
         EMSCRIPTEN_KEEPALIVE bool MaterialInstance_isStencilWriteEnabled(TMaterialInstance *tMaterialInstance)
         {
