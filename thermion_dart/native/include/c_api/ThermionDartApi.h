@@ -46,6 +46,13 @@ extern "C"
 	// Engine
 	EMSCRIPTEN_KEEPALIVE TEngine *Viewer_getEngine(TViewer* viewer);
 	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId);
+	EMSCRIPTEN_KEEPALIVE TTransformManager *Engine_getTransformManager(TEngine *engine);
+	EMSCRIPTEN_KEEPALIVE TRenderableManager *Engine_getRenderableManager(TEngine *engine);
+	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *engine, EntityId entity);
+	EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
+	
+	EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uint8_t* materialData, size_t length);
+	EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterial(TEngine *tEngine, TMaterial *tMaterial);
 	
 	EMSCRIPTEN_KEEPALIVE void clear_background_image(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE void set_background_image(TViewer *viewer, const char *path, bool fillHeight);
@@ -87,11 +94,6 @@ extern "C"
 	
 	EMSCRIPTEN_KEEPALIVE void queue_relative_position_update_world_axis(TSceneManager *sceneManager, EntityId entity, float viewportX, float viewportY, float x, float y, float z);
 	EMSCRIPTEN_KEEPALIVE void queue_position_update_from_viewport_coords(TSceneManager *sceneManager, TView *view, EntityId entity, float viewportX, float viewportY);
-
-	EMSCRIPTEN_KEEPALIVE TTransformManager *Engine_getTransformManager(TEngine *engine);
-	EMSCRIPTEN_KEEPALIVE TRenderableManager *Engine_getRenderableManager(TEngine *engine);
-	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *engine, EntityId entity);
-	EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
 	
 	EMSCRIPTEN_KEEPALIVE void ios_dummy();
 	EMSCRIPTEN_KEEPALIVE void thermion_flutter_free(void *ptr);
