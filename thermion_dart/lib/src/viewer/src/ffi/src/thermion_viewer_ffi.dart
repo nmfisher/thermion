@@ -1760,13 +1760,18 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future showGridOverlay({FFIMaterial? material}) async {
-    late Pointer<TSceneAsset> ptr;
-    if (material == null) {
-      ptr = SceneManager_createGrid(_sceneManager!, nullptr);
-    } else {
-      ptr = SceneManager_createGrid(_sceneManager!, material.pointer);
+    if (_grid == null) {
+      final ptr = await withPointerCallback<TSceneAsset>((cb) {
+        if (material == null) {
+          SceneManager_createGridRenderThread(_sceneManager!, nullptr, cb);
+        } else {
+          SceneManager_createGridRenderThread(
+              _sceneManager!, material.pointer, cb);
+        }
+      });
+      _grid =
+          FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!);
     }
-    _grid ??= FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!);
     await _grid!.addToScene();
   }
 
@@ -1913,8 +1918,10 @@ class ThermionViewerFFI extends ThermionViewer {
     key.hasIOR = hasIOR;
     key.hasVolume = hasVolume;
 
-    final materialInstance = MaterialProvider_createMaterialInstance(
-        _ubershaderMaterialProvider!, key.address);
+    final materialInstance = await withPointerCallback<TMaterialInstance>((cb) {
+      MaterialProvider_createMaterialInstanceRenderThread(
+          _ubershaderMaterialProvider!, key.address, cb);
+    });
     if (materialInstance == nullptr) {
       throw Exception("Failed to create material instance");
     }
