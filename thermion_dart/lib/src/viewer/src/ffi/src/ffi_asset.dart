@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-import 'ffi_material_instance.dart';
 
 class FFIAsset extends ThermionAsset {
   final Pointer<TSceneAsset> pointer;
@@ -58,7 +58,7 @@ class FFIAsset extends ThermionAsset {
             0,
             materialInstances.length,
             materialInstances
-                .cast<ThermionFFIMaterialInstance>()
+                .cast<FFIMaterialInstance>()
                 .map((mi) => mi.pointer.address)
                 .toList());
       }
@@ -120,7 +120,7 @@ class FFIAsset extends ThermionAsset {
         final childEntities = await this.getChildEntities();
         targetEntity = childEntities[entityIndex!];
       }
-      var sourceMaterialInstance = ThermionFFIMaterialInstance(
+      var sourceMaterialInstance = FFIMaterialInstance(
           RenderableManager_getMaterialInstanceAt(
               renderableManager, targetEntity, 0), sceneManager);
 
@@ -138,7 +138,7 @@ class FFIAsset extends ThermionAsset {
             _unlitMaterialProvider, key.address, cb);
       });
       final highlightMaterialInstance =
-          ThermionFFIMaterialInstance(materialInstancePtr, sceneManager);
+          FFIMaterialInstance(materialInstancePtr, sceneManager);
       await highlightMaterialInstance
           .setStencilCompareFunction(SamplerCompareFunction.NE);
       await highlightMaterialInstance.setStencilReferenceValue(1);
