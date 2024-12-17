@@ -14,7 +14,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   }
 
   @override
-  Future<ThermionFlutterTexture?> createTexture(double width, double height,
+  Future<PlatformTextureDescriptor?> createTexture(double width, double height,
       double offsetLeft, double offsetTop, double pixelRatio) async {
     await _viewer!.destroySwapChain();
     await _viewer!.createSwapChain(width.ceil(), height.ceil());
@@ -33,16 +33,16 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
     _viewer!
         .updateViewportAndCameraProjection(width.ceil(), height.ceil(), 1.0);
 
-    return ThermionFlutterTexture(null, null, 0, 0, null);
+    return PlatformTextureDescriptor(null, null, 0, 0, null);
   }
 
   @override
-  Future destroyTexture(ThermionFlutterTexture texture) async {
+  Future destroyTexture(PlatformTextureDescriptor texture) async {
     // noop
   }
 
   @override
-  Future<ThermionFlutterTexture?> resizeTexture(ThermionFlutterTexture texture,
+  Future<PlatformTextureDescriptor?> resizeTexture(PlatformTextureDescriptor texture,
       int width, int height, int offsetLeft, int offsetTop, double pixelRatio) async {
     final canvas = document.getElementById("canvas") as HTMLCanvasElement;
     canvas.width = width;
@@ -54,7 +54,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
     (canvas as HTMLElement).style.top =
         (offsetTop * pixelRatio).ceil().toString();
     _viewer!.updateViewportAndCameraProjection(width, height, 1.0);
-    return ThermionFlutterTexture(null, null, 0, 0, null);
+    return PlatformTextureDescriptor(null, null, 0, 0, null);
   }
 
   Future<ThermionViewer> createViewerWithOptions(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/thermion_dart.dart' as t;
@@ -84,7 +85,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     return viewer!;
   }
 
-  Future<PlatformTextureDescriptor?> createTexture(
+  Future<PlatformTextureDescriptor> createTextureDescriptor(
       int width, int height) async {
     var result =
         await channel.invokeMethod("createTexture", [width, height, 0, 0]);
@@ -95,33 +96,22 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     final hardwareId = result[1] as int;
     var window = result[2] as int?; // usually 0 for nullptr
 
-    return (
-      flutterTextureId: flutterId,
-      hardwareId: hardwareId,
-      windowHandle: window
-    );
+    return PlatformTextureDescriptor(flutterId, hardwareId, window, width, height);
+      
+  }
+
+  @override
+  Future destroyTextureDescriptor(PlatformTextureDescriptor descriptor) async {
+    await channel.invokeMethod("destroyTexture", descriptor.flutterTextureId);
   }
 
   ///
   ///
   ///
-  Future<ThermionFlutterTexture?> createTextureAndBindToView(
+  Future<PlatformTextureDescriptor?> createTextureAndBindToView(
       t.View view, int width, int height) async {
-    var result =
-        await channel.invokeMethod("createTexture", [width, height, 0, 0]);
-    if (result == null || (result[0] == -1)) {
-      throw Exception("Failed to create texture");
-    }
-    final flutterId = result[0] as int;
-    final hardwareId = result[1] as int;
-    var window = result[2] as int?; // usually 0 for nullptr
-
-    var texture = ThermionFlutterTexture(
-        flutterId: flutterId,
-        hardwareId: hardwareId,
-        height: height,
-        width: width,
-        window: window ?? 0);
+    var descriptor = await createTextureDescriptor(width, height);
+    
 
     if (Platform.isWindows) {
       if (_swapChain != null) {
@@ -130,43 +120,38 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       }
 
       _swapChain =
-          await viewer!.createHeadlessSwapChain(texture.width, texture.height);
+          await viewer!.createHeadlessSwapChain(descriptor.width, descriptor.height);
     } else if (Platform.isAndroid) {
       if (_swapChain != null) {
         await view.setRenderable(false, _swapChain!);
         await viewer!.destroySwapChain(_swapChain!);
       }
-      _swapChain = await viewer!.createSwapChain(texture.window);
+      _swapChain = await viewer!.createSwapChain(descriptor.windowHandle!);
     } else {
       var renderTarget = await viewer!.createRenderTarget(
-          texture.width, texture.height, texture.hardwareId);
+          descriptor.width, descriptor.height, descriptor.hardwareId);
 
       await view.setRenderTarget(renderTarget!);
     }
     await view.setRenderable(true, _swapChain!);
 
-    return texture;
+    return descriptor;
   }
 
   @override
-  Future destroyTexture(ThermionFlutterTexture texture) async {
-    await channel.invokeMethod("destroyTexture", texture.flutterId);
+  Future markTextureFrameAvailable(PlatformTextureDescriptor texture) async {
+    await channel.invokeMethod("markTextureFrameAvailable", texture.flutterTextureId);
   }
 
   @override
-  Future markTextureFrameAvailable(ThermionFlutterTexture texture) async {
-    await channel.invokeMethod("markTextureFrameAvailable", texture.flutterId);
-  }
-
-  @override
-  Future<ThermionFlutterTexture> resizeTexture(ThermionFlutterTexture texture,
+  Future<PlatformTextureDescriptor> resizeTexture(PlatformTextureDescriptor texture,
       t.View view, int width, int height) async {
     var newTexture = await createTextureAndBindToView(view, width, height);
     if (newTexture == null) {
       throw Exception();
     }
 
-    await destroyTexture(texture);
+    await destroyTextureDescriptor(texture);
 
     return newTexture;
   }

@@ -12,8 +12,7 @@ class ThermionFlutterOptions {
   const ThermionFlutterOptions.empty() : uberarchivePath = null;
 }
 
-typedef PlatformTextureDescriptor = (
-    {int flutterTextureId, int hardwareId, int? windowHandle}) ;
+
 
 abstract class ThermionFlutterPlatform extends PlatformInterface {
   ThermionFlutterPlatform() : super(token: _token);
@@ -40,7 +39,12 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   /// This is internal; unless you are [thermion_*] package developer, don't
   /// call this yourself. May not be supported on all platforms.
   ///
-  Future<PlatformTextureDescriptor?> createTexture(int width, int height);
+  Future<PlatformTextureDescriptor> createTextureDescriptor(int width, int height);
+
+  ///
+  /// Destroys a raw rendering surface.
+  ///
+  Future destroyTextureDescriptor(PlatformTextureDescriptor descriptor);
 
   ///
   /// Create a rendering surface and binds to the given [View]
@@ -48,23 +52,19 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   /// This is internal; unless you are [thermion_*] package developer, don't
   /// call this yourself. May not be supported on all platforms.
   ///
-  Future<ThermionFlutterTexture?> createTextureAndBindToView(
+  Future<PlatformTextureDescriptor?> createTextureAndBindToView(
       t.View view, int width, int height);
 
   ///
   ///
   ///
   ///
-  Future<ThermionFlutterTexture?> resizeTexture(
-      ThermionFlutterTexture texture, t.View view, int width, int height);
+  Future<PlatformTextureDescriptor?> resizeTexture(
+      PlatformTextureDescriptor texture, t.View view, int width, int height);
+
 
   ///
   ///
   ///
-  Future destroyTexture(ThermionFlutterTexture texture);
-
-  ///
-  ///
-  ///
-  Future markTextureFrameAvailable(ThermionFlutterTexture texture);
+  Future markTextureFrameAvailable(PlatformTextureDescriptor texture);
 }
