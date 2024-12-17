@@ -708,30 +708,13 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement setMaterialPropertyInt
     throw UnimplementedError();
   }
-  
-  @override
-  Future<MaterialInstance?> getMaterialInstanceAt(ThermionEntity entity, int index) {
-    // TODO: implement getMaterialInstanceAt
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future setLayerVisibility(int layer, bool visible) {
-    // TODO: implement setLayerVisibility
-    throw UnimplementedError();
-  }
-  
+
   @override
   Future setMaterialDepthWrite(ThermionEntity entity, int materialIndex, bool enabled) {
     // TODO: implement setMaterialDepthWrite
     throw UnimplementedError();
   }
   
-  @override
-  Future setVisibilityLayer(ThermionEntity entity, int layer) {
-    // TODO: implement setVisibilityLayer
-    throw UnimplementedError();
-  }
   
   @override
   Future requestFrame() {
@@ -829,11 +812,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
 
-  @override
-  Future<Gizmo> createGizmo(covariant View view) {
-    // TODO: implement createGizmo
-    throw UnimplementedError();
-  }
   
   @override
   Future<SwapChain> createHeadlessSwapChain(int width, int height) {
@@ -889,13 +867,6 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
   
-  @override
-  Future pick(int x, int y) {
-    // TODO: implement pick
-    throw UnimplementedError();
-  }
-  
- 
   @override
   Future<ThermionAsset> createInstance(covariant ThermionAsset asset, {covariant List<MaterialInstance>? materialInstances = null}) {
     // TODO: implement createInstance
@@ -1069,6 +1040,66 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) {
     // TODO: implement setMorphTargetWeights
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future addEntityToScene(ThermionEntity entity) {
+    // TODO: implement addEntityToScene
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<GizmoAsset> createGizmo(covariant View view, GizmoType type) {
+    // TODO: implement createGizmo
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Material> createMaterial(Uint8List data) {
+    // TODO: implement createMaterial
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<MaterialInstance> getMaterialInstanceAt(ThermionEntity entity, int index) {
+    // TODO: implement getMaterialInstanceAt
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future pick(int x, int y, void Function(PickResult p1) resultHandler) {
+    // TODO: implement pick
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future removeEntityFromScene(ThermionEntity entity) {
+    // TODO: implement removeEntityFromScene
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future removeGridOverlay() {
+    // TODO: implement removeGridOverlay
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setLayerVisibility(VisibilityLayers layer, bool visible) {
+    // TODO: implement setLayerVisibility
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setVisibilityLayer(ThermionEntity entity, VisibilityLayers layer) {
+    // TODO: implement setVisibilityLayer
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future showGridOverlay({covariant Material? material}) {
+    // TODO: implement showGridOverlay
     throw UnimplementedError();
   }
 
