@@ -7,12 +7,11 @@
 
 #include <gltfio/math.h>
 
+#include "Globals.hpp"
+#include "Log.hpp"
+#include "material/gizmo.h"
 #include "scene/Gizmo.hpp"
 #include "scene/SceneManager.hpp"
-
-#include "material/gizmo.h"
-
-#include "Log.hpp"
 
 namespace thermion
 {
@@ -82,7 +81,8 @@ namespace thermion
         auto instance = _source->createInstance(&materialInstance, 1);
 
         TRACE("Created Gizmo axis glTF instance with head entity %d", instance->getEntity());
-        materialInstance->setParameter("baseColorFactor", inactiveColors[axis]);
+        auto color = filament::math::float4(AXIS_COLORS[axis], 0.5f);
+        materialInstance->setParameter("baseColorFactor", color);
         materialInstance->setParameter("scale", _scale);
 
         auto hitTestEntity = instance->findEntityByName("HitTest");
@@ -179,8 +179,8 @@ namespace thermion
             if (renderableInstance.isValid())
             {
                 auto *materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
-                math::float4 baseColor = activeColors[axis];
-                materialInstance->setParameter("baseColorFactor", baseColor);
+                auto color = filament::math::float4(AXIS_COLORS[axis], 1.0f);
+                materialInstance->setParameter("baseColorFactor", color);
             }
         }
     }
@@ -202,8 +202,8 @@ namespace thermion
             if (renderableInstance.isValid())
             {
                 auto *materialInstance = rm.getMaterialInstanceAt(renderableInstance, 0);
-                math::float4 baseColor = inactiveColors[axis];
-                materialInstance->setParameter("baseColorFactor", baseColor);
+                auto color = filament::math::float4(AXIS_COLORS[axis], 0.5f);
+                materialInstance->setParameter("baseColorFactor", color);
             }
         }
     }
