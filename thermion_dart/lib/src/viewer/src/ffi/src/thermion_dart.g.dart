@@ -1446,6 +1446,21 @@ external void remove_skybox_render_thread(
 );
 
 @ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TSceneManager>,
+            ffi.Pointer<TMaterial>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
+    isLeaf: true)
+external void SceneManager_createGridRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<TMaterial> tMaterial,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
+      callback,
+);
+
+@ffi.Native<
         ffi.Pointer<TGizmo> Function(
             ffi.Pointer<TSceneManager>,
             ffi.Pointer<TView>,
@@ -1671,6 +1686,17 @@ external void MaterialProvider_createMaterialInstanceRenderThread(
   ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
       callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TSceneManager>,
+        ffi.Pointer<TMaterialInstance>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void SceneManager_destroyMaterialInstanceRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
