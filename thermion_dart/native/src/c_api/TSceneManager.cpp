@@ -207,9 +207,10 @@ extern "C"
         return reinterpret_cast<TNameComponentManager*>(sceneManager->getNameComponentManager());
     }
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager) {
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager, TMaterial *tMaterial) {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        auto *grid = sceneManager->createGrid();
+        auto *material = reinterpret_cast<Material *>(tMaterial);
+        auto *grid = sceneManager->createGrid(material);
         return reinterpret_cast<TSceneAsset*>(grid);
     }
 
