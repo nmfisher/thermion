@@ -153,11 +153,17 @@ namespace thermion
         AssetLoader::destroy(&_assetLoader);
     }
 
-    SceneAsset *SceneManager::createGrid()
+    SceneAsset *SceneManager::createGrid(Material *material)
     {
         if (!_grid)
         {
-            _grid = std::make_unique<GridOverlay>(*_engine);
+            if(!material) {
+                material = Material::Builder()
+                    .package(GRID_PACKAGE, GRID_GRID_SIZE)
+                    .build(*_engine);
+            }
+            
+            _grid = std::make_unique<GridOverlay>(*_engine, material);
         }
         return _grid.get();
     }
