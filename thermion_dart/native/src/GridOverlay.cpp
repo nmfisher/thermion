@@ -8,7 +8,7 @@ namespace thermion
     GridOverlay::GridOverlay(Engine &engine, Material *material) : _engine(engine), _material(material)
     {
         createGrid();
-        createSphere();
+        //createSphere();
     }
 
     GridOverlay::~GridOverlay()
@@ -16,12 +16,15 @@ namespace thermion
         auto &rm = _engine.getRenderableManager();
         auto &tm = _engine.getTransformManager();
 
-        rm.destroy(_sphereEntity);
+        
         rm.destroy(_gridEntity);
-        tm.destroy(_sphereEntity);
         tm.destroy(_gridEntity);
-        _engine.destroy(_sphereEntity);
         _engine.destroy(_gridEntity);
+        
+        // rm.destroy(_sphereEntity);
+        // tm.destroy(_sphereEntity);
+        // _engine.destroy(_sphereEntity);
+        
         _engine.destroy(_materialInstance);
         _engine.destroy(_material);
     }
@@ -95,20 +98,20 @@ namespace thermion
         // Set material parameters to match Dart implementation
         _materialInstance->setParameter("distance", 10000.0f);
         _materialInstance->setParameter("lineSize", 0.01f);
-        _materialInstance->setCullingMode(MaterialInstance::CullingMode::NONE);
 
         RenderableManager::Builder(1)
             .boundingBox({{-1.0f, -1.0f, -1.0f}, // Min point
                           {1.0f, 1.0f, 1.0f}})   // Max point
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0, indices->size())
             .material(0, _materialInstance)
-            .priority(1)
+            .priority(0x7)
             .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
             /*  
                 We disable culling here because we calculate the quad's world-space coordinates
                 manually in the shader (see grid.mat). Without this, the quad would be culled before
                 rendered.
             */ 
+           
             .culling(false) 
             .receiveShadows(false)
             .castShadows(false)
@@ -216,29 +219,29 @@ namespace thermion
     void GridOverlay::addAllEntities(Scene *scene)
     {
         scene->addEntity(_gridEntity);
-        scene->addEntity(_sphereEntity);
+        // scene->addEntity(_sphereEntity);
     }
 
     void GridOverlay::removeAllEntities(Scene *scene)
     {
         scene->remove(_gridEntity);
-        scene->remove(_sphereEntity);
+        // scene->remove(_sphereEntity);
     }
 
     void GridOverlay::setPriority(RenderableManager &rm, int priority)
     {
         auto gridInstance = rm.getInstance(_gridEntity);
         rm.setPriority(gridInstance, priority);
-        auto sphereInstance = rm.getInstance(_sphereEntity);
-        rm.setPriority(sphereInstance, priority);
+        // auto sphereInstance = rm.getInstance(_sphereEntity);
+        // rm.setPriority(sphereInstance, priority);
     }
 
     void GridOverlay::setLayer(RenderableManager &rm, int layer)
     {
         auto gridInstance = rm.getInstance(_gridEntity);
         rm.setLayerMask(gridInstance, 0xFF, 1u << (uint8_t)layer);
-        auto sphereInstance = rm.getInstance(_sphereEntity);
-        rm.setLayerMask(sphereInstance, 0xFF, 1u << (uint8_t)layer);
+        // auto sphereInstance = rm.getInstance(_sphereEntity);
+        // rm.setLayerMask(sphereInstance, 0xFF, 1u << (uint8_t)layer);
     }
 
     SceneAsset *GridOverlay::getInstanceByEntity(utils::Entity entity)
@@ -261,6 +264,10 @@ namespace thermion
     const Entity *GridOverlay::getChildEntities()
     {
         return _childEntities;
+    }
+
+    size_t GridOverlay::getChildEntityCount() { 
+        return 1; 
     }
 
     Entity GridOverlay::findEntityByName(const char *name)
