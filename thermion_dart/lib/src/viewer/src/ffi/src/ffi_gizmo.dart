@@ -21,7 +21,7 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
   }
 
   bool isNonPickable(ThermionEntity entity) {
-    return SceneManager_isGridEntity(sceneManager!, entity);
+    return SceneManager_isGridEntity(sceneManager, entity);
   }
 
   bool isGizmoEntity(ThermionEntity entity) => gizmoEntities.contains(entity);
