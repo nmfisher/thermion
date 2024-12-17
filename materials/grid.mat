@@ -13,9 +13,10 @@ material {
     ],
     depthWrite : true,
     depthCulling : true,
-    doubleSided: false,
+    doubleSided: true,
     shadingModel : unlit,
     blending : transparent,
+    transparency: twoPassesOneSide,
     variantFilter : [ dynamicLighting, directionalLighting, shadowReceiver, skinning, ssr, stereo ],
     culling : none,
     instanced : false,
@@ -111,8 +112,10 @@ fragment {
         color.rgb = (axes.z < 1e-8) ? color.rgb : AXIS_COLOR_Z;
 
         color.a *= fade;
-
+        
         material.baseColor = color;
+
+        gl_FragDepth = 0.001f;
         
     }
 }
