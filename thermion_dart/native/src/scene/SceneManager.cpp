@@ -172,16 +172,19 @@ namespace thermion
     {
         if (!_grid)
         {
+            TRACE("No grid");
             return false;
         }
         if (entity == _grid->getEntity())
         {
+            TRACE("%d is a grid entity.", entity);
             return true;
         }
         for (int i = 0; i < _grid->getChildEntityCount(); i++)
         {
             if (entity == _grid->getChildEntities()[i])
             {
+                TRACE("%d is a child entity of grid.", entity);
                 return true;
             }
         }
