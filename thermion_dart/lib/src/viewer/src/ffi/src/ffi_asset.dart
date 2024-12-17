@@ -5,7 +5,6 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-
 class FFIAsset extends ThermionAsset {
   final Pointer<TSceneAsset> pointer;
   final Pointer<TSceneManager> sceneManager;
@@ -122,7 +121,8 @@ class FFIAsset extends ThermionAsset {
       }
       var sourceMaterialInstance = FFIMaterialInstance(
           RenderableManager_getMaterialInstanceAt(
-              renderableManager, targetEntity, 0), sceneManager);
+              renderableManager, targetEntity, 0),
+          sceneManager);
 
       await sourceMaterialInstance.setStencilWriteEnabled(true);
       await sourceMaterialInstance.setDepthWriteEnabled(true);
@@ -153,21 +153,23 @@ class FFIAsset extends ThermionAsset {
           .createInstance(materialInstances: [highlightMaterialInstance]);
       _highlight = highlightInstance;
 
-      var targetHighlightEntity = _highlight!.entity;
-
-      if (entityIndex != null) {
-        var highlightChildEntities = await _highlight!.getChildEntities();
-        targetHighlightEntity = highlightChildEntities[entityIndex!];
-      }
-
-      RenderableManager_setPriority(
-          renderableManager, targetHighlightEntity, 7);
-      RenderableManager_setPriority(renderableManager, targetEntity, 0);
-
       await highlightMaterialInstance.setStencilReferenceValue(1);
-
-      SceneManager_addToScene(sceneManager, targetHighlightEntity);
+      RenderableManager_setPriority(renderableManager, targetEntity, 0);
+      final transformManager = Engine_getTransformManager(engine);
+      TransformManager_setParent(
+          transformManager, _highlight!.entity, entity, false);
     }
+
+    var targetHighlightEntity = _highlight!.entity;
+
+    if (entityIndex != null) {
+      var highlightChildEntities = await _highlight!.getChildEntities();
+      targetHighlightEntity = highlightChildEntities[entityIndex!];
+    }
+
+    RenderableManager_setPriority(renderableManager, targetHighlightEntity, 7);
+
+    SceneManager_addToScene(sceneManager, targetHighlightEntity);
   }
 
   @override
