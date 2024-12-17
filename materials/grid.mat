@@ -1,57 +1,118 @@
+
 material {
     name : Grid,
     parameters : [
         {
-            type : float,
-            name : maxDistance
+            type: float,
+            name: distance
         },
         {
-            type : float3,
-            name : color
+            type: float,
+            name: lineSize
         }
     ],
-    depthWrite : false,
+    depthWrite : true,
     depthCulling : true,
+    doubleSided: false,
     shadingModel : unlit,
-    blending: opaque,
-    variantFilter : [ skinning, shadowReceiver, vsm ],
-    culling: none,
-    instanced: false,
-    vertexDomain: object
+    blending : transparent,
+    variantFilter : [ dynamicLighting, directionalLighting, shadowReceiver, skinning, ssr, stereo ],
+    culling : none,
+    instanced : false,
+    vertexDomain : object
 }
 
 vertex {
+
     void materialVertex(inout MaterialVertexInputs material) {
-        vec4 modelSpace = getPosition();
-        vec4 worldSpace = getWorldFromModelMatrix() * modelSpace;
-        vec4 clipSpace = getClipFromWorldMatrix() * worldSpace;
-        clipSpace.z = 0.02f;
-        material.worldPosition = getWorldFromClipMatrix() * clipSpace;
+        vec3 position = getPosition().xyz;
+        position.xz *= materialParams.distance;
+        material.worldPosition.xz = position.xz;
     }
 }
 
 fragment {
+
+    #include "shared.h"
+
+    /* the below has been adapted from Blender's overlay_grid_frag.glsl */
+
+    #define _1_DIV_SQRTPI 0.5641895835477563 
+    #define RADIUS (_1_DIV_SQRTPI * 1.05)
+    #define GRID_START (0.5 + RADIUS)
+    #define GRID_END (0.5 - RADIUS)
+    #define GRID_STEP(dist) smoothstep(GRID_START, GRID_END, dist)
+
+    float getGrid(vec2 point, vec2 fwidthCos, vec2 gridScale, float lineSize) {
+        vec2 halfSize = gridScale / 2.0;
+        vec2 gridDomain = abs(mod(point + halfSize, gridScale) - halfSize);
+        gridDomain /= fwidthCos;
+        float lineDist = min(gridDomain.x, gridDomain.y);
+        return GRID_STEP(lineDist - lineSize);
+    }
+
+    vec3 getAxes(vec3 point, vec3 fwidthCos, float line_size)
+    {
+        vec3 axes_domain = abs(point);
+        axes_domain /= fwidthCos;
+        return GRID_STEP(axes_domain - (line_size + materialParams.lineSize));
+    }
+
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
+
+        vec3 P = getWorldPosition().xyz;
+        vec3 dFdxPos = dFdx(P);
+        vec3 dFdyPos = dFdy(P);
+        vec3 fwidthPos = abs(dFdxPos) + abs(dFdyPos);
+
+        P += mulMat4x4Float3(getUserWorldFromWorldMatrix(),	getWorldCameraPosition()).xyz;
+
+        vec3 V = getWorldPosition().xyz;
+        float dist = length(V);
+        V /= dist;
         
-        // Convert world position to view space
-        float4 viewPos = getViewFromWorldMatrix() * float4(getWorldPosition(), 1.0);
+        float angle = V.y;
+
+        angle = 1.0 - abs(angle);
+        angle *= angle;
+        float fade = 1.0 - angle;
+        fade *= 0.5 - smoothstep(0.0, materialParams.distance, dist - materialParams.distance); 
+
+        float gridA = getGrid(P.xz, fwidthPos.xz, vec2(1.0, 1.0), materialParams.lineSize);
+
+        vec3 planeAxes = vec3(1.0f, 0.0f, 1.0f);
+
+        vec3 distanceToAxes = vec3(
+            dot(P.yz, planeAxes.yz),
+            0.0f, 
+            dot(P.xy, planeAxes.xy)
+        );
+
+        vec3 dAxes = vec3(
+            dot(fwidthPos.yz, planeAxes.yz),
+            0.0f, 
+            dot(fwidthPos.xy, planeAxes.xy)
+        );
+
+        vec3 axes = getAxes(distanceToAxes, dAxes, 0.1);
+
+        vec4 color = vec4(
+            0.1f,
+            0.1f,
+            0.1f,
+            gridA
+        );  
+
+        color.a = max(color.a, axes.x);
+        color.rgb = (axes.x < 1e-8) ? color.rgb : AXIS_COLOR_X;
+
+        color.a = max(color.a, axes.z);
+        color.rgb = (axes.z < 1e-8) ? color.rgb : AXIS_COLOR_Z;
+
+        color.a *= fade;
+
+        material.baseColor = color;
         
-        // Calculate distance in view space (camera is at 0,0,0 in view space)
-        float distance = length(viewPos.xz);
-        
-        // Discard fragment if it's too far from the camera
-        if (distance > materialParams.maxDistance) {
-            material.baseColor = float4(0.0);
-        } else {
-            material.baseColor = float4(materialParams.color, 1.0);
-            
-            // Optional: fade out as we approach maxDistance
-            float fadeStart = materialParams.maxDistance * 0.8;
-            if (distance > fadeStart) {
-                float fade = 1.0 - (distance - fadeStart) / (materialParams.maxDistance - fadeStart);
-                material.baseColor.a = fade;
-            }
-        }
     }
 }

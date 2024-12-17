@@ -1,17 +1,14 @@
 #include "scene/GridOverlay.hpp"
 #include "scene/SceneManager.hpp"
-#include "material/grid.h"
 #include "Log.hpp"
 
 namespace thermion
 {
 
-    GridOverlay::GridOverlay(Engine &engine) : _engine(engine)
+    GridOverlay::GridOverlay(Engine &engine, Material *material) : _engine(engine), _material(material)
     {
         createGrid();
         createSphere();
-        _childEntities[0] = _gridEntity;
-        _childEntities[1] = _sphereEntity;
     }
 
     GridOverlay::~GridOverlay()
@@ -31,88 +28,98 @@ namespace thermion
 
     void GridOverlay::createGrid()
     {
-        const int gridSize = 100;
-        const float gridSpacing = 1.0f;
-        int vertexCount = (gridSize + 1) * 4; // 2 axes, 2 vertices per line
+        const float stepSize = 0.25f;                    
+        const int gridSize = 8;                          // Number of grid cells in each direction (-1 to 1 with 0.25 step = 8 cells)
+        const int vertexCount = gridSize * gridSize * 4; // 4 vertices per grid cell
+        const int indexCount = gridSize * gridSize * 6;  // 6 indices (2 triangles) per grid cell
 
-        float *gridVertices = new float[vertexCount * 3];
-        int index = 0;
+        std::vector<math::float3> *vertices = new std::vector<math::float3>();
+        std::vector<uint32_t> *indices = new std::vector<uint32_t>();
+        vertices->reserve(vertexCount);
+        indices->reserve(indexCount);
 
-        // Create grid lines
-        for (int i = 0; i <= gridSize; ++i)
+        // Generate grid vertices and indices
+        for (float x = -1.0f; x < 1.0f; x += stepSize)
         {
-            float pos = i * gridSpacing - (gridSize * gridSpacing / 2);
+            for (float z = -1.0f; z < 1.0f; z += stepSize)
+            {
+                uint32_t baseIndex = vertices->size();
 
-            // X-axis lines
-            gridVertices[index++] = pos;
-            gridVertices[index++] = 0;
-            gridVertices[index++] = -(gridSize * gridSpacing / 2);
+                // Add four vertices for this grid cell
+                vertices->push_back({x, 0.0f, z});                       // Bottom-left
+                vertices->push_back({x, 0.0f, z + stepSize});            // Top-left
+                vertices->push_back({x + stepSize, 0.0f, z + stepSize}); // Top-right
+                vertices->push_back({x + stepSize, 0.0f, z});            // Bottom-right
 
-            gridVertices[index++] = pos;
-            gridVertices[index++] = 0;
-            gridVertices[index++] = (gridSize * gridSpacing / 2);
-
-            // Z-axis lines
-            gridVertices[index++] = -(gridSize * gridSpacing / 2);
-            gridVertices[index++] = 0;
-            gridVertices[index++] = pos;
-
-            gridVertices[index++] = (gridSize * gridSpacing / 2);
-            gridVertices[index++] = 0;
-            gridVertices[index++] = pos;
+                // Add indices for two triangles
+                indices->push_back(baseIndex);
+                indices->push_back(baseIndex + 1);
+                indices->push_back(baseIndex + 2);
+                indices->push_back(baseIndex + 2);
+                indices->push_back(baseIndex + 3);
+                indices->push_back(baseIndex);
+            }
         }
 
         auto vb = VertexBuffer::Builder()
-                      .vertexCount(vertexCount)
+                      .vertexCount(vertices->size())
                       .bufferCount(1)
                       .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
                       .build(_engine);
 
-        vb->setBufferAt(_engine, 0, VertexBuffer::BufferDescriptor(gridVertices, vertexCount * sizeof(math::float3), [](void *buffer, size_t size, void *)
-                                                                   { delete[] static_cast<float *>(buffer); }));
-
-        uint32_t *gridIndices = new uint32_t[vertexCount];
-        for (uint32_t i = 0; i < vertexCount; ++i)
-        {
-            gridIndices[i] = i;
-        }
+        vb->setBufferAt(_engine, 0,
+                        VertexBuffer::BufferDescriptor(
+                            vertices->data(),
+                            vertices->size() * sizeof(math::float3),
+                            [](void *buffer, size_t size, void *user) {
+                                delete static_cast<std::vector<math::float3>*>(user);
+                            }, vertices));
 
         auto ib = IndexBuffer::Builder()
-                      .indexCount(vertexCount)
+                      .indexCount(indices->size())
                       .bufferType(IndexBuffer::IndexType::UINT)
                       .build(_engine);
 
-        ib->setBuffer(_engine, IndexBuffer::BufferDescriptor(
-                                   gridIndices,
-                                   vertexCount * sizeof(uint32_t),
-                                   [](void *buffer, size_t size, void *)
-                                   { delete[] static_cast<uint32_t *>(buffer); }));
+        ib->setBuffer(_engine,
+                      IndexBuffer::BufferDescriptor(
+                          indices->data(),
+                          indices->size() * sizeof(uint32_t),
+                          [](void *buffer, size_t size, void *user) {
+                            delete static_cast<std::vector<uint32_t>*>(user);
+                           }, indices));
 
         _gridEntity = utils::EntityManager::get().create();
-        _material = Material::Builder()
-                        .package(GRID_PACKAGE, GRID_GRID_SIZE)
-                        .build(_engine);
 
         _materialInstance = _material->createInstance();
-        _materialInstance->setParameter("maxDistance", 50.0f);
-        _materialInstance->setParameter("color", math::float3{0.05f, 0.05f, 0.05f});
+
+        // Set material parameters to match Dart implementation
+        _materialInstance->setParameter("distance", 10000.0f);
+        _materialInstance->setParameter("lineSize", 0.01f);
+        _materialInstance->setCullingMode(MaterialInstance::CullingMode::NONE);
 
         RenderableManager::Builder(1)
-            .boundingBox({{-gridSize * gridSpacing / 2, 0, -gridSize * gridSpacing / 2},
-                          {gridSize * gridSpacing / 2, 0, gridSize * gridSpacing / 2}})
+            .boundingBox({{-1.0f, -1.0f, -1.0f}, // Min point
+                          {1.0f, 1.0f, 1.0f}})   // Max point
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0, indices->size())
             .material(0, _materialInstance)
-            .geometry(0, RenderableManager::PrimitiveType::LINES, vb, ib, 0, vertexCount)
-            .priority(7)
+            .priority(1)
             .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
-            .culling(true)
+            /*  
+                We disable culling here because we calculate the quad's world-space coordinates
+                manually in the shader (see grid.mat). Without this, the quad would be culled before
+                rendered.
+            */ 
+            .culling(false) 
             .receiveShadows(false)
             .castShadows(false)
             .build(_engine, _gridEntity);
+
+        _childEntities[0] = _gridEntity;
     }
 
     void GridOverlay::createSphere()
     {
-        const float sphereRadius = 0.05f;
+        const float sphereRadius = 1.05f;
         const int sphereSegments = 16;
         const int sphereRings = 16;
 
@@ -195,14 +202,15 @@ namespace thermion
             .receiveShadows(false)
             .castShadows(false)
             .build(_engine, _sphereEntity);
+        _childEntities[1] = _sphereEntity;
     }
 
     SceneAsset *GridOverlay::createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount)
     {
-        auto instance = std::make_unique<GridOverlay>(_engine);
+        auto instance = std::make_unique<GridOverlay>(_engine, _material);
         auto *raw = instance.get();
         _instances.push_back(std::move(instance));
-        return reinterpret_cast<SceneAsset*>(raw);
+        return reinterpret_cast<SceneAsset *>(raw);
     }
 
     void GridOverlay::addAllEntities(Scene *scene)

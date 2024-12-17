@@ -8,6 +8,8 @@
 #include <filament/MaterialInstance.h>
 #include <utils/Entity.h>
 #include "scene/SceneAsset.hpp"
+#include "material/grid.h"
+
 
 namespace thermion {
 
@@ -15,7 +17,7 @@ using namespace filament;
 
 class GridOverlay : public SceneAsset {
 public:
-    GridOverlay(Engine& engine);
+    GridOverlay(Engine& engine, Material* material);
     ~GridOverlay();
 
     SceneAssetType getType() override { return SceneAsset::SceneAssetType::Gizmo; }
