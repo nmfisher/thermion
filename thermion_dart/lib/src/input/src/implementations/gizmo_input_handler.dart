@@ -9,6 +9,8 @@ class _Gizmo {
   final GizmoAsset _gizmo;
   ThermionEntity? _attachedTo;
 
+  final attachedTo = StreamController<ThermionEntity?>.broadcast();
+
   final GizmoType _gizmoType;
 
   _Gizmo(this._gizmo, this.viewer, this._gizmoType);
@@ -67,6 +69,7 @@ class _Gizmo {
     }
 
     _attachedTo = entity;
+    attachedTo.add(_attachedTo);
 
     await viewer.setParent(_gizmo.entity, entity);
     await viewer.setTransform(_gizmo.entity, Matrix4.identity());
@@ -83,6 +86,7 @@ class _Gizmo {
     if (_attachedTo != null) {
       await viewer.setParent(_attachedTo!, 0);
     }
+    attachedTo.add(null);
     _active = null;
     isVisible = false;
   }
@@ -205,18 +209,25 @@ class _Gizmo {
     }
 
     // Apply rotation to the current transform
-    gizmoTransform = rotationMatrix * gizmoTransform!;
+    gizmoTransform = gizmoTransform! * rotationMatrix;
     await viewer.setTransform(_attachedTo!, gizmoTransform!);
   }
 }
 
 class GizmoInputHandler extends InputHandler {
   final InputHandler wrapped;
+
   final ThermionViewer viewer;
 
   late final _gizmos = <GizmoType, _Gizmo>{};
+
   _Gizmo? active;
+
   StreamSubscription? _entityTransformUpdatedListener;
+  StreamSubscription? _attachedToListener;
+
+  final _attachedTo = StreamController<ThermionEntity?>.broadcast();
+  Stream<ThermionEntity?> get attachedTo => _attachedTo.stream;
 
   GizmoType? getGizmoType() {
     return active?._gizmoType;
@@ -232,6 +243,7 @@ class GizmoInputHandler extends InputHandler {
     var target = _gizmos[type]!;
     if (target != active) {
       await _entityTransformUpdatedListener?.cancel();
+      await _attachedToListener?.cancel();
       if (active?._attachedTo != null) {
         var attachedTo = active!._attachedTo!;
         await active!.detach();
@@ -241,6 +253,10 @@ class GizmoInputHandler extends InputHandler {
       _entityTransformUpdatedListener =
           active!._onEntityTransformUpdated.stream.listen((event) {
         _transformUpdatedController.add(event);
+      });
+
+      _attachedToListener = active!.attachedTo.stream.listen((entity) {
+        _attachedTo.add(entity);
       });
     }
   }
@@ -399,9 +415,4 @@ class GizmoInputHandler extends InputHandler {
       }
     }
   }
-
-  // @override
-  // Future setCamera(Camera camera) async  {
-  //   await wrapped.setCamera(camera);
-  // }
 }
