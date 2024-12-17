@@ -58,7 +58,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAsset(TSceneManager *tSceneManager, TSceneAsset *sceneAsset);
 	EMSCRIPTEN_KEEPALIVE TNameComponentManager *SceneManager_getNameComponentManager(TSceneManager *tSceneManager);
 
-	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager);
+	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager, TMaterial *tMaterial);
 	EMSCRIPTEN_KEEPALIVE bool SceneManager_isGridEntity(TSceneManager *tSceneManager, EntityId entityId);
 
 

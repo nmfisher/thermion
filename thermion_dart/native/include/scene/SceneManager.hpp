@@ -304,7 +304,7 @@ namespace thermion
             return _ncm;
         }
 
-        SceneAsset *createGrid();
+        SceneAsset *createGrid(Material *material);
 
         bool isGridEntity(utils::Entity entity);
 
