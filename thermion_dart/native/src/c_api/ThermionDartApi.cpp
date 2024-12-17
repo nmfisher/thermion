@@ -508,4 +508,18 @@ extern "C"
         }
         transformManager.setTransform(transformInstance, convert_double4x4_to_mat4(transform));
     }
+
+    EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uint8_t* materialData, size_t length) {
+        auto *engine = reinterpret_cast<Engine *>(tEngine);
+        auto *material = Material::Builder()
+                    .package(materialData, length)
+                    .build(*engine);
+        return reinterpret_cast<TMaterial*>(material);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterial(TEngine *tEngine, TMaterial *tMaterial) { 
+        auto *engine = reinterpret_cast<Engine *>(tEngine);
+        auto *material = reinterpret_cast<Material *>(tMaterial);
+        engine->destroy(material);
+    }
 }
