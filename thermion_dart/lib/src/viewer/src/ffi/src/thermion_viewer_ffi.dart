@@ -1773,6 +1773,7 @@ class ThermionViewerFFI extends ThermionViewer {
           FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!);
     }
     await _grid!.addToScene();
+    await setLayerVisibility(VisibilityLayers.OVERLAY, true);
   }
 
   ///
