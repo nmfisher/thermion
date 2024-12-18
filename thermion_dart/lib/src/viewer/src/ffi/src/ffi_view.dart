@@ -8,18 +8,29 @@ import 'thermion_viewer_ffi.dart';
 class FFIView extends View {
   final Pointer<TView> view;
   final Pointer<TViewer> viewer;
+  FFIRenderTarget? renderTarget;
 
-  FFIView(this.view, this.viewer);
+  FFIView(this.view, this.viewer) {
+    final renderTargetPtr = View_getRenderTarget(view);
+    if (renderTargetPtr != nullptr) {
+      renderTarget = FFIRenderTarget(renderTargetPtr, viewer);
+    }
+  }
 
   @override
   Future updateViewport(int width, int height) async {
     View_updateViewport(view, width, height);
   }
 
+  Future<RenderTarget?> getRenderTarget() async {
+    return renderTarget;
+  }
+
   @override
   Future setRenderTarget(covariant FFIRenderTarget? renderTarget) async {
     if (renderTarget != null) {
       View_setRenderTarget(view, renderTarget.renderTarget);
+      this.renderTarget = renderTarget;
     } else {
       View_setRenderTarget(view, nullptr);
     }
@@ -85,7 +96,7 @@ class FFIView extends View {
   Future setDithering(bool enabled) async {
     View_setDitheringEnabled(view, enabled);
   }
-  
+
   Future<bool> isDitheringEnabled() async {
     return View_isDitheringEnabled(view);
   }

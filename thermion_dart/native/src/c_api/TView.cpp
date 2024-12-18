@@ -35,6 +35,12 @@ using namespace filament;
         view->setViewport({0, 0, width, height});
     }
 
+    EMSCRIPTEN_KEEPALIVE TRenderTarget *View_getRenderTarget(TView *tView) {
+        auto view = reinterpret_cast<View *>(tView);
+        auto tRenderTarget = reinterpret_cast<TRenderTarget *>(view->getRenderTarget());
+        return tRenderTarget;
+    }
+
     EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView *tView, TRenderTarget *tRenderTarget)
     {
         auto view = reinterpret_cast<View *>(tView);
