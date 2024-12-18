@@ -17,6 +17,7 @@ class Viewport {
 abstract class View {
   Future<Viewport> getViewport();
   Future updateViewport(int width, int height);
+  Future<RenderTarget?> getRenderTarget();
   Future setRenderTarget(covariant RenderTarget? renderTarget);
   Future setCamera(covariant Camera camera);
   Future<Camera> getCamera();
@@ -29,5 +30,5 @@ abstract class View {
   Future setStencilBufferEnabled(bool enabled);
   Future<bool> isStencilBufferEnabled();
   Future setDithering(bool enabled);
-  Future<bool> isDitheringEnabled();  
+  Future<bool> isDitheringEnabled();
 }
