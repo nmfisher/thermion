@@ -31,6 +31,7 @@ EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView *view, TRenderTarget *rende
 EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView *view, bool enabled);
 EMSCRIPTEN_KEEPALIVE void View_updateViewport(TView* tView, uint32_t width, uint32_t height);
 EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView* tView, TRenderTarget* tRenderTarget);
+EMSCRIPTEN_KEEPALIVE TRenderTarget *View_getRenderTarget(TView* tView);
 EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView* tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE void View_setPostProcessing(TView* tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabled(TView* tView, bool enabled);
