@@ -279,6 +279,16 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTargetRenderThread(TViewer *tViewer, TRenderTarget *tRenderTarget, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Viewer_destroyRenderTarget(tViewer, tRenderTarget);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
   {
     std::packaged_task<void()> lambda(
