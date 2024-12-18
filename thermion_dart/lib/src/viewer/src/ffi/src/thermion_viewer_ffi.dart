@@ -93,19 +93,10 @@ class ThermionViewerFFI extends ThermionViewer {
       _logger.info(
           "Viewer is being (or has been) disposed; this will clean up all render targets.");
     } else {
-      Viewer_destroyRenderTarget(_viewer!, renderTarget.renderTarget);
-    }
-  }
-
-  ///
-  ///
-  ///
-  Future setRenderTarget(FFIRenderTarget? renderTarget) async {
-    final view = (await getViewAt(0)) as FFIView;
-    if (renderTarget != null) {
-      View_setRenderTarget(view.view, renderTarget.renderTarget);
-    } else {
-      View_setRenderTarget(view.view, nullptr);
+      await withVoidCallback((cb) {
+        Viewer_destroyRenderTargetRenderThread(
+            _viewer!, renderTarget.renderTarget, cb);
+      });
     }
   }
 
@@ -1769,8 +1760,7 @@ class ThermionViewerFFI extends ThermionViewer {
               _sceneManager!, material.pointer, cb);
         }
       });
-      _grid =
-          FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!);
+      _grid = FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!);
     }
     await _grid!.addToScene();
     await setLayerVisibility(VisibilityLayers.OVERLAY, true);
