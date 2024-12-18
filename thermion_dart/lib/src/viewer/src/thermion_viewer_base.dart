@@ -91,11 +91,6 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future setRenderTarget(covariant RenderTarget? renderTarget);
-
-  ///
-  ///
-  ///
   Future<View> createView();
 
   ///
