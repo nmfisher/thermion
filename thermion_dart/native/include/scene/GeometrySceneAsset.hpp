@@ -53,14 +53,6 @@ namespace thermion
             return _materialInstanceCount;
         }
 
-        const Aabb getBoundingBox() const override
-        {
-            return Aabb {
-
-                .min = _boundingBox.getMin(), // center - halfExtent
-                .max = _boundingBox.getMax()  // center + halfExtent
-            };
-        }
         VertexBuffer *getVertexBuffer() const { return _vertexBuffer; }
         IndexBuffer *getIndexBuffer() const { return _indexBuffer; }
 

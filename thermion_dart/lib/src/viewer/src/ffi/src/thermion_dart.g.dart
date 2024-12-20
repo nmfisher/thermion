@@ -230,6 +230,22 @@ external void MaterialInstance_setStencilWriteMask(
   int mask,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(
+    symbol: "MaterialInstance_setTransparencyMode", isLeaf: true)
+external void _MaterialInstance_setTransparencyMode(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  int transparencyMode,
+);
+
+void MaterialInstance_setTransparencyMode(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  TTransparencyMode transparencyMode,
+) =>
+    _MaterialInstance_setTransparencyMode(
+      materialInstance,
+      transparencyMode.value,
+    );
+
 @ffi.Native<
     ffi.Pointer<TViewer> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
@@ -739,6 +755,12 @@ external void View_setRenderTarget(
 external void View_setFrustumCullingEnabled(
   ffi.Pointer<TView> view,
   bool enabled,
+);
+
+@ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TView>)>(
+    isLeaf: true)
+external ffi.Pointer<TRenderTarget> View_getRenderTarget(
+  ffi.Pointer<TView> tView,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
@@ -1308,6 +1330,15 @@ external void Viewer_createRenderTargetRenderThread(
   int height,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>>
       onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<TRenderTarget>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_destroyRenderTargetRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<TRenderTarget> tRenderTarget,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<
@@ -2727,6 +2758,30 @@ enum TCullingMode {
         2 => CULLING_MODE_BACK,
         3 => CULLING_MODE_FRONT_AND_BACK,
         _ => throw ArgumentError("Unknown value for TCullingMode: $value"),
+      };
+}
+
+enum TTransparencyMode {
+  /// ! the transparent object is drawn honoring the raster state
+  DEFAULT(0),
+
+  /// the transparent object is first drawn in the depth buffer,
+  /// then in the color buffer, honoring the culling mode, but ignoring the depth test function
+  TWO_PASSES_ONE_SIDE(1),
+
+  /// the transparent object is drawn twice in the color buffer,
+  /// first with back faces only, then with front faces; the culling
+  /// mode is ignored. Can be combined with two-sided lighting
+  TWO_PASSES_TWO_SIDES(2);
+
+  final int value;
+  const TTransparencyMode(this.value);
+
+  static TTransparencyMode fromValue(int value) => switch (value) {
+        0 => DEFAULT,
+        1 => TWO_PASSES_ONE_SIDE,
+        2 => TWO_PASSES_TWO_SIDES,
+        _ => throw ArgumentError("Unknown value for TTransparencyMode: $value"),
       };
 }
 

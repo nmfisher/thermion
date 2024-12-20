@@ -32,6 +32,7 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
       super.sceneManager,
       super.renderableManager,
       super.unlitMaterialProvider,
+      super.viewer,
       this.gizmoEntities) {
     _nativeCallback =
         NativeCallable<GizmoPickCallbackFunction>.listener(_onPickResult);

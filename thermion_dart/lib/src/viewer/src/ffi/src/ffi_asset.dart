@@ -16,9 +16,10 @@ class FFIAsset extends ThermionAsset {
   final bool isInstance;
 
   late final ThermionEntity entity;
+  final ThermionViewer viewer;
 
-  FFIAsset(
-      this.pointer, this.sceneManager, this.engine, this._unlitMaterialProvider,
+  FFIAsset(this.pointer, this.sceneManager, this.engine,
+      this._unlitMaterialProvider, this.viewer,
       {this.isInstance = false}) {
     entity = SceneAsset_getEntity(pointer);
   }
@@ -41,7 +42,8 @@ class FFIAsset extends ThermionAsset {
     if (instance == nullptr) {
       throw Exception("No instance available at index $index");
     }
-    return FFIAsset(instance, sceneManager, engine, _unlitMaterialProvider);
+    return FFIAsset(
+        instance, sceneManager, engine, _unlitMaterialProvider, viewer);
   }
 
   ///
@@ -71,7 +73,8 @@ class FFIAsset extends ThermionAsset {
     if (created == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, sceneManager, engine, _unlitMaterialProvider);
+    return FFIAsset(
+        created, sceneManager, engine, _unlitMaterialProvider, viewer);
   }
 
   ///
@@ -90,7 +93,7 @@ class FFIAsset extends ThermionAsset {
     var count = await getInstanceCount();
     final result = List<ThermionAsset>.generate(count, (i) {
       return FFIAsset(SceneAsset_getInstance(pointer, i), sceneManager, engine,
-          _unlitMaterialProvider);
+          _unlitMaterialProvider, viewer);
     });
 
     return result;
@@ -182,6 +185,102 @@ class FFIAsset extends ThermionAsset {
     SceneManager_removeFromScene(sceneManager, entity);
     for (final child in await getChildEntities()) {
       SceneManager_removeFromScene(sceneManager, child);
+    }
+  }
+
+  ThermionAsset? _boundingBoxAsset;
+
+  Aabb3 getBoundingBox() {
+    final aabb3 = SceneManager_getRenderableBoundingBox(sceneManager, entity);
+    return aabb3;
+  }
+
+  @override
+  Future<void> setBoundingBoxVisibility(bool visible) async {
+    if (_boundingBoxAsset == null) {
+      final boundingBox = await getBoundingBox();
+      final min = [
+        boundingBox.centerX - boundingBox.halfExtentX,
+        boundingBox.centerY - boundingBox.halfExtentY,
+        boundingBox.centerZ - boundingBox.halfExtentZ
+      ];
+      final max = [
+        boundingBox.centerX + boundingBox.halfExtentX,
+        boundingBox.centerY + boundingBox.halfExtentY,
+        boundingBox.centerZ + boundingBox.halfExtentZ
+      ];
+
+      // Create vertices for the bounding box wireframe
+      // 8 vertices for a cube
+      final vertices = Float32List(8 * 3);
+
+      // Bottom vertices
+      vertices[0] = min[0];
+      vertices[1] = min[1];
+      vertices[2] = min[2]; // v0
+      vertices[3] = max[0];
+      vertices[4] = min[1];
+      vertices[5] = min[2]; // v1
+      vertices[6] = max[0];
+      vertices[7] = min[1];
+      vertices[8] = max[2]; // v2
+      vertices[9] = min[0];
+      vertices[10] = min[1];
+      vertices[11] = max[2]; // v3
+
+      // Top vertices
+      vertices[12] = min[0];
+      vertices[13] = max[1];
+      vertices[14] = min[2]; // v4
+      vertices[15] = max[0];
+      vertices[16] = max[1];
+      vertices[17] = min[2]; // v5
+      vertices[18] = max[0];
+      vertices[19] = max[1];
+      vertices[20] = max[2]; // v6
+      vertices[21] = min[0];
+      vertices[22] = max[1];
+      vertices[23] = max[2]; // v7
+
+      // Indices for lines (24 indices for 12 lines)
+      final indices = [
+        // Bottom face
+        0, 1, 1, 2, 2, 3, 3, 0,
+        // Top face
+        4, 5, 5, 6, 6, 7, 7, 4,
+        // Vertical edges
+        0, 4, 1, 5, 2, 6, 3, 7
+      ];
+
+      // Create unlit material instance for the wireframe
+      final materialInstancePtr =
+          await withPointerCallback<TMaterialInstance>((cb) {
+        final key = Struct.create<TMaterialKey>();
+        MaterialProvider_createMaterialInstanceRenderThread(
+            _unlitMaterialProvider, key.address, cb);
+      });
+
+      final material = FFIMaterialInstance(materialInstancePtr, sceneManager);
+      await material.setParameterFloat4(
+          "baseColorFactor", 1.0, 1.0, 0.0, 1.0); // Yellow wireframe
+
+      // Create geometry for the bounding box
+      final geometry = Geometry(
+        vertices,
+        indices,
+        primitiveType: PrimitiveType.LINES,
+      );
+
+      _boundingBoxAsset = await viewer.createGeometry(
+        geometry,
+        materialInstances: [material],
+        keepData: false,
+      );
+    }
+    if (visible) {
+      await _boundingBoxAsset!.addToScene();
+    } else { 
+      await _boundingBoxAsset!.removeFromScene();
     }
   }
 }

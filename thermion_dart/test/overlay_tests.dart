@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'dart:math';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
+import 'dart:typed_data';
+
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 
@@ -10,27 +10,91 @@ import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("overlay");
+  // var material = await viewer.createMaterial(File(
+  //         "/Users/nickfisher/Documents/thermion/materials/grid.filamat")
+  //     .readAsBytesSync());
+  // var materialInstance = await material.createInstance();
+  // await materialInstance.setCullingMode(CullingMode.NONE);
+  // await materialInstance.setParameterFloat("distance", 10000.0);
+  // await materialInstance.setParameterFloat("lineSize", 0.001);
+
+  // var grid = await viewer.createGeometry(await createGridGeometry(),
+  //     materialInstances: [materialInstance]);
+
+  // await viewer.setPriority(grid.entity, 7);
+
+  // await viewer.setViewFrustumCulling(false);
+  Future<Geometry> createGridGeometry() async {
+    List<double> vertices = [];
+    List<int> indices = [];
+    double stepSize = 1 / 4.0;
+
+    for (double x = -1.0; x < 1.0; x += stepSize) {
+      for (double z = -1.0; z < 1.0; z += stepSize) {
+        int baseIndex = vertices.length ~/ 3;
+        var verts = [
+          x,
+          0.0,
+          z,
+          x,
+          0.0,
+          z + stepSize,
+          x + stepSize,
+          0.0,
+          z + stepSize,
+          x + stepSize,
+          0.0,
+          z
+        ];
+        vertices.addAll(verts);
+
+        indices.addAll([
+          baseIndex,
+          baseIndex + 1,
+          baseIndex + 2,
+          baseIndex + 2,
+          baseIndex + 3,
+          baseIndex
+        ]);
+      }
+    }
+
+    return Geometry(Float32List.fromList(vertices), indices);
+  }
 
   group("overlay tests", () {
     group("grid", () {
       test('enable grid', () async {
-        await testHelper.withViewer((viewer) async {
-          await viewer.showGridOverlay();
-          await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-          await testHelper.capture(viewer, "grid_added_layer_visible");
-          await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, false);
-          await testHelper.capture(viewer, "grid_added_layer_invisible");
-          await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-          await viewer.removeGridOverlay();
-          await testHelper.capture(viewer, "grid_remove_layer_visible");
-        }, postProcessing: true);
+        await testHelper.withViewer(
+          (viewer) async {
+            var viewMatrix = makeViewMatrix(
+                Vector3(0, 20, 0), Vector3(0, 0, 0), Vector3(0, 0, -1));
+
+            var modelMatrix = viewMatrix.clone()..invert();
+            await viewer.setCameraModelMatrix4(modelMatrix);
+
+            await viewer.showGridOverlay();
+            await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+
+            final cube = await viewer.createGeometry(
+                GeometryHelper.cube(normals: false, uvs: false));
+            await testHelper.capture(viewer, "grid_added_layer_visible");
+            await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, false);
+            await testHelper.capture(viewer, "grid_added_layer_invisible");
+            await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+            await viewer.removeGridOverlay();
+            await testHelper.capture(viewer, "grid_remove_layer_visible");
+          },
+          postProcessing: true,
+        );
       });
     });
 
     group("stencil", () {
       test('set stencil highlight for geometry', () async {
         await testHelper.withViewer((viewer) async {
-          var cube = await viewer.createGeometry(GeometryHelper.cube());
+          var cube = await viewer
+              .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
           await testHelper.capture(viewer, "geometry_before_stencil_highlight");
           await cube.setStencilHighlight();
 
@@ -39,6 +103,12 @@ void main() async {
           await cube.removeStencilHighlight();
 
           await testHelper.capture(viewer, "geometry_remove_stencil_highlight");
+
+          await viewer.setTransform(
+              cube.entity, Matrix4.translation(Vector3(1, 0, 0)));
+          await cube.setStencilHighlight();
+
+          await testHelper.capture(viewer, "geometry_add_stencil_highlight2");
         }, postProcessing: true);
       });
 
@@ -60,6 +130,22 @@ void main() async {
 
           await testHelper.capture(viewer, "glb_remove_stencil_highlight");
         }, postProcessing: true, bg: kWhite);
+      });
+    });
+
+    group("bounding box", () {
+      test('bounding box', () async {
+        await testHelper.withViewer(
+          (viewer) async {
+            final cube = await viewer.createGeometry(
+                GeometryHelper.cube(normals: false, uvs: false));
+            await cube.setBoundingBoxVisibility(true);
+            await testHelper.capture(viewer, "bounding_box_visible");
+            await cube.setBoundingBoxVisibility(false);
+            await testHelper.capture(viewer, "bounding_box_not_visible");
+          },
+          postProcessing: true,
+        );
       });
     });
   });

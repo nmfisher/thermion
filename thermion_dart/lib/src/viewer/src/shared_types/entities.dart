@@ -12,9 +12,8 @@ export 'light_options.dart';
 typedef ThermionEntity = int;
 
 abstract class ThermionAsset {
-  
   ThermionEntity get entity;
-  
+
   Future<List<ThermionEntity>> getChildEntities();
 
   ///
@@ -27,6 +26,11 @@ abstract class ThermionAsset {
   /// Removes the outline around [entity]. Noop if there was no highlight.
   ///
   Future removeStencilHighlight();
+
+  ///
+  /// When visible is [true], renders the bounding box.
+  ///
+  Future setBoundingBoxVisibility(bool visible);
 
   ///
   ///

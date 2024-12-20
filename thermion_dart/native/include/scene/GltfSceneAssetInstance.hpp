@@ -43,10 +43,6 @@ namespace thermion
             return std::nullptr_t();
         };
 
-        const Aabb getBoundingBox() const override {
-            return _instance->getBoundingBox();
-        }
-
         SceneAssetType getType() override
         {
             return SceneAsset::SceneAssetType::Gltf;

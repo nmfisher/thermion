@@ -511,7 +511,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var thermionAsset =
-        FFIAsset(asset, _sceneManager!, _engine!, _unlitMaterialProvider!);
+        FFIAsset(asset, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
 
     return thermionAsset;
   }
@@ -551,7 +551,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("An error occurred loading GLB from buffer");
     }
     return FFIAsset(
-        assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!);
+        assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
   }
 
   ///
@@ -573,7 +573,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     return FFIAsset(
-        assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!);
+        assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
   }
 
   ///
@@ -1642,7 +1642,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var asset =
-        FFIAsset(assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!);
+        FFIAsset(assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
 
     return asset;
   }
@@ -1760,7 +1760,7 @@ class ThermionViewerFFI extends ThermionViewer {
               _sceneManager!, material.pointer, cb);
         }
       });
-      _grid = FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!);
+      _grid = FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
     }
     await _grid!.addToScene();
     await setLayerVisibility(VisibilityLayers.OVERLAY, true);
@@ -2093,6 +2093,7 @@ class ThermionViewerFFI extends ThermionViewer {
         _sceneManager!,
         _engine!,
         nullptr,
+        this,
         gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }
