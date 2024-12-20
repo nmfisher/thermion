@@ -58,11 +58,6 @@ namespace thermion
             None
         };
 
-        const Aabb getBoundingBox() const override
-        {
-            return Aabb{};
-        }
-
         typedef void (*GizmoPickCallback)(Gizmo::GizmoPickResultType result, float x, float y, float z);
 
         void pick(uint32_t x, uint32_t y, GizmoPickCallback callback);

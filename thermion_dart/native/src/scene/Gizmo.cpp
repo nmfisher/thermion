@@ -105,6 +105,9 @@ namespace thermion
                 auto *hitTestMaterialInstance = _material->createInstance();
                 _materialInstances.push_back(hitTestMaterialInstance);
                 hitTestMaterialInstance->setParameter("baseColorFactor", math::float4{0.0f, 0.0f, 0.0f, 0.0f});
+                hitTestMaterialInstance->setTransparencyMode(MaterialInstance::TransparencyMode::TWO_PASSES_ONE_SIDE);
+                hitTestMaterialInstance->setCullingMode(MaterialInstance::CullingMode::BACK);
+                
                 hitTestMaterialInstance->setParameter("scale", _scale);
                 rm.setMaterialInstanceAt(renderableInstance, 0, hitTestMaterialInstance);
             }
