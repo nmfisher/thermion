@@ -972,7 +972,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future removeEntity(covariant FFIAsset asset) async {
+  Future removeAsset(covariant FFIAsset asset) async {
     await withVoidCallback((callback) => SceneManager_destroyAssetRenderThread(
         _sceneManager!, asset.pointer, callback));
   }
@@ -1346,7 +1346,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future removeEntityFromScene(ThermionEntity entity) async {
+  Future removeAssetFromScene(ThermionEntity entity) async {
     if (SceneManager_removeFromScene(_sceneManager!, entity) != 1) {
       throw Exception("Failed to remove entity from scene");
     }

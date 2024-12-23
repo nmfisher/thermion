@@ -380,7 +380,7 @@ abstract class ThermionViewer {
   /// Removes/destroys the specified entity from the scene.
   /// [entity] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
   ///
-  Future removeEntity(ThermionAsset asset);
+  Future removeAsset(ThermionAsset asset);
 
   ///
   /// Removes/destroys all renderable entities from the scene (including cameras).
@@ -629,7 +629,7 @@ abstract class ThermionViewer {
   ///
   /// Removes a single [entity] from the scene.
   ///
-  Future removeEntityFromScene(ThermionEntity entity);
+  Future removeAssetFromScene(ThermionEntity entity);
 
   ///
   /// Hit test the viewport at the given coordinates. If the coordinates intersect
