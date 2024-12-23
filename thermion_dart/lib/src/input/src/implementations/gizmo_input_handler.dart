@@ -4,27 +4,35 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 class _Gizmo {
-  bool isVisible = false;
   final ThermionViewer viewer;
+
   final GizmoAsset _gizmo;
-  ThermionEntity? _attachedTo;
 
-  final attachedTo = StreamController<ThermionEntity?>.broadcast();
+  final transformUpdates = StreamController<({Matrix4 transform})>.broadcast();
 
-  final GizmoType _gizmoType;
+  Axis? _active;
+  final GizmoType type;
 
-  _Gizmo(this._gizmo, this.viewer, this._gizmoType);
+  _Gizmo(this._gizmo, this.viewer, this.type);
 
   static Future<_Gizmo> forType(ThermionViewer viewer, GizmoType type) async {
     final view = await viewer.getViewAt(0);
     return _Gizmo(await viewer.createGizmo(view, type), viewer, type);
   }
 
-  final _onEntityTransformUpdated = StreamController<
-      ({ThermionEntity entity, Matrix4 transform})>.broadcast();
+  Future dispose() async {
+    await transformUpdates.close();
+    await viewer.removeAsset(_gizmo);
+  }
 
-  Axis? _active;
-  Axis? get active => _active;
+  Future hide() async {
+    await _gizmo.removeFromScene();
+  }
+
+  Future reveal() async {
+    await _gizmo.addToScene();
+    gizmoTransform = await viewer.getWorldTransform(_gizmo.entity);
+  }
 
   double _getAngleBetweenVectors(Vector2 v1, Vector2 v2) {
     // Normalize vectors to ensure consistent rotation regardless of distance from center
@@ -61,49 +69,16 @@ class _Gizmo {
 
   Matrix4? gizmoTransform;
 
-  Future attach(ThermionEntity entity) async {
-    print("Attached to ${entity}");
-
-    if (_attachedTo != null && entity != _attachedTo) {
-      await viewer.setParent(_attachedTo!, 0);
-    }
-
-    _attachedTo = entity;
-    attachedTo.add(_attachedTo);
-
-    await viewer.setParent(_gizmo.entity, entity);
-    await viewer.setTransform(_gizmo.entity, Matrix4.identity());
-
-    if (!isVisible) {
-      await _gizmo.addToScene();
-      isVisible = true;
-    }
-    gizmoTransform = await viewer.getWorldTransform(entity);
-  }
-
-  Future detach() async {
-    await _gizmo.removeFromScene();
-    if (_attachedTo != null) {
-      await viewer.setParent(_attachedTo!, 0);
-    }
-    attachedTo.add(null);
-    _active = null;
-    isVisible = false;
-  }
-
   void _updateTransform(Vector2 currentPosition, Vector2 delta) async {
-    if (_attachedTo == null) {
-      return;
-    }
-
-    if (_gizmoType == GizmoType.translation) {
+    if (type == GizmoType.translation) {
       await _updateTranslation(currentPosition, delta);
-    } else if (_gizmoType == GizmoType.rotation) {
+    } else if (type == GizmoType.rotation) {
       await _updateRotation(currentPosition, delta);
     }
 
-    _onEntityTransformUpdated
-        .add((entity: _attachedTo!, transform: gizmoTransform!));
+    await viewer.setTransform(_gizmo.entity, gizmoTransform!);
+
+    transformUpdates.add((transform: gizmoTransform!));
   }
 
   Future<void> _updateTranslation(
@@ -143,8 +118,6 @@ class _Gizmo {
 
     gizmoTransform!
         .setTranslation(gizmoTransform!.getTranslation() + worldSpaceDelta);
-
-    await viewer.setTransform(_attachedTo!, gizmoTransform!);
   }
 
   Future<void> _updateRotation(Vector2 currentPosition, Vector2 delta) async {
@@ -210,7 +183,6 @@ class _Gizmo {
 
     // Apply rotation to the current transform
     gizmoTransform = gizmoTransform! * rotationMatrix;
-    await viewer.setTransform(_attachedTo!, gizmoTransform!);
   }
 }
 
@@ -221,56 +193,60 @@ class GizmoInputHandler extends InputHandler {
 
   late final _gizmos = <GizmoType, _Gizmo>{};
 
-  _Gizmo? active;
+  _Gizmo? _active;
 
-  StreamSubscription? _entityTransformUpdatedListener;
-  StreamSubscription? _attachedToListener;
+  ThermionEntity? _attached;
 
-  final _attachedTo = StreamController<ThermionEntity?>.broadcast();
-  Stream<ThermionEntity?> get attachedTo => _attachedTo.stream;
-
-  GizmoType? getGizmoType() {
-    return active?._gizmoType;
+  Future attach(ThermionEntity entity) async {
+    if (_attached != null) {
+      await detach();
+    }
+    _attached = entity;
+    if (_active != null) {
+      await viewer.setParent(_attached!, _active!._gizmo.entity);
+      await _active!.reveal();
+    }
   }
 
-  Future setGizmoType(GizmoType? type) async {
-    if (type == null) {
-      await active?.detach();
-      active = null;
+  Future detach() async {
+    if (_attached == null) {
       return;
     }
-
-    var target = _gizmos[type]!;
-    if (target != active) {
-      await _entityTransformUpdatedListener?.cancel();
-      await _attachedToListener?.cancel();
-      if (active?._attachedTo != null) {
-        var attachedTo = active!._attachedTo!;
-        await active!.detach();
-        await target.attach(attachedTo);
-      }
-      active = target;
-      _entityTransformUpdatedListener =
-          active!._onEntityTransformUpdated.stream.listen((event) {
-        _transformUpdatedController.add(event);
-      });
-
-      _attachedToListener = active!.attachedTo.stream.listen((entity) {
-        _attachedTo.add(entity);
-      });
-    }
+    await viewer.setParent(_attached!, 0);
+    await _active?.hide();
+    _attached = null;
   }
 
-  final _transformUpdatedController =
-      StreamController<({ThermionEntity entity, Matrix4 transform})>();
-  Stream<({ThermionEntity entity, Matrix4 transform})>
-      get onEntityTransformUpdated => _transformUpdatedController.stream;
+  final _initialized = Completer<bool>();
+
+  final _transformController = StreamController<Matrix4>.broadcast();
+  Stream<Matrix4> get transformUpdated => _transformController.stream;
+
+  final _pickResultController = StreamController<ThermionEntity?>.broadcast();
+  Stream<ThermionEntity?> get onPickResult => _pickResultController.stream;
 
   GizmoInputHandler({required this.wrapped, required this.viewer}) {
     initialize();
   }
 
-  final _initialized = Completer<bool>();
+  GizmoType? getGizmoType() {
+    return _active?.type;
+  }
+
+  Future setGizmoType(GizmoType? type) async {
+    if (type == null) {
+      await detach();
+      _active?.hide();
+      _active = null;
+    } else {
+      _active?.hide();
+      _active = _gizmos[type]!;
+      _active!.reveal();
+      if (_attached != null) {
+        await attach(_attached!);
+      }
+    }
+  }
 
   Future initialize() async {
     if (_initialized.isCompleted) {
@@ -283,16 +259,19 @@ class GizmoInputHandler extends InputHandler {
     _gizmos[GizmoType.rotation] =
         await _Gizmo.forType(viewer, GizmoType.rotation);
     await setGizmoType(GizmoType.translation);
+    for (final gizmo in _gizmos.values) {
+      gizmo.transformUpdates.stream.listen((update) {
+        _transformController.add(update.transform);
+      });
+    }
     _initialized.complete(true);
   }
 
   @override
-  Stream get cameraUpdated => throw UnimplementedError();
-
-  @override
   Future dispose() async {
-    await viewer.removeEntity(_gizmos[GizmoType.rotation]!._gizmo);
-    await viewer.removeEntity(_gizmos[GizmoType.translation]!._gizmo);
+    _gizmos[GizmoType.rotation]!.dispose();
+    _gizmos[GizmoType.translation]!.dispose();
+    _gizmos.clear();
   }
 
   @override
@@ -328,13 +307,13 @@ class GizmoInputHandler extends InputHandler {
 
     await viewer.pick(localPosition.x.toInt(), localPosition.y.toInt(),
         (result) async {
-      if (active?._gizmo.isNonPickable(result.entity) == true ||
+      if (_active?._gizmo.isNonPickable(result.entity) == true ||
           result.entity == FILAMENT_ENTITY_NULL) {
-        await active!.detach();
+        _pickResultController.add(null);
         return;
       }
-      if (active?._gizmo.isGizmoEntity(result.entity) != true) {
-        active!.attach(result.entity);
+      if (_active?._gizmo.isGizmoEntity(result.entity) != true) {
+        _pickResultController.add(result.entity);
       }
     });
   }
@@ -344,18 +323,18 @@ class GizmoInputHandler extends InputHandler {
     if (!_initialized.isCompleted) {
       return;
     }
-    active?.checkHover(localPosition.x.floor(), localPosition.y.floor());
+    _active?.checkHover(localPosition.x.floor(), localPosition.y.floor());
   }
 
   @override
   Future<void> onPointerMove(
       Vector2 localPosition, Vector2 delta, bool isMiddle) async {
-    if (!isMiddle && active?._active != null) {
+    if (!isMiddle && _active?._active != null) {
       final scaledDelta = Vector2(
         delta.x,
         delta.y,
       );
-      active!._updateTransform(localPosition, scaledDelta);
+      _active!._updateTransform(localPosition, scaledDelta);
       return;
     }
     return wrapped.onPointerMove(localPosition, delta, isMiddle);
@@ -400,19 +379,5 @@ class GizmoInputHandler extends InputHandler {
   @override
   void setActionForType(InputType gestureType, InputAction gestureAction) {
     throw UnimplementedError();
-  }
-
-  Future detach(ThermionAsset asset) async {
-    if (active?._attachedTo == asset.entity) {
-      await active!.detach();
-      return;
-    }
-    final childEntities = await asset.getChildEntities();
-    for (final childEntity in childEntities) {
-      if (active?._attachedTo == childEntity) {
-        await active!.detach();
-        return;
-      }
-    }
   }
 }
