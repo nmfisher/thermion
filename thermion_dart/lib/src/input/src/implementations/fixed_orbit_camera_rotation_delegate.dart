@@ -14,7 +14,7 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
   late Future<Camera> _camera;
   final double minimumDistance;
   late final Vector3 target;
-  
+
   final double rotationSensitivity;
   final double zoomSensitivity;
 
@@ -70,13 +70,13 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
   bool _executing = false;
 
   @override
-  Future<void> execute() async {
+  Future<Matrix4?> execute() async {
     if (_queuedRotationDelta.length2 == 0.0 && _queuedZoomDelta == 0.0) {
-      return;
+      return null;
     }
 
     if (_executing) {
-      return;
+      return null;
     }
 
     _executing = true;
@@ -97,6 +97,8 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
       currentPosition = Vector3(0, 0, minimumDistance);
     }
 
+    Matrix4? updatedModelMatrix = null;
+
     // Zoom
     if (_queuedZoomDelta != 0.0) {
       var newPosition = currentPosition +
@@ -116,6 +118,7 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
         newViewMatrix.invert();
 
         await (await _camera).setModelMatrix(newViewMatrix);
+        updatedModelMatrix = newViewMatrix;
       }
     } else if (_queuedRotationDelta.length != 0) {
       double rotateX = _queuedRotationDelta.x * rotationSensitivity;
@@ -134,6 +137,7 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
 
       modelMatrix = rot1 * rot2 * modelMatrix;
       await (await _camera).setModelMatrix(modelMatrix);
+      updatedModelMatrix = modelMatrix;
     }
 
     // Reset queued deltas
@@ -141,5 +145,6 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
     _queuedZoomDelta = 0.0;
 
     _executing = false;
+    return updatedModelMatrix;
   }
 }

@@ -12,8 +12,8 @@ class DelegateInputHandler implements InputHandler {
   Stream<List<InputType>> get gestures => _gesturesController.stream;
   final _gesturesController = StreamController<List<InputType>>.broadcast();
 
-  Stream get cameraUpdated => _cameraUpdatedController.stream;
-  final _cameraUpdatedController = StreamController.broadcast();
+  Stream<Matrix4> get cameraUpdated => _cameraUpdatedController.stream;
+  final _cameraUpdatedController = StreamController<Matrix4>.broadcast();
 
   final _logger = Logger("DelegateInputHandler");
 
@@ -172,11 +172,13 @@ class DelegateInputHandler implements InputHandler {
       }
     }
 
-    await transformDelegate?.execute();
+    var transform = await transformDelegate?.execute();
     var updates = _inputDeltas.keys.followedBy(keyTypes).toList();
     if (updates.isNotEmpty) {
       _gesturesController.add(updates);
-      _cameraUpdatedController.add(true);
+    }
+    if (transform != null) {
+      _cameraUpdatedController.add(transform);
     }
 
     _inputDeltas.clear();
@@ -310,4 +312,7 @@ class DelegateInputHandler implements InputHandler {
       throw UnimplementedError("Only pointerCount <= 2 supported");
     }
   }
+
+  @override
+  Stream<Matrix4> get transformUpdated => cameraUpdated;
 }

@@ -1,6 +1,4 @@
 import 'dart:async';
-
-import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 enum InputType {
@@ -30,7 +28,11 @@ enum PhysicalKey { W, A, S, D }
 enum InputAction { TRANSLATE, ROTATE, PICK, ZOOM, NONE }
 
 abstract class InputHandler {
-  Stream get cameraUpdated;
+  
+  @Deprecated("Use @transformUpdated instead")
+  Stream get cameraUpdated => transformUpdated;
+
+  Stream<Matrix4> get transformUpdated;
 
   Future<void> onPointerHover(Vector2 localPosition, Vector2 delta);
   Future<void> onPointerScroll(Vector2 localPosition, double scrollDelta);
@@ -59,5 +61,4 @@ abstract class InputHandler {
   void keyDown(PhysicalKey key);
   void keyUp(PhysicalKey key);
 
-  // Future setCamera(Camera camera);
 }

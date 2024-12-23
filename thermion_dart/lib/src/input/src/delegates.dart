@@ -4,7 +4,7 @@ import 'input_handler.dart';
 
 abstract class InputHandlerDelegate {
   Future queue(InputAction action, Vector3? delta);
-  Future execute();
+  Future<Matrix4?> execute();
 }
 
 abstract class VelocityDelegate {

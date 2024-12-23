@@ -61,9 +61,9 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
   bool _executing = false;
 
   @override
-  Future<void> execute() async {
+  Future<Matrix4?> execute() async {
     if (_executing) {
-      return;
+      return null;
     }
 
     _executing = true;
@@ -73,7 +73,7 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
         _queuedZoomDelta == 0.0 &&
         _queuedMoveDelta.length2 == 0.0) {
       _executing = false;
-      return;
+      return null;
     }
 
     final activeCamera = await viewer.getActiveCamera();
@@ -128,12 +128,12 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
       relativeTranslation = modelMatrix.getRotation() * relativeTranslation;
     }
 
-    await viewer.setTransform(
-        await entity,
-        Matrix4.compose(
-                relativeTranslation, relativeRotation, Vector3(1, 1, 1)) *
-            current);
+    var updated = Matrix4.compose(
+            relativeTranslation, relativeRotation, Vector3(1, 1, 1)) *
+        current;
+    await viewer.setTransform(await entity, updated);
 
     _executing = false;
+    return updated;
   }
 }

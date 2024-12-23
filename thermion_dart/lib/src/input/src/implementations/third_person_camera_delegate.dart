@@ -65,9 +65,9 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
   static bool get executing => _executing;
 
   @override
-  Future<void> execute() async {
+  Future<Matrix4?> execute() async {
     if (_executing) {
-      return;
+      return null;
     }
 
     _executing = true;
@@ -76,7 +76,7 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
         _queuedZoomDelta == 0.0 &&
         _queuedMoveDelta.length2 == 0.0) {
       _executing = false;
-      return;
+      return null;
     }
 
     Matrix4 currentPlayerTransform = await viewer.getWorldTransform(player);
@@ -97,10 +97,8 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
 
     // camera is always looking at -Z, whereas models generally face towards +Z
     if (_queuedRotationDelta.length2 > 0.0) {
-      double deltaX =
-          _queuedRotationDelta.x * rotationSensitivity;
-      double deltaY =
-          _queuedRotationDelta.y * rotationSensitivity;
+      double deltaX = _queuedRotationDelta.x * rotationSensitivity;
+      double deltaY = _queuedRotationDelta.y * rotationSensitivity;
 
       cameraLookAt = Matrix4.rotationY(-deltaX) *
           Matrix4.rotationX(-deltaY) *
@@ -118,5 +116,6 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
         [camera.getEntity(), player], [newCameraTransform, newPlayerTransform]);
     onUpdate?.call(newPlayerTransform);
     _executing = false;
+    return newCameraTransform;
   }
 }
