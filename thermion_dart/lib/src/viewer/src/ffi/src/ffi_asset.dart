@@ -190,8 +190,14 @@ class FFIAsset extends ThermionAsset {
 
   ThermionAsset? _boundingBoxAsset;
 
-  Aabb3 getBoundingBox() {
-    final aabb3 = SceneManager_getRenderableBoundingBox(sceneManager, entity);
+  Future<Aabb3> getBoundingBox() async {
+    late ThermionEntity targetEntity;
+    if (RenderableManager_isRenderable(renderableManager, entity)) {
+      targetEntity = entity;
+    } else { 
+      targetEntity = (await getChildEntities()).first;
+    }
+    final aabb3 = SceneManager_getRenderableBoundingBox(sceneManager, targetEntity);
     return aabb3;
   }
 
@@ -276,10 +282,13 @@ class FFIAsset extends ThermionAsset {
         materialInstances: [material],
         keepData: false,
       );
+
+      TransformManager_setParent(Engine_getTransformManager(engine),
+          _boundingBoxAsset!.entity, entity, false);
     }
     if (visible) {
       await _boundingBoxAsset!.addToScene();
-    } else { 
+    } else {
       await _boundingBoxAsset!.removeFromScene();
     }
   }
