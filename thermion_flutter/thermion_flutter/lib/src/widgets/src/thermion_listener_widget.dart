@@ -26,6 +26,8 @@ class ThermionListenerWidget extends StatefulWidget {
   ///
   final Widget? child;
 
+  final FocusNode? focusNode;
+
   ///
   /// The handler to use for interpreting gestures/pointer movements.
   ///
@@ -34,6 +36,7 @@ class ThermionListenerWidget extends StatefulWidget {
   const ThermionListenerWidget({
     Key? key,
     required this.inputHandler,
+    this.focusNode,
     this.child,
   }) : super(key: key);
 
@@ -81,7 +84,10 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
   }
 
   Widget _desktop(double pixelRatio) {
-    return Listener(
+    return Focus(
+      focusNode: widget.focusNode,
+      child:Listener(
+      
       onPointerHover: (event) {
         widget.inputHandler.onPointerHover(
             event.localPosition.toVector2() * pixelRatio,
@@ -98,6 +104,7 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
         throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
       },
       onPointerDown: (d) {
+        widget.focusNode?.requestFocus();
         widget.inputHandler.onPointerDown(
             d.localPosition.toVector2() * pixelRatio,
             d.buttons & kMiddleMouseButton != 0);
@@ -109,7 +116,7 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
       onPointerUp: (d) =>
           widget.inputHandler.onPointerUp(d.buttons & kMiddleMouseButton != 0),
       child: widget.child,
-    );
+    ));
   }
 
   Widget _mobile(double pixelRatio) {
