@@ -34,15 +34,15 @@ abstract class InputHandler {
 
   Stream<Matrix4> get transformUpdated;
 
-  Future<void> onPointerHover(Vector2 localPosition, Vector2 delta);
-  Future<void> onPointerScroll(Vector2 localPosition, double scrollDelta);
-  Future<void> onPointerDown(Vector2 localPosition, bool isMiddle);
-  Future<void> onPointerMove(
+  Future? onPointerHover(Vector2 localPosition, Vector2 delta);
+  Future? onPointerScroll(Vector2 localPosition, double scrollDelta);
+  Future? onPointerDown(Vector2 localPosition, bool isMiddle);
+  Future? onPointerMove(
       Vector2 localPosition, Vector2 delta, bool isMiddle);
-  Future<void> onPointerUp(bool isMiddle);
-  Future<void> onScaleStart(
+  Future? onPointerUp(bool isMiddle);
+  Future? onScaleStart(
       Vector2 focalPoint, int pointerCount, Duration? sourceTimestamp);
-  Future<void> onScaleUpdate(
+  Future? onScaleUpdate(
       Vector2 focalPoint,
       Vector2 focalPointDelta,
       double horizontalScale,
@@ -51,7 +51,7 @@ abstract class InputHandler {
       int pointerCount,
       double rotation,
       Duration? sourceTimestamp);
-  Future<void> onScaleEnd(int pointerCount, double velocity);
+  Future? onScaleEnd(int pointerCount, double velocity);
   Future<bool> get initialized;
   Future dispose();
 
