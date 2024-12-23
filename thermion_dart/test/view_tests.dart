@@ -23,7 +23,8 @@ void main() async {
         final texture = await testHelper.createTexture(500, 500);
         final renderTarget = await viewer.createRenderTarget(
             500, 500, texture.metalTextureAddress);
-        viewer.setRenderTarget(renderTarget);
+        final view = await viewer.getViewAt(0);
+        await view.setRenderTarget(renderTarget);
 
         await viewer.setBackgroundColor(1.0, 0, 0, 1);
         final cube = await viewer
@@ -150,7 +151,6 @@ void main() async {
         await view.setDithering(false);
         expect(await view.isDitheringEnabled(), false);
         await testHelper.capture(viewer, "dithering_disabled");
-        
       }, cameraPosition: Vector3(0, 0, 3));
     });
   });
