@@ -40,5 +40,12 @@ namespace thermion
             auto renderableInstance = renderableManager->getInstance(entity);
             renderableManager->setPriority(renderableInstance, priority);
         }
+
+        EMSCRIPTEN_KEEPALIVE bool RenderableManager_isRenderable(TRenderableManager *tRenderableManager, EntityId entityId) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            return renderableInstance.isValid();
+        }
     }
 }
