@@ -81,7 +81,7 @@ class _Gizmo {
     transformUpdates.add((transform: gizmoTransform!));
   }
 
-  Future<void> _updateTranslation(
+  Future<void>? _updateTranslation(
       Vector2 currentPosition, Vector2 delta) async {
     var view = await viewer.getViewAt(0);
     var camera = await viewer.getActiveCamera();
@@ -120,7 +120,7 @@ class _Gizmo {
         .setTranslation(gizmoTransform!.getTranslation() + worldSpaceDelta);
   }
 
-  Future<void> _updateRotation(Vector2 currentPosition, Vector2 delta) async {
+  Future<void>? _updateRotation(Vector2 currentPosition, Vector2 delta) async {
     var view = await viewer.getViewAt(0);
     var camera = await viewer.getActiveCamera();
     var viewport = await view.getViewport();
@@ -187,7 +187,6 @@ class _Gizmo {
 }
 
 class GizmoInputHandler extends InputHandler {
-  final InputHandler wrapped;
 
   final ThermionViewer viewer;
 
@@ -208,6 +207,10 @@ class GizmoInputHandler extends InputHandler {
     }
   }
 
+  Future<Matrix4?> getGizmoTransform() async {
+    return _active?.gizmoTransform;
+  }
+
   Future detach() async {
     if (_attached == null) {
       return;
@@ -225,8 +228,10 @@ class GizmoInputHandler extends InputHandler {
   final _pickResultController = StreamController<ThermionEntity?>.broadcast();
   Stream<ThermionEntity?> get onPickResult => _pickResultController.stream;
 
-  GizmoInputHandler({required this.wrapped, required this.viewer}) {
-    initialize();
+  GizmoInputHandler({required this.viewer, required GizmoType initialType}) {
+    initialize().then((_) {
+      setGizmoType(initialType);
+    });
   }
 
   GizmoType? getGizmoType() {
@@ -286,17 +291,13 @@ class GizmoInputHandler extends InputHandler {
   Future<bool> get initialized => _initialized.future;
 
   @override
-  void keyDown(PhysicalKey key) {
-    wrapped.keyDown(key);
-  }
+  void keyDown(PhysicalKey key) {}
 
   @override
-  void keyUp(PhysicalKey key) {
-    wrapped.keyDown(key);
-  }
+  void keyUp(PhysicalKey key) {}
 
   @override
-  Future<void> onPointerDown(Vector2 localPosition, bool isMiddle) async {
+  Future<void>? onPointerDown(Vector2 localPosition, bool isMiddle) async {
     if (!_initialized.isCompleted) {
       return;
     }
@@ -319,7 +320,7 @@ class GizmoInputHandler extends InputHandler {
   }
 
   @override
-  Future<void> onPointerHover(Vector2 localPosition, Vector2 delta) async {
+  Future<void>? onPointerHover(Vector2 localPosition, Vector2 delta) async {
     if (!_initialized.isCompleted) {
       return;
     }
@@ -327,7 +328,7 @@ class GizmoInputHandler extends InputHandler {
   }
 
   @override
-  Future<void> onPointerMove(
+  Future<void>? onPointerMove(
       Vector2 localPosition, Vector2 delta, bool isMiddle) async {
     if (!isMiddle && _active?._active != null) {
       final scaledDelta = Vector2(
@@ -337,33 +338,24 @@ class GizmoInputHandler extends InputHandler {
       _active!._updateTransform(localPosition, scaledDelta);
       return;
     }
-    return wrapped.onPointerMove(localPosition, delta, isMiddle);
   }
 
   @override
-  Future<void> onPointerScroll(
-      Vector2 localPosition, double scrollDelta) async {
-    return wrapped.onPointerScroll(localPosition, scrollDelta);
-  }
+  Future<void>? onPointerScroll(
+      Vector2 localPosition, double scrollDelta) async {}
 
   @override
-  Future<void> onPointerUp(bool isMiddle) async {
-    await wrapped.onPointerUp(isMiddle);
-  }
+  Future<void>? onPointerUp(bool isMiddle) async {}
 
   @override
-  Future<void> onScaleEnd(int pointerCount, double velocity) {
-    return wrapped.onScaleEnd(pointerCount, velocity);
-  }
+  Future<void>? onScaleEnd(int pointerCount, double velocity) {}
 
   @override
-  Future<void> onScaleStart(
-      Vector2 focalPoint, int pointerCount, Duration? sourceTimestamp) {
-    return wrapped.onScaleStart(focalPoint, pointerCount, sourceTimestamp);
-  }
+  Future<void>? onScaleStart(
+      Vector2 focalPoint, int pointerCount, Duration? sourceTimestamp) {}
 
   @override
-  Future<void> onScaleUpdate(
+  Future<void>? onScaleUpdate(
       Vector2 focalPoint,
       Vector2 focalPointDelta,
       double horizontalScale,
@@ -371,10 +363,7 @@ class GizmoInputHandler extends InputHandler {
       double scale,
       int pointerCount,
       double rotation,
-      Duration? sourceTimestamp) {
-    return wrapped.onScaleUpdate(focalPoint, focalPointDelta, horizontalScale,
-        verticalScale, scale, pointerCount, rotation, sourceTimestamp);
-  }
+      Duration? sourceTimestamp) {}
 
   @override
   void setActionForType(InputType gestureType, InputAction gestureAction) {
