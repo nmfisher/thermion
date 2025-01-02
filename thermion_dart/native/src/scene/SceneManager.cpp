@@ -369,7 +369,7 @@ namespace thermion
 
         FilamentAsset *asset = _assetLoader->createInstancedAsset((const uint8_t *)data, length, instances.data(), numInstances);
 
-        Log("Created instanced asset.");
+        Log("Created glTF asset with %d instances.", numInstances);
 
         if (!asset)
         {

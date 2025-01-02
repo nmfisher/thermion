@@ -57,10 +57,10 @@ extern "C"
     }
 
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGlbFromBuffer(TSceneManager *tSceneManager, const uint8_t *const data, size_t length, bool keepData, int priority, int layer, bool loadResourcesAsync)
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGlbFromBuffer(TSceneManager *tSceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync)
     {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        auto *asset = sceneManager->loadGlbFromBuffer((const uint8_t *)data, length, 1, keepData, priority, layer, loadResourcesAsync);
+        auto *asset = sceneManager->loadGlbFromBuffer((const uint8_t *)data, length, numInstances, keepData, priority, layer, loadResourcesAsync);
         return reinterpret_cast<TSceneAsset *>(asset);
     }
 

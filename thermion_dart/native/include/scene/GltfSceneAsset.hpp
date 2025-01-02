@@ -42,6 +42,7 @@ namespace thermion
                                       _materialInstances(materialInstances),
                                       _materialInstanceCount(materialInstanceCount)
         {
+            TRACE("Created GltfSceneAsset with %d reserved instances", asset->getAssetInstanceCount());
         }
 
         ~GltfSceneAsset();
