@@ -6,6 +6,7 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIAsset extends ThermionAsset {
+  
   final Pointer<TSceneAsset> pointer;
   final Pointer<TSceneManager> sceneManager;
   Pointer<TRenderableManager> get renderableManager =>
@@ -188,7 +189,7 @@ class FFIAsset extends ThermionAsset {
     }
   }
 
-  ThermionAsset? _boundingBoxAsset;
+  FFIAsset? boundingBoxAsset;
 
   Future<Aabb3> getBoundingBox() async {
     late ThermionEntity targetEntity;
@@ -201,9 +202,10 @@ class FFIAsset extends ThermionAsset {
     return aabb3;
   }
 
+
   @override
   Future<void> setBoundingBoxVisibility(bool visible) async {
-    if (_boundingBoxAsset == null) {
+    if (boundingBoxAsset == null) {
       final boundingBox = await getBoundingBox();
       final min = [
         boundingBox.centerX - boundingBox.halfExtentX,
@@ -277,19 +279,19 @@ class FFIAsset extends ThermionAsset {
         primitiveType: PrimitiveType.LINES,
       );
 
-      _boundingBoxAsset = await viewer.createGeometry(
+      boundingBoxAsset = await viewer.createGeometry(
         geometry,
         materialInstances: [material],
         keepData: false,
-      );
+      ) as FFIAsset;
 
       TransformManager_setParent(Engine_getTransformManager(engine),
-          _boundingBoxAsset!.entity, entity, false);
+          boundingBoxAsset!.entity, entity, false);
     }
     if (visible) {
-      await _boundingBoxAsset!.addToScene();
+      await boundingBoxAsset!.addToScene();
     } else {
-      await _boundingBoxAsset!.removeFromScene();
+      await boundingBoxAsset!.removeFromScene();
     }
   }
 }

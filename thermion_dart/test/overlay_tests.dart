@@ -134,15 +134,34 @@ void main() async {
     });
 
     group("bounding box", () {
-      test('bounding box', () async {
+      test('add bounding box to geometry', () async {
         await testHelper.withViewer(
           (viewer) async {
             final cube = await viewer.createGeometry(
                 GeometryHelper.cube(normals: false, uvs: false));
             await cube.setBoundingBoxVisibility(true);
-            await testHelper.capture(viewer, "bounding_box_visible");
+            await testHelper.capture(viewer, "geometry_bounding_box_visible");
             await cube.setBoundingBoxVisibility(false);
-            await testHelper.capture(viewer, "bounding_box_not_visible");
+            await testHelper.capture(
+                viewer, "geometry_bounding_box_not_visible");
+            await cube.setBoundingBoxVisibility(true);
+            await viewer.removeAsset(cube);
+            await testHelper.capture(
+                viewer, "geometry_bounding_box_removed");
+          },
+          postProcessing: true,
+        );
+      });
+
+      test('add bounding box to gltf', () async {
+        await testHelper.withViewer(
+          (viewer) async {
+            var cube = await viewer
+                .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+            await cube.setBoundingBoxVisibility(true);
+            await testHelper.capture(viewer, "gltf_bounding_box_visible");
+            await cube.setBoundingBoxVisibility(false);
+            await testHelper.capture(viewer, "gltf_bounding_box_not_visible");
           },
           postProcessing: true,
         );
@@ -210,7 +229,7 @@ void main() async {
 
   //     await testHelper.capture(viewer, "texture_applied_to_geometry");
 
-  //     await viewer.removeEntity(cube);
+  //     await viewer.removeAsset(cube);
   //     await viewer.destroyTexture(texture);
   //     await viewer.dispose();
   //   });
@@ -319,7 +338,7 @@ void main() async {
   //     await viewer.setToneMapping(ToneMapper.LINEAR);
 
   //     final unlit = await viewer.createUnlitMaterialInstance();
-  //     await viewer.removeEntity(cube);
+  //     await viewer.removeAsset(cube);
   //     cube = await viewer.createGeometry(GeometryHelper.cube(),
   //         materialInstance: unlit);
   //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);
