@@ -495,7 +495,7 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto *asset = SceneManager_loadGlbFromBuffer(sceneManager, data, length, keepData, priority, layer, loadResourcesAsync);
+          auto *asset = SceneManager_loadGlbFromBuffer(sceneManager, data, length, numInstances, keepData, priority, layer, loadResourcesAsync);
           callback(asset);
         });
     auto fut = _rl->add_task(lambda);

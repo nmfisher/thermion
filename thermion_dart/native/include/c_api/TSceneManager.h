@@ -48,7 +48,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE int SceneManager_removeFromScene(TSceneManager *tSceneManager, EntityId entity);
 
 	EMSCRIPTEN_KEEPALIVE void SceneManager_transformToUnitCube(TSceneManager *sceneManager, EntityId asset);
-	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGlbFromBuffer(TSceneManager *tSceneManager, const uint8_t *const, size_t length, bool keepData, int priority, int layer, bool loadResourcesAsync);
+	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGlbFromBuffer(TSceneManager *tSceneManager, const uint8_t *const, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync);
 	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGlb(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData);
 	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGltf(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData);
 	

@@ -19,7 +19,9 @@ namespace thermion
         
         if (instanceNumber > _asset->getAssetInstanceCount() - 1)
         {
-            Log("No instances available for reuse. When loading the asset, you must pre-allocate the number of instances you wish to make available for use. Try increasing this number.");
+            Log("glTF asset was created with %d instances reserved, and %d instances have been used. Increase the number of instances pre-allocated when the asset is loaded.",
+            _asset->getAssetInstanceCount(), _instances.size()
+            );
             return std::nullptr_t();
         }
         TRACE("Creating instance %d", instanceNumber);
