@@ -49,17 +49,35 @@ void main() async {
         await viewer.setToneMapping(ToneMapper.LINEAR);
 
         var materialInstance = await viewer.createUnlitMaterialInstance();
-        var cube = await viewer.createGeometry(GeometryHelper.cube(),
+        var cube = await viewer.createGeometry(
+            GeometryHelper.cube(normals: false, uvs: false),
             materialInstances: [materialInstance]);
 
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
         await materialInstance.setParameterInt("baseColorIndex", -1);
-        // await viewer.render();
-        // await viewer.render();
-        // await viewer.render();
         await testHelper.capture(viewer, "unlit_material_base_color");
-      });
+        await viewer.destroyMaterialInstance(materialInstance);
+      }, bg: kRed);
+    });
+
+    test('unlit material with color + alpha', () async {
+      await testHelper.withViewer((viewer) async {
+        await viewer.setPostProcessing(true);
+        await viewer.setToneMapping(ToneMapper.LINEAR);
+
+        var materialInstance = await viewer.createUnlitMaterialInstance();
+        var cube = await viewer.createGeometry(
+            GeometryHelper.cube(normals: false, uvs: false),
+            materialInstances: [materialInstance]);
+
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 0.0, 1.0, 0.0, 0.1);
+        await materialInstance.setParameterInt("baseColorIndex", -1);
+        await testHelper.capture(viewer, "unlit_material_base_color_alpha");
+        await viewer.destroyMaterialInstance(materialInstance);
+      }, bg: kRed);
+      
     });
 
     test('unlit fixed size material', () async {
@@ -105,7 +123,7 @@ void main() async {
       await viewer.applyTexture(texture as ThermionFFITexture, cube.entity);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_ubershader_texture");
-      await viewer.removeEntity(cube);
+      await viewer.removeAsset(cube);
       await viewer.destroyMaterialInstance(materialInstance);
       await viewer.destroyTexture(texture);
       await viewer.dispose();
@@ -131,7 +149,7 @@ void main() async {
       await viewer.applyTexture(texture, cube.entity);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_texture_only");
-      await viewer.removeEntity(cube);
+      await viewer.removeAsset(cube);
 
       cube = await viewer.createGeometry(GeometryHelper.cube(),
           materialInstances: [materialInstance]);
@@ -141,7 +159,7 @@ void main() async {
           "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_color_only");
-      await viewer.removeEntity(cube);
+      await viewer.removeAsset(cube);
 
       cube = await viewer.createGeometry(GeometryHelper.cube(),
           materialInstances: [materialInstance]);
@@ -154,7 +172,7 @@ void main() async {
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_color_and_texture");
 
-      await viewer.removeEntity(cube);
+      await viewer.removeAsset(cube);
 
       await viewer.destroyTexture(texture);
       await viewer.destroyMaterialInstance(materialInstance);
@@ -400,7 +418,7 @@ void main() async {
 
   //     await testHelper.capture(viewer, "texture_applied_to_geometry");
 
-  //     await viewer.removeEntity(cube);
+  //     await viewer.removeAsset(cube);
   //     await viewer.destroyTexture(texture);
   //     await viewer.dispose();
   //   });
@@ -509,7 +527,7 @@ void main() async {
   //     await viewer.setToneMapping(ToneMapper.LINEAR);
 
   //     final unlit = await viewer.createUnlitMaterialInstance();
-  //     await viewer.removeEntity(cube);
+  //     await viewer.removeAsset(cube);
   //     cube = await viewer.createGeometry(GeometryHelper.cube(),
   //         materialInstance: unlit);
   //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);

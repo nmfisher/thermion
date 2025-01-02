@@ -17,16 +17,12 @@ material {
         {
             type: float2,
             name: uvScale
-        },
-        {
-            type: float,
-            name: vertexScale
         }
     ],
     depthWrite : true,
     depthCulling : true,
     shadingModel : unlit,
-    blending: opaque,
+    blending: transparent,
     culling: none,
     instanced: false,
     vertexDomain: object,
@@ -36,6 +32,7 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);           
         material.baseColor = materialParams.baseColorFactor;
+        material.baseColor.rgb = material.baseColor.rgb * material.baseColor.a;
         
         if (materialParams.baseColorIndex > -1) {
             highp float2 uv = getUV0();
@@ -49,7 +46,6 @@ fragment {
 vertex { 
     void materialVertex(inout MaterialVertexInputs material) {
         float4 position = getPosition();
-        position.xyz *= materialParams.vertexScale;
         material.worldPosition = getWorldFromModelMatrix() * position;
     }
 }
