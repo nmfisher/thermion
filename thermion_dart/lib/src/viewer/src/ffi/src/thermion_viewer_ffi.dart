@@ -510,8 +510,8 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("An error occurred loading the asset at $path");
     }
 
-    var thermionAsset =
-        FFIAsset(asset, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
+    var thermionAsset = FFIAsset(
+        asset, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
 
     return thermionAsset;
   }
@@ -973,6 +973,12 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeAsset(covariant FFIAsset asset) async {
+    if (asset.boundingBoxAsset != null) {
+      await asset.setBoundingBoxVisibility(false);
+      await withVoidCallback((callback) =>
+          SceneManager_destroyAssetRenderThread(
+              _sceneManager!, asset.boundingBoxAsset!.pointer, callback));
+    }
     await withVoidCallback((callback) => SceneManager_destroyAssetRenderThread(
         _sceneManager!, asset.pointer, callback));
   }
@@ -1641,8 +1647,8 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create geometry");
     }
 
-    var asset =
-        FFIAsset(assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
+    var asset = FFIAsset(
+        assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
 
     return asset;
   }
@@ -1760,7 +1766,8 @@ class ThermionViewerFFI extends ThermionViewer {
               _sceneManager!, material.pointer, cb);
         }
       });
-      _grid = FFIAsset(ptr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
+      _grid = FFIAsset(
+          ptr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
     }
     await _grid!.addToScene();
     await setLayerVisibility(VisibilityLayers.OVERLAY, true);
