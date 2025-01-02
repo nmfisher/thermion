@@ -7,16 +7,50 @@ import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIAsset extends ThermionAsset {
   
+  ///
+  ///
+  ///
   final Pointer<TSceneAsset> pointer;
+  
+  ///
+  ///
+  ///
   final Pointer<TSceneManager> sceneManager;
+  
+  ///
+  ///
+  ///
   Pointer<TRenderableManager> get renderableManager =>
       Engine_getRenderableManager(engine);
+  
+  ///
+  ///
+  ///
   final Pointer<TEngine> engine;
+  
+  ///
+  ///
+  ///
   FFIAsset? _highlight;
+  
+  ///
+  ///
+  ///
   final Pointer<TMaterialProvider> _unlitMaterialProvider;
+  
+  ///
+  ///
+  ///
   final bool isInstance;
 
+  ///
+  ///
+  ///
   late final ThermionEntity entity;
+  
+  ///
+  ///
+  ///
   final ThermionViewer viewer;
 
   FFIAsset(this.pointer, this.sceneManager, this.engine,
@@ -100,6 +134,9 @@ class FFIAsset extends ThermionAsset {
     return result;
   }
 
+  ///
+  ///
+  ///
   @override
   Future removeStencilHighlight() async {
     if (_highlight != null) {
@@ -111,6 +148,9 @@ class FFIAsset extends ThermionAsset {
     }
   }
 
+  ///
+  ///
+  ///
   @override
   Future setStencilHighlight(
       {double r = 1.0,
@@ -175,11 +215,17 @@ class FFIAsset extends ThermionAsset {
     SceneManager_addToScene(sceneManager, targetHighlightEntity);
   }
 
+  ///
+  ///
+  ///
   @override
   Future addToScene() async {
     SceneAsset_addToScene(pointer, SceneManager_getScene(sceneManager));
   }
 
+  ///
+  ///
+  ///
   @override
   Future removeFromScene() async {
     SceneManager_removeFromScene(sceneManager, entity);
@@ -194,14 +240,17 @@ class FFIAsset extends ThermionAsset {
     late ThermionEntity targetEntity;
     if (RenderableManager_isRenderable(renderableManager, entity)) {
       targetEntity = entity;
-    } else { 
+    } else {
       targetEntity = (await getChildEntities()).first;
     }
-    final aabb3 = SceneManager_getRenderableBoundingBox(sceneManager, targetEntity);
+    final aabb3 =
+        SceneManager_getRenderableBoundingBox(sceneManager, targetEntity);
     return aabb3;
   }
 
-
+  ///
+  ///
+  ///
   @override
   Future<void> setBoundingBoxVisibility(bool visible) async {
     if (boundingBoxAsset == null) {
@@ -291,6 +340,19 @@ class FFIAsset extends ThermionAsset {
       await boundingBoxAsset!.addToScene();
     } else {
       await boundingBoxAsset!.removeFromScene();
+    }
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setMaterialInstanceAt(FFIMaterialInstance instance) async {
+    var childEntities = await getChildEntities();
+    final entities = <ThermionEntity>[entity, ...childEntities];
+    for (final entity in entities) {
+      RenderableManager_setMaterialInstanceAt(
+          Engine_getRenderableManager(engine), entity, 0, instance.pointer);
     }
   }
 }
