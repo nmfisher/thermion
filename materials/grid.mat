@@ -115,7 +115,7 @@ fragment {
         
         material.baseColor = color;
 
-        gl_FragDepth = 0.001f;
+        gl_FragDepth = 0.00001f;
         
     }
 }
