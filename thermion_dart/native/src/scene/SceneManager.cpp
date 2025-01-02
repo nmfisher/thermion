@@ -157,12 +157,13 @@ namespace thermion
     {
         if (!_grid)
         {
-            if(!material) {
+            if (!material)
+            {
                 material = Material::Builder()
-                    .package(GRID_PACKAGE, GRID_GRID_SIZE)
-                    .build(*_engine);
+                               .package(GRID_PACKAGE, GRID_GRID_SIZE)
+                               .build(*_engine);
             }
-            
+
             _grid = std::make_unique<GridOverlay>(*_engine, material);
         }
         return _grid.get();
@@ -344,7 +345,7 @@ namespace thermion
 
         _sceneAssets.push_back(std::move(sceneAsset));
 
-        Log("Finished loading glTF from %s", uri);
+        Log("Loaded glTF asset from uri: %s", uri);
 
         return raw;
     }
@@ -492,22 +493,25 @@ namespace thermion
 
         std::lock_guard lock(_mutex);
 
-        auto it = std::remove_if(_sceneAssets.begin(), _sceneAssets.end(), [=](auto &sceneAsset)
-                                 { return sceneAsset.get() == asset; });
-        if (it != _sceneAssets.end())
+        auto entity = asset->getEntity();
+        _collisionComponentManager->removeComponent(entity);
+        _animationManager->removeAnimationComponent(utils::Entity::smuggle(entity));
+        for (int i = 0; i < asset->getChildEntityCount(); i++)
         {
-            auto entity = (*it)->getEntity();
-            _collisionComponentManager->removeComponent(entity);
-            _animationManager->removeAnimationComponent(utils::Entity::smuggle(entity));
-            for (int i = 0; i < (*it)->getChildEntityCount(); i++)
-            {
-                auto childEntity = (*it)->getChildEntities()[i];
-                _collisionComponentManager->removeComponent(childEntity);
-                _animationManager->removeAnimationComponent(utils::Entity::smuggle(childEntity));
-            }
-            (*it)->removeAllEntities(_scene);
+            auto childEntity = asset->getChildEntities()[i];
+            _collisionComponentManager->removeComponent(childEntity);
+            _animationManager->removeAnimationComponent(utils::Entity::smuggle(childEntity));
+        }
+        asset->removeAllEntities(_scene);
+        if (asset->isInstance())
+        {
+            asset->destroyInstance(asset);
+        }
+        else
+        {
+            auto it = std::remove_if(_sceneAssets.begin(), _sceneAssets.end(), [=](auto &sceneAsset)
+                                     { return sceneAsset.get() == asset; });
             _sceneAssets.erase(it, _sceneAssets.end());
-            return;
         }
     }
 

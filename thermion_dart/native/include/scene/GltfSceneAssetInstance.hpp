@@ -12,7 +12,6 @@
 #include <gltfio/MaterialProvider.h>
 
 #include <utils/NameComponentManager.h>
-
 #include "scene/SceneAsset.hpp"
 
 namespace thermion
@@ -20,16 +19,20 @@ namespace thermion
 
     using namespace filament;
 
+    class GltfSceneAsset;
+
     class GltfSceneAssetInstance : public SceneAsset
     {
     public:
         GltfSceneAssetInstance(
+            GltfSceneAsset *instanceOwner,
             gltfio::FilamentInstance *instance,
             Engine *engine,
             utils::NameComponentManager* ncm,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0,
-            int instanceIndex = -1) : _ncm(ncm), 
+            int instanceIndex = -1) : _instanceOwner(instanceOwner),
+                                        _ncm(ncm), 
                                       _instance(instance),
                                       _materialInstances(materialInstances),
                                       _materialInstanceCount(materialInstanceCount)
@@ -43,6 +46,10 @@ namespace thermion
             return std::nullptr_t();
         };
 
+        void destroyInstance(SceneAsset *instance) override {
+
+        }
+
         SceneAssetType getType() override
         {
             return SceneAsset::SceneAssetType::Gltf;
@@ -52,6 +59,8 @@ namespace thermion
         {
             return true;
         }
+
+        SceneAsset *getInstanceOwner() override;
 
         utils::Entity getEntity() override
         {
@@ -156,8 +165,9 @@ namespace thermion
         filament::Engine *_engine;
         utils::NameComponentManager *_ncm;
         gltfio::FilamentInstance *_instance;
-        MaterialInstance **_materialInstances = nullptr;
+        MaterialInstance **_materialInstances = std::nullptr_t();
         size_t _materialInstanceCount = 0;
+        GltfSceneAsset *_instanceOwner = std::nullptr_t();
     };
 
 } // namespace thermion

@@ -16,17 +16,19 @@ namespace thermion
     class GeometrySceneAsset : public SceneAsset
     {
     public:
-        GeometrySceneAsset(bool isInstance,
-                           Engine *engine,
+        GeometrySceneAsset(Engine *engine,
                            VertexBuffer *vertexBuffer,
                            IndexBuffer *indexBuffer,
                            MaterialInstance **materialInstances,
                            size_t materialInstanceCount,
                            RenderableManager::PrimitiveType primitiveType,
-                           Box boundingBox);
+                           Box boundingBox,
+                           GeometrySceneAsset *instanceParent = std::nullptr_t());
         ~GeometrySceneAsset();
 
         SceneAsset *createInstance(MaterialInstance **materialInstances = nullptr, size_t materialInstanceCount = 0) override;
+
+        void destroyInstance(SceneAsset *sceneAsset) override;
 
         SceneAssetType getType() override
         {
@@ -35,7 +37,11 @@ namespace thermion
 
         bool isInstance() override
         {
-            return _isInstance;
+            return _instanceOwner;
+        }
+
+        SceneAsset *getInstanceOwner() override { 
+            return _instanceOwner;
         }
 
         utils::Entity getEntity() override
@@ -132,7 +138,7 @@ namespace thermion
         MaterialInstance **_materialInstances = nullptr;
         size_t _materialInstanceCount = 0;
         Box _boundingBox;
-        bool _isInstance = false;
+        GeometrySceneAsset *_instanceOwner = std::nullptr_t();
         utils::Entity _entity;
         RenderableManager::PrimitiveType _primitiveType;
         std::vector<std::unique_ptr<GeometrySceneAsset>> _instances;

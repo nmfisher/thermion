@@ -107,7 +107,6 @@ namespace thermion
             boundingBox.getMax().x, boundingBox.getMax().y, boundingBox.getMax().z);
 
         auto asset = std::make_unique<GeometrySceneAsset>(
-            false,
             mEngine,
             vertexBuffer,
             indexBuffer,
