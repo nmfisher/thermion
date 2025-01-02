@@ -149,7 +149,6 @@ class FFIAsset extends ThermionAsset {
 
       await highlightMaterialInstance.setDepthCullingEnabled(false);
 
-      await highlightMaterialInstance.setParameterFloat("vertexScale", 1.03);
       await highlightMaterialInstance.setParameterFloat4(
           "baseColorFactor", r, g, b, 1.0);
 
