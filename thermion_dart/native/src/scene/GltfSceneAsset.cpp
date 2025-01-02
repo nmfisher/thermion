@@ -49,6 +49,7 @@ namespace thermion
         }
 
         std::unique_ptr<GltfSceneAssetInstance> sceneAssetInstance = std::make_unique<GltfSceneAssetInstance>(
+            this,
             instance,
             _engine,
             _ncm,

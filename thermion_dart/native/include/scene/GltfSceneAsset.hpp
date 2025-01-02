@@ -13,7 +13,6 @@
 
 #include <utils/NameComponentManager.h>
 
-
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "components/AnimationComponentManager.hpp"
 #include "components/CollisionComponentManager.hpp"
@@ -49,6 +48,12 @@ namespace thermion
 
         SceneAsset *createInstance(MaterialInstance **materialInstances = nullptr, size_t materialInstanceCount = 0) override;
 
+        void destroyInstance(SceneAsset *asset) override {
+            auto it = std::remove_if(_instances.begin(), _instances.end(), [=](auto &sceneAsset)
+                                    { return sceneAsset.get() == asset; });
+            _instances.erase(it, _instances.end());
+        };
+
         SceneAssetType getType() override
         {
             return SceneAsset::SceneAssetType::Gltf;
@@ -57,6 +62,10 @@ namespace thermion
         bool isInstance() override
         {
             return false;
+        }
+
+        SceneAsset *getInstanceOwner() override { 
+            return std::nullptr_t();
         }
 
         utils::Entity getEntity() override

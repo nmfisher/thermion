@@ -30,6 +30,9 @@ class SceneAsset {
         }
         
         virtual bool isInstance() = 0;
+        virtual SceneAsset* getInstanceOwner() = 0;
+        virtual void destroyInstance(SceneAsset *instance) = 0;
+
         
         virtual SceneAsset* createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount) = 0;
 

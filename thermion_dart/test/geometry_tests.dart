@@ -22,7 +22,7 @@ void main() async {
         final cube = await viewer
             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
         await testHelper.capture(viewer, "geometry_cube_no_normals_uvs");
-        await viewer.removeEntity(cube);
+        await viewer.removeAsset(cube);
         await testHelper.capture(viewer, "geometry_remove_cube");
       });
     });
@@ -86,6 +86,8 @@ void main() async {
             instance.entity, Matrix4.translation(Vector3.all(1)));
 
         await testHelper.capture(viewer, "geometry_instanced");
+        await viewer.removeAsset(instance);
+        await testHelper.capture(viewer, "geometry_instance_removed");
       });
     });
 
@@ -167,7 +169,7 @@ void main() async {
             "baseColorFactor", 0.0, 1.0, 0.0, 0.0);
         await testHelper.capture(
             viewer, "geometry_cube_with_custom_material_ubershader");
-        await viewer.removeEntity(cube);
+        await viewer.removeAsset(cube);
       });
     });
 
@@ -191,7 +193,7 @@ void main() async {
       await viewer.applyTexture(texture as ThermionFFITexture, cube.entity);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_ubershader_texture");
-      await viewer.removeEntity(cube);
+      await viewer.removeAsset(cube);
       await viewer.destroyTexture(texture);
     });
 
@@ -221,7 +223,7 @@ void main() async {
         var texture = await viewer.createTexture(textureData);
         await viewer.applyTexture(texture, cube.entity);
         await testHelper.capture(viewer, "unlit_material_texture_only");
-        await viewer.removeEntity(cube);
+        await viewer.removeAsset(cube);
       });
     });
 

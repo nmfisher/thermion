@@ -16,7 +16,7 @@ void main() async {
         var model = await viewer
             .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
         await testHelper.capture(viewer, "load_glb_from_file");
-        await viewer.removeEntity(model);
+        await viewer.removeAsset(model);
       });
     });
 
@@ -27,6 +27,28 @@ void main() async {
         var model = await viewer.loadGlbFromBuffer(buffer);
         await testHelper.capture(viewer, "load_glb_from_buffer");
       });
+    });
+
+    test('load glb from buffer with instances', () async {
+      await testHelper.withViewer((viewer) async {
+        var buffer =
+            File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
+        var model = await viewer.loadGlbFromBuffer(buffer, numInstances: 2);
+        var instance = await model.createInstance();
+        await instance.addToScene();
+        await viewer.setTransform(
+            instance.entity, Matrix4.translation(Vector3(1, 0, 0)));
+
+        await testHelper.capture(viewer, "load_glb_from_buffer_with_instances");
+
+        await viewer.removeAsset(instance);
+
+        await testHelper.capture(viewer, "load_glb_from_buffer_instance_removed");
+
+        await viewer.removeAsset(model);
+
+        await testHelper.capture(viewer, "load_glb_from_buffer_original_removed");
+      }, bg: kRed);
     });
 
     test('load glb from buffer with priority', () async {
@@ -58,7 +80,7 @@ void main() async {
       await testHelper.withViewer((viewer) async {
         var model = await viewer.loadGlb(
             "file://${testHelper.testDir}/assets/cube.glb",
-            numInstances: 2);
+            numInstances: 32);
         await testHelper.capture(viewer, "gltf_create_instance_0");
         var instance = await model.createInstance();
         await instance.addToScene();
@@ -75,17 +97,36 @@ void main() async {
         var model = await viewer.loadGlb(
             "file://${testHelper.testDir}/assets/cube.glb",
             numInstances: 2);
-        await testHelper.capture(viewer, "gltf_create_instance_with_material_0");
+        await testHelper.capture(
+            viewer, "gltf_create_instance_with_material_0");
 
         final materialInstance = await viewer.createUnlitMaterialInstance();
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 0.0, 0.0, 1.0);
-        var instance = await model.createInstance(materialInstances: [materialInstance]);
+        var instance =
+            await model.createInstance(materialInstances: [materialInstance]);
         await instance.addToScene();
 
         await viewer.setTransform(
             instance.entity, Matrix4.translation(Vector3.all(1)));
-        await testHelper.capture(viewer, "gltf_create_instance_with_material_1");
+        await testHelper.capture(
+            viewer, "gltf_create_instance_with_material_1");
+        await viewer.destroyMaterialInstance(materialInstance);
+      });
+    });
+
+    test('replace material instance for gltf', () async {
+      await testHelper.withViewer((viewer) async {
+        var model = await viewer
+            .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+        await testHelper.capture(viewer, "gltf_default_material_instance");
+        var materialInstance = await viewer.createUnlitMaterialInstance();
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 1.0, 1.0, 0.0, 1.0);
+        await model.setMaterialInstanceAt(materialInstance);
+        await testHelper.capture(viewer, "gltf_set_material_instance");
+        await viewer.removeAsset(model);
+        await viewer.destroyMaterialInstance(materialInstance);
       });
     });
   });

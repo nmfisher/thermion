@@ -22,9 +22,14 @@ public:
 
     SceneAssetType getType() override { return SceneAsset::SceneAssetType::Gizmo; }
     bool isInstance() override { return false; }
+    SceneAsset *getInstanceOwner() override { return std::nullptr_t(); }
     
     SceneAsset* createInstance(MaterialInstance** materialInstances = nullptr, 
                               size_t materialInstanceCount = 0) override;
+    
+    void destroyInstance(SceneAsset *instance) override { 
+
+    }
                               
     MaterialInstance** getMaterialInstances() override { return &_materialInstance; }
     size_t getMaterialInstanceCount() override { return 1; }

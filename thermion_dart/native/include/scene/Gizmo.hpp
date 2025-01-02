@@ -66,7 +66,9 @@ namespace thermion
         SceneAssetType getType() override { return SceneAssetType::Gizmo; }
         utils::Entity getEntity() override { return _parent; }
         bool isInstance() override { return false; }
+        SceneAsset *getInstanceOwner() override { return std::nullptr_t(); }
         SceneAsset *createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount) override { return nullptr; }
+        void destroyInstance(SceneAsset *instance) override { return; }
         MaterialInstance **getMaterialInstances() override { return _materialInstances.data(); }
         size_t getMaterialInstanceCount() override { return _materialInstances.size(); }
 
