@@ -225,8 +225,8 @@
 //       return;
 //     }
 //     await setRendering(false);
-//     await clearEntities();
-//     await clearLights();
+//     await destroyAssets();
+//     await destroyLights();
 //     _destroyViewer();
 
 //     _sceneManager = null;
@@ -1130,13 +1130,13 @@
 //   }
 
 //   @override
-//   Future clearEntities() async {
+//   Future destroyAssets() async {
 //     _module!.ccall(
 //         "clear_entities", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
 //   }
 
 //   @override
-//   Future clearLights() async {
+//   Future destroyLights() async {
 //     _module!.ccall(
 //         "clear_lights", "void", ["void*".toJS].toJS, [_viewer!].toJS, null);
 //   }
@@ -1585,7 +1585,7 @@
 //   }
 
 //   @override
-//   Future removeEntity(ThermionEntity entity) async {
+//   Future destroyAsset(ThermionEntity entity) async {
 //     _module!.ccall("remove_entity", "void", ["void*".toJS, "int".toJS].toJS,
 //         [_viewer!, entity.toJS].toJS, null);
 //   }

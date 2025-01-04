@@ -542,21 +542,24 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void load_skybox_render_thread(TViewer *viewer,
+  EMSCRIPTEN_KEEPALIVE void Viewer_loadSkyboxRenderThread(TViewer *viewer,
                                                       const char *skyboxPath,
                                                       void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
-                                        load_skybox(viewer, skyboxPath);
+                                        Viewer_loadSkybox(viewer, skyboxPath);
                                         onComplete(); });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void remove_skybox_render_thread(TViewer *viewer)
+  EMSCRIPTEN_KEEPALIVE void Viewer_removeSkyboxRenderThread(TViewer *viewer, void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]
-                                      { remove_skybox(viewer); });
+                                      { 
+                                        Viewer_removeSkybox(viewer); 
+                                        onComplete();
+                                      });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -591,7 +594,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAllRenderThread(TSceneManager *tSceneManager, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAllRenderThread(TSceneManager *tSceneManager, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -600,7 +603,6 @@ extern "C"
           callback();
         });
     auto fut = _rl->add_task(lambda);
-    return nullptr;
   }
 
   EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmoRenderThread(
@@ -620,7 +622,45 @@ extern "C"
     return nullptr;
   }
 
-  EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *tSceneAsset, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE EntityId SceneManager_addLightRenderThread(
+            TSceneManager *tSceneManager,
+            uint8_t type,
+            float colour,
+            float intensity,
+            float posX,
+            float posY,
+            float posZ,
+            float dirX,
+            float dirY,
+            float dirZ,
+            float falloffRadius,
+            float spotLightConeInner,
+            float spotLightConeOuter,
+            float sunAngularRadius,
+            float sunHaloSize,
+            float sunHaloFallof,
+            bool shadows,
+            void (*callback)(EntityId entityId)) { 
+std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto light = SceneManager_addLight(tSceneManager, type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, shadows);
+          callback(light);
+        });
+    auto fut = _rl->add_task(lambda);
+            }
+  
+  EMSCRIPTEN_KEEPALIVE void SceneManager_removeLightRenderThread(TSceneManager *tSceneManager, EntityId entityId, void (*callback)()) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneManager_removeLight(tSceneManager, entityId);
+          callback();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *tSceneAsset, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -629,7 +669,28 @@ extern "C"
           callback();
         });
     auto fut = _rl->add_task(lambda);
-    return nullptr;
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssetsRenderThread(TSceneManager *tSceneManager, void (*callback)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneManager_destroyAssets(tSceneManager);
+          callback();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+  
+  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyLightsRenderThread(TSceneManager *tSceneManager, void (*callback)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          SceneManager_destroyLights(tSceneManager);
+          callback();
+        });
+    auto fut = _rl->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera *))

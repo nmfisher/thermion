@@ -410,13 +410,6 @@ class ThermionViewerStub extends ThermionViewer {
     throw UnimplementedError();
   }
 
-
-  @override
-  Future setParent(ThermionEntity child, ThermionEntity parent, { bool preserveScaling = false}) {
-    // TODO: implement setParent
-    throw UnimplementedError();
-  }
-
   @override
   Future setPosition(ThermionEntity entity, double x, double y, double z) {
     // TODO: implement setPosition
@@ -1008,7 +1001,7 @@ class ThermionViewerStub extends ThermionViewer {
   }
   
   @override
-  Future removeAsset(ThermionAsset asset) {
+  Future destroyAsset(ThermionAsset asset) {
     // TODO: implement removeAsset
     throw UnimplementedError();
   }
@@ -1100,6 +1093,12 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future showGridOverlay({covariant Material? material}) {
     // TODO: implement showGridOverlay
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling=false}) {
+    // TODO: implement setParent
     throw UnimplementedError();
   }
 

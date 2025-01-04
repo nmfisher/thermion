@@ -187,6 +187,24 @@ void main() async {
       });
     });
 
+    test(
+        'when a camera is the parent of another entity, setting the model matrix updates the parent transform ',
+        () async {
+      await testHelper.withViewer((viewer) async {
+        var camera = await viewer.createCamera();
+
+        var child = await viewer
+            .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+        await viewer.setParent(child.entity, camera.getEntity());
+
+        await testHelper.capture(viewer, "camera_as_parent1");
+
+        await camera.setModelMatrix(Matrix4.translation(Vector3(1, 0, 0)));
+
+        await testHelper.capture(viewer, "camera_as_parent2");
+      }, bg: kRed, cameraPosition: Vector3(0, 0, 10));
+    });
+
     test('create camera', () async {
       await testHelper.withViewer((viewer) async {
         await viewer.setCameraPosition(0, 0, 5);

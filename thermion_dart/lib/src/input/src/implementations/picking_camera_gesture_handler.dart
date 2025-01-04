@@ -23,7 +23,7 @@
 //   }
 
 //   Future dispose() async {
-//     await viewer.removeAsset(_translationGizmo);
+//     await viewer.destroyAsset(_translationGizmo);
 //   }
 
 //   @override

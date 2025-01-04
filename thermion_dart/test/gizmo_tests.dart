@@ -225,7 +225,7 @@ void main() async {
 
   //     await testHelper.capture(viewer, "texture_applied_to_geometry");
 
-  //     await viewer.removeEntity(cube);
+  //     await viewer.destroyAsset(cube);
   //     await viewer.destroyTexture(texture);
   //     await viewer.dispose();
   //   });
@@ -334,7 +334,7 @@ void main() async {
   //     await viewer.setToneMapping(ToneMapper.LINEAR);
 
   //     final unlit = await viewer.createUnlitMaterialInstance();
-  //     await viewer.removeEntity(cube);
+  //     await viewer.destroyAsset(cube);
   //     cube = await viewer.createGeometry(GeometryHelper.cube(),
   //         materialInstance: unlit);
   //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);

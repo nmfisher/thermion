@@ -30,5 +30,17 @@ void main() async {
         await testHelper.capture(viewer, "remove_ibl");
       });
     });
+
+    test('add/remove skybox', () async {
+      await testHelper.withViewer((viewer) async {
+        await viewer.loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+
+        await viewer
+            .loadSkybox("file://${testHelper.testDir}/assets/default_env_skybox.ktx");
+        await testHelper.capture(viewer, "load_skybox");
+        await viewer.removeSkybox();
+        await testHelper.capture(viewer, "remove_skybox");
+      });
+    });
   });
 }

@@ -60,14 +60,13 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void set_background_image_position(TViewer *viewer, float x, float y, bool clamp);
 	EMSCRIPTEN_KEEPALIVE void set_background_color(TViewer *viewer, const float r, const float g, const float b, const float a);
 	
-	EMSCRIPTEN_KEEPALIVE void load_skybox(TViewer *viewer, const char *skyboxPath);
+	EMSCRIPTEN_KEEPALIVE void Viewer_loadSkybox(TViewer *viewer, const char *skyboxPath);
+	EMSCRIPTEN_KEEPALIVE void Viewer_removeSkybox(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE void Viewer_loadIbl(TViewer *viewer, const char *iblPath, float intensity);
 	EMSCRIPTEN_KEEPALIVE void Viewer_removeIbl(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE void create_ibl(TViewer *viewer, float r, float g, float b, float intensity);
 	EMSCRIPTEN_KEEPALIVE void rotate_ibl(TViewer *viewer, float *rotationMatrix);
-	EMSCRIPTEN_KEEPALIVE void remove_skybox(TViewer *viewer);
-	
-	
+		
 	EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(TViewer *viewer);
 	
 	EMSCRIPTEN_KEEPALIVE void set_frame_interval(TViewer *viewer, float interval);

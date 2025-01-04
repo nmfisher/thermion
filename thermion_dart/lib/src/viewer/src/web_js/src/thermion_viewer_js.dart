@@ -339,8 +339,8 @@
 //   }
 
 //   @override
-//   Future<void> removeAsset(ThermionEntity entity) async {
-//     await _shim.removeAsset(entity).toDart;
+//   Future<void> destroyAsset(ThermionEntity entity) async {
+//     await _shim.destroyAsset(entity).toDart;
 //   }
 
 //   @override

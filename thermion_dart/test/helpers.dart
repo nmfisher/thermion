@@ -19,6 +19,7 @@ import 'package:path/path.dart' as p;
 
 Color kWhite = ColorFloat32(4)..setRgba(1.0, 1.0, 1.0, 1.0);
 Color kRed = ColorFloat32(4)..setRgba(1.0, 0.0, 0.0, 1.0);
+Color kGreen = ColorFloat32(4)..setRgba(0.0, 1.0, 0.0, 1.0);
 
 /// Test files are run in a variety of ways, find this package root in all.
 ///
