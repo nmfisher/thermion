@@ -29,6 +29,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Pointer<TMaterialProvider>? _unlitMaterialProvider;
   Pointer<TMaterialProvider>? _ubershaderMaterialProvider;
   Pointer<TTransformManager>? _transformManager;
+  Pointer<TLightManager>? _lightManager;
   Pointer<TRenderableManager>? _renderableManager;
   Pointer<TViewer>? _viewer;
   Pointer<TAnimationManager>? _animationManager;
@@ -197,6 +198,7 @@ class ThermionViewerFFI extends ThermionViewer {
         SceneManager_getUbershaderMaterialProvider(_sceneManager!);
     _engine = Viewer_getEngine(_viewer!);
     _transformManager = Engine_getTransformManager(_engine!);
+    _lightManager = Engine_getLightManager(_engine!);
     _animationManager = SceneManager_getAnimationManager(_sceneManager!);
     _nameComponentManager =
         SceneManager_getNameComponentManager(_sceneManager!);
@@ -284,11 +286,11 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     _disposing = true;
     await setRendering(false);
-    await clearEntities();
+    await destroyAssets();
     for (final mInstance in _materialInstances) {
       await mInstance.dispose();
     }
-    await clearLights();
+    await destroyLights();
 
     Viewer_destroyOnRenderThread(_viewer!);
     _sceneManager = null;
@@ -450,8 +452,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
-    var entity = add_light(
-      _viewer!,
+    var entity = SceneManager_addLight(
+      _sceneManager!,
       directLight.type.index,
       directLight.color,
       directLight.intensity,
@@ -480,15 +482,15 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeLight(ThermionEntity entity) async {
-    remove_light(_viewer!, entity);
+    SceneManager_removeLight(_sceneManager!, entity);
   }
 
   ///
   ///
   ///
   @override
-  Future clearLights() async {
-    clear_lights(_viewer!);
+  Future destroyLights() async {
+    SceneManager_destroyLights(_sceneManager!);
   }
 
   ///
@@ -987,7 +989,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future clearEntities() async {
+  Future destroyAssets() async {
     await withVoidCallback((callback) {
       SceneManager_destroyAllRenderThread(_sceneManager!, callback);
     });
@@ -1314,7 +1316,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setLightPosition(
       ThermionEntity lightEntity, double x, double y, double z) async {
-    set_light_position(_viewer!, lightEntity, x, y, z);
+    LightManager_setPosition(_lightManager!, lightEntity, x, y, z);
   }
 
   ///
@@ -1324,8 +1326,8 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setLightDirection(
       ThermionEntity lightEntity, Vector3 direction) async {
     direction.normalize();
-    set_light_direction(
-        _viewer!, lightEntity, direction.x, direction.y, direction.z);
+    LightManager_setPosition(
+        _lightManager!, lightEntity, direction.x, direction.y, direction.z);
   }
 
   ///

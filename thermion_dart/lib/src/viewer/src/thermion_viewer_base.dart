@@ -206,7 +206,7 @@ abstract class ThermionViewer {
   ///
   /// Remove all lights (excluding IBL) from the scene.
   ///
-  Future clearLights();
+  Future destroyLights();
 
   ///
   /// Load the .glb asset at the given path, adding all entities to the scene.
@@ -386,7 +386,7 @@ abstract class ThermionViewer {
   /// Removes/destroys all renderable entities from the scene (including cameras).
   /// All [ThermionEntity] handles will no longer be valid after this method is called; ensure you immediately discard all references to all entities once this method is complete.
   ///
-  Future clearEntities();
+  Future destroyAssets();
 
   ///
   /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.

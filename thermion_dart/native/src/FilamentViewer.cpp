@@ -52,7 +52,6 @@
 #include <filament/Viewport.h>
 
 #include <filament/RenderableManager.h>
-#include <filament/LightManager.h>
 
 #include <gltfio/Animator.h>
 #include <gltfio/AssetLoader.h>
@@ -98,12 +97,6 @@
 #include "material/image.h"
 #include "TimeIt.hpp"
 #include "UnprojectTexture.hpp"
-
-namespace filament
-{
-  class IndirectLight;
-  class LightManager;
-} // namespace filament
 
 namespace thermion
 {
@@ -189,107 +182,6 @@ namespace thermion
     fro.interval = 1; // frameInterval;
     fro.history = 5;
     _renderer->setFrameRateOptions(fro);
-  }
-
-  EntityId FilamentViewer::addLight(
-      LightManager::Type t,
-      float colour,
-      float intensity,
-      float posX,
-      float posY,
-      float posZ,
-      float dirX,
-      float dirY,
-      float dirZ,
-      float falloffRadius,
-      float spotLightConeInner,
-      float spotLightConeOuter,
-      float sunAngularRadius,
-      float sunHaloSize,
-      float sunHaloFallof,
-      bool shadows)
-  {
-    auto light = EntityManager::get().create();
-
-    auto result = LightManager::Builder(t)
-                      .color(Color::cct(colour))
-                      .intensity(intensity)
-                      .falloff(falloffRadius)
-                      .spotLightCone(spotLightConeInner, spotLightConeOuter)
-                      .sunAngularRadius(sunAngularRadius)
-                      .sunHaloSize(sunHaloSize)
-                      .sunHaloFalloff(sunHaloFallof)
-                      .position(filament::math::float3(posX, posY, posZ))
-                      .direction(filament::math::float3(dirX, dirY, dirZ))
-                      .castShadows(shadows)
-                      .build(*_engine, light);
-    if (result != LightManager::Builder::Result::Success)
-    {
-      Log("ERROR : failed to create light");
-    }
-    else
-    {
-      _scene->addEntity(light);
-      _lights.push_back(light);
-    }
-
-    return Entity::smuggle(light);
-  }
-
-  void FilamentViewer::setLightPosition(EntityId entityId, float x, float y, float z)
-  {
-    auto light = Entity::import(entityId);
-
-    if (light.isNull())
-    {
-      Log("Light not found for entity %d", entityId);
-      return;
-    }
-
-    auto &lm = _engine->getLightManager();
-
-    auto instance = lm.getInstance(light);
-
-    lm.setPosition(instance, filament::math::float3{x, y, z});
-  }
-
-  void FilamentViewer::setLightDirection(EntityId entityId, float x, float y, float z)
-  {
-    auto light = Entity::import(entityId);
-
-    if (light.isNull())
-    {
-      Log("Light not found for entity %d", entityId);
-      return;
-    }
-
-    auto &lm = _engine->getLightManager();
-
-    auto instance = lm.getInstance(light);
-
-    lm.setDirection(instance, filament::math::float3{x, y, z});
-  }
-
-  void FilamentViewer::removeLight(EntityId entityId)
-  {
-    auto entity = utils::Entity::import(entityId);
-    if (entity.isNull())
-    {
-      Log("Error: light entity not found under ID %d", entityId);
-    }
-    else
-    {
-      auto removed = remove(_lights.begin(), _lights.end(), entity);
-      _scene->remove(entity);
-      EntityManager::get().destroy(1, &entity);
-    }
-  }
-
-  void FilamentViewer::clearLights()
-  {
-    _scene->removeEntities(_lights.data(), _lights.size());
-    EntityManager::get().destroy(_lights.size(), _lights.data());
-    _lights.clear();
   }
 
   static bool endsWith(std::string path, std::string ending)
@@ -630,7 +522,8 @@ namespace thermion
 
   FilamentViewer::~FilamentViewer()
   {
-    clearLights();
+
+    _sceneManager->destroyAll();
 
     for (auto view : _views)
     {
@@ -952,7 +845,7 @@ namespace thermion
 
     _iblTexture->setImage(*_engine, 0, std::move(pbd));
 
-    _indirectLight = IndirectLight::Builder()
+    _indirectLight = filament::IndirectLight::Builder()
                          .reflections(_iblTexture)
                          .intensity(intensity)
                          .build(*_engine);
@@ -995,7 +888,7 @@ namespace thermion
             delete rb;
             delete vec; },
               callbackData);
-      _indirectLight = IndirectLight::Builder()
+      _indirectLight = filament::IndirectLight::Builder()
                            .reflections(_iblTexture)
                            .irradiance(3, harmonics)
                            .intensity(intensity)

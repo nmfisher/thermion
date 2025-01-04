@@ -2,6 +2,7 @@
 #pragma once
 
 #include <utils/Entity.h>
+
 #include "APIExport.h"
 #include "APIBoundaryTypes.h"
 

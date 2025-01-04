@@ -7,12 +7,15 @@ extern "C"
 
 #include <stdint.h>
 
+#include "APIExport.h"
+
 	typedef int32_t EntityId;
 	typedef struct TCamera TCamera;
 	typedef struct TEngine TEngine;
 	typedef struct TEntityManager TEntityManager;
 	typedef struct TViewer TViewer;
 	typedef struct TSceneManager TSceneManager;
+	typedef struct TLightManager TLightManager;
 	typedef struct TRenderTarget TRenderTarget;
 	typedef struct TSwapChain TSwapChain;
 	typedef struct TView TView;
@@ -90,6 +93,7 @@ extern "C"
 		bool hasVolume;
 	} ;
 	typedef struct TMaterialKey TMaterialKey; 
+
 
 	typedef struct { 
 		double x;

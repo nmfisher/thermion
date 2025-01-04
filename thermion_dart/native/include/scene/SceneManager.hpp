@@ -6,8 +6,11 @@
 #include <map>
 #include <set>
 
-#include <filament/Scene.h>
 #include <filament/Camera.h>
+#include <filament/IndexBuffer.h>
+#include <filament/InstanceBuffer.h>
+#include <filament/LightManager.h>
+#include <filament/Scene.h>
 #include <filament/View.h>
 
 #include <gltfio/AssetLoader.h>
@@ -15,8 +18,6 @@
 #include <gltfio/FilamentInstance.h>
 #include <gltfio/ResourceLoader.h>
 
-#include <filament/IndexBuffer.h>
-#include <filament/InstanceBuffer.h>
 #include <utils/NameComponentManager.h>
 
 #include "tsl/robin_map.h"
@@ -92,6 +93,30 @@ namespace thermion
         /// @return 
         SceneAsset* loadGlbFromBuffer(const uint8_t *data, size_t length, int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false, bool addToScene = true);
 
+        /// @brief Destroys all assets and instances.
+        ///
+        utils::Entity addLight(
+            filament::LightManager::Type t, 
+            float colour, 
+            float intensity, 
+            float posX, 
+            float posY, 
+            float posZ, 
+            float dirX, 
+            float dirY, 
+            float dirZ, 
+            float falloffRadius,
+            float spotLightConeInner,
+            float spotLightConeOuter,
+            float sunAngularRadius,
+            float sunHaloSize,
+            float sunHaloFallof,
+            bool shadows);
+        
+        /// @brief Removes/destroys the light.
+        ///
+        void removeLight(utils::Entity entity);
+        
         ///
         /// Creates an instance of the given entity.
         /// This may return an instance from a pool of inactive instances; see [remove] for more information.
@@ -106,10 +131,18 @@ namespace thermion
         /// @param entity
         void destroy(SceneAsset* entity);
 
-        /// @brief Destroys all assets, scenes, materials, etc.
+        /// @brief Destroys all lights.
         ///
-        void destroyAll();
-        
+        void destroyLights();
+
+        /// @brief Destroys all assets and instances.
+        ///
+        void destroyAssets();
+
+        /// @brief Destroys all assets/instances, scenes, materials, etc.
+        ///
+        void destroyAll();    
+       
         /// @brief 
         /// @param entityId 
         void transformToUnitCube(EntityId entityId);
@@ -336,6 +369,7 @@ namespace thermion
         tsl::robin_map<EntityId, math::mat4> _transformUpdates;
         std::set<Texture *> _textures;
         std::vector<Camera *> _cameras;
+        std::vector<utils::Entity> _lights;
         std::vector<std::unique_ptr<SceneAsset>> _sceneAssets;
         std::vector<std::unique_ptr<Gizmo>> _gizmos;
 

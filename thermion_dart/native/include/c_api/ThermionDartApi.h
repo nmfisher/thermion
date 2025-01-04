@@ -48,6 +48,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId);
 	EMSCRIPTEN_KEEPALIVE TTransformManager *Engine_getTransformManager(TEngine *engine);
 	EMSCRIPTEN_KEEPALIVE TRenderableManager *Engine_getRenderableManager(TEngine *engine);
+	EMSCRIPTEN_KEEPALIVE TLightManager *Engine_getLightManager(TEngine *engine);
 	EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *engine, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
 	
@@ -65,28 +66,6 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void rotate_ibl(TViewer *viewer, float *rotationMatrix);
 	EMSCRIPTEN_KEEPALIVE void remove_skybox(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE void remove_ibl(TViewer *viewer);
-	EMSCRIPTEN_KEEPALIVE EntityId add_light(
-		TViewer *viewer,
-		uint8_t type,
-		float colour,
-		float intensity,
-		float posX,
-		float posY,
-		float posZ,
-		float dirX,
-		float dirY,
-		float dirZ,
-		float falloffRadius,
-		float spotLightConeInner,
-		float spotLightConeOuter,
-		float sunAngularRadius,
-		float sunHaloSize,
-		float sunHaloFallof,
-		bool shadows);
-	EMSCRIPTEN_KEEPALIVE void remove_light(TViewer *viewer, EntityId entityId);
-	EMSCRIPTEN_KEEPALIVE void clear_lights(TViewer *viewer);
-	EMSCRIPTEN_KEEPALIVE void set_light_position(TViewer *viewer, EntityId light, float x, float y, float z);
-	EMSCRIPTEN_KEEPALIVE void set_light_direction(TViewer *viewer, EntityId light, float x, float y, float z);
 	
 	EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(TViewer *viewer);
 	

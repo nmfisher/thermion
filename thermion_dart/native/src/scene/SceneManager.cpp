@@ -465,14 +465,10 @@ namespace thermion
 
     void SceneManager::destroyAll()
     {
+
+        destroyLights();
+        destroyAssets();
         std::lock_guard lock(_mutex);
-
-        for (auto &asset : _sceneAssets)
-        {
-            asset->removeAllEntities(_scene);
-        }
-
-        _sceneAssets.clear();
 
         for (auto *texture : _textures)
         {
@@ -513,6 +509,83 @@ namespace thermion
                                      { return sceneAsset.get() == asset; });
             _sceneAssets.erase(it, _sceneAssets.end());
         }
+    }
+
+    utils::Entity SceneManager::addLight(
+        LightManager::Type t,
+        float colour,
+        float intensity,
+        float posX,
+        float posY,
+        float posZ,
+        float dirX,
+        float dirY,
+        float dirZ,
+        float falloffRadius,
+        float spotLightConeInner,
+        float spotLightConeOuter,
+        float sunAngularRadius,
+        float sunHaloSize,
+        float sunHaloFallof,
+        bool shadows)
+    {
+        auto light = EntityManager::get().create();
+
+        auto result = LightManager::Builder(t)
+                          .color(Color::cct(colour))
+                          .intensity(intensity)
+                          .falloff(falloffRadius)
+                          .spotLightCone(spotLightConeInner, spotLightConeOuter)
+                          .sunAngularRadius(sunAngularRadius)
+                          .sunHaloSize(sunHaloSize)
+                          .sunHaloFalloff(sunHaloFallof)
+                          .position(filament::math::float3(posX, posY, posZ))
+                          .direction(filament::math::float3(dirX, dirY, dirZ))
+                          .castShadows(shadows)
+                          .build(*_engine, light);
+        if (result != LightManager::Builder::Result::Success)
+        {
+            Log("ERROR : failed to create light");
+        }
+        else
+        {
+            _scene->addEntity(light);
+            _lights.push_back(light);
+            TRACE("Created light");
+        }
+
+        return light;
+    }
+
+    void SceneManager::removeLight(utils::Entity entity)
+    {
+        auto removed = remove(_lights.begin(), _lights.end(), entity);
+        _scene->remove(entity);
+        EntityManager::get().destroy(1, &entity);
+    }
+
+    void SceneManager::destroyLights()
+    {
+        std::lock_guard lock(_mutex);
+
+        _scene->removeEntities(_lights.data(), _lights.size());
+        EntityManager::get().destroy(_lights.size(), _lights.data());
+        _lights.clear();
+    }
+
+    void SceneManager::destroyAssets()
+    {
+        std::lock_guard lock(_mutex);
+
+        for (auto &asset : _sceneAssets)
+        {
+            asset->removeAllEntities(_scene);
+            for(int i = 0; i < asset->getInstanceCount(); i++) {
+                asset->getInstanceAt(i)->removeAllEntities(_scene);
+            }
+        }
+
+        _sceneAssets.clear();
     }
 
     Texture *SceneManager::createTexture(const uint8_t *data, size_t length, const char *name)

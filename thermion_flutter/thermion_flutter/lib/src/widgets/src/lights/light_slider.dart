@@ -31,7 +31,7 @@
 //   }
 
 //   Future _set() async {
-//     await widget.controller.clearLights();
+//     await widget.controller.destroyLights();
 
 //     if (widget.options.iblPath != null) {
 //       _light = await widget.controller.loadIbl(widget.options.iblPath!,

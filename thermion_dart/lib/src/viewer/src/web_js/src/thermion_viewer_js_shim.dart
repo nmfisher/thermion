@@ -81,8 +81,8 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
   @JS('removeLight')
   external JSPromise removeLight(ThermionEntity light);
 
-  @JS('clearLights')
-  external JSPromise clearLights();
+  @JS('destroyLights')
+  external JSPromise destroyLights();
 
   @JS('loadGlb')
   external JSPromise<JSNumber> loadGlb(String path, int numInstances);
@@ -164,11 +164,11 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
       JSNumber fadeOutInSecs,
       JSNumber maxDelta);
 
-  @JS('removeEntity')
-  external JSPromise removeEntity(ThermionEntity entity);
+  @JS('removeAsset')
+  external JSPromise removeAsset(ThermionEntity entity);
 
-  @JS('clearEntities')
-  external JSPromise clearEntities();
+  @JS('destroyAssets')
+  external JSPromise destroyAssets();
 
   @JS('zoomBegin')
   external JSPromise zoomBegin();

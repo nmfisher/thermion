@@ -99,27 +99,7 @@ namespace thermion
             return _engine;
         }
 
-        EntityId addLight(
-            LightManager::Type t, 
-            float colour, 
-            float intensity, 
-            float posX, 
-            float posY, 
-            float posZ, 
-            float dirX, 
-            float dirY, 
-            float dirZ, 
-            float falloffRadius,
-            float spotLightConeInner,
-            float spotLightConeOuter,
-            float sunAngularRadius,
-            float sunHaloSize,
-            float sunHaloFallof,
-            bool shadows);
-        void setLightPosition(EntityId entityId, float x, float y, float z);
-        void setLightDirection(EntityId entityId, float x, float y, float z);
-        void removeLight(EntityId entityId);
-        void clearLights();
+        
 
         void capture(View* view, uint8_t *out, bool useFence, SwapChain* swapChain, void (*onComplete)());
         void capture(View* view, uint8_t *out, bool useFence, SwapChain* swapChain, RenderTarget* renderTarget, void (*onComplete)());
@@ -152,7 +132,6 @@ namespace thermion
 
         std::mutex _renderMutex; // mutex to ensure thread safety when removing assets
 
-        std::vector<utils::Entity> _lights;
         Texture *_skyboxTexture = nullptr;
         Skybox *_skybox = nullptr;
         Texture *_iblTexture = nullptr;

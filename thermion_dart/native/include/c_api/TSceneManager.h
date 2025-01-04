@@ -51,13 +51,35 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGlbFromBuffer(TSceneManager *tSceneManager, const uint8_t *const, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync);
 	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGlb(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData);
 	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGltf(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData);
+
 	
+	EMSCRIPTEN_KEEPALIVE EntityId SceneManager_addLight(
+		TSceneManager *tSceneManager,
+		uint8_t type,
+		float colour,
+		float intensity,
+		float posX,
+		float posY,
+		float posZ,
+		float dirX,
+		float dirY,
+		float dirZ,
+		float falloffRadius,
+		float spotLightConeInner,
+		float spotLightConeOuter,
+		float sunAngularRadius,
+		float sunHaloSize,
+		float sunHaloFallof,
+		bool shadows);
+	EMSCRIPTEN_KEEPALIVE void SceneManager_removeLight(TSceneManager *tSceneManager, EntityId entityId);
 
+	EMSCRIPTEN_KEEPALIVE void SceneManager_destroyLights(TSceneManager *tSceneManager);
+	EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAsset(TSceneManager *tSceneManager, TSceneAsset *sceneAsset);
+	EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssets(TSceneManager *tSceneManager);
+	EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAll(TSceneManager *tSceneManager);
+	
 	EMSCRIPTEN_KEEPALIVE TAnimationManager *SceneManager_getAnimationManager(TSceneManager *tSceneManager);
-	EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAll(TSceneManager *tSceneManager);
-	EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAsset(TSceneManager *tSceneManager, TSceneAsset *sceneAsset);
 	EMSCRIPTEN_KEEPALIVE TNameComponentManager *SceneManager_getNameComponentManager(TSceneManager *tSceneManager);
-
 	EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager, TMaterial *tMaterial);
 	EMSCRIPTEN_KEEPALIVE bool SceneManager_isGridEntity(TSceneManager *tSceneManager, EntityId entityId);
 
