@@ -18,5 +18,17 @@ void main() async {
         await testHelper.capture(viewer, "remove_lights");
       });
     });
+
+    test('add/remove IBL', () async {
+      await testHelper.withViewer((viewer) async {
+        await viewer.loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+
+        await viewer
+            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+        await testHelper.capture(viewer, "load_ibl");
+        await viewer.removeIbl();
+        await testHelper.capture(viewer, "remove_ibl");
+      });
+    });
   });
 }

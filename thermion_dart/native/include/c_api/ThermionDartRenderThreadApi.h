@@ -38,6 +38,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView *view, TSwapChain *swapChain, TRenderTarget *renderTarget, uint8_t *out, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Viewer_loadIblRenderThread(TViewer *viewer, const char *iblPath, float intensity, void (*onComplete)());
+        EMSCRIPTEN_KEEPALIVE void Viewer_removeIblRenderThread(TViewer *viewer, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Viewer_createRenderTargetRenderThread(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height, void (*onComplete)(TRenderTarget *));
         EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTargetRenderThread(TViewer *viewer, TRenderTarget *tRenderTarget, void (*onComplete)());
 
