@@ -409,7 +409,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeIbl() async {
-    remove_ibl(_viewer!);
+    await withVoidCallback((cb) {
+      Viewer_removeIblRenderThread(_viewer!, cb);
+    });
   }
 
   @override

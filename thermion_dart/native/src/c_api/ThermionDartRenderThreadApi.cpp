@@ -268,6 +268,17 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Viewer_removeIblRenderThread(TViewer *viewer, void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Viewer_removeIbl(viewer);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Viewer_createRenderTargetRenderThread(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height, void (*onComplete)(TRenderTarget *))
   {
     std::packaged_task<void()> lambda(
@@ -546,13 +557,6 @@ extern "C"
   {
     std::packaged_task<void()> lambda([=]
                                       { remove_skybox(viewer); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void remove_ibl_render_thread(TViewer *viewer)
-  {
-    std::packaged_task<void()> lambda([=]
-                                      { remove_ibl(viewer); });
     auto fut = _rl->add_task(lambda);
   }
 

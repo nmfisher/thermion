@@ -89,6 +89,11 @@ extern "C"
         ((FilamentViewer *)viewer)->loadIbl(iblPath, intensity);
     }
 
+    EMSCRIPTEN_KEEPALIVE void Viewer_removeIbl(TViewer *viewer)
+    {
+        ((FilamentViewer *)viewer)->removeIbl();
+    }
+
     EMSCRIPTEN_KEEPALIVE void rotate_ibl(TViewer *viewer, float *rotationMatrix)
     {
         math::mat3f matrix(rotationMatrix[0], rotationMatrix[1],
@@ -108,10 +113,6 @@ extern "C"
         ((FilamentViewer *)viewer)->removeSkybox();
     }
 
-    EMSCRIPTEN_KEEPALIVE void remove_ibl(TViewer *viewer)
-    {
-        ((FilamentViewer *)viewer)->removeIbl();
-    }
 
     EMSCRIPTEN_KEEPALIVE int get_instance_count(TSceneManager *sceneManager, EntityId entityId)
     {
