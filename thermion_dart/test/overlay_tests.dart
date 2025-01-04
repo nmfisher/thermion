@@ -145,7 +145,7 @@ void main() async {
             await testHelper.capture(
                 viewer, "geometry_bounding_box_not_visible");
             await cube.setBoundingBoxVisibility(true);
-            await viewer.removeAsset(cube);
+            await viewer.destroyAsset(cube);
             await testHelper.capture(
                 viewer, "geometry_bounding_box_removed");
           },
@@ -229,7 +229,7 @@ void main() async {
 
   //     await testHelper.capture(viewer, "texture_applied_to_geometry");
 
-  //     await viewer.removeAsset(cube);
+  //     await viewer.destroyAsset(cube);
   //     await viewer.destroyTexture(texture);
   //     await viewer.dispose();
   //   });
@@ -338,7 +338,7 @@ void main() async {
   //     await viewer.setToneMapping(ToneMapper.LINEAR);
 
   //     final unlit = await viewer.createUnlitMaterialInstance();
-  //     await viewer.removeAsset(cube);
+  //     await viewer.destroyAsset(cube);
   //     cube = await viewer.createGeometry(GeometryHelper.cube(),
   //         materialInstance: unlit);
   //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);

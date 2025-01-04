@@ -164,8 +164,8 @@ extension type ThermionViewerJSShim(JSObject _) implements JSObject {
       JSNumber fadeOutInSecs,
       JSNumber maxDelta);
 
-  @JS('removeAsset')
-  external JSPromise removeAsset(ThermionEntity entity);
+  @JS('destroyAsset')
+  external JSPromise destroyAsset(ThermionEntity entity);
 
   @JS('destroyAssets')
   external JSPromise destroyAssets();

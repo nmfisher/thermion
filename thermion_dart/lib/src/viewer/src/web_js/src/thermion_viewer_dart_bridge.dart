@@ -319,8 +319,8 @@
 //   }
 
 //   @JSExport()
-//   JSPromise removeAsset(ThermionEntity entity) =>
-//       viewer.removeAsset(entity).toJS;
+//   JSPromise destroyAsset(ThermionEntity entity) =>
+//       viewer.destroyAsset(entity).toJS;
 
 //   @JSExport()
 //   JSPromise destroyAssets() {

@@ -123,7 +123,7 @@ void main() async {
       await viewer.applyTexture(texture as ThermionFFITexture, cube.entity);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_ubershader_texture");
-      await viewer.removeAsset(cube);
+      await viewer.destroyAsset(cube);
       await viewer.destroyMaterialInstance(materialInstance);
       await viewer.destroyTexture(texture);
       await viewer.dispose();
@@ -149,7 +149,7 @@ void main() async {
       await viewer.applyTexture(texture, cube.entity);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_texture_only");
-      await viewer.removeAsset(cube);
+      await viewer.destroyAsset(cube);
 
       cube = await viewer.createGeometry(GeometryHelper.cube(),
           materialInstances: [materialInstance]);
@@ -159,7 +159,7 @@ void main() async {
           "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_color_only");
-      await viewer.removeAsset(cube);
+      await viewer.destroyAsset(cube);
 
       cube = await viewer.createGeometry(GeometryHelper.cube(),
           materialInstances: [materialInstance]);
@@ -172,7 +172,7 @@ void main() async {
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_unlit_color_and_texture");
 
-      await viewer.removeAsset(cube);
+      await viewer.destroyAsset(cube);
 
       await viewer.destroyTexture(texture);
       await viewer.destroyMaterialInstance(materialInstance);
@@ -418,7 +418,7 @@ void main() async {
 
   //     await testHelper.capture(viewer, "texture_applied_to_geometry");
 
-  //     await viewer.removeAsset(cube);
+  //     await viewer.destroyAsset(cube);
   //     await viewer.destroyTexture(texture);
   //     await viewer.dispose();
   //   });
@@ -527,7 +527,7 @@ void main() async {
   //     await viewer.setToneMapping(ToneMapper.LINEAR);
 
   //     final unlit = await viewer.createUnlitMaterialInstance();
-  //     await viewer.removeAsset(cube);
+  //     await viewer.destroyAsset(cube);
   //     cube = await viewer.createGeometry(GeometryHelper.cube(),
   //         materialInstance: unlit);
   //     var reconstructedTexture = await viewer.createTexture(pixelBufferPng);

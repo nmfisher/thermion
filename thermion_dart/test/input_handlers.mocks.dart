@@ -572,9 +572,9 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> clearLights() => (super.noSuchMethod(
+  _i6.Future<dynamic> destroyLights() => (super.noSuchMethod(
         Invocation.method(
-          #clearLights,
+          #destroyLights,
           [],
         ),
         returnValue: _i6.Future<dynamic>.value(),
@@ -940,18 +940,18 @@ class MockThermionViewer extends _i1.Mock implements _i5.ThermionViewer {
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> removeEntity(int? entity) => (super.noSuchMethod(
+  _i6.Future<dynamic> removeAsset(int? entity) => (super.noSuchMethod(
         Invocation.method(
-          #removeEntity,
+          #removeAsset,
           [entity],
         ),
         returnValue: _i6.Future<dynamic>.value(),
       ) as _i6.Future<dynamic>);
 
   @override
-  _i6.Future<dynamic> clearEntities() => (super.noSuchMethod(
+  _i6.Future<dynamic> destroyAssets() => (super.noSuchMethod(
         Invocation.method(
-          #clearEntities,
+          #destroyAssets,
           [],
         ),
         returnValue: _i6.Future<dynamic>.value(),

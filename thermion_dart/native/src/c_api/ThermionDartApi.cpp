@@ -74,9 +74,14 @@ extern "C"
         ((FilamentViewer *)viewer)->setBackgroundImagePosition(x, y, clamp, 100, 100);
     }
 
-    EMSCRIPTEN_KEEPALIVE void load_skybox(TViewer *viewer, const char *skyboxPath)
+    EMSCRIPTEN_KEEPALIVE void Viewer_loadSkybox(TViewer *viewer, const char *skyboxPath)
     {
         ((FilamentViewer *)viewer)->loadSkybox(skyboxPath);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void Viewer_removeSkybox(TViewer *viewer)
+    {
+        ((FilamentViewer *)viewer)->removeSkybox();
     }
 
     EMSCRIPTEN_KEEPALIVE void create_ibl(TViewer *viewer, float r, float g, float b, float intensity)
@@ -107,12 +112,6 @@ extern "C"
 
         ((FilamentViewer *)viewer)->rotateIbl(matrix);
     }
-
-    EMSCRIPTEN_KEEPALIVE void remove_skybox(TViewer *viewer)
-    {
-        ((FilamentViewer *)viewer)->removeSkybox();
-    }
-
 
     EMSCRIPTEN_KEEPALIVE int get_instance_count(TSceneManager *sceneManager, EntityId entityId)
     {

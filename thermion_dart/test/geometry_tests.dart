@@ -22,7 +22,7 @@ void main() async {
         final cube = await viewer
             .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
         await testHelper.capture(viewer, "geometry_cube_no_normals_uvs");
-        await viewer.removeAsset(cube);
+        await viewer.destroyAsset(cube);
         await testHelper.capture(viewer, "geometry_remove_cube");
       });
     });
@@ -86,7 +86,7 @@ void main() async {
             instance.entity, Matrix4.translation(Vector3.all(1)));
 
         await testHelper.capture(viewer, "geometry_instanced");
-        await viewer.removeAsset(instance);
+        await viewer.destroyAsset(instance);
         await testHelper.capture(viewer, "geometry_instance_removed");
       });
     });
@@ -169,7 +169,7 @@ void main() async {
             "baseColorFactor", 0.0, 1.0, 0.0, 0.0);
         await testHelper.capture(
             viewer, "geometry_cube_with_custom_material_ubershader");
-        await viewer.removeAsset(cube);
+        await viewer.destroyAsset(cube);
       });
     });
 
@@ -193,7 +193,7 @@ void main() async {
       await viewer.applyTexture(texture as ThermionFFITexture, cube.entity);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_ubershader_texture");
-      await viewer.removeAsset(cube);
+      await viewer.destroyAsset(cube);
       await viewer.destroyTexture(texture);
     });
 
@@ -223,7 +223,7 @@ void main() async {
         var texture = await viewer.createTexture(textureData);
         await viewer.applyTexture(texture, cube.entity);
         await testHelper.capture(viewer, "unlit_material_texture_only");
-        await viewer.removeAsset(cube);
+        await viewer.destroyAsset(cube);
       });
     });
 
@@ -256,6 +256,18 @@ void main() async {
       await viewer
           .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
       await testHelper.capture(viewer, "geometry_sphere_no_normals");
+    });
+
+    test('create multiple (non-instanced) geometry', () async {
+      await testHelper.withViewer((viewer) async {
+        final cube1 = await viewer
+            .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+        final cube2 = await viewer
+            .createGeometry(GeometryHelper.cube(normals: false, uvs: false));
+        await viewer.setTransform(
+            cube2.entity, Matrix4.translation(Vector3(0, 1.5, 0)));
+        await testHelper.capture(viewer, "multiple_geometry");
+      }, bg: kRed);
     });
 
     test('create camera geometry', () async {

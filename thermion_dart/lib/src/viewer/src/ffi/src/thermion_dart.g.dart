@@ -247,6 +247,28 @@ void MaterialInstance_setTransparencyMode(
     );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
+        ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setPosition(
+  ffi.Pointer<TLightManager> tLightManager,
+  int light,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
+        ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setDirection(
+  ffi.Pointer<TLightManager> tLightManager,
+  int light,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<
     ffi.Pointer<TViewer> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
 external ffi.Pointer<TViewer> Viewer_create(
@@ -406,6 +428,12 @@ external ffi.Pointer<TRenderableManager> Engine_getRenderableManager(
   ffi.Pointer<TEngine> engine,
 );
 
+@ffi.Native<ffi.Pointer<TLightManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TLightManager> Engine_getLightManager(
+  ffi.Pointer<TEngine> engine,
+);
+
 @ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>(
     isLeaf: true)
 external ffi.Pointer<TEntityManager> Engine_getEntityManager(
@@ -465,9 +493,14 @@ external void set_background_color(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
-external void load_skybox(
+external void Viewer_loadSkybox(
   ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> skyboxPath,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
+external void Viewer_removeSkybox(
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
@@ -477,6 +510,11 @@ external void Viewer_loadIbl(
   ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Char> iblPath,
   double intensity,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
+external void Viewer_removeIbl(
+  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
@@ -495,88 +533,6 @@ external void create_ibl(
 external void rotate_ibl(
   ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Float> rotationMatrix,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void remove_skybox(
-  ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void remove_ibl(
-  ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<
-    EntityId Function(
-        ffi.Pointer<TViewer>,
-        ffi.Uint8,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Float,
-        ffi.Bool)>(isLeaf: true)
-external int add_light(
-  ffi.Pointer<TViewer> viewer,
-  int type,
-  double colour,
-  double intensity,
-  double posX,
-  double posY,
-  double posZ,
-  double dirX,
-  double dirY,
-  double dirZ,
-  double falloffRadius,
-  double spotLightConeInner,
-  double spotLightConeOuter,
-  double sunAngularRadius,
-  double sunHaloSize,
-  double sunHaloFallof,
-  bool shadows,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, EntityId)>(isLeaf: true)
-external void remove_light(
-  ffi.Pointer<TViewer> viewer,
-  int entityId,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void clear_lights(
-  ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float)>(isLeaf: true)
-external void set_light_position(
-  ffi.Pointer<TViewer> viewer,
-  int light,
-  double x,
-  double y,
-  double z,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, EntityId, ffi.Float, ffi.Float,
-        ffi.Float)>(isLeaf: true)
-external void set_light_direction(
-  ffi.Pointer<TViewer> viewer,
-  int light,
-  double x,
-  double y,
-  double z,
 );
 
 @ffi.Native<EntityId Function(ffi.Pointer<TViewer>)>(isLeaf: true)
@@ -1315,6 +1271,14 @@ external void Viewer_loadIblRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_removeIblRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TViewer>,
         ffi.IntPtr,
@@ -1338,6 +1302,23 @@ external void Viewer_createRenderTargetRenderThread(
 external void Viewer_destroyRenderTargetRenderThread(
   ffi.Pointer<TViewer> viewer,
   ffi.Pointer<TRenderTarget> tRenderTarget,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_loadSkyboxRenderThread(
+  ffi.Pointer<TViewer> viewer,
+  ffi.Pointer<ffi.Char> skyboxPath,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TViewer>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Viewer_removeSkyboxRenderThread(
+  ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
@@ -1460,20 +1441,6 @@ external void set_background_image_position_render_thread(
   double x,
   double y,
   bool clamp,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void load_skybox_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Char> skyboxPath,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void remove_skybox_render_thread(
-  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<
@@ -1656,21 +1623,86 @@ external void SceneManager_loadGltfRenderThread(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Void> Function(ffi.Pointer<TSceneManager>,
+    ffi.Void Function(ffi.Pointer<TSceneManager>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external ffi.Pointer<ffi.Void> SceneManager_destroyAllRenderThread(
+external void SceneManager_destroyAllRenderThread(
   ffi.Pointer<TSceneManager> tSceneManager,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Void> Function(
-        ffi.Pointer<TSceneManager>,
-        ffi.Pointer<TSceneAsset>,
+    ffi.Void Function(ffi.Pointer<TSceneManager>, ffi.Pointer<TSceneAsset>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external ffi.Pointer<ffi.Void> SceneManager_destroyAssetRenderThread(
+external void SceneManager_destroyAssetRenderThread(
   ffi.Pointer<TSceneManager> tSceneManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSceneManager>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void SceneManager_destroyAssetsRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSceneManager>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void SceneManager_destroyLightsRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
+@ffi.Native<
+        EntityId Function(
+            ffi.Pointer<TSceneManager>,
+            ffi.Uint8,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Float,
+            ffi.Bool,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
+    isLeaf: true)
+external int SceneManager_addLightRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  int type,
+  double colour,
+  double intensity,
+  double posX,
+  double posY,
+  double posZ,
+  double dirX,
+  double dirY,
+  double dirZ,
+  double falloffRadius,
+  double spotLightConeInner,
+  double spotLightConeOuter,
+  double sunAngularRadius,
+  double sunHaloSize,
+  double sunHaloFallof,
+  bool shadows,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void SceneManager_removeLightRenderThread(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  int entityId,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
@@ -2012,6 +2044,7 @@ external void SceneManager_transformToUnitCube(
         ffi.Pointer<TSceneManager>,
         ffi.Pointer<ffi.Uint8>,
         ffi.Size,
+        ffi.Int,
         ffi.Bool,
         ffi.Int,
         ffi.Int,
@@ -2020,6 +2053,7 @@ external ffi.Pointer<TSceneAsset> SceneManager_loadGlbFromBuffer(
   ffi.Pointer<TSceneManager> tSceneManager,
   ffi.Pointer<ffi.Uint8> arg1,
   int length,
+  int numInstances,
   bool keepData,
   int priority,
   int layer,
@@ -2047,24 +2081,79 @@ external ffi.Pointer<TSceneAsset> SceneManager_loadGltf(
 );
 
 @ffi.Native<
-    ffi.Pointer<TAnimationManager> Function(
-        ffi.Pointer<TSceneManager>)>(isLeaf: true)
-external ffi.Pointer<TAnimationManager> SceneManager_getAnimationManager(
+    EntityId Function(
+        ffi.Pointer<TSceneManager>,
+        ffi.Uint8,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Float,
+        ffi.Bool)>(isLeaf: true)
+external int SceneManager_addLight(
   ffi.Pointer<TSceneManager> tSceneManager,
+  int type,
+  double colour,
+  double intensity,
+  double posX,
+  double posY,
+  double posZ,
+  double dirX,
+  double dirY,
+  double dirZ,
+  double falloffRadius,
+  double spotLightConeInner,
+  double spotLightConeOuter,
+  double sunAngularRadius,
+  double sunHaloSize,
+  double sunHaloFallof,
+  bool shadows,
 );
 
-@ffi.Native<ffi.Pointer<ffi.Void> Function(ffi.Pointer<TSceneManager>)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId)>(
     isLeaf: true)
-external ffi.Pointer<ffi.Void> SceneManager_destroyAll(
+external void SceneManager_removeLight(
+  ffi.Pointer<TSceneManager> tSceneManager,
+  int entityId,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>)>(isLeaf: true)
+external void SceneManager_destroyLights(
   ffi.Pointer<TSceneManager> tSceneManager,
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Void> Function(
+    ffi.Void Function(
         ffi.Pointer<TSceneManager>, ffi.Pointer<TSceneAsset>)>(isLeaf: true)
-external ffi.Pointer<ffi.Void> SceneManager_destroyAsset(
+external void SceneManager_destroyAsset(
   ffi.Pointer<TSceneManager> tSceneManager,
   ffi.Pointer<TSceneAsset> sceneAsset,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>)>(isLeaf: true)
+external void SceneManager_destroyAssets(
+  ffi.Pointer<TSceneManager> tSceneManager,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>)>(isLeaf: true)
+external void SceneManager_destroyAll(
+  ffi.Pointer<TSceneManager> tSceneManager,
+);
+
+@ffi.Native<
+    ffi.Pointer<TAnimationManager> Function(
+        ffi.Pointer<TSceneManager>)>(isLeaf: true)
+external ffi.Pointer<TAnimationManager> SceneManager_getAnimationManager(
+  ffi.Pointer<TSceneManager> tSceneManager,
 );
 
 @ffi.Native<
@@ -2116,6 +2205,13 @@ external ffi.Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
   int primitiveIndex,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_isRenderable(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>)>(
@@ -2424,6 +2520,8 @@ final class TEntityManager extends ffi.Opaque {}
 final class TViewer extends ffi.Opaque {}
 
 final class TSceneManager extends ffi.Opaque {}
+
+final class TLightManager extends ffi.Opaque {}
 
 final class TRenderTarget extends ffi.Opaque {}
 

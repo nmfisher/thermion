@@ -356,7 +356,7 @@ class ThermionViewerFFI extends ThermionViewer {
     final pathPtr = skyboxPath.toNativeUtf8(allocator: allocator).cast<Char>();
 
     await withVoidCallback((cb) {
-      load_skybox_render_thread(_viewer!, pathPtr, cb);
+      Viewer_loadSkyboxRenderThread(_viewer!, pathPtr, cb);
     });
 
     allocator.free(pathPtr);
@@ -401,7 +401,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeSkybox() async {
-    remove_skybox_render_thread(_viewer!);
+    await withVoidCallback((cb) {
+      Viewer_removeSkyboxRenderThread(_viewer!, cb);
+    });
   }
 
   ///
@@ -454,25 +456,27 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
-    var entity = SceneManager_addLight(
-      _sceneManager!,
-      directLight.type.index,
-      directLight.color,
-      directLight.intensity,
-      directLight.position.x,
-      directLight.position.y,
-      directLight.position.z,
-      directLight.direction.x,
-      directLight.direction.y,
-      directLight.direction.z,
-      directLight.falloffRadius,
-      directLight.spotLightConeInner,
-      directLight.spotLightConeOuter,
-      directLight.sunAngularRadius,
-      directLight.sunHaloSize,
-      directLight.sunHaloFallof,
-      directLight.castShadows,
-    );
+    var entity = await withIntCallback((cb) {
+      SceneManager_addLightRenderThread(
+          _sceneManager!,
+          directLight.type.index,
+          directLight.color,
+          directLight.intensity,
+          directLight.position.x,
+          directLight.position.y,
+          directLight.position.z,
+          directLight.direction.x,
+          directLight.direction.y,
+          directLight.direction.z,
+          directLight.falloffRadius,
+          directLight.spotLightConeInner,
+          directLight.spotLightConeOuter,
+          directLight.sunAngularRadius,
+          directLight.sunHaloSize,
+          directLight.sunHaloFallof,
+          directLight.castShadows,
+          cb);
+    });
     if (entity == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to add light to scene");
     }
@@ -484,7 +488,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeLight(ThermionEntity entity) async {
-    SceneManager_removeLight(_sceneManager!, entity);
+    await withVoidCallback((cb) {
+      SceneManager_removeLightRenderThread(_sceneManager!, entity, cb);
+    });
   }
 
   ///
@@ -492,7 +498,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future destroyLights() async {
-    SceneManager_destroyLights(_sceneManager!);
+    await withVoidCallback((cb) {
+      SceneManager_destroyLightsRenderThread(_sceneManager!, cb);
+    });
   }
 
   ///
@@ -976,7 +984,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future removeAsset(covariant FFIAsset asset) async {
+  Future destroyAsset(covariant FFIAsset asset) async {
     if (asset.boundingBoxAsset != null) {
       await asset.setBoundingBoxVisibility(false);
       await withVoidCallback((callback) =>
@@ -993,7 +1001,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future destroyAssets() async {
     await withVoidCallback((callback) {
-      SceneManager_destroyAllRenderThread(_sceneManager!, callback);
+      SceneManager_destroyAssetsRenderThread(_sceneManager!, callback);
     });
   }
 

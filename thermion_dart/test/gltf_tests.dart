@@ -16,7 +16,7 @@ void main() async {
         var model = await viewer
             .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
         await testHelper.capture(viewer, "load_glb_from_file");
-        await viewer.removeAsset(model);
+        await viewer.destroyAsset(model);
       });
     });
 
@@ -41,11 +41,11 @@ void main() async {
 
         await testHelper.capture(viewer, "load_glb_from_buffer_with_instances");
 
-        await viewer.removeAsset(instance);
+        await viewer.destroyAsset(instance);
 
         await testHelper.capture(viewer, "load_glb_from_buffer_instance_removed");
 
-        await viewer.removeAsset(model);
+        await viewer.destroyAsset(model);
 
         await testHelper.capture(viewer, "load_glb_from_buffer_original_removed");
       }, bg: kRed);
@@ -125,7 +125,7 @@ void main() async {
             "baseColorFactor", 1.0, 1.0, 0.0, 1.0);
         await model.setMaterialInstanceAt(materialInstance);
         await testHelper.capture(viewer, "gltf_set_material_instance");
-        await viewer.removeAsset(model);
+        await viewer.destroyAsset(model);
         await viewer.destroyMaterialInstance(materialInstance);
       });
     });

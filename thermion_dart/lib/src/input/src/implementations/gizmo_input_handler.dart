@@ -22,7 +22,7 @@ class _Gizmo {
 
   Future dispose() async {
     await transformUpdates.close();
-    await viewer.removeAsset(_gizmo);
+    await viewer.destroyAsset(_gizmo);
   }
 
   Future hide() async {

@@ -377,10 +377,10 @@ abstract class ThermionViewer {
       {int skinIndex = 0});
 
   ///
-  /// Removes/destroys the specified entity from the scene.
-  /// [entity] will no longer be a valid handle after this method is called; ensure you immediately discard all references once this method is complete.
+  /// Destroys [asset] and all underlying resources  
+  /// (including instances, but excluding any manually created material instances). 
   ///
-  Future removeAsset(ThermionAsset asset);
+  Future destroyAsset(ThermionAsset asset);
 
   ///
   /// Removes/destroys all renderable entities from the scene (including cameras).
