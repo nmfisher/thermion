@@ -55,14 +55,14 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future clearEntities() {
-    // TODO: implement clearEntities
+  Future destroyAssets() {
+    // TODO: implement destroyAssets
     throw UnimplementedError();
   }
 
   @override
-  Future clearLights() {
-    // TODO: implement clearLights
+  Future destroyLights() {
+    // TODO: implement destroyLights
     throw UnimplementedError();
   }
 
@@ -1008,8 +1008,8 @@ class ThermionViewerStub extends ThermionViewer {
   }
   
   @override
-  Future removeEntity(ThermionAsset asset) {
-    // TODO: implement removeEntity
+  Future removeAsset(ThermionAsset asset) {
+    // TODO: implement removeAsset
     throw UnimplementedError();
   }
   
@@ -1074,8 +1074,8 @@ class ThermionViewerStub extends ThermionViewer {
   }
   
   @override
-  Future removeEntityFromScene(ThermionEntity entity) {
-    // TODO: implement removeEntityFromScene
+  Future removeAssetFromScene(ThermionEntity entity) {
+    // TODO: implement removeAssetFromScene
     throw UnimplementedError();
   }
   

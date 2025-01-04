@@ -131,7 +131,7 @@
 //   JSPromise removeLight(ThermionEntity light) => viewer.removeLight(light).toJS;
 
 //   @JSExport()
-//   JSPromise clearLights() => viewer.clearLights().toJS;
+//   JSPromise destroyLights() => viewer.destroyLights().toJS;
 
 //   @JSExport()
 //   JSPromise<JSNumber> loadGlb(String path, {int numInstances = 1}) {
@@ -319,12 +319,12 @@
 //   }
 
 //   @JSExport()
-//   JSPromise removeEntity(ThermionEntity entity) =>
-//       viewer.removeEntity(entity).toJS;
+//   JSPromise removeAsset(ThermionEntity entity) =>
+//       viewer.removeAsset(entity).toJS;
 
 //   @JSExport()
-//   JSPromise clearEntities() {
-//     return viewer.clearEntities().toJS;
+//   JSPromise destroyAssets() {
+//     return viewer.destroyAssets().toJS;
 //   }
 
 //   @JSExport()

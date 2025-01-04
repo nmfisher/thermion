@@ -113,48 +113,6 @@ extern "C"
         ((FilamentViewer *)viewer)->removeIbl();
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId add_light(
-        TViewer *viewer,
-        uint8_t type,
-        float colour,
-        float intensity,
-        float posX,
-        float posY,
-        float posZ,
-        float dirX,
-        float dirY,
-        float dirZ,
-        float falloffRadius,
-        float spotLightConeInner,
-        float spotLightConeOuter,
-        float sunAngularRadius,
-        float sunHaloSize,
-        float sunHaloFallof,
-        bool shadows)
-    {
-        return ((FilamentViewer *)viewer)->addLight((LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, shadows);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_light_position(TViewer *viewer, int32_t entityId, float x, float y, float z)
-    {
-        ((FilamentViewer *)viewer)->setLightPosition(entityId, x, y, z);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void set_light_direction(TViewer *viewer, int32_t entityId, float x, float y, float z)
-    {
-        ((FilamentViewer *)viewer)->setLightDirection(entityId, x, y, z);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void remove_light(TViewer *viewer, int32_t entityId)
-    {
-        ((FilamentViewer *)viewer)->removeLight(entityId);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void clear_lights(TViewer *viewer)
-    {
-        ((FilamentViewer *)viewer)->clearLights();
-    }
-
     EMSCRIPTEN_KEEPALIVE int get_instance_count(TSceneManager *sceneManager, EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->getInstanceCount(entityId);
@@ -487,6 +445,12 @@ extern "C"
         auto *engine = reinterpret_cast<Engine *>(tEngine);
         auto &renderableManager = engine->getRenderableManager();
         return reinterpret_cast<TRenderableManager *>(&renderableManager);
+    }
+
+    EMSCRIPTEN_KEEPALIVE TLightManager *Engine_getLightManager(TEngine *tEngine) {
+        auto *engine = reinterpret_cast<Engine *>(tEngine);
+        auto &lightManager = engine->getLightManager();
+        return reinterpret_cast<TLightManager *>(&lightManager);
     }
 
     EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)

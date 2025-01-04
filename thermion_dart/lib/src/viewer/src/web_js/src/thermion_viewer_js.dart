@@ -161,8 +161,8 @@
 //   }
 
 //   @override
-//   Future<void> clearLights() async {
-//     await _shim.clearLights().toDart;
+//   Future<void> destroyLights() async {
+//     await _shim.destroyLights().toDart;
 //   }
 
 //   @override
@@ -339,13 +339,13 @@
 //   }
 
 //   @override
-//   Future<void> removeEntity(ThermionEntity entity) async {
-//     await _shim.removeEntity(entity).toDart;
+//   Future<void> removeAsset(ThermionEntity entity) async {
+//     await _shim.removeAsset(entity).toDart;
 //   }
 
 //   @override
-//   Future<void> clearEntities() async {
-//     await _shim.clearEntities().toDart;
+//   Future<void> destroyAssets() async {
+//     await _shim.destroyAssets().toDart;
 //   }
 
 //   @override

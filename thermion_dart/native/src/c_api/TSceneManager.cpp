@@ -12,22 +12,24 @@ extern "C"
 
 #include "c_api/TSceneManager.h"
 
-	EMSCRIPTEN_KEEPALIVE TScene *SceneManager_getScene(TSceneManager *tSceneManager) {
+    EMSCRIPTEN_KEEPALIVE TScene *SceneManager_getScene(TSceneManager *tSceneManager)
+    {
         auto sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        return reinterpret_cast<TScene*>(sceneManager->getScene());
+        return reinterpret_cast<TScene *>(sceneManager->getScene());
     }
 
-
-    EMSCRIPTEN_KEEPALIVE TMaterialProvider *SceneManager_getUnlitMaterialProvider(TSceneManager *tSceneManager) { 
+    EMSCRIPTEN_KEEPALIVE TMaterialProvider *SceneManager_getUnlitMaterialProvider(TSceneManager *tSceneManager)
+    {
         auto sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         auto provider = sceneManager->getUnlitMaterialProvider();
-        return reinterpret_cast<TMaterialProvider*>(provider);
+        return reinterpret_cast<TMaterialProvider *>(provider);
     }
 
-    EMSCRIPTEN_KEEPALIVE TMaterialProvider *SceneManager_getUbershaderMaterialProvider(TSceneManager *tSceneManager) {
+    EMSCRIPTEN_KEEPALIVE TMaterialProvider *SceneManager_getUbershaderMaterialProvider(TSceneManager *tSceneManager)
+    {
         auto sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         auto provider = sceneManager->getUbershaderMaterialProvider();
-        return reinterpret_cast<TMaterialProvider*>(provider);
+        return reinterpret_cast<TMaterialProvider *>(provider);
     }
 
     EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmo(TSceneManager *tSceneManager, TView *tView, TScene *tScene, TGizmoType tGizmoType)
@@ -46,7 +48,7 @@ extern "C"
         return reinterpret_cast<TSceneAsset *>(asset);
     }
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGltf(TSceneManager *tSceneManager, 
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGltf(TSceneManager *tSceneManager,
                                                             const char *assetPath,
                                                             const char *relativeResourcePath,
                                                             bool keepData)
@@ -55,7 +57,6 @@ extern "C"
         auto *asset = sceneManager->loadGltf(assetPath, relativeResourcePath, 1, keepData);
         return reinterpret_cast<TSceneAsset *>(asset);
     }
-
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_loadGlbFromBuffer(TSceneManager *tSceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync)
     {
@@ -164,7 +165,6 @@ extern "C"
         ((SceneManager *)sceneManager)->destroy(reinterpret_cast<MaterialInstance *>(instance));
     }
 
-
     EMSCRIPTEN_KEEPALIVE int SceneManager_removeFromScene(TSceneManager *sceneManager, EntityId entityId)
     {
         return ((SceneManager *)sceneManager)->removeFromScene(entityId);
@@ -187,36 +187,78 @@ extern "C"
         return reinterpret_cast<TAnimationManager *>(animationManager);
     }
 
-    EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAll(TSceneManager *tSceneManager)
+    EMSCRIPTEN_KEEPALIVE EntityId SceneManager_addLight(
+        TSceneManager *tSceneManager,
+        uint8_t type,
+        float colour,
+        float intensity,
+        float posX,
+        float posY,
+        float posZ,
+        float dirX,
+        float dirY,
+        float dirZ,
+        float falloffRadius,
+        float spotLightConeInner,
+        float spotLightConeOuter,
+        float sunAngularRadius,
+        float sunHaloSize,
+        float sunHaloFallof,
+        bool shadows)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
+        auto entity = sceneManager->addLight(
+            (LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, shadows);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneManager_removeLight(TSceneManager *tSceneManager, EntityId entityId)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
+        sceneManager->removeLight(utils::Entity::import(entityId));
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAll(TSceneManager *tSceneManager)
     {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         sceneManager->destroyAll();
-        return nullptr;
     }
 
-    EMSCRIPTEN_KEEPALIVE void *SceneManager_destroyAsset(TSceneManager *tSceneManager, TSceneAsset *tSceneAsset)
+    EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAsset(TSceneManager *tSceneManager, TSceneAsset *tSceneAsset)
     {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         auto *sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
         sceneManager->destroy(sceneAsset);
-        return nullptr;
     }
 
-    EMSCRIPTEN_KEEPALIVE TNameComponentManager *SceneManager_getNameComponentManager(TSceneManager *tSceneManager) { 
+    EMSCRIPTEN_KEEPALIVE void SceneManager_destroyLights(TSceneManager *tSceneManager)
+    {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
-        return reinterpret_cast<TNameComponentManager*>(sceneManager->getNameComponentManager());
+        sceneManager->destroyLights();
     }
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager, TMaterial *tMaterial) {
+    EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssets(TSceneManager *tSceneManager)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
+        sceneManager->destroyAssets();
+    }
+
+    EMSCRIPTEN_KEEPALIVE TNameComponentManager *SceneManager_getNameComponentManager(TSceneManager *tSceneManager)
+    {
+        auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
+        return reinterpret_cast<TNameComponentManager *>(sceneManager->getNameComponentManager());
+    }
+
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneManager_createGrid(TSceneManager *tSceneManager, TMaterial *tMaterial)
+    {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         auto *material = reinterpret_cast<Material *>(tMaterial);
         auto *grid = sceneManager->createGrid(material);
-        return reinterpret_cast<TSceneAsset*>(grid);
+        return reinterpret_cast<TSceneAsset *>(grid);
     }
 
-    EMSCRIPTEN_KEEPALIVE bool SceneManager_isGridEntity(TSceneManager *tSceneManager, EntityId entityId) {
+    EMSCRIPTEN_KEEPALIVE bool SceneManager_isGridEntity(TSceneManager *tSceneManager, EntityId entityId)
+    {
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         return sceneManager->isGridEntity(utils::Entity::import(entityId));
     }
-
 }
