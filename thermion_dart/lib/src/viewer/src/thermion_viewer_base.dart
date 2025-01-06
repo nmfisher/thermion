@@ -439,7 +439,7 @@ abstract class ThermionViewer {
   Future<ThermionEntity> getMainCameraEntity();
 
   ///
-  /// Returns the entity associated with the main camera. You probably never need this; use getMainCamera instead.
+  /// Returns the Camera instance for the main camera. 
   ///
   Future<Camera> getMainCamera();
 
