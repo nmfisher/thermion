@@ -130,7 +130,7 @@ extern "C"
         viewer->setMainCamera(view);
     }
 
-    EMSCRIPTEN_KEEPALIVE EntityId get_main_camera(TViewer *viewer)
+    EMSCRIPTEN_KEEPALIVE EntityId Viewer_getMainCamera(TViewer *viewer)
     {
         return ((FilamentViewer *)viewer)->getMainCamera();
     }
@@ -456,7 +456,11 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)
     {
         auto *engine = reinterpret_cast<Engine *>(tEngine);
-        auto *camera = engine->getCameraComponent(utils::Entity::import(entityId));
+        auto entity = utils::Entity::import(entityId);
+        if(entity.isNull()) {
+            return std::nullptr_t();
+        }
+        auto *camera = engine->getCameraComponent(entity);
         return reinterpret_cast<TCamera *>(camera);
     }
 
