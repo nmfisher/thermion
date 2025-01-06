@@ -597,7 +597,7 @@ abstract class ThermionViewer {
       double viewportX, double viewportY, double x, double y, double z);
 
   ///
-  /// Enable/disable postprocessing (disabled by default).
+  /// Enable/disable postprocessing effects (anti-aliasing, tone mapping). Disabled by default. 
   ///
   Future setPostProcessing(bool enabled);
 
