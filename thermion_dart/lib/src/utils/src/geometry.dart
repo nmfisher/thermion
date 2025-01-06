@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:vector_math/vector_math_64.dart';
+
 import '../../../thermion_dart.dart';
 
 class GeometryHelper {
@@ -50,7 +52,7 @@ class GeometryHelper {
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
-static Geometry cube({bool normals = true, bool uvs = true}) {
+static Geometry cube({bool normals = false, bool uvs = false}) {
   final vertices = Float32List.fromList([
     // Front face
     -1, -1, 1,
@@ -474,86 +476,143 @@ static Geometry cube({bool normals = true, bool uvs = true}) {
   );
 }
 
-static Geometry wireframeCameraContainer({
-  double sphereRadius = 0.2,
-  double frustumDistance = 1.0,
-  double frustumNear = 0.5, 
-  double frustumFar = 1.0,
-  double fov = pi / 3,
-  bool normals = true,
-  bool uvs = true,
-}) {
-  List<double> verticesList = [];
-  List<double> normalsList = [];
-  List<double> uvsList = [];
-  List<int> indices = [];
+static Geometry fromAabb3(Aabb3 aabb, {bool normals = true, bool uvs = true}) {
+    // Get the center and half extents from the AABB
+    final center = aabb.center;
+    final halfExtents = Vector3.zero();
+    aabb.copyCenterAndHalfExtents(center, halfExtents);
 
-  // Calculate frustum corners
-  double nearHeight = 2.0 * frustumNear * tan(fov / 2);
-  double nearWidth = nearHeight * 1.333;  // 4:3 aspect ratio
-  double farHeight = 2.0 * frustumFar * tan(fov / 2);
-  double farWidth = farHeight * 1.333;
+    // Create vertices list with transformed coordinates
+    final vertices = Float32List.fromList([
+      // Front face
+      center.x - halfExtents.x, center.y - halfExtents.y, center.z + halfExtents.z,
+      center.x + halfExtents.x, center.y - halfExtents.y, center.z + halfExtents.z,
+      center.x + halfExtents.x, center.y + halfExtents.y, center.z + halfExtents.z,
+      center.x - halfExtents.x, center.y + halfExtents.y, center.z + halfExtents.z,
 
-  // Add padding to fully encompass the camera
-  double padding = sphereRadius * 0.5;
-  
-  // Calculate container dimensions to encompass both sphere and frustum
-  double containerWidth = max(farWidth, sphereRadius * 2) + padding * 2;
-  double containerHeight = max(farHeight, sphereRadius * 2) + padding * 2;
-  double containerDepth = frustumFar + sphereRadius + padding * 2;
-  
-  // Center offset to position container around camera
-  double offsetZ = (frustumFar - sphereRadius) / 2;
+      // Back face
+      center.x - halfExtents.x, center.y - halfExtents.y, center.z - halfExtents.z,
+      center.x - halfExtents.x, center.y + halfExtents.y, center.z - halfExtents.z,
+      center.x + halfExtents.x, center.y + halfExtents.y, center.z - halfExtents.z,
+      center.x + halfExtents.x, center.y - halfExtents.y, center.z - halfExtents.z,
 
-  // Define container vertices
-  List<List<double>> containerPoints = [
-    // Front face
-    [-containerWidth/2, -containerHeight/2, -sphereRadius - padding + offsetZ],
-    [containerWidth/2, -containerHeight/2, -sphereRadius - padding + offsetZ],
-    [containerWidth/2, containerHeight/2, -sphereRadius - padding + offsetZ],
-    [-containerWidth/2, containerHeight/2, -sphereRadius - padding + offsetZ],
-    // Back face
-    [-containerWidth/2, -containerHeight/2, frustumFar + padding + offsetZ],
-    [containerWidth/2, -containerHeight/2, frustumFar + padding + offsetZ],
-    [containerWidth/2, containerHeight/2, frustumFar + padding + offsetZ],
-    [-containerWidth/2, containerHeight/2, frustumFar + padding + offsetZ],
-  ];
+      // Top face
+      center.x - halfExtents.x, center.y + halfExtents.y, center.z - halfExtents.z,
+      center.x - halfExtents.x, center.y + halfExtents.y, center.z + halfExtents.z,
+      center.x + halfExtents.x, center.y + halfExtents.y, center.z + halfExtents.z,
+      center.x + halfExtents.x, center.y + halfExtents.y, center.z - halfExtents.z,
 
-  // Add vertices
-  for (var point in containerPoints) {
-    verticesList.addAll(point);
-    normalsList.addAll([0, 0, 1]); // Simplified normals
-    uvsList.addAll([0, 0]); // Basic UVs
+      // Bottom face
+      center.x - halfExtents.x, center.y - halfExtents.y, center.z - halfExtents.z,
+      center.x + halfExtents.x, center.y - halfExtents.y, center.z - halfExtents.z,
+      center.x + halfExtents.x, center.y - halfExtents.y, center.z + halfExtents.z,
+      center.x - halfExtents.x, center.y - halfExtents.y, center.z + halfExtents.z,
+
+      // Right face
+      center.x + halfExtents.x, center.y - halfExtents.y, center.z - halfExtents.z,
+      center.x + halfExtents.x, center.y + halfExtents.y, center.z - halfExtents.z,
+      center.x + halfExtents.x, center.y + halfExtents.y, center.z + halfExtents.z,
+      center.x + halfExtents.x, center.y - halfExtents.y, center.z + halfExtents.z,
+
+      // Left face
+      center.x - halfExtents.x, center.y - halfExtents.y, center.z - halfExtents.z,
+      center.x - halfExtents.x, center.y - halfExtents.y, center.z + halfExtents.z,
+      center.x - halfExtents.x, center.y + halfExtents.y, center.z + halfExtents.z,
+      center.x - halfExtents.x, center.y + halfExtents.y, center.z - halfExtents.z,
+    ]);
+
+    final _normals = normals ? Float32List.fromList([
+      // Front face
+      0, 0, 1,
+      0, 0, 1,
+      0, 0, 1,
+      0, 0, 1,
+
+      // Back face
+      0, 0, -1,
+      0, 0, -1,
+      0, 0, -1,
+      0, 0, -1,
+
+      // Top face
+      0, 1, 0,
+      0, 1, 0,
+      0, 1, 0,
+      0, 1, 0,
+
+      // Bottom face
+      0, -1, 0,
+      0, -1, 0,
+      0, -1, 0,
+      0, -1, 0,
+
+      // Right face
+      1, 0, 0,
+      1, 0, 0,
+      1, 0, 0,
+      1, 0, 0,
+
+      // Left face
+      -1, 0, 0,
+      -1, 0, 0,
+      -1, 0, 0,
+      -1, 0, 0,
+    ]) : null;
+
+    final _uvs = uvs ? Float32List.fromList([
+      // Front face
+      1/3, 1/3,
+      2/3, 1/3,
+      2/3, 2/3,
+      1/3, 2/3,
+
+      // Back face
+      2/3, 2/3,
+      2/3, 1,
+      1, 1,
+      1, 2/3,
+
+      // Top face
+      1/3, 0,
+      1/3, 1/3,
+      2/3, 1/3,
+      2/3, 0,
+
+      // Bottom face
+      1/3, 2/3,
+      2/3, 2/3,
+      2/3, 1,
+      1/3, 1,
+
+      // Right face
+      2/3, 1/3,
+      2/3, 2/3,
+      1, 2/3,
+      1, 1/3,
+
+      // Left face
+      0, 1/3,
+      1/3, 1/3,
+      1/3, 2/3,
+      0, 2/3,
+    ]) : null;
+
+    final indices = [
+      // Front face
+      0, 1, 2, 0, 2, 3,
+      // Back face
+      4, 5, 6, 4, 6, 7,
+      // Top face
+      8, 9, 10, 8, 10, 11,
+      // Bottom face
+      12, 13, 14, 12, 14, 15,
+      // Right face
+      16, 17, 18, 16, 18, 19,
+      // Left face
+      20, 21, 22, 20, 22, 23
+    ];
+
+    return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
-  // Define triangles for faces (12 triangles = 6 faces)
-  var triangleIndices = [
-    // Front face
-    0, 1, 2, 0, 2, 3,
-    // Back face
-    4, 6, 5, 4, 7, 6,
-    // Top face
-    3, 2, 6, 3, 6, 7,
-    // Bottom face
-    0, 5, 1, 0, 4, 5,
-    // Left face
-    0, 3, 7, 0, 7, 4,
-    // Right face
-    1, 5, 6, 1, 6, 2
-  ];
-  
-  indices.addAll(triangleIndices);
-
-  Float32List vertices = Float32List.fromList(verticesList);
-  Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
-  Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
-  
-  return Geometry(
-    vertices,
-    indices,
-    normals: _normals,
-    uvs: _uvs,
-    primitiveType: PrimitiveType.TRIANGLES
-  );
-}
 }
