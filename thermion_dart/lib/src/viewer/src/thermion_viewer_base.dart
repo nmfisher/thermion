@@ -377,8 +377,8 @@ abstract class ThermionViewer {
       {int skinIndex = 0});
 
   ///
-  /// Destroys [asset] and all underlying resources  
-  /// (including instances, but excluding any manually created material instances). 
+  /// Destroys [asset] and all underlying resources
+  /// (including instances, but excluding any manually created material instances).
   ///
   Future destroyAsset(ThermionAsset asset);
 
@@ -597,7 +597,7 @@ abstract class ThermionViewer {
       double viewportX, double viewportY, double x, double y, double z);
 
   ///
-  /// Enable/disable postprocessing effects (anti-aliasing, tone mapping). Disabled by default. 
+  /// Enable/disable postprocessing effects (anti-aliasing, tone mapping). Disabled by default.
   ///
   Future setPostProcessing(bool enabled);
 
@@ -855,6 +855,11 @@ abstract class ThermionViewer {
   ///
   ///
   Future<Camera> createCamera();
+
+  ///
+  ///
+  ///
+  Future destroyCamera(covariant Camera camera);
 
   ///
   ///
