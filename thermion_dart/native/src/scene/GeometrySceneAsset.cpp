@@ -27,8 +27,15 @@ namespace thermion
         RenderableManager::PrimitiveType primitiveType,
         Box boundingBox,
         GeometrySceneAsset *instanceOwner)
-        : _engine(engine), _vertexBuffer(vertexBuffer), _indexBuffer(indexBuffer), _materialInstances(materialInstances), _materialInstanceCount(materialInstanceCount), _primitiveType(primitiveType), _boundingBox(boundingBox), _instanceOwner(instanceOwner)
+        : _engine(engine), 
+        _vertexBuffer(vertexBuffer),
+        _indexBuffer(indexBuffer),
+        _primitiveType(primitiveType),
+        _boundingBox(boundingBox),
+        _instanceOwner(instanceOwner)
     {
+        _materialInstances.insert(_materialInstances.begin(), materialInstances, materialInstances + materialInstanceCount);
+
         _entity = utils::EntityManager::get().create();
 
         RenderableManager::Builder builder(1);
@@ -63,9 +70,10 @@ namespace thermion
             return nullptr;
         }
 
-        if(materialInstanceCount == 0) {
-            materialInstanceCount = _materialInstanceCount;
-            materialInstances = _materialInstances;
+        if(materialInstanceCount == 0 && _materialInstances.size() > 0) {
+            materialInstanceCount = _materialInstances.size();
+            materialInstances = _materialInstances.data();
+            TRACE("No material instances provided, re-using %d existing material instances", materialInstanceCount);
         }
 
         std::unique_ptr<GeometrySceneAsset> instance = std::make_unique<GeometrySceneAsset>(
