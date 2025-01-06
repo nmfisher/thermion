@@ -51,12 +51,12 @@ namespace thermion
 
         MaterialInstance **getMaterialInstances() override
         {
-            return _materialInstances;
+            return _materialInstances.data();
         }
 
         size_t getMaterialInstanceCount() override
         {
-            return _materialInstanceCount;
+            return _materialInstances.size();
         }
 
         VertexBuffer *getVertexBuffer() const { return _vertexBuffer; }
@@ -135,8 +135,7 @@ namespace thermion
         Engine *_engine = nullptr;
         VertexBuffer *_vertexBuffer = nullptr;
         IndexBuffer *_indexBuffer = nullptr;
-        MaterialInstance **_materialInstances = nullptr;
-        size_t _materialInstanceCount = 0;
+        std::vector<MaterialInstance*> _materialInstances;
         Box _boundingBox;
         GeometrySceneAsset *_instanceOwner = std::nullptr_t();
         utils::Entity _entity;
