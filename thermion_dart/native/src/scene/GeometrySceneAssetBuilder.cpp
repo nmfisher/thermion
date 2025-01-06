@@ -274,7 +274,7 @@ namespace thermion
             Log("Validation failed: Normal count mismatch (normals=%d, vertices=%d)", mNormals->size(), mVertices->size());
             return false;
         }
-        if (!mUVs->empty() && mUVs->size() != mVertices->size() * 2)
+        if (!mUVs->empty() && mUVs->size() != mVertices->size())
         {
             Log("Validation failed: UV count mismatch (uvs=%d, vertices=%d)", mUVs->size(), mVertices->size());
             return false;
