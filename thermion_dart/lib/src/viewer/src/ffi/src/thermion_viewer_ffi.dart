@@ -1083,20 +1083,28 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<ThermionEntity> getMainCameraEntity() async {
-    return get_main_camera(_viewer!);
+    return Viewer_getMainCamera(_viewer!);
   }
 
   ///
   ///
   ///
   Future<Camera> getMainCamera() async {
-    var camera = await getCameraComponent(await getMainCameraEntity());
+    final mainCameraEntity = await getMainCameraEntity();
+    var camera = await getCameraComponent(mainCameraEntity);
     return camera!;
   }
 
+  ///
+  ///
+  ///
   Future<Camera?> getCameraComponent(ThermionEntity cameraEntity) async {
     var engine = Viewer_getEngine(_viewer!);
     var camera = Engine_getCameraComponent(engine, cameraEntity);
+    if (camera == nullptr) {
+      throw Exception(
+          "Failed to get camera component for entity $cameraEntity");
+    }
     return FFICamera(camera, engine, _transformManager!);
   }
 
