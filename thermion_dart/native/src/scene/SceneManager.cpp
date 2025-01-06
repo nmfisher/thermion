@@ -531,6 +531,9 @@ namespace thermion
     {
         auto light = EntityManager::get().create();
 
+        // LightManager::ShadowOptions shadowOptions;
+        // shadowOptions.stable = true;
+
         auto result = LightManager::Builder(t)
                           .color(Color::cct(colour))
                           .intensity(intensity)
@@ -541,6 +544,7 @@ namespace thermion
                           .sunHaloFalloff(sunHaloFallof)
                           .position(filament::math::float3(posX, posY, posZ))
                           .direction(filament::math::float3(dirX, dirY, dirZ))
+                        //   .shadowOptions(shadowOptions)
                           .castShadows(shadows)
                           .build(*_engine, light);
         if (result != LightManager::Builder::Result::Success)

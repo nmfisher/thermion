@@ -1667,6 +1667,8 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create geometry");
     }
 
+  print(" is shadow caster : ${RenderableManager_isShadowCaster(_renderableManager!,  SceneAsset_getEntity(assetPtr))}  is shadow recevier : ${RenderableManager_isShadowReceiver(_renderableManager!,  SceneAsset_getEntity(assetPtr))} " );
+
     var asset = FFIAsset(
         assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
 

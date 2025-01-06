@@ -439,7 +439,7 @@ abstract class ThermionViewer {
   Future<ThermionEntity> getMainCameraEntity();
 
   ///
-  /// Returns the Camera instance for the main camera. 
+  /// Returns the Camera instance for the main camera.
   ///
   Future<Camera> getMainCamera();
 
@@ -460,7 +460,7 @@ abstract class ThermionViewer {
   Future setToneMapping(ToneMapper mapper);
 
   ///
-  /// Sets the strength of the bloom.
+  /// Sets the strength of the bloom (requires postprocessing).
   ///
   Future setBloom(double bloom);
 
@@ -597,7 +597,7 @@ abstract class ThermionViewer {
       double viewportX, double viewportY, double x, double y, double z);
 
   ///
-  /// Enable/disable postprocessing effects (anti-aliasing, tone mapping). Disabled by default.
+  /// Enable/disable postprocessing effects (anti-aliasing, tone mapping, bloom). Disabled by default.
   ///
   Future setPostProcessing(bool enabled);
 
