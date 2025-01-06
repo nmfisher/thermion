@@ -63,6 +63,11 @@ namespace thermion
             return nullptr;
         }
 
+        if(materialInstanceCount == 0) {
+            materialInstanceCount = _materialInstanceCount;
+            materialInstances = _materialInstances;
+        }
+
         std::unique_ptr<GeometrySceneAsset> instance = std::make_unique<GeometrySceneAsset>(
             _engine,
             _vertexBuffer,
