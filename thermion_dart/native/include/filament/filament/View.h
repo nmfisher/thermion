@@ -24,6 +24,7 @@
 
 #include <utils/compiler.h>
 #include <utils/Entity.h>
+#include <utils/FixedCapacityVector.h>
 
 #include <math/mathfwd.h>
 
@@ -40,6 +41,7 @@ class CallbackHandler;
 
 class Camera;
 class ColorGrading;
+class Engine;
 class MaterialInstance;
 class RenderTarget;
 class Scene;
@@ -188,6 +190,13 @@ public:
      *  Make sure to dissociate a Camera from all Views before destroying it.
      */
     void setCamera(Camera* UTILS_NONNULL camera) noexcept;
+
+    /**
+     * Returns whether a Camera is set.
+     * @return true if a camera is set.
+     * @see setCamera()
+     */
+    bool hasCamera() const noexcept;
 
     /**
      * Returns the Camera currently associated with this View.
@@ -562,6 +571,13 @@ public:
     void setShadowType(ShadowType shadow) noexcept;
 
     /**
+     * Returns the shadow mapping technique used by this View.
+     *
+     * @return value set by setShadowType().
+     */
+    ShadowType getShadowType() const noexcept;
+
+    /**
      * Sets VSM shadowing options that apply across the entire View.
      *
      * Additional light-specific VSM options can be set with LightManager::setShadowOptions.
@@ -653,6 +669,26 @@ public:
     bool isFrontFaceWindingInverted() const noexcept;
 
     /**
+     * Enables or disables transparent picking. Disabled by default.
+     *
+     * When transparent picking is enabled, View::pick() will pick from both
+     * transparent and opaque renderables. When disabled, View::pick() will only
+     * pick from opaque renderables.
+     *
+     * @param enabled true enables transparent picking, false disables it.
+     *
+     * @note Transparent picking will create an extra pass for rendering depth
+     *       from both transparent and opaque renderables. 
+     */
+    void setTransparentPickingEnabled(bool enabled) noexcept;
+
+    /**
+     * Returns true if transparent picking is enabled.
+     * See setTransparentPickingEnabled() for more information.
+     */
+    bool isTransparentPickingEnabled() const noexcept;
+
+    /**
      * Enables use of the stencil buffer.
      *
      * The stencil buffer is an 8-bit, per-fragment unsigned integer stored alongside the depth
@@ -719,7 +755,7 @@ public:
     void setDebugCamera(Camera* UTILS_NULLABLE camera) noexcept;
 
     //! debugging: returns a Camera from the point of view of *the* dominant directional light used for shadowing.
-    Camera const* UTILS_NULLABLE getDirectionalShadowCamera() const noexcept;
+    utils::FixedCapacityVector<Camera const*> getDirectionalShadowCameras() const noexcept;
 
 
     /** Result of a picking query */
@@ -870,6 +906,17 @@ public:
      * @return an Entity representing the large scale fog object.
      */
     utils::Entity getFogEntity() const noexcept;
+
+
+    /**
+     * When certain temporal features are used (e.g.: TAA or Screen-space reflections), the view
+     * keeps a history of previous frame renders associated with the Renderer the view was last
+     * used with. When switching Renderer, it may be necessary to clear that history by calling
+     * this method. Similarly, if the whole content of the screen change, like when a cut-scene
+     * starts, clearing the history might be needed to avoid artifacts due to the previous frame
+     * being very different.
+     */
+    void clearFrameHistory(Engine& engine) noexcept;
 
     /**
      * List of available ambient occlusion techniques

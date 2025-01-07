@@ -41,6 +41,26 @@ public:
     struct Fence {};
     struct Stream {};
 
+    /**
+     * The type of technique for stereoscopic rendering. (Note that the materials used will need to
+     * be compatible with the chosen technique.)
+     */
+    enum class StereoscopicType : uint8_t {
+        /**
+         * No stereoscopic rendering
+         */
+        NONE,
+        /**
+         * Stereoscopic rendering is performed using instanced rendering technique.
+         */
+        INSTANCED,
+        /**
+         * Stereoscopic rendering is performed using the multiview feature from the graphics
+         * backend.
+         */
+        MULTIVIEW,
+    };
+
     struct DriverConfig {
         /**
          * Size of handle arena in bytes. Setting to 0 indicates default value is to be used.
@@ -48,12 +68,7 @@ public:
          */
         size_t handleArenaSize = 0;
 
-        /**
-         * This number of most-recently destroyed textures will be tracked for use-after-free.
-         * Throws an exception when a texture is freed but still bound to a SamplerGroup and used in
-         * a draw call. 0 disables completely. Currently only respected by the Metal backend.
-         */
-        size_t textureUseAfterFreePoolSize = 0;
+        size_t metalUploadBufferSizeBytes = 512 * 1024;
 
         /**
          * Set to `true` to forcibly disable parallel shader compilation in the backend.
@@ -65,6 +80,24 @@ public:
          * Disable backend handles use-after-free checks.
          */
         bool disableHandleUseAfterFreeCheck = false;
+
+        /**
+         * Force GLES2 context if supported, or pretend the context is ES2. Only meaningful on
+         * GLES 3.x backends.
+         */
+        bool forceGLES2Context = false;
+
+        /**
+         * Sets the technique for stereoscopic rendering.
+         */
+        StereoscopicType stereoscopicType = StereoscopicType::NONE;
+
+        /**
+         * Assert the native window associated to a SwapChain is valid when calling makeCurrent().
+         * This is only supported for:
+         *      - PlatformEGLAndroid
+         */
+        bool assertNativeWindowIsValid = false;
     };
 
     Platform() noexcept;
