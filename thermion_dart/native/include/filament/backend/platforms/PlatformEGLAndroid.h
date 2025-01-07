@@ -22,6 +22,10 @@
 #include <backend/platforms/OpenGLPlatform.h>
 #include <backend/platforms/PlatformEGL.h>
 
+#include <utils/android/PerformanceHintManager.h>
+
+#include <chrono>
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -58,6 +62,13 @@ protected:
 
     void terminate() noexcept override;
 
+    void beginFrame(
+            int64_t monotonic_clock_ns,
+            int64_t refreshIntervalNs,
+            uint32_t frameId) noexcept override;
+
+    void preCommit() noexcept override;
+
     /**
      * Set the presentation time using `eglPresentationTimeANDROID`
      * @param presentationTimeInNanosecond
@@ -78,9 +89,28 @@ protected:
      */
     AcquiredImage transformAcquiredImage(AcquiredImage source) noexcept override;
 
+protected:
+    bool makeCurrent(ContextType type,
+            SwapChain* drawSwapChain,
+            SwapChain* readSwapChain) noexcept override;
+
 private:
+    struct InitializeJvmForPerformanceManagerIfNeeded {
+        InitializeJvmForPerformanceManagerIfNeeded();
+    };
+
     int mOSVersion;
     ExternalStreamManagerAndroid& mExternalStreamManager;
+    InitializeJvmForPerformanceManagerIfNeeded const mInitializeJvmForPerformanceManagerIfNeeded;
+    utils::PerformanceHintManager mPerformanceHintManager;
+    utils::PerformanceHintManager::Session mPerformanceHintSession;
+
+    using clock = std::chrono::high_resolution_clock;
+    clock::time_point mStartTimeOfActualWork;
+
+    void* mNativeWindowLib = nullptr;
+    int32_t (*ANativeWindow_getBuffersDefaultDataSpace)(ANativeWindow* window) = nullptr;
+    bool mAssertNativeWindowIsValid = false;
 };
 
 } // namespace filament::backend

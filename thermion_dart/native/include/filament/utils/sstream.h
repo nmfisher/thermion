@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef TNT_UTILS_DEBUG_H
-#define TNT_UTILS_DEBUG_H
+#ifndef TNT_UTILS_SSTREAM_H
+#define TNT_UTILS_SSTREAM_H
 
 #include <utils/compiler.h>
+#include <utils/ostream.h>
 
-namespace utils {
-UTILS_PUBLIC
-void panic(const char *func, const char * file, int line, const char *assertion) noexcept;
-} // namespace filament
+#include <stddef.h>
 
-#ifdef NDEBUG
-#   define	assert_invariant(e)	((void)0)
-#else
-#   define	assert_invariant(e) \
-            (UTILS_LIKELY(e) ? ((void)0) : utils::panic(__func__, __FILE__, __LINE__, #e))
-#endif // NDEBUG
+namespace utils::io {
 
-#endif // TNT_UTILS_DEBUG_H
+class UTILS_PUBLIC sstream : public ostream {
+public:
+    ostream& flush() noexcept override;
+    const char* c_str() const noexcept;
+    size_t length() const noexcept;
+};
+
+} // namespace utils::io
+
+#endif // TNT_UTILS_SSTREAM_H
