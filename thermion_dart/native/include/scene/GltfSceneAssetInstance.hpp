@@ -159,7 +159,9 @@ namespace thermion
             }
         }
 
-
+        const filament::Aabb getBoundingBox() const override {
+            return _instance->getBoundingBox();
+        }
 
     private:
         filament::Engine *_engine;

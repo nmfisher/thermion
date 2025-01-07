@@ -1718,7 +1718,7 @@ external void SceneManager_destroyLightsRenderThread(
 );
 
 @ffi.Native<
-        EntityId Function(
+        ffi.Void Function(
             ffi.Pointer<TSceneManager>,
             ffi.Uint8,
             ffi.Float,
@@ -1738,7 +1738,7 @@ external void SceneManager_destroyLightsRenderThread(
             ffi.Bool,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
     isLeaf: true)
-external int SceneManager_addLightRenderThread(
+external void SceneManager_addLightRenderThread(
   ffi.Pointer<TSceneManager> tSceneManager,
   int type,
   double colour,
@@ -2381,6 +2381,11 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createInstance(
   ffi.Pointer<TSceneAsset> asset,
   ffi.Pointer<ffi.Pointer<TMaterialInstance>> materialInstances,
   int materialInstanceCount,
+);
+
+@ffi.Native<Aabb3 Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external Aabb3 SceneAsset_getBoundingBox(
+  ffi.Pointer<TSceneAsset> asset,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>(

@@ -31,7 +31,6 @@ namespace thermion
         _vertexBuffer(vertexBuffer),
         _indexBuffer(indexBuffer),
         _primitiveType(primitiveType),
-        _boundingBox(boundingBox),
         _instanceOwner(instanceOwner)
     {
         _materialInstances.insert(_materialInstances.begin(), materialInstances, materialInstances + materialInstanceCount);
@@ -39,11 +38,15 @@ namespace thermion
         _entity = utils::EntityManager::get().create();
 
         RenderableManager::Builder builder(1);
-        builder.boundingBox(_boundingBox)
+        builder.boundingBox(boundingBox)
             .geometry(0, _primitiveType, _vertexBuffer, _indexBuffer)
             .culling(true)
             .receiveShadows(true)
             .castShadows(true);
+
+        _boundingBox.min = boundingBox.getMin();
+        _boundingBox.max = boundingBox.getMax();
+        
         for (int i = 0; i < materialInstanceCount; i++)
         {
             builder.material(i, materialInstances[i]);
@@ -83,7 +86,7 @@ namespace thermion
             materialInstances,
             materialInstanceCount,
             _primitiveType,
-            _boundingBox,
+            filament::Box().set(_boundingBox.min, _boundingBox.max),
             this);
         auto *raw = instance.get();
         _instances.push_back(std::move(instance));

@@ -2,9 +2,11 @@
 
 #include <memory>
 
-#include <utils/Entity.h>
-#include <gltfio/FilamentAsset.h>
 #include <filament/Scene.h>
+
+#include <gltfio/FilamentAsset.h>
+#include <math.h>
+#include <utils/Entity.h>
 
 #include "CustomGeometry.hpp"
 #include "Log.hpp"
@@ -50,6 +52,8 @@ class SceneAsset {
 
         virtual void setPriority(RenderableManager& rm, int mask) = 0;
         virtual void setLayer(RenderableManager& rm, int layer) = 0;
+
+        virtual const filament::Aabb getBoundingBox() const = 0;
 
 
     

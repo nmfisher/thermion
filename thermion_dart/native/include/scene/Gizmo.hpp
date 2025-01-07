@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utils/Entity.h>
+#include <filament/Box.h>
 #include <filament/Engine.h>
 #include <filament/Material.h>
 #include <filament/MaterialInstance.h>
@@ -145,6 +146,10 @@ namespace thermion
 
         math::mat4f getRotationForAxis(Gizmo::Axis axis);
 
+        const filament::Aabb getBoundingBox() const override {
+            return _boundingBox;
+        }
+
     private:
         SceneAsset *_source;
         Engine *_engine;
@@ -160,6 +165,8 @@ namespace thermion
 
         std::vector<utils::Entity> _entities;
         std::vector<MaterialInstance *> _materialInstances;
+
+        filament::Aabb _boundingBox;
 
         GizmoPickResultType getPickResult(utils::Entity entity)
         {

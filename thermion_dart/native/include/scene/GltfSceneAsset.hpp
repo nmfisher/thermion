@@ -167,6 +167,10 @@ namespace thermion
             return entities[0];
         }
 
+        const filament::Aabb getBoundingBox() const override {
+            return _asset->getBoundingBox();
+        }
+
     private:
         gltfio::FilamentAsset *_asset;
         gltfio::AssetLoader *_assetLoader;

@@ -122,6 +122,10 @@ namespace thermion
             return Entity(); // not currently implemented
         }
 
+        const filament::Aabb getBoundingBox() const override {
+            return _boundingBox;
+        }
+
         static std::unique_ptr<GeometrySceneAsset> create(
             float *vertices, uint32_t numVertices,
             float *normals, uint32_t numNormals,
@@ -136,7 +140,7 @@ namespace thermion
         VertexBuffer *_vertexBuffer = nullptr;
         IndexBuffer *_indexBuffer = nullptr;
         std::vector<MaterialInstance*> _materialInstances;
-        Box _boundingBox;
+        Aabb _boundingBox;
         GeometrySceneAsset *_instanceOwner = std::nullptr_t();
         utils::Entity _entity;
         RenderableManager::PrimitiveType _primitiveType;

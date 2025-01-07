@@ -48,6 +48,10 @@ public:
     const Entity* getChildEntities() override;
     Entity findEntityByName(const char* name) override;
 
+    const filament::Aabb getBoundingBox() const override {
+        return filament::Aabb();
+    }
+
 private:
     Engine& _engine;
     utils::Entity _gridEntity;

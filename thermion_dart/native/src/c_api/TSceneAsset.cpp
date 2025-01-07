@@ -101,6 +101,12 @@ extern "C"
         return reinterpret_cast<TSceneAsset *>(instance);
     }
 
+    EMSCRIPTEN_KEEPALIVE Aabb3 SceneAsset_getBoundingBox(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        auto box = asset->getBoundingBox();
+        return Aabb3{box.center().x, box.center().y, box.center().z, box.extent().x, box.extent().y, box.extent().z};
+    }
+
 
 #ifdef __cplusplus
 }

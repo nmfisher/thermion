@@ -26,7 +26,10 @@ namespace thermion
         }
         TRACE("Creating instance %d", instanceNumber);
         auto instance = _asset->getAssetInstances()[instanceNumber];
+        
         instance->recomputeBoundingBoxes();
+        auto bb = instance->getBoundingBox();
+        TRACE("Instance bounding box center (%f,%f,%f), extent (%f,%f,%f)", bb.center().x, bb.center().y, bb.center().z, bb.extent().x,bb.extent().y,bb.extent().z);
         instance->getAnimator()->updateBoneMatrices();
 
         auto& rm = _engine->getRenderableManager();

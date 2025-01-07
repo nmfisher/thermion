@@ -4,40 +4,40 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:vector_math/vector_math_64.dart' as v64;
 
 class FFIAsset extends ThermionAsset {
-  
   ///
   ///
   ///
   final Pointer<TSceneAsset> pointer;
-  
+
   ///
   ///
   ///
   final Pointer<TSceneManager> sceneManager;
-  
+
   ///
   ///
   ///
   Pointer<TRenderableManager> get renderableManager =>
       Engine_getRenderableManager(engine);
-  
+
   ///
   ///
   ///
   final Pointer<TEngine> engine;
-  
+
   ///
   ///
   ///
   FFIAsset? _highlight;
-  
+
   ///
   ///
   ///
   final Pointer<TMaterialProvider> _unlitMaterialProvider;
-  
+
   ///
   ///
   ///
@@ -47,7 +47,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   late final ThermionEntity entity;
-  
+
   ///
   ///
   ///
@@ -236,16 +236,25 @@ class FFIAsset extends ThermionAsset {
 
   FFIAsset? boundingBoxAsset;
 
-  Future<Aabb3> getBoundingBox() async {
-    late ThermionEntity targetEntity;
+  Future<v64.Aabb3> getBoundingBox() async {
+    final entities = <ThermionEntity>[];
     if (RenderableManager_isRenderable(renderableManager, entity)) {
-      targetEntity = entity;
+      entities.add(entity);
     } else {
-      targetEntity = (await getChildEntities()).first;
+      entities.addAll(await getChildEntities());
     }
-    final aabb3 =
-        SceneManager_getRenderableBoundingBox(sceneManager, targetEntity);
-    return aabb3;
+
+    var boundingBox = v64.Aabb3();
+
+    for (final entity in entities) {
+      final aabb3 = SceneManager_getRenderableBoundingBox(sceneManager, entity);
+      final entityBB = v64.Aabb3.centerAndHalfExtents(
+        v64.Vector3(aabb3.centerX, aabb3.centerY, aabb3.centerZ),
+        v64.Vector3(aabb3.halfExtentX, aabb3.halfExtentY, aabb3.halfExtentZ),
+      );
+      boundingBox.hull(entityBB);
+    }
+    return boundingBox;
   }
 
   ///
@@ -254,7 +263,8 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<void> setBoundingBoxVisibility(bool visible) async {
     if (boundingBoxAsset == null) {
-      final boundingBox = await getBoundingBox();
+      final boundingBox = await SceneAsset_getBoundingBox(pointer!);
+      
       final min = [
         boundingBox.centerX - boundingBox.halfExtentX,
         boundingBox.centerY - boundingBox.halfExtentY,
