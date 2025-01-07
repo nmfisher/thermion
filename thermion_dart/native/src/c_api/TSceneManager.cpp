@@ -209,6 +209,7 @@ extern "C"
         auto *sceneManager = reinterpret_cast<SceneManager *>(tSceneManager);
         auto entity = sceneManager->addLight(
             (LightManager::Type)type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, shadows);
+        return Entity::smuggle(entity);
     }
 
     EMSCRIPTEN_KEEPALIVE void SceneManager_removeLight(TSceneManager *tSceneManager, EntityId entityId)
