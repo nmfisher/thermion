@@ -95,7 +95,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *sceneAsset, void (*callback)());
         EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssetsRenderThread(TSceneManager *tSceneManager, void (*callback)());
         EMSCRIPTEN_KEEPALIVE void SceneManager_destroyLightsRenderThread(TSceneManager *tSceneManager, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE EntityId SceneManager_addLightRenderThread(
+        EMSCRIPTEN_KEEPALIVE void SceneManager_addLightRenderThread(
             TSceneManager *tSceneManager,
             uint8_t type,
             float colour,

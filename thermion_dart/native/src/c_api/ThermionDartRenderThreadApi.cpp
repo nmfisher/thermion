@@ -622,7 +622,7 @@ extern "C"
     return nullptr;
   }
 
-  EMSCRIPTEN_KEEPALIVE EntityId SceneManager_addLightRenderThread(
+  EMSCRIPTEN_KEEPALIVE void SceneManager_addLightRenderThread(
             TSceneManager *tSceneManager,
             uint8_t type,
             float colour,
