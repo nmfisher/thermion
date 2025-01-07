@@ -6,6 +6,7 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:path/path.dart' as path;
 
 void main(List<String> args) async {
+
   await build(args, (config, output) async {
     var pkgRootFilePath =
         config.packageRoot.toFilePath(windows: Platform.isWindows);
@@ -55,6 +56,7 @@ void main(List<String> args) async {
     var libDir = config.dryRun ? "" : (await getLibDir(config, logger)).path;
 
     final packageName = config.packageName;
+    
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
@@ -121,9 +123,10 @@ void main(List<String> args) async {
       libs.add("stdc++");
     }
     final flags = []; //"-fsanitize=address"];
-
+    
     final defines = <String, String?>{
     //  "ENABLE_TRACING": "1" // uncomment this to enable (very verbose) trace logging
+
     };
     var frameworks = [];
 
@@ -170,6 +173,7 @@ void main(List<String> args) async {
           "-g",
           "-O0",
         ]);
+
       }
 
       libs.addAll(["bluegl", "bluevk"]);
