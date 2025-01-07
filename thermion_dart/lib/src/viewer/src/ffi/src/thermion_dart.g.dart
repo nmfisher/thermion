@@ -268,6 +268,68 @@ external void LightManager_setDirection(
   double z,
 );
 
+@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, EntityId, ffi.Int)>(
+    isLeaf: true)
+external int LightManager_createLight(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  int type,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId)>(
+    isLeaf: true)
+external void LightManager_destroyLight(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
+        ffi.Double, ffi.Double)>(isLeaf: true)
+external void LightManager_setColor(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double r,
+  double g,
+  double b,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+external void LightManager_setIntensity(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double intensity,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TLightManager>, EntityId, ffi.Double)>(isLeaf: true)
+external void LightManager_setFalloff(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double falloff,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
+        ffi.Double)>(isLeaf: true)
+external void LightManager_setSpotLightCone(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  double inner,
+  double outer,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Bool)>(
+    isLeaf: true)
+external void LightManager_setShadowCaster(
+  ffi.Pointer<TLightManager> tLightManager,
+  int entity,
+  bool enabled,
+);
+
 @ffi.Native<
     ffi.Pointer<TViewer> Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
@@ -491,6 +553,11 @@ external void set_background_color(
   double a,
 );
 
+@ffi.Native<EntityId Function(ffi.Pointer<TViewer>)>(isLeaf: true)
+external int Viewer_getMainCamera(
+  ffi.Pointer<TViewer> viewer,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
 external void Viewer_loadSkybox(
@@ -533,11 +600,6 @@ external void create_ibl(
 external void rotate_ibl(
   ffi.Pointer<TViewer> viewer,
   ffi.Pointer<ffi.Float> rotationMatrix,
-);
-
-@ffi.Native<EntityId Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external int get_main_camera(
-  ffi.Pointer<TViewer> viewer,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
@@ -2210,6 +2272,54 @@ external ffi.Pointer<TMaterialInstance> RenderableManager_getMaterialInstanceAt(
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
 external bool RenderableManager_isRenderable(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+/// Checks if the given entity has a renderable component
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_hasComponent(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+/// Returns true if this manager has no components
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>)>(isLeaf: true)
+external bool RenderableManager_empty(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+);
+
+/// Returns whether a light channel is enabled on a specified renderable
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId,
+        ffi.UnsignedInt)>(isLeaf: true)
+external bool RenderableManager_getLightChannel(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  int channel,
+);
+
+/// Checks if the renderable can cast shadows
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_isShadowCaster(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+/// Checks if the renderable can receive shadows
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_isShadowReceiver(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
+/// Returns whether large-scale fog is enabled for this renderable
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external bool RenderableManager_getFogEnabled(
   ffi.Pointer<TRenderableManager> tRenderableManager,
   int entityId,
 );
