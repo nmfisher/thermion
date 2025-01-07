@@ -8,5 +8,5 @@ UNLIT_PACKAGE:
 UNLIT_UNLIT_OFFSET:
     .int 0
 UNLIT_UNLIT_SIZE:
-    .int 101492
+    .int 106370
 
