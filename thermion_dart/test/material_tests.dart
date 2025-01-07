@@ -104,6 +104,23 @@ void main() async {
       await viewer.dispose();
     });
 
+     test('ubershader material with color only', () async {
+      await testHelper.withViewer((viewer) async {
+        var materialInstance = await viewer.createUbershaderMaterialInstance();
+        await viewer
+            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+        var cube = await viewer.createGeometry(
+            GeometryHelper.cube(normals: true, uvs: true),
+            materialInstances: [materialInstance]);
+
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 0.0, 1.0, 0.0, 1.0);
+        await materialInstance.setParameterInt("baseColorIndex", -1);
+        await testHelper.capture(viewer, "ubershader_material_base_color");
+        await viewer.destroyMaterialInstance(materialInstance);
+      }, bg: kRed, postProcessing: true);
+    });
+
     test('apply texture to custom ubershader material instance', () async {
       var viewer = await testHelper.createViewer();
       await viewer.addLight(LightType.SUN, 6500, 1000000, 0, 0, 0, 0, 0, -1);

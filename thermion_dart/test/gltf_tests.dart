@@ -43,11 +43,13 @@ void main() async {
 
         await viewer.destroyAsset(instance);
 
-        await testHelper.capture(viewer, "load_glb_from_buffer_instance_removed");
+        await testHelper.capture(
+            viewer, "load_glb_from_buffer_instance_removed");
 
         await viewer.destroyAsset(model);
 
-        await testHelper.capture(viewer, "load_glb_from_buffer_original_removed");
+        await testHelper.capture(
+            viewer, "load_glb_from_buffer_original_removed");
       }, bg: kRed);
     });
 
@@ -115,7 +117,7 @@ void main() async {
       });
     });
 
-    test('replace material instance for gltf', () async {
+    test('replace material instance with unlit material', () async {
       await testHelper.withViewer((viewer) async {
         var model = await viewer
             .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
@@ -124,10 +126,28 @@ void main() async {
         await materialInstance.setParameterFloat4(
             "baseColorFactor", 1.0, 1.0, 0.0, 1.0);
         await model.setMaterialInstanceAt(materialInstance);
-        await testHelper.capture(viewer, "gltf_set_material_instance");
+        await testHelper.capture(
+            viewer, "gltf_replace_material_instance_unlit");
         await viewer.destroyAsset(model);
         await viewer.destroyMaterialInstance(materialInstance);
       });
+    });
+
+    test('replace material instance with ubershader material', () async {
+      await testHelper.withViewer((viewer) async {
+        var model = await viewer
+            .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+        await viewer
+            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+        var materialInstance = await viewer.createUbershaderMaterialInstance();
+        await materialInstance.setParameterFloat4(
+            "baseColorFactor", 1.0, 1.0, 0.0, 1.0);
+        await model.setMaterialInstanceAt(materialInstance);
+        await testHelper.capture(
+            viewer, "gltf_replace_material_instance_ubershader");
+        await viewer.destroyAsset(model);
+        await viewer.destroyMaterialInstance(materialInstance);
+      }, bg: kRed);
     });
   });
 }
