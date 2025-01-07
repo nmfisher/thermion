@@ -6,7 +6,6 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:path/path.dart' as path;
 
 void main(List<String> args) async {
-
   await build(args, (config, output) async {
     var pkgRootFilePath =
         config.packageRoot.toFilePath(windows: Platform.isWindows);
@@ -56,7 +55,6 @@ void main(List<String> args) async {
     var libDir = config.dryRun ? "" : (await getLibDir(config, logger)).path;
 
     final packageName = config.packageName;
-    
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
@@ -76,8 +74,10 @@ void main(List<String> args) async {
       path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "unlit.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "gizmo.c"),
-      path.join(pkgRootFilePath, "native", "include", "resources", "translation_gizmo_glb.c"),
-      path.join(pkgRootFilePath, "native", "include", "resources", "rotation_gizmo_glb.c"),
+      path.join(pkgRootFilePath, "native", "include", "resources",
+          "translation_gizmo_glb.c"),
+      path.join(pkgRootFilePath, "native", "include", "resources",
+          "rotation_gizmo_glb.c"),
     ]);
 
     var libs = [
@@ -86,10 +86,13 @@ void main(List<String> args) async {
       "filameshio",
       "viewer",
       "filamat",
+      "meshoptimizer",
+      "mikktspace",
       "geometry",
       "utils",
       "filabridge",
       "gltfio_core",
+      "gltfio",
       "filament-iblprefilter",
       "image",
       "imageio",
@@ -118,8 +121,9 @@ void main(List<String> args) async {
       libs.add("stdc++");
     }
     final flags = []; //"-fsanitize=address"];
+
     final defines = <String, String?>{
-      // "ENABLE_TRACING":"1"
+    //  "ENABLE_TRACING": "1" // uncomment this to enable (very verbose) trace logging
     };
     var frameworks = [];
 
@@ -160,9 +164,12 @@ void main(List<String> args) async {
         'Cocoa',
         "Metal",
       ]);
-  
+
       if (!config.dryRun && config.buildMode == BuildMode.debug) {
-        flags.addAll(["-g", "-O0"]);
+        flags.addAll([
+          "-g",
+          "-O0",
+        ]);
       }
 
       libs.addAll(["bluegl", "bluevk"]);
@@ -287,7 +294,7 @@ void main(List<String> args) async {
   });
 }
 
-String _FILAMENT_VERSION = "v1.51.2";
+String _FILAMENT_VERSION = "v1.56.4";
 String _getLibraryUrl(String platform, String mode) {
   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
 }
@@ -307,7 +314,7 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
   // However, if you know what you're doing, you can change "release" to "debug" below.
   // TODO - check if we can pass this as a CLI compiler flag
   var mode = "release";
-  if (platform == "windows") {
+  if ({OS.windows, OS.macOS}.contains(config.targetOS)) {
     mode = config.buildMode == BuildMode.debug ? "debug" : "release";
   }
 
