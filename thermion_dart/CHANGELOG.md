@@ -1,3 +1,7 @@
+## 0.2.1-dev.20.0
+
+ - **FIX**: only use Windows-style ndkRoot when building on Windows.
+
 ## 0.2.1-dev.19.0
 
 > Note: This release has breaking changes.
