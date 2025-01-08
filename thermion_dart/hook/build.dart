@@ -213,7 +213,7 @@ void main(List<String> args) async {
         }
 
         var ndkRoot =
-            File(compilerPath).parent.parent.uri.toFilePath(windows: true);
+            File(compilerPath).parent.parent.uri.toFilePath(windows: Platform.isWindows);
 
         var stlPath = File([
           ndkRoot,
