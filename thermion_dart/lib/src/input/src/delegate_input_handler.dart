@@ -269,7 +269,6 @@ class DelegateInputHandler implements InputHandler {
     // noop
   }
 
-  double? _lastScale;
 
   @override
   Future<void> onScaleUpdate(
@@ -284,21 +283,8 @@ class DelegateInputHandler implements InputHandler {
     if (pointerCount == 1) {
       _inputDeltas[InputType.SCALE1] =
           Vector3(focalPointDelta.x, focalPointDelta.y, 0);
-    } else if (pointerCount == 2) {
-      var zoomDelta = 0.0;
-      if (_lastScale == null) {
-        if (scale < 0) {
-          zoomDelta = 1;
-        } else if (scale > 0) {
-          zoomDelta = -1;
-        }
-        _lastScale = scale;
-      } else {
-        zoomDelta = scale < _lastScale! ? 1 : -1;
-        _lastScale = scale;
-      }
-
-      _inputDeltas[InputType.SCALE2] = Vector3(0, 0, zoomDelta);
+    } else if (pointerCount == 2) {      
+      _inputDeltas[InputType.SCALE2] = Vector3(0, 0, scale);
     } else {
       throw UnimplementedError("Only pointerCount <= 2 supported");
     }
