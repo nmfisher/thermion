@@ -1,3 +1,9 @@
+## 0.2.1-dev.21.0
+
+> Note: This release has breaking changes.
+
+ - **BREAKING** **FEAT**: use raw pointer scale (>1 meaning zoom in, <1 meaning zoom out) rather than binary -1/1 for DelegateInputHandler.
+
 ## 0.2.1-dev.20.0
 
  - **FIX**: only use Windows-style ndkRoot when building on Windows.

@@ -1,3 +1,7 @@
+## 0.2.1-dev.21.0
+
+ - Bump "thermion_flutter_ffi" to `0.2.1-dev.21.0`.
+
 ## 0.2.1-dev.20.0
 
  - Bump "thermion_flutter_ffi" to `0.2.1-dev.20.0`.
