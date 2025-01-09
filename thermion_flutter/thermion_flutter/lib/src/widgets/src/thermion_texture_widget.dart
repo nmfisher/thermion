@@ -148,7 +148,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       if (!mounted) {
         return;
       }
-      if (widget.viewer.rendering && !_rendering && _resizing.isEmpty) {
+      if (widget.viewer.rendering && !_rendering && _resizing.isEmpty && (d.inMilliseconds - lastRender > widget.viewer.frameRateInMilliseconds)) {
         _rendering = true;
         if (this == _states.first && _texture != null) {
           await widget.viewer.requestFrame();

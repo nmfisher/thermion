@@ -99,6 +99,11 @@ abstract class ThermionViewer {
   Future<View> getViewAt(int index);
 
   ///
+  ///
+  ///
+  double get msPerFrame;
+
+  ///
   /// Sets the framerate for continuous rendering when [setRendering] is enabled.
   ///
   Future setFrameRate(int framerate);
