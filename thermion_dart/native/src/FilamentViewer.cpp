@@ -141,17 +141,13 @@ namespace thermion
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
  #endif
 
-    _engine->setAutomaticInstancingEnabled(true);
-
     _renderer = _engine->createRenderer();
 
     Renderer::ClearOptions clearOptions;
     clearOptions.clear = true;
     _renderer->setClearOptions(clearOptions);
 
-    _frameInterval = 1000.0f / 60.0f;
-
-    setFrameInterval(_frameInterval);
+    setFrameInterval(60.0f);
 
     _scene = _engine->createScene();
 
@@ -177,10 +173,8 @@ namespace thermion
 
   void FilamentViewer::setFrameInterval(float frameInterval)
   {
-    _frameInterval = frameInterval;
     Renderer::FrameRateOptions fro;
-    fro.interval = 1; // frameInterval;
-    fro.history = 5;
+    fro.interval = frameInterval / 60.0; // TODO don't hardcode display refresh rate
     _renderer->setFrameRateOptions(fro);
   }
 
@@ -660,7 +654,7 @@ namespace thermion
     view->setBlendMode(filament::View::BlendMode::TRANSLUCENT);
     view->setStencilBufferEnabled(true);
     view->setAmbientOcclusionOptions({.enabled = false});
-    view->setDynamicResolutionOptions({.enabled = false});
+    view->setDynamicResolutionOptions({.enabled = true});
     ACESToneMapper tm;
     auto colorGrading = ColorGrading::Builder().toneMapper(&tm).build(*_engine);
     view->setColorGrading(colorGrading);
@@ -668,10 +662,7 @@ namespace thermion
     view->setStereoscopicOptions({.enabled = false});
 #endif
 
-    // bloom can be a bit glitchy (some Intel iGPUs won't render when postprocessing is enabled and bloom is disabled,
-    // and render targets on MacOS flicker when bloom is disabled.  
-    // Here, we enable bloom, but set to 0 strength
-    view->setBloomOptions({.strength = 0, .enabled=true });
+    view->setBloomOptions({.strength = 0, .enabled=false });
     view->setShadowingEnabled(false);
     view->setScreenSpaceRefractionEnabled(false);
     view->setPostProcessingEnabled(false);
