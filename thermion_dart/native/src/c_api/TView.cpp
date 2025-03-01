@@ -81,12 +81,12 @@ using namespace filament;
         view->setSoftShadowOptions(opts);
     }
 
-    EMSCRIPTEN_KEEPALIVE void View_setBloom(TView *tView, float strength)
+    EMSCRIPTEN_KEEPALIVE void View_setBloom(TView *tView, bool enabled, float strength)
     {
         auto view = reinterpret_cast<View *>(tView);
 #ifndef __EMSCRIPTEN__
         decltype(view->getBloomOptions()) opts;
-        opts.enabled = true;
+        opts.enabled = enabled;
         opts.strength = strength;
         view->setBloomOptions(opts);
 #endif
@@ -172,8 +172,7 @@ using namespace filament;
         auto view = reinterpret_cast<View *>(tView);
         return view->isStencilBufferEnabled();
     }
-
-        
+       
 
     EMSCRIPTEN_KEEPALIVE void View_pick(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback)
     {
@@ -196,6 +195,13 @@ using namespace filament;
         auto *view = reinterpret_cast<View *>(tView);
         return view->getDithering() == Dithering::TEMPORAL;
     }
+    EMSCRIPTEN_KEEPALIVE void View_setRenderQuality(TView *tView, TQualityLevel qualityLevel) {
+        auto view = reinterpret_cast<View *>(tView);
+        RenderQuality rq;
+        rq.hdrColorBuffer = (filament::QualityLevel)qualityLevel;
+        view->setRenderQuality(rq);
+    }
+
 
 #ifdef __cplusplus
 }
