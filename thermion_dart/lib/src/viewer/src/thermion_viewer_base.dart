@@ -465,9 +465,9 @@ abstract class ThermionViewer {
   Future setToneMapping(ToneMapper mapper);
 
   ///
-  /// Sets the strength of the bloom (requires postprocessing).
+  /// Enable/disable bloom.
   ///
-  Future setBloom(double bloom);
+  Future setBloom(bool enabled, double strength);
 
   ///
   /// Sets the focal length of the camera. Default value is 28.0.
