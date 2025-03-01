@@ -889,361 +889,6 @@ external ffi.Pointer<TCamera> View_getCamera(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
 external void View_setStencilBufferEnabled(
   ffi.Pointer<TView> tView,
-  ffi.Pointer<TEngine> tEngine,
-  int thermion,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Double)>(
-    isLeaf: true)
-external void View_setBloomRenderThread(
-  ffi.Pointer<TView> tView,
-  bool enabled,
-  double strength,
-);
-
-@ffi.Native<FilamentRenderCallback Function(FilamentRenderCallback)>(
-    isLeaf: true)
-external FilamentRenderCallback make_render_callback_fn_pointer(
-  FilamentRenderCallback arg0,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void set_rendering_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  bool rendering,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float)>(isLeaf: true)
-external void set_frame_interval_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  double frameInterval,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Float,
-        ffi.Float)>(isLeaf: true)
-external void set_background_color_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  double r,
-  double g,
-  double b,
-  double a,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void clear_background_image_render_thread(
-  ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>, ffi.Bool,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void set_background_image_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Char> path,
-  bool fillHeight,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TViewer>, ffi.Float, ffi.Float, ffi.Bool)>(isLeaf: true)
-external void set_background_image_position_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  double x,
-  double y,
-  bool clamp,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, ffi.Pointer<ffi.Char>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void load_skybox_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.Char> skyboxPath,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
-external void remove_skybox_render_thread(
-  ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Uint16>,
-            ffi.Int,
-            ffi.Int,
-            ffi.Pointer<TMaterialInstance>,
-            ffi.Bool,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void SceneManager_createGeometryRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Float> vertices,
-  int numVertices,
-  ffi.Pointer<ffi.Float> normals,
-  int numNormals,
-  ffi.Pointer<ffi.Float> uvs,
-  int numUvs,
-  ffi.Pointer<ffi.Uint16> indices,
-  int numIndices,
-  int primitiveType,
-  ffi.Pointer<TMaterialInstance> materialInstance,
-  bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Uint8>,
-            ffi.Size,
-            ffi.Int,
-            ffi.Bool,
-            ffi.Int,
-            ffi.Int,
-            ffi.Bool,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void SceneManager_loadGlbFromBufferRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Uint8> data,
-  int length,
-  int numInstances,
-  bool keepData,
-  int priority,
-  int layer,
-  bool loadResourcesAsync,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(
-                    ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
-external void SceneManager_createUnlitMaterialInstanceRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<
-          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
-      callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(
-                    ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
-external void SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<
-          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
-      callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Char>,
-            ffi.Int,
-            ffi.Bool,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void load_glb_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Char> assetPath,
-  int numInstances,
-  bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Char>,
-            ffi.Pointer<ffi.Char>,
-            ffi.Bool,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void load_gltf_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Char> assetPath,
-  ffi.Pointer<ffi.Char> relativePath,
-  bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void create_instance_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int entityId,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>, EntityId,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void remove_entity_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  int asset,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TViewer>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void clear_entities_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
-        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Float>, ffi.Int)>(isLeaf: true)
-external void apply_weights_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.Char> entityName,
-  ffi.Pointer<ffi.Float> weights,
-  int count,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>, EntityId, ffi.Int, ffi.Int)>(isLeaf: true)
-external void set_animation_frame_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  int animationIndex,
-  int animationFrame,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, ffi.Int)>(
-    isLeaf: true)
-external void stop_animation_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  int index,
-);
-
-@ffi.Native<
-        ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>)>(
-    isLeaf: true)
-external void get_animation_count_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>,
-        EntityId,
-        ffi.Pointer<ffi.Char>,
-        ffi.Int,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void get_animation_name_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.Char> outPtr,
-  int index,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>,
-        EntityId,
-        EntityId,
-        ffi.Pointer<ffi.Char>,
-        ffi.Int,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void get_morph_target_name_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int assetEntity,
-  int childEntity,
-  ffi.Pointer<ffi.Char> outPtr,
-  int index,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId, EntityId,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>>)>(
-    isLeaf: true)
-external void get_morph_target_name_count_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  int childEntity,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int32)>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            EntityId,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
-    isLeaf: true)
-external void set_morph_target_weights_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.Float> morphData,
-  int numWeights,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
-    isLeaf: true)
-external void update_bone_matrices_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            EntityId,
-            ffi.Int,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
-    isLeaf: true)
-external void set_bone_transform_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int asset,
-  int skinIndex,
-  int boneIndex,
-  ffi.Pointer<ffi.Float> transform,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>, ffi.Bool)>(isLeaf: true)
-external void set_post_processing_render_thread(
-  ffi.Pointer<TViewer> viewer,
   bool enabled,
 );
 
@@ -1806,10 +1451,12 @@ external void View_setToneMappingRenderThread(
   int thermion,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Double)>(
+    isLeaf: true)
 external void View_setBloomRenderThread(
   ffi.Pointer<TView> tView,
-  double bloom,
+  bool enabled,
+  double strength,
 );
 
 @ffi.Native<
@@ -3404,6 +3051,24 @@ enum ToneMapping {
       };
 }
 
+enum TQualityLevel {
+  LOW(0),
+  MEDIUM(1),
+  HIGH(2),
+  ULTRA(3);
+
+  final int value;
+  const TQualityLevel(this.value);
+
+  static TQualityLevel fromValue(int value) => switch (value) {
+        0 => LOW,
+        1 => MEDIUM,
+        2 => HIGH,
+        3 => ULTRA,
+        _ => throw ArgumentError("Unknown value for TQualityLevel: $value"),
+      };
+}
+
 typedef PickCallback = ffi.Pointer<ffi.NativeFunction<PickCallbackFunction>>;
 typedef PickCallbackFunction = ffi.Void Function(
     ffi.Uint32 requestId,
@@ -3533,89 +3198,6 @@ typedef LoadFilamentResourceIntoOutPointerFunction = ffi.Void Function(
     ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
 typedef DartLoadFilamentResourceIntoOutPointerFunction = void Function(
     ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
-
-/// This header replicates most of the methods in ThermionDartApi.h.
-/// It represents the interface for:
-/// - invoking those methods that must be called on the main Filament engine thread
-/// - setting up a render loop
-typedef EntityId = ffi.Int32;
-typedef DartEntityId = int;
-
-final class TViewport extends ffi.Struct {
-  @ffi.Int32()
-  external int left;
-
-  @ffi.Int32()
-  external int bottom;
-
-  @ffi.Uint32()
-  external int width;
-
-  @ffi.Uint32()
-  external int height;
-}
-
-enum ToneMapping {
-  ACES(0),
-  FILMIC(1),
-  LINEAR(2);
-
-  final int value;
-  const ToneMapping(this.value);
-
-  static ToneMapping fromValue(int value) => switch (value) {
-        0 => ACES,
-        1 => FILMIC,
-        2 => LINEAR,
-        _ => throw ArgumentError("Unknown value for ToneMapping: $value"),
-      };
-}
-
-enum TQualityLevel {
-  LOW(0),
-  MEDIUM(1),
-  HIGH(2),
-  ULTRA(3);
-
-  final int value;
-  const TQualityLevel(this.value);
-
-  static TQualityLevel fromValue(int value) => switch (value) {
-        0 => LOW,
-        1 => MEDIUM,
-        2 => HIGH,
-        3 => ULTRA,
-        _ => throw ArgumentError("Unknown value for TQualityLevel: $value"),
-      };
-}
-
-typedef FilamentRenderCallback
-    = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
-typedef FilamentRenderCallbackFunction = ffi.Void Function(
-    ffi.Pointer<ffi.Void> owner);
-typedef DartFilamentRenderCallbackFunction = void Function(
-    ffi.Pointer<ffi.Void> owner);
-
-enum Projection {
-  Perspective(0),
-  Orthographic(1);
-
-  final int value;
-  const Projection(this.value);
-
-  static Projection fromValue(int value) => switch (value) {
-        0 => Perspective,
-        1 => Orthographic,
-        _ => throw ArgumentError("Unknown value for Projection: $value"),
-      };
-}
-
-typedef GizmoPickCallback
-    = ffi.Pointer<ffi.NativeFunction<GizmoPickCallbackFunction>>;
-typedef GizmoPickCallbackFunction = ffi.Void Function(
-    EntityId entityId, ffi.Uint32 x, ffi.Uint32 y, ffi.Pointer<TView> view);
-typedef DartGizmoPickCallbackFunction = void Function(
-    DartEntityId entityId, int x, int y, ffi.Pointer<TView> view);
 
 const int __bool_true_false_are_defined = 1;
 
