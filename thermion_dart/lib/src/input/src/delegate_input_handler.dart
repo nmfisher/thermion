@@ -292,7 +292,7 @@ class DelegateInputHandler implements InputHandler {
     if (pointerCount == 1) {
       _inputDeltas[InputType.SCALE1] =
           Vector3(focalPointDelta.x, focalPointDelta.y, 0);
-    } else if (pointerCount == 2) {      
+    } else if (pointerCount == 2) {
       _inputDeltas[InputType.SCALE2] = Vector3(0, 0, scale);
     } else {
       throw UnimplementedError("Only pointerCount <= 2 supported");
