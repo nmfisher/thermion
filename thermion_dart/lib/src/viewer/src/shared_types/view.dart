@@ -14,6 +14,13 @@ class Viewport {
   Viewport(this.left, this.bottom, this.width, this.height);
 }
 
+enum QualityLevel {
+    LOW,
+    MEDIUM,
+    HIGH,
+    ULTRA
+}
+
 abstract class View {
   Future<Viewport> getViewport();
   Future updateViewport(int width, int height);
@@ -26,9 +33,10 @@ abstract class View {
   Future setRenderable(bool renderable, covariant SwapChain swapChain);
   Future setFrustumCullingEnabled(bool enabled);
   Future setToneMapper(ToneMapper mapper);
-  Future setBloom(double strength);
-  Future setStencilBufferEnabled(bool enabled);
+    Future setStencilBufferEnabled(bool enabled);
   Future<bool> isStencilBufferEnabled();
   Future setDithering(bool enabled);
   Future<bool> isDitheringEnabled();
+  Future setBloom(bool enabled, double strength);
+  Future setRenderQuality(QualityLevel quality);
 }
