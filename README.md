@@ -22,6 +22,8 @@
 - camera/entity manipulation with mouse (desktop) and gestures (mobile)
 - skinning + morph animations
 
+Uses the Filament PBR engine (currently v1.56.4).
+
 ### Quickstart (Flutter)
 
 From the command line:
