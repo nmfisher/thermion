@@ -50,7 +50,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
 
         EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping);
-        EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, double bloom);
+        EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength);
         EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)());
 
         FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
