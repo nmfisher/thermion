@@ -13,7 +13,10 @@ Future kDefaultResizeCallback(Size size, t.View view, double pixelRatio) async {
   var far = await camera.getCullingFar();
   var focalLength = await camera.getFocalLength();
 
-  await camera.setLensProjection(near:near, far:far, focalLength: focalLength,
+  await camera.setLensProjection(
+      near: near,
+      far: far,
+      focalLength: focalLength,
       aspect: size.width.toDouble() / size.height.toDouble());
 }
 
@@ -29,20 +32,22 @@ class ThermionWidget extends StatefulWidget {
   final t.View? view;
 
   ///
-  /// A callback to invoke whenever this widget and the underlying surface are 
-  /// resized. If a callback is not explicitly provided, the default callback 
-  /// will be run, which changes the aspect ratio for the active camera in 
-  /// the View managed by this widget. If you specify your own callback, 
+  /// A callback to invoke whenever this widget and the underlying surface are
+  /// resized. If a callback is not explicitly provided, the default callback
+  /// will be run, which changes the aspect ratio for the active camera in
+  /// the View managed by this widget. If you specify your own callback,
   /// you probably want to preserve this behaviour (otherwise the aspect ratio)
-  /// will be incorrect. 
-  /// 
+  /// will be incorrect.
+  ///
   /// To completely disable the resize callback, pass [null].
-  /// 
-  /// IMPORTANT - size is specified in physical pixels, not logical pixels. 
-  /// If you need to work with Flutter dimensions, divide [size] by 
+  ///
+  /// IMPORTANT - size is specified in physical pixels, not logical pixels.
+  /// If you need to work with Flutter dimensions, divide [size] by
   /// [pixelRatio].
   ///
   final Future Function(Size size, t.View view, double pixelRatio)? onResize;
+
+  final bool showFpsCounter;
 
   ///
   /// The content to render before the texture widget is available.
@@ -55,6 +60,7 @@ class ThermionWidget extends StatefulWidget {
       this.initial,
       required this.viewer,
       this.view,
+      this.showFpsCounter = false,
       this.onResize = kDefaultResizeCallback})
       : super(key: key);
 
@@ -98,6 +104,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
         initial: widget.initial,
         viewer: widget.viewer,
         view: view!,
+        showFpsCounter:widget.showFpsCounter,
         onResize: widget.onResize);
   }
 }

@@ -26,12 +26,19 @@ class ThermionTextureWidget extends StatefulWidget {
   ///
   final Future Function(Size size, t.View view, double pixelRatio)? onResize;
 
-  const ThermionTextureWidget(
-      {super.key,
-      required this.viewer,
-      required this.view,
-      this.initial,
-      this.onResize});
+  ///
+  /// When true, an FPS counter will be displayed at the top right of the widget
+  ///
+  final bool showFpsCounter;
+
+  const ThermionTextureWidget({
+    super.key,
+    required this.viewer,
+    required this.view,
+    this.initial,
+    this.onResize,
+    this.showFpsCounter = false,
+  });
 
   @override
   State<StatefulWidget> createState() {
@@ -40,21 +47,27 @@ class ThermionTextureWidget extends StatefulWidget {
 }
 
 class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
-  
   PlatformTextureDescriptor? _texture;
 
   static final _views = <t.View>[];
 
   final _logger = Logger("_ThermionTextureWidgetState");
 
+  int _fps = 0;
+  int _frameCount = 0;
+  int _frameRequestCount = 0;
+  int _frameRequestPercentage = 0;
+  int _lastFpsUpdateTime = 0;
+  Timer? _fpsUpdateTimer;
+
   @override
   void dispose() {
     super.dispose();
     _views.remove(widget.view);
-    if(_texture != null) {
+    if (_texture != null) {
       ThermionFlutterPlatform.instance.destroyTextureDescriptor(_texture!);
     }
-
+    _fpsUpdateTimer?.cancel();
     _states.remove(this);
   }
 
@@ -64,6 +77,23 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       throw Exception("View already embedded in a widget");
     }
     _views.add(widget.view);
+
+    // Start FPS counter update timer if enabled
+    if (widget.showFpsCounter) {
+      _fpsUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() {
+            _fps = _frameCount;
+            _frameRequestPercentage = _frameCount > 0
+                ? (_frameCount / _frameRequestCount * 100).round()
+                : 0;
+            _frameCount = 0;
+            _frameRequestCount = 0;
+          });
+        }
+      });
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       await widget.viewer.initialized;
 
@@ -71,9 +101,9 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
       var size = ((context.findRenderObject()) as RenderBox).size;
 
-      _logger.info(
-          "Widget size in logical pixels ${size} (pixel ratio : $dpr)");
-      
+      _logger
+          .info("Widget size in logical pixels ${size} (pixel ratio : $dpr)");
+
       var width = (size.width * dpr).ceil();
       var height = (size.height * dpr).ceil();
 
@@ -111,7 +141,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
         if (mounted) {
           setState(() {});
         }
-        if(texture != null) {
+        if (texture != null) {
           ThermionFlutterPlatform.instance.destroyTextureDescriptor(texture);
         }
 
@@ -126,6 +156,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
   static final _states = <_ThermionTextureWidgetState>{};
 
   int lastRender = 0;
+  int _headroomInMs = 5;
 
   ///
   /// Each instance of ThermionTextureWidget in the widget hierarchy must
@@ -144,18 +175,32 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     if (!mounted) {
       return;
     }
+
+    if (widget.showFpsCounter) {
+      _frameRequestCount++;
+    }
+
     WidgetsBinding.instance.scheduleFrameCallback((d) async {
       if (!mounted) {
         return;
       }
-      if (widget.viewer.rendering && !_rendering && _resizing.isEmpty && (d.inMilliseconds - lastRender > widget.viewer.msPerFrame)) {
+      if (widget.viewer.rendering &&
+          !_rendering &&
+          _resizing.isEmpty &&
+          (d.inMilliseconds - lastRender >
+              widget.viewer.msPerFrame - _headroomInMs)) {
         _rendering = true;
         if (this == _states.first && _texture != null) {
           await widget.viewer.requestFrame();
           lastRender = d.inMilliseconds;
+
+          if (widget.showFpsCounter) {
+            _frameCount++;
+          }
         }
-        if(_texture != null) {
-          await ThermionFlutterPlatform.instance.markTextureFrameAvailable(_texture!);
+        if (_texture != null) {
+          await ThermionFlutterPlatform.instance
+              .markTextureFrameAvailable(_texture!);
         }
         _rendering = false;
       }
@@ -197,7 +242,8 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       _logger.info(
           "Resizing texture to dimensions ${newWidth}x${newHeight} (pixel ratio : $dpr)");
 
-      _texture = await ThermionFlutterPlatform.instance.resizeTexture(_texture!, widget.view, newWidth, newHeight);
+      _texture = await ThermionFlutterPlatform.instance
+          .resizeTexture(_texture!, widget.view, newWidth, newHeight);
 
       _logger.info(
           "Resized texture to dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
@@ -225,15 +271,50 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     }
 
     return ResizeObserver(
-        onResized: _resize,
-        child: Stack(children: [
+      onResized: _resize,
+      child: Stack(
+        children: [
           Positioned.fill(
               child: Texture(
             key: ObjectKey("flutter_texture_${_texture!.flutterTextureId}"),
             textureId: _texture!.flutterTextureId,
             filterQuality: FilterQuality.none,
             freeze: false,
-          ))
-        ]));
+          )),
+          if (widget.showFpsCounter)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$_fps FPS',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Render: $_frameRequestPercentage%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
