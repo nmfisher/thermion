@@ -572,13 +572,12 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
-
-  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, double bloom)
-  {
+  
+  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength) { 
     std::packaged_task<void()> lambda(
         [=]
         {
-          View_setBloom(tView, bloom);
+          View_setBloom(tView, enabled, strength);
         });
     auto fut = _rl->add_task(lambda);
   }
