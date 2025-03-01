@@ -1194,9 +1194,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setBloom(double bloom) async {
+  Future setBloom(bool enabled, double strength) async {
     final view = await getViewAt(0) as FFIView;
-    View_setBloom(view.view, bloom);
+    View_setBloom(view.view, enabled, strength);
   }
 
   ///

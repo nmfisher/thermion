@@ -75,8 +75,10 @@ class FFIView extends View {
   }
 
   @override
-  Future setBloom(double strength) async {
-    View_setBloom(view, strength);
+  Future setBloom(bool enabled, double strength) async {
+    await withVoidCallback((cb) {
+      View_setBloomRenderThread(view, enabled, strength);
+    });
   }
 
   @override
@@ -99,5 +101,10 @@ class FFIView extends View {
 
   Future<bool> isDitheringEnabled() async {
     return View_isDitheringEnabled(view);
+  }
+
+  @override
+  Future setRenderQuality(QualityLevel quality) async {
+    View_setRenderQuality(view, TQualityLevel.values[quality.index]);
   }
 }
