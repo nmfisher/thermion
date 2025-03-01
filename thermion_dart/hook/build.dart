@@ -89,6 +89,7 @@ void main(List<String> args) async {
       "meshoptimizer",
       "mikktspace",
       "geometry",
+      "geometry_combined",
       "utils",
       "filabridge",
       "gltfio_core",
