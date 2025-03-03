@@ -1,0 +1,24 @@
+material {
+    name : TextureProjection,
+    requires : [ position, uv0 ],
+    shadingModel : unlit,
+    doubleSided : true,
+    depthWrite : true,
+    depthCulling : true,
+    vertexDomain: object,
+    parameters : [
+        {
+            type : sampler2d,
+            name : inputTexture
+        }
+    ],
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 viewportCoord = getNormalizedViewportCoord();
+        vec4 sampledColor = texture(materialParams_inputTexture, uvToRenderTargetUV(viewportCoord.xy));
+        material.baseColor = sampledColor;
+    }
+}
