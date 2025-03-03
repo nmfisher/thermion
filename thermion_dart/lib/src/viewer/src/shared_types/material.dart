@@ -1,3 +1,5 @@
+import 'package:thermion_dart/thermion_dart.dart';
+
 enum SamplerCompareFunction {
   /// !< Less or equal
   LE,
@@ -70,27 +72,23 @@ enum StencilFace {
   FRONT_AND_BACK
 }
 
-enum AlphaMode { 
-  OPAQUE, 
-  MASK, 
-  BLEND 
-}
+enum AlphaMode { OPAQUE, MASK, BLEND }
 
-enum TransparencyMode { 
-  	//! the transparent object is drawn honoring the raster state
-		DEFAULT,
-		/**
+enum TransparencyMode {
+  //! the transparent object is drawn honoring the raster state
+  DEFAULT,
+  /**
 		 * the transparent object is first drawn in the depth buffer,
 		 * then in the color buffer, honoring the culling mode, but ignoring the depth test function
 		 */
-		TWO_PASSES_ONE_SIDE,
+  TWO_PASSES_ONE_SIDE,
 
-		/**
+  /**
 		 * the transparent object is drawn twice in the color buffer,
 		 * first with back faces only, then with front faces; the culling
 		 * mode is ignored. Can be combined with two-sided lighting
 		 */
-		TWO_PASSES_TWO_SIDES
+  TWO_PASSES_TWO_SIDES
 }
 
 abstract class Material {
@@ -108,6 +106,8 @@ abstract class MaterialInstance {
   Future setParameterFloat2(String name, double x, double y);
   Future setParameterFloat(String name, double x);
   Future setParameterInt(String name, int value);
+  Future setParameterTexture(
+      String name, covariant Texture texture, covariant TextureSampler sampler);
 
   /// Sets the stencil operation to be performed when the stencil test fails
   Future setStencilOpStencilFail(StencilOperation op,

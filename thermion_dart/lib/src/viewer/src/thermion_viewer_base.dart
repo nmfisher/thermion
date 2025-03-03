@@ -778,6 +778,17 @@ abstract class ThermionViewer {
   Future<Texture> createTexture(int width, int height,
       {TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
       TextureFormat textureFormat = TextureFormat.RGBA16F});
+      
+Future<TextureSampler> createTextureSampler({
+ TextureMinFilter minFilter = TextureMinFilter.LINEAR,
+ TextureMagFilter magFilter = TextureMagFilter.LINEAR,
+ TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE,
+ TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE,
+ TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE,
+ double anisotropy = 0.0,
+ TextureCompareMode compareMode = TextureCompareMode.NONE,
+ TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL
+});
 
   ///
   /// Decodes the specified image data.

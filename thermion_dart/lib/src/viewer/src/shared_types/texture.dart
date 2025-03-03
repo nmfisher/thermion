@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 /// Defines the type of sampler to use with a texture
@@ -173,40 +174,82 @@ enum TextureUsage {
   SAMPLEABLE
 }
 
-/// Defines texture filter types for magnification and minification
-enum TextureFilter {
+/// Defines texture wrapping modes for texture coordinates
+enum TextureWrapMode {
+  /// Clamps texture coordinates to edge, extending edge pixels
+  CLAMP_TO_EDGE,
+
+  /// Repeats the texture (tiles)
+  REPEAT,
+
+  /// Mirrors the texture at each repeat
+  MIRRORED_REPEAT
+}
+
+/// Defines texture minification filter types
+enum TextureMinFilter {
   /// Nearest neighbor sampling (pixelated look)
   NEAREST,
 
   /// Linear interpolation between texels
   LINEAR,
 
-  /// Nearest neighbor filtering but uses mipmaps for minification
+  /// Nearest neighbor filtering with nearest mipmap
   NEAREST_MIPMAP_NEAREST,
 
-  /// Linear filtering and uses nearest mipmap level
+  /// Linear filtering with nearest mipmap
   LINEAR_MIPMAP_NEAREST,
 
-  /// Nearest filtering but linearly interpolates between mipmap levels
+  /// Nearest filtering with linear mipmap interpolation
   NEAREST_MIPMAP_LINEAR,
 
-  /// Linear filtering and linear interpolation between mipmap levels (best quality)
+  /// Linear filtering with linear mipmap interpolation (best quality)
   LINEAR_MIPMAP_LINEAR
 }
 
-/// Defines texture wrapping modes for when texture coordinates exceed [0,1]
-enum TextureWrapMode {
-  /// Repeats the texture (tiles)
-  REPEAT,
+/// Defines texture magnification filter types
+enum TextureMagFilter {
+  /// Nearest neighbor sampling (pixelated look)
+  NEAREST,
 
-  /// Mirrors the texture at each repeat
-  MIRRORED_REPEAT,
+  /// Linear interpolation between texels
+  LINEAR
+}
 
-  /// Clamps texture coordinates to edge, extending edge pixels
-  CLAMP_TO_EDGE,
+/// Defines texture comparison modes
+enum TextureCompareMode {
+  /// No comparison is performed
+  NONE,
 
-  /// Clamps to border color (usually transparent or black)
-  CLAMP_TO_BORDER
+  /// Compare texture values to reference value
+  COMPARE_TO_TEXTURE
+}
+
+/// Defines texture comparison functions
+enum TextureCompareFunc {
+  /// Less than or equal
+  LESS_EQUAL,
+
+  /// Greater than or equal
+  GREATER_EQUAL,
+
+  /// Less than
+  LESS,
+
+  /// Greater than
+  GREATER,
+
+  /// Equal
+  EQUAL,
+
+  /// Not equal
+  NOT_EQUAL,
+
+  /// Always passes
+  ALWAYS,
+
+  /// Never passes
+  NEVER
 }
 
 /// Defines swizzle operations for texture components
@@ -235,20 +278,6 @@ enum TextureSwizzle {
 
 /// Defines the texture sampler configuration
 abstract class TextureSampler {
-  /// Creates a new texture sampler with specified filtering and wrapping modes
-  Future<TextureSampler> create(TextureFilter minFilter,
-      TextureFilter magFilter, TextureWrapMode wrapS, TextureWrapMode wrapT,
-      [TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE]);
-
-  /// Creates a texture sampler with comparison mode for shadow mapping
-  Future<TextureSampler> createComparisonSampler(
-      TextureFilter minFilter,
-      TextureFilter magFilter,
-      TextureWrapMode wrapS,
-      TextureWrapMode wrapT,
-      SamplerCompareFunction compareMode,
-      [TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE]);
-
   /// Disposes the sampler resources
   Future dispose();
 }
@@ -273,7 +302,8 @@ abstract class Texture {
   /// Returns the internal format of this texture
   Future<TextureFormat> getFormat();
 
-  Future setLinearImage(covariant LinearImage image, PixelDataFormat format, PixelDataType type);
+  Future setLinearImage(
+      covariant LinearImage image, PixelDataFormat format, PixelDataType type);
 
   /// Sets the image data for a 2D texture or a texture level
   Future setImage(
@@ -307,34 +337,82 @@ abstract class Texture {
 }
 
 enum PixelDataFormat {
-  R,                 /// One Red channel, float
-  R_INTEGER,         /// One Red channel, integer
-  RG,                /// Two Red and Green channels, float
-  RG_INTEGER,        /// Two Red and Green channels, integer
-  RGB,               /// Three Red, Green and Blue channels, float
-  RGB_INTEGER,       /// Three Red, Green and Blue channels, integer
-  RGBA,              /// Four Red, Green, Blue and Alpha channels, float
-  RGBA_INTEGER,      /// Four Red, Green, Blue and Alpha channels, integer
-  UNUSED,            /// Used to be rgbm
-  DEPTH_COMPONENT,   /// Depth, 16-bit or 24-bits usually
-  DEPTH_STENCIL,     /// Two Depth (24-bits) + Stencil (8-bits) channels
-  ALPHA              /// One Alpha channel, float
+  R,
+
+  /// One Red channel, float
+  R_INTEGER,
+
+  /// One Red channel, integer
+  RG,
+
+  /// Two Red and Green channels, float
+  RG_INTEGER,
+
+  /// Two Red and Green channels, integer
+  RGB,
+
+  /// Three Red, Green and Blue channels, float
+  RGB_INTEGER,
+
+  /// Three Red, Green and Blue channels, integer
+  RGBA,
+
+  /// Four Red, Green, Blue and Alpha channels, float
+  RGBA_INTEGER,
+
+  /// Four Red, Green, Blue and Alpha channels, integer
+  UNUSED,
+
+  /// Used to be rgbm
+  DEPTH_COMPONENT,
+
+  /// Depth, 16-bit or 24-bits usually
+  DEPTH_STENCIL,
+
+  /// Two Depth (24-bits) + Stencil (8-bits) channels
+  ALPHA
+
+  /// One Alpha channel, float
 }
 
 /// Pixel Data Type
 enum PixelDataType {
-  UBYTE,                /// Unsigned byte
-  BYTE,                 /// Signed byte
-  USHORT,               /// Unsigned short (16-bit)
-  SHORT,                /// Signed short (16-bit)
-  UINT,                 /// Unsigned int (32-bit)
-  INT,                  /// Signed int (32-bit)
-  HALF,                 /// Half-float (16-bit float)
-  FLOAT,                /// Float (32-bits float)
-  COMPRESSED,           /// Compressed pixels, see CompressedPixelDataType
-  UINT_10F_11F_11F_REV, /// Three low precision floating-point numbers
-  USHORT_565,           /// Unsigned int (16-bit), encodes 3 RGB channels
-  UINT_2_10_10_10_REV,  /// Unsigned normalized 10 bits RGB, 2 bits alpha
+  UBYTE,
+
+  /// Unsigned byte
+  BYTE,
+
+  /// Signed byte
+  USHORT,
+
+  /// Unsigned short (16-bit)
+  SHORT,
+
+  /// Signed short (16-bit)
+  UINT,
+
+  /// Unsigned int (32-bit)
+  INT,
+
+  /// Signed int (32-bit)
+  HALF,
+
+  /// Half-float (16-bit float)
+  FLOAT,
+
+  /// Float (32-bits float)
+  COMPRESSED,
+
+  /// Compressed pixels, see CompressedPixelDataType
+  UINT_10F_11F_11F_REV,
+
+  /// Three low precision floating-point numbers
+  USHORT_565,
+
+  /// Unsigned int (16-bit), encodes 3 RGB channels
+  UINT_2_10_10_10_REV,
+
+  /// Unsigned normalized 10 bits RGB, 2 bits alpha
 }
 
 @deprecated
@@ -345,4 +423,12 @@ abstract class LinearImage {
   Future<int> getWidth();
   Future<int> getHeight();
   Future<int> getChannels();
+}
+
+class FFITextureSampler extends TextureSampler {
+  final Pointer<TTextureSampler> pointer;
+
+  FFITextureSampler(this.pointer);
+  @override
+  Future dispose() async {}
 }

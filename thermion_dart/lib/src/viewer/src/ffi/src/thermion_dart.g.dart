@@ -949,6 +949,166 @@ external int Image_getChannels(
   ffi.Pointer<TLinearImage> tLinearImage,
 );
 
+@ffi.Native<ffi.Pointer<TTextureSampler> Function()>(isLeaf: true)
+external ffi.Pointer<TTextureSampler> TextureSampler_create();
+
+@ffi.Native<
+        ffi.Pointer<TTextureSampler> Function(ffi.UnsignedInt, ffi.UnsignedInt,
+            ffi.UnsignedInt, ffi.UnsignedInt, ffi.UnsignedInt)>(
+    symbol: "TextureSampler_createWithFiltering", isLeaf: true)
+external ffi.Pointer<TTextureSampler> _TextureSampler_createWithFiltering(
+  int minFilter,
+  int magFilter,
+  int wrapS,
+  int wrapT,
+  int wrapR,
+);
+
+ffi.Pointer<TTextureSampler> TextureSampler_createWithFiltering(
+  TSamplerMinFilter minFilter,
+  TSamplerMagFilter magFilter,
+  TSamplerWrapMode wrapS,
+  TSamplerWrapMode wrapT,
+  TSamplerWrapMode wrapR,
+) =>
+    _TextureSampler_createWithFiltering(
+      minFilter.value,
+      magFilter.value,
+      wrapS.value,
+      wrapT.value,
+      wrapR.value,
+    );
+
+@ffi.Native<
+        ffi.Pointer<TTextureSampler> Function(
+            ffi.UnsignedInt, ffi.UnsignedInt)>(
+    symbol: "TextureSampler_createWithComparison", isLeaf: true)
+external ffi.Pointer<TTextureSampler> _TextureSampler_createWithComparison(
+  int compareMode,
+  int compareFunc,
+);
+
+ffi.Pointer<TTextureSampler> TextureSampler_createWithComparison(
+  TSamplerCompareMode compareMode,
+  TSamplerCompareFunc compareFunc,
+) =>
+    _TextureSampler_createWithComparison(
+      compareMode.value,
+      compareFunc.value,
+    );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
+    symbol: "TextureSampler_setMinFilter", isLeaf: true)
+external void _TextureSampler_setMinFilter(
+  ffi.Pointer<TTextureSampler> sampler,
+  int filter,
+);
+
+void TextureSampler_setMinFilter(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerMinFilter filter,
+) =>
+    _TextureSampler_setMinFilter(
+      sampler,
+      filter.value,
+    );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
+    symbol: "TextureSampler_setMagFilter", isLeaf: true)
+external void _TextureSampler_setMagFilter(
+  ffi.Pointer<TTextureSampler> sampler,
+  int filter,
+);
+
+void TextureSampler_setMagFilter(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerMagFilter filter,
+) =>
+    _TextureSampler_setMagFilter(
+      sampler,
+      filter.value,
+    );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
+    symbol: "TextureSampler_setWrapModeS", isLeaf: true)
+external void _TextureSampler_setWrapModeS(
+  ffi.Pointer<TTextureSampler> sampler,
+  int mode,
+);
+
+void TextureSampler_setWrapModeS(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerWrapMode mode,
+) =>
+    _TextureSampler_setWrapModeS(
+      sampler,
+      mode.value,
+    );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
+    symbol: "TextureSampler_setWrapModeT", isLeaf: true)
+external void _TextureSampler_setWrapModeT(
+  ffi.Pointer<TTextureSampler> sampler,
+  int mode,
+);
+
+void TextureSampler_setWrapModeT(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerWrapMode mode,
+) =>
+    _TextureSampler_setWrapModeT(
+      sampler,
+      mode.value,
+    );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
+    symbol: "TextureSampler_setWrapModeR", isLeaf: true)
+external void _TextureSampler_setWrapModeR(
+  ffi.Pointer<TTextureSampler> sampler,
+  int mode,
+);
+
+void TextureSampler_setWrapModeR(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerWrapMode mode,
+) =>
+    _TextureSampler_setWrapModeR(
+      sampler,
+      mode.value,
+    );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.Double)>(
+    isLeaf: true)
+external void TextureSampler_setAnisotropy(
+  ffi.Pointer<TTextureSampler> sampler,
+  double anisotropy,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
+        ffi.UnsignedInt)>(symbol: "TextureSampler_setCompareMode", isLeaf: true)
+external void _TextureSampler_setCompareMode(
+  ffi.Pointer<TTextureSampler> sampler,
+  int mode,
+  int func,
+);
+
+void TextureSampler_setCompareMode(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerCompareMode mode,
+  TSamplerCompareFunc func,
+) =>
+    _TextureSampler_setCompareMode(
+      sampler,
+      mode.value,
+      func.value,
+    );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>)>(isLeaf: true)
+external void TextureSampler_destroy(
+  ffi.Pointer<TTextureSampler> sampler,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TGizmo>, ffi.Uint32, ffi.Uint32,
         GizmoPickCallback)>(isLeaf: true)
@@ -3593,6 +3753,73 @@ enum TPixelDataType {
         10 => PIXELDATATYPE_USHORT_565,
         11 => PIXELDATATYPE_UINT_2_10_10_10_REV,
         _ => throw ArgumentError("Unknown value for TPixelDataType: $value"),
+      };
+}
+
+enum TSamplerWrapMode {
+  WRAP_CLAMP_TO_EDGE(0),
+  WRAP_REPEAT(1),
+  WRAP_MIRRORED_REPEAT(2);
+
+  final int value;
+  const TSamplerWrapMode(this.value);
+
+  static TSamplerWrapMode fromValue(int value) => switch (value) {
+        0 => WRAP_CLAMP_TO_EDGE,
+        1 => WRAP_REPEAT,
+        2 => WRAP_MIRRORED_REPEAT,
+        _ => throw ArgumentError("Unknown value for TSamplerWrapMode: $value"),
+      };
+}
+
+enum TSamplerMinFilter {
+  FILTER_NEAREST(0),
+  FILTER_LINEAR(1),
+  FILTER_NEAREST_MIPMAP_NEAREST(2),
+  FILTER_LINEAR_MIPMAP_NEAREST(3),
+  FILTER_NEAREST_MIPMAP_LINEAR(4),
+  FILTER_LINEAR_MIPMAP_LINEAR(5);
+
+  final int value;
+  const TSamplerMinFilter(this.value);
+
+  static TSamplerMinFilter fromValue(int value) => switch (value) {
+        0 => FILTER_NEAREST,
+        1 => FILTER_LINEAR,
+        2 => FILTER_NEAREST_MIPMAP_NEAREST,
+        3 => FILTER_LINEAR_MIPMAP_NEAREST,
+        4 => FILTER_NEAREST_MIPMAP_LINEAR,
+        5 => FILTER_LINEAR_MIPMAP_LINEAR,
+        _ => throw ArgumentError("Unknown value for TSamplerMinFilter: $value"),
+      };
+}
+
+enum TSamplerMagFilter {
+  MAG_FILTER_NEAREST(0),
+  MAG_FILTER_LINEAR(1);
+
+  final int value;
+  const TSamplerMagFilter(this.value);
+
+  static TSamplerMagFilter fromValue(int value) => switch (value) {
+        0 => MAG_FILTER_NEAREST,
+        1 => MAG_FILTER_LINEAR,
+        _ => throw ArgumentError("Unknown value for TSamplerMagFilter: $value"),
+      };
+}
+
+enum TSamplerCompareMode {
+  COMPARE_MODE_NONE(0),
+  COMPARE_MODE_COMPARE_TO_TEXTURE(1);
+
+  final int value;
+  const TSamplerCompareMode(this.value);
+
+  static TSamplerCompareMode fromValue(int value) => switch (value) {
+        0 => COMPARE_MODE_NONE,
+        1 => COMPARE_MODE_COMPARE_TO_TEXTURE,
+        _ =>
+          throw ArgumentError("Unknown value for TSamplerCompareMode: $value"),
       };
 }
 

@@ -18,8 +18,18 @@ void main() async {
         expect(await image.getHeight(), 512);
 
         final texture = await viewer.createTexture(
-            await image.getWidth(), await image.getHeight(), textureFormat: TextureFormat.RGBA32F);
-        await texture.setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+            await image.getWidth(), await image.getHeight(),
+            textureFormat: TextureFormat.RGBA32F);
+        await texture.setLinearImage(
+            image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+      }, bg: kRed);
+    });
+  });
+
+  group("sampler", () {
+    test('create sampler', () async {
+      await testHelper.withViewer((viewer) async {
+        final sampler = viewer.createTextureSampler();
       }, bg: kRed);
     });
   });

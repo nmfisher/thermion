@@ -1865,6 +1865,38 @@ class ThermionViewerFFI extends ThermionViewer {
     );
   }
 
+  Future<TextureSampler> createTextureSampler(
+      {TextureMinFilter minFilter = TextureMinFilter.LINEAR,
+      TextureMagFilter magFilter = TextureMagFilter.LINEAR,
+      TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE,
+      TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE,
+      TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE,
+      double anisotropy = 0.0,
+      TextureCompareMode compareMode = TextureCompareMode.NONE,
+      TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL}) async {
+    final samplerPtr = TextureSampler_create();
+    TextureSampler_setMinFilter(
+        samplerPtr, TSamplerMinFilter.values[minFilter.index]);
+    TextureSampler_setMagFilter(
+        samplerPtr, TSamplerMagFilter.values[magFilter.index]);
+    TextureSampler_setWrapModeS(
+        samplerPtr, TSamplerWrapMode.values[wrapS.index]);
+    TextureSampler_setWrapModeT(
+        samplerPtr, TSamplerWrapMode.values[wrapT.index]);
+    TextureSampler_setWrapModeR(
+        samplerPtr, TSamplerWrapMode.values[wrapR.index]);
+    if (anisotropy > 0) {
+      TextureSampler_setAnisotropy(samplerPtr, anisotropy);
+    }
+    if (compareMode != TextureCompareMode.NONE) {
+      TextureSampler_setCompareMode(
+          samplerPtr,
+          TSamplerCompareMode.values[compareMode.index],
+          TSamplerCompareFunc.values[compareFunc.index]);
+    }
+    return FFITextureSampler(samplerPtr);
+  }
+
   Future<LinearImage> decodeImage(Uint8List data) async {
     final name = "image";
     var ptr = Image_decode(

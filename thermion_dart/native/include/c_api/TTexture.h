@@ -197,6 +197,70 @@ EMSCRIPTEN_KEEPALIVE void Image_destroy(TLinearImage* tLinearImage);
 EMSCRIPTEN_KEEPALIVE uint32_t Image_getWidth(TLinearImage* tLinearImage);
 EMSCRIPTEN_KEEPALIVE uint32_t Image_getHeight(TLinearImage* tLinearImage);
 EMSCRIPTEN_KEEPALIVE uint32_t Image_getChannels(TLinearImage* tLinearImage);
+
+// Texture Sampler related enums
+enum TSamplerWrapMode {
+    WRAP_CLAMP_TO_EDGE,       // Clamp to edge wrapping mode
+    WRAP_REPEAT,              // Repeat wrapping mode
+    WRAP_MIRRORED_REPEAT      // Mirrored repeat wrapping mode
+};
+
+enum TSamplerMinFilter {
+    FILTER_NEAREST,                  // Nearest filtering
+    FILTER_LINEAR,                   // Linear filtering
+    FILTER_NEAREST_MIPMAP_NEAREST,   // Nearest mipmap nearest filtering
+    FILTER_LINEAR_MIPMAP_NEAREST,    // Linear mipmap nearest filtering
+    FILTER_NEAREST_MIPMAP_LINEAR,    // Nearest mipmap linear filtering
+    FILTER_LINEAR_MIPMAP_LINEAR      // Linear mipmap linear filtering
+};
+
+enum TSamplerMagFilter {
+    MAG_FILTER_NEAREST,              // Nearest filtering
+    MAG_FILTER_LINEAR                // Linear filtering
+};
+
+enum TSamplerCompareMode {
+    COMPARE_MODE_NONE,               // No comparison
+    COMPARE_MODE_COMPARE_TO_TEXTURE  // Compare to texture
+};
+
+typedef TSamplerCompareFunc TTextureSamplerCompareFunc ;
+
+
+EMSCRIPTEN_KEEPALIVE TTextureSampler* TextureSampler_create();
+EMSCRIPTEN_KEEPALIVE TTextureSampler* TextureSampler_createWithFiltering(
+    TSamplerMinFilter minFilter, 
+    TSamplerMagFilter magFilter, 
+    TSamplerWrapMode wrapS, 
+    TSamplerWrapMode wrapT, 
+    TSamplerWrapMode wrapR);
+EMSCRIPTEN_KEEPALIVE TTextureSampler* TextureSampler_createWithComparison(
+    TSamplerCompareMode compareMode, 
+    TSamplerCompareFunc compareFunc);
+EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilter(
+    TTextureSampler* sampler, 
+    TSamplerMinFilter filter);
+EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilter(
+    TTextureSampler* sampler, 
+    TSamplerMagFilter filter);
+EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeS(
+    TTextureSampler* sampler, 
+    TSamplerWrapMode mode);
+EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeT(
+    TTextureSampler* sampler, 
+    TSamplerWrapMode mode);
+EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeR(
+    TTextureSampler* sampler, 
+    TSamplerWrapMode mode);
+EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropy(
+    TTextureSampler* sampler, 
+    double anisotropy);
+EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareMode(
+    TTextureSampler* sampler, 
+    TSamplerCompareMode mode, 
+    TTextureSamplerCompareFunc func);
+
+EMSCRIPTEN_KEEPALIVE void TextureSampler_destroy(TTextureSampler* sampler);
     
 
 #ifdef __cplusplus

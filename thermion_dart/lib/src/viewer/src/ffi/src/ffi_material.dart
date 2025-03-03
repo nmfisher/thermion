@@ -1,4 +1,5 @@
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIMaterial extends Material {
@@ -148,5 +149,12 @@ class FFIMaterialInstance extends MaterialInstance {
   Future setTransparencyMode(TransparencyMode mode) async {
     MaterialInstance_setTransparencyMode(
         pointer, TTransparencyMode.values[mode.index]);
+  }
+
+  @override
+  Future setParameterTexture(String name, covariant FFITexture texture,
+      covariant FFITextureSampler sampler) async {
+    MaterialInstance_setParameterTexture(
+        pointer, name.toNativeUtf8().cast<Char>(), texture.pointer, sampler.pointer);
   }
 }
