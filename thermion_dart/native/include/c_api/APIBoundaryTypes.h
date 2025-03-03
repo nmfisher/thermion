@@ -31,6 +31,9 @@ extern "C"
 	typedef struct TMaterialProvider TMaterialProvider;
 	typedef struct TRenderableManager TRenderableManager;
 	typedef struct TRenderableInstance TRenderableInstance;
+	typedef struct TTexture TTexture;
+	typedef struct TTextureSampler TTextureSampler;
+	typedef struct TLinearImage TLinearImage;
 
 	struct TMaterialKey {
 		bool doubleSided;

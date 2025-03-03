@@ -773,9 +773,16 @@ abstract class ThermionViewer {
   Future removeGridOverlay();
 
   ///
-  /// Decodes the specified image data and creates a texture.
   ///
-  Future<ThermionTexture> createTexture(Uint8List data);
+  ///
+  Future<Texture> createTexture(int width, int height,
+      {TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
+      TextureFormat textureFormat = TextureFormat.RGBA16F});
+
+  ///
+  /// Decodes the specified image data.
+  ///
+  Future<LinearImage> decodeImage(Uint8List data);
 
   ///
   ///

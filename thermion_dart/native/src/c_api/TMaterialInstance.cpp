@@ -14,10 +14,11 @@ namespace thermion
     {
 #endif
 
-        EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial) {
-            auto *material = reinterpret_cast<filament::Material*>(tMaterial);
+        EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial)
+        {
+            auto *material = reinterpret_cast<filament::Material *>(tMaterial);
             auto *instance = material->createInstance();
-            return reinterpret_cast<TMaterialInstance*>(instance);
+            return reinterpret_cast<TMaterialInstance *>(instance);
         }
 
         EMSCRIPTEN_KEEPALIVE bool MaterialInstance_isStencilWriteEnabled(TMaterialInstance *tMaterialInstance)
@@ -59,6 +60,14 @@ namespace thermion
         {
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, value);
         }
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTexture(TMaterialInstance *tMaterialInstance, const char *propertyName, TTexture* tTexture, TTextureSampler* tSampler) {
+            auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
+            auto texture = reinterpret_cast<::filament::Texture*>(tTexture);
+            auto sampler = reinterpret_cast<::filament::TextureSampler*>(tSampler);
+            materialInstance->setParameter(propertyName, texture, *sampler);
+        }
+
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthFunc(TMaterialInstance *tMaterialInstance, TSamplerCompareFunc tDepthFunc)
         {
@@ -109,7 +118,6 @@ namespace thermion
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
             auto face = static_cast<filament::MaterialInstance::StencilFace>(tFace);
             materialInstance->setStencilReferenceValue(value, face);
-
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilWrite(TMaterialInstance *materialInstance, bool enabled)

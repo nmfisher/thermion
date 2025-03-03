@@ -95,6 +95,16 @@ external void MaterialInstance_setParameterInt(
   int value,
 );
 
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<TTexture>, ffi.Pointer<TTextureSampler>)>(isLeaf: true)
+external void MaterialInstance_setParameterTexture(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> propertyName,
+  ffi.Pointer<TTexture> texture,
+  ffi.Pointer<TTextureSampler> sampler,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(
     symbol: "MaterialInstance_setDepthFunc", isLeaf: true)
 external void _MaterialInstance_setDepthFunc(
@@ -469,53 +479,6 @@ external void Viewer_setViewRenderable(
 @ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TViewer>)>(isLeaf: true)
 external ffi.Pointer<TEngine> Viewer_getEngine(
   ffi.Pointer<TViewer> viewer,
-);
-
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>(
-    isLeaf: true)
-external ffi.Pointer<TCamera> Engine_getCameraComponent(
-  ffi.Pointer<TEngine> tEngine,
-  int entityId,
-);
-
-@ffi.Native<ffi.Pointer<TTransformManager> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
-external ffi.Pointer<TTransformManager> Engine_getTransformManager(
-  ffi.Pointer<TEngine> engine,
-);
-
-@ffi.Native<ffi.Pointer<TRenderableManager> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
-external ffi.Pointer<TRenderableManager> Engine_getRenderableManager(
-  ffi.Pointer<TEngine> engine,
-);
-
-@ffi.Native<ffi.Pointer<TLightManager> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
-external ffi.Pointer<TLightManager> Engine_getLightManager(
-  ffi.Pointer<TEngine> engine,
-);
-
-@ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
-external ffi.Pointer<TEntityManager> Engine_getEntityManager(
-  ffi.Pointer<TEngine> engine,
-);
-
-@ffi.Native<
-    ffi.Pointer<TMaterial> Function(
-        ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
-external ffi.Pointer<TMaterial> Engine_buildMaterial(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Uint8> materialData,
-  int length,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>(
-    isLeaf: true)
-external void Engine_destroyMaterial(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TMaterial> tMaterial,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TViewer>)>(isLeaf: true)
@@ -925,6 +888,65 @@ external void View_pick(
 external ffi.Pointer<ffi.Char> NameComponentManager_getName(
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   int entity,
+);
+
+@ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TTexture>,
+        ffi.Pointer<TLinearImage>,
+        ffi.UnsignedInt,
+        ffi.UnsignedInt)>(symbol: "Texture_loadImage", isLeaf: true)
+external bool _Texture_loadImage(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TLinearImage> tImage,
+  int bufferFormat,
+  int pixelDataType,
+);
+
+bool Texture_loadImage(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TLinearImage> tImage,
+  TPixelDataFormat bufferFormat,
+  TPixelDataType pixelDataType,
+) =>
+    _Texture_loadImage(
+      tEngine,
+      tTexture,
+      tImage,
+      bufferFormat.value,
+      pixelDataType.value,
+    );
+
+@ffi.Native<
+    ffi.Pointer<TLinearImage> Function(
+        ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+external ffi.Pointer<TLinearImage> Image_decode(
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+  ffi.Pointer<ffi.Char> name,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLinearImage>)>(isLeaf: true)
+external void Image_destroy(
+  ffi.Pointer<TLinearImage> tLinearImage,
+);
+
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TLinearImage>)>(isLeaf: true)
+external int Image_getWidth(
+  ffi.Pointer<TLinearImage> tLinearImage,
+);
+
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TLinearImage>)>(isLeaf: true)
+external int Image_getHeight(
+  ffi.Pointer<TLinearImage> tLinearImage,
+);
+
+@ffi.Native<ffi.Uint32 Function(ffi.Pointer<TLinearImage>)>(isLeaf: true)
+external int Image_getChannels(
+  ffi.Pointer<TLinearImage> tLinearImage,
 );
 
 @ffi.Native<
@@ -1427,6 +1449,48 @@ external void Engine_destroyMaterialRenderThread(
   ffi.Pointer<TMaterial> tMaterial,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint8,
+            ffi.UnsignedInt,
+            ffi.UnsignedInt,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>)>(
+    symbol: "Engine_buildTextureRenderThread", isLeaf: true)
+external void _Engine_buildTextureRenderThread(
+  ffi.Pointer<TEngine> engine,
+  int width,
+  int height,
+  int levels,
+  int sampler,
+  int format,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>
+      onComplete,
+);
+
+void Engine_buildTextureRenderThread(
+  ffi.Pointer<TEngine> engine,
+  int width,
+  int height,
+  int levels,
+  TTextureSamplerType sampler,
+  TTextureFormat format,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>
+      onComplete,
+) =>
+    _Engine_buildTextureRenderThread(
+      engine,
+      width,
+      height,
+      levels,
+      sampler.value,
+      format.value,
+      onComplete,
+    );
 
 @ffi.Native<
     ffi.Void Function(
@@ -2344,6 +2408,87 @@ external bool RenderableManager_getFogEnabled(
   int entityId,
 );
 
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>, EntityId)>(
+    isLeaf: true)
+external ffi.Pointer<TCamera> Engine_getCameraComponent(
+  ffi.Pointer<TEngine> tEngine,
+  int entityId,
+);
+
+@ffi.Native<ffi.Pointer<TTransformManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TTransformManager> Engine_getTransformManager(
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Pointer<TRenderableManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TRenderableManager> Engine_getRenderableManager(
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Pointer<TLightManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TLightManager> Engine_getLightManager(
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<ffi.Pointer<TEntityManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TEntityManager> Engine_getEntityManager(
+  ffi.Pointer<TEngine> engine,
+);
+
+@ffi.Native<
+    ffi.Pointer<TTexture> Function(
+        ffi.Pointer<TEngine>,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint8,
+        ffi.UnsignedInt,
+        ffi.UnsignedInt)>(symbol: "Engine_buildTexture", isLeaf: true)
+external ffi.Pointer<TTexture> _Engine_buildTexture(
+  ffi.Pointer<TEngine> engine,
+  int width,
+  int height,
+  int levels,
+  int sampler,
+  int format,
+);
+
+ffi.Pointer<TTexture> Engine_buildTexture(
+  ffi.Pointer<TEngine> engine,
+  int width,
+  int height,
+  int levels,
+  TTextureSamplerType sampler,
+  TTextureFormat format,
+) =>
+    _Engine_buildTexture(
+      engine,
+      width,
+      height,
+      levels,
+      sampler.value,
+      format.value,
+    );
+
+@ffi.Native<
+    ffi.Pointer<TMaterial> Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Engine_buildMaterial(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Uint8> materialData,
+  int length,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>(
+    isLeaf: true)
+external void Engine_destroyMaterial(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterial> tMaterial,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>)>(
     isLeaf: true)
 external void SceneAsset_addToScene(
@@ -2687,6 +2832,12 @@ final class TMaterialProvider extends ffi.Opaque {}
 final class TRenderableManager extends ffi.Opaque {}
 
 final class TRenderableInstance extends ffi.Opaque {}
+
+final class TTexture extends ffi.Opaque {}
+
+final class TTextureSampler extends ffi.Opaque {}
+
+final class TLinearImage extends ffi.Opaque {}
 
 final class TMaterialKey extends ffi.Struct {
   @ffi.Bool()
@@ -3084,6 +3235,366 @@ typedef DartPickCallbackFunction = void Function(
     double fragX,
     double fragY,
     double fragZ);
+
+enum TTextureSamplerType {
+  SAMPLER_2D(0),
+  SAMPLER_CUBEMAP(1),
+  SAMPLER_EXTERNAL(2),
+  SAMPLER_3D(3),
+  SAMPLER_2D_ARRAY(4);
+
+  final int value;
+  const TTextureSamplerType(this.value);
+
+  static TTextureSamplerType fromValue(int value) => switch (value) {
+        0 => SAMPLER_2D,
+        1 => SAMPLER_CUBEMAP,
+        2 => SAMPLER_EXTERNAL,
+        3 => SAMPLER_3D,
+        4 => SAMPLER_2D_ARRAY,
+        _ =>
+          throw ArgumentError("Unknown value for TTextureSamplerType: $value"),
+      };
+}
+
+enum TTextureFormat {
+  TEXTUREFORMAT_R8(0),
+  TEXTUREFORMAT_R8_SNORM(1),
+  TEXTUREFORMAT_R8UI(2),
+  TEXTUREFORMAT_R8I(3),
+  TEXTUREFORMAT_STENCIL8(4),
+  TEXTUREFORMAT_R16F(5),
+  TEXTUREFORMAT_R16UI(6),
+  TEXTUREFORMAT_R16I(7),
+  TEXTUREFORMAT_RG8(8),
+  TEXTUREFORMAT_RG8_SNORM(9),
+  TEXTUREFORMAT_RG8UI(10),
+  TEXTUREFORMAT_RG8I(11),
+  TEXTUREFORMAT_RGB565(12),
+  TEXTUREFORMAT_RGB9_E5(13),
+  TEXTUREFORMAT_RGB5_A1(14),
+  TEXTUREFORMAT_RGBA4(15),
+  TEXTUREFORMAT_DEPTH16(16),
+  TEXTUREFORMAT_RGB8(17),
+  TEXTUREFORMAT_SRGB8(18),
+  TEXTUREFORMAT_RGB8_SNORM(19),
+  TEXTUREFORMAT_RGB8UI(20),
+  TEXTUREFORMAT_RGB8I(21),
+  TEXTUREFORMAT_DEPTH24(22),
+  TEXTUREFORMAT_R32F(23),
+  TEXTUREFORMAT_R32UI(24),
+  TEXTUREFORMAT_R32I(25),
+  TEXTUREFORMAT_RG16F(26),
+  TEXTUREFORMAT_RG16UI(27),
+  TEXTUREFORMAT_RG16I(28),
+  TEXTUREFORMAT_R11F_G11F_B10F(29),
+  TEXTUREFORMAT_RGBA8(30),
+  TEXTUREFORMAT_SRGB8_A8(31),
+  TEXTUREFORMAT_RGBA8_SNORM(32),
+  TEXTUREFORMAT_UNUSED(33),
+  TEXTUREFORMAT_RGB10_A2(34),
+  TEXTUREFORMAT_RGBA8UI(35),
+  TEXTUREFORMAT_RGBA8I(36),
+  TEXTUREFORMAT_DEPTH32F(37),
+  TEXTUREFORMAT_DEPTH24_STENCIL8(38),
+  TEXTUREFORMAT_DEPTH32F_STENCIL8(39),
+  TEXTUREFORMAT_RGB16F(40),
+  TEXTUREFORMAT_RGB16UI(41),
+  TEXTUREFORMAT_RGB16I(42),
+  TEXTUREFORMAT_RG32F(43),
+  TEXTUREFORMAT_RG32UI(44),
+  TEXTUREFORMAT_RG32I(45),
+  TEXTUREFORMAT_RGBA16F(46),
+  TEXTUREFORMAT_RGBA16UI(47),
+  TEXTUREFORMAT_RGBA16I(48),
+  TEXTUREFORMAT_RGB32F(49),
+  TEXTUREFORMAT_RGB32UI(50),
+  TEXTUREFORMAT_RGB32I(51),
+  TEXTUREFORMAT_RGBA32F(52),
+  TEXTUREFORMAT_RGBA32UI(53),
+  TEXTUREFORMAT_RGBA32I(54),
+  TEXTUREFORMAT_EAC_R11(55),
+  TEXTUREFORMAT_EAC_R11_SIGNED(56),
+  TEXTUREFORMAT_EAC_RG11(57),
+  TEXTUREFORMAT_EAC_RG11_SIGNED(58),
+  TEXTUREFORMAT_ETC2_RGB8(59),
+  TEXTUREFORMAT_ETC2_SRGB8(60),
+  TEXTUREFORMAT_ETC2_RGB8_A1(61),
+  TEXTUREFORMAT_ETC2_SRGB8_A1(62),
+  TEXTUREFORMAT_ETC2_EAC_RGBA8(63),
+  TEXTUREFORMAT_ETC2_EAC_SRGBA8(64),
+  TEXTUREFORMAT_DXT1_RGB(65),
+  TEXTUREFORMAT_DXT1_RGBA(66),
+  TEXTUREFORMAT_DXT3_RGBA(67),
+  TEXTUREFORMAT_DXT5_RGBA(68),
+  TEXTUREFORMAT_DXT1_SRGB(69),
+  TEXTUREFORMAT_DXT1_SRGBA(70),
+  TEXTUREFORMAT_DXT3_SRGBA(71),
+  TEXTUREFORMAT_DXT5_SRGBA(72),
+  TEXTUREFORMAT_RGBA_ASTC_4x4(73),
+  TEXTUREFORMAT_RGBA_ASTC_5x4(74),
+  TEXTUREFORMAT_RGBA_ASTC_5x5(75),
+  TEXTUREFORMAT_RGBA_ASTC_6x5(76),
+  TEXTUREFORMAT_RGBA_ASTC_6x6(77),
+  TEXTUREFORMAT_RGBA_ASTC_8x5(78),
+  TEXTUREFORMAT_RGBA_ASTC_8x6(79),
+  TEXTUREFORMAT_RGBA_ASTC_8x8(80),
+  TEXTUREFORMAT_RGBA_ASTC_10x5(81),
+  TEXTUREFORMAT_RGBA_ASTC_10x6(82),
+  TEXTUREFORMAT_RGBA_ASTC_10x8(83),
+  TEXTUREFORMAT_RGBA_ASTC_10x10(84),
+  TEXTUREFORMAT_RGBA_ASTC_12x10(85),
+  TEXTUREFORMAT_RGBA_ASTC_12x12(86),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_4x4(87),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_5x4(88),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_5x5(89),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_6x5(90),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_6x6(91),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_8x5(92),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_8x6(93),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_8x8(94),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_10x5(95),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_10x6(96),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_10x8(97),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_10x10(98),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_12x10(99),
+  TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_12x12(100),
+  TEXTUREFORMAT_RED_RGTC1(101),
+  TEXTUREFORMAT_SIGNED_RED_RGTC1(102),
+  TEXTUREFORMAT_RED_GREEN_RGTC2(103),
+  TEXTUREFORMAT_SIGNED_RED_GREEN_RGTC2(104),
+  TEXTUREFORMAT_RGB_BPTC_SIGNED_FLOAT(105),
+  TEXTUREFORMAT_RGB_BPTC_UNSIGNED_FLOAT(106),
+  TEXTUREFORMAT_RGBA_BPTC_UNORM(107),
+  TEXTUREFORMAT_SRGB_ALPHA_BPTC_UNORM(108);
+
+  final int value;
+  const TTextureFormat(this.value);
+
+  static TTextureFormat fromValue(int value) => switch (value) {
+        0 => TEXTUREFORMAT_R8,
+        1 => TEXTUREFORMAT_R8_SNORM,
+        2 => TEXTUREFORMAT_R8UI,
+        3 => TEXTUREFORMAT_R8I,
+        4 => TEXTUREFORMAT_STENCIL8,
+        5 => TEXTUREFORMAT_R16F,
+        6 => TEXTUREFORMAT_R16UI,
+        7 => TEXTUREFORMAT_R16I,
+        8 => TEXTUREFORMAT_RG8,
+        9 => TEXTUREFORMAT_RG8_SNORM,
+        10 => TEXTUREFORMAT_RG8UI,
+        11 => TEXTUREFORMAT_RG8I,
+        12 => TEXTUREFORMAT_RGB565,
+        13 => TEXTUREFORMAT_RGB9_E5,
+        14 => TEXTUREFORMAT_RGB5_A1,
+        15 => TEXTUREFORMAT_RGBA4,
+        16 => TEXTUREFORMAT_DEPTH16,
+        17 => TEXTUREFORMAT_RGB8,
+        18 => TEXTUREFORMAT_SRGB8,
+        19 => TEXTUREFORMAT_RGB8_SNORM,
+        20 => TEXTUREFORMAT_RGB8UI,
+        21 => TEXTUREFORMAT_RGB8I,
+        22 => TEXTUREFORMAT_DEPTH24,
+        23 => TEXTUREFORMAT_R32F,
+        24 => TEXTUREFORMAT_R32UI,
+        25 => TEXTUREFORMAT_R32I,
+        26 => TEXTUREFORMAT_RG16F,
+        27 => TEXTUREFORMAT_RG16UI,
+        28 => TEXTUREFORMAT_RG16I,
+        29 => TEXTUREFORMAT_R11F_G11F_B10F,
+        30 => TEXTUREFORMAT_RGBA8,
+        31 => TEXTUREFORMAT_SRGB8_A8,
+        32 => TEXTUREFORMAT_RGBA8_SNORM,
+        33 => TEXTUREFORMAT_UNUSED,
+        34 => TEXTUREFORMAT_RGB10_A2,
+        35 => TEXTUREFORMAT_RGBA8UI,
+        36 => TEXTUREFORMAT_RGBA8I,
+        37 => TEXTUREFORMAT_DEPTH32F,
+        38 => TEXTUREFORMAT_DEPTH24_STENCIL8,
+        39 => TEXTUREFORMAT_DEPTH32F_STENCIL8,
+        40 => TEXTUREFORMAT_RGB16F,
+        41 => TEXTUREFORMAT_RGB16UI,
+        42 => TEXTUREFORMAT_RGB16I,
+        43 => TEXTUREFORMAT_RG32F,
+        44 => TEXTUREFORMAT_RG32UI,
+        45 => TEXTUREFORMAT_RG32I,
+        46 => TEXTUREFORMAT_RGBA16F,
+        47 => TEXTUREFORMAT_RGBA16UI,
+        48 => TEXTUREFORMAT_RGBA16I,
+        49 => TEXTUREFORMAT_RGB32F,
+        50 => TEXTUREFORMAT_RGB32UI,
+        51 => TEXTUREFORMAT_RGB32I,
+        52 => TEXTUREFORMAT_RGBA32F,
+        53 => TEXTUREFORMAT_RGBA32UI,
+        54 => TEXTUREFORMAT_RGBA32I,
+        55 => TEXTUREFORMAT_EAC_R11,
+        56 => TEXTUREFORMAT_EAC_R11_SIGNED,
+        57 => TEXTUREFORMAT_EAC_RG11,
+        58 => TEXTUREFORMAT_EAC_RG11_SIGNED,
+        59 => TEXTUREFORMAT_ETC2_RGB8,
+        60 => TEXTUREFORMAT_ETC2_SRGB8,
+        61 => TEXTUREFORMAT_ETC2_RGB8_A1,
+        62 => TEXTUREFORMAT_ETC2_SRGB8_A1,
+        63 => TEXTUREFORMAT_ETC2_EAC_RGBA8,
+        64 => TEXTUREFORMAT_ETC2_EAC_SRGBA8,
+        65 => TEXTUREFORMAT_DXT1_RGB,
+        66 => TEXTUREFORMAT_DXT1_RGBA,
+        67 => TEXTUREFORMAT_DXT3_RGBA,
+        68 => TEXTUREFORMAT_DXT5_RGBA,
+        69 => TEXTUREFORMAT_DXT1_SRGB,
+        70 => TEXTUREFORMAT_DXT1_SRGBA,
+        71 => TEXTUREFORMAT_DXT3_SRGBA,
+        72 => TEXTUREFORMAT_DXT5_SRGBA,
+        73 => TEXTUREFORMAT_RGBA_ASTC_4x4,
+        74 => TEXTUREFORMAT_RGBA_ASTC_5x4,
+        75 => TEXTUREFORMAT_RGBA_ASTC_5x5,
+        76 => TEXTUREFORMAT_RGBA_ASTC_6x5,
+        77 => TEXTUREFORMAT_RGBA_ASTC_6x6,
+        78 => TEXTUREFORMAT_RGBA_ASTC_8x5,
+        79 => TEXTUREFORMAT_RGBA_ASTC_8x6,
+        80 => TEXTUREFORMAT_RGBA_ASTC_8x8,
+        81 => TEXTUREFORMAT_RGBA_ASTC_10x5,
+        82 => TEXTUREFORMAT_RGBA_ASTC_10x6,
+        83 => TEXTUREFORMAT_RGBA_ASTC_10x8,
+        84 => TEXTUREFORMAT_RGBA_ASTC_10x10,
+        85 => TEXTUREFORMAT_RGBA_ASTC_12x10,
+        86 => TEXTUREFORMAT_RGBA_ASTC_12x12,
+        87 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_4x4,
+        88 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_5x4,
+        89 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_5x5,
+        90 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_6x5,
+        91 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_6x6,
+        92 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_8x5,
+        93 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_8x6,
+        94 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_8x8,
+        95 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_10x5,
+        96 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_10x6,
+        97 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_10x8,
+        98 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_10x10,
+        99 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_12x10,
+        100 => TEXTUREFORMAT_SRGB8_ALPHA8_ASTC_12x12,
+        101 => TEXTUREFORMAT_RED_RGTC1,
+        102 => TEXTUREFORMAT_SIGNED_RED_RGTC1,
+        103 => TEXTUREFORMAT_RED_GREEN_RGTC2,
+        104 => TEXTUREFORMAT_SIGNED_RED_GREEN_RGTC2,
+        105 => TEXTUREFORMAT_RGB_BPTC_SIGNED_FLOAT,
+        106 => TEXTUREFORMAT_RGB_BPTC_UNSIGNED_FLOAT,
+        107 => TEXTUREFORMAT_RGBA_BPTC_UNORM,
+        108 => TEXTUREFORMAT_SRGB_ALPHA_BPTC_UNORM,
+        _ => throw ArgumentError("Unknown value for TTextureFormat: $value"),
+      };
+}
+
+/// ! Pixel Data Format
+enum TPixelDataFormat {
+  /// !< One Red channel, float
+  PIXELDATAFORMAT_R(0),
+
+  /// !< One Red channel, integer
+  PIXELDATAFORMAT_R_INTEGER(1),
+
+  /// !< Two Red and Green channels, float
+  PIXELDATAFORMAT_RG(2),
+
+  /// !< Two Red and Green channels, integer
+  PIXELDATAFORMAT_RG_INTEGER(3),
+
+  /// !< Three Red, Green and Blue channels, float
+  PIXELDATAFORMAT_RGB(4),
+
+  /// !< Three Red, Green and Blue channels, integer
+  PIXELDATAFORMAT_RGB_INTEGER(5),
+
+  /// !< Four Red, Green, Blue and Alpha channels, float
+  PIXELDATAFORMAT_RGBA(6),
+
+  /// !< Four Red, Green, Blue and Alpha channels, integer
+  PIXELDATAFORMAT_RGBA_INTEGER(7),
+  PIXELDATAFORMAT_UNUSED(8),
+
+  /// !< Depth, 16-bit or 24-bits usually
+  PIXELDATAFORMAT_DEPTH_COMPONENT(9),
+
+  /// !< Two Depth (24-bits) + Stencil (8-bits) channels
+  PIXELDATAFORMAT_DEPTH_STENCIL(10),
+  PIXELDATAFORMAT_ALPHA(11);
+
+  final int value;
+  const TPixelDataFormat(this.value);
+
+  static TPixelDataFormat fromValue(int value) => switch (value) {
+        0 => PIXELDATAFORMAT_R,
+        1 => PIXELDATAFORMAT_R_INTEGER,
+        2 => PIXELDATAFORMAT_RG,
+        3 => PIXELDATAFORMAT_RG_INTEGER,
+        4 => PIXELDATAFORMAT_RGB,
+        5 => PIXELDATAFORMAT_RGB_INTEGER,
+        6 => PIXELDATAFORMAT_RGBA,
+        7 => PIXELDATAFORMAT_RGBA_INTEGER,
+        8 => PIXELDATAFORMAT_UNUSED,
+        9 => PIXELDATAFORMAT_DEPTH_COMPONENT,
+        10 => PIXELDATAFORMAT_DEPTH_STENCIL,
+        11 => PIXELDATAFORMAT_ALPHA,
+        _ => throw ArgumentError("Unknown value for TPixelDataFormat: $value"),
+      };
+}
+
+enum TPixelDataType {
+  /// !< unsigned byte
+  PIXELDATATYPE_UBYTE(0),
+
+  /// !< signed byte
+  PIXELDATATYPE_BYTE(1),
+
+  /// !< unsigned short (16-bit)
+  PIXELDATATYPE_USHORT(2),
+
+  /// !< signed short (16-bit)
+  PIXELDATATYPE_SHORT(3),
+
+  /// !< unsigned int (32-bit)
+  PIXELDATATYPE_UINT(4),
+
+  /// !< signed int (32-bit)
+  PIXELDATATYPE_INT(5),
+
+  /// !< half-float (16-bit float)
+  PIXELDATATYPE_HALF(6),
+
+  /// !< float (32-bits float)
+  PIXELDATATYPE_FLOAT(7),
+
+  /// !< compressed pixels, @see CompressedPixelDataType
+  PIXELDATATYPE_COMPRESSED(8),
+
+  /// !< three low precision floating-point numbers
+  PIXELDATATYPE_UINT_10F_11F_11F_REV(9),
+
+  /// !< unsigned int (16-bit), encodes 3 RGB channels
+  PIXELDATATYPE_USHORT_565(10),
+
+  /// !< unsigned normalized 10 bits RGB, 2 bits alpha
+  PIXELDATATYPE_UINT_2_10_10_10_REV(11);
+
+  final int value;
+  const TPixelDataType(this.value);
+
+  static TPixelDataType fromValue(int value) => switch (value) {
+        0 => PIXELDATATYPE_UBYTE,
+        1 => PIXELDATATYPE_BYTE,
+        2 => PIXELDATATYPE_USHORT,
+        3 => PIXELDATATYPE_SHORT,
+        4 => PIXELDATATYPE_UINT,
+        5 => PIXELDATATYPE_INT,
+        6 => PIXELDATATYPE_HALF,
+        7 => PIXELDATATYPE_FLOAT,
+        8 => PIXELDATATYPE_COMPRESSED,
+        9 => PIXELDATATYPE_UINT_10F_11F_11F_REV,
+        10 => PIXELDATATYPE_USHORT_565,
+        11 => PIXELDATATYPE_UINT_2_10_10_10_REV,
+        _ => throw ArgumentError("Unknown value for TPixelDataType: $value"),
+      };
+}
 
 enum TGizmoAxis {
   X(0),

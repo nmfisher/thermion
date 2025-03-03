@@ -6,6 +6,7 @@ import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_gizmo.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import '../../../../utils/src/matrix.dart';
@@ -1676,7 +1677,8 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create geometry");
     }
 
-  print(" is shadow caster : ${RenderableManager_isShadowCaster(_renderableManager!,  SceneAsset_getEntity(assetPtr))}  is shadow recevier : ${RenderableManager_isShadowReceiver(_renderableManager!,  SceneAsset_getEntity(assetPtr))} " );
+    print(
+        " is shadow caster : ${RenderableManager_isShadowCaster(_renderableManager!, SceneAsset_getEntity(assetPtr))}  is shadow recevier : ${RenderableManager_isShadowReceiver(_renderableManager!, SceneAsset_getEntity(assetPtr))} ");
 
     var asset = FFIAsset(
         assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
@@ -1818,7 +1820,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future<Uint8List> unproject(ThermionEntity entity, Uint8List input,
+  Future<Uint8List> project(ThermionEntity entity, Uint8List input,
       int inputWidth, int inputHeight, int outWidth, int outHeight) async {
     final outPtr = Uint8List(outWidth * outHeight * 4);
     await withVoidCallback((callback) {
@@ -1837,24 +1839,58 @@ class ThermionViewerFFI extends ThermionViewer {
     return outPtr.buffer.asUint8List();
   }
 
-  Future<ThermionTexture> createTexture(Uint8List data) async {
-    var ptr = create_texture(_sceneManager!, data.address, data.length);
-    return ThermionFFITexture(ptr);
+  ///
+  ///
+  ///
+  Future<Texture> createTexture(int width, int height,
+      {int levels = 1,
+      TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
+      TextureFormat textureFormat = TextureFormat.RGBA16F}) async {
+    final texturePtr = await withPointerCallback<TTexture>((cb) {
+      Engine_buildTextureRenderThread(
+          _engine!,
+          width,
+          height,
+          levels,
+          TTextureSamplerType.values[textureSamplerType.index],
+          TTextureFormat.values[textureFormat.index],
+          cb);
+    });
+    if (texturePtr == nullptr) {
+      throw Exception("Failed to create texture");
+    }
+    return FFITexture(
+      _engine!,
+      texturePtr,
+    );
   }
 
-  Future applyTexture(ThermionFFITexture texture, ThermionEntity entity,
+  Future<LinearImage> decodeImage(Uint8List data) async {
+    final name = "image";
+    var ptr = Image_decode(
+      data.address,
+      data.length,
+      name.toNativeUtf8().cast<Char>(),
+    );
+    if (ptr == nullptr) {
+      throw Exception("Failed to decode image");
+    }
+    return FFILinearImage(ptr);
+  }
+
+  Future applyTexture(FFITexture texture, ThermionEntity entity,
       {int materialIndex = 0, String parameterName = "baseColorMap"}) async {
     using(parameterName.toNativeUtf8(), (namePtr) async {
-      apply_texture_to_material(_sceneManager!, entity, texture.pointer,
-          namePtr.cast<Char>(), materialIndex);
+      apply_texture_to_material(_sceneManager!, entity,
+          texture.pointer.cast<Void>(), namePtr.cast<Char>(), materialIndex);
     });
   }
 
   ///
   ///
   ///
-  Future destroyTexture(ThermionFFITexture texture) async {
-    destroy_texture(_sceneManager!, texture.pointer);
+  Future destroyTexture(FFITexture texture) async {
+    destroy_texture(_sceneManager!, texture.pointer.cast<Void>());
   }
 
   ///
@@ -2135,12 +2171,6 @@ class ThermionViewerFFI extends ThermionViewer {
         gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }
-}
-
-class ThermionFFITexture extends ThermionTexture {
-  final Pointer<Void> pointer;
-
-  ThermionFFITexture(this.pointer);
 }
 
 class FFIRenderTarget extends RenderTarget {

@@ -10,6 +10,7 @@
 #include "c_api/TView.h"
 #include "c_api/TSceneAsset.h"
 #include "c_api/TSceneManager.h"
+#include "c_api/TTexture.h"
 #include "c_api/TAnimationManager.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
@@ -300,6 +301,23 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
+
+  EMSCRIPTEN_KEEPALIVE void Engine_buildTextureRenderThread(TEngine *engine, 
+    uint32_t width, 
+    uint32_t height, 
+    uint8_t levels, 
+    TTextureSamplerType sampler, 
+    TTextureFormat format,
+    void (*onComplete)(TTexture*)
+) {
+  std::packaged_task<void()> lambda(
+    [=]() mutable
+    {
+      auto texture = Engine_buildTexture(engine, width, height, levels, sampler, format);
+      onComplete(texture);
+    });
+auto fut = _rl->add_task(lambda);
+}
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
   {

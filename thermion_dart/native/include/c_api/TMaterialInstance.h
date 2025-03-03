@@ -78,6 +78,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance *materialInstance, const char *name, double x, double y);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *materialInstance, const char *name, double value);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *materialInstance, const char *name, int value);
+	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterTexture(TMaterialInstance *materialInstance, const char *propertyName, TTexture *texture, TTextureSampler *sampler);
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthFunc(TMaterialInstance *materialInstance, TSamplerCompareFunc depthFunc);
 
 	EMSCRIPTEN_KEEPALIVE void MaterialInstance_setStencilOpStencilFail(

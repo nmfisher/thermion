@@ -3,6 +3,7 @@
 
 #include "ThermionDartApi.h"
 #include "TView.h"
+#include "TTexture.h"
 #include "TMaterialProvider.h"
 
 #ifdef __cplusplus
@@ -46,6 +47,14 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)());
+        EMSCRIPTEN_KEEPALIVE void Engine_buildTextureRenderThread(TEngine *engine, 
+            uint32_t width, 
+            uint32_t height, 
+            uint8_t levels, 
+            TTextureSamplerType sampler, 
+            TTextureFormat format,
+            void (*onComplete)(TTexture*)
+        );
 
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
 

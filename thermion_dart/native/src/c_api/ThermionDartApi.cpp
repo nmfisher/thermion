@@ -418,11 +418,6 @@ extern "C"
         // ((FilamentViewer *)viewer)->unprojectTexture(entity, input, inputWidth, inputHeight, out, outWidth, outHeight);
     }
 
-    EMSCRIPTEN_KEEPALIVE void *const create_texture(TSceneManager *sceneManager, uint8_t *data, size_t length)
-    {
-        return (void *const)((SceneManager *)sceneManager)->createTexture(data, length, "SOMETEXTURE");
-    }
-
     EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(TSceneManager *sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex)
     {
         ((SceneManager *)sceneManager)->applyTexture(entity, reinterpret_cast<Texture *>(texture), parameterName, materialIndex);
