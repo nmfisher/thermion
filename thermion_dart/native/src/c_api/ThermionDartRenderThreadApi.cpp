@@ -6,6 +6,7 @@
 #include <filament/LightManager.h>
 
 #include "c_api/APIBoundaryTypes.h"
+#include "c_api/TEngine.h"
 #include "c_api/TView.h"
 #include "c_api/TSceneAsset.h"
 #include "c_api/TSceneManager.h"
