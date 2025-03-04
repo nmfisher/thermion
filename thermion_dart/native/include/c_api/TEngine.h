@@ -26,6 +26,7 @@ EMSCRIPTEN_KEEPALIVE TTexture *Engine_buildTexture(TEngine *engine,
     uint8_t levels, 
     TTextureSamplerType sampler, 
     TTextureFormat format);
+EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTexture);
 
     
 EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uint8_t* materialData, size_t length);

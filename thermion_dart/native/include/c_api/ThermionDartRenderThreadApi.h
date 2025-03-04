@@ -156,7 +156,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void set_post_processing_render_thread(TViewer *viewer, bool enabled);
         EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)());
 
-        EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer *viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)());
 
 #ifdef __cplusplus
     }

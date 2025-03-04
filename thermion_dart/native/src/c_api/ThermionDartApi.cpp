@@ -413,20 +413,5 @@ extern "C"
         free(ptr);
     }
 
-    EMSCRIPTEN_KEEPALIVE void unproject_texture(TViewer *viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
-    {
-        // ((FilamentViewer *)viewer)->unprojectTexture(entity, input, inputWidth, inputHeight, out, outWidth, outHeight);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(TSceneManager *sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex)
-    {
-        ((SceneManager *)sceneManager)->applyTexture(entity, reinterpret_cast<Texture *>(texture), parameterName, materialIndex);
-    }
-
-    EMSCRIPTEN_KEEPALIVE void destroy_texture(TSceneManager *sceneManager, void *const texture)
-    {
-        ((SceneManager *)sceneManager)->destroyTexture(reinterpret_cast<Texture *>(texture));
-    }
-
 
 }

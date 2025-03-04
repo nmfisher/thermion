@@ -192,11 +192,14 @@ enum TPixelDataType {
 };
 
 EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage, TPixelDataFormat bufferFormat, TPixelDataType pixelDataType);
-EMSCRIPTEN_KEEPALIVE TLinearImage* Image_decode(uint8_t* data, size_t length, const char* name = "image");
-EMSCRIPTEN_KEEPALIVE void Image_destroy(TLinearImage* tLinearImage);
-EMSCRIPTEN_KEEPALIVE uint32_t Image_getWidth(TLinearImage* tLinearImage);
-EMSCRIPTEN_KEEPALIVE uint32_t Image_getHeight(TLinearImage* tLinearImage);
-EMSCRIPTEN_KEEPALIVE uint32_t Image_getChannels(TLinearImage* tLinearImage);
+EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
+EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name = "image");
+EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage);
+EMSCRIPTEN_KEEPALIVE void Image_destroy(TLinearImage *tLinearImage);
+EMSCRIPTEN_KEEPALIVE uint32_t Image_getWidth(TLinearImage *tLinearImage);
+EMSCRIPTEN_KEEPALIVE uint32_t Image_getHeight(TLinearImage *tLinearImage);
+EMSCRIPTEN_KEEPALIVE uint32_t Image_getChannels(TLinearImage *tLinearImage);
+EMSCRIPTEN_KEEPALIVE TTexture *RenderTarget_getColorTexture(TRenderTarget *tRenderTarget);
 
 // Texture Sampler related enums
 enum TSamplerWrapMode {

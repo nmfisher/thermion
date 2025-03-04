@@ -177,26 +177,6 @@ namespace thermion
         /// @brief 
         void update();
 
-
-        /// @brief 
-        /// @param data 
-        /// @param length 
-        /// @param name 
-        /// @return 
-        Texture *createTexture(const uint8_t *data, size_t length, const char *name);
-
-        /// @brief 
-        /// @param entityId 
-        /// @param texture 
-        /// @param slotName 
-        /// @param materialIndex 
-        /// @return 
-        bool applyTexture(EntityId entityId, Texture *texture, const char *slotName, int materialIndex);
-
-        /// @brief 
-        /// @param texture 
-        void destroyTexture(Texture *texture);
-
         /// @brief 
         /// @param entity 
         /// @return 
@@ -367,7 +347,6 @@ namespace thermion
         utils::NameComponentManager *_ncm;
 
         tsl::robin_map<EntityId, math::mat4> _transformUpdates;
-        std::set<Texture *> _textures;
         std::vector<Camera *> _cameras;
         std::vector<utils::Entity> _lights;
         std::vector<std::unique_ptr<SceneAsset>> _sceneAssets;

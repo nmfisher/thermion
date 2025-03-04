@@ -96,7 +96,7 @@
 #include "StreamBufferAdapter.hpp"
 #include "material/image.h"
 #include "TimeIt.hpp"
-#include "UnprojectTexture.hpp"
+#include "TextureProjection.hpp"
 
 namespace thermion
 {
@@ -1058,20 +1058,5 @@ namespace thermion
     return _engine->getCameraComponent(Entity::import(entity));
   }
 
-  void FilamentViewer::unprojectTexture(EntityId entityId, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight)
-  {
-    // const auto *geometry = _sceneManager->getGeometry(entityId);
-    // if (!geometry->uvs)
-    // {
-    //   Log("No UVS");
-    //   return;
-    // }
-
-    // UnprojectTexture unproject(geometry, _view->getCamera(), _engine);
-
-    // TODO - check that input dimensions match viewport?
-
-    // unproject.unproject(utils::Entity::import(entityId), input, out, inputWidth, inputHeight, outWidth, outHeight);
-  }
 
 } // namespace thermion

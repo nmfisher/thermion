@@ -40,7 +40,7 @@
 #include "scene/Gizmo.hpp"
 #include "scene/SceneAsset.hpp"
 #include "scene/GeometrySceneAssetBuilder.hpp"
-#include "UnprojectTexture.hpp"
+#include "TextureProjection.hpp"
 
 #include "resources/translation_gizmo_glb.h"
 #include "resources/rotation_gizmo_glb.h"
@@ -470,17 +470,10 @@ namespace thermion
         destroyAssets();
         std::lock_guard lock(_mutex);
 
-        for (auto *texture : _textures)
-        {
-            _engine->destroy(texture);
-        }
-
         for (auto *materialInstance : _materialInstances)
         {
             _engine->destroy(materialInstance);
         }
-
-        _textures.clear();
         _materialInstances.clear();
     }
 
@@ -592,102 +585,6 @@ namespace thermion
         _sceneAssets.clear();
     }
 
-    Texture *SceneManager::createTexture(const uint8_t *data, size_t length, const char *name)
-    {
-
-        // Create an input stream from the data
-        std::istringstream stream(std::string(reinterpret_cast<const char *>(data), length));
-
-        // Decode the image
-        image::LinearImage linearImage = image::ImageDecoder::decode(stream, name, image::ImageDecoder::ColorSpace::SRGB);
-
-        if (!linearImage.isValid())
-        {
-            Log("Failed to decode image.");
-            return nullptr;
-        }
-
-        uint32_t w = linearImage.getWidth();
-        uint32_t h = linearImage.getHeight();
-        uint32_t channels = linearImage.getChannels();
-
-        Texture::InternalFormat textureFormat = channels == 3 ? Texture::InternalFormat::RGB16F
-                                                              : Texture::InternalFormat::RGBA16F;
-        Texture::Format bufferFormat = channels == 3 ? Texture::Format::RGB
-                                                     : Texture::Format::RGBA;
-
-        Texture *texture = Texture::Builder()
-                               .width(w)
-                               .height(h)
-                               .levels(1)
-                               .format(textureFormat)
-                               .sampler(Texture::Sampler::SAMPLER_2D)
-                               .build(*_engine);
-
-        if (!texture)
-        {
-            Log("Failed to create texture: ");
-            return nullptr;
-        }
-
-        Texture::PixelBufferDescriptor buffer(
-            linearImage.getPixelRef(),
-            size_t(w * h * channels * sizeof(float)),
-            bufferFormat,
-            Texture::Type::FLOAT);
-
-        texture->setImage(*_engine, 0, std::move(buffer));
-
-        Log("Created texture: %s (%d x %d, %d channels)", name, w, h, channels);
-
-        _textures.insert(texture);
-
-        return texture;
-    }
-
-    bool SceneManager::applyTexture(EntityId entityId, Texture *texture, const char *parameterName, int materialIndex)
-    {
-        auto entity = Entity::import(entityId);
-
-        if (entity.isNull())
-        {
-            Log("Entity %d is null?", entityId);
-            return false;
-        }
-
-        RenderableManager &rm = _engine->getRenderableManager();
-
-        auto renderable = rm.getInstance(entity);
-
-        if (!renderable.isValid())
-        {
-            Log("Renderable not valid, was the entity id correct (%d)?", entityId);
-            return false;
-        }
-
-        MaterialInstance *mi = rm.getMaterialInstanceAt(renderable, materialIndex);
-
-        if (!mi)
-        {
-            Log("ERROR: material index must be less than number of material instances");
-            return false;
-        }
-
-        auto sampler = TextureSampler();
-        mi->setParameter(parameterName, texture, sampler);
-        Log("Applied texture to entity %d", entityId);
-        return true;
-    }
-
-    void SceneManager::destroyTexture(Texture *texture)
-    {
-        if (_textures.find(texture) == _textures.end())
-        {
-            Log("Warning: couldn't find texture");
-        }
-        _textures.erase(texture);
-        _engine->destroy(texture);
-    }
 
     void SceneManager::addCollisionComponent(EntityId entityId, void (*onCollisionCallback)(const EntityId entityId1, const EntityId entityId2), bool affectsTransform)
     {

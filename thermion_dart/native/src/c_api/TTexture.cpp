@@ -2,6 +2,7 @@
 
 #include <filament/Engine.h>
 #include <filament/Material.h>
+#include <filament/RenderTarget.h>
 #include <filament/Scene.h>
 #include <filament/Texture.h>
 #include <filament/TextureSampler.h>
@@ -34,6 +35,12 @@ namespace thermion
                 return nullptr;
             }
             return reinterpret_cast<TLinearImage *>(linearImage);
+        }
+
+        EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage)
+        {
+            auto *linearImage = reinterpret_cast<::image::LinearImage *>(tLinearImage);
+            return linearImage->getPixelRef();
         }
 
         EMSCRIPTEN_KEEPALIVE uint32_t Image_getWidth(TLinearImage *tLinearImage)
@@ -97,6 +104,13 @@ namespace thermion
             texture->setImage(*engine, 0, std::move(buffer));
             return true;
         }
+
+
+        EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel) {
+            auto *image = new ::image::LinearImage(width, height, channel);
+            return reinterpret_cast<TLinearImage*>(image);
+        }
+        
 
         EMSCRIPTEN_KEEPALIVE TTextureSampler *TextureSampler_create()
         {
@@ -216,6 +230,12 @@ namespace thermion
                 auto *textureSampler = reinterpret_cast<filament::TextureSampler *>(sampler);
                 delete textureSampler;
             }
+        }
+        
+        EMSCRIPTEN_KEEPALIVE TTexture *RenderTarget_getColorTexture(TRenderTarget *tRenderTarget) { 
+            auto renderTarget = reinterpret_cast<filament::RenderTarget*>(tRenderTarget);
+            auto texture = renderTarget->getTexture(filament::RenderTarget::AttachmentPoint::COLOR0);
+            return reinterpret_cast<TTexture*>(texture);
         }
 
 #ifdef __cplusplus

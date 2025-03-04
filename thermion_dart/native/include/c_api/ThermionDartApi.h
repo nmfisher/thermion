@@ -75,10 +75,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE Aabb2 get_bounding_box(TSceneManager *sceneManager, TView *view, EntityId entity);
 	EMSCRIPTEN_KEEPALIVE void get_bounding_box_to_out(TSceneManager *sceneManager, TView *view, EntityId entity, float *minX, float *minY, float *maxX, float *maxY);	
 	
-	EMSCRIPTEN_KEEPALIVE void unproject_texture(TViewer* viewer, EntityId entity,uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight);
-	EMSCRIPTEN_KEEPALIVE void *const create_texture(TSceneManager *sceneManager, uint8_t *data, size_t length);
 	EMSCRIPTEN_KEEPALIVE void destroy_texture(TSceneManager *sceneManager, void *const texture);
-	EMSCRIPTEN_KEEPALIVE void apply_texture_to_material(TSceneManager *sceneManager, EntityId entity, void *const texture, const char *parameterName, int materialIndex);
 
 	
 #ifdef __cplusplus

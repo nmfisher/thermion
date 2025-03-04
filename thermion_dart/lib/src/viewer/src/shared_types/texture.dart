@@ -420,6 +420,7 @@ typedef ThermionTexture = Texture;
 
 abstract class LinearImage {
   Future destroy();
+  Future<Float32List> getData();
   Future<int> getWidth();
   Future<int> getHeight();
   Future<int> getChannels();

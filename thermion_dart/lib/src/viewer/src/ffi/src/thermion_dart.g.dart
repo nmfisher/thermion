@@ -665,51 +665,10 @@ external void get_bounding_box_to_out(
 
 @ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<TViewer>,
-        EntityId,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Uint32,
-        ffi.Uint32,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Uint32,
-        ffi.Uint32)>(isLeaf: true)
-external void unproject_texture(
-  ffi.Pointer<TViewer> viewer,
-  int entity,
-  ffi.Pointer<ffi.Uint8> input,
-  int inputWidth,
-  int inputHeight,
-  ffi.Pointer<ffi.Uint8> out,
-  int outWidth,
-  int outHeight,
-);
-
-@ffi.Native<
-    ffi.Pointer<ffi.Void> Function(ffi.Pointer<TSceneManager>,
-        ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
-external ffi.Pointer<ffi.Void> create_texture(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Uint8> data,
-  int length,
-);
-
-@ffi.Native<
-    ffi.Void Function(
         ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Void>)>(isLeaf: true)
 external void destroy_texture(
   ffi.Pointer<TSceneManager> sceneManager,
   ffi.Pointer<ffi.Void> texture,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
-        ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Char>, ffi.Int)>(isLeaf: true)
-external void apply_texture_to_material(
-  ffi.Pointer<TSceneManager> sceneManager,
-  int entity,
-  ffi.Pointer<ffi.Void> texture,
-  ffi.Pointer<ffi.Char> parameterName,
-  int materialIndex,
 );
 
 @ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
@@ -922,11 +881,26 @@ bool Texture_loadImage(
 
 @ffi.Native<
     ffi.Pointer<TLinearImage> Function(
+        ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
+external ffi.Pointer<TLinearImage> Image_createEmpty(
+  int width,
+  int height,
+  int channel,
+);
+
+@ffi.Native<
+    ffi.Pointer<TLinearImage> Function(
         ffi.Pointer<ffi.Uint8>, ffi.Size, ffi.Pointer<ffi.Char>)>(isLeaf: true)
 external ffi.Pointer<TLinearImage> Image_decode(
   ffi.Pointer<ffi.Uint8> data,
   int length,
   ffi.Pointer<ffi.Char> name,
+);
+
+@ffi.Native<ffi.Pointer<ffi.Float> Function(ffi.Pointer<TLinearImage>)>(
+    isLeaf: true)
+external ffi.Pointer<ffi.Float> Image_getBytes(
+  ffi.Pointer<TLinearImage> tLinearImage,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TLinearImage>)>(isLeaf: true)
@@ -947,6 +921,12 @@ external int Image_getHeight(
 @ffi.Native<ffi.Uint32 Function(ffi.Pointer<TLinearImage>)>(isLeaf: true)
 external int Image_getChannels(
   ffi.Pointer<TLinearImage> tLinearImage,
+);
+
+@ffi.Native<ffi.Pointer<TTexture> Function(ffi.Pointer<TRenderTarget>)>(
+    isLeaf: true)
+external ffi.Pointer<TTexture> RenderTarget_getColorTexture(
+  ffi.Pointer<TRenderTarget> tRenderTarget,
 );
 
 @ffi.Native<ffi.Pointer<TTextureSampler> Function()>(isLeaf: true)
@@ -2140,29 +2120,6 @@ external void reset_to_rest_pose_render_thread(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TViewer>,
-        EntityId,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Uint32,
-        ffi.Uint32,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Uint32,
-        ffi.Uint32,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void unproject_texture_render_thread(
-  ffi.Pointer<TViewer> viewer,
-  int entity,
-  ffi.Pointer<ffi.Uint8> input,
-  int inputWidth,
-  int inputHeight,
-  ffi.Pointer<ffi.Uint8> out,
-  int outWidth,
-  int outHeight,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
     ffi.Pointer<TGizmo> Function(
         ffi.Pointer<TSceneManager>,
         ffi.Pointer<TView>,
@@ -2632,6 +2589,13 @@ ffi.Pointer<TTexture> Engine_buildTexture(
       sampler.value,
       format.value,
     );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>)>(
+    isLeaf: true)
+external void Engine_destroyTexture(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+);
 
 @ffi.Native<
     ffi.Pointer<TMaterial> Function(

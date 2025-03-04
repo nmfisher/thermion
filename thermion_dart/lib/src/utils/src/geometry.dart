@@ -252,57 +252,116 @@ static Geometry cube({bool normals = false, bool uvs = false}) {
   }
 
   static Geometry conic({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true}) {
-    int segments = 32;
-    List<double> verticesList = [];
-    List<double> normalsList = [];
-    List<double> uvsList = [];
-    List<int> indices = [];
+  int segments = 32;
+  List<double> verticesList = [];
+  List<double> normalsList = [];
+  List<double> uvsList = [];
+  List<int> indices = [];
 
-    // Create vertices, normals, and UVs
-    for (int i = 0; i <= segments; i++) {
-      double theta = i * 2 * pi / segments;
-      double x = radius * cos(theta);
-      double z = radius * sin(theta);
+  int vertexOffset = 0;
 
-      // Base circle
-      verticesList.addAll([x, 0, z]);
+  // Create side vertices (base circle + apex)
+  for (int i = 0; i <= segments; i++) {
+    double theta = i * 2 * pi / segments;
+    double x = radius * cos(theta);
+    double z = radius * sin(theta);
 
-      // Calculate normal for the side
-      double nx = x / sqrt(x * x + length * length);
-      double nz = z / sqrt(z * z + length * length);
-      double ny = radius / sqrt(radius * radius + length * length);
+    // Base circle vertex
+    verticesList.addAll([x, 0, z]);
+    
+    if (normals) {
+      // Calculate normal for the side (perpendicular to the cone surface)
+      // The normal is perpendicular to the line from the edge point to the apex
+      double nx = x;
+      double nz = z;
+      double ny = radius;
+      
+      // Normalize the normal vector
+      double normalLength = sqrt(nx * nx + ny * ny + nz * nz);
+      nx /= normalLength;
+      ny /= normalLength;
+      nz /= normalLength;
+      
       normalsList.addAll([nx, ny, nz]);
-
-      // UV coordinates
+    }
+    
+    if (uvs) {
+      // UV coordinates for base edge
       uvsList.addAll([i / segments, 0]);
     }
-    // Apex
-    verticesList.addAll([0, length, 0]);
-    normalsList.addAll([0, 1, 0]); // Normal at apex points straight up
-    uvsList.addAll([0.5, 1]); // UV for apex
-
-    // Create indices
-    for (int i = 0; i < segments; i++) {
-      // Base face (fixed to counterclockwise)
-      indices.addAll([segments + 1, i + 1, i]);
-      // Side faces (already correct)
-      indices.addAll([i, segments, i + 1]);
-    }
-
-    // Add base face normals and UVs
-    for (int i = 0; i <= segments; i++) {
-      normalsList.addAll([0, -1, 0]); // Base face normal
-      double u = 0.5 + 0.5 * cos(i * 2 * pi / segments);
-      double v = 0.5 + 0.5 * sin(i * 2 * pi / segments);
-      uvsList.addAll([u, v]); // Base face UV
-    }
-
-    Float32List vertices = Float32List.fromList(verticesList);
-    Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
-    Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
-
-    return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
+
+  // Add apex vertex
+  verticesList.addAll([0, length, 0]);
+  vertexOffset = segments + 1;
+  
+  if (normals) {
+    // Apex normal points up
+    normalsList.addAll([0, 1, 0]);
+  }
+  
+  if (uvs) {
+    // UV for apex
+    uvsList.addAll([0.5, 1]);
+  }
+
+  // Create side faces indices
+  for (int i = 0; i < segments; i++) {
+    // Create triangular faces from edge to apex
+    indices.addAll([i, (i + 1) % (segments + 1), vertexOffset]);
+  }
+
+  // Create base circle vertices (duplicate for proper normals and UVs)
+  int baseStartIndex = verticesList.length ~/ 3;
+  
+  // Center vertex for base
+  verticesList.addAll([0, 0, 0]);
+  
+  if (normals) {
+    // Base center normal points down
+    normalsList.addAll([0, -1, 0]);
+  }
+  
+  if (uvs) {
+    // UV for base center
+    uvsList.addAll([0.5, 0.5]);
+  }
+  
+  // Add base edge vertices
+  for (int i = 0; i <= segments; i++) {
+    double theta = i * 2 * pi / segments;
+    double x = radius * cos(theta);
+    double z = radius * sin(theta);
+
+    // Base circle vertex (duplicate for proper normal/UV)
+    verticesList.addAll([x, 0, z]);
+    
+    if (normals) {
+      // Base normal points down
+      normalsList.addAll([0, -1, 0]);
+    }
+    
+    if (uvs) {
+      // UV for base edge
+      double u = 0.5 + 0.5 * cos(theta);
+      double v = 0.5 + 0.5 * sin(theta);
+      uvsList.addAll([u, v]);
+    }
+  }
+
+  // Create base faces indices
+  for (int i = 0; i < segments; i++) {
+    // Fan triangulation from center to edge
+    indices.addAll([baseStartIndex, baseStartIndex + i + 1, baseStartIndex + i + 2]);
+  }
+
+  // Convert to Float32List
+  Float32List vertices = Float32List.fromList(verticesList);
+  Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
+  Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
+
+  return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
+}
 
   static Geometry plane({double width = 1.0, double height = 1.0, bool normals = true, bool uvs = true}) {
     Float32List vertices = Float32List.fromList([
@@ -614,5 +673,78 @@ static Geometry fromAabb3(Aabb3 aabb, {bool normals = true, bool uvs = true}) {
 
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
+
+  static Geometry halfPyramid({
+  double startX = 0.25,
+  double startY = 0.25,
+  double width = 1.0, 
+  double height = 1.0, 
+  double depth = 1.0,
+  bool normals = true, 
+  bool uvs = true
+}) {
+  // Define vertices for a half pyramid (triangular prism)
+  // Starting at (startX, startY, 0)
+  Float32List vertices = Float32List.fromList([
+    // Base rectangle (bottom face)
+    startX, startY, 0,                  // 0: front-left
+    startX + width, startY, 0,          // 1: front-right
+    startX + width, startY + height, 0, // 2: back-right
+    startX, startY + height, 0,         // 3: back-left
+    
+    // Top ridge
+    startX, startY + height, depth,     // 4: top ridge start
+    startX + width, startY + height, depth, // 5: top ridge end
+  ]);
+
+  // Define normals if needed
+  Float32List? _normals = normals ? Float32List.fromList([
+    // Base rectangle
+    0, 0, -1, // Bottom face
+    0, 0, -1,
+    0, 0, -1,
+    0, 0, -1,
+    
+    // Ridge normals (approximate)
+    0, 0.7071, 0.7071, // Angled toward ridge
+    0, 0.7071, 0.7071,
+  ]) : null;
+
+  // Define UVs if needed
+  Float32List? _uvs = uvs ? Float32List.fromList([
+    // Base rectangle UVs
+    0, 0, // Bottom-left
+    1, 0, // Bottom-right
+    1, 1, // Top-right
+    0, 1, // Top-left
+    
+    // Ridge UVs
+    0, 0.5,
+    1, 0.5,
+  ]) : null;
+
+  // Define indices for triangular faces
+  List<int> indices = [
+    // Bottom face (rectangle)
+    0, 1, 2,
+    0, 2, 3,
+    
+    // Front triangular face
+    0, 1, 5,
+    0, 5, 4,
+    
+    // Left rectangular face
+    0, 4, 3,
+    
+    // Right rectangular face
+    1, 2, 5,
+    
+    // Back rectangular face
+    2, 3, 4,
+    2, 4, 5,
+  ];
+
+  return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
+}
 
 }

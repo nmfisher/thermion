@@ -19,12 +19,12 @@
 
 namespace thermion {
 
-class UnprojectTexture {
+class TextureProjection {
 public:
-    UnprojectTexture(const CustomGeometry * geometry, Camera& camera, Engine* engine)
+    TextureProjection(const CustomGeometry * geometry, Camera& camera, Engine* engine)
         : _geometry(geometry), _camera(camera), _engine(engine) {}
 
-    void unproject(utils::Entity entity, const uint8_t* inputTexture, uint8_t* outputTexture, uint32_t inputWidth, uint32_t inputHeight,
+    void project(utils::Entity entity, const uint8_t* inputTexture, uint8_t* outputTexture, uint32_t inputWidth, uint32_t inputHeight,
                        uint32_t outputWidth, uint32_t outputHeight);
 
 private:
@@ -32,7 +32,6 @@ private:
     const Camera& _camera;
     Engine* _engine;
 
-    math::float3 doUnproject(const math::float2& screenPos, float depth, const math::mat4& invViewProj);
     bool isInsideTriangle(const math::float2& p, const math::float2& a, const math::float2& b, const math::float2& c);
     math::float3 barycentric(const math::float2& p, const math::float2& a, const math::float2& b, const math::float2& c);
 };

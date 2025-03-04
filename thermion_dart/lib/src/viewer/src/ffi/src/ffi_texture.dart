@@ -23,9 +23,8 @@ class FFITexture extends Texture {
   }
 
   @override
-  Future dispose() {
-    // TODO: implement dispose
-    throw UnimplementedError();
+  Future dispose() async {
+    Engine_destroyTexture(_engine, pointer);
   }
 
   @override
@@ -129,5 +128,14 @@ class FFILinearImage extends LinearImage {
   @override
   Future<int> getWidth() async {
     return Image_getWidth(pointer);
+  }
+
+  @override
+  Future<Float32List> getData() async {
+    final height = await getHeight();
+    final width = await getWidth();
+    final channels = await getChannels();
+    final ptr = Image_getBytes(pointer);
+    return ptr.asTypedList(height * width * channels);
   }
 }

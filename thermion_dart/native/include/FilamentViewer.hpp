@@ -117,8 +117,6 @@ namespace thermion
             return nullptr;
         }
 
-        void unprojectTexture(EntityId entity, uint8_t* input, uint32_t inputWidth, uint32_t inputHeight, uint8_t* out, uint32_t outWidth, uint32_t outHeight);  
-
     private:
         const ResourceLoaderWrapperImpl *const _resourceLoaderWrapper;
         Scene *_scene = nullptr;

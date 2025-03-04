@@ -244,6 +244,12 @@ namespace thermion
             return reinterpret_cast<TTexture *>(texture);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTexture) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *texture = reinterpret_cast<Texture *>(tTexture);
+            engine->destroy(texture);
+        }
+
 #ifdef __cplusplus
     }
 }

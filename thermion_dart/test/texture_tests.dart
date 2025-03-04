@@ -22,6 +22,7 @@ void main() async {
             textureFormat: TextureFormat.RGBA32F);
         await texture.setLinearImage(
             image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+        await texture.dispose();
       }, bg: kRed);
     });
   });

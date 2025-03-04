@@ -722,17 +722,6 @@ std::packaged_task<void()> lambda(
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void unproject_texture_render_thread(TViewer *viewer, EntityId entity, uint8_t *input, uint32_t inputWidth, uint32_t inputHeight, uint8_t *out, uint32_t outWidth, uint32_t outHeight, void (*callback)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        {
-          unproject_texture(viewer, entity, input, inputWidth, inputHeight, out, outWidth, outHeight);
-          callback();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
       TAnimationManager *tAnimationManager,
       TSceneAsset *sceneAsset,

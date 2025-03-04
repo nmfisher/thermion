@@ -659,19 +659,7 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement addDirectLight
     throw UnimplementedError();
   }
-  
-  @override
-  Future applyTexture(covariant ThermionTexture texture, ThermionEntity entity, {int materialIndex = 0, String parameterName = "baseColorMap"}) {
-    // TODO: implement applyTexture
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<ThermionTexture> createTexture(Uint8List data) {
-    // TODO: implement createTexture
-    throw UnimplementedError();
-  }
-  
+
   @override
   Future<MaterialInstance> createUbershaderMaterialInstance({bool doubleSided = false, bool unlit = false, bool hasVertexColors = false, bool hasBaseColorTexture = false, bool hasNormalTexture = false, bool hasOcclusionTexture = false, bool hasEmissiveTexture = false, bool useSpecularGlossiness = false, AlphaMode alphaMode = AlphaMode.OPAQUE, bool enableDiagnostics = false, bool hasMetallicRoughnessTexture = false, int metallicRoughnessUV = 0, int baseColorUV = 0, bool hasClearCoatTexture = false, int clearCoatUV = 0, bool hasClearCoatRoughnessTexture = false, int clearCoatRoughnessUV = 0, bool hasClearCoatNormalTexture = false, int clearCoatNormalUV = 0, bool hasClearCoat = false, bool hasTransmission = false, bool hasTextureTransforms = false, int emissiveUV = 0, int aoUV = 0, int normalUV = 0, bool hasTransmissionTexture = false, int transmissionUV = 0, bool hasSheenColorTexture = false, int sheenColorUV = 0, bool hasSheenRoughnessTexture = false, int sheenRoughnessUV = 0, bool hasVolumeThicknessTexture = false, int volumeThicknessUV = 0, bool hasSheen = false, bool hasIOR = false, bool hasVolume = false}) {
     // TODO: implement createUbershaderMaterialInstance

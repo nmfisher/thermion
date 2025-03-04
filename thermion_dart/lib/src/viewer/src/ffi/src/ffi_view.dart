@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
 import 'callbacks.dart';
@@ -8,12 +9,17 @@ import 'thermion_viewer_ffi.dart';
 class FFIView extends View {
   final Pointer<TView> view;
   final Pointer<TViewer> viewer;
+  final Pointer<TEngine> engine;
   FFIRenderTarget? renderTarget;
 
-  FFIView(this.view, this.viewer) {
+  FFIView(this.view, this.viewer, this.engine) {
     final renderTargetPtr = View_getRenderTarget(view);
     if (renderTargetPtr != nullptr) {
-      renderTarget = FFIRenderTarget(renderTargetPtr, viewer);
+      renderTarget = FFIRenderTarget(
+        renderTargetPtr,
+        viewer,
+        engine
+      );
     }
   }
 
