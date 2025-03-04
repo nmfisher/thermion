@@ -880,6 +880,31 @@ bool Texture_loadImage(
     );
 
 @ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TTexture>,
+        ffi.Uint32,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32)>(isLeaf: true)
+external bool Texture_setImage(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  int level,
+  ffi.Pointer<ffi.Uint8> data,
+  int size,
+  int width,
+  int height,
+  int channels,
+  int bufferFormat,
+  int pixelDataType,
+);
+
+@ffi.Native<
     ffi.Pointer<TLinearImage> Function(
         ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
 external ffi.Pointer<TLinearImage> Image_createEmpty(

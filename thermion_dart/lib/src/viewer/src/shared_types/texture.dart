@@ -306,8 +306,8 @@ abstract class Texture {
       covariant LinearImage image, PixelDataFormat format, PixelDataType type);
 
   /// Sets the image data for a 2D texture or a texture level
-  Future setImage(
-      int level, Uint8List buffer, PixelDataFormat format, PixelDataType type);
+  Future setImage(int level, Uint8List buffer, int width, int height,
+      int channels, PixelDataFormat format, PixelDataType type);
 
   /// Sets the image data for a region of a 2D texture
   Future setSubImage(int level, int xOffset, int yOffset, int width, int height,
