@@ -51,10 +51,7 @@ fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
         vec4 sp = clamp(variable_screenPos, 0.0, 1.0);
-        //material.baseColor = vec4(sp.x, sp.y, 0.0f, 1.0);
-
-        vec4 color = textureLod(materialParams_color, sp.xy, 0.0f);
-        //vec2 uv = getUV0();
+        vec4 color = textureLod(materialParams_color, uvToRenderTargetUV(sp.xy), 0.0f);
         material.baseColor = vec4(color.xyz, 1.0);
     }
 }
