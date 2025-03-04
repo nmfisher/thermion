@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
-import 'package:thermion_flutter/thermion_flutter.dart';
+import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
 class ThermionTextureWidget extends StatefulWidget {
   ///
