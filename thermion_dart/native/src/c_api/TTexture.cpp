@@ -105,6 +105,55 @@ namespace thermion
             return true;
         }
 
+        EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
+            TEngine *tEngine,
+            TTexture *tTexture,
+            uint32_t level,
+            uint8_t *data,
+            size_t size,
+            uint32_t width,
+            uint32_t height,
+            uint32_t channels,
+            uint32_t tBufferFormat,
+            uint32_t tPixelDataType
+        ) {
+            auto engine = reinterpret_cast<filament::Engine *>(tEngine);
+            
+            auto texture = reinterpret_cast<filament::Texture *>(tTexture);
+            auto bufferFormat = static_cast<PixelBufferDescriptor::PixelDataFormat>(tBufferFormat);
+            auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(tPixelDataType);
+
+            switch (bufferFormat)
+            {
+                case PixelBufferDescriptor::PixelDataFormat::RGB:
+                case PixelBufferDescriptor::PixelDataFormat::RGBA:
+                    if(size != width * height * channels * sizeof(float)) {
+                        Log("Size mismatch");
+                        return false;
+                    }
+                    break;
+                case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
+                case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
+                    if(size != width * height * channels * sizeof(uint8_t)) {
+                        Log("Size mismatch");
+                        // return false;
+                    }
+                    break;
+                default:
+                    Log("Unsupported buffer format type : %d", bufferFormat);
+                    return false;
+            }
+
+            filament::Texture::PixelBufferDescriptor buffer(
+                data,
+                size,
+                bufferFormat,
+                pixelDataType);
+
+            texture->setImage(*engine, level, std::move(buffer));
+            return true;
+        }
+
 
         EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel) {
             auto *image = new ::image::LinearImage(width, height, channel);

@@ -76,10 +76,22 @@ class FFITexture extends Texture {
   }
 
   @override
-  Future setImage(
-      int level, Uint8List buffer, PixelDataFormat format, PixelDataType type) {
-    // TODO: implement setImage
-    throw UnimplementedError();
+  Future setImage(int level, Uint8List buffer, int width, int height,
+      int channels, PixelDataFormat format, PixelDataType type) async {
+    final success = Texture_setImage(
+        _engine,
+        pointer,
+        level,
+        buffer.address,
+        buffer.lengthInBytes,
+        width,
+        height,
+        channels,
+        format.index,
+        type.index);
+    if (!success) {
+      throw Exception("Failed to set image");
+    }
   }
 
   @override

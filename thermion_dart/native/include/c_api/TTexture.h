@@ -192,6 +192,18 @@ enum TPixelDataType {
 };
 
 EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage, TPixelDataFormat bufferFormat, TPixelDataType pixelDataType);
+EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
+    TEngine *tEngine,
+    TTexture *tTexture,
+    uint32_t level,
+    uint8_t *data,
+    size_t size,
+    uint32_t width,
+    uint32_t height,
+    uint32_t channels,
+    uint32_t bufferFormat,
+    uint32_t pixelDataType
+);
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name = "image");
 EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage);
