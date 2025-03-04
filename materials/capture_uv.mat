@@ -1,24 +1,60 @@
 material {
     name : TextureProjection,
-    requires : [ position, uv0 ],
-    shadingModel : unlit,
-    doubleSided : true,
-    depthWrite : true,
-    depthCulling : true,
-    vertexDomain: object,
     parameters : [
         {
             type : sampler2d,
-            name : inputTexture
+            name : color,
+            precision: medium
         }
     ],
+    variables : [
+        {
+            name : screenPos,
+            precision : medium
+         }
+    ],
+    requires : [ position, uv0 ],
+    shadingModel : unlit,
+    doubleSided : false,
+    depthWrite : true,
+    depthCulling : false,
+    vertexDomain: device   
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {       
+        mat4 transform = getWorldFromModelMatrix();
+        vec3 position = getPosition().xyz;
+        vec4 worldPosition = mulMat4x4Float3(transform, position);
+        vec4 clipSpace = getClipFromWorldMatrix() * worldPosition;
+        
+        // calculate NDC coordinates for vertex
+        material.screenPos.xy = (clipSpace.xy / clipSpace.w) * 0.5 + 0.5;
+
+        // Get UV coordinates from mesh
+        vec2 uv = material.uv0;
+    
+        // Transform UVs to clip space (-1 to 1 range)
+        // UV (0,0) maps to (-1,-1) and UV (1,1) maps to (1,1)
+        vec2 clipPosition = uv * 2.0 - 1.0;
+        
+        material.clipSpaceTransform = mat4(
+            vec4(0.0, 0.0, 0.0, 0.0),  
+            vec4(0.0, 0.0, 0.0, 0.0),  
+            vec4(0.0, 0.0, 1.0, 0.0),  
+            vec4(clipPosition, 0.0, 1.0)  
+        ); 
+    }
 }
 
 fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
-        vec3 viewportCoord = getNormalizedViewportCoord();
-        vec4 sampledColor = texture(materialParams_inputTexture, uvToRenderTargetUV(viewportCoord.xy));
-        material.baseColor = sampledColor;
+        vec4 sp = clamp(variable_screenPos, 0.0, 1.0);
+        //material.baseColor = vec4(sp.x, sp.y, 0.0f, 1.0);
+
+        vec4 color = textureLod(materialParams_color, sp.xy, 0.0f);
+        //vec2 uv = getUV0();
+        material.baseColor = vec4(color.xyz, 1.0);
     }
 }

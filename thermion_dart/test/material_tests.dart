@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
@@ -343,20 +344,241 @@ void main() async {
   group('projection', () {
     test('apply projection material', () async {
       await testHelper.withViewer((viewer) async {
-        var materialData = File(
-                "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat")
-            .readAsBytesSync();
-        var material = await viewer.createMaterial(materialData);
-        var instance = await material.createInstance();
+        await viewer
+            .setCameraModelMatrix4(Matrix4.translation(Vector3(0, 0, 5)));
+        // // Rotate the camera in 30-degree increments and capture at each position
+        // for (int i = 0; i <= 180; i += 30) {
+        // int i = 60;
+        // final angle = i * (pi / 180); // Convert to radians
 
-        final cube = await viewer.createGeometry(GeometryHelper.cube(),
-            materialInstances: [instance]);
-        await cube.addToScene();
-        await testHelper.capture(viewer, "projection");
-      }, cameraPosition: Vector3(0, 0, 100));
+        // // Calculate camera position
+        // // Start at (0, 1, 5) (facing the sphere from +z) and rotate around to (-5, 1, 0)
+        // final radius = 5.0;
+        // final x = -radius * sin(angle);
+        // final z = radius * cos(angle);
+
+        // // Create view matrix for this camera position
+        // final matrix = makeViewMatrix(
+        //     Vector3(x, 1, z),
+        //     Vector3.zero(), // Looking at origin
+        //     Vector3(0, 1, 0) // Up vector
+        //     )
+        //   ..invert();
+
+        // await viewer.setCameraModelMatrix4(matrix);
+
+        // // Take a snapshot at this position
+        // await testHelper.capture(viewer, "projection_${i}deg");
+        // }
+
+        final view = await viewer.getViewAt(0);
+        final rtTextureHandle = await testHelper.createTexture(512, 512);
+        final rt = await viewer.createRenderTarget(
+            512, 512, rtTextureHandle.metalTextureAddress);
+        await view.setRenderTarget(rt);
+        final rtTexture = await rt.getColorTexture();
+
+        final ppuvMaterial = await viewer.createMaterial(File(
+                "/Users/nickfisher/Documents/thermion/materials/postprocess_uv.filamat")
+            .readAsBytesSync());
+        final ppuvInstance = await ppuvMaterial.createInstance();
+
+        // Setup the scene (lighting, materials, etc.)
+        await viewer.loadIbl(
+            "file://${testHelper.testDir}/assets/default_env_ibl.ktx",
+            intensity: 1000);
+        // await viewer.setShadowsEnabled(true);
+        await viewer.addDirectLight(DirectLight.sun(
+            intensity: 500000,
+            castShadows: true,
+            direction: Vector3(1, -0.5, 0).normalized()));
+
+        // input texture
+        var inputTextureData =
+            File("${testHelper.testDir}/assets/cube_texture_512x512.png")
+                .readAsBytesSync();
+        var inputImage = await viewer.decodeImage(inputTextureData);
+        var inputTexture = await viewer.createTexture(
+            await inputImage.getWidth(), await inputImage.getHeight(),
+            textureFormat: TextureFormat.RGBA32F);
+        await inputTexture.setLinearImage(
+            inputImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+
+        var captureUvMaterial = await viewer.createMaterial(File(
+                "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat")
+            .readAsBytesSync());
+        var captureUvMaterialInstance =
+            await captureUvMaterial.createInstance();
+        var sampler = await viewer.createTextureSampler();
+
+        // Create sphere and plane
+        final sphere = await viewer.createGeometry(
+            GeometryHelper.sphere(normals: true, uvs: true),
+            materialInstances: []);
+        // await viewer.setTransform(
+        //     sphere.entity, Matrix4.compose(Vector3(2, 1, -1), Quaternion.identity(), Vector3(1.0,1.0,1.0)));
+        await sphere.addToScene();
+
+        await testHelper.capture(viewer, "color", renderTarget: rt);
+
+        await captureUvMaterialInstance.setParameterTexture(
+            "color", rtTexture, sampler);
+        await sphere.setMaterialInstanceAt(captureUvMaterialInstance);
+
+        await testHelper.capture(viewer, "uv_capture", renderTarget: rt);
+
+        // await ppuvInstance.setParameterTexture("uvTexture", rtTexture, sampler);
+
+        await sphere.setMaterialInstanceAt(ppuvInstance);
+
+        await testHelper.capture(viewer, "ppuv", renderTarget: rt);
+
+        // final quad = await viewer.createGeometry(
+        //     GeometryHelper.plane(width: 100.0, height: 100.0),
+        //     materialInstances: [materialInstance]);
+        // await viewer.setTransform(
+        //     quad.entity, Matrix4.translation(Vector3(0, -1, 0)));
+        // await quad.addToScene();
+
+        var bytePixelBuffer = await viewer.capture(renderTarget: rt);
+
+        var floatPixelBuffer = Float32List.fromList(
+            bytePixelBuffer.map((p) => p.toDouble() / 255.0).toList());
+
+        print("pixelBuffer ${floatPixelBuffer.lengthInBytes} bytes");
+
+        var output = unprojectTexture(
+            renderTarget: await inputImage.getData(),
+            uvCoordinates: floatPixelBuffer,
+            renderTargetWidth: 512,
+            renderTargetHeight: 512,
+            renderTargetChannels: 4,
+            uvWidth: 512,
+            uvHeight: 512,
+            uvChannels: 4,
+            outputWidth: 512,
+            outputHeight: 512);
+        var byteOutput =
+            Uint8List.fromList(output.map((o) => (o * 255.0).toInt()).toList());
+        await savePixelBufferToBmp(byteOutput, 512, 512, "/tmp/foo.bmp");
+
+        final reappliedImage = await viewer.createImage(512, 512, 4);
+        final data = await reappliedImage.getData();
+        data.setRange(0, data.length, output);
+        final reappliedTexture = await viewer.createTexture(512, 512,
+            textureFormat: TextureFormat.RGBA32F);
+        await reappliedTexture.setLinearImage(
+            reappliedImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+        var newMaterialInstance =
+            await viewer.createUbershaderMaterialInstance(unlit: true);
+        await newMaterialInstance.setParameterInt("baseColorIndex", 0);
+
+        await newMaterialInstance.setParameterTexture(
+            "baseColorMap",
+            reappliedTexture,
+            //  inputTexture,
+
+            sampler);
+        await newMaterialInstance.setParameterFloat4(
+            "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
+        await sphere.setMaterialInstanceAt(newMaterialInstance);
+        await testHelper.capture(viewer, "capture2");
+
+        // final view = await viewer.getViewAt(0);
+        // final renderTargetTexture = await testHelper.createTexture(512, 512);
+        // final rt = await viewer.createRenderTarget(
+        //     512, 512, renderTargetTexture.metalTextureAddress);
+        // await view.setRenderTarget(rt);
+        // pixelBuffer = await viewer.capture(renderTarget: rt);
+      }, viewportDimensions: (width: 512, height: 512));
     });
   });
 }
+
+Float32List unprojectTexture({
+  required Float32List renderTarget,
+  required Float32List uvCoordinates,
+  required int renderTargetWidth,
+  required int renderTargetHeight,
+  required int renderTargetChannels,
+  required int uvWidth,
+  required int uvHeight,
+  required int uvChannels,
+  required int outputWidth,
+  required int outputHeight,
+  int uChannel = 0,
+  int vChannel = 1,
+}) {
+  // Create output texture (initially transparent/zero)
+  final outputSize = outputWidth * outputHeight * renderTargetChannels;
+  final outputTexture = Float32List(outputSize);
+
+  // Make sure the input dimensions match
+  assert(renderTargetWidth == uvWidth && renderTargetHeight == uvHeight,
+      'Render target and UV texture dimensions must match');
+
+  // For each pixel in the render target
+  for (int y = 0; y < renderTargetHeight; y++) {
+    for (int x = 0; x < renderTargetWidth; x++) {
+      // Calculate index in the source textures
+      final srcIndex = (y * renderTargetWidth + x);
+      final renderPixelIndex = srcIndex * renderTargetChannels;
+      final uvPixelIndex = srcIndex * uvChannels;
+
+      // Read UV coordinates directly from UV texture
+      // Since we're using Float32List, values should already be in 0-1 range
+      final u = uvCoordinates[uvPixelIndex + uChannel];
+      final v = uvCoordinates[uvPixelIndex + vChannel];
+
+      // Skip invalid UVs (e.g., background or out of bounds)
+      if (u < 0.0 || u > 1.0 || v < 0.0 || v > 1.0) {
+        continue;
+      }
+
+      // final u = x / renderTargetWidth;
+      // final v = y / renderTargetHeight;
+
+      // Convert UV to output texture coordinates
+      final outX = (u * (outputWidth - 1)).round();
+      final outY = (v * (outputHeight - 1)).round();
+
+      // Calculate the destination index in the output texture
+      final outIndex = (outY * outputWidth + outX) * renderTargetChannels;
+
+      // Copy color data from render target to output at the UV position
+      for (int c = 0; c < renderTargetChannels; c++) {
+        outputTexture[outIndex + c] = renderTarget[renderPixelIndex + c];
+      }
+    }
+  }
+
+  return outputTexture;
+}
+
+
+        // // Rotate the camera in 30-degree increments and capture at each position
+        // for (int i = 0; i <= 180; i += 30) {
+        //   final angle = i * (pi / 180); // Convert to radians
+
+        //   // Calculate camera position
+        //   // Start at (0, 1, 5) (facing the sphere from +z) and rotate around to (-5, 1, 0)
+        //   final radius = 5.0;
+        //   final x = -radius * sin(angle);
+        //   final z = radius * cos(angle);
+
+        //   // Create view matrix for this camera position
+        //   final matrix = makeViewMatrix(
+        //       Vector3(x, 1, z),
+        //       Vector3.zero(), // Looking at origin
+        //       Vector3(0, 1, 0) // Up vector
+        //       )
+        //     ..invert();
+
+        //   await viewer.setCameraModelMatrix4(matrix);
+
+        //   // Take a snapshot at this position
+        //   await testHelper.capture(viewer, "projection_${i}deg");
+        // }
 
   // group("MaterialInstance", () {
 
