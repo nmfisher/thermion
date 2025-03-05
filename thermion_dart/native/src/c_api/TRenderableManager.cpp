@@ -72,9 +72,21 @@ namespace thermion
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
             if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
                 return false;
             }
             return renderableManager->isShadowCaster(renderableInstance);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setCastShadows(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            return renderableManager->setCastShadows(renderableInstance, enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_isShadowReceiver(TRenderableManager *tRenderableManager, EntityId entityId) {
@@ -82,9 +94,21 @@ namespace thermion
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
             if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
                 return false;
             }
             return renderableManager->isShadowReceiver(renderableInstance);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setReceiveShadows(TRenderableManager *tRenderableManager, EntityId entityId, bool enabled) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                Log("Error: invalid renderable");
+                return;
+            }
+            return renderableManager->setReceiveShadows(renderableInstance, enabled);
         }
 
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_getFogEnabled(TRenderableManager *tRenderableManager, EntityId entityId) {

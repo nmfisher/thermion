@@ -918,4 +918,24 @@ abstract class ThermionViewer {
   /// Throws an exception if the index is out-of-bounds.
   ///
   Camera getCameraAt(int index);
+
+  ///
+  ///
+  ///
+  Future setCastShadows(ThermionEntity entity, bool castShadows);
+  
+  ///
+  ///
+  ///
+  Future<bool> isCastShadowsEnabled(ThermionEntity entity);
+
+  ///
+  ///
+  ///
+  Future setReceiveShadows(ThermionEntity entity, bool receiveShadows);
+
+  ///
+  ///
+  ///
+  Future<bool> isReceiveShadowsEnabled(ThermionEntity entity);
 }

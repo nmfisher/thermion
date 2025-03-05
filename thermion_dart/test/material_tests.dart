@@ -387,7 +387,7 @@ void main() async {
         await viewer.loadIbl(
             "file://${testHelper.testDir}/assets/default_env_ibl.ktx",
             intensity: 1000);
-        // await viewer.setShadowsEnabled(true);
+
         await viewer.addDirectLight(DirectLight.sun(
             intensity: 500000,
             castShadows: true,

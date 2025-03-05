@@ -111,7 +111,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (view == nullptr) {
       throw Exception("Failed to create view");
     }
-    return FFIView(view, _viewer!,_engine!);
+    return FFIView(view, _viewer!, _engine!);
   }
 
   ///
@@ -1678,9 +1678,6 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create geometry");
     }
 
-    print(
-        " is shadow caster : ${RenderableManager_isShadowCaster(_renderableManager!, SceneAsset_getEntity(assetPtr))}  is shadow recevier : ${RenderableManager_isShadowReceiver(_renderableManager!, SceneAsset_getEntity(assetPtr))} ");
-
     var asset = FFIAsset(
         assetPtr, _sceneManager!, _engine!, _unlitMaterialProvider!, this);
 
@@ -2185,9 +2182,35 @@ class ThermionViewerFFI extends ThermionViewer {
         gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }
+
+  ///
+  ///
+  ///
+  Future setCastShadows(ThermionEntity entity, bool castShadows) async {
+    RenderableManager_setCastShadows(_renderableManager!, entity, castShadows);
+  }
+
+  ///
+  ///
+  ///
+  Future<bool> isCastShadowsEnabled(ThermionEntity entity) async {
+    return RenderableManager_isShadowCaster(_renderableManager!, entity);
+  }
+
+  ///
+  ///
+  ///
+  Future setReceiveShadows(ThermionEntity entity, bool receiveShadows) async {
+    RenderableManager_setReceiveShadows(_renderableManager!, entity, receiveShadows);
+  }
+
+  ///
+  ///
+  ///
+  Future<bool> isReceiveShadowsEnabled(ThermionEntity entity) async {
+    return RenderableManager_isShadowReceiver(_renderableManager!, entity);
+  }
 }
-
-
 
 class FFISwapChain extends SwapChain {
   final Pointer<TSwapChain> swapChain;

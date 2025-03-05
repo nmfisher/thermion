@@ -2502,7 +2502,6 @@ external bool RenderableManager_isRenderable(
   int entityId,
 );
 
-/// Checks if the given entity has a renderable component
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
 external bool RenderableManager_hasComponent(
@@ -2510,13 +2509,11 @@ external bool RenderableManager_hasComponent(
   int entityId,
 );
 
-/// Returns true if this manager has no components
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>)>(isLeaf: true)
 external bool RenderableManager_empty(
   ffi.Pointer<TRenderableManager> tRenderableManager,
 );
 
-/// Returns whether a light channel is enabled on a specified renderable
 @ffi.Native<
     ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId,
         ffi.UnsignedInt)>(isLeaf: true)
@@ -2526,7 +2523,6 @@ external bool RenderableManager_getLightChannel(
   int channel,
 );
 
-/// Checks if the renderable can cast shadows
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
 external bool RenderableManager_isShadowCaster(
@@ -2534,7 +2530,24 @@ external bool RenderableManager_isShadowCaster(
   int entityId,
 );
 
-/// Checks if the renderable can receive shadows
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setCastShadows(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool castShadows,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TRenderableManager>, EntityId, ffi.Bool)>(isLeaf: true)
+external void RenderableManager_setReceiveShadows(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+  bool receiveShadows,
+);
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
 external bool RenderableManager_isShadowReceiver(
@@ -2542,7 +2555,6 @@ external bool RenderableManager_isShadowReceiver(
   int entityId,
 );
 
-/// Returns whether large-scale fog is enabled for this renderable
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TRenderableManager>, EntityId)>(
     isLeaf: true)
 external bool RenderableManager_getFogEnabled(
