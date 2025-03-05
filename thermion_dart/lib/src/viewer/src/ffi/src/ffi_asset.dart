@@ -263,8 +263,8 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<void> setBoundingBoxVisibility(bool visible) async {
     if (boundingBoxAsset == null) {
-      final boundingBox = await SceneAsset_getBoundingBox(pointer!);
-      
+      final boundingBox = await SceneAsset_getBoundingBox(pointer);
+
       final min = [
         boundingBox.centerX - boundingBox.halfExtentX,
         boundingBox.centerY - boundingBox.halfExtentY,
@@ -342,6 +342,9 @@ class FFIAsset extends ThermionAsset {
         materialInstances: [material],
         keepData: false,
       ) as FFIAsset;
+
+      await viewer.setCastShadows(boundingBoxAsset!.entity, false);
+      await viewer.setReceiveShadows(boundingBoxAsset!.entity, false);
 
       TransformManager_setParent(Engine_getTransformManager(engine),
           boundingBoxAsset!.entity, entity, false);

@@ -92,17 +92,17 @@ namespace thermion
             return nullptr;
         }
 
-        Log("Creating buffers...");
+        TRACE("Creating buffers...");
         auto [vertexBuffer, indexBuffer] = createBuffers();
         if (!vertexBuffer || !indexBuffer)
         {
             Log("Failed to create buffers: VB=%p, IB=%p", vertexBuffer, indexBuffer);
             return nullptr;
         }
-        Log("Buffers created successfully: VB=%p, IB=%p", vertexBuffer, indexBuffer);
+        TRACE("Buffers created successfully: VB=%p, IB=%p", vertexBuffer, indexBuffer);
 
         Box boundingBox = computeBoundingBox();
-        Log("Computed bounding box: min={%f,%f,%f}, max={%f,%f,%f}",
+        TRACE("Computed bounding box: min={%f,%f,%f}, max={%f,%f,%f}",
             boundingBox.getMin().x, boundingBox.getMin().y, boundingBox.getMin().z,
             boundingBox.getMax().x, boundingBox.getMax().y, boundingBox.getMax().z);
 
@@ -285,7 +285,7 @@ namespace thermion
             return false;
         }
 
-        Log("Validation passed: vertices=%d, normals=%s, uvs=%d, indices=%d",
+        TRACE("Validation passed: vertices=%d, normals=%s, uvs=%d, indices=%d",
             mVertices->size(),
             (!mNormals->empty() ? "yes" : "no"),
             mUVs->size(),
