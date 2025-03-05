@@ -803,10 +803,6 @@ abstract class ThermionViewer {
   ///
   Future<LinearImage> createImage(int width, int height, int channels);
 
-  ///
-  ///
-  ///
-  Future destroyTexture(covariant ThermionTexture texture);
 
   ///
   ///

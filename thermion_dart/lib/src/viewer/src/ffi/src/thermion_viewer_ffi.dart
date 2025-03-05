@@ -1900,13 +1900,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future destroyTexture(FFITexture texture) async {
-    destroy_texture(_sceneManager!, texture.pointer.cast<Void>());
-  }
-
-  ///
-  ///
-  ///
   Future<Material> createMaterial(Uint8List data) async {
     var ptr = await withPointerCallback<TMaterial>((cb) {
       Engine_buildMaterialRenderThread(_engine!, data.address, data.length, cb);
