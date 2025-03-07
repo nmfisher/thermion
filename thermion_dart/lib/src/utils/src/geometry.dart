@@ -52,7 +52,7 @@ class GeometryHelper {
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
-static Geometry cube({bool normals = false, bool uvs = false}) {
+static Geometry cube({bool normals = true, bool uvs = true}) {
   final vertices = Float32List.fromList([
     // Front face
     -1, -1, 1,
@@ -251,18 +251,26 @@ static Geometry cube({bool normals = false, bool uvs = false}) {
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
-  static Geometry conic({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true}) {
+static Geometry conic({double radius = 1.0, double length = 1.0, bool normals = true, bool uvs = true}) {
   int segments = 32;
   List<double> verticesList = [];
   List<double> normalsList = [];
   List<double> uvsList = [];
   List<int> indices = [];
 
-  int vertexOffset = 0;
-
   // Create side vertices (base circle + apex)
+  // Add apex vertex first
+  verticesList.addAll([0, length, 0]);
+  if (normals) {
+    normalsList.addAll([0, 1, 0]);
+  }
+  if (uvs) {
+    uvsList.addAll([0.5, 1]);
+  }
+  
+  // Now add base circle vertices
   for (int i = 0; i <= segments; i++) {
-    double theta = i * 2 * pi / segments;
+    double theta = (i % segments) * 2 * pi / segments;
     double x = radius * cos(theta);
     double z = radius * sin(theta);
 
@@ -271,12 +279,25 @@ static Geometry cube({bool normals = false, bool uvs = false}) {
     
     if (normals) {
       // Calculate normal for the side (perpendicular to the cone surface)
-      // The normal is perpendicular to the line from the edge point to the apex
-      double nx = x;
-      double nz = z;
-      double ny = radius;
+      // For a cone, the normal is perpendicular to the slant height
+      // We calculate it directly without using cross product
       
-      // Normalize the normal vector
+      // Calculate the slant height vector (from base point to apex)
+      double slantX = -x;  // Vector from base point to apex
+      double slantY = length;
+      double slantZ = -z;
+      
+      // Calculate tangent vector around the circle (perpendicular to radius)
+      double tangentX = -z;
+      double tangentY = 0;
+      double tangentZ = x;
+      
+      // Cross product of tangent and slant gives the normal
+      double nx = (tangentY * slantZ) - (tangentZ * slantY);
+      double ny = (tangentZ * slantX) - (tangentX * slantZ);
+      double nz = (tangentX * slantY) - (tangentY * slantX);
+      
+      // Normalize
       double normalLength = sqrt(nx * nx + ny * ny + nz * nz);
       nx /= normalLength;
       ny /= normalLength;
@@ -291,58 +312,42 @@ static Geometry cube({bool normals = false, bool uvs = false}) {
     }
   }
 
-  // Add apex vertex
-  verticesList.addAll([0, length, 0]);
-  vertexOffset = segments + 1;
-  
-  if (normals) {
-    // Apex normal points up
-    normalsList.addAll([0, 1, 0]);
-  }
-  
-  if (uvs) {
-    // UV for apex
-    uvsList.addAll([0.5, 1]);
-  }
-
   // Create side faces indices
+  // Apex is at index 0
   for (int i = 0; i < segments; i++) {
+    int current = i + 1;  // +1 because apex is at index 0
+    int next = ((i + 1) % segments) + 1;  // +1 for the same reason
+    
     // Create triangular faces from edge to apex
-    indices.addAll([i, (i + 1) % (segments + 1), vertexOffset]);
+    // Using counter-clockwise winding when viewed from outside
+    indices.addAll([0, current, next]);
   }
 
-  // Create base circle vertices (duplicate for proper normals and UVs)
+  // Create base vertices separately (for proper normals)
   int baseStartIndex = verticesList.length ~/ 3;
   
   // Center vertex for base
   verticesList.addAll([0, 0, 0]);
-  
   if (normals) {
-    // Base center normal points down
     normalsList.addAll([0, -1, 0]);
   }
-  
   if (uvs) {
-    // UV for base center
     uvsList.addAll([0.5, 0.5]);
   }
   
   // Add base edge vertices
-  for (int i = 0; i <= segments; i++) {
+  for (int i = 0; i < segments; i++) {
     double theta = i * 2 * pi / segments;
     double x = radius * cos(theta);
     double z = radius * sin(theta);
 
-    // Base circle vertex (duplicate for proper normal/UV)
     verticesList.addAll([x, 0, z]);
     
     if (normals) {
-      // Base normal points down
       normalsList.addAll([0, -1, 0]);
     }
     
     if (uvs) {
-      // UV for base edge
       double u = 0.5 + 0.5 * cos(theta);
       double v = 0.5 + 0.5 * sin(theta);
       uvsList.addAll([u, v]);
@@ -351,8 +356,11 @@ static Geometry cube({bool normals = false, bool uvs = false}) {
 
   // Create base faces indices
   for (int i = 0; i < segments; i++) {
-    // Fan triangulation from center to edge
-    indices.addAll([baseStartIndex, baseStartIndex + i + 1, baseStartIndex + i + 2]);
+    int current = baseStartIndex + 1 + i;
+    int next = baseStartIndex + 1 + ((i + 1) % segments);
+    
+    // Using clockwise winding for base faces (since they face down)
+    indices.addAll([baseStartIndex, next, current]);
   }
 
   // Convert to Float32List
