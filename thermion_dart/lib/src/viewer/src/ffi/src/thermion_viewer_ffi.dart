@@ -181,6 +181,8 @@ class ThermionViewerFFI extends ThermionViewer {
   Future _initialize() async {
     _logger.info("Initializing ThermionViewerFFI");
 
+    Viewer_destroyOnRenderThread(nullptr);
+
     RenderLoop_destroy();
     RenderLoop_create();
 
