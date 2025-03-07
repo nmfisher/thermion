@@ -179,6 +179,11 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future _initialize() async {
+    _logger.info("Initializing ThermionViewerFFI");
+
+    RenderLoop_destroy();
+    RenderLoop_create();
+
     final uberarchivePtr =
         uberArchivePath?.toNativeUtf8(allocator: allocator).cast<Char>() ??
             nullptr;
@@ -205,6 +210,7 @@ class ThermionViewerFFI extends ThermionViewer {
     _nameComponentManager =
         SceneManager_getNameComponentManager(_sceneManager!);
     _renderableManager = Engine_getRenderableManager(_engine!);
+
     this._initialized.complete(true);
   }
 
@@ -302,14 +308,17 @@ class ThermionViewerFFI extends ThermionViewer {
       await mInstance.dispose();
     }
     await destroyLights();
-
     Viewer_destroyOnRenderThread(_viewer!);
+
+    RenderLoop_destroy();
+
     _sceneManager = null;
     _viewer = null;
 
     for (final callback in _onDispose) {
       await callback.call();
     }
+
     _onDispose.clear();
     _disposing = false;
   }
@@ -2194,7 +2203,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setReceiveShadows(ThermionEntity entity, bool receiveShadows) async {
-    RenderableManager_setReceiveShadows(_renderableManager!, entity, receiveShadows);
+    RenderableManager_setReceiveShadows(
+        _renderableManager!, entity, receiveShadows);
   }
 
   ///

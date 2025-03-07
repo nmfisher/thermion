@@ -35,20 +35,12 @@ public:
 
   ~RenderLoop()
   {
+    TRACE("Destroying RenderLoop");
     _stop = true;
     _cv.notify_one();
+    TRACE("Joining RenderLoop thread..");    
     t->join();
-  }
-
-  static void mainLoop(void *arg)
-  {
-    ((RenderLoop *)arg)->iter();
-  }
-
-  static void *startHelper(void *parm)
-  {
-    ((RenderLoop *)parm)->start();
-    return nullptr;
+    TRACE("RenderLoop destructor complete");    
   }
 
   void start()
@@ -57,6 +49,42 @@ public:
     {
       iter();
     }
+  }
+
+  void destroyViewer() {
+    std::packaged_task<void()> lambda([=]() mutable
+                                      {
+          if(viewer) {
+            Viewer_destroy(viewer);  
+          }
+          viewer = nullptr;
+          _renderCallback = nullptr;
+          _renderCallbackOwner = nullptr; 
+          
+      });
+    auto fut = add_task(lambda);
+    fut.wait();
+  }
+
+  void createViewer(
+      void *const context,
+      void *const platform,
+      const char *uberArchivePath,
+      const void *const loader,
+      void (*renderCallback)(void *),
+      void *const owner,
+      void (*callback)(TViewer *))
+  {
+    _renderCallback = renderCallback;
+    _renderCallbackOwner = owner;
+    std::packaged_task<void()> lambda([=]() mutable
+                                      {
+          if(viewer) {
+            Viewer_destroy(viewer);  
+          }
+          viewer = Viewer_create(context, loader, platform, uberArchivePath);
+          callback(viewer); });
+    add_task(lambda);
   }
 
   void requestFrame(void (*callback)())
@@ -109,37 +137,9 @@ public:
                  { return !_tasks.empty() || _stop; });
   }
 
-  void createViewer(void *const context,
-                    void *const platform,
-                    const char *uberArchivePath,
-                    const ResourceLoaderWrapper *const loader,
-                    void (*renderCallback)(void *),
-                    void *const owner,
-                    void (*callback)(TViewer *))
-  {
-    _renderCallback = renderCallback;
-    _renderCallbackOwner = owner;
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-                                        auto viewer = (FilamentViewer *)Viewer_create(context, loader, platform, uberArchivePath);
-                                        _viewer = reinterpret_cast<TViewer*>(viewer);
-                                        callback(_viewer); });
-    auto fut = add_task(lambda);
-  }
-
-  void destroyViewer(FilamentViewer *viewer)
-  {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-      _viewer = nullptr;
-      Viewer_destroy(reinterpret_cast<TViewer*>(viewer)); });
-    auto fut = add_task(lambda);
-    fut.wait();
-  }
-
   void doRender()
   {
-    Viewer_render(_viewer);
+    Viewer_render(viewer);
     if (_renderCallback)
     {
       _renderCallback(_renderCallbackOwner);
@@ -163,6 +163,8 @@ public:
     return ret;
   }
 
+  TViewer *viewer = std::nullptr_t();
+
 private:
   void (*_requestFrameRenderCallback)() = nullptr;
   bool _stop = false;
@@ -173,7 +175,6 @@ private:
   void (*_renderCallback)(void *const) = nullptr;
   void *_renderCallbackOwner = nullptr;
   std::deque<std::function<void()>> _tasks;
-  TViewer *_viewer = nullptr;
   std::chrono::high_resolution_clock::time_point _lastFrameTime;
   int _frameCount = 0;
   float _accumulatedTime = 0.0f;
@@ -184,7 +185,25 @@ private:
 extern "C"
 {
 
-  static RenderLoop *_rl;
+  static std::unique_ptr<RenderLoop> _rl;
+
+  EMSCRIPTEN_KEEPALIVE void RenderLoop_create() {
+    TRACE("RenderLoop_create");
+    if (_rl)
+    {
+      Log("WARNING - you are attempting to create a RenderLoop when the previous one has not been disposed.");
+    }
+    _rl = std::make_unique<RenderLoop>();
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderLoop_destroy() {
+    TRACE("RenderLoop_destroy");
+    if (_rl)
+    {
+      _rl->destroyViewer();
+      _rl = nullptr;
+    }
+  }
 
   EMSCRIPTEN_KEEPALIVE void Viewer_createOnRenderThread(
       void *const context, void *const platform, const char *uberArchivePath,
@@ -193,20 +212,27 @@ extern "C"
       void *const renderCallbackOwner,
       void (*callback)(TViewer *))
   {
-
-    if (!_rl)
-    {
-      _rl = new RenderLoop();
-    }
-    _rl->createViewer(context, platform, uberArchivePath, (const ResourceLoaderWrapper *const)loader,
-                      renderCallback, renderCallbackOwner, callback);
+    TRACE("Viewer_createOnRenderThread");
+    _rl->createViewer(
+      context,
+      platform,
+      uberArchivePath,
+      loader,
+      renderCallback,
+      renderCallbackOwner,
+      callback
+    );
   }
 
   EMSCRIPTEN_KEEPALIVE void Viewer_destroyOnRenderThread(TViewer *viewer)
   {
-    _rl->destroyViewer((FilamentViewer *)viewer);
-    delete _rl;
-    _rl = nullptr;
+    TRACE("Viewer_destroyOnRenderThread");
+    if (!_rl)
+    {
+      Log("Warning - cannot destroy viewer, no RenderLoop has been created");
+    } else {
+      _rl->destroyViewer();
+    }
   }
 
   EMSCRIPTEN_KEEPALIVE void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer,
@@ -320,14 +346,15 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture* tTexture, void (*onComplete)()) { 
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture *tTexture, void (*onComplete)())
+  {
     std::packaged_task<void()> lambda(
-      [=]() mutable
-      {
-        Engine_destroyTexture(engine, tTexture);
-        onComplete();
-      });
-  auto fut = _rl->add_task(lambda);
+        [=]() mutable
+        {
+          Engine_destroyTexture(engine, tTexture);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))

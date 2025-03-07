@@ -124,17 +124,21 @@ namespace thermion
 
     SceneManager::~SceneManager()
     {
+        TRACE("Destroying cameras");
         for (auto camera : _cameras)
         {
             auto entity = camera->getEntity();
             _engine->destroyCameraComponent(entity);
             _engine->getEntityManager().destroy(entity);
         }
+        TRACE("Cameras destroyed");
 
         destroyAll();
+        TRACE("Destroyed all assets");
 
         _engine->destroy(_unlitFixedSizeMaterial);
         _engine->destroy(_gizmoMaterial);
+        TRACE("Destroyed materials");
         _cameras.clear();
 
         _grid = nullptr;
@@ -150,7 +154,9 @@ namespace thermion
         delete _stbDecoder;
         delete _ktxDecoder;
         delete _ubershaderProvider;
+        TRACE("Destroying asset loader");
         AssetLoader::destroy(&_assetLoader);
+        TRACE("Destroyed asset loader");
     }
 
     SceneAsset *SceneManager::createGrid(Material *material)

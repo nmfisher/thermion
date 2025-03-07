@@ -516,9 +516,8 @@ namespace thermion
 
   FilamentViewer::~FilamentViewer()
   {
-
+    TRACE("Destroying FilamentViewer");
     _sceneManager->destroyAll();
-
     for (auto view : _views)
     {
       view->setRenderTarget(nullptr);
@@ -526,20 +525,20 @@ namespace thermion
     }
 
     _views.clear();
-
+    TRACE("Destroying render targets");
     for(auto rt : _renderTargets) {
       destroyRenderTarget(rt);
     }
 
     _renderTargets.clear();
-
+    TRACE("Destroying swapchains");
     for (auto swapChain : _swapChains)
     {
       _engine->destroy(swapChain);
     }
 
     _swapChains.clear();
-
+    TRACE("Destroying background image");
     if (!_imageEntity.isNull())
     {
       _engine->destroy(_imageEntity);
@@ -548,13 +547,18 @@ namespace thermion
       _engine->destroy(_imageIb);
       _engine->destroy(_imageMaterial);
     }
+    TRACE("Destroying SceneManager");
     delete _sceneManager;
+    TRACE("SceneManager destroyed");
     _engine->destroyCameraComponent(_mainCamera->getEntity());
     _mainCamera = nullptr;
     _engine->destroy(_scene);
     _engine->destroy(_renderer);
+    TRACE("Destroying engine");
     Engine::destroy(&_engine);
+    TRACE("Engine destroyed");
     delete _resourceLoaderWrapper;
+    TRACE("Destruction complete.");
   }
 
   Renderer *FilamentViewer::getRenderer() { return _renderer; }

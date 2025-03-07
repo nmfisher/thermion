@@ -49,9 +49,10 @@ extern "C"
         viewer->destroyRenderTarget(renderTarget);
     }
 
-    EMSCRIPTEN_KEEPALIVE void Viewer_destroy(TViewer *viewer)
+    EMSCRIPTEN_KEEPALIVE void Viewer_destroy(TViewer *tViewer)
     {
-        delete ((FilamentViewer *)viewer);
+        auto *viewer = reinterpret_cast<FilamentViewer*>(tViewer);
+        delete viewer;
     }
 
     EMSCRIPTEN_KEEPALIVE void set_background_color(TViewer *viewer, const float r, const float g, const float b, const float a)

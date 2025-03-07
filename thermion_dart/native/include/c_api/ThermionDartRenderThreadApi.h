@@ -22,6 +22,9 @@ namespace thermion
         typedef int32_t EntityId;
         typedef void (*FilamentRenderCallback)(void *const owner);
 
+        EMSCRIPTEN_KEEPALIVE void RenderLoop_create();
+        EMSCRIPTEN_KEEPALIVE void RenderLoop_destroy();
+
         EMSCRIPTEN_KEEPALIVE void Viewer_createOnRenderThread(
             void *const context,
             void *const platform,

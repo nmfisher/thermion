@@ -1396,6 +1396,12 @@ external int TransformManager_getAncestor(
   int childEntityId,
 );
 
+@ffi.Native<ffi.Void Function()>(isLeaf: true)
+external void RenderLoop_create();
+
+@ffi.Native<ffi.Void Function()>(isLeaf: true)
+external void RenderLoop_destroy();
+
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.Void>,
