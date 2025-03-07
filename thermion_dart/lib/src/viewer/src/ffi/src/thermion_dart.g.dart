@@ -663,14 +663,6 @@ external void get_bounding_box_to_out(
   ffi.Pointer<ffi.Float> maxY,
 );
 
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>, ffi.Pointer<ffi.Void>)>(isLeaf: true)
-external void destroy_texture(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Void> texture,
-);
-
 @ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
 external TViewport View_getViewport(
   ffi.Pointer<TView> view,
@@ -1658,6 +1650,15 @@ void Engine_buildTextureRenderThread(
     );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TTexture>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Engine_destroyTextureRenderThread(
+  ffi.Pointer<TEngine> engine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TMaterial>,
         ffi.Pointer<
@@ -2099,6 +2100,392 @@ external void AnimationManager_setMorphTargetWeightsRenderThread(
   ffi.Pointer<ffi.Float> morphData,
   int numWeights,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TLinearImage>)>>)>(isLeaf: true)
+external void Image_createEmptyRenderThread(
+  int width,
+  int height,
+  int channel,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TLinearImage>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
+        ffi.Pointer<ffi.Char>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(ffi.Pointer<TLinearImage>)>>)>(isLeaf: true)
+external void Image_decodeRenderThread(
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TLinearImage>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TLinearImage>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Float>)>>)>(
+    isLeaf: true)
+external void Image_getBytesRenderThread(
+  ffi.Pointer<TLinearImage> tLinearImage,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Float>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TLinearImage>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Image_destroyRenderThread(
+  ffi.Pointer<TLinearImage> tLinearImage,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TLinearImage>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>>)>(
+    isLeaf: true)
+external void Image_getWidthRenderThread(
+  ffi.Pointer<TLinearImage> tLinearImage,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>> onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TLinearImage>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>>)>(
+    isLeaf: true)
+external void Image_getHeightRenderThread(
+  ffi.Pointer<TLinearImage> tLinearImage,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>> onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TLinearImage>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>>)>(
+    isLeaf: true)
+external void Image_getChannelsRenderThread(
+  ffi.Pointer<TLinearImage> tLinearImage,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint32)>> onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TTexture>,
+            ffi.Pointer<TLinearImage>,
+            ffi.UnsignedInt,
+            ffi.UnsignedInt,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
+    symbol: "Texture_loadImageRenderThread", isLeaf: true)
+external void _Texture_loadImageRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TLinearImage> tImage,
+  int bufferFormat,
+  int pixelDataType,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+);
+
+void Texture_loadImageRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  ffi.Pointer<TLinearImage> tImage,
+  TPixelDataFormat bufferFormat,
+  TPixelDataType pixelDataType,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+) =>
+    _Texture_loadImageRenderThread(
+      tEngine,
+      tTexture,
+      tImage,
+      bufferFormat.value,
+      pixelDataType.value,
+      onComplete,
+    );
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TTexture>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
+    isLeaf: true)
+external void Texture_setImageRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  int level,
+  ffi.Pointer<ffi.Uint8> data,
+  int size,
+  int width,
+  int height,
+  int channels,
+  int bufferFormat,
+  int pixelDataType,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TRenderTarget>,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>)>(
+    isLeaf: true)
+external void RenderTarget_getColorTextureRenderThread(
+  ffi.Pointer<TRenderTarget> tRenderTarget,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>
+      onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Pointer<TTextureSampler>)>>)>(isLeaf: true)
+external void TextureSampler_createRenderThread(
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTextureSampler>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.UnsignedInt,
+            ffi.UnsignedInt,
+            ffi.UnsignedInt,
+            ffi.UnsignedInt,
+            ffi.UnsignedInt,
+            ffi.Pointer<
+                ffi.NativeFunction<
+                    ffi.Void Function(ffi.Pointer<TTextureSampler>)>>)>(
+    symbol: "TextureSampler_createWithFilteringRenderThread", isLeaf: true)
+external void _TextureSampler_createWithFilteringRenderThread(
+  int minFilter,
+  int magFilter,
+  int wrapS,
+  int wrapT,
+  int wrapR,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTextureSampler>)>>
+      onComplete,
+);
+
+void TextureSampler_createWithFilteringRenderThread(
+  TSamplerMinFilter minFilter,
+  TSamplerMagFilter magFilter,
+  TSamplerWrapMode wrapS,
+  TSamplerWrapMode wrapT,
+  TSamplerWrapMode wrapR,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTextureSampler>)>>
+      onComplete,
+) =>
+    _TextureSampler_createWithFilteringRenderThread(
+      minFilter.value,
+      magFilter.value,
+      wrapS.value,
+      wrapT.value,
+      wrapR.value,
+      onComplete,
+    );
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.UnsignedInt,
+            ffi.UnsignedInt,
+            ffi.Pointer<
+                ffi.NativeFunction<
+                    ffi.Void Function(ffi.Pointer<TTextureSampler>)>>)>(
+    symbol: "TextureSampler_createWithComparisonRenderThread", isLeaf: true)
+external void _TextureSampler_createWithComparisonRenderThread(
+  int compareMode,
+  int compareFunc,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTextureSampler>)>>
+      onComplete,
+);
+
+void TextureSampler_createWithComparisonRenderThread(
+  TSamplerCompareMode compareMode,
+  TSamplerCompareFunc compareFunc,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTextureSampler>)>>
+      onComplete,
+) =>
+    _TextureSampler_createWithComparisonRenderThread(
+      compareMode.value,
+      compareFunc.value,
+      onComplete,
+    );
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
+    symbol: "TextureSampler_setMinFilterRenderThread", isLeaf: true)
+external void _TextureSampler_setMinFilterRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  int filter,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+void TextureSampler_setMinFilterRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerMinFilter filter,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+) =>
+    _TextureSampler_setMinFilterRenderThread(
+      sampler,
+      filter.value,
+      onComplete,
+    );
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
+    symbol: "TextureSampler_setMagFilterRenderThread", isLeaf: true)
+external void _TextureSampler_setMagFilterRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  int filter,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+void TextureSampler_setMagFilterRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerMagFilter filter,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+) =>
+    _TextureSampler_setMagFilterRenderThread(
+      sampler,
+      filter.value,
+      onComplete,
+    );
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
+    symbol: "TextureSampler_setWrapModeSRenderThread", isLeaf: true)
+external void _TextureSampler_setWrapModeSRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  int mode,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+void TextureSampler_setWrapModeSRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerWrapMode mode,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+) =>
+    _TextureSampler_setWrapModeSRenderThread(
+      sampler,
+      mode.value,
+      onComplete,
+    );
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
+    symbol: "TextureSampler_setWrapModeTRenderThread", isLeaf: true)
+external void _TextureSampler_setWrapModeTRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  int mode,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+void TextureSampler_setWrapModeTRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerWrapMode mode,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+) =>
+    _TextureSampler_setWrapModeTRenderThread(
+      sampler,
+      mode.value,
+      onComplete,
+    );
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
+    symbol: "TextureSampler_setWrapModeRRenderThread", isLeaf: true)
+external void _TextureSampler_setWrapModeRRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  int mode,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+void TextureSampler_setWrapModeRRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerWrapMode mode,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+) =>
+    _TextureSampler_setWrapModeRRenderThread(
+      sampler,
+      mode.value,
+      onComplete,
+    );
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.Double,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void TextureSampler_setAnisotropyRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  double anisotropy,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TTextureSampler>,
+            ffi.UnsignedInt,
+            ffi.UnsignedInt,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
+    symbol: "TextureSampler_setCompareModeRenderThread", isLeaf: true)
+external void _TextureSampler_setCompareModeRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  int mode,
+  int func,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+void TextureSampler_setCompareModeRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  TSamplerCompareMode mode,
+  TSamplerCompareFunc func,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+) =>
+    _TextureSampler_setCompareModeRenderThread(
+      sampler,
+      mode.value,
+      func.value,
+      onComplete,
+    );
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TTextureSampler>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void TextureSampler_destroyRenderThread(
+  ffi.Pointer<TTextureSampler> sampler,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<

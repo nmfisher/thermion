@@ -426,10 +426,3 @@ abstract class LinearImage {
   Future<int> getChannels();
 }
 
-class FFITextureSampler extends TextureSampler {
-  final Pointer<TTextureSampler> pointer;
-
-  FFITextureSampler(this.pointer);
-  @override
-  Future dispose() async {}
-}

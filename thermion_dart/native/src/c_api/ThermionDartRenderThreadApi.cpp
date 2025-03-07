@@ -292,7 +292,8 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTargetRenderThread(TViewer *tViewer, TRenderTarget *tRenderTarget, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTargetRenderThread(TViewer *tViewer, TRenderTarget *tRenderTarget, void (*onComplete)())
+  {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -302,22 +303,32 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildTextureRenderThread(TEngine *engine, 
-    uint32_t width, 
-    uint32_t height, 
-    uint8_t levels, 
-    TTextureSamplerType sampler, 
-    TTextureFormat format,
-    void (*onComplete)(TTexture*)
-) {
-  std::packaged_task<void()> lambda(
-    [=]() mutable
-    {
-      auto texture = Engine_buildTexture(engine, width, height, levels, sampler, format);
-      onComplete(texture);
-    });
-auto fut = _rl->add_task(lambda);
-}
+  EMSCRIPTEN_KEEPALIVE void Engine_buildTextureRenderThread(TEngine *engine,
+                                                            uint32_t width,
+                                                            uint32_t height,
+                                                            uint8_t levels,
+                                                            TTextureSamplerType sampler,
+                                                            TTextureFormat format,
+                                                            void (*onComplete)(TTexture *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto texture = Engine_buildTexture(engine, width, height, levels, sampler, format);
+          onComplete(texture);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture* tTexture, void (*onComplete)()) { 
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Engine_destroyTexture(engine, tTexture);
+        onComplete();
+      });
+  auto fut = _rl->add_task(lambda);
+  }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
   {
@@ -397,8 +408,7 @@ auto fut = _rl->add_task(lambda);
     std::packaged_task<void()> lambda([=]() mutable
                                       {
       auto *sceneAsset = SceneManager_createGrid(tSceneManager, tMaterial);
-      callback(sceneAsset); 
-    });
+      callback(sceneAsset); });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -480,7 +490,8 @@ auto fut = _rl->add_task(lambda);
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyMaterialInstanceRenderThread(TSceneManager *tSceneManager, TMaterialInstance *tMaterialInstance, void (*callback)()) { 
+  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyMaterialInstanceRenderThread(TSceneManager *tSceneManager, TMaterialInstance *tMaterialInstance, void (*callback)())
+  {
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -562,8 +573,8 @@ auto fut = _rl->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Viewer_loadSkyboxRenderThread(TViewer *viewer,
-                                                      const char *skyboxPath,
-                                                      void (*onComplete)())
+                                                          const char *skyboxPath,
+                                                          void (*onComplete)())
   {
     std::packaged_task<void()> lambda([=]
                                       {
@@ -577,8 +588,7 @@ auto fut = _rl->add_task(lambda);
     std::packaged_task<void()> lambda([=]
                                       { 
                                         Viewer_removeSkybox(viewer); 
-                                        onComplete();
-                                      });
+                                        onComplete(); });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -591,8 +601,9 @@ auto fut = _rl->add_task(lambda);
         });
     auto fut = _rl->add_task(lambda);
   }
-  
-  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength) { 
+
+  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength)
+  {
     std::packaged_task<void()> lambda(
         [=]
         {
@@ -641,34 +652,36 @@ auto fut = _rl->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneManager_addLightRenderThread(
-            TSceneManager *tSceneManager,
-            uint8_t type,
-            float colour,
-            float intensity,
-            float posX,
-            float posY,
-            float posZ,
-            float dirX,
-            float dirY,
-            float dirZ,
-            float falloffRadius,
-            float spotLightConeInner,
-            float spotLightConeOuter,
-            float sunAngularRadius,
-            float sunHaloSize,
-            float sunHaloFallof,
-            bool shadows,
-            void (*callback)(EntityId entityId)) { 
-std::packaged_task<void()> lambda(
+      TSceneManager *tSceneManager,
+      uint8_t type,
+      float colour,
+      float intensity,
+      float posX,
+      float posY,
+      float posZ,
+      float dirX,
+      float dirY,
+      float dirZ,
+      float falloffRadius,
+      float spotLightConeInner,
+      float spotLightConeOuter,
+      float sunAngularRadius,
+      float sunHaloSize,
+      float sunHaloFallof,
+      bool shadows,
+      void (*callback)(EntityId entityId))
+  {
+    std::packaged_task<void()> lambda(
         [=]() mutable
         {
           auto light = SceneManager_addLight(tSceneManager, type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, shadows);
           callback(light);
         });
     auto fut = _rl->add_task(lambda);
-            }
-  
-  EMSCRIPTEN_KEEPALIVE void SceneManager_removeLightRenderThread(TSceneManager *tSceneManager, EntityId entityId, void (*callback)()) {
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneManager_removeLightRenderThread(TSceneManager *tSceneManager, EntityId entityId, void (*callback)())
+  {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -699,7 +712,7 @@ std::packaged_task<void()> lambda(
         });
     auto fut = _rl->add_task(lambda);
   }
-  
+
   EMSCRIPTEN_KEEPALIVE void SceneManager_destroyLightsRenderThread(TSceneManager *tSceneManager, void (*callback)())
   {
     std::packaged_task<void()> lambda(
@@ -748,6 +761,289 @@ std::packaged_task<void()> lambda(
         {
           bool result = AnimationManager_setMorphTargetWeights(tAnimationManager, entityId, morphData, numWeights);
           callback(result);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  // Add these implementations to your ThermionDartRenderThreadApi.cpp file
+
+  // Image methods
+  EMSCRIPTEN_KEEPALIVE void Image_createEmptyRenderThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto image = Image_createEmpty(width, height, channel);
+          onComplete(image);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Image_decodeRenderThread(uint8_t *data, size_t length, const char *name, void (*onComplete)(TLinearImage *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto image = Image_decode(data, length, name);
+          onComplete(image);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Image_getBytesRenderThread(TLinearImage *tLinearImage, void (*onComplete)(float *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto bytes = Image_getBytes(tLinearImage);
+          onComplete(bytes);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Image_destroyRenderThread(TLinearImage *tLinearImage, void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Image_destroy(tLinearImage);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Image_getWidthRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto width = Image_getWidth(tLinearImage);
+          onComplete(width);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Image_getHeightRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto height = Image_getHeight(tLinearImage);
+          onComplete(height);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Image_getChannelsRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto channels = Image_getChannels(tLinearImage);
+          onComplete(channels);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  // Texture methods
+  EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
+                                                          TPixelDataFormat bufferFormat, TPixelDataType pixelDataType,
+                                                          void (*onComplete)(bool))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          bool result = Texture_loadImage(tEngine, tTexture, tImage, bufferFormat, pixelDataType);
+          onComplete(result);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Texture_setImageRenderThread(
+      TEngine *tEngine,
+      TTexture *tTexture,
+      uint32_t level,
+      uint8_t *data,
+      size_t size,
+      uint32_t width,
+      uint32_t height,
+      uint32_t channels,
+      uint32_t bufferFormat,
+      uint32_t pixelDataType,
+      void (*onComplete)(bool))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          bool result = Texture_setImage(tEngine, tTexture, level, data, size, width, height, channels,
+                                         bufferFormat, pixelDataType);
+          onComplete(result);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto texture = RenderTarget_getColorTexture(tRenderTarget);
+          onComplete(texture);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  // TextureSampler methods
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto sampler = TextureSampler_create();
+          onComplete(sampler);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithFilteringRenderThread(
+      TSamplerMinFilter minFilter,
+      TSamplerMagFilter magFilter,
+      TSamplerWrapMode wrapS,
+      TSamplerWrapMode wrapT,
+      TSamplerWrapMode wrapR,
+      void (*onComplete)(TTextureSampler *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto sampler = TextureSampler_createWithFiltering(minFilter, magFilter, wrapS, wrapT, wrapR);
+          onComplete(sampler);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithComparisonRenderThread(
+      TSamplerCompareMode compareMode,
+      TSamplerCompareFunc compareFunc,
+      void (*onComplete)(TTextureSampler *))
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto sampler = TextureSampler_createWithComparison(compareMode, compareFunc);
+          onComplete(sampler);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterRenderThread(
+      TTextureSampler *sampler,
+      TSamplerMinFilter filter,
+      void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TextureSampler_setMinFilter(sampler, filter);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterRenderThread(
+      TTextureSampler *sampler,
+      TSamplerMagFilter filter,
+      void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TextureSampler_setMagFilter(sampler, filter);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSRenderThread(
+      TTextureSampler *sampler,
+      TSamplerWrapMode mode,
+      void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TextureSampler_setWrapModeS(sampler, mode);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTRenderThread(
+      TTextureSampler *sampler,
+      TSamplerWrapMode mode,
+      void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TextureSampler_setWrapModeT(sampler, mode);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRRenderThread(
+      TTextureSampler *sampler,
+      TSamplerWrapMode mode,
+      void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TextureSampler_setWrapModeR(sampler, mode);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyRenderThread(
+      TTextureSampler *sampler,
+      double anisotropy,
+      void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TextureSampler_setAnisotropy(sampler, anisotropy);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareModeRenderThread(
+      TTextureSampler *sampler,
+      TSamplerCompareMode mode,
+      TTextureSamplerCompareFunc func,
+      void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TextureSampler_setCompareMode(sampler, mode, func);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyRenderThread(
+      TTextureSampler *sampler,
+      void (*onComplete)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          TextureSampler_destroy(sampler);
+          onComplete();
         });
     auto fut = _rl->add_task(lambda);
   }

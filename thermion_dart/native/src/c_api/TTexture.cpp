@@ -209,6 +209,14 @@ namespace thermion
             }
         }
 
+        EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropy(
+            TTextureSampler *sampler,
+            double anisotropy)
+        {
+            auto *textureSampler = reinterpret_cast<filament::TextureSampler *>(sampler);
+            textureSampler->setAnisotropy(static_cast<float>(anisotropy));
+        }
+
         EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilter(
             TTextureSampler *sampler,
             TSamplerMagFilter filter)

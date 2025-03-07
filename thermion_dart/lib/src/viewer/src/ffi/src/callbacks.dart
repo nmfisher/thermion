@@ -71,6 +71,21 @@ Future<int> withIntCallback(
   return completer.future;
 }
 
+Future<int> withUInt32Callback(
+    Function(Pointer<NativeFunction<Void Function(Uint32)>>) func) async {
+  final completer = Completer<int>();
+  // ignore: prefer_function_declarations_over_variables
+  void Function(int) callback = (int result) {
+    completer.complete(result);
+  };
+  final nativeCallable =
+      NativeCallable<Void Function(Uint32)>.listener(callback);
+  func.call(nativeCallable.nativeFunction);
+  await completer.future;
+  nativeCallable.close();
+  return completer.future;
+}
+
 Future<String> withCharPtrCallback(
     Function(Pointer<NativeFunction<Void Function(Pointer<Char>)>>)
         func) async {
