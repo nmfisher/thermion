@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'dart:typed_data';
+import 'package:image/image.dart' as img;
 
 Future<Uint8List> pixelBufferToBmp(
     Uint8List pixelBuffer, int width, int height) async {
@@ -43,4 +45,70 @@ Future<Uint8List> pixelBufferToBmp(
   }
 
   return data;
+}
+
+Future<Uint8List> pixelBufferToPng(Uint8List pixelBuffer, int width, int height,
+    {bool linearToSrgb = false, bool invertAces = false}) async {
+  final image = img.Image(width: width, height: height);
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      final int pixelIndex = (y * width + x) * 4;
+      double r = pixelBuffer[pixelIndex] / 255.0;
+      double g = pixelBuffer[pixelIndex + 1] / 255.0;
+      double b = pixelBuffer[pixelIndex + 2] / 255.0;
+      double a = pixelBuffer[pixelIndex + 3] / 255.0;
+
+      // Apply inverse ACES tone mapping
+      if (invertAces) {
+        r = _inverseACESToneMapping(r);
+        g = _inverseACESToneMapping(g);
+        b = _inverseACESToneMapping(b);
+      }
+
+      if (linearToSrgb) {
+        // Convert from linear to sRGB
+
+        image.setPixel(
+            x,
+            y,
+            img.ColorUint8(4)
+              ..setRgba(
+                  _linearToSRGB(r), _linearToSRGB(g), _linearToSRGB(b), a));
+      } else {
+        image.setPixel(
+            x,
+            y,
+            img.ColorUint8(4)
+              ..setRgba((r * 255).toInt(), (g * 255).toInt(), (b * 255).toInt(),
+                  (a * 255).toInt()));
+      }
+    }
+  }
+
+  return img.encodePng(image);
+}
+
+double _inverseACESToneMapping(double x) {
+  const double a = 2.51;
+  const double b = 0.03;
+  const double c = 2.43;
+  const double d = 0.59;
+  const double e = 0.14;
+
+  // Ensure x is in the valid range [0, 1]
+  x = x.clamp(0.0, 1.0);
+
+  // Inverse ACES filmic tone mapping function
+  return (x * (x * a + b)) / (x * (x * c + d) + e);
+}
+
+int _linearToSRGB(double linearValue) {
+  if (linearValue <= 0.0031308) {
+    return (linearValue * 12.92 * 255.0).round().clamp(0, 255);
+  } else {
+    return ((1.055 * pow(linearValue, 1.0 / 2.4) - 0.055) * 255.0)
+        .round()
+        .clamp(0, 255);
+  }
 }
