@@ -19,12 +19,12 @@ dependencies:
   logging: ^1.2.0
   http: ^1.2.2
   path: ^1.9.0
+  image: ^4.3.0
   
 dev_dependencies:
   ffigen: ^13.0.0
   objective_c: ^1.1.0
-  test:
-  image:
+  test:  
   path:
   mockito: ^5.0.0
   build_runner: ^2.0.0
