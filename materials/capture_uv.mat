@@ -4,45 +4,66 @@ material {
         {
             type : sampler2d,
             name : color,
-            precision: medium
+            precision: high
+        },
+        {
+            type : bool,
+            name : flipUVs
         }
     ],
     variables : [
         {
             name : screenPos,
-            precision : medium
+            precision : high
          }
     ],
     requires : [ position, uv0 ],
     shadingModel : unlit,
     doubleSided : false,
+    
+    blending: transparent,
     depthWrite : true,
     depthCulling : false,
-    vertexDomain: device   
+    culling: none,
+    vertexDomain: device
 }
 
+// 
+// This material projects a rendered color buffer texture onto a mesh. 
+// 
+// This allows you to texture the mesh by retrieving the output of this shader pass.
+//
+// We do this by:
+// 1) calculating the screenspace position of each vertex (VS)
+// 2) transforming each vertex to its UV coordinate (VS)
+// 3) at each UV coordinate, sampling from the input buffer at the screenspace position (FS).
+//
+// In a vertex shader, Filament sets gl_Position after materialVertex(..) is called, meaning we cannot change the vertex positions ourselves.
+// To achieve the same effect, we set the vertexDomain to device and set clipSpaceTransform.
+//
 vertex {
-    void materialVertex(inout MaterialVertexInputs material) {       
+    void materialVertex(inout MaterialVertexInputs material) {
         mat4 transform = getWorldFromModelMatrix();
         vec3 position = getPosition().xyz;
         vec4 worldPosition = mulMat4x4Float3(transform, position);
         vec4 clipSpace = getClipFromWorldMatrix() * worldPosition;
         
-        // calculate NDC coordinates for vertex
-        material.screenPos.xy = (clipSpace.xy / clipSpace.w) * 0.5 + 0.5;
+        material.screenPos = clipSpace;
 
-        // Get UV coordinates from mesh
-        vec2 uv = material.uv0;
+        highp float2 uv = material.uv0;
+        if(materialParams.flipUVs) {
+            uv = uvToRenderTargetUV(uv);
+        }
     
-        // Transform UVs to clip space (-1 to 1 range)
+        // Transform UVs (0 to 1) to clip space (-1 to 1 range)
         // UV (0,0) maps to (-1,-1) and UV (1,1) maps to (1,1)
         vec2 clipPosition = uv * 2.0 - 1.0;
         
         material.clipSpaceTransform = mat4(
             vec4(0.0, 0.0, 0.0, 0.0),  
             vec4(0.0, 0.0, 0.0, 0.0),  
-            vec4(0.0, 0.0, 1.0, 0.0),  
-            vec4(clipPosition, 0.0, 1.0)  
+            vec4(0.0, 0.0, 0.0, 0.0),  
+            vec4(clipPosition.x, clipPosition.y, 0.0, 1.0)  
         ); 
     }
 }
@@ -50,8 +71,15 @@ vertex {
 fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
-        vec4 sp = clamp(variable_screenPos, 0.0, 1.0);
-        vec4 color = textureLod(materialParams_color, uvToRenderTargetUV(sp.xy), 0.0f);
-        material.baseColor = vec4(color.xyz, 1.0);
+        
+        vec2 texCoords = variable_screenPos.xy / variable_screenPos.w;
+        texCoords = texCoords * 0.5 + 0.5;
+
+        vec2 texSize = vec2(textureSize(materialParams_color, 0));
+        //float textureAspectRatio = texSize.x / texSize.y;   
+        //texCoords.x *= textureAspectRatio;
+            
+        vec4 color = textureLod(materialParams_color, uvToRenderTargetUV(texCoords.xy), 0.0f);
+        material.baseColor = color;
     }
 }
