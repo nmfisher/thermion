@@ -923,6 +923,7 @@ namespace thermion
         auto instance = _unlitMaterialProvider->createMaterialInstance(nullptr, &uvmap);
         instance->setParameter("baseColorFactor", filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
         instance->setParameter("baseColorIndex", -1);
+        instance->setParameter("uvScale",  filament::math::float2{1.0f, 1.0f});
         _materialInstances.push_back(instance);
         return instance;
     }
