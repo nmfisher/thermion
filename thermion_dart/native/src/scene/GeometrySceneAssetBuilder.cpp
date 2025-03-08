@@ -167,17 +167,16 @@ namespace thermion
                 .vertexCount(mVertices->size())
                 .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3)
                 .attribute(VertexAttribute::UV0, 1, VertexBuffer::AttributeType::FLOAT2)
-                .attribute(VertexAttribute::UV1, 2, VertexBuffer::AttributeType::FLOAT2)
-                .attribute(VertexAttribute::COLOR, 3, VertexBuffer::AttributeType::FLOAT4);
+                .attribute(VertexAttribute::COLOR, 2, VertexBuffer::AttributeType::FLOAT4);
 
-        if (!mNormals->empty())
+        if (mNormals->empty())
         {
-            vertexBufferBuilder.bufferCount(5)
-                .attribute(VertexAttribute::TANGENTS, 4, VertexBuffer::AttributeType::FLOAT4);
+            vertexBufferBuilder = vertexBufferBuilder.bufferCount(3);
         }
         else
         {
-            vertexBufferBuilder = vertexBufferBuilder.bufferCount(4);
+            vertexBufferBuilder.bufferCount(4)
+                .attribute(VertexAttribute::TANGENTS, 3, VertexBuffer::AttributeType::FLOAT4);
         }
 
         auto vertexBuffer = vertexBufferBuilder.build(*mEngine);
@@ -197,18 +196,9 @@ namespace thermion
                                       },
                                       mUVs));
 
-        vertexBuffer->setBufferAt(*mEngine, 2,
-                                  VertexBuffer::BufferDescriptor(
-                                      mUVs->data(), mUVs->size() * sizeof(filament::math::float2),
-                                      [](void *, size_t, void *data)
-                                      {
-                                          delete static_cast<std::vector<filament::math::float2> *>(data);
-                                      },
-                                      mUVs));
-
         auto dummyColors = new std::vector<filament::math::float4>(
             mVertices->size(), filament::math::float4{1.0f, 1.0f, 1.0f, 1.0f});
-        vertexBuffer->setBufferAt(*mEngine, 3,
+        vertexBuffer->setBufferAt(*mEngine, 2,
                                   VertexBuffer::BufferDescriptor(
                                       dummyColors->data(), dummyColors->size() * sizeof(math::float4),
                                       [](void *, size_t, void *data)
@@ -239,7 +229,7 @@ namespace thermion
             auto quats = new std::vector<filament::math::quatf>(mVertices->size());
             orientation->getQuats(quats->data(), mVertices->size());
 
-            vertexBuffer->setBufferAt(*mEngine, 4,
+            vertexBuffer->setBufferAt(*mEngine, 3,
                                       VertexBuffer::BufferDescriptor(
                                           quats->data(), quats->size() * sizeof(math::quatf),
                                           [](void *, size_t, void *data)
