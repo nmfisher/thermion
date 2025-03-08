@@ -93,6 +93,7 @@ enum TransparencyMode {
 
 abstract class Material {
   Future<MaterialInstance> createInstance();
+  Future<bool> hasParameter(String propertyName);
   Future dispose();
 }
 
@@ -106,6 +107,7 @@ abstract class MaterialInstance {
   Future setParameterFloat2(String name, double x, double y);
   Future setParameterFloat(String name, double x);
   Future setParameterInt(String name, int value);
+  Future setParameterBool(String name, bool value);
   Future setParameterTexture(
       String name, covariant Texture texture, covariant TextureSampler sampler);
 

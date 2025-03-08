@@ -13,6 +13,13 @@ external ffi.Pointer<TMaterialInstance> Material_createInstance(
   ffi.Pointer<TMaterial> tMaterial,
 );
 
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>(
+    isLeaf: true)
+external bool Material_hasParameter(
+  ffi.Pointer<TMaterial> tMaterial,
+  ffi.Pointer<ffi.Char> propertyName,
+);
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
 external bool MaterialInstance_isStencilWriteEnabled(
   ffi.Pointer<TMaterialInstance> materialInstance,
@@ -60,7 +67,7 @@ external void MaterialInstance_setDepthCulling(
         ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
 external void MaterialInstance_setParameterFloat4(
   ffi.Pointer<TMaterialInstance> materialInstance,
-  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Char> propertyName,
   double x,
   double y,
   double w,
@@ -72,7 +79,7 @@ external void MaterialInstance_setParameterFloat4(
         ffi.Double, ffi.Double)>(isLeaf: true)
 external void MaterialInstance_setParameterFloat2(
   ffi.Pointer<TMaterialInstance> materialInstance,
-  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Char> propertyName,
   double x,
   double y,
 );
@@ -82,7 +89,7 @@ external void MaterialInstance_setParameterFloat2(
         ffi.Double)>(isLeaf: true)
 external void MaterialInstance_setParameterFloat(
   ffi.Pointer<TMaterialInstance> materialInstance,
-  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Char> propertyName,
   double value,
 );
 
@@ -91,8 +98,17 @@ external void MaterialInstance_setParameterFloat(
         ffi.Int)>(isLeaf: true)
 external void MaterialInstance_setParameterInt(
   ffi.Pointer<TMaterialInstance> materialInstance,
-  ffi.Pointer<ffi.Char> name,
+  ffi.Pointer<ffi.Char> propertyName,
   int value,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Bool)>(isLeaf: true)
+external void MaterialInstance_setParameterBool(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> propertyName,
+  bool value,
 );
 
 @ffi.Native<

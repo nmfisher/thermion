@@ -21,6 +21,11 @@ namespace thermion
             return reinterpret_cast<TMaterialInstance *>(instance);
         }
 
+        EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName) {
+            auto *material = reinterpret_cast<filament::Material *>(tMaterial);
+            return material->hasParameter(propertyName);
+        }
+
         EMSCRIPTEN_KEEPALIVE bool MaterialInstance_isStencilWriteEnabled(TMaterialInstance *tMaterialInstance)
         {
             return reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance)->isStencilWriteEnabled();
@@ -57,6 +62,11 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *materialInstance, const char *propertyName, int value)
+        {
+            reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, value);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterBool(TMaterialInstance *materialInstance, const char *propertyName, bool value)
         {
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, value);
         }

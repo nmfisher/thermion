@@ -22,6 +22,12 @@ class FFIMaterial extends Material {
       Engine_destroyMaterialRenderThread(engine, pointer, cb);
     });
   }
+
+  @override
+  Future<bool> hasParameter(String propertyName) async {
+    return Material_hasParameter(
+        pointer, propertyName.toNativeUtf8().cast<Char>());
+  }
 }
 
 class FFIMaterialInstance extends MaterialInstance {
@@ -154,7 +160,13 @@ class FFIMaterialInstance extends MaterialInstance {
   @override
   Future setParameterTexture(String name, covariant FFITexture texture,
       covariant FFITextureSampler sampler) async {
-    MaterialInstance_setParameterTexture(
-        pointer, name.toNativeUtf8().cast<Char>(), texture.pointer, sampler.pointer);
+    MaterialInstance_setParameterTexture(pointer,
+        name.toNativeUtf8().cast<Char>(), texture.pointer, sampler.pointer);
+  }
+
+  @override
+  Future setParameterBool(String name, bool value) async {
+    MaterialInstance_setParameterBool(
+        pointer, name.toNativeUtf8().cast<Char>(), value);
   }
 }
