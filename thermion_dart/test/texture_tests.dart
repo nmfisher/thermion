@@ -270,7 +270,7 @@ void main() async {
         final cube = await viewer.createGeometry(GeometryHelper.cube(),
             materialInstances: [materialInstance]);
 
-        final cameraPositions = [Vector3(0, 0, 5), Vector3(0, 0, -5)];
+        final cameraPositions = [Vector3(0, 0, 5), Vector3(5, 0, 0),  Vector3(0, 0, -5)];
         await materialInstance.setParameterFloat3Array(
             "cameraPositions", cameraPositions);
 
