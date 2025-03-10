@@ -194,6 +194,7 @@ void main() async {
         await material.setParameterFloat4(
             "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
       };
+      await resetMaterial();
 
       await fn(cube, material, resetMaterial);
     }
@@ -258,11 +259,10 @@ void main() async {
         int channels,
         Future Function(Texture texture, MaterialInstance mi) fn) async {
       final sampler = await viewer.createTextureSampler();
-      final numCameraPositions = 3;
 
       var texture = await viewer.createTexture(width, height,
           textureSamplerType: TextureSamplerType.SAMPLER_3D,
-          depth: numCameraPositions,
+          depth: cameraPositions.length,
           textureFormat: TextureFormat.RGBA32F);
 
       final vdtm = await viewer.createMaterial(
@@ -293,9 +293,9 @@ void main() async {
         final camera = await viewer.getMainCamera();
 
         final (numCameraPositions, width, height, channels) =
-            (cameraPositions.length, 1, 1, 1);
+            (cameraPositions.length, 1, 1, 4);
 
-        usingVDTM(viewer, cameraPositions, width, height, channels,
+        await usingVDTM(viewer, cameraPositions, width, height, channels,
             (texture, materialInstance) async {
           for (int i = 0; i < numCameraPositions; i++) {
             final pixelBuffer = Float32List.fromList([
