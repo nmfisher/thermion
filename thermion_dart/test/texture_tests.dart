@@ -128,255 +128,279 @@ void main() async {
   });
 
   group('projection', () {
-    test('project texture & UV unwrap', () async {
-      await testHelper.withViewer((viewer) async {
-        // setup base material + geometry
-        final sampler = await viewer.createTextureSampler();
-        var inputTextureData =
-            File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
-                .readAsBytesSync();
-        var inputImage = await viewer.decodeImage(inputTextureData);
-        var inputTexture = await viewer.createTexture(
-            await inputImage.getWidth(), await inputImage.getHeight(),
-            textureFormat: TextureFormat.RGBA32F);
-        await inputTexture.setLinearImage(
-            inputImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
-        var material =
-            await viewer.createUbershaderMaterialInstance(unlit: true);
+    Future withProjectionMaterial(
+        ThermionViewer viewer,
+        Future Function(TextureSampler sampler, MaterialInstance mi,
+                RenderTarget rt, int width, int height)
+            fn) async {
+      // setup render target
+      final view = await viewer.getViewAt(0);
+      final vp = await view.getViewport();
+      ;
+      final rtTextureHandle = await testHelper.createTexture(512, 512);
+      final (viewportWidth, viewportHeight) = (vp.width, vp.height);
 
-        // var material =
-        //     await viewer.createUnlitMaterialInstance();
+      final rt = await viewer.createRenderTarget(
+          viewportWidth, viewportHeight, rtTextureHandle.metalTextureAddress);
+
+      await view.setRenderTarget(rt);
+
+      // setup base material + geometry
+      final sampler = await viewer.createTextureSampler();
+
+      var projectionMaterial = await viewer.createMaterial(File(
+              "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat")
+          .readAsBytesSync());
+      expect(await projectionMaterial.hasParameter("flipUVs"), true);
+      var projectionMaterialInstance =
+          await projectionMaterial.createInstance();
+      await projectionMaterialInstance.setParameterBool("flipUVs", true);
+
+      await projectionMaterialInstance.setParameterTexture(
+          "color", await rt.getColorTexture(), sampler);
+
+      await fn(sampler, projectionMaterialInstance, rt, viewportWidth,
+          viewportHeight);
+
+      // cleanup
+      await sampler.dispose();
+      await projectionMaterialInstance.dispose();
+      await projectionMaterial.dispose();
+    }
+
+    Future withCube(
+        ThermionViewer viewer,
+        Future Function(ThermionAsset asset, MaterialInstance mi,
+                Future Function() resetMaterial)
+            fn) async {
+      // var material = await viewer.createUbershaderMaterialInstance(unlit: true);
+      var material = await viewer.createUnlitMaterialInstance();
+      final cube = await viewer
+          .createGeometry(GeometryHelper.cube(), materialInstances: [material]);
+      var sampler = await viewer.createTextureSampler();
+      var inputTextureData =
+          File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
+              .readAsBytesSync();
+      var inputImage = await viewer.decodeImage(inputTextureData);
+      var inputTexture = await viewer.createTexture(
+          await inputImage.getWidth(), await inputImage.getHeight(),
+          textureFormat: TextureFormat.RGBA32F);
+      await inputTexture.setLinearImage(
+          inputImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+      final resetMaterial = () async {
         await material.setParameterInt("baseColorIndex", 0);
         await material.setParameterTexture(
             "baseColorMap", inputTexture, sampler);
         await material.setParameterFloat4(
             "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
+      };
 
-        final cube = await viewer.createGeometry(GeometryHelper.cube(),
-            materialInstances: [material]);
+      await fn(cube, material, resetMaterial);
+    }
 
-        await cube.removeFromScene();
-        var objects = {"cube": cube};
+    test('project texture & UV unwrap', () async {
+      await testHelper.withViewer((viewer) async {
+        final camera = await viewer.getMainCamera();
+        await withProjectionMaterial(viewer,
+            (sampler, projectionMaterialInstance, rt, width, height) async {
+          await withCube(viewer, (cube, ubershader, resetMaterial) async {
+            var objects = {"cube": cube};
 
-        // setup render target
-        final view = await viewer.getViewAt(0);
-        final rtTextureHandle = await testHelper.createTexture(512, 512);
-        final rt = await viewer.createRenderTarget(
-            512, 512, rtTextureHandle.metalTextureAddress);
-        await view.setRenderTarget(rt);
+            for (final entry in objects.entries) {
+              final object = entry.value;
+              final key = entry.key;
 
-        var captureUvMaterial = await viewer.createMaterial(File(
-                "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat")
-            .readAsBytesSync());
-        expect(await captureUvMaterial.hasParameter("flipUVs"), true);
-        var captureUvMaterialInstance =
-            await captureUvMaterial.createInstance();
-        await captureUvMaterialInstance.setParameterBool("flipUVs", false);
+              await object.addToScene();
 
-        await captureUvMaterialInstance.setParameterTexture(
-            "color", await rt.getColorTexture(), sampler);
+              var divisions = 8;
+              for (int i = 0; i < divisions; i++) {
+                await camera.lookAt(Vector3(sin(i / divisions * pi) * 5, 0,
+                    cos(i / divisions * pi) * 5));
 
-        for (final entry in objects.entries) {
-          final object = entry.value;
-          final key = entry.key;
+                await testHelper.capture(viewer, "color_${key}_$i",
+                    renderTarget: rt);
 
-          await object.addToScene();
+                await object.setMaterialInstanceAt(projectionMaterialInstance);
 
-          var divisions = 8;
-          for (int i = 0; i < divisions; i++) {
-            var matrix = makeViewMatrix(
-                Vector3(sin(i / divisions * pi) * 5, 0,
-                    cos(i / divisions * pi) * 5),
-                Vector3.zero(),
-                Vector3(0, 1, 0));
-            matrix.invert();
-            await viewer.setCameraModelMatrix4(matrix);
-            await testHelper.capture(viewer, "color_${key}_$i",
-                renderTarget: rt);
+                var projectionOutput = await testHelper
+                    .capture(viewer, "uv_capture_${key}_$i", renderTarget: rt);
 
-            await object.setMaterialInstanceAt(captureUvMaterialInstance);
+                var floatPixelBuffer = Float32List.fromList(
+                    projectionOutput.map((p) => p.toDouble() / 255.0).toList());
 
-            var projected = await testHelper
-                .capture(viewer, "uv_capture_${key}_$i", renderTarget: rt);
+                final projectedImage = await viewer.createImage(512, 512, 4);
+                final data = await projectedImage.getData();
+                data.setRange(0, data.length, floatPixelBuffer);
+                final projectedTexture = await viewer.createTexture(512, 512,
+                    textureFormat: TextureFormat.RGBA32F);
+                await projectedTexture.setLinearImage(
+                    projectedImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
 
-            var floatPixelBuffer = Float32List.fromList(
-                projected.map((p) => p.toDouble() / 255.0).toList());
-
-            final reappliedImage = await viewer.createImage(512, 512, 4);
-            final data = await reappliedImage.getData();
-            data.setRange(0, data.length, floatPixelBuffer);
-            final reappliedTexture = await viewer.createTexture(512, 512,
-                textureFormat: TextureFormat.RGBA32F);
-            await reappliedTexture.setLinearImage(
-                reappliedImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
-
-            await material.setParameterTexture(
-                "baseColorMap", reappliedTexture, sampler);
-            await object.setMaterialInstanceAt(material);
-            await testHelper.capture(viewer, "retextured_${key}_$i",
-                renderTarget: rt);
-            await material.setParameterTexture(
-                "baseColorMap", inputTexture, sampler);
-          }
-          await viewer.destroyAsset(object);
-        }
-
-        // cleanup
-
-        await sampler.dispose();
-        await captureUvMaterialInstance.dispose();
-        await captureUvMaterial.dispose();
+                await ubershader.setParameterTexture(
+                    "baseColorMap", projectedTexture, sampler);
+                await object.setMaterialInstanceAt(ubershader);
+                await testHelper.capture(viewer, "retextured_${key}_$i",
+                    renderTarget: rt);
+                await resetMaterial();
+              }
+              await viewer.destroyAsset(object);
+            }
+          });
+        });
       }, viewportDimensions: (width: 512, height: 512));
     });
 
-    test('view dependent texture mapping', () async {
+    Future usingVDTM(
+        ThermionViewer viewer,
+        List<Vector3> cameraPositions,
+        int width,
+        int height,
+        int channels,
+        Future Function(Texture texture, MaterialInstance mi) fn) async {
+      final sampler = await viewer.createTextureSampler();
+      final numCameraPositions = 3;
+
+      var texture = await viewer.createTexture(width, height,
+          textureSamplerType: TextureSamplerType.SAMPLER_3D,
+          depth: numCameraPositions,
+          textureFormat: TextureFormat.RGBA32F);
+
+      final vdtm = await viewer.createMaterial(
+          File("/Users/nickfisher/Documents/thermion/materials/vdtm.filamat")
+              .readAsBytesSync());
+
+      final materialInstance = await vdtm.createInstance();
+
+      await materialInstance.setParameterFloat3Array(
+          "cameraPositions", cameraPositions);
+      await materialInstance.setParameterTexture(
+          "perspectives", texture, sampler);
+      await fn(texture, materialInstance);
+
+      await materialInstance.dispose();
+      await vdtm.dispose();
+      await texture.dispose();
+      await sampler.dispose();
+    }
+
+    test('view dependent texture mapping (interpolated colors)', () async {
       await testHelper.withViewer((viewer) async {
-        final sampler = await viewer.createTextureSampler();
-        final numCameraPositions = 3;
-        final textureDims = (width: 1, height: 1, channels: 4);
+        final cameraPositions = [
+          Vector3(0, 0, 5),
+          Vector3(5, 0, 0),
+          Vector3(0, 0, -5)
+        ];
+        final camera = await viewer.getMainCamera();
 
-        var texture = await viewer.createTexture(
-            textureDims.width, textureDims.height,
-            textureSamplerType: TextureSamplerType.SAMPLER_3D,
-            depth: numCameraPositions,
-            textureFormat: TextureFormat.RGBA32F);
+        final (numCameraPositions, width, height, channels) =
+            (cameraPositions.length, 1, 1, 1);
 
-        for (int i = 0; i < numCameraPositions; i++) {
-          final pixelBuffer = Float32List.fromList(
-              [1 - (i/ numCameraPositions), i / numCameraPositions, 0.0, 1.0]);
-          var byteBuffer =
-              pixelBuffer.buffer.asUint8List(pixelBuffer.offsetInBytes);
-          await texture.setImage3D(
-              0,
-              0,
-              0,
-              i,
-              textureDims.width,
-              textureDims.height,
-              textureDims.channels,
-              1,
-              byteBuffer,
-              PixelDataFormat.RGBA,
-              PixelDataType.FLOAT);
-        }
-        final vdtm = await viewer.createMaterial(
-            File("/Users/nickfisher/Documents/thermion/materials/vdtm.filamat")
-                .readAsBytesSync());
+        usingVDTM(viewer, cameraPositions, width, height, channels,
+            (texture, materialInstance) async {
+          for (int i = 0; i < numCameraPositions; i++) {
+            final pixelBuffer = Float32List.fromList([
+              1 - (i / numCameraPositions),
+              i / numCameraPositions,
+              0.0,
+              1.0
+            ]);
+            var byteBuffer =
+                pixelBuffer.buffer.asUint8List(pixelBuffer.offsetInBytes);
+            await texture.setImage3D(0, 0, 0, i, width, height, channels, 1,
+                byteBuffer, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+          }
 
-        final materialInstance = await vdtm.createInstance();
-        await materialInstance.setParameterTexture(
-            "perspectives", texture, sampler);
+          final cube = await viewer.createGeometry(GeometryHelper.cube(),
+              materialInstances: [materialInstance]);
 
-        final cube = await viewer.createGeometry(GeometryHelper.cube(),
-            materialInstances: [materialInstance]);
+          for (int i = 0; i < 8; i++) {
+            final cameraPosition =
+                Vector3(sin(pi * (i / 7)) * 5, 0, cos(pi * (i / 7)) * 5);
+            await camera.lookAt(cameraPosition);
+            await testHelper.capture(
+                viewer, "view_dependent_texture_mapping_$i");
+          }
+        });
+      }, viewportDimensions: (width: 512, height: 512));
+    });
 
-        final cameraPositions = [Vector3(0, 0, 5), Vector3(5, 0, 0),  Vector3(0, 0, -5)];
-        await materialInstance.setParameterFloat3Array(
-            "cameraPositions", cameraPositions);
+    test('VDTM + Texture Projection', () async {
+      await testHelper.withViewer((viewer) async {
+        final cameraPositions = [
+          Vector3(0, 0, 5),
+          Vector3(5, 0, 0),
+          Vector3(0, 0, -5)
+        ];
 
-        for (int i = 0; i < 8; i++) {
-          final cameraPosition = Vector3(sin(pi * (i / 7)) * 5, 0, cos(pi * (i / 7))* 5 );
-          final viewMatrix =
-              makeViewMatrix(cameraPosition, Vector3.zero(), Vector3(0, 1, 0));
-          viewMatrix.invert();
-          await viewer.setCameraModelMatrix4(viewMatrix);
+        final camera = await viewer.getMainCamera();
 
-          await testHelper.capture(viewer, "view_dependent_texture_mapping_$i");
-        }
+        await withProjectionMaterial(viewer, (TextureSampler projectionSampler,
+            MaterialInstance projectionMaterialInstance,
+            RenderTarget rt,
+            int width,
+            int height) async {
+          await withCube(viewer, (cube, ubershader, resetMaterial) async {
+            var pixelBuffers = <Float32List>[];
+            for (int i = 0; i < cameraPositions.length; i++) {
+              await camera.lookAt(cameraPositions[i]);
 
-        // // var material =
-        // //     await viewer.createUnlitMaterialInstance();
-        // await material.setParameterInt("baseColorIndex", 0);
-        // await material.setParameterTexture(
-        //     "baseColorMap", inputTexture, sampler);
-        // await material.setParameterFloat4(
-        //     "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
-        // // final plane = await viewer.createGeometry(
-        // //     GeometryHelper.plane(width: 3, height: 3),
-        // //     materialInstances: [material]);
-        // // await plane.removeFromScene();
-        // // var cube = await viewer
-        // //     .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
-        // // await cube.setMaterialInstanceAt(material);
-        // final cube = await viewer.createGeometry(GeometryHelper.cube(),
-        //     materialInstances: [material]);
+              await testHelper.capture(viewer, "vdtm_$i", renderTarget: rt);
 
-        // await cube.removeFromScene();
-        // var objects = {
-        //   // "plane": plane,
-        //   "cube": cube
-        // };
+              await cube.setMaterialInstanceAt(projectionMaterialInstance);
 
-        // // setup render target
-        // final view = await viewer.getViewAt(0);
-        // final rtTextureHandle = await testHelper.createTexture(512, 512);
-        // final rt = await viewer.createRenderTarget(
-        //     512, 512, rtTextureHandle.metalTextureAddress);
-        // await view.setRenderTarget(rt);
+              var projectionOutput = await testHelper
+                  .capture(viewer, "vdtm_unwrapped_$i", renderTarget: rt);
 
-        // var captureUvMaterial = await viewer.createMaterial(File(
-        //         "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat")
-        //     .readAsBytesSync());
-        // expect(await captureUvMaterial.hasParameter("flipUVs"), true);
-        // var captureUvMaterialInstance =
-        //     await captureUvMaterial.createInstance();
-        // await captureUvMaterialInstance.setParameterBool("flipUVs", false);
+              var floatPixelBuffer = Float32List.fromList(
+                  projectionOutput.map((p) => p.toDouble() / 255.0).toList());
+              pixelBuffers.add(floatPixelBuffer);
+              final projectedImage = await viewer.createImage(width, height, 4);
+              final data = await projectedImage.getData();
+              data.setRange(0, data.length, floatPixelBuffer);
+              final projectedTexture = await viewer.createTexture(width, height,
+                  textureFormat: TextureFormat.RGBA32F);
+              await projectedTexture.setLinearImage(
+                  projectedImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
 
-        // await captureUvMaterialInstance.setParameterTexture(
-        //     "color", await rt.getColorTexture(), sampler);
+              await ubershader.setParameterTexture(
+                  "baseColorMap", projectedTexture, projectionSampler);
+              await cube.setMaterialInstanceAt(ubershader);
 
-        // for (final entry in objects.entries) {
-        //   final object = entry.value;
-        //   final key = entry.key;
+              await testHelper.capture(viewer, "vdtm_projected_$i",
+                  renderTarget: rt);
 
-        //   await object.addToScene();
+              await resetMaterial();
+            }
 
-        //   var divisions = 8;
-        //   for (int i = 0; i < divisions; i++) {
-        //     var matrix = makeViewMatrix(
-        //         Vector3(sin(i / divisions * pi) * 5, 0,
-        //             cos(i / divisions * pi) * 5),
-        //         Vector3.zero(),
-        //         Vector3(0, 1, 0));
-        //     matrix.invert();
-        //     await viewer.setCameraModelMatrix4(matrix);
-        //     await testHelper.capture(viewer, "color_${key}_$i",
-        //         renderTarget: rt);
-        //     // continue;
+            await usingVDTM(viewer, cameraPositions, width, height, 4,
+                (vdtmTexture, vdtmMaterial) async {
+              await cube.setMaterialInstanceAt(vdtmMaterial);
+              for (int i = 0; i < cameraPositions.length; i++) {
+                await vdtmTexture.setImage3D(
+                    0,
+                    0,
+                    0,
+                    i,
+                    width,
+                    height,
+                    4,
+                    1,
+                    pixelBuffers[i]
+                        .buffer
+                        .asUint8List(pixelBuffers[i].offsetInBytes),
+                    PixelDataFormat.RGBA,
+                    PixelDataType.FLOAT);
+              }
 
-        //     await object.setMaterialInstanceAt(captureUvMaterialInstance);
-
-        //     var projected = await testHelper
-        //         .capture(viewer, "uv_capture_${key}_$i", renderTarget: rt);
-        //     // File("/tmp/projected_texture.bmp")
-        //     //     .writeAsBytesSync(await pixelBufferToBmp(projected, 512, 512));
-        //     var floatPixelBuffer = Float32List.fromList(
-        //         projected.map((p) => p.toDouble() / 255.0).toList());
-
-        //     final reappliedImage = await viewer.createImage(512, 512, 4);
-        //     final data = await reappliedImage.getData();
-        //     data.setRange(0, data.length, floatPixelBuffer);
-        //     final reappliedTexture = await viewer.createTexture(512, 512,
-        //         textureFormat: TextureFormat.RGBA32F);
-        //     await reappliedTexture.setLinearImage(
-        //         reappliedImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
-
-        //     await material.setParameterTexture(
-        //         "baseColorMap", reappliedTexture, sampler);
-        //     await object.setMaterialInstanceAt(material);
-        //     await testHelper.capture(viewer, "retextured_${key}_$i",
-        //         renderTarget: rt);
-        //     await material.setParameterTexture(
-        //         "baseColorMap", inputTexture, sampler);
-        //   }
-        //   await viewer.destroyAsset(object);
-        // }
-
-        // // cleanup
-
-        // await sampler.dispose();
-        // await captureUvMaterialInstance.dispose();
-        // await captureUvMaterial.dispose();
+              for (int i = 0; i < 8; i++) {
+                await camera.lookAt(
+                    Vector3(sin(pi * (i / 7)) * 5, 0, cos(pi * (i / 7)) * 5));
+                await testHelper.capture(viewer, "vdtm_reprojected_$i",
+                    renderTarget: rt);
+              }
+            });
+          });
+        });
       }, viewportDimensions: (width: 512, height: 512));
     });
   });
