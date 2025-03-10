@@ -18,7 +18,7 @@ class Geometry {
   })  : indices = Uint16List.fromList(indices),
         normals = normals ?? Float32List(0),
         uvs = uvs ?? Float32List(0) {
-    assert(this.uvs.length == 0 || this.uvs.length == (vertices.length ~/ 3) * 2);
+    assert(this.uvs.length == 0 || this.uvs.length == (vertices.length ~/ 3 * 2), "Expected either zero or ${indices.length * 2} UVs, got ${this.uvs.length}");
   }
 
   void scale(double factor) {

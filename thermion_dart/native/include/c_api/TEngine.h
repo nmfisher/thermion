@@ -23,6 +23,7 @@ EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
 EMSCRIPTEN_KEEPALIVE TTexture *Engine_buildTexture(TEngine *engine, 
     uint32_t width, 
     uint32_t height, 
+    uint32_t depth, 
     uint8_t levels, 
     TTextureSamplerType sampler, 
     TTextureFormat format);

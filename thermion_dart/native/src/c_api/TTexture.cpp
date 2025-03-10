@@ -93,7 +93,7 @@ namespace thermion
                 return false;
             }
 
-            Log("Dimensions %d x %d, channels %d, size %d, buffer format %d and pixel data type %d", w, h, channels, size, bufferFormat, pixelDataType);
+            TRACE("Loading image from dimensions %d x %d, channels %d, size %d, buffer format %d and pixel data type %d", w, h, channels, size, bufferFormat, pixelDataType);
 
             filament::Texture::PixelBufferDescriptor buffer(
                 image->getPixelRef(),
@@ -115,51 +115,151 @@ namespace thermion
             uint32_t height,
             uint32_t channels,
             uint32_t tBufferFormat,
-            uint32_t tPixelDataType
-        ) {
+            uint32_t tPixelDataType)
+        {
             auto engine = reinterpret_cast<filament::Engine *>(tEngine);
-            
+
             auto texture = reinterpret_cast<filament::Texture *>(tTexture);
             auto bufferFormat = static_cast<PixelBufferDescriptor::PixelDataFormat>(tBufferFormat);
             auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(tPixelDataType);
 
             switch (bufferFormat)
             {
-                case PixelBufferDescriptor::PixelDataFormat::RGB:
-                case PixelBufferDescriptor::PixelDataFormat::RGBA:
-                    if(size != width * height * channels * sizeof(float)) {
-                        Log("Size mismatch");
-                        return false;
-                    }
-                    break;
-                case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
-                case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
-                    if(size != width * height * channels * sizeof(uint8_t)) {
-                        Log("Size mismatch");
-                        // return false;
-                    }
-                    break;
-                default:
-                    Log("Unsupported buffer format type : %d", bufferFormat);
+            case PixelBufferDescriptor::PixelDataFormat::RGB:
+            case PixelBufferDescriptor::PixelDataFormat::RGBA:
+                if (size != width * height * channels * sizeof(float))
+                {
+                    Log("Size mismatch");
                     return false;
+                }
+                break;
+            case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
+            case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
+                if (size != width * height * channels * sizeof(uint8_t))
+                {
+                    Log("Size mismatch");
+                    // return false;
+                }
+                break;
+            default:
+                Log("Unsupported buffer format type : %d", bufferFormat);
+                return false;
             }
 
-            filament::Texture::PixelBufferDescriptor buffer(
-                data,
+            // the texture upload is async, so we need to copy the buffer
+            auto *buffer = new std::vector<uint8_t>(size);
+            std::copy(data, data + size, buffer->begin());
+
+            filament::Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
+                void *data)
+            {
+                delete reinterpret_cast<std::vector<uint8_t> *>(data);
+            };
+
+            filament::Texture::PixelBufferDescriptor pbd(
+                buffer->data(),
                 size,
                 bufferFormat,
-                pixelDataType);
-
-            texture->setImage(*engine, level, std::move(buffer));
+                pixelDataType,
+                1, // alignment
+                0, // left
+                0, // top
+                0, // stride
+                freeCallback,
+                buffer);
+    
+            texture->setImage(*engine, level, std::move(pbd));
             return true;
         }
 
+        EMSCRIPTEN_KEEPALIVE bool Texture_setImageWithDepth(
+            TEngine *tEngine,
+            TTexture *tTexture,
+            uint32_t level,
+            uint8_t *data,
+            size_t size,
+            uint32_t x_offset,
+            uint32_t y_offset,
+            uint32_t z_offset,
+            uint32_t width,
+            uint32_t height,
+            uint32_t channels,
+            uint32_t depth,
+            uint32_t tBufferFormat,
+            uint32_t tPixelDataType)
+        {
+            auto engine = reinterpret_cast<filament::Engine *>(tEngine);
 
-        EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel) {
-            auto *image = new ::image::LinearImage(width, height, channel);
-            return reinterpret_cast<TLinearImage*>(image);
+            auto texture = reinterpret_cast<filament::Texture *>(tTexture);
+            auto bufferFormat = static_cast<PixelBufferDescriptor::PixelDataFormat>(tBufferFormat);
+            auto pixelDataType = static_cast<PixelBufferDescriptor::PixelDataType>(tPixelDataType);
+            TRACE("Setting texture image (depth %d, %dx%dx%d (%d bytes, z_offset %d)", depth, width, height, channels, size, z_offset);
+
+            switch (bufferFormat)
+            {
+            case PixelBufferDescriptor::PixelDataFormat::RGB:
+            case PixelBufferDescriptor::PixelDataFormat::RGBA:
+                if (size != width * height * channels * sizeof(float))
+                {
+                    Log("Size mismatch");
+                    return false;
+                }
+                break;
+            case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
+            case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
+                if (size != width * height * channels * sizeof(uint8_t))
+                {
+                    Log("Size mismatch");
+                    // return false;
+                }
+                break;
+            default:
+                Log("Unsupported buffer format type : %d", bufferFormat);
+                return false;
+            }
+
+            // the texture upload is async, so we need to copy the buffer
+            auto *buffer = new std::vector<uint8_t>(size);
+            std::copy(data, data + size, buffer->begin());
+
+            filament::Texture::PixelBufferDescriptor::Callback freeCallback = [](void *buf, size_t,
+                                                                       void *data)
+            {
+
+                delete reinterpret_cast<std::vector<uint8_t> *>(data);
+            };
+
+            filament::Texture::PixelBufferDescriptor pbd(
+                buffer->data(),
+                size,
+                bufferFormat,
+                pixelDataType,
+                1, // alignment
+                0, // left
+                0, // top
+                0, // stride
+                freeCallback,
+                buffer);
+
+            texture->setImage(
+                *engine,
+                level,
+                x_offset,
+                y_offset,
+                z_offset,
+                width,
+                height,
+                depth,
+                std::move(pbd));
+
+            return true;
         }
-        
+
+        EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width, uint32_t height, uint32_t channel)
+        {
+            auto *image = new ::image::LinearImage(width, height, channel);
+            return reinterpret_cast<TLinearImage *>(image);
+        }
 
         EMSCRIPTEN_KEEPALIVE TTextureSampler *TextureSampler_create()
         {
@@ -288,11 +388,12 @@ namespace thermion
                 delete textureSampler;
             }
         }
-        
-        EMSCRIPTEN_KEEPALIVE TTexture *RenderTarget_getColorTexture(TRenderTarget *tRenderTarget) { 
-            auto renderTarget = reinterpret_cast<filament::RenderTarget*>(tRenderTarget);
+
+        EMSCRIPTEN_KEEPALIVE TTexture *RenderTarget_getColorTexture(TRenderTarget *tRenderTarget)
+        {
+            auto renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
             auto texture = renderTarget->getTexture(filament::RenderTarget::AttachmentPoint::COLOR0);
-            return reinterpret_cast<TTexture*>(texture);
+            return reinterpret_cast<TTexture *>(texture);
         }
 
 #ifdef __cplusplus

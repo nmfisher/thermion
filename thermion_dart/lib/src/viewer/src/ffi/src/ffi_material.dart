@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 class FFIMaterial extends Material {
   final Pointer<TEngine> engine;
@@ -51,10 +54,9 @@ class FFIMaterialInstance extends MaterialInstance {
   }
 
   @override
-  Future setParameterFloat4(
-      String name, double x, double y, double z, double w) async {
-    MaterialInstance_setParameterFloat4(
-        pointer, name.toNativeUtf8().cast<Char>(), x, y, z, w);
+  Future setParameterFloat(String name, double value) async {
+    MaterialInstance_setParameterFloat(
+        pointer, name.toNativeUtf8().cast<Char>(), value);
   }
 
   @override
@@ -64,9 +66,32 @@ class FFIMaterialInstance extends MaterialInstance {
   }
 
   @override
-  Future setParameterFloat(String name, double value) async {
-    MaterialInstance_setParameterFloat(
-        pointer, name.toNativeUtf8().cast<Char>(), value);
+  Future setParameterFloat3(String name, double x, double y, double z) async {
+    MaterialInstance_setParameterFloat3(
+        pointer, name.toNativeUtf8().cast<Char>(), x, y, z);
+  }
+
+  @override
+  Future setParameterFloat3Array(String name, List<Vector3> array) async {
+    final ptr = name.toNativeUtf8(allocator: calloc).cast<Char>();
+    final data = Float64List(array.length * 3);
+    int i = 0;
+    for (final item in array) {
+      data[i] = item.x;
+      data[i + 1] = item.y;
+      data[i + 2] = item.z;
+      i += 3;
+    }
+    MaterialInstance_setParameterFloat3Array(
+        pointer, ptr, data.address, array.length * 3);
+    calloc.free(ptr);
+  }
+
+  @override
+  Future setParameterFloat4(
+      String name, double x, double y, double z, double w) async {
+    MaterialInstance_setParameterFloat4(
+        pointer, name.toNativeUtf8().cast<Char>(), x, y, z, w);
   }
 
   @override

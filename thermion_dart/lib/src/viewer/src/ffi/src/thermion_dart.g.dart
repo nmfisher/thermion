@@ -64,14 +64,11 @@ external void MaterialInstance_setDepthCulling(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
-        ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
-external void MaterialInstance_setParameterFloat4(
+        ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
-  double x,
-  double y,
-  double w,
-  double z,
+  double value,
 );
 
 @ffi.Native<
@@ -86,11 +83,35 @@ external void MaterialInstance_setParameterFloat2(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
-        ffi.Double)>(isLeaf: true)
-external void MaterialInstance_setParameterFloat(
+        ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat3(
   ffi.Pointer<TMaterialInstance> materialInstance,
   ffi.Pointer<ffi.Char> propertyName,
-  double value,
+  double x,
+  double y,
+  double z,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.Double>, ffi.Uint32)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat3Array(
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+  ffi.Pointer<ffi.Char> propertyName,
+  ffi.Pointer<ffi.Double> raw,
+  int length,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Double, ffi.Double, ffi.Double, ffi.Double)>(isLeaf: true)
+external void MaterialInstance_setParameterFloat4(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> propertyName,
+  double x,
+  double y,
+  double w,
+  double z,
 );
 
 @ffi.Native<
@@ -913,6 +934,39 @@ external bool Texture_setImage(
 );
 
 @ffi.Native<
+    ffi.Bool Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TTexture>,
+        ffi.Uint32,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32,
+        ffi.Uint32)>(isLeaf: true)
+external bool Texture_setImageWithDepth(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  int level,
+  ffi.Pointer<ffi.Uint8> data,
+  int size,
+  int x_offset,
+  int y_offset,
+  int z_offset,
+  int width,
+  int height,
+  int channels,
+  int depth,
+  int bufferFormat,
+  int pixelDataType,
+);
+
+@ffi.Native<
     ffi.Pointer<TLinearImage> Function(
         ffi.Uint32, ffi.Uint32, ffi.Uint32)>(isLeaf: true)
 external ffi.Pointer<TLinearImage> Image_createEmpty(
@@ -1634,6 +1688,7 @@ external void Engine_destroyMaterialRenderThread(
             ffi.Pointer<TEngine>,
             ffi.Uint32,
             ffi.Uint32,
+            ffi.Uint32,
             ffi.Uint8,
             ffi.UnsignedInt,
             ffi.UnsignedInt,
@@ -1644,6 +1699,7 @@ external void _Engine_buildTextureRenderThread(
   ffi.Pointer<TEngine> engine,
   int width,
   int height,
+  int depth,
   int levels,
   int sampler,
   int format,
@@ -1655,6 +1711,7 @@ void Engine_buildTextureRenderThread(
   ffi.Pointer<TEngine> engine,
   int width,
   int height,
+  int depth,
   int levels,
   TTextureSamplerType sampler,
   TTextureFormat format,
@@ -1665,6 +1722,7 @@ void Engine_buildTextureRenderThread(
       engine,
       width,
       height,
+      depth,
       levels,
       sampler.value,
       format.value,
@@ -2262,6 +2320,42 @@ external void Texture_setImageRenderThread(
   int width,
   int height,
   int channels,
+  int bufferFormat,
+  int pixelDataType,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TTexture>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
+    isLeaf: true)
+external void Texture_setImageWithDepthRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TTexture> tTexture,
+  int level,
+  ffi.Pointer<ffi.Uint8> data,
+  int size,
+  int x_offset,
+  int y_offset,
+  int z_offset,
+  int width,
+  int height,
+  int channels,
+  int depth,
   int bufferFormat,
   int pixelDataType,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> onComplete,
@@ -3007,6 +3101,7 @@ external ffi.Pointer<TEntityManager> Engine_getEntityManager(
         ffi.Pointer<TEngine>,
         ffi.Uint32,
         ffi.Uint32,
+        ffi.Uint32,
         ffi.Uint8,
         ffi.UnsignedInt,
         ffi.UnsignedInt)>(symbol: "Engine_buildTexture", isLeaf: true)
@@ -3014,6 +3109,7 @@ external ffi.Pointer<TTexture> _Engine_buildTexture(
   ffi.Pointer<TEngine> engine,
   int width,
   int height,
+  int depth,
   int levels,
   int sampler,
   int format,
@@ -3023,6 +3119,7 @@ ffi.Pointer<TTexture> Engine_buildTexture(
   ffi.Pointer<TEngine> engine,
   int width,
   int height,
+  int depth,
   int levels,
   TTextureSamplerType sampler,
   TTextureFormat format,
@@ -3031,6 +3128,7 @@ ffi.Pointer<TTexture> Engine_buildTexture(
       engine,
       width,
       height,
+      depth,
       levels,
       sampler.value,
       format.value,
@@ -3808,20 +3906,22 @@ typedef DartPickCallbackFunction = void Function(
 
 enum TTextureSamplerType {
   SAMPLER_2D(0),
-  SAMPLER_CUBEMAP(1),
-  SAMPLER_EXTERNAL(2),
-  SAMPLER_3D(3),
-  SAMPLER_2D_ARRAY(4);
+  SAMPLER_2D_ARRAY(1),
+  SAMPLER_CUBEMAP(2),
+  SAMPLER_EXTERNAL(3),
+  SAMPLER_3D(4),
+  SAMPLER_CUBEMAP_ARRAY(5);
 
   final int value;
   const TTextureSamplerType(this.value);
 
   static TTextureSamplerType fromValue(int value) => switch (value) {
         0 => SAMPLER_2D,
-        1 => SAMPLER_CUBEMAP,
-        2 => SAMPLER_EXTERNAL,
-        3 => SAMPLER_3D,
-        4 => SAMPLER_2D_ARRAY,
+        1 => SAMPLER_2D_ARRAY,
+        2 => SAMPLER_CUBEMAP,
+        3 => SAMPLER_EXTERNAL,
+        4 => SAMPLER_3D,
+        5 => SAMPLER_CUBEMAP_ARRAY,
         _ =>
           throw ArgumentError("Unknown value for TTextureSamplerType: $value"),
       };

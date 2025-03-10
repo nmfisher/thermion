@@ -1,3 +1,5 @@
+#include <vector>
+
 #include <filament/MaterialInstance.h>
 #include <filament/Material.h>
 #include <math/mat4.h>
@@ -41,11 +43,11 @@ namespace thermion
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setDepthCulling(enabled);
         }
 
-        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat4(TMaterialInstance *tMaterialInstance, const char *propertyName, double x, double y, double z, double w)
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *tMaterialInstance, const char *propertyName, double value)
         {
             auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
-            filament::math::float4 data{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(w)};
-            materialInstance->setParameter(propertyName, data);
+            auto fValue = static_cast<float>(value);
+            materialInstance->setParameter(propertyName, fValue);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat2(TMaterialInstance *materialInstance, const char *propertyName, double x, double y)
@@ -54,16 +56,36 @@ namespace thermion
             reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
         }
 
-        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat(TMaterialInstance *tMaterialInstance, const char *propertyName, double value)
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat3(TMaterialInstance *materialInstance, const char *propertyName, double x, double y, double z)
         {
-            auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
-            auto fValue = static_cast<float>(value);
-            materialInstance->setParameter(propertyName, fValue);
+            filament::math::float3 data{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z) };
+            reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, data);
         }
 
-        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *materialInstance, const char *propertyName, int value)
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat3Array(TMaterialInstance *tMaterialInstance, const char *propertyName, double* raw, uint32_t length) {
+            TRACE("Setting property %s to array from raw length %d", propertyName, length);
+
+            std::vector<filament::math::float3> data;
+
+            for(int i = 0; i < length; i+=3) {
+                // TRACE("Vector %f %f %f", static_cast<float>(raw[i]), static_cast<float>(raw[i+1]), static_cast<float>(raw[i+2]));
+                data.push_back(filament::math::float3 { static_cast<float>(raw[i]), static_cast<float>(raw[i+1]), static_cast<float>(raw[i+2]) });
+            }
+            auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
+            materialInstance->setParameter(propertyName, data.data(), data.size());
+        }
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterFloat4(TMaterialInstance *tMaterialInstance, const char *propertyName, double x, double y, double z, double w)
         {
-            reinterpret_cast<::filament::MaterialInstance *>(materialInstance)->setParameter(propertyName, value);
+            auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
+            filament::math::float4 data{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(w)};
+            materialInstance->setParameter(propertyName, data);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterInt(TMaterialInstance *tMaterialInstance, const char *propertyName, int value)
+        {
+            auto *materialInstance = reinterpret_cast<::filament::MaterialInstance *>(tMaterialInstance);
+            materialInstance->setParameter(propertyName, value);
         }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterBool(TMaterialInstance *materialInstance, const char *propertyName, bool value)

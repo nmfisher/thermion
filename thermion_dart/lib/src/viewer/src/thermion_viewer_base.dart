@@ -776,7 +776,7 @@ abstract class ThermionViewer {
   ///
   ///
   Future<Texture> createTexture(int width, int height,
-      {TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
+      {int depth = 1, int levels = 1, TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
       TextureFormat textureFormat = TextureFormat.RGBA32F});
       
   ///

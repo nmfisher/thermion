@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 enum SamplerCompareFunction {
   /// !< Less or equal
@@ -102,10 +105,13 @@ abstract class MaterialInstance {
   Future setDepthWriteEnabled(bool enabled);
   Future setDepthFunc(SamplerCompareFunction depthFunc);
   Future setDepthCullingEnabled(bool enabled);
+  Future setParameterFloat(String name, double x);
+  Future setParameterFloat2(String name, double x, double y);
+  Future setParameterFloat3(String name, double x, double y, double z);
+  Future setParameterFloat3Array(String name, List<Vector3> data);
   Future setParameterFloat4(
       String name, double x, double y, double z, double w);
-  Future setParameterFloat2(String name, double x, double y);
-  Future setParameterFloat(String name, double x);
+  
   Future setParameterInt(String name, int value);
   Future setParameterBool(String name, bool value);
   Future setParameterTexture(

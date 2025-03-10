@@ -1,24 +1,13 @@
 import 'dart:typed_data';
 
-import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
-import 'package:thermion_dart/thermion_dart.dart';
-
 /// Defines the type of sampler to use with a texture
 enum TextureSamplerType {
-  /// 2D texture
   SAMPLER_2D,
-
-  /// Cubemap texture
+  SAMPLER_2D_ARRAY,
   SAMPLER_CUBEMAP,
-
-  /// External texture (video/camera)
   SAMPLER_EXTERNAL,
-
-  /// 3D texture
   SAMPLER_3D,
-
-  /// 2D array texture
-  SAMPLER_2D_ARRAY
+  SAMPLER_CUBEMAP_ARRAY
 }
 
 /// Defines internal texture formats
@@ -306,7 +295,7 @@ abstract class Texture {
       covariant LinearImage image, PixelDataFormat format, PixelDataType type);
 
   /// Sets the image data for a 2D texture or a texture level
-  Future setImage(int level, Uint8List buffer, int width, int height,
+  Future setImage(int level, Uint8List buffer, int width, int height, 
       int channels, PixelDataFormat format, PixelDataType type);
 
   /// Sets the image data for a region of a 2D texture
@@ -321,6 +310,7 @@ abstract class Texture {
       int zOffset,
       int width,
       int height,
+      int channels,
       int depth,
       Uint8List buffer,
       PixelDataFormat format,

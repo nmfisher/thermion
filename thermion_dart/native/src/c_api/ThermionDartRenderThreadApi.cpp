@@ -332,6 +332,7 @@ extern "C"
   EMSCRIPTEN_KEEPALIVE void Engine_buildTextureRenderThread(TEngine *engine,
                                                             uint32_t width,
                                                             uint32_t height,
+                                                            uint32_t depth,
                                                             uint8_t levels,
                                                             TTextureSamplerType sampler,
                                                             TTextureFormat format,
@@ -340,7 +341,7 @@ extern "C"
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto texture = Engine_buildTexture(engine, width, height, levels, sampler, format);
+          auto texture = Engine_buildTexture(engine, width, height, depth, levels, sampler, format);
           onComplete(texture);
         });
     auto fut = _rl->add_task(lambda);
@@ -908,6 +909,47 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
+
+  EMSCRIPTEN_KEEPALIVE void Texture_setImageWithDepthRenderThread(
+    TEngine *tEngine,
+    TTexture *tTexture,
+    uint32_t level,
+    uint8_t *data,
+    size_t size,
+    uint32_t x_offset,
+    uint32_t y_offset,
+    uint32_t z_offset,
+    uint32_t width,
+    uint32_t height,
+    uint32_t channels,
+    uint32_t depth,
+    uint32_t bufferFormat,
+    uint32_t pixelDataType,
+    void (*onComplete)(bool)
+) {
+  std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        bool result = Texture_setImageWithDepth(
+          tEngine,
+          tTexture,
+          level,
+          data,
+          size,
+          x_offset,
+          y_offset,
+          z_offset,
+          width,
+          height,
+          channels,
+          depth,
+          bufferFormat,
+          pixelDataType
+        );
+        onComplete(result);
+      });
+  auto fut = _rl->add_task(lambda);
+}
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
   {

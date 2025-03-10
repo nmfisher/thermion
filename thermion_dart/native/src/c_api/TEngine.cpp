@@ -226,21 +226,29 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE TTexture *Engine_buildTexture(TEngine *tEngine, 
             uint32_t width, 
             uint32_t height, 
+            uint32_t depth, 
             uint8_t levels, 
             TTextureSamplerType tSamplerType, 
             TTextureFormat tFormat)
         {
+            TRACE("Creating texture %dx%d (depth %d), sampler type %d, format %d", width, height, depth, static_cast<int>(tSamplerType), static_cast<int>(tFormat));
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto format = convertToFilamentFormat(tFormat);
             auto samplerType = static_cast<::filament::Texture::Sampler>(static_cast<int>(tSamplerType));
             auto *texture = Texture::Builder()
                 .width(width)
                 .height(height)
+                .depth(depth)
                 .levels(levels)
                 .sampler(samplerType)
                 .format(format) 
                 .build(*engine);
-            Log("Created texture %d x %d, format %d", texture->getWidth(), texture->getHeight(), texture->getFormat());
+            if(texture) {
+                TRACE("Texture successfully created");
+            } else { 
+                Log("Error: failed to created texture");
+            }
+            
             return reinterpret_cast<TTexture *>(texture);
         }
 

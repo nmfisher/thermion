@@ -15,11 +15,12 @@ extern "C"
 
 enum TTextureSamplerType
 {
-    SAMPLER_2D = 0,       // 2D texture
-    SAMPLER_CUBEMAP,      // Cubemap texture
-    SAMPLER_EXTERNAL,     // External texture (video/camera)
-    SAMPLER_3D,           // 3D texture
-    SAMPLER_2D_ARRAY      // 2D array texture
+    SAMPLER_2D = 0,
+    SAMPLER_2D_ARRAY = 1,
+    SAMPLER_CUBEMAP=2,     
+    SAMPLER_EXTERNAL=3,    
+    SAMPLER_3D=4,
+    SAMPLER_CUBEMAP_ARRAY=5
 };
 
 enum TTextureFormat
@@ -201,6 +202,22 @@ EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
     uint32_t width,
     uint32_t height,
     uint32_t channels,
+    uint32_t bufferFormat,
+    uint32_t pixelDataType
+);
+EMSCRIPTEN_KEEPALIVE bool Texture_setImageWithDepth(
+    TEngine *tEngine,
+    TTexture *tTexture,
+    uint32_t level,
+    uint8_t *data,
+    size_t size,
+    uint32_t x_offset,
+    uint32_t y_offset,
+    uint32_t z_offset,
+    uint32_t width,
+    uint32_t height,
+    uint32_t channels,
+    uint32_t depth,
     uint32_t bufferFormat,
     uint32_t pixelDataType
 );

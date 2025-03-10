@@ -112,12 +112,33 @@ class FFITexture extends Texture {
       int zOffset,
       int width,
       int height,
+      int channels,
       int depth,
       Uint8List buffer,
       PixelDataFormat format,
-      PixelDataType type) {
-    // TODO: implement setImage3D
-    throw UnimplementedError();
+      PixelDataType type) async {
+    final success = await withBoolCallback((cb) {
+        Texture_setImageWithDepthRenderThread(
+        _engine,
+        pointer,
+        level,
+        buffer.address,
+        buffer.lengthInBytes,
+        0,
+        0,
+        zOffset,
+        width,
+        height,
+        channels,
+        depth,
+        format.index,
+        type.index,
+        cb);  
+    });
+    
+    if (!success) {
+      throw Exception("Failed to set image");
+    }
   }
 
   @override

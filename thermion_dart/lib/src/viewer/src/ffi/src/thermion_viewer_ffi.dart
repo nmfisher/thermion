@@ -1830,7 +1830,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<Texture> createTexture(int width, int height,
-      {int levels = 1,
+      {int depth = 1, int levels = 1,
       TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
       TextureFormat textureFormat = TextureFormat.RGBA16F}) async {
     final texturePtr = await withPointerCallback<TTexture>((cb) {
@@ -1838,6 +1838,7 @@ class ThermionViewerFFI extends ThermionViewer {
           _engine!,
           width,
           height,
+          depth,
           levels,
           TTextureSamplerType.values[textureSamplerType.index],
           TTextureFormat.values[textureFormat.index],
