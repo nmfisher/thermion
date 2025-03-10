@@ -199,20 +199,25 @@ namespace thermion
             {
             case PixelBufferDescriptor::PixelDataFormat::RGB:
             case PixelBufferDescriptor::PixelDataFormat::RGBA:
-                if (size != width * height * channels * sizeof(float))
+            {
+                size_t expectedSize = width * height * channels * sizeof(float);
+                if (size != expectedSize)
                 {
-                    Log("Size mismatch");
+                    Log("Size mismatch (expected %d, got %d)", expectedSize, size);
                     return false;
                 }
                 break;
+            }
             case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
             case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
+            {
                 if (size != width * height * channels * sizeof(uint8_t))
                 {
                     Log("Size mismatch");
                     // return false;
                 }
                 break;
+            }
             default:
                 Log("Unsupported buffer format type : %d", bufferFormat);
                 return false;
