@@ -1,0 +1,76 @@
+material {
+    name : ViewDependentTexture,
+    parameters : [
+        {
+            type : sampler3d,
+            name : perspectives,
+            precision: high
+        },
+        {
+            type : float3[3],
+            name : cameraPositions
+        }
+    ],
+    variables : [
+        {
+            type : float3,
+            name : blendWeights,
+        }
+    ],
+    requires : [ position, uv0 ],
+    shadingModel : unlit,
+    doubleSided : true,
+    blending: opaque,
+    depthWrite : true,
+    depthCulling : true,
+    culling: none,
+    vertexDomain: object
+}
+
+// View-Dependent Texture Mapping Shader
+//
+// This material projects a 3D texture containing multiple perspectives onto a mesh,
+// blending between different views based on the current camera position.
+//
+// The 3D texture contains different renderings of the object from various camera positions.
+// At runtime, we calculate the best blend of perspectives to use based on the current view.
+//
+// Parameters:
+// - perspectives: 3D texture containing different perspective views of the object
+// - cameraPositions: Array of camera positions used to render each perspective slice
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {       
+        vec3 worldCameraPos = getWorldCameraPosition();
+        vec4 currentCameraPos = getUserWorldFromWorldMatrix() * vec4(worldCameraPos, 1.0);
+
+        material.blendWeights.xyz = vec3(0.0f);
+        
+        float totalWeight = 0.0;
+                
+        for (int i = 0; i < 3; i++) {
+            vec3 cameraPos = materialParams.cameraPositions[i];
+            float dist = distance(currentCameraPos.xyz, cameraPos);
+            material.blendWeights[i] = exp(-dist);
+            totalWeight += material.blendWeights[i];
+        }
+        if (totalWeight > 0.0) {
+            material.blendWeights /= totalWeight;
+        }
+        //material.blendWeights.x = exp(-distance(currentCameraPos.xyz, materialParams.cameraPositions[0]));
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+            
+        vec3 weights = variable_blendWeights.xyz;
+        
+        float z = (weights.x * 0.0) + (weights.y * 0.5) + (weights.z * 1.0);
+
+        vec2 uv = getUV0();    
+        vec3 texCoord = vec3(uv, z);
+        material.baseColor = texture(materialParams_perspectives, texCoord);
+    }
+}
