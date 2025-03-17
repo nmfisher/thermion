@@ -106,9 +106,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future<RenderTarget> createRenderTarget(
-      int width, int height, { int? colorTextureHandle,
-      int? depthTextureHandle}) async {
+  Future<RenderTarget> createRenderTarget(int width, int height,
+      {int? colorTextureHandle, int? depthTextureHandle}) async {
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
       Viewer_createRenderTargetRenderThread(_viewer!, colorTextureHandle ?? 0,
           depthTextureHandle ?? 0, width, height, cb);
@@ -321,7 +320,7 @@ class ThermionViewerFFI extends ThermionViewer {
       final out = Uint8List(length);
       await withVoidCallback((cb) {
         Renderer_readPixelsRenderThread(
-            renderer, 
+            renderer,
             view.view,
             renderTarget!.renderTarget,
             TPixelDataFormat.PIXELDATAFORMAT_RGBA,
@@ -1923,15 +1922,20 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<Texture> createTexture(int width, int height,
       {int depth = 1,
       int levels = 1,
+      Set<TextureUsage> flags = const {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
       TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
-      TextureFormat textureFormat = TextureFormat.RGBA16F}) async {
+      TextureFormat textureFormat = TextureFormat.RGBA16F,
+      int? importedTextureHandle}) async {
+    var bitmask = flags.fold(0, (a, b) => a | b.index);
     final texturePtr = await withPointerCallback<TTexture>((cb) {
-      Engine_buildTextureRenderThread(
+      Texture_buildRenderThread(
           _engine!,
           width,
           height,
           depth,
           levels,
+          importedTextureHandle ?? 0,
+          bitmask,
           TTextureSamplerType.values[textureSamplerType.index],
           TTextureFormat.values[textureFormat.index],
           cb);
