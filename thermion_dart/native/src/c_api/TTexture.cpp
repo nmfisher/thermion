@@ -127,12 +127,15 @@ namespace thermion
             {
             case PixelBufferDescriptor::PixelDataFormat::RGB:
             case PixelBufferDescriptor::PixelDataFormat::RGBA:
-                if (size != width * height * channels * sizeof(float))
+            {
+                size_t expectedSize = width * height * channels * sizeof(float);
+                if (size != expectedSize)
                 {
-                    Log("Size mismatch");
+                    Log("Size mismatch (expected %d, got %d)", expectedSize, size);
                     return false;
                 }
                 break;
+            }
             case PixelBufferDescriptor::PixelDataFormat::RGB_INTEGER:
             case PixelBufferDescriptor::PixelDataFormat::RGBA_INTEGER:
                 if (size != width * height * channels * sizeof(uint8_t))
@@ -260,6 +263,21 @@ namespace thermion
             return true;
         }
 
+        EMSCRIPTEN_KEEPALIVE uint32_t Texture_getWidth(TTexture *tTexture, uint32_t level) {
+                auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
+                return texture->getWidth();
+        }
+        
+        EMSCRIPTEN_KEEPALIVE uint32_t Texture_getHeight(TTexture *tTexture, uint32_t level) {
+            auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
+            return texture->getHeight();
+        }
+
+        EMSCRIPTEN_KEEPALIVE uint32_t Texture_getDepth(TTexture *tTexture, uint32_t level) {
+            auto *texture = reinterpret_cast<filament::Texture *>(tTexture);
+            return texture->getDepth();
+        }
+
         EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width, uint32_t height, uint32_t channel)
         {
             auto *image = new ::image::LinearImage(width, height, channel);
@@ -268,7 +286,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TTextureSampler *TextureSampler_create()
         {
-            auto *sampler = new filament::TextureSampler();
+            auto *sampler = new filament::TextureSampler(filament::TextureSampler::CompareMode::COMPARE_TO_TEXTURE);
             return reinterpret_cast<TTextureSampler *>(sampler);
         }
 
@@ -295,8 +313,19 @@ namespace thermion
             TSamplerCompareFunc compareFunc)
         {
 
-            filament::TextureSampler::CompareMode mode = static_cast<filament::TextureSampler::CompareMode>(compareMode);
-            filament::TextureSampler::CompareFunc func = static_cast<filament::TextureSampler::CompareFunc>(compareFunc);
+            if(compareMode == COMPARE_MODE_NONE) {
+                TRACE("COMPARE MODE NONE");
+            } else if(compareMode == COMPARE_MODE_COMPARE_TO_TEXTURE) { 
+                TRACE("COMPARE MODE COMPARE TO TEXTURE");
+            } else { 
+                TRACE("UNKNWON COMPARE MODE");
+            }
+
+
+            filament::TextureSampler::CompareMode mode = static_cast<filament::TextureSampler::CompareMode>(static_cast<int>(compareMode));
+            filament::TextureSampler::CompareFunc func = static_cast<filament::TextureSampler::CompareFunc>(static_cast<int>(compareFunc));
+
+            TRACE("Creating texture sampler with compare mode %d and compare func %d");
 
             auto *sampler = new filament::TextureSampler(mode, func);
             return reinterpret_cast<TTextureSampler *>(sampler);
@@ -398,6 +427,13 @@ namespace thermion
         {
             auto renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
             auto texture = renderTarget->getTexture(filament::RenderTarget::AttachmentPoint::COLOR0);
+            return reinterpret_cast<TTexture *>(texture);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TTexture *RenderTarget_getDepthTexture(TRenderTarget *tRenderTarget)
+        {
+            auto renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
+            auto texture = renderTarget->getTexture(filament::RenderTarget::AttachmentPoint::DEPTH);
             return reinterpret_cast<TTexture *>(texture);
         }
 
