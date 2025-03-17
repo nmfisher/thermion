@@ -13,4 +13,9 @@ functions:
   leaf:
     include:
       - '.*'
-
+enums:
+  as-int:
+    include:
+      - TPrimitiveType
+      - TPixelDataFormat
+      - TPixelDataType
