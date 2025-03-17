@@ -309,7 +309,7 @@ SWIFT_CLASS("_TtC12swift_module20ThermionTextureSwift")
 @property (nonatomic, strong) id <MTLTexture> _Nullable metalTexture;
 @property (nonatomic) NSInteger metalTextureAddress;
 - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
-- (nonnull instancetype)initWithWidth:(int64_t)width height:(int64_t)height OBJC_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)initWithWidth:(int64_t)width height:(int64_t)height isDepth:(BOOL)isDepth OBJC_DESIGNATED_INITIALIZER;
 - (void)destroyTexture;
 - (void)fillColor;
 - (NSData * _Nullable)getTextureBytes SWIFT_WARN_UNUSED_RESULT;
