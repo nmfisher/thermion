@@ -491,7 +491,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TTextureSampler *TextureSampler_create()
         {
-            auto *sampler = new filament::TextureSampler(filament::TextureSampler::CompareMode::COMPARE_TO_TEXTURE);
+            auto *sampler = new filament::TextureSampler();
             return reinterpret_cast<TTextureSampler *>(sampler);
         }
 

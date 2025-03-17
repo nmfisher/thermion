@@ -73,6 +73,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThead(TEngine *tEngine, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, uint8_t *skyboxData, size_t length, void (*onComplete)(TSkybox *), void (*onTextureUploadComplete)());
+        EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightRenderThread(TEngine *tEngine, uint8_t *iblData, size_t length, float intensity, void (*onComplete)(TIndirectLight *), void (*onTextureUploadComplete)());
 
         EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptionsRenderThread(TRenderer *tRenderer, double clearR, double clearG, double clearB, double clearA, uint8_t clearStencil, bool clear, bool discard, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Renderer_beginFrameRenderThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool));
@@ -198,7 +199,23 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Image_getChannelsRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
 
         // Texture methods
-        EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage, TPixelDataFormat bufferFormat, TPixelDataType pixelDataType, void (*onComplete)(bool));
+        EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(TEngine *engine, 
+            uint32_t width, 
+            uint32_t height, 
+            uint32_t depth, 
+            uint8_t levels, 
+            uint16_t tUsage,
+            intptr_t import,
+            TTextureSamplerType sampler, 
+            TTextureFormat format, void (*onComplete)(TTexture *));
+        EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(
+            TEngine *tEngine,
+            TTexture *tTexture,
+            TLinearImage *tImage,
+            TPixelDataFormat bufferFormat,
+            TPixelDataType pixelDataType,
+            void (*onComplete)(bool)
+        );
         EMSCRIPTEN_KEEPALIVE void Texture_setImageRenderThread(
             TEngine *tEngine,
             TTexture *tTexture,

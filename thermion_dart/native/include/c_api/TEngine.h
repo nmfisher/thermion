@@ -44,6 +44,8 @@ EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uin
 EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterial(TEngine *tEngine, TMaterial *tMaterial);
 EMSCRIPTEN_KEEPALIVE TScene *Engine_createScene(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, uint8_t* ktxData, size_t length, void(*onTextureUploadComplete)());
+EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLight(TEngine *tEngine, uint8_t* ktxData, size_t length, float intensity, void(*onTextureUploadComplete)());
+
 
 
 

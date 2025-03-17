@@ -22,6 +22,7 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
     size_t length,
     uint8_t numInstances
 );
+EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRenderableManager *tRenderableManager, TFilamentAsset *tAsset);
 
 #ifdef __cplusplus
 }

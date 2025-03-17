@@ -15,7 +15,7 @@ namespace thermion
     extern "C"
     {
 #endif
-
+        
         EMSCRIPTEN_KEEPALIVE TMaterialInstance *MaterialProvider_createMaterialInstance(TMaterialProvider *tMaterialProvider, TMaterialKey *materialConfig)
         {
             gltfio::MaterialKey config;

@@ -24,6 +24,7 @@ extern "C"
 	typedef struct TGizmo TGizmo;
 	typedef struct TScene TScene;
 	typedef struct TSkybox TSkybox;
+	typedef struct TIndirectLight TIndirectLight;
 	typedef struct TTransformManager TTransformManager;
 	typedef struct TAnimationManager TAnimationManager;
 	typedef struct TCollisionComponentManager TCollisionComponentManager;

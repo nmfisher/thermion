@@ -2,6 +2,7 @@
 
 #include <filament/Engine.h>
 #include <filament/Fence.h>
+#include <filament/IndirectLight.h>
 #include <filament/Material.h>
 #include <filament/Scene.h>
 #include <filament/Skybox.h>
@@ -43,31 +44,35 @@ namespace thermion
         uint64_t TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER = filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
         uint64_t TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER = filament::backend::SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
 
-        EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(TBackend backend) {
+        EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(TBackend backend)
+        {
             auto *engine = filament::Engine::create(static_cast<filament::Engine::Backend>(backend));
             return reinterpret_cast<TEngine *>(engine);
         }
-        
-        EMSCRIPTEN_KEEPALIVE TRenderer *Engine_createRenderer(TEngine *tEngine) {
+
+        EMSCRIPTEN_KEEPALIVE TRenderer *Engine_createRenderer(TEngine *tEngine)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *renderer = engine->createRenderer();
             return reinterpret_cast<TRenderer *>(renderer);
         }
 
-        EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createSwapChain(TEngine *tEngine, void *window, uint64_t flags) {            
+        EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createSwapChain(TEngine *tEngine, void *window, uint64_t flags)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *swapChain = engine->createSwapChain(window, flags);
-            return reinterpret_cast<TSwapChain*>(swapChain);
+            return reinterpret_cast<TSwapChain *>(swapChain);
         }
 
-        EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createHeadlessSwapChain(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags) {            
+        EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createHeadlessSwapChain(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *swapChain = engine->createSwapChain(width, height, flags);
-            return reinterpret_cast<TSwapChain*>(swapChain);
+            return reinterpret_cast<TSwapChain *>(swapChain);
         }
 
-    
-        EMSCRIPTEN_KEEPALIVE TView *Engine_createView(TEngine *tEngine) {
+        EMSCRIPTEN_KEEPALIVE TView *Engine_createView(TEngine *tEngine)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *view = engine->createView();
             return reinterpret_cast<TView *>(view);
@@ -94,7 +99,8 @@ namespace thermion
             return reinterpret_cast<TLightManager *>(&lightManager);
         }
 
-        EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine* tEngine) {
+        EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine *tEngine)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             utils::Entity entity = utils::EntityManager::get().create();
             auto *camera = engine->createCamera(entity);
@@ -142,41 +148,47 @@ namespace thermion
             engine->destroy(material);
         }
 
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTexture) {
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTexture)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *texture = reinterpret_cast<Texture *>(tTexture);
             engine->destroy(texture);
         }
 
-        EMSCRIPTEN_KEEPALIVE TFence *Engine_createFence(TEngine *tEngine) {
+        EMSCRIPTEN_KEEPALIVE TFence *Engine_createFence(TEngine *tEngine)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *fence = engine->createFence();
             return reinterpret_cast<TFence *>(fence);
         }
 
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyFence(TEngine *tEngine, TFence *tFence) {
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyFence(TEngine *tEngine, TFence *tFence)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *fence = reinterpret_cast<Fence *>(tFence);
             Fence::waitAndDestroy(fence);
         }
 
-        EMSCRIPTEN_KEEPALIVE void Engine_flushAndWait(TEngine *tEngine) {
+        EMSCRIPTEN_KEEPALIVE void Engine_flushAndWait(TEngine *tEngine)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-            #ifdef __EMSCRIPTEN__
-                engine->execute();
-                emscripten_webgl_commit_frame();
-            #else
-                engine->flushAndWait();
-            #endif
+#ifdef __EMSCRIPTEN__
+            engine->execute();
+            emscripten_webgl_commit_frame();
+#else
+    engine->flushAndWait();
+#endif
         }
 
-        EMSCRIPTEN_KEEPALIVE TScene *Engine_createScene(TEngine *tEngine) {
+        EMSCRIPTEN_KEEPALIVE TScene *Engine_createScene(TEngine *tEngine)
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-            auto *scene = engine->createScene();    
+            auto *scene = engine->createScene();
             return reinterpret_cast<TScene *>(scene);
         }
 
-        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, uint8_t* ktxData, size_t length, void(*onTextureUploadComplete)()) {
+        EMSCRIPTEN_KEEPALIVE TSkybox *Engine_buildSkybox(TEngine *tEngine, uint8_t *ktxData, size_t length, void (*onTextureUploadComplete)())
+        {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto copy = new std::vector<uint8_t>(ktxData, ktxData + length);
             image::Ktx1Bundle *skyboxBundle =
@@ -186,9 +198,8 @@ namespace thermion
             std::vector<void *> *callbackData = new std::vector<void *>{
                 reinterpret_cast<void *>(onTextureUploadComplete),
                 reinterpret_cast<void *>(skyboxBundle),
-                reinterpret_cast<void *>(copy) 
-            };
-        
+                reinterpret_cast<void *>(copy)};
+
             auto *texture =
                 ktxreader::Ktx1Reader::createTexture(
                     engine, *skyboxBundle, false, [](void *userdata)
@@ -207,19 +218,63 @@ namespace thermion
                           callback();
                         } 
                         delete skyboxBundle;
-                        delete copy;
+                        delete copy; 
                     },
-                    (void*)callbackData);
+                    (void *)callbackData);
             auto *skybox =
                 filament::Skybox::Builder()
                     .environment(texture)
                     .build(*engine);
-        
+
             return reinterpret_cast<TSkybox *>(skybox);
         }
 
-        
+        EMSCRIPTEN_KEEPALIVE TIndirectLight *Engine_buildIndirectLight(TEngine *tEngine, uint8_t *ktxData, size_t length, float intensity, void (*onTextureUploadComplete)())
+        {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto copy = new std::vector<uint8_t>(ktxData, ktxData + length);
 
+            image::Ktx1Bundle *iblBundle =
+                new image::Ktx1Bundle(static_cast<const uint8_t *>(copy->data()),
+                                      static_cast<uint32_t>(length));
+            filament::math::float3 harmonics[9];
+            iblBundle->getSphericalHarmonics(harmonics);
+
+
+            std::vector<void *> *callbackData = new std::vector<void *>{
+                reinterpret_cast<void *>(onTextureUploadComplete),
+                reinterpret_cast<void *>(iblBundle),
+                reinterpret_cast<void *>(copy)};
+
+            auto *texture =
+                ktxreader::Ktx1Reader::createTexture(
+                    engine, *iblBundle, false, [](void *userdata)
+                    {
+                        std::vector<void*>* vec = (std::vector<void*>*)userdata;
+                        
+                        void *callbackPtr = vec->at(0);
+                        image::Ktx1Bundle *iblBundle = reinterpret_cast<image::Ktx1Bundle *>(vec->at(1));
+                        std::vector<uint8_t> *copy = reinterpret_cast<std::vector<uint8_t>*>(vec->at(2));
+
+                        delete vec;
+                        
+                        if (callbackPtr)
+                        {
+                          void (*callback)(void) = (void (*)(void))callbackPtr;
+                          callback();
+                        } 
+                        delete iblBundle;
+                        delete copy;                     
+                },
+
+                (void *)callbackData);
+            auto *indirectLight = filament::IndirectLight::Builder()
+                                      .reflections(texture)
+                                      .irradiance(3, harmonics)
+                                      .intensity(intensity)
+                                      .build(*engine);
+            return reinterpret_cast<TIndirectLight *>(indirectLight);
+        }
 
 #ifdef __cplusplus
     }

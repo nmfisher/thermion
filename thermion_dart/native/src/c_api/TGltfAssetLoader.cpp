@@ -3,6 +3,7 @@
 #include <filament/Engine.h>
 #include <filament/Fence.h>
 #include <filament/Material.h>
+#include <filament/RenderableManager.h>
 #include <filament/Scene.h>
 #include <filament/Skybox.h>
 #include <filament/Texture.h>
@@ -50,6 +51,7 @@ EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, 
     auto *materialProvider = reinterpret_cast<gltfio::MaterialProvider *>(tMaterialProvider);
 
     if(!materialProvider) {
+        Log("No material provider specified, using default ubershader provider");
         materialProvider = gltfio::createUbershaderProvider(
             engine,
             UBERARCHIVE_DEFAULT_DATA,
@@ -89,6 +91,24 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
         return std::nullptr_t();
     }
     return reinterpret_cast<TFilamentAsset *>(asset);
+}
+
+EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRenderableManager *tRenderableManager, TFilamentAsset *tAsset) {
+    auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+    auto *asset = reinterpret_cast<gltfio::FilamentAsset *>(tAsset);
+    auto renderable = asset->getRenderableEntities();
+    for(int i =0; i < asset->getRenderableEntityCount(); i++) {
+        auto renderableInstance = renderableManager->getInstance(renderable[i]);
+        if(!renderableInstance.isValid()) {
+            Log("INVALID RENDERABLE");
+            continue;
+        }
+        auto mi = renderableManager->getMaterialInstanceAt(renderableInstance, 0);
+        mi->setParameter("baseColorFactor", filament::math::float4 { 1.0f, 0.0f, 0.0f, 1.0f});
+    }
+    auto renderableInstance = renderableManager->getInstance(renderable[0]);
+    auto mi = renderableManager->getMaterialInstanceAt(renderableInstance, 0);
+    return reinterpret_cast<TMaterialInstance*>(mi);
 }
 
 #ifdef __cplusplus

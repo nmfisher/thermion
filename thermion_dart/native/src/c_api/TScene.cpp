@@ -2,6 +2,7 @@
 
 #include <filament/Engine.h>
 #include <filament/Fence.h>
+#include <filament/IndirectLight.h>
 #include <filament/Material.h>
 #include <filament/Scene.h>
 #include <filament/Skybox.h>
@@ -33,6 +34,12 @@ namespace thermion
             auto *scene = reinterpret_cast<Scene *>(tScene);
             auto *skybox = reinterpret_cast<Skybox *>(tSkybox);
             scene->setSkybox(skybox);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLight(TScene* tScene, TIndirectLight *tIndirectLight) {
+            auto *scene = reinterpret_cast<Scene *>(tScene);
+            auto *light = reinterpret_cast<IndirectLight *>(tIndirectLight);
+            scene->setIndirectLight(light);
         }
 
         EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAsset(TScene* tScene, TFilamentAsset *tAsset) { 
