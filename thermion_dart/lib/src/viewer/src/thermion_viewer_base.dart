@@ -57,10 +57,8 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame and return the captured image as a pixel buffer.
   ///
-  Future<Uint8List> capture(
-      {covariant SwapChain? swapChain,
-      covariant View? view,
-      covariant RenderTarget? renderTarget});
+  Future<List<Uint8List>> capture(
+      covariant List<({View view, SwapChain? swapChain, RenderTarget? renderTarget})> targets);
 
   ///
   ///
@@ -81,7 +79,7 @@ abstract class ThermionViewer {
   ///
   ///
   Future<RenderTarget> createRenderTarget(
-      int width, int height, int textureHandle);
+      int width, int height, { int? colorTextureHandle, int? depthTextureHandle });
 
   ///
   ///
@@ -776,22 +774,23 @@ abstract class ThermionViewer {
   ///
   ///
   Future<Texture> createTexture(int width, int height,
-      {int depth = 1, int levels = 1, TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
+      {int depth = 1,
+      int levels = 1,
+      TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
       TextureFormat textureFormat = TextureFormat.RGBA32F});
-      
+
   ///
   ///
   ///
-  Future<TextureSampler> createTextureSampler({
-    TextureMinFilter minFilter = TextureMinFilter.LINEAR,
-    TextureMagFilter magFilter = TextureMagFilter.LINEAR,
-    TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE,
-    TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE,
-    TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE,
-    double anisotropy = 0.0,
-    TextureCompareMode compareMode = TextureCompareMode.NONE,
-    TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL
-  });
+  Future<TextureSampler> createTextureSampler(
+      {TextureMinFilter minFilter = TextureMinFilter.LINEAR,
+      TextureMagFilter magFilter = TextureMagFilter.LINEAR,
+      TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE,
+      TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE,
+      TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE,
+      double anisotropy = 0.0,
+      TextureCompareMode compareMode = TextureCompareMode.NONE,
+      TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL});
 
   ///
   /// Decodes the specified image data.
@@ -802,7 +801,6 @@ abstract class ThermionViewer {
   /// Creates an (empty) imge with the given dimensions.
   ///
   Future<LinearImage> createImage(int width, int height, int channels);
-
 
   ///
   ///
@@ -919,7 +917,7 @@ abstract class ThermionViewer {
   ///
   ///
   Future setCastShadows(ThermionEntity entity, bool castShadows);
-  
+
   ///
   ///
   ///
@@ -934,4 +932,10 @@ abstract class ThermionViewer {
   ///
   ///
   Future<bool> isReceiveShadowsEnabled(ThermionEntity entity);
+
+  ///
+  ///
+  ///
+  Future setClearOptions(
+      Vector4 clearColor, int clearStencil, bool clear, bool discard);
 }
