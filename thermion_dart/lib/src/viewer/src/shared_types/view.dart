@@ -23,7 +23,7 @@ enum QualityLevel {
 
 abstract class View {
   Future<Viewport> getViewport();
-  Future updateViewport(int width, int height);
+  Future setViewport(int width, int height);
   Future<RenderTarget?> getRenderTarget();
   Future setRenderTarget(covariant RenderTarget? renderTarget);
   Future setCamera(covariant Camera camera);

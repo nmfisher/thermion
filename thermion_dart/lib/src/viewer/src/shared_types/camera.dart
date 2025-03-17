@@ -5,6 +5,14 @@ import '../thermion_viewer_base.dart';
 enum Projection { Perspective, Orthographic }
 
 abstract class Camera {
+  Future lookAt(Vector3 position, {Vector3? focus, Vector3? up}) async {
+    focus ??= Vector3.zero();
+    up ??= Vector3(0, 1, 0);
+    final viewMatrix = makeViewMatrix(position, focus, up);
+    viewMatrix.invert();
+    await setModelMatrix(viewMatrix);
+  }
+
   Future setProjection(Projection projection, double left, double right,
       double bottom, double top, double near, double far);
   Future setProjectionMatrixWithCulling(
