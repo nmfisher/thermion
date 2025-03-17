@@ -21,47 +21,67 @@ import GLKit
         
     }
 
-    @objc public init(width:Int64, height:Int64) {
+    @objc public init(width:Int64, height:Int64, isDepth:Bool) {
         if(self.metalDevice == nil) {
             self.metalDevice = MTLCreateSystemDefaultDevice()!
         }
 
-        // create pixel buffer
+        if isDepth {
+        // Create a proper depth texture without IOSurface backing
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .depth32Float,
+            width: Int(width),
+            height: Int(height),
+            mipmapped: false)
+        textureDescriptor.usage = [.renderTarget, .shaderRead]
+        textureDescriptor.storageMode = .private  // Best performance for GPU-only access
+        
+        metalTexture = metalDevice?.makeTexture(descriptor: textureDescriptor)
+        let metalTexturePtr = Unmanaged.passRetained(metalTexture!).toOpaque()
+        metalTextureAddress = Int(bitPattern: metalTexturePtr)
+        return
+    }
+
+    let pixelFormat: MTLPixelFormat = isDepth ? .depth32Float : .bgra8Unorm
+    let cvPixelFormat = isDepth ? kCVPixelFormatType_DepthFloat32 : kCVPixelFormatType_32BGRA
+    
+
         if(CVPixelBufferCreate(kCFAllocatorDefault, Int(width), Int(height),
-                               kCVPixelFormatType_32BGRA, pixelBufferAttrs, &pixelBuffer) != kCVReturnSuccess) {
-            print("Error allocating pixel buffer")
-            metalTextureAddress = -1;
-            return
-        }
-        if self.cvMetalTextureCache == nil {
-            let cacheCreationResult = CVMetalTextureCacheCreate(
-                kCFAllocatorDefault,
-                nil,
-                self.metalDevice!,
-                nil,
-                &self.cvMetalTextureCache)
-            if(cacheCreationResult != kCVReturnSuccess) {
-                print("Error creating Metal texture cache")
-                metalTextureAddress = -1
-                return
-            }
-        }
-        let cvret = CVMetalTextureCacheCreateTextureFromImage(
-                        kCFAllocatorDefault,
-                        self.cvMetalTextureCache!,
-                        pixelBuffer!, nil,
-                        MTLPixelFormat.bgra8Unorm,
-                        Int(width), Int(height),
-                        0,
-                        &cvMetalTexture)
-        if(cvret != kCVReturnSuccess) { 
-            print("Error creating texture from image")
+                           kCVPixelFormatType_32BGRA, pixelBufferAttrs, &pixelBuffer) != kCVReturnSuccess) {
+        print("Error allocating pixel buffer")
+        metalTextureAddress = -1;
+        return
+    }
+    
+    if self.cvMetalTextureCache == nil {
+        let cacheCreationResult = CVMetalTextureCacheCreate(
+            kCFAllocatorDefault,
+            nil,
+            self.metalDevice!,
+            nil,
+            &self.cvMetalTextureCache)
+        if(cacheCreationResult != kCVReturnSuccess) {
+            print("Error creating Metal texture cache")
             metalTextureAddress = -1
             return
         }
-        metalTexture = CVMetalTextureGetTexture(cvMetalTexture!)
-        let metalTexturePtr = Unmanaged.passRetained(metalTexture!).toOpaque()
-        metalTextureAddress = Int(bitPattern:metalTexturePtr)
+    }
+    let cvret = CVMetalTextureCacheCreateTextureFromImage(
+                    kCFAllocatorDefault,
+                    self.cvMetalTextureCache!,
+                    pixelBuffer!, nil,
+                    MTLPixelFormat.bgra8Unorm,
+                    Int(width), Int(height),
+                    0,
+                    &cvMetalTexture)
+    if(cvret != kCVReturnSuccess) { 
+        print("Error creating texture from image")
+        metalTextureAddress = -1
+        return
+    }
+    metalTexture = CVMetalTextureGetTexture(cvMetalTexture!)
+    let metalTexturePtr = Unmanaged.passRetained(metalTexture!).toOpaque()
+    metalTextureAddress = Int(bitPattern:metalTexturePtr)
     }
 
     @objc public func destroyTexture()  {
@@ -104,6 +124,7 @@ import GLKit
 
                CVPixelBufferUnlockBaseAddress(pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
     }
+    
 @objc public func getTextureBytes() -> NSData? {
     guard let texture = self.metalTexture else {
         print("Metal texture is not available")
@@ -112,31 +133,69 @@ import GLKit
 
     let width = texture.width
     let height = texture.height
-    let bytesPerPixel = 4 // RGBA
+    
+    // Check what type of texture we're dealing with
+    let isDepthTexture = texture.pixelFormat == .depth32Float || 
+                         texture.pixelFormat == .depth16Unorm
+    print("Using texture pixel format : \(texture.pixelFormat) isDepthTexture \(isDepthTexture) (depth32Float \(MTLPixelFormat.depth32Float))  (depth16Unorm \(MTLPixelFormat.depth16Unorm))")    
+    // Determine bytes per pixel based on format
+    let bytesPerPixel = isDepthTexture ? 
+        (texture.pixelFormat == .depth32Float ? 4 : 2) : 4
     let bytesPerRow = width * bytesPerPixel
     let byteCount = bytesPerRow * height
-
-    var bytes = [UInt8](repeating: 0, count: byteCount)
-    let region = MTLRegionMake2D(0, 0, width, height)
-    texture.getBytes(&bytes, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
-
-    // Swizzle bytes from BGRA to RGBA
-    for i in stride(from: 0, to: byteCount, by: 4) {
-        let blue = bytes[i]
-        let green = bytes[i + 1]
-        let red = bytes[i + 2]
-        let alpha = bytes[i + 3]
-
-        bytes[i] = red
-        bytes[i + 1] = green
-        bytes[i + 2] = blue
-        bytes[i + 3] = alpha
+    
+    // Create a staging buffer that is CPU-accessible
+    guard let stagingBuffer = self.metalDevice?.makeBuffer(
+        length: byteCount, 
+        options: .storageModeShared) else {
+        print("Failed to create staging buffer")
+        return nil
     }
-
-    // Convert Swift Data to Objective-C NSData 
-    let nsData = Data(bytes: &bytes, count: byteCount) as NSData 
-    return nsData
+    
+    // Create command buffer and encoder for copying
+    guard let cmdQueue = self.metalDevice?.makeCommandQueue(),
+          let cmdBuffer = cmdQueue.makeCommandBuffer(),
+          let blitEncoder = cmdBuffer.makeBlitCommandEncoder() else {
+        print("Failed to create command objects")
+        return nil
+    }
+    
+    // Copy from texture to buffer
+    blitEncoder.copy(
+        from: texture,
+        sourceSlice: 0,
+        sourceLevel: 0,
+        sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+        sourceSize: MTLSize(width: width, height: height, depth: 1),
+        to: stagingBuffer,
+        destinationOffset: 0,
+        destinationBytesPerRow: bytesPerRow,
+        destinationBytesPerImage: byteCount
+    )
+    
+    blitEncoder.endEncoding()
+    cmdBuffer.commit()
+    cmdBuffer.waitUntilCompleted()
+    
+    // Now the data is in the staging buffer, accessible to CPU
+    if isDepthTexture {
+        // For depth textures, just return the raw data
+        return NSData(bytes: stagingBuffer.contents(), length: byteCount)
+    } else {
+        // For color textures, do the BGRA to RGBA swizzling
+        let bytes = stagingBuffer.contents().bindMemory(to: UInt8.self, capacity: byteCount)
+        let data = NSMutableData(bytes: bytes, length: byteCount)
+        
+        let mutableBytes = data.mutableBytes.bindMemory(to: UInt8.self, capacity: byteCount)
+        for i in stride(from: 0, to: byteCount, by: 4) {
+            let blue = mutableBytes[i]
+            let red = mutableBytes[i+2]
+            mutableBytes[i] = red
+            mutableBytes[i+2] = blue
+        }
+        
+        return data
+    }
 }
-
 
 }

@@ -10,7 +10,7 @@ public class ThermionFlutterTexture : NSObject, FlutterTexture {
     
     init(registry:FlutterTextureRegistry, width:Int64, height:Int64) {
         self.registry = registry
-        self.texture = ThermionTextureSwift(width:width, height: height)
+        self.texture = ThermionTextureSwift(width:width, height: height, isDepth: false)
         super.init()
         self.flutterTextureId = registry.register(self)
     }
