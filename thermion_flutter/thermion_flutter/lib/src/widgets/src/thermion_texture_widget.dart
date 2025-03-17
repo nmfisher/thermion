@@ -116,7 +116,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       _logger.info(
           "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
 
-      await widget.view.updateViewport(_texture!.width, _texture!.height);
+      await widget.view.setViewport(_texture!.width, _texture!.height);
 
       try {
         await widget.onResize?.call(
@@ -248,7 +248,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       _logger.info(
           "Resized texture to dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
 
-      await widget.view.updateViewport(_texture!.width, _texture!.height);
+      await widget.view.setViewport(_texture!.width, _texture!.height);
 
       await widget.onResize?.call(
           Size(_texture!.width.toDouble(), _texture!.height.toDouble()),
