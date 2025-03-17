@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
 import 'callbacks.dart';
@@ -24,8 +25,8 @@ class FFIView extends View {
   }
 
   @override
-  Future updateViewport(int width, int height) async {
-    View_updateViewport(view, width, height);
+  Future setViewport(int width, int height) async {
+    View_setViewport(view, width, height);
   }
 
   Future<RenderTarget?> getRenderTarget() async {

@@ -9,18 +9,18 @@ class FFITexture extends Texture {
 
   FFITexture(this._engine, this.pointer);
 
-  Future<void> setLinearImage(covariant FFILinearImage image, PixelDataFormat format,
-      PixelDataType type) async {
+  Future<void> setLinearImage(covariant FFILinearImage image,
+      PixelDataFormat format, PixelDataType type) async {
     final result = await withBoolCallback((cb) {
       Texture_loadImageRenderThread(
-        _engine,
-        pointer,
-        image.pointer,
-        TPixelDataFormat.values[format.index],
-        TPixelDataType.values[type.index],
-        cb);
+          _engine,
+          pointer,
+          image.pointer,
+          format.index,
+          type.index,
+          cb);
     });
-    
+
     if (!result) {
       throw Exception("Failed to set linear image");
     }
@@ -40,9 +40,8 @@ class FFITexture extends Texture {
   }
 
   @override
-  Future<int> getDepth([int level = 0]) {
-    // TODO: implement getDepth
-    throw UnimplementedError();
+  Future<int> getDepth([int level = 0]) async {
+    return Texture_getDepth(pointer, level);
   }
 
   @override
@@ -52,9 +51,8 @@ class FFITexture extends Texture {
   }
 
   @override
-  Future<int> getHeight([int level = 0]) {
-    // TODO: implement getHeight
-    throw UnimplementedError();
+  Future<int> getHeight([int level = 0]) async {
+    return Texture_getHeight(pointer, level);
   }
 
   @override
@@ -70,9 +68,8 @@ class FFITexture extends Texture {
   }
 
   @override
-  Future<int> getWidth([int level = 0]) {
-    // TODO: implement getWidth
-    throw UnimplementedError();
+  Future<int> getWidth([int level = 0]) async {
+    return Texture_getWidth(pointer, level);
   }
 
   @override
@@ -86,19 +83,19 @@ class FFITexture extends Texture {
       int channels, PixelDataFormat format, PixelDataType type) async {
     final success = await withBoolCallback((cb) {
       Texture_setImageRenderThread(
-        _engine,
-        pointer,
-        level,
-        buffer.address,
-        buffer.lengthInBytes,
-        width,
-        height,
-        channels,
-        format.index,
-        type.index,
-        cb);
+          _engine,
+          pointer,
+          level,
+          buffer.address,
+          buffer.lengthInBytes,
+          width,
+          height,
+          channels,
+          format.index,
+          type.index,
+          cb);
     });
-    
+
     if (!success) {
       throw Exception("Failed to set image");
     }
@@ -118,32 +115,39 @@ class FFITexture extends Texture {
       PixelDataFormat format,
       PixelDataType type) async {
     final success = await withBoolCallback((cb) {
-        Texture_setImageWithDepthRenderThread(
-        _engine,
-        pointer,
-        level,
-        buffer.address,
-        buffer.lengthInBytes,
-        0,
-        0,
-        zOffset,
-        width,
-        height,
-        channels,
-        depth,
-        format.index,
-        type.index,
-        cb);  
+      Texture_setImageWithDepthRenderThread(
+          _engine,
+          pointer,
+          level,
+          buffer.address,
+          buffer.lengthInBytes,
+          0,
+          0,
+          zOffset,
+          width,
+          height,
+          channels,
+          depth,
+          format.index,
+          type.index,
+          cb);
     });
-    
+
     if (!success) {
       throw Exception("Failed to set image");
     }
   }
 
   @override
-  Future<void> setSubImage(int level, int xOffset, int yOffset, int width, int height,
-      Uint8List buffer, PixelDataFormat format, PixelDataType type) {
+  Future<void> setSubImage(
+      int level,
+      int xOffset,
+      int yOffset,
+      int width,
+      int height,
+      Uint8List buffer,
+      PixelDataFormat format,
+      PixelDataType type) {
     // TODO: implement setSubImage
     throw UnimplementedError();
   }
@@ -154,22 +158,25 @@ class FFILinearImage extends LinearImage {
 
   FFILinearImage(this.pointer);
 
-  static Future<FFILinearImage> createEmpty(int width, int height, int channels) async {
+  static Future<FFILinearImage> createEmpty(
+      int width, int height, int channels) async {
     final imagePtr = await withPointerCallback<TLinearImage>((cb) {
       Image_createEmptyRenderThread(width, height, channels, cb);
     });
-    
+
     return FFILinearImage(imagePtr);
   }
-  
-  static Future<FFILinearImage> decode(Uint8List data, [String name = "image"]) async {
+
+  static Future<FFILinearImage> decode(Uint8List data,
+      [String name = "image"]) async {
     final namePtr = name.toNativeUtf8();
-    
+
     try {
       final imagePtr = await withPointerCallback<TLinearImage>((cb) {
-        Image_decodeRenderThread(data.address, data.lengthInBytes, namePtr.cast(), cb);
+        Image_decodeRenderThread(
+            data.address, data.lengthInBytes, namePtr.cast(), cb);
       });
-      
+
       return FFILinearImage(imagePtr);
     } finally {
       calloc.free(namePtr);
@@ -208,11 +215,11 @@ class FFILinearImage extends LinearImage {
     final height = await getHeight();
     final width = await getWidth();
     final channels = await getChannels();
-    
+
     final ptr = await withPointerCallback<Float>((cb) {
       Image_getBytesRenderThread(pointer, cb);
     });
-    
+
     return ptr.asTypedList(height * width * channels);
   }
 }
@@ -228,7 +235,7 @@ class FFITextureSampler extends TextureSampler {
     final samplerPtr = await withPointerCallback<TTextureSampler>((cb) {
       TextureSampler_createRenderThread(cb);
     });
-    
+
     return FFITextureSampler(samplerPtr);
   }
 
@@ -247,7 +254,7 @@ class FFITextureSampler extends TextureSampler {
   //       TSamplerWrapMode.values[wrapR.index],
   //       cb);
   //   });
-    
+
   //   return FFITextureSampler(samplerPtr);
   // }
 
@@ -260,15 +267,15 @@ class FFITextureSampler extends TextureSampler {
   //       TTextureSamplerCompareFunc.values[compareFunc.index],
   //       cb);
   //   });
-    
+
   //   return FFITextureSampler(samplerPtr);
   // }
 
   // Future<void> setMinFilter(SamplerMinFilter filter) async {
   //   await withVoidCallback((cb) {
   //     TextureSampler_setMinFilterRenderThread(
-  //       pointer, 
-  //       TSamplerMinFilter.values[filter.index], 
+  //       pointer,
+  //       TSamplerMinFilter.values[filter.index],
   //       cb);
   //   });
   // }
@@ -276,8 +283,8 @@ class FFITextureSampler extends TextureSampler {
   // Future<void> setMagFilter(SamplerMagFilter filter) async {
   //   await withVoidCallback((cb) {
   //     TextureSampler_setMagFilterRenderThread(
-  //       pointer, 
-  //       TSamplerMagFilter.values[filter.index], 
+  //       pointer,
+  //       TSamplerMagFilter.values[filter.index],
   //       cb);
   //   });
   // }
@@ -285,8 +292,8 @@ class FFITextureSampler extends TextureSampler {
   // Future<void> setWrapModeS(SamplerWrapMode mode) async {
   //   await withVoidCallback((cb) {
   //     TextureSampler_setWrapModeSRenderThread(
-  //       pointer, 
-  //       TSamplerWrapMode.values[mode.index], 
+  //       pointer,
+  //       TSamplerWrapMode.values[mode.index],
   //       cb);
   //   });
   // }
@@ -294,8 +301,8 @@ class FFITextureSampler extends TextureSampler {
   // Future<void> setWrapModeT(SamplerWrapMode mode) async {
   //   await withVoidCallback((cb) {
   //     TextureSampler_setWrapModeTRenderThread(
-  //       pointer, 
-  //       TSamplerWrapMode.values[mode.index], 
+  //       pointer,
+  //       TSamplerWrapMode.values[mode.index],
   //       cb);
   //   });
   // }
@@ -303,8 +310,8 @@ class FFITextureSampler extends TextureSampler {
   // Future<void> setWrapModeR(SamplerWrapMode mode) async {
   //   await withVoidCallback((cb) {
   //     TextureSampler_setWrapModeRRenderThread(
-  //       pointer, 
-  //       TSamplerWrapMode.values[mode.index], 
+  //       pointer,
+  //       TSamplerWrapMode.values[mode.index],
   //       cb);
   //   });
   // }
@@ -325,7 +332,7 @@ class FFITextureSampler extends TextureSampler {
   //       cb);
   //   });
   // }
-  
+
   @override
   Future dispose() async {
     await withVoidCallback((cb) {
