@@ -16,11 +16,14 @@ extern "C"
 	typedef struct TViewer TViewer;
 	typedef struct TSceneManager TSceneManager;
 	typedef struct TLightManager TLightManager;
+	typedef struct TRenderer TRenderer;
+	typedef struct TFence TFence;
 	typedef struct TRenderTarget TRenderTarget;
 	typedef struct TSwapChain TSwapChain;
 	typedef struct TView TView;
 	typedef struct TGizmo TGizmo;
 	typedef struct TScene TScene;
+	typedef struct TSkybox TSkybox;
 	typedef struct TTransformManager TTransformManager;
 	typedef struct TAnimationManager TAnimationManager;
 	typedef struct TCollisionComponentManager TCollisionComponentManager;
@@ -97,6 +100,12 @@ extern "C"
 	} ;
 	typedef struct TMaterialKey TMaterialKey; 
 
+	typedef struct { 
+		double x;
+		double y; 
+		double z;
+	} double3;
+
 
 	typedef struct { 
 		double x;
@@ -136,6 +145,21 @@ extern "C"
 		TRANSLATION,
 		ROTATION
 	};
+
+	enum TPrimitiveType {
+		// don't change the enums values (made to match GL)
+		PRIMITIVETYPE_POINTS         = 0,    //!< points
+		PRIMITIVETYPE_LINES          = 1,    //!< lines
+		PRIMITIVETYPE_LINE_STRIP     = 3,    //!< line strip
+		PRIMITIVETYPE_TRIANGLES      = 4,    //!< triangles
+		PRIMITIVETYPE_TRIANGLE_STRIP = 5     //!< triangle strip
+	};
+
+	extern uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT;
+	extern uint64_t TSWAP_CHAIN_CONFIG_READABLE;
+	extern uint64_t TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
+	extern uint64_t TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
+
 
 #ifdef __cplusplus
 }
