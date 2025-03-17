@@ -148,19 +148,56 @@ enum TextureFormat {
   SRGB_ALPHA_BPTC_UNORM, // BC7 sRGB
 }
 
-/// Defines texture usage flags that affect memory allocation
 enum TextureUsage {
-  /// Default texture usage, optimized for general use
-  DEFAULT,
+  TEXTURE_USAGE_NONE(0),
 
-  /// Optimized for textures that will be used as color attachments
-  COLOR_ATTACHMENT,
+  /// !< Texture can be used as a color attachment
+  TEXTURE_USAGE_COLOR_ATTACHMENT(1),
 
-  /// Optimized for textures that will be used as depth attachments
-  DEPTH_ATTACHMENT,
+  /// !< Texture can be used as a depth attachment
+  TEXTURE_USAGE_DEPTH_ATTACHMENT(2),
 
-  /// Optimized for textures that will be sampled from shaders
-  SAMPLEABLE
+  /// !< Texture can be used as a stencil attachment
+  TEXTURE_USAGE_STENCIL_ATTACHMENT(4),
+
+  /// !< Data can be uploaded into this texture (default)
+  TEXTURE_USAGE_UPLOADABLE(8),
+
+  /// !< Texture can be sampled (default)
+  TEXTURE_USAGE_SAMPLEABLE(16),
+
+  /// !< Texture can be used as a subpass input
+  TEXTURE_USAGE_SUBPASS_INPUT(32),
+
+  /// !< Texture can be used the source of a blit()
+  TEXTURE_USAGE_BLIT_SRC(64),
+
+  /// !< Texture can be used the destination of a blit()
+  TEXTURE_USAGE_BLIT_DST(128),
+
+  /// !< Texture can be used the destination of a blit()
+  TEXTURE_USAGE_PROTECTED(256),
+
+  /// !< Default texture usage
+  TEXTURE_USAGE_DEFAULT(24);
+
+  final int value;
+  const TextureUsage(this.value);
+
+  static TextureUsage fromValue(int value) => switch (value) {
+        0 => TEXTURE_USAGE_NONE,
+        1 => TEXTURE_USAGE_COLOR_ATTACHMENT,
+        2 => TEXTURE_USAGE_DEPTH_ATTACHMENT,
+        4 => TEXTURE_USAGE_STENCIL_ATTACHMENT,
+        8 => TEXTURE_USAGE_UPLOADABLE,
+        16 => TEXTURE_USAGE_SAMPLEABLE,
+        32 => TEXTURE_USAGE_SUBPASS_INPUT,
+        64 => TEXTURE_USAGE_BLIT_SRC,
+        128 => TEXTURE_USAGE_BLIT_DST,
+        256 => TEXTURE_USAGE_PROTECTED,
+        24 => TEXTURE_USAGE_DEFAULT,
+        _ => throw ArgumentError("Unknown value for TTextureUsage: $value"),
+      };
 }
 
 /// Defines texture wrapping modes for texture coordinates

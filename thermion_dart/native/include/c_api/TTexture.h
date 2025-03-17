@@ -192,6 +192,29 @@ enum TPixelDataType {
     PIXELDATATYPE_UINT_2_10_10_10_REV,  //!< unsigned normalized 10 bits RGB, 2 bits alpha
 };
 
+enum TTextureUsage {
+    TEXTURE_USAGE_NONE                = 0x0000,
+    TEXTURE_USAGE_COLOR_ATTACHMENT    = 0x0001,            //!< Texture can be used as a color attachment
+    TEXTURE_USAGE_DEPTH_ATTACHMENT    = 0x0002,            //!< Texture can be used as a depth attachment
+    TEXTURE_USAGE_STENCIL_ATTACHMENT  = 0x0004,            //!< Texture can be used as a stencil attachment
+    TEXTURE_USAGE_UPLOADABLE          = 0x0008,            //!< Data can be uploaded into this texture (default)
+    TEXTURE_USAGE_SAMPLEABLE          = 0x0010,            //!< Texture can be sampled (default)
+    TEXTURE_USAGE_SUBPASS_INPUT       = 0x0020,            //!< Texture can be used as a subpass input
+    TEXTURE_USAGE_BLIT_SRC            = 0x0040,            //!< Texture can be used the source of a blit()
+    TEXTURE_USAGE_BLIT_DST            = 0x0080,            //!< Texture can be used the destination of a blit()
+    TEXTURE_USAGE_PROTECTED           = 0x0100,            //!< Texture can be used the destination of a blit()
+    TEXTURE_USAGE_DEFAULT             = TEXTURE_USAGE_UPLOADABLE | TEXTURE_USAGE_SAMPLEABLE   //!< Default texture usage
+};
+
+EMSCRIPTEN_KEEPALIVE TTexture *Texture_build(TEngine *engine, 
+    uint32_t width, 
+    uint32_t height, 
+    uint32_t depth, 
+    uint8_t levels, 
+    uint16_t tUsage,
+    intptr_t import,
+    TTextureSamplerType sampler, 
+    TTextureFormat format);
 EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage, TPixelDataFormat bufferFormat, TPixelDataType pixelDataType);
 EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
     TEngine *tEngine,
@@ -224,6 +247,7 @@ EMSCRIPTEN_KEEPALIVE bool Texture_setImageWithDepth(
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getWidth(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getHeight(TTexture *tTexture, uint32_t level);
 EMSCRIPTEN_KEEPALIVE uint32_t Texture_getDepth(TTexture *tTexture, uint32_t level);
+EMSCRIPTEN_KEEPALIVE TTextureUsage Texture_getUsage(TTexture *tTexture, uint32_t level);
 
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name = "image");

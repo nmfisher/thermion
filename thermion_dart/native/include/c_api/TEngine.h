@@ -25,6 +25,7 @@ EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(TBackend backend);
 EMSCRIPTEN_KEEPALIVE TRenderer *Engine_createRenderer(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createSwapChain(TEngine *tEngine, void *window, uint64_t flags);
 EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createHeadlessSwapChain(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags);
+
 EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine* tEngine);
 EMSCRIPTEN_KEEPALIVE TView *Engine_createView(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId);
@@ -32,13 +33,7 @@ EMSCRIPTEN_KEEPALIVE TTransformManager *Engine_getTransformManager(TEngine *engi
 EMSCRIPTEN_KEEPALIVE TRenderableManager *Engine_getRenderableManager(TEngine *engine);
 EMSCRIPTEN_KEEPALIVE TLightManager *Engine_getLightManager(TEngine *engine);
 EMSCRIPTEN_KEEPALIVE TEntityManager *Engine_getEntityManager(TEngine *engine);
-EMSCRIPTEN_KEEPALIVE TTexture *Engine_buildTexture(TEngine *engine, 
-    uint32_t width, 
-    uint32_t height, 
-    uint32_t depth, 
-    uint8_t levels, 
-    TTextureSamplerType sampler, 
-    TTextureFormat format);
+
 EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTexture);
 
 EMSCRIPTEN_KEEPALIVE TFence *Engine_createFence(TEngine *tEngine);

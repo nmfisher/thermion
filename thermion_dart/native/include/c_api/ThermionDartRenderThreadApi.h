@@ -57,11 +57,13 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_createViewRenderThread(TEngine *tEngine, void (*onComplete)(TView *));
         EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_buildTextureRenderThread(TEngine *engine, 
+        EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(TEngine *engine, 
             uint32_t width, 
             uint32_t height, 
             uint32_t depth, 
             uint8_t levels, 
+            uint16_t tUsage,
+            intptr_t import,
             TTextureSamplerType sampler, 
             TTextureFormat format,
             void (*onComplete)(TTexture*)
@@ -228,6 +230,14 @@ namespace thermion
             void (*onComplete)(bool)
         );
         EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *));
+        EMSCRIPTEN_KEEPALIVE void RenderTarget_createRenderThread(
+            TEngine *tEngine,
+            uint32_t width,
+            uint32_t height,
+            TTexture *color,
+            TTexture *depth,
+            void (*onComplete)(TRenderTarget *)
+        );
 
         // TextureSampler methods
         EMSCRIPTEN_KEEPALIVE void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler*));
@@ -296,6 +306,19 @@ namespace thermion
             void (*callback)(bool));
         EMSCRIPTEN_KEEPALIVE void set_post_processing_render_thread(TViewer *viewer, bool enabled);
         EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)());
+
+        EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *));
+        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *));
+        EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
+            TGltfAssetLoader *tAssetLoader,
+            TGltfResourceLoader *tResourceLoader,
+            uint8_t *data,
+            size_t length,
+            uint8_t numInstances,
+            void (*callback)(TFilamentAsset *)
+        );
+        EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, void (*callback)());
+
 
 
 #ifdef __cplusplus

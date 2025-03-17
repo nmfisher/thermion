@@ -37,6 +37,9 @@ extern "C"
 	typedef struct TTexture TTexture;
 	typedef struct TTextureSampler TTextureSampler;
 	typedef struct TLinearImage TLinearImage;
+	typedef struct TGltfAssetLoader TGltfAssetLoader;
+	typedef struct TGltfResourceLoader TGltfResourceLoader;
+	typedef struct TFilamentAsset TFilamentAsset;
 
 	struct TMaterialKey {
 		bool doubleSided;
@@ -159,6 +162,13 @@ extern "C"
 	extern uint64_t TSWAP_CHAIN_CONFIG_READABLE;
 	extern uint64_t TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
 	extern uint64_t TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
+
+	extern uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT;
+	extern uint64_t TSWAP_CHAIN_CONFIG_READABLE;
+	extern uint64_t TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
+	extern uint64_t TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
+
+
 
 
 #ifdef __cplusplus

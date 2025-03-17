@@ -14,9 +14,11 @@ extern "C"
 #endif
 
 	EMSCRIPTEN_KEEPALIVE TViewer *Viewer_create(const void *const context, const void *const loader, void *const platform, const char *uberArchivePath);
+	EMSCRIPTEN_KEEPALIVE TRenderer *Viewer_getRenderer(TViewer *tViewer);
+
 	EMSCRIPTEN_KEEPALIVE void Viewer_destroy(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TSceneManager *Viewer_getSceneManager(TViewer *viewer);
-	EMSCRIPTEN_KEEPALIVE TRenderTarget* Viewer_createRenderTarget(TViewer *viewer, intptr_t texture, uint32_t width, uint32_t height);
+	EMSCRIPTEN_KEEPALIVE TRenderTarget* Viewer_createRenderTarget(TViewer *viewer, intptr_t colorTextureId, intptr_t depthTextureId, uint32_t width, uint32_t height);
 	EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTarget(TViewer *viewer, TRenderTarget* tRenderTarget);
 	EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createSwapChain(TViewer *viewer, const void *const window);
 	EMSCRIPTEN_KEEPALIVE TSwapChain *Viewer_createHeadlessSwapChain(TViewer *viewer, uint32_t width, uint32_t height);
@@ -28,6 +30,7 @@ extern "C"
 		TView *view,
 		TSwapChain *swapChain,
 		uint8_t *pixelBuffer,
+		bool useFence, 
 		void (*callback)(void));
 	EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTarget(
 		TViewer *viewer,
@@ -35,6 +38,7 @@ extern "C"
 		TSwapChain *swapChain,
 		TRenderTarget *renderTarget,
 		uint8_t *pixelBuffer,
+		bool useFence, 
 		void (*callback)(void));
 	EMSCRIPTEN_KEEPALIVE TView* Viewer_createView(TViewer *viewer);
 	EMSCRIPTEN_KEEPALIVE TView* Viewer_getViewAt(TViewer *viewer, int index);

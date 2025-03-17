@@ -6,13 +6,17 @@
 #include <filament/LightManager.h>
 
 #include "c_api/APIBoundaryTypes.h"
+
+#include "c_api/TAnimationManager.h"
 #include "c_api/TEngine.h"
-#include "c_api/TView.h"
+#include "c_api/TGltfAssetLoader.h"
 #include "c_api/TRenderer.h"
+#include "c_api/TRenderTarget.h"
+#include "c_api/TScene.h"
 #include "c_api/TSceneAsset.h"
 #include "c_api/TSceneManager.h"
 #include "c_api/TTexture.h"
-#include "c_api/TAnimationManager.h"
+#include "c_api/TView.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
 #include "FilamentViewer.hpp"
@@ -400,19 +404,21 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_buildTextureRenderThread(TEngine *engine,
-                                                            uint32_t width,
-                                                            uint32_t height,
-                                                            uint32_t depth,
-                                                            uint8_t levels,
-                                                            TTextureSamplerType sampler,
-                                                            TTextureFormat format,
-                                                            void (*onComplete)(TTexture *))
+  EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(TEngine *engine,
+                                                      uint32_t width,
+                                                      uint32_t height,
+                                                      uint32_t depth,
+                                                      uint8_t levels,
+                                                      uint16_t tUsage,
+                                                      intptr_t import,
+                                                      TTextureSamplerType sampler,
+                                                      TTextureFormat format,
+                                                      void (*onComplete)(TTexture *))
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
         {
-          auto texture = Engine_buildTexture(engine, width, height, depth, levels, sampler, format);
+          auto texture = Texture_build(engine, width, height, depth, levels, tUsage, import, sampler, format);
           onComplete(texture);
         });
     auto fut = _rl->add_task(lambda);
@@ -1171,7 +1177,29 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  // TextureSampler methods
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_createRenderThread(
+    TEngine *tEngine,
+    uint32_t width,
+    uint32_t height,
+    TTexture *tColor,
+    TTexture *tDepth,
+    void (*onComplete)(TRenderTarget *)) 
+  {
+    auto color = reinterpret_cast<filament::Texture *>(tColor);
+    auto depth = reinterpret_cast<filament::Texture *>(tDepth);
+
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto texture = RenderTarget_create(tEngine, width, height, tColor, tDepth);
+          onComplete(texture);
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  
+
+  
   EMSCRIPTEN_KEEPALIVE void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler *))
   {
     std::packaged_task<void()> lambda(
@@ -1323,6 +1351,53 @@ extern "C"
           TextureSampler_destroy(sampler);
           onComplete();
         });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *)) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider);
+        callback(loader);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+  
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *)) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto loader = GltfResourceLoader_create(tEngine);
+        callback(loader);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+  
+  EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
+      TGltfAssetLoader *tAssetLoader,
+      TGltfResourceLoader *tResourceLoader,
+      uint8_t *data,
+      size_t length,
+      uint8_t numInstances,
+      void (*callback)(TFilamentAsset *)
+  ) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto loader = GltfAssetLoader_load(tAssetLoader, tResourceLoader, data, length, numInstances);
+        callback(loader);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, void (*callback)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Scene_addFilamentAsset(tScene, tAsset);
+        callback();
+      });
     auto fut = _rl->add_task(lambda);
   }
 }
