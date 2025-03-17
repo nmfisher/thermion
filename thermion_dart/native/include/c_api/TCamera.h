@@ -16,7 +16,6 @@ enum Projection {
 // Camera methods
 EMSCRIPTEN_KEEPALIVE void set_camera_exposure(TCamera *camera, float aperture, float shutterSpeed, float sensitivity);
 EMSCRIPTEN_KEEPALIVE void set_camera_model_matrix(TCamera *camera, double4x4 matrix);
-EMSCRIPTEN_KEEPALIVE TCamera *get_camera(TViewer *viewer, EntityId entity);
 EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 get_camera_view_matrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 get_camera_projection_matrix(TCamera *const camera);
@@ -30,6 +29,7 @@ EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera* camera);
+EMSCRIPTEN_KEEPALIVE void Camera_lookAt(TCamera* camera, double3 eye, double3 focus, double3 up);
 
 EMSCRIPTEN_KEEPALIVE double get_camera_near(TCamera *camera);
 EMSCRIPTEN_KEEPALIVE double get_camera_culling_far(TCamera *camera);

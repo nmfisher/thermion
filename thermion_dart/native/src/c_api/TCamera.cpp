@@ -20,6 +20,15 @@ namespace thermion
         using namespace filament;
 
 #endif
+                
+        EMSCRIPTEN_KEEPALIVE void Camera_lookAt(TCamera *tCamera, double3 eye, double3 focus, double3 up) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            camera->lookAt(
+                filament::math::float3 { static_cast<float>(eye.x), static_cast<float>(eye.y), static_cast<float>(eye.z) },
+                filament::math::float3 { static_cast<float>(focus.x), static_cast<float>(focus.y), static_cast<float>(focus.z) },
+                filament::math::float3 { static_cast<float>(up.x), static_cast<float>(up.y), static_cast<float>(up.z) }
+            );
+        }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera *tCamera, double4x4 projectionMatrix, double near, double far)
         {
