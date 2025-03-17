@@ -1,9 +1,18 @@
 @Timeout(const Duration(seconds: 600))
+import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:image/image.dart';
 import 'package:test/test.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_camera.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
@@ -14,40 +23,54 @@ void main() async {
   group("image", () {
     test('create 2D texture & set from decoded image', () async {
       await testHelper.withViewer((viewer) async {
-        var imageData =
-            File("${testHelper.testDir}/assets/cube_texture_512x512.png")
-                .readAsBytesSync();
+        var imageData = File(
+          "${testHelper.testDir}/assets/cube_texture_512x512.png",
+        ).readAsBytesSync();
         final image = await viewer.decodeImage(imageData);
         expect(await image.getChannels(), 4);
         expect(await image.getWidth(), 512);
         expect(await image.getHeight(), 512);
 
         final texture = await viewer.createTexture(
-            await image.getWidth(), await image.getHeight(),
-            textureFormat: TextureFormat.RGBA32F);
+          await image.getWidth(),
+          await image.getHeight(),
+          textureFormat: TextureFormat.RGBA32F,
+        );
         await texture.setLinearImage(
-            image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+          image,
+          PixelDataFormat.RGBA,
+          PixelDataType.FLOAT,
+        );
         await texture.dispose();
       }, bg: kRed);
     });
 
     test('create 2D texture and set image from raw buffer', () async {
       await testHelper.withViewer((viewer) async {
-        var imageData =
-            File("${testHelper.testDir}/assets/cube_texture_512x512.png")
-                .readAsBytesSync();
+        var imageData = File(
+          "${testHelper.testDir}/assets/cube_texture_512x512.png",
+        ).readAsBytesSync();
         final image = await viewer.decodeImage(imageData);
         expect(await image.getChannels(), 4);
         expect(await image.getWidth(), 512);
         expect(await image.getHeight(), 512);
 
         final texture = await viewer.createTexture(
-            await image.getWidth(), await image.getHeight(),
-            textureFormat: TextureFormat.RGBA32F);
+          await image.getWidth(),
+          await image.getHeight(),
+          textureFormat: TextureFormat.RGBA32F,
+        );
         var data = await image.getData();
 
-        await texture.setImage(0, data.buffer.asUint8List(data.offsetInBytes),
-            512, 512, 4, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+        await texture.setImage(
+          0,
+          data.buffer.asUint8List(data.offsetInBytes),
+          512,
+          512,
+          4,
+          PixelDataFormat.RGBA,
+          PixelDataType.FLOAT,
+        );
         await texture.dispose();
       }, bg: kRed);
     });
@@ -58,15 +81,29 @@ void main() async {
         final height = 128;
         final channels = 4;
         final depth = 5;
-        final texture = await viewer.createTexture(width, height,
-            depth: depth,
-            textureSamplerType: TextureSamplerType.SAMPLER_3D,
-            textureFormat: TextureFormat.RGBA32F);
+        final texture = await viewer.createTexture(
+          width,
+          height,
+          depth: depth,
+          textureSamplerType: TextureSamplerType.SAMPLER_3D,
+          textureFormat: TextureFormat.RGBA32F,
+        );
 
         for (int i = 0; i < depth; i++) {
           final buffer = Uint8List(width * height * channels * sizeOf<Float>());
-          await texture.setImage3D(0, 0, 0, i, width, height, channels, 1,
-              buffer, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+          await texture.setImage3D(
+            0,
+            0,
+            0,
+            i,
+            width,
+            height,
+            channels,
+            1,
+            buffer,
+            PixelDataFormat.RGBA,
+            PixelDataType.FLOAT,
+          );
         }
         await texture.dispose();
       }, bg: kRed);
@@ -74,35 +111,61 @@ void main() async {
 
     test('apply 3D texture material ', () async {
       await testHelper.withViewer((viewer) async {
-        final material = await viewer.createMaterial(File(
-                "/Users/nickfisher/Documents/thermion/materials/texture_array.filamat")
-            .readAsBytesSync());
+        final material = await viewer.createMaterial(
+          File(
+            "/Users/nickfisher/Documents/thermion/materials/texture_array.filamat",
+          ).readAsBytesSync(),
+        );
         final materialInstance = await material.createInstance();
         final sampler = await viewer.createTextureSampler();
-        final cube = await viewer.createGeometry(GeometryHelper.cube(),
-            materialInstances: [materialInstance]);
+        final cube = await viewer.createGeometry(
+          GeometryHelper.cube(),
+          materialInstances: [materialInstance],
+        );
 
         final width = 1;
         final height = 1;
         final channels = 4;
         final numTextures = 2;
-        final texture = await viewer.createTexture(width, height,
-            depth: numTextures,
-            textureSamplerType: TextureSamplerType.SAMPLER_3D,
-            textureFormat: TextureFormat.RGBA32F);
+        final texture = await viewer.createTexture(
+          width,
+          height,
+          depth: numTextures,
+          textureSamplerType: TextureSamplerType.SAMPLER_3D,
+          textureFormat: TextureFormat.RGBA32F,
+        );
 
         for (int i = 0; i < numTextures; i++) {
-          var pixelBuffer = Float32List.fromList(
-              [i == 0 ? 1.0 : 0.0, i == 1 ? 1.0 : 0.0, 0.0, 1.0]);
-          var byteBuffer =
-              pixelBuffer.buffer.asUint8List(pixelBuffer.offsetInBytes);
+          var pixelBuffer = Float32List.fromList([
+            i == 0 ? 1.0 : 0.0,
+            i == 1 ? 1.0 : 0.0,
+            0.0,
+            1.0,
+          ]);
+          var byteBuffer = pixelBuffer.buffer.asUint8List(
+            pixelBuffer.offsetInBytes,
+          );
 
-          await texture.setImage3D(0, 0, 0, i, width, height, channels, 1,
-              byteBuffer, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+          await texture.setImage3D(
+            0,
+            0,
+            0,
+            i,
+            width,
+            height,
+            channels,
+            1,
+            byteBuffer,
+            PixelDataFormat.RGBA,
+            PixelDataType.FLOAT,
+          );
         }
 
         await materialInstance.setParameterTexture(
-            "textures", texture, sampler);
+          "textures",
+          texture,
+          sampler,
+        );
         await materialInstance.setParameterInt("activeTexture", 0);
 
         await testHelper.capture(viewer, "3d_texture_0");
@@ -129,38 +192,70 @@ void main() async {
 
   group('projection', () {
     Future withProjectionMaterial(
-        ThermionViewer viewer,
-        Future Function(TextureSampler sampler, MaterialInstance mi,
-                RenderTarget rt, int width, int height)
-            fn) async {
+      ThermionViewer viewer,
+      Future Function(
+        TextureSampler sampler,
+        MaterialInstance mi,
+        RenderTarget rt,
+        int width,
+        int height,
+      ) fn,
+    ) async {
       // setup render target
       final view = await viewer.getViewAt(0);
       final vp = await view.getViewport();
-      ;
+
       final rtTextureHandle = await testHelper.createTexture(512, 512);
       final (viewportWidth, viewportHeight) = (vp.width, vp.height);
 
       final rt = await viewer.createRenderTarget(
-          viewportWidth, viewportHeight, rtTextureHandle.metalTextureAddress);
+        viewportWidth,
+        viewportHeight,
+        colorTextureHandle: rtTextureHandle.metalTextureAddress,
+      );
 
       await view.setRenderTarget(rt);
 
       // setup base material + geometry
       final sampler = await viewer.createTextureSampler();
 
-      var projectionMaterial = await viewer.createMaterial(File(
-              "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat")
-          .readAsBytesSync());
+      var projectionMaterial = await viewer.createMaterial(
+        File(
+          "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat",
+        ).readAsBytesSync(),
+      );
       expect(await projectionMaterial.hasParameter("flipUVs"), true);
       var projectionMaterialInstance =
           await projectionMaterial.createInstance();
       await projectionMaterialInstance.setParameterBool("flipUVs", true);
+      final colorTexture = await rt.getColorTexture();
+      final depthTexture = await rt.getDepthTexture();
+      final w = await depthTexture.getWidth();
+      final h = await depthTexture.getHeight();
+      final d = await depthTexture.getDepth();
 
+      final depthSampler = await viewer.createTextureSampler(
+        compareMode: TextureCompareMode.COMPARE_TO_TEXTURE,
+      );
       await projectionMaterialInstance.setParameterTexture(
-          "color", await rt.getColorTexture(), sampler);
+        "color",
+        colorTexture,
+        sampler,
+      );
+      await projectionMaterialInstance.setParameterTexture(
+        "depth",
+        depthTexture,
+        depthSampler,
+      );
+      await projectionMaterialInstance.setDepthFunc(SamplerCompareFunction.A);
 
-      await fn(sampler, projectionMaterialInstance, rt, viewportWidth,
-          viewportHeight);
+      await fn(
+        sampler,
+        projectionMaterialInstance,
+        rt,
+        viewportWidth,
+        viewportHeight,
+      );
 
       // cleanup
       await sampler.dispose();
@@ -169,43 +264,357 @@ void main() async {
     }
 
     Future withCube(
-        ThermionViewer viewer,
-        Future Function(ThermionAsset asset, MaterialInstance mi,
-                Future Function() resetMaterial)
-            fn) async {
+      ThermionViewer viewer,
+      Future Function(
+        ThermionAsset asset,
+        MaterialInstance mi,
+        Future Function() resetMaterial,
+      ) fn,
+    ) async {
       // var material = await viewer.createUbershaderMaterialInstance(unlit: true);
       var material = await viewer.createUnlitMaterialInstance();
-      final cube = await viewer
-          .createGeometry(GeometryHelper.cube(), materialInstances: [material]);
+      final cube = await viewer.createGeometry(
+        GeometryHelper.cube(),
+        materialInstances: [material],
+      );
       var sampler = await viewer.createTextureSampler();
-      var inputTextureData =
-          File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
-              .readAsBytesSync();
+      var inputTextureData = File(
+        "${testHelper.testDir}/assets/cube_texture2_512x512.png",
+      ).readAsBytesSync();
       var inputImage = await viewer.decodeImage(inputTextureData);
       var inputTexture = await viewer.createTexture(
-          await inputImage.getWidth(), await inputImage.getHeight(),
-          textureFormat: TextureFormat.RGBA32F);
+        await inputImage.getWidth(),
+        await inputImage.getHeight(),
+        textureFormat: TextureFormat.RGBA32F,
+      );
       await inputTexture.setLinearImage(
-          inputImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+        inputImage,
+        PixelDataFormat.RGBA,
+        PixelDataType.FLOAT,
+      );
       final resetMaterial = () async {
+        await material.setCullingMode(CullingMode.BACK);
         await material.setParameterInt("baseColorIndex", 0);
         await material.setParameterTexture(
-            "baseColorMap", inputTexture, sampler);
+          "baseColorMap",
+          inputTexture,
+          sampler,
+        );
         await material.setParameterFloat4(
-            "baseColorFactor", 1.0, 1.0, 1.0, 1.0);
+          "baseColorFactor",
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+        );
       };
       await resetMaterial();
 
       await fn(cube, material, resetMaterial);
     }
 
+    test('depth visualization', () async {
+      RenderLoop_create();
+      final engine = await withPointerCallback<TEngine>(
+          (cb) => Engine_createRenderThread(TBackend.BACKEND_METAL.index, cb));
+      final renderer = await withPointerCallback<TRenderer>(
+          (cb) => Engine_createRendererRenderThread(engine, cb));
+      final swapchain = await withPointerCallback<TSwapChain>((cb) =>
+          Engine_createHeadlessSwapChainRenderThread(
+              engine,
+              500,
+              500,
+              TSWAP_CHAIN_CONFIG_TRANSPARENT | TSWAP_CHAIN_CONFIG_READABLE,
+              cb));
+      final camera = await withPointerCallback<TCamera>(
+          (cb) => Engine_createCameraRenderThread(engine, cb));
+      final view = await withPointerCallback<TView>(
+          (cb) => Engine_createViewRenderThread(engine, cb));
+      final scene = Engine_createScene(engine);
+      await withVoidCallback((cb) {
+        Renderer_setClearOptionsRenderThread(
+            renderer, 1.0, 0.0, 1.0, 1.0, 0, true, true, cb);
+      });
+      View_setFrustumCullingEnabled(view, false);
+      View_setScene(view, scene);
+      View_setCamera(view, camera);
+      View_setViewport(view, 500, 500);
+      final eye = Struct.create<double3>()
+        ..x = 0.0
+        ..y = 0.0
+        ..z = 5.0;
+      Camera_lookAt(
+          camera,
+          eye,
+          Struct.create<double3>()
+            ..x = 0.0
+            ..y = 0.0
+            ..z = 0.0,
+          Struct.create<double3>()
+            ..x = 0.0
+            ..y = 1.0
+            ..z = 0.0);
+      View_setBloomRenderThread(view, false, 0.0);
+
+      Camera_setLensProjection(camera, 0.05, 100000, 1.0, kFocalLength);
+      View_setPostProcessing(view, false);
+
+      final skyboxData =
+          File("${testHelper.testDir}/assets/default_env_skybox.ktx")
+              .readAsBytesSync();
+
+      final skybox = await withPointerCallback<TSkybox>((cb) =>
+          Engine_buildSkyboxRenderThread(
+              engine, skyboxData.address, skyboxData.length, cb, nullptr));
+
+      Scene_setSkybox(scene, skybox);
+
+      final cubeData = GeometryHelper.cube();
+      final cube = await withPointerCallback<TSceneAsset>((cb) =>
+          SceneAsset_createGeometryRenderThread(
+              engine,
+              cubeData.vertices.address,
+              cubeData.vertices.length,
+              cubeData.normals.address,
+              cubeData.normals.length,
+              cubeData.uvs.address,
+              cubeData.uvs.length,
+              cubeData.indices.address,
+              cubeData.indices.length,
+              TPrimitiveType.PRIMITIVETYPE_POINTS,
+              nullptr,
+              0,
+              cb));
+      Scene_addEntity(scene, SceneAsset_getEntity(cube));
+
+      await withVoidCallback((cb) {
+        Engine_flushAndWaitRenderThead(engine, cb);
+      });
+
+      await withBoolCallback((cb) {
+        Renderer_beginFrameRenderThread(
+          renderer,
+          swapchain,
+          0,
+          cb,
+        );
+      });
+
+      // for (int i = 0; i < 10; i++) {
+        await withVoidCallback((cb) {
+          Renderer_renderRenderThread(renderer, view, cb);
+        });
+      // }
+
+      var view1Out = Uint8List(500 * 500 * 4);
+
+      await withVoidCallback((cb) {
+        Renderer_readPixelsRenderThread(
+          renderer,
+          view,
+          nullptr,
+          TPixelDataFormat.PIXELDATAFORMAT_RGBA,
+          TPixelDataType.PIXELDATATYPE_UBYTE,
+          view1Out.address,
+          cb,
+        );
+      });
+
+      await withVoidCallback((cb) {
+        Engine_flushAndWaitRenderThead(engine!, cb);
+      });
+
+      await savePixelBufferToPng(
+        view1Out,
+        500,
+        500,
+        "/tmp/view1.png",
+      );
+
+      RenderLoop_destroy();
+
+      //   await camera.lookAt(Vector3(100, 1500, 1500));
+
+      //   // first view just renders a normal unlit cube, but into a render target
+      //   final vp = await (await viewer.getViewAt(0)).getViewport();
+      //   FFIView view = await viewer.createView()
+      //       as FFIView; //  await viewer.getViewAt(0) as FFIView;
+      //   await view.setViewport(vp.width, vp.height);
+      //   await view.setCamera(camera);
+      //   await view.setFrustumCullingEnabled(false);
+
+      //   var scene1 = Engine_createScene(engine);
+      //   View_setScene(view.view, scene1);
+      //   Scene_setSkybox(scene1, skybox);
+      //   await view.setPostProcessing(false);
+
+      //   await viewer.setClearOptions(Vector4(0, 0, 1, 0), 1, false, false);
+      //   final colorTextureHandle = await testHelper.createTexture(
+      //     vp.width,
+      //     vp.height,
+      //   );
+
+      //   final rt = await viewer.createRenderTarget(
+      //     vp.width,
+      //     vp.height,
+      //     // colorTextureHandle.metalTextureAddress,
+      //   ) as FFIRenderTarget;
+      //   await view.setRenderTarget(rt);
+
+      //   final unlit = await viewer.createUnlitMaterialInstance();
+      //   await unlit.setParameterInt("baseColorIndex", -1);
+      //   await unlit.setParameterFloat4("baseColorFactor", 1.0, 0, 0, 1);
+      //   await unlit.setDepthWriteEnabled(true);
+
+      //   final cube = await viewer
+      //       .createGeometry(GeometryHelper.cube(), materialInstances: [unlit]);
+      //   Scene_addEntity(scene1, cube.entity);
+
+      //   final cube2 = await viewer
+      //       .createGeometry(GeometryHelper.cube(), materialInstances: [unlit]);
+      //   Scene_addEntity(scene1, cube2.entity);
+
+      //   await viewer.setTransform(
+      //     cube.entity,
+      //     Matrix4.compose(
+      //       Vector3.zero(),
+      //       Quaternion.identity(),
+      //       Vector3(950, 950, 500),
+      //     ),
+      //   );
+      //   await viewer.setTransform(
+      //     cube2.entity,
+      //     Matrix4.compose(
+      //       Vector3(-500, -500, -2000),
+      //       Quaternion.identity(),
+      //       Vector3(500, 500, 500),
+      //     ),
+      //   );
+
+      //   final mirrorMaterial = await viewer.createMaterial(
+      //     File(
+      //       "/Users/nickfisher/Documents/thermion/materials/mirror.filamat",
+      //     ).readAsBytesSync(),
+      //   );
+      //   final mirrorMi = await mirrorMaterial.createInstance();
+      //   await mirrorMi.setDepthWriteEnabled(false);
+      //   final plane = await viewer.createGeometry(GeometryHelper.sphere(),
+      //       materialInstances: [mirrorMi]);
+      //   await viewer.setTransform(
+      //       plane.entity,
+      //       Matrix4.compose(
+      //           Vector3.zero(),
+      //           Quaternion.axisAngle(Vector3(1, 0, 0), pi / 2),
+      //           Vector3.all(750)));
+
+      //   final renderer = bindings.renderer;
+      //   final _engine = engine;
+
+      //   // final sampler = await viewer.createTextureSampler(
+      //   // compareMode: TextureCompareMode.COMPARE_TO_TEXTURE,
+      //   // );
+
+      //   // second view
+      //   FFIView view2 = await viewer.createView() as FFIView;
+      //   var scene2 = Engine_createScene(engine);
+      //   Scene_addEntity(scene2, plane.entity);
+      //   View_setScene(view2.view, scene2);
+      //   await view2.setPostProcessing(false);
+      //   await view2.setViewport(vp.width, vp.height);
+      //   await view2.setCamera(camera);
+      //   await view2.setFrustumCullingEnabled(false);
+
+      //   final image = await viewer.decodeImage(
+      //       File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
+      //           .readAsBytesSync());
+      //   final texture = await viewer.createTexture(
+      //       await image.getWidth(), await image.getHeight(),
+      //       textureFormat: TextureFormat.RGBA32F);
+      //   await texture.setLinearImage(
+      //       image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+
+      //   await mirrorMi.setParameterTexture(
+      //       "albedo",
+      //       // texture as FFITexture,
+      //       (await rt.getDepthTexture())! as FFITexture,
+      //       (await viewer.createTextureSampler(
+      //               compareMode: TextureCompareMode.COMPARE_TO_TEXTURE,
+      //               compareFunc: TextureCompareFunc.LESS_EQUAL)
+      //           as FFITextureSampler));
+
+      //   var fence = await withPointerCallback<TFence>((cb) {
+      //     Engine_createFenceRenderThread(engine!, cb);
+      //   });
+
+      //   var view2Out = Uint8List(vp.width * vp.height * 4);
+
+      //   await withVoidCallback((cb) {
+      //     Renderer_renderRenderThread(bindings.renderer, view2.view, cb);
+      //   });
+
+      //   await withVoidCallback((cb) {
+      //     Renderer_readPixelsRenderThread(
+      //       renderer,
+      //       view2.view,
+      //       nullptr,
+      //       TPixelDataFormat.PIXELDATAFORMAT_RGBA.index,
+      //       TPixelDataType.PIXELDATATYPE_UBYTE.index,
+      //       view2Out.address,
+      //       cb,
+      //     );
+      //   });
+
+      //   await withVoidCallback((cb) {
+      //     Renderer_endFrameRenderThread(renderer, cb);
+      //   });
+
+      //   await withVoidCallback((cb) {
+      //     Engine_flushAndWaitRenderThead(_engine!, cb);
+      //   });
+
+      //   await withVoidCallback((cb) {
+      //     Engine_destroyFenceRenderThread(_engine, fence, cb);
+      //   });
+
+      //   await savePixelBufferToPng(
+      //     view2Out,
+      //     vp.width,
+      //     vp.height,
+      //     "/tmp/view2.png",
+      //   );
+      //   while (true) {
+      //     await Future.delayed(Duration(seconds: 1));
+      //   }
+      //   // await testHelper.capture(viewer, "depth_vis", renderTarget: rt);
+      //   // depthTextureHandle.fillColor();
+      //   // var data = depthTextureHandle.getTextureBytes()!;
+      //   // var pixels = data.bytes.cast<Float>().asTypedList(data.length ~/ 4);
+      //   // expect(pixels.where((a) => a != 0).isNotEmpty, true);
+      //   // print(pixels);
+      // });
+    });
+
     test('project texture & UV unwrap', () async {
       await testHelper.withViewer((viewer) async {
         final camera = await viewer.getMainCamera();
-        await withProjectionMaterial(viewer,
-            (sampler, projectionMaterialInstance, rt, width, height) async {
+        final depthMaterial = await viewer.createMaterial(
+          File(
+            "/Users/nickfisher/Documents/thermion/materials/depthVisualizer.filamat",
+          ).readAsBytesSync(),
+        );
+        final depthMaterialInstance = await depthMaterial.createInstance();
+        await viewer.setPostProcessing(false);
+        await withProjectionMaterial(viewer, (
+          sampler,
+          projectionMaterialInstance,
+          rt,
+          width,
+          height,
+        ) async {
           await withCube(viewer, (cube, ubershader, resetMaterial) async {
             var objects = {"cube": cube};
+
+            await viewer.setPostProcessing(false);
 
             for (final entry in objects.entries) {
               final object = entry.value;
@@ -215,33 +624,100 @@ void main() async {
 
               var divisions = 8;
               for (int i = 0; i < divisions; i++) {
-                await camera.lookAt(Vector3(sin(i / divisions * pi) * 5, 0,
-                    cos(i / divisions * pi) * 5));
+                await camera.lookAt(
+                  Vector3(
+                    sin(i / divisions * pi) * 3,
+                    0,
+                    cos(i / divisions * pi) * 3,
+                  ),
+                );
 
-                await testHelper.capture(viewer, "color_${key}_$i",
-                    renderTarget: rt);
+                await object.setMaterialInstanceAt(depthMaterialInstance);
+
+                // final depthBuffer = await testHelper
+                //     .capture(viewer, "depth_${key}_$i", renderTarget: rt);
+                // final floatDepthBuffer = Float32List.fromList(
+                //     depthBuffer.map((p) => p.toDouble() / 255.0).toList());
+                // final depthTexture = await viewer.createTexture(width, height);
+                // await depthTexture.setImage(
+                //     0,
+                //     floatDepthBuffer.buffer
+                //         .asUint8List(floatDepthBuffer.offsetInBytes),
+                //     width,
+                //     height,
+                //     4,
+                //     PixelDataFormat.RGBA,
+                //     PixelDataType.FLOAT);
+                // var depthSampler = await viewer.createTextureSampler(
+                //     minFilter: TextureMinFilter.NEAREST,
+                //     magFilter: TextureMagFilter.NEAREST);
+                // await projectionMaterialInstance.setParameterTexture(
+                //     "depth", depthTexture, depthSampler);
+
+                await object.setMaterialInstanceAt(ubershader);
+                await testHelper.capture(
+                  viewer,
+                  "color_${key}_$i",
+                  renderTarget: rt,
+                );
+
+                // final view = await viewer.getViewAt(0);
+                // final vp = await view.getViewport();
+                // final swapchain =
+                //     await viewer.createHeadlessSwapChain(512, 512);
+
+                // final rtTextureHandle2 =
+                //     await testHelper.createTexture(512, 512);
+                // final (viewportWidth, viewportHeight) = (vp.width, vp.height);
+
+                // final rt2 = await viewer.createRenderTarget(viewportWidth,
+                //     viewportHeight, rtTextureHandle2.metalTextureAddress);
+
+                // await view.setRenderTarget(rt2);
 
                 await object.setMaterialInstanceAt(projectionMaterialInstance);
 
-                var projectionOutput = await testHelper
-                    .capture(viewer, "uv_capture_${key}_$i", renderTarget: rt);
+                var projectionOutput = await testHelper.capture(
+                  viewer,
+                  "uv_capture_${key}_$i",
+                  renderTarget: rt,
+                  // renderTarget: rt2,
+                  // swapChain: swapchain
+                );
+
+                // await view.setRenderTarget(rt);
 
                 var floatPixelBuffer = Float32List.fromList(
-                    projectionOutput.map((p) => p.toDouble() / 255.0).toList());
+                  projectionOutput.first
+                      .map((p) => p.toDouble() / 255.0)
+                      .toList(),
+                );
 
                 final projectedImage = await viewer.createImage(512, 512, 4);
                 final data = await projectedImage.getData();
                 data.setRange(0, data.length, floatPixelBuffer);
-                final projectedTexture = await viewer.createTexture(512, 512,
-                    textureFormat: TextureFormat.RGBA32F);
+                final projectedTexture = await viewer.createTexture(
+                  512,
+                  512,
+                  textureFormat: TextureFormat.RGBA32F,
+                );
                 await projectedTexture.setLinearImage(
-                    projectedImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+                  projectedImage,
+                  PixelDataFormat.RGBA,
+                  PixelDataType.FLOAT,
+                );
 
                 await ubershader.setParameterTexture(
-                    "baseColorMap", projectedTexture, sampler);
+                  "baseColorMap",
+                  projectedTexture,
+                  sampler,
+                );
                 await object.setMaterialInstanceAt(ubershader);
-                await testHelper.capture(viewer, "retextured_${key}_$i",
-                    renderTarget: rt);
+                await testHelper.capture(
+                  viewer,
+                  "retextured_${key}_$i",
+                  renderTarget: rt,
+                );
                 await resetMaterial();
               }
               await viewer.destroyAsset(object);
@@ -252,29 +728,40 @@ void main() async {
     });
 
     Future usingVDTM(
-        ThermionViewer viewer,
-        List<Vector3> cameraPositions,
-        int width,
-        int height,
-        int channels,
-        Future Function(Texture texture, MaterialInstance mi) fn) async {
+      ThermionViewer viewer,
+      List<Vector3> cameraPositions,
+      int width,
+      int height,
+      int channels,
+      Future Function(Texture texture, MaterialInstance mi) fn,
+    ) async {
       final sampler = await viewer.createTextureSampler();
 
-      var texture = await viewer.createTexture(width, height,
-          textureSamplerType: TextureSamplerType.SAMPLER_3D,
-          depth: cameraPositions.length,
-          textureFormat: TextureFormat.RGBA32F);
+      var texture = await viewer.createTexture(
+        width,
+        height,
+        textureSamplerType: TextureSamplerType.SAMPLER_3D,
+        depth: cameraPositions.length,
+        textureFormat: TextureFormat.RGBA32F,
+      );
 
       final vdtm = await viewer.createMaterial(
-          File("/Users/nickfisher/Documents/thermion/materials/vdtm.filamat")
-              .readAsBytesSync());
+        File(
+          "/Users/nickfisher/Documents/thermion/materials/vdtm.filamat",
+        ).readAsBytesSync(),
+      );
 
       final materialInstance = await vdtm.createInstance();
 
       await materialInstance.setParameterFloat3Array(
-          "cameraPositions", cameraPositions);
+        "cameraPositions",
+        cameraPositions,
+      );
       await materialInstance.setParameterTexture(
-          "perspectives", texture, sampler);
+        "perspectives",
+        texture,
+        sampler,
+      );
       await fn(texture, materialInstance);
 
       await materialInstance.dispose();
@@ -288,37 +775,62 @@ void main() async {
         final cameraPositions = [
           Vector3(0, 0, 5),
           Vector3(5, 0, 0),
-          Vector3(0, 0, -5)
+          Vector3(0, 0, -5),
         ];
         final camera = await viewer.getMainCamera();
 
-        final (numCameraPositions, width, height, channels) =
-            (cameraPositions.length, 1, 1, 4);
+        final (numCameraPositions, width, height, channels) = (
+          cameraPositions.length,
+          1,
+          1,
+          4,
+        );
 
-        await usingVDTM(viewer, cameraPositions, width, height, channels,
-            (texture, materialInstance) async {
+        await usingVDTM(viewer, cameraPositions, width, height, channels, (
+          texture,
+          materialInstance,
+        ) async {
           for (int i = 0; i < numCameraPositions; i++) {
             final pixelBuffer = Float32List.fromList([
               1 - (i / numCameraPositions),
               i / numCameraPositions,
               0.0,
-              1.0
+              1.0,
             ]);
-            var byteBuffer =
-                pixelBuffer.buffer.asUint8List(pixelBuffer.offsetInBytes);
-            await texture.setImage3D(0, 0, 0, i, width, height, channels, 1,
-                byteBuffer, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+            var byteBuffer = pixelBuffer.buffer.asUint8List(
+              pixelBuffer.offsetInBytes,
+            );
+            await texture.setImage3D(
+              0,
+              0,
+              0,
+              i,
+              width,
+              height,
+              channels,
+              1,
+              byteBuffer,
+              PixelDataFormat.RGBA,
+              PixelDataType.FLOAT,
+            );
           }
 
-          final cube = await viewer.createGeometry(GeometryHelper.cube(),
-              materialInstances: [materialInstance]);
+          final cube = await viewer.createGeometry(
+            GeometryHelper.cube(),
+            materialInstances: [materialInstance],
+          );
 
           for (int i = 0; i < 8; i++) {
-            final cameraPosition =
-                Vector3(sin(pi * (i / 7)) * 5, 0, cos(pi * (i / 7)) * 5);
+            final cameraPosition = Vector3(
+              sin(pi * (i / 7)) * 5,
+              0,
+              cos(pi * (i / 7)) * 5,
+            );
             await camera.lookAt(cameraPosition);
             await testHelper.capture(
-                viewer, "view_dependent_texture_mapping_$i");
+              viewer,
+              "view_dependent_texture_mapping_$i",
+            );
           }
         });
       }, viewportDimensions: (width: 512, height: 512));
@@ -329,16 +841,18 @@ void main() async {
         final cameraPositions = [
           Vector3(0, 0, 5),
           Vector3(5, 0, 0),
-          Vector3(0, 0, -5)
+          Vector3(0, 0, -5),
         ];
 
         final camera = await viewer.getMainCamera();
 
-        await withProjectionMaterial(viewer, (TextureSampler projectionSampler,
-            MaterialInstance projectionMaterialInstance,
-            RenderTarget rt,
-            int width,
-            int height) async {
+        await withProjectionMaterial(viewer, (
+          TextureSampler projectionSampler,
+          MaterialInstance projectionMaterialInstance,
+          RenderTarget rt,
+          int width,
+          int height,
+        ) async {
           await withCube(viewer, (cube, ubershader, resetMaterial) async {
             var pixelBuffers = <Float32List>[];
             for (int i = 0; i < cameraPositions.length; i++) {
@@ -348,55 +862,80 @@ void main() async {
 
               await cube.setMaterialInstanceAt(projectionMaterialInstance);
 
-              var projectionOutput = await testHelper
-                  .capture(viewer, "vdtm_unwrapped_$i", renderTarget: rt);
+              var projectionOutput = await testHelper.capture(
+                viewer,
+                "vdtm_unwrapped_$i",
+                renderTarget: rt,
+              );
 
               var floatPixelBuffer = Float32List.fromList(
-                  projectionOutput.map((p) => p.toDouble() / 255.0).toList());
+                projectionOutput.first
+                    .map((p) => p.toDouble() / 255.0)
+                    .toList(),
+              );
               pixelBuffers.add(floatPixelBuffer);
               final projectedImage = await viewer.createImage(width, height, 4);
               final data = await projectedImage.getData();
               data.setRange(0, data.length, floatPixelBuffer);
-              final projectedTexture = await viewer.createTexture(width, height,
-                  textureFormat: TextureFormat.RGBA32F);
+              final projectedTexture = await viewer.createTexture(
+                width,
+                height,
+                textureFormat: TextureFormat.RGBA32F,
+              );
               await projectedTexture.setLinearImage(
-                  projectedImage, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+                projectedImage,
+                PixelDataFormat.RGBA,
+                PixelDataType.FLOAT,
+              );
 
               await ubershader.setParameterTexture(
-                  "baseColorMap", projectedTexture, projectionSampler);
+                "baseColorMap",
+                projectedTexture,
+                projectionSampler,
+              );
               await cube.setMaterialInstanceAt(ubershader);
 
-              await testHelper.capture(viewer, "vdtm_projected_$i",
-                  renderTarget: rt);
+              await testHelper.capture(
+                viewer,
+                "vdtm_projected_$i",
+                renderTarget: rt,
+              );
 
               await resetMaterial();
             }
 
-            await usingVDTM(viewer, cameraPositions, width, height, 4,
-                (vdtmTexture, vdtmMaterial) async {
+            await usingVDTM(viewer, cameraPositions, width, height, 4, (
+              vdtmTexture,
+              vdtmMaterial,
+            ) async {
               await cube.setMaterialInstanceAt(vdtmMaterial);
               for (int i = 0; i < cameraPositions.length; i++) {
                 await vdtmTexture.setImage3D(
-                    0,
-                    0,
-                    0,
-                    i,
-                    width,
-                    height,
-                    4,
-                    1,
-                    pixelBuffers[i]
-                        .buffer
-                        .asUint8List(pixelBuffers[i].offsetInBytes),
-                    PixelDataFormat.RGBA,
-                    PixelDataType.FLOAT);
+                  0,
+                  0,
+                  0,
+                  i,
+                  width,
+                  height,
+                  4,
+                  1,
+                  pixelBuffers[i].buffer.asUint8List(
+                        pixelBuffers[i].offsetInBytes,
+                      ),
+                  PixelDataFormat.RGBA,
+                  PixelDataType.FLOAT,
+                );
               }
 
               for (int i = 0; i < 8; i++) {
                 await camera.lookAt(
-                    Vector3(sin(pi * (i / 7)) * 5, 0, cos(pi * (i / 7)) * 5));
-                await testHelper.capture(viewer, "vdtm_reprojected_$i",
-                    renderTarget: rt);
+                  Vector3(sin(pi * (i / 7)) * 5, 0, cos(pi * (i / 7)) * 5),
+                );
+                await testHelper.capture(
+                  viewer,
+                  "vdtm_reprojected_$i",
+                  renderTarget: rt,
+                );
               }
             });
           });
