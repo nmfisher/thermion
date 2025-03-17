@@ -23,9 +23,11 @@
 
 #include <utils/compiler.h>
 #include <utils/Invocable.h>
+#include <utils/CString.h>
 
 #include <stddef.h>
 #include <stdint.h>
+#include <math/mat3.h>
 
 namespace filament::backend {
 
@@ -51,11 +53,22 @@ protected:
     ~OpenGLPlatform() noexcept override;
 
 public:
-
     struct ExternalTexture {
-        unsigned int target;            // GLenum target
-        unsigned int id;                // GLuint id
+        unsigned int target; // GLenum target
+        unsigned int id; // GLuint id
     };
+
+    /**
+     * Return the OpenGL vendor string of the specified Driver instance.
+     * @return The GL_VENDOR string
+     */
+    static utils::CString getVendorString(Driver const* UTILS_NONNULL driver);
+
+    /**
+     * Return the OpenGL vendor string of the specified Driver instance
+     * @return The GL_RENDERER string
+     */
+    static utils::CString getRendererString(Driver const* UTILS_NONNULL driver);
 
     /**
      * Called by the driver to destroy the OpenGL context. This should clean up any windows
@@ -307,6 +320,13 @@ public:
     virtual void updateTexImage(Stream* UTILS_NONNULL stream,
             int64_t* UTILS_NONNULL timestamp) noexcept;
 
+    /**
+     * Returns the transform matrix of the texture attached to the stream.
+     * @param stream Stream to get the transform matrix from
+     * @param uvTransform Output parameter: Transform matrix of the image bound to the texture. Returns identity if not supported.
+     */
+    virtual math::mat3f getTransformMatrix(Stream* UTILS_NONNULL stream) noexcept;
+
 
     // --------------------------------------------------------------------------------------------
     // External Image support
@@ -324,20 +344,24 @@ public:
      * Destroys an external texture handle and associated data.
      * @param texture a pointer to the handle to destroy.
      */
-    virtual void destroyExternalImage(ExternalTexture* UTILS_NONNULL texture) noexcept;
+    virtual void destroyExternalImageTexture(ExternalTexture* UTILS_NONNULL texture) noexcept;
 
     // called on the application thread to allow Filament to take ownership of the image
 
     /**
      * Takes ownership of the externalImage. The externalImage parameter depends on the Platform's
-     * concrete implementation. Ownership is released when destroyExternalImage() is called.
+     * concrete implementation. Ownership is released when destroyExternalImageTexture() is called.
      *
      * WARNING: This is called synchronously from the application thread (NOT the Driver thread)
      *
      * @param externalImage A token representing the platform's external image.
      * @see destroyExternalImage
+     * @{
      */
     virtual void retainExternalImage(void* UTILS_NONNULL externalImage) noexcept;
+
+    virtual void retainExternalImage(ExternalImageHandleRef externalImage) noexcept;
+    /** @}*/
 
     /**
      * Called to bind the platform-specific externalImage to an ExternalTexture.
@@ -345,14 +369,19 @@ public:
      * is updated with new values for id/target if necessary.
      *
      * WARNING: this method is not allowed to change the bound texture, or must restore the previous
-     * binding upon return. This is to avoid problem with a backend doing state caching.
+     * binding upon return. This is to avoid a problem with a backend doing state caching.
      *
      * @param externalImage The platform-specific external image.
      * @param texture an in/out pointer to ExternalTexture, id and target can be updated if necessary.
      * @return true on success, false on error.
+     * @{
      */
     virtual bool setExternalImage(void* UTILS_NONNULL externalImage,
             ExternalTexture* UTILS_NONNULL texture) noexcept;
+
+    virtual bool setExternalImage(ExternalImageHandleRef externalImage,
+            ExternalTexture* UTILS_NONNULL texture) noexcept;
+    /** @}*/
 
     /**
      * The method allows platforms to convert a user-supplied external image object into a new type
