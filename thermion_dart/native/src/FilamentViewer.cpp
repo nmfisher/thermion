@@ -6,21 +6,6 @@
 #pragma comment(lib, "Ws2_32.lib")
 #endif
 
-/*
- * Copyright (C) 2019 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 #include <filament/Camera.h>
 #include <filament/SwapChain.h>
 #include <backend/DriverEnums.h>
@@ -113,15 +98,14 @@ namespace thermion
   static constexpr filament::math::float4 sFullScreenTriangleVertices[3] = {
       {-1.0f, -1.0f, 1.0f, 1.0f},
       {3.0f, -1.0f, 1.0f, 1.0f},
-      {-1.0f, 3.0f, 1.0f, 1.0f}
-    };
+      {-1.0f, 3.0f, 1.0f, 1.0f}};
 
   static const uint16_t sFullScreenTriangleIndices[3] = {0, 1, 2};
 
   FilamentViewer::FilamentViewer(const void *sharedContext, const ResourceLoaderWrapperImpl *const resourceLoader, void *const platform, const char *uberArchivePath)
       : _resourceLoaderWrapper(resourceLoader)
   {
-   
+
     ASSERT_POSTCONDITION(_resourceLoaderWrapper != nullptr, "Resource loader must be non-null");
 
 #if TARGET_OS_IPHONE
@@ -139,7 +123,7 @@ namespace thermion
     _engine = Engine::create(Engine::Backend::VULKAN, (backend::Platform *)platform, (void *)sharedContext, &config);
 #else
     _engine = Engine::create(Engine::Backend::OPENGL, (backend::Platform *)platform, (void *)sharedContext, nullptr);
- #endif
+#endif
 
     _renderer = _engine->createRenderer();
 
@@ -526,7 +510,8 @@ namespace thermion
 
     _views.clear();
     TRACE("Destroying render targets");
-    for(auto rt : _renderTargets) {
+    for (auto rt : _renderTargets)
+    {
       destroyRenderTarget(rt);
     }
 
@@ -581,28 +566,38 @@ namespace thermion
     return swapChain;
   }
 
-  RenderTarget *FilamentViewer::createRenderTarget(intptr_t texture, uint32_t width, uint32_t height)
+  RenderTarget *FilamentViewer::createRenderTarget(intptr_t colorTexture, intptr_t depthTexture, uint32_t width, uint32_t height)
   {
-    Log("Creating render target with size %d x %d", width, height);
-    // Create filament textures and render targets (note the color buffer has the import call)
-    auto rtColor = filament::Texture::Builder()
-                       .width(width)
-                       .height(height)
-                       .levels(1)
-                       .usage(filament::Texture::Usage::COLOR_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
-                       .format(filament::Texture::InternalFormat::RGBA8)
-                       .import(texture)
-                       .build(*_engine);
-    auto rtDepth = filament::Texture::Builder()
-                       .width(width)
-                       .height(height)
-                       .levels(1)
-                       .usage(filament::Texture::Usage::DEPTH_ATTACHMENT | filament::Texture::Usage::STENCIL_ATTACHMENT |  filament::Texture::Usage::SAMPLEABLE)
-                       .format(filament::Texture::InternalFormat::DEPTH24_STENCIL8)
-                       .build(*_engine);
+    TRACE("Creating render target with size %d x %d", width, height);
+    auto colorBuilder = filament::Texture::Builder()
+                            .width(width)
+                            .height(height)
+                            .levels(1)
+                            .usage(filament::Texture::Usage::COLOR_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE | filament::Texture::Usage::BLIT_SRC)
+                            .format(filament::Texture::InternalFormat::RGBA8);
+    if (colorTexture != 0)
+    {
+      TRACE("Using imported color texture %d", colorTexture);
+      colorBuilder.import(colorTexture);
+    }
+
+    auto color = colorBuilder.build(*_engine);
+    auto depthBuilder = filament::Texture::Builder()
+                            .width(width)
+                            .height(height)
+                            .levels(1)
+                            .usage(filament::Texture::Usage::DEPTH_ATTACHMENT | filament::Texture::Usage::SAMPLEABLE)
+                            .format(filament::Texture::InternalFormat::DEPTH32F);
+    if (depthTexture != 0)
+    {
+      TRACE("Using imported depth texture %d", depthTexture);
+      depthBuilder.import(depthTexture);
+    }
+    auto depth = depthBuilder.build(*_engine);
+
     auto rt = filament::RenderTarget::Builder()
-                  .texture(RenderTarget::AttachmentPoint::COLOR, rtColor)
-                  .texture(RenderTarget::AttachmentPoint::DEPTH, rtDepth)
+                  .texture(RenderTarget::AttachmentPoint::COLOR, color)
+                  .texture(RenderTarget::AttachmentPoint::DEPTH, depth)
                   .build(*_engine);
     _renderTargets.push_back(rt);
     return rt;
@@ -656,7 +651,7 @@ namespace thermion
     view->setLayerEnabled(SceneManager::LAYERS::BACKGROUND, true); // skybox + image
     view->setLayerEnabled(SceneManager::LAYERS::OVERLAY, false);   // world grid + gizmo
     view->setBlendMode(filament::View::BlendMode::TRANSLUCENT);
-    view->setStencilBufferEnabled(true);
+    view->setStencilBufferEnabled(false);
     view->setAmbientOcclusionOptions({.enabled = false});
     view->setDynamicResolutionOptions({.enabled = true});
     ACESToneMapper tm;
@@ -666,7 +661,7 @@ namespace thermion
     view->setStereoscopicOptions({.enabled = false});
 #endif
 
-    view->setBloomOptions({.strength = 0, .enabled=false });
+    view->setBloomOptions({.strength = 0, .enabled = false});
     view->setShadowingEnabled(false);
     view->setScreenSpaceRefractionEnabled(false);
     view->setPostProcessingEnabled(false);
@@ -894,26 +889,31 @@ namespace thermion
     }
   }
 
-  void FilamentViewer::setRenderable(View* view, SwapChain* swapChain, bool renderable) {
+  void FilamentViewer::setRenderable(View *view, SwapChain *swapChain, bool renderable)
+  {
 
-      std::lock_guard lock(_renderMutex);
+    std::lock_guard lock(_renderMutex);
 
-      auto views = _renderable[swapChain];
-      
-      auto it = std::find(views.begin(), views.end(), view);
-      
-      if(renderable) { 
-          if(it == views.end()) {
-              views.push_back(view);
-          }
-      } else {
-          if(it != views.end()) {
-              views.erase(it);
-          }
-      } 
-      _renderable[swapChain] = views;
+    auto views = _renderable[swapChain];
+
+    auto it = std::find(views.begin(), views.end(), view);
+
+    if (renderable)
+    {
+      if (it == views.end())
+      {
+        views.push_back(view);
+      }
+    }
+    else
+    {
+      if (it != views.end())
+      {
+        views.erase(it);
+      }
+    }
+    _renderable[swapChain] = views;
   }
-
 
   void FilamentViewer::render(
       uint64_t frameTimeInNanos)
@@ -921,14 +921,18 @@ namespace thermion
 
     _sceneManager->update();
 
-    for(auto swapChain : _swapChains) {
+    for (auto swapChain : _swapChains)
+    {
       auto views = _renderable[swapChain];
-      if(views.size() > 0) {
+      if (views.size() > 0)
+      {
         bool beginFrame = _renderer->beginFrame(swapChain, frameTimeInNanos);
-        if (beginFrame) {
-          for(auto view : views) {
+        if (beginFrame)
+        {
+          for (auto view : views)
+          {
             _renderer->render(view);
-          } 
+          }
         }
         _renderer->endFrame();
       }
@@ -948,13 +952,14 @@ namespace thermion
 
   void FilamentViewer::capture(View *view, uint8_t *out, bool useFence, SwapChain *swapChain, void (*onComplete)())
   {
+
     Viewport const &vp = view->getViewport();
     size_t pixelBufferSize = vp.width * vp.height * 4;
     auto callback = [](void *buf, size_t size, void *data)
     {
       auto frameCallbackData = (std::vector<void *> *)data;
       void *callbackPtr = frameCallbackData->at(1);
-      
+
       delete frameCallbackData;
       if (callbackPtr)
       {
@@ -997,22 +1002,15 @@ namespace thermion
   void FilamentViewer::capture(View *view, uint8_t *out, bool useFence, SwapChain *swapChain, RenderTarget *renderTarget, void (*onComplete)())
   {
 
-    if(swapChain && !_engine->isValid(swapChain)) {
-      Log("SwapChain exists, but is not valid");
-      return;
-    }
-
-    int i =0 ;
-    for(auto sc : _swapChains) {
-      if(sc == swapChain) {
-        Log("Using swapchain at index %d", i);
-      }
-      i++;
+    if (_imageEntity.isNull())
+    {
+      TRACE("NO IMAGE");
     }
 
     Viewport const &vp = view->getViewport();
+
     size_t pixelBufferSize = vp.width * vp.height * 4;
-    
+
     auto callback = [](void *buf, size_t size, void *data)
     {
       auto frameCallbackData = (std::vector<void *> *)data;
@@ -1025,12 +1023,7 @@ namespace thermion
       }
     };
 
-    // Create a fence
-    Fence *fence = nullptr;
-    if (useFence)
-    {
-      fence = _engine->createFence();
-    }
+    Fence *fence = useFence ? _engine->createFence() : nullptr;
 
     auto userData = new std::vector<void *>{out, (void *)onComplete};
 
@@ -1040,7 +1033,11 @@ namespace thermion
         out, pixelBufferSize,
         Texture::Format::RGBA,
         Texture::Type::UBYTE, dispatcher, callback, userData);
-    _renderer->beginFrame(swapChain, 0);
+
+    _renderer->beginFrame(
+        swapChain,
+        0);
+
     _renderer->render(view);
     _renderer->readPixels(renderTarget, 0, 0, vp.width, vp.height, std::move(pbd));
     _renderer->endFrame();
@@ -1056,11 +1053,5 @@ namespace thermion
       Fence::waitAndDestroy(fence);
     }
   }
-
-  Camera *FilamentViewer::getCamera(EntityId entity)
-  {
-    return _engine->getCameraComponent(Entity::import(entity));
-  }
-
 
 } // namespace thermion
