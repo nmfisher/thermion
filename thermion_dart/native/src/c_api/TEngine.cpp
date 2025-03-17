@@ -366,7 +366,6 @@ namespace thermion
                         
                         if (callbackPtr)
                         {
-                            Log("NON NULL CLLABCK");
                           void (*callback)(void) = (void (*)(void))callbackPtr;
                           callback();
                         } 
