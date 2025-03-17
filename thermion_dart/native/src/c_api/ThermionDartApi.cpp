@@ -35,10 +35,15 @@ extern "C"
         return reinterpret_cast<TEngine *>(engine);
     }
 
-    EMSCRIPTEN_KEEPALIVE TRenderTarget *Viewer_createRenderTarget(TViewer *tViewer, intptr_t texture, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE TRenderer *Viewer_getRenderer(TViewer *tViewer) {
+        auto *viewer = reinterpret_cast<FilamentViewer *>(tViewer);
+        return reinterpret_cast<TRenderer *>(viewer->getRenderer());
+    }
+
+    EMSCRIPTEN_KEEPALIVE TRenderTarget *Viewer_createRenderTarget(TViewer *tViewer, intptr_t colorTexture, intptr_t depthTexture, uint32_t width, uint32_t height)
     {
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
-        auto renderTarget = viewer->createRenderTarget(texture, width, height);
+        auto renderTarget = viewer->createRenderTarget(colorTexture, depthTexture, width, height);
         return reinterpret_cast<TRenderTarget *>(renderTarget);
     }
 
@@ -154,12 +159,6 @@ extern "C"
         cam->setProjection(fovInDegrees, aspect, near, far, horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
     }
 
-    EMSCRIPTEN_KEEPALIVE TCamera *get_camera(TViewer *viewer, EntityId entity)
-    {
-        auto filamentCamera = ((FilamentViewer *)viewer)->getCamera(entity);
-        return reinterpret_cast<TCamera *>(filamentCamera);
-    }
-
     EMSCRIPTEN_KEEPALIVE double4x4 get_camera_model_matrix(TCamera *camera)
     {
         const auto &mat = reinterpret_cast<filament::Camera *>(camera)->getModelMatrix();
@@ -273,12 +272,11 @@ extern "C"
         TView *tView,
         TSwapChain *tSwapChain,
         uint8_t *pixelBuffer,
+        bool useFence,
         void (*callback)(void))
     {
 #ifdef __EMSCRIPTEN__
-        bool useFence = true;
-#else
-        bool useFence = false;
+        useFence = true;
 #endif
         auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
         auto viewer = reinterpret_cast<FilamentViewer *>(tViewer);
@@ -292,12 +290,11 @@ extern "C"
         TSwapChain *tSwapChain,
         TRenderTarget *tRenderTarget,
         uint8_t *pixelBuffer,
+        bool useFence,
         void (*callback)(void))
     {
 #ifdef __EMSCRIPTEN__
-        bool useFence = true;
-#else
-        bool useFence = false;
+        useFence = true;
 #endif
         auto swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
         auto renderTarget = reinterpret_cast<RenderTarget *>(tRenderTarget);
