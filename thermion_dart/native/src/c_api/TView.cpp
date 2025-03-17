@@ -29,7 +29,7 @@ using namespace filament;
         return tvp;
     }
 
-    EMSCRIPTEN_KEEPALIVE void View_updateViewport(TView *tView, uint32_t width, uint32_t height)
+    EMSCRIPTEN_KEEPALIVE void View_setViewport(TView *tView, uint32_t width, uint32_t height)
     {
         auto view = reinterpret_cast<View *>(tView);
         view->setViewport({0, 0, width, height});
@@ -195,11 +195,18 @@ using namespace filament;
         auto *view = reinterpret_cast<View *>(tView);
         return view->getDithering() == Dithering::TEMPORAL;
     }
+
     EMSCRIPTEN_KEEPALIVE void View_setRenderQuality(TView *tView, TQualityLevel qualityLevel) {
         auto view = reinterpret_cast<View *>(tView);
         RenderQuality rq;
         rq.hdrColorBuffer = (filament::QualityLevel)qualityLevel;
         view->setRenderQuality(rq);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void View_setScene(TView *tView, TScene *tScene) {
+        auto *view = reinterpret_cast<View*>(tView);
+        auto *scene = reinterpret_cast<Scene*>(tScene);
+        view->setScene(scene);
     }
 
 

@@ -34,10 +34,9 @@ enum TQualityLevel {
 
 // View
 EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *view);
-EMSCRIPTEN_KEEPALIVE void View_updateViewport(TView *view, uint32_t width, uint32_t height);
+EMSCRIPTEN_KEEPALIVE void View_setViewport(TView *view, uint32_t width, uint32_t height);
 EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView *view, TRenderTarget *renderTarget);
 EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView *view, bool enabled);
-EMSCRIPTEN_KEEPALIVE void View_updateViewport(TView* tView, uint32_t width, uint32_t height);
 EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView* tView, TRenderTarget* tRenderTarget);
 EMSCRIPTEN_KEEPALIVE TRenderTarget *View_getRenderTarget(TView* tView);
 EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView* tView, bool enabled);
@@ -57,7 +56,7 @@ EMSCRIPTEN_KEEPALIVE void View_setStencilBufferEnabled(TView *tView, bool enable
 EMSCRIPTEN_KEEPALIVE bool View_isStencilBufferEnabled(TView *tView);
 EMSCRIPTEN_KEEPALIVE void View_setDitheringEnabled(TView *tView, bool enabled);
 EMSCRIPTEN_KEEPALIVE bool View_isDitheringEnabled(TView *tView);
-
+EMSCRIPTEN_KEEPALIVE void View_setScene(TView *tView, TScene *tScene);
 
 typedef void (*PickCallback)(uint32_t requestId, EntityId entityId, float depth, float fragX, float fragY, float fragZ);
 EMSCRIPTEN_KEEPALIVE void View_pick(TView* tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback);
