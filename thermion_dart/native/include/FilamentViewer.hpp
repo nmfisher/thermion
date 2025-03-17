@@ -72,7 +72,6 @@ namespace thermion
 
         void setMainCamera(View *view);
         EntityId getMainCamera();
-        Camera* getCamera(EntityId entity);
         
         float getCameraFov(bool horizontal);
         void setCameraFov(double fovDegrees, bool horizontal);
@@ -81,7 +80,7 @@ namespace thermion
         SwapChain* createSwapChain(uint32_t width, uint32_t height);
         void destroySwapChain(SwapChain* swapChain);
 
-        RenderTarget* createRenderTarget(intptr_t textureId, uint32_t width, uint32_t height);
+        RenderTarget* createRenderTarget(intptr_t colorTextureId, intptr_t depthTextureId, uint32_t width, uint32_t height);
         void destroyRenderTarget(RenderTarget* renderTarget);
 
         Renderer *getRenderer();
