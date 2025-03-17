@@ -10,6 +10,20 @@
 extern "C"
 {
 #endif
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGeometry(
+        TEngine *tEngine, 
+        float *vertices,
+        uint32_t numVertices,
+        float *normals,
+        uint32_t numNormals,
+        float *uvs,
+        uint32_t numUvs,
+        uint16_t *indices,
+        uint32_t numIndices,
+        TPrimitiveType tPrimitiveType,
+        TMaterialInstance **materialInstances,
+		int materialInstanceCount
+    );
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene);
     EMSCRIPTEN_KEEPALIVE EntityId SceneAsset_getEntity(TSceneAsset *tSceneAsset);
 	EMSCRIPTEN_KEEPALIVE int SceneAsset_getChildEntityCount(TSceneAsset* tSceneAsset);

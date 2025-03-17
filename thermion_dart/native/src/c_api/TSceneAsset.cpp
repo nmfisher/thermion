@@ -1,6 +1,8 @@
+
 #include "c_api/TSceneAsset.h"
 #include "scene/SceneAsset.hpp"
 #include "scene/GltfSceneAsset.hpp"
+#include "scene/GeometrySceneAssetBuilder.hpp"
 
 using namespace thermion;
 
@@ -9,6 +11,53 @@ using namespace thermion;
 extern "C"
 {
 #endif
+
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGeometry(
+        TEngine *tEngine, 
+        float *vertices,
+        uint32_t numVertices,
+        float *normals,
+        uint32_t numNormals,
+        float *uvs,
+        uint32_t numUvs,
+        uint16_t *indices,
+        uint32_t numIndices,
+        TPrimitiveType tPrimitiveType,
+        TMaterialInstance **materialInstances,
+		int materialInstanceCount
+    ) {
+        utils::Entity entity;
+
+        auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+
+        auto builder = GeometrySceneAssetBuilder(engine)
+                           .vertices(vertices, numVertices)
+                           .indices(indices, numIndices)
+                           .primitiveType(static_cast<filament::RenderableManager::PrimitiveType>(tPrimitiveType));
+
+        if (normals)
+        {
+            builder.normals(normals, numNormals);
+        }
+
+        if (uvs)
+        {
+            builder.uvs(uvs, numUvs);
+        }
+
+        builder.materials(reinterpret_cast<MaterialInstance**>(materialInstances), materialInstanceCount);
+
+        auto sceneAsset = builder.build();
+
+        if (!sceneAsset)
+        {
+            Log("Failed to create geometry");
+            return std::nullptr_t();
+        }
+
+        return reinterpret_cast<TSceneAsset*>(sceneAsset.release());
+        
+    }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
