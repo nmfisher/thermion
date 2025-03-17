@@ -404,26 +404,6 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(TEngine *engine,
-                                                      uint32_t width,
-                                                      uint32_t height,
-                                                      uint32_t depth,
-                                                      uint8_t levels,
-                                                      uint16_t tUsage,
-                                                      intptr_t import,
-                                                      TTextureSamplerType sampler,
-                                                      TTextureFormat format,
-                                                      void (*onComplete)(TTexture *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto texture = Texture_build(engine, width, height, depth, levels, tUsage, import, sampler, format);
-          onComplete(texture);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture *tTexture, void (*onComplete)())
   {
     std::packaged_task<void()> lambda(
@@ -493,6 +473,16 @@ extern "C"
       {
         auto *skybox = Engine_buildSkybox(tEngine, skyboxData, length, onTextureUploadComplete);
         onComplete(skybox);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightRenderThread(TEngine *tEngine, uint8_t *iblData, size_t length, float intensity, void (*onComplete)(TIndirectLight *), void (*onTextureUploadComplete)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto *indirectLight = Engine_buildIndirectLight(tEngine, iblData, length, intensity, onTextureUploadComplete);
+        onComplete(indirectLight);
       });
     auto fut = _rl->add_task(lambda);
   }
@@ -1087,6 +1077,25 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
+
+  EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(
+    TEngine *tEngine, 
+    uint32_t width, 
+    uint32_t height, 
+    uint32_t depth, 
+    uint8_t levels, 
+    uint16_t tUsage,
+    intptr_t import,
+    TTextureSamplerType sampler, 
+    TTextureFormat format, void (*onComplete)(TTexture *)) {
+      std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          auto *texture = Texture_build(tEngine, width, height, depth, levels, tUsage, import, sampler, format);
+          onComplete(texture);
+        });
+    auto fut = _rl->add_task(lambda);  
+    }
 
   // Texture methods
   EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage,
