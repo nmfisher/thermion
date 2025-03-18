@@ -21,6 +21,11 @@ EMSCRIPTEN_KEEPALIVE TRenderTarget *RenderTarget_create(
     TTexture *depth
 );
 
+EMSCRIPTEN_KEEPALIVE void RenderTarget_destroy(
+    TEngine *tEngine,
+    TRenderTarget *tRenderTarget
+);
+
 #ifdef __cplusplus
 }
 #endif

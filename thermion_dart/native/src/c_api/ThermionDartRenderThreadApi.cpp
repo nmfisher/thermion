@@ -6,7 +6,6 @@
 #include <filament/LightManager.h>
 
 #include "c_api/APIBoundaryTypes.h"
-
 #include "c_api/TAnimationManager.h"
 #include "c_api/TEngine.h"
 #include "c_api/TGltfAssetLoader.h"
@@ -19,7 +18,8 @@
 #include "c_api/TView.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
-#include "FilamentViewer.hpp"
+#include "RenderTicker.hpp"
+#include "rendering/RenderLoop.hpp"
 #include "Log.hpp"
 
 #include "ThreadPool.hpp"
@@ -27,165 +27,6 @@
 using namespace thermion;
 using namespace std::chrono_literals;
 #include <time.h>
-
-class RenderLoop
-{
-public:
-  explicit RenderLoop()
-  {
-    srand(time(NULL));
-    t = new std::thread([this]()
-                        { start(); });
-  }
-
-  ~RenderLoop()
-  {
-    TRACE("Destroying RenderLoop");
-    _stop = true;
-    _cv.notify_one();
-    TRACE("Joining RenderLoop thread..");    
-    t->join();
-    TRACE("RenderLoop destructor complete");    
-  }
-
-  void start()
-  {
-    while (!_stop)
-    {
-      iter();
-    }
-  }
-
-  void destroyViewer() {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-          if(viewer) {
-            Viewer_destroy(viewer);  
-          }
-          viewer = nullptr;
-          _renderCallback = nullptr;
-          _renderCallbackOwner = nullptr; 
-          
-      });
-    auto fut = add_task(lambda);
-    fut.wait();
-  }
-
-  void createViewer(
-      void *const context,
-      void *const platform,
-      const char *uberArchivePath,
-      const void *const loader,
-      void (*renderCallback)(void *),
-      void *const owner,
-      void (*callback)(TViewer *))
-  {
-    _renderCallback = renderCallback;
-    _renderCallbackOwner = owner;
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-          if(viewer) {
-            Viewer_destroy(viewer);  
-          }
-          viewer = Viewer_create(context, loader, platform, uberArchivePath);
-          callback(viewer); });
-    add_task(lambda);
-  }
-
-  void requestFrame(void (*callback)())
-  {
-    std::unique_lock<std::mutex> lock(_mutex);
-    this->_requestFrameRenderCallback = callback;
-    _cv.notify_one();
-  }
-
-  void iter()
-  {
-    {
-      std::unique_lock<std::mutex> lock(_mutex);
-      if (_requestFrameRenderCallback)
-      {
-        doRender();
-        lock.unlock();
-        this->_requestFrameRenderCallback();
-        this->_requestFrameRenderCallback = nullptr;
-
-        // Calculate and print FPS
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _lastFrameTime).count();
-        _lastFrameTime = currentTime;
-
-        _frameCount++;
-        _accumulatedTime += deltaTime;
-
-        if (_accumulatedTime >= 1.0f) // Update FPS every second
-        {
-          _fps = _frameCount / _accumulatedTime;
-          // std::cout << "FPS: " << _fps << std::endl;
-          _frameCount = 0;
-          _accumulatedTime = 0.0f;
-        }
-      }
-    }
-    std::unique_lock<std::mutex> taskLock(_taskMutex);
-
-    if (!_tasks.empty())
-    {
-      auto task = std::move(_tasks.front());
-      _tasks.pop_front();
-      taskLock.unlock();
-      task();
-      taskLock.lock();
-    }
-
-    _cv.wait_for(taskLock, std::chrono::microseconds(2000), [this]
-                 { return !_tasks.empty() || _stop; });
-  }
-
-  void doRender()
-  {
-    Viewer_render(viewer);
-    if (_renderCallback)
-    {
-      _renderCallback(_renderCallbackOwner);
-    }
-  }
-
-  void setFrameIntervalInMilliseconds(float frameIntervalInMilliseconds)
-  {
-    _frameIntervalInMicroseconds = static_cast<int>(1000.0f * frameIntervalInMilliseconds);
-  }
-
-  template <class Rt>
-  auto add_task(std::packaged_task<Rt()> &pt) -> std::future<Rt>
-  {
-    std::unique_lock<std::mutex> lock(_taskMutex);
-    auto ret = pt.get_future();
-    _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(
-                          std::move(pt))]
-                     { (*pt)(); });
-    _cv.notify_one();
-    return ret;
-  }
-
-  TViewer *viewer = std::nullptr_t();
-
-private:
-  void (*_requestFrameRenderCallback)() = nullptr;
-  bool _stop = false;
-  int _frameIntervalInMicroseconds = 1000000 / 60;
-  std::mutex _mutex;
-  std::mutex _taskMutex;
-  std::condition_variable _cv;
-  void (*_renderCallback)(void *const) = nullptr;
-  void *_renderCallbackOwner = nullptr;
-  std::deque<std::function<void()>> _tasks;
-  std::chrono::high_resolution_clock::time_point _lastFrameTime;
-  int _frameCount = 0;
-  float _accumulatedTime = 0.0f;
-  float _fps = 0.0f;
-  std::thread *t = nullptr;
-};
 
 extern "C"
 {
@@ -205,142 +46,18 @@ extern "C"
     TRACE("RenderLoop_destroy");
     if (_rl)
     {
-      _rl->destroyViewer();
       _rl = nullptr;
     }
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_createOnRenderThread(
-      void *const context, void *const platform, const char *uberArchivePath,
-      const void *const loader,
-      void (*renderCallback)(void *const renderCallbackOwner),
-      void *const renderCallbackOwner,
-      void (*callback)(TViewer *))
-  {
-    TRACE("Viewer_createOnRenderThread");
-    _rl->createViewer(
-      context,
-      platform,
-      uberArchivePath,
-      loader,
-      renderCallback,
-      renderCallbackOwner,
-      callback
-    );
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_destroyOnRenderThread(TViewer *viewer)
-  {
-    TRACE("Viewer_destroyOnRenderThread");
-    if (!_rl)
-    {
-      Log("Warning - cannot destroy viewer, no RenderLoop has been created");
-    } else {
-      _rl->destroyViewer();
-    }
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_createViewRenderThread(TViewer *viewer, void (*onComplete)(TView *tView)) {
+  
+  EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, , uint64_t frameTimeInNanos, void (*onComplete)()) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        auto *view = Viewer_createView(viewer);
-        onComplete(view);
+        RenderTicker_render(tRenderTicker, frameTimeInNanos);
+        onComplete();
       });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_createHeadlessSwapChainRenderThread(TViewer *viewer,
-                                                                       uint32_t width,
-                                                                       uint32_t height,
-                                                                       void (*onComplete)(TSwapChain *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *swapChain = Viewer_createHeadlessSwapChain(viewer, width, height);
-          onComplete(swapChain);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_createSwapChainRenderThread(TViewer *viewer,
-                                                               void *const surface,
-                                                               void (*onComplete)(TSwapChain *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *swapChain = Viewer_createSwapChain(viewer, surface);
-          onComplete(swapChain);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_destroySwapChainRenderThread(TViewer *viewer, TSwapChain *swapChain, void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          Viewer_destroySwapChain(viewer, swapChain);
-          onComplete();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_requestFrameRenderThread(TViewer *viewer, void (*onComplete)())
-  {
-    if (!_rl)
-    {
-      Log("No render loop!"); // PANIC?
-    }
-    else
-    {
-      _rl->requestFrame(onComplete);
-    }
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_loadIblRenderThread(TViewer *viewer, const char *iblPath, float intensity, void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          Viewer_loadIbl(viewer, iblPath, intensity);
-          onComplete();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_removeIblRenderThread(TViewer *viewer, void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          Viewer_removeIbl(viewer);
-          onComplete();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_createRenderTargetRenderThread(TViewer *viewer, intptr_t colorTexture, intptr_t depthTexture, uint32_t width, uint32_t height, void (*onComplete)(TRenderTarget *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto renderTarget = Viewer_createRenderTarget(viewer, colorTexture, depthTexture, width, height);
-          onComplete(renderTarget);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_destroyRenderTargetRenderThread(TViewer *tViewer, TRenderTarget *tRenderTarget, void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          Viewer_destroyRenderTarget(tViewer, tRenderTarget);
-          onComplete();
-        });
     auto fut = _rl->add_task(lambda);
   }
 
@@ -380,6 +97,16 @@ extern "C"
       {
         auto swapChain = Engine_createHeadlessSwapChain(tEngine, width, height, flags);
         onComplete(swapChain);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+  
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Engine_destroySwapChain(tEngine);
+        onComplete();
       });
     auto fut = _rl->add_task(lambda);
   }
@@ -445,6 +172,7 @@ extern "C"
         });
     auto fut = _rl->add_task(lambda);
   }
+
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)())
   {
@@ -592,43 +320,10 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void
-  set_frame_interval_render_thread(TViewer *viewer, float frameIntervalInMilliseconds)
-  {
-    _rl->setFrameIntervalInMilliseconds(frameIntervalInMilliseconds);
-    std::packaged_task<void()> lambda([=]() mutable
-                                      { ((FilamentViewer *)viewer)->setFrameInterval(frameIntervalInMilliseconds); });
-    auto fut = _rl->add_task(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView *tView, TSwapChain *tSwapChain)
   {
     std::packaged_task<void()> lambda([=]() mutable
                                       { _rl->doRender(); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, uint8_t *pixelBuffer, bool useFence, void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      { Viewer_capture(viewer, view, tSwapChain, pixelBuffer, useFence, onComplete); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_captureRenderTargetRenderThread(TViewer *viewer, TView *view, TSwapChain *tSwapChain, TRenderTarget *tRenderTarget, uint8_t *pixelBuffer, bool useFence, void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      { Viewer_captureRenderTarget(viewer, view, tSwapChain, tRenderTarget, pixelBuffer, useFence, onComplete); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void
-  set_background_color_render_thread(TViewer *viewer, const float r, const float g,
-                                     const float b, const float a)
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        { set_background_color(viewer, r, g, b, a); });
     auto fut = _rl->add_task(lambda);
   }
 

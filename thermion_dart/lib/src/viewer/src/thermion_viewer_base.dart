@@ -1,3 +1,5 @@
+import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
+
 import '../../utils/src/gizmo.dart';
 import 'shared_types/shared_types.dart';
 export 'shared_types/shared_types.dart';
@@ -8,32 +10,12 @@ import 'package:vector_math/vector_math_64.dart';
 import 'dart:async';
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 
-const double kNear = 0.05;
-const double kFar = 1000.0;
-const double kFocalLength = 28.0;
-
-enum VisibilityLayers {
-  DEFAULT_ASSET(0),
-  LAYER_1(1),
-  LAYER_2(2),
-  LAYER_3(3),
-  LAYER_4(4),
-  LAYER_5(5),
-  BACKGROUND(6),
-  OVERLAY(7);
-
-  final int value;
-  const VisibilityLayers(this.value);
-}
-
-final ThermionEntity FILAMENT_ENTITY_NULL = 0;
-
+///
+/// A high-level interface for interacting with a 3D scene.
+/// This broadly maps to a single scene/view
+/// 
 abstract class ThermionViewer {
-  ///
-  /// A Future that resolves when the underlying rendering context has been successfully created.
-  ///
-  Future<bool> get initialized;
-
+  
   ///
   /// Whether the controller is currently rendering at [framerate].
   ///
@@ -47,7 +29,7 @@ abstract class ThermionViewer {
   ///
   /// Render a single frame immediately.
   ///
-  Future render({covariant SwapChain? swapChain});
+  Future render();
 
   ///
   /// Requests a single frame to be rendered. This is only intended to be used internally.
@@ -60,31 +42,6 @@ abstract class ThermionViewer {
   Future<List<Uint8List>> capture(
       covariant List<({View view, SwapChain? swapChain, RenderTarget? renderTarget})> targets);
 
-  ///
-  ///
-  ///
-  Future<SwapChain> createHeadlessSwapChain(int width, int height);
-
-  ///
-  ///
-  ///
-  Future<SwapChain> createSwapChain(int handle);
-
-  ///
-  ///
-  ///
-  Future destroySwapChain(covariant SwapChain swapChain);
-
-  ///
-  ///
-  ///
-  Future<RenderTarget> createRenderTarget(
-      int width, int height, { int? colorTextureHandle, int? depthTextureHandle });
-
-  ///
-  ///
-  ///
-  Future destroyRenderTarget(covariant RenderTarget renderTarget);
 
   ///
   ///

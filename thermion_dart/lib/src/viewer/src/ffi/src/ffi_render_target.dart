@@ -1,25 +1,30 @@
 import 'dart:ffi';
 
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIRenderTarget extends RenderTarget {
   final Pointer<TRenderTarget> renderTarget;
-  final Pointer<TViewer> viewer;
-  final Pointer<TEngine> engine;
+  final FFIFilamentApp app;
 
-  FFIRenderTarget(this.renderTarget, this.viewer, this.engine);
+  FFIRenderTarget(this.renderTarget, this.app);
 
   @override
   Future<Texture> getColorTexture() async {
     final ptr = RenderTarget_getColorTexture(renderTarget);
-    return FFITexture(engine, ptr);
+    return FFITexture(app.engine, ptr);
   }
 
   @override
   Future<Texture> getDepthTexture() async {
     final ptr = RenderTarget_getDepthTexture(renderTarget);
-    return FFITexture(engine, ptr);
+    return FFITexture(app.engine, ptr);
+  }
+  
+  @override
+  Future destroy() async {
+    await withVoidCallback((cb) => RenderTarget_destroy(app.engine, renderTarget));
   }
 }

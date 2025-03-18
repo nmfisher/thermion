@@ -34,6 +34,16 @@ namespace thermion
             return reinterpret_cast<TRenderTarget *>(rt);
         }
 
+        EMSCRIPTEN_KEEPALIVE void RenderTarget_destroy(
+            TEngine *tEngine,
+            TRenderTarget *tRenderTarget
+        ) {
+            auto engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
+            engine->destroy(renderTarget);
+        }
+        
+
 
 #ifdef __cplusplus
     }

@@ -1,26 +1,22 @@
-import 'dart:ffi';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/scene.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
 import 'callbacks.dart';
 import 'ffi_camera.dart';
-import 'thermion_viewer_ffi.dart';
 
 class FFIView extends View {
   final Pointer<TView> view;
-  final Pointer<TViewer> viewer;
-  final Pointer<TEngine> engine;
+  final FFIFilamentApp app;
+
   FFIRenderTarget? renderTarget;
 
-  FFIView(this.view, this.viewer, this.engine) {
+  FFIView(this.view, this.app) {
     final renderTargetPtr = View_getRenderTarget(view);
     if (renderTargetPtr != nullptr) {
-      renderTarget = FFIRenderTarget(
-        renderTargetPtr,
-        viewer,
-        engine
-      );
+      renderTarget = FFIRenderTarget(renderTargetPtr, app);
     }
   }
 
@@ -56,10 +52,9 @@ class FFIView extends View {
 
   @override
   Future<Camera> getCamera() async {
-    final engine = Viewer_getEngine(viewer);
-    final transformManager = Engine_getTransformManager(engine);
+    final transformManager = Engine_getTransformManager(app.engine);
     final cameraPtr = View_getCamera(view);
-    return FFICamera(cameraPtr, engine, transformManager);
+    return FFICamera(cameraPtr, app.engine, transformManager);
   }
 
   @override
@@ -73,7 +68,7 @@ class FFIView extends View {
   }
 
   Future setRenderable(bool renderable, FFISwapChain swapChain) async {
-    Viewer_setViewRenderable(viewer, swapChain.swapChain, view, renderable);
+    throw UnimplementedError();
   }
 
   @override
@@ -90,8 +85,7 @@ class FFIView extends View {
 
   @override
   Future setToneMapper(ToneMapper mapper) async {
-    final engine = await Viewer_getEngine(viewer);
-    View_setToneMappingRenderThread(view, engine, mapper.index);
+    View_setToneMappingRenderThread(view, app.engine, mapper.index);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {
@@ -113,5 +107,9 @@ class FFIView extends View {
   @override
   Future setRenderQuality(QualityLevel quality) async {
     View_setRenderQuality(view, TQualityLevel.values[quality.index]);
+  }
+
+  Future setScene(covariant FFIScene scene) async {
+    await withVoidCallback((cb) => View_setScene(view, scene.scene));
   }
 }

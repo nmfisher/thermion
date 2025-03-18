@@ -21,10 +21,11 @@ enum TBackend {
     BACKEND_NOOP = 4,     //!< Selects the no-op driver for testing purposes.
 };
 
-EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(TBackend backend);
+EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(TBackend backend, void* platform, void* sharedContext, uint8_t stereoscopicEyeCount, bool disableHandleUseAfterFreeCheck);
 EMSCRIPTEN_KEEPALIVE TRenderer *Engine_createRenderer(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createSwapChain(TEngine *tEngine, void *window, uint64_t flags);
 EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createHeadlessSwapChain(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags);
+EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChain(TEngine *tEngine, TSwapChain *tSwapChain);
 
 EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine* tEngine);
 EMSCRIPTEN_KEEPALIVE TView *Engine_createView(TEngine *tEngine);

@@ -111,6 +111,12 @@ EMSCRIPTEN_KEEPALIVE TMaterialInstance *GltfAssetLoader_getMaterialInstance(TRen
     return reinterpret_cast<TMaterialInstance*>(mi);
 }
 
+EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGltfAssetLoader *tAssetLoader) {
+    auto *assetLoader = reinterpret_cast<gltfio::AssetLoader>(tAssetLoader);
+    auto materialProvider = assetLoader->getMaterialProvider();
+    return reinterpret_cast<TMaterialProvider *>(&materialProvider);
+}
+
 #ifdef __cplusplus
     }
 }

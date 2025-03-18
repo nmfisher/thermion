@@ -1,0 +1,38 @@
+#ifdef _WIN32
+#include "ThermionWin32.h"
+#endif
+
+#include <thread>
+#include <functional>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+
+#include "filament/LightManager.h"
+#include "Log.hpp"
+
+using namespace thermion;
+
+extern "C"
+{
+#include "c_api/TRenderTicker.hpp"
+
+EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TRenderer *tRenderer, TSceneManager *tSceneManager) {
+    auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
+    auto *sceneManager = reinterpret_cast<thermion::SceneManager *>(tSceneManager);
+    auto *renderTicker = new RenderTicker(renderer, sceneManager);
+    return reinterpret_cast<TRenderTicker *>(renderTicker);
+}
+
+EMSCRIPTEN_KEEPALIVE void RenderTicker_render(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos) {
+    auto *renderTicker = reinterpret_cast<RenderTicker *>
+    renderTicker->render(frameTimeInNanos);
+}
+
+EMSCRIPTEN_KEEPALIVE void RenderTicker_setRenderable(TRenderTicker *tRenderTicker, TSwapChain *swapChain, TView **views, uint8_t numViews) {
+    auto *renderTicker = reinterpret_cast<RenderTicker *>
+    renderTicker->setRenderable(swapChain, views, numViews);
+}
+
+}

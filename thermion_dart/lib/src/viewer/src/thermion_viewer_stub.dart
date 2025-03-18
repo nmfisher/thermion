@@ -313,12 +313,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future setBloom(double bloom) {
-    // TODO: implement setBloom
-    throw UnimplementedError();
-  }
-
-  @override
   Future setBoneTransform(
       ThermionEntity entity, int boneIndex, Matrix4 transform,
       {int skinIndex = 0}) {
@@ -769,12 +763,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future<RenderTarget> createRenderTarget(int width, int height, int textureHandle) {
-    // TODO: implement createRenderTarget
-    throw UnimplementedError();
-  }
-  
-  @override
   Future setRenderTarget(covariant RenderTarget renderTarget) {
     // TODO: implement setRenderTarget
     throw UnimplementedError();
@@ -799,13 +787,7 @@ class ThermionViewerStub extends ThermionViewer {
     // TODO: implement createHeadlessSwapChain
     throw UnimplementedError();
   }
-  
-  @override
-  Future<Uint8List> capture({covariant SwapChain? swapChain, covariant View? view, covariant RenderTarget? renderTarget}) {
-    // TODO: implement capture
-    throw UnimplementedError();
-  }
-  
+
   @override
   Future<SwapChain> createSwapChain(handle) {
     // TODO: implement createSwapChain
@@ -1087,6 +1069,88 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling=false}) {
     // TODO: implement setParent
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<LinearImage> createImage(int width, int height, int channels) {
+    // TODO: implement createImage
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<Texture> createTexture(int width, int height, {int depth = 1, int levels = 1, TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D, TextureFormat textureFormat = TextureFormat.RGBA32F}) {
+    // TODO: implement createTexture
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<TextureSampler> createTextureSampler({TextureMinFilter minFilter = TextureMinFilter.LINEAR, TextureMagFilter magFilter = TextureMagFilter.LINEAR, TextureWrapMode wrapS = TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode wrapT = TextureWrapMode.CLAMP_TO_EDGE, TextureWrapMode wrapR = TextureWrapMode.CLAMP_TO_EDGE, double anisotropy = 0.0, TextureCompareMode compareMode = TextureCompareMode.NONE, TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL}) {
+    // TODO: implement createTextureSampler
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<LinearImage> decodeImage(Uint8List data) {
+    // TODO: implement decodeImage
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future destroyCamera(covariant Camera camera) {
+    // TODO: implement destroyCamera
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<bool> isCastShadowsEnabled(ThermionEntity entity) {
+    // TODO: implement isCastShadowsEnabled
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<bool> isReceiveShadowsEnabled(ThermionEntity entity) {
+    // TODO: implement isReceiveShadowsEnabled
+    throw UnimplementedError();
+  }
+  
+  @override
+  // TODO: implement msPerFrame
+  double get msPerFrame => throw UnimplementedError();
+  
+  @override
+  Future setCastShadows(ThermionEntity entity, bool castShadows) {
+    // TODO: implement setCastShadows
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setClearOptions(Vector4 clearColor, int clearStencil, bool clear, bool discard) {
+    // TODO: implement setClearOptions
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setReceiveShadows(ThermionEntity entity, bool receiveShadows) {
+    // TODO: implement setReceiveShadows
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<List<Uint8List>> capture(covariant List<({RenderTarget? renderTarget, SwapChain? swapChain, View view})> targets) {
+    // TODO: implement capture
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<RenderTarget> createRenderTarget(int width, int height, {int? colorTextureHandle, int? depthTextureHandle}) {
+    // TODO: implement createRenderTarget
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future setBloom(bool enabled, double strength) {
+    // TODO: implement setBloom
     throw UnimplementedError();
   }
 

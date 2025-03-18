@@ -1,5 +1,7 @@
 import 'dart:ffi';
 
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import '../../../../utils/src/matrix.dart';
@@ -8,11 +10,10 @@ import 'thermion_dart.g.dart' as g;
 
 class FFICamera extends Camera {
   final Pointer<g.TCamera> camera;
-  final Pointer<g.TEngine> engine;
-  final Pointer<g.TTransformManager> transformManager;
+  final FFIFilamentApp app;
   late ThermionEntity _entity;
 
-  FFICamera(this.camera, this.engine, this.transformManager) {
+  FFICamera(this.camera, this.app) {
     _entity = g.Camera_getEntity(camera);
   }
 
@@ -30,7 +31,8 @@ class FFICamera extends Camera {
   @override
   Future setTransform(Matrix4 transform) async {
     var entity = g.Camera_getEntity(camera);
-    g.TransformManager_setTransform(transformManager, entity, matrix4ToDouble4x4(transform));
+    g.TransformManager_setTransform(
+        app.transformManager, entity, matrix4ToDouble4x4(transform));
   }
 
   @override
@@ -84,9 +86,8 @@ class FFICamera extends Camera {
 
   @override
   Future setProjection(Projection projection, double left, double right,
-      double bottom, double top, double near, double far) async  {
+      double bottom, double top, double near, double far) async {
     var pType = g.Projection.values[projection.index];
-    g.Camera_setProjection(camera, pType, left,
-        right, bottom, top, near, far);
+    g.Camera_setProjection(camera, pType, left, right, bottom, top, near, far);
   }
 }

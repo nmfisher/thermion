@@ -23,6 +23,13 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     TPixelDataType tPixelDataType,
     uint8_t *out
 );
+EMSCRIPTEN_KEEPALIVE void Renderer_setFrameInterval(
+    TRenderer *tRenderer,
+    float headRoomRatio,
+    float scaleRate,
+    uint8_t history, 
+    uint8_t interval 
+);
 
 
 

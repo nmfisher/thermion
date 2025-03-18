@@ -44,9 +44,17 @@ namespace thermion
         uint64_t TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER = filament::backend::SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
         uint64_t TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER = filament::backend::SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
 
-        EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(TBackend backend)
+        EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(
+            TBackend backend,
+            void* platform,
+            void* sharedContext,
+            uint8_t stereoscopicEyeCount,
+            bool disableHandleUseAfterFreeCheck)
         {
-            auto *engine = filament::Engine::create(static_cast<filament::Engine::Backend>(backend));
+            filament::Engine::Config config;
+            config.stereoscopicEyeCount = stereoscopicEyeCount;
+            config.disableHandleUseAfterFreeCheck = disableHandleUseAfterFreeCheck;
+            auto *engine = filament::Engine::create(static_cast<filament::Engine::Backend>(backend), platform, sharedContext, &config);
             return reinterpret_cast<TEngine *>(engine);
         }
 
@@ -69,6 +77,12 @@ namespace thermion
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *swapChain = engine->createSwapChain(width, height, flags);
             return reinterpret_cast<TSwapChain *>(swapChain);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChain(TEngine *tEngine, TSwapChain *tSwapChain) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *swapChain = reinterpret_cast<SwapChain *>(tSwapChain);
+            engine->destroy(swapChain);
         }
 
         EMSCRIPTEN_KEEPALIVE TView *Engine_createView(TEngine *tEngine)
@@ -279,12 +293,21 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroySkybox(TEngine *tEngine, TSkybox *tSkybox) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *skybox = reinterpret_cast<filament::Skybox *>(tSkybox);
+            if(skybox->getTexture()) {
+                engine->destroy(skybox->getTexture());
+            }
             engine->destroy(skybox);
         }
         
         EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLight(TEngine *tEngine, TIndirectLight *tIndirectLight) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
             auto *indirectLight = reinterpret_cast<filament::IndirectLight *>(tIndirectLight);
+            if(indirectLight->getReflectionsTexture()) {
+                engine->destroy(indirectLight->getReflectionsTexture());
+            }
+            if(indirectLight->getIrradianceTexture()) {
+                engine->destroy(indirectLight->getIrradianceTexture());
+            }
             engine->destroy(indirectLight);
         }
 

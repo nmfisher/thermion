@@ -1,3 +1,5 @@
+import 'package:vector_math/vector_math_64.dart';
+
 import '../../../viewer.dart';
 
 class ThermionWasmMaterialInstance extends MaterialInstance {
@@ -92,6 +94,54 @@ class ThermionWasmMaterialInstance extends MaterialInstance {
   @override
   Future setStencilWriteEnabled(bool enabled) {
     // TODO: implement setStencilWriteEnabled
+    throw UnimplementedError();
+  }
+
+  @override
+  Future dispose() {
+    // TODO: implement dispose
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setParameterBool(String name, bool value) {
+    // TODO: implement setParameterBool
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setParameterFloat3(String name, double x, double y, double z) {
+    // TODO: implement setParameterFloat3
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setParameterFloat3Array(String name, List<Vector3> data) {
+    // TODO: implement setParameterFloat3Array
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setParameterTexture(String name, covariant Texture texture, covariant TextureSampler sampler) {
+    // TODO: implement setParameterTexture
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setStencilReadMask(int mask) {
+    // TODO: implement setStencilReadMask
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setStencilWriteMask(int mask) {
+    // TODO: implement setStencilWriteMask
+    throw UnimplementedError();
+  }
+
+  @override
+  Future setTransparencyMode(TransparencyMode mode) {
+    // TODO: implement setTransparencyMode
     throw UnimplementedError();
   }
 }

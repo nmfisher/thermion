@@ -121,7 +121,7 @@
 //         [context!, loader, null, uberArchivePath?.toJS].toJS,
 //         null) as JSNumber;
 //     await createSwapChain(width.ceil(), height.ceil());
-//     updateViewportAndCameraProjection(width.ceil(), height.ceil(), 1.0);
+//     setViewportAndCameraProjection(width.ceil(), height.ceil(), 1.0);
 //     _sceneManager = _module!.ccall("get_scene_manager", "void*",
 //         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
 
@@ -177,7 +177,7 @@
 //         [_viewer!].toJS, null);
 //   }
 
-//   void updateViewportAndCameraProjection(
+//   void setViewportAndCameraProjection(
 //       int width, int height, double scaleFactor) {
 //     if (width == 0 || height == 0) {
 //       throw Exception("Width/height must be greater than zero");

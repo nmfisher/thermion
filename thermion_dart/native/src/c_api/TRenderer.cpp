@@ -61,6 +61,22 @@ EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneView(TRenderer *tRenderer, TV
     renderer->renderStandaloneView(view);
 }
 
+EMSCRIPTEN_KEEPALIVE void Renderer_setFrameRateOptions(
+    TRenderer *tRenderer, 
+    float headRoomRatio,
+    float scaleRate,
+    uint8_t history, 
+    uint8_t interval 
+) {
+    auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
+    filament::Renderer::FrameRateOptions fro;
+    fro.headRoomRatio = headRoomRatio;
+    fro.scaleRate = scaleRate;
+    fro.interval = interval;
+    fro.interval = interval;
+    renderer->setFrameRateOptions(fro);
+}
+
 class CaptureCallbackHandler : public filament::backend::CallbackHandler
 {
   void post(void *user, Callback callback)
