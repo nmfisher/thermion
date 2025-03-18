@@ -10,6 +10,13 @@ extern "C"
 
 #include "c_api/TAnimationManager.h"
 
+    EMSCRIPTEN_KEEPALIVE TAnimationManager *AnimationManager_create(TEngine *tEngine, TScene *tScene) {
+        auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+        auto *scene = reinterpret_cast<filament::Scene *>(tScene);
+        auto animationManager = new AnimationManager(engine, scene);
+        return reinterpret_cast<TAnimationManager *>(animationManager);
+    }
+
     EMSCRIPTEN_KEEPALIVE void AnimationManager_addAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId)
     {
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);

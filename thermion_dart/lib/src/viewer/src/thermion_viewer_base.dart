@@ -13,7 +13,7 @@ import 'package:animation_tools_dart/animation_tools_dart.dart';
 ///
 /// A high-level interface for interacting with a 3D scene.
 /// This broadly maps to a single scene/view
-/// 
+///
 abstract class ThermionViewer {
   
   ///
@@ -40,8 +40,9 @@ abstract class ThermionViewer {
   /// Render a single frame and return the captured image as a pixel buffer.
   ///
   Future<List<Uint8List>> capture(
-      covariant List<({View view, SwapChain? swapChain, RenderTarget? renderTarget})> targets);
-
+      covariant List<
+              ({View view, SwapChain? swapChain, RenderTarget? renderTarget})>
+          targets);
 
   ///
   ///
@@ -107,12 +108,6 @@ abstract class ThermionViewer {
   /// Only one indirect light can be active at any given time; if an indirect light has already been loaded, it will be replaced.
   ///
   Future loadIbl(String lightingPath, {double intensity = 30000});
-
-  ///
-  /// Creates a indirect light with the given color.
-  /// Only one indirect light can be active at any given time; if an indirect light has already been loaded, it will be replaced.
-  ///
-  Future createIbl(double r, double g, double b, double intensity);
 
   ///
   /// Rotates the IBL & skybox.

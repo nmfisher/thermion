@@ -8,7 +8,7 @@ export 'gltf.dart';
 
 export 'light_options.dart';
 
-// repre handle that can be safely passed back to the rendering layer to manipulate an Entity
+// handle manipulate an Entity
 typedef ThermionEntity = int;
 
 abstract class ThermionAsset {
@@ -66,15 +66,8 @@ abstract class ThermionAsset {
   ///
   Future<List<ThermionAsset>> getInstances();
 
-  ///
-  /// Adds all entities (renderable, lights and cameras) under [asset] to the scene.
-  ///
-  Future addToScene();
-
-  ///
-  /// Removes all entities (renderable, lights and cameras) under [asset] from the scene.
-  ///
-  Future removeFromScene();
+  Future setCastShadows(bool castShadows);
+  Future setReceiveShadows(bool castShadows);
 }
 
 enum Axis {

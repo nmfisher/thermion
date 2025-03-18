@@ -16,6 +16,7 @@ extern "C"
 
 
 EMSCRIPTEN_KEEPALIVE void Scene_addEntity(TScene* tScene, EntityId entityId);
+EMSCRIPTEN_KEEPALIVE void Scene_removeEntity(TScene* tScene, EntityId entityId);
 EMSCRIPTEN_KEEPALIVE void Scene_setSkybox(TScene* tScene, TSkybox *skybox);
 EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLight(TScene* tScene, TIndirectLight *tIndirectLight);
 EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAsset(TScene* tScene, TFilamentAsset *asset);

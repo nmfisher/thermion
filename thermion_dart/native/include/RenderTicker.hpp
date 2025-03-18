@@ -1,25 +1,31 @@
 #pragma once
 
-#include <filament/Engine.h>
-#include <filament/Renderer.h>
-#include <filament/View.h>
-
-#include <math/vec3.h>
-#include <math/vec4.h>
-#include <math/mat3.h>
-#include <math/norm.h>
-
-#include <fstream>
-#include <iostream>
-#include <string>
 #include <chrono>
+#include <mutex>
+#include <vector>
+#include <map>
 
-#include "scene/SceneManager.hpp"
+#include <filament/Renderer.h>
+#include <filament/SwapChain.h>
+#include <filament/View.h>
+#include <filament/Viewport.h>
+
+#include <filament/Camera.h>
+#include <filament/Engine.h>
+#include <filament/IndexBuffer.h>
+#include <filament/Material.h>
+#include <filament/MaterialInstance.h>
+#include <filament/RenderableManager.h>
+#include <filament/Scene.h>
+#include <filament/TransformManager.h>
+#include <filament/VertexBuffer.h>
+
+#include "scene/AnimationManager.hpp"
 
 namespace thermion
 {
 
-    typedef std::chrono::time_point<std::chrono::high_resolution_clock> time_point_t;
+    typedef std::chrono::time_point time_point_t;
 
     using namespace std::chrono;
 
@@ -27,20 +33,24 @@ namespace thermion
     {
 
     public:
-        RenderTicker(filament::Renderer renderer, thermion::SceneManager sceneManager) : mRenderer(renderer), mSceneManager(sceneManager) { }
+        RenderTicker(filament::Renderer *renderer) : mRenderer(renderer) { }
         ~RenderTicker();
         
         void render(
             uint64_t frameTimeInNanos
         );
-        void setRenderable(SwapChain *swapChain, View **view, uint8_t numViews);
+        void setRenderable(filament::SwapChain *swapChain, filament::View **view, uint8_t numViews);
+
+        void addAnimationManager(AnimationManager* animationManager);
+        void removeAnimationManager(AnimationManager* animationManager);
+
 
     private:
         std::mutex mMutex;
-        Renderer *mRenderer = nullptr;
-        SceneManager *mSceneManager = nullptr;
-        std::vector<SwapChain*> mSwapChains;
-        std::map<SwapChain*, std::vector<View*>> mRenderable;
+        filament::Renderer *mRenderer = nullptr;
+        std::vector<AnimationManager*> mAnimationManagers;
+        std::vector<filament::SwapChain*> mSwapChains;
+        std::map<filament::SwapChain*, std::vector<filament::View*>> mRenderable;
 
     };
 

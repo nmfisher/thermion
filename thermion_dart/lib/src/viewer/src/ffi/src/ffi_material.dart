@@ -1,28 +1,28 @@
 import 'dart:typed_data';
 
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 class FFIMaterial extends Material {
-  final Pointer<TEngine> engine;
-  final Pointer<TSceneManager> sceneManager;
+  final FFIFilamentApp app;
   final Pointer<TMaterial> pointer;
 
-  FFIMaterial(this.pointer, this.engine, this.sceneManager);
+  FFIMaterial(this.pointer, this.app);
 
   @override
   Future<MaterialInstance> createInstance() async {
     var ptr = await withPointerCallback<TMaterialInstance>((cb) {
       Material_createInstanceRenderThread(pointer, cb);
     });
-    return FFIMaterialInstance(ptr, sceneManager);
+    return FFIMaterialInstance(ptr, this.app);
   }
 
-  Future dispose() async {
+  Future destroy() async {
     await withVoidCallback((cb) {
-      Engine_destroyMaterialRenderThread(engine, pointer, cb);
+      Engine_destroyMaterialRenderThread(app.engine, pointer, cb);
     });
   }
 
@@ -35,9 +35,9 @@ class FFIMaterial extends Material {
 
 class FFIMaterialInstance extends MaterialInstance {
   final Pointer<TMaterialInstance> pointer;
-  final Pointer<TSceneManager> sceneManager;
+  final FFIFilamentApp app;
 
-  FFIMaterialInstance(this.pointer, this.sceneManager) {
+  FFIMaterialInstance(this.pointer, this.app) {
     if (pointer == nullptr) {
       throw Exception("MaterialInstance not found");
     }
@@ -169,10 +169,9 @@ class FFIMaterialInstance extends MaterialInstance {
     MaterialInstance_setStencilWriteMask(pointer, mask);
   }
 
-  Future dispose() async {
+  Future destroy() async {
     await withVoidCallback((cb) {
-      SceneManager_destroyMaterialInstanceRenderThread(
-          sceneManager, pointer, cb);
+      Engine_destroyMaterialInstanceRenderThread(app.engine, this.pointer, cb);
     });
   }
 

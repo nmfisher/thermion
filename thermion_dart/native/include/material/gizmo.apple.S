@@ -8,5 +8,5 @@ _GIZMO_PACKAGE:
 _GIZMO_GIZMO_OFFSET:
     .int 0
 _GIZMO_GIZMO_SIZE:
-    .int 45584
+    .int 45867
 

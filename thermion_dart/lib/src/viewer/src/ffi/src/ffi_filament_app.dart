@@ -26,6 +26,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TRenderableManager> renderableManager;
   final Pointer<TMaterialProvider> ubershaderMaterialProvider;
   final Pointer<TRenderTicker> renderTicker;
+  final Pointer<TNameComponentManager> nameComponentManager;
 
   FFIFilamentApp(
       this.engine,
@@ -36,7 +37,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       this.lightManager,
       this.renderableManager,
       this.ubershaderMaterialProvider,
-      this.renderTicker)
+      this.renderTicker,
+      this.nameComponentManager)
       : super(
             engine: engine,
             gltfAssetLoader: gltfAssetLoader,
@@ -51,7 +53,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (_instance == null) {
       RenderLoop_destroy();
       RenderLoop_create();
-      
+
       final engine = await withPointerCallback<TEngine>((cb) =>
           Engine_createRenderThread(
               TBackend.values[config.backend.index].index,
@@ -76,7 +78,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final renderableManager = Engine_getRenderableManager(engine);
 
       final renderTicker = await withPointerCallback<TRenderTicker>(
-          (cb) => RenderTicker_create());
+          (cb) => RenderTicker_create(renderer));
+
+      final nameComponentManager = NameComponentManager_create();
 
       _instance = FFIFilamentApp(
           engine,
@@ -86,7 +90,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           transformManager,
           lightManager,
           renderableManager,
-          ubershaderMaterialProvider);
+          ubershaderMaterialProvider,
+          renderTicker, nameComponentManager);
     }
     return _instance!;
   }

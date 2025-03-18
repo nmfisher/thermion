@@ -18,11 +18,22 @@ extern "C"
 {
 #include "c_api/TRenderTicker.hpp"
 
-EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TRenderer *tRenderer, TSceneManager *tSceneManager) {
+EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TRenderer *tRenderer) {
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
-    auto *sceneManager = reinterpret_cast<thermion::SceneManager *>(tSceneManager);
-    auto *renderTicker = new RenderTicker(renderer, sceneManager);
+    auto *renderTicker = new RenderTicker(renderer);
     return reinterpret_cast<TRenderTicker *>(renderTicker);
+}
+
+EMSCRIPTEN_KEEPALIVE void RenderTicker_addAnimationManager(TRenderTicker *tRenderTicker, TAnimationManager *tAnimationManager) {
+    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
+    auto *animationManager = reinterpret_cast<thermion::AnimationManager *>(tAnimationManager);
+    renderTicker->addAnimationManager(animationManager);
+}
+
+EMSCRIPTEN_KEEPALIVE void RenderTicker_removeAnimationManager(TRenderTicker *tRenderTicker, TAnimationManager *tAnimationManager) {
+    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
+    auto *animationManager = reinterpret_cast<thermion::AnimationManager *>(tAnimationManager);
+    renderTicker->removeAnimationManager(animationManager);
 }
 
 EMSCRIPTEN_KEEPALIVE void RenderTicker_render(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos) {

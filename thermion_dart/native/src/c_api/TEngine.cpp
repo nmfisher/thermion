@@ -162,6 +162,12 @@ namespace thermion
             engine->destroy(material);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstance(TEngine *tEngine, TMaterialInstance *tMaterialInstance) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *mi = reinterpret_cast<MaterialInstance *>(tMaterialInstance);
+            engine->destroy(mi);
+        }
+
         EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTexture)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);

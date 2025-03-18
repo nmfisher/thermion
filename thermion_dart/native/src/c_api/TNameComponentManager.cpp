@@ -8,6 +8,12 @@ extern "C"
 {
 #endif
 
+	EMSCRIPTEN_KEEPALIVE TNameComponentManager *NameComponentManager_create()
+	{
+		auto *ncm = new utils::NameComponentManager(utils::EntityManager::get());
+		return reinterpret_cast<TNameComponentManager *>(ncm);
+	}
+
 	EMSCRIPTEN_KEEPALIVE const char *NameComponentManager_getName(TNameComponentManager *tNameComponentManager, EntityId entity)
 	{
 		auto ncm = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);

@@ -97,7 +97,7 @@ enum TransparencyMode {
 abstract class Material {
   Future<MaterialInstance> createInstance();
   Future<bool> hasParameter(String propertyName);
-  Future dispose();
+  Future destroy();
 }
 
 abstract class MaterialInstance {
@@ -146,5 +146,5 @@ abstract class MaterialInstance {
 
   Future setTransparencyMode(TransparencyMode mode);
 
-  Future dispose();
+  Future destroy();
 }

@@ -20,6 +20,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos,);
         // EMSCRIPTEN_KEEPALIVE void RenderLoop_addTask(TRenderLoop* tRenderLoop, void (*task)());
 
+        EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *));
+
         EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
             TBackend backend,
             void* platform,
@@ -36,6 +38,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *));
         EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)());
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(TEngine *engine, 

@@ -120,5 +120,16 @@ namespace thermion
             }
             return renderableManager->getFogEnabled(renderableInstance);
         }
+
+        EMSCRIPTEN_KEEPALIVE Aabb3 RenderableManager_getAabb(TRenderableManager *tRenderableManager, EntityId entityId) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            auto renderableInstance = renderableManager->getInstance(entity);
+            if (!renderableInstance.isValid()) {
+                return false;
+            }
+            auto box = rm.getAxisAlignedBoundingBox(instance);
+            return Aabb3{box.center.x, box.center.y, box.center.z, box.halfExtent.x, box.halfExtent.y, box.halfExtent.z};            
+        }
     }
 }

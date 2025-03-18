@@ -1,10 +1,9 @@
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/scene.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
 import 'callbacks.dart';
-import 'ffi_camera.dart';
+
 
 class FFIScene extends Scene {
   final Pointer<TScene> scene;
@@ -12,8 +11,15 @@ class FFIScene extends Scene {
 
   FFIRenderTarget? renderTarget;
 
-  FFIScene(this.scene, this.app) {
-    
+  FFIScene(this.scene, this.app) {}
+
+  @override
+  Future add(covariant FFIAsset asset) async {
+    SceneAsset_addToScene(asset.asset, scene);
   }
 
+  @override
+  Future remove(covariant FFIAsset asset) async {
+    SceneAsset_removeFromScene(asset.asset, scene);
+  }
 }

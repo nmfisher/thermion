@@ -1,9 +1,13 @@
+
 #include <filament/LightManager.h>
+
 #include <utils/Entity.h>
+#include <utils/EntityManager.h>
 
 #include "c_api/APIExport.h"
-#include "Log.hpp"
 #include "c_api/TLightManager.h"
+
+#include "Log.hpp"
 
 extern "C" {
 
@@ -27,8 +31,9 @@ EMSCRIPTEN_KEEPALIVE void LightManager_setDirection(TLightManager *tLightManager
     lightManager->setDirection(instance, filament::math::float3 { static_cast<float>(x), static_cast<float>(y), static_cast<float>(z) });
 }
 
-EMSCRIPTEN_KEEPALIVE int LightManager_createLight(TLightManager *tLightManager, EntityId entity, int type) {
-    auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+EMSCRIPTEN_KEEPALIVE int LightManager_createLight(TEngine *tEngine, TLightManager *tLightManager, TLightType type) {
+    auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+    auto *lightManager = reinterpret_cast<filament::LightManager*>(tLightManager);
     filament::LightManager::Type lightType;
     
     switch (type) {
@@ -41,9 +46,12 @@ EMSCRIPTEN_KEEPALIVE int LightManager_createLight(TLightManager *tLightManager, 
     }
 
     filament::LightManager::Builder builder(lightType);
-    return false;
-    // auto result = builder.build(*lm->getEngine(), utils::Entity::import(entity));
-    // return result == filament::LightManager::Result::Success ? 0 : -1;
+    auto entity = utils::EntityManager::create();
+    auto result = builder.build(*engine, utils::Entity::import(entity));
+    if(result != filament::LightManager::Result::Success) { 
+        Log("Failed to create light");
+    }
+    return entity;
 }
 
 EMSCRIPTEN_KEEPALIVE void LightManager_destroyLight(TLightManager *tLightManager, EntityId entity) {
@@ -51,11 +59,13 @@ EMSCRIPTEN_KEEPALIVE void LightManager_destroyLight(TLightManager *tLightManager
     lm->destroy(utils::Entity::import(entity));
 }
 
-EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, double r, double g, double b) {
+EMSCRIPTEN_KEEPALIVE void LightManager_setColor(TLightManager *tLightManager, EntityId entity, float colorTemperature) {
     auto* lm = reinterpret_cast<filament::LightManager*>(tLightManager);
+    auto color = filament::Color::cct(colorTemperature);
+    
     auto instance = lm->getInstance(utils::Entity::import(entity));
     if (instance.isValid()) {
-        lm->setColor(instance, {static_cast<float>(r), static_cast<float>(g), static_cast<float>(b)});
+        lm->setColor(instance, color);
     }
 }
 

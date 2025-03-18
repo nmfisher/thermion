@@ -24,7 +24,29 @@ extern "C"
         TMaterialInstance **materialInstances,
 		int materialInstanceCount
     );
+    
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_loadGlb(
+        TGltfAssetLoader *tAssetLoader,
+        TGltfResourceLoader *tResourceLoader,
+        TEngine *tEngine,
+        TNameComponentManager *tNameComponentManager,
+        uint8_t *data,
+        size_t length,
+        size_t numInstances
+    );
+
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_loadGltf(
+        TGltfAssetLoader *tAssetLoader,
+        TGltfResourceLoader *tResourceLoader,
+        TEngine *tEngine,
+        TNameComponentManager *tNameComponentManager,
+        uint8_t *data,
+        size_t length,
+        size_t numInstances
+    );
+    
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene);
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromScene(TSceneAsset *tSceneAsset, TScene *tScene);
     EMSCRIPTEN_KEEPALIVE EntityId SceneAsset_getEntity(TSceneAsset *tSceneAsset);
 	EMSCRIPTEN_KEEPALIVE int SceneAsset_getChildEntityCount(TSceneAsset* tSceneAsset);
     EMSCRIPTEN_KEEPALIVE void SceneAsset_getChildEntities(TSceneAsset* tSceneAsset, EntityId *out);

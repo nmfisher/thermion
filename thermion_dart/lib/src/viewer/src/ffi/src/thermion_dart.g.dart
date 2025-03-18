@@ -327,13 +327,21 @@ external void LightManager_setDirection(
   double z,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, EntityId, ffi.Int)>(
-    isLeaf: true)
-external int LightManager_createLight(
+@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, ffi.UnsignedInt)>(
+    symbol: "LightManager_createLight", isLeaf: true)
+external int _LightManager_createLight(
   ffi.Pointer<TLightManager> tLightManager,
-  int entity,
-  int type,
+  int tLightTtype,
 );
+
+int LightManager_createLight(
+  ffi.Pointer<TLightManager> tLightManager,
+  TLightType tLightTtype,
+) =>
+    _LightManager_createLight(
+      tLightManager,
+      tLightTtype.value,
+    );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId)>(
     isLeaf: true)
@@ -342,15 +350,12 @@ external void LightManager_destroyLight(
   int entity,
 );
 
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Double,
-        ffi.Double, ffi.Double)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TLightManager>, EntityId, ffi.Float)>(
+    isLeaf: true)
 external void LightManager_setColor(
   ffi.Pointer<TLightManager> tLightManager,
   int entity,
-  double r,
-  double g,
-  double b,
+  double colorTemperature,
 );
 
 @ffi.Native<
@@ -995,12 +1000,23 @@ external void View_pick(
   PickCallback callback,
 );
 
+@ffi.Native<ffi.Pointer<TNameComponentManager> Function()>(isLeaf: true)
+external ffi.Pointer<TNameComponentManager> NameComponentManager_create();
+
 @ffi.Native<
     ffi.Pointer<ffi.Char> Function(
         ffi.Pointer<TNameComponentManager>, EntityId)>(isLeaf: true)
 external ffi.Pointer<ffi.Char> NameComponentManager_getName(
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   int entity,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TIndirectLight>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+external void IndirectLight_setRotation(
+  ffi.Pointer<TIndirectLight> tIndirectLight,
+  ffi.Pointer<ffi.Double> rotation,
 );
 
 @ffi.Native<
@@ -1063,6 +1079,12 @@ external void RenderTarget_destroy(
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, EntityId)>(isLeaf: true)
 external void Scene_addEntity(
+  ffi.Pointer<TScene> tScene,
+  int entityId,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TScene>, EntityId)>(isLeaf: true)
+external void Scene_removeEntity(
   ffi.Pointer<TScene> tScene,
   int entityId,
 );
@@ -1383,12 +1405,26 @@ external void Renderer_setFrameInterval(
   int interval,
 );
 
-@ffi.Native<
-    ffi.Pointer<TRenderTicker> Function(
-        ffi.Pointer<TRenderer>, ffi.Pointer<TSceneManager>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TRenderTicker> Function(ffi.Pointer<TRenderer>)>(
+    isLeaf: true)
 external ffi.Pointer<TRenderTicker> RenderTicker_create(
   ffi.Pointer<TRenderer> tRenderer,
-  ffi.Pointer<TSceneManager> tSceneManager,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderTicker>,
+        ffi.Pointer<TAnimationManager>)>(isLeaf: true)
+external void RenderTicker_addAnimationManager(
+  ffi.Pointer<TRenderTicker> tRenderTicker,
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderTicker>,
+        ffi.Pointer<TAnimationManager>)>(isLeaf: true)
+external void RenderTicker_removeAnimationManager(
+  ffi.Pointer<TRenderTicker> tRenderTicker,
+  ffi.Pointer<TAnimationManager> tAnimationManager,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TRenderTicker>, ffi.Uint64)>(
@@ -1419,6 +1455,22 @@ external void RenderLoop_destroy();
 external void RenderTicker_renderRenderThread(
   ffi.Pointer<TRenderTicker> tRenderTicker,
   int frameTimeInNanos,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TScene>,
+        ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Void Function(
+                    ffi.Pointer<TAnimationManager>)>>)>(isLeaf: true)
+external void AnimationManager_createRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TScene> tScene,
+  ffi.Pointer<
+          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TAnimationManager>)>>
+      onComplete,
 );
 
 @ffi.Native<
@@ -1546,6 +1598,15 @@ external void Engine_destroySwapChainRenderThread(
 external void Engine_destroyMaterialRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TMaterial> tMaterial,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TMaterialInstance>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Engine_destroyMaterialInstanceRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
@@ -3182,6 +3243,13 @@ external bool RenderableManager_getFogEnabled(
   int entityId,
 );
 
+@ffi.Native<Aabb3 Function(ffi.Pointer<TRenderableManager>, EntityId)>(
+    isLeaf: true)
+external Aabb3 RenderableManager_getAabb(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  int entityId,
+);
+
 @ffi.Native<
     ffi.Pointer<TEngine> Function(
         ffi.UnsignedInt,
@@ -3324,6 +3392,14 @@ external void Engine_destroyMaterial(
   ffi.Pointer<TMaterial> tMaterial,
 );
 
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TMaterialInstance>)>(isLeaf: true)
+external void Engine_destroyMaterialInstance(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterialInstance> tMaterialInstance,
+);
+
 @ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TScene> Engine_createScene(
   ffi.Pointer<TEngine> tEngine,
@@ -3401,9 +3477,54 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createGeometry(
   int materialInstanceCount,
 );
 
+@ffi.Native<
+    ffi.Pointer<TSceneAsset> Function(
+        ffi.Pointer<TGltfAssetLoader>,
+        ffi.Pointer<TGltfResourceLoader>,
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TNameComponentManager>,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
+        ffi.Size)>(isLeaf: true)
+external ffi.Pointer<TSceneAsset> SceneAsset_loadGlb(
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
+  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+  int numInstances,
+);
+
+@ffi.Native<
+    ffi.Pointer<TSceneAsset> Function(
+        ffi.Pointer<TGltfAssetLoader>,
+        ffi.Pointer<TGltfResourceLoader>,
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TNameComponentManager>,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
+        ffi.Size)>(isLeaf: true)
+external ffi.Pointer<TSceneAsset> SceneAsset_loadGltf(
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
+  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+  int numInstances,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>)>(
     isLeaf: true)
 external void SceneAsset_addToScene(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<TScene> tScene,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, ffi.Pointer<TScene>)>(
+    isLeaf: true)
+external void SceneAsset_removeFromScene(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   ffi.Pointer<TScene> tScene,
 );
@@ -3463,6 +3584,12 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createInstance(
 @ffi.Native<Aabb3 Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
 external Aabb3 SceneAsset_getBoundingBox(
   ffi.Pointer<TSceneAsset> asset,
+);
+
+@ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
+external ffi.Pointer<TAnimationManager> AnimationManager_create(
+  ffi.Pointer<TEngine> tEngine,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>(
@@ -4128,6 +4255,26 @@ enum TTransparencyMode {
         1 => TWO_PASSES_ONE_SIDE,
         2 => TWO_PASSES_TWO_SIDES,
         _ => throw ArgumentError("Unknown value for TTransparencyMode: $value"),
+      };
+}
+
+enum TLightType {
+  LIGHT_TYPE_SUN(0),
+  LIGHT_TYPE_DIRECTIONAL(1),
+  LIGHT_TYPE_POINT(2),
+  LIGHT_TYPE_FOCUSED_SPOT(3),
+  LIGHT_TYPE_SPOT(4);
+
+  final int value;
+  const TLightType(this.value);
+
+  static TLightType fromValue(int value) => switch (value) {
+        0 => LIGHT_TYPE_SUN,
+        1 => LIGHT_TYPE_DIRECTIONAL,
+        2 => LIGHT_TYPE_POINT,
+        3 => LIGHT_TYPE_FOCUSED_SPOT,
+        4 => LIGHT_TYPE_SPOT,
+        _ => throw ArgumentError("Unknown value for TLightType: $value"),
       };
 }
 

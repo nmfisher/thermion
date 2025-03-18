@@ -8,6 +8,8 @@ extern "C"
 {
 #endif
 
+	EMSCRIPTEN_KEEPALIVE TAnimationManager *AnimationManager_create(TEngine *tEngine);
+
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_addAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId);
 
 	EMSCRIPTEN_KEEPALIVE void AnimationManager_removeAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId);

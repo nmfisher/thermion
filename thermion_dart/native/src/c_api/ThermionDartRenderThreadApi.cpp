@@ -683,6 +683,16 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *)) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto *animationManager = AnimationManager_create(tEngine, tScene);
+        callback(animationManager);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
       TAnimationManager *tAnimationManager,
       TSceneAsset *sceneAsset,

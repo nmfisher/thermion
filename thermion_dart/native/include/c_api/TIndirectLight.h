@@ -12,7 +12,7 @@ extern "C"
 {
 #endif
 
-EMSCRIPTEN_KEEPALIVE void IndirectLight_setRotation(TIndirectLight TIndirectLight, double3x3 rotation);
+EMSCRIPTEN_KEEPALIVE void IndirectLight_setRotation(TIndirectLight *tIndirectLight, double *rotation);
 
 #ifdef __cplusplus
 }

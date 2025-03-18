@@ -1,4 +1,10 @@
 
+#include <gltfio/AssetLoader.h>
+#include <gltfio/ResourceLoader.h>
+
+#include <utils/NameComponentManager.h>
+
+#include "c_api/TGltfAssetLoader.h"
 #include "c_api/TSceneAsset.h"
 #include "scene/SceneAsset.hpp"
 #include "scene/GltfSceneAsset.hpp"
@@ -59,10 +65,41 @@ extern "C"
         
     }
 
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_loadGlb(
+        TGltfAssetLoader *tAssetLoader,
+        TGltfResourceLoader *tResourceLoader,
+        TEngine *tEngine,
+        TNameComponentManager *tNameComponentManager,
+        uint8_t *data,
+        size_t length,
+        size_t numInstances
+    ) {
+        auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+        auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
+        auto *tFilamentAsset = GltfAssetLoader_load(tAssetLoader, tResourceLoader, data, length, numInstances);
+        auto *filamentAsset = reinterpret_cast<filament::gltfio::FilamentAsset *>(tFilamentAsset);
+        auto *assetLoader = reinterpret_cast<filament::gltfio::AssetLoader *>(tAssetLoader);
+        auto *resourceLoader = reinterpret_cast<filament::gltfio::ResourceLoader *>(tResourceLoader);
+        auto *sceneAsset = new GltfSceneAsset(
+            filamentAsset,
+            assetLoader,
+            engine,
+            nameComponentManager
+        );
+        return reinterpret_cast<TSceneAsset *>(sceneAsset);
+        
+    }
+
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *scene = reinterpret_cast<Scene*>(tScene);
         asset->addAllEntities(scene);
+    }
+
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromScene(TSceneAsset *tSceneAsset, TScene *tScene) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        auto *scene = reinterpret_cast<Scene*>(tScene);
+        asset->removeAllEntities(scene);
     }
 
     EMSCRIPTEN_KEEPALIVE EntityId SceneAsset_getEntity(TSceneAsset *tSceneAsset) {
