@@ -50,6 +50,10 @@ extern "C"
     }
   }
 
+  EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete)) {
+    _rl->requestFrame(onComplete);
+  }
+
   
   EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, , uint64_t frameTimeInNanos, void (*onComplete)()) {
     std::packaged_task<void()> lambda(

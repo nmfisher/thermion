@@ -152,4 +152,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     return FFIRenderTarget(renderTarget, this);
   }
+
+    // ///
+  // ///
+  // ///
+  // Future<RenderTarget> createRenderTarget(int width, int height,
+  //     {covariant FFITexture? color, covariant FFITexture? depth}) async {
+  //   final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
+  //     RenderTarget_createRenderThread(app.engine, width, height,
+  //         color?.pointer ?? nullptr, depth?.pointer ?? nullptr, cb);
+  //   });
+
+  //   return FFIRenderTarget(renderTarget, app);
+  // }
 }

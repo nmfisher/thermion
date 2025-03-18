@@ -35,7 +35,6 @@ class SceneAsset {
         virtual SceneAsset* getInstanceOwner() = 0;
         virtual void destroyInstance(SceneAsset *instance) = 0;
 
-        
         virtual SceneAsset* createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount) = 0;
 
         virtual MaterialInstance **getMaterialInstances() = 0;
@@ -49,9 +48,6 @@ class SceneAsset {
         virtual size_t getChildEntityCount() = 0;
         virtual const Entity* getChildEntities() = 0;
         virtual Entity findEntityByName(const char* name) = 0;
-
-        virtual void setPriority(RenderableManager& rm, int mask) = 0;
-        virtual void setLayer(RenderableManager& rm, int layer) = 0;
 
         virtual const filament::Aabb getBoundingBox() const = 0;
 

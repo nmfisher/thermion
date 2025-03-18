@@ -32,13 +32,6 @@ namespace thermion
             return reinterpret_cast<TMaterialInstance*>(materialInstance);
         }
 
-        EMSCRIPTEN_KEEPALIVE void RenderableManager_setPriority(TRenderableManager *tRenderableManager, EntityId entityId, int priority) { 
-            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
-            const auto &entity = utils::Entity::import(entityId);
-            auto renderableInstance = renderableManager->getInstance(entity);
-            renderableManager->setPriority(renderableInstance, priority);
-        }
-
         EMSCRIPTEN_KEEPALIVE bool RenderableManager_isRenderable(TRenderableManager *tRenderableManager, EntityId entityId) {
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
@@ -131,5 +124,29 @@ namespace thermion
             auto box = rm.getAxisAlignedBoundingBox(instance);
             return Aabb3{box.center.x, box.center.y, box.center.z, box.halfExtent.x, box.halfExtent.y, box.halfExtent.z};            
         }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setVisibilityLayer(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t layer) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            if (!renderableManager.hasComponent(entity)) {
+                Log("Not renderable");
+                return;
+            }
+            auto renderableInstance = renderableManager->getInstance(entity);
+            renderableManager->setLayerMask(renderableInstance, 0xFF, 1u << (uint8_t)layer);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void RenderableManager_setPriority(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t priority) {
+            auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
+            const auto &entity = utils::Entity::import(entityId);
+            
+            if (!renderableManager.hasComponent(entity)) {
+                Log("Not renderable");
+                return;
+            }
+            auto renderableInstance = renderableManager->getInstance(entity);
+            renderableManager->setPriority(renderableInstance, layer);
+        }
+
     }
 }

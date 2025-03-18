@@ -1,3 +1,4 @@
+import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 ///
@@ -14,12 +15,7 @@ class Viewport {
   Viewport(this.left, this.bottom, this.width, this.height);
 }
 
-enum QualityLevel {
-    LOW,
-    MEDIUM,
-    HIGH,
-    ULTRA
-}
+enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 
 abstract class View {
   Future<Viewport> getViewport();
@@ -33,10 +29,11 @@ abstract class View {
   Future setRenderable(bool renderable, covariant SwapChain swapChain);
   Future setFrustumCullingEnabled(bool enabled);
   Future setToneMapper(ToneMapper mapper);
-    Future setStencilBufferEnabled(bool enabled);
+  Future setStencilBufferEnabled(bool enabled);
   Future<bool> isStencilBufferEnabled();
   Future setDithering(bool enabled);
   Future<bool> isDitheringEnabled();
   Future setBloom(bool enabled, double strength);
   Future setRenderQuality(QualityLevel quality);
+  Future setLayerVisibility(VisibilityLayers layer, bool visible);
 }

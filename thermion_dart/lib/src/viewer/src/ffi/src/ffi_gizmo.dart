@@ -21,7 +21,8 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
   }
 
   bool isNonPickable(ThermionEntity entity) {
-    return SceneManager_isGridEntity(sceneManager, entity);
+    throw UnimplementedError();
+    // return SceneManager_isGridEntity(sceneManager, entity);
   }
 
   bool isGizmoEntity(ThermionEntity entity) => gizmoEntities.contains(entity);
@@ -29,10 +30,7 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
   FFIGizmo(
       this._view,
       super.pointer,
-      super.sceneManager,
-      super.renderableManager,
-      super.unlitMaterialProvider,
-      super.viewer,
+      super.app,
       this.gizmoEntities) {
     _nativeCallback =
         NativeCallable<GizmoPickCallbackFunction>.listener(_onPickResult);
@@ -60,17 +58,17 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
     final viewport = await _view.getViewport();
     y = viewport.height - y;
 
-    Gizmo_pick(pointer.cast<TGizmo>(), x, y, _nativeCallback.nativeFunction);
+    Gizmo_pick(asset.cast<TGizmo>(), x, y, _nativeCallback.nativeFunction);
   }
 
   @override
   Future highlight(Axis axis) async {
-    Gizmo_unhighlight(pointer.cast<TGizmo>());
-    Gizmo_highlight(pointer.cast<TGizmo>(), TGizmoAxis.values[axis.index]);
+    Gizmo_unhighlight(asset.cast<TGizmo>());
+    Gizmo_highlight(asset.cast<TGizmo>(), TGizmoAxis.values[axis.index]);
   }
 
   @override
   Future unhighlight() async {
-    Gizmo_unhighlight(pointer.cast<TGizmo>());
+    Gizmo_unhighlight(asset.cast<TGizmo>());
   }
 }

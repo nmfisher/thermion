@@ -102,32 +102,6 @@ namespace thermion
             scene->removeEntities(_asset->getCameraEntities(), _asset->getCameraEntityCount());
         }
 
-        void setPriority(RenderableManager &rm, int priority) override
-        {
-            const Entity *entities = _asset->getEntities();
-            for (int i = 0; i < _asset->getEntityCount(); i++)
-            {
-                if (rm.hasComponent(entities[i]))
-                {
-                    auto renderableInstance = rm.getInstance(entities[i]);
-                    rm.setPriority(renderableInstance, priority);
-                }
-            }
-        }
-
-        void setLayer(RenderableManager &rm, int layer) override
-        {
-            const Entity *entities = _asset->getEntities();
-            for (int i = 0; i < _asset->getEntityCount(); i++)
-            {
-                if (rm.hasComponent(entities[i]))
-                {
-                    auto renderableInstance = rm.getInstance(entities[i]);
-                    rm.setLayerMask(renderableInstance, 0xFF, 1u << (uint8_t)layer);
-                }
-            }
-        }
-
         SceneAsset *getInstanceByEntity(utils::Entity entity) override
         {
             for (auto &instance : _instances)

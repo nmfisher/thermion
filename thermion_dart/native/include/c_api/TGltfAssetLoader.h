@@ -5,8 +5,6 @@
 #include "APIBoundaryTypes.h"
 #include "TMaterialInstance.h"
 #include "TTexture.h"
-#include "ResourceBuffer.hpp"
-#include "MathUtils.hpp"
 
 #ifdef __cplusplus
 extern "C"

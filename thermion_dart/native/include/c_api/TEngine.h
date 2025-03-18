@@ -5,8 +5,6 @@
 #include "APIBoundaryTypes.h"
 #include "TMaterialInstance.h"
 #include "TTexture.h"
-#include "ResourceBuffer.hpp"
-#include "MathUtils.hpp"
 
 #ifdef __cplusplus
 extern "C"
@@ -21,7 +19,13 @@ enum TBackend {
     BACKEND_NOOP = 4,     //!< Selects the no-op driver for testing purposes.
 };
 
-EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(TBackend backend, void* platform, void* sharedContext, uint8_t stereoscopicEyeCount, bool disableHandleUseAfterFreeCheck);
+EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(
+    TBackend backend,
+    void* platform,
+    void* sharedContext,
+    uint8_t stereoscopicEyeCount,
+    bool disableHandleUseAfterFreeCheck
+);
 EMSCRIPTEN_KEEPALIVE TRenderer *Engine_createRenderer(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createSwapChain(TEngine *tEngine, void *window, uint64_t flags);
 EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createHeadlessSwapChain(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags);

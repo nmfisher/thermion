@@ -966,32 +966,5 @@ namespace thermion
         return _cameras[index - 1];
     }
 
-    void SceneManager::transformToUnitCube(EntityId entityId)
-    {
-        auto entity = utils::Entity::import(entityId);
-        for (auto &asset : _sceneAssets)
-        {
-            auto *instance = reinterpret_cast<GltfSceneAssetInstance *>(asset->getInstanceByEntity(entity));
-            if (instance)
-            {
-                auto &transformManager = _engine->getTransformManager();
-                const auto &entity = utils::Entity::import(entityId);
-                auto transformInstance = transformManager.getInstance(entity);
-                if (!transformInstance)
-                {
-                    return;
-                }
-
-                auto aabb = instance->getInstance()->getBoundingBox();
-                auto center = aabb.center();
-                auto halfExtent = aabb.extent();
-                auto maxExtent = max(halfExtent) * 2;
-                auto scaleFactor = 2.0f / maxExtent;
-                auto transform = math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
-                transformManager.setTransform(transformManager.getInstance(entity), transform);
-                return;
-            }
-        }
-    }
 
 } // namespace thermion

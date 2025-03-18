@@ -33,16 +33,38 @@ class FFIAsset extends ThermionAsset {
   ///
   late final ThermionEntity entity;
 
+  ///
+  ///
+  ///
   FFIAsset(this.asset, this.app, {this.isInstance = false}) {
     entity = SceneAsset_getEntity(asset);
   }
 
+  ///
+  ///
+  ///
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
     var count = SceneAsset_getChildEntityCount(asset);
     var children = Int32List(count);
     SceneAsset_getChildEntities(asset, children.address);
     return children;
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<ThermionEntity?> getChildEntity(
+      FFIAsset asset, String childName) async {
+    final childEntities = await getChildEntities();
+    for (final entity in childEntities) {
+      var name = NameComponentManager_getName(app.nameComponentManager, entity);
+      if (name == childName) {
+        return entity;
+      }
+    }
+    return null;
   }
 
   @override
@@ -141,7 +163,8 @@ class FFIAsset extends ThermionAsset {
       }
       var sourceMaterialInstance = FFIMaterialInstance(
           RenderableManager_getMaterialInstanceAt(
-              app.renderableManager, targetEntity, 0), app);
+              app.renderableManager, targetEntity, 0),
+          app);
 
       await sourceMaterialInstance.setStencilWriteEnabled(true);
       await sourceMaterialInstance.setDepthWriteEnabled(true);
@@ -173,7 +196,7 @@ class FFIAsset extends ThermionAsset {
 
       await highlightMaterialInstance.setStencilReferenceValue(1);
       RenderableManager_setPriority(app.renderableManager, targetEntity, 0);
-      
+
       TransformManager_setParent(
           app.transformManager, _highlight!.entity, entity, false);
     }
@@ -328,6 +351,9 @@ class FFIAsset extends ThermionAsset {
     }
   }
 
+  ///
+  ///
+  ///
   Future setCastShadows(bool castShadows) async {
     RenderableManager_setCastShadows(
         app.renderableManager, this.entity, castShadows);
@@ -337,6 +363,9 @@ class FFIAsset extends ThermionAsset {
     }
   }
 
+  ///
+  ///
+  ///
   Future setReceiveShadows(bool receiveShadows) async {
     RenderableManager_setReceiveShadows(
         app.renderableManager, this.entity, receiveShadows);
@@ -344,5 +373,23 @@ class FFIAsset extends ThermionAsset {
       RenderableManager_setReceiveShadows(
           app.renderableManager, entity, receiveShadows);
     }
+  }
+
+  ///
+  ///
+  ///
+  Future<bool> isCastShadowsEnabled(ThermionEntity entity) async {
+    return RenderableManager_isShadowCaster(app.renderableManager, entity);
+  }
+
+  ///
+  ///
+  ///
+  Future<bool> isReceiveShadowsEnabled(ThermionEntity entity) async {
+    return RenderableManager_isShadowReceiver(app.renderableManager, entity);
+  }
+
+  Future transformToUnitCube() async {
+    SceneAsset_transformToUnitCube(asset);
   }
 }

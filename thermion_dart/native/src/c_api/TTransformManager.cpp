@@ -57,23 +57,23 @@ extern "C"
         transformManager->setTransform(transformInstance, convert_double4x4_to_mat4(transform));
     }
 
-    // EMSCRIPTEN_KEEPALIVE void TransformManager_transformToUnitCube(TTransformManager *tTransformManager, EntityId entityId) {
-    //       auto *transformManager = reinterpret_cast<filament::TransformManager*>(tTransformManager);
-    //     const auto &entity = utils::Entity::import(entityId);
-    //     auto transformInstance = transformManager->getInstance(entity);
-    //     if (!transformInstance)
-    //     {
-    //         return;
-    //     }
+    EMSCRIPTEN_KEEPALIVE void TransformManager_transformToUnitCube(TTransformManager *tTransformManager, EntityId entityId, Aabb3 boundingBox) {
+        
+        auto *transformManager = reinterpret_cast<filament::TransformManager*>(tTransformManager);
+        const auto &entity = utils::Entity::import(entityId);
+        auto transformInstance = transformManager->getInstance(entity);
+        if (!transformInstance || !transformInstance.isValid())
+        {
+            return;
+        }
 
-    //     auto aabb = instance->getBoundingBox();
-    //     auto center = aabb.center();
-    //     auto halfExtent = aabb.extent();
-    //     auto maxExtent = max(halfExtent) * 2;
-    //     auto scaleFactor = 2.0f / maxExtent;
-    //     auto transform = math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
-    //     tm.setTransform(tm.getInstance(instance->getRoot()), transform);
-    // }
+        auto center = aabb.center();
+        auto halfExtent = aabb.extent();
+        auto maxExtent = max(halfExtent) * 2;
+        auto scaleFactor = 2.0f / maxExtent;
+        auto transform = math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
+        transformManager->setTransform(transformInstance, transform);
+    }
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_setParent(TTransformManager *tTransformManager, EntityId childId, EntityId parentId, bool preserveScaling)
     {

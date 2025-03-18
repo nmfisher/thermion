@@ -89,6 +89,11 @@ extern "C"
         return reinterpret_cast<TSceneAsset *>(sceneAsset);
         
     }
+    
+    EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) { 
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        delete asset;
+    }
 
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene) {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
@@ -121,13 +126,14 @@ extern "C"
         }
     }
 
-     EMSCRIPTEN_KEEPALIVE const utils::Entity *SceneAsset_getCameraEntities(TSceneAsset* tSceneAsset)
+     EMSCRIPTEN_KEEPALIVE EntityId *SceneAsset_getCameraEntities(TSceneAsset* tSceneAsset)
     {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {
             auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
-            return gltfSceneAsset->getAsset()->getCameraEntities();
+            auto *entities = gltfSceneAsset->getAsset()->getCameraEntities();
+            return reinterpret_cast<EntityId *>(const_cast<filament::gltfio::FilamentAsset::Entity *>(entities));
         }
         else
         {
@@ -148,13 +154,14 @@ extern "C"
         
     }
 
-    EMSCRIPTEN_KEEPALIVE const utils::Entity *SceneAsset_getLightEntities(TSceneAsset* tSceneAsset)
+    EMSCRIPTEN_KEEPALIVE EntityId *SceneAsset_getLightEntities(TSceneAsset* tSceneAsset)
     {
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         if (asset->getType() == SceneAsset::SceneAssetType::Gltf && !asset->isInstance())
         {            
             auto gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(asset);
-            return gltfSceneAsset->getAsset()->getLightEntities();
+            auto *entities = gltfSceneAsset->getAsset()->getLightEntities();
+            return reinterpret_cast<EntityId *>(const_cast<filament::gltfio::FilamentAsset::Entity *>(entities));
         }
         
         return std::nullptr_t();

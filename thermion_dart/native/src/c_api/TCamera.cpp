@@ -30,6 +30,17 @@ namespace thermion
             );
         }
 
+        EMSCRIPTEN_KEEPALIVE void Camera_getFrustum(TCamera *tCamera, double *out) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            auto &frustum = camera->getFrustum();
+            auto planes = frustum.getPlanes();
+            for(int i = 0; i < 6; i++) {
+                for(int j = 0; j < 4; j++) {
+                    out[(i*4) + j] = planes[i][j];
+                }
+            }
+        }
+
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera *tCamera, double4x4 projectionMatrix, double near, double far)
         {
             auto *camera = reinterpret_cast<Camera *>(tCamera);

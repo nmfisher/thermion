@@ -5,9 +5,6 @@
 #include "APIBoundaryTypes.h"
 #include "TMaterialInstance.h"
 
-#include "ResourceBuffer.hpp"
-#include "MathUtils.hpp"
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -215,7 +212,13 @@ EMSCRIPTEN_KEEPALIVE TTexture *Texture_build(TEngine *engine,
     intptr_t import,
     TTextureSamplerType sampler, 
     TTextureFormat format);
-EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(TEngine *tEngine, TTexture *tTexture, TLinearImage *tImage, TPixelDataFormat bufferFormat, TPixelDataType pixelDataType);
+EMSCRIPTEN_KEEPALIVE bool Texture_loadImage(
+    TEngine *tEngine,
+    TTexture *tTexture,
+    TLinearImage *tImage,
+    TPixelDataFormat bufferFormat,
+    TPixelDataType pixelDataType
+);
 EMSCRIPTEN_KEEPALIVE bool Texture_setImage(
     TEngine *tEngine,
     TTexture *tTexture,
@@ -250,7 +253,7 @@ EMSCRIPTEN_KEEPALIVE uint32_t Texture_getDepth(TTexture *tTexture, uint32_t leve
 EMSCRIPTEN_KEEPALIVE TTextureUsage Texture_getUsage(TTexture *tTexture, uint32_t level);
 
 EMSCRIPTEN_KEEPALIVE TLinearImage *Image_createEmpty(uint32_t width,uint32_t height,uint32_t channel);
-EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name = "image");
+EMSCRIPTEN_KEEPALIVE TLinearImage *Image_decode(uint8_t* data, size_t length, const char* name);
 EMSCRIPTEN_KEEPALIVE float *Image_getBytes(TLinearImage *tLinearImage);
 EMSCRIPTEN_KEEPALIVE void Image_destroy(TLinearImage *tLinearImage);
 EMSCRIPTEN_KEEPALIVE uint32_t Image_getWidth(TLinearImage *tLinearImage);
@@ -287,14 +290,14 @@ enum TSamplerCompareMode {
 
 typedef TSamplerCompareFunc TTextureSamplerCompareFunc ;
 
-
 EMSCRIPTEN_KEEPALIVE TTextureSampler* TextureSampler_create();
 EMSCRIPTEN_KEEPALIVE TTextureSampler* TextureSampler_createWithFiltering(
     TSamplerMinFilter minFilter, 
     TSamplerMagFilter magFilter, 
     TSamplerWrapMode wrapS, 
     TSamplerWrapMode wrapT, 
-    TSamplerWrapMode wrapR);
+    TSamplerWrapMode wrapR
+);
 EMSCRIPTEN_KEEPALIVE TTextureSampler* TextureSampler_createWithComparison(
     TSamplerCompareMode compareMode, 
     TSamplerCompareFunc compareFunc);

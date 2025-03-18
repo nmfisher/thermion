@@ -623,20 +623,6 @@ abstract class ThermionViewer {
   Future removeAnimationComponent(ThermionEntity entity);
 
   ///
-  /// Makes [entity] collidable.
-  /// This allows you to call [testCollisions] with any other entity ("entity B") to see if [entity] has collided with entity B. The callback will be invoked if so.
-  /// Alternatively, if [affectsTransform] is true and this entity collides with another entity, any queued position updates to the latter entity will be ignored.
-  ///
-  Future addCollisionComponent(ThermionEntity entity,
-      {void Function(int entityId1, int entityId2)? callback,
-      bool affectsTransform = false});
-
-  ///
-  /// Removes the collision component from [entity], meaning this will no longer be tested when [testCollisions] or [queuePositionUpdate] is called with another entity.
-  ///
-  Future removeCollisionComponent(ThermionEntity entity);
-
-  ///
   /// Creates a (renderable) entity with the specified geometry and adds to the scene.
   /// If [keepData] is true, the source data will not be released.
   ///
@@ -659,12 +645,6 @@ abstract class ThermionViewer {
   ///
   Future setParent(ThermionEntity child, ThermionEntity? parent,
       {bool preserveScaling});
-
-  ///
-  /// Test all collidable entities against this entity to see if any have collided.
-  /// This method returns void; the relevant callback passed to [addCollisionComponent] will be fired if a collision is detected.
-  ///
-  Future testCollisions(ThermionEntity entity);
 
   ///
   /// Sets the draw priority for the given entity. See RenderableManager.h for more details.
@@ -810,11 +790,6 @@ abstract class ThermionViewer {
   ///
   ///
   Future<MaterialInstance> createUnlitMaterialInstance();
-
-  ///
-  ///
-  ///
-  Future<MaterialInstance> createUnlitFixedSizeMaterialInstance();
 
   ///
   ///

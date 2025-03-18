@@ -1244,7 +1244,7 @@
 
 //   @override
 //   Future<double> getCameraCullingFar() async {
-//     final result = _module!.ccall("get_camera_culling_far", "double",
+//     final result = _module!.ccall("Camera_getCullingFar", "double",
 //         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
 //     return result.toDartDouble;
 //   }
@@ -1259,7 +1259,7 @@
 //   @override
 //   Future<Matrix4> getCameraCullingProjectionMatrix() async {
 //     final ptr = _module!._malloc(16 * 8);
-//     _module!.ccall("get_camera_culling_projection_matrix", "void",
+//     _module!.ccall("Camera_getCullingProjectionMatrix", "void",
 //         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
 //     final matrix = Matrix4.zero();
 //     for (int i = 0; i < 16; i++) {
@@ -1303,7 +1303,7 @@
 
 //   @override
 //   Future<Matrix4> getCameraModelMatrix() async {
-//     final ptr = _module!.ccall("get_camera_model_matrix", "void*",
+//     final ptr = _module!.ccall("Camera_getModelMatrix", "void*",
 //         ["void*".toJS].toJS, [_viewer!].toJS, null) as JSNumber;
 //     final matrix = _matrixFromPtr(ptr);
 //     _module!.ccall(
@@ -1331,7 +1331,7 @@
 //   @override
 //   Future<Matrix4> getCameraProjectionMatrix() async {
 //     final ptr = _module!._malloc(16 * 8);
-//     _module!.ccall("get_camera_projection_matrix", "void",
+//     _module!.ccall("Camera_getProjectionMatrix", "void",
 //         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
 //     final matrix = _matrixFromPtr(ptr);
 //     _module!._free(ptr);
@@ -1348,7 +1348,7 @@
 //   @override
 //   Future<Matrix4> getCameraViewMatrix() async {
 //     final ptr = _module!._malloc(16 * 8);
-//     _module!.ccall("get_camera_view_matrix", "void",
+//     _module!.ccall("Camera_getViewMatrix", "void",
 //         ["void*".toJS, "double*".toJS].toJS, [_viewer!, ptr].toJS, null);
 //     final matrix = Matrix4.zero();
 //     for (int i = 0; i < 16; i++) {
@@ -1761,7 +1761,7 @@
 //   Future setCameraExposure(
 //       double aperture, double shutterSpeed, double sensitivity) async {
 //     _module!.ccall(
-//         "set_camera_exposure",
+//         "Camera_setExposure",
 //         "void",
 //         ["void*".toJS, "float".toJS, "float".toJS, "float".toJS].toJS,
 //         [
@@ -1786,7 +1786,7 @@
 //   @override
 //   Future setCameraFocusDistance(double focusDistance) async {
 //     _module!.ccall(
-//         "set_camera_focus_distance",
+//         "Camera_setFocusDistance",
 //         "void",
 //         ["void*".toJS, "float".toJS].toJS,
 //         [_viewer!, focusDistance.toJS].toJS,
@@ -1812,7 +1812,7 @@
 //       _module!
 //           .setValue((ptr.toDartInt + (i * 8)).toJS, matrix[i].toJS, "double");
 //     }
-//     _module!.ccall("set_camera_model_matrix", "void",
+//     _module!.ccall("Camera_setModelMatrix", "void",
 //         ["void*".toJS, "float*".toJS].toJS, [_viewer!, ptr].toJS, null);
 //     _module!._free(ptr);
 //   }
@@ -2125,7 +2125,7 @@
 //   @override
 //   Future<double> getCameraFov(bool horizontal) async {
 //     var fov = _module!.ccall(
-//         "get_camera_fov",
+//         "Camera_getFov",
 //         "float",
 //         ["void*".toJS, "bool".toJS].toJS,
 //         [_viewer!, horizontal.toJS].toJS,

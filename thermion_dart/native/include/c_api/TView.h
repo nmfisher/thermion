@@ -17,7 +17,7 @@ struct TViewport {
 };
 typedef struct TViewport TViewport;
 
-enum ToneMapping
+enum TToneMapping
 {
     ACES,
     FILMIC,
@@ -46,7 +46,7 @@ EMSCRIPTEN_KEEPALIVE void View_setShadowType(TView* tView, int shadowType);
 EMSCRIPTEN_KEEPALIVE void View_setSoftShadowOptions(TView* tView, float penumbraScale, float penumbraRatioScale);
 EMSCRIPTEN_KEEPALIVE void View_setBloom(TView* tView, bool enabled, float strength);
 EMSCRIPTEN_KEEPALIVE void View_setRenderQuality(TView* tView, TQualityLevel qualityLevel);
-EMSCRIPTEN_KEEPALIVE void View_setToneMapping(TView* tView, TEngine* tEngine, ToneMapping toneMapping);
+EMSCRIPTEN_KEEPALIVE void View_setToneMapping(TView* tView, TEngine* tEngine, TToneMapping toneMapping);
 EMSCRIPTEN_KEEPALIVE void View_setAntiAliasing(TView *tView, bool msaa, bool fxaa, bool taa);
 EMSCRIPTEN_KEEPALIVE void View_setLayerEnabled(TView *tView, int layer, bool visible);
 EMSCRIPTEN_KEEPALIVE void View_setCamera(TView *tView, TCamera *tCamera);

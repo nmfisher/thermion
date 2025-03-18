@@ -16,8 +16,8 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void RenderLoop_create();
         EMSCRIPTEN_KEEPALIVE void RenderLoop_destroy();
-
-        EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos,);
+        EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete));
+        EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos);
         // EMSCRIPTEN_KEEPALIVE void RenderLoop_addTask(TRenderLoop* tRenderLoop, void (*task)());
 
         EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *));
@@ -75,7 +75,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
 
-        EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping);
+        EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, ToneMapping toneMapping);
         EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength);
         EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)());
 
@@ -184,7 +184,10 @@ namespace thermion
             uint16_t tUsage,
             intptr_t import,
             TTextureSamplerType sampler, 
-            TTextureFormat format, void (*onComplete)(TTexture *));
+            TTextureFormat format,
+            void (*onComplete)(TTexture *)
+        );
+
         EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(
             TEngine *tEngine,
             TTexture *tTexture,
@@ -289,7 +292,7 @@ namespace thermion
             void (*onComplete)()
         );
 
-        EMSCRIPTEN_KEEPALIVE void update_bone_matrices_render_thread(TSceneManager *sceneManager,
+        EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(TSceneManager *sceneManager,
                                                                      EntityId asset, void (*callback)(bool));
         EMSCRIPTEN_KEEPALIVE void set_bone_transform_render_thread(
             TSceneManager *sceneManager,

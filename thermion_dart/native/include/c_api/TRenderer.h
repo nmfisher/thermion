@@ -1,5 +1,4 @@
-#ifndef _T_RENDERER_H
-#define _T_RENDERER_H
+#pragma once
 
 #include "APIExport.h"
 #include "APIBoundaryTypes.h"
@@ -35,5 +34,4 @@ EMSCRIPTEN_KEEPALIVE void Renderer_setFrameInterval(
 
 #ifdef __cplusplus
 }
-#endif
 #endif

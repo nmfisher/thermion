@@ -13,6 +13,7 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/src/viewer/src/filament/filament.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/config.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/entity.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
@@ -51,31 +52,13 @@ class ThermionViewerFFI extends ThermionViewer {
     _initialize();
   }
 
-  // ///
-  // ///
-  // ///
-  // Future<RenderTarget> createRenderTarget(int width, int height,
-  //     {covariant FFITexture? color, covariant FFITexture? depth}) async {
-  //   final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
-  //     RenderTarget_createRenderThread(app.engine, width, height,
-  //         color?.pointer ?? nullptr, depth?.pointer ?? nullptr, cb);
-  //   });
-
-  //   return FFIRenderTarget(renderTarget, app);
-  // }
-
   ///
   ///
   ///
-  Future setViewportAndCameraProjection(double width, double height) async {
-    var mainView =
-        FFIView(Viewer_getViewAt(_viewer!, 0), _viewer!, app.engine!);
-    mainView.setViewport(width.toInt(), height.toInt());
+  Future setViewport(double width, double height) async {
+    await view.setViewport(width.toInt(), height.toInt());
 
-    final cameraCount = await getCameraCount();
-
-    for (int i = 0; i < cameraCount; i++) {
-      var camera = await getCameraAt(i);
+    for (final camera in _cameras) {
       var near = await camera.getNear();
       if (near.abs() < 0.000001) {
         near = kNear;
@@ -97,7 +80,6 @@ class ThermionViewerFFI extends ThermionViewer {
 
   late final FFIView view;
   late final FFIScene scene;
-  late final FFICamera camera;
   late final Pointer<TAnimationManager> animationManager;
 
   Future _initialize() async {
@@ -108,10 +90,11 @@ class ThermionViewerFFI extends ThermionViewer {
         app);
     scene = FFIScene(Engine_createScene(app.engine), app);
     await view.setScene(scene);
-    camera = FFICamera(
+    final camera = FFICamera(
         await withPointerCallback<TCamera>(
             (cb) => Engine_createCameraRenderThread(app.engine, cb)),
         app);
+    _cameras.add(camera);
     if (renderTarget != null) {
       await view.setRenderTarget(renderTarget);
     }
@@ -145,77 +128,6 @@ class ThermionViewerFFI extends ThermionViewer {
   Future render() async {
     RenderTicker_renderRenderThread(app.renderTicker, 0);
   }
-
-  // ///
-  // ///
-  // ///
-  // @override
-  // Future<Uint8List> capture() async {
-  //   final fence = await withPointerCallback<TFence>((cb) {
-  //     Engine_createFenceRenderThread(app.engine!, cb);
-  //   });
-
-  //   var pixelBuffers = <Uint8List>[];
-
-  //   for (final entry in targets) {
-  //     final view = entry.view as FFIView;
-  //     var swapChain = entry.swapChain as FFISwapChain?;
-  //     final renderTarget = entry.renderTarget as FFIRenderTarget?;
-  //     final vp = await view.getViewport();
-  //     final length = vp.width * vp.height * 4;
-
-  //     await withBoolCallback((cb) {
-  //       Renderer_beginFrameRenderThread(renderer,
-  //           swapChain?.swapChain ?? Viewer_getSwapChainAt(_viewer!, 0), 0, cb);
-  //     });
-
-  //     await withVoidCallback((cb) {
-  //       Renderer_renderRenderThread(renderer, view.view, cb);
-  //     });
-  //     final out = Uint8List(length);
-  //     await withVoidCallback((cb) {
-  //       Renderer_readPixelsRenderThread(
-  //           renderer,
-  //           view.view,
-  //           renderTarget!.renderTarget,
-  //           TPixelDataFormat.PIXELDATAFORMAT_RGBA,
-  //           TPixelDataType.PIXELDATATYPE_UBYTE,
-  //           out.address,
-  //           cb);
-  //     });
-
-  //     pixelBuffers.add(out);
-  //   }
-
-  //   await withVoidCallback((cb) {
-  //     Renderer_endFrameRenderThread(renderer, cb);
-  //   });
-
-  //   await withVoidCallback((cb) {
-  //     Engine_flushAndWaitRenderThead(app.engine!, cb);
-  //   });
-
-  //   await withVoidCallback((cb) {
-  //     Engine_destroyFenceRenderThread(app.engine!, fence, cb);
-  //   });
-
-  //   // await withVoidCallback((cb) {
-  //   //   if (renderTarget != null) {
-  //   //     Viewer_captureRenderTargetRenderThread(
-  //   //         _viewer!,
-  //   //         view!.view,
-  //   //         swapChain!.swapChain,
-  //   //         renderTarget.renderTarget,
-  //   //         out.address,
-  //   //         useFence,
-  //   //         cb);
-  //   //   } else {
-  //   //     Viewer_captureRenderThread(_viewer!, view!.view, swapChain!.swapChain,
-  //   //         out.address, useFence, cb);
-  //   //   }
-  //   // });
-  //   return pixelBuffers;
-  // }
 
   double _msPerFrame = 1000.0 / 60.0;
 
@@ -470,7 +382,8 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-  final _assets = <ThermionAsset>{};
+  final _assets = <FFIAsset>{};
+  final _cameras = <FFICamera>{};
 
   ///
   ///
@@ -520,20 +433,21 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<ThermionAsset> loadGltf(String path, String relativeResourcePath,
       {bool keepData = false}) async {
-    final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
-    final relativeResourcePathPtr =
-        relativeResourcePath.toNativeUtf8(allocator: allocator).cast<Char>();
-    var assetPtr = await withPointerCallback<TSceneAsset>((callback) =>
-        SceneManager_loadGltfRenderThread(_sceneManager!, pathPtr,
-            relativeResourcePathPtr, keepData, callback));
-    allocator.free(pathPtr);
-    allocator.free(relativeResourcePathPtr);
-    if (assetPtr == nullptr) {
-      throw Exception("An error occurred loading the asset at $path");
-    }
+    throw UnimplementedError();
+    // final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
+    // final relativeResourcePathPtr =
+    //     relativeResourcePath.toNativeUtf8(allocator: allocator).cast<Char>();
+    // var assetPtr = await withPointerCallback<TSceneAsset>((callback) =>
+    //     SceneManager_loadGltfRenderThread(_sceneManager!, pathPtr,
+    //         relativeResourcePathPtr, keepData, callback));
+    // allocator.free(pathPtr);
+    // allocator.free(relativeResourcePathPtr);
+    // if (assetPtr == nullptr) {
+    //   throw Exception("An error occurred loading the asset at $path");
+    // }
 
-    return FFIAsset(
-        assetPtr, _sceneManager!, app.engine!, _unlitMaterialProvider!, this);
+    // return FFIAsset(
+    //     assetPtr, _sceneManager!, app.engine!, _unlitMaterialProvider!, this);
   }
 
   ///
@@ -552,7 +466,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     var success = await withBoolCallback((cb) {
       AnimationManager_setMorphTargetWeightsRenderThread(
-          _animationManager!, entity, weightsPtr, weights.length, cb);
+          animationManager, entity, weightsPtr, weights.length, cb);
     });
     allocator.free(weightsPtr);
 
@@ -571,11 +485,11 @@ class ThermionViewerFFI extends ThermionViewer {
     var names = <String>[];
 
     var count = AnimationManager_getMorphTargetNameCount(
-        _animationManager!, asset.pointer, childEntity);
+        animationManager, asset.asset, childEntity);
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < count; i++) {
       AnimationManager_getMorphTargetName(
-          _animationManager!, asset.pointer, childEntity, outPtr, i);
+          animationManager, asset.asset, childEntity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     allocator.free(outPtr);
@@ -584,15 +498,15 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future<List<String>> getBoneNames(covariant FFIAsset asset,
       {int skinIndex = 0}) async {
-    var count = AnimationManager_getBoneCount(
-        _animationManager!, asset.pointer, skinIndex);
+    var count =
+        AnimationManager_getBoneCount(animationManager, asset.asset, skinIndex);
     var out = allocator<Pointer<Char>>(count);
     for (int i = 0; i < count; i++) {
       out[i] = allocator<Char>(255);
     }
 
     AnimationManager_getBoneNames(
-        _animationManager!, asset.pointer, out, skinIndex);
+        animationManager, asset.asset, out, skinIndex);
     var names = <String>[];
     for (int i = 0; i < count; i++) {
       var namePtr = out[i];
@@ -607,12 +521,12 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<List<String>> getAnimationNames(covariant FFIAsset asset) async {
     var animationCount =
-        AnimationManager_getAnimationCount(_animationManager!, asset.pointer);
+        AnimationManager_getAnimationCount(animationManager, asset.asset);
     var names = <String>[];
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < animationCount; i++) {
       AnimationManager_getAnimationName(
-          _animationManager!, asset.pointer, outPtr, i);
+          animationManager, asset.asset, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     allocator.free(outPtr);
@@ -627,7 +541,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<double> getAnimationDuration(
       FFIAsset asset, int animationIndex) async {
     return AnimationManager_getAnimationDuration(
-        _animationManager!, asset.pointer, animationIndex);
+        animationManager, asset.asset, animationIndex);
   }
 
   ///
@@ -643,7 +557,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Future clearMorphAnimationData(ThermionEntity entity) async {
-    if (!AnimationManager_clearMorphAnimation(_animationManager!, entity)) {
+    if (!AnimationManager_clearMorphAnimation(animationManager, entity)) {
       throw Exception("Failed to clear morph animation");
     }
   }
@@ -707,7 +621,7 @@ class ThermionViewerFFI extends ThermionViewer {
           frameData.data.length == animation.numFrames * intersection.length);
 
       var result = AnimationManager_setMorphAnimation(
-          _animationManager!,
+          animationManager,
           meshEntity,
           frameData.data.address,
           indices.address,
@@ -739,7 +653,7 @@ class ThermionViewerFFI extends ThermionViewer {
     }
     var boneNames = await getBoneNames(asset);
     var restLocalTransformsRaw = allocator<Float>(boneNames.length * 16);
-    AnimationManager_getRestLocalTransforms(_animationManager!, asset.pointer,
+    AnimationManager_getRestLocalTransforms(animationManager, asset.asset,
         skinIndex, restLocalTransformsRaw, boneNames.length);
 
     var restLocalTransforms = <Matrix4>[];
@@ -803,8 +717,8 @@ class ThermionViewerFFI extends ThermionViewer {
       }
 
       AnimationManager_addBoneAnimation(
-          _animationManager!,
-          asset.pointer,
+          animationManager,
+          asset.asset,
           skinIndex,
           entityBoneIndex,
           data,
@@ -822,7 +736,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future<Matrix4> getLocalTransform(ThermionEntity entity) async {
     return double4x4ToMatrix4(
-        TransformManager_getLocalTransform(_transformManager!, entity));
+        TransformManager_getLocalTransform(app.transformManager, entity));
   }
 
   ///
@@ -830,7 +744,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
     return double4x4ToMatrix4(
-        TransformManager_getWorldTransform(_transformManager!, entity));
+        TransformManager_getWorldTransform(app.transformManager, entity));
   }
 
   ///
@@ -838,7 +752,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setTransform(ThermionEntity entity, Matrix4 transform) async {
     TransformManager_setTransform(
-        _transformManager!, entity, matrix4ToDouble4x4(transform));
+        app.transformManager, entity, matrix4ToDouble4x4(transform));
   }
 
   ///
@@ -846,24 +760,27 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future queueTransformUpdates(
       List<ThermionEntity> entities, List<Matrix4> transforms) async {
-    var tEntities = Int32List.fromList(entities);
-    var tTransforms =
-        Float64List.fromList(transforms.expand((t) => t.storage).toList());
+    throw UnimplementedError();
+    // var tEntities = Int32List.fromList(entities);
+    // var tTransforms =
+    //     Float64List.fromList(transforms.expand((t) => t.storage).toList());
 
-    SceneManager_queueTransformUpdates(_sceneManager!, tEntities.address,
-        tTransforms.address, tEntities.length);
+    // SceneManager_queueTransformUpdates(_sceneManager!, tEntities.address,
+    //     tTransforms.address, tEntities.length);
   }
 
   ///
   ///
   ///
   Future updateBoneMatrices(ThermionEntity entity) async {
-    var result = await withBoolCallback((cb) {
-      update_bone_matrices_render_thread(_sceneManager!, entity, cb);
-    });
-    if (!result) {
-      throw Exception("Failed to update bone matrices");
-    }
+    throw UnimplementedError();
+
+    // var result = await withBoolCallback((cb) {
+    //   update_bone_matrices_render_thread(_sceneManager!, entity, cb);
+    // });
+    // if (!result) {
+    //   throw Exception("Failed to update bone matrices");
+    // }
   }
 
   ///
@@ -872,8 +789,8 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<Matrix4> getInverseBindMatrix(FFIAsset asset, int boneIndex,
       {int skinIndex = 0}) async {
     var matrix = Float32List(16);
-    AnimationManager_getInverseBindMatrix(_animationManager!, asset.pointer,
-        skinIndex, boneIndex, matrix.address);
+    AnimationManager_getInverseBindMatrix(
+        animationManager, asset.asset, skinIndex, boneIndex, matrix.address);
     return Matrix4.fromList(matrix);
   }
 
@@ -886,7 +803,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw UnimplementedError("TOOD");
     }
     return AnimationManager_getBone(
-        _animationManager!, asset.pointer, skinIndex, boneIndex);
+        animationManager, asset.asset, skinIndex, boneIndex);
   }
 
   ///
@@ -922,7 +839,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future resetBones(covariant FFIAsset asset) async {
-    AnimationManager_resetToRestPose(_animationManager!, asset.pointer);
+    AnimationManager_resetToRestPose(animationManager, asset.asset);
   }
 
   ///
@@ -933,14 +850,16 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
-    if (asset.boundingBoxAsset != null) {
-      await asset.setBoundingBoxVisibility(false);
-      await withVoidCallback((callback) =>
-          SceneManager_destroyAssetRenderThread(
-              _sceneManager!, asset.boundingBoxAsset!.pointer, callback));
-    }
-    await withVoidCallback((callback) => SceneManager_destroyAssetRenderThread(
-        _sceneManager!, asset.pointer, callback));
+    await scene.remove(asset);
+    SceneAsset_destroy(asset.asset);
+    // if (asset.boundingBoxAsset != null) {
+    //   await asset.setBoundingBoxVisibility(false);
+    //   await withVoidCallback((callback) =>
+    //       SceneManager_destroyAssetRenderThread(
+    //           _sceneManager!, asset.boundingBoxAsset!.pointer, callback));
+    // }
+    // await withVoidCallback((callback) => SceneManager_destroyAssetRenderThread(
+    //     _sceneManager!, asset.asset, callback));
   }
 
   ///
@@ -948,9 +867,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future destroyAssets() async {
-    await withVoidCallback((callback) {
-      SceneManager_destroyAssetsRenderThread(_sceneManager!, callback);
-    });
+    for (final asset in _assets) {
+      await destroyAsset(asset);
+    }
   }
 
   ///
@@ -963,8 +882,8 @@ class ThermionViewerFFI extends ThermionViewer {
       bool replaceActive = true,
       double crossfade = 0.0,
       double startOffset = 0.0}) async {
-    AnimationManager_playAnimation(_animationManager!, asset.pointer, index,
-        loop, reverse, replaceActive, crossfade, startOffset);
+    AnimationManager_playAnimation(animationManager, asset.asset, index, loop,
+        reverse, replaceActive, crossfade, startOffset);
   }
 
   ///
@@ -973,7 +892,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future stopAnimation(FFIAsset asset, int animationIndex) async {
     AnimationManager_stopAnimation(
-        _animationManager!, asset.pointer, animationIndex);
+        animationManager, asset.asset, animationIndex);
   }
 
   ///
@@ -1015,23 +934,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setGltfAnimationFrame(
       FFIAsset asset, int index, int animationFrame) async {
     AnimationManager_setGltfAnimationFrame(
-        _animationManager!, asset.pointer, index, animationFrame);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future setMainCamera() async {
-    final view = (await getViewAt(0)) as FFIView;
-    Viewer_setMainCamera(_viewer!, view.view);
-  }
-
-  ///
-  ///
-  ///
-  Future<ThermionEntity> getMainCameraEntity() async {
-    return Viewer_getMainCamera(_viewer!);
+        animationManager, asset.asset, index, animationFrame);
   }
 
   ///
@@ -1047,13 +950,12 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<Camera?> getCameraComponent(ThermionEntity cameraEntity) async {
-    var engine = Viewer_getEngine(_viewer!);
-    var camera = Engine_getCameraComponent(engine, cameraEntity);
+    var camera = Engine_getCameraComponent(app.engine, cameraEntity);
     if (camera == nullptr) {
       throw Exception(
           "Failed to get camera component for entity $cameraEntity");
     }
-    return FFICamera(camera, engine, _transformManager!);
+    return FFICamera(camera, app);
   }
 
   ///
@@ -1087,7 +989,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setPostProcessing(bool enabled) async {
-    final view = await getViewAt(0) as FFIView;
     View_setPostProcessing(view.view, enabled);
   }
 
@@ -1096,7 +997,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setShadowsEnabled(bool enabled) async {
-    final view = await getViewAt(0) as FFIView;
     View_setShadowsEnabled(view.view, enabled);
   }
 
@@ -1104,7 +1004,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setShadowType(ShadowType shadowType) async {
-    final view = await getViewAt(0) as FFIView;
     View_setShadowType(view.view, shadowType.index);
   }
 
@@ -1113,7 +1012,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future setSoftShadowOptions(
       double penumbraScale, double penumbraRatioScale) async {
-    final view = await getViewAt(0) as FFIView;
     View_setSoftShadowOptions(view.view, penumbraScale, penumbraRatioScale);
   }
 
@@ -1125,7 +1023,7 @@ class ThermionViewerFFI extends ThermionViewer {
     if (Platform.isWindows && msaa) {
       throw Exception("MSAA is not currently supported on Windows");
     }
-    final view = await getViewAt(0) as FFIView;
+
     View_setAntiAliasing(view.view, msaa, fxaa, taa);
   }
 
@@ -1134,7 +1032,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setBloom(bool enabled, double strength) async {
-    final view = await getViewAt(0) as FFIView;
     View_setBloom(view.view, enabled, strength);
   }
 
@@ -1151,7 +1048,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   Future<double> getCameraFov(bool horizontal) async {
     var mainCamera = await getMainCamera() as FFICamera;
-    return get_camera_fov(mainCamera.camera, horizontal);
+    return Camera_getFov(mainCamera.camera, horizontal);
   }
 
   ///
@@ -1180,7 +1077,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future<double> getCameraNear() async {
     var mainCamera = await getMainCamera() as FFICamera;
-    return get_camera_near(mainCamera.camera);
+    return Camera_getNear(mainCamera.camera);
   }
 
   ///
@@ -1189,7 +1086,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<double> getCameraCullingFar() async {
     var mainCamera = await getMainCamera() as FFICamera;
-    return get_camera_culling_far(mainCamera.camera);
+    return Camera_getCullingFar(mainCamera.camera);
   }
 
   ///
@@ -1198,7 +1095,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setCameraFocusDistance(double focusDistance) async {
     var mainCamera = await getMainCamera() as FFICamera;
-    set_camera_focus_distance(mainCamera.camera, focusDistance);
+    Camera_setFocusDistance(mainCamera.camera, focusDistance);
   }
 
   ///
@@ -1235,7 +1132,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setCameraExposure(
       double aperture, double shutterSpeed, double sensitivity) async {
     var mainCamera = await getMainCamera() as FFICamera;
-    set_camera_exposure(mainCamera.camera, aperture, shutterSpeed, sensitivity);
+    Camera_setExposure(mainCamera.camera, aperture, shutterSpeed, sensitivity);
   }
 
   ///
@@ -1265,15 +1162,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setCameraModelMatrix4(Matrix4 modelMatrix) async {
     var mainCamera = await getMainCamera() as FFICamera;
     final out = matrix4ToDouble4x4(modelMatrix);
-    set_camera_model_matrix(mainCamera.camera, out);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future transformToUnitCube(ThermionEntity entity) async {
-    SceneManager_transformToUnitCube(_sceneManager!, entity);
+    Camera_setModelMatrix(mainCamera.camera, out);
   }
 
   ///
@@ -1282,7 +1171,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setLightPosition(
       ThermionEntity lightEntity, double x, double y, double z) async {
-    LightManager_setPosition(_lightManager!, lightEntity, x, y, z);
+    LightManager_setPosition(app.lightManager, lightEntity, x, y, z);
   }
 
   ///
@@ -1293,55 +1182,16 @@ class ThermionViewerFFI extends ThermionViewer {
       ThermionEntity lightEntity, Vector3 direction) async {
     direction.normalize();
     LightManager_setPosition(
-        _lightManager!, lightEntity, direction.x, direction.y, direction.z);
+        app.lightManager, lightEntity, direction.x, direction.y, direction.z);
   }
 
-  ///
-  /// Queues an update to the worldspace position for [entity] to the viewport coordinates {x,y}.
-  /// The actual update will occur on the next frame, and will be subject to collision detection.
-  ///
-  Future queuePositionUpdateFromViewportCoords(
-      ThermionEntity entity, double x, double y) async {
-    final view = (await getViewAt(0)) as FFIView;
-    queue_position_update_from_viewport_coords(
-        _sceneManager!, view.view, entity, x, y);
-  }
-
-  ///
-  ///
-  ///
-  Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
-      double viewportX, double viewportY, double x, double y, double z) async {
-    queue_relative_position_update_world_axis(
-        _sceneManager!, entity, viewportX, viewportY, x, y, z);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future removeAssetFromScene(ThermionEntity entity) async {
-    if (SceneManager_removeFromScene(_sceneManager!, entity) != 1) {
-      throw Exception("Failed to remove entity from scene");
-    }
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future addEntityToScene(ThermionEntity entity) async {
-    if (SceneManager_addToScene(_sceneManager!, entity) != 1) {
-      throw Exception("Failed to add entity to scene");
-    }
-  }
 
   ///
   ///
   ///
   @override
   String? getNameForEntity(ThermionEntity entity) {
-    final result = NameComponentManager_getName(_nameComponentManager!, entity);
+    final result = NameComponentManager_getName(app.nameComponentManager, entity);
     if (result == nullptr) {
       return null;
     }
@@ -1397,179 +1247,21 @@ class ThermionViewerFFI extends ThermionViewer {
     });
   }
 
-  ///
-  ///
-  ///
-  @override
-  Future<Matrix4> getCameraViewMatrix() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-    var mainCamera = await getMainCamera() as FFICamera;
-    var matrixStruct = get_camera_view_matrix(mainCamera.camera);
-    return double4x4ToMatrix4(matrixStruct);
-  }
 
-  ///
-  ///
-  ///
-  @override
-  Future<Matrix4> getCameraModelMatrix() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-    var mainCamera = await getMainCamera() as FFICamera;
-    var matrixStruct = get_camera_model_matrix(mainCamera.camera);
-    return double4x4ToMatrix4(matrixStruct);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<Matrix4> getCameraProjectionMatrix() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-    var mainCamera = await getMainCamera() as FFICamera;
-    var matrixStruct = get_camera_projection_matrix(mainCamera.camera);
-    return double4x4ToMatrix4(matrixStruct);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<Matrix4> getCameraCullingProjectionMatrix() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-    var mainCamera = await getMainCamera() as FFICamera;
-    var matrixStruct = get_camera_culling_projection_matrix(mainCamera.camera);
-    return double4x4ToMatrix4(matrixStruct);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<Vector3> getCameraPosition() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-    var modelMatrix = await getCameraModelMatrix();
-    return modelMatrix.getColumn(3).xyz;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<Matrix3> getCameraRotation() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-    var modelMatrix = await getCameraModelMatrix();
-    var rotationMatrix = Matrix3.identity();
-    modelMatrix.copyRotation(rotationMatrix);
-    return rotationMatrix;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<Frustum> getCameraFrustum() async {
-    if (_viewer == null) {
-      throw Exception("No viewer available");
-    }
-    var mainCamera = await getMainCamera() as FFICamera;
-    var arrayPtr = get_camera_frustum(mainCamera.camera);
-    var doubleList = arrayPtr.asTypedList(24);
-
-    var frustum = Frustum();
-    frustum.plane0.setFromComponents(
-        doubleList[0], doubleList[1], doubleList[2], doubleList[3]);
-    frustum.plane1.setFromComponents(
-        doubleList[4], doubleList[5], doubleList[6], doubleList[7]);
-    frustum.plane2.setFromComponents(
-        doubleList[8], doubleList[9], doubleList[10], doubleList[11]);
-    frustum.plane3.setFromComponents(
-        doubleList[12], doubleList[13], doubleList[14], doubleList[15]);
-    frustum.plane4.setFromComponents(
-        doubleList[16], doubleList[17], doubleList[18], doubleList[19]);
-    frustum.plane5.setFromComponents(
-        doubleList[20], doubleList[21], doubleList[22], doubleList[23]);
-    thermion_flutter_free(arrayPtr.cast<Void>());
-    return frustum;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<ThermionEntity?> getChildEntity(
-      FFIAsset asset, String childName) async {
-    final childEntities = await getChildEntities(asset);
-    for (final entity in childEntities) {
-      var name = await getNameForEntity(entity);
-      if (name == childName) {
-        return entity;
-      }
-    }
-    return null;
-  }
-
-  Future<List<ThermionEntity>> getChildEntities(FFIAsset asset) async {
-    var count = SceneAsset_getChildEntityCount(asset.pointer);
-    var out = Int32List(count);
-    SceneAsset_getChildEntities(asset.pointer, out.address);
-    return out;
-  }
-
-  final _collisions = <ThermionEntity, NativeCallable>{};
-
-  ///
-  ///
-  ///
-  @override
-  Future addCollisionComponent(ThermionEntity entity,
-      {void Function(int entityId1, int entityId2)? callback,
-      bool affectsTransform = false}) async {
-    if (callback != null) {
-      var ptr = NativeCallable<
-          Void Function(
-              EntityId entityId1, EntityId entityId2)>.listener(callback);
-      add_collision_component(
-          _sceneManager!, entity, ptr.nativeFunction, affectsTransform);
-      _collisions[entity] = ptr;
-    } else {
-      add_collision_component(
-          _sceneManager!, entity, nullptr, affectsTransform);
-    }
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future removeCollisionComponent(ThermionEntity entity) async {
-    remove_collision_component(_sceneManager!, entity);
-  }
 
   ///
   ///
   ///
   @override
   Future addAnimationComponent(ThermionEntity entity) async {
-    AnimationManager_addAnimationComponent(_animationManager!, entity);
+    AnimationManager_addAnimationComponent(animationManager, entity);
   }
 
   ///
   ///
   ///
   Future removeAnimationComponent(ThermionEntity entity) async {
-    AnimationManager_removeAnimationComponent(_animationManager!, entity);
+    AnimationManager_removeAnimationComponent(animationManager, entity);
   }
 
   ///
@@ -1579,10 +1271,6 @@ class ThermionViewerFFI extends ThermionViewer {
   Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances,
       bool keepData = false}) async {
-    if (_viewer == null) {
-      throw Exception("Viewer must not be null");
-    }
-
     var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
       var ptrList = Int64List(materialInstances?.length ?? 0);
       if (materialInstances != null && materialInstances.isNotEmpty) {
@@ -1595,8 +1283,8 @@ class ThermionViewerFFI extends ThermionViewer {
                 .toList());
       }
 
-      return SceneManager_createGeometryRenderThread(
-          _sceneManager!,
+      return SceneAsset_createGeometryRenderThread(
+          app.engine,
           geometry.vertices.address,
           geometry.vertices.length,
           geometry.normals.address,
@@ -1608,15 +1296,15 @@ class ThermionViewerFFI extends ThermionViewer {
           geometry.primitiveType.index,
           ptrList.address.cast<Pointer<TMaterialInstance>>(),
           ptrList.length,
-          keepData,
           callback);
     });
     if (assetPtr == nullptr) {
       throw Exception("Failed to create geometry");
     }
 
-    var asset = FFIAsset(
-        assetPtr, _sceneManager!, app.engine!, _unlitMaterialProvider!, this);
+    var asset = FFIAsset(assetPtr, app);
+
+    _assets.add(asset);
 
     return asset;
   }
@@ -1627,10 +1315,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setParent(ThermionEntity child, ThermionEntity? parent,
       {bool preserveScaling = false}) async {
-    if (_sceneManager == null) {
-      throw Exception("Asset manager must be non-null");
-    }
-    TransformManager_setParent(_transformManager!, child,
+    TransformManager_setParent(app.transformManager, child,
         parent ?? FILAMENT_ENTITY_NULL, preserveScaling);
   }
 
@@ -1639,10 +1324,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity?> getParent(ThermionEntity child) async {
-    if (_sceneManager == null) {
-      throw Exception("Asset manager must be non-null");
-    }
-    var parent = TransformManager_getParent(_transformManager!, child);
+    var parent = TransformManager_getParent(app.transformManager, child);
     if (parent == FILAMENT_ASSET_ERROR) {
       return null;
     }
@@ -1654,22 +1336,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity?> getAncestor(ThermionEntity child) async {
-    if (_sceneManager == null) {
-      throw Exception("Asset manager must be non-null");
-    }
-    var parent = TransformManager_getAncestor(_transformManager!, child);
+    var parent = TransformManager_getAncestor(app.transformManager, child);
     if (parent == FILAMENT_ASSET_ERROR) {
       return null;
     }
     return parent;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future testCollisions(ThermionEntity entity) async {
-    test_collisions(_sceneManager!, entity);
   }
 
   ///
@@ -1706,17 +1377,10 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
-    final view = (await getViewAt(0)) as FFIView;
-    View_setLayerEnabled(view.view, layer.value, visible);
-  }
-
-  ///
-  ///
-  ///
   Future setVisibilityLayer(
       ThermionEntity entity, VisibilityLayers layer) async {
-    SceneManager_setVisibilityLayer(_sceneManager!, entity, layer.value);
+    RenderableManager_setVisibilityLayer(
+        app.renderableManager, entity, layer.value);
   }
 
   FFIAsset? _grid;
@@ -1849,7 +1513,7 @@ class ThermionViewerFFI extends ThermionViewer {
       Engine_buildMaterialRenderThread(
           app.engine!, data.address, data.length, cb);
     });
-    return FFIMaterial(ptr, app.engine!, _sceneManager!);
+    return FFIMaterial(ptr, app);
   }
 
   ///
@@ -1940,7 +1604,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("Failed to create material instance");
     }
 
-    var instance = FFIMaterialInstance(materialInstance, _sceneManager!);
+    var instance = FFIMaterialInstance(materialInstance, app);
     _materialInstances.add(instance);
     return instance;
   }
@@ -1949,7 +1613,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future destroyMaterialInstance(FFIMaterialInstance materialInstance) async {
-    await materialInstance.dispose();
+    await materialInstance.destroy();
     _materialInstances.remove(materialInstance);
   }
 
@@ -1957,25 +1621,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future<FFIMaterialInstance> createUnlitMaterialInstance() async {
-    var instancePtr = await withPointerCallback<TMaterialInstance>((cb) {
-      SceneManager_createUnlitMaterialInstanceRenderThread(_sceneManager!, cb);
-    });
-    final instance = FFIMaterialInstance(instancePtr, _sceneManager!);
-    _materialInstances.add(instance);
-    return instance;
-  }
-
-  ///
-  ///
-  ///
-  Future<FFIMaterialInstance> createUnlitFixedSizeMaterialInstance() async {
-    var instancePtr = await withPointerCallback<TMaterialInstance>((cb) {
-      SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(
-          _sceneManager!, cb);
-    });
-    final instance = FFIMaterialInstance(instancePtr, _sceneManager!);
-    _materialInstances.add(instance);
-    return instance;
+    final instance = await createUbershaderMaterialInstance(unlit: true);
+    return instance as FFIMaterialInstance;
   }
 
   ///
@@ -2004,7 +1651,7 @@ class ThermionViewerFFI extends ThermionViewer {
       completer.complete(true);
     });
 
-    Viewer_requestFrameRenderThread(_viewer!, callback.nativeFunction);
+    RenderLoop_requestAnimationFrame(callback.nativeFunction.cast());
 
     try {
       await completer.future.timeout(Duration(seconds: 1));
@@ -2013,13 +1660,18 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
+  ///
+  ///
+  ///
   Future<Camera> createCamera() async {
     var cameraPtr = await withPointerCallback<TCamera>((cb) {
-      SceneManager_createCameraRenderThread(_sceneManager!, cb);
+      Engine_createCameraRenderThread(app.engine, cb);
     });
-    var engine = Viewer_getEngine(_viewer!);
-    var camera = FFICamera(cameraPtr, engine, _transformManager!);
-    await camera.setLensProjection();
+    var camera = FFICamera(cameraPtr, app);
+    final viewport = await view.getViewport();
+
+    await camera.setLensProjection(aspect: viewport.width / viewport.height);
+    _cameras.add(camera);
     return camera;
   }
 
@@ -2027,26 +1679,22 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future destroyCamera(FFICamera camera) async {
-    SceneManager_destroyCamera(_sceneManager!, camera.camera);
+    await camera.destroy();
+    _cameras.remove(camera);
   }
 
   ///
   ///
   ///
   Future setActiveCamera(FFICamera camera) async {
-    final view = (await getViewAt(0)) as FFIView;
-    await withVoidCallback((cb) {
-      View_setCameraRenderThread(view.view, camera.camera, cb);
-    });
+    await view.setCamera(camera);
   }
 
   ///
   ///
   ///
   Future<Camera> getActiveCamera() async {
-    final view = (await getViewAt(0)) as FFIView;
-    var camera = view.getCamera();
-    return camera;
+    return view.getCamera();
   }
 
   final _hooks = <Future Function()>[];
@@ -2069,94 +1717,148 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   int getCameraCount() {
-    return SceneManager_getCameraCount(_sceneManager!);
+    return _cameras.length;
   }
 
   ///
-  /// Returns the camera specified by the given index. Note that the camera at
-  /// index 0 is always the main camera; this cannot be destroyed.
   ///
-  Camera getCameraAt(int index) {
-    final camera = SceneManager_getCameraAt(_sceneManager!, index);
-    if (camera == nullptr) {
-      throw Exception("No camera at index $index");
+  ///
+  Iterable<Camera> getCameras() sync* {
+    for (final camera in _cameras) {
+      yield camera;
     }
-    return FFICamera(camera, Viewer_getEngine(_viewer!), _transformManager!);
-  }
-
-  @override
-  Future<View> getViewAt(int index) async {
-    var view = Viewer_getViewAt(_viewer!, index);
-    if (view == nullptr) {
-      throw Exception("Failed to get view");
-    }
-    return FFIView(view, _viewer!, app.engine!);
   }
 
   @override
   Future<GizmoAsset> createGizmo(FFIView view, GizmoType gizmoType) async {
-    var scene = View_getScene(view.view);
-    final gizmo = await withPointerCallback<TGizmo>((cb) {
-      SceneManager_createGizmoRenderThread(_sceneManager!, view.view, scene,
-          TGizmoType.values[gizmoType.index], cb);
-    });
-    if (gizmo == nullptr) {
-      throw Exception("Failed to create gizmo");
-    }
+    throw UnimplementedError();
+    // var scene = View_getScene(view.view);
+    // final gizmo = await withPointerCallback<TGizmo>((cb) {
+    //   SceneManager_createGizmoRenderThread(_sceneManager!, view.view, scene,
+    //       TGizmoType.values[gizmoType.index], cb);
+    // });
+    // if (gizmo == nullptr) {
+    //   throw Exception("Failed to create gizmo");
+    // }
 
-    final gizmoEntityCount =
-        SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
-    final gizmoEntities = Int32List(gizmoEntityCount);
-    SceneAsset_getChildEntities(
-        gizmo.cast<TSceneAsset>(), gizmoEntities.address);
+    // final gizmoEntityCount =
+    //     SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
+    // final gizmoEntities = Int32List(gizmoEntityCount);
+    // SceneAsset_getChildEntities(
+    //     gizmo.cast<TSceneAsset>(), gizmoEntities.address);
 
-    return FFIGizmo(
-        view,
-        gizmo.cast<TSceneAsset>(),
-        _sceneManager!,
-        app.engine!,
-        nullptr,
-        this,
-        gizmoEntities.toSet()
-          ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
-  }
-
-  ///
-  ///
-  ///
-  Future setCastShadows(ThermionEntity entity, bool castShadows) async {
-    RenderableManager_setCastShadows(
-        app.renderableManager, entity, castShadows);
-  }
-
-  ///
-  ///
-  ///
-  Future<bool> isCastShadowsEnabled(ThermionEntity entity) async {
-    return RenderableManager_isShadowCaster(app.renderableManager, entity);
-  }
-
-  ///
-  ///
-  ///
-  Future setReceiveShadows(ThermionEntity entity, bool receiveShadows) async {
-    RenderableManager_setReceiveShadows(
-        app.renderableManager, entity, receiveShadows);
-  }
-
-  ///
-  ///
-  ///
-  Future<bool> isReceiveShadowsEnabled(ThermionEntity entity) async {
-    return RenderableManager_isShadowReceiver(app.renderableManager, entity);
-  }
-
-  ///
-  ///
-  ///
-  Future setClearOptions(
-      Vector4 clearColor, int clearStencil, bool clear, bool discard) async {
-    Renderer_setClearOptions(app.renderer, clearColor.r, clearColor.g,
-        clearColor.b, clearColor.a, clearStencil, clear, discard);
+    // return FFIGizmo(
+    //     view,
+    //     gizmo.cast<TSceneAsset>(),
+    //     _sceneManager!,
+    //     app.engine!,
+    //     nullptr,
+    //     this,
+    //     gizmoEntities.toSet()
+    //       ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }
 }
+
+
+
+
+
+  // ///
+  // ///
+  // ///
+  // Future setClearOptions(
+  //     Vector4 clearColor, int clearStencil, bool clear, bool discard) async {
+  //   Renderer_setClearOptions(app.renderer, clearColor.r, clearColor.g,
+  //       clearColor.b, clearColor.a, clearStencil, clear, discard);
+  // }
+
+  // ///
+  // ///
+  // ///
+  // @override
+  // Future<Uint8List> capture() async {
+  //   final fence = await withPointerCallback<TFence>((cb) {
+  //     Engine_createFenceRenderThread(app.engine!, cb);
+  //   });
+
+  //   var pixelBuffers = <Uint8List>[];
+
+  //   for (final entry in targets) {
+  //     final view = entry.view as FFIView;
+  //     var swapChain = entry.swapChain as FFISwapChain?;
+  //     final renderTarget = entry.renderTarget as FFIRenderTarget?;
+  //     final vp = await view.getViewport();
+  //     final length = vp.width * vp.height * 4;
+
+  //     await withBoolCallback((cb) {
+  //       Renderer_beginFrameRenderThread(renderer,
+  //           swapChain?.swapChain ?? Viewer_getSwapChainAt(_viewer!, 0), 0, cb);
+  //     });
+
+  //     await withVoidCallback((cb) {
+  //       Renderer_renderRenderThread(renderer, view.view, cb);
+  //     });
+  //     final out = Uint8List(length);
+  //     await withVoidCallback((cb) {
+  //       Renderer_readPixelsRenderThread(
+  //           renderer,
+  //           view.view,
+  //           renderTarget!.renderTarget,
+  //           TPixelDataFormat.PIXELDATAFORMAT_RGBA,
+  //           TPixelDataType.PIXELDATATYPE_UBYTE,
+  //           out.address,
+  //           cb);
+  //     });
+
+  //     pixelBuffers.add(out);
+  //   }
+
+  //   await withVoidCallback((cb) {
+  //     Renderer_endFrameRenderThread(renderer, cb);
+  //   });
+
+  //   await withVoidCallback((cb) {
+  //     Engine_flushAndWaitRenderThead(app.engine!, cb);
+  //   });
+
+  //   await withVoidCallback((cb) {
+  //     Engine_destroyFenceRenderThread(app.engine!, fence, cb);
+  //   });
+
+  //   // await withVoidCallback((cb) {
+  //   //   if (renderTarget != null) {
+  //   //     Viewer_captureRenderTargetRenderThread(
+  //   //         _viewer!,
+  //   //         view!.view,
+  //   //         swapChain!.swapChain,
+  //   //         renderTarget.renderTarget,
+  //   //         out.address,
+  //   //         useFence,
+  //   //         cb);
+  //   //   } else {
+  //   //     Viewer_captureRenderThread(_viewer!, view!.view, swapChain!.swapChain,
+  //   //         out.address, useFence, cb);
+  //   //   }
+  //   // });
+  //   return pixelBuffers;
+  // }
+
+  // ///
+  // /// Queues an update to the worldspace position for [entity] to the viewport coordinates {x,y}.
+  // /// The actual update will occur on the next frame, and will be subject to collision detection.
+  // ///
+  // Future queuePositionUpdateFromViewportCoords(
+  //     ThermionEntity entity, double x, double y) async {
+  //   final view = (await getViewAt(0)) as FFIView;
+  //   queue_position_update_from_viewport_coords(
+  //       _sceneManager!, view.view, entity, x, y);
+  // }
+
+  // ///
+  // ///
+  // ///
+  // Future queueRelativePositionUpdateWorldAxis(ThermionEntity entity,
+  //     double viewportX, double viewportY, double x, double y, double z) async {
+  //   queue_relative_position_update_world_axis(
+  //       _sceneManager!, entity, viewportX, viewportY, x, y, z);
+  // }

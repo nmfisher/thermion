@@ -1,5 +1,5 @@
+import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
 import 'package:vector_math/vector_math_64.dart';
-
 import '../thermion_viewer_base.dart';
 
 enum Projection { Perspective, Orthographic }
@@ -26,6 +26,8 @@ abstract class Camera {
 
   Future<Matrix4> getViewMatrix();
   Future<Matrix4> getModelMatrix();
+  Future<Matrix4> getProjectionMatrix();
+  Future<Matrix4> getCullingProjectionMatrix();
   Future setModelMatrix(Matrix4 matrix);
 
   ThermionEntity getEntity();
@@ -35,4 +37,6 @@ abstract class Camera {
   Future<double> getNear();
   Future<double> getCullingFar();
   Future<double> getFocalLength();
+
+  Future destroy();
 }

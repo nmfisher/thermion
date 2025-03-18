@@ -2,7 +2,7 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/scene.dart';
+import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
 import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
 import 'callbacks.dart';
 import 'ffi_camera.dart';
@@ -52,9 +52,8 @@ class FFIView extends View {
 
   @override
   Future<Camera> getCamera() async {
-    final transformManager = Engine_getTransformManager(app.engine);
     final cameraPtr = View_getCamera(view);
-    return FFICamera(cameraPtr, app.engine, transformManager);
+    return FFICamera(cameraPtr, app);
   }
 
   @override
@@ -85,7 +84,7 @@ class FFIView extends View {
 
   @override
   Future setToneMapper(ToneMapper mapper) async {
-    View_setToneMappingRenderThread(view, app.engine, mapper.index);
+    View_setToneMappingRenderThread(view, app.engine, TToneMapping.values[mapper.index].value);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {
@@ -111,5 +110,10 @@ class FFIView extends View {
 
   Future setScene(covariant FFIScene scene) async {
     await withVoidCallback((cb) => View_setScene(view, scene.scene));
+  }
+  
+  @override
+  Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
+    View_setLayerEnabled(view, layer.value, visible);
   }
 }

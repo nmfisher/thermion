@@ -8,7 +8,7 @@ extern "C"
 #include <stdint.h>
 
 #include "APIExport.h"
-	typedef TRenderTicker TRenderTicker;
+	
 	typedef int32_t EntityId;
 	typedef struct TCamera TCamera;
 	typedef struct TEngine TEngine;
@@ -17,6 +17,7 @@ extern "C"
 	typedef struct TSceneManager TSceneManager;
 	typedef struct TLightManager TLightManager;
 	typedef struct TRenderer TRenderer;
+	typedef struct TRenderTicker TRenderTicker;
 	typedef struct TFence TFence;
 	typedef struct TRenderTarget TRenderTarget;
 	typedef struct TSwapChain TSwapChain;
