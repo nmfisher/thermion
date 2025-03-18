@@ -415,6 +415,26 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, void (*onComplete)()) {
+      std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          Engine_destroySkybox(tEngine, tSkybox);
+          onComplete();
+        });
+    auto fut = _rl->add_task(lambda);
+  }
+    
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, void (*onComplete)()) { 
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Engine_destroyIndirectLight(tEngine, tIndirectLight);
+        onComplete();
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
   {
     std::packaged_task<void()> lambda(

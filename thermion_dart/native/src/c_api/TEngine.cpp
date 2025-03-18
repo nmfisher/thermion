@@ -276,6 +276,18 @@ namespace thermion
             return reinterpret_cast<TIndirectLight *>(indirectLight);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Engine_destroySkybox(TEngine *tEngine, TSkybox *tSkybox) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *skybox = reinterpret_cast<filament::Skybox *>(tSkybox);
+            engine->destroy(skybox);
+        }
+        
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLight(TEngine *tEngine, TIndirectLight *tIndirectLight) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *indirectLight = reinterpret_cast<filament::IndirectLight *>(tIndirectLight);
+            engine->destroy(indirectLight);
+        }
+
 #ifdef __cplusplus
     }
 }
