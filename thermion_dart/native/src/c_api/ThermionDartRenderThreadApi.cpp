@@ -10,15 +10,15 @@
 #include "c_api/TEngine.h"
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TRenderer.h"
+#include "c_api/TRenderTicker.h"
 #include "c_api/TRenderTarget.h"
 #include "c_api/TScene.h"
 #include "c_api/TSceneAsset.h"
-#include "c_api/TSceneManager.h"
 #include "c_api/TTexture.h"
 #include "c_api/TView.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
-#include "RenderTicker.hpp"
+
 #include "rendering/RenderLoop.hpp"
 #include "Log.hpp"
 
@@ -50,12 +50,12 @@ extern "C"
     }
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete)) {
+  EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete)()) {
     _rl->requestFrame(onComplete);
   }
 
   
-  EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, , uint64_t frameTimeInNanos, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, void (*onComplete)()) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -65,11 +65,17 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(TBackend backend, void (*onComplete)(TEngine *)) {
+  EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
+    TBackend backend,
+    void* platform,
+    void* sharedContext,
+    uint8_t stereoscopicEyeCount,
+    bool disableHandleUseAfterFreeCheck,
+    void (*onComplete)(TEngine *)) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        auto engine = Engine_create(backend);
+        auto engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
         onComplete(engine);
       });
     auto fut = _rl->add_task(lambda);
@@ -109,7 +115,7 @@ extern "C"
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        Engine_destroySwapChain(tEngine);
+        Engine_destroySwapChain(tEngine, tSwapChain);
         onComplete();
       });
     auto fut = _rl->add_task(lambda);
@@ -324,74 +330,6 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Viewer_renderRenderThread(TViewer *viewer, TView *tView, TSwapChain *tSwapChain)
-  {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      { _rl->doRender(); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_createGridRenderThread(TSceneManager *tSceneManager, TMaterial *tMaterial, void (*callback)(TSceneAsset *))
-  {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-      auto *sceneAsset = SceneManager_createGrid(tSceneManager, tMaterial);
-      callback(sceneAsset); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_loadGltfRenderThread(TSceneManager *sceneManager,
-                                                              const char *path,
-                                                              const char *relativeResourcePath,
-                                                              bool keepData,
-                                                              void (*callback)(TSceneAsset *))
-  {
-    std::packaged_task<void()> lambda([=]() mutable
-                                      {
-      auto entity = SceneManager_loadGltf(sceneManager, path, relativeResourcePath, keepData);
-      callback(entity); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbRenderThread(TSceneManager *sceneManager,
-                                                             const char *path,
-                                                             int numInstances,
-                                                             bool keepData,
-                                                             void (*callback)(TSceneAsset *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto asset = SceneManager_loadGlb(sceneManager, path, numInstances, keepData);
-          callback(asset);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_createGeometryRenderThread(
-      TSceneManager *sceneManager,
-      float *vertices,
-      int numVertices,
-      float *normals,
-      int numNormals,
-      float *uvs,
-      int numUvs,
-      uint16_t *indices,
-      int numIndices,
-      int primitiveType,
-      TMaterialInstance **materialInstances,
-      int materialInstanceCount,
-      bool keepData,
-      void (*callback)(TSceneAsset *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        {
-          auto *asset = SceneManager_createGeometry(sceneManager, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, primitiveType, materialInstances, materialInstanceCount, keepData);
-          callback(asset);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryRenderThread(
     TEngine *tEngine, 
@@ -442,109 +380,7 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyMaterialInstanceRenderThread(TSceneManager *tSceneManager, TMaterialInstance *tMaterialInstance, void (*callback)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        {
-          SceneManager_destroyMaterialInstance(tSceneManager, tMaterialInstance);
-          callback();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_createUnlitMaterialInstanceRenderThread(TSceneManager *sceneManager, void (*callback)(TMaterialInstance *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto instance = SceneManager_createUnlitMaterialInstance(sceneManager);
-          callback(instance);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(TSceneManager *sceneManager, void (*callback)(TMaterialInstance *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto instance = SceneManager_createUnlitFixedSizeMaterialInstance(sceneManager);
-          callback(instance);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager,
-                                                                       const uint8_t *const data,
-                                                                       size_t length,
-                                                                       int numInstances,
-                                                                       bool keepData,
-                                                                       int priority,
-                                                                       int layer,
-                                                                       bool loadResourcesAsync,
-                                                                       void (*callback)(TSceneAsset *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *asset = SceneManager_loadGlbFromBuffer(sceneManager, data, length, numInstances, keepData, priority, layer, loadResourcesAsync);
-          callback(asset);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void clear_background_image_render_thread(TViewer *viewer)
-  {
-    std::packaged_task<void()> lambda([=]
-                                      { clear_background_image(viewer); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void set_background_image_render_thread(TViewer *viewer,
-                                                               const char *path,
-                                                               bool fillHeight, void (*callback)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        {
-          set_background_image(viewer, path, fillHeight);
-          callback();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void set_background_image_position_render_thread(TViewer *viewer,
-                                                                        float x, float y,
-                                                                        bool clamp)
-  {
-    std::packaged_task<void()> lambda(
-        [=]
-        { set_background_image_position(viewer, x, y, clamp); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_loadSkyboxRenderThread(TViewer *viewer,
-                                                          const char *skyboxPath,
-                                                          void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda([=]
-                                      {
-                                        Viewer_loadSkybox(viewer, skyboxPath);
-                                        onComplete(); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void Viewer_removeSkyboxRenderThread(TViewer *viewer, void (*onComplete)())
-  {
-    std::packaged_task<void()> lambda([=]
-                                      { 
-                                        Viewer_removeSkybox(viewer); 
-                                        onComplete(); });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, thermion::ToneMapping toneMapping)
+  EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, TToneMapping toneMapping)
   {
     std::packaged_task<void()> lambda(
         [=]
@@ -575,124 +411,12 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAllRenderThread(TSceneManager *tSceneManager, void (*callback)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          SceneManager_destroyAll(tSceneManager);
-          callback();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmoRenderThread(
-      TSceneManager *tSceneManager,
-      TView *tView,
-      TScene *tScene,
-      TGizmoType tGizmoType,
-      void (*onComplete)(TGizmo *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *gizmo = SceneManager_createGizmo(tSceneManager, tView, tScene, tGizmoType);
-          onComplete(gizmo);
-        });
-    auto fut = _rl->add_task(lambda);
-    return nullptr;
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_addLightRenderThread(
-      TSceneManager *tSceneManager,
-      uint8_t type,
-      float colour,
-      float intensity,
-      float posX,
-      float posY,
-      float posZ,
-      float dirX,
-      float dirY,
-      float dirZ,
-      float falloffRadius,
-      float spotLightConeInner,
-      float spotLightConeOuter,
-      float sunAngularRadius,
-      float sunHaloSize,
-      float sunHaloFallof,
-      bool shadows,
-      void (*callback)(EntityId entityId))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto light = SceneManager_addLight(tSceneManager, type, colour, intensity, posX, posY, posZ, dirX, dirY, dirZ, falloffRadius, spotLightConeInner, spotLightConeOuter, sunAngularRadius, sunHaloSize, sunHaloFallof, shadows);
-          callback(light);
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_removeLightRenderThread(TSceneManager *tSceneManager, EntityId entityId, void (*callback)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          SceneManager_removeLight(tSceneManager, entityId);
-          callback();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *tSceneAsset, void (*callback)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          SceneManager_destroyAsset(tSceneManager, tSceneAsset);
-          callback();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssetsRenderThread(TSceneManager *tSceneManager, void (*callback)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          SceneManager_destroyAssets(tSceneManager);
-          callback();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_destroyLightsRenderThread(TSceneManager *tSceneManager, void (*callback)())
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          SceneManager_destroyLights(tSceneManager);
-          callback();
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
-  EMSCRIPTEN_KEEPALIVE void SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera *))
-  {
-    std::packaged_task<void()> lambda(
-        [=]() mutable
-        {
-          auto *camera = SceneManager_createCamera(tSceneManager);
-          callback(reinterpret_cast<TCamera *>(camera));
-        });
-    auto fut = _rl->add_task(lambda);
-  }
-
   EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *)) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
         auto *animationManager = AnimationManager_create(tEngine, tScene);
-        callback(animationManager);
+        onComplete(animationManager);
       });
     auto fut = _rl->add_task(lambda);
   }

@@ -27,7 +27,7 @@ EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(
     bool disableHandleUseAfterFreeCheck
 );
 
-EMSCRIPTEN_KEEPALIVE TEngine *Engine_destroy(TEngine *tEngine);
+EMSCRIPTEN_KEEPALIVE void Engine_destroy(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TRenderer *Engine_createRenderer(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createSwapChain(TEngine *tEngine, void *window, uint64_t flags);
 EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createHeadlessSwapChain(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags);

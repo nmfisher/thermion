@@ -49,21 +49,17 @@ namespace thermion
   void RenderTicker::setRenderable(SwapChain *swapChain, View **views, uint8_t numViews) {
     std::lock_guard lock(mMutex);
 
-    // Find if this swapChain already exists in our collection
     auto it = std::find_if(mRenderable.begin(), mRenderable.end(),
       [swapChain](const auto& pair) { return pair.first == swapChain; });
 
-    // Prepare the vector of views
     std::vector<View*> swapChainViews;
     for(int i = 0; i < numViews; i++) {
       swapChainViews.push_back(views[i]);
     }
     
     if (it != mRenderable.end()) {
-      // Update existing entry
       it->second = swapChainViews;
     } else {
-      // Add new entry
       mRenderable.emplace_back(swapChain, swapChainViews);
     }
   }

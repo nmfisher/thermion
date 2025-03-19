@@ -19,7 +19,6 @@
 #include <filament/IndexBuffer.h>
 #include <filament/InstanceBuffer.h>
 
-#include "c_api/ThermionDartApi.h"
 #include "scene/SceneAsset.hpp"
 
 namespace thermion
@@ -104,14 +103,6 @@ namespace thermion
         Entity findEntityByName(const char *name) override
         {
             return utils::Entity::import(0);
-        }
-
-        void setPriority(RenderableManager &rm, int mask) override
-        {
-        }
-
-        void setLayer(RenderableManager &rm, int layer) override
-        {
         }
 
         void highlight(Gizmo::Axis axis);

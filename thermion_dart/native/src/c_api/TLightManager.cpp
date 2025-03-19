@@ -48,7 +48,7 @@ EMSCRIPTEN_KEEPALIVE int LightManager_createLight(TEngine *tEngine, TLightManage
     filament::LightManager::Builder builder(lightType);
     auto entity = utils::EntityManager::create();
     auto result = builder.build(*engine, utils::Entity::import(entity));
-    if(result != filament::LightManager::Result::Success) { 
+    if(result != filament::LightManager::Builder::Result::Success) { 
         Log("Failed to create light");
     }
     return entity;

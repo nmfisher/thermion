@@ -1,22 +1,23 @@
 #ifdef _WIN32
 #include "ThermionWin32.h"
 #endif
-
-#include <thread>
-#include <functional>
-
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
 
-#include "filament/LightManager.h"
+#include <thread>
+#include <functional>
+
+#include <filament/LightManager.h>
+
 #include "Log.hpp"
+#include "RenderTicker.hpp"
 
 using namespace thermion;
 
 extern "C"
 {
-#include "c_api/TRenderTicker.hpp"
+#include "c_api/TRenderTicker.h"
 
 EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TRenderer *tRenderer) {
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
@@ -24,7 +25,7 @@ EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TRenderer *tRenderer) {
     return reinterpret_cast<TRenderTicker *>(renderTicker);
 }
 
-EMSCRIPTEN_KEEPALIVE void RenderTicker_destroy(TRenderTicker *tRenderTicker,) {
+EMSCRIPTEN_KEEPALIVE void RenderTicker_destroy(TRenderTicker *tRenderTicker) {
     auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
     delete renderTicker;
 }
@@ -42,12 +43,14 @@ EMSCRIPTEN_KEEPALIVE void RenderTicker_removeAnimationManager(TRenderTicker *tRe
 }
 
 EMSCRIPTEN_KEEPALIVE void RenderTicker_render(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos) {
-    auto *renderTicker = reinterpret_cast<RenderTicker *>
+    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
     renderTicker->render(frameTimeInNanos);
 }
 
-EMSCRIPTEN_KEEPALIVE void RenderTicker_setRenderable(TRenderTicker *tRenderTicker, TSwapChain *swapChain, TView **views, uint8_t numViews) {
-    auto *renderTicker = reinterpret_cast<RenderTicker *>
+EMSCRIPTEN_KEEPALIVE void RenderTicker_setRenderable(TRenderTicker *tRenderTicker, TSwapChain *tSwapChain, TView **tViews, uint8_t numViews) {
+    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
+    auto *swapChain = reinterpret_cast<filament::SwapChain *>(tSwapChain);
+    auto *views = reinterpret_cast<View **>(tViews);
     renderTicker->setRenderable(swapChain, views, numViews);
 }
 

@@ -30,6 +30,7 @@
 #include <utils/NameComponentManager.h>
 
 #include "Log.hpp"
+#include "MathUtils.hpp"
 
 #ifdef __cplusplus
 namespace thermion

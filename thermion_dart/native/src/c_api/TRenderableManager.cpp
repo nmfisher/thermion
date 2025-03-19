@@ -119,16 +119,16 @@ namespace thermion
             const auto &entity = utils::Entity::import(entityId);
             auto renderableInstance = renderableManager->getInstance(entity);
             if (!renderableInstance.isValid()) {
-                return false;
+                return Aabb3 { };
             }
-            auto box = rm.getAxisAlignedBoundingBox(instance);
+            auto box = renderableManager.getAxisAlignedBoundingBox(renderableInstance);
             return Aabb3{box.center.x, box.center.y, box.center.z, box.halfExtent.x, box.halfExtent.y, box.halfExtent.z};            
         }
 
         EMSCRIPTEN_KEEPALIVE void RenderableManager_setVisibilityLayer(TRenderableManager *tRenderableManager, EntityId entityId, uint8_t layer) {
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
-            if (!renderableManager.hasComponent(entity)) {
+            if (!renderableManager->hasComponent(entity)) {
                 Log("Not renderable");
                 return;
             }
@@ -140,12 +140,12 @@ namespace thermion
             auto *renderableManager = reinterpret_cast<filament::RenderableManager *>(tRenderableManager);
             const auto &entity = utils::Entity::import(entityId);
             
-            if (!renderableManager.hasComponent(entity)) {
+            if (!renderableManager->hasComponent(entity)) {
                 Log("Not renderable");
                 return;
             }
             auto renderableInstance = renderableManager->getInstance(entity);
-            renderableManager->setPriority(renderableInstance, layer);
+            renderableManager->setPriority(renderableInstance, priority);
         }
 
     }

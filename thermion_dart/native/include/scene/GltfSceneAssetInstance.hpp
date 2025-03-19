@@ -133,32 +133,6 @@ namespace thermion
             return std::nullptr_t();
         }
 
-        void setPriority(RenderableManager &rm, int priority) override
-        {
-            const Entity *entities = _instance->getEntities();
-            for (int i = 0; i < _instance->getEntityCount(); i++)
-            {
-                if (rm.hasComponent(entities[i]))
-                {
-                    auto renderableInstance = rm.getInstance(entities[i]);
-                    rm.setPriority(renderableInstance, priority);
-                }
-            }
-        }
-
-        void setLayer(RenderableManager &rm, int layer) override
-        {
-            const Entity *entities = _instance->getEntities();
-            for (int i = 0; i < _instance->getEntityCount(); i++)
-            {
-                if (rm.hasComponent(entities[i]))
-                {
-                    auto renderableInstance = rm.getInstance(entities[i]);
-                    rm.setLayerMask(renderableInstance, 0xFF, 1u << (uint8_t)layer);
-                }
-            }
-        }
-
         const filament::Aabb getBoundingBox() const override {
             return _instance->getBoundingBox();
         }

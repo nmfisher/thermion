@@ -72,18 +72,6 @@ namespace thermion
             scene->remove(_entity);
         }
 
-        void setPriority(RenderableManager &rm, int priority) override
-        {
-            auto renderableInstance = rm.getInstance(_entity);
-            rm.setPriority(renderableInstance, priority);
-        }
-
-        void setLayer(RenderableManager &rm, int layer) override
-        {
-            auto renderableInstance = rm.getInstance(_entity);
-            rm.setLayerMask(renderableInstance, 0xFF, 1u << (uint8_t)layer);
-        }
-
         SceneAsset *getInstanceByEntity(utils::Entity entity) override
         {
             for (auto &instance : _instances)

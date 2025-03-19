@@ -36,13 +36,24 @@ namespace thermion
         RenderTicker(filament::Renderer *renderer) : mRenderer(renderer) { }
         ~RenderTicker();
         
+        /// @brief 
+        /// @param frameTimeInNanos 
         void render(
             uint64_t frameTimeInNanos
         );
+        
+        /// @brief 
+        /// @param swapChain 
+        /// @param view 
+        /// @param numViews 
         void setRenderable(filament::SwapChain *swapChain, filament::View **view, uint8_t numViews);
 
+        /// @brief 
+        /// @param animationManager 
         void addAnimationManager(AnimationManager* animationManager);
         
+        /// @brief 
+        /// @param animationManager 
         void removeAnimationManager(AnimationManager* animationManager);
 
 

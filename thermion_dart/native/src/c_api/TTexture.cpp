@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "c_api/TTexture.h"
 
 #include <filament/Engine.h>

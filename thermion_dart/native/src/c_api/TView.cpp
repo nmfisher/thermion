@@ -5,7 +5,6 @@
 #include <filament/ColorGrading.h>
 #include <filament/Camera.h>
 
-#include "c_api/ThermionDartApi.h"
 #include "c_api/TView.h"
 #include "Log.hpp"
 
@@ -92,23 +91,23 @@ using namespace filament;
 #endif
     }
 
-    EMSCRIPTEN_KEEPALIVE void View_setToneMapping(TView *tView, TEngine *tEngine, ToneMapping toneMapping)
+    EMSCRIPTEN_KEEPALIVE void View_setToneMapping(TView *tView, TEngine *tEngine, TToneMapping tToneMapping)
     {
         auto view = reinterpret_cast<View *>(tView);
         auto engine = reinterpret_cast<Engine *>(tEngine);
 
         ToneMapper *tm;
-        switch (toneMapping)
+        switch (tToneMapping)
         {
-        case ToneMapping::ACES:
+        case TToneMapping::ACES:
             Log("Setting tone mapping to ACES");
             tm = new ACESToneMapper();
             break;
-        case ToneMapping::LINEAR:
+        case TToneMapping::LINEAR:
             Log("Setting tone mapping to Linear");
             tm = new LinearToneMapper();
             break;
-        case ToneMapping::FILMIC:
+        case TToneMapping::FILMIC:
             Log("Setting tone mapping to Filmic");
             tm = new FilmicToneMapper();
             break;

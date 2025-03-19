@@ -26,7 +26,7 @@ namespace thermion
 
 #endif
 
-#include "c_api/ThermionDartApi.h"
+#include "c_api/TRenderer.h"
 
 EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptions(TRenderer *tRenderer, double clearR, double clearG, double clearB, double clearA, uint8_t clearStencil, bool clear, bool discard) {
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
