@@ -227,23 +227,7 @@ namespace thermion
         scene->remove(_gridEntity);
         // scene->remove(_sphereEntity);
     }
-
-    void GridOverlay::setPriority(RenderableManager &rm, int priority)
-    {
-        auto gridInstance = rm.getInstance(_gridEntity);
-        rm.setPriority(gridInstance, priority);
-        // auto sphereInstance = rm.getInstance(_sphereEntity);
-        // rm.setPriority(sphereInstance, priority);
-    }
-
-    void GridOverlay::setLayer(RenderableManager &rm, int layer)
-    {
-        auto gridInstance = rm.getInstance(_gridEntity);
-        rm.setLayerMask(gridInstance, 0xFF, 1u << (uint8_t)layer);
-        // auto sphereInstance = rm.getInstance(_sphereEntity);
-        // rm.setLayerMask(sphereInstance, 0xFF, 1u << (uint8_t)layer);
-    }
-
+    
     SceneAsset *GridOverlay::getInstanceByEntity(utils::Entity entity)
     {
         for (auto &instance : _instances)

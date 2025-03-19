@@ -1,12 +1,13 @@
+#include <filament/Camera.h>
+#include <filament/ColorGrading.h>
+#include <filament/Engine.h>
+#include <filament/Frustum.h>
+#include <filament/ToneMapper.h>
 #include <filament/View.h>
 #include <filament/Viewport.h>
-#include <filament/Engine.h>
-#include <filament/ToneMapper.h>
-#include <filament/ColorGrading.h>
-#include <filament/Camera.h>
+
 #include <utils/Entity.h>
 
-#include "c_api/ThermionDartApi.h"
 #include "c_api/TCamera.h"
 #include "Log.hpp"
 #include "MathUtils.hpp"
@@ -32,8 +33,8 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void Camera_getFrustum(TCamera *tCamera, double *out) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
-            auto &frustum = camera->getFrustum();
-            auto planes = frustum.getPlanes();
+            auto frustum = camera->getFrustum();
+            auto planes = frustum.getNormalizedPlanes();
             for(int i = 0; i < 6; i++) {
                 for(int j = 0; j < 4; j++) {
                     out[(i*4) + j] = planes[i][j];
@@ -41,18 +42,30 @@ namespace thermion
             }
         }
 
+        EMSCRIPTEN_KEEPALIVE void Camera_setLensProjection(TCamera *tCamera, double near, double far, double aspect, double focalLength) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            camera->setLensProjection(near, far, aspect, focalLength);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double4x4 tModelMatrix) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            auto modelMatrix = convert_double4x4_to_mat4(tModelMatrix);
+            camera->setModelMatrix(modelMatrix);
+        }
+
+
         EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(TCamera *tCamera, double4x4 projectionMatrix, double near, double far)
         {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             camera->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), near, far);
         }
 
-        EMSCRIPTEN_KEEPALIVE double Camera_getFocusDistance(TCamera *camera) {
+        EMSCRIPTEN_KEEPALIVE double Camera_getFocusDistance(TCamera *tCamera) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getFocusDistance();
         }
 
-        EMSCRIPTEN_KEEPALIVE void Camera_setFocusDistance(TCamera *camera, float distance) {
+        EMSCRIPTEN_KEEPALIVE void Camera_setFocusDistance(TCamera *tCamera, float distance) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->setFocusDistance(distance);
         }
@@ -93,16 +106,16 @@ namespace thermion
             return camera->getCullingFar();
         }
 
-        EMSCRIPTEN_KEEPALIVE void Camera_setProjection(TCamera *const tCamera, Projection projection, double left, double right,
+        EMSCRIPTEN_KEEPALIVE void Camera_setProjection(TCamera *const tCamera, TProjection projection, double left, double right,
                                                        double bottom, double top,
                                                        double near, double far)
         {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             filament::Camera::Projection filamentProjection;
             switch(projection) {
-                case Projection::Orthographic:
+                case TProjection::Orthographic:
                     filamentProjection = filament::Camera::Projection::ORTHO; 
-                case Projection::Perspective:
+                case TProjection::Perspective:
                     filamentProjection = filament::Camera::Projection::PERSPECTIVE; 
             }
             camera->setProjection(filamentProjection, left, right, bottom, top, near, far);

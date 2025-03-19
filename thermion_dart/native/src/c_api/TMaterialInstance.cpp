@@ -2,12 +2,16 @@
 
 #include <filament/MaterialInstance.h>
 #include <filament/Material.h>
+
 #include <math/mat4.h>
 #include <math/vec4.h>
 #include <math/vec2.h>
 
 #include "Log.hpp"
-#include "materials/image.h"
+
+#include "material/image.h"
+#include "material/grid.h"
+
 #include "c_api/TMaterialInstance.h"
 
 #ifdef __cplusplus
@@ -26,7 +30,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = Material::Builder()
+            auto *material = filament::Material::Builder()
             .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
             .build(*engine);
             
@@ -35,10 +39,9 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine) {
             auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
-            auto *material = Material::Builder()
-            .package(GRID_GRID_DATA, GRID_GRID_SIZE)
-            .build(*engine);
-            
+            auto *material = filament::Material::Builder()
+                .package(GRID_GRID_DATA, GRID_GRID_SIZE)
+                .build(*engine);
             return reinterpret_cast<TMaterial *>(material);
         }
 

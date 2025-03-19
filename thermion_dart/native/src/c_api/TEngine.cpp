@@ -47,15 +47,21 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(
             TBackend backend,
-            void* platform,
-            void* sharedContext,
+            void* tPlatform,
+            void* tSharedContext,
             uint8_t stereoscopicEyeCount,
             bool disableHandleUseAfterFreeCheck)
         {
             filament::Engine::Config config;
             config.stereoscopicEyeCount = stereoscopicEyeCount;
             config.disableHandleUseAfterFreeCheck = disableHandleUseAfterFreeCheck;
-            auto *engine = filament::Engine::create(static_cast<filament::Engine::Backend>(backend), platform, sharedContext, &config);
+            auto *platform = reinterpret_cast<filament::backend::Platform *>(tPlatform);
+            auto *engine = filament::Engine::create(
+                static_cast<filament::Engine::Backend>(backend),
+                platform,
+                tSharedContext,
+                &config
+            );
             return reinterpret_cast<TEngine *>(engine);
         }
 

@@ -37,10 +37,6 @@ public:
     void addAllEntities(Scene* scene) override;
     void removeAllEntities(Scene* scene) override;
     
-    void setPriority(RenderableManager& rm, int priority) override;
-    void setLayer(RenderableManager& rm, int layer) override;
-
-
     size_t getInstanceCount() override { return _instances.size(); }
     SceneAsset* getInstanceByEntity(utils::Entity entity) override;
     SceneAsset* getInstanceAt(size_t index) override;

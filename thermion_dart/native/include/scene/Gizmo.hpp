@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <utils/Entity.h>
 #include <filament/Box.h>
 #include <filament/Engine.h>

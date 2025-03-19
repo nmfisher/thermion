@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 

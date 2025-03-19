@@ -121,7 +121,7 @@ namespace thermion
             if (!renderableInstance.isValid()) {
                 return Aabb3 { };
             }
-            auto box = renderableManager.getAxisAlignedBoundingBox(renderableInstance);
+            auto box = renderableManager->getAxisAlignedBoundingBox(renderableInstance);
             return Aabb3{box.center.x, box.center.y, box.center.z, box.halfExtent.x, box.halfExtent.y, box.halfExtent.z};            
         }
 

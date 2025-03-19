@@ -25,11 +25,15 @@ external ffi.Pointer<TMaterialInstance> Material_createInstance(
   ffi.Pointer<TMaterial> tMaterial,
 );
 
-@ffi.Native<ffi.Pointer<TMaterial> Function()>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createImageMaterial();
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createImageMaterial(
+  ffi.Pointer<TEngine> tEngine,
+);
 
-@ffi.Native<ffi.Pointer<TMaterial> Function()>(isLeaf: true)
-external ffi.Pointer<TMaterial> Material_createGridMaterial();
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createGridMaterial(
+  ffi.Pointer<TEngine> tEngine,
+);
 
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
@@ -1491,9 +1495,11 @@ external void RenderLoop_create();
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
 external void RenderLoop_destroy();
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<ffi.Void>)>(isLeaf: true)
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void RenderLoop_requestAnimationFrame(
-  ffi.Pointer<ffi.Void> onComplete,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<
@@ -3847,7 +3853,7 @@ enum TGizmoType {
       };
 }
 
-sealed class TPrimitiveType {
+abstract class TPrimitiveType {
   /// !< points
   static const PRIMITIVETYPE_POINTS = 0;
 
@@ -4265,7 +4271,7 @@ enum TTextureFormat {
 }
 
 /// ! Pixel Data Format
-sealed class TPixelDataFormat {
+abstract class TPixelDataFormat {
   /// !< One Red channel, float
   static const PIXELDATAFORMAT_R = 0;
 
@@ -4299,7 +4305,7 @@ sealed class TPixelDataFormat {
   static const PIXELDATAFORMAT_ALPHA = 11;
 }
 
-sealed class TPixelDataType {
+abstract class TPixelDataType {
   /// !< unsigned byte
   static const PIXELDATATYPE_UBYTE = 0;
 

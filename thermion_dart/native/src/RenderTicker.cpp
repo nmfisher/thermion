@@ -42,7 +42,6 @@ namespace thermion
   using namespace filament;
   using namespace filament::math;
   using namespace utils;
-  using namespace std::chrono;
 
   using std::string;
 

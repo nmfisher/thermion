@@ -95,6 +95,7 @@ class ThermionViewerFFI extends ThermionViewer {
     _cameras.add(camera);
 
     await view.setCamera(camera);
+
     if (renderTarget != null) {
       await view.setRenderTarget(renderTarget);
     }
@@ -149,14 +150,12 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   final _onDispose = <Future Function()>[];
-  bool _disposing = false;
 
   ///
   ///
   ///
   @override
   Future dispose() async {
-    _disposing = true;
     await setRendering(false);
     await destroyAssets();
     await destroyLights();
@@ -166,7 +165,6 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     _onDispose.clear();
-    _disposing = false;
   }
 
   ///

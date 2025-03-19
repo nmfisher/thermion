@@ -16,7 +16,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void RenderLoop_create();
         EMSCRIPTEN_KEEPALIVE void RenderLoop_destroy();
-        EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete));
+        EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, void (*onComplete)());
         // EMSCRIPTEN_KEEPALIVE void RenderLoop_addTask(TRenderLoop* tRenderLoop, void (*task)());
 
@@ -52,6 +52,7 @@ namespace thermion
             TTextureFormat format,
             void (*onComplete)(TTexture*)
         );
+
         EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture* tTexture, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence*));
         EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, void (*onComplete)());
@@ -175,18 +176,6 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Image_getHeightRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
         EMSCRIPTEN_KEEPALIVE void Image_getChannelsRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
 
-        // Texture methods
-        EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(TEngine *engine, 
-            uint32_t width, 
-            uint32_t height, 
-            uint32_t depth, 
-            uint8_t levels, 
-            uint16_t tUsage,
-            intptr_t import,
-            TTextureSamplerType sampler, 
-            TTextureFormat format,
-            void (*onComplete)(TTexture *)
-        );
 
         EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(
             TEngine *tEngine,
@@ -292,8 +281,6 @@ namespace thermion
             void (*onComplete)()
         );
 
-        EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(TSceneManager *sceneManager,
-                                                                     EntityId asset, void (*callback)(bool));
         EMSCRIPTEN_KEEPALIVE void AnimationManager_setBoneTransformRenderThread(
             TAnimationManager *tAnimationManager,
             EntityId asset,

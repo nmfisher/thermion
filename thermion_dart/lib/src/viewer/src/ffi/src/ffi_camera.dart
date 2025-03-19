@@ -5,7 +5,7 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
+
 import '../../../../utils/src/matrix.dart';
 
 class FFICamera extends Camera {

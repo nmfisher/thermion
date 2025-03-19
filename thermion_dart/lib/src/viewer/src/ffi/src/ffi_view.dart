@@ -107,7 +107,7 @@ class FFIView extends View {
   }
 
   Future setScene(covariant FFIScene scene) async {
-    await withVoidCallback((cb) => View_setScene(view, scene.scene));
+    View_setScene(view, scene.scene);
   }
 
   @override

@@ -25,10 +25,6 @@
 namespace thermion
 {
 
-    typedef std::chrono::time_point time_point_t;
-
-    using namespace std::chrono;
-
     class RenderTicker
     {
 

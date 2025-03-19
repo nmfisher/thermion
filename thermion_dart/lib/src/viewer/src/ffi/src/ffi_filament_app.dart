@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:thermion_dart/src/filament/src/engine.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
@@ -14,12 +15,12 @@ typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
 class FFIFilamentConfig extends FilamentConfig<RenderCallback, Pointer<Void>> {
   FFIFilamentConfig(
-      {required super.backend,
-      required super.resourceLoader,
-      required super.driver,
-      required super.platform,
-      required super.sharedContext,
-      required super.uberArchivePath});
+      {required super.resourceLoader,
+      super.backend = Backend.DEFAULT,
+      super.driver = null,
+      super.platform = null,
+      super.sharedContext = null,
+      super.uberArchivePath = null});
 }
 
 class FFIFilamentApp extends FilamentApp<Pointer> {
@@ -55,7 +56,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             renderableManager: renderableManager,
             ubershaderMaterialProvider: ubershaderMaterialProvider) {}
 
-  static Future create(FFIFilamentConfig config) async {
+  static Future create({FFIFilamentConfig? config}) async {
+    config ??= FFIFilamentConfig(resourceLoader: nullptr);
     if (FilamentApp.instance != null) {
       await FilamentApp.instance!.destroy();
     }
@@ -65,7 +67,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final engine = await withPointerCallback<TEngine>((cb) =>
         Engine_createRenderThread(
-            TBackend.values[config.backend.index].index,
+            TBackend.values[config!.backend.index].index,
             config.platform ?? nullptr,
             config.sharedContext ?? nullptr,
             config.stereoscopicEyeCount,
@@ -79,15 +81,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final renderer = await withPointerCallback<TRenderer>(
         (cb) => Engine_createRendererRenderThread(engine, cb));
     final ubershaderMaterialProvider =
-        await withPointerCallback<TMaterialProvider>(
-            (cb) => GltfAssetLoader_getMaterialProvider(gltfAssetLoader));
+        GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
 
     final transformManager = Engine_getTransformManager(engine);
     final lightManager = Engine_getLightManager(engine);
     final renderableManager = Engine_getRenderableManager(engine);
 
-    final renderTicker = await withPointerCallback<TRenderTicker>(
-        (cb) => RenderTicker_create(renderer));
+    final renderTicker = RenderTicker_create(renderer);
 
     final nameComponentManager = NameComponentManager_create();
 
@@ -210,7 +210,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
       TextureFormat textureFormat = TextureFormat.RGBA16F,
       int? importedTextureHandle}) async {
-    var bitmask = flags.fold(0, (a, b) => a | b.index);
+    var bitmask = flags.fold(0, (a, b) => a | b.value);
+    print("bitmask $bitmask");
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Texture_buildRenderThread(
           engine,
@@ -218,8 +219,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           height,
           depth,
           levels,
-          importedTextureHandle ?? 0,
           bitmask,
+          importedTextureHandle ?? 0,
           TTextureSamplerType.values[textureSamplerType.index],
           TTextureFormat.values[textureFormat.index],
           cb);
@@ -404,7 +405,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   FFIMaterial? _gridMaterial;
   Future<FFIMaterial> get gridMaterial async {
-    _gridMaterial ??= FFIMaterial(Material_createGridMaterial(), this);
+    _gridMaterial ??= FFIMaterial(Material_createGridMaterial(engine), this);
     return _gridMaterial!;
   }
 
@@ -425,8 +426,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future render() async {
-    await withVoidCallback((cb) => 
-    RenderTicker_renderRenderThread(renderTicker, 0, cb));
+    await withVoidCallback(
+        (cb) => RenderTicker_renderRenderThread(renderTicker, 0, cb));
   }
 
   ///
@@ -436,6 +437,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future register(
       covariant FFISwapChain swapChain, covariant FFIView view) async {
     _viewMappings[view] = swapChain;
+    if (!_views.containsKey(swapChain)) {
+      _views[swapChain] = [];
+    }
+    _views[swapChain]!.add(view);
   }
 
   final _hooks = <Future Function()>[];
@@ -531,9 +536,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   Material? _imageMaterial;
 
+  ///
+  ///
+  ///
   @override
   Future<MaterialInstance> createImageMaterialInstance() async {
-    _imageMaterial ??= FFIMaterial(Material_createImageMaterial(),
+    _imageMaterial ??= FFIMaterial(Material_createImageMaterial(engine),
         FilamentApp.instance! as FFIFilamentApp);
     var instance =
         await _imageMaterial!.createInstance() as FFIMaterialInstance;

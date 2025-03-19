@@ -1,6 +1,5 @@
+#include <sstream>
 #include <vector>
-
-#include "c_api/TTexture.h"
 
 #include <filament/Engine.h>
 #include <filament/Material.h>
@@ -14,6 +13,8 @@
 #include <filament/image/LinearImage.h>
 #include <filament/imageio/ImageDecoder.h>
 #include <filament/backend/DriverEnums.h>
+
+#include "c_api/TTexture.h"
 
 #include "Log.hpp"
 
@@ -227,7 +228,7 @@ namespace thermion
             auto *engine = reinterpret_cast<::filament::Engine *>(tEngine);
             auto format = convertToFilamentFormat(tFormat);
             auto samplerType = static_cast<::filament::Texture::Sampler>(static_cast<int>(tSamplerType));
-            auto usage = static_cast<::filament::Texture::Usage>(tUsage);
+            auto usage = static_cast<TextureUsage>(tUsage);
             
             if ((usage & TextureUsage::UPLOADABLE) == TextureUsage::UPLOADABLE) {
                 TRACE("UPLOADABLE");
