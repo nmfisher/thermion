@@ -138,6 +138,15 @@ external void MaterialInstance_setParameterFloat4(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.Double>)>(isLeaf: true)
+external void MaterialInstance_setParameterMat4(
+  ffi.Pointer<TMaterialInstance> materialInstance,
+  ffi.Pointer<ffi.Char> propertyName,
+  ffi.Pointer<ffi.Double> matrix,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.Pointer<ffi.Char>,
         ffi.Int)>(isLeaf: true)
 external void MaterialInstance_setParameterInt(
   ffi.Pointer<TMaterialInstance> materialInstance,
@@ -1509,6 +1518,13 @@ external void RenderTicker_renderRenderThread(
   ffi.Pointer<TRenderTicker> tRenderTicker,
   int frameTimeInNanos,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void RenderLoop_addTask(
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> task,
 );
 
 @ffi.Native<

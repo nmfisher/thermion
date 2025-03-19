@@ -111,6 +111,8 @@ abstract class MaterialInstance {
   Future setParameterFloat3Array(String name, List<Vector3> data);
   Future setParameterFloat4(
       String name, double x, double y, double z, double w);
+  Future setParameterMat4(
+      String name, Matrix4 matrix);
   
   Future setParameterInt(String name, int value);
   Future setParameterBool(String name, bool value);

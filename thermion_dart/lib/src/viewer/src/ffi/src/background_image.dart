@@ -27,7 +27,7 @@ class BackgroundImage extends ThermionAsset {
 
   Future destroy() async {
     Scene_removeEntity(scene.scene, entity);
-    
+
     await texture!.dispose();
     await sampler!.dispose();
     await mi.destroy();
@@ -40,6 +40,9 @@ class BackgroundImage extends ThermionAsset {
 
     var backgroundImage =
         await viewer.createGeometry(GeometryHelper.fullscreenQuad());
+    await imageMaterialInstance.setParameterInt("showImage", 0);
+    await imageMaterialInstance.setParameterMat4("transform", Matrix4.identity());
+    
     backgroundImage.setMaterialInstanceAt(imageMaterialInstance);
     await scene.add(backgroundImage as FFIAsset);
     return BackgroundImage._(
@@ -61,7 +64,6 @@ class BackgroundImage extends ThermionAsset {
 
     await mi.setParameterTexture(
         "image", texture as FFITexture, sampler as FFITextureSampler);
-  
   }
 
   ///

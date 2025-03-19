@@ -18,7 +18,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void RenderLoop_destroy();
         EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, void (*onComplete)());
-        // EMSCRIPTEN_KEEPALIVE void RenderLoop_addTask(TRenderLoop* tRenderLoop, void (*task)());
+        EMSCRIPTEN_KEEPALIVE void RenderLoop_addTask(void (*task)());
 
         EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *));
 

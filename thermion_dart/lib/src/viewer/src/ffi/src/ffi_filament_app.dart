@@ -564,6 +564,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       Renderer_beginFrameRenderThread(renderer, swapChain!.swapChain, 0, cb);
     });
     await withVoidCallback((cb) {
+      Renderer_renderRenderThread(
+        renderer,
+        view.view,
+        cb,
+      );
+    });
+    await withVoidCallback((cb) {
       Renderer_readPixelsRenderThread(
         renderer,
         view.view,

@@ -50,6 +50,15 @@ extern "C"
     }
   }
 
+  EMSCRIPTEN_KEEPALIVE void RenderLoop_addTask(void (*task)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        task();
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete)()) {
     _rl->requestFrame(onComplete);
   }

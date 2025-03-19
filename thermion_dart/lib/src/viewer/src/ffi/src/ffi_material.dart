@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
@@ -191,5 +192,17 @@ class FFIMaterialInstance extends MaterialInstance {
   Future setParameterBool(String name, bool value) async {
     MaterialInstance_setParameterBool(
         pointer, name.toNativeUtf8().cast<Char>(), value);
+  }
+
+  @override
+  Future setParameterMat4(String name, Matrix4 matrix) async {
+    final completer = Completer();
+    final func = () {
+      MaterialInstance_setParameterMat4(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
+      completer.complete();
+    };
+    final nativeCallable = NativeCallable<Void Function()>.listener(func);
+    RenderLoop_addTask(nativeCallable.nativeFunction);
+    await completer.future;
   }
 }

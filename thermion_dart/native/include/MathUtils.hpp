@@ -4,6 +4,16 @@
 
 namespace thermion {
 
+// Helper function to convert double* to filament::math::mat4f
+static filament::math::mat4f convert_double_to_mat4f(double* data)
+{
+    return filament::math::mat4f {
+        filament::math::float4{static_cast<float>(data[0]), static_cast<float>(data[1]), static_cast<float>(data[2]), static_cast<float>(data[3])},
+        filament::math::float4{static_cast<float>(data[4]), static_cast<float>(data[5]), static_cast<float>(data[6]), static_cast<float>(data[7])},
+        filament::math::float4{static_cast<float>(data[8]), static_cast<float>(data[9]), static_cast<float>(data[10]), static_cast<float>(data[11])},
+        filament::math::float4{static_cast<float>(data[12]), static_cast<float>(data[13]), static_cast<float>(data[14]), static_cast<float>(data[15])}};
+}
+
 // Helper function to convert filament::math::mat4 to double4x4
 static double4x4 convert_mat4_to_double4x4(const filament::math::mat4 &mat)
 {

@@ -8,7 +8,7 @@
 #include <math/vec2.h>
 
 #include "Log.hpp"
-
+#include "MathUtils.hpp"
 #include "material/image.h"
 #include "material/grid.h"
 
@@ -124,6 +124,11 @@ namespace thermion
             materialInstance->setParameter(propertyName, texture, *sampler);
         }
 
+
+        EMSCRIPTEN_KEEPALIVE void MaterialInstance_setParameterMat4(TMaterialInstance *tMaterialInstance, const char *propertyName, double *matrix) {
+            auto *mi = reinterpret_cast<filament::MaterialInstance *>(tMaterialInstance);
+            mi->setParameter(propertyName, convert_double_to_mat4f(matrix));
+        }
 
         EMSCRIPTEN_KEEPALIVE void MaterialInstance_setDepthFunc(TMaterialInstance *tMaterialInstance, TSamplerCompareFunc tDepthFunc)
         {

@@ -1,14 +1,12 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:vector_math/vector_math_64.dart';
-
 import '../../../thermion_dart.dart';
 
 class GeometryHelper {
   static Geometry fullscreenQuad() {
     final vertices = Float32List.fromList(
-        [-1.0, -1.0, 1.0, 1.0, 3.0, -1.0, 1.0, 1.0, -1.0, 3.0, 1.0, 1.0]);
+        [-1.0, -1.0, 1.0, 3.0, -1.0, 1.0, -1.0, 3.0, 1.0]);
     final indices = [0, 1, 2];
     return Geometry(vertices, indices);
   }

@@ -13,6 +13,17 @@ void using(Pointer ptr, Future Function(Pointer ptr) function) async {
   allocator.free(ptr);
 }
 
+Future<void> withVoidCallback2(Function() func) async {
+  final completer = Completer();
+  void Function() callback = () {
+    func.call();
+    completer.complete();
+  };  
+  final nativeCallable = NativeCallable<Void Function()>.listener(callback);
+  await completer.future;
+  nativeCallable.close();
+}
+
 Future<void> withVoidCallback(
     Function(Pointer<NativeFunction<Void Function()>>) func) async {
   final completer = Completer();
@@ -27,8 +38,7 @@ Future<void> withVoidCallback(
 }
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
-    Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>)
-        func) async {
+    Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func) async {
   final completer = Completer<Pointer<T>>();
   // ignore: prefer_function_declarations_over_variables
   void Function(Pointer<NativeType>) callback = (Pointer<NativeType> ptr) {
@@ -101,4 +111,3 @@ Future<String> withCharPtrCallback(
   nativeCallable.close();
   return completer.future;
 }
-
