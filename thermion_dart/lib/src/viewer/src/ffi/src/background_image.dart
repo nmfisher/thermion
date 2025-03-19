@@ -14,41 +14,54 @@ class BackgroundImage extends ThermionAsset {
 
   ThermionEntity get entity => asset.entity;
 
-  Texture? _backgroundImageTexture;
+  Texture? texture;
 
-  FFITextureSampler? _imageSampler;
+  FFITextureSampler? sampler;
+
+  final MaterialInstance mi;
 
   final FFIScene scene;
 
   BackgroundImage._(
-      this.asset, this.scene, this._backgroundImageTexture, this._imageSampler);
+      this.asset, this.scene, this.texture, this.sampler, this.mi);
 
   Future destroy() async {
     Scene_removeEntity(scene.scene, entity);
-    await _backgroundImageTexture!.dispose();
-    await _imageSampler!.dispose();
+    
+    await texture!.dispose();
+    await sampler!.dispose();
+    await mi.destroy();
   }
 
   static Future<BackgroundImage> create(
-      ThermionViewer viewer, FFIScene scene, Uint8List imageData) async {
-    final image = await FilamentApp.instance!.decodeImage(imageData);
-    var backgroundImageTexture = await FilamentApp.instance!
-        .createTexture(await image.getWidth(), await image.getHeight());
-
-    var imageSampler =
-        await FilamentApp.instance!.createTextureSampler() as FFITextureSampler;
-
+      ThermionViewer viewer, FFIScene scene) async {
     var imageMaterialInstance =
         await FilamentApp.instance!.createImageMaterialInstance();
 
-    await imageMaterialInstance.setParameterTexture(
-        "image", backgroundImageTexture as FFITexture, imageSampler);
     var backgroundImage =
         await viewer.createGeometry(GeometryHelper.fullscreenQuad());
     backgroundImage.setMaterialInstanceAt(imageMaterialInstance);
     await scene.add(backgroundImage as FFIAsset);
     return BackgroundImage._(
-        backgroundImage, scene, backgroundImageTexture, imageSampler);
+        backgroundImage, scene, null, null, imageMaterialInstance);
+  }
+
+  Future setBackgroundColor(double r, double g, double b, double a) async {
+    await mi.setParameterFloat4("backgroundColor", r, g, b, a);
+  }
+
+  Future setImage(Uint8List imageData) async {
+    final image = await FilamentApp.instance!.decodeImage(imageData);
+
+    texture ??= await FilamentApp.instance!
+        .createTexture(await image.getWidth(), await image.getHeight());
+
+    sampler ??=
+        await FilamentApp.instance!.createTextureSampler() as FFITextureSampler;
+
+    await mi.setParameterTexture(
+        "image", texture as FFITexture, sampler as FFITextureSampler);
+  
   }
 
   ///
@@ -263,7 +276,7 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future setTransform(Matrix4 transform, { ThermionEntity? entity }) {
+  Future setTransform(Matrix4 transform, {ThermionEntity? entity}) {
     // TODO: implement setTransform
     throw UnimplementedError();
   }

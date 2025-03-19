@@ -75,6 +75,7 @@ namespace thermion
             void (*onComplete)());
 
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
+        EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
 
         EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, TToneMapping toneMapping);
         EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength);
@@ -82,60 +83,17 @@ namespace thermion
 
         FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
 
-        EMSCRIPTEN_KEEPALIVE void SceneManager_createGridRenderThread(TSceneManager *tSceneManager, TMaterial *tMaterial, void (*callback)(TSceneAsset *));
-
-        EMSCRIPTEN_KEEPALIVE TGizmo *SceneManager_createGizmoRenderThread(
-            TSceneManager *tSceneManager,
-            TView *tView,
-            TScene *tScene,
-            TGizmoType tGizmoType,
-            void (*onComplete)(TGizmo *));
-
-        EMSCRIPTEN_KEEPALIVE void SceneManager_createGeometryRenderThread(
-            TSceneManager *sceneManager,
-            float *vertices,
-            int numVertices,
-            float *normals,
-            int numNormals,
-            float *uvs,
-            int numUvs,
-            uint16_t *indices,
-            int numIndices,
-            int primitiveType,
-            TMaterialInstance **materialInstances,
-            int materialInstanceCount,
-            bool keepData,
-            void (*callback)(TSceneAsset *));
-        EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbFromBufferRenderThread(TSceneManager *sceneManager, const uint8_t *const data, size_t length, int numInstances, bool keepData, int priority, int layer, bool loadResourcesAsync, void (*callback)(TSceneAsset *));
-        EMSCRIPTEN_KEEPALIVE void SceneManager_createUnlitMaterialInstanceRenderThread(TSceneManager *sceneManager, void (*callback)(TMaterialInstance *));
-        EMSCRIPTEN_KEEPALIVE void SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(TSceneManager *sceneManager, void (*callback)(TMaterialInstance *));
-        EMSCRIPTEN_KEEPALIVE void SceneManager_loadGlbRenderThread(TSceneManager *sceneManager, const char *assetPath, int numInstances, bool keepData, void (*callback)(TSceneAsset *));
-        EMSCRIPTEN_KEEPALIVE void SceneManager_loadGltfRenderThread(TSceneManager *sceneManager, const char *assetPath, const char *relativePath, bool keepData, void (*callback)(TSceneAsset *));
-        EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAllRenderThread(TSceneManager *tSceneManager, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssetRenderThread(TSceneManager *tSceneManager, TSceneAsset *sceneAsset, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void SceneManager_destroyAssetsRenderThread(TSceneManager *tSceneManager, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void SceneManager_destroyLightsRenderThread(TSceneManager *tSceneManager, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void SceneManager_addLightRenderThread(
-            TSceneManager *tSceneManager,
-            uint8_t type,
-            float colour,
-            float intensity,
-            float posX,
-            float posY,
-            float posZ,
-            float dirX,
-            float dirY,
-            float dirZ,
-            float falloffRadius,
-            float spotLightConeInner,
-            float spotLightConeOuter,
-            float sunAngularRadius,
-            float sunHaloSize,
-            float sunHaloFallof,
-            bool shadows,
-            void (*callback)(EntityId));
-        EMSCRIPTEN_KEEPALIVE void SceneManager_removeLightRenderThread(TSceneManager *tSceneManager, EntityId entityId, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void SceneManager_createCameraRenderThread(TSceneManager *tSceneManager, void (*callback)(TCamera *));
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, void (*onComplete)());
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_loadGlbRenderThread(
+            TGltfAssetLoader *tAssetLoader,
+            TGltfResourceLoader *tResourceLoader,
+            TEngine *tEngine,
+            TNameComponentManager *tNameComponentManager,
+            uint8_t *data,
+            size_t length,
+            size_t numInstances,
+            void (*callback)(TSceneAsset *)
+        );
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryRenderThread(
             TEngine *tEngine, 

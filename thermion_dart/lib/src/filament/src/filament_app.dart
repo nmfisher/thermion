@@ -219,5 +219,18 @@ abstract class FilamentApp<T> {
   Future setParent(ThermionEntity child, ThermionEntity? parent,
       {bool preserveScaling});
 
+  ///
+  ///
+  ///
   Future<MaterialInstance> createImageMaterialInstance();
+
+  ///
+  ///
+  ///
+  Future<Uint8List> capture(covariant View view);
+
+  ///
+  ///
+  ///
+  Future setClearColor(double r, double g, double b, double a);
 }

@@ -541,10 +541,52 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future<MaterialInstance> createImageMaterialInstance() async {
-    _imageMaterial ??= FFIMaterial(Material_createImageMaterial(engine),
-        FilamentApp.instance! as FFIFilamentApp);
+    if (_imageMaterial == null) {
+      var ptr = await withPointerCallback<TMaterial>(
+          (cb) => Material_createImageMaterialRenderThread(engine, cb));
+      _imageMaterial =
+          FFIMaterial(ptr, FilamentApp.instance! as FFIFilamentApp);
+    }
     var instance =
         await _imageMaterial!.createInstance() as FFIMaterialInstance;
     return instance;
+  }
+
+  ///
+  ///
+  ///
+  Future<Uint8List> capture(covariant FFIView view) async {
+    final viewport = await view.getViewport();
+    final swapChain = _viewMappings[view];
+    final out = Uint8List(viewport.width * viewport.height * 4);
+
+    await withBoolCallback((cb) {
+      Renderer_beginFrameRenderThread(renderer, swapChain!.swapChain, 0, cb);
+    });
+    await withVoidCallback((cb) {
+      Renderer_readPixelsRenderThread(
+        renderer,
+        view.view,
+        view.renderTarget?.renderTarget ?? nullptr,
+        TPixelDataFormat.PIXELDATAFORMAT_RGBA,
+        TPixelDataType.PIXELDATATYPE_UBYTE,
+        out.address,
+        cb,
+      );
+    });
+    await withVoidCallback((cb) {
+      Renderer_endFrameRenderThread(renderer, cb);
+    });
+    await withVoidCallback((cb) {
+      Engine_flushAndWaitRenderThead(engine, cb);
+    });
+    return out;
+  }
+
+  ///
+  ///
+  ///
+  Future setClearColor(double r, double g, double b, double a) async {
+    Renderer_setClearOptions(renderer, r, g, b, a, 0, true, false);
   }
 }

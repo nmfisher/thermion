@@ -1909,6 +1909,19 @@ external void Material_createInstanceRenderThread(
 
 @ffi.Native<
         ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
+    isLeaf: true)
+external void Material_createImageMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
             ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.UnsignedInt)>(
     symbol: "View_setToneMappingRenderThread", isLeaf: true)
 external void _View_setToneMappingRenderThread(
@@ -1952,277 +1965,35 @@ external FilamentRenderCallback make_render_callback_fn_pointer(
 );
 
 @ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<TMaterial>,
-            ffi.Pointer<
-                ffi
-                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
-    isLeaf: true)
-external void SceneManager_createGridRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<TMaterial> tMaterial,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      callback,
-);
-
-@ffi.Native<
-        ffi.Pointer<TGizmo> Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<TView>,
-            ffi.Pointer<TScene>,
-            ffi.UnsignedInt,
-            ffi.Pointer<
-                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>)>(
-    symbol: "SceneManager_createGizmoRenderThread", isLeaf: true)
-external ffi.Pointer<TGizmo> _SceneManager_createGizmoRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TScene> tScene,
-  int tGizmoType,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>
-      onComplete,
-);
-
-ffi.Pointer<TGizmo> SceneManager_createGizmoRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TScene> tScene,
-  TGizmoType tGizmoType,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>
-      onComplete,
-) =>
-    _SceneManager_createGizmoRenderThread(
-      tSceneManager,
-      tView,
-      tScene,
-      tGizmoType.value,
-      onComplete,
-    );
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Float>,
-            ffi.Int,
-            ffi.Pointer<ffi.Uint16>,
-            ffi.Int,
-            ffi.Int,
-            ffi.Pointer<ffi.Pointer<TMaterialInstance>>,
-            ffi.Int,
-            ffi.Bool,
-            ffi.Pointer<
-                ffi
-                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
-    isLeaf: true)
-external void SceneManager_createGeometryRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Float> vertices,
-  int numVertices,
-  ffi.Pointer<ffi.Float> normals,
-  int numNormals,
-  ffi.Pointer<ffi.Float> uvs,
-  int numUvs,
-  ffi.Pointer<ffi.Uint16> indices,
-  int numIndices,
-  int primitiveType,
-  ffi.Pointer<ffi.Pointer<TMaterialInstance>> materialInstances,
-  int materialInstanceCount,
-  bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      callback,
+    ffi.Void Function(ffi.Pointer<TSceneAsset>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void SceneAsset_destroyRenderThread(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
+            ffi.Pointer<TGltfAssetLoader>,
+            ffi.Pointer<TGltfResourceLoader>,
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TNameComponentManager>,
             ffi.Pointer<ffi.Uint8>,
             ffi.Size,
-            ffi.Int,
-            ffi.Bool,
-            ffi.Int,
-            ffi.Int,
-            ffi.Bool,
+            ffi.Size,
             ffi.Pointer<
                 ffi
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
     isLeaf: true)
-external void SceneManager_loadGlbFromBufferRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
+external void SceneAsset_loadGlbRenderThread(
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
+  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<ffi.Uint8> data,
   int length,
   int numInstances,
-  bool keepData,
-  int priority,
-  int layer,
-  bool loadResourcesAsync,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(
-                    ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
-external void SceneManager_createUnlitMaterialInstanceRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<
-          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
-      callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>,
-        ffi.Pointer<
-            ffi.NativeFunction<
-                ffi.Void Function(
-                    ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
-external void SceneManager_createUnlitFixedSizeMaterialInstanceRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<
-          ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
-      callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Char>,
-            ffi.Int,
-            ffi.Bool,
-            ffi.Pointer<
-                ffi
-                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
-    isLeaf: true)
-external void SceneManager_loadGlbRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Char> assetPath,
-  int numInstances,
-  bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<ffi.Char>,
-            ffi.Pointer<ffi.Char>,
-            ffi.Bool,
-            ffi.Pointer<
-                ffi
-                .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
-    isLeaf: true)
-external void SceneManager_loadGltfRenderThread(
-  ffi.Pointer<TSceneManager> sceneManager,
-  ffi.Pointer<ffi.Char> assetPath,
-  ffi.Pointer<ffi.Char> relativePath,
-  bool keepData,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void SceneManager_destroyAllRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>, ffi.Pointer<TSceneAsset>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void SceneManager_destroyAssetRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<TSceneAsset> sceneAsset,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void SceneManager_destroyAssetsRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void SceneManager_destroyLightsRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Uint8,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Float,
-            ffi.Bool,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>>)>(
-    isLeaf: true)
-external void SceneManager_addLightRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  int type,
-  double colour,
-  double intensity,
-  double posX,
-  double posY,
-  double posZ,
-  double dirX,
-  double dirY,
-  double dirZ,
-  double falloffRadius,
-  double spotLightConeInner,
-  double spotLightConeOuter,
-  double sunAngularRadius,
-  double sunHaloSize,
-  double sunHaloFallof,
-  bool shadows,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(EntityId)>> callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void SceneManager_removeLightRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  int entityId,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
-);
-
-@ffi.Native<
-        ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
-            ffi.Pointer<
-                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>>)>(
-    isLeaf: true)
-external void SceneManager_createCameraRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TCamera>)>>
       callback,
 );
 

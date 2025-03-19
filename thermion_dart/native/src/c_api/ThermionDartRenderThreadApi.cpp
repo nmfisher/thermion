@@ -319,6 +319,16 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *)) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto *instance = Material_createImageMaterial(tEngine);
+        onComplete(instance);
+      });
+      auto fut = _rl->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {
     std::packaged_task<void()> lambda(
@@ -330,6 +340,34 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        SceneAsset_destroy(tSceneAsset);
+        onComplete();
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_loadGlbRenderThread(
+    TGltfAssetLoader *tAssetLoader,
+    TGltfResourceLoader *tResourceLoader,
+    TEngine *tEngine,
+    TNameComponentManager *tNameComponentManager,
+    uint8_t *data,
+    size_t length,
+    size_t numInstances,
+    void (*callback)(TSceneAsset *)
+  ) {
+    std::packaged_task<void()> lambda(
+      [=]
+      {
+        auto sceneAsset = SceneAsset_loadGlb(tAssetLoader, tResourceLoader, tEngine, tNameComponentManager, data, length, numInstances);
+        callback(sceneAsset);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryRenderThread(
     TEngine *tEngine, 

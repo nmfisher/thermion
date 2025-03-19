@@ -129,7 +129,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future render() async {
-    await withVoidCallback((cb) => RenderTicker_renderRenderThread(app.renderTicker, 0, cb));
+    await withVoidCallback(
+        (cb) => RenderTicker_renderRenderThread(app.renderTicker, 0, cb));
   }
 
   double _msPerFrame = 1000.0 / 60.0;
@@ -191,7 +192,8 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final imageData = await loadAsset(path);
-    _backgroundImage = await BackgroundImage.create(this, scene, imageData);
+    _backgroundImage ??= await BackgroundImage.create(this, scene);
+    await _backgroundImage!.setImage(imageData);
   }
 
   ///
@@ -199,7 +201,13 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setBackgroundColor(double r, double g, double b, double a) async {
-    throw UnimplementedError();
+    // we don't want to use the Renderer clearColor, because this only applies
+    // to clearing the swapchain. Even if this Viewer is rendered into the
+    // swapchain, we don't necessarily (?) want to set the clear color,
+    // because that will affect other views.
+    // We therefore use the background image as the color;
+    _backgroundImage ??= await BackgroundImage.create(this, scene);
+    await _backgroundImage!.setBackgroundColor(r, g, b, a);
   }
 
   ///
@@ -318,8 +326,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
-    var entity = LightManager_createLight(app.engine,
-        app.lightManager, TLightType.values[directLight.type.index]);
+    var entity = LightManager_createLight(app.engine, app.lightManager,
+        TLightType.values[directLight.type.index]);
     if (entity == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to add light to scene");
     }
@@ -391,14 +399,16 @@ class ThermionViewerFFI extends ThermionViewer {
       int priority = 4,
       int layer = 0,
       bool loadResourcesAsync = false}) async {
-    var asset = SceneAsset_loadGlb(
-        app.gltfAssetLoader,
-        app.gltfResourceLoader,
-        app.engine,
-        app.nameComponentManager,
-        data.address,
-        data.length,
-        numInstances);
+    var asset = await withPointerCallback<TSceneAsset>((cb) =>
+        SceneAsset_loadGlbRenderThread(
+            app.gltfAssetLoader,
+            app.gltfResourceLoader,
+            app.engine,
+            app.nameComponentManager,
+            data.address,
+            data.length,
+            numInstances,
+            cb));
 
     if (asset == nullptr) {
       throw Exception("An error occurred loading the asset");
@@ -440,7 +450,9 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
     await scene.remove(asset);
-    SceneAsset_destroy(asset.asset);
+    
+    await withVoidCallback((cb) =>  SceneAsset_destroyRenderThread(asset.asset, cb));
+    
     // if (asset.boundingBoxAsset != null) {
     //   await asset.setBoundingBoxVisibility(false);
     //   await withVoidCallback((callback) =>
@@ -466,7 +478,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setToneMapping(ToneMapper mapper) async {
-    view.setToneMapper(mapper);
+    await view.setToneMapper(mapper);
   }
 
   ///
@@ -774,4 +786,5 @@ class ThermionViewerFFI extends ThermionViewer {
     //     gizmoEntities.toSet()
     //       ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }
+
 }
