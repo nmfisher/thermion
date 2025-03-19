@@ -28,17 +28,20 @@ namespace thermion
         {
             auto *scene = reinterpret_cast<Scene *>(tScene);
             scene->addEntity(utils::Entity::import(entityId));
+            TRACE("Added entity %d", entityId);
         }
         
         EMSCRIPTEN_KEEPALIVE void Scene_removeEntity(TScene* tScene, EntityId entityId) {
             auto *scene = reinterpret_cast<Scene *>(tScene);
             scene->remove(utils::Entity::import(entityId));
+            TRACE("Removed entity %d", entityId);
         }
 
         EMSCRIPTEN_KEEPALIVE void Scene_setSkybox(TScene* tScene, TSkybox *tSkybox) {
             auto *scene = reinterpret_cast<Scene *>(tScene);
             auto *skybox = reinterpret_cast<Skybox *>(tSkybox);
             scene->setSkybox(skybox);
+            TRACE("Set skybox");
         }
 
         EMSCRIPTEN_KEEPALIVE void Scene_setIndirectLight(TScene* tScene, TIndirectLight *tIndirectLight) {

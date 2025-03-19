@@ -427,22 +427,24 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, TToneMapping toneMapping)
+  EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, TToneMapping toneMapping, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]
         {
           View_setToneMapping(tView, tEngine, toneMapping);
+          callback();
         });
     auto fut = _rl->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength)
+  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, void (*callback)())
   {
     std::packaged_task<void()> lambda(
         [=]
         {
           View_setBloom(tView, enabled, strength);
+          callback();
         });
     auto fut = _rl->add_task(lambda);
   }

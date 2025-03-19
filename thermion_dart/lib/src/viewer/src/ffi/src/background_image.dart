@@ -25,6 +25,9 @@ class BackgroundImage extends ThermionAsset {
   BackgroundImage._(
       this.asset, this.scene, this.texture, this.sampler, this.mi);
 
+  ///
+  ///
+  ///
   Future destroy() async {
     Scene_removeEntity(scene.scene, entity);
 
@@ -33,6 +36,9 @@ class BackgroundImage extends ThermionAsset {
     await mi.destroy();
   }
 
+  ///
+  ///
+  ///
   static Future<BackgroundImage> create(
       ThermionViewer viewer, FFIScene scene) async {
     var imageMaterialInstance =
@@ -41,29 +47,40 @@ class BackgroundImage extends ThermionAsset {
     var backgroundImage =
         await viewer.createGeometry(GeometryHelper.fullscreenQuad());
     await imageMaterialInstance.setParameterInt("showImage", 0);
-    await imageMaterialInstance.setParameterMat4("transform", Matrix4.identity());
-    
+    await imageMaterialInstance.setParameterMat4(
+        "transform", Matrix4.identity());
+
     backgroundImage.setMaterialInstanceAt(imageMaterialInstance);
     await scene.add(backgroundImage as FFIAsset);
     return BackgroundImage._(
         backgroundImage, scene, null, null, imageMaterialInstance);
   }
 
+  ///
+  ///
+  ///
   Future setBackgroundColor(double r, double g, double b, double a) async {
     await mi.setParameterFloat4("backgroundColor", r, g, b, a);
   }
 
+  ///
+  ///
+  ///
   Future setImage(Uint8List imageData) async {
     final image = await FilamentApp.instance!.decodeImage(imageData);
 
-    texture ??= await FilamentApp.instance!
-        .createTexture(await image.getWidth(), await image.getHeight());
-
+    texture ??= await FilamentApp.instance!.createTexture(
+        await image.getWidth(), await image.getHeight(),
+        textureFormat: TextureFormat.RGBA32F);
+    await texture!
+        .setLinearImage(image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
     sampler ??=
         await FilamentApp.instance!.createTextureSampler() as FFITextureSampler;
 
     await mi.setParameterTexture(
         "image", texture as FFITexture, sampler as FFITextureSampler);
+    await setBackgroundColor(1, 1, 1, 0);
+    await mi.setParameterInt("showImage", 1);
   }
 
   ///

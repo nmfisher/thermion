@@ -43,13 +43,14 @@ namespace thermion
         }
 
         EMSCRIPTEN_KEEPALIVE void Camera_setLensProjection(TCamera *tCamera, double near, double far, double aspect, double focalLength) {
+            TRACE("Setting lens projection %f %f %f %f", near, far, aspect, focalLength);
             auto *camera = reinterpret_cast<Camera *>(tCamera);
-            camera->setLensProjection(near, far, aspect, focalLength);
+            camera->setLensProjection(focalLength, aspect, near, far);
         }
 
-        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double4x4 tModelMatrix) {
+        EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *tCamera, double *tModelMatrix) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);
-            auto modelMatrix = convert_double4x4_to_mat4(tModelMatrix);
+            auto modelMatrix = convert_double_to_mat4f(tModelMatrix);
             camera->setModelMatrix(modelMatrix);
         }
 
@@ -64,6 +65,12 @@ namespace thermion
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return camera->getFocusDistance();
         }
+
+        EMSCRIPTEN_KEEPALIVE double4x4 Camera_getProjectionMatrix(TCamera *const tCamera) { 
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return convert_mat4_to_double4x4(camera->getProjectionMatrix());
+        }
+
 
         EMSCRIPTEN_KEEPALIVE void Camera_setFocusDistance(TCamera *tCamera, float distance) {
             auto *camera = reinterpret_cast<Camera *>(tCamera);

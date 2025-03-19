@@ -16,13 +16,12 @@ enum TProjection {
 
 // Camera methods
 EMSCRIPTEN_KEEPALIVE void Camera_setExposure(TCamera *camera, float aperture, float shutterSpeed, float sensitivity);
-EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera *camera, double4x4 matrix);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getProjectionMatrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getCullingProjectionMatrix(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE void Camera_getFrustum(TCamera *camera, double* out);
-EMSCRIPTEN_KEEPALIVE void Camera_setProjectionMatrix(TCamera *camera, double4x4 matrix, double near, double far);
+EMSCRIPTEN_KEEPALIVE void Camera_setProjectionMatrix(TCamera *camera, double *matrix, double near, double far);
 EMSCRIPTEN_KEEPALIVE void Camera_setProjectionFromFov(TCamera *camera, double fovInDegrees, double aspect, double near, double far, bool horizontal);
 EMSCRIPTEN_KEEPALIVE double Camera_getFocalLength(TCamera *const camera);
 EMSCRIPTEN_KEEPALIVE double4x4 Camera_getViewMatrix(TCamera *const camera);
@@ -41,7 +40,7 @@ EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(
     double near,
     double far
 );
-EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera* camera, double4x4 modelMatrix);
+EMSCRIPTEN_KEEPALIVE void Camera_setModelMatrix(TCamera* camera, double *tModelMatrix);
 EMSCRIPTEN_KEEPALIVE void Camera_setLensProjection(TCamera *camera, double near, double far, double aspect, double focalLength);
 EMSCRIPTEN_KEEPALIVE EntityId Camera_getEntity(TCamera* camera);
 EMSCRIPTEN_KEEPALIVE void Camera_setProjection(TCamera *const tCamera, TProjection projection, double left, double right,

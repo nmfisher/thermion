@@ -211,7 +211,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       TextureFormat textureFormat = TextureFormat.RGBA16F,
       int? importedTextureHandle}) async {
     var bitmask = flags.fold(0, (a, b) => a | b.value);
-    print("bitmask $bitmask");
+    
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Texture_buildRenderThread(
           engine,
@@ -247,24 +247,24 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       TextureCompareMode compareMode = TextureCompareMode.NONE,
       TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL}) async {
     final samplerPtr = TextureSampler_create();
-    TextureSampler_setMinFilter(
-        samplerPtr, TSamplerMinFilter.values[minFilter.index]);
-    TextureSampler_setMagFilter(
-        samplerPtr, TSamplerMagFilter.values[magFilter.index]);
-    TextureSampler_setWrapModeS(
-        samplerPtr, TSamplerWrapMode.values[wrapS.index]);
-    TextureSampler_setWrapModeT(
-        samplerPtr, TSamplerWrapMode.values[wrapT.index]);
-    TextureSampler_setWrapModeR(
-        samplerPtr, TSamplerWrapMode.values[wrapR.index]);
-    if (anisotropy > 0) {
-      TextureSampler_setAnisotropy(samplerPtr, anisotropy);
-    }
+    // TextureSampler_setMinFilter(
+    //     samplerPtr, TSamplerMinFilter.values[minFilter.index]);
+    // TextureSampler_setMagFilter(
+    //     samplerPtr, TSamplerMagFilter.values[magFilter.index]);
+    // TextureSampler_setWrapModeS(
+    //     samplerPtr, TSamplerWrapMode.values[wrapS.index]);
+    // TextureSampler_setWrapModeT(
+    //     samplerPtr, TSamplerWrapMode.values[wrapT.index]);
+    // TextureSampler_setWrapModeR(
+    //     samplerPtr, TSamplerWrapMode.values[wrapR.index]);
+    // if (anisotropy > 0) {
+    //   TextureSampler_setAnisotropy(samplerPtr, anisotropy);
+    // }
 
-    TextureSampler_setCompareMode(
-        samplerPtr,
-        TSamplerCompareMode.values[compareMode.index],
-        TSamplerCompareFunc.values[compareFunc.index]);
+    // TextureSampler_setCompareMode(
+    //     samplerPtr,
+    //     TSamplerCompareMode.values[compareMode.index],
+    //     TSamplerCompareFunc.values[compareFunc.index]);
 
     return FFITextureSampler(samplerPtr);
   }
@@ -555,10 +555,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future<Uint8List> capture(covariant FFIView view) async {
+  Future<Uint8List> capture(covariant FFIView view,
+      {bool captureRenderTarget = false}) async {
     final viewport = await view.getViewport();
     final swapChain = _viewMappings[view];
     final out = Uint8List(viewport.width * viewport.height * 4);
+
+    await withVoidCallback((cb) {
+      Engine_flushAndWaitRenderThead(engine, cb);
+    });
 
     await withBoolCallback((cb) {
       Renderer_beginFrameRenderThread(renderer, swapChain!.swapChain, 0, cb);
@@ -570,11 +575,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         cb,
       );
     });
+
+    if (captureRenderTarget && view.renderTarget == null) {
+      throw Exception();
+    }
     await withVoidCallback((cb) {
       Renderer_readPixelsRenderThread(
         renderer,
         view.view,
-        view.renderTarget?.renderTarget ?? nullptr,
+        captureRenderTarget ? view.renderTarget!.renderTarget : nullptr,
         TPixelDataFormat.PIXELDATAFORMAT_RGBA,
         TPixelDataType.PIXELDATATYPE_UBYTE,
         out.address,

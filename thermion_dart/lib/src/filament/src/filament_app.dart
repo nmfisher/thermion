@@ -227,7 +227,7 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  Future<Uint8List> capture(covariant View view);
+  Future<Uint8List> capture(covariant View view, {bool captureRenderTarget = false});
 
   ///
   ///

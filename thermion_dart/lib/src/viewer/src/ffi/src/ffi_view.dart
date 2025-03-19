@@ -2,7 +2,6 @@ import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/filament/src/shared_types.dart';
 import 'callbacks.dart';
@@ -75,14 +74,15 @@ class FFIView extends View {
   @override
   Future setBloom(bool enabled, double strength) async {
     await withVoidCallback((cb) {
-      View_setBloomRenderThread(view, enabled, strength);
+      View_setBloomRenderThread(view, enabled, strength, cb);
     });
   }
 
   @override
   Future setToneMapper(ToneMapper mapper) async {
+    await withVoidCallback((cb) => 
     View_setToneMappingRenderThread(
-        view, app.engine, TToneMapping.values[mapper.index]);
+        view, app.engine, TToneMapping.values[mapper.index], cb));
   }
 
   Future setStencilBufferEnabled(bool enabled) async {

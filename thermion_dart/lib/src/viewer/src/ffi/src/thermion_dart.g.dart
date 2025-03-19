@@ -1165,12 +1165,6 @@ external void Camera_setExposure(
   double sensitivity,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, double4x4)>(isLeaf: true)
-external void Camera_setModelMatrix(
-  ffi.Pointer<TCamera> camera,
-  double4x4 matrix,
-);
-
 @ffi.Native<double4x4 Function(ffi.Pointer<TCamera>)>(isLeaf: true)
 external double4x4 Camera_getModelMatrix(
   ffi.Pointer<TCamera> camera,
@@ -1199,11 +1193,11 @@ external void Camera_getFrustum(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TCamera>, double4x4, ffi.Double, ffi.Double)>(isLeaf: true)
+    ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>, ffi.Double,
+        ffi.Double)>(isLeaf: true)
 external void Camera_setProjectionMatrix(
   ffi.Pointer<TCamera> camera,
-  double4x4 matrix,
+  ffi.Pointer<ffi.Double> matrix,
   double near,
   double far,
 );
@@ -1269,6 +1263,13 @@ external void Camera_setCustomProjectionWithCulling(
   double4x4 projectionMatrix,
   double near,
   double far,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Pointer<ffi.Double>)>(
+    isLeaf: true)
+external void Camera_setModelMatrix(
+  ffi.Pointer<TCamera> camera,
+  ffi.Pointer<ffi.Double> tModelMatrix,
 );
 
 @ffi.Native<
@@ -1938,31 +1939,39 @@ external void Material_createImageMaterialRenderThread(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.UnsignedInt)>(
+            ffi.Pointer<TView>,
+            ffi.Pointer<TEngine>,
+            ffi.UnsignedInt,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
     symbol: "View_setToneMappingRenderThread", isLeaf: true)
 external void _View_setToneMappingRenderThread(
   ffi.Pointer<TView> tView,
   ffi.Pointer<TEngine> tEngine,
   int toneMapping,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 void View_setToneMappingRenderThread(
   ffi.Pointer<TView> tView,
   ffi.Pointer<TEngine> tEngine,
   TToneMapping toneMapping,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 ) =>
     _View_setToneMappingRenderThread(
       tView,
       tEngine,
       toneMapping.value,
+      callback,
     );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Double)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Double,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void View_setBloomRenderThread(
   ffi.Pointer<TView> tView,
   bool enabled,
   double strength,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<

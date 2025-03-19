@@ -234,6 +234,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Pointer<TIndirectLight>? indirectLight;
+  
   Pointer<TSkybox>? skybox;
 
   ///
@@ -418,6 +419,8 @@ class ThermionViewerFFI extends ThermionViewer {
 
     _assets.add(thermionAsset);
 
+    await scene.add(thermionAsset);
+
     return thermionAsset;
   }
 
@@ -450,9 +453,10 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
     await scene.remove(asset);
-    
-    await withVoidCallback((cb) =>  SceneAsset_destroyRenderThread(asset.asset, cb));
-    
+
+    await withVoidCallback(
+        (cb) => SceneAsset_destroyRenderThread(asset.asset, cb));
+
     // if (asset.boundingBoxAsset != null) {
     //   await asset.setBoundingBoxVisibility(false);
     //   await withVoidCallback((callback) =>
@@ -786,5 +790,4 @@ class ThermionViewerFFI extends ThermionViewer {
     //     gizmoEntities.toSet()
     //       ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }
-
 }

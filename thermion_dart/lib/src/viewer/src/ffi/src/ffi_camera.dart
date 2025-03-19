@@ -81,7 +81,7 @@ class FFICamera extends Camera {
   ///
   @override
   Future setModelMatrix(Matrix4 matrix) async {
-    Camera_setModelMatrix(camera, matrix4ToDouble4x4(matrix));
+    Camera_setModelMatrix(camera, matrix.storage.address);
   }
 
   @override
