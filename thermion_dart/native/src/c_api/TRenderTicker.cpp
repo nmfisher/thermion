@@ -24,6 +24,11 @@ EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TRenderer *tRenderer) {
     return reinterpret_cast<TRenderTicker *>(renderTicker);
 }
 
+EMSCRIPTEN_KEEPALIVE void RenderTicker_destroy(TRenderTicker *tRenderTicker,) {
+    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
+    delete renderTicker;
+}
+
 EMSCRIPTEN_KEEPALIVE void RenderTicker_addAnimationManager(TRenderTicker *tRenderTicker, TAnimationManager *tAnimationManager) {
     auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
     auto *animationManager = reinterpret_cast<thermion::AnimationManager *>(tAnimationManager);

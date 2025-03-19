@@ -43,7 +43,7 @@ void RenderLoop::iter()
         std::unique_lock<std::mutex> lock(_mutex);
         if (_requestFrameRenderCallback)
         {
-            mRenderTicker->render();
+            mRenderTicker->render(0);
             lock.unlock();
             this->_requestFrameRenderCallback();
             this->_requestFrameRenderCallback = nullptr;

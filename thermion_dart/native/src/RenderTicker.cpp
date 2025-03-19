@@ -73,7 +73,7 @@ namespace thermion
     std::lock_guard lock(mMutex);
 
     for (auto animationManager : mAnimationManagers) {
-      animationManager->update(frameTimeInNanos * 1e-9);
+      animationManager->update(frameTimeInNanos);
     }
 
     for (const auto& [swapChain, views] : mRenderable)

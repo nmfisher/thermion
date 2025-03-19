@@ -33,6 +33,9 @@ namespace thermion
             Scene *scene);
         ~AnimationManager();
 
+        /// @brief 
+        ///
+        /// @param frameTimeInNanos 
         void update(uint64_t frameTimeInNanos);
 
         /// @brief

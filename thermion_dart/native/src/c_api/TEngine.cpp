@@ -58,6 +58,11 @@ namespace thermion
             return reinterpret_cast<TEngine *>(engine);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Engine_destroy(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            Engine::destroy(engine);
+        }
+
         EMSCRIPTEN_KEEPALIVE TRenderer *Engine_createRenderer(TEngine *tEngine)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);

@@ -474,7 +474,7 @@ namespace thermion
         return boneEntities;
     }
 
-    void AnimationManager::update()
+    void AnimationManager::update(uint64_t frameTimeInNanos)
     {
         std::lock_guard lock(_mutex);
         _animationComponentManager->update();
