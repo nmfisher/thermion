@@ -1,4 +1,4 @@
-import 'package:thermion_dart/src/viewer/src/thermion_viewer_base.dart';
+import 'package:thermion_dart/thermion_dart.dart';
 
 abstract class Scene {
   Future add(covariant ThermionAsset asset);

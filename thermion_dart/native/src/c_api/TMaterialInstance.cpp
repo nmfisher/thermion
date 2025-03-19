@@ -7,6 +7,7 @@
 #include <math/vec2.h>
 
 #include "Log.hpp"
+#include "materials/image.h"
 #include "c_api/TMaterialInstance.h"
 
 #ifdef __cplusplus
@@ -22,6 +23,26 @@ namespace thermion
             auto *instance = material->createInstance();
             return reinterpret_cast<TMaterialInstance *>(instance);
         }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = Material::Builder()
+            .package(IMAGE_IMAGE_DATA, IMAGE_IMAGE_SIZE)
+            .build(*engine);
+            
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGridMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = Material::Builder()
+            .package(GRID_GRID_DATA, GRID_GRID_SIZE)
+            .build(*engine);
+            
+            return reinterpret_cast<TMaterial *>(material);
+        }
+
+
 
         EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName) {
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);

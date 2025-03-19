@@ -3,7 +3,7 @@ library thermion_flutter_js;
 
 import 'dart:js_interop';
 
-import '../../shared_types/shared_types.dart';
+import '../../../../filament/src/shared_types.dart';
 
 ///
 /// An extension type on [JSObject] that represents a

@@ -2,8 +2,8 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart';
+import 'package:thermion_dart/src/filament/src/layers.dart';
+import 'package:thermion_dart/src/filament/src/shared_types.dart';
 import 'callbacks.dart';
 import 'ffi_camera.dart';
 
@@ -66,10 +66,6 @@ class FFIView extends View {
     View_setPostProcessing(view, enabled);
   }
 
-  Future setRenderable(bool renderable, FFISwapChain swapChain) async {
-    throw UnimplementedError();
-  }
-
   @override
   Future setFrustumCullingEnabled(bool enabled) async {
     View_setFrustumCullingEnabled(view, enabled);
@@ -84,7 +80,8 @@ class FFIView extends View {
 
   @override
   Future setToneMapper(ToneMapper mapper) async {
-    View_setToneMappingRenderThread(view, app.engine, TToneMapping.values[mapper.index].value);
+    View_setToneMappingRenderThread(
+        view, app.engine, TToneMapping.values[mapper.index].value);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {
@@ -111,7 +108,7 @@ class FFIView extends View {
   Future setScene(covariant FFIScene scene) async {
     await withVoidCallback((cb) => View_setScene(view, scene.scene));
   }
-  
+
   @override
   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
     View_setLayerEnabled(view, layer.value, visible);

@@ -1,20 +1,15 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide View;
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
 import 'package:thermion_flutter/src/widgets/src/resize_observer.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' hide Texture;
 
 class ThermionTextureWidget extends StatefulWidget {
+  
   ///
   ///
   ///
   final ThermionViewer viewer;
-
-  ///
-  ///
-  ///
-  final t.View view;
 
   ///
   ///
@@ -24,7 +19,7 @@ class ThermionTextureWidget extends StatefulWidget {
   ///
   /// A callback that will be invoked whenever this widget (and the underlying texture is resized).
   ///
-  final Future Function(Size size, t.View view, double pixelRatio)? onResize;
+  final Future Function(Size size, View view, double pixelRatio)? onResize;
 
   ///
   /// When true, an FPS counter will be displayed at the top right of the widget
@@ -34,7 +29,6 @@ class ThermionTextureWidget extends StatefulWidget {
   const ThermionTextureWidget({
     super.key,
     required this.viewer,
-    required this.view,
     this.initial,
     this.onResize,
     this.showFpsCounter = false,
@@ -49,7 +43,7 @@ class ThermionTextureWidget extends StatefulWidget {
 class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
   PlatformTextureDescriptor? _texture;
 
-  static final _views = <t.View>[];
+  static final _views = <View>[];
 
   final _logger = Logger("_ThermionTextureWidgetState");
 
@@ -63,7 +57,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
   @override
   void dispose() {
     super.dispose();
-    _views.remove(widget.view);
+    _views.remove(widget.viewer.view);
     if (_texture != null) {
       ThermionFlutterPlatform.instance.destroyTextureDescriptor(_texture!);
     }
@@ -73,10 +67,10 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
   @override
   void initState() {
-    if (_views.contains(widget.view)) {
+    if (_views.contains(widget.viewer.view)) {
       throw Exception("View already embedded in a widget");
     }
-    _views.add(widget.view);
+    _views.add(widget.viewer.view);
 
     // Start FPS counter update timer if enabled
     if (widget.showFpsCounter) {
@@ -95,7 +89,6 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      await widget.viewer.initialized;
 
       var dpr = MediaQuery.of(context).devicePixelRatio;
 
@@ -111,17 +104,17 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
           "Target texture dimensions ${width}x${height} (pixel ratio : $dpr)");
 
       _texture = await ThermionFlutterPlatform.instance
-          .createTextureAndBindToView(widget.view, width, height);
+          .createTextureAndBindToView(widget.viewer.view, width, height);
 
       _logger.info(
           "Actual texture dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
 
-      await widget.view.setViewport(_texture!.width, _texture!.height);
+      await widget.viewer.view.setViewport(_texture!.width, _texture!.height);
 
       try {
         await widget.onResize?.call(
             Size(_texture!.width.toDouble(), _texture!.height.toDouble()),
-            widget.view,
+            widget.viewer.view,
             dpr);
       } catch (err, st) {
         _logger.severe(err);
@@ -191,7 +184,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
               widget.viewer.msPerFrame - _headroomInMs)) {
         _rendering = true;
         if (this == _states.first && _texture != null) {
-          await widget.viewer.requestFrame();
+          await FilamentApp.instance!.requestFrame();
           lastRender = d.inMilliseconds;
 
           if (widget.showFpsCounter) {
@@ -243,16 +236,16 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
           "Resizing texture to dimensions ${newWidth}x${newHeight} (pixel ratio : $dpr)");
 
       _texture = await ThermionFlutterPlatform.instance
-          .resizeTexture(_texture!, widget.view, newWidth, newHeight);
+          .resizeTexture(_texture!, widget.viewer.view, newWidth, newHeight);
 
       _logger.info(
           "Resized texture to dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
 
-      await widget.view.setViewport(_texture!.width, _texture!.height);
+      await widget.viewer.view.setViewport(_texture!.width, _texture!.height);
 
       await widget.onResize?.call(
           Size(_texture!.width.toDouble(), _texture!.height.toDouble()),
-          widget.view,
+          widget.viewer.view,
           dpr);
 
       if (!mounted) {

@@ -1,10 +1,10 @@
-import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
-import 'package:vector_math/vector_math_64.dart';
-import '../thermion_viewer_base.dart';
+import 'package:thermion_dart/src/filament/src/layers.dart';
+import 'package:thermion_dart/thermion_dart.dart';
 
 enum Projection { Perspective, Orthographic }
 
 abstract class Camera {
+  
   Future lookAt(Vector3 position, {Vector3? focus, Vector3? up}) async {
     focus ??= Vector3.zero();
     up ??= Vector3(0, 1, 0);
@@ -12,6 +12,12 @@ abstract class Camera {
     viewMatrix.invert();
     await setModelMatrix(viewMatrix);
   }
+
+  ///
+  /// Sets the camera exposure.
+  ///
+  Future setCameraExposure(
+      double aperture, double shutterSpeed, double sensitivity);
 
   Future setProjection(Projection projection, double left, double right,
       double bottom, double top, double near, double far);
@@ -37,6 +43,8 @@ abstract class Camera {
   Future<double> getNear();
   Future<double> getCullingFar();
   Future<double> getFocalLength();
+  Future<double> getFocusDistance();
+  Future setFocusDistance(double focusDistance);
 
   Future destroy();
 }

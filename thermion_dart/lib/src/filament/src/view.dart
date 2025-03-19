@@ -1,4 +1,4 @@
-import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
+import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 ///
@@ -26,7 +26,6 @@ abstract class View {
   Future<Camera> getCamera();
   Future setPostProcessing(bool enabled);
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
-  Future setRenderable(bool renderable, covariant SwapChain swapChain);
   Future setFrustumCullingEnabled(bool enabled);
   Future setToneMapper(ToneMapper mapper);
   Future setStencilBufferEnabled(bool enabled);

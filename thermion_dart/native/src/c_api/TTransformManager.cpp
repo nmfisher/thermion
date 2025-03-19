@@ -67,8 +67,8 @@ extern "C"
             return;
         }
 
-        auto center = aabb.center();
-        auto halfExtent = aabb.extent();
+        auto center = filament::math::float3 { boundingBox.centerX, boundingBox.centerY, boundingBox.centerZ };
+        auto halfExtent = filament::math::float3 { boundingBox.halfExtentX, boundingBox.halfExtentY, boundingBox.halfExtentZ };
         auto maxExtent = max(halfExtent) * 2;
         auto scaleFactor = 2.0f / maxExtent;
         auto transform = math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);

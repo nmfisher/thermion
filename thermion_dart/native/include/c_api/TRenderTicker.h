@@ -13,7 +13,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void RenderTicker_removeAnimationManager(TRenderTicker *tRenderTicker, TAnimationManager *tAnimationManager);
 	
 	EMSCRIPTEN_KEEPALIVE void RenderTicker_render(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos);
-	EMSCRIPTEN_KEEPALIVE void RenderTicker_setRenderable(TRenderTicker *tFilamentRender, TSwapChain *swapChain, TView **views, uint8_t numViews);	
+	EMSCRIPTEN_KEEPALIVE void RenderTicker_setRenderable(TRenderTicker *tRenderTicker, TSwapChain *swapChain, TView **views, uint8_t numViews);	
 	
 #ifdef __cplusplus
 }

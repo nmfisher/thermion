@@ -47,6 +47,16 @@ namespace thermion
             camera->setCustomProjection(convert_double4x4_to_mat4(projectionMatrix), near, far);
         }
 
+        EMSCRIPTEN_KEEPALIVE double Camera_getFocusDistance(TCamera *camera) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->getFocusDistance();
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Camera_setFocusDistance(TCamera *camera, float distance) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->setFocusDistance(distance);
+        }
+
         EMSCRIPTEN_KEEPALIVE double4x4 Camera_getModelMatrix(TCamera *tCamera)
         {
             auto *camera = reinterpret_cast<Camera *>(tCamera);

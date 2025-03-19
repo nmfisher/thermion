@@ -3,10 +3,10 @@ import 'dart:typed_data';
 
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/layers.dart';
+import 'package:thermion_dart/src/filament/src/layers.dart';
+import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 import '../../../../utils/src/matrix.dart';
-import '../../thermion_viewer_base.dart';
 
 class FFICamera extends Camera {
   final Pointer<TCamera> camera;
@@ -150,4 +150,12 @@ class FFICamera extends Camera {
   Future destroy() async {
     throw UnimplementedError();
   }
+
+  Future setCameraExposure(
+      double aperture, double shutterSpeed, double sensitivity) async {
+    Camera_setExposure(camera, aperture, shutterSpeed, sensitivity);
+  }
+
+  Future<double> getFocusDistance() async => Camera_getFocusDistance(camera);
+  Future setFocusDistance(double focusDistance) async => Camera_setFocusDistance(camera, focusDistance);
 }

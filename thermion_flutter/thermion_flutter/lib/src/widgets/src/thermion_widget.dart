@@ -1,13 +1,11 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide View;
 import 'package:thermion_flutter/src/widgets/src/thermion_texture_widget.dart';
 import 'package:thermion_flutter/src/widgets/src/thermion_widget_web.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/view.dart' as t;
 
-Future kDefaultResizeCallback(Size size, t.View view, double pixelRatio) async {
+Future kDefaultResizeCallback(Size size, View view, double pixelRatio) async {
   var camera = await view.getCamera();
   var near = await camera.getNear();
   var far = await camera.getCullingFar();
@@ -27,11 +25,6 @@ class ThermionWidget extends StatefulWidget {
   final ThermionViewer viewer;
 
   ///
-  /// The [t.View] associated with this widget. If null, the default View will be used.
-  ///
-  final t.View? view;
-
-  ///
   /// A callback to invoke whenever this widget and the underlying surface are
   /// resized. If a callback is not explicitly provided, the default callback
   /// will be run, which changes the aspect ratio for the active camera in
@@ -45,7 +38,7 @@ class ThermionWidget extends StatefulWidget {
   /// If you need to work with Flutter dimensions, divide [size] by
   /// [pixelRatio].
   ///
-  final Future Function(Size size, t.View view, double pixelRatio)? onResize;
+  final Future Function(Size size, View view, double pixelRatio)? onResize;
 
   final bool showFpsCounter;
 
@@ -59,7 +52,6 @@ class ThermionWidget extends StatefulWidget {
       {Key? key,
       this.initial,
       required this.viewer,
-      this.view,
       this.showFpsCounter = false,
       this.onResize = kDefaultResizeCallback})
       : super(key: key);
@@ -69,42 +61,22 @@ class ThermionWidget extends StatefulWidget {
 }
 
 class _ThermionWidgetState extends State<ThermionWidget> {
-  t.View? view;
-
-  @override
-  void initState() {
-    super.initState();
-    initialize();
-  }
-
-  Future initialize() async {
-    if (widget.view != null) {
-      view = widget.view;
-    } else {
-      view = await widget.viewer.getViewAt(0);
-    }
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (view == null) {
-      return widget.initial ?? Container(color: Colors.red);
-    }
-
     // Web doesn't support imported textures yet
     if (kIsWeb) {
-      return ThermionWidgetWeb(
-          viewer: widget.viewer,
-          options: ThermionFlutterPlugin.options as ThermionFlutterWebOptions?);
+      throw Exception();
+      // return ThermionWidgetWeb(
+      //     viewer: widget.viewer,
+      //     options: ThermionFlutterPlugin.options as ThermionFlutterWebOptions?);
     }
 
     return ThermionTextureWidget(
-        key: ObjectKey(view!),
+        key: ObjectKey(widget.viewer),
         initial: widget.initial,
         viewer: widget.viewer,
-        view: view!,
-        showFpsCounter:widget.showFpsCounter,
+        view: widget.viewer.view,
+        showFpsCounter: widget.showFpsCounter,
         onResize: widget.onResize);
   }
 }

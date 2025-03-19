@@ -32,6 +32,7 @@ EMSCRIPTEN_KEEPALIVE void Camera_lookAt(TCamera* camera, double3 eye, double3 fo
 EMSCRIPTEN_KEEPALIVE double Camera_getNear(TCamera *camera);
 EMSCRIPTEN_KEEPALIVE double Camera_getCullingFar(TCamera *camera);
 EMSCRIPTEN_KEEPALIVE float Camera_getFov(TCamera *camera, bool horizontal);
+EMSCRIPTEN_KEEPALIVE double Camera_getFocusDistance(TCamera *camera);
 EMSCRIPTEN_KEEPALIVE void Camera_setFocusDistance(TCamera *camera, float focusDistance);
 
 EMSCRIPTEN_KEEPALIVE void Camera_setCustomProjectionWithCulling(

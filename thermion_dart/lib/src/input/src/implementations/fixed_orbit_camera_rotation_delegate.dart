@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:vector_math/vector_math_64.dart';
-import '../../../viewer/src/shared_types/camera.dart';
+import '../../../filament/src/camera.dart';
 import '../../../viewer/viewer.dart';
 import '../../input.dart';
 import '../input_handler.dart';

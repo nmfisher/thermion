@@ -1,24 +1,25 @@
 import 'dart:async';
 import 'dart:ffi';
-import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:thermion_dart/thermion_dart.dart' as t;
+import 'package:thermion_dart/src/filament/filament.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
+
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
-import 'package:thermion_flutter_platform_interface/thermion_flutter_window.dart';
 
 ///
-/// An abstract implementation of [ThermionFlutterPlatform] that uses
-/// Flutter platform channels to create a rendering context,
-/// resource loaders, and surface/render target(s).
+/// An implementation of [ThermionFlutterPlatform] that uses
+/// a Flutter platform channel to create a native rendering context, resource
+/// loader and rendering surfaces.
 ///
 class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   final channel = const MethodChannel("dev.thermion.flutter/event");
-  final _logger = Logger("ThermionFlutterMethodChannelPlatform");
+  
+  late final _logger = Logger(this.runtimeType.toString());
 
   static SwapChain? _swapChain;
 
@@ -31,14 +32,17 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     ThermionFlutterPlatform.instance = instance!;
   }
 
-  t.ThermionViewerFFI? viewer;
+  static Future<Uint8List> loadAsset(String path) async {
+    if (path.startsWith("file://")) {
+      return File(path.replaceAll("file://", "")).readAsBytesSync();
+    }
+    if (path.startsWith("asset://")) {
+      throw UnimplementedError();
+    }
+    throw UnimplementedError();
+  }
 
   Future<ThermionViewer> createViewer({ThermionFlutterOptions? options}) async {
-    if (viewer != null) {
-      throw Exception(
-          "Only one ThermionViewer can be created at any given time; ensure you have called [dispose] on the previous instance before constructing a new instance.");
-    }
-
     var resourceLoader = Pointer<Void>.fromAddress(
         await channel.invokeMethod("getResourceLoaderWrapper"));
 
@@ -47,6 +51,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     }
 
     var driverPlatform = await channel.invokeMethod("getDriverPlatform");
+
     var driverPtr = driverPlatform == null
         ? nullptr
         : Pointer<Void>.fromAddress(driverPlatform);
@@ -57,21 +62,53 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
         ? nullptr
         : Pointer<Void>.fromAddress(sharedContext);
 
-    viewer = ThermionViewerFFI(
+    late Backend backend;
+    if (options?.backend != null) {
+      switch (options!.backend) {
+        case Backend.VULKAN:
+          if (!Platform.isWindows) {
+            throw Exception("Vulkan only supported on Windows");
+          }
+        case Backend.METAL:
+          if (!Platform.isIOS || !Platform.isMacOS) {
+            throw Exception("Metal only supported on iOS/macOS");
+          }
+        case Backend.OPENGL:
+          if (!Platform.isAndroid) {
+            throw Exception("OpenGL only supported on Android");
+          }
+        default:
+          throw Exception("Unsupported backend");
+      }
+      backend = options.backend!;
+    } else {
+      if (Platform.isWindows) {
+        backend = Backend.VULKAN;
+      } else if (Platform.isMacOS || Platform.isIOS) {
+        backend = Backend.METAL;
+      } else if (Platform.isAndroid) {
+        backend = Backend.OPENGL;
+      } else {
+        throw Exception("Unsupported platform");
+      }
+    }
+    final config = FFIFilamentConfig(
+        backend: backend,
         resourceLoader: resourceLoader,
         driver: driverPtr,
+        platform: nullptr,
         sharedContext: sharedContextPtr,
         uberArchivePath: options?.uberarchivePath);
-    await viewer!.initialized;
 
-    viewer!.onDispose(() async {
-      _swapChain = null;
-      this.viewer = null;
-    });
+    await FFIFilamentApp.create(config);
 
-    if (_swapChain != null) {
-      throw Exception("Only a single swapchain can be created");
-    }
+    final viewer = ThermionViewerFFI(
+      loadAsset: loadAsset,
+    );
+
+    await viewer.initialized;
+
+    viewer.onDispose(() async {});
 
     // this implementation renders directly into a texture/render target
     // for some reason we still need to create a (headless) swapchain, but the
@@ -79,7 +116,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     // TODO - see if we can use `renderStandaloneView` in FilamentViewer to
     // avoid this
     if (Platform.isMacOS || Platform.isIOS) {
-      _swapChain = await viewer!.createHeadlessSwapChain(1, 1);
+      _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1);
     }
 
     return viewer!;
@@ -96,8 +133,8 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     final hardwareId = result[1] as int;
     var window = result[2] as int?; // usually 0 for nullptr
 
-    return PlatformTextureDescriptor(flutterId, hardwareId, window, width, height);
-      
+    return PlatformTextureDescriptor(
+        flutterId, hardwareId, window, width, height);
   }
 
   @override
@@ -109,43 +146,62 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   ///
   ///
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
-      t.View view, int width, int height) async {
+      View view, int width, int height) async {
     var descriptor = await createTextureDescriptor(width, height);
-    
 
     if (Platform.isWindows) {
       if (_swapChain != null) {
-        await view.setRenderable(false, _swapChain!);
-        await viewer!.destroySwapChain(_swapChain!);
+        await FilamentApp.instance!.setRenderable(view, false);
+        await FilamentApp.instance!.destroySwapChain(_swapChain!);
       }
 
-      _swapChain =
-          await viewer!.createHeadlessSwapChain(descriptor.width, descriptor.height);
+      _swapChain = await FilamentApp.instance!
+          .createHeadlessSwapChain(descriptor.width, descriptor.height);
     } else if (Platform.isAndroid) {
       if (_swapChain != null) {
-        await view.setRenderable(false, _swapChain!);
-        await viewer!.destroySwapChain(_swapChain!);
+        await FilamentApp.instance!.setRenderable(view, false);
+        await FilamentApp.instance!.destroySwapChain(_swapChain!);
       }
-      _swapChain = await viewer!.createSwapChain(descriptor.windowHandle!);
+      _swapChain = await FilamentApp.instance!.createSwapChain(descriptor.windowHandle!);
     } else {
-      var renderTarget = await viewer!.createRenderTarget(
-          descriptor.width, descriptor.height, descriptor.hardwareId);
+      final color = await FilamentApp.instance!.createTexture(
+          descriptor.width, descriptor.height,
+          importedTextureHandle: descriptor.hardwareId,
+          flags: {
+            TextureUsage.TEXTURE_USAGE_BLIT_DST,
+            TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE
+          });
+      final depth =
+          await FilamentApp.instance!.createTexture(descriptor.width, descriptor.height, flags: {
+        TextureUsage.TEXTURE_USAGE_BLIT_DST,
+        TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+        TextureUsage.TEXTURE_USAGE_SAMPLEABLE
+      });
 
-      await view.setRenderTarget(renderTarget!);
+      var renderTarget = await FilamentApp.instance!.createRenderTarget(
+          descriptor.width, descriptor.height,
+          color: color, depth: depth);
+
+      await view.setRenderTarget(renderTarget);
     }
-    await view.setRenderable(true, _swapChain!);
+    await FilamentApp.instance!.register(_swapChain!, view);
 
     return descriptor;
   }
 
   @override
   Future markTextureFrameAvailable(PlatformTextureDescriptor texture) async {
-    await channel.invokeMethod("markTextureFrameAvailable", texture.flutterTextureId);
+    await channel.invokeMethod(
+        "markTextureFrameAvailable", texture.flutterTextureId);
   }
 
   @override
-  Future<PlatformTextureDescriptor> resizeTexture(PlatformTextureDescriptor texture,
-      t.View view, int width, int height) async {
+  Future<PlatformTextureDescriptor> resizeTexture(
+      PlatformTextureDescriptor texture,
+      View view,
+      int width,
+      int height) async {
     var newTexture = await createTextureAndBindToView(view, width, height);
     if (newTexture == null) {
       throw Exception();

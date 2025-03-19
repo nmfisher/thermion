@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
-import 'package:thermion_dart/src/viewer/src/shared_types/entities.dart';
-import 'thermion_dart.g.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 
 import 'ffi_view.dart';
 
 class FFIGizmo extends FFIAsset implements GizmoAsset {
+  
   final Set<ThermionEntity> gizmoEntities;
   late NativeCallable<GizmoPickCallbackFunction> _nativeCallback;
 

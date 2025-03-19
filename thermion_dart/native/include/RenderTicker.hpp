@@ -3,7 +3,7 @@
 #include <chrono>
 #include <mutex>
 #include <vector>
-#include <map>
+#include <utility> // for std::pair
 
 #include <filament/Renderer.h>
 #include <filament/SwapChain.h>
@@ -49,10 +49,7 @@ namespace thermion
         std::mutex mMutex;
         filament::Renderer *mRenderer = nullptr;
         std::vector<AnimationManager*> mAnimationManagers;
-        std::vector<filament::SwapChain*> mSwapChains;
-        std::map<filament::SwapChain*, std::vector<filament::View*>> mRenderable;
-
+        std::vector<std::pair<filament::SwapChain*, std::vector<filament::View*>>> mRenderable;
     };
-
 
 }

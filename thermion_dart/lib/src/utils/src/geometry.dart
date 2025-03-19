@@ -6,6 +6,13 @@ import 'package:vector_math/vector_math_64.dart';
 import '../../../thermion_dart.dart';
 
 class GeometryHelper {
+  static Geometry fullscreenQuad() {
+    final vertices = Float32List.fromList(
+        [-1.0, -1.0, 1.0, 1.0, 3.0, -1.0, 1.0, 1.0, -1.0, 3.0, 1.0, 1.0]);
+    final indices = [0, 1, 2];
+    return Geometry(vertices, indices);
+  }
+
   static Geometry sphere({bool normals = true, bool uvs = true}) {
     int latitudeBands = 20;
     int longitudeBands = 20;
@@ -459,13 +466,18 @@ class GeometryHelper {
           ])
         : null;
 
-    Float32List? _uvs =
-        uvs ? Float32List.fromList([
-          0, 0,
-          1, 0,
-          1, 1,
-          0, 1,
-          ]) : null;
+    Float32List? _uvs = uvs
+        ? Float32List.fromList([
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
+          ])
+        : null;
 
     List<int> indices = [
       0,

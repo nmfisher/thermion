@@ -6,6 +6,7 @@
 
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TSceneAsset.h"
+#include "scene/GridOverlay.hpp"
 #include "scene/SceneAsset.hpp"
 #include "scene/GltfSceneAsset.hpp"
 #include "scene/GeometrySceneAssetBuilder.hpp"
@@ -88,6 +89,13 @@ extern "C"
         );
         return reinterpret_cast<TSceneAsset *>(sceneAsset);
         
+    }
+
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGrid(TEngine *tEngine, TMaterial* tMaterial) {
+        auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+        auto *material = reinterpret_cast<filament::Material *>(tMaterial);
+        auto *asset = new GridOverlay(*engine, material);
+        return reinterpret_cast<TSceneAsset *>(asset);
     }
     
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset) { 

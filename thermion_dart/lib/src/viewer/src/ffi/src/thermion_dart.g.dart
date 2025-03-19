@@ -25,6 +25,12 @@ external ffi.Pointer<TMaterialInstance> Material_createInstance(
   ffi.Pointer<TMaterial> tMaterial,
 );
 
+@ffi.Native<ffi.Pointer<TMaterial> Function()>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createImageMaterial();
+
+@ffi.Native<ffi.Pointer<TMaterial> Function()>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createGridMaterial();
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
 external bool Material_hasParameter(
@@ -1227,6 +1233,11 @@ external double Camera_getFov(
   bool horizontal,
 );
 
+@ffi.Native<ffi.Double Function(ffi.Pointer<TCamera>)>(isLeaf: true)
+external double Camera_getFocusDistance(
+  ffi.Pointer<TCamera> camera,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TCamera>, ffi.Float)>(isLeaf: true)
 external void Camera_setFocusDistance(
   ffi.Pointer<TCamera> camera,
@@ -1324,11 +1335,12 @@ external void TransformManager_setTransform(
   double4x4 transform,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId)>(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, Aabb3)>(
     isLeaf: true)
 external void TransformManager_transformToUnitCube(
   ffi.Pointer<TTransformManager> tTransformManager,
   int entityId,
+  Aabb3 boundingBox,
 );
 
 @ffi.Native<
@@ -1458,7 +1470,7 @@ external void RenderTicker_render(
     ffi.Void Function(ffi.Pointer<TRenderTicker>, ffi.Pointer<TSwapChain>,
         ffi.Pointer<ffi.Pointer<TView>>, ffi.Uint8)>(isLeaf: true)
 external void RenderTicker_setRenderable(
-  ffi.Pointer<TRenderTicker> tFilamentRender,
+  ffi.Pointer<TRenderTicker> tRenderTicker,
   ffi.Pointer<TSwapChain> swapChain,
   ffi.Pointer<ffi.Pointer<TView>> views,
   int numViews,
@@ -2719,15 +2731,15 @@ external void TextureSampler_destroyRenderThread(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<TSceneManager>,
+            ffi.Pointer<TAnimationManager>,
             EntityId,
             ffi.Int,
             ffi.Int,
             ffi.Pointer<ffi.Float>,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
     isLeaf: true)
-external void set_bone_transform_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
+external void AnimationManager_setBoneTransformRenderThread(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
   int asset,
   int skinIndex,
   int boneIndex,
@@ -2736,10 +2748,10 @@ external void set_bone_transform_render_thread(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TSceneManager>, EntityId,
+    ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void reset_to_rest_pose_render_thread(
-  ffi.Pointer<TSceneManager> sceneManager,
+external void AnimationManager_resetToRestPoseRenderThread(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
   int entityId,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
@@ -3179,6 +3191,14 @@ external ffi.Pointer<TSceneAsset> SceneAsset_loadGltf(
   ffi.Pointer<ffi.Uint8> data,
   int length,
   int numInstances,
+);
+
+@ffi.Native<
+    ffi.Pointer<TSceneAsset> Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TMaterial>)>(isLeaf: true)
+external ffi.Pointer<TSceneAsset> SceneAsset_createGrid(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterial> tMaterial,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)

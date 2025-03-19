@@ -294,15 +294,15 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(TSceneManager *sceneManager,
                                                                      EntityId asset, void (*callback)(bool));
-        EMSCRIPTEN_KEEPALIVE void set_bone_transform_render_thread(
-            TSceneManager *sceneManager,
+        EMSCRIPTEN_KEEPALIVE void AnimationManager_setBoneTransformRenderThread(
+            TAnimationManager *tAnimationManager,
             EntityId asset,
             int skinIndex,
             int boneIndex,
             const float *const transform,
             void (*callback)(bool));
 
-        EMSCRIPTEN_KEEPALIVE void reset_to_rest_pose_render_thread(TSceneManager *sceneManager, EntityId entityId, void (*callback)());
+        EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, EntityId entityId, void (*callback)());
 
         EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *));
         EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *));

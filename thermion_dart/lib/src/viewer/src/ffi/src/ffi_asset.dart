@@ -1,13 +1,17 @@
 import 'dart:typed_data';
 
+import 'package:thermion_dart/src/filament/src/layers.dart';
+import 'package:thermion_dart/src/utils/src/matrix.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
+import 'package:vector_math/vector_math_64.dart';
 
 class FFIAsset extends ThermionAsset {
+  
   ///
   ///
   ///
@@ -389,7 +393,477 @@ class FFIAsset extends ThermionAsset {
     return RenderableManager_isShadowReceiver(app.renderableManager, entity);
   }
 
+  ///
+  ///
+  ///
   Future transformToUnitCube() async {
-    SceneAsset_transformToUnitCube(asset);
+    TransformManager_transformToUnitCube(app.transformManager, entity,  SceneAsset_getBoundingBox(asset));
   }
+
+  ///
+  ///
+  ///
+  Future setVisibilityLayer(
+      ThermionEntity entity, VisibilityLayers layer) async {
+    RenderableManager_setVisibilityLayer(
+        app.renderableManager, entity, layer.value);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setMorphTargetWeights(
+      ThermionEntity entity, List<double> weights) async {
+    if (weights.isEmpty) {
+      throw Exception("Weights must not be empty");
+    }
+    var weightsPtr = allocator<Float>(weights.length);
+
+    for (int i = 0; i < weights.length; i++) {
+      weightsPtr[i] = weights[i];
+    }
+    var success = await withBoolCallback((cb) {
+      AnimationManager_setMorphTargetWeightsRenderThread(
+          animationManager, entity, weightsPtr, weights.length, cb);
+    });
+    allocator.free(weightsPtr);
+
+    if (!success) {
+      throw Exception(
+          "Failed to set morph target weights, check logs for details");
+    }
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<List<String>> getMorphTargetNames(
+      covariant FFIAsset asset, ThermionEntity childEntity) async {
+    var names = <String>[];
+
+    var count = AnimationManager_getMorphTargetNameCount(
+        animationManager, asset.asset, childEntity);
+    var outPtr = allocator<Char>(255);
+    for (int i = 0; i < count; i++) {
+      AnimationManager_getMorphTargetName(
+          animationManager, asset.asset, childEntity, outPtr, i);
+      names.add(outPtr.cast<Utf8>().toDartString());
+    }
+    allocator.free(outPtr);
+    return names.cast<String>();
+  }
+
+  Future<List<String>> getBoneNames(covariant FFIAsset asset,
+      {int skinIndex = 0}) async {
+    var count =
+        AnimationManager_getBoneCount(animationManager, asset.asset, skinIndex);
+    var out = allocator<Pointer<Char>>(count);
+    for (int i = 0; i < count; i++) {
+      out[i] = allocator<Char>(255);
+    }
+
+    AnimationManager_getBoneNames(
+        animationManager, asset.asset, out, skinIndex);
+    var names = <String>[];
+    for (int i = 0; i < count; i++) {
+      var namePtr = out[i];
+      names.add(namePtr.cast<Utf8>().toDartString());
+    }
+    return names;
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<List<String>> getAnimationNames(covariant FFIAsset asset) async {
+    var animationCount =
+        AnimationManager_getAnimationCount(animationManager, asset.asset);
+    var names = <String>[];
+    var outPtr = allocator<Char>(255);
+    for (int i = 0; i < animationCount; i++) {
+      AnimationManager_getAnimationName(
+          animationManager, asset.asset, outPtr, i);
+      names.add(outPtr.cast<Utf8>().toDartString());
+    }
+    allocator.free(outPtr);
+
+    return names;
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<double> getAnimationDuration(
+      FFIAsset asset, int animationIndex) async {
+    return AnimationManager_getAnimationDuration(
+        animationManager, asset.asset, animationIndex);
+  }
+
+  ///
+  ///
+  ///
+  Future<double> getAnimationDurationByName(FFIAsset asset, String name) async {
+    var animations = await getAnimationNames(asset);
+    var index = animations.indexOf(name);
+    if (index == -1) {
+      throw Exception("Failed to find animation $name");
+    }
+    return getAnimationDuration(asset, index);
+  }
+
+  Future clearMorphAnimationData(ThermionEntity entity) async {
+    if (!AnimationManager_clearMorphAnimation(animationManager, entity)) {
+      throw Exception("Failed to clear morph animation");
+    }
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setMorphAnimationData(FFIAsset asset, MorphAnimationData animation,
+      {List<String>? targetMeshNames}) async {
+    var meshEntities = await getChildEntities(asset);
+
+    var meshNames = meshEntities.map((e) => getNameForEntity(e)).toList();
+    if (targetMeshNames != null) {
+      for (final targetMeshName in targetMeshNames) {
+        if (!meshNames.contains(targetMeshName)) {
+          throw Exception(
+              "Error: mesh ${targetMeshName} does not exist under the specified entity. Available meshes : ${meshNames}");
+        }
+      }
+    }
+
+    // Entities are not guaranteed to have the same morph targets (or share the same order),
+    // either from each other, or from those specified in [animation].
+    // We therefore set morph targets separately for each mesh.
+    // For each mesh, allocate enough memory to hold FxM 32-bit floats
+    // (where F is the number of Frames, and M is the number of morph targets in the mesh).
+    // we call [extract] on [animation] to return frame data only for morph targets that present in both the mesh and the animation
+    for (int i = 0; i < meshNames.length; i++) {
+      var meshName = meshNames[i];
+      var meshEntity = meshEntities[i];
+
+      if (targetMeshNames?.contains(meshName) == false) {
+        // _logger.info("Skipping $meshName, not contained in target");
+        continue;
+      }
+
+      var meshMorphTargets = await getMorphTargetNames(asset, meshEntity);
+
+      var intersection = animation.morphTargets
+          .toSet()
+          .intersection(meshMorphTargets.toSet())
+          .toList();
+
+      if (intersection.isEmpty) {
+        throw Exception(
+            """No morph targets specified in animation are present on mesh $meshName. 
+            If you weren't intending to animate every mesh, specify [targetMeshNames] when invoking this method.
+            Animation morph targets: ${animation.morphTargets}\n
+            Mesh morph targets ${meshMorphTargets}
+            Child meshes: ${meshNames}""");
+      }
+
+      var indices = Uint32List.fromList(
+          intersection.map((m) => meshMorphTargets.indexOf(m)).toList());
+
+      // var frameData = animation.data;
+      var frameData = animation.subset(intersection);
+
+      assert(
+          frameData.data.length == animation.numFrames * intersection.length);
+
+      var result = AnimationManager_setMorphAnimation(
+          animationManager,
+          meshEntity,
+          frameData.data.address,
+          indices.address,
+          indices.length,
+          animation.numFrames,
+          animation.frameLengthInMs);
+
+      if (!result) {
+        throw Exception("Failed to set morph animation data for ${meshName}");
+      }
+    }
+  }
+
+  ///
+  /// Currently, scale is not supported.
+  ///
+  @override
+  Future addBoneAnimation(covariant FFIAsset asset, BoneAnimationData animation,
+      {int skinIndex = 0,
+      double fadeOutInSecs = 0.0,
+      double fadeInInSecs = 0.0,
+      double maxDelta = 1.0}) async {
+    if (animation.space != Space.Bone &&
+        animation.space != Space.ParentWorldRotation) {
+      throw UnimplementedError("TODO - support ${animation.space}");
+    }
+    if (skinIndex != 0) {
+      throw UnimplementedError("TODO - support skinIndex != 0 ");
+    }
+    var boneNames = await getBoneNames(asset);
+    var restLocalTransformsRaw = allocator<Float>(boneNames.length * 16);
+    AnimationManager_getRestLocalTransforms(animationManager, asset.asset,
+        skinIndex, restLocalTransformsRaw, boneNames.length);
+
+    var restLocalTransforms = <Matrix4>[];
+    for (int i = 0; i < boneNames.length; i++) {
+      var values = <double>[];
+      for (int j = 0; j < 16; j++) {
+        values.add(restLocalTransformsRaw[(i * 16) + j]);
+      }
+      restLocalTransforms.add(Matrix4.fromList(values));
+    }
+    allocator.free(restLocalTransformsRaw);
+
+    var numFrames = animation.frameData.length;
+
+    var data = allocator<Float>(numFrames * 16);
+
+    var bones = await Future.wait(List<Future<ThermionEntity>>.generate(
+        boneNames.length, (i) => getBone(asset, i)));
+
+    for (int i = 0; i < animation.bones.length; i++) {
+      var boneName = animation.bones[i];
+      var entityBoneIndex = boneNames.indexOf(boneName);
+      if (entityBoneIndex == -1) {
+        _logger.warning("Bone $boneName not found, skipping");
+        continue;
+      }
+      var boneEntity = bones[entityBoneIndex];
+
+      var baseTransform = restLocalTransforms[entityBoneIndex];
+
+      var world = Matrix4.identity();
+      // this odd use of ! is intentional, without it, the WASM optimizer gets in trouble
+      var parentBoneEntity = (await getParent(boneEntity))!;
+      while (true) {
+        if (!bones.contains(parentBoneEntity!)) {
+          break;
+        }
+        world = restLocalTransforms[bones.indexOf(parentBoneEntity!)] * world;
+        parentBoneEntity = (await getParent(parentBoneEntity))!;
+      }
+
+      world = Matrix4.identity()..setRotation(world.getRotation());
+      var worldInverse = Matrix4.identity()..copyInverse(world);
+
+      for (int frameNum = 0; frameNum < numFrames; frameNum++) {
+        var rotation = animation.frameData[frameNum][i].rotation;
+        var translation = animation.frameData[frameNum][i].translation;
+        var frameTransform =
+            Matrix4.compose(translation, rotation, Vector3.all(1.0));
+        var newLocalTransform = frameTransform.clone();
+        if (animation.space == Space.Bone) {
+          newLocalTransform = baseTransform * frameTransform;
+        } else if (animation.space == Space.ParentWorldRotation) {
+          newLocalTransform =
+              baseTransform * (worldInverse * frameTransform * world);
+        }
+        for (int j = 0; j < 16; j++) {
+          data.elementAt((frameNum * 16) + j).value =
+              newLocalTransform.storage[j];
+        }
+      }
+
+      AnimationManager_addBoneAnimation(
+          animationManager,
+          asset.asset,
+          skinIndex,
+          entityBoneIndex,
+          data,
+          numFrames,
+          animation.frameLengthInMs,
+          fadeOutInSecs,
+          fadeInInSecs,
+          maxDelta);
+    }
+    allocator.free(data);
+  }
+
+  ///
+  ///
+  ///
+  Future<Matrix4> getLocalTransform(ThermionEntity entity) async {
+    return double4x4ToMatrix4(
+        TransformManager_getLocalTransform(app.transformManager, entity));
+  }
+
+  ///
+  ///
+  ///
+  Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
+    return double4x4ToMatrix4(
+        TransformManager_getWorldTransform(app.transformManager, entity));
+  }
+
+  ///
+  ///
+  ///
+  Future setTransform(ThermionEntity entity, Matrix4 transform) async {
+    TransformManager_setTransform(
+        app.transformManager, entity, matrix4ToDouble4x4(transform));
+  }
+
+    ///
+  ///
+  ///
+  Future updateBoneMatrices(ThermionEntity entity) async {
+    throw UnimplementedError();
+
+    // var result = await withBoolCallback((cb) {
+    //   update_bone_matrices_render_thread(_sceneManager!, entity, cb);
+    // });
+    // if (!result) {
+    //   throw Exception("Failed to update bone matrices");
+    // }
+  }
+
+  ///
+  ///
+  ///
+  Future<Matrix4> getInverseBindMatrix(FFIAsset asset, int boneIndex,
+      {int skinIndex = 0}) async {
+    var matrix = Float32List(16);
+    AnimationManager_getInverseBindMatrix(
+        animationManager, asset.asset, skinIndex, boneIndex, matrix.address);
+    return Matrix4.fromList(matrix);
+  }
+
+  ///
+  ///
+  ///
+  Future<ThermionEntity> getBone(FFIAsset asset, int boneIndex,
+      {int skinIndex = 0}) async {
+    if (skinIndex != 0) {
+      throw UnimplementedError("TOOD");
+    }
+    return AnimationManager_getBone(
+        animationManager, asset.asset, skinIndex, boneIndex);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setBoneTransform(
+      ThermionEntity entity, int boneIndex, Matrix4 transform,
+      {int skinIndex = 0}) async {
+    if (skinIndex != 0) {
+      throw UnimplementedError("TOOD");
+    }
+    final ptr = allocator<Float>(16);
+    for (int i = 0; i < 16; i++) {
+      ptr[i] = transform.storage[i];
+    }
+    var result = await withBoolCallback((cb) {
+      AnimationManager_setBoneTransformRenderThread(
+          animationManager, entity, skinIndex, boneIndex, ptr, cb);
+    });
+
+    allocator.free(ptr);
+    if (!result) {
+      throw Exception("Failed to set bone transform");
+    }
+  }
+
+  ///
+  ///
+  ///
+  ///
+  @override
+  Future resetBones(covariant FFIAsset asset) async {
+    AnimationManager_resetToRestPose(animationManager, asset.asset);
+  }
+
+
+  ///
+  ///
+  ///
+  @override
+  Future playAnimation(covariant FFIAsset asset, int index,
+      {bool loop = false,
+      bool reverse = false,
+      bool replaceActive = true,
+      double crossfade = 0.0,
+      double startOffset = 0.0}) async {
+    AnimationManager_playAnimation(animationManager, asset.asset, index, loop,
+        reverse, replaceActive, crossfade, startOffset);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future stopAnimation(FFIAsset asset, int animationIndex) async {
+    AnimationManager_stopAnimation(
+        animationManager, asset.asset, animationIndex);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future stopAnimationByName(FFIAsset asset, String name) async {
+    var animations = await getAnimationNames(asset);
+    await stopAnimation(asset, animations.indexOf(name));
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future playAnimationByName(FFIAsset asset, String name,
+      {bool loop = false,
+      bool reverse = false,
+      bool replaceActive = true,
+      double crossfade = 0.0,
+      bool wait = false}) async {
+    var animations = await getAnimationNames(asset);
+    var index = animations.indexOf(name);
+    var duration = await getAnimationDuration(asset, index);
+    await playAnimation(asset, index,
+        loop: loop,
+        reverse: reverse,
+        replaceActive: replaceActive,
+        crossfade: crossfade);
+    if (wait) {
+      await Future.delayed(Duration(milliseconds: (duration * 1000).toInt()));
+    }
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setGltfAnimationFrame(
+      FFIAsset asset, int index, int animationFrame) async {
+    AnimationManager_setGltfAnimationFrame(
+        animationManager, asset.asset, index, animationFrame);
+  }
+
+   ///
+  ///
+  ///
+  @override
+  Future addAnimationComponent(ThermionEntity entity) async {
+    AnimationManager_addAnimationComponent(animationManager, entity);
+  }
+
+  ///
+  ///
+  ///
+  Future removeAnimationComponent(ThermionEntity entity) async {
+    AnimationManager_removeAnimationComponent(animationManager, entity);
+  }
+
 }
