@@ -7,13 +7,16 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 class CameraOrientationWidget extends StatefulWidget {
   final ThermionViewer viewer;
 
-  const CameraOrientationWidget({Key? key, required this.viewer}) : super(key: key);
+  const CameraOrientationWidget({Key? key, required this.viewer})
+      : super(key: key);
 
   @override
-  _CameraOrientationWidgetState createState() => _CameraOrientationWidgetState();
+  _CameraOrientationWidgetState createState() =>
+      _CameraOrientationWidgetState();
 }
 
-class _CameraOrientationWidgetState extends State<CameraOrientationWidget> with SingleTickerProviderStateMixin {
+class _CameraOrientationWidgetState extends State<CameraOrientationWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   v64.Vector3? _position;
   v64.Matrix3? _rotation;
@@ -30,6 +33,7 @@ class _CameraOrientationWidgetState extends State<CameraOrientationWidget> with 
   }
 
   void _updateCameraInfo() async {
+    final camera = await widget.viewer.getActiveCamera();
     final position = await widget.viewer.getCameraPosition();
     final rotation = await widget.viewer.getCameraRotation();
     setState(() {

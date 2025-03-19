@@ -1,15 +1,13 @@
-import 'package:vector_math/vector_math_64.dart' as v;
+import 'package:vector_math/vector_math_64.dart';
 
 class CameraOrientation {
-  v.Vector3 position = v.Vector3(0, 0, 0);
+  Vector3 position = Vector3.zero();
+  Vector3 rotation = Vector3.zero();
 
-  var rotationX = 0.0;
-  var rotationY = 0.0;
-  var rotationZ = 0.0;
-
-  v.Quaternion compose() {
-    return v.Quaternion.axisAngle(v.Vector3(0, 0, 1), rotationZ) *
-        v.Quaternion.axisAngle(v.Vector3(0, 1, 0), rotationY) *
-        v.Quaternion.axisAngle(v.Vector3(1, 0, 0), rotationX);
+  Matrix4 compose() {
+    final quat = Quaternion.axisAngle(Vector3(0, 0, 1), rotation.z) *
+        Quaternion.axisAngle(Vector3(0, 1, 0), rotation.y) *
+        Quaternion.axisAngle(Vector3(1, 0, 0), rotation.x);
+    return Matrix4.compose(position, quat, Vector3.all(1));
   }
 }

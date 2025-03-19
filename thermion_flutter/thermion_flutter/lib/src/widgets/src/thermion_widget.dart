@@ -75,7 +75,6 @@ class _ThermionWidgetState extends State<ThermionWidget> {
         key: ObjectKey(widget.viewer),
         initial: widget.initial,
         viewer: widget.viewer,
-        view: widget.viewer.view,
         showFpsCounter: widget.showFpsCounter,
         onResize: widget.onResize);
   }

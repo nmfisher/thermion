@@ -102,7 +102,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   Future _tearDown() async {
     await viewer!.dispose();
     if (widget.options.destroyAppOnUnload) {
-      await viewer!.app.destroy();
+      await FilamentApp.instance!.destroy();
     }
   }
 
