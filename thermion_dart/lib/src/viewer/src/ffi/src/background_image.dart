@@ -5,25 +5,23 @@ import 'package:animation_tools_dart/src/morph_animation_data.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class BackgroundImage extends ThermionAsset {
   final ThermionAsset asset;
+
   ThermionEntity get entity => asset.entity;
 
   Texture? _backgroundImageTexture;
-  FFIMaterial? _imageMaterial;
+
   FFITextureSampler? _imageSampler;
 
   final FFIScene scene;
-  final FilamentApp app;
 
-  BackgroundImage._(this.asset, this.scene, this.app,
-      this._backgroundImageTexture, this._imageMaterial, this._imageSampler);
+  BackgroundImage._(
+      this.asset, this.scene, this._backgroundImageTexture, this._imageSampler);
 
   Future destroy() async {
     Scene_removeEntity(scene.scene, entity);
@@ -32,33 +30,39 @@ class BackgroundImage extends ThermionAsset {
   }
 
   static Future<BackgroundImage> create(
-      FFIFilamentApp app, FFIScene scene, Uint8List imageData) async {
-    final image = await app.decodeImage(imageData);
-    var backgroundImageTexture = await app.createTexture(
-        await image.getWidth(), await image.getHeight());
-    var imageMaterial = FFIMaterial(Material_createImageMaterial(), app);
-    var imageSampler = await app.createTextureSampler() as FFITextureSampler;
+      ThermionViewer viewer, FFIScene scene, Uint8List imageData) async {
+    final image = await FilamentApp.instance!.decodeImage(imageData);
+    var backgroundImageTexture = await FilamentApp.instance!
+        .createTexture(await image.getWidth(), await image.getHeight());
+
+    var imageSampler =
+        await FilamentApp.instance!.createTextureSampler() as FFITextureSampler;
 
     var imageMaterialInstance =
-        await imageMaterial!.createInstance() as FFIMaterialInstance;
+        await FilamentApp.instance!.createImageMaterialInstance();
+
     await imageMaterialInstance.setParameterTexture(
-        "image",
-        backgroundImageTexture as FFITexture,
-        imageSampler as FFITextureSampler);
+        "image", backgroundImageTexture as FFITexture, imageSampler);
     var backgroundImage =
-        await app.createGeometry(GeometryHelper.fullscreenQuad()) as FFIAsset;
+        await viewer.createGeometry(GeometryHelper.fullscreenQuad());
     backgroundImage.setMaterialInstanceAt(imageMaterialInstance);
-    await scene.add(backgroundImage);
-    return BackgroundImage._(backgroundImage, scene, app,
-        backgroundImageTexture, imageMaterial, imageSampler);
+    await scene.add(backgroundImage as FFIAsset);
+    return BackgroundImage._(
+        backgroundImage, scene, backgroundImageTexture, imageSampler);
   }
 
+  ///
+  ///
+  ///
   @override
   Future<ThermionAsset> createInstance(
       {covariant List<MaterialInstance>? materialInstances = null}) {
     throw UnimplementedError();
   }
 
+  ///
+  ///
+  ///
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
     return [];
@@ -129,7 +133,11 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future addBoneAnimation(ThermionAsset asset, BoneAnimationData animation, {int skinIndex = 0, double fadeInInSecs = 0.0, double fadeOutInSecs = 0.0, double maxDelta = 1.0}) {
+  Future addBoneAnimation(BoneAnimationData animation,
+      {int skinIndex = 0,
+      double fadeInInSecs = 0.0,
+      double fadeOutInSecs = 0.0,
+      double maxDelta = 1.0}) {
     // TODO: implement addBoneAnimation
     throw UnimplementedError();
   }
@@ -141,61 +149,76 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future<double> getAnimationDuration(covariant ThermionAsset asset, int animationIndex) {
+  Future<double> getAnimationDuration(int animationIndex) {
     // TODO: implement getAnimationDuration
     throw UnimplementedError();
   }
 
   @override
-  Future<List<String>> getAnimationNames(covariant ThermionAsset asset) {
+  Future<List<String>> getAnimationNames() {
     // TODO: implement getAnimationNames
     throw UnimplementedError();
   }
 
   @override
-  Future<ThermionEntity> getBone(covariant ThermionAsset asset, int boneIndex, {int skinIndex = 0}) {
+  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0}) {
     // TODO: implement getBone
     throw UnimplementedError();
   }
 
   @override
-  Future<List<String>> getBoneNames(covariant ThermionAsset asset, {int skinIndex = 0}) {
+  Future<List<String>> getBoneNames({int skinIndex = 0}) {
     // TODO: implement getBoneNames
     throw UnimplementedError();
   }
 
   @override
-  Future<Matrix4> getInverseBindMatrix(covariant ThermionAsset asset, int boneIndex, {int skinIndex = 0}) {
+  Future<ThermionEntity?> getChildEntity(String childName) {
+    // TODO: implement getChildEntity
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Matrix4> getInverseBindMatrix(int boneIndex, {int skinIndex = 0}) {
     // TODO: implement getInverseBindMatrix
     throw UnimplementedError();
   }
 
   @override
-  Future<Matrix4> getLocalTransform(ThermionEntity entity) {
+  Future<Matrix4> getLocalTransform({ThermionEntity? entity}) {
     // TODO: implement getLocalTransform
     throw UnimplementedError();
   }
 
   @override
-  Future<List<String>> getMorphTargetNames(covariant ThermionAsset asset, ThermionEntity childEntity) {
+  Future<List<String>> getMorphTargetNames({ThermionEntity? entity}) {
     // TODO: implement getMorphTargetNames
     throw UnimplementedError();
   }
 
   @override
-  Future<Matrix4> getWorldTransform(ThermionEntity entity) {
+  Future<Matrix4> getWorldTransform({ThermionEntity? entity}) {
     // TODO: implement getWorldTransform
     throw UnimplementedError();
   }
 
   @override
-  Future playAnimation(ThermionAsset asset, int index, {bool loop = false, bool reverse = false, bool replaceActive = true, double crossfade = 0.0, double startOffset = 0.0}) {
+  Future playAnimation(int index,
+      {bool loop = false,
+      bool reverse = false,
+      bool replaceActive = true,
+      double crossfade = 0.0,
+      double startOffset = 0.0}) {
     // TODO: implement playAnimation
     throw UnimplementedError();
   }
 
   @override
-  Future playAnimationByName(covariant ThermionAsset asset, String name, {bool loop = false, bool reverse = false, bool replaceActive = true, double crossfade = 0.0}) {
+  Future playAnimationByName(String name,
+      {bool loop = false,
+      bool reverse = false,
+      bool replaceActive = true,
+      double crossfade = 0.0}) {
     // TODO: implement playAnimationByName
     throw UnimplementedError();
   }
@@ -207,25 +230,28 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future resetBones(ThermionAsset asset) {
+  Future resetBones() {
     // TODO: implement resetBones
     throw UnimplementedError();
   }
 
   @override
-  Future setBoneTransform(ThermionEntity entity, int boneIndex, Matrix4 transform, {int skinIndex = 0}) {
+  Future setBoneTransform(
+      ThermionEntity entity, int boneIndex, Matrix4 transform,
+      {int skinIndex = 0}) {
     // TODO: implement setBoneTransform
     throw UnimplementedError();
   }
 
   @override
-  Future setGltfAnimationFrame(covariant ThermionAsset asset, int index, int animationFrame) {
+  Future setGltfAnimationFrame(int index, int animationFrame) {
     // TODO: implement setGltfAnimationFrame
     throw UnimplementedError();
   }
 
   @override
-  Future setMorphAnimationData(covariant ThermionAsset asset, MorphAnimationData animation, {List<String>? targetMeshNames}) {
+  Future setMorphAnimationData(MorphAnimationData animation,
+      {List<String>? targetMeshNames}) {
     // TODO: implement setMorphAnimationData
     throw UnimplementedError();
   }
@@ -243,13 +269,13 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future stopAnimation(covariant ThermionAsset asset, int animationIndex) {
+  Future stopAnimation(int animationIndex) {
     // TODO: implement stopAnimation
     throw UnimplementedError();
   }
 
   @override
-  Future stopAnimationByName(covariant ThermionAsset asset, String name) {
+  Future stopAnimationByName(String name) {
     // TODO: implement stopAnimationByName
     throw UnimplementedError();
   }

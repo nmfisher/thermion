@@ -1,4 +1,5 @@
 import 'package:thermion_dart/src/filament/src/layers.dart';
+import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 ///
@@ -18,6 +19,7 @@ class Viewport {
 enum QualityLevel { LOW, MEDIUM, HIGH, ULTRA }
 
 abstract class View {
+  Future<Scene> getScene();
   Future<Viewport> getViewport();
   Future setViewport(int width, int height);
   Future<RenderTarget?> getRenderTarget();

@@ -3,17 +3,27 @@ library;
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
-import 'entity.dart';
 
 export 'geometry.dart';
 export 'gltf.dart';
 
-export 'light_options.dart';
-
+///
+/// Represents a renderable object (i.e. not cameras or lights).
+///
+/// At a low level, Filament works with entities. In practice,
+/// it can be difficult to work directly with these at a higher level
+/// because:
+/// a) certain objects don't map exactly to entities (e.g. glTF assets, which
+/// are represented by a hierarchy of entities).
+/// b) it is not trivial to create instances directly from entities
+///
+/// [ThermionAsset] is intended to provide a unified high-level interface
+/// for working with renderable objects.
+///
+///
 abstract class ThermionAsset {
   ///
-  ///
+  /// The top-most entity in the hierarchy. If this is a glTF asset
   ///
   ThermionEntity get entity;
 
@@ -21,6 +31,11 @@ abstract class ThermionAsset {
   ///
   ///
   Future<List<ThermionEntity>> getChildEntities();
+
+  ///
+  ///
+  ///
+  Future<ThermionEntity?> getChildEntity(String childName);
 
   ///
   ///
@@ -95,7 +110,7 @@ abstract class ThermionAsset {
   ///
   /// Schedules the glTF animation at [index] in [asset] to start playing on the next frame.
   ///
-  Future playAnimation(ThermionAsset asset, int index,
+  Future playAnimation(int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
@@ -105,7 +120,7 @@ abstract class ThermionAsset {
   ///
   /// Schedules the glTF animation at [index] in [entity] to start playing on the next frame.
   ///
-  Future playAnimationByName(covariant ThermionAsset asset, String name,
+  Future playAnimationByName(String name,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
@@ -114,20 +129,19 @@ abstract class ThermionAsset {
   ///
   ///
   ///
-  Future setGltfAnimationFrame(
-      covariant ThermionAsset asset, int index, int animationFrame);
+  Future setGltfAnimationFrame(int index, int animationFrame);
 
   ///
   ///
   ///
-  Future stopAnimation(covariant ThermionAsset asset, int animationIndex);
+  Future stopAnimation(int animationIndex);
 
   ///
   ///
   ///
-  Future stopAnimationByName(covariant ThermionAsset asset, String name);
+  Future stopAnimationByName(String name);
 
-    ///
+  ///
   /// Set the weights for all morph targets in [entity] to [weights].
   /// Note that [weights] must contain values for ALL morph targets, but no exception will be thrown if you don't do so (you'll just get incorrect results).
   /// If you only want to set one value, set all others to zero (check [getMorphTargetNames] if you need the get a list of all morph targets).
@@ -137,27 +151,24 @@ abstract class ThermionAsset {
   Future setMorphTargetWeights(ThermionEntity entity, List<double> weights);
 
   ///
-  /// Gets the names of all morph targets for the child renderable [childEntity] under [entity].
+  /// Gets the names of all morph targets for [entity] (which must be a renderable entity)
   ///
-  Future<List<String>> getMorphTargetNames(
-      covariant ThermionAsset asset, ThermionEntity childEntity);
+  Future<List<String>> getMorphTargetNames({ThermionEntity? entity});
 
   ///
-  /// Gets the names of all bones for the armature at [skinIndex] under the specified [entity].
+  /// Gets the names of all bones for the skin at [skinIndex].
   ///
-  Future<List<String>> getBoneNames(covariant ThermionAsset asset,
-      {int skinIndex = 0});
+  Future<List<String>> getBoneNames({int skinIndex = 0});
 
   ///
   /// Gets the names of all glTF animations embedded in the specified entity.
   ///
-  Future<List<String>> getAnimationNames(covariant ThermionAsset asset);
+  Future<List<String>> getAnimationNames();
 
   ///
   /// Returns the length (in seconds) of the animation at the given index.
   ///
-  Future<double> getAnimationDuration(
-      covariant ThermionAsset asset, int animationIndex);
+  Future<double> getAnimationDuration(int animationIndex);
 
   ///
   /// Construct animation(s) for every entity under [asset]. If [targetMeshNames] is provided, only entities with matching names will be animated.
@@ -166,8 +177,7 @@ abstract class ThermionAsset {
   /// throwing an exception if any cannot be found.
   /// It is permissible for [animation] to omit any targets that do exist under [meshName]; these simply won't be animated.
   ///
-  Future setMorphAnimationData(
-      covariant ThermionAsset asset, MorphAnimationData animation,
+  Future setMorphAnimationData(MorphAnimationData animation,
       {List<String>? targetMeshNames});
 
   ///
@@ -179,7 +189,7 @@ abstract class ThermionAsset {
   /// Resets all bones in the given entity to their rest pose.
   /// This should be done before every call to addBoneAnimation.
   ///
-  Future resetBones(ThermionAsset asset);
+  Future resetBones();
 
   ///
   /// Enqueues and plays the [animation] for the specified bone(s).
@@ -199,7 +209,7 @@ abstract class ThermionAsset {
   /// This will be applied in reverse after [fadeOutInSecs].
   ///
   ///
-  Future addBoneAnimation(ThermionAsset asset, BoneAnimationData animation,
+  Future addBoneAnimation(BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeInInSecs = 0.0,
       double fadeOutInSecs = 0.0,
@@ -209,32 +219,29 @@ abstract class ThermionAsset {
   /// Gets the entity representing the bone at [boneIndex]/[skinIndex].
   /// The returned entity is only intended for use with [getWorldTransform].
   ///
-  Future<ThermionEntity> getBone(covariant ThermionAsset asset, int boneIndex,
-      {int skinIndex = 0});
+  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0});
 
   ///
   /// Gets the local (relative to parent) transform for [entity].
   ///
-  Future<Matrix4> getLocalTransform(ThermionEntity entity);
+  Future<Matrix4> getLocalTransform({ThermionEntity? entity});
 
   ///
   /// Gets the world transform for [entity].
   ///
-  Future<Matrix4> getWorldTransform(ThermionEntity entity);
+  Future<Matrix4> getWorldTransform({ThermionEntity? entity});
 
   ///
   /// Gets the inverse bind (pose) matrix for the bone.
   /// Note that [parent] must be the ThermionEntity returned by [loadGlb/loadGltf], not any other method ([getChildEntity] etc).
   /// This is because all joint information is internally stored with the parent entity.
   ///
-  Future<Matrix4> getInverseBindMatrix(
-      covariant ThermionAsset asset, int boneIndex,
-      {int skinIndex = 0});
+  Future<Matrix4> getInverseBindMatrix(int boneIndex, {int skinIndex = 0});
 
   ///
   /// Sets the transform (relative to its parent) for [entity].
   ///
-  Future setTransform(ThermionEntity entity, Matrix4 transform);
+  Future setTransform(Matrix4 transform, {ThermionEntity? entity});
 
   ///
   /// Updates the bone matrices for [entity] (which must be the ThermionEntity
@@ -264,4 +271,3 @@ abstract class ThermionAsset {
   ///
   Future removeAnimationComponent(ThermionEntity entity);
 }
-

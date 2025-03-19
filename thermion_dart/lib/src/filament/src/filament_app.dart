@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:thermion_dart/src/filament/src/engine.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -29,7 +28,6 @@ class FilamentConfig<T, U> {
 }
 
 abstract class FilamentApp<T> {
-
   static FilamentApp? instance;
 
   final T engine;
@@ -173,13 +171,6 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  @override
-  Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances, bool keepData = false});
-
-  ///
-  ///
-  ///
   Future setRenderable(covariant View view, bool renderable);
 
   ///
@@ -206,4 +197,27 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future unregisterRequestFrameHook(Future Function() hook);
+
+  ///
+  /// Retrieves the name assigned to the given entity (usually corresponds to the glTF mesh name).
+  ///
+  String? getNameForEntity(ThermionEntity entity);
+
+  ///
+  /// Gets the parent entity of [entity]. Returns null if the entity has no parent.
+  ///
+  Future<ThermionEntity?> getParent(ThermionEntity entity);
+
+  ///
+  /// Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the entity has no parent.
+  ///
+  Future<ThermionEntity?> getAncestor(ThermionEntity entity);
+
+  ///
+  /// Sets the parent transform of [child] to [parent].
+  ///
+  Future setParent(ThermionEntity child, ThermionEntity? parent,
+      {bool preserveScaling});
+
+  Future<MaterialInstance> createImageMaterialInstance();
 }

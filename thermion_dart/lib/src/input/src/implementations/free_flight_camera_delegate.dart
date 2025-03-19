@@ -5,8 +5,8 @@ import '../delegates.dart';
 import '../input_handler.dart';
 
 class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
-  final ThermionViewer viewer;
-  late Future<ThermionEntity> entity;
+  final View view;
+
   final Vector3? minBounds;
   final Vector3? maxBounds;
   final double rotationSensitivity;
@@ -20,21 +20,14 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
   double _queuedZoomDelta = 0.0;
   Vector3 _queuedMoveDelta = Vector3.zero();
 
-  FreeFlightInputHandlerDelegate(this.viewer,
+  FreeFlightInputHandlerDelegate(this.view,
       {this.minBounds,
       this.maxBounds,
       this.rotationSensitivity = 0.001,
       this.movementSensitivity = 0.1,
       this.zoomSensitivity = 0.1,
       this.panSensitivity = 0.1,
-      this.clampY,
-      ThermionEntity? entity}) {
-    if (entity != null) {
-      this.entity = Future.value(entity);
-    } else {
-      this.entity = viewer.getMainCameraEntity();
-    }
-  }
+      this.clampY}) {}
 
   @override
   Future<void> queue(InputAction action, Vector3? delta) async {
@@ -76,9 +69,9 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
       return null;
     }
 
-    final activeCamera = await viewer.getActiveCamera();
+    final activeCamera = await view.getCamera();
 
-    Matrix4 current = await viewer.getLocalTransform(await entity);
+    Matrix4 current = await activeCamera.getModelMatrix();
 
     Vector3 relativeTranslation = Vector3.zero();
     Quaternion relativeRotation = Quaternion.identity();
@@ -121,17 +114,18 @@ class FreeFlightInputHandlerDelegate implements InputHandlerDelegate {
       _queuedMoveDelta = Vector3.zero();
     }
 
-    // If the managed entity is not the active camera, we need to apply the rotation from the current camera model matrix
-    // to the entity's translation
-    if (await entity != activeCamera.getEntity()) {
-      Matrix4 modelMatrix = await activeCamera.getModelMatrix();
-      relativeTranslation = modelMatrix.getRotation() * relativeTranslation;
-    }
+    // // If the managed entity is not the active camera, we need to apply the rotation from the current camera model matrix
+    // // to the entity's translation
+    // if (await entity != activeCamera.getEntity()) {
+    //   Matrix4 modelMatrix = await activeCamera.getModelMatrix();
+    //   relativeTranslation = modelMatrix.getRotation() * relativeTranslation;
+    // }
 
     var updated = Matrix4.compose(
             relativeTranslation, relativeRotation, Vector3(1, 1, 1)) *
         current;
-    await viewer.setTransform(await entity, updated);
+    
+    await activeCamera.setModelMatrix(updated);
 
     _executing = false;
     return updated;

@@ -2,19 +2,17 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:thermion_dart/src/filament/src/light_options.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/background_image.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/grid_overlay.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
-import '../../../../utils/src/matrix.dart';
-import '../../thermion_viewer_base.dart';
 import 'package:logging/logging.dart';
 
 import 'callbacks.dart';
@@ -88,13 +86,15 @@ class ThermionViewerFFI extends ThermionViewer {
         await withPointerCallback<TView>(
             (cb) => Engine_createViewRenderThread(app.engine, cb)),
         app);
-    scene = FFIScene(Engine_createScene(app.engine), app);
+    scene = FFIScene(Engine_createScene(app.engine));
     await view.setScene(scene);
     final camera = FFICamera(
         await withPointerCallback<TCamera>(
             (cb) => Engine_createCameraRenderThread(app.engine, cb)),
         app);
     _cameras.add(camera);
+
+    await view.setCamera(camera);
     if (renderTarget != null) {
       await view.setRenderTarget(renderTarget);
     }
@@ -193,7 +193,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
     final imageData = await loadAsset(path);
-    _backgroundImage = await BackgroundImage.create(app, scene, imageData);
+    _backgroundImage = await BackgroundImage.create(this, scene, imageData);
   }
 
   ///
@@ -406,7 +406,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("An error occurred loading the asset");
     }
 
-    var thermionAsset = FFIAsset(asset, app);
+    var thermionAsset = FFIAsset(asset, app, animationManager);
 
     _assets.add(thermionAsset);
 
@@ -550,19 +550,6 @@ class ThermionViewerFFI extends ThermionViewer {
         app.lightManager, lightEntity, direction.x, direction.y, direction.z);
   }
 
-  ///
-  ///
-  ///
-  @override
-  String? getNameForEntity(ThermionEntity entity) {
-    final result =
-        NameComponentManager_getName(app.nameComponentManager, entity);
-    if (result == nullptr) {
-      return null;
-    }
-    return result.cast<Utf8>().toDartString();
-  }
-
   void _onPickResult(int requestId, ThermionEntity entityId, double depth,
       double fragX, double fragY, double fragZ) async {
     if (!_pickRequests.containsKey(requestId)) {
@@ -615,40 +602,6 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future setParent(ThermionEntity child, ThermionEntity? parent,
-      {bool preserveScaling = false}) async {
-    TransformManager_setParent(app.transformManager, child,
-        parent ?? FILAMENT_ENTITY_NULL, preserveScaling);
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<ThermionEntity?> getParent(ThermionEntity child) async {
-    var parent = TransformManager_getParent(app.transformManager, child);
-    if (parent == FILAMENT_ASSET_ERROR) {
-      return null;
-    }
-    return parent;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<ThermionEntity?> getAncestor(ThermionEntity child) async {
-    var parent = TransformManager_getAncestor(app.transformManager, child);
-    if (parent == FILAMENT_ASSET_ERROR) {
-      return null;
-    }
-    return parent;
-  }
-
-  ///
-  ///
-  ///
-  @override
   Future setPriority(ThermionEntity entityId, int priority) async {
     RenderableManager_setPriority(app.renderableManager, entityId, priority);
   }
@@ -678,7 +631,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future showGridOverlay() async {
-    _grid ??= _grid = await GridOverlay.create(app);
+    _grid ??= _grid = await GridOverlay.create(app, animationManager);
     await scene.add(_grid!);
     await view.setLayerVisibility(VisibilityLayers.OVERLAY, true);
   }
@@ -749,6 +702,52 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
+  ///
+  ///
+  ///
+  @override
+  Future<ThermionAsset> createGeometry(Geometry geometry,
+      {List<MaterialInstance>? materialInstances,
+      bool keepData = false}) async {
+    var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
+      var ptrList = Int64List(materialInstances?.length ?? 0);
+      if (materialInstances != null && materialInstances.isNotEmpty) {
+        ptrList.setRange(
+            0,
+            materialInstances.length,
+            materialInstances
+                .cast<FFIMaterialInstance>()
+                .map((mi) => mi.pointer.address)
+                .toList());
+      }
+
+      return SceneAsset_createGeometryRenderThread(
+          app.engine,
+          geometry.vertices.address,
+          geometry.vertices.length,
+          geometry.normals.address,
+          geometry.normals.length,
+          geometry.uvs.address,
+          geometry.uvs.length,
+          geometry.indices.address,
+          geometry.indices.length,
+          geometry.primitiveType.index,
+          ptrList.address.cast<Pointer<TMaterialInstance>>(),
+          ptrList.length,
+          callback);
+    });
+    if (assetPtr == nullptr) {
+      throw Exception("Failed to create geometry");
+    }
+
+    var asset = FFIAsset(assetPtr, app, animationManager);
+
+    return asset;
+  }
+
+  ////
+  ///
+  //
   @override
   Future<GizmoAsset> createGizmo(FFIView view, GizmoType gizmoType) async {
     throw UnimplementedError();

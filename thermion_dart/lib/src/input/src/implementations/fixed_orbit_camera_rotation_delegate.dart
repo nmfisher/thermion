@@ -10,8 +10,7 @@ import '../input_handler.dart';
 /// point.
 ///
 class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
-  final ThermionViewer viewer;
-  late Future<Camera> _camera;
+  final View view;
   final double minimumDistance;
   late final Vector3 target;
 
@@ -24,20 +23,17 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
   Timer? _updateTimer;
 
   FixedOrbitRotateInputHandlerDelegate(
-    this.viewer, {
+    this.view, {
     Vector3? target,
     this.minimumDistance = 10.0,
     this.rotationSensitivity = 0.01,
     this.zoomSensitivity = 0.1,
   }) {
     this.target = target ?? Vector3.zero();
-    _camera = viewer.getMainCamera().then((Camera cam) async {
-      var viewMatrix = makeViewMatrix(Vector3(0.0, 0, -minimumDistance),
-          this.target, Vector3(0.0, 1.0, 0.0));
-      viewMatrix.invert();
 
-      await cam.setTransform(viewMatrix);
-      return cam;
+    view.getCamera().then((camera) {
+      camera.lookAt(Vector3(0.0, 0, -minimumDistance),
+          focus: this.target, up: Vector3(0.0, 1.0, 0.0));
     });
   }
 
@@ -81,12 +77,13 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
 
     _executing = true;
 
-    final view = await viewer.getViewAt(0);
+    final camera = await view.getCamera();
+
     final viewport = await view.getViewport();
 
-    var viewMatrix = await viewer.getCameraViewMatrix();
-    var modelMatrix = await viewer.getCameraModelMatrix();
-    var projectionMatrix = await viewer.getCameraProjectionMatrix();
+    var viewMatrix = await camera.getViewMatrix();
+    var modelMatrix = await camera.getModelMatrix();
+    var projectionMatrix = await camera.getProjectionMatrix();
     var inverseProjectionMatrix = projectionMatrix.clone()..invert();
     Vector3 currentPosition = modelMatrix.getTranslation();
 
@@ -117,14 +114,14 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
         Matrix4 newViewMatrix = makeViewMatrix(currentPosition, target, up);
         newViewMatrix.invert();
 
-        await (await _camera).setModelMatrix(newViewMatrix);
+        await camera.setModelMatrix(newViewMatrix);
         updatedModelMatrix = newViewMatrix;
       }
     } else if (_queuedRotationDelta.length != 0) {
       double rotateX = _queuedRotationDelta.x * rotationSensitivity;
       double rotateY = _queuedRotationDelta.y * rotationSensitivity;
 
-      var modelMatrix = await viewer.getCameraModelMatrix();
+      var modelMatrix = await camera.getModelMatrix();
 
       // for simplicity, we always assume a fixed coordinate system where
       // we are rotating around world Y and camera X
@@ -136,7 +133,7 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
             .asRotationMatrix());
 
       modelMatrix = rot1 * rot2 * modelMatrix;
-      await (await _camera).setModelMatrix(modelMatrix);
+      await camera.setModelMatrix(modelMatrix);
       updatedModelMatrix = modelMatrix;
     }
 

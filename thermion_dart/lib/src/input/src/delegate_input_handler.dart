@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
-
 import 'implementations/fixed_orbit_camera_rotation_delegate.dart';
 import 'implementations/free_flight_camera_delegate.dart';
 
@@ -64,7 +62,7 @@ class DelegateInputHandler implements InputHandler {
       _inputDeltas[gestureType] = Vector3.zero();
     }
 
-    viewer.registerRequestFrameHook(process);
+    FilamentApp.instance!.registerRequestFrameHook(process);
   }
 
   factory DelegateInputHandler.fixedOrbit(ThermionViewer viewer,
@@ -75,7 +73,7 @@ class DelegateInputHandler implements InputHandler {
       DelegateInputHandler(
           viewer: viewer,
           pickDelegate: pickDelegate,
-          transformDelegate: FixedOrbitRotateInputHandlerDelegate(viewer,
+          transformDelegate: FixedOrbitRotateInputHandlerDelegate(viewer.view,
               minimumDistance: minimumDistance),
           actions: {
             InputType.MMB_HOLD_AND_MOVE: InputAction.ROTATE,
@@ -96,9 +94,8 @@ class DelegateInputHandler implements InputHandler {
       DelegateInputHandler(
           viewer: viewer,
           pickDelegate: pickDelegate,
-          transformDelegate: FreeFlightInputHandlerDelegate(viewer,
+          transformDelegate: FreeFlightInputHandlerDelegate(viewer.view,
               clampY: clampY,
-              entity: entity,
               rotationSensitivity: rotateSensitivity,
               zoomSensitivity: zoomSensitivity,
               panSensitivity: panSensitivity,
@@ -245,7 +242,7 @@ class DelegateInputHandler implements InputHandler {
 
   @override
   Future dispose() async {
-    viewer.unregisterRequestFrameHook(process);
+    FilamentApp.instance!.unregisterRequestFrameHook(process);
   }
 
   @override

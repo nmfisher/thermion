@@ -1,3 +1,4 @@
+import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
@@ -112,5 +113,11 @@ class FFIView extends View {
   @override
   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
     View_setLayerEnabled(view, layer.value, visible);
+  }
+
+  @override
+  Future<Scene> getScene() async {
+    final ptr = View_getScene(view);
+    return FFIScene(ptr);
   }
 }

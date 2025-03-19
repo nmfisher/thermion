@@ -6,13 +6,12 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_view.dart';
 
 class FFIGizmo extends FFIAsset implements GizmoAsset {
-  
-  final Set<ThermionEntity> gizmoEntities;
+  final Set<ThermionEntity> entities;
   late NativeCallable<GizmoPickCallbackFunction> _nativeCallback;
 
   void Function(GizmoPickResultType axis, Vector3 coords)? _callback;
 
-  late FFIView _view;
+  late FFIView view;
 
   void _onPickResult(int resultType, double x, double y, double z) {
     _callback?.call(GizmoPickResultType.values[resultType], Vector3(x, y, z));
@@ -23,13 +22,16 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
     // return SceneManager_isGridEntity(sceneManager, entity);
   }
 
-  bool isGizmoEntity(ThermionEntity entity) => gizmoEntities.contains(entity);
+  bool isGizmoEntity(ThermionEntity entity) => entities.contains(entity);
 
-  FFIGizmo(
-      this._view,
-      super.pointer,
-      super.app,
-      this.gizmoEntities) {
+    FFIGizmo(
+          super.asset,
+    super.app,
+    super.animationManager,
+      {
+    required this.view,
+    required this.entities,
+  }) {
     _nativeCallback =
         NativeCallable<GizmoPickCallbackFunction>.listener(_onPickResult);
   }
@@ -53,7 +55,7 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
       {Future Function(GizmoPickResultType result, Vector3 coords)?
           handler}) async {
     _callback = handler;
-    final viewport = await _view.getViewport();
+    final viewport = await view.getViewport();
     y = viewport.height - y;
 
     Gizmo_pick(asset.cast<TGizmo>(), x, y, _nativeCallback.nativeFunction);

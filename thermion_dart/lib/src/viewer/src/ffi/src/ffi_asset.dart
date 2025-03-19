@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:animation_tools_dart/animation_tools_dart.dart';
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
@@ -8,10 +10,8 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
-import 'package:vector_math/vector_math_64.dart';
 
 class FFIAsset extends ThermionAsset {
-  
   ///
   ///
   ///
@@ -21,6 +21,11 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   final FFIFilamentApp app;
+
+  ///
+  ///
+  ///
+  final Pointer<TAnimationManager> animationManager;
 
   ///
   ///
@@ -37,10 +42,13 @@ class FFIAsset extends ThermionAsset {
   ///
   late final ThermionEntity entity;
 
+  late final _logger = Logger(this.runtimeType.toString());
+
   ///
   ///
   ///
-  FFIAsset(this.asset, this.app, {this.isInstance = false}) {
+  FFIAsset(this.asset, this.app, this.animationManager,
+      {this.isInstance = false}) {
     entity = SceneAsset_getEntity(asset);
   }
 
@@ -59,8 +67,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future<ThermionEntity?> getChildEntity(
-      FFIAsset asset, String childName) async {
+  Future<ThermionEntity?> getChildEntity(String childName) async {
     final childEntities = await getChildEntities();
     for (final entity in childEntities) {
       var name = NameComponentManager_getName(app.nameComponentManager, entity);
@@ -71,6 +78,9 @@ class FFIAsset extends ThermionAsset {
     return null;
   }
 
+  ///
+  ///
+  ///
   @override
   Future<ThermionAsset> getInstance(int index) async {
     if (isInstance) {
@@ -81,7 +91,7 @@ class FFIAsset extends ThermionAsset {
     if (instance == nullptr) {
       throw Exception("No instance available at index $index");
     }
-    return FFIAsset(instance, app);
+    return FFIAsset(instance, app, animationManager);
   }
 
   ///
@@ -111,7 +121,7 @@ class FFIAsset extends ThermionAsset {
     if (created == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create instance");
     }
-    return FFIAsset(created, app);
+    return FFIAsset(created, app, animationManager);
   }
 
   ///
@@ -129,7 +139,7 @@ class FFIAsset extends ThermionAsset {
   Future<List<ThermionAsset>> getInstances() async {
     var count = await getInstanceCount();
     final result = List<ThermionAsset>.generate(count, (i) {
-      return FFIAsset(SceneAsset_getInstance(asset, i), app);
+      return FFIAsset(SceneAsset_getInstance(asset, i), app, animationManager);
     });
 
     return result;
@@ -163,7 +173,7 @@ class FFIAsset extends ThermionAsset {
       var targetEntity = this.entity;
       if (entityIndex != null) {
         final childEntities = await this.getChildEntities();
-        targetEntity = childEntities[entityIndex!];
+        targetEntity = childEntities[entityIndex];
       }
       var sourceMaterialInstance = FFIMaterialInstance(
           RenderableManager_getMaterialInstanceAt(
@@ -209,7 +219,7 @@ class FFIAsset extends ThermionAsset {
 
     if (entityIndex != null) {
       var highlightChildEntities = await _highlight!.getChildEntities();
-      targetHighlightEntity = highlightChildEntities[entityIndex!];
+      targetHighlightEntity = highlightChildEntities[entityIndex];
     }
 
     RenderableManager_setPriority(
@@ -397,7 +407,8 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future transformToUnitCube() async {
-    TransformManager_transformToUnitCube(app.transformManager, entity,  SceneAsset_getBoundingBox(asset));
+    TransformManager_transformToUnitCube(
+        app.transformManager, entity, SceneAsset_getBoundingBox(asset));
   }
 
   ///
@@ -439,33 +450,35 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future<List<String>> getMorphTargetNames(
-      covariant FFIAsset asset, ThermionEntity childEntity) async {
+  Future<List<String>> getMorphTargetNames({ThermionEntity? entity}) async {
     var names = <String>[];
 
+    entity ??= this.entity;
+
     var count = AnimationManager_getMorphTargetNameCount(
-        animationManager, asset.asset, childEntity);
+        animationManager, asset, entity);
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < count; i++) {
       AnimationManager_getMorphTargetName(
-          animationManager, asset.asset, childEntity, outPtr, i);
+          animationManager, asset, entity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     allocator.free(outPtr);
     return names.cast<String>();
   }
 
-  Future<List<String>> getBoneNames(covariant FFIAsset asset,
-      {int skinIndex = 0}) async {
+  ///
+  ///
+  ///
+  Future<List<String>> getBoneNames({int skinIndex = 0}) async {
     var count =
-        AnimationManager_getBoneCount(animationManager, asset.asset, skinIndex);
+        AnimationManager_getBoneCount(animationManager, asset, skinIndex);
     var out = allocator<Pointer<Char>>(count);
     for (int i = 0; i < count; i++) {
       out[i] = allocator<Char>(255);
     }
 
-    AnimationManager_getBoneNames(
-        animationManager, asset.asset, out, skinIndex);
+    AnimationManager_getBoneNames(animationManager, asset, out, skinIndex);
     var names = <String>[];
     for (int i = 0; i < count; i++) {
       var namePtr = out[i];
@@ -478,14 +491,13 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future<List<String>> getAnimationNames(covariant FFIAsset asset) async {
+  Future<List<String>> getAnimationNames() async {
     var animationCount =
-        AnimationManager_getAnimationCount(animationManager, asset.asset);
+        AnimationManager_getAnimationCount(animationManager, asset);
     var names = <String>[];
     var outPtr = allocator<Char>(255);
     for (int i = 0; i < animationCount; i++) {
-      AnimationManager_getAnimationName(
-          animationManager, asset.asset, outPtr, i);
+      AnimationManager_getAnimationName(animationManager, asset, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
     allocator.free(outPtr);
@@ -497,24 +509,26 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future<double> getAnimationDuration(
-      FFIAsset asset, int animationIndex) async {
+  Future<double> getAnimationDuration(int animationIndex) async {
     return AnimationManager_getAnimationDuration(
-        animationManager, asset.asset, animationIndex);
+        animationManager, asset, animationIndex);
   }
 
   ///
   ///
   ///
-  Future<double> getAnimationDurationByName(FFIAsset asset, String name) async {
-    var animations = await getAnimationNames(asset);
+  Future<double> getAnimationDurationByName(String name) async {
+    var animations = await getAnimationNames();
     var index = animations.indexOf(name);
     if (index == -1) {
       throw Exception("Failed to find animation $name");
     }
-    return getAnimationDuration(asset, index);
+    return getAnimationDuration(index);
   }
 
+  ///
+  ///
+  ///
   Future clearMorphAnimationData(ThermionEntity entity) async {
     if (!AnimationManager_clearMorphAnimation(animationManager, entity)) {
       throw Exception("Failed to clear morph animation");
@@ -525,11 +539,13 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future setMorphAnimationData(FFIAsset asset, MorphAnimationData animation,
+  Future setMorphAnimationData(MorphAnimationData animation,
       {List<String>? targetMeshNames}) async {
-    var meshEntities = await getChildEntities(asset);
+    var meshEntities = await getChildEntities();
 
-    var meshNames = meshEntities.map((e) => getNameForEntity(e)).toList();
+    var meshNames = meshEntities
+        .map((e) => FilamentApp.instance!.getNameForEntity(e))
+        .toList();
     if (targetMeshNames != null) {
       for (final targetMeshName in targetMeshNames) {
         if (!meshNames.contains(targetMeshName)) {
@@ -554,7 +570,7 @@ class FFIAsset extends ThermionAsset {
         continue;
       }
 
-      var meshMorphTargets = await getMorphTargetNames(asset, meshEntity);
+      var meshMorphTargets = await getMorphTargetNames(entity: meshEntity);
 
       var intersection = animation.morphTargets
           .toSet()
@@ -598,7 +614,7 @@ class FFIAsset extends ThermionAsset {
   /// Currently, scale is not supported.
   ///
   @override
-  Future addBoneAnimation(covariant FFIAsset asset, BoneAnimationData animation,
+  Future addBoneAnimation(BoneAnimationData animation,
       {int skinIndex = 0,
       double fadeOutInSecs = 0.0,
       double fadeInInSecs = 0.0,
@@ -610,10 +626,10 @@ class FFIAsset extends ThermionAsset {
     if (skinIndex != 0) {
       throw UnimplementedError("TODO - support skinIndex != 0 ");
     }
-    var boneNames = await getBoneNames(asset);
+    var boneNames = await getBoneNames();
     var restLocalTransformsRaw = allocator<Float>(boneNames.length * 16);
-    AnimationManager_getRestLocalTransforms(animationManager, asset.asset,
-        skinIndex, restLocalTransformsRaw, boneNames.length);
+    AnimationManager_getRestLocalTransforms(animationManager, asset, skinIndex,
+        restLocalTransformsRaw, boneNames.length);
 
     var restLocalTransforms = <Matrix4>[];
     for (int i = 0; i < boneNames.length; i++) {
@@ -630,7 +646,7 @@ class FFIAsset extends ThermionAsset {
     var data = allocator<Float>(numFrames * 16);
 
     var bones = await Future.wait(List<Future<ThermionEntity>>.generate(
-        boneNames.length, (i) => getBone(asset, i)));
+        boneNames.length, (i) => getBone(i)));
 
     for (int i = 0; i < animation.bones.length; i++) {
       var boneName = animation.bones[i];
@@ -645,13 +661,15 @@ class FFIAsset extends ThermionAsset {
 
       var world = Matrix4.identity();
       // this odd use of ! is intentional, without it, the WASM optimizer gets in trouble
-      var parentBoneEntity = (await getParent(boneEntity))!;
+      var parentBoneEntity =
+          (await FilamentApp.instance!.getParent(boneEntity))!;
       while (true) {
         if (!bones.contains(parentBoneEntity!)) {
           break;
         }
         world = restLocalTransforms[bones.indexOf(parentBoneEntity!)] * world;
-        parentBoneEntity = (await getParent(parentBoneEntity))!;
+        parentBoneEntity =
+            (await FilamentApp.instance!.getParent(parentBoneEntity))!;
       }
 
       world = Matrix4.identity()..setRotation(world.getRotation());
@@ -677,7 +695,7 @@ class FFIAsset extends ThermionAsset {
 
       AnimationManager_addBoneAnimation(
           animationManager,
-          asset.asset,
+          asset,
           skinIndex,
           entityBoneIndex,
           data,
@@ -693,7 +711,8 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  Future<Matrix4> getLocalTransform(ThermionEntity entity) async {
+  Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
+    entity ??= this.entity;
     return double4x4ToMatrix4(
         TransformManager_getLocalTransform(app.transformManager, entity));
   }
@@ -701,7 +720,8 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  Future<Matrix4> getWorldTransform(ThermionEntity entity) async {
+  Future<Matrix4> getWorldTransform({ThermionEntity? entity}) async {
+    entity ??= this.entity;
     return double4x4ToMatrix4(
         TransformManager_getWorldTransform(app.transformManager, entity));
   }
@@ -709,12 +729,13 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  Future setTransform(ThermionEntity entity, Matrix4 transform) async {
+  Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
+    entity ??= this.entity;
     TransformManager_setTransform(
         app.transformManager, entity, matrix4ToDouble4x4(transform));
   }
 
-    ///
+  ///
   ///
   ///
   Future updateBoneMatrices(ThermionEntity entity) async {
@@ -731,24 +752,23 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  Future<Matrix4> getInverseBindMatrix(FFIAsset asset, int boneIndex,
+  Future<Matrix4> getInverseBindMatrix(int boneIndex,
       {int skinIndex = 0}) async {
     var matrix = Float32List(16);
     AnimationManager_getInverseBindMatrix(
-        animationManager, asset.asset, skinIndex, boneIndex, matrix.address);
+        animationManager, asset, skinIndex, boneIndex, matrix.address);
     return Matrix4.fromList(matrix);
   }
 
   ///
   ///
   ///
-  Future<ThermionEntity> getBone(FFIAsset asset, int boneIndex,
-      {int skinIndex = 0}) async {
+  Future<ThermionEntity> getBone(int boneIndex, {int skinIndex = 0}) async {
     if (skinIndex != 0) {
       throw UnimplementedError("TOOD");
     }
     return AnimationManager_getBone(
-        animationManager, asset.asset, skinIndex, boneIndex);
+        animationManager, asset, skinIndex, boneIndex);
   }
 
   ///
@@ -781,22 +801,21 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future resetBones(covariant FFIAsset asset) async {
-    AnimationManager_resetToRestPose(animationManager, asset.asset);
+  Future resetBones() async {
+    AnimationManager_resetToRestPose(animationManager, asset);
   }
-
 
   ///
   ///
   ///
   @override
-  Future playAnimation(covariant FFIAsset asset, int index,
+  Future playAnimation(int index,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0,
       double startOffset = 0.0}) async {
-    AnimationManager_playAnimation(animationManager, asset.asset, index, loop,
+    AnimationManager_playAnimation(animationManager, asset, index, loop,
         reverse, replaceActive, crossfade, startOffset);
   }
 
@@ -804,34 +823,33 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future stopAnimation(FFIAsset asset, int animationIndex) async {
-    AnimationManager_stopAnimation(
-        animationManager, asset.asset, animationIndex);
+  Future stopAnimation(int animationIndex) async {
+    AnimationManager_stopAnimation(animationManager, asset, animationIndex);
   }
 
   ///
   ///
   ///
   @override
-  Future stopAnimationByName(FFIAsset asset, String name) async {
-    var animations = await getAnimationNames(asset);
-    await stopAnimation(asset, animations.indexOf(name));
+  Future stopAnimationByName(String name) async {
+    var animations = await getAnimationNames();
+    await stopAnimation(animations.indexOf(name));
   }
 
   ///
   ///
   ///
   @override
-  Future playAnimationByName(FFIAsset asset, String name,
+  Future playAnimationByName(String name,
       {bool loop = false,
       bool reverse = false,
       bool replaceActive = true,
       double crossfade = 0.0,
       bool wait = false}) async {
-    var animations = await getAnimationNames(asset);
+    var animations = await getAnimationNames();
     var index = animations.indexOf(name);
-    var duration = await getAnimationDuration(asset, index);
-    await playAnimation(asset, index,
+    var duration = await getAnimationDuration(index);
+    await playAnimation(index,
         loop: loop,
         reverse: reverse,
         replaceActive: replaceActive,
@@ -845,13 +863,12 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future setGltfAnimationFrame(
-      FFIAsset asset, int index, int animationFrame) async {
+  Future setGltfAnimationFrame(int index, int animationFrame) async {
     AnimationManager_setGltfAnimationFrame(
-        animationManager, asset.asset, index, animationFrame);
+        animationManager, asset, index, animationFrame);
   }
 
-   ///
+  ///
   ///
   ///
   @override
@@ -865,5 +882,4 @@ class FFIAsset extends ThermionAsset {
   Future removeAnimationComponent(ThermionEntity entity) async {
     AnimationManager_removeAnimationComponent(animationManager, entity);
   }
-
 }

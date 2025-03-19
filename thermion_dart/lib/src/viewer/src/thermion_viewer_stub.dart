@@ -1,32 +1,13 @@
 import 'dart:typed_data';
-
-import 'package:animation_tools_dart/src/bone_animation_data.dart';
-import 'package:animation_tools_dart/src/morph_animation_data.dart';
+import 'package:thermion_dart/src/filament/src/light_options.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 
 class ThermionViewerStub extends ThermionViewer {
-  @override
-  Future addAnimationComponent(ThermionEntity entity) {
-    // TODO: implement addAnimationComponent
-    throw UnimplementedError();
-  }
-
-  @override
-  Future addBoneAnimation(ThermionAsset asset, BoneAnimationData animation, {int skinIndex = 0, double fadeInInSecs = 0.0, double fadeOutInSecs = 0.0, double maxDelta = 1.0}) {
-    // TODO: implement addBoneAnimation
-    throw UnimplementedError();
-  }
-
   @override
   Future<ThermionEntity> addDirectLight(DirectLight light) {
     // TODO: implement addDirectLight
     throw UnimplementedError();
   }
-
-  @override
-  // TODO: implement app
-  FilamentApp get app => throw UnimplementedError();
 
   @override
   Future clearBackgroundImage() {
@@ -35,14 +16,14 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future clearMorphAnimationData(ThermionEntity entity) {
-    // TODO: implement clearMorphAnimationData
+  Future<Camera> createCamera() {
+    // TODO: implement createCamera
     throw UnimplementedError();
   }
 
   @override
-  Future<Camera> createCamera() {
-    // TODO: implement createCamera
+  Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances, bool keepData = false}) {
+    // TODO: implement createGeometry
     throw UnimplementedError();
   }
 
@@ -89,68 +70,8 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future<ThermionEntity?> getAncestor(ThermionEntity entity) {
-    // TODO: implement getAncestor
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<double> getAnimationDuration(covariant ThermionAsset asset, int animationIndex) {
-    // TODO: implement getAnimationDuration
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> getAnimationNames(covariant ThermionAsset asset) {
-    // TODO: implement getAnimationNames
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionEntity> getBone(covariant ThermionAsset asset, int boneIndex, {int skinIndex = 0}) {
-    // TODO: implement getBone
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> getBoneNames(covariant ThermionAsset asset, {int skinIndex = 0}) {
-    // TODO: implement getBoneNames
-    throw UnimplementedError();
-  }
-
-  @override
   int getCameraCount() {
     // TODO: implement getCameraCount
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Matrix4> getInverseBindMatrix(covariant ThermionAsset asset, int boneIndex, {int skinIndex = 0}) {
-    // TODO: implement getInverseBindMatrix
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Matrix4> getLocalTransform(ThermionEntity entity) {
-    // TODO: implement getLocalTransform
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> getMorphTargetNames(covariant ThermionAsset asset, ThermionEntity childEntity) {
-    // TODO: implement getMorphTargetNames
-    throw UnimplementedError();
-  }
-
-  @override
-  String? getNameForEntity(ThermionEntity entity) {
-    // TODO: implement getNameForEntity
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionEntity?> getParent(ThermionEntity entity) {
-    // TODO: implement getParent
     throw UnimplementedError();
   }
 
@@ -167,10 +88,8 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future<Matrix4> getWorldTransform(ThermionEntity entity) {
-    // TODO: implement getWorldTransform
-    throw UnimplementedError();
-  }
+  // TODO: implement initialized
+  Future<bool> get initialized => throw UnimplementedError();
 
   @override
   Future<ThermionAsset> loadGlb(String path, {int numInstances = 1, bool keepData = false}) {
@@ -218,30 +137,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future playAnimation(ThermionAsset asset, int index, {bool loop = false, bool reverse = false, bool replaceActive = true, double crossfade = 0.0, double startOffset = 0.0}) {
-    // TODO: implement playAnimation
-    throw UnimplementedError();
-  }
-
-  @override
-  Future playAnimationByName(covariant ThermionAsset asset, String name, {bool loop = false, bool reverse = false, bool replaceActive = true, double crossfade = 0.0}) {
-    // TODO: implement playAnimationByName
-    throw UnimplementedError();
-  }
-
-  @override
-  Future registerRequestFrameHook(Future Function() hook) {
-    // TODO: implement registerRequestFrameHook
-    throw UnimplementedError();
-  }
-
-  @override
-  Future removeAnimationComponent(ThermionEntity entity) {
-    // TODO: implement removeAnimationComponent
-    throw UnimplementedError();
-  }
-
-  @override
   Future removeGridOverlay() {
     // TODO: implement removeGridOverlay
     throw UnimplementedError();
@@ -274,18 +169,6 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   // TODO: implement rendering
   bool get rendering => throw UnimplementedError();
-
-  @override
-  Future requestFrame() {
-    // TODO: implement requestFrame
-    throw UnimplementedError();
-  }
-
-  @override
-  Future resetBones(ThermionAsset asset) {
-    // TODO: implement resetBones
-    throw UnimplementedError();
-  }
 
   @override
   Future rotateIbl(Matrix3 rotation) {
@@ -330,26 +213,8 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future setBoneTransform(ThermionEntity entity, int boneIndex, Matrix4 transform, {int skinIndex = 0}) {
-    // TODO: implement setBoneTransform
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setCamera(ThermionEntity entity, String? name) {
-    // TODO: implement setCamera
-    throw UnimplementedError();
-  }
-
-  @override
   Future setFrameRate(int framerate) {
     // TODO: implement setFrameRate
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setGltfAnimationFrame(covariant ThermionAsset asset, int index, int animationFrame) {
-    // TODO: implement setGltfAnimationFrame
     throw UnimplementedError();
   }
 
@@ -362,24 +227,6 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future setLightPosition(ThermionEntity lightEntity, double x, double y, double z) {
     // TODO: implement setLightPosition
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setMorphAnimationData(covariant ThermionAsset asset, MorphAnimationData animation, {List<String>? targetMeshNames}) {
-    // TODO: implement setMorphAnimationData
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setMorphTargetWeights(ThermionEntity entity, List<double> weights) {
-    // TODO: implement setMorphTargetWeights
-    throw UnimplementedError();
-  }
-
-  @override
-  Future setParent(ThermionEntity child, ThermionEntity? parent, {bool preserveScaling= false}) {
-    // TODO: implement setParent
     throw UnimplementedError();
   }
 
@@ -426,12 +273,6 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future setTransform(ThermionEntity entity, Matrix4 transform) {
-    // TODO: implement setTransform
-    throw UnimplementedError();
-  }
-
-  @override
   Future setViewFrustumCulling(bool enabled) {
     // TODO: implement setViewFrustumCulling
     throw UnimplementedError();
@@ -444,31 +285,7 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future stopAnimation(covariant ThermionAsset asset, int animationIndex) {
-    // TODO: implement stopAnimation
-    throw UnimplementedError();
-  }
-
-  @override
-  Future stopAnimationByName(covariant ThermionAsset asset, String name) {
-    // TODO: implement stopAnimationByName
-    throw UnimplementedError();
-  }
-
-  @override
-  Future unregisterRequestFrameHook(Future Function() hook) {
-    // TODO: implement unregisterRequestFrameHook
-    throw UnimplementedError();
-  }
-
-  @override
-  Future updateBoneMatrices(ThermionEntity entity) {
-    // TODO: implement updateBoneMatrices
-    throw UnimplementedError();
-  }
-
-  @override
   // TODO: implement view
   View get view => throw UnimplementedError();
-
+  
 }

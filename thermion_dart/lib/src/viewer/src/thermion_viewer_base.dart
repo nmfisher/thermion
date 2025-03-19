@@ -1,4 +1,5 @@
-import 'package:thermion_dart/src/filament/src/filament_app.dart';
+import 'package:thermion_dart/src/filament/src/light_options.dart';
+
 import '../../filament/src/shared_types.dart';
 import 'dart:typed_data';
 import 'package:vector_math/vector_math_64.dart';
@@ -12,10 +13,13 @@ import 'dart:async';
 /// Multiple instances can be created; each will correspond
 /// broadly to a single Filament Scene/View.
 ///
-/// If you know yhat you are doing, you can use a lower level interface by 
+/// If you know yhat you are doing, you can use a lower level interface by
 /// using the methods directly via FilamentApp.instance;
 ///
 abstract class ThermionViewer {
+  
+  Future<bool> get initialized;
+
   ///
   ///
   ///
@@ -142,7 +146,7 @@ abstract class ThermionViewer {
       bool keepData = false,
       int priority = 4,
       int layer = 0,
-      bool loadResourcesAsync});
+      bool loadResourcesAsync = false});
 
   ///
   /// Load the .gltf asset at the given path, adding all entities to the scene.
@@ -226,30 +230,15 @@ abstract class ThermionViewer {
   Future pick(int x, int y, void Function(PickResult) resultHandler);
 
   ///
-  /// Retrieves the name assigned to the given ThermionEntity (usually corresponds to the glTF mesh name).
-  ///
-  String? getNameForEntity(ThermionEntity entity);
-
-  ///
-  /// Gets the parent entity of [entity]. Returns null if the entity has no parent.
-  ///
-  Future<ThermionEntity?> getParent(ThermionEntity entity);
-
-  ///
-  /// Gets the ancestor (ultimate parent) entity of [entity]. Returns null if the entity has no parent.
-  ///
-  Future<ThermionEntity?> getAncestor(ThermionEntity entity);
-
-  ///
-  /// Sets the parent transform of [child] to [parent].
-  ///
-  Future setParent(ThermionEntity child, ThermionEntity? parent,
-      {bool preserveScaling});
-
-  ///
   /// Sets the draw priority for the given entity. See RenderableManager.h for more details.
   ///
   Future setPriority(ThermionEntity entityId, int priority);
+
+  ///
+  ///
+  ///
+  Future<ThermionAsset> createGeometry(Geometry geometry,
+      {List<MaterialInstance>? materialInstances, bool keepData = false});
 
   ///
   /// The gizmo for translating/rotating objects. Only one gizmo can be active for a given view.

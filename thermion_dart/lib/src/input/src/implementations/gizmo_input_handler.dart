@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 
 class _Gizmo {
   final ThermionViewer viewer;
@@ -16,7 +15,7 @@ class _Gizmo {
   _Gizmo(this._gizmo, this.viewer, this.type);
 
   static Future<_Gizmo> forType(ThermionViewer viewer, GizmoType type) async {
-    final view = await viewer.getViewAt(0);
+    final view = await viewer.view;
     return _Gizmo(await viewer.createGizmo(view, type), viewer, type);
   }
 
@@ -26,12 +25,14 @@ class _Gizmo {
   }
 
   Future hide() async {
-    await _gizmo.removeFromScene();
+    final scene = await viewer.view.getScene();
+    await scene.remove(_gizmo);
   }
 
   Future reveal() async {
-    await _gizmo.addToScene();
-    gizmoTransform = await viewer.getWorldTransform(_gizmo.entity);
+    final scene = await viewer.view.getScene();
+    await scene.add(_gizmo);
+    gizmoTransform = await _gizmo.getWorldTransform();
   }
 
   double _getAngleBetweenVectors(Vector2 v1, Vector2 v2) {
@@ -76,17 +77,17 @@ class _Gizmo {
       await _updateRotation(currentPosition, delta);
     }
 
-    await viewer.setTransform(_gizmo.entity, gizmoTransform!);
+    await _gizmo.setTransform(gizmoTransform!);
 
     transformUpdates.add((transform: gizmoTransform!));
   }
 
   Future<void>? _updateTranslation(
       Vector2 currentPosition, Vector2 delta) async {
-    var view = await viewer.getViewAt(0);
+    var view = await viewer.view;
     var camera = await viewer.getActiveCamera();
     var viewport = await view.getViewport();
-    var projectionMatrix = await viewer.getCameraProjectionMatrix();
+    var projectionMatrix = await camera.getProjectionMatrix();
     var viewMatrix = await camera.getViewMatrix();
     var inverseViewMatrix = await camera.getModelMatrix();
     var inverseProjectionMatrix = projectionMatrix.clone()..invert();
@@ -121,10 +122,9 @@ class _Gizmo {
   }
 
   Future<void>? _updateRotation(Vector2 currentPosition, Vector2 delta) async {
-    var view = await viewer.getViewAt(0);
-    var camera = await viewer.getActiveCamera();
-    var viewport = await view.getViewport();
-    var projectionMatrix = await viewer.getCameraProjectionMatrix();
+    var camera = await viewer.view.getCamera();
+    var viewport = await viewer.view.getViewport();
+    var projectionMatrix = await camera.getProjectionMatrix();
     var viewMatrix = await camera.getViewMatrix();
 
     // Get gizmo center in screen space
@@ -187,7 +187,6 @@ class _Gizmo {
 }
 
 class GizmoInputHandler extends InputHandler {
-
   final ThermionViewer viewer;
 
   late final _gizmos = <GizmoType, _Gizmo>{};
@@ -202,7 +201,7 @@ class GizmoInputHandler extends InputHandler {
     }
     _attached = entity;
     if (_active != null) {
-      await viewer.setParent(_attached!, _active!._gizmo.entity);
+      await FilamentApp.instance!.setParent(_attached!, _active!._gizmo.entity);
       await _active!.reveal();
     }
   }
@@ -215,7 +214,7 @@ class GizmoInputHandler extends InputHandler {
     if (_attached == null) {
       return;
     }
-    await viewer.setParent(_attached!, 0);
+    await FilamentApp.instance!.setParent(_attached!, null);
     await _active?.hide();
     _attached = null;
   }

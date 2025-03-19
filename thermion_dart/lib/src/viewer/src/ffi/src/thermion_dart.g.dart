@@ -1443,6 +1443,11 @@ external ffi.Pointer<TRenderTicker> RenderTicker_create(
   ffi.Pointer<TRenderer> tRenderer,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderTicker>)>(isLeaf: true)
+external void RenderTicker_destroy(
+  ffi.Pointer<TRenderTicker> tRenderTicker,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TRenderTicker>,
         ffi.Pointer<TAnimationManager>)>(isLeaf: true)
@@ -2958,6 +2963,11 @@ ffi.Pointer<TEngine> Engine_create(
       disableHandleUseAfterFreeCheck,
     );
 
+@ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TEngine> Engine_destroy(
+  ffi.Pointer<TEngine> tEngine,
+);
+
 @ffi.Native<ffi.Pointer<TRenderer> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TRenderer> Engine_createRenderer(
   ffi.Pointer<TEngine> tEngine,
@@ -3519,6 +3529,15 @@ external void AnimationManager_setGltfAnimationFrame(
   ffi.Pointer<TSceneAsset> tSceneAsset,
   int animationIndex,
   int frame,
+);
+
+@ffi.Native<
+    ffi.Pointer<ffi.Void> Function(LoadFilamentResourceFromOwner,
+        FreeFilamentResourceFromOwner, ffi.Pointer<ffi.Void>)>(isLeaf: true)
+external ffi.Pointer<ffi.Void> make_resource_loader(
+  LoadFilamentResourceFromOwner loadFn,
+  FreeFilamentResourceFromOwner freeFn,
+  ffi.Pointer<ffi.Void> owner,
 );
 
 final class TCamera extends ffi.Opaque {}
@@ -4574,6 +4593,55 @@ enum TBackend {
         _ => throw ArgumentError("Unknown value for TBackend: $value"),
       };
 }
+
+final class ResourceBuffer extends ffi.Struct {
+  external ffi.Pointer<ffi.Void> data;
+
+  @ffi.Int32()
+  external int size;
+
+  @ffi.Int32()
+  external int id;
+}
+
+final class ResourceLoaderWrapper extends ffi.Struct {
+  external LoadFilamentResource loadResource;
+
+  external FreeFilamentResource freeResource;
+
+  external LoadFilamentResourceFromOwner loadFromOwner;
+
+  external FreeFilamentResourceFromOwner freeFromOwner;
+
+  external ffi.Pointer<ffi.Void> owner;
+
+  external LoadFilamentResourceIntoOutPointer loadToOut;
+}
+
+typedef LoadFilamentResource
+    = ffi.Pointer<ffi.NativeFunction<LoadFilamentResourceFunction>>;
+typedef LoadFilamentResourceFunction = ResourceBuffer Function(
+    ffi.Pointer<ffi.Char> uri);
+typedef FreeFilamentResource
+    = ffi.Pointer<ffi.NativeFunction<FreeFilamentResourceFunction>>;
+typedef FreeFilamentResourceFunction = ffi.Void Function(ResourceBuffer);
+typedef DartFreeFilamentResourceFunction = void Function(ResourceBuffer);
+typedef LoadFilamentResourceFromOwner
+    = ffi.Pointer<ffi.NativeFunction<LoadFilamentResourceFromOwnerFunction>>;
+typedef LoadFilamentResourceFromOwnerFunction = ResourceBuffer Function(
+    ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Void>);
+typedef FreeFilamentResourceFromOwner
+    = ffi.Pointer<ffi.NativeFunction<FreeFilamentResourceFromOwnerFunction>>;
+typedef FreeFilamentResourceFromOwnerFunction = ffi.Void Function(
+    ResourceBuffer, ffi.Pointer<ffi.Void>);
+typedef DartFreeFilamentResourceFromOwnerFunction = void Function(
+    ResourceBuffer, ffi.Pointer<ffi.Void>);
+typedef LoadFilamentResourceIntoOutPointer = ffi
+    .Pointer<ffi.NativeFunction<LoadFilamentResourceIntoOutPointerFunction>>;
+typedef LoadFilamentResourceIntoOutPointerFunction = ffi.Void Function(
+    ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
+typedef DartLoadFilamentResourceIntoOutPointerFunction = void Function(
+    ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
 
 const int __bool_true_false_are_defined = 1;
 

@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
@@ -59,7 +59,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (FilamentApp.instance != null) {
       await FilamentApp.instance!.destroy();
     }
-    
+
     RenderLoop_destroy();
     RenderLoop_create();
 
@@ -102,7 +102,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         ubershaderMaterialProvider,
         renderTicker,
         nameComponentManager);
-
   }
 
   final _views = <FFISwapChain, List<FFIView>>{};
@@ -170,6 +169,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     });
   }
 
+  ///
+  ///
+  ///
   @override
   Future destroy() async {
     for (final swapChain in _views.keys) {
@@ -177,6 +179,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         await setRenderable(view, false);
       }
     }
+    for (final swapChain in _views.keys) {
+      await destroySwapChain(swapChain);
+    }
+    RenderLoop_destroy();
+    RenderTicker_destroy(renderTicker);
+    Engine_destroy(engine);
   }
 
   ///
@@ -205,7 +213,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     var bitmask = flags.fold(0, (a, b) => a | b.index);
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Texture_buildRenderThread(
-          engine!,
+          engine,
           width,
           height,
           depth,
@@ -225,6 +233,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     );
   }
 
+  ///
+  ///
+  ///
   Future<TextureSampler> createTextureSampler(
       {TextureMinFilter minFilter = TextureMinFilter.LINEAR,
       TextureMagFilter magFilter = TextureMagFilter.LINEAR,
@@ -400,49 +411,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  @override
-  Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances,
-      bool keepData = false}) async {
-    var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
-      var ptrList = Int64List(materialInstances?.length ?? 0);
-      if (materialInstances != null && materialInstances.isNotEmpty) {
-        ptrList.setRange(
-            0,
-            materialInstances.length,
-            materialInstances
-                .cast<FFIMaterialInstance>()
-                .map((mi) => mi.pointer.address)
-                .toList());
-      }
-
-      return SceneAsset_createGeometryRenderThread(
-          engine,
-          geometry.vertices.address,
-          geometry.vertices.length,
-          geometry.normals.address,
-          geometry.normals.length,
-          geometry.uvs.address,
-          geometry.uvs.length,
-          geometry.indices.address,
-          geometry.indices.length,
-          geometry.primitiveType.index,
-          ptrList.address.cast<Pointer<TMaterialInstance>>(),
-          ptrList.length,
-          callback);
-    });
-    if (assetPtr == nullptr) {
-      throw Exception("Failed to create geometry");
-    }
-
-    var asset = FFIAsset(assetPtr, this);
-
-    return asset;
-  }
-
-  ///
-  ///
-  ///
   Future<MaterialInstance> getMaterialInstanceAt(
       ThermionEntity entity, int index) async {
     final instancePtr = RenderableManager_getMaterialInstanceAt(
@@ -460,6 +428,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     RenderTicker_renderRenderThread(renderTicker, 0);
   }
 
+  ///
+  ///
+  ///
   @override
   Future register(
       covariant FFISwapChain swapChain, covariant FFIView view) async {
@@ -468,6 +439,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   final _hooks = <Future Function()>[];
 
+  ///
+  ///
+  ///
   @override
   Future registerRequestFrameHook(Future Function() hook) async {
     if (!_hooks.contains(hook)) {
@@ -475,6 +449,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
   }
 
+  ///
+  ///
+  ///
   @override
   Future unregisterRequestFrameHook(Future Function() hook) async {
     if (_hooks.contains(hook)) {
@@ -503,5 +480,62 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     } catch (err) {
       print("WARNING - render call timed out");
     }
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future setParent(ThermionEntity child, ThermionEntity? parent,
+      {bool preserveScaling = false}) async {
+    TransformManager_setParent(transformManager, child,
+        parent ?? FILAMENT_ENTITY_NULL, preserveScaling);
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<ThermionEntity?> getParent(ThermionEntity child) async {
+    var parent = TransformManager_getParent(transformManager, child);
+    if (parent == FILAMENT_ASSET_ERROR) {
+      return null;
+    }
+    return parent;
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<ThermionEntity?> getAncestor(ThermionEntity child) async {
+    var parent = TransformManager_getAncestor(transformManager, child);
+    if (parent == FILAMENT_ASSET_ERROR) {
+      return null;
+    }
+    return parent;
+  }
+
+  ///
+  ///
+  ///
+  @override
+  String? getNameForEntity(ThermionEntity entity) {
+    final result = NameComponentManager_getName(nameComponentManager, entity);
+    if (result == nullptr) {
+      return null;
+    }
+    return result.cast<Utf8>().toDartString();
+  }
+
+  Material? _imageMaterial;
+
+  @override
+  Future<MaterialInstance> createImageMaterialInstance() async {
+    _imageMaterial ??= FFIMaterial(Material_createImageMaterial(),
+        FilamentApp.instance! as FFIFilamentApp);
+    var instance =
+        await _imageMaterial!.createInstance() as FFIMaterialInstance;
+    return instance;
   }
 }
