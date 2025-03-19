@@ -333,18 +333,22 @@ external void LightManager_setDirection(
   double z,
 );
 
-@ffi.Native<ffi.Int Function(ffi.Pointer<TLightManager>, ffi.UnsignedInt)>(
-    symbol: "LightManager_createLight", isLeaf: true)
+@ffi.Native<
+    ffi.Int Function(ffi.Pointer<TEngine>, ffi.Pointer<TLightManager>,
+        ffi.UnsignedInt)>(symbol: "LightManager_createLight", isLeaf: true)
 external int _LightManager_createLight(
+  ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TLightManager> tLightManager,
   int tLightTtype,
 );
 
 int LightManager_createLight(
+  ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TLightManager> tLightManager,
   TLightType tLightTtype,
 ) =>
     _LightManager_createLight(
+      tEngine,
       tLightManager,
       tLightTtype.value,
     );
@@ -1492,11 +1496,13 @@ external void RenderLoop_requestAnimationFrame(
   ffi.Pointer<ffi.Void> onComplete,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderTicker>, ffi.Uint64)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TRenderTicker>, ffi.Uint64,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void RenderTicker_renderRenderThread(
   ffi.Pointer<TRenderTicker> tRenderTicker,
   int frameTimeInNanos,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<
@@ -1896,13 +1902,25 @@ external void Material_createInstanceRenderThread(
 );
 
 @ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.Int)>(isLeaf: true)
-external void View_setToneMappingRenderThread(
+        ffi.Void Function(
+            ffi.Pointer<TView>, ffi.Pointer<TEngine>, ffi.UnsignedInt)>(
+    symbol: "View_setToneMappingRenderThread", isLeaf: true)
+external void _View_setToneMappingRenderThread(
   ffi.Pointer<TView> tView,
   ffi.Pointer<TEngine> tEngine,
   int toneMapping,
 );
+
+void View_setToneMappingRenderThread(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  TToneMapping toneMapping,
+) =>
+    _View_setToneMappingRenderThread(
+      tView,
+      tEngine,
+      toneMapping.value,
+    );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Double)>(
     isLeaf: true)
@@ -2963,8 +2981,8 @@ ffi.Pointer<TEngine> Engine_create(
       disableHandleUseAfterFreeCheck,
     );
 
-@ffi.Native<ffi.Pointer<TEngine> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
-external ffi.Pointer<TEngine> Engine_destroy(
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external void Engine_destroy(
   ffi.Pointer<TEngine> tEngine,
 );
 
@@ -3296,10 +3314,12 @@ external Aabb3 SceneAsset_getBoundingBox(
   ffi.Pointer<TSceneAsset> asset,
 );
 
-@ffi.Native<ffi.Pointer<TAnimationManager> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
+@ffi.Native<
+    ffi.Pointer<TAnimationManager> Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TScene>)>(isLeaf: true)
 external ffi.Pointer<TAnimationManager> AnimationManager_create(
   ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TScene> tScene,
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>(

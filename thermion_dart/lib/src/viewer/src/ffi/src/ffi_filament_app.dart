@@ -425,7 +425,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future render() async {
-    RenderTicker_renderRenderThread(renderTicker, 0);
+    await withVoidCallback((cb) => 
+    RenderTicker_renderRenderThread(renderTicker, 0, cb));
   }
 
   ///

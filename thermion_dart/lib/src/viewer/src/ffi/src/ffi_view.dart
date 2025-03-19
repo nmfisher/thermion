@@ -82,7 +82,7 @@ class FFIView extends View {
   @override
   Future setToneMapper(ToneMapper mapper) async {
     View_setToneMappingRenderThread(
-        view, app.engine, TToneMapping.values[mapper.index].value);
+        view, app.engine, TToneMapping.values[mapper.index]);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {

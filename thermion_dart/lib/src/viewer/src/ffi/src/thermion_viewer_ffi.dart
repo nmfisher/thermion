@@ -128,7 +128,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future render() async {
-    RenderTicker_renderRenderThread(app.renderTicker, 0);
+    await withVoidCallback((cb) => RenderTicker_renderRenderThread(app.renderTicker, 0, cb));
   }
 
   double _msPerFrame = 1000.0 / 60.0;
@@ -320,7 +320,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
-    var entity = LightManager_createLight(
+    var entity = LightManager_createLight(app.engine,
         app.lightManager, TLightType.values[directLight.type.index]);
     if (entity == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to add light to scene");

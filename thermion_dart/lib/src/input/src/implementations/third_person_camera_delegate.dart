@@ -8,7 +8,7 @@ import '../input_handler.dart';
 class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
   final ThermionViewer viewer;
 
-  late ThermionEntity player;
+  late ThermionAsset player;
   late Camera camera;
 
   final double rotationSensitivity;
@@ -79,7 +79,7 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
       return null;
     }
 
-    Matrix4 currentPlayerTransform = await viewer.getWorldTransform(player);
+    Matrix4 currentPlayerTransform = await player.getWorldTransform();
 
     // first we need to convert the move vector to player space
     var newTransform =
@@ -87,7 +87,7 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
 
     _queuedMoveDelta = Vector3.zero();
     Matrix4 newPlayerTransform = newTransform * currentPlayerTransform;
-    await viewer.setTransform(player, newPlayerTransform);
+    await player.setTransform(newPlayerTransform);
 
     if (_queuedZoomDelta != 0.0) {
       // Ignore zoom
@@ -112,8 +112,8 @@ class OverTheShoulderCameraDelegate implements InputHandlerDelegate {
     var newCameraTransform = newPlayerTransform * newCameraViewMatrix;
     await camera.setTransform(newCameraTransform);
 
-    await viewer.queueTransformUpdates(
-        [camera.getEntity(), player], [newCameraTransform, newPlayerTransform]);
+    // await viewer.queueTransformUpdates(
+    //     [camera.getEntity(), player], [newCameraTransform, newPlayerTransform]);
     onUpdate?.call(newPlayerTransform);
     _executing = false;
     return newCameraTransform;

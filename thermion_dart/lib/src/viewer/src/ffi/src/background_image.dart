@@ -263,7 +263,7 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future setTransform(ThermionEntity entity, Matrix4 transform) {
+  Future setTransform(Matrix4 transform, { ThermionEntity? entity }) {
     // TODO: implement setTransform
     throw UnimplementedError();
   }
