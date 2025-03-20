@@ -316,7 +316,13 @@ void main() async {
     test('depth visualization', () async {
       RenderLoop_create();
       final engine = await withPointerCallback<TEngine>(
-          (cb) => Engine_createRenderThread(TBackend.BACKEND_METAL.index, cb));
+          (cb) => Engine_createRenderThread(TBackend.BACKEND_METAL.index, nullptr, nullptr, 1, false, cb));
+
+      final gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
+          (cb) => GltfResourceLoader_createRenderThread(engine, cb));
+      final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
+          (cb) => GltfAssetLoader_createRenderThread(engine, nullptr, cb));
+
       final renderer = await withPointerCallback<TRenderer>(
           (cb) => Engine_createRendererRenderThread(engine, cb));
       final swapchain = await withPointerCallback<TSwapChain>((cb) =>
@@ -328,20 +334,63 @@ void main() async {
               cb));
       final camera = await withPointerCallback<TCamera>(
           (cb) => Engine_createCameraRenderThread(engine, cb));
+
+      final offscreenView = await withPointerCallback<TView>(
+          (cb) => Engine_createViewRenderThread(engine, cb));
       final view = await withPointerCallback<TView>(
           (cb) => Engine_createViewRenderThread(engine, cb));
+
+      final colorTexture = await withPointerCallback<TTexture>((cb) =>
+          Texture_buildRenderThread(
+              engine,
+              500,
+              500,
+              1,
+              1,
+              TTextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT.value |
+                  TTextureUsage.TEXTURE_USAGE_SAMPLEABLE.value |
+                  TTextureUsage.TEXTURE_USAGE_BLIT_SRC.value,
+              0,
+              TTextureSamplerType.SAMPLER_2D,
+              TTextureFormat.TEXTUREFORMAT_RGBA8,
+              cb));
+
+      final depthTexture = await withPointerCallback<TTexture>((cb) =>
+          Texture_buildRenderThread(
+              engine,
+              500,
+              500,
+              1,
+              1,
+              TTextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT.value |
+                  TTextureUsage.TEXTURE_USAGE_SAMPLEABLE.value,
+              0,
+              TTextureSamplerType.SAMPLER_2D,
+              TTextureFormat.TEXTUREFORMAT_DEPTH32F,
+              cb));
+
+      final renderTarget = await withPointerCallback<TRenderTarget>((cb) =>
+          RenderTarget_createRenderThread(
+              engine, 500, 500, colorTexture, depthTexture, cb));
+      View_setRenderTarget(offscreenView, renderTarget);
+      final offscreenScene = Engine_createScene(engine);
       final scene = Engine_createScene(engine);
+
       await withVoidCallback((cb) {
         Renderer_setClearOptionsRenderThread(
             renderer, 1.0, 0.0, 1.0, 1.0, 0, true, true, cb);
       });
+      View_setFrustumCullingEnabled(offscreenView, false);
       View_setFrustumCullingEnabled(view, false);
+      View_setScene(offscreenView, offscreenScene);
       View_setScene(view, scene);
+      View_setCamera(offscreenView, camera);
       View_setCamera(view, camera);
+      View_setViewport(offscreenView, 500, 500);
       View_setViewport(view, 500, 500);
       final eye = Struct.create<double3>()
-        ..x = 0.0
-        ..y = 0.0
+        ..x = 5.0
+        ..y = 1.0
         ..z = 5.0;
       Camera_lookAt(
           camera,
@@ -354,10 +403,20 @@ void main() async {
             ..x = 0.0
             ..y = 1.0
             ..z = 0.0);
-      View_setBloomRenderThread(view, false, 0.0);
+      View_setBloomRenderThread(offscreenView, false, 0.0);
 
       Camera_setLensProjection(camera, 0.05, 100000, 1.0, kFocalLength);
+      View_setPostProcessing(offscreenView, false);
       View_setPostProcessing(view, false);
+
+      final iblData = File("${testHelper.testDir}/assets/default_env_ibl.ktx")
+          .readAsBytesSync();
+      final ibl = await withPointerCallback<TIndirectLight>((cb) =>
+          Engine_buildIndirectLightRenderThread(
+              engine, iblData.address, iblData.length, 30000, cb, nullptr));
+
+      Scene_setIndirectLight(offscreenScene, ibl);
+      Scene_setIndirectLight(scene, ibl);
 
       final skyboxData =
           File("${testHelper.testDir}/assets/default_env_skybox.ktx")
@@ -367,25 +426,98 @@ void main() async {
           Engine_buildSkyboxRenderThread(
               engine, skyboxData.address, skyboxData.length, cb, nullptr));
 
+      Scene_setSkybox(offscreenScene, skybox);
       Scene_setSkybox(scene, skybox);
 
-      final cubeData = GeometryHelper.cube();
-      final cube = await withPointerCallback<TSceneAsset>((cb) =>
-          SceneAsset_createGeometryRenderThread(
+      // final cubeData = GeometryHelper.cube();
+      // final cube = await withPointerCallback<TSceneAsset>((cb) =>
+      //     SceneAsset_createGeometryRenderThread(
+      //         engine,
+      //         cubeData.vertices.address,
+      //         cubeData.vertices.length,
+      //         cubeData.normals.address,
+      //         cubeData.normals.length,
+      //         cubeData.uvs.address,
+      //         cubeData.uvs.length,
+      //         cubeData.indices.address,
+      //         cubeData.indices.length,
+      //         TPrimitiveType.PRIMITIVETYPE_POINTS,
+      //         nullptr,
+      //         0,
+      //         cb));
+      // Scene_addEntity(offscreenScene, SceneAsset_getEntity(cube));
+      var cube =
+          File("${testHelper.testDir}/assets/cube.glb").readAsBytesSync();
+      final filamentAsset = await withPointerCallback<TFilamentAsset>((cb) =>
+          GltfAssetLoader_loadRenderThread(gltfAssetLoader, 
+              cube.address, cube.length, 1, cb));
+      var entities = Int32List(FilamentAsset_getEntityCount(filamentAsset));
+      FilamentAsset_getEntities(filamentAsset, entities.address);
+
+      final unlitMaData =
+          File("/Users/nickfisher/Documents/thermion/materials/unlit.filamat")
+              .readAsBytesSync();
+      final unlitMa =
+          Engine_buildMaterial(engine, unlitMaData.address, unlitMaData.length);
+      final unlitMi = await withPointerCallback<TMaterialInstance>(
+          (cb) => Material_createInstanceRenderThread(unlitMa, cb));
+      MaterialInstance_setParameterFloat2(
+          unlitMi, "uvScale".toNativeUtf8().cast<Char>(), 1.0, 1.0);
+      MaterialInstance_setParameterFloat4(unlitMi,
+          "baseColorFactor".toNativeUtf8().cast<Char>(), 1.0, 1.0, 0.0, 1.0);
+      MaterialInstance_setParameterInt(
+          unlitMi, "baseColorIndex".toNativeUtf8().cast<Char>(), -1);
+      for (int i = 0; i < entities.length; i++) {
+        RenderableManager_setMaterialInstanceAt(
+            Engine_getRenderableManager(engine), entities[i], 0, unlitMi);
+      }
+
+      // final materialInstance = GltfAssetLoader_getMaterialInstance(
+      //     Engine_getRenderableManager(engine), filamentAsset);
+      // MaterialInstance_setParameterFloat4(materialInstance,
+      //     "baseColorFactor".toNativeUtf8().cast<Char>(), 1.0, 0, 0, 1);
+
+      final imageData =
+          File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
+              .readAsBytesSync();
+      final image = await Image_decode(imageData.address, imageData.length,
+          "unused".toNativeUtf8().cast<Char>());
+      final texture = await withPointerCallback<TTexture>((cb) =>
+          Texture_buildRenderThread(
               engine,
-              cubeData.vertices.address,
-              cubeData.vertices.length,
-              cubeData.normals.address,
-              cubeData.normals.length,
-              cubeData.uvs.address,
-              cubeData.uvs.length,
-              cubeData.indices.address,
-              cubeData.indices.length,
-              TPrimitiveType.PRIMITIVETYPE_POINTS,
-              nullptr,
+              Image_getWidth(image),
+              Image_getHeight(image),
+              1,
+              1,
+              TTextureUsage.TEXTURE_USAGE_SAMPLEABLE.index,
               0,
+              TTextureSamplerType.SAMPLER_2D,
+              TTextureFormat.TEXTUREFORMAT_RGBA32F,
               cb));
-      Scene_addEntity(scene, SceneAsset_getEntity(cube));
+
+      await withBoolCallback((cb) => Texture_loadImageRenderThread(
+          engine,
+          texture,
+          image,
+          TPixelDataFormat.PIXELDATAFORMAT_RGBA,
+          TPixelDataType.PIXELDATATYPE_FLOAT,
+          cb));
+      MaterialInstance_setParameterInt(
+          unlitMi, "baseColorIndex".toNativeUtf8().cast<Char>(), 0);
+      MaterialInstance_setParameterTexture(
+          unlitMi,
+          "baseColorMap".toNativeUtf8().cast<Char>(),
+          RenderTarget_getDepthTexture(renderTarget),
+          // texture,
+          TextureSampler_create());
+
+      await withVoidCallback((cb) {
+        Scene_addFilamentAssetRenderThread(offscreenScene, filamentAsset, cb);
+      });
+
+      await withVoidCallback((cb) {
+        Scene_addFilamentAssetRenderThread(scene, filamentAsset, cb);
+      });
 
       await withVoidCallback((cb) {
         Engine_flushAndWaitRenderThead(engine, cb);
@@ -400,13 +532,29 @@ void main() async {
         );
       });
 
-      // for (int i = 0; i < 10; i++) {
-        await withVoidCallback((cb) {
-          Renderer_renderRenderThread(renderer, view, cb);
-        });
-      // }
+      await withVoidCallback((cb) {
+        Renderer_renderRenderThread(renderer, offscreenView, cb);
+      });
 
-      var view1Out = Uint8List(500 * 500 * 4);
+      await withVoidCallback((cb) {
+        Renderer_renderRenderThread(renderer, view, cb);
+      });
+
+      var offscreenViewOut = Uint8List(500 * 500 * 4);
+
+      await withVoidCallback((cb) {
+        Renderer_readPixelsRenderThread(
+          renderer,
+          offscreenView,
+          renderTarget,
+          TPixelDataFormat.PIXELDATAFORMAT_RGBA,
+          TPixelDataType.PIXELDATATYPE_UBYTE,
+          offscreenViewOut.address,
+          cb,
+        );
+      });
+
+      var swapchainOut = Uint8List(500 * 500 * 4);
 
       await withVoidCallback((cb) {
         Renderer_readPixelsRenderThread(
@@ -415,7 +563,7 @@ void main() async {
           nullptr,
           TPixelDataFormat.PIXELDATAFORMAT_RGBA,
           TPixelDataType.PIXELDATATYPE_UBYTE,
-          view1Out.address,
+          swapchainOut.address,
           cb,
         );
       });
@@ -425,71 +573,22 @@ void main() async {
       });
 
       await savePixelBufferToPng(
-        view1Out,
+        offscreenViewOut,
         500,
         500,
         "/tmp/view1.png",
       );
 
+      await savePixelBufferToPng(
+        swapchainOut,
+        500,
+        500,
+        "/tmp/sc1.png",
+      );
+
+      await withVoidCallback((cb) => Engine_destroyIndirectLightRenderThread(engine, ibl, cb));
+      await withVoidCallback((cb) => Engine_destroySkyboxRenderThread(engine, skybox, cb));
       RenderLoop_destroy();
-
-      //   await camera.lookAt(Vector3(100, 1500, 1500));
-
-      //   // first view just renders a normal unlit cube, but into a render target
-      //   final vp = await (await viewer.getViewAt(0)).getViewport();
-      //   FFIView view = await viewer.createView()
-      //       as FFIView; //  await viewer.getViewAt(0) as FFIView;
-      //   await view.setViewport(vp.width, vp.height);
-      //   await view.setCamera(camera);
-      //   await view.setFrustumCullingEnabled(false);
-
-      //   var scene1 = Engine_createScene(engine);
-      //   View_setScene(view.view, scene1);
-      //   Scene_setSkybox(scene1, skybox);
-      //   await view.setPostProcessing(false);
-
-      //   await viewer.setClearOptions(Vector4(0, 0, 1, 0), 1, false, false);
-      //   final colorTextureHandle = await testHelper.createTexture(
-      //     vp.width,
-      //     vp.height,
-      //   );
-
-      //   final rt = await viewer.createRenderTarget(
-      //     vp.width,
-      //     vp.height,
-      //     // colorTextureHandle.metalTextureAddress,
-      //   ) as FFIRenderTarget;
-      //   await view.setRenderTarget(rt);
-
-      //   final unlit = await viewer.createUnlitMaterialInstance();
-      //   await unlit.setParameterInt("baseColorIndex", -1);
-      //   await unlit.setParameterFloat4("baseColorFactor", 1.0, 0, 0, 1);
-      //   await unlit.setDepthWriteEnabled(true);
-
-      //   final cube = await viewer
-      //       .createGeometry(GeometryHelper.cube(), materialInstances: [unlit]);
-      //   Scene_addEntity(scene1, cube.entity);
-
-      //   final cube2 = await viewer
-      //       .createGeometry(GeometryHelper.cube(), materialInstances: [unlit]);
-      //   Scene_addEntity(scene1, cube2.entity);
-
-      //   await viewer.setTransform(
-      //     cube.entity,
-      //     Matrix4.compose(
-      //       Vector3.zero(),
-      //       Quaternion.identity(),
-      //       Vector3(950, 950, 500),
-      //     ),
-      //   );
-      //   await viewer.setTransform(
-      //     cube2.entity,
-      //     Matrix4.compose(
-      //       Vector3(-500, -500, -2000),
-      //       Quaternion.identity(),
-      //       Vector3(500, 500, 500),
-      //     ),
-      //   );
 
       //   final mirrorMaterial = await viewer.createMaterial(
       //     File(
@@ -523,15 +622,6 @@ void main() async {
       //   await view2.setViewport(vp.width, vp.height);
       //   await view2.setCamera(camera);
       //   await view2.setFrustumCullingEnabled(false);
-
-      //   final image = await viewer.decodeImage(
-      //       File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
-      //           .readAsBytesSync());
-      //   final texture = await viewer.createTexture(
-      //       await image.getWidth(), await image.getHeight(),
-      //       textureFormat: TextureFormat.RGBA32F);
-      //   await texture.setLinearImage(
-      //       image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
 
       //   await mirrorMi.setParameterTexture(
       //       "albedo",

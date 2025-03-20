@@ -10,7 +10,7 @@ import 'package:animation_tools_dart/animation_tools_dart.dart' as _i9;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:thermion_dart/src/utils/src/gizmo.dart' as _i4;
 import 'package:thermion_dart/src/viewer/src/events.dart' as _i7;
-import 'package:thermion_dart/src/viewer/src/shared_types/shared_types.dart'
+import 'package:thermion_dart/src/filament/src/shared_types.dart'
     as _i2;
 import 'package:thermion_dart/src/viewer/src/thermion_viewer_base.dart' as _i5;
 import 'package:vector_math/vector_math_64.dart' as _i3;

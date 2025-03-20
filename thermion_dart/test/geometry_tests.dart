@@ -1,18 +1,21 @@
 // ignore_for_file: unused_local_variable
-
 import 'dart:io';
 import 'dart:math';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
-
 import 'package:vector_math/vector_math_64.dart';
-
 import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("geometry");
+  await testHelper.setup();
   group("custom geometry", () {
+    test('create cube (uvs only)', () async {
+      var viewer = await testHelper.createViewer();
+      await viewer
+          .createGeometry(GeometryHelper.cube(normals: false, uvs: true));
+      await testHelper.capture(viewer, "geometry_cube_with_uvs");
+    });
     test('create cube with normals & uvs', () async {
       var viewer = await testHelper.createViewer();
       await viewer
@@ -185,15 +188,18 @@ void main() async {
       final cube = await viewer.createGeometry(
           GeometryHelper.cube(uvs: true, normals: true),
           materialInstances: [materialInstance]);
-      var textureData =
+      final image = await viewer.decodeImage(
           File("${testHelper.testDir}/assets/cube_texture_512x512.png")
-              .readAsBytesSync();
-      var texture = await viewer.createTexture(textureData);
-      await viewer.applyTexture(texture as ThermionFFITexture, cube.entity);
+              .readAsBytesSync());
+      var texture = await viewer.createTexture(
+          await image.getWidth(), await image.getHeight());
+      await texture.setLinearImage(
+          image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
       await testHelper.capture(
           viewer, "geometry_cube_with_custom_material_ubershader_texture");
       await viewer.destroyAsset(cube);
-      await viewer.destroyTexture(texture);
+      await texture.dispose();
+      await image.destroy();
     });
 
     test('unlit material with color only', () async {
@@ -216,11 +222,14 @@ void main() async {
             materialInstances: [materialInstance]);
 
         await materialInstance.setParameterInt("baseColorIndex", 0);
-        var textureData =
+
+        final image = await viewer.decodeImage(
             File("${testHelper.testDir}/assets/cube_texture_512x512.png")
-                .readAsBytesSync();
-        var texture = await viewer.createTexture(textureData);
-        await viewer.applyTexture(texture, cube.entity);
+                .readAsBytesSync());
+        var texture = await viewer.createTexture(
+            await image.getWidth(), await image.getHeight());
+        await texture.setLinearImage(
+            image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
         await testHelper.capture(viewer, "unlit_material_texture_only");
         await viewer.destroyAsset(cube);
       });
@@ -237,24 +246,26 @@ void main() async {
             cube2.entity, Matrix4.translation(Vector3(1, 1, 1)));
 
         await materialInstance.setParameterInt("baseColorIndex", 0);
-        var textureData =
+        final image = await viewer.decodeImage(
             File("${testHelper.testDir}/assets/cube_texture_512x512.png")
-                .readAsBytesSync();
-        var texture = await viewer.createTexture(textureData);
-        await viewer.applyTexture(texture, cube1.entity);
-        await viewer.applyTexture(texture, cube2.entity);
+                .readAsBytesSync());
+        var texture = await viewer.createTexture(
+            await image.getWidth(), await image.getHeight());
+        await texture.setLinearImage(
+            image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+
         await testHelper.capture(viewer, "unlit_material_shared");
-        await viewer.destroyTexture(texture);
+        await texture.dispose();
+        await image.destroy();
       });
     });
 
     test('create sphere (no normals)', () async {
-      var viewer = await testHelper.createViewer();
-      await viewer.setBackgroundColor(0.0, 0.0, 1.0, 1.0);
-      await viewer.setCameraPosition(0, 0, 6);
-      await viewer
-          .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
-      await testHelper.capture(viewer, "geometry_sphere_no_normals");
+      await testHelper.withViewer((viewer) async {
+        await viewer
+            .createGeometry(GeometryHelper.sphere(normals: false, uvs: false));
+        await testHelper.capture(viewer, "geometry_sphere_no_normals");
+      }, bg: kBlue, cameraPosition: Vector3(0, 0, 6));
     });
 
     test('create multiple (non-instanced) geometry', () async {

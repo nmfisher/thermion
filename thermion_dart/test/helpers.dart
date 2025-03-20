@@ -1,15 +1,17 @@
 // ignore_for_file: unused_local_variable
-
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:math';
-
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 import 'package:image/image.dart';
-import 'swift/swift_bindings.g.dart';
+import 'package:thermion_dart/src/filament/src/layers.dart';
+import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
 import 'package:thermion_dart/src/utils/src/dart_resources.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
@@ -32,7 +34,7 @@ Color kBlue = ColorFloat32(4)..setRgba(0.0, 0.0, 1.0, 1.0);
 Uri findPackageRoot(String packageName) {
   final script = Platform.script;
   final fileName = script.name;
-  if (fileName.endsWith('_test.dart')) {
+  if (fileName.contains('_test')) {
     // We're likely running from source.
     var directory = script.resolve('.');
     while (true) {
@@ -69,72 +71,87 @@ Future<Uint8List> savePixelBufferToBmp(
   return data;
 }
 
+Future<Uint8List> savePixelBufferToPng(
+    Uint8List pixelBuffer, int width, int height, String outputPath) async {
+  var data = await pixelBufferToPng(pixelBuffer, width, height);
+  File(outputPath).writeAsBytesSync(data);
+  print("Wrote bitmap to ${outputPath}");
+  return data;
+}
+
 class TestHelper {
-  late SwapChain swapChain;
+  late FFISwapChain swapChain;
   late Directory outDir;
   late String testDir;
 
   TestHelper(String dir) {
-    final packageUri = findPackageRoot('thermion_dart');
-    print("Package URIL $packageUri");
-    testDir = Directory("${packageUri.toFilePath()}/test").path;
-    print("Test dir : $packageUri");
-
+    final packageUri = findPackageRoot('thermion_dart').toFilePath();
+    testDir = Directory("${packageUri}test").path;
     outDir = Directory("$testDir/output/${dir}");
-    print("Out dir : $packageUri");
     outDir.createSync(recursive: true);
-    print("Created out dir : $packageUri");
     if (Platform.isMacOS) {
       DynamicLibrary.open('${testDir}/libThermionTextureSwift.dylib');
     }
   }
 
-  Future capture(ThermionViewer viewer, String outputFilename,
-      {View? view, SwapChain? swapChain, RenderTarget? renderTarget}) async {
-    await Future.delayed(Duration(milliseconds: 10));
-    var outPath = p.join(outDir.path, "$outputFilename.bmp");
-
-    var pixelBuffer = await viewer.capture(
-        view: view,
-        swapChain: swapChain ?? this.swapChain,
-        renderTarget: renderTarget);
-    await viewer.render();
-
-    view ??= await viewer.getViewAt(0);
+  ///
+  ///
+  ///
+  Future<Uint8List> capture(View view, String? outputFilename) async {
+    final rt = await view.getRenderTarget();
+    var pixelBuffer = await FilamentApp.instance!
+        .capture(view, captureRenderTarget: rt != null);
     var vp = await view.getViewport();
-    await savePixelBufferToBmp(pixelBuffer, vp.width, vp.height, outPath);
+
+    if (outputFilename != null) {
+      var outPath = p.join(outDir.path, "$outputFilename.png");
+      await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath);
+    }
+
     return pixelBuffer;
   }
 
-  Future<ThermionTextureSwift> createTexture(int width, int height) async {
+  ///
+  ///
+  ///
+  Future<List<Uint8List>> captureMultiple(
+    ThermionViewer viewer,
+    String? outputFilename, {
+    View? view,
+    SwapChain? swapChain,
+    RenderTarget? renderTarget,
+  }) async {
+    throw UnimplementedError();
+
+    // view ??= await viewer.view;
+    // final targets = [
+    //   (view: view!, swapChain: swapChain, renderTarget: renderTarget)
+    // ];
+    // var pixelBuffers = await viewer.capture(targets);
+
+    // for (final entry in targets) {
+    //   var vp = await entry.view.getViewport();
+    //   if (outputFilename != null) {
+    //     var outPath = p.join(outDir.path, "$outputFilename.png");
+    //     await savePixelBufferToPng(
+    //         pixelBuffers[targets.indexOf(entry)], vp.width, vp.height, outPath);
+    //   }
+    // }
+    // return pixelBuffers;
+  }
+
+  ///
+  ///
+  ///
+  Future<ThermionTextureSwift> createTexture(int width, int height,
+      {bool depth = false}) async {
     final object = ThermionTextureSwift.new1();
-    object.initWithWidth_height_(width, height);
+    object.initWithWidth_height_isDepth_(width, height, depth);
     return object;
   }
 
-  Future withViewer(Future Function(ThermionViewer viewer) fn,
-      {img.Color? bg,
-      Vector3? cameraPosition,
-      viewportDimensions = (width: 500, height: 500),
-      bool postProcessing = false}) async {
-    var viewer = await createViewer(
-        bg: bg,
-        cameraPosition: cameraPosition,
-        viewportDimensions: viewportDimensions,
-        postProcessing: postProcessing);
-
-    await fn.call(viewer);
-    await viewer.dispose();
-  }
-
-  Future<ThermionViewer> createViewer(
-      {img.Color? bg,
-      Vector3? cameraPosition,
-      bool postProcessing = false,
-      viewportDimensions = (width: 500, height: 500)}) async {
+  Future setup() async {
     final resourceLoader = calloc<ResourceLoaderWrapper>(1);
-
-    cameraPosition ??= Vector3(0, 2, 6);
 
     var loadToOut = NativeCallable<
         Void Function(Pointer<Char>,
@@ -146,96 +163,88 @@ class TestHelper {
         DartResourceLoader.freeResource);
 
     resourceLoader.ref.freeResource = freeResource.nativeFunction;
+    await FFIFilamentApp.create();
 
-    var viewer = ThermionViewerFFI(resourceLoader: resourceLoader.cast<Void>());
+    await FilamentApp.instance!.setClearColor(0, 0, 0, 1);
+  }
+
+  ///
+  ///
+  ///
+  Future withViewer(Future Function(ThermionViewer viewer) fn,
+      {img.Color? bg,
+      Vector3? cameraPosition,
+      ({int width, int height}) viewportDimensions = (width: 500, height: 500),
+      bool postProcessing = false,
+      bool createRenderTarget = false}) async {
+    cameraPosition ??= Vector3(0, 2, 6);
+
+    var swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        viewportDimensions.width, viewportDimensions.height) as FFISwapChain;
+
+    FFIRenderTarget? renderTarget;
+    if (createRenderTarget) {
+      var metalColorTexture = await createTexture(
+          viewportDimensions.width, viewportDimensions.height);
+      var metalDepthTexture = await createTexture(
+          viewportDimensions.width, viewportDimensions.height,
+          depth: true);
+      var color = await FilamentApp.instance!
+          .createTexture(viewportDimensions.width, viewportDimensions.height,
+              flags: {
+                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+                TextureUsage.TEXTURE_USAGE_SAMPLEABLE
+              },
+              textureFormat: TextureFormat.RGB32F,
+              importedTextureHandle: metalColorTexture.metalTextureAddress);
+
+      var depth = await FilamentApp.instance!
+          .createTexture(viewportDimensions.width, viewportDimensions.height,
+              flags: {
+                TextureUsage.TEXTURE_USAGE_BLIT_SRC,
+                TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+                TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+              },
+              textureFormat: TextureFormat.DEPTH32F,
+              importedTextureHandle: metalDepthTexture.metalTextureAddress);
+
+      renderTarget = await FilamentApp.instance!.createRenderTarget(
+          viewportDimensions.width, viewportDimensions.height,
+          color: color, depth: depth) as FFIRenderTarget;
+    }
+
+    var viewer = ThermionViewerFFI(
+        loadAssetFromUri: (path) async =>
+            File(path.replaceAll("file://", "")).readAsBytesSync(),
+        renderTarget: renderTarget);
 
     await viewer.initialized;
-    swapChain = await viewer.createHeadlessSwapChain(
-        viewportDimensions.width, viewportDimensions.height);
+    await FilamentApp.instance!.register(swapChain, viewer.view);
 
-    await viewer.updateViewportAndCameraProjection(
-        viewportDimensions.width.toDouble(),
-        viewportDimensions.height.toDouble());
+    await viewer.view
+        .setViewport(viewportDimensions.width, viewportDimensions.height);
+
+    await viewer.view.setBloom(false, 0);
 
     if (bg != null) {
       await viewer.setBackgroundColor(
           bg.r.toDouble(), bg.g.toDouble(), bg.b.toDouble(), bg.a.toDouble());
     }
 
-    await viewer.setCameraPosition(
-        cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    final camera = await viewer.getActiveCamera();
+
+    await camera.setLensProjection(
+        near: kNear, far: kFar, aspect: 1.0, focalLength: kFocalLength);
+
+    await camera.lookAt(cameraPosition);
 
     await viewer.setPostProcessing(postProcessing);
 
     await viewer.setToneMapping(ToneMapper.LINEAR);
 
-    return viewer;
-  }
-}
-
-Future<Uint8List> pixelsToPng(Uint8List pixelBuffer, int width, int height,
-    {bool linearToSrgb = false, bool invertAces = false}) async {
-  final image = img.Image(width: width, height: height);
-
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      final int pixelIndex = (y * width + x) * 4;
-      double r = pixelBuffer[pixelIndex] / 255.0;
-      double g = pixelBuffer[pixelIndex + 1] / 255.0;
-      double b = pixelBuffer[pixelIndex + 2] / 255.0;
-      int a = pixelBuffer[pixelIndex + 3];
-
-      // Apply inverse ACES tone mapping
-      if (invertAces) {
-        r = _inverseACESToneMapping(r);
-        g = _inverseACESToneMapping(g);
-        b = _inverseACESToneMapping(b);
-      }
-
-      if (linearToSrgb) {
-        // Convert from linear to sRGB
-
-        image.setPixel(
-            x,
-            y,
-            img.ColorUint8(4)
-              ..setRgba(
-                  _linearToSRGB(r), _linearToSRGB(g), _linearToSRGB(b), 1.0));
-      } else {
-        image.setPixel(
-            x,
-            y,
-            img.ColorUint8(4)
-              ..setRgba((r * 255).toInt(), (g * 255).toInt(), (b * 255).toInt(),
-                  1.0));
-      }
-    }
-  }
-
-  return img.encodePng(image);
-}
-
-double _inverseACESToneMapping(double x) {
-  const double a = 2.51;
-  const double b = 0.03;
-  const double c = 2.43;
-  const double d = 0.59;
-  const double e = 0.14;
-
-  // Ensure x is in the valid range [0, 1]
-  x = x.clamp(0.0, 1.0);
-
-  // Inverse ACES filmic tone mapping function
-  return (x * (x * a + b)) / (x * (x * c + d) + e);
-}
-
-int _linearToSRGB(double linearValue) {
-  if (linearValue <= 0.0031308) {
-    return (linearValue * 12.92 * 255.0).round().clamp(0, 255);
-  } else {
-    return ((1.055 * pow(linearValue, 1.0 / 2.4) - 0.055) * 255.0)
-        .round()
-        .clamp(0, 255);
+    await fn.call(viewer);
+    await viewer.dispose();
   }
 }
 
