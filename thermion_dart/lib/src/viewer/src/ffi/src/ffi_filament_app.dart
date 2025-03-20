@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:thermion_dart/src/filament/src/engine.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
@@ -185,6 +186,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     RenderLoop_destroy();
     RenderTicker_destroy(renderTicker);
     Engine_destroy(engine);
+  }
+
+  ///
+  ///
+  ///
+  Future destroyAsset(covariant FFIAsset asset) async {
+    await withVoidCallback(
+        (cb) => SceneAsset_destroyRenderThread(asset.asset, cb));
   }
 
   ///

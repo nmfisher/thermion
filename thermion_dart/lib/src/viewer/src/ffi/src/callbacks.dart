@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 export 'package:ffi/ffi.dart';
 export 'dart:ffi';
 export 'thermion_dart.g.dart';
@@ -18,8 +19,9 @@ Future<void> withVoidCallback2(Function() func) async {
   void Function() callback = () {
     func.call();
     completer.complete();
-  };  
+  };
   final nativeCallable = NativeCallable<Void Function()>.listener(callback);
+  RenderLoop_addTask(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
 }

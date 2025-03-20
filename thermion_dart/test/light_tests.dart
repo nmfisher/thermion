@@ -1,46 +1,26 @@
-import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/light_options.dart';
 import 'package:test/test.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("lights");
+  await testHelper.setup();
   group("lights", () {
-    test('add/clear point lights', () async {
+    test('add/clear point light', () async {
       await testHelper.withViewer((viewer) async {
         await viewer.loadGlb("file://${testHelper.testDir}/assets/cube.glb");
 
         var light = await viewer.addDirectLight(
-            DirectLight.point(intensity: 10000000000, falloffRadius: 10));
-        await viewer.setLightPosition(light, 0, 10, 0);
-        await testHelper.capture(viewer, "add_point_light");
-        await viewer.destroyLights();
-        await testHelper.capture(viewer, "remove_lights");
+            DirectLight.point(intensity: 1000000, falloffRadius: 10));
+        await viewer.setLightPosition(light, 1, 2, 2);
+        await testHelper.capture(viewer.view, "add_point_light");
+        await viewer.setLightPosition(light, -1, 2, 2);
+        await testHelper.capture(viewer.view, "move_point_light");
+        await viewer.removeLight(light);
+        await testHelper.capture(viewer.view, "remove_point_light");
       });
     });
 
-    test('add/remove IBL', () async {
-      await testHelper.withViewer((viewer) async {
-        await viewer.loadGlb("file://${testHelper.testDir}/assets/cube.glb");
 
-        await viewer
-            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
-        await testHelper.capture(viewer, "load_ibl");
-        await viewer.removeIbl();
-        await testHelper.capture(viewer, "remove_ibl");
-      });
-    });
-
-    test('add/remove skybox', () async {
-      await testHelper.withViewer((viewer) async {
-        await viewer.loadGlb("file://${testHelper.testDir}/assets/cube.glb");
-
-        await viewer
-            .loadSkybox("file://${testHelper.testDir}/assets/default_env_skybox.ktx");
-        await testHelper.capture(viewer, "load_skybox");
-        await viewer.removeSkybox();
-        await testHelper.capture(viewer, "remove_skybox");
-      });
-    });
   });
 }

@@ -17,7 +17,6 @@ import 'dart:async';
 /// using the methods directly via FilamentApp.instance;
 ///
 abstract class ThermionViewer {
-  
   Future<bool> get initialized;
 
   ///
@@ -294,4 +293,7 @@ abstract class ThermionViewer {
   ///
   ///
   int getCameraCount();
+
+  Future addToScene(covariant ThermionAsset asset);
+  Future removeFromScene(covariant ThermionAsset asset);
 }

@@ -234,7 +234,7 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   Pointer<TIndirectLight>? indirectLight;
-  
+
   Pointer<TSkybox>? skybox;
 
   ///
@@ -279,45 +279,11 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future removeIbl() async {
     if (indirectLight != null) {
+      Scene_setIndirectLight(scene.scene, nullptr);
       await withVoidCallback((cb) => Engine_destroyIndirectLightRenderThread(
           app.engine, indirectLight!, cb));
       indirectLight = null;
     }
-  }
-
-  @override
-  Future<ThermionEntity> addLight(
-      LightType type,
-      double colour,
-      double intensity,
-      double posX,
-      double posY,
-      double posZ,
-      double dirX,
-      double dirY,
-      double dirZ,
-      {double falloffRadius = 1.0,
-      double spotLightConeInner = pi / 8,
-      double spotLightConeOuter = pi / 4,
-      double sunAngularRadius = 0.545,
-      double sunHaloSize = 10.0,
-      double sunHaloFallof = 80.0,
-      bool castShadows = true}) async {
-    DirectLight directLight = DirectLight(
-        type: type,
-        color: colour,
-        intensity: intensity,
-        position: Vector3(posX, posY, posZ),
-        direction: Vector3(dirX, dirY, dirZ)..normalize(),
-        falloffRadius: falloffRadius,
-        spotLightConeInner: spotLightConeInner,
-        spotLightConeOuter: spotLightConeOuter,
-        sunAngularRadius: sunAngularRadius,
-        sunHaloSize: sunHaloSize,
-        sunHaloFallof: sunHaloFallof,
-        castShadows: castShadows);
-
-    return addDirectLight(directLight);
   }
 
   final _lights = <ThermionEntity>{};
@@ -347,7 +313,7 @@ class ThermionViewerFFI extends ThermionViewer {
     // LightManager_setSunHaloFalloff(app.lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
     LightManager_setShadowCaster(
         app.lightManager, entity, directLight.castShadows);
-
+    
     Scene_addEntity(scene.scene, entity);
 
     _lights.add(entity);
@@ -453,9 +419,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
     await scene.remove(asset);
-
-    await withVoidCallback(
-        (cb) => SceneAsset_destroyRenderThread(asset.asset, cb));
+    await FilamentApp.instance!.destroyAsset(asset);
 
     // if (asset.boundingBoxAsset != null) {
     //   await asset.setBoundingBoxVisibility(false);
@@ -789,5 +753,13 @@ class ThermionViewerFFI extends ThermionViewer {
     //     this,
     //     gizmoEntities.toSet()
     //       ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
+  }
+
+  Future addToScene(covariant FFIAsset asset) async {
+    await scene.add(asset);
+  }
+
+  Future removeFromScene(covariant FFIAsset asset) async {
+    await scene.remove(asset);
   }
 }

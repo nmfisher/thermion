@@ -11,6 +11,7 @@ namespace thermion
         _instances.clear();
         _asset->releaseSourceData();
         _assetLoader->destroyAsset(_asset);    
+        TRACE("Destroyed");
     }
 
     SceneAsset *GltfSceneAsset::createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount)
