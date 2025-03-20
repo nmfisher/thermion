@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:path/path.dart';
 import 'package:thermion_dart/src/filament/src/engine.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
@@ -27,7 +29,6 @@ class FFIFilamentConfig extends FilamentConfig<RenderCallback, Pointer<Void>> {
 class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TEngine> engine;
   final Pointer<TGltfAssetLoader> gltfAssetLoader;
-  final Pointer<TGltfResourceLoader> gltfResourceLoader;
   final Pointer<TRenderer> renderer;
   final Pointer<TTransformManager> transformManager;
   final Pointer<TLightManager> lightManager;
@@ -36,29 +37,35 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TRenderTicker> renderTicker;
   final Pointer<TNameComponentManager> nameComponentManager;
 
+  final Future<Uint8List> Function(String uri) resourceLoader;
+
   FFIFilamentApp(
       this.engine,
       this.gltfAssetLoader,
-      this.gltfResourceLoader,
       this.renderer,
       this.transformManager,
       this.lightManager,
       this.renderableManager,
       this.ubershaderMaterialProvider,
       this.renderTicker,
-      this.nameComponentManager)
+      this.nameComponentManager,
+      this.resourceLoader)
       : super(
             engine: engine,
             gltfAssetLoader: gltfAssetLoader,
-            gltfResourceLoader: gltfResourceLoader,
             renderer: renderer,
             transformManager: transformManager,
             lightManager: lightManager,
             renderableManager: renderableManager,
             ubershaderMaterialProvider: ubershaderMaterialProvider) {}
 
+  static Future<Uint8List> _defaultResourceLoader(String path) {
+    print("Loading file $path");
+    return File(path).readAsBytes();
+  }
+
   static Future create({FFIFilamentConfig? config}) async {
-    config ??= FFIFilamentConfig(resourceLoader: nullptr);
+    config ??= FFIFilamentConfig(resourceLoader: _defaultResourceLoader);
     if (FilamentApp.instance != null) {
       await FilamentApp.instance!.destroy();
     }
@@ -75,8 +82,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             config.disableHandleUseAfterFreeCheck,
             cb));
 
-    final gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-        (cb) => GltfResourceLoader_createRenderThread(engine, cb));
     final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
         (cb) => GltfAssetLoader_createRenderThread(engine, nullptr, cb));
     final renderer = await withPointerCallback<TRenderer>(
@@ -95,14 +100,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     FilamentApp.instance = FFIFilamentApp(
         engine,
         gltfAssetLoader,
-        gltfResourceLoader,
         renderer,
         transformManager,
         lightManager,
         renderableManager,
         ubershaderMaterialProvider,
         renderTicker,
-        nameComponentManager);
+        nameComponentManager,
+        config.resourceLoader);
   }
 
   final _views = <FFISwapChain, List<FFIView>>{};
@@ -220,7 +225,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       TextureFormat textureFormat = TextureFormat.RGBA16F,
       int? importedTextureHandle}) async {
     var bitmask = flags.fold(0, (a, b) => a | b.value);
-    
+
     final texturePtr = await withPointerCallback<TTexture>((cb) {
       Texture_buildRenderThread(
           engine,
@@ -238,7 +243,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw Exception("Failed to create texture");
     }
     return FFITexture(
-      engine!,
+      engine,
       texturePtr,
     );
   }
@@ -256,24 +261,24 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       TextureCompareMode compareMode = TextureCompareMode.NONE,
       TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL}) async {
     final samplerPtr = TextureSampler_create();
-    // TextureSampler_setMinFilter(
-    //     samplerPtr, TSamplerMinFilter.values[minFilter.index]);
-    // TextureSampler_setMagFilter(
-    //     samplerPtr, TSamplerMagFilter.values[magFilter.index]);
-    // TextureSampler_setWrapModeS(
-    //     samplerPtr, TSamplerWrapMode.values[wrapS.index]);
-    // TextureSampler_setWrapModeT(
-    //     samplerPtr, TSamplerWrapMode.values[wrapT.index]);
-    // TextureSampler_setWrapModeR(
-    //     samplerPtr, TSamplerWrapMode.values[wrapR.index]);
-    // if (anisotropy > 0) {
-    //   TextureSampler_setAnisotropy(samplerPtr, anisotropy);
-    // }
+    TextureSampler_setMinFilter(
+        samplerPtr, TSamplerMinFilter.values[minFilter.index]);
+    TextureSampler_setMagFilter(
+        samplerPtr, TSamplerMagFilter.values[magFilter.index]);
+    TextureSampler_setWrapModeS(
+        samplerPtr, TSamplerWrapMode.values[wrapS.index]);
+    TextureSampler_setWrapModeT(
+        samplerPtr, TSamplerWrapMode.values[wrapT.index]);
+    TextureSampler_setWrapModeR(
+        samplerPtr, TSamplerWrapMode.values[wrapR.index]);
+    if (anisotropy > 0) {
+      TextureSampler_setAnisotropy(samplerPtr, anisotropy);
+    }
 
-    // TextureSampler_setCompareMode(
-    //     samplerPtr,
-    //     TSamplerCompareMode.values[compareMode.index],
-    //     TSamplerCompareFunc.values[compareFunc.index]);
+    TextureSampler_setCompareMode(
+        samplerPtr,
+        TSamplerCompareMode.values[compareMode.index],
+        TSamplerCompareFunc.values[compareFunc.index]);
 
     return FFITextureSampler(samplerPtr);
   }
@@ -307,7 +312,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<Material> createMaterial(Uint8List data) async {
     var ptr = await withPointerCallback<TMaterial>((cb) {
-      Engine_buildMaterialRenderThread(engine!, data.address, data.length, cb);
+      Engine_buildMaterialRenderThread(engine, data.address, data.length, cb);
     });
     return FFIMaterial(ptr, this);
   }
@@ -614,4 +619,80 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future setClearColor(double r, double g, double b, double a) async {
     Renderer_setClearOptions(renderer, r, g, b, a, 0, true, false);
   }
+
+  ///
+  ///
+  ///
+  Future<ThermionAsset> loadGlbFromBuffer(
+      Uint8List data, Pointer animationManager,
+      {int numInstances = 1,
+      bool keepData = false,
+      int priority = 4,
+      int layer = 0,
+      String? relativeResourcePath,
+      bool loadResourcesAsync = false}) async {
+    if (relativeResourcePath != null && !relativeResourcePath!.endsWith("/")) {
+      relativeResourcePath = "$relativeResourcePath/";
+    }
+    var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
+        (cb) => GltfResourceLoader_createRenderThread(engine,
+            relativeResourcePath?.toNativeUtf8().cast<Char>() ?? nullptr, cb));
+
+    var asset = await withPointerCallback<TSceneAsset>((cb) =>
+        SceneAsset_loadGlbRenderThread(engine, gltfAssetLoader,
+            nameComponentManager, data.address, data.length, numInstances, cb));
+
+    if (asset == nullptr) {
+      throw Exception("An error occurred loading the asset");
+    }
+
+    var resourceUris = SceneAsset_getResourceUris(asset);
+    var resourceUriCount = SceneAsset_getResourceUriCount(asset);
+
+    final resources = <FinalizableUint8List>[];
+
+    for (int i = 0; i < resourceUriCount; i++) {
+      final resourceUriDart = resourceUris[i].cast<Utf8>().toDartString();
+      final resourceData = await resourceLoader(relativeResourcePath == null
+          ? resourceUriDart
+          : "$relativeResourcePath/$resourceUriDart");
+
+      resources.add(FinalizableUint8List(resourceUris[i], resourceData));
+
+      await withVoidCallback((cb) =>
+          GltfResourceLoader_addResourceDataRenderThread(
+              gltfResourceLoader,
+              resourceUris[i],
+              resourceData.address,
+              resourceData.lengthInBytes,
+              cb));
+    }
+    if (loadResourcesAsync) {
+      // GltfResourceLoader_asyncBeginLoad(gltfResourceLoader)
+      throw UnimplementedError(
+          "TODO"); // need to use a NativeFinalizer to ensure the pointer is still valid until resource loader has finished
+    } else {
+      final filamentAsset = SceneAsset_getFilamentAsset(asset);
+      if (filamentAsset == nullptr) {
+        throw Exception();
+      }
+      final result = await withBoolCallback((cb) =>
+          GltfResourceLoader_loadResourcesRenderThread(
+              gltfResourceLoader, filamentAsset, cb));
+      if (!result) {
+        throw Exception("Failed to load resources");
+      }
+    }
+
+    await withVoidCallback((cb) =>
+        GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, cb));
+    return FFIAsset(asset, this, animationManager.cast<TAnimationManager>());
+  }
+}
+
+class FinalizableUint8List implements Finalizable {
+  final Pointer name;
+  final Uint8List data;
+
+  FinalizableUint8List(this.name, this.data);
 }

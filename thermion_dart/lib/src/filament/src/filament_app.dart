@@ -6,7 +6,7 @@ class FilamentConfig<T, U> {
   final Backend backend;
   final T? renderCallback;
   final U? renderCallbackOwner;
-  final U resourceLoader;
+  final Future<Uint8List> Function(String) resourceLoader;
   final U? platform;
   final U? driver;
   final U? sharedContext;
@@ -32,7 +32,6 @@ abstract class FilamentApp<T> {
 
   final T engine;
   final T gltfAssetLoader;
-  final T gltfResourceLoader;
   final T renderer;
   final T transformManager;
   final T lightManager;
@@ -42,7 +41,6 @@ abstract class FilamentApp<T> {
   FilamentApp(
       {required this.engine,
       required this.gltfAssetLoader,
-      required this.gltfResourceLoader,
       required this.renderer,
       required this.transformManager,
       required this.lightManager,
@@ -239,4 +237,15 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future setClearColor(double r, double g, double b, double a);
+
+  ///
+  ///
+  ///
+  Future<ThermionAsset> loadGlbFromBuffer(Uint8List data, T animationManager,
+      {int numInstances = 1,
+      bool keepData = false,
+      int priority = 4,
+      int layer = 0,
+      bool loadResourcesAsync = false,
+      String? relativeResourcePath});
 }

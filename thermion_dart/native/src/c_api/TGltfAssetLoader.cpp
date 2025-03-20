@@ -33,18 +33,6 @@ namespace thermion
         
 #endif
 
-EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine) {
-    auto *engine = reinterpret_cast<Engine *>(tEngine);
-    auto *gltfResourceLoader = new gltfio::ResourceLoader({.engine = engine,
-        .normalizeSkinningWeights = true});
-    auto stbDecoder = gltfio::createStbProvider(engine);
-    auto ktxDecoder = gltfio::createKtx2Provider(engine);
-    gltfResourceLoader->addTextureProvider("image/ktx2", ktxDecoder);
-    gltfResourceLoader->addTextureProvider("image/png", stbDecoder);
-    gltfResourceLoader->addTextureProvider("image/jpeg", stbDecoder);
-    
-    return reinterpret_cast<TGltfResourceLoader *>(gltfResourceLoader);
-}
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider) {
     auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -66,18 +54,23 @@ EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, 
 }
 
 EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
+    TEngine *tEngine,
     TGltfAssetLoader *tAssetLoader,
-    TGltfResourceLoader *tGltfResourceLoader,
     uint8_t *data,
     size_t length,
     uint8_t numInstances)
 {
+    auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
     auto *assetLoader = reinterpret_cast<gltfio::AssetLoader *>(tAssetLoader);
-    auto *resourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
     
-    std::vector<gltfio::FilamentInstance *> instances(numInstances);
+    gltfio::FilamentAsset *asset;
 
-    gltfio::FilamentAsset *asset = assetLoader->createInstancedAsset((const uint8_t *)data, length, instances.data(), numInstances);
+    if(numInstances > 1) {
+        std::vector<gltfio::FilamentInstance *> instances(numInstances);
+        asset = assetLoader->createInstancedAsset((const uint8_t *)data, length, instances.data(), numInstances);
+    } else { 
+        asset = assetLoader->createAsset((const uint8_t *)data, length);
+    }
 
     if (!asset)
     {
@@ -85,11 +78,15 @@ EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
         return std::nullptr_t();
     }
 
-    if (!resourceLoader->loadResources(asset))
-    {
-        Log("Unknown error loading glb asset");
-        return std::nullptr_t();
+    const char *const *const resourceUris = asset->getResourceUris();
+    const size_t resourceUriCount = asset->getResourceUriCount();
+
+    Log("glTF asset : %d resource URIs, %d instances", resourceUriCount, numInstances);
+
+    for(int i = 0; i < resourceUriCount; i++) {
+        Log("%s", resourceUris[i]);
     }
+
     return reinterpret_cast<TFilamentAsset *>(asset);
 }
 

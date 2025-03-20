@@ -24,9 +24,8 @@ extern "C"
     );
     
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_loadGlb(
-        TGltfAssetLoader *tAssetLoader,
-        TGltfResourceLoader *tResourceLoader,
         TEngine *tEngine,
+        TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         uint8_t *data,
         size_t length,
@@ -42,6 +41,16 @@ extern "C"
         size_t length,
         size_t numInstances
     );
+
+    EMSCRIPTEN_KEEPALIVE int32_t SceneAsset_getResourceUriCount(
+        TSceneAsset *tSceneAsset
+    );
+
+    EMSCRIPTEN_KEEPALIVE const char* const* SceneAsset_getResourceUris(
+        TSceneAsset *tSceneAsset
+    );
+
+    EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGrid(TEngine *tEngine, TMaterial * tMaterial);
 

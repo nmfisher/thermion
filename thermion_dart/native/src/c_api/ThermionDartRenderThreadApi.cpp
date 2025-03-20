@@ -9,6 +9,7 @@
 #include "c_api/TAnimationManager.h"
 #include "c_api/TEngine.h"
 #include "c_api/TGltfAssetLoader.h"
+#include "c_api/TGltfResourceLoader.h"
 #include "c_api/TRenderer.h"
 #include "c_api/TRenderTicker.h"
 #include "c_api/TRenderTarget.h"
@@ -18,11 +19,8 @@
 #include "c_api/TView.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
-
 #include "rendering/RenderLoop.hpp"
 #include "Log.hpp"
-
-#include "ThreadPool.hpp"
 
 using namespace thermion;
 using namespace std::chrono_literals;
@@ -360,9 +358,8 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_loadGlbRenderThread(
-    TGltfAssetLoader *tAssetLoader,
-    TGltfResourceLoader *tResourceLoader,
     TEngine *tEngine,
+    TGltfAssetLoader *tAssetLoader,
     TNameComponentManager *tNameComponentManager,
     uint8_t *data,
     size_t length,
@@ -372,7 +369,7 @@ extern "C"
     std::packaged_task<void()> lambda(
       [=]
       {
-        auto sceneAsset = SceneAsset_loadGlb(tAssetLoader, tResourceLoader, tEngine, tNameComponentManager, data, length, numInstances);
+        auto sceneAsset = SceneAsset_loadGlb(tEngine, tAssetLoader, tNameComponentManager, data, length, numInstances);
         callback(sceneAsset);
       });
     auto fut = _rl->add_task(lambda);
@@ -875,19 +872,54 @@ extern "C"
     auto fut = _rl->add_task(lambda);
   }
   
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *)) {
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, const char* relativeResourcePath, void (*callback)(TGltfResourceLoader *)) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        auto loader = GltfResourceLoader_create(tEngine);
+        auto loader = GltfResourceLoader_create(tEngine, relativeResourcePath);
         callback(loader);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, void (*callback)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        GltfResourceLoader_destroy(tEngine, tResourceLoader);
+        callback();
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool)) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto result = GltfResourceLoader_loadResources(tGltfResourceLoader, tFilamentAsset);
+        callback(result);
+      });
+    auto fut = _rl->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataRenderThread(
+    TGltfResourceLoader *tGltfResourceLoader,
+    const char *uri,
+    uint8_t *data,
+    size_t length,
+    void (*callback)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        GltfResourceLoader_addResourceData(tGltfResourceLoader, uri, data, length);
+        callback();
       });
     auto fut = _rl->add_task(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
+      TEngine *tEngine,
       TGltfAssetLoader *tAssetLoader,
-      TGltfResourceLoader *tResourceLoader,
       uint8_t *data,
       size_t length,
       uint8_t numInstances,
@@ -896,7 +928,7 @@ extern "C"
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        auto loader = GltfAssetLoader_load(tAssetLoader, tResourceLoader, data, length, numInstances);
+        auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
         callback(loader);
       });
     auto fut = _rl->add_task(lambda);

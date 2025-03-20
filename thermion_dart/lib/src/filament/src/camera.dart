@@ -5,6 +5,11 @@ enum Projection { Perspective, Orthographic }
 
 abstract class Camera {
   
+  Future<Vector3> getPosition() async {
+    final modelMatrix = await getModelMatrix();
+    return modelMatrix.getTranslation();
+  }
+
   Future lookAt(Vector3 position, {Vector3? focus, Vector3? up}) async {
     focus ??= Vector3.zero();
     up ??= Vector3(0, 1, 0);

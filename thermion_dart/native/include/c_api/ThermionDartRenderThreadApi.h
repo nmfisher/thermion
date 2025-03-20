@@ -85,9 +85,8 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void SceneAsset_loadGlbRenderThread(
-            TGltfAssetLoader *tAssetLoader,
-            TGltfResourceLoader *tResourceLoader,
             TEngine *tEngine,
+            TGltfAssetLoader *tAssetLoader,
             TNameComponentManager *tNameComponentManager,
             uint8_t *data,
             size_t length,
@@ -250,10 +249,14 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, EntityId entityId, void (*callback)());
 
         EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *));
-        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, void (*callback)(TGltfResourceLoader *));
+        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, const char* relativeResourcePath, void (*callback)(TGltfResourceLoader *));
+        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, void (*callback)());
+        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));
+        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataRenderThread(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length, void (*callback)());
+
         EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
+            TEngine *tEngine,
             TGltfAssetLoader *tAssetLoader,
-            TGltfResourceLoader *tResourceLoader,
             uint8_t *data,
             size_t length,
             uint8_t numInstances,

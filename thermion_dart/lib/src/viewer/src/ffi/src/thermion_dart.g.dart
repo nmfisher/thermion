@@ -431,6 +431,240 @@ external void FilamentAsset_getEntities(
 );
 
 @ffi.Native<
+    ffi.Pointer<TGltfAssetLoader> Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TMaterialProvider>)>(isLeaf: true)
+external ffi.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TMaterialProvider> tMaterialProvider,
+);
+
+@ffi.Native<
+    ffi.Pointer<TFilamentAsset> Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TGltfAssetLoader>,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
+        ffi.Uint8)>(isLeaf: true)
+external ffi.Pointer<TFilamentAsset> GltfAssetLoader_load(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+  int numInstances,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TRenderableManager>,
+        ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+external ffi.Pointer<TMaterialInstance> GltfAssetLoader_getMaterialInstance(
+  ffi.Pointer<TRenderableManager> tRenderableManager,
+  ffi.Pointer<TFilamentAsset> tAsset,
+);
+
+@ffi.Native<
+    ffi.Pointer<TMaterialProvider> Function(
+        ffi.Pointer<TGltfAssetLoader>)>(isLeaf: true)
+external ffi.Pointer<TMaterialProvider> GltfAssetLoader_getMaterialProvider(
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
+);
+
+@ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
+external TViewport View_getViewport(
+  ffi.Pointer<TView> view,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(
+    isLeaf: true)
+external void View_setViewport(
+  ffi.Pointer<TView> view,
+  int width,
+  int height,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TRenderTarget>)>(
+    isLeaf: true)
+external void View_setRenderTarget(
+  ffi.Pointer<TView> view,
+  ffi.Pointer<TRenderTarget> renderTarget,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setFrustumCullingEnabled(
+  ffi.Pointer<TView> view,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TView>)>(
+    isLeaf: true)
+external ffi.Pointer<TRenderTarget> View_getRenderTarget(
+  ffi.Pointer<TView> tView,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setPostProcessing(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setShadowsEnabled(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int)>(isLeaf: true)
+external void View_setShadowType(
+  ffi.Pointer<TView> tView,
+  int shadowType,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Float, ffi.Float)>(
+    isLeaf: true)
+external void View_setSoftShadowOptions(
+  ffi.Pointer<TView> tView,
+  double penumbraScale,
+  double penumbraRatioScale,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Float)>(
+    isLeaf: true)
+external void View_setBloom(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+  double strength,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(
+    symbol: "View_setRenderQuality", isLeaf: true)
+external void _View_setRenderQuality(
+  ffi.Pointer<TView> tView,
+  int qualityLevel,
+);
+
+void View_setRenderQuality(
+  ffi.Pointer<TView> tView,
+  TQualityLevel qualityLevel,
+) =>
+    _View_setRenderQuality(
+      tView,
+      qualityLevel.value,
+    );
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>,
+        ffi.UnsignedInt)>(symbol: "View_setToneMapping", isLeaf: true)
+external void _View_setToneMapping(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  int toneMapping,
+);
+
+void View_setToneMapping(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TEngine> tEngine,
+  TToneMapping toneMapping,
+) =>
+    _View_setToneMapping(
+      tView,
+      tEngine,
+      toneMapping.value,
+    );
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TView>, ffi.Bool, ffi.Bool, ffi.Bool)>(isLeaf: true)
+external void View_setAntiAliasing(
+  ffi.Pointer<TView> tView,
+  bool msaa,
+  bool fxaa,
+  bool taa,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int, ffi.Bool)>(
+    isLeaf: true)
+external void View_setLayerEnabled(
+  ffi.Pointer<TView> tView,
+  int layer,
+  bool visible,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TCamera>)>(
+    isLeaf: true)
+external void View_setCamera(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TCamera> tCamera,
+);
+
+@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TView>)>(isLeaf: true)
+external ffi.Pointer<TScene> View_getScene(
+  ffi.Pointer<TView> tView,
+);
+
+@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TView>)>(isLeaf: true)
+external ffi.Pointer<TCamera> View_getCamera(
+  ffi.Pointer<TView> tView,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setStencilBufferEnabled(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
+external bool View_isStencilBufferEnabled(
+  ffi.Pointer<TView> tView,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setDitheringEnabled(
+  ffi.Pointer<TView> tView,
+  bool enabled,
+);
+
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
+external bool View_isDitheringEnabled(
+  ffi.Pointer<TView> tView,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TScene>)>(
+    isLeaf: true)
+external void View_setScene(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TScene> tScene,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32,
+        PickCallback)>(isLeaf: true)
+external void View_pick(
+  ffi.Pointer<TView> tView,
+  int requestId,
+  int x,
+  int y,
+  PickCallback callback,
+);
+
+@ffi.Native<ffi.Pointer<TNameComponentManager> Function()>(isLeaf: true)
+external ffi.Pointer<TNameComponentManager> NameComponentManager_create();
+
+@ffi.Native<
+    ffi.Pointer<ffi.Char> Function(
+        ffi.Pointer<TNameComponentManager>, EntityId)>(isLeaf: true)
+external ffi.Pointer<ffi.Char> NameComponentManager_getName(
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
+  int entity,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TIndirectLight>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
+external void IndirectLight_setRotation(
+  ffi.Pointer<TIndirectLight> tIndirectLight,
+  ffi.Pointer<ffi.Double> rotation,
+);
+
+@ffi.Native<
     ffi.Pointer<TTexture> Function(
         ffi.Pointer<TEngine>,
         ffi.Uint32,
@@ -800,246 +1034,6 @@ void TextureSampler_setCompareMode(
 @ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>)>(isLeaf: true)
 external void TextureSampler_destroy(
   ffi.Pointer<TTextureSampler> sampler,
-);
-
-@ffi.Native<
-    ffi.Pointer<TGltfAssetLoader> Function(
-        ffi.Pointer<TEngine>, ffi.Pointer<TMaterialProvider>)>(isLeaf: true)
-external ffi.Pointer<TGltfAssetLoader> GltfAssetLoader_create(
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TMaterialProvider> tMaterialProvider,
-);
-
-@ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>(
-    isLeaf: true)
-external ffi.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
-  ffi.Pointer<TEngine> tEngine,
-);
-
-@ffi.Native<
-    ffi.Pointer<TFilamentAsset> Function(
-        ffi.Pointer<TGltfAssetLoader>,
-        ffi.Pointer<TGltfResourceLoader>,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
-        ffi.Uint8)>(isLeaf: true)
-external ffi.Pointer<TFilamentAsset> GltfAssetLoader_load(
-  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
-  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
-  ffi.Pointer<ffi.Uint8> data,
-  int length,
-  int numInstances,
-);
-
-@ffi.Native<
-    ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TRenderableManager>,
-        ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
-external ffi.Pointer<TMaterialInstance> GltfAssetLoader_getMaterialInstance(
-  ffi.Pointer<TRenderableManager> tRenderableManager,
-  ffi.Pointer<TFilamentAsset> tAsset,
-);
-
-@ffi.Native<
-    ffi.Pointer<TMaterialProvider> Function(
-        ffi.Pointer<TGltfAssetLoader>)>(isLeaf: true)
-external ffi.Pointer<TMaterialProvider> GltfAssetLoader_getMaterialProvider(
-  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
-);
-
-@ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
-external TViewport View_getViewport(
-  ffi.Pointer<TView> view,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(
-    isLeaf: true)
-external void View_setViewport(
-  ffi.Pointer<TView> view,
-  int width,
-  int height,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TRenderTarget>)>(
-    isLeaf: true)
-external void View_setRenderTarget(
-  ffi.Pointer<TView> view,
-  ffi.Pointer<TRenderTarget> renderTarget,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
-external void View_setFrustumCullingEnabled(
-  ffi.Pointer<TView> view,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Pointer<TRenderTarget> Function(ffi.Pointer<TView>)>(
-    isLeaf: true)
-external ffi.Pointer<TRenderTarget> View_getRenderTarget(
-  ffi.Pointer<TView> tView,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
-external void View_setPostProcessing(
-  ffi.Pointer<TView> tView,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
-external void View_setShadowsEnabled(
-  ffi.Pointer<TView> tView,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int)>(isLeaf: true)
-external void View_setShadowType(
-  ffi.Pointer<TView> tView,
-  int shadowType,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Float, ffi.Float)>(
-    isLeaf: true)
-external void View_setSoftShadowOptions(
-  ffi.Pointer<TView> tView,
-  double penumbraScale,
-  double penumbraRatioScale,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Float)>(
-    isLeaf: true)
-external void View_setBloom(
-  ffi.Pointer<TView> tView,
-  bool enabled,
-  double strength,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(
-    symbol: "View_setRenderQuality", isLeaf: true)
-external void _View_setRenderQuality(
-  ffi.Pointer<TView> tView,
-  int qualityLevel,
-);
-
-void View_setRenderQuality(
-  ffi.Pointer<TView> tView,
-  TQualityLevel qualityLevel,
-) =>
-    _View_setRenderQuality(
-      tView,
-      qualityLevel.value,
-    );
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>,
-        ffi.UnsignedInt)>(symbol: "View_setToneMapping", isLeaf: true)
-external void _View_setToneMapping(
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TEngine> tEngine,
-  int toneMapping,
-);
-
-void View_setToneMapping(
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TEngine> tEngine,
-  TToneMapping toneMapping,
-) =>
-    _View_setToneMapping(
-      tView,
-      tEngine,
-      toneMapping.value,
-    );
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TView>, ffi.Bool, ffi.Bool, ffi.Bool)>(isLeaf: true)
-external void View_setAntiAliasing(
-  ffi.Pointer<TView> tView,
-  bool msaa,
-  bool fxaa,
-  bool taa,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Int, ffi.Bool)>(
-    isLeaf: true)
-external void View_setLayerEnabled(
-  ffi.Pointer<TView> tView,
-  int layer,
-  bool visible,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TCamera>)>(
-    isLeaf: true)
-external void View_setCamera(
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TCamera> tCamera,
-);
-
-@ffi.Native<ffi.Pointer<TScene> Function(ffi.Pointer<TView>)>(isLeaf: true)
-external ffi.Pointer<TScene> View_getScene(
-  ffi.Pointer<TView> tView,
-);
-
-@ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TView>)>(isLeaf: true)
-external ffi.Pointer<TCamera> View_getCamera(
-  ffi.Pointer<TView> tView,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
-external void View_setStencilBufferEnabled(
-  ffi.Pointer<TView> tView,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
-external bool View_isStencilBufferEnabled(
-  ffi.Pointer<TView> tView,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
-external void View_setDitheringEnabled(
-  ffi.Pointer<TView> tView,
-  bool enabled,
-);
-
-@ffi.Native<ffi.Bool Function(ffi.Pointer<TView>)>(isLeaf: true)
-external bool View_isDitheringEnabled(
-  ffi.Pointer<TView> tView,
-);
-
-@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TScene>)>(
-    isLeaf: true)
-external void View_setScene(
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TScene> tScene,
-);
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32,
-        PickCallback)>(isLeaf: true)
-external void View_pick(
-  ffi.Pointer<TView> tView,
-  int requestId,
-  int x,
-  int y,
-  PickCallback callback,
-);
-
-@ffi.Native<ffi.Pointer<TNameComponentManager> Function()>(isLeaf: true)
-external ffi.Pointer<TNameComponentManager> NameComponentManager_create();
-
-@ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<TNameComponentManager>, EntityId)>(isLeaf: true)
-external ffi.Pointer<ffi.Char> NameComponentManager_getName(
-  ffi.Pointer<TNameComponentManager> tNameComponentManager,
-  int entity,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TIndirectLight>, ffi.Pointer<ffi.Double>)>(isLeaf: true)
-external void IndirectLight_setRotation(
-  ffi.Pointer<TIndirectLight> tIndirectLight,
-  ffi.Pointer<ffi.Double> rotation,
 );
 
 @ffi.Native<
@@ -1999,9 +1993,8 @@ external void SceneAsset_destroyRenderThread(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<TGltfAssetLoader>,
-            ffi.Pointer<TGltfResourceLoader>,
             ffi.Pointer<TEngine>,
+            ffi.Pointer<TGltfAssetLoader>,
             ffi.Pointer<TNameComponentManager>,
             ffi.Pointer<ffi.Uint8>,
             ffi.Size,
@@ -2011,9 +2004,8 @@ external void SceneAsset_destroyRenderThread(
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
     isLeaf: true)
 external void SceneAsset_loadGlbRenderThread(
-  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
-  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
   ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<ffi.Uint8> data,
   int length,
@@ -2600,12 +2592,14 @@ external void GltfAssetLoader_createRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TEngine>,
+        ffi.Pointer<ffi.Char>,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(
                     ffi.Pointer<TGltfResourceLoader>)>>)>(isLeaf: true)
 external void GltfResourceLoader_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> relativeResourcePath,
   ffi.Pointer<
           ffi
           .NativeFunction<ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>>
@@ -2613,9 +2607,45 @@ external void GltfResourceLoader_createRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TGltfResourceLoader>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void GltfResourceLoader_destroyRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TGltfResourceLoader>,
+            ffi.Pointer<TFilamentAsset>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
+    isLeaf: true)
+external void GltfResourceLoader_loadResourcesRenderThread(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
+);
+
+@ffi.Native<
     ffi.Void Function(
-        ffi.Pointer<TGltfAssetLoader>,
         ffi.Pointer<TGltfResourceLoader>,
+        ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void GltfResourceLoader_addResourceDataRenderThread(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<ffi.Char> uri,
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TGltfAssetLoader>,
         ffi.Pointer<ffi.Uint8>,
         ffi.Size,
         ffi.Uint8,
@@ -2623,8 +2653,8 @@ external void GltfResourceLoader_createRenderThread(
             ffi.NativeFunction<
                 ffi.Void Function(ffi.Pointer<TFilamentAsset>)>>)>(isLeaf: true)
 external void GltfAssetLoader_loadRenderThread(
+  ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
-  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
   ffi.Pointer<ffi.Uint8> data,
   int length,
   int numInstances,
@@ -2640,6 +2670,48 @@ external void Scene_addFilamentAssetRenderThread(
   ffi.Pointer<TScene> tScene,
   ffi.Pointer<TFilamentAsset> tAsset,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
+
+@ffi.Native<
+    ffi.Pointer<TGltfResourceLoader> Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+external ffi.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.Char> relativeResourcePath,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+external void GltfResourceLoader_destroy(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TGltfResourceLoader>,
+        ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+external void GltfResourceLoader_asyncBeginLoad(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TGltfResourceLoader>, ffi.Pointer<ffi.Char>,
+        ffi.Pointer<ffi.Uint8>, ffi.Size)>(isLeaf: true)
+external void GltfResourceLoader_addResourceData(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<ffi.Char> uri,
+  ffi.Pointer<ffi.Uint8> data,
+  int length,
+);
+
+@ffi.Native<
+    ffi.Bool Function(ffi.Pointer<TGltfResourceLoader>,
+        ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+external bool GltfResourceLoader_loadResources(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
 );
 
 @ffi.Native<
@@ -2987,17 +3059,15 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createGeometry(
 
 @ffi.Native<
     ffi.Pointer<TSceneAsset> Function(
-        ffi.Pointer<TGltfAssetLoader>,
-        ffi.Pointer<TGltfResourceLoader>,
         ffi.Pointer<TEngine>,
+        ffi.Pointer<TGltfAssetLoader>,
         ffi.Pointer<TNameComponentManager>,
         ffi.Pointer<ffi.Uint8>,
         ffi.Size,
         ffi.Size)>(isLeaf: true)
 external ffi.Pointer<TSceneAsset> SceneAsset_loadGlb(
-  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
-  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
   ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<ffi.Uint8> data,
   int length,
@@ -3021,6 +3091,24 @@ external ffi.Pointer<TSceneAsset> SceneAsset_loadGltf(
   ffi.Pointer<ffi.Uint8> data,
   int length,
   int numInstances,
+);
+
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external int SceneAsset_getResourceUriCount(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+);
+
+@ffi.Native<
+    ffi.Pointer<ffi.Pointer<ffi.Char>> Function(
+        ffi.Pointer<TSceneAsset>)>(isLeaf: true)
+external ffi.Pointer<ffi.Pointer<ffi.Char>> SceneAsset_getResourceUris(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
+);
+
+@ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(
+    isLeaf: true)
+external ffi.Pointer<TFilamentAsset> SceneAsset_getFilamentAsset(
+  ffi.Pointer<TSceneAsset> tSceneAsset,
 );
 
 @ffi.Native<
@@ -3815,6 +3903,70 @@ enum TLightType {
 typedef EntityId = ffi.Int32;
 typedef DartEntityId = int;
 
+final class TViewport extends ffi.Struct {
+  @ffi.Int32()
+  external int left;
+
+  @ffi.Int32()
+  external int bottom;
+
+  @ffi.Uint32()
+  external int width;
+
+  @ffi.Uint32()
+  external int height;
+}
+
+enum TToneMapping {
+  ACES(0),
+  FILMIC(1),
+  LINEAR(2);
+
+  final int value;
+  const TToneMapping(this.value);
+
+  static TToneMapping fromValue(int value) => switch (value) {
+        0 => ACES,
+        1 => FILMIC,
+        2 => LINEAR,
+        _ => throw ArgumentError("Unknown value for TToneMapping: $value"),
+      };
+}
+
+enum TQualityLevel {
+  LOW(0),
+  MEDIUM(1),
+  HIGH(2),
+  ULTRA(3);
+
+  final int value;
+  const TQualityLevel(this.value);
+
+  static TQualityLevel fromValue(int value) => switch (value) {
+        0 => LOW,
+        1 => MEDIUM,
+        2 => HIGH,
+        3 => ULTRA,
+        _ => throw ArgumentError("Unknown value for TQualityLevel: $value"),
+      };
+}
+
+typedef PickCallback = ffi.Pointer<ffi.NativeFunction<PickCallbackFunction>>;
+typedef PickCallbackFunction = ffi.Void Function(
+    ffi.Uint32 requestId,
+    EntityId entityId,
+    ffi.Float depth,
+    ffi.Float fragX,
+    ffi.Float fragY,
+    ffi.Float fragZ);
+typedef DartPickCallbackFunction = void Function(
+    int requestId,
+    DartEntityId entityId,
+    double depth,
+    double fragX,
+    double fragY,
+    double fragZ);
+
 enum TTextureSamplerType {
   SAMPLER_2D(0),
   SAMPLER_2D_ARRAY(1),
@@ -4257,70 +4409,6 @@ enum TSamplerCompareMode {
           throw ArgumentError("Unknown value for TSamplerCompareMode: $value"),
       };
 }
-
-final class TViewport extends ffi.Struct {
-  @ffi.Int32()
-  external int left;
-
-  @ffi.Int32()
-  external int bottom;
-
-  @ffi.Uint32()
-  external int width;
-
-  @ffi.Uint32()
-  external int height;
-}
-
-enum TToneMapping {
-  ACES(0),
-  FILMIC(1),
-  LINEAR(2);
-
-  final int value;
-  const TToneMapping(this.value);
-
-  static TToneMapping fromValue(int value) => switch (value) {
-        0 => ACES,
-        1 => FILMIC,
-        2 => LINEAR,
-        _ => throw ArgumentError("Unknown value for TToneMapping: $value"),
-      };
-}
-
-enum TQualityLevel {
-  LOW(0),
-  MEDIUM(1),
-  HIGH(2),
-  ULTRA(3);
-
-  final int value;
-  const TQualityLevel(this.value);
-
-  static TQualityLevel fromValue(int value) => switch (value) {
-        0 => LOW,
-        1 => MEDIUM,
-        2 => HIGH,
-        3 => ULTRA,
-        _ => throw ArgumentError("Unknown value for TQualityLevel: $value"),
-      };
-}
-
-typedef PickCallback = ffi.Pointer<ffi.NativeFunction<PickCallbackFunction>>;
-typedef PickCallbackFunction = ffi.Void Function(
-    ffi.Uint32 requestId,
-    EntityId entityId,
-    ffi.Float depth,
-    ffi.Float fragX,
-    ffi.Float fragY,
-    ffi.Float fragZ);
-typedef DartPickCallbackFunction = void Function(
-    int requestId,
-    DartEntityId entityId,
-    double depth,
-    double fragX,
-    double fragY,
-    double fragZ);
 
 enum TGizmoAxis {
   X(0),

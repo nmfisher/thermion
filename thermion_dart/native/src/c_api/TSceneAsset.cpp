@@ -67,9 +67,8 @@ extern "C"
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_loadGlb(
-        TGltfAssetLoader *tAssetLoader,
-        TGltfResourceLoader *tResourceLoader,
         TEngine *tEngine,
+        TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
         uint8_t *data,
         size_t length,
@@ -77,19 +76,60 @@ extern "C"
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
-        auto *tFilamentAsset = GltfAssetLoader_load(tAssetLoader, tResourceLoader, data, length, numInstances);
+        auto *tFilamentAsset = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
         auto *filamentAsset = reinterpret_cast<filament::gltfio::FilamentAsset *>(tFilamentAsset);
+
         auto *assetLoader = reinterpret_cast<filament::gltfio::AssetLoader *>(tAssetLoader);
-        auto *resourceLoader = reinterpret_cast<filament::gltfio::ResourceLoader *>(tResourceLoader);
         auto *sceneAsset = new GltfSceneAsset(
             filamentAsset,
             assetLoader,
             engine,
             nameComponentManager
         );
-        return reinterpret_cast<TSceneAsset *>(sceneAsset);
-        
+
+        return reinterpret_cast<TSceneAsset *>(sceneAsset);        
     }
+
+
+    EMSCRIPTEN_KEEPALIVE int32_t SceneAsset_getResourceUriCount(
+        TSceneAsset *tSceneAsset
+    ) {
+        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
+        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("Error - not a gltf asset");
+            return -1;
+        }
+        auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(tSceneAsset);
+        auto *filamentAsset = gltfAsset->getAsset();
+        return filamentAsset->getResourceUriCount();
+    }
+
+    EMSCRIPTEN_KEEPALIVE const char* const* SceneAsset_getResourceUris(
+        TSceneAsset *tSceneAsset
+    ) {
+        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
+        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("Error - not a gltf asset");
+            return nullptr;
+        }
+        auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(tSceneAsset);
+        auto *filamentAsset = gltfAsset->getAsset();
+        return filamentAsset->getResourceUris();
+    }
+    
+    EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
+        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
+        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
+            Log("Error - not a gltf asset");
+            return nullptr;
+        }
+        
+        auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(tSceneAsset);
+        auto *filamentAsset = gltfAsset->getAsset();
+        TRACE("SceneAsset %d FilamentAsset %d", sceneAsset, filamentAsset);
+        return reinterpret_cast<TFilamentAsset *>(filamentAsset);
+    }
+
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGrid(TEngine *tEngine, TMaterial* tMaterial) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);

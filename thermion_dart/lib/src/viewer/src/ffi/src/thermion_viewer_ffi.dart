@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:thermion_dart/src/filament/src/light_options.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/background_image.dart';
@@ -39,12 +38,12 @@ class ThermionViewerFFI extends ThermionViewer {
   late final FFIView view;
   late final FFIScene scene;
   late final Pointer<TAnimationManager> animationManager;
-  late final Future<Uint8List> Function(String path) loadAsset;
+  late final Future<Uint8List> Function(String path) loadAssetFromUri;
 
   ///
   ///
   ///
-  ThermionViewerFFI({required this.loadAsset, this.renderTarget}) {
+  ThermionViewerFFI({required this.loadAssetFromUri, this.renderTarget}) {
     if (FilamentApp.instance == null) {
       throw Exception("FilamentApp has not been created");
     }
@@ -191,7 +190,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setBackgroundImage(String path, {bool fillHeight = false}) async {
-    final imageData = await loadAsset(path);
+    final imageData = await loadAssetFromUri(path);
     _backgroundImage ??= await BackgroundImage.create(this, scene);
     await _backgroundImage!.setImage(imageData);
   }
@@ -224,7 +223,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future loadSkybox(String skyboxPath) async {
-    var data = await loadAsset(skyboxPath);
+    var data = await loadAssetFromUri(skyboxPath);
 
     skybox = await withPointerCallback<TSkybox>((cb) {
       Engine_buildSkyboxRenderThread(
@@ -242,7 +241,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
-    var data = await loadAsset(lightingPath);
+    var data = await loadAssetFromUri(lightingPath);
     indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightRenderThread(
           app.engine, data.address, data.length, intensity, cb, nullptr);
@@ -313,7 +312,7 @@ class ThermionViewerFFI extends ThermionViewer {
     // LightManager_setSunHaloFalloff(app.lightManager, entity, directLight.spotLightConeInner, directLight.spotLightConeOuter);
     LightManager_setShadowCaster(
         app.lightManager, entity, directLight.castShadows);
-    
+
     Scene_addEntity(scene.scene, entity);
 
     _lights.add(entity);
@@ -349,11 +348,11 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionAsset> loadGlb(String path,
-      {int numInstances = 1, bool keepData = false}) async {
-    final data = await loadAsset(path);
+      {int numInstances = 1, bool keepData = false, String? relativeResourcePath}) async {
+    final data = await loadAssetFromUri(path);
 
     return loadGlbFromBuffer(data,
-        numInstances: numInstances, keepData: keepData);
+        numInstances: numInstances, keepData: keepData, relativeResourcePath: relativeResourcePath);
   }
 
   ///
@@ -365,52 +364,22 @@ class ThermionViewerFFI extends ThermionViewer {
       bool keepData = false,
       int priority = 4,
       int layer = 0,
-      bool loadResourcesAsync = false}) async {
-    var asset = await withPointerCallback<TSceneAsset>((cb) =>
-        SceneAsset_loadGlbRenderThread(
-            app.gltfAssetLoader,
-            app.gltfResourceLoader,
-            app.engine,
-            app.nameComponentManager,
-            data.address,
-            data.length,
-            numInstances,
-            cb));
+      bool loadResourcesAsync = false,
+      String? relativeResourcePath}) async {
+    var asset = await FilamentApp.instance!.loadGlbFromBuffer(data, animationManager,
+        numInstances: numInstances,
+        keepData: keepData,
+        priority: priority,
+        layer: layer,
+        loadResourcesAsync: loadResourcesAsync,
+        relativeResourcePath:relativeResourcePath
+        ) as FFIAsset;
+   
+    _assets.add(asset);
 
-    if (asset == nullptr) {
-      throw Exception("An error occurred loading the asset");
-    }
+    await scene.add(asset);
 
-    var thermionAsset = FFIAsset(asset, app, animationManager);
-
-    _assets.add(thermionAsset);
-
-    await scene.add(thermionAsset);
-
-    return thermionAsset;
-  }
-
-  ///
-  ///
-  ///
-  @override
-  Future<ThermionAsset> loadGltf(String path, String relativeResourcePath,
-      {bool keepData = false}) async {
-    throw UnimplementedError();
-    // final pathPtr = path.toNativeUtf8(allocator: allocator).cast<Char>();
-    // final relativeResourcePathPtr =
-    //     relativeResourcePath.toNativeUtf8(allocator: allocator).cast<Char>();
-    // var assetPtr = await withPointerCallback<TSceneAsset>((callback) =>
-    //     SceneManager_loadGltfRenderThread(_sceneManager!, pathPtr,
-    //         relativeResourcePathPtr, keepData, callback));
-    // allocator.free(pathPtr);
-    // allocator.free(relativeResourcePathPtr);
-    // if (assetPtr == nullptr) {
-    //   throw Exception("An error occurred loading the asset at $path");
-    // }
-
-    // return FFIAsset(
-    //     assetPtr, _sceneManager!, app.engine!, _unlitMaterialProvider!, this);
+    return asset;
   }
 
   ///

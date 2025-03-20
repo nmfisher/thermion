@@ -1,10 +1,7 @@
-#ifndef _T_GLTF_ASSET_LOADER_H
-#define _T_GLTF_ASSET_LOADER_H
+#pragma once
 
 #include "APIExport.h"
 #include "APIBoundaryTypes.h"
-#include "TMaterialInstance.h"
-#include "TTexture.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -12,10 +9,10 @@ extern "C"
 #endif
 
 EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, TMaterialProvider *tMaterialProvider);
-EMSCRIPTEN_KEEPALIVE TGltfResourceLoader *GltfResourceLoader_create(TEngine *tEngine);
+
 EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
+    TEngine *tEngine,
     TGltfAssetLoader *tAssetLoader,
-    TGltfResourceLoader *tResourceLoader,
     uint8_t *data,
     size_t length,
     uint8_t numInstances
@@ -27,4 +24,3 @@ EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGlt
 }
 #endif
 
-#endif

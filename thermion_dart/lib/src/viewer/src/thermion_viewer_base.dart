@@ -129,7 +129,9 @@ abstract class ThermionViewer {
   /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
   ///
   Future<ThermionAsset> loadGlb(String path,
-      {int numInstances = 1, bool keepData = false});
+      {int numInstances = 1,
+      bool keepData = false,
+      String relativeResourcePath});
 
   ///
   /// Load the .glb asset from the specified buffer, adding all entities to the scene.
@@ -145,17 +147,8 @@ abstract class ThermionViewer {
       bool keepData = false,
       int priority = 4,
       int layer = 0,
-      bool loadResourcesAsync = false});
-
-  ///
-  /// Load the .gltf asset at the given path, adding all entities to the scene.
-  /// [relativeResourcePath] is the folder path where the glTF resources are stored;
-  /// this is usually the parent directory of the .gltf file itself.
-  ///
-  /// See [loadGlb] for an explanation of [keepData].
-  ///
-  Future<ThermionAsset> loadGltf(String path, String relativeResourcePath,
-      {bool keepData = false});
+      bool loadResourcesAsync = false,
+      String relativeResourcePath});
 
   ///
   /// Destroys [asset] and all underlying resources
