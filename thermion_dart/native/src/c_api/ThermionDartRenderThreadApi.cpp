@@ -133,6 +133,26 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyViewRenderThread(TEngine *tEngine, TView *tView, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Engine_destroyView(tEngine, tView);
+        onComplete();
+      });
+    auto fut = _renderThread->add_task(lambda);
+  }
+    
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySceneRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Engine_destroyScene(tEngine, tScene);
+        onComplete();
+      });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
   EMSCRIPTEN_KEEPALIVE void Engine_createCameraRenderThread(TEngine* tEngine, void (*onComplete)(TCamera *)) {
     std::packaged_task<void()> lambda(
       [=]() mutable
@@ -149,6 +169,16 @@ extern "C"
       {
         auto * view = Engine_createView(tEngine);
         onComplete(view);
+      });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyRenderThread(TEngine *tEngine, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Engine_destroy(tEngine);
+        onComplete();
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -438,13 +468,35 @@ extern "C"
         });
     auto fut = _renderThread->add_task(lambda);
   }
-
-  EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, TToneMapping toneMapping, void (*callback)())
+  
+  EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapping toneMapping, void (*callback)(TColorGrading *))
   {
     std::packaged_task<void()> lambda(
         [=]
         {
-          View_setToneMapping(tView, tEngine, toneMapping);
+          auto cg = ColorGrading_create(tEngine, toneMapping);
+          callback(cg);
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingRenderThread(TEngine *tEngine, TColorGrading *tColorGrading, void (*callback)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          Engine_destroyColorGrading(tEngine, tColorGrading);
+          callback();
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, void (*callback)())
+  {
+    std::packaged_task<void()> lambda(
+        [=]
+        {
+          View_setColorGrading(tView, tColorGrading);
           callback();
         });
     auto fut = _renderThread->add_task(lambda);

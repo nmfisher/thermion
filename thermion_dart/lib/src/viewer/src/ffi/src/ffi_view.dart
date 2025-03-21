@@ -4,6 +4,7 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/filament/src/shared_types.dart';
+import 'package:thermion_dart/thermion_dart.dart';
 import 'callbacks.dart';
 import 'ffi_camera.dart';
 
@@ -92,10 +93,19 @@ class FFIView extends View {
     });
   }
 
+  final colorGrading = <ToneMapper, Pointer<TColorGrading>>{};
+
   @override
   Future setToneMapper(ToneMapper mapper) async {
-    await withVoidCallback((cb) => View_setToneMappingRenderThread(
-        view, app.engine, TToneMapping.values[mapper.index], cb));
+    if (colorGrading[mapper] == null) {
+      colorGrading[mapper] =
+          await FilamentApp.instance!.createColorGrading(mapper);
+      if (colorGrading[mapper] == nullptr) {
+        throw Exception("Failed to create color grading");
+      }
+    }
+
+    View_setColorGrading(view, colorGrading[mapper]!);
   }
 
   Future setStencilBufferEnabled(bool enabled) async {

@@ -473,6 +473,30 @@ external TViewport View_getViewport(
   ffi.Pointer<TView> view,
 );
 
+@ffi.Native<
+    ffi.Pointer<TColorGrading> Function(ffi.Pointer<TEngine>,
+        ffi.UnsignedInt)>(symbol: "ColorGrading_create", isLeaf: true)
+external ffi.Pointer<TColorGrading> _ColorGrading_create(
+  ffi.Pointer<TEngine> tEngine,
+  int toneMapping,
+);
+
+ffi.Pointer<TColorGrading> ColorGrading_create(
+  ffi.Pointer<TEngine> tEngine,
+  TToneMapping toneMapping,
+) =>
+    _ColorGrading_create(
+      tEngine,
+      toneMapping.value,
+    );
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TColorGrading>)>(
+    isLeaf: true)
+external void View_setColorGrading(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TColorGrading> tColorGrading,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(
     symbol: "View_setBlendMode", isLeaf: true)
 external void _View_setBlendMode(
@@ -564,26 +588,6 @@ void View_setRenderQuality(
     _View_setRenderQuality(
       tView,
       qualityLevel.value,
-    );
-
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TEngine>,
-        ffi.UnsignedInt)>(symbol: "View_setToneMapping", isLeaf: true)
-external void _View_setToneMapping(
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TEngine> tEngine,
-  int toneMapping,
-);
-
-void View_setToneMapping(
-  ffi.Pointer<TView> tView,
-  ffi.Pointer<TEngine> tEngine,
-  TToneMapping toneMapping,
-) =>
-    _View_setToneMapping(
-      tView,
-      tEngine,
-      toneMapping.value,
     );
 
 @ffi.Native<
@@ -1670,11 +1674,46 @@ external void Engine_buildMaterialRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Engine_destroyRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
     ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TSwapChain>,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void Engine_destroySwapChainRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TSwapChain> tSwapChain,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Engine_destroyViewRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TScene>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Engine_destroySceneRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TScene> tScene,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TColorGrading>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void Engine_destroyColorGradingRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TColorGrading> tColorGrading,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
@@ -1954,30 +1993,39 @@ external void Material_createImageMaterialRenderThread(
 
 @ffi.Native<
         ffi.Void Function(
-            ffi.Pointer<TView>,
             ffi.Pointer<TEngine>,
             ffi.UnsignedInt,
-            ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
-    symbol: "View_setToneMappingRenderThread", isLeaf: true)
-external void _View_setToneMappingRenderThread(
-  ffi.Pointer<TView> tView,
+            ffi.Pointer<
+                ffi.NativeFunction<
+                    ffi.Void Function(ffi.Pointer<TColorGrading>)>>)>(
+    symbol: "ColorGrading_createRenderThread", isLeaf: true)
+external void _ColorGrading_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
   int toneMapping,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TColorGrading>)>>
+      callback,
 );
 
-void View_setToneMappingRenderThread(
-  ffi.Pointer<TView> tView,
+void ColorGrading_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
   TToneMapping toneMapping,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TColorGrading>)>>
+      callback,
 ) =>
-    _View_setToneMappingRenderThread(
-      tView,
+    _ColorGrading_createRenderThread(
       tEngine,
       toneMapping.value,
       callback,
     );
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TColorGrading>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void View_setColorGradingRenderThread(
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TColorGrading> tColorGrading,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
+);
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TView>, ffi.Bool, ffi.Double,
@@ -2912,6 +2960,28 @@ external void Engine_destroySwapChain(
   ffi.Pointer<TSwapChain> tSwapChain,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>)>(
+    isLeaf: true)
+external void Engine_destroyView(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TView> tView,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TScene>)>(
+    isLeaf: true)
+external void Engine_destroyScene(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TScene> tScene,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<TEngine>, ffi.Pointer<TColorGrading>)>(isLeaf: true)
+external void Engine_destroyColorGrading(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TColorGrading> tColorGrading,
+);
+
 @ffi.Native<ffi.Pointer<TCamera> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TCamera> Engine_createCamera(
   ffi.Pointer<TEngine> tEngine,
@@ -3541,6 +3611,8 @@ final class TGltfAssetLoader extends ffi.Opaque {}
 final class TGltfResourceLoader extends ffi.Opaque {}
 
 final class TFilamentAsset extends ffi.Opaque {}
+
+final class TColorGrading extends ffi.Opaque {}
 
 final class TMaterialKey extends ffi.Struct {
   @ffi.Bool()

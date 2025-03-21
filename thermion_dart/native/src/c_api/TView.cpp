@@ -100,9 +100,13 @@ using namespace filament;
 #endif
     }
 
-    EMSCRIPTEN_KEEPALIVE void View_setToneMapping(TView *tView, TEngine *tEngine, TToneMapping tToneMapping)
-    {
-        auto view = reinterpret_cast<View *>(tView);
+    EMSCRIPTEN_KEEPALIVE void View_setColorGrading(TView *tView, TColorGrading *tColorGrading) {
+        auto *view = reinterpret_cast<View*>(tView);
+        auto *colorGrading = reinterpret_cast<ColorGrading *>(tColorGrading);
+        view->setColorGrading(colorGrading);
+    }
+
+    EMSCRIPTEN_KEEPALIVE TColorGrading *ColorGrading_create(TEngine* tEngine, TToneMapping tToneMapping) {
         auto engine = reinterpret_cast<Engine *>(tEngine);
 
         ToneMapper *tm;
@@ -122,17 +126,12 @@ using namespace filament;
             break;
         default:
             TRACE("ERROR: Unsupported tone mapping");
-            return;
+            return nullptr;
         }
-        auto newColorGrading = ColorGrading::Builder().toneMapper(tm).build(*engine);
-        auto oldColorGrading = view->getColorGrading();
-        view->setColorGrading(newColorGrading);
-
-        if (oldColorGrading)
-        {
-            engine->destroy(oldColorGrading);
-        }
+        auto colorGrading = ColorGrading::Builder().toneMapper(tm).build(*engine);
+        
         delete tm;
+        return reinterpret_cast<TColorGrading *>(colorGrading);
     }
 
     void View_setAntiAliasing(TView *tView, bool msaa, bool fxaa, bool taa)

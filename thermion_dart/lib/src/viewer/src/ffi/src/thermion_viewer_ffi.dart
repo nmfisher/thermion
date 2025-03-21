@@ -90,6 +90,8 @@ class ThermionViewerFFI extends ThermionViewer {
     View_setAntiAliasing(view.view, false, false, false);
     View_setDitheringEnabled(view.view, false);
     View_setRenderQuality(view.view, TQualityLevel.MEDIUM);
+    
+    
     await FilamentApp.instance!.setClearColor(1.0, 0.0, 0.0, 1.0);
     scene = FFIScene(Engine_createScene(app.engine));
     await view.setScene(scene);
@@ -167,6 +169,9 @@ class ThermionViewerFFI extends ThermionViewer {
     for (final callback in _onDispose) {
       await callback.call();
     }
+    View_setScene(view.view, nullptr);
+    await FilamentApp.instance!.destroyScene(scene);
+    await FilamentApp.instance!.destroyView(view);
 
     _onDispose.clear();
   }
@@ -425,6 +430,8 @@ class ThermionViewerFFI extends ThermionViewer {
       await destroyAsset(asset);
     }
   }
+
+
 
   ///
   ///

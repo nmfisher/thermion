@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:thermion_dart/src/filament/src/engine.dart';
+import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FilamentConfig<T, U> {
@@ -62,6 +63,16 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future destroySwapChain(SwapChain swapChain);
+
+  ///
+  ///
+  ///
+  Future destroyView(View view);
+
+  ///
+  ///
+  ///
+  Future destroyScene(Scene scene);
 
   ///
   ///
@@ -248,4 +259,9 @@ abstract class FilamentApp<T> {
       int layer = 0,
       bool loadResourcesAsync = false,
       String? relativeResourcePath});
+
+  ///
+  ///
+  ///
+  Future<T> createColorGrading(ToneMapper mapper);
 }

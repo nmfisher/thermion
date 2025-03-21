@@ -121,6 +121,24 @@ namespace thermion
             engine->destroy(swapChain);
         }
 
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyView(TEngine *tEngine, TView *tView) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *view = reinterpret_cast<View *>(tView);
+            engine->destroy(view);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyScene(TEngine *tEngine, TScene *tScene) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *scene = reinterpret_cast<Scene *>(tScene);
+            engine->destroy(scene);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGrading(TEngine *tEngine, TColorGrading *tColorGrading) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *colorGrading = reinterpret_cast<ColorGrading *>(tColorGrading);
+            engine->destroy(colorGrading);
+        }
+
         EMSCRIPTEN_KEEPALIVE TView *Engine_createView(TEngine *tEngine)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);

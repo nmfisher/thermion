@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:path/path.dart';
 import 'package:thermion_dart/src/filament/src/engine.dart';
+import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
@@ -199,9 +200,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     for (final swapChain in _swapChains.keys.toList()) {
       await destroySwapChain(swapChain);
     }
+    await withVoidCallback((cb) async {
+      Engine_destroyRenderThread(engine, cb);
+    });
+
     RenderThread_destroy();
     RenderTicker_destroy(renderTicker);
-    Engine_destroy(engine);
+
     calloc.free(viewsPtr);
   }
 
@@ -724,6 +729,27 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await withVoidCallback((cb) =>
         GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, cb));
     return FFIAsset(asset, this, animationManager.cast<TAnimationManager>());
+  }
+
+  Future destroyView(covariant FFIView view) async {
+    View_setColorGrading(view.view, nullptr);
+    for (final cg in view.colorGrading.entries) {
+      await withVoidCallback(
+        (cb) => Engine_destroyColorGradingRenderThread(engine, cg.value, cb));
+    }
+    await withVoidCallback(
+        (cb) => Engine_destroyViewRenderThread(engine, view.view, cb));
+  }
+
+  Future destroyScene(covariant FFIScene scene) async {
+    await withVoidCallback(
+        (cb) => Engine_destroySceneRenderThread(engine, scene.scene, cb));
+  }
+
+  Future<Pointer<TColorGrading>> createColorGrading(ToneMapper mapper) async {
+    return withPointerCallback<TColorGrading>((cb) =>
+        ColorGrading_createRenderThread(
+            engine, TToneMapping.values[mapper.index], cb));
   }
 }
 

@@ -42,6 +42,7 @@ extern "C"
 	typedef struct TGltfAssetLoader TGltfAssetLoader;
 	typedef struct TGltfResourceLoader TGltfResourceLoader;
 	typedef struct TFilamentAsset TFilamentAsset;
+	typedef struct TColorGrading TColorGrading;
 
 	struct TMaterialKey {
 		bool doubleSided;
