@@ -14,10 +14,14 @@ extern "C"
 		return reinterpret_cast<TNameComponentManager *>(ncm);
 	}
 
-	EMSCRIPTEN_KEEPALIVE const char *NameComponentManager_getName(TNameComponentManager *tNameComponentManager, EntityId entity)
+	EMSCRIPTEN_KEEPALIVE const char *NameComponentManager_getName(TNameComponentManager *tNameComponentManager, EntityId entityId)
 	{
 		auto ncm = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
-		auto instance = ncm->getInstance(utils::Entity::import(entity));
+		auto entity = utils::Entity::import(entityId);
+		if(!ncm->hasComponent(entity)) {
+			return nullptr;
+		}
+		auto instance = ncm->getInstance(entity);
 		return ncm->getName(instance);
 	}
 

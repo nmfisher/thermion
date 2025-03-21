@@ -1,18 +1,16 @@
 import 'dart:async';
 
-import 'package:thermion_dart/thermion_dart.dart' as t;
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/filament.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'thermion_flutter_texture.dart';
 
 class ThermionFlutterOptions {
   final String? uberarchivePath;
+  final Backend? backend;
 
-  ThermionFlutterOptions({this.uberarchivePath});
-  const ThermionFlutterOptions.empty() : uberarchivePath = null;
+  const ThermionFlutterOptions({this.uberarchivePath = null, this.backend = null});
 }
-
-
 
 abstract class ThermionFlutterPlatform extends PlatformInterface {
   ThermionFlutterPlatform() : super(token: _token);
@@ -34,12 +32,13 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
       {covariant ThermionFlutterOptions? options});
 
   ///
-  /// Creates a raw rendering surface.  
+  /// Creates a raw rendering surface.
   ///
   /// This is internal; unless you are [thermion_*] package developer, don't
   /// call this yourself. May not be supported on all platforms.
   ///
-  Future<PlatformTextureDescriptor> createTextureDescriptor(int width, int height);
+  Future<PlatformTextureDescriptor> createTextureDescriptor(
+      int width, int height);
 
   ///
   /// Destroys a raw rendering surface.
@@ -53,15 +52,14 @@ abstract class ThermionFlutterPlatform extends PlatformInterface {
   /// call this yourself. May not be supported on all platforms.
   ///
   Future<PlatformTextureDescriptor?> createTextureAndBindToView(
-      t.View view, int width, int height);
+      View view, int width, int height);
 
   ///
   ///
   ///
   ///
   Future<PlatformTextureDescriptor?> resizeTexture(
-      PlatformTextureDescriptor texture, t.View view, int width, int height);
-
+      PlatformTextureDescriptor texture, View view, int width, int height);
 
   ///
   ///

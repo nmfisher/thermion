@@ -20,4 +20,5 @@ class ThermionFlutterPlugin {
 
     return viewer;
   }
+
 }

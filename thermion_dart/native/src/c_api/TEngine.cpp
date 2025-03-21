@@ -80,14 +80,38 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createSwapChain(TEngine *tEngine, void *window, uint64_t flags)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
+            #ifdef ENABLE_TRACING
+            if((flags & filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT) == filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT) {
+                TRACE("SWAP_CHAIN_CONFIG_TRANSPARENT");
+                
+            }
+            if((flags & filament::backend::SWAP_CHAIN_CONFIG_READABLE) == filament::backend::SWAP_CHAIN_CONFIG_READABLE) {
+                TRACE("SWAP_CHAIN_CONFIG_READABLE");
+            }
+            if((flags & filament::backend::SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER) == filament::backend::SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER) {
+                TRACE("SWAP_CHAIN_CONFIG_READABLE");
+            }
+            #endif
             auto *swapChain = engine->createSwapChain(window, flags);
             return reinterpret_cast<TSwapChain *>(swapChain);
         }
 
         EMSCRIPTEN_KEEPALIVE TSwapChain *Engine_createHeadlessSwapChain(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags)
         {
+            TRACE("Creating headless swapchain %dx%d, flags %flags", width, height, flags);
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *swapChain = engine->createSwapChain(width, height, flags);
+            #ifdef ENABLE_TRACING
+            if((flags & filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT) == filament::backend::SWAP_CHAIN_CONFIG_TRANSPARENT) {
+                TRACE("SWAP_CHAIN_CONFIG_TRANSPARENT");
+            }
+            if((flags & filament::backend::SWAP_CHAIN_CONFIG_READABLE) == filament::backend::SWAP_CHAIN_CONFIG_READABLE) {
+                TRACE("SWAP_CHAIN_CONFIG_READABLE");
+            }
+            if((flags & filament::backend::SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER) == filament::backend::SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER) {
+                TRACE("SWAP_CHAIN_CONFIG_READABLE");
+            }
+            #endif
             return reinterpret_cast<TSwapChain *>(swapChain);
         }
 
@@ -101,6 +125,9 @@ namespace thermion
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *view = engine->createView();
+            view->setShadowingEnabled(false);
+            view->setAmbientOcclusionOptions({.enabled = false});
+            view->setDynamicResolutionOptions({.enabled = false});
             return reinterpret_cast<TView *>(view);
         }
 

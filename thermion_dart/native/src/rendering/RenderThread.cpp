@@ -1,4 +1,4 @@
-#include "rendering/RenderLoop.hpp"
+#include "rendering/RenderThread.hpp"
 
 #include <functional>
 #include <stdlib.h>
@@ -8,7 +8,7 @@
 
 namespace thermion {
 
-RenderLoop::RenderLoop()
+RenderThread::RenderThread()
 {
     srand(time(NULL));
     t = new std::thread([this]() { 
@@ -18,26 +18,27 @@ RenderLoop::RenderLoop()
     });
 }
 
-RenderLoop::~RenderLoop()
+RenderThread::~RenderThread()
 {
-    TRACE("Destroying RenderLoop");
+    TRACE("Destroying RenderThread");
     _stop = true;
     _cv.notify_one();
-    TRACE("Joining RenderLoop thread..");    
+    TRACE("Joining RenderThread thread..");    
     t->join();
     delete t;
 
-    TRACE("RenderLoop destructor complete");    
+    TRACE("RenderThread destructor complete");    
 }
 
-void RenderLoop::requestFrame(void (*callback)())
+void RenderThread::requestFrame(void (*callback)())
 {
+    TRACE("Request frame");
     std::unique_lock<std::mutex> lock(_mutex);
     this->_requestFrameRenderCallback = callback;
     _cv.notify_one();
 }
 
-void RenderLoop::iter()
+void RenderThread::iter()
 {
     {
         std::unique_lock<std::mutex> lock(_mutex);

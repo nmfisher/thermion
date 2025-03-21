@@ -71,7 +71,7 @@ abstract class ThermionViewer {
   ///
   /// Removes the background image.
   ///
-  Future clearBackgroundImage();
+  Future clearBackgroundImage({bool destroy = false});
 
   ///
   /// Sets the color for the background plane (positioned at the maximum depth, i.e. behind all other objects including the skybox).
@@ -128,10 +128,11 @@ abstract class ThermionViewer {
   /// If you want to be able to call [createInstance] at a later time, you must pass true for [keepData].
   /// If [keepData] is false, the source glTF data will be released and [createInstance] will throw an exception.
   ///
-  Future<ThermionAsset> loadGlb(String path,
-      {int numInstances = 1,
+  Future<ThermionAsset> loadGltf(String path,
+      { bool addToScene=true,
+        int numInstances = 1,
       bool keepData = false,
-      String relativeResourcePath});
+      String? relativeResourcePath});
 
   ///
   /// Load the .glb asset from the specified buffer, adding all entities to the scene.
@@ -142,7 +143,7 @@ abstract class ThermionViewer {
   /// be loaded asynchronously (so expect some material/texture pop-in);
   ///
   ///
-  Future<ThermionAsset> loadGlbFromBuffer(Uint8List data,
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
       {int numInstances = 1,
       bool keepData = false,
       int priority = 4,
@@ -176,6 +177,11 @@ abstract class ThermionViewer {
   /// Enables/disables frustum culling.
   ///
   Future setViewFrustumCulling(bool enabled);
+
+  ///
+  /// Sets the viewport sizes and updates all cameras to use the new aspect ratio. 
+  ///
+  Future setViewport(int width, int height);
 
   ///
   /// Set the world space position for [lightEntity] to the given coordinates.
@@ -230,7 +236,7 @@ abstract class ThermionViewer {
   ///
   ///
   Future<ThermionAsset> createGeometry(Geometry geometry,
-      {List<MaterialInstance>? materialInstances, bool keepData = false});
+      {List<MaterialInstance>? materialInstances, bool keepData = false, bool addToScene=true});
 
   ///
   /// The gizmo for translating/rotating objects. Only one gizmo can be active for a given view.

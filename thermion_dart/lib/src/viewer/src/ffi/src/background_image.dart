@@ -31,8 +31,8 @@ class BackgroundImage extends ThermionAsset {
   Future destroy() async {
     Scene_removeEntity(scene.scene, entity);
 
-    await texture!.dispose();
-    await sampler!.dispose();
+    await texture?.dispose();
+    await sampler?.dispose();
     await mi.destroy();
   }
 
@@ -61,6 +61,10 @@ class BackgroundImage extends ThermionAsset {
   ///
   Future setBackgroundColor(double r, double g, double b, double a) async {
     await mi.setParameterFloat4("backgroundColor", r, g, b, a);
+  }
+
+  Future hideImage() async { 
+    await mi.setParameterInt("showImage", 0);
   }
 
   ///
@@ -315,6 +319,27 @@ class BackgroundImage extends ThermionAsset {
   @override
   Future updateBoneMatrices(ThermionEntity entity) {
     // TODO: implement updateBoneMatrices
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<String>> getChildEntityNames() async {
+    return [];
+  }
+
+  @override
+  Future<bool> isCastShadowsEnabled({ThermionEntity? entity}) async {
+    return false;
+  }
+
+  @override
+  Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity}) async {
+    return false;
+  }
+
+  @override
+  Future transformToUnitCube() {
+    // TODO: implement transformToUnitCube
     throw UnimplementedError();
   }
 }

@@ -31,7 +31,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
         (offsetTop * pixelRatio).ceil().toString();
 
     _viewer!
-        .updateViewportAndCameraProjection(width.ceil(), height.ceil(), 1.0);
+        .setViewportAndCameraProjection(width.ceil(), height.ceil(), 1.0);
 
     return PlatformTextureDescriptor(null, null, 0, 0, null);
   }
@@ -53,7 +53,7 @@ class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
         (offsetLeft * pixelRatio).ceil().toString();
     (canvas as HTMLElement).style.top =
         (offsetTop * pixelRatio).ceil().toString();
-    _viewer!.updateViewportAndCameraProjection(width, height, 1.0);
+    _viewer!.setViewportAndCameraProjection(width, height, 1.0);
     return PlatformTextureDescriptor(null, null, 0, 0, null);
   }
 

@@ -18,7 +18,7 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dar
 ///
 class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   final channel = const MethodChannel("dev.thermion.flutter/event");
-  
+
   late final _logger = Logger(this.runtimeType.toString());
 
   static SwapChain? _swapChain;
@@ -37,9 +37,10 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       return File(path.replaceAll("file://", "")).readAsBytesSync();
     }
     if (path.startsWith("asset://")) {
-      throw UnimplementedError();
+      path = path.replaceAll("asset://", "");
     }
-    throw UnimplementedError();
+    var asset = await rootBundle.load(path);
+    return asset.buffer.asUint8List(asset.offsetInBytes);
   }
 
   Future<ThermionViewer> createViewer({ThermionFlutterOptions? options}) async {
@@ -92,18 +93,19 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
         throw Exception("Unsupported platform");
       }
     }
+
     final config = FFIFilamentConfig(
         backend: backend,
-        resourceLoader: resourceLoader,
+        resourceLoader: loadAsset,
         driver: driverPtr,
         platform: nullptr,
         sharedContext: sharedContextPtr,
         uberArchivePath: options?.uberarchivePath);
 
-    await FFIFilamentApp.create(config);
+    await FFIFilamentApp.create(config: config);
 
     final viewer = ThermionViewerFFI(
-      loadAsset: loadAsset,
+      loadAssetFromUri: loadAsset,
     );
 
     await viewer.initialized;
@@ -117,9 +119,10 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     // avoid this
     if (Platform.isMacOS || Platform.isIOS) {
       _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1);
+      await FilamentApp.instance!.register(_swapChain!, viewer.view);
     }
 
-    return viewer!;
+    return viewer;
   }
 
   Future<PlatformTextureDescriptor> createTextureDescriptor(
@@ -157,27 +160,36 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
 
       _swapChain = await FilamentApp.instance!
           .createHeadlessSwapChain(descriptor.width, descriptor.height);
+      await FilamentApp.instance!.register(_swapChain!, view);
     } else if (Platform.isAndroid) {
       if (_swapChain != null) {
         await FilamentApp.instance!.setRenderable(view, false);
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
       }
-      _swapChain = await FilamentApp.instance!.createSwapChain(descriptor.windowHandle!);
+      _swapChain =
+          await FilamentApp.instance!.createSwapChain(descriptor.windowHandle!);
+      await FilamentApp.instance!.register(_swapChain!, view);
+
     } else {
-      final color = await FilamentApp.instance!.createTexture(
-          descriptor.width, descriptor.height,
-          importedTextureHandle: descriptor.hardwareId,
-          flags: {
-            TextureUsage.TEXTURE_USAGE_BLIT_DST,
-            TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
-            TextureUsage.TEXTURE_USAGE_SAMPLEABLE
-          });
-      final depth =
-          await FilamentApp.instance!.createTexture(descriptor.width, descriptor.height, flags: {
-        TextureUsage.TEXTURE_USAGE_BLIT_DST,
-        TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
-        TextureUsage.TEXTURE_USAGE_SAMPLEABLE
-      });
+      final color = await FilamentApp.instance!
+          .createTexture(descriptor.width, descriptor.height,
+              importedTextureHandle: descriptor.hardwareId,
+              flags: {
+                // TextureUsage.TEXTURE_USAGE_BLIT_DST,
+                TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+                TextureUsage.TEXTURE_USAGE_SAMPLEABLE
+              },
+              textureFormat: TextureFormat.RGBA8,
+              textureSamplerType: TextureSamplerType.SAMPLER_2D);
+      final depth = await FilamentApp.instance!
+          .createTexture(descriptor.width, descriptor.height,
+              flags: {
+                // TextureUsage.TEXTURE_USAGE_BLIT_DST,
+                TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT,
+                TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+              },
+              textureFormat: TextureFormat.DEPTH32F,
+              textureSamplerType: TextureSamplerType.SAMPLER_2D);
 
       var renderTarget = await FilamentApp.instance!.createRenderTarget(
           descriptor.width, descriptor.height,
@@ -185,7 +197,6 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
 
       await view.setRenderTarget(renderTarget);
     }
-    await FilamentApp.instance!.register(_swapChain!, view);
 
     return descriptor;
   }

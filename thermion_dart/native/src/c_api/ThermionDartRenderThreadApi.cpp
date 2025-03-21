@@ -19,7 +19,7 @@
 #include "c_api/TView.h"
 #include "c_api/ThermionDartRenderThreadApi.h"
 
-#include "rendering/RenderLoop.hpp"
+#include "rendering/RenderThread.hpp"
 #include "Log.hpp"
 
 using namespace thermion;
@@ -29,36 +29,41 @@ using namespace std::chrono_literals;
 extern "C"
 {
 
-  static std::unique_ptr<RenderLoop> _rl;
+  static std::unique_ptr<RenderThread> _renderThread;
 
-  EMSCRIPTEN_KEEPALIVE void RenderLoop_create() {
-    TRACE("RenderLoop_create");
-    if (_rl)
+  EMSCRIPTEN_KEEPALIVE void RenderThread_create() {
+    TRACE("RenderThread_create");
+    if (_renderThread)
     {
-      Log("WARNING - you are attempting to create a RenderLoop when the previous one has not been disposed.");
+      Log("WARNING - you are attempting to create a RenderThread when the previous one has not been disposed.");
     }
-    _rl = std::make_unique<RenderLoop>();
+    _renderThread = std::make_unique<RenderThread>();
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderLoop_destroy() {
-    TRACE("RenderLoop_destroy");
-    if (_rl)
+  EMSCRIPTEN_KEEPALIVE void RenderThread_destroy() {
+    TRACE("RenderThread_destroy");
+    if (_renderThread)
     {
-      _rl = nullptr;
+      _renderThread = nullptr;
     }
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderLoop_addTask(void (*task)()) {
+  EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)()) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
         task();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderLoop_requestAnimationFrame(void (*onComplete)()) {
-    _rl->requestFrame(onComplete);
+  EMSCRIPTEN_KEEPALIVE void RenderThread_setRenderTicker(TRenderTicker *tRenderTicker) {
+    auto *renderTicker = reinterpret_cast<RenderTicker *>(tRenderTicker);
+    _renderThread->setRenderTicker(renderTicker);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void RenderThread_requestAnimationFrame(void (*onComplete)()) {
+    _renderThread->requestFrame(onComplete);
   }
 
   
@@ -69,7 +74,7 @@ extern "C"
         RenderTicker_render(tRenderTicker, frameTimeInNanos);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
@@ -85,7 +90,7 @@ extern "C"
         auto engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
         onComplete(engine);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createRendererRenderThread(TEngine *tEngine, void (*onComplete)(TRenderer *)) {
@@ -95,7 +100,7 @@ extern "C"
         auto renderer = Engine_createRenderer(tEngine);
         onComplete(renderer);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createSwapChainRenderThread(TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *)) {
@@ -105,7 +110,7 @@ extern "C"
         auto swapChain = Engine_createSwapChain(tEngine, window, flags);
         onComplete(swapChain);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void Engine_createHeadlessSwapChainRenderThread(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *)) {
@@ -115,7 +120,7 @@ extern "C"
         auto swapChain = Engine_createHeadlessSwapChain(tEngine, width, height, flags);
         onComplete(swapChain);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, void (*onComplete)()) {
@@ -125,7 +130,7 @@ extern "C"
         Engine_destroySwapChain(tEngine, tSwapChain);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createCameraRenderThread(TEngine* tEngine, void (*onComplete)(TCamera *)) {
@@ -135,7 +140,7 @@ extern "C"
         auto camera = Engine_createCamera(tEngine);
         onComplete(camera);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createViewRenderThread(TEngine *tEngine, void (*onComplete)(TView *)) {
@@ -145,7 +150,7 @@ extern "C"
         auto * view = Engine_createView(tEngine);
         onComplete(view);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture *tTexture, void (*onComplete)())
@@ -156,7 +161,7 @@ extern "C"
           Engine_destroyTexture(engine, tTexture);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, void (*onComplete)()) {
@@ -166,7 +171,7 @@ extern "C"
           Engine_destroySkybox(tEngine, tSkybox);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
     
   EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, void (*onComplete)()) { 
@@ -176,7 +181,7 @@ extern "C"
         Engine_destroyIndirectLight(tEngine, tIndirectLight);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *))
@@ -187,7 +192,7 @@ extern "C"
           auto material = Engine_buildMaterial(tEngine, materialData, length);
           onComplete(material);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
 
@@ -199,7 +204,17 @@ extern "C"
           Engine_destroyMaterial(tEngine, tMaterial);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Engine_destroyMaterialInstance(tEngine, tMaterialInstance);
+        onComplete();
+      });
+      auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence*)) { 
@@ -209,7 +224,7 @@ extern "C"
         auto *fence = Engine_createFence(tEngine);
         onComplete(fence);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, void (*onComplete)()) {
@@ -219,7 +234,7 @@ extern "C"
         Engine_destroyFence(tEngine, tFence);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThead(TEngine *tEngine, void (*onComplete)()) {
@@ -229,7 +244,7 @@ extern "C"
         Engine_flushAndWait(tEngine);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, uint8_t *skyboxData, size_t length,  void (*onComplete)(TSkybox *),  void (*onTextureUploadComplete)()) {
@@ -239,7 +254,7 @@ extern "C"
         auto *skybox = Engine_buildSkybox(tEngine, skyboxData, length, onTextureUploadComplete);
         onComplete(skybox);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightRenderThread(TEngine *tEngine, uint8_t *iblData, size_t length, float intensity, void (*onComplete)(TIndirectLight *), void (*onTextureUploadComplete)()) {
@@ -249,7 +264,7 @@ extern "C"
         auto *indirectLight = Engine_buildIndirectLight(tEngine, iblData, length, intensity, onTextureUploadComplete);
         onComplete(indirectLight);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Renderer_beginFrameRenderThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool)) { 
@@ -259,7 +274,7 @@ extern "C"
         auto result = Renderer_beginFrame(tRenderer, tSwapChain, frameTimeInNanos);
         onComplete(result);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
   EMSCRIPTEN_KEEPALIVE void Renderer_endFrameRenderThread(TRenderer *tRenderer, void (*onComplete)()) {
     std::packaged_task<void()> lambda(
@@ -268,7 +283,7 @@ extern "C"
         Renderer_endFrame(tRenderer);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Renderer_renderRenderThread(TRenderer *tRenderer, TView *tView, void (*onComplete)()) {
@@ -278,7 +293,7 @@ extern "C"
         Renderer_render(tRenderer, tView);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, void (*onComplete)()) {
@@ -288,7 +303,7 @@ extern "C"
         Renderer_renderStandaloneView(tRenderer, tView);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptionsRenderThread(
@@ -306,7 +321,7 @@ extern "C"
           Renderer_setClearOptions(tRenderer, clearR, clearG, clearB, clearA, clearStencil, clear, discard);
           onComplete();
         });
-      auto fut = _rl->add_task(lambda);
+      auto fut = _renderThread->add_task(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsRenderThread(
@@ -323,7 +338,7 @@ extern "C"
         Renderer_readPixels(tRenderer, tView, tRenderTarget, tPixelBufferFormat, tPixelDataType, out);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *)) {
@@ -333,7 +348,7 @@ extern "C"
         auto *instance = Material_createImageMaterial(tEngine);
         onComplete(instance);
       });
-      auto fut = _rl->add_task(lambda);
+      auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
@@ -344,7 +359,7 @@ extern "C"
           auto *instance = Material_createInstance(tMaterial);
           onComplete(instance);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, void (*onComplete)()) {
@@ -354,7 +369,7 @@ extern "C"
         SceneAsset_destroy(tSceneAsset);
         onComplete();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_loadGlbRenderThread(
@@ -372,7 +387,7 @@ extern "C"
         auto sceneAsset = SceneAsset_loadGlb(tEngine, tAssetLoader, tNameComponentManager, data, length, numInstances);
         callback(sceneAsset);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryRenderThread(
@@ -396,7 +411,7 @@ extern "C"
       auto sceneAsset = SceneAsset_createGeometry(tEngine, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, tPrimitiveType, materialInstances, materialInstanceCount);
       callback(sceneAsset);
     });
-  auto fut = _rl->add_task(lambda);
+  auto fut = _renderThread->add_task(lambda);
 }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(
@@ -410,7 +425,7 @@ extern "C"
           auto instanceAsset = SceneAsset_createInstance(asset, tMaterialInstances, materialInstanceCount);
           callback(instanceAsset);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(TMaterialProvider *tMaterialProvider, TMaterialKey *tKey, void (*callback)(TMaterialInstance *))
@@ -421,7 +436,7 @@ extern "C"
           auto materialInstance = MaterialProvider_createMaterialInstance(tMaterialProvider, tKey);
           callback(materialInstance);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void View_setToneMappingRenderThread(TView *tView, TEngine *tEngine, TToneMapping toneMapping, void (*callback)())
@@ -432,7 +447,7 @@ extern "C"
           View_setToneMapping(tView, tEngine, toneMapping);
           callback();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, void (*callback)())
@@ -443,7 +458,7 @@ extern "C"
           View_setBloom(tView, enabled, strength);
           callback();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)())
@@ -454,7 +469,7 @@ extern "C"
           View_setCamera(tView, tCamera);
           callback();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *)) {
@@ -464,7 +479,7 @@ extern "C"
         auto *animationManager = AnimationManager_create(tEngine, tScene);
         onComplete(animationManager);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
@@ -478,7 +493,7 @@ extern "C"
           bool result = AnimationManager_updateBoneMatrices(tAnimationManager, sceneAsset);
           callback(result);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void AnimationManager_setMorphTargetWeightsRenderThread(
@@ -494,7 +509,7 @@ extern "C"
           bool result = AnimationManager_setMorphTargetWeights(tAnimationManager, entityId, morphData, numWeights);
           callback(result);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   // Add these implementations to your ThermionDartRenderThreadApi.cpp file
@@ -508,7 +523,7 @@ extern "C"
           auto image = Image_createEmpty(width, height, channel);
           onComplete(image);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_decodeRenderThread(uint8_t *data, size_t length, const char *name, void (*onComplete)(TLinearImage *))
@@ -519,7 +534,7 @@ extern "C"
           auto image = Image_decode(data, length, name);
           onComplete(image);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_getBytesRenderThread(TLinearImage *tLinearImage, void (*onComplete)(float *))
@@ -530,7 +545,7 @@ extern "C"
           auto bytes = Image_getBytes(tLinearImage);
           onComplete(bytes);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_destroyRenderThread(TLinearImage *tLinearImage, void (*onComplete)())
@@ -541,7 +556,7 @@ extern "C"
           Image_destroy(tLinearImage);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_getWidthRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
@@ -552,7 +567,7 @@ extern "C"
           auto width = Image_getWidth(tLinearImage);
           onComplete(width);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_getHeightRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
@@ -563,7 +578,7 @@ extern "C"
           auto height = Image_getHeight(tLinearImage);
           onComplete(height);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Image_getChannelsRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t))
@@ -574,7 +589,7 @@ extern "C"
           auto channels = Image_getChannels(tLinearImage);
           onComplete(channels);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(
@@ -593,7 +608,7 @@ extern "C"
           auto *texture = Texture_build(tEngine, width, height, depth, levels, tUsage, import, sampler, format);
           onComplete(texture);
         });
-    auto fut = _rl->add_task(lambda);  
+    auto fut = _renderThread->add_task(lambda);  
     }
 
   // Texture methods
@@ -607,7 +622,7 @@ extern "C"
           bool result = Texture_loadImage(tEngine, tTexture, tImage, bufferFormat, pixelDataType);
           onComplete(result);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Texture_setImageRenderThread(
@@ -630,7 +645,7 @@ extern "C"
                                          bufferFormat, pixelDataType);
           onComplete(result);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Texture_setImageWithDepthRenderThread(
@@ -671,7 +686,7 @@ extern "C"
         );
         onComplete(result);
       });
-  auto fut = _rl->add_task(lambda);
+  auto fut = _renderThread->add_task(lambda);
 }
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *))
@@ -682,7 +697,7 @@ extern "C"
           auto texture = RenderTarget_getColorTexture(tRenderTarget);
           onComplete(texture);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderTarget_createRenderThread(
@@ -702,7 +717,7 @@ extern "C"
           auto texture = RenderTarget_create(tEngine, width, height, tColor, tDepth);
           onComplete(texture);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   
@@ -716,7 +731,7 @@ extern "C"
           auto sampler = TextureSampler_create();
           onComplete(sampler);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithFilteringRenderThread(
@@ -733,7 +748,7 @@ extern "C"
           auto sampler = TextureSampler_createWithFiltering(minFilter, magFilter, wrapS, wrapT, wrapR);
           onComplete(sampler);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithComparisonRenderThread(
@@ -747,7 +762,7 @@ extern "C"
           auto sampler = TextureSampler_createWithComparison(compareMode, compareFunc);
           onComplete(sampler);
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterRenderThread(
@@ -761,7 +776,7 @@ extern "C"
           TextureSampler_setMinFilter(sampler, filter);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterRenderThread(
@@ -775,7 +790,7 @@ extern "C"
           TextureSampler_setMagFilter(sampler, filter);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSRenderThread(
@@ -789,7 +804,7 @@ extern "C"
           TextureSampler_setWrapModeS(sampler, mode);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTRenderThread(
@@ -803,7 +818,7 @@ extern "C"
           TextureSampler_setWrapModeT(sampler, mode);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRRenderThread(
@@ -817,7 +832,7 @@ extern "C"
           TextureSampler_setWrapModeR(sampler, mode);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyRenderThread(
@@ -831,7 +846,7 @@ extern "C"
           TextureSampler_setAnisotropy(sampler, anisotropy);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareModeRenderThread(
@@ -846,7 +861,7 @@ extern "C"
           TextureSampler_setCompareMode(sampler, mode, func);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyRenderThread(
@@ -859,7 +874,7 @@ extern "C"
           TextureSampler_destroy(sampler);
           onComplete();
         });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *)) {
@@ -869,7 +884,7 @@ extern "C"
         auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider);
         callback(loader);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, const char* relativeResourcePath, void (*callback)(TGltfResourceLoader *)) {
@@ -879,7 +894,7 @@ extern "C"
         auto loader = GltfResourceLoader_create(tEngine, relativeResourcePath);
         callback(loader);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, void (*callback)()) {
@@ -889,7 +904,7 @@ extern "C"
         GltfResourceLoader_destroy(tEngine, tResourceLoader);
         callback();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool)) {
@@ -899,7 +914,7 @@ extern "C"
         auto result = GltfResourceLoader_loadResources(tGltfResourceLoader, tFilamentAsset);
         callback(result);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataRenderThread(
@@ -914,7 +929,7 @@ extern "C"
         GltfResourceLoader_addResourceData(tGltfResourceLoader, uri, data, length);
         callback();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
   
   EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
@@ -931,7 +946,7 @@ extern "C"
         auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
         callback(loader);
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, void (*callback)()) {
@@ -941,6 +956,6 @@ extern "C"
         Scene_addFilamentAsset(tScene, tAsset);
         callback();
       });
-    auto fut = _rl->add_task(lambda);
+    auto fut = _renderThread->add_task(lambda);
   }
 }

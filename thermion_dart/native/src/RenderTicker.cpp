@@ -69,12 +69,21 @@ namespace thermion
 
     for (auto animationManager : mAnimationManagers) {
       animationManager->update(frameTimeInNanos);
-    }
+      TRACE("Updated AnimationManager");
 
+    }
+    
+    #ifdef ENABLE_TRACING
+    int numRendered = 0;
+    TRACE("%d swapchains", mRenderable.size());
+    #endif
+    
     for (const auto& [swapChain, views] : mRenderable)
     {
       if (!views.empty())
       {
+        TRACE("Rendering %d views", views.size());
+
         bool beginFrame = mRenderer->beginFrame(swapChain, frameTimeInNanos);
         if (beginFrame)
         {
@@ -84,7 +93,15 @@ namespace thermion
           }
         }
         mRenderer->endFrame();
+    #ifdef ENABLE_TRACING
+        numRendered++;
+      } else {
+        TRACE("No views for swapchain");
       }
+      TRACE("%d swapchains rendered", numRendered);
+    #else
+    }
+      #endif
     }
 #ifdef __EMSCRIPTEN__
     _engine->execute();

@@ -11,6 +11,10 @@ public class ThermionFlutterTexture : NSObject, FlutterTexture {
     init(registry:FlutterTextureRegistry, width:Int64, height:Int64) {
         self.registry = registry
         self.texture = ThermionTextureSwift(width:width, height: height, isDepth: false)
+        // if you need to debug
+        // self.texture.fillColor() 
+        // let imageURL = URL(fileURLWithPath: "/Users/nickfisher/Documents/thermion/thermion_dart/test/assets/cube_texture_512x512.png")
+        // let success = self.texture.fillWithPNGImage(imageURL: imageURL)
         super.init()
         self.flutterTextureId = registry.register(self)
     }

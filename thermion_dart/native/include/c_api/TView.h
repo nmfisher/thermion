@@ -32,8 +32,14 @@ enum TQualityLevel {
     ULTRA
 };
 
+enum TBlendMode {
+    OPAQUE,
+    TRANSLUCENT
+};
+
 // View
 EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *view);
+EMSCRIPTEN_KEEPALIVE void View_setBlendMode(TView *view, TBlendMode blendMode);
 EMSCRIPTEN_KEEPALIVE void View_setViewport(TView *view, uint32_t width, uint32_t height);
 EMSCRIPTEN_KEEPALIVE void View_setRenderTarget(TView *view, TRenderTarget *renderTarget);
 EMSCRIPTEN_KEEPALIVE void View_setFrustumCullingEnabled(TView *view, bool enabled);

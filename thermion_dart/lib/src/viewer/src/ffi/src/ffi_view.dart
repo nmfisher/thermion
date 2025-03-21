@@ -11,6 +11,9 @@ class FFIView extends View {
   final Pointer<TView> view;
   final FFIFilamentApp app;
 
+  bool _renderable = false;
+  bool get renderable => _renderable;
+
   FFIRenderTarget? renderTarget;
 
   FFIView(this.view, this.app) {
@@ -20,8 +23,19 @@ class FFIView extends View {
     }
   }
 
+  Future setRenderable(bool renderable) async {
+    this._renderable = renderable;
+  }
+
   @override
   Future setViewport(int width, int height) async {
+    // var width_logbase2 = log(width) / ln2;
+    // var height_logbase2 = log(height) / ln2;
+    // var newWidth = pow(2.0, width_logbase2.ceil());
+    // var newHeight = pow(2.0, height_logbase2.ceil());
+    // print("old: ${width}x${height} new: ${height}x${newHeight}");
+    // width = newWidth.toInt();
+    // height = newHeight.toInt();
     View_setViewport(view, width, height);
   }
 
@@ -80,8 +94,7 @@ class FFIView extends View {
 
   @override
   Future setToneMapper(ToneMapper mapper) async {
-    await withVoidCallback((cb) => 
-    View_setToneMappingRenderThread(
+    await withVoidCallback((cb) => View_setToneMappingRenderThread(
         view, app.engine, TToneMapping.values[mapper.index], cb));
   }
 

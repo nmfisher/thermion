@@ -67,6 +67,24 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
+  Future<List<String?>> getChildEntityNames() async {
+    final childEntities = await getChildEntities();
+    var names = <String?>[];
+    for (final entity in childEntities) {
+      var name = NameComponentManager_getName(app.nameComponentManager, entity);
+      if (name == nullptr) {
+        names.add(null);
+      } else {
+        names.add(name.cast<Utf8>().toDartString());
+      }
+    }
+    return names;
+  }
+
+  ///
+  ///
+  ///
+  @override
   Future<ThermionEntity?> getChildEntity(String childName) async {
     final childEntities = await getChildEntities();
     for (final entity in childEntities) {
@@ -392,14 +410,16 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  Future<bool> isCastShadowsEnabled(ThermionEntity entity) async {
+  Future<bool> isCastShadowsEnabled({ThermionEntity? entity}) async {
+    entity ??= this.entity;
     return RenderableManager_isShadowCaster(app.renderableManager, entity);
   }
 
   ///
   ///
   ///
-  Future<bool> isReceiveShadowsEnabled(ThermionEntity entity) async {
+  Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity}) async {
+    entity ??= this.entity;
     return RenderableManager_isShadowReceiver(app.renderableManager, entity);
   }
 

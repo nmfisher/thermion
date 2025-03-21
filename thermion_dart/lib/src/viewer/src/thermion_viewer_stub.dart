@@ -10,6 +10,12 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
+  Future addToScene(covariant ThermionAsset asset) {
+    // TODO: implement addToScene
+    throw UnimplementedError();
+  }
+
+  @override
   Future clearBackgroundImage() {
     // TODO: implement clearBackgroundImage
     throw UnimplementedError();
@@ -18,12 +24,6 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future<Camera> createCamera() {
     // TODO: implement createCamera
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances, bool keepData = false}) {
-    // TODO: implement createGeometry
     throw UnimplementedError();
   }
 
@@ -92,20 +92,14 @@ class ThermionViewerStub extends ThermionViewer {
   Future<bool> get initialized => throw UnimplementedError();
 
   @override
-  Future<ThermionAsset> loadGlb(String path, {int numInstances = 1, bool keepData = false}) {
-    // TODO: implement loadGlb
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionAsset> loadGlbFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false}) {
-    // TODO: implement loadGlbFromBuffer
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionAsset> loadGltf(String path, String relativeResourcePath, {bool keepData = false}) {
+  Future<ThermionAsset> loadGltf(String path, {int numInstances = 1, bool keepData = false, String? relativeResourcePath}) {
     // TODO: implement loadGltf
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false, String? relativeResourcePath}) {
+    // TODO: implement loadGltfFromBuffer
     throw UnimplementedError();
   }
 
@@ -133,6 +127,12 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future pick(int x, int y, void Function(PickResult p1) resultHandler) {
     // TODO: implement pick
+    throw UnimplementedError();
+  }
+
+  @override
+  Future removeFromScene(covariant ThermionAsset asset) {
+    // TODO: implement removeFromScene
     throw UnimplementedError();
   }
 
@@ -287,5 +287,5 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   // TODO: implement view
   View get view => throw UnimplementedError();
-  
+    
 }

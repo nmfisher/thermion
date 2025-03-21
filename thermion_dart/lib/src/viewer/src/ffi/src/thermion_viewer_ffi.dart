@@ -33,8 +33,6 @@ class ThermionViewerFFI extends ThermionViewer {
 
   late final FFIFilamentApp app;
 
-  final FFIRenderTarget? renderTarget;
-
   late final FFIView view;
   late final FFIScene scene;
   late final Pointer<TAnimationManager> animationManager;
@@ -43,7 +41,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  ThermionViewerFFI({required this.loadAssetFromUri, this.renderTarget}) {
+  ThermionViewerFFI({required this.loadAssetFromUri}) {
     if (FilamentApp.instance == null) {
       throw Exception("FilamentApp has not been created");
     }
@@ -56,7 +54,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future setViewport(double width, double height) async {
+  Future setViewport(int width, int height) async {
     await view.setViewport(width.toInt(), height.toInt());
 
     for (final camera in _cameras) {
@@ -69,12 +67,12 @@ class ThermionViewerFFI extends ThermionViewer {
         far = kFar;
       }
 
-      var aspect = width / height;
+      var aspect = width.toDouble() / height.toDouble();
       var focalLength = await camera.getFocalLength();
       if (focalLength.abs() < 0.1) {
         focalLength = kFocalLength;
       }
-      camera.setLensProjection(
+      await camera.setLensProjection(
           near: near, far: far, aspect: aspect, focalLength: focalLength);
     }
   }
@@ -85,6 +83,14 @@ class ThermionViewerFFI extends ThermionViewer {
         await withPointerCallback<TView>(
             (cb) => Engine_createViewRenderThread(app.engine, cb)),
         app);
+    await view.setFrustumCullingEnabled(true);
+    View_setBlendMode(view.view, TBlendMode.TRANSLUCENT);
+    View_setShadowsEnabled(view.view, false);
+    View_setStencilBufferEnabled(view.view, false);
+    View_setAntiAliasing(view.view, false, false, false);
+    View_setDitheringEnabled(view.view, false);
+    View_setRenderQuality(view.view, TQualityLevel.MEDIUM);
+    await FilamentApp.instance!.setClearColor(1.0, 0.0, 0.0, 1.0);
     scene = FFIScene(Engine_createScene(app.engine));
     await view.setScene(scene);
     final camera = FFICamera(
@@ -92,12 +98,10 @@ class ThermionViewerFFI extends ThermionViewer {
             (cb) => Engine_createCameraRenderThread(app.engine, cb)),
         app);
     _cameras.add(camera);
+    await camera.setLensProjection();
 
     await view.setCamera(camera);
 
-    if (renderTarget != null) {
-      await view.setRenderTarget(renderTarget);
-    }
     animationManager = await withPointerCallback<TAnimationManager>((cb) =>
         AnimationManager_createRenderThread(app.engine, scene.scene, cb));
 
@@ -180,9 +184,13 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future clearBackgroundImage() async {
-    await _backgroundImage?.destroy();
-    _backgroundImage = null;
+  Future clearBackgroundImage({bool destroy = false}) async {
+    if (destroy) {
+      await _backgroundImage?.destroy();
+      _backgroundImage = null;
+    } else {
+      _backgroundImage?.hideImage();
+    }
   }
 
   ///
@@ -335,7 +343,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future destroyLights() async {
-    for (final light in _lights) {
+    for (final light in _lights.toList()) {
       await removeLight(light);
     }
   }
@@ -347,37 +355,45 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   @override
-  Future<ThermionAsset> loadGlb(String path,
-      {int numInstances = 1, bool keepData = false, String? relativeResourcePath}) async {
+  Future<ThermionAsset> loadGltf(String path,
+      {bool addToScene = true,
+      int numInstances = 1,
+      bool keepData = false,
+      String? relativeResourcePath}) async {
     final data = await loadAssetFromUri(path);
 
-    return loadGlbFromBuffer(data,
-        numInstances: numInstances, keepData: keepData, relativeResourcePath: relativeResourcePath);
+    return loadGltfFromBuffer(data,
+        addToScene: addToScene,
+        numInstances: numInstances,
+        keepData: keepData,
+        relativeResourcePath: relativeResourcePath);
   }
 
   ///
   ///
   ///
   @override
-  Future<ThermionAsset> loadGlbFromBuffer(Uint8List data,
-      {int numInstances = 1,
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
+      {bool addToScene = true,
+      int numInstances = 1,
       bool keepData = false,
       int priority = 4,
       int layer = 0,
       bool loadResourcesAsync = false,
       String? relativeResourcePath}) async {
-    var asset = await FilamentApp.instance!.loadGlbFromBuffer(data, animationManager,
+    var asset = await FilamentApp.instance!.loadGltfFromBuffer(
+        data, animationManager,
         numInstances: numInstances,
         keepData: keepData,
         priority: priority,
         layer: layer,
         loadResourcesAsync: loadResourcesAsync,
-        relativeResourcePath:relativeResourcePath
-        ) as FFIAsset;
-   
-    _assets.add(asset);
+        relativeResourcePath: relativeResourcePath) as FFIAsset;
 
-    await scene.add(asset);
+    _assets.add(asset);
+    if (addToScene) {
+      await scene.add(asset);
+    }
 
     return asset;
   }
@@ -424,6 +440,8 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setPostProcessing(bool enabled) async {
     View_setPostProcessing(view.view, enabled);
+    await withVoidCallback(
+        (cb) => Engine_flushAndWaitRenderThead(app.engine, cb));
   }
 
   ///
@@ -655,7 +673,8 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<ThermionAsset> createGeometry(Geometry geometry,
       {List<MaterialInstance>? materialInstances,
-      bool keepData = false}) async {
+      bool keepData = false,
+      bool addToScene = true}) async {
     var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
       var ptrList = Int64List(materialInstances?.length ?? 0);
       if (materialInstances != null && materialInstances.isNotEmpty) {
@@ -688,7 +707,9 @@ class ThermionViewerFFI extends ThermionViewer {
     }
 
     var asset = FFIAsset(assetPtr, app, animationManager);
-
+    if (addToScene) {
+      await scene.add(asset);
+    }
     return asset;
   }
 

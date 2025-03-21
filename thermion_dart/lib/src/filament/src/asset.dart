@@ -35,6 +35,11 @@ abstract class ThermionAsset {
   ///
   ///
   ///
+  Future<List<String?>> getChildEntityNames();
+
+  ///
+  ///
+  ///
   Future<ThermionEntity?> getChildEntity(String childName);
 
   ///
@@ -90,6 +95,21 @@ abstract class ThermionAsset {
   ///
   ///
   Future setReceiveShadows(bool castShadows);
+
+  ///
+  ///
+  ///
+  Future<bool> isCastShadowsEnabled({ThermionEntity? entity});
+
+  ///
+  ///
+  ///
+  Future<bool> isReceiveShadowsEnabled({ThermionEntity? entity});
+
+  ///
+  ///
+  ///
+  Future transformToUnitCube();
 
   ///
   /// All renderable entities are assigned a layer mask.

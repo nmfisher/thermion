@@ -16,6 +16,11 @@ using namespace filament;
 
 #endif
 
+    EMSCRIPTEN_KEEPALIVE void View_setBlendMode(TView *tView, TBlendMode tBlendMode) {
+        auto view = reinterpret_cast<View *>(tView);
+        view->setBlendMode(static_cast<filament::View::BlendMode>(tBlendMode));
+    }
+
     EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *tView)
     {
         auto view = reinterpret_cast<View *>(tView);
@@ -58,6 +63,8 @@ using namespace filament;
     {
         auto view = reinterpret_cast<View *>(tView);
         view->setPostProcessingEnabled(enabled);
+        TRACE("Set postprocessing enabled : %d", enabled);
+
     }
 
     EMSCRIPTEN_KEEPALIVE void View_setShadowsEnabled(TView *tView, bool enabled)
@@ -88,6 +95,7 @@ using namespace filament;
         decltype(view->getBloomOptions()) opts;
         opts.enabled = enabled;
         opts.strength = strength;
+        TRACE("Setting bloom options {.enabled = %d, strength = %f}", enabled, strength);
         view->setBloomOptions(opts);
 #endif
     }
@@ -101,19 +109,19 @@ using namespace filament;
         switch (tToneMapping)
         {
         case TToneMapping::ACES:
-            Log("Setting tone mapping to ACES");
+            TRACE("Setting tone mapping to ACES");
             tm = new ACESToneMapper();
             break;
         case TToneMapping::LINEAR:
-            Log("Setting tone mapping to Linear");
+            TRACE("Setting tone mapping to Linear");
             tm = new LinearToneMapper();
             break;
         case TToneMapping::FILMIC:
-            Log("Setting tone mapping to Filmic");
+            TRACE("Setting tone mapping to Filmic");
             tm = new FilmicToneMapper();
             break;
         default:
-            Log("ERROR: Unsupported tone mapping");
+            TRACE("ERROR: Unsupported tone mapping");
             return;
         }
         auto newColorGrading = ColorGrading::Builder().toneMapper(tm).build(*engine);
@@ -200,6 +208,21 @@ using namespace filament;
         auto view = reinterpret_cast<View *>(tView);
         RenderQuality rq;
         rq.hdrColorBuffer = (filament::QualityLevel)qualityLevel;
+        switch(rq.hdrColorBuffer) { 
+            case filament::QualityLevel::LOW:
+                TRACE("Render Quality: LOW");
+                break;
+            case filament::QualityLevel::MEDIUM:
+                TRACE("Render Quality: MEDIUM");
+                break;
+            case filament::QualityLevel::HIGH:
+                TRACE("Render Quality: HIGH");
+                break;
+            case filament::QualityLevel::ULTRA:
+                TRACE("Render Quality: ULTRA");
+                break;
+        }
+        
         view->setRenderQuality(rq);
     }
 

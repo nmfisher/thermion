@@ -21,7 +21,7 @@ Future<void> withVoidCallback2(Function() func) async {
     completer.complete();
   };
   final nativeCallable = NativeCallable<Void Function()>.listener(callback);
-  RenderLoop_addTask(nativeCallable.nativeFunction);
+  RenderThread_addTask(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
 }

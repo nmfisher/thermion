@@ -17,6 +17,11 @@ extern "C"
         return reinterpret_cast<TAnimationManager *>(animationManager);
     }
 
+    EMSCRIPTEN_KEEPALIVE void AnimationManager_update(TAnimationManager *tAnimationManager, uint64_t frameTimeInNanos) {
+        auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);
+        animationManager->update(frameTimeInNanos);
+    }
+
     EMSCRIPTEN_KEEPALIVE void AnimationManager_addAnimationComponent(TAnimationManager *tAnimationManager, EntityId entityId)
     {
         auto animationManager = reinterpret_cast<AnimationManager *>(tAnimationManager);

@@ -202,7 +202,7 @@ class FFIMaterialInstance extends MaterialInstance {
       completer.complete();
     };
     final nativeCallable = NativeCallable<Void Function()>.listener(func);
-    RenderLoop_addTask(nativeCallable.nativeFunction);
+    RenderThread_addTask(nativeCallable.nativeFunction);
     await completer.future;
   }
 }

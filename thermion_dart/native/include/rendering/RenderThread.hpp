@@ -17,17 +17,17 @@ namespace thermion {
  * This class handles frame rendering requests, viewer creation, and maintains
  * a task queue for rendering operations.
  */
-class RenderLoop {
+class RenderThread {
 public:
     /**
-     * @brief Constructs a new RenderLoop and starts the render thread.
+     * @brief Constructs a new RenderThread and starts the render thread.
      */
-    explicit RenderLoop();
+    explicit RenderThread();
 
     /**
-     * @brief Destroys the RenderLoop and stops the render thread.
+     * @brief Destroys the RenderThread and stops the render thread.
      */
-    ~RenderLoop();
+    ~RenderThread();
 
     /**
      * @brief Requests a frame to be rendered.
@@ -74,7 +74,7 @@ private:
 
 // Template implementation
 template <class Rt>
-auto RenderLoop::add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
+auto RenderThread::add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
     std::unique_lock<std::mutex> lock(_taskMutex);
     auto ret = pt.get_future();
     _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(

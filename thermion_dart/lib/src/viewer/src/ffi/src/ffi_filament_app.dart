@@ -70,8 +70,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await FilamentApp.instance!.destroy();
     }
 
-    RenderLoop_destroy();
-    RenderLoop_create();
+    RenderThread_destroy();
+    RenderThread_create();
 
     final engine = await withPointerCallback<TEngine>((cb) =>
         Engine_createRenderThread(
@@ -95,6 +95,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     final renderTicker = RenderTicker_create(renderer);
 
+    RenderThread_setRenderTicker(renderTicker);
+
     final nameComponentManager = NameComponentManager_create();
 
     FilamentApp.instance = FFIFilamentApp(
@@ -110,30 +112,34 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         config.resourceLoader);
   }
 
-  final _views = <FFISwapChain, List<FFIView>>{};
-  final _viewMappings = <FFIView, FFISwapChain>{};
+  final _swapChains = <FFISwapChain, List<FFIView>>{};
+  final viewsPtr = calloc<Pointer<TView>>(255);
 
   ///
   ///
   ///
   Future setRenderable(covariant FFIView view, bool renderable) async {
-    final swapChain = _viewMappings[view]!;
-    if (renderable && !_views[swapChain]!.contains(view)) {
-      _views[swapChain]!.add(view);
-    } else if (!renderable && _views[swapChain]!.contains(view)) {
-      _views[swapChain]!.remove(view);
-    }
+    await view.setRenderable(renderable);
+    await _updateRenderableSwapChains();
+  }
 
-    final views = calloc<Pointer<TView>>(255);
-    for (final swapChain in _views.keys) {
-      var numViews = _views[swapChain]!.length;
-      for (int i = 0; i < numViews; i++) {
-        views[i] = _views[swapChain]![i].view;
+  Future _updateRenderableSwapChains() async {
+    for (final swapChain in _swapChains.keys) {
+      final views = _swapChains[swapChain];
+      if (views == null) {
+        continue;
+      }
+
+      int numRenderable = 0;
+      for (final view in views) {
+        if (view.renderable) {
+          viewsPtr[numRenderable] = view.view;
+          numRenderable++;
+        }
       }
       RenderTicker_setRenderable(
-          renderTicker, swapChain.swapChain, views, numViews);
+          renderTicker, swapChain.swapChain, viewsPtr, numRenderable);
     }
-    calloc.free(views);
   }
 
   @override
@@ -143,6 +149,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (hasStencilBuffer) {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
+    print("swapchain flags $flags");
     final swapChain = await withPointerCallback<TSwapChain>((cb) =>
         Engine_createHeadlessSwapChainRenderThread(
             this.engine, width, height, flags, cb));
@@ -173,6 +180,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       Engine_destroySwapChainRenderThread(
           engine, (swapChain as FFISwapChain).swapChain, callback);
     });
+    _swapChains.remove(swapChain);
   }
 
   ///
@@ -180,17 +188,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future destroy() async {
-    for (final swapChain in _views.keys) {
-      for (final view in _views[swapChain]!) {
+    for (final swapChain in _swapChains.keys) {
+      if (_swapChains[swapChain] == null) {
+        continue;
+      }
+      for (final view in _swapChains[swapChain]!) {
         await setRenderable(view, false);
       }
     }
-    for (final swapChain in _views.keys) {
+    for (final swapChain in _swapChains.keys.toList()) {
       await destroySwapChain(swapChain);
     }
-    RenderLoop_destroy();
+    RenderThread_destroy();
     RenderTicker_destroy(renderTicker);
     Engine_destroy(engine);
+    calloc.free(viewsPtr);
   }
 
   ///
@@ -440,8 +452,24 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future render() async {
-    await withVoidCallback(
-        (cb) => RenderTicker_renderRenderThread(renderTicker, 0, cb));
+    // await withVoidCallback(
+    //     (cb) => RenderTicker_renderRenderThread(renderTicker, 0, cb));
+    final swapchain = _swapChains.keys.first;
+    final view = _swapChains[swapchain]!.first;
+    await withBoolCallback((cb) {
+      Renderer_beginFrameRenderThread(renderer, swapchain.swapChain, 0, cb);
+    });
+    await withVoidCallback((cb) {
+      Renderer_renderRenderThread(
+        renderer,
+        view.view,
+        cb,
+      );
+    });
+
+    await withVoidCallback((cb) {
+      Renderer_endFrameRenderThread(renderer, cb);
+    });
   }
 
   ///
@@ -450,11 +478,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   @override
   Future register(
       covariant FFISwapChain swapChain, covariant FFIView view) async {
-    _viewMappings[view] = swapChain;
-    if (!_views.containsKey(swapChain)) {
-      _views[swapChain] = [];
+    if (!_swapChains.containsKey(swapChain)) {
+      _swapChains[swapChain] = [];
     }
-    _views[swapChain]!.add(view);
+    _swapChains[swapChain]!.add(view);
+    await _updateRenderableSwapChains();
   }
 
   final _hooks = <Future Function()>[];
@@ -493,7 +521,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       completer.complete(true);
     });
 
-    RenderLoop_requestAnimationFrame(callback.nativeFunction.cast());
+    RenderThread_requestAnimationFrame(callback.nativeFunction.cast());
 
     try {
       await completer.future.timeout(Duration(seconds: 1));
@@ -572,15 +600,20 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future<Uint8List> capture(covariant FFIView view,
       {bool captureRenderTarget = false}) async {
     final viewport = await view.getViewport();
-    final swapChain = _viewMappings[view];
+    final swapChain = _swapChains.keys
+        .firstWhere((x) => _swapChains[x]?.contains(view) == true);
     final out = Uint8List(viewport.width * viewport.height * 4);
 
     await withVoidCallback((cb) {
       Engine_flushAndWaitRenderThead(engine, cb);
     });
 
+    var fence = await withPointerCallback<TFence>((cb) {
+      Engine_createFenceRenderThread(engine, cb);
+    });
+
     await withBoolCallback((cb) {
-      Renderer_beginFrameRenderThread(renderer, swapChain!.swapChain, 0, cb);
+      Renderer_beginFrameRenderThread(renderer, swapChain.swapChain, 0, cb);
     });
     await withVoidCallback((cb) {
       Renderer_renderRenderThread(
@@ -607,9 +640,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await withVoidCallback((cb) {
       Renderer_endFrameRenderThread(renderer, cb);
     });
+
     await withVoidCallback((cb) {
-      Engine_flushAndWaitRenderThead(engine, cb);
+      Engine_destroyFenceRenderThread(engine, fence, cb);
     });
+
+    // await withVoidCallback((cb) {
+    //   Engine_flushAndWaitRenderThead(engine, cb);
+    // });
     return out;
   }
 
@@ -623,7 +661,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future<ThermionAsset> loadGlbFromBuffer(
+  Future<ThermionAsset> loadGltfFromBuffer(
       Uint8List data, Pointer animationManager,
       {int numInstances = 1,
       bool keepData = false,
@@ -631,7 +669,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       int layer = 0,
       String? relativeResourcePath,
       bool loadResourcesAsync = false}) async {
-    if (relativeResourcePath != null && !relativeResourcePath!.endsWith("/")) {
+    if (relativeResourcePath != null && !relativeResourcePath.endsWith("/")) {
       relativeResourcePath = "$relativeResourcePath/";
     }
     var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
@@ -648,7 +686,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     var resourceUris = SceneAsset_getResourceUris(asset);
     var resourceUriCount = SceneAsset_getResourceUriCount(asset);
-
     final resources = <FinalizableUint8List>[];
 
     for (int i = 0; i < resourceUriCount; i++) {

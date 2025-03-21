@@ -241,7 +241,7 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  Future<ThermionAsset> loadGlbFromBuffer(Uint8List data, T animationManager,
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, T animationManager,
       {int numInstances = 1,
       bool keepData = false,
       int priority = 4,

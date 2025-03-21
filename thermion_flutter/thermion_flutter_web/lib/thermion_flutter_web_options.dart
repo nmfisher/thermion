@@ -11,9 +11,5 @@ class ThermionFlutterWebOptions extends ThermionFlutterOptions {
       String? uberarchivePath})
       : super(uberarchivePath: uberarchivePath);
 
-  const ThermionFlutterWebOptions.empty(
-      {this.importCanvasAsWidget = false,
-      this.createCanvas = true,
-      String? uberarchivePath})
-      : super.empty();
+
 }

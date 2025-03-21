@@ -165,22 +165,25 @@ class TestHelper {
     resourceLoader.ref.freeResource = freeResource.nativeFunction;
     await FFIFilamentApp.create();
 
-    await FilamentApp.instance!.setClearColor(0, 0, 0, 1);
+    await FilamentApp.instance!.setClearColor(0, 1, 0, 1);
   }
 
   ///
   ///
   ///
-  Future withViewer(Future Function(ThermionViewer viewer) fn,
-      {img.Color? bg,
-      Vector3? cameraPosition,
-      ({int width, int height}) viewportDimensions = (width: 500, height: 500),
-      bool postProcessing = false,
-      bool createRenderTarget = false}) async {
+  Future withViewer(
+    Future Function(ThermionViewer viewer) fn, {
+    img.Color? bg,
+    Vector3? cameraPosition,
+    ({int width, int height}) viewportDimensions = (width: 512, height: 512),
+    bool postProcessing = false,
+    bool addSkybox = false,
+    bool createRenderTarget = false,
+  }) async {
     cameraPosition ??= Vector3(0, 2, 6);
 
-    var swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
-        viewportDimensions.width, viewportDimensions.height) as FFISwapChain;
+    var swapChain = await FilamentApp.instance!
+        .createHeadlessSwapChain(viewportDimensions.width, viewportDimensions.height) as FFISwapChain;
 
     FFIRenderTarget? renderTarget;
     if (createRenderTarget) {
@@ -198,7 +201,8 @@ class TestHelper {
               },
               textureFormat: TextureFormat.RGB32F,
               importedTextureHandle: metalColorTexture.metalTextureAddress);
-
+      var width = await color.getWidth();
+      var height = await color.getHeight();
       var depth = await FilamentApp.instance!
           .createTexture(viewportDimensions.width, viewportDimensions.height,
               flags: {
@@ -216,16 +220,23 @@ class TestHelper {
 
     var viewer = ThermionViewerFFI(
         loadAssetFromUri: (path) async =>
-            File(path.replaceAll("file://", "")).readAsBytesSync(),
-        renderTarget: renderTarget);
+            File(path.replaceAll("file://", "")).readAsBytesSync());
 
     await viewer.initialized;
     await FilamentApp.instance!.register(swapChain, viewer.view);
-
+    if (renderTarget != null) {
+      await viewer.view.setRenderTarget(renderTarget);
+    }
     await viewer.view
-        .setViewport(viewportDimensions.width, viewportDimensions.height);
+        .setViewport(
+          viewportDimensions.width,
+          viewportDimensions.height
+      );
 
-    await viewer.view.setBloom(false, 0);
+    if (addSkybox) {
+      await viewer
+          .loadSkybox("file://${testDir}/assets/default_env_skybox.ktx");
+    }
 
     if (bg != null) {
       await viewer.setBackgroundColor(

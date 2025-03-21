@@ -473,6 +473,22 @@ external TViewport View_getViewport(
   ffi.Pointer<TView> view,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(
+    symbol: "View_setBlendMode", isLeaf: true)
+external void _View_setBlendMode(
+  ffi.Pointer<TView> view,
+  int blendMode,
+);
+
+void View_setBlendMode(
+  ffi.Pointer<TView> view,
+  TBlendMode blendMode,
+) =>
+    _View_setBlendMode(
+      view,
+      blendMode.value,
+    );
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32)>(
     isLeaf: true)
 external void View_setViewport(
@@ -1494,16 +1510,28 @@ external void RenderTicker_setRenderable(
 );
 
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
-external void RenderLoop_create();
+external void RenderThread_create();
 
 @ffi.Native<ffi.Void Function()>(isLeaf: true)
-external void RenderLoop_destroy();
+external void RenderThread_destroy();
 
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void RenderLoop_requestAnimationFrame(
+external void RenderThread_requestAnimationFrame(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
+);
+
+@ffi.Native<ffi.Void Function(ffi.Pointer<TRenderTicker>)>(isLeaf: true)
+external void RenderThread_setRenderTicker(
+  ffi.Pointer<TRenderTicker> tRenderTicker,
+);
+
+@ffi.Native<
+    ffi.Void Function(
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void RenderThread_addTask(
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> task,
 );
 
 @ffi.Native<
@@ -1513,13 +1541,6 @@ external void RenderTicker_renderRenderThread(
   ffi.Pointer<TRenderTicker> tRenderTicker,
   int frameTimeInNanos,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void RenderLoop_addTask(
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> task,
 );
 
 @ffi.Native<
@@ -3212,6 +3233,13 @@ external ffi.Pointer<TAnimationManager> AnimationManager_create(
   ffi.Pointer<TScene> tScene,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, ffi.Uint64)>(
+    isLeaf: true)
+external void AnimationManager_update(
+  ffi.Pointer<TAnimationManager> tAnimationManager,
+  int frameTimeInNanos,
+);
+
 @ffi.Native<ffi.Void Function(ffi.Pointer<TAnimationManager>, EntityId)>(
     isLeaf: true)
 external void AnimationManager_addAnimationComponent(
@@ -3948,6 +3976,20 @@ enum TQualityLevel {
         2 => HIGH,
         3 => ULTRA,
         _ => throw ArgumentError("Unknown value for TQualityLevel: $value"),
+      };
+}
+
+enum TBlendMode {
+  OPAQUE(0),
+  TRANSLUCENT(1);
+
+  final int value;
+  const TBlendMode(this.value);
+
+  static TBlendMode fromValue(int value) => switch (value) {
+        0 => OPAQUE,
+        1 => TRANSLUCENT,
+        _ => throw ArgumentError("Unknown value for TBlendMode: $value"),
       };
 }
 

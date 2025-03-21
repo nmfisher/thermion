@@ -174,6 +174,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
     }
 
     WidgetsBinding.instance.scheduleFrameCallback((d) async {
+
       if (!mounted) {
         return;
       }
@@ -241,7 +242,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
       _logger.info(
           "Resized texture to dimensions ${_texture!.width}x${_texture!.height} (pixel ratio : $dpr)");
 
-      await widget.viewer.view.setViewport(_texture!.width, _texture!.height);
+      await widget.viewer.setViewport(_texture!.width, _texture!.height);
 
       await widget.onResize?.call(
           Size(_texture!.width.toDouble(), _texture!.height.toDouble()),
