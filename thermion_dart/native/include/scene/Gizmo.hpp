@@ -37,7 +37,6 @@ namespace thermion
             SceneAsset *sceneAsset,
             Engine *engine,
             View *view,
-            Scene *scene,
             Material *material) noexcept;
 
         Gizmo(Gizmo &&other) noexcept;

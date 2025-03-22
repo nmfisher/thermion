@@ -8,6 +8,7 @@
 #include "c_api/APIBoundaryTypes.h"
 #include "c_api/TAnimationManager.h"
 #include "c_api/TEngine.h"
+#include "c_api/TGizmo.h"
 #include "c_api/TGltfAssetLoader.h"
 #include "c_api/TGltfResourceLoader.h"
 #include "c_api/TRenderer.h"
@@ -380,6 +381,17 @@ extern "C"
       });
       auto fut = _renderThread->add_task(lambda);
   }
+  
+  EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *)) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto *instance = Material_createGizmoMaterial(tEngine);
+        onComplete(instance);
+      });
+      auto fut = _renderThread->add_task(lambda);
+  }
+
 
   EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *))
   {
@@ -1007,6 +1019,25 @@ extern "C"
       {
         Scene_addFilamentAsset(tScene, tAsset);
         callback();
+      });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Gizmo_createRenderThread(
+    TEngine *tEngine,
+    TGltfAssetLoader *tAssetLoader,
+    TGltfResourceLoader *tGltfResourceLoader,
+    TNameComponentManager *tNameComponentManager,
+    TView *tView,
+    TMaterial *tMaterial,
+    TGizmoType tGizmoType,
+    void (*callback)(TGizmo *)
+  ) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto *gizmo = Gizmo_create(tEngine, tAssetLoader,tGltfResourceLoader, tNameComponentManager, tView, tMaterial, tGizmoType);
+        callback(gizmo);
       });
     auto fut = _renderThread->add_task(lambda);
   }

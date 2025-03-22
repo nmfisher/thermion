@@ -35,6 +35,11 @@ external ffi.Pointer<TMaterial> Material_createGridMaterial(
   ffi.Pointer<TEngine> tEngine,
 );
 
+@ffi.Native<ffi.Pointer<TMaterial> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
+external ffi.Pointer<TMaterial> Material_createGizmoMaterial(
+  ffi.Pointer<TEngine> tEngine,
+);
+
 @ffi.Native<ffi.Bool Function(ffi.Pointer<TMaterial>, ffi.Pointer<ffi.Char>)>(
     isLeaf: true)
 external bool Material_hasParameter(
@@ -1057,22 +1062,40 @@ external void TextureSampler_destroy(
 );
 
 @ffi.Native<
-    ffi.Pointer<TGizmo> Function(ffi.Pointer<TEngine>, ffi.Pointer<TView>,
+    ffi.Pointer<TGizmo> Function(
+        ffi.Pointer<TEngine>,
+        ffi.Pointer<TGltfAssetLoader>,
+        ffi.Pointer<TGltfResourceLoader>,
+        ffi.Pointer<TNameComponentManager>,
+        ffi.Pointer<TView>,
+        ffi.Pointer<TMaterial>,
         ffi.UnsignedInt)>(symbol: "Gizmo_create", isLeaf: true)
 external ffi.Pointer<TGizmo> _Gizmo_create(
   ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfAssetLoader> assetLoader,
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TView> tView,
+  ffi.Pointer<TMaterial> tMaterial,
   int tGizmoType,
 );
 
 ffi.Pointer<TGizmo> Gizmo_create(
   ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfAssetLoader> assetLoader,
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
   ffi.Pointer<TView> tView,
+  ffi.Pointer<TMaterial> tMaterial,
   TGizmoType tGizmoType,
 ) =>
     _Gizmo_create(
       tEngine,
+      assetLoader,
+      tGltfResourceLoader,
+      tNameComponentManager,
       tView,
+      tMaterial,
       tGizmoType.value,
     );
 
@@ -1994,6 +2017,19 @@ external void Material_createImageMaterialRenderThread(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TEngine>,
+            ffi.Pointer<
+                ffi
+                .NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>)>(
+    isLeaf: true)
+external void Material_createGizmoMaterialRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterial>)>>
+      onComplete,
+);
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
             ffi.UnsignedInt,
             ffi.Pointer<
                 ffi.NativeFunction<
@@ -2149,17 +2185,6 @@ external void MaterialProvider_createMaterialInstanceRenderThread(
   ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
       callback,
-);
-
-@ffi.Native<
-    ffi.Void Function(
-        ffi.Pointer<TSceneManager>,
-        ffi.Pointer<TMaterialInstance>,
-        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void SceneManager_destroyMaterialInstanceRenderThread(
-  ffi.Pointer<TSceneManager> tSceneManager,
-  ffi.Pointer<TMaterialInstance> tMaterialInstance,
-  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
 
 @ffi.Native<
@@ -2740,6 +2765,52 @@ external void Scene_addFilamentAssetRenderThread(
   ffi.Pointer<TFilamentAsset> tAsset,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> callback,
 );
+
+@ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TEngine>,
+            ffi.Pointer<TGltfAssetLoader>,
+            ffi.Pointer<TGltfResourceLoader>,
+            ffi.Pointer<TNameComponentManager>,
+            ffi.Pointer<TView>,
+            ffi.Pointer<TMaterial>,
+            ffi.UnsignedInt,
+            ffi.Pointer<
+                ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>)>(
+    symbol: "Gizmo_createRenderThread", isLeaf: true)
+external void _Gizmo_createRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TMaterial> tMaterial,
+  int tGizmoType,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>
+      callback,
+);
+
+void Gizmo_createRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<TNameComponentManager> tNameComponentManager,
+  ffi.Pointer<TView> tView,
+  ffi.Pointer<TMaterial> tMaterial,
+  TGizmoType tGizmoType,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>
+      callback,
+) =>
+    _Gizmo_createRenderThread(
+      tEngine,
+      tAssetLoader,
+      tGltfResourceLoader,
+      tNameComponentManager,
+      tView,
+      tMaterial,
+      tGizmoType.value,
+      callback,
+    );
 
 @ffi.Native<
     ffi.Pointer<TGltfResourceLoader> Function(
@@ -3824,15 +3895,15 @@ final class Aabb3 extends ffi.Struct {
 }
 
 enum TGizmoType {
-  TRANSLATION(0),
-  ROTATION(1);
+  GIZMO_TYPE_TRANSLATION(0),
+  GIZMO_TYPE_ROTATION(1);
 
   final int value;
   const TGizmoType(this.value);
 
   static TGizmoType fromValue(int value) => switch (value) {
-        0 => TRANSLATION,
-        1 => ROTATION,
+        0 => GIZMO_TYPE_TRANSLATION,
+        1 => GIZMO_TYPE_ROTATION,
         _ => throw ArgumentError("Unknown value for TGizmoType: $value"),
       };
 }

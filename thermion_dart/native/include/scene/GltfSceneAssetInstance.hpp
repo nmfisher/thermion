@@ -117,6 +117,9 @@ namespace thermion
             for(int i = 0; i < getChildEntityCount(); i++) {
                 auto entity = getChildEntities()[i];
                 auto nameInstance = _ncm->getInstance(entity);
+                if(!nameInstance.isValid()) {
+                    continue;
+                }
                 auto entityName = _ncm->getName(nameInstance);
 
                 if (strcmp(entityName, name) == 0) {

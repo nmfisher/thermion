@@ -137,7 +137,7 @@ namespace thermion
         Entity findEntityByName(const char* name) override { 
             TRACE("Searching for entity with name %s", name);
             Entity entities[1];
-            auto found =  _asset->getEntitiesByName(name, entities, 1);
+            auto found = _asset->getEntitiesByName(name, entities, 1);
             return entities[0];
         }
 

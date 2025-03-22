@@ -56,7 +56,7 @@ EMSCRIPTEN_KEEPALIVE TGltfAssetLoader *GltfAssetLoader_create(TEngine *tEngine, 
 EMSCRIPTEN_KEEPALIVE TFilamentAsset *GltfAssetLoader_load(
     TEngine *tEngine,
     TGltfAssetLoader *tAssetLoader,
-    uint8_t *data,
+    const uint8_t *data,
     size_t length,
     uint8_t numInstances)
 {

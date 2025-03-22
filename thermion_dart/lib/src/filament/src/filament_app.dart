@@ -247,7 +247,8 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  Future setClearColor(double r, double g, double b, double a);
+  Future setClearOptions(double r, double g, double b, double a,
+      {int clearStencil = 0, bool discard = false, bool clear = true});
 
   ///
   ///
@@ -264,4 +265,9 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future<T> createColorGrading(ToneMapper mapper);
+
+  ///
+  ///
+  ///
+  Future<GizmoAsset> createGizmo(covariant View view, T animationManager, GizmoType type);
 }

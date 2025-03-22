@@ -90,9 +90,8 @@ class ThermionViewerFFI extends ThermionViewer {
     View_setAntiAliasing(view.view, false, false, false);
     View_setDitheringEnabled(view.view, false);
     View_setRenderQuality(view.view, TQualityLevel.MEDIUM);
-    
-    
-    await FilamentApp.instance!.setClearColor(1.0, 0.0, 0.0, 1.0);
+
+    await FilamentApp.instance!.setClearOptions(0.0, 0.0, 0.0, 0.0);
     scene = FFIScene(Engine_createScene(app.engine));
     await view.setScene(scene);
     final camera = FFICamera(
@@ -431,8 +430,6 @@ class ThermionViewerFFI extends ThermionViewer {
     }
   }
 
-
-
   ///
   ///
   ///
@@ -602,10 +599,15 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-  Future showGridOverlay() async {
+  Future setGridOverlayVisibility(bool visible) async {
     _grid ??= _grid = await GridOverlay.create(app, animationManager);
-    await scene.add(_grid!);
-    await view.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+    if (visible) {
+      await scene.add(_grid!);
+      await view.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+    } else {
+      await scene.remove(_grid!);
+      await view.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+    }
   }
 
   ///
@@ -720,36 +722,18 @@ class ThermionViewerFFI extends ThermionViewer {
     return asset;
   }
 
-  ////
+  final _gizmos = <GizmoType, GizmoAsset>{};
+
   ///
-  //
+  ///
+  ///
   @override
-  Future<GizmoAsset> createGizmo(FFIView view, GizmoType gizmoType) async {
-    throw UnimplementedError();
-    // var scene = View_getScene(view.view);
-    // final gizmo = await withPointerCallback<TGizmo>((cb) {
-    //   SceneManager_createGizmoRenderThread(_sceneManager!, view.view, scene,
-    //       TGizmoType.values[gizmoType.index], cb);
-    // });
-    // if (gizmo == nullptr) {
-    //   throw Exception("Failed to create gizmo");
-    // }
-
-    // final gizmoEntityCount =
-    //     SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
-    // final gizmoEntities = Int32List(gizmoEntityCount);
-    // SceneAsset_getChildEntities(
-    //     gizmo.cast<TSceneAsset>(), gizmoEntities.address);
-
-    // return FFIGizmo(
-    //     view,
-    //     gizmo.cast<TSceneAsset>(),
-    //     _sceneManager!,
-    //     app.engine!,
-    //     nullptr,
-    //     this,
-    //     gizmoEntities.toSet()
-    //       ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
+  Future<GizmoAsset> getGizmo(GizmoType gizmoType) async {
+    if (_gizmos[gizmoType] == null) {
+      _gizmos[gizmoType] =
+          await FilamentApp.instance!.createGizmo(view, animationManager, gizmoType);
+    }
+    return _gizmos[gizmoType]!;
   }
 
   Future addToScene(covariant FFIAsset asset) async {

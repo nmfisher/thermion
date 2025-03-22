@@ -153,8 +153,8 @@ extern "C"
     typedef struct Aabb3 Aabb3;
 
 	enum TGizmoType {
-		TRANSLATION,
-		ROTATION
+		GIZMO_TYPE_TRANSLATION,
+		GIZMO_TYPE_ROTATION
 	};
 
 	enum TPrimitiveType {

@@ -11,6 +11,7 @@
 #include "MathUtils.hpp"
 #include "material/image.h"
 #include "material/grid.h"
+#include "material/unlit_fixed_size.h"
 
 #include "c_api/TMaterialInstance.h"
 
@@ -45,7 +46,13 @@ namespace thermion
             return reinterpret_cast<TMaterial *>(material);
         }
 
-
+        EMSCRIPTEN_KEEPALIVE TMaterial *Material_createGizmoMaterial(TEngine *tEngine) {
+            auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
+            auto *material = filament::Material::Builder()
+                .package(UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_DATA, UNLIT_FIXED_SIZE_UNLIT_FIXED_SIZE_SIZE)
+                .build(*engine);
+            return reinterpret_cast<TMaterial *>(material);
+        }
 
         EMSCRIPTEN_KEEPALIVE bool Material_hasParameter(TMaterial *tMaterial, const char *propertyName) {
             auto *material = reinterpret_cast<filament::Material *>(tMaterial);

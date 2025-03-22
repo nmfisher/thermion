@@ -239,9 +239,10 @@ abstract class ThermionViewer {
       {List<MaterialInstance>? materialInstances, bool keepData = false, bool addToScene=true});
 
   ///
-  /// The gizmo for translating/rotating objects. Only one gizmo can be active for a given view.
+  /// Returns a gizmo for translating/rotating objects.
+  /// Only one gizmo can be visible at any given time for this viewer.
   ///
-  Future<GizmoAsset> createGizmo(covariant View view, GizmoType type);
+  Future<GizmoAsset> getGizmo(GizmoType type);
 
   ///
   /// Register a callback to be invoked when this viewer is disposed.
@@ -261,12 +262,7 @@ abstract class ThermionViewer {
   ///
   ///
   ///
-  Future showGridOverlay();
-
-  ///
-  ///
-  ///
-  Future removeGridOverlay();
+  Future setGridOverlayVisibility(bool visible);
 
   ///
   ///
@@ -293,6 +289,14 @@ abstract class ThermionViewer {
   ///
   int getCameraCount();
 
+  ///
+  /// Adds the asset to the scene, meaning the asset will be rendered/visible.
+  /// 
   Future addToScene(covariant ThermionAsset asset);
+  
+  ///
+  /// Removes the asset from the scene, meaning the asset will not be rendered/visible.
+  /// The asset itself will remain valid.
+  ///
   Future removeFromScene(covariant ThermionAsset asset);
 }

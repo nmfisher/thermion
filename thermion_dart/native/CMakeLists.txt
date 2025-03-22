@@ -36,6 +36,7 @@ set(MATERIAL_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/include/material/image.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/material/grid.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/material/unlit.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/material/unlit_fixed_size.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/material/gizmo.c"
 )
 

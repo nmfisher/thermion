@@ -70,7 +70,7 @@ extern "C"
         TEngine *tEngine,
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
-        uint8_t *data,
+        const uint8_t *data, 
         size_t length,
         size_t numInstances
     ) {

@@ -6,6 +6,7 @@ import 'package:thermion_dart/src/filament/src/engine.dart';
 import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_gizmo.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
@@ -609,14 +610,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         .firstWhere((x) => _swapChains[x]?.contains(view) == true);
     final out = Uint8List(viewport.width * viewport.height * 4);
 
-    await withVoidCallback((cb) {
-      Engine_flushAndWaitRenderThead(engine, cb);
-    });
-
-    var fence = await withPointerCallback<TFence>((cb) {
-      Engine_createFenceRenderThread(engine, cb);
-    });
-
     await withBoolCallback((cb) {
       Renderer_beginFrameRenderThread(renderer, swapChain.swapChain, 0, cb);
     });
@@ -647,20 +640,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     });
 
     await withVoidCallback((cb) {
-      Engine_destroyFenceRenderThread(engine, fence, cb);
+      Engine_flushAndWaitRenderThead(engine, cb);
     });
-
-    // await withVoidCallback((cb) {
-    //   Engine_flushAndWaitRenderThead(engine, cb);
-    // });
     return out;
   }
 
   ///
   ///
   ///
-  Future setClearColor(double r, double g, double b, double a) async {
-    Renderer_setClearOptions(renderer, r, g, b, a, 0, true, false);
+  Future setClearOptions(double r, double g, double b, double a,
+      {int clearStencil = 0, bool discard = false, bool clear = true}) async {
+    Renderer_setClearOptions(
+        renderer, r, g, b, a, clearStencil, clear, discard);
   }
 
   ///
@@ -735,7 +726,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     View_setColorGrading(view.view, nullptr);
     for (final cg in view.colorGrading.entries) {
       await withVoidCallback(
-        (cb) => Engine_destroyColorGradingRenderThread(engine, cg.value, cb));
+          (cb) => Engine_destroyColorGradingRenderThread(engine, cg.value, cb));
     }
     await withVoidCallback(
         (cb) => Engine_destroyViewRenderThread(engine, view.view, cb));
@@ -750,6 +741,43 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     return withPointerCallback<TColorGrading>((cb) =>
         ColorGrading_createRenderThread(
             engine, TToneMapping.values[mapper.index], cb));
+  }
+
+  FFIMaterial? _gizmoMaterial;
+
+  ///
+  ///
+  ///
+  Future<GizmoAsset> createGizmo(covariant FFIView view,
+      Pointer animationManager, GizmoType gizmoType) async {
+    if (_gizmoMaterial == null) {
+      final materialPtr = await withPointerCallback<TMaterial>((cb) {
+        Material_createGizmoMaterialRenderThread(engine, cb);
+      });
+      _gizmoMaterial ??= FFIMaterial(materialPtr, this);
+    }
+
+    var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
+        (cb) => GltfResourceLoader_createRenderThread(engine, nullptr, cb));
+
+    final gizmo = await withPointerCallback<TGizmo>((cb) {
+      Gizmo_createRenderThread(engine, gltfAssetLoader, gltfResourceLoader, nameComponentManager,
+          view.view, _gizmoMaterial!.pointer, TGizmoType.values[gizmoType.index], cb);
+    });
+    if (gizmo == nullptr) {
+      throw Exception("Failed to create gizmo");
+    }
+    final gizmoEntityCount =
+        SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
+    final gizmoEntities = Int32List(gizmoEntityCount);
+    SceneAsset_getChildEntities(
+        gizmo.cast<TSceneAsset>(), gizmoEntities.address);
+
+    return FFIGizmo(gizmo.cast<TSceneAsset>(), this,
+        animationManager.cast<TAnimationManager>(),
+        view: view,
+        entities: gizmoEntities.toSet()
+          ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
   }
 }
 

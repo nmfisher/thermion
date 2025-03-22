@@ -81,6 +81,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
         EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
+        EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
 
         EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapping toneMapping, void (*callback)(TColorGrading *));  
         EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, void (*callback)());
@@ -116,7 +117,6 @@ namespace thermion
             void (*callback)(TSceneAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(TMaterialProvider *tMaterialProvider, TMaterialKey *tKey, void (*callback)(TMaterialInstance *));
-        EMSCRIPTEN_KEEPALIVE void SceneManager_destroyMaterialInstanceRenderThread(TSceneManager *tSceneManager, TMaterialInstance *tMaterialInstance, void (*callback)());
 
         EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
             TAnimationManager *tAnimationManager,
@@ -269,6 +269,16 @@ namespace thermion
             void (*callback)(TFilamentAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, void (*callback)());
+        EMSCRIPTEN_KEEPALIVE void Gizmo_createRenderThread(
+            TEngine *tEngine,
+            TGltfAssetLoader *tAssetLoader,
+            TGltfResourceLoader *tGltfResourceLoader,
+            TNameComponentManager *tNameComponentManager,
+            TView *tView,
+            TMaterial *tMaterial,
+            TGizmoType tGizmoType,    
+            void (*callback)(TGizmo *)
+        );
 
 
 

@@ -25,9 +25,9 @@ class FFIGizmo extends FFIAsset implements GizmoAsset {
   bool isGizmoEntity(ThermionEntity entity) => entities.contains(entity);
 
     FFIGizmo(
-          super.asset,
-    super.app,
-    super.animationManager,
+      super.asset,
+      super.app,
+      super.animationManager,
       {
     required this.view,
     required this.entities,
