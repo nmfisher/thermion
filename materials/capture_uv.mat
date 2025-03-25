@@ -89,7 +89,7 @@ fragment {
         vec3 deviceCoords = clipSpace * 0.5 + 0.5;
                 
         // flip depth coords to [1,0]
-        float vertexDepth = clipSpace.z;// 1.0 - clipSpace.z;
+        float vertexDepth = clipSpace.z;
 
         vec2 uv = deviceCoords.xy;
         if(materialParams.flipUVs)  {
