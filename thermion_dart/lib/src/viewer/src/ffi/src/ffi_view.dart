@@ -152,8 +152,8 @@ class FFIView extends View {
     View_setLayerEnabled(view, layer.value, visible);
   }
 
-  Future setBlendMode(TBlendMode blendMode) async {
-    View_setBlendMode(view, blendMode);
+  Future setBlendMode(BlendMode blendMode) async {
+    View_setBlendMode(view, TBlendMode.values[blendMode.index]);
   }
 
   @override

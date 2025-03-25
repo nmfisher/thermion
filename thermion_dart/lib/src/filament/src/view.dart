@@ -2,6 +2,10 @@ import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
+enum BlendMode { 
+  opaque,
+  transparent
+}
 ///
 /// The viewport currently attached to a [View].
 ///
@@ -37,6 +41,7 @@ abstract class View {
   Future setDithering(bool enabled);
   Future<bool> isDitheringEnabled();
   Future setBloom(bool enabled, double strength);
+  Future setBlendMode(BlendMode blendMode);
   Future setRenderQuality(QualityLevel quality);
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
 }
