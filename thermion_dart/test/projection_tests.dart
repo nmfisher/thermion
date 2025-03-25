@@ -125,9 +125,6 @@ void main() async {
             ),
           );
 
-
-
-
           var pixelBuffers = await testHelper.capture(null, "capture_uv_$i",
               beforeRender: (view) async {
             if (view == viewer.view) {
