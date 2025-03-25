@@ -77,6 +77,7 @@ namespace thermion
             TPixelDataFormat tPixelBufferFormat,
             TPixelDataType tPixelDataType,
             uint8_t *out,
+            size_t outLength,
             void (*onComplete)());
 
         EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));

@@ -45,6 +45,11 @@ abstract class ThermionAsset {
   ///
   ///
   ///
+  Future<MaterialInstance> getMaterialInstanceAt({ThermionEntity? entity, int index = 0});
+
+  ///
+  ///
+  ///
   Future setMaterialInstanceAt(covariant MaterialInstance instance);
 
   ///

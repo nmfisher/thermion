@@ -362,11 +362,12 @@ extern "C"
     TPixelDataFormat tPixelBufferFormat,
     TPixelDataType tPixelDataType,
     uint8_t *out,
+    size_t outLength,
     void (*onComplete)()) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        Renderer_readPixels(tRenderer, tView, tRenderTarget, tPixelBufferFormat, tPixelDataType, out);
+        Renderer_readPixels(tRenderer, tView, tRenderTarget, tPixelBufferFormat, tPixelDataType, out, outLength);
         onComplete();
       });
     auto fut = _renderThread->add_task(lambda);

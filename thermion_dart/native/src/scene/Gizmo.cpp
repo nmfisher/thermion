@@ -22,11 +22,9 @@ namespace thermion
         SceneAsset *sceneAsset,
         Engine *engine,
         View *view,
-        Scene *scene,
         Material *material) noexcept : _source(sceneAsset),
                                        _engine(engine),
                                        _view(view),
-                                       _scene(scene),
                                        _material(material)
     {
         auto &entityManager = _engine->getEntityManager();
@@ -79,6 +77,10 @@ namespace thermion
         auto *materialInstance = _material->createInstance();
         _materialInstances.push_back(materialInstance);
         auto instance = _source->createInstance(&materialInstance, 1);
+
+        if(!instance) {
+            Log("FATAL: failed to create asset instance");
+        }
 
         TRACE("Created Gizmo axis glTF instance with head entity %d", instance->getEntity());
         auto color = filament::math::float4(AXIS_COLORS[axis], 0.5f);

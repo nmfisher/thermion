@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 import 'package:thermion_dart/src/filament/src/engine.dart';
 import 'package:thermion_dart/src/filament/src/scene.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FilamentConfig<T, U> {
@@ -62,6 +64,16 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
+  Future<View> createView();
+
+  ///
+  ///
+  ///
+  Future<Scene> createScene();
+
+  ///
+  ///
+  ///
   Future destroySwapChain(SwapChain swapChain);
 
   ///
@@ -98,7 +110,7 @@ abstract class FilamentApp<T> {
       int levels = 1,
       Set<TextureUsage> flags = const {TextureUsage.TEXTURE_USAGE_SAMPLEABLE},
       TextureSamplerType textureSamplerType = TextureSamplerType.SAMPLER_2D,
-      TextureFormat textureFormat = TextureFormat.RGBA16F,
+      TextureFormat textureFormat = TextureFormat.RGBA32F,
       int? importedTextureHandle});
 
   ///
@@ -185,12 +197,17 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  Future setRenderable(covariant View view, bool renderable);
+  Future register(covariant SwapChain swapChain, covariant View view);
 
   ///
   ///
   ///
-  Future register(covariant SwapChain swapChain, covariant View view);
+  Future unregister(covariant SwapChain swapChain, covariant View view);
+
+  ///
+  ///
+  ///
+  Future updateRenderOrder();
 
   ///
   ///
@@ -239,10 +256,19 @@ abstract class FilamentApp<T> {
   Future<MaterialInstance> createImageMaterialInstance();
 
   ///
+  /// Returns pixel buffer(s) for [view] (or, if null, all views associated 
+  /// with [swapChain] by calling [register]).
+  /// 
+  /// Pixel buffers will be returned in RGBA float32 format.
   ///
-  ///
-  Future<Uint8List> capture(covariant View view,
-      {bool captureRenderTarget = false});
+  Future<List<(View,Uint8List)>> capture(covariant SwapChain swapChain,
+      {
+      covariant View? view,
+      bool captureRenderTarget = false,
+      PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
+      PixelDataType pixelDataType = PixelDataType.UBYTE,
+      Future Function(View)? beforeRender}
+  );
 
   ///
   ///
@@ -269,5 +295,14 @@ abstract class FilamentApp<T> {
   ///
   ///
   ///
-  Future<GizmoAsset> createGizmo(covariant View view, T animationManager, GizmoType type);
+  Future<GizmoAsset> createGizmo(
+      covariant View view, T animationManager, GizmoType type);
+
+  ///
+  ///
+  ///
+  Future<ThermionAsset> createGeometry(Geometry geometry, T animationManager,
+      {List<MaterialInstance>? materialInstances,
+      bool keepData = false}); 
+
 }

@@ -93,15 +93,14 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     TRenderTarget *tRenderTarget,
     TPixelDataFormat tPixelBufferFormat,
     TPixelDataType tPixelDataType,
-    uint8_t *out) {
+    uint8_t *out, 
+    size_t outLength) {
     
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
     auto *renderTarget = reinterpret_cast<filament::RenderTarget *>(tRenderTarget);
     auto *view = reinterpret_cast<filament::View *>(tView);
 
     filament::Viewport const &vp = view->getViewport();
-
-    size_t pixelBufferSize = vp.width * vp.height * 4;
 
     filament::backend::PixelDataFormat pixelBufferFormat = static_cast<filament::backend::PixelDataFormat>(tPixelBufferFormat);
     filament::backend::PixelDataType pixelDataType = static_cast<filament::backend::PixelDataType>(tPixelDataType);
@@ -114,7 +113,7 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
 
 
     auto pbd = filament::Texture::PixelBufferDescriptor(
-        out, pixelBufferSize,
+        out, outLength,
         pixelBufferFormat,
         pixelDataType,
         dispatcher,

@@ -370,6 +370,14 @@ class FFIAsset extends ThermionAsset {
     // }
   }
 
+  Future<MaterialInstance> getMaterialInstanceAt(
+      {ThermionEntity? entity, int index = 0}) async {
+    entity ??= this.entity;
+    var ptr = RenderableManager_getMaterialInstanceAt(
+        Engine_getRenderableManager(app.engine), entity, 0);
+    return FFIMaterialInstance(ptr, app);
+  }
+
   ///
   ///
   ///

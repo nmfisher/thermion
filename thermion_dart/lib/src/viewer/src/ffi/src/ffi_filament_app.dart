@@ -120,12 +120,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future setRenderable(covariant FFIView view, bool renderable) async {
-    await view.setRenderable(renderable);
-    await _updateRenderableSwapChains();
-  }
-
-  Future _updateRenderableSwapChains() async {
+  Future updateRenderOrder() async {
     for (final swapChain in _swapChains.keys) {
       final views = _swapChains[swapChain];
       if (views == null) {
@@ -177,6 +172,28 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
+  Future<View> createView() async {
+    final view = await FFIView(
+        await withPointerCallback<TView>(
+            (cb) => Engine_createViewRenderThread(engine, cb)),
+        this);
+    await view.setFrustumCullingEnabled(true);
+    View_setBlendMode(view.view, TBlendMode.TRANSLUCENT);
+    View_setShadowsEnabled(view.view, false);
+    View_setStencilBufferEnabled(view.view, false);
+    View_setAntiAliasing(view.view, false, false, false);
+    View_setDitheringEnabled(view.view, false);
+    View_setRenderQuality(view.view, TQualityLevel.MEDIUM);
+    return view;
+  }
+
+  Future<Scene> createScene() async {
+    return FFIScene(Engine_createScene(engine));
+  }
+
+  ///
+  ///
+  ///
   Future destroySwapChain(SwapChain swapChain) async {
     await withVoidCallback((callback) {
       Engine_destroySwapChainRenderThread(
@@ -195,7 +212,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         continue;
       }
       for (final view in _swapChains[swapChain]!) {
-        await setRenderable(view, false);
+        await view.setRenderable(false);
       }
     }
     for (final swapChain in _swapChains.keys.toList()) {
@@ -224,10 +241,30 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<RenderTarget> createRenderTarget(int width, int height,
       {covariant FFITexture? color, covariant FFITexture? depth}) async {
+    if (color == null) {
+      color = await createTexture(width, height,
+          flags: {
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+            TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+            TextureUsage.TEXTURE_USAGE_BLIT_SRC
+          },
+          textureFormat: TextureFormat.RGBA8) as FFITexture;
+    }
+    if (depth == null) {
+      depth = await createTexture(width, height,
+          flags: {
+            TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+            TextureUsage.TEXTURE_USAGE_DEPTH_ATTACHMENT
+          },
+          textureFormat: TextureFormat.DEPTH32F) as FFITexture;
+    }
     final renderTarget = await withPointerCallback<TRenderTarget>((cb) {
-      RenderTarget_createRenderThread(engine, width, height,
-          color?.pointer ?? nullptr, depth?.pointer ?? nullptr, cb);
+      RenderTarget_createRenderThread(
+          engine, width, height, color!.pointer, depth!.pointer, cb);
     });
+    if (renderTarget == nullptr) {
+      throw Exception("Failed to create RenderTarget");
+    }
 
     return FFIRenderTarget(renderTarget, this);
   }
@@ -488,7 +525,24 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       _swapChains[swapChain] = [];
     }
     _swapChains[swapChain]!.add(view);
-    await _updateRenderableSwapChains();
+    _swapChains[swapChain]!
+        .sort((a, b) => a.renderOrder.compareTo(b.renderOrder));
+    await updateRenderOrder();
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future unregister(
+      covariant FFISwapChain swapChain, covariant FFIView view) async {
+    if (!_swapChains.containsKey(swapChain)) {
+      _swapChains[swapChain] = [];
+    }
+    _swapChains[swapChain]!.remove(view);
+    _swapChains[swapChain]!
+        .sort((a, b) => a.renderOrder.compareTo(b.renderOrder));
+    await updateRenderOrder();
   }
 
   final _hooks = <Future Function()>[];
@@ -603,38 +657,59 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future<Uint8List> capture(covariant FFIView view,
-      {bool captureRenderTarget = false}) async {
-    final viewport = await view.getViewport();
-    final swapChain = _swapChains.keys
-        .firstWhere((x) => _swapChains[x]?.contains(view) == true);
-    final out = Uint8List(viewport.width * viewport.height * 4);
+  Future<List<(View, Uint8List)>> capture(covariant FFISwapChain swapChain,
+      {covariant FFIView? view,
+      bool captureRenderTarget = false,
+      PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
+      PixelDataType pixelDataType = PixelDataType.FLOAT,
+      Future Function(View)? beforeRender}) async {
+    await updateRenderOrder();
 
     await withBoolCallback((cb) {
       Renderer_beginFrameRenderThread(renderer, swapChain.swapChain, 0, cb);
     });
-    await withVoidCallback((cb) {
-      Renderer_renderRenderThread(
-        renderer,
-        view.view,
-        cb,
-      );
-    });
-
-    if (captureRenderTarget && view.renderTarget == null) {
-      throw Exception();
+    final views = <FFIView>[];
+    if (view != null) {
+      views.add(view);
+    } else {
+      views.addAll(_swapChains[swapChain]!);
     }
-    await withVoidCallback((cb) {
-      Renderer_readPixelsRenderThread(
-        renderer,
-        view.view,
-        captureRenderTarget ? view.renderTarget!.renderTarget : nullptr,
-        TPixelDataFormat.PIXELDATAFORMAT_RGBA,
-        TPixelDataType.PIXELDATATYPE_UBYTE,
-        out.address,
-        cb,
-      );
-    });
+
+    final pixelBuffers = <(View, Uint8List)>[];
+
+    for (final view in views) {
+      beforeRender?.call(view);
+
+      final viewport = await view.getViewport();
+      final pixelBuffer = Uint8List(viewport.width * viewport.height * 4 * sizeOf<Float>());
+      await withVoidCallback((cb) {
+        Renderer_renderRenderThread(
+          renderer,
+          view.view,
+          cb,
+        );
+      });
+
+      if (captureRenderTarget && view.renderTarget == null) {
+        throw Exception();
+      }
+      await withVoidCallback((cb) {
+        Renderer_readPixelsRenderThread(
+          renderer,
+          view.view,
+          view.renderTarget == null ? nullptr : view.renderTarget!.renderTarget,
+          // TPixelDataFormat.PIXELDATAFORMAT_RGBA,
+          // TPixelDataType.PIXELDATATYPE_UBYTE,
+          pixelDataFormat.value,
+          pixelDataType.value,
+          pixelBuffer.address,
+          pixelBuffer.length,
+          cb
+        );
+      });
+      pixelBuffers.add((view, pixelBuffer));
+    }
+
     await withVoidCallback((cb) {
       Renderer_endFrameRenderThread(renderer, cb);
     });
@@ -642,7 +717,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await withVoidCallback((cb) {
       Engine_flushAndWaitRenderThead(engine, cb);
     });
-    return out;
+    return pixelBuffers;
   }
 
   ///
@@ -761,8 +836,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         (cb) => GltfResourceLoader_createRenderThread(engine, nullptr, cb));
 
     final gizmo = await withPointerCallback<TGizmo>((cb) {
-      Gizmo_createRenderThread(engine, gltfAssetLoader, gltfResourceLoader, nameComponentManager,
-          view.view, _gizmoMaterial!.pointer, TGizmoType.values[gizmoType.index], cb);
+      Gizmo_createRenderThread(
+          engine,
+          gltfAssetLoader,
+          gltfResourceLoader,
+          nameComponentManager,
+          view.view,
+          _gizmoMaterial!.pointer,
+          TGizmoType.values[gizmoType.index],
+          cb);
     });
     if (gizmo == nullptr) {
       throw Exception("Failed to create gizmo");
@@ -778,6 +860,48 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         view: view,
         entities: gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
+  }
+
+  ///
+  ///
+  ///
+  @override
+  Future<ThermionAsset> createGeometry(Geometry geometry, Pointer animationManager,
+      {List<MaterialInstance>? materialInstances,
+      bool keepData = false,
+      bool addToScene = true}) async {
+    var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
+      var ptrList = Int64List(materialInstances?.length ?? 0);
+      if (materialInstances != null && materialInstances.isNotEmpty) {
+        ptrList.setRange(
+            0,
+            materialInstances.length,
+            materialInstances
+                .cast<FFIMaterialInstance>()
+                .map((mi) => mi.pointer.address)
+                .toList());
+      }
+
+      return SceneAsset_createGeometryRenderThread(
+          engine,
+          geometry.vertices.address,
+          geometry.vertices.length,
+          geometry.normals.address,
+          geometry.normals.length,
+          geometry.uvs.address,
+          geometry.uvs.length,
+          geometry.indices.address,
+          geometry.indices.length,
+          geometry.primitiveType.index,
+          ptrList.address.cast<Pointer<TMaterialInstance>>(),
+          ptrList.length,
+          callback);
+    });
+    if (assetPtr == nullptr) {
+      throw Exception("Failed to create geometry");
+    }
+
+    return FFIAsset(assetPtr, this, animationManager.cast<TAnimationManager>());
   }
 }
 

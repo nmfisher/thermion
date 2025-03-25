@@ -79,20 +79,11 @@ class ThermionViewerFFI extends ThermionViewer {
 
   Future _initialize() async {
     _logger.info("Initializing ThermionViewerFFI");
-    view = FFIView(
-        await withPointerCallback<TView>(
-            (cb) => Engine_createViewRenderThread(app.engine, cb)),
-        app);
-    await view.setFrustumCullingEnabled(true);
-    View_setBlendMode(view.view, TBlendMode.TRANSLUCENT);
-    View_setShadowsEnabled(view.view, false);
-    View_setStencilBufferEnabled(view.view, false);
-    View_setAntiAliasing(view.view, false, false, false);
-    View_setDitheringEnabled(view.view, false);
-    View_setRenderQuality(view.view, TQualityLevel.MEDIUM);
+    view = await FilamentApp.instance!.createView() as FFIView;
 
     await FilamentApp.instance!.setClearOptions(0.0, 0.0, 0.0, 0.0);
-    scene = FFIScene(Engine_createScene(app.engine));
+    scene = await FilamentApp.instance!.createScene() as FFIScene;
+
     await view.setScene(scene);
     final camera = FFICamera(
         await withPointerCallback<TCamera>(
@@ -125,7 +116,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setRendering(bool render) async {
     _rendering = render;
-    await app.setRenderable(view, render);
+    await view.setRenderable(render);
   }
 
   ///
@@ -684,38 +675,9 @@ class ThermionViewerFFI extends ThermionViewer {
       {List<MaterialInstance>? materialInstances,
       bool keepData = false,
       bool addToScene = true}) async {
-    var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
-      var ptrList = Int64List(materialInstances?.length ?? 0);
-      if (materialInstances != null && materialInstances.isNotEmpty) {
-        ptrList.setRange(
-            0,
-            materialInstances.length,
-            materialInstances
-                .cast<FFIMaterialInstance>()
-                .map((mi) => mi.pointer.address)
-                .toList());
-      }
+    final asset =
+        await FilamentApp.instance!.createGeometry(geometry, animationManager, materialInstances: materialInstances) as FFIAsset;
 
-      return SceneAsset_createGeometryRenderThread(
-          app.engine,
-          geometry.vertices.address,
-          geometry.vertices.length,
-          geometry.normals.address,
-          geometry.normals.length,
-          geometry.uvs.address,
-          geometry.uvs.length,
-          geometry.indices.address,
-          geometry.indices.length,
-          geometry.primitiveType.index,
-          ptrList.address.cast<Pointer<TMaterialInstance>>(),
-          ptrList.length,
-          callback);
-    });
-    if (assetPtr == nullptr) {
-      throw Exception("Failed to create geometry");
-    }
-
-    var asset = FFIAsset(assetPtr, app, animationManager);
     if (addToScene) {
       await scene.add(asset);
     }
@@ -730,8 +692,8 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<GizmoAsset> getGizmo(GizmoType gizmoType) async {
     if (_gizmos[gizmoType] == null) {
-      _gizmos[gizmoType] =
-          await FilamentApp.instance!.createGizmo(view, animationManager, gizmoType);
+      _gizmos[gizmoType] = await FilamentApp.instance!
+          .createGizmo(view, animationManager, gizmoType);
     }
     return _gizmos[gizmoType]!;
   }

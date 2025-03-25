@@ -342,4 +342,10 @@ class BackgroundImage extends ThermionAsset {
     // TODO: implement transformToUnitCube
     throw UnimplementedError();
   }
+  
+  @override
+  Future<MaterialInstance> getMaterialInstanceAt({ThermionEntity? entity, int index = 0}) {
+    // TODO: implement getMaterialInstanceAt
+    throw UnimplementedError();
+  }
 }

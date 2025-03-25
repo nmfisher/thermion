@@ -7,23 +7,35 @@ material {
             precision: high
         },
         {
+            type : sampler2d,
+            format : float,
+            name : depth,
+        },
+        {
             type : bool,
             name : flipUVs
+        },
+        {
+            type : bool,
+            name : useDepth
         }
     ],
     variables : [
         {
             name : screenPos,
             precision : high
+         },
+         { 
+            name: sampledDepth,
+            precision : high
          }
     ],
     requires : [ position, uv0 ],
     shadingModel : unlit,
     doubleSided : false,
-    
-    blending: transparent,
+    blending: opaque,
     depthWrite : true,
-    depthCulling : false,
+    depthCulling : true,
     culling: none,
     vertexDomain: device
 }
@@ -43,17 +55,15 @@ material {
 //
 vertex {
     void materialVertex(inout MaterialVertexInputs material) {
+        
         mat4 transform = getWorldFromModelMatrix();
         vec3 position = getPosition().xyz;
         vec4 worldPosition = mulMat4x4Float3(transform, position);
         vec4 clipSpace = getClipFromWorldMatrix() * worldPosition;
         
         material.screenPos = clipSpace;
-
+        
         highp float2 uv = material.uv0;
-        if(materialParams.flipUVs) {
-            uv = uvToRenderTargetUV(uv);
-        }
     
         // Transform UVs (0 to 1) to clip space (-1 to 1 range)
         // UV (0,0) maps to (-1,-1) and UV (1,1) maps to (1,1)
@@ -69,17 +79,33 @@ vertex {
 }
 
 fragment {
-    void material(inout MaterialInputs material) {
-        prepareMaterial(material);
-        
-        vec2 texCoords = variable_screenPos.xy / variable_screenPos.w;
-        texCoords = texCoords * 0.5 + 0.5;
+    void material(inout MaterialInputs material) { 
 
-        vec2 texSize = vec2(textureSize(materialParams_color, 0));
-        //float textureAspectRatio = texSize.x / texSize.y;   
-        //texCoords.x *= textureAspectRatio;
-            
-        vec4 color = textureLod(materialParams_color, uvToRenderTargetUV(texCoords.xy), 0.0f);
-        material.baseColor = color;
+        prepareMaterial(material);
+
+        // calculate position in clip space
+        vec3 clipSpace = variable_screenPos.xyz / variable_screenPos.w;
+        // convert to [0,1]
+        vec3 deviceCoords = clipSpace * 0.5 + 0.5;
+                
+        // flip depth coords to [1,0]
+        float vertexDepth = clipSpace.z;// 1.0 - clipSpace.z;
+
+        vec2 uv = deviceCoords.xy;
+        if(materialParams.flipUVs)  {
+            uv = uvToRenderTargetUV(uv);
+        }
+
+        vec4 sampledDepth = textureLod(materialParams_depth, uv, 0.0); 
+        //material.baseColor = vec4(sampledDepth.r, 0.0, 0.0, 1.0);
+        //material.baseColor = vec4(vertexDepth, 0.0, 0.0, 1.0);
+        
+        if(materialParams.useDepth && abs(vertexDepth - sampledDepth.r) > 0.001) {
+            discard;
+        } else {
+            vec2 texSize = vec2(textureSize(materialParams_color, 0));
+            vec4 color = textureLod(materialParams_color, uvToRenderTargetUV(deviceCoords.xy), 0.0f);
+            material.baseColor = color;
+        }
     }
 }

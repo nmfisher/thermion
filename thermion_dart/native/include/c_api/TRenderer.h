@@ -20,7 +20,8 @@ EMSCRIPTEN_KEEPALIVE void Renderer_readPixels(
     TRenderTarget *tRenderTarget,
     TPixelDataFormat tPixelBufferFormat,
     TPixelDataType tPixelDataType,
-    uint8_t *out
+    uint8_t *out,
+    size_t outLength
 );
 EMSCRIPTEN_KEEPALIVE void Renderer_setFrameInterval(
     TRenderer *tRenderer,

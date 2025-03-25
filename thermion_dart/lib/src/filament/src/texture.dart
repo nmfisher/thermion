@@ -363,84 +363,112 @@ abstract class Texture {
   Future dispose();
 }
 
+/// Pixel data format enum, representing different channel combinations
 enum PixelDataFormat {
-  R,
-
   /// One Red channel, float
-  R_INTEGER,
+  R(0),
 
   /// One Red channel, integer
-  RG,
+  R_INTEGER(1),
 
   /// Two Red and Green channels, float
-  RG_INTEGER,
+  RG(2),
 
   /// Two Red and Green channels, integer
-  RGB,
+  RG_INTEGER(3),
 
   /// Three Red, Green and Blue channels, float
-  RGB_INTEGER,
+  RGB(4),
 
   /// Three Red, Green and Blue channels, integer
-  RGBA,
+  RGB_INTEGER(5),
 
   /// Four Red, Green, Blue and Alpha channels, float
-  RGBA_INTEGER,
+  RGBA(6),
 
   /// Four Red, Green, Blue and Alpha channels, integer
-  UNUSED,
+  RGBA_INTEGER(7),
 
-  /// Used to be rgbm
-  DEPTH_COMPONENT,
+  /// Unused format
+  UNUSED(8),
 
   /// Depth, 16-bit or 24-bits usually
-  DEPTH_STENCIL,
+  DEPTH_COMPONENT(9),
 
   /// Two Depth (24-bits) + Stencil (8-bits) channels
-  ALPHA
+  DEPTH_STENCIL(10),
 
-  /// One Alpha channel, float
+  /// Alpha channel only
+  ALPHA(11);
+
+  /// The integer value of the enum
+  final int value;
+  
+  /// Constructor with the integer value
+  const PixelDataFormat(this.value);
+  
+  /// Factory constructor to create a PixelDataFormat from an integer value
+  factory PixelDataFormat.fromValue(int value) {
+    return PixelDataFormat.values.firstWhere(
+      (format) => format.value == value,
+      orElse: () => throw ArgumentError('Invalid PixelDataFormat value: $value'),
+    );
+  }
 }
 
-/// Pixel Data Type
+/// Pixel data type enum, representing different data types for pixel values
 enum PixelDataType {
-  UBYTE,
-
   /// Unsigned byte
-  BYTE,
+  UBYTE(0),
 
   /// Signed byte
-  USHORT,
+  BYTE(1),
 
   /// Unsigned short (16-bit)
-  SHORT,
+  USHORT(2),
 
   /// Signed short (16-bit)
-  UINT,
+  SHORT(3),
 
   /// Unsigned int (32-bit)
-  INT,
+  UINT(4),
 
   /// Signed int (32-bit)
-  HALF,
+  INT(5),
 
   /// Half-float (16-bit float)
-  FLOAT,
+  HALF(6),
 
   /// Float (32-bits float)
-  COMPRESSED,
+  FLOAT(7),
 
-  /// Compressed pixels, see CompressedPixelDataType
-  UINT_10F_11F_11F_REV,
+  /// Compressed pixels
+  COMPRESSED(8),
 
   /// Three low precision floating-point numbers
-  USHORT_565,
+  UINT_10F_11F_11F_REV(9),
 
   /// Unsigned int (16-bit), encodes 3 RGB channels
-  UINT_2_10_10_10_REV,
+  USHORT_565(10),
 
   /// Unsigned normalized 10 bits RGB, 2 bits alpha
+  UINT_2_10_10_10_REV(11);
+
+  /// The integer value of the enum
+  final int value;
+  
+  /// Constructor with the integer value
+  const PixelDataType(this.value);
+  
+  /// Factory constructor to create a PixelDataType from an integer value
+  factory PixelDataType.fromValue(int value) {
+    return PixelDataType.values.firstWhere(
+      (type) => type.value == value,
+      orElse: () => throw ArgumentError('Invalid PixelDataType value: $value'),
+    );
+  }
 }
+
 
 @deprecated
 typedef ThermionTexture = Texture;

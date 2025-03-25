@@ -231,6 +231,11 @@ using namespace filament;
         view->setScene(scene);
     }
 
+    EMSCRIPTEN_KEEPALIVE void View_setFrontFaceWindingInverted(TView *tView, bool inverted) { 
+        auto *view = reinterpret_cast<View*>(tView);
+        view->setFrontFaceWindingInverted(inverted);
+    }
+
 
 #ifdef __cplusplus
 }

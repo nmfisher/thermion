@@ -9,6 +9,9 @@ import 'callbacks.dart';
 import 'ffi_camera.dart';
 
 class FFIView extends View {
+  int _renderOrder = 0;
+  int get renderOrder => _renderOrder;
+
   final Pointer<TView> view;
   final FFIFilamentApp app;
 
@@ -24,6 +27,17 @@ class FFIView extends View {
     }
   }
 
+  ///
+  ///
+  ///
+  Future setRenderOrder(int order) async {
+    this._renderOrder = order;
+    await FilamentApp.instance!.updateRenderOrder();
+  }
+
+  ///
+  ///
+  ///
   Future setRenderable(bool renderable) async {
     this._renderable = renderable;
   }
@@ -136,6 +150,10 @@ class FFIView extends View {
   @override
   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
     View_setLayerEnabled(view, layer.value, visible);
+  }
+
+  Future setBlendMode(TBlendMode blendMode) async {
+    View_setBlendMode(view, blendMode);
   }
 
   @override

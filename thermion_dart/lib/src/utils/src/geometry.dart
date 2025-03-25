@@ -5,8 +5,8 @@ import '../../../thermion_dart.dart';
 
 class GeometryHelper {
   static Geometry fullscreenQuad() {
-    final vertices = Float32List.fromList(
-        [-1.0, -1.0, 1.0, 3.0, -1.0, 1.0, -1.0, 3.0, 1.0]);
+    final vertices =
+        Float32List.fromList([-1.0, -1.0, 1.0, 3.0, -1.0, 1.0, -1.0, 3.0, 1.0]);
     final indices = [0, 1, 2];
     return Geometry(vertices, indices);
   }
@@ -59,7 +59,8 @@ class GeometryHelper {
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
   }
 
-  static Geometry cube({bool normals = true, bool uvs = true}) {
+  static Geometry cube(
+      {bool normals = true, bool uvs = true, bool flipUvs = true}) {
     final vertices = Float32List.fromList([
       // Front face
       -1, -1, 1, // 0
@@ -175,44 +176,49 @@ class GeometryHelper {
           ])
         : null;
 
+    // Original UV coordinates
+    var originalUvs = <double>[
+      // front
+      1 / 3, 3 / 4, // 0
+      2 / 3, 3 / 4, // 1
+      2 / 3, 1, // 2
+      1 / 3, 1, // 3
+
+      // back
+      1 / 3, 1 / 4, // 4
+      2 / 3, 1 / 4, // 5
+      2 / 3, 1 / 2, // 6
+      1 / 3, 1 / 2, // 7
+
+      // top
+      2 / 3, 1 / 2, // 8
+      1, 1 / 2, // 9
+      1, 3 / 4, // 10
+      2 / 3, 3 / 4, // 11
+
+      // bottom
+      0, 1 / 2, // 12
+      1 / 3, 1 / 2, // 13
+      1 / 3, 3 / 4, // 14
+      0, 3 / 4, // 15
+
+      // right
+      1 / 3, 1 / 2, // 16
+      2 / 3, 1 / 2, // 17
+      2 / 3, 3 / 4, // 18
+      1 / 3, 3 / 4, // 19
+
+      // left
+      1 / 3, 0, // 20
+      2 / 3, 0, // 21
+      2 / 3, 1 / 4, // 22
+      1 / 3, 1 / 4 // 23
+    ];
+
+    // Apply UV flipping if requested
     final _uvs = uvs
-        ? Float32List.fromList([
-            // front
-            1 / 3, 3 / 4, // 0
-            2 / 3, 3 / 4, // 1
-            2 / 3, 1, // 2
-            1 / 3, 1, // 3
-
-            // back
-            1 / 3, 1 / 4, // 4
-            2 / 3, 1 / 4, // 5
-            2 / 3, 1 / 2, // 6
-            1 / 3, 1 / 2, // 7
-
-            // top
-            2 / 3, 1 / 2, // 8
-            1, 1 / 2, // 9
-            1, 3 / 4, // 10
-            2 / 3, 3 / 4, // 11
-
-            // bottom
-            0, 1 / 2, // 12
-            1 / 3, 1 / 2, // 13
-            1 / 3, 3 / 4, // 14
-            0, 3 / 4, // 15
-
-            // right
-            1 / 3, 1 / 2, // 16
-            2 / 3, 1 / 2, // 17
-            2 / 3, 3 / 4, // 18
-            1 / 3, 3 / 4, // 19
-
-            // left
-            1 / 3, 0, // 20
-            2 / 3, 0, // 21
-            2 / 3, 1 / 4, // 22
-            1 / 3, 1 / 4 // 23
-          ])
+        ? Float32List.fromList(
+            flipUvs ? _flipUvCoordinates(originalUvs) : originalUvs)
         : null;
 
     final indices = [
@@ -229,7 +235,17 @@ class GeometryHelper {
       // Left face
       20, 21, 22, 20, 22, 23 // 4,0,3,4,3,7
     ];
+
     return Geometry(vertices, indices, normals: _normals, uvs: _uvs);
+  }
+
+// Helper function to flip the Y coordinate of UV coordinates (y = 1.0 - y)
+  static List<double> _flipUvCoordinates(List<double> uvs) {
+    var flippedUvs = List<double>.from(uvs);
+    for (var i = 1; i < flippedUvs.length; i += 2) {
+      flippedUvs[i] = 1.0 - flippedUvs[i];
+    }
+    return flippedUvs;
   }
 
   static Geometry cylinder(

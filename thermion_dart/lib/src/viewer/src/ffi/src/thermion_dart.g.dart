@@ -659,6 +659,12 @@ external void View_setScene(
   ffi.Pointer<TScene> tScene,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.Bool)>(isLeaf: true)
+external void View_setFrontFaceWindingInverted(
+  ffi.Pointer<TView> tView,
+  bool inverted,
+);
+
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32,
         PickCallback)>(isLeaf: true)
@@ -1471,7 +1477,8 @@ external void Renderer_renderStandaloneView(
         ffi.Pointer<TRenderTarget>,
         ffi.Int,
         ffi.Int,
-        ffi.Pointer<ffi.Uint8>)>(isLeaf: true)
+        ffi.Pointer<ffi.Uint8>,
+        ffi.Size)>(isLeaf: true)
 external void Renderer_readPixels(
   ffi.Pointer<TRenderer> tRenderer,
   ffi.Pointer<TView> tView,
@@ -1479,6 +1486,7 @@ external void Renderer_readPixels(
   int tPixelBufferFormat,
   int tPixelDataType,
   ffi.Pointer<ffi.Uint8> out,
+  int outLength,
 );
 
 @ffi.Native<
@@ -1976,6 +1984,7 @@ external void Renderer_renderStandaloneViewRenderThread(
         ffi.UnsignedInt,
         ffi.UnsignedInt,
         ffi.Pointer<ffi.Uint8>,
+        ffi.Size,
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
 external void Renderer_readPixelsRenderThread(
   ffi.Pointer<TRenderer> tRenderer,
@@ -1984,6 +1993,7 @@ external void Renderer_readPixelsRenderThread(
   int tPixelBufferFormat,
   int tPixelDataType,
   ffi.Pointer<ffi.Uint8> out,
+  int outLength,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 

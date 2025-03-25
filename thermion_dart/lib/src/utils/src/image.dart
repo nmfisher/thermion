@@ -2,8 +2,8 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 
-Future<Uint8List> pixelBufferToBmp(
-    Uint8List pixelBuffer, int width, int height) async {
+Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
+    {bool hasAlpha = true, bool isFloat = false}) async {
   final rowSize = (width * 3 + 3) & ~3;
   final padding = rowSize - (width * 3);
   final fileSize = 54 + rowSize * height;
@@ -28,14 +28,29 @@ Future<Uint8List> pixelBufferToBmp(
   bd.setInt32(38, 2835, Endian.little); // X pixels per meter
   bd.setInt32(42, 2835, Endian.little); // Y pixels per meter
 
+  Float32List? floatData;
+
+  if (isFloat) {
+    floatData = pixelBuffer.buffer.asFloat32List(
+        pixelBuffer.offsetInBytes, width * height * (hasAlpha ? 4 : 3));
+  }
+
   // Pixel data (BMP stores in BGR format)
   for (var y = 0; y < height; y++) {
     for (var x = 0; x < width; x++) {
-      final srcIndex = (y * width + x) * 4; // RGBA format
+      final srcIndex = (y * width + x) * (hasAlpha ? 4 : 3); // RGBA format
       final dstIndex = 54 + y * rowSize + x * 3; // BGR format
-      data[dstIndex] = pixelBuffer[srcIndex + 2]; // Blue
-      data[dstIndex + 1] = pixelBuffer[srcIndex + 1]; // Green
-      data[dstIndex + 2] = pixelBuffer[srcIndex]; // Red
+
+        data[dstIndex] = isFloat
+            ? (floatData![srcIndex + 2] * 255).toInt()
+            : pixelBuffer[srcIndex + 2]; // Blue
+        data[dstIndex + 1] = isFloat
+            ? (floatData![srcIndex + 1] * 255).toInt()
+            : pixelBuffer[srcIndex + 1]; // Green
+        data[dstIndex + 2] = isFloat
+            ? (floatData![srcIndex] * 255).toInt()
+            : pixelBuffer[srcIndex]; // Red
+
       // Alpha channel is discarded
     }
     // Add padding to the end of each row
