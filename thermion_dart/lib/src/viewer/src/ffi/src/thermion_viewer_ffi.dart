@@ -675,8 +675,9 @@ class ThermionViewerFFI extends ThermionViewer {
       {List<MaterialInstance>? materialInstances,
       bool keepData = false,
       bool addToScene = true}) async {
-    final asset =
-        await FilamentApp.instance!.createGeometry(geometry, animationManager, materialInstances: materialInstances) as FFIAsset;
+    final asset = await FilamentApp.instance!.createGeometry(
+            geometry, animationManager, materialInstances: materialInstances)
+        as FFIAsset;
 
     if (addToScene) {
       await scene.add(asset);
@@ -698,11 +699,18 @@ class ThermionViewerFFI extends ThermionViewer {
     return _gizmos[gizmoType]!;
   }
 
+  ///
+  ///
+  ///
   Future addToScene(covariant FFIAsset asset) async {
     await scene.add(asset);
   }
 
+  ///
+  ///
+  ///
   Future removeFromScene(covariant FFIAsset asset) async {
     await scene.remove(asset);
   }
+
 }
