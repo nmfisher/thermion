@@ -9,6 +9,10 @@ material {
         {
             type : float3[3],
             name : cameraPositions
+        },
+        {
+            type : bool,
+            name : flipUVs
         }
     ],
     variables : [
@@ -19,7 +23,8 @@ material {
     ],
     requires : [ position, uv0 ],
     shadingModel : unlit,
-    doubleSided : true,
+    doubleSided : false,
+    interpolation: flat,
     blending: opaque,
     depthWrite : true,
     depthCulling : true,
@@ -70,6 +75,9 @@ fragment {
         float z = (weights.x * 0.0) + (weights.y * 0.5) + (weights.z * 1.0);
 
         vec2 uv = getUV0();    
+        if(materialParams.flipUVs) {
+            uv = uvToRenderTargetUV(uv);
+        }
         vec3 texCoord = vec3(uv, z);
         material.baseColor = texture(materialParams_perspectives, texCoord);
     }
