@@ -1,0 +1,17 @@
+material {
+    name : LinearDepth,
+    shadingModel : unlit,
+    requires : [ position, uv0 ],
+    shadingModel : unlit,
+    doubleSided : false,
+    blending: opaque,
+    depthWrite : true,
+    depthCulling : true,
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(gl_FragCoord.z, 0.0, 0.0, 1.0);
+    }
+}
