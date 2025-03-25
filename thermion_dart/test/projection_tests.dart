@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:test/test.dart';
+import 'package:thermion_dart/src/utils/src/texture_projection.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_camera.dart';
@@ -60,49 +61,13 @@ void main() async {
         final cube = await _makeCube(testHelper, viewer);
         final ubershader = await cube.getMaterialInstanceAt();
         final originalTexture = await createTextureFromImage(testHelper);
-        final sampler =
-            await FilamentApp.instance!.createTextureSampler();
+        final sampler = await FilamentApp.instance!.createTextureSampler();
 
-        await ubershader.setParameterTexture("baseColorMap", originalTexture,
-            sampler);
+        await ubershader.setParameterTexture(
+            "baseColorMap", originalTexture, sampler);
 
-        final depthWriteView = await testHelper.createView(testHelper.swapChain,
-            textureFormat: TextureFormat.R32F);
-        final captureView = await testHelper.createView(testHelper.swapChain);
-        await viewer.view.setRenderOrder(0);
-        await depthWriteView.setRenderOrder(1);
-        await captureView.setRenderOrder(2);
-
-        for (var view in [captureView, depthWriteView]) {
-          await view.setCamera(camera);
-          await (view as FFIView)
-              .setScene(await viewer.view.getScene() as FFIScene);
-        }
-
-        var depthWriteMat = await FilamentApp.instance!.createMaterial(
-          File(
-            "/Users/nickfisher/Documents/thermion/materials/linear_depth.filamat",
-          ).readAsBytesSync(),
-        );
-        var depthWriteMi = await depthWriteMat.createInstance();
-
-        var captureMat = await FilamentApp.instance!.createMaterial(
-          File(
-            "/Users/nickfisher/Documents/thermion/materials/capture_uv.filamat",
-          ).readAsBytesSync(),
-        );
-        var captureMi = await captureMat.createInstance();
-
-        final color =
-            await (await viewer.view.getRenderTarget())!.getColorTexture();
-        final depth =
-            await (await depthWriteView.getRenderTarget())!.getColorTexture();
-        await captureMi.setParameterBool("flipUVs", true);
-        await captureMi.setParameterTexture(
-            "color", color, await FilamentApp.instance!.createTextureSampler());
-        await captureMi.setParameterTexture(
-            "depth", depth, await FilamentApp.instance!.createTextureSampler());
-        await captureMi.setParameterBool("useDepth", true);
+        var textureProjection =
+            await TextureProjection.create(viewer.view, testHelper.swapChain);
 
         await FilamentApp.instance!.setClearOptions(0, 0, 0, 1,
             clearStencil: 0, discard: false, clear: true);
@@ -115,7 +80,7 @@ void main() async {
           512,
           textureFormat: TextureFormat.RGBA32F,
         );
-        
+
         for (int i = 0; i < divisions; i++) {
           await camera.lookAt(
             Vector3(
@@ -125,23 +90,17 @@ void main() async {
             ),
           );
 
-          var pixelBuffers = await testHelper.capture(null, "capture_uv_$i",
-              beforeRender: (view) async {
-            if (view == viewer.view) {
-                        await ubershader.setParameterTexture("baseColorMap", originalTexture,
-            sampler);
-              await cube.setMaterialInstanceAt(ubershader);
-            } else if (view == depthWriteView) {
-              await cube.setMaterialInstanceAt(depthWriteMi);
-            } else if (view == captureView) {
-              await cube.setMaterialInstanceAt(captureMi);
-            }
-          });
+          await textureProjection.project(cube);
+          final depth = textureProjection.getDepthWritePixelBuffer();
+          await savePixelBufferToBmp(
+              depth, 512, 512, "${testHelper.outDir.path}/depth_$i.bmp");
+          final projected = textureProjection.getProjectedPixelBuffer();
+          await savePixelBufferToBmp(
+              depth, 512, 512, "${testHelper.outDir.path}/projected_$i.bmp");
           await cube.setMaterialInstanceAt(ubershader);
 
           final data = await projectedImage.getData();
-          data.setRange(0, data.length,
-              pixelBuffers[captureView]!.buffer.asFloat32List());
+          data.setRange(0, data.length, projected.buffer.asFloat32List());
 
           await projectedTexture.setLinearImage(
             projectedImage,
@@ -157,8 +116,8 @@ void main() async {
 
           await testHelper.capture(viewer.view, "capture_uv_retextured_$i");
 
-                                await ubershader.setParameterTexture("baseColorMap", originalTexture,
-            sampler);
+          await ubershader.setParameterTexture(
+              "baseColorMap", originalTexture, sampler);
         }
       }, createRenderTarget: true);
     });
