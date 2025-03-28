@@ -1,0 +1,35 @@
+material {
+    name : DepthVisualizer,
+    shadingModel : unlit,
+   parameters:[
+        {
+            type : sampler2d,
+            name : depth,
+        }
+    ], 
+    requires : [
+        uv0
+    ],
+    depthWrite : true,
+    depthCulling: false
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        
+        
+        prepareMaterial(material);
+        
+        vec2 uv = getUV0();
+        vec4 sampled = textureLod(materialParams_depth, uv, 0.0);
+        //if(sampled.x + sampled.y + sampled.z < 1.0) {
+        //    material.baseColor = vec4(0.0, 1.0, 0.0, 1.0);
+        //} else {
+        //    material.baseColor = vec4(1.0, 0.0, 0.0, 1.0);
+            //material.baseColor = vec4(sampled.x + sampled.y + sampled.z, sampled.x + sampled.y + sampled.z, sampled.x + sampled.y + sampled.z, 1.0);
+        //}
+        material.baseColor = vec4(sampled.rgb, 1.0); 
+        //material.baseColor = vec4(1.0f, 0.0f, 1.0f, 1.0f);
+        //gl_FragDepth = 0.75f;
+    }
+}
