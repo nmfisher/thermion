@@ -34,3 +34,4 @@ This is only for developers extending the Thermion package itself; if you are si
 > cmake --build . --config Release
 > cmake --build . --target tinyexr --config Release
 > cmake --build . --target imageio --config Release
+> cmake --build . --config Debug
