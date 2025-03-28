@@ -256,19 +256,17 @@ abstract class FilamentApp<T> {
   Future<MaterialInstance> createImageMaterialInstance();
 
   ///
-  /// Returns pixel buffer(s) for [view] (or, if null, all views associated 
+  /// Returns pixel buffer(s) for [view] (or, if null, all views associated
   /// with [swapChain] by calling [register]).
-  /// 
+  ///
   /// Pixel buffers will be returned in RGBA float32 format.
   ///
-  Future<List<(View,Uint8List)>> capture(covariant SwapChain swapChain,
-      {
-      covariant View? view,
+  Future<List<(View, Uint8List)>> capture(covariant SwapChain swapChain,
+      {covariant View? view,
       bool captureRenderTarget = false,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.UBYTE,
-      Future Function(View)? beforeRender}
-  );
+      Future Function(View)? beforeRender});
 
   ///
   ///
@@ -302,7 +300,10 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future<ThermionAsset> createGeometry(Geometry geometry, T animationManager,
-      {List<MaterialInstance>? materialInstances,
-      bool keepData = false}); 
+      {List<MaterialInstance>? materialInstances, bool keepData = false});
 
+  ///
+  ///
+  ///
+  Future flush();
 }

@@ -681,7 +681,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       beforeRender?.call(view);
 
       final viewport = await view.getViewport();
-      final pixelBuffer = Uint8List(viewport.width * viewport.height * 4 * sizeOf<Float>());
+      final pixelBuffer =
+          Uint8List(viewport.width * viewport.height * 4 * sizeOf<Float>());
       await withVoidCallback((cb) {
         Renderer_renderRenderThread(
           renderer,
@@ -695,17 +696,18 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       await withVoidCallback((cb) {
         Renderer_readPixelsRenderThread(
-          renderer,
-          view.view,
-          view.renderTarget == null ? nullptr : view.renderTarget!.renderTarget,
-          // TPixelDataFormat.PIXELDATAFORMAT_RGBA,
-          // TPixelDataType.PIXELDATATYPE_UBYTE,
-          pixelDataFormat.value,
-          pixelDataType.value,
-          pixelBuffer.address,
-          pixelBuffer.length,
-          cb
-        );
+            renderer,
+            view.view,
+            view.renderTarget == null
+                ? nullptr
+                : view.renderTarget!.renderTarget,
+            // TPixelDataFormat.PIXELDATAFORMAT_RGBA,
+            // TPixelDataType.PIXELDATATYPE_UBYTE,
+            pixelDataFormat.value,
+            pixelDataType.value,
+            pixelBuffer.address,
+            pixelBuffer.length,
+            cb);
       });
       pixelBuffers.add((view, pixelBuffer));
     }
@@ -866,7 +868,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   @override
-  Future<ThermionAsset> createGeometry(Geometry geometry, Pointer animationManager,
+  Future<ThermionAsset> createGeometry(
+      Geometry geometry, Pointer animationManager,
       {List<MaterialInstance>? materialInstances,
       bool keepData = false,
       bool addToScene = true}) async {
@@ -902,6 +905,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
 
     return FFIAsset(assetPtr, this, animationManager.cast<TAnimationManager>());
+  }
+
+  ///
+  ///
+  ///
+  Future flush() async {
+    await withVoidCallback((cb) => Engine_flushAndWaitRenderThead(engine, cb));
   }
 }
 
