@@ -31,7 +31,7 @@ void main(List<String> arguments) async {
   await viewer.initialized;
   var swapChain = await viewer.createHeadlessSwapChain(500,500);
   var view = await viewer.getViewAt(0);
-  await view.updateViewport(500, 500);
+  await view.setViewport(500, 500);
   var camera = await viewer.getMainCamera();
   await camera.setLensProjection();
   
