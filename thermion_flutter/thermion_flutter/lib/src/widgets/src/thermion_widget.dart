@@ -19,8 +19,9 @@ Future kDefaultResizeCallback(Size size, View view, double pixelRatio) async {
 }
 
 class ThermionWidget extends StatefulWidget {
+  
   ///
-  /// The viewer.
+  /// The viewer whose content will be rendered into this widget.
   ///
   final ThermionViewer viewer;
 
@@ -40,6 +41,9 @@ class ThermionWidget extends StatefulWidget {
   ///
   final Future Function(Size size, View view, double pixelRatio)? onResize;
 
+  ///
+  /// If true, add an overlay showing the FPS on top of the rendered content.
+  /// 
   final bool showFpsCounter;
 
   ///
@@ -72,7 +76,7 @@ class _ThermionWidgetState extends State<ThermionWidget> {
     }
 
     return ThermionTextureWidget(
-        key: ObjectKey(widget.viewer),
+        key: ObjectKey(widget.viewer.view),
         initial: widget.initial,
         viewer: widget.viewer,
         showFpsCounter: widget.showFpsCounter,
