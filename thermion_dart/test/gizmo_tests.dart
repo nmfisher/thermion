@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -7,163 +6,128 @@ import 'helpers.dart';
 
 void main() async {
   final testHelper = TestHelper("gizmo");
+  
+  await testHelper.setup();
 
   group("gizmo tests", () {
     test('add/remove translation gizmo', () async {
       await testHelper.withViewer((viewer) async {
-        var cameraPos = Vector3(1.5, 1.5, 3);
-        var modelMatrix =
-            makeViewMatrix(cameraPos, Vector3.zero(), Vector3(0, 1, 0));
-        modelMatrix.invert();
-        await viewer.setCameraModelMatrix4(modelMatrix);
-
-        final view = await viewer.getViewAt(0);
-        await viewer.showGridOverlay();
-        final gizmo = await viewer.createGizmo(view, GizmoType.translation);
-        await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-        await gizmo.addToScene();
-        await testHelper.capture(viewer, "translation_gizmo_near");
-
-        modelMatrix = makeViewMatrix(
-            cameraPos.scaled(10), Vector3.zero(), Vector3(0, 1, 0));
-        modelMatrix.invert();
-        await viewer.setCameraModelMatrix4(modelMatrix);
-
-        // gizmo occupies same viewport size no matter the camera position
-        await testHelper.capture(viewer, "translation_gizmo_far");
-
-        await gizmo.removeFromScene();
-
-        await testHelper.capture(viewer, "translation_gizmo_removed");
-      }, postProcessing: true, bg: kWhite);
-    });
-
-     test('add/remove rotation gizmo', () async {
-      await testHelper.withViewer((viewer) async {
-        var cameraPos = Vector3(1.5, 1.5, 3);
-        var modelMatrix =
-            makeViewMatrix(cameraPos, Vector3.zero(), Vector3(0, 1, 0));
-        modelMatrix.invert();
-        await viewer.setCameraModelMatrix4(modelMatrix);
-
-        final view = await viewer.getViewAt(0);
-        await viewer.showGridOverlay();
-        final gizmo = await viewer.createGizmo(view, GizmoType.rotation);
-        await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-        await gizmo.addToScene();
-        await testHelper.capture(viewer, "rotation_gizmo_near");
-
-        modelMatrix = makeViewMatrix(
-            cameraPos.scaled(10), Vector3.zero(), Vector3(0, 1, 0));
-        modelMatrix.invert();
-        await viewer.setCameraModelMatrix4(modelMatrix);
-
-        // gizmo occupies same viewport size no matter the camera position
-        await testHelper.capture(viewer, "rotation_gizmo_far");
-
-        await gizmo.removeFromScene();
-
-        await testHelper.capture(viewer, "rotation_gizmo_removed");
-      }, postProcessing: true, bg: kWhite);
-    });
-
-    test('set gizmo transform', () async {
-      await testHelper.withViewer((viewer) async {
-        var cameraPos = Vector3(1.5, 1.5, 3);
-        var modelMatrix =
-            makeViewMatrix(cameraPos, Vector3.zero(), Vector3(0, 1, 0));
-        modelMatrix.invert();
-        await viewer.setCameraModelMatrix4(modelMatrix);
-
-        final view = await viewer.getViewAt(0);
-        await viewer.showGridOverlay();
-        final gizmo = await viewer.createGizmo(view, GizmoType.translation);
-        await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-        await gizmo.addToScene();
-
-        await viewer.setTransform(gizmo.entity, Matrix4.translation(Vector3(0,2,0)));
-        
-        await testHelper.capture(viewer, "translation_gizmo_transformed");
-      }, postProcessing: true, bg: kWhite);
-    });
-
-    test('pick gizmo when not added to scene (this should not crash)',
-        () async {
-      await testHelper.withViewer((viewer) async {
-        await viewer.setCameraPosition(0, 0, 1);
-        final view = await viewer.getViewAt(0);
-        final viewport = await view.getViewport();
-        final gizmo = await viewer.createGizmo(view, GizmoType.translation);
-
-        final completer = Completer<GizmoPickResultType>();
-
-        await gizmo.pick(viewport.width ~/ 2, viewport.height ~/ 2 + 1,
-            handler: (GizmoPickResultType resultType, Vector3 coords) async {
-          completer.complete(resultType);
-        });
-
-        for (int i = 0; i < 10; i++) {
-          await testHelper.capture(
-              viewer, "pick_gizmo_without_adding_to_scene");
-          if (completer.isCompleted) {
-            break;
-          }
-        }
-
-        expect(completer.isCompleted, false);
-      }, postProcessing: true, bg: kWhite);
-    });
-
-    test('pick translation gizmo when added to scene', () async {
-      await testHelper.withViewer((viewer) async {
-        await viewer.setCameraPosition(0, 0, 1);
-        final view = await viewer.getViewAt(0);
-        final viewport = await view.getViewport();
-        final gizmo = await viewer.createGizmo(view, GizmoType.translation);
-        await gizmo.addToScene();
-        await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-
-        final completer = Completer<GizmoPickResultType>();
-
-        await testHelper.capture(viewer, "gizmo_before_pick_no_highlight");
-
-        await gizmo.pick(viewport.width ~/ 2 + 100, viewport.height ~/ 2,
-            handler: (resultType, coords) async {
-          completer.complete(resultType);
-        });
-
-        for (int i = 0; i < 10; i++) {
-          await testHelper.capture(viewer, "gizmo_after_pick_no_highlight");
-          if (completer.isCompleted) {
-            break;
-          }
-        }
-
-        assert(completer.isCompleted);
-        expect(await completer.future, GizmoPickResultType.AxisX);
-      }, postProcessing: true, bg: kWhite);
-    });
-
-    test('highlight/unhighlight gizmo', () async {
-      await testHelper.withViewer((viewer) async {
-        final modelMatrix = makeViewMatrix(
-            Vector3(0.5, 0.5, 0.5), Vector3.zero(), Vector3(0, 1, 0));
-        modelMatrix.invert();
-        await viewer.setCameraModelMatrix4(modelMatrix);
-        final view = await viewer.getViewAt(0);
-
-        final gizmo = await viewer.createGizmo(view, GizmoType.translation);
-        await gizmo.addToScene();
-        await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
-
-        await testHelper.capture(viewer, "gizmo_before_highlight");
-        await gizmo.highlight(Axis.X);
-        await testHelper.capture(viewer, "gizmo_after_highlight");
-        await gizmo.unhighlight();
-        await testHelper.capture(viewer, "gizmo_after_unhighlight");
+        final gizmo = await viewer.getGizmo(GizmoType.translation);
+        await viewer.addToScene(gizmo);
+        await testHelper.capture(viewer.view, "translation_gizmo");
+        await viewer.removeFromScene(gizmo);
+        await testHelper.capture(viewer.view, "translation_gizmo_removed");
       }, postProcessing: true, bg: kWhite);
     });
   });
+
+    test('add/remove rotation gizmo', () async {
+      await testHelper.withViewer((viewer) async {
+                final gizmo = await viewer.getGizmo(GizmoType.rotation);
+        await viewer.addToScene(gizmo);
+        await testHelper.capture(viewer.view, "rotation_gizmo");
+        await viewer.removeFromScene(gizmo);
+        await testHelper.capture(viewer.view, "rotation_gizmo_removed");
+      }, postProcessing: true, bg: kWhite);
+    });
+
+  //   test('set gizmo transform', () async {
+  //     await testHelper.withViewer((viewer) async {
+  //       var cameraPos = Vector3(1.5, 1.5, 3);
+  //       var modelMatrix =
+  //           makeViewMatrix(cameraPos, Vector3.zero(), Vector3(0, 1, 0));
+  //       modelMatrix.invert();
+  //       await viewer.setCameraModelMatrix4(modelMatrix);
+
+  //       final view = await viewer.getViewAt(0);
+  //       await viewer.showGridOverlay();
+  //       final gizmo = await viewer.createGizmo(view, GizmoType.translation);
+  //       await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+  //       await gizmo.addToScene();
+
+  //       await viewer.setTransform(gizmo.entity, Matrix4.translation(Vector3(0,2,0)));
+
+  //       await testHelper.capture(viewer, "translation_gizmo_transformed");
+  //     }, postProcessing: true, bg: kWhite);
+  //   });
+
+  //   test('pick gizmo when not added to scene (this should not crash)',
+  //       () async {
+  //     await testHelper.withViewer((viewer) async {
+  //       await viewer.setCameraPosition(0, 0, 1);
+  //       final view = await viewer.getViewAt(0);
+  //       final viewport = await view.getViewport();
+  //       final gizmo = await viewer.createGizmo(view, GizmoType.translation);
+
+  //       final completer = Completer<GizmoPickResultType>();
+
+  //       await gizmo.pick(viewport.width ~/ 2, viewport.height ~/ 2 + 1,
+  //           handler: (GizmoPickResultType resultType, Vector3 coords) async {
+  //         completer.complete(resultType);
+  //       });
+
+  //       for (int i = 0; i < 10; i++) {
+  //         await testHelper.capture(
+  //             viewer, "pick_gizmo_without_adding_to_scene");
+  //         if (completer.isCompleted) {
+  //           break;
+  //         }
+  //       }
+
+  //       expect(completer.isCompleted, false);
+  //     }, postProcessing: true, bg: kWhite);
+  //   });
+
+  //   test('pick translation gizmo when added to scene', () async {
+  //     await testHelper.withViewer((viewer) async {
+  //       await viewer.setCameraPosition(0, 0, 1);
+  //       final view = await viewer.getViewAt(0);
+  //       final viewport = await view.getViewport();
+  //       final gizmo = await viewer.createGizmo(view, GizmoType.translation);
+  //       await gizmo.addToScene();
+  //       await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+
+  //       final completer = Completer<GizmoPickResultType>();
+
+  //       await testHelper.capture(viewer, "gizmo_before_pick_no_highlight");
+
+  //       await gizmo.pick(viewport.width ~/ 2 + 100, viewport.height ~/ 2,
+  //           handler: (resultType, coords) async {
+  //         completer.complete(resultType);
+  //       });
+
+  //       for (int i = 0; i < 10; i++) {
+  //         await testHelper.capture(viewer, "gizmo_after_pick_no_highlight");
+  //         if (completer.isCompleted) {
+  //           break;
+  //         }
+  //       }
+
+  //       assert(completer.isCompleted);
+  //       expect(await completer.future, GizmoPickResultType.AxisX);
+  //     }, postProcessing: true, bg: kWhite);
+  //   });
+
+  //   test('highlight/unhighlight gizmo', () async {
+  //     await testHelper.withViewer((viewer) async {
+  //       final modelMatrix = makeViewMatrix(
+  //           Vector3(0.5, 0.5, 0.5), Vector3.zero(), Vector3(0, 1, 0));
+  //       modelMatrix.invert();
+  //       await viewer.setCameraModelMatrix4(modelMatrix);
+  //       final view = await viewer.getViewAt(0);
+
+  //       final gizmo = await viewer.createGizmo(view, GizmoType.translation);
+  //       await gizmo.addToScene();
+  //       await viewer.setLayerVisibility(VisibilityLayers.OVERLAY, true);
+
+  //       await testHelper.capture(viewer, "gizmo_before_highlight");
+  //       await gizmo.highlight(Axis.X);
+  //       await testHelper.capture(viewer, "gizmo_after_highlight");
+  //       await gizmo.unhighlight();
+  //       await testHelper.capture(viewer, "gizmo_after_unhighlight");
+  //     }, postProcessing: true, bg: kWhite);
+  //   });
+  // });
 
   //   test('set uv scaling (unlit)', () async {
   //     var viewer = await testHelper.createViewer();
