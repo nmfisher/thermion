@@ -28,7 +28,7 @@ ifndef FILAMENT_PATH
 	@echo "FILAMENT_PATH is not set"
 else
 	@echo "Using Filament build from ${FILAMENT_PATH}"
-	@for material in unlit image unlit_fixed_size grid gizmo; do \
+	@for material in image unlit_fixed_size grid; do \
 		${FILAMENT_PATH}/matc -a opengl -a metal -a vulkan -o materials/$$material.filamat materials/$$material.mat || exit 1; \
 		$(FILAMENT_PATH)/resgen -c -p $$material -x thermion_dart/native/include/material/ materials/$$material.filamat; \
 		echo '#include "'$$material'.h"' | cat - thermion_dart/native/include/material/$$material.c > thermion_dart/native/include/material/$$material.c.new; \
