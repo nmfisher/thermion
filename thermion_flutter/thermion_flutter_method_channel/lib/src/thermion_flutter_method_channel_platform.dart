@@ -120,6 +120,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     if (Platform.isMacOS || Platform.isIOS) {
       _swapChain = await FilamentApp.instance!.createHeadlessSwapChain(1, 1);
       await FilamentApp.instance!.register(_swapChain!, viewer.view);
+      await viewer.view.setRenderable(true);
     }
 
     return viewer;
@@ -154,7 +155,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
 
     if (Platform.isWindows) {
       if (_swapChain != null) {
-        await FilamentApp.instance!.setRenderable(view, false);
+        await FilamentApp.instance!.unregister(_swapChain!, view);
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
       }
 
@@ -163,13 +164,12 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       await FilamentApp.instance!.register(_swapChain!, view);
     } else if (Platform.isAndroid) {
       if (_swapChain != null) {
-        await FilamentApp.instance!.setRenderable(view, false);
+        await FilamentApp.instance!.unregister(_swapChain!, view);
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
       }
       _swapChain =
           await FilamentApp.instance!.createSwapChain(descriptor.windowHandle!);
       await FilamentApp.instance!.register(_swapChain!, view);
-
     } else {
       final color = await FilamentApp.instance!
           .createTexture(descriptor.width, descriptor.height,
