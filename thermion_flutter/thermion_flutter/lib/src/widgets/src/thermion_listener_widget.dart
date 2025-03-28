@@ -15,8 +15,7 @@ extension OffsetExtension on Offset {
 }
 
 ///
-/// A widget that captures swipe/pointer events.
-/// This is a dumb listener; events are forwarded to a [InputHandler].
+/// Captures swipe/pointer events and forwards to the provided [InputHandler].
 ///
 class ThermionListenerWidget extends StatefulWidget {
   ///
@@ -26,6 +25,9 @@ class ThermionListenerWidget extends StatefulWidget {
   ///
   final Widget? child;
 
+  ///
+  ///
+  ///
   final FocusNode? focusNode;
 
   ///
@@ -85,38 +87,38 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
 
   Widget _desktop(double pixelRatio) {
     return Focus(
-      focusNode: widget.focusNode,
-      child:Listener(
-      
-      onPointerHover: (event) {
-        widget.inputHandler.onPointerHover(
-            event.localPosition.toVector2() * pixelRatio,
-            event.delta.toVector2() * pixelRatio);
-      },
-      onPointerSignal: (PointerSignalEvent pointerSignal) {
-        if (pointerSignal is PointerScrollEvent) {
-          widget.inputHandler.onPointerScroll(
-              pointerSignal.localPosition.toVector2() * pixelRatio,
-              pointerSignal.scrollDelta.dy * pixelRatio);
-        }
-      },
-      onPointerPanZoomStart: (pzs) {
-        throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
-      },
-      onPointerDown: (d) {
-        widget.focusNode?.requestFocus();
-        widget.inputHandler.onPointerDown(
-            d.localPosition.toVector2() * pixelRatio,
-            d.buttons & kMiddleMouseButton != 0);
-      },
-      onPointerMove: (PointerMoveEvent d) => widget.inputHandler.onPointerMove(
-          d.localPosition.toVector2() * pixelRatio,
-          d.delta.toVector2() * pixelRatio,
-          d.buttons & kMiddleMouseButton != 0),
-      onPointerUp: (d) =>
-          widget.inputHandler.onPointerUp(d.buttons & kMiddleMouseButton != 0),
-      child: widget.child,
-    ));
+        focusNode: widget.focusNode,
+        child: Listener(
+          onPointerHover: (event) {
+            widget.inputHandler.onPointerHover(
+                event.localPosition.toVector2() * pixelRatio,
+                event.delta.toVector2() * pixelRatio);
+          },
+          onPointerSignal: (PointerSignalEvent pointerSignal) {
+            if (pointerSignal is PointerScrollEvent) {
+              widget.inputHandler.onPointerScroll(
+                  pointerSignal.localPosition.toVector2() * pixelRatio,
+                  pointerSignal.scrollDelta.dy * pixelRatio);
+            }
+          },
+          onPointerPanZoomStart: (pzs) {
+            throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
+          },
+          onPointerDown: (d) {
+            widget.focusNode?.requestFocus();
+            widget.inputHandler.onPointerDown(
+                d.localPosition.toVector2() * pixelRatio,
+                d.buttons & kMiddleMouseButton != 0);
+          },
+          onPointerMove: (PointerMoveEvent d) => widget.inputHandler
+              .onPointerMove(
+                  d.localPosition.toVector2() * pixelRatio,
+                  d.delta.toVector2() * pixelRatio,
+                  d.buttons & kMiddleMouseButton != 0),
+          onPointerUp: (d) => widget.inputHandler
+              .onPointerUp(d.buttons & kMiddleMouseButton != 0),
+          child: widget.child,
+        ));
   }
 
   Widget _mobile(double pixelRatio) {
@@ -134,12 +136,10 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
           future: widget.inputHandler.initialized,
           builder: (_, initialized) {
             if (initialized.data != true) {
-              return widget.child ?? Container();
+              return Container();
             }
-            return Stack(children: [
-              if (isDesktop) Positioned.fill(child: _desktop(pixelRatio)),
-              if (!isDesktop) Positioned.fill(child: _mobile(pixelRatio))
-            ]);
+            return SizedBox.expand(
+                child: isDesktop ? _desktop(pixelRatio) : _mobile(pixelRatio));
           });
     });
   }
