@@ -16,7 +16,7 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future clearBackgroundImage() {
+  Future clearBackgroundImage({bool destroy = false}) {
     // TODO: implement clearBackgroundImage
     throw UnimplementedError();
   }
@@ -28,8 +28,8 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future<GizmoAsset> createGizmo(covariant View view, GizmoType type) {
-    // TODO: implement createGizmo
+  Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances, bool keepData = false, bool addToScene = true}) {
+    // TODO: implement createGeometry
     throw UnimplementedError();
   }
 
@@ -76,6 +76,12 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
+  Future<GizmoAsset> getGizmo(GizmoType type) {
+    // TODO: implement getGizmo
+    throw UnimplementedError();
+  }
+
+  @override
   Future<Aabb3> getRenderableBoundingBox(ThermionEntity entity) {
     // TODO: implement getRenderableBoundingBox
     throw UnimplementedError();
@@ -92,13 +98,13 @@ class ThermionViewerStub extends ThermionViewer {
   Future<bool> get initialized => throw UnimplementedError();
 
   @override
-  Future<ThermionAsset> loadGltf(String path, {int numInstances = 1, bool keepData = false, String? relativeResourcePath}) {
+  Future<ThermionAsset> loadGltf(String path, {bool addToScene = true, int numInstances = 1, bool keepData = false, String? relativeResourcePath}) {
     // TODO: implement loadGltf
     throw UnimplementedError();
   }
 
   @override
-  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false, String? relativeResourcePath}) {
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false, String relativeResourcePath}) {
     // TODO: implement loadGltfFromBuffer
     throw UnimplementedError();
   }
@@ -133,12 +139,6 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   Future removeFromScene(covariant ThermionAsset asset) {
     // TODO: implement removeFromScene
-    throw UnimplementedError();
-  }
-
-  @override
-  Future removeGridOverlay() {
-    // TODO: implement removeGridOverlay
     throw UnimplementedError();
   }
 
@@ -219,6 +219,12 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
+  Future setGridOverlayVisibility(bool visible) {
+    // TODO: implement setGridOverlayVisibility
+    throw UnimplementedError();
+  }
+
+  @override
   Future setLightDirection(ThermionEntity lightEntity, Vector3 direction) {
     // TODO: implement setLightDirection
     throw UnimplementedError();
@@ -279,13 +285,13 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future showGridOverlay() {
-    // TODO: implement showGridOverlay
+  Future setViewport(int width, int height) {
+    // TODO: implement setViewport
     throw UnimplementedError();
   }
 
   @override
   // TODO: implement view
   View get view => throw UnimplementedError();
-    
+  
 }
