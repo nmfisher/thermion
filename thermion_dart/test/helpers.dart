@@ -115,7 +115,8 @@ class TestHelper {
   ///
   ///
   ///
-  Future createView(FFISwapChain swapChain, { TextureFormat textureFormat = TextureFormat.RGBA32F}) async {
+  Future createView(FFISwapChain swapChain,
+      {TextureFormat textureFormat = TextureFormat.RGBA32F}) async {
     final view = await FilamentApp.instance!.createView() as FFIView;
     await view.setFrustumCullingEnabled(false);
     await view.setPostProcessing(false);
@@ -220,20 +221,14 @@ class TestHelper {
     resourceLoader.ref.freeResource = freeResource.nativeFunction;
     await FFIFilamentApp.create();
   }
-  
 
-  ///
-  ///
-  ///
-  Future withViewer(
-    Future Function(ThermionViewer viewer) fn, {
-    img.Color? bg,
-    Vector3? cameraPosition,
-    ({int width, int height}) viewportDimensions = (width: 512, height: 512),
-    bool postProcessing = false,
-    bool addSkybox = false,
-    bool createRenderTarget = false,
-  }) async {
+  Future createViewer(
+      {img.Color? bg,
+      Vector3? cameraPosition,
+      ({int width, int height}) viewportDimensions = (width: 512, height: 512),
+      bool postProcessing = false,
+      bool addSkybox = false,
+      bool createRenderTarget = false}) async {
     cameraPosition ??= Vector3(0, 5, 5);
 
     swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
@@ -304,7 +299,28 @@ class TestHelper {
     await viewer.setPostProcessing(postProcessing);
 
     await viewer.setToneMapping(ToneMapper.LINEAR);
+    return viewer;
+  }
 
+  ///
+  ///
+  ///
+  Future withViewer(
+    Future Function(ThermionViewer viewer) fn, {
+    img.Color? bg,
+    Vector3? cameraPosition,
+    ({int width, int height}) viewportDimensions = (width: 512, height: 512),
+    bool postProcessing = false,
+    bool addSkybox = false,
+    bool createRenderTarget = false,
+  }) async {
+    final viewer = await createViewer(
+        bg: bg,
+        cameraPosition: cameraPosition,
+        viewportDimensions: viewportDimensions,
+        postProcessing: postProcessing,
+        addSkybox: addSkybox,
+        createRenderTarget: createRenderTarget);
     await fn.call(viewer);
     await viewer.dispose();
   }
