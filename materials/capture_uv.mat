@@ -100,8 +100,8 @@ fragment {
         //material.baseColor = vec4(sampledDepth.r, 0.0, 0.0, 1.0);
         //material.baseColor = vec4(vertexDepth, 0.0, 0.0, 1.0);
         
-        if(materialParams.useDepth && abs(vertexDepth - sampledDepth.r) > 0.001) {
-            discard;
+        if(materialParams.useDepth && (sampledDepth.r < 0.0001 || abs(vertexDepth - sampledDepth.r) > 0.001)) {
+            material.baseColor = vec4(0.0, 0.0, 0.0, 0.0);
         } else {
             vec2 texSize = vec2(textureSize(materialParams_color, 0));
             vec4 color = textureLod(materialParams_color, uvToRenderTargetUV(deviceCoords.xy), 0.0f);

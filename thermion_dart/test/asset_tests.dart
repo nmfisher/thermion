@@ -9,24 +9,28 @@ void main() async {
   group("assets", () {
     test('load/clear skybox', () async {
       await testHelper.withViewer((viewer) async {
-        final camera = await viewer.getActiveCamera();
-        print(await camera.getModelMatrix());
-        print(await camera.getViewMatrix());
-        print(await camera.getProjectionMatrix());
-        await camera.lookAt(Vector3(0, 0, 10),
-            focus: Vector3.zero(), up: Vector3(0, 1, 0));
         await viewer.loadSkybox(
             "file://${testHelper.testDir}/assets/default_env_skybox.ktx");
         await testHelper.capture(viewer.view, "load_skybox");
         await viewer.removeSkybox();
         await testHelper.capture(viewer.view, "remove_skybox");
-      });
+
+        await viewer.setPostProcessing(true);
+        await viewer.setBloom(false, 0.01);
+        await viewer.loadSkybox(
+            "file://${testHelper.testDir}/assets/default_env_skybox.ktx");
+        await testHelper.capture(
+            viewer.view, "load_skybox_with_postprocessing");
+        await viewer.removeSkybox();
+        await testHelper.capture(
+            viewer.view, "remove_skybox_with_postprocessing");
+      }, createRenderTarget: true);
     });
 
     test('load/remove ibl', () async {
       await testHelper.withViewer((viewer) async {
         var asset = await viewer
-            .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+            .loadGltf("file://${testHelper.testDir}/assets/cube.glb");
         await viewer
             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
         await testHelper.capture(viewer.view, "ibl_loaded");
@@ -37,8 +41,9 @@ void main() async {
 
     test('load/remove gltf', () async {
       await testHelper.withViewer((viewer) async {
-        var asset = await viewer
-            .loadGlb("file://${testHelper.testDir}/assets/cube.gltf", relativeResourcePath: "${testHelper.testDir}/assets");
+        var asset = await viewer.loadGltf(
+            "file://${testHelper.testDir}/assets/cube.gltf",
+            relativeResourcePath: "${testHelper.testDir}/assets");
         await viewer
             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
         await testHelper.capture(viewer.view, "gltf_loaded");
@@ -47,10 +52,26 @@ void main() async {
       }, cameraPosition: Vector3(0, 0, 5));
     });
 
+    test('transform gltf to unit cube', () async {
+      await testHelper.withViewer((viewer) async {
+        var asset = await viewer.loadGltf(
+            "file://${testHelper.testDir}/assets/cube.gltf",
+            relativeResourcePath: "${testHelper.testDir}/assets");
+
+        await viewer
+            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+        await asset.setTransform(Matrix4.compose(
+            Vector3.zero(), Quaternion.identity(), Vector3.all(2)));
+        await testHelper.capture(viewer.view, "gltf_before_unit_cube");
+        await asset.transformToUnitCube();
+        await testHelper.capture(viewer.view, "gltf_after_unit_cube");
+      }, cameraPosition: Vector3(0, 0, 5));
+    });
+
     test('add/remove asset from scene ', () async {
       await testHelper.withViewer((viewer) async {
         var asset = await viewer
-            .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+            .loadGltf("file://${testHelper.testDir}/assets/cube.glb");
         await viewer
             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
         await testHelper.capture(viewer.view, "asset_added");
@@ -62,7 +83,7 @@ void main() async {
     test('destroy assets', () async {
       await testHelper.withViewer((viewer) async {
         var asset = await viewer
-            .loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+            .loadGltf("file://${testHelper.testDir}/assets/cube.glb");
         await viewer
             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
         await testHelper.capture(viewer.view, "assets_present");
@@ -70,6 +91,5 @@ void main() async {
         await testHelper.capture(viewer.view, "assets_destroyed");
       }, cameraPosition: Vector3(0, 0, 5));
     });
-
   });
 }
