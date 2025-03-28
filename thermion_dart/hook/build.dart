@@ -89,7 +89,6 @@ void main(List<String> args) async {
       "meshoptimizer",
       "mikktspace",
       "geometry",
-      "geometry_combined",
       "utils",
       "filabridge",
       "gltfio_core",
@@ -109,7 +108,8 @@ void main(List<String> args) async {
       "smol-v",
       "uberarchive",
       "zstd",
-      "basis_transcoder"
+      "basis_transcoder",
+      if (config.targetOS == OS.macOS) ...["matdbg", "fgviewer"]
     ];
 
     if (platform == "windows") {
@@ -124,7 +124,8 @@ void main(List<String> args) async {
     final flags = []; //"-fsanitize=address"];
 
     final defines = <String, String?>{
-    //  "ENABLE_TRACING": "1" // uncomment this to enable (very verbose) trace logging
+      // uncomment this to enable (very verbose) trace logging
+      // "ENABLE_TRACING": "1" 
     };
     var frameworks = [];
 
@@ -232,8 +233,11 @@ void main(List<String> args) async {
           compilerPath = compilerPath.substring(1);
         }
 
-        var ndkRoot =
-            File(compilerPath).parent.parent.uri.toFilePath(windows: Platform.isWindows);
+        var ndkRoot = File(compilerPath)
+            .parent
+            .parent
+            .uri
+            .toFilePath(windows: Platform.isWindows);
 
         var stlPath = File([
           ndkRoot,
@@ -295,7 +299,7 @@ void main(List<String> args) async {
   });
 }
 
-String _FILAMENT_VERSION = "v1.56.4";
+String _FILAMENT_VERSION = "v1.58.0";
 String _getLibraryUrl(String platform, String mode) {
   return "https://pub-c8b6266320924116aaddce03b5313c0a.r2.dev/filament-${_FILAMENT_VERSION}-${platform}-${mode}.zip";
 }
