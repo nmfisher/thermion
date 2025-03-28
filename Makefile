@@ -12,10 +12,12 @@ flutter-example-web: dart-web-clean dart-web
 flutter-example-macos:
 	cd thermion_flutter_federated/thermion_flutter/example/web && flutter run -d macos
 swift-bindings:
-	swiftc -c thermion_flutter/thermion_flutter/macos/Classes/ThermionTexture.swift -module-name swift_module -emit-objc-header-path thermion_dart/native/include/generated/ThermionTextureSwiftObjCAPI.h -emit-library -o thermion_dart/test/libThermionTextureSwift.dylib
+	swiftc -c thermion_dart/native/macos/ThermionTexture.swift -module-name swift_module -emit-objc-header-path thermion_dart/native/include/generated/ThermionTextureSwiftObjCAPI.h -emit-library -o thermion_dart/test/libThermionTextureSwift.dylib
 	cd thermion_dart/ && dart --enable-experiment=native-assets run ffigen --config ffigen/swift.yaml
 bindings:
 	cd thermion_dart/ && dart --enable-experiment=native-assets run ffigen --config ffigen/native.yaml
+shared:
+	cd thermion_dart/native && make
 
 # We compile a small set of custom materials for various helpers (background image, gizmo, etc)
 # You must specify the `FILAMENT_PATH` environment variable, either the path /out/release
