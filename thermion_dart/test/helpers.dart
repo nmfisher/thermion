@@ -1,6 +1,7 @@
 // ignore_for_file: unused_local_variable
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:math';
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
@@ -12,6 +13,7 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
+import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
@@ -64,8 +66,10 @@ extension on Uri {
 }
 
 Future<Uint8List> savePixelBufferToBmp(
-    Uint8List pixelBuffer, int width, int height, String outputPath) async {
-  var data = await pixelBufferToBmp(pixelBuffer, width, height);
+    Uint8List pixelBuffer, int width, int height, String outputPath,
+    {bool hasAlpha = true, bool isFloat = true}) async {
+  var data = await pixelBufferToBmp(pixelBuffer, width, height,
+      hasAlpha: hasAlpha, isFloat: isFloat);
   File(outputPath).writeAsBytesSync(data);
   print("Wrote bitmap to ${outputPath}");
   return data;
@@ -97,47 +101,98 @@ class TestHelper {
   ///
   ///
   ///
-  Future<Uint8List> capture(View view, String? outputFilename) async {
-    final rt = await view.getRenderTarget();
-    var pixelBuffer = await FilamentApp.instance!
-        .capture(view, captureRenderTarget: rt != null);
-    var vp = await view.getViewport();
-
-    if (outputFilename != null) {
-      var outPath = p.join(outDir.path, "$outputFilename.png");
-      await savePixelBufferToPng(pixelBuffer, vp.width, vp.height, outPath);
-    }
-
-    return pixelBuffer;
+  Future<Texture> createTextureFromImage(TestHelper testHelper) async {
+    final image = await FilamentApp.instance!.decodeImage(
+        File("${testHelper.testDir}/assets/cube_texture2_512x512.png")
+            .readAsBytesSync());
+    final texture = await FilamentApp.instance!
+        .createTexture(await image.getWidth(), await image.getHeight());
+    await texture.setLinearImage(
+        image, PixelDataFormat.RGBA, PixelDataType.FLOAT);
+    return texture;
   }
 
   ///
   ///
   ///
-  Future<List<Uint8List>> captureMultiple(
-    ThermionViewer viewer,
-    String? outputFilename, {
-    View? view,
-    SwapChain? swapChain,
-    RenderTarget? renderTarget,
-  }) async {
-    throw UnimplementedError();
+  Future createView(FFISwapChain swapChain, { TextureFormat textureFormat = TextureFormat.RGBA32F}) async {
+    final view = await FilamentApp.instance!.createView() as FFIView;
+    await view.setFrustumCullingEnabled(false);
+    await view.setPostProcessing(false);
+    await view.setViewport(512, 512);
 
-    // view ??= await viewer.view;
-    // final targets = [
-    //   (view: view!, swapChain: swapChain, renderTarget: renderTarget)
-    // ];
-    // var pixelBuffers = await viewer.capture(targets);
+    View_setBlendMode(view.view, TBlendMode.OPAQUE);
+    final color = await FilamentApp.instance!.createTexture(512, 512,
+        flags: {
+          TextureUsage.TEXTURE_USAGE_COLOR_ATTACHMENT,
+          TextureUsage.TEXTURE_USAGE_SAMPLEABLE,
+          TextureUsage.TEXTURE_USAGE_BLIT_SRC
+        },
+        textureFormat: textureFormat);
+    await view.setRenderTarget(await FilamentApp.instance!.createRenderTarget(
+      512,
+      512,
+      color: color,
+    ) as FFIRenderTarget);
 
-    // for (final entry in targets) {
-    //   var vp = await entry.view.getViewport();
-    //   if (outputFilename != null) {
-    //     var outPath = p.join(outDir.path, "$outputFilename.png");
-    //     await savePixelBufferToPng(
-    //         pixelBuffers[targets.indexOf(entry)], vp.width, vp.height, outPath);
-    //   }
-    // }
-    // return pixelBuffers;
+    await FilamentApp.instance!.register(swapChain, view);
+
+    return view;
+  }
+
+  Future<ThermionAsset> createCube(ThermionViewer viewer) async {
+    var materialInstance = await FilamentApp.instance!
+        .createUbershaderMaterialInstance(unlit: true);
+    await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
+
+    final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+    var asset = await viewer
+        .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
+    return asset;
+  }
+
+  Future withCube(
+      ThermionViewer viewer, Future Function(ThermionAsset cube) fn) async {
+    var materialInstance = await FilamentApp.instance!
+        .createUbershaderMaterialInstance(unlit: true);
+    await materialInstance.setParameterFloat4("baseColorFactor", 1, 1, 1, 0);
+
+    final cubeGeometry = GeometryHelper.cube(flipUvs: true);
+    var asset = await viewer
+        .createGeometry(cubeGeometry, materialInstances: [materialInstance]);
+    print(cubeGeometry);
+    await fn(asset);
+    await viewer.destroyAsset(asset);
+  }
+
+  ///
+  ///
+  ///
+  Future<Map<View, Uint8List>> capture(View? view, String? outputFilename,
+      {Future Function(View view)? beforeRender,
+      SwapChain? swapChain,
+      PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
+      PixelDataType pixelDataType = PixelDataType.FLOAT}) async {
+    swapChain ??= this.swapChain;
+    var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
+        view: view,
+        beforeRender: beforeRender,
+        pixelDataFormat: pixelDataFormat,
+        pixelDataType: pixelDataType);
+    var retval = <View, Uint8List>{};
+    int i = 0;
+    for (final (view, pixelBuffer) in pixelBuffers) {
+      var vp = await view.getViewport();
+      if (outputFilename != null) {
+        var outPath = p.join(outDir.path, "${outputFilename}_view${i}.bmp");
+        await savePixelBufferToBmp(pixelBuffer, vp.width, vp.height, outPath,
+            isFloat: pixelDataType == PixelDataType.FLOAT);
+      }
+      i++;
+      retval[view] = pixelBuffer;
+    }
+
+    return retval;
   }
 
   ///
@@ -164,9 +219,8 @@ class TestHelper {
 
     resourceLoader.ref.freeResource = freeResource.nativeFunction;
     await FFIFilamentApp.create();
-
-    await FilamentApp.instance!.setClearColor(0, 1, 0, 1);
   }
+  
 
   ///
   ///
@@ -180,10 +234,10 @@ class TestHelper {
     bool addSkybox = false,
     bool createRenderTarget = false,
   }) async {
-    cameraPosition ??= Vector3(0, 2, 6);
+    cameraPosition ??= Vector3(0, 5, 5);
 
-    var swapChain = await FilamentApp.instance!
-        .createHeadlessSwapChain(viewportDimensions.width, viewportDimensions.height) as FFISwapChain;
+    swapChain = await FilamentApp.instance!.createHeadlessSwapChain(
+        viewportDimensions.width, viewportDimensions.height) as FFISwapChain;
 
     FFIRenderTarget? renderTarget;
     if (createRenderTarget) {
@@ -228,10 +282,7 @@ class TestHelper {
       await viewer.view.setRenderTarget(renderTarget);
     }
     await viewer.view
-        .setViewport(
-          viewportDimensions.width,
-          viewportDimensions.height
-      );
+        .setViewport(viewportDimensions.width, viewportDimensions.height);
 
     if (addSkybox) {
       await viewer
@@ -471,32 +522,6 @@ Uint8List blendMIPWithPoisson(
   return blendedResult;
 }
 
-Uint8List pngToPixelBuffer(Uint8List pngData) {
-  // Decode the PNG image
-  final image = img.decodePng(pngData);
-
-  if (image == null) {
-    throw Exception('Failed to decode PNG image');
-  }
-
-  // Create a buffer for the raw pixel data
-  final rawPixels = Uint8List(image.width * image.height * 4);
-
-  // Convert the image to RGBA format
-  for (int y = 0; y < image.height; y++) {
-    for (int x = 0; x < image.width; x++) {
-      final pixel = image.getPixel(x, y);
-      final i = (y * image.width + x) * 4;
-      rawPixels[i] = pixel.r.toInt(); // Red
-      rawPixels[i + 1] = pixel.g.toInt(); // Green
-      rawPixels[i + 2] = pixel.b.toInt(); // Blue
-      rawPixels[i + 3] = pixel.a.toInt(); // Alpha
-    }
-  }
-
-  return rawPixels;
-}
-
 Uint8List medianBlending(List<Uint8List> textures, int width, int height) {
   final int numTextures = textures.length;
   final int size = width * height;
@@ -519,6 +544,91 @@ Uint8List medianBlending(List<Uint8List> textures, int width, int height) {
       result[i] = values[values.length ~/ 2];
     } else {
       result[i] = 0; // If no valid data, set to transparent
+    }
+  }
+
+  return result;
+}
+
+(Uint8List, int, int) readBmpToPixelBuffer(String filePath) {
+  final File file = File(filePath);
+  if (!file.existsSync()) {
+    throw FileSystemException('File not found', filePath);
+  }
+
+  // Read the file bytes
+  final Uint8List fileBytes = file.readAsBytesSync();
+
+  // Decode the image using package:image
+  final img.Image? decodedImage = img.decodeImage(fileBytes);
+
+  if (decodedImage == null) {
+    throw FormatException('Failed to decode image at $filePath');
+  }
+
+  // Convert to RGBA format (matching the format used in the comparison function)
+  final img.Image rgbaImage =
+      decodedImage.convert(format: img.Format.uint8, numChannels: 3);
+
+  rgbaImage.remapChannels(ChannelOrder.bgr);
+
+  // Get dimensions
+  final int width = rgbaImage.width;
+  final int height = rgbaImage.height;
+
+  // Convert to Uint8List
+  final Uint8List pixelBuffer = Uint8List.fromList(rgbaImage.toUint8List());
+
+  if (pixelBuffer.length != width * height * 3) {
+    throw Exception("MISMATCH");
+  }
+
+  return (pixelBuffer, width, height);
+}
+
+Uint8List comparePixelBuffers(
+    Uint8List buffer1, Uint8List buffer2, int width, int height,
+    {int threshold = 0}) {
+  // Validate inputs
+  if (buffer1.length != buffer2.length) {
+    throw ArgumentError(
+        'Buffer sizes do not match: ${buffer1.length} vs ${buffer2.length}');
+  }
+
+  if (buffer1.length < width * height * 3) {
+    throw ArgumentError(
+        'Buffer size is too small for the specified dimensions');
+  }
+
+  // Create result buffer
+  final Uint8List result = Uint8List(buffer1.length);
+
+  // Process each pixel
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      final int index = (y * width + x) * 3;
+
+      if (buffer1[index + 2] != 0) {
+        print(
+            "buffer 1 red ${buffer1[index + 2]} buffer 2 ${buffer2[index + 2]}");
+      }
+
+      // Compare RGB values
+      final bool isDifferent =
+          (buffer1[index] - buffer2[index]).abs() > threshold ||
+              (buffer1[index + 1] - buffer2[index + 1]).abs() > threshold ||
+              (buffer1[index + 2] - buffer2[index + 2]).abs() > threshold;
+
+      if (isDifferent) {
+        // result[index] = (buffer1[index] - buffer2[index]).abs(); // R
+        // result[index + 1] = (buffer1[index + 1] - buffer2[index + 1]).abs(); //G
+        // result[index + 2] = (buffer1[index + 2] - buffer2[index + 2]).abs(); //
+
+        // Different pixels - white
+        result[index] = 255; // R
+        result[index + 1] = 255; // G
+        result[index + 2] = 255; // B
+      }
     }
   }
 
