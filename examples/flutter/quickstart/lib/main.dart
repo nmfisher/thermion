@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:flutter/material.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
@@ -40,101 +39,41 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
   }
 
-  ThermionViewer? _thermionViewer;
-
-  Future _load() async {
-    if (_thermionViewer != null) {
-      throw Exception();
-    }
-
-    // A [ThermionViewer] is the main interface for controlling asset loading,
-    // rendering, camera and lighting.
-    //
-    // When you no longer need a rendering surface, call [dispose] on this instance.
-    //
-    // Only a single instance can be active at a given time; trying to construct
-    // a new instance before the old instance has been disposed will throw an exception.
-    _thermionViewer = await ThermionFlutterPlugin.createViewer();
-
-    // Geometry and models are represented as "entities". Here, we load a glTF
-    // file containing a plain cube.
-    // By default, all paths are treated as asset paths. To load from a file
-    // instead, use file:// URIs.
-    var entity =
-        await _thermionViewer!.loadGlb("assets/cube.glb", keepData: true);
-
-    // Thermion uses a right-handed coordinate system where +Y is up and -Z is
-    // "into" the screen.
-    // By default, the camera is located at (0,0,0) looking at (0,0,-1); this
-    // would place it directly inside the cube we just loaded.
-    //
-    // Let's move the camera to (0,0,10) to ensure the cube is visible in the
-    // viewport.
-    await _thermionViewer!.setCameraPosition(0, 0, 10);
-
-    // Without a light source, your scene will be totally black. Let's load a skybox
-    // (a cubemap image that is rendered behind everything else in the scene)
-    // and an image-based indirect light that has been precomputed from the same
-    // skybox.
-    await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
-    await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
-
-    // The underlying Filament rendering engine exposes a number of 
-    // post-processing options (anti-aliasing, bloom, etc).
-    // Post-processing is disabled by default, but most users will want to 
-    // enable it for color correction.
-    // If you're not sure what you're doing, always set this to true.
-    await _thermionViewer!.setPostProcessing(true);
-
-    // Finally, you need to explicitly enable rendering. Setting rendering to
-    // false is designed to allow you to pause rendering to conserve battery life
-    await _thermionViewer!.setRendering(true);
-
-    setState(() {});
-  }
-
-  Future _unload() async {
-    // when you've finished rendering and you no longer need a 3D viewport:
-    // 1) remove all instances of ThermionWidget from the widget tree
-    // 2) remove all local references to the ThermionViewer
-    // 3) call dispose on the ThermionViewer
-    var viewer = _thermionViewer!;
-    _thermionViewer = null;
-    setState(() {});
-
-    await viewer.dispose();
-  }
-
-  Widget _loadButton() {
-    return Center(
-        child: ElevatedButton(onPressed: _load, child: const Text("Load")));
-  }
-
-  Widget _unloadButton() {
-    return Align(
-        alignment: Alignment.bottomCenter,
-        child: ElevatedButton(onPressed: _unload, child: const Text("Unload")));
-  }
+  bool _showViewer = false;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body:Stack(children: [
-      if (_thermionViewer != null)
+    return Scaffold(
+        body: Stack(children: [
+      if (_showViewer)
         Positioned.fill(
-            child: ThermionWidget(
-          viewer: _thermionViewer!,
+            child: ViewerWidget(
+          assetPath: "assets/cube.glb",
+          skyboxPath: "assets/default_env_skybox.ktx",
+          iblPath: "assets/default_env_ibl.ktx",
+          transformToUnitCube: true,
+          initialCameraPosition: Vector3(0, 0, 6),
+          background: Colors.blue,
+          manipulatorType: ManipulatorType.ORBIT,
+          onViewerAvailable: (viewer) async {
+            await Future.delayed(const Duration(seconds: 5));
+            await viewer.removeSkybox();
+          },
+          initial: Container(
+            color: Colors.red,
+          ),
         )),
       Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (_thermionViewer == null) _loadButton(),
-                    if (_thermionViewer != null) _unloadButton(),
-                  ])))
+              child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _showViewer = !_showViewer;
+                    });
+                  },
+                  child: Text(_showViewer ? "Remove viewer" : "Show viewer"))))
     ]));
   }
 }

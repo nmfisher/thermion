@@ -1,216 +1,202 @@
-## Quickstart (Flutter)
+# ViewerWidget Documentation
 
-> You can find the entire project below in the [flutter/quickstart](https://github.com/nmfisher/thermion_examples/tree/master/flutter/quickstart) folder of the `thermion_examples` repository.
+`ViewerWidget` is a simplified wrapper around the Thermion 3D viewer that makes it easy to display 3D models in your Flutter application.
 
-1. Switch to Flutter master channel, upgrade Flutter, create a new project, then add `thermion_flutter` as a dependency
+## Overview
 
-```bash
-$ flutter channel master
-$ flutter upgrade
-$ flutter config --enable-native-assets  
-$ flutter create thermion_sample_project && cd thermion_sample_project
-$ flutter pub add thermion_flutter
-```
+`ViewerWidget` handles the setup and configuration of a Thermion viewer, including:
+- Loading 3D models (glTF assets)
+- Configuring skyboxes and image-based lighting
+- Setting up camera positions and manipulators
+- Managing the rendering lifecycle
 
-2. If running on iOS or MacOS, change the minimum deployment target to OSX 13
+## Installation
 
-<Accordion title="Click to open iOS/MacOS instructions">
-
-Make sure the `platform` entry refers to `13.0` in your Podfile.
-
-In `macos/Podfile` (for macOS):
-```
-platform :osx, '13.0'
-```
-
-In `ios/Podfile`, (for iOS):
-```
-platform :ios, '13.0'
-```
-
-Then open XCode:
-```
-open macos/Runner.xcworkspace
-```
-
-and change the minimum deployment target to 13.0:
-
-![XCode screenshot](images/macos_min_deployment.png)
-
-</Accordion>
-
-2. Add a folder containing your assets (glTF model + skybox ktx) to your `pubspec.yaml` asset list
+First, make sure you have the Thermion Flutter plugin added to your dependencies:
 
 ```yaml
-...
-flutter
-  uses-material-design: true
-  assets:
-    - assets/
+dependencies:
+  thermion_flutter: ^latest_version
 ```
 
-3. Create an instance of `ThermionFlutterPlugin` in your app.
+## Basic Usage
 
 ```dart
+import 'package:flutter/material.dart';
+import 'package:thermion_flutter/thermion_flutter.dart';
+import 'path_to_your_viewer_widget.dart';
 
-class _MyAppState extends State<MyApp> {
-  late ThermionFlutterPlugin _thermionFlutterPlugin;  
-  late Future<ThermionViewer> _thermionViewer;
-  void initState() {    
-    _thermionFlutterPlugin = ThermionFlutterPlugin();    
-    _thermionViewer = _thermionFlutterPlugin.createViewer();  
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: ViewerWidget(
+          assetPath: 'assets/my_model.glb',
+          initialCameraPosition: Vector3(0, 0, 5),
+          manipulatorType: ManipulatorType.ORBIT,
+        ),
+      ),
+    );
   }
 }
-
 ```
 
+## Properties
 
-4. Add a `ThermionWidget` to your widget hierarchy 
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `initial` | `Widget` | Red decorated box | Widget to display while the viewer is loading |
+| `initialCameraPosition` | `Vector3` | `Vector3(0, 0, 5)` | The starting position for the camera (looking towards origin) |
+| `showFpsCounter` | `bool` | `false` | Whether to show an FPS counter overlay |
+| `assetPath` | `String?` | `null` | Path to the glTF asset to load |
+| `skyboxPath` | `String?` | `null` | Path to a KTX skybox image |
+| `iblPath` | `String?` | `null` | Path to a KTX image for image-based lighting |
+| `directLightType` | `LightType?` | `null` | Type of direct light to add to the scene |
+| `transformToUnitCube` | `bool` | `true` | If true, rescales the model to fit within a 1x1x1 cube |
+| `postProcessing` | `bool` | `true` | Enables ACES tone mapping and basic anti-aliasing |
+| `background` | `Color?` | `null` | Background color (not visible when skybox is provided) |
+| `destroyEngineOnUnload` | `bool` | `false` | If true, disposes the engine when widget is disposed |
+| `manipulatorType` | `ManipulatorType` | `ORBIT` | Type of camera control to use |
+| `onViewerAvailable` | `Future Function(ThermionViewer)?` | `null` | Callback when viewer is ready |
+
+## Camera Manipulators
+
+`ViewerWidget` supports three different camera manipulation modes:
+
+- `ManipulatorType.NONE`: No camera controls, static view
+- `ManipulatorType.ORBIT`: Orbit controls (pinch to zoom, swipe to rotate)
+- `ManipulatorType.FREE_FLIGHT`: Free flight controls for unrestricted movement
+
+Example:
 
 ```dart
+ViewerWidget(
+  assetPath: 'assets/model.glb',
+  manipulatorType: ManipulatorType.FREE_FLIGHT,
+)
+```
 
-class _MyAppState extends State<MyApp> {
+## Lighting
+
+You can set up lighting in multiple ways:
+
+### Image-Based Lighting
+
+```dart
+ViewerWidget(
+  assetPath: 'assets/model.glb',
+  iblPath: 'assets/environment.ktx',
+)
+```
+
+### Direct Light
+
+```dart
+ViewerWidget(
+  assetPath: 'assets/model.glb',
+  directLightType: LightType.SUN,
+)
+```
+
+## Advanced Usage
+
+### Accessing the Viewer
+
+You can get access to the underlying `ThermionViewer` object for more advanced control:
+
+```dart
+ViewerWidget(
+  assetPath: 'assets/model.glb',
+  onViewerAvailable: (viewer) async {
+    // Now you can use the viewer directly
+    final camera = await viewer.getActiveCamera();
+    await camera.lookAt(Vector3(0, 1, 5));
     
-    ThermionViewer? _thermionViewer;
-    void initState() {    
-        _thermionFlutterPlugin.createViewer().then((viewer) {
-            setState(() {
-                _thermionViewer = viewer;
-            });
-        });
-    }    
+    // Add custom lights, manipulate materials, etc.
+  },
+)
+```
 
-    Widget build(BuildContext context) {
-        return Stack(children:[
-            if(_thermionViewer != null)
-            Positioned.fill(
-                child:ThermionWidget(
-                    plugin:_thermionViewer!
-                ) 
-            )
-        ]);  
-    }
+### Changing Manipulator at Runtime
+
+The `manipulatorType` is the only property that can be changed after the widget is created:
+
+```dart
+class _MyWidgetState extends State<MyWidget> {
+  ManipulatorType _manipulatorType = ManipulatorType.ORBIT;
+  
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: ViewerWidget(
+            assetPath: 'assets/model.glb',
+            manipulatorType: _manipulatorType,
+          ),
+        ),
+        Row(
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _manipulatorType = ManipulatorType.ORBIT;
+                });
+              },
+              child: Text('Orbit'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _manipulatorType = ManipulatorType.FREE_FLIGHT;
+                });
+              },
+              child: Text('Free Flight'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
-
 ```
 
-4. Add a button to load the model when pressed
+## Limitations
+
+- Only the `manipulatorType` property can be changed at runtime. For any other property changes, create a new widget.
+- The widget requires that you have the correct environment setup for Thermion (Flutter master channel with native assets enabled).
+
+## Example
+
+Here's a complete example showing how to use `ViewerWidget` with multiple configuration options:
 
 ```dart
+import 'package:flutter/material.dart';
+import 'package:thermion_flutter/thermion_flutter.dart';
+import 'package:vector_math/vector_math_64.dart';
 
-...
-
-class _MyAppState extends State<MyApp> {
-    
-...
-    
-    bool _loaded = false;
-
-    Widget build(BuildContext context) {
-        return Stack(children:[
-            if(_thermionViewer != null)
-            Positioned.fill(
-                child:ThermionWidget(
-                    plugin:_thermionViewer!
-                ) 
-            ),
-            if (!_loaded)
-                Center(
-                    child: ElevatedButton(
-                        child: const Text("Load"),
-                        onPressed: () async {
-                            // TODO 
-                            _loaded = true;
-                            setState(() {});
-                        }))
-        ]);  
-}}
-```
-
-5. When the button is pressed, load a skybox, lighting and the glb asset
-
-You will need to import the `dart:math` and `package:vector_math` libraries.
-
-```dart
-import 'package:vector_math/vector_math_64.dart' as v;
-import 'dart:math';
-
-...
-
-class _MyAppState extends State<MyApp> {
-
-    ...
-
-    Widget build(BuildContext context) {
-        return Stack(children:[
-            ...
-            if(!_loaded)
-                Center(
-                    child: ElevatedButton(
-                        child: const Text("Load"),
-                        onPressed: () async {
-                            var viewer = await _thermionViewer;
-                            await viewer.loadIbl("assets/default_env_ibl.ktx");
-                            await viewer.loadSkybox("assets/default_env_skybox.ktx");
-                            await viewer.loadGlb("assets/cube.glb");
-
-                            await viewer.setCameraPosition(0, 1, 10);
-                            await viewer.setCameraRotation(v.Quaternion.axisAngle(
-                                    v.Vector3(1, 0, 0), -30 / 180 * pi) *
-                                v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
-                            await viewer.addLight(
-                                LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
-                            await viewer.setRendering(true);
-                            _loaded = true;
-                            setState(() {});
-                        }
-                    )
-                )
-        ]);
-    }
+class ModelViewer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('3D Model Viewer')),
+      body: ViewerWidget(
+        assetPath: 'assets/robot.glb',
+        skyboxPath: 'assets/studio_skybox.ktx',
+        iblPath: 'assets/studio_ibl.ktx',
+        initialCameraPosition: Vector3(0, 1.5, 3),
+        manipulatorType: ManipulatorType.ORBIT,
+        showFpsCounter: true,
+        background: Colors.grey,
+        postProcessing: true,
+        transformToUnitCube: true,
+        onViewerAvailable: (viewer) async {
+          // You can perform additional setup here
+          print('Viewer is ready!');
+        },
+      ),
+    );
+  }
 }
-```           
-
-Here, we've added a skybox (the background (cube) image rendered behind all other elements in the scene), image-based lighting (where an image is used to determine the direction and intensity of a light source) and a directional light (Sun).
-
-Anything added to the scene is referred to as an "entity" (including lights and cameras).
-
-Entities are always added to the scene at position (0,0,0).
-
-The default scene camera is located at (0,0,0) (and is looking at -Z, or "into" the screen), so by adding a cube at (0,0,0), the camera will now be inside the cube. 
-
-We need to move the camera outside the cube so it's visible. 
-
-6. Change the camera orientation
-```dart
-   var viewer = await _thermionViewer;
-    await viewer.loadSkybox("assets/default_env_skybox.ktx");
-    await viewer.loadGlb("assets/cube.glb");
-
-    await viewer.setCameraPosition(0, 1, 10);
-    await viewer.setCameraRotation(v.Quaternion.axisAngle(
-                        v.Vector3(1, 0, 0), -30 / 180 * pi) *
-                    v.Quaternion.axisAngle(v.Vector3(0, 1, 0), 15 / 180 * pi));
 ```
-
-The cube still won't be visible until we add a light to the scene and tell Thermion to start rendering.
-
-7. Add a light and turn rendering on
-```dart 
-    ...
-    await viewer.addLight(
-                    LightType.SUN, 7500, 50000, 0, 0, 0, 1, -1, -1);
-    await viewer.setRendering(true);
-    ...
-````
-
-8. Run the project
-```
-$ flutter run -d macos
-```
-
-> You may experience a noticeable delay the very first time you run the project. Don't panic, it's not frozen! This is due to the build system downloading the prebuilt Filament binaries from Cloudflare, which can take some time (particularly on Windows). These binaries will be cached after first download, so subsequent runs will be much faster (though every time you run flutter clean, the binaries will be re-downloaded).
-
-![Screenshot of Thermion Quickstart project](images/thermion_sample_project.png)
-
-Your first Thermion project is complete!

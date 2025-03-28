@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - thermion_flutter (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - thermion_flutter (from `.symlinks/plugins/thermion_flutter/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  thermion_flutter:
+    :path: ".symlinks/plugins/thermion_flutter/ios"
+
+SPEC CHECKSUMS:
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  thermion_flutter: c965e09831858465a1a8df59ff97e40a4d002773
+
+PODFILE CHECKSUM: a57f30d18f102dd3ce366b1d62a55ecbef2158e5
+
+COCOAPODS: 1.15.2

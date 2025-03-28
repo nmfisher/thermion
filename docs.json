@@ -8,6 +8,7 @@
       [
         ["Overview", "/"],
         ["Quick Start", "/quickstart"],
+        ["Viewer", "/viewer"],
         ["Camera Manipulation", "/camera_manipulation"]
       ]
     ],
