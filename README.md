@@ -15,11 +15,7 @@
 <a href="https://discord.gg/h2VdDK3EAQ"><img src="https://img.shields.io/discord/993167615587520602?logo=discord&logoColor=fff&labelColor=333940" alt="discord"></a>
 <a href="https://github.com/nmfisher/thermion"><img src="https://img.shields.io/github/contributors/nmfisher/flutter_filament?logo=github&labelColor=333940" alt="contributors"></a>
 
-
-
 https://github.com/user-attachments/assets/b0c07b5a-6156-4e42-a09b-5f9bd85fbf32
-
-
 
 ### Features
 
@@ -43,49 +39,31 @@ flutter config --enable-native-assets
 In your Flutter app:
 
 ```dart
-_thermionViewer = await ThermionFlutterPlugin.createViewer();
-
-// Geometry and models are represented as "entities". Here, we load a glTF
-// file containing a plain cube.
-// By default, all paths are treated as asset paths. To load from a file 
-// instead, use file:// URIs.
-var entity =
-    await _thermionViewer!.loadGlb("assets/cube.glb", keepData: true);
-
-// Thermion uses a right-handed coordinate system where +Y is up and -Z is
-// "into" the screen.
-// By default, the camera is located at (0,0,0) looking at (0,0,-1); this
-// would place it directly inside the cube we just loaded.
-//
-// Let's move the camera to (0,0,10) to ensure the cube is visible in the
-// viewport.
-await _thermionViewer!.setCameraPosition(0, 0, 10);
-
-// Without a light source, your scene will be totally black. Let's load a skybox
-// (a cubemap image that is rendered behind everything else in the scene)
-// and an image-based indirect light that has been precomputed from the same
-// skybox.
-await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
-await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
-
-// Finally, you need to explicitly enable rendering. Setting rendering to
-// false is designed to allow you to pause rendering to conserve battery life
-await _thermionViewer!.setRendering(true);
-```
-
-and then in your widget tree:
-```dart
- @override
+@override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      if (_thermionViewer != null)
+    return Scaffold(
+        body: Stack(children: [
         Positioned.fill(
-            child: ThermionWidget(
-          viewer: _thermionViewer!,
-        )),
-    ]);
+            child: ViewerWidget(
+          assetPath: "assets/cube.glb",
+          skyboxPath: "assets/default_env_skybox.ktx",
+          iblPath: "assets/default_env_ibl.ktx",
+          transformToUnitCube: true,
+          initialCameraPosition: Vector3(0, 0, 6),
+          background: Colors.blue,
+          manipulatorType: ManipulatorType.ORBIT,
+          onViewerAvailable: (viewer) async {
+            await Future.delayed(const Duration(seconds: 5));
+            await viewer.removeSkybox();
+          },
+          initial: Container(
+            color: Colors.red,
+          ),
+        ))]));
   }
 ```
+
+>! the first time you run an app, the Dart native-assets build system will download static binaries from Cloudflare. This may take a few minutes (depending on which platform you are compiling for). These will be cached, so subsequent builds will be much faster.
 
 ### Sponsors, Contributors & Acknowledgments
 
