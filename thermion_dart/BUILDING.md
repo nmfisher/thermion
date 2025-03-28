@@ -13,6 +13,11 @@ This is only for developers extending the Thermion package itself; if you are si
 
 # iOS
 
+```
+./build.sh -l -i -f -p ios release
+./build.sh -l -i -f -p desktop debug 
+```
+
 ## Android
 
 ```
