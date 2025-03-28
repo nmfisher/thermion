@@ -2,17 +2,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:thermion_dart/src/utils/src/texture_projection.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_camera.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
@@ -49,6 +41,8 @@ void main() async {
         final camera = await viewer.getActiveCamera();
         await viewer.view.setFrustumCullingEnabled(false);
         await camera.setLensProjection(near: 0.75, far: 100);
+        final vp = await viewer.view.getViewport();
+        final (width, height) = (vp.width, vp.height);
         final dist = 5.0;
         await camera.lookAt(
           Vector3(
@@ -74,12 +68,14 @@ void main() async {
 
         final divisions = 8;
         final projectedImage =
-            await FilamentApp.instance!.createImage(512, 512, 4);
+            await FilamentApp.instance!.createImage(width, height, 4);
         final projectedTexture = await FilamentApp.instance!.createTexture(
-          512,
-          512,
+          width,
+          height,
           textureFormat: TextureFormat.RGBA32F,
         );
+
+        var images = <Float32List>[];
 
         for (int i = 0; i < divisions; i++) {
           await camera.lookAt(
@@ -93,14 +89,16 @@ void main() async {
           await textureProjection.project(cube);
           final depth = textureProjection.getDepthWritePixelBuffer();
           await savePixelBufferToBmp(
-              depth, 512, 512, "${testHelper.outDir.path}/depth_$i.bmp");
+              depth, width, height, "${testHelper.outDir.path}/depth_$i.bmp");
           final projected = textureProjection.getProjectedPixelBuffer();
-          await savePixelBufferToBmp(
-              depth, 512, 512, "${testHelper.outDir.path}/projected_$i.bmp");
+          await savePixelBufferToBmp(projected, width, height,
+              "${testHelper.outDir.path}/projected_$i.bmp");
           await cube.setMaterialInstanceAt(ubershader);
 
           final data = await projectedImage.getData();
           data.setRange(0, data.length, projected.buffer.asFloat32List());
+
+          images.add(projected.buffer.asFloat32List());
 
           await projectedTexture.setLinearImage(
             projectedImage,
@@ -118,6 +116,97 @@ void main() async {
 
           await ubershader.setParameterTexture(
               "baseColorMap", originalTexture, sampler);
+        }
+
+// Improved blending - treating black pixels as transparent
+final blendedImage = Float32List(width * height * 4);
+final weightSums = List<double>.filled(width * height, 0.0);
+
+// For each image
+for (final image in images) {
+  // For each pixel in the image
+  for (int p = 0; p < width * height; p++) {
+    final baseIdx = p * 4;
+    final r = image[baseIdx];
+    final g = image[baseIdx + 1];
+    final b = image[baseIdx + 2];
+    final alpha = image[baseIdx + 3];
+    
+    // Check if pixel is black (all color channels near zero)
+    final isBlack = (r < 0.01 && g < 0.01 && b < 0.01);
+    
+    // Only include pixels that are non-black AND have non-zero alpha
+    if (!isBlack && alpha > 0) {
+      // Weight contribution by alpha value
+      final weight = alpha;
+      blendedImage[baseIdx] += r * weight;
+      blendedImage[baseIdx + 1] += g * weight;
+      blendedImage[baseIdx + 2] += b * weight;
+      blendedImage[baseIdx + 3] += weight;
+      
+      // Track total weights for normalization
+      weightSums[p] += weight;
+    }
+  }
+}
+
+// Normalize by the accumulated weights
+for (int p = 0; p < width * height; p++) {
+  final baseIdx = p * 4;
+  final weightSum = weightSums[p];
+  
+  if (weightSum > 0) {
+    blendedImage[baseIdx] /= weightSum;
+    blendedImage[baseIdx + 1] /= weightSum;
+    blendedImage[baseIdx + 2] /= weightSum;
+    // Set alpha to full for pixels that had contributions
+    blendedImage[baseIdx + 3] = 1.0;
+  } else {
+    // For pixels with no contributions, ensure they're fully transparent
+    blendedImage[baseIdx] = 0;
+    blendedImage[baseIdx + 1] = 0;
+    blendedImage[baseIdx + 2] = 0;
+    blendedImage[baseIdx + 3] = 0;
+  }
+}
+        // Set the blended data to the projectedImage
+        final data = await projectedImage.getData();
+        data.setRange(0, data.length, blendedImage);
+
+        await savePixelBufferToBmp(blendedImage.buffer.asUint8List(), width,
+            height, "${testHelper.outDir.path}/blended.bmp",
+            hasAlpha: true, isFloat: true);
+
+        // Update the texture with the blended image
+        await projectedTexture.setLinearImage(
+          projectedImage,
+          PixelDataFormat.RGBA,
+          PixelDataType.FLOAT,
+        );
+
+        // Set the blended texture as the material parameter
+        await ubershader.setParameterTexture(
+          "baseColorMap",
+          projectedTexture,
+          sampler,
+        );
+
+        // Capture 120 frames orbiting around the cube
+        final orbitFrames = 120;
+        for (int frame = 0; frame < orbitFrames; frame++) {
+          // Calculate camera position based on frame
+          final angle = frame / orbitFrames * 2 * pi;
+          await camera.lookAt(
+            Vector3(
+              sin(angle) * dist,
+              dist * 0.8, // Slightly lower height
+              cos(angle) * dist,
+            ),
+          );
+
+          // Capture each frame with a sequential number
+          await testHelper.capture(viewer.view,
+              "capture_uv_blended_orbit_${frame.toString().padLeft(3, '0')}");
         }
       }, createRenderTarget: true);
     });
