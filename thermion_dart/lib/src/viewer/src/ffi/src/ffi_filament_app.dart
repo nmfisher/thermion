@@ -226,6 +226,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     RenderTicker_destroy(renderTicker);
 
     calloc.free(viewsPtr);
+    FilamentApp.instance = null;
   }
 
   ///
