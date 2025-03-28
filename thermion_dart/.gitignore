@@ -1,3 +1,4 @@
+native/build/
 native/web/build/
 native/web/lib/**/*
 pubspec.lock
