@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'package:vector_math/vector_math_64.dart';
-import '../../../filament/src/camera.dart';
+
 import '../../../viewer/viewer.dart';
 import '../../input.dart';
-import '../input_handler.dart';
 
 ///
 /// An [InputHandlerDelegate] that orbits the camera around a fixed
