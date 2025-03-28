@@ -5,8 +5,6 @@ import 'package:thermion_dart/src/filament/src/light_options.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/background_image.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/grid_overlay.dart';
@@ -80,6 +78,8 @@ class ThermionViewerFFI extends ThermionViewer {
   Future _initialize() async {
     _logger.info("Initializing ThermionViewerFFI");
     view = await FilamentApp.instance!.createView() as FFIView;
+
+    await view.setRenderable(true);
 
     await FilamentApp.instance!.setClearOptions(0.0, 0.0, 0.0, 0.0);
     scene = await FilamentApp.instance!.createScene() as FFIScene;
@@ -712,5 +712,4 @@ class ThermionViewerFFI extends ThermionViewer {
   Future removeFromScene(covariant FFIAsset asset) async {
     await scene.remove(asset);
   }
-
 }
