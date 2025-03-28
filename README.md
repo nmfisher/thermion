@@ -63,7 +63,7 @@ In your Flutter app:
   }
 ```
 
->! the first time you run an app, the Dart native-assets build system will download static binaries from Cloudflare. This may take a few minutes (depending on which platform you are compiling for). These will be cached, so subsequent builds will be much faster.
+> the first time you build an app that consumes this package, the Dart native-assets build system will download static binaries from Cloudflare. This may take a few minutes (depending on which platform you are compiling for). These will be cached, so subsequent builds will be much faster.
 
 ### Sponsors, Contributors & Acknowledgments
 
