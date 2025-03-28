@@ -415,23 +415,6 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_loadGlbRenderThread(
-    TEngine *tEngine,
-    TGltfAssetLoader *tAssetLoader,
-    TNameComponentManager *tNameComponentManager,
-    uint8_t *data,
-    size_t length,
-    size_t numInstances,
-    void (*callback)(TSceneAsset *)
-  ) {
-    std::packaged_task<void()> lambda(
-      [=]
-      {
-        auto sceneAsset = SceneAsset_loadGlb(tEngine, tAssetLoader, tNameComponentManager, data, length, numInstances);
-        callback(sceneAsset);
-      });
-    auto fut = _renderThread->add_task(lambda);
-  }
 
   EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryRenderThread(
     TEngine *tEngine, 
@@ -453,6 +436,22 @@ extern "C"
     {
       auto sceneAsset = SceneAsset_createGeometry(tEngine, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, tPrimitiveType, materialInstances, materialInstanceCount);
       callback(sceneAsset);
+    });
+  auto fut = _renderThread->add_task(lambda);
+}
+
+EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
+  TEngine *tEngine,
+  TGltfAssetLoader *tAssetLoader,
+  TNameComponentManager *tNameComponentManager,
+  TFilamentAsset *tFilamentAsset,
+  void (*onComplete)(TSceneAsset *)
+) {
+  std::packaged_task<void()> lambda(
+    [=]
+    {
+      auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset);
+      onComplete(sceneAsset);
     });
   auto fut = _renderThread->add_task(lambda);
 }

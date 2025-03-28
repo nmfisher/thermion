@@ -3,7 +3,6 @@
 #include <memory>
 
 #include <filament/Scene.h>
-
 #include <gltfio/FilamentAsset.h>
 #include <math.h>
 #include <utils/Entity.h>

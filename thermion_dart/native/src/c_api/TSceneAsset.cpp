@@ -66,17 +66,14 @@ extern "C"
         
     }
 
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_loadGlb(
+    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createFromFilamentAsset(
         TEngine *tEngine,
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
-        const uint8_t *data, 
-        size_t length,
-        size_t numInstances
+        TFilamentAsset *tFilamentAsset
     ) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
         auto *nameComponentManager = reinterpret_cast<utils::NameComponentManager *>(tNameComponentManager);
-        auto *tFilamentAsset = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
         auto *filamentAsset = reinterpret_cast<filament::gltfio::FilamentAsset *>(tFilamentAsset);
 
         auto *assetLoader = reinterpret_cast<filament::gltfio::AssetLoader *>(tAssetLoader);
@@ -88,33 +85,6 @@ extern "C"
         );
 
         return reinterpret_cast<TSceneAsset *>(sceneAsset);        
-    }
-
-
-    EMSCRIPTEN_KEEPALIVE int32_t SceneAsset_getResourceUriCount(
-        TSceneAsset *tSceneAsset
-    ) {
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("Error - not a gltf asset");
-            return -1;
-        }
-        auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(tSceneAsset);
-        auto *filamentAsset = gltfAsset->getAsset();
-        return filamentAsset->getResourceUriCount();
-    }
-
-    EMSCRIPTEN_KEEPALIVE const char* const* SceneAsset_getResourceUris(
-        TSceneAsset *tSceneAsset
-    ) {
-        auto sceneAsset = reinterpret_cast<SceneAsset *>(tSceneAsset);
-        if(sceneAsset->getType() != SceneAsset::SceneAssetType::Gltf) {
-            Log("Error - not a gltf asset");
-            return nullptr;
-        }
-        auto gltfAsset = reinterpret_cast<GltfSceneAsset *>(tSceneAsset);
-        auto *filamentAsset = gltfAsset->getAsset();
-        return filamentAsset->getResourceUris();
     }
     
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset) {
@@ -129,7 +99,6 @@ extern "C"
         TRACE("SceneAsset %d FilamentAsset %d", sceneAsset, filamentAsset);
         return reinterpret_cast<TFilamentAsset *>(filamentAsset);
     }
-
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGrid(TEngine *tEngine, TMaterial* tMaterial) {
         auto *engine = reinterpret_cast<filament::Engine *>(tEngine);
@@ -232,6 +201,11 @@ extern "C"
         auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
         auto *instance = asset->getInstanceAt(index);
         return reinterpret_cast<TSceneAsset*>(instance);
+    }
+
+    EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getInstanceCount(TSceneAsset *tSceneAsset) {
+        auto *asset = reinterpret_cast<SceneAsset*>(tSceneAsset);
+        return asset->getInstanceCount();
     }
 
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createInstance(TSceneAsset *tSceneAsset, TMaterialInstance **tMaterialInstances, int materialInstanceCount)

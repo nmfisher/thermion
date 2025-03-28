@@ -3,8 +3,48 @@
 #include "scene/GltfSceneAssetInstance.hpp"
 #include "gltfio/FilamentInstance.h"
 #include "Log.hpp"
+
+#include <memory>
+#include <vector>
+
+#include <filament/Engine.h>
+#include <filament/RenderableManager.h>
+#include <filament/VertexBuffer.h>
+#include <filament/IndexBuffer.h>
+#include <gltfio/AssetLoader.h>
+#include <gltfio/FilamentAsset.h>
+#include <gltfio/MaterialProvider.h>
+
+#include <utils/NameComponentManager.h>
+
+#include "scene/GltfSceneAssetInstance.hpp"
+#include "components/AnimationComponentManager.hpp"
+#include "components/CollisionComponentManager.hpp"
+
+#include "scene/SceneAsset.hpp"
+
+
+
 namespace thermion
 {
+
+    GltfSceneAsset::GltfSceneAsset(
+        gltfio::FilamentAsset *asset,
+        gltfio::AssetLoader *assetLoader,
+        Engine *engine,
+        utils::NameComponentManager* ncm,
+        MaterialInstance **materialInstances,
+        size_t materialInstanceCount,
+        int instanceIndex) : _asset(asset),
+                                  _assetLoader(assetLoader),
+                                  _engine(engine),
+                                  _ncm(ncm),
+                                  _materialInstances(materialInstances),
+                                  _materialInstanceCount(materialInstanceCount)
+    {
+        createInstance();
+        TRACE("Created GltfSceneAsset from FilamentAsset %d with %d reserved instances", asset, asset->getAssetInstanceCount());
+    }
 
     GltfSceneAsset::~GltfSceneAsset()
     {
@@ -13,6 +53,13 @@ namespace thermion
         _assetLoader->destroyAsset(_asset);    
         TRACE("Destroyed");
     }
+
+    void GltfSceneAsset::destroyInstance(SceneAsset *asset) {
+        auto it = std::remove_if(_instances.begin(), _instances.end(), [=](auto &sceneAsset)
+                                { return sceneAsset.get() == asset; });
+        _instances.erase(it, _instances.end());
+    };
+
 
     SceneAsset *GltfSceneAsset::createInstance(MaterialInstance **materialInstances, size_t materialInstanceCount)
     {

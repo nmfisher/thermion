@@ -27,6 +27,7 @@ namespace thermion
     class GltfSceneAsset : public SceneAsset
     {
     public:
+        
         GltfSceneAsset(
             gltfio::FilamentAsset *asset,
             gltfio::AssetLoader *assetLoader,
@@ -34,25 +35,13 @@ namespace thermion
             utils::NameComponentManager* ncm,
             MaterialInstance **materialInstances = nullptr,
             size_t materialInstanceCount = 0,
-            int instanceIndex = -1) : _asset(asset),
-                                      _assetLoader(assetLoader),
-                                      _engine(engine),
-                                      _ncm(ncm),
-                                      _materialInstances(materialInstances),
-                                      _materialInstanceCount(materialInstanceCount)
-        {
-            TRACE("Created GltfSceneAsset from FilamentAsset %d with %d reserved instances", asset, asset->getAssetInstanceCount());
-        }
+            int instanceIndex = 0);
 
         ~GltfSceneAsset();
 
         SceneAsset *createInstance(MaterialInstance **materialInstances = nullptr, size_t materialInstanceCount = 0) override;
 
-        void destroyInstance(SceneAsset *asset) override {
-            auto it = std::remove_if(_instances.begin(), _instances.end(), [=](auto &sceneAsset)
-                                    { return sceneAsset.get() == asset; });
-            _instances.erase(it, _instances.end());
-        };
+        void destroyInstance(SceneAsset *asset) override;
 
         SceneAssetType getType() override
         {

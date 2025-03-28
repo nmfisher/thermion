@@ -4,6 +4,7 @@
 
 #include "c_api/TGizmo.h"
 #include "c_api/TSceneAsset.h"
+#include "c_api/TGltfAssetLoader.h"
 #include "scene/Gizmo.hpp"
 #include "scene/GltfSceneAsset.hpp"
 #include "resources/translation_gizmo_glb.h"
@@ -20,56 +21,59 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE TGizmo *Gizmo_create(
             TEngine *tEngine,
-            TGltfAssetLoader *assetLoader,
+            TGltfAssetLoader *tAssetLoader,
             TGltfResourceLoader *tGltfResourceLoader,
             TNameComponentManager *tNameComponentManager,
             TView *tView,
             TMaterial *tMaterial,
-            TGizmoType tGizmoType) {
+            TGizmoType tGizmoType)
+        {
 
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             auto *view = reinterpret_cast<View *>(tView);
             auto *material = reinterpret_cast<Material *>(tMaterial);
             auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
-            TSceneAsset *sceneAsset;
+            const uint8_t *data;
+            size_t size;
             switch (tGizmoType)
             {
             case GIZMO_TYPE_TRANSLATION:
-                {
+            {
                 TRACE("Building translation gizmo");
-                sceneAsset = SceneAsset_loadGlb(
-                    tEngine, 
-                    assetLoader, 
-                    tNameComponentManager,
-                    TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_DATA,
-                    TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_SIZE, 
-                    3
-                );
+                data = TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_DATA;
+                size = TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_SIZE;
                 break;
-                }
-            case GIZMO_TYPE_ROTATION:
-                {
-                TRACE("Building rotation gizmo");
-                sceneAsset = SceneAsset_loadGlb(
-                    tEngine, 
-                    assetLoader, 
-                    tNameComponentManager,
-                    ROTATION_GIZMO_GLB_ROTATION_GIZMO_DATA,
-                    ROTATION_GIZMO_GLB_ROTATION_GIZMO_SIZE,
-                    3
-                );
-                break;
-                }
             }
+            case GIZMO_TYPE_ROTATION:
+            {
+                TRACE("Building rotation gizmo");
+                data = ROTATION_GIZMO_GLB_ROTATION_GIZMO_DATA;
+                size = ROTATION_GIZMO_GLB_ROTATION_GIZMO_SIZE;
+                break;
+            }
+            }
+
+            auto *tFilamentAsset = GltfAssetLoader_load(
+                tEngine,
+                tAssetLoader,
+                data,
+                size,
+                3);
+            auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
+            auto *sceneAsset = SceneAsset_createFromFilamentAsset(
+                tEngine,
+                tAssetLoader,
+                tNameComponentManager,
+                tFilamentAsset);
+
             auto *gltfSceneAsset = reinterpret_cast<GltfSceneAsset *>(sceneAsset);
-            auto *filamentAsset = gltfSceneAsset->getAsset();
+
             gltfResourceLoader->loadResources(filamentAsset);
             auto *gizmo = new Gizmo(
-                gltfSceneAsset, 
-                engine, 
-                view, 
-                material
-            );
+                gltfSceneAsset,
+                engine,
+                view,
+                material);
             return reinterpret_cast<TGizmo *>(gizmo);
         }
 

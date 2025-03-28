@@ -92,14 +92,12 @@ namespace thermion
         FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
 
         EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void SceneAsset_loadGlbRenderThread(
+        EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
             TEngine *tEngine,
             TGltfAssetLoader *tAssetLoader,
             TNameComponentManager *tNameComponentManager,
-            uint8_t *data,
-            size_t length,
-            size_t numInstances,
-            void (*callback)(TSceneAsset *)
+            TFilamentAsset *tFilamentAsset,
+            void (*onComplete)(TSceneAsset *)
         );
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
         EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryRenderThread(

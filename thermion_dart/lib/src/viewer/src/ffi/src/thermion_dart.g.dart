@@ -473,6 +473,18 @@ external ffi.Pointer<TMaterialProvider> GltfAssetLoader_getMaterialProvider(
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
 );
 
+@ffi.Native<ffi.Int32 Function(ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+external int FilamentAsset_getResourceUriCount(
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
+);
+
+@ffi.Native<
+    ffi.Pointer<ffi.Pointer<ffi.Char>> Function(
+        ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+external ffi.Pointer<ffi.Pointer<ffi.Char>> FilamentAsset_getResourceUris(
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
+);
+
 @ffi.Native<TViewport Function(ffi.Pointer<TView>)>(isLeaf: true)
 external TViewport View_getViewport(
   ffi.Pointer<TView> view,
@@ -2111,22 +2123,18 @@ external void SceneAsset_destroyRenderThread(
             ffi.Pointer<TEngine>,
             ffi.Pointer<TGltfAssetLoader>,
             ffi.Pointer<TNameComponentManager>,
-            ffi.Pointer<ffi.Uint8>,
-            ffi.Size,
-            ffi.Size,
+            ffi.Pointer<TFilamentAsset>,
             ffi.Pointer<
                 ffi
                 .NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>)>(
     isLeaf: true)
-external void SceneAsset_loadGlbRenderThread(
+external void SceneAsset_createFromFilamentAssetRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
-  ffi.Pointer<ffi.Uint8> data,
-  int length,
-  int numInstances,
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TSceneAsset>)>>
-      callback,
+      onComplete,
 );
 
 @ffi.Native<
@@ -3234,47 +3242,12 @@ external ffi.Pointer<TSceneAsset> SceneAsset_createGeometry(
         ffi.Pointer<TEngine>,
         ffi.Pointer<TGltfAssetLoader>,
         ffi.Pointer<TNameComponentManager>,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
-        ffi.Size)>(isLeaf: true)
-external ffi.Pointer<TSceneAsset> SceneAsset_loadGlb(
+        ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
+external ffi.Pointer<TSceneAsset> SceneAsset_createFromFilamentAsset(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
   ffi.Pointer<TNameComponentManager> tNameComponentManager,
-  ffi.Pointer<ffi.Uint8> data,
-  int length,
-  int numInstances,
-);
-
-@ffi.Native<
-    ffi.Pointer<TSceneAsset> Function(
-        ffi.Pointer<TGltfAssetLoader>,
-        ffi.Pointer<TGltfResourceLoader>,
-        ffi.Pointer<TEngine>,
-        ffi.Pointer<TNameComponentManager>,
-        ffi.Pointer<ffi.Uint8>,
-        ffi.Size,
-        ffi.Size)>(isLeaf: true)
-external ffi.Pointer<TSceneAsset> SceneAsset_loadGltf(
-  ffi.Pointer<TGltfAssetLoader> tAssetLoader,
-  ffi.Pointer<TGltfResourceLoader> tResourceLoader,
-  ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<TNameComponentManager> tNameComponentManager,
-  ffi.Pointer<ffi.Uint8> data,
-  int length,
-  int numInstances,
-);
-
-@ffi.Native<ffi.Int32 Function(ffi.Pointer<TSceneAsset>)>(isLeaf: true)
-external int SceneAsset_getResourceUriCount(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
-);
-
-@ffi.Native<
-    ffi.Pointer<ffi.Pointer<ffi.Char>> Function(
-        ffi.Pointer<TSceneAsset>)>(isLeaf: true)
-external ffi.Pointer<ffi.Pointer<ffi.Char>> SceneAsset_getResourceUris(
-  ffi.Pointer<TSceneAsset> tSceneAsset,
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
 );
 
 @ffi.Native<ffi.Pointer<TFilamentAsset> Function(ffi.Pointer<TSceneAsset>)>(

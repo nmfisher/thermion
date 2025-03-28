@@ -114,6 +114,20 @@ EMSCRIPTEN_KEEPALIVE TMaterialProvider *GltfAssetLoader_getMaterialProvider(TGlt
     return reinterpret_cast<TMaterialProvider *>(&materialProvider);
 }
 
+EMSCRIPTEN_KEEPALIVE int32_t FilamentAsset_getResourceUriCount(
+    TFilamentAsset *tFilamentAsset
+) {
+    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
+    return filamentAsset->getResourceUriCount();
+}
+
+EMSCRIPTEN_KEEPALIVE const char* const* FilamentAsset_getResourceUris(
+    TFilamentAsset *tFilamentAsset
+) {
+    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
+    return filamentAsset->getResourceUris();    
+}
+
 #ifdef __cplusplus
     }
 }

@@ -22,38 +22,14 @@ extern "C"
         TMaterialInstance **materialInstances,
 		int materialInstanceCount
     );
-    
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_loadGlb(
+    EMSCRIPTEN_KEEPALIVE TSceneAsset * SceneAsset_createFromFilamentAsset(
         TEngine *tEngine,
         TGltfAssetLoader *tAssetLoader,
         TNameComponentManager *tNameComponentManager,
-        const uint8_t *data,
-        size_t length,
-        size_t numInstances
+        TFilamentAsset *tFilamentAsset    
     );
-
-    EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_loadGltf(
-        TGltfAssetLoader *tAssetLoader,
-        TGltfResourceLoader *tResourceLoader,
-        TEngine *tEngine,
-        TNameComponentManager *tNameComponentManager,
-        const uint8_t *data,
-        size_t length,
-        size_t numInstances
-    );
-
-    EMSCRIPTEN_KEEPALIVE int32_t SceneAsset_getResourceUriCount(
-        TSceneAsset *tSceneAsset
-    );
-
-    EMSCRIPTEN_KEEPALIVE const char* const* SceneAsset_getResourceUris(
-        TSceneAsset *tSceneAsset
-    );
-
     EMSCRIPTEN_KEEPALIVE TFilamentAsset *SceneAsset_getFilamentAsset(TSceneAsset *tSceneAsset);
-
     EMSCRIPTEN_KEEPALIVE TSceneAsset *SceneAsset_createGrid(TEngine *tEngine, TMaterial * tMaterial);
-
     EMSCRIPTEN_KEEPALIVE void SceneAsset_destroy(TSceneAsset *tSceneAsset);   
     EMSCRIPTEN_KEEPALIVE void SceneAsset_addToScene(TSceneAsset *tSceneAsset, TScene *tScene);
     EMSCRIPTEN_KEEPALIVE void SceneAsset_removeFromScene(TSceneAsset *tSceneAsset, TScene *tScene);
@@ -68,8 +44,7 @@ extern "C"
     EMSCRIPTEN_KEEPALIVE size_t SceneAsset_getInstanceCount(TSceneAsset *tSceneAsset);
     EMSCRIPTEN_KEEPALIVE TSceneAsset * SceneAsset_createInstance(TSceneAsset *asset, TMaterialInstance **materialInstances, int materialInstanceCount);
     EMSCRIPTEN_KEEPALIVE Aabb3 SceneAsset_getBoundingBox(TSceneAsset *asset);
-    EMSCRIPTEN_KEEPALIVE Aabb3 SceneAsset_getBoundingBox(TSceneAsset *asset);
-    
+        
 #ifdef __cplusplus
 }
 #endif

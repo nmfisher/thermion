@@ -749,16 +749,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         (cb) => GltfResourceLoader_createRenderThread(engine,
             relativeResourcePath?.toNativeUtf8().cast<Char>() ?? nullptr, cb));
 
-    var asset = await withPointerCallback<TSceneAsset>((cb) =>
-        SceneAsset_loadGlbRenderThread(engine, gltfAssetLoader,
-            nameComponentManager, data.address, data.length, numInstances, cb));
+    var filamentAsset = await withPointerCallback<TFilamentAsset>((cb) =>
+        GltfAssetLoader_loadRenderThread(engine, gltfAssetLoader, data.address,
+            data.length, numInstances, cb));
 
-    if (asset == nullptr) {
+    if (filamentAsset == nullptr) {
       throw Exception("An error occurred loading the asset");
     }
 
-    var resourceUris = SceneAsset_getResourceUris(asset);
-    var resourceUriCount = SceneAsset_getResourceUriCount(asset);
+    var resourceUris = FilamentAsset_getResourceUris(filamentAsset);
+    var resourceUriCount = FilamentAsset_getResourceUriCount(filamentAsset);
     final resources = <FinalizableUint8List>[];
 
     for (int i = 0; i < resourceUriCount; i++) {
@@ -782,10 +782,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       throw UnimplementedError(
           "TODO"); // need to use a NativeFinalizer to ensure the pointer is still valid until resource loader has finished
     } else {
-      final filamentAsset = SceneAsset_getFilamentAsset(asset);
-      if (filamentAsset == nullptr) {
-        throw Exception();
-      }
       final result = await withBoolCallback((cb) =>
           GltfResourceLoader_loadResourcesRenderThread(
               gltfResourceLoader, filamentAsset, cb));
@@ -793,6 +789,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         throw Exception("Failed to load resources");
       }
     }
+
+    final asset = await withPointerCallback<TSceneAsset>((cb) =>
+        SceneAsset_createFromFilamentAssetRenderThread(
+            engine, gltfAssetLoader, nameComponentManager, filamentAsset, cb));
 
     await withVoidCallback((cb) =>
         GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, cb));
