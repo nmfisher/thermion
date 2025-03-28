@@ -42,7 +42,7 @@ class TextureProjection {
     await depthWriteView.setFrustumCullingEnabled(false);
     await depthWriteView.setPostProcessing(false);
     await depthWriteView.setViewport(viewport.width, viewport.height);
-    await depthWriteView.setBlendMode(BlendMode.opaque);
+    await depthWriteView.setBlendMode(BlendMode.transparent);
 
     final depthWriteColorTexture = await FilamentApp.instance!
         .createTexture(viewport.width, viewport.height,
@@ -81,9 +81,6 @@ class TextureProjection {
     await projectionView.setPostProcessing(false);
     await projectionView.setViewport(viewport.width, viewport.height);
 
-    await FilamentApp.instance!.register(swapChain, depthWriteView);
-    await FilamentApp.instance!.register(swapChain, projectionView);
-
     return TextureProjection._(
         sourceView: sourceView,
         swapChain: swapChain,
@@ -104,11 +101,16 @@ class TextureProjection {
   }
 
   var _pixelBuffers = <View, Uint8List>{};
-
+  Uint8List getColorBuffer() => _pixelBuffers[sourceView]!;
   Uint8List getDepthWritePixelBuffer() => _pixelBuffers[depthView]!;
   Uint8List getProjectedPixelBuffer() => _pixelBuffers[projectionView]!;
 
   Future project(ThermionAsset target) async {
+    final originalMi = await target.getMaterialInstanceAt();
+
+    await FilamentApp.instance!.register(swapChain, depthView);
+    await FilamentApp.instance!.register(swapChain, projectionView);
+
     final camera = await sourceView.getCamera();
     await depthView.setCamera(camera);
     await projectionView.setCamera(camera);
@@ -120,8 +122,6 @@ class TextureProjection {
     await sourceView.setRenderOrder(0);
     await depthView.setRenderOrder(1);
     await projectionView.setRenderOrder(2);
-
-    var originalMi = await target.getMaterialInstanceAt();
 
     var pixelBuffers = await FilamentApp.instance!.capture(swapChain,
         beforeRender: (view) async {
@@ -141,5 +141,10 @@ class TextureProjection {
     for (final (view, pixelBuffer) in pixelBuffers) {
       _pixelBuffers[view] = pixelBuffer;
     }
+
+    await FilamentApp.instance!.unregister(swapChain, depthView);
+    await FilamentApp.instance!.unregister(swapChain, projectionView);
+
+    await target.setMaterialInstanceAt(originalMi);
   }
 }

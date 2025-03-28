@@ -8,7 +8,7 @@ void main() async {
   group("lights", () {
     test('add/clear point light', () async {
       await testHelper.withViewer((viewer) async {
-        await viewer.loadGlb("file://${testHelper.testDir}/assets/cube.glb");
+        await viewer.loadGltf("file://${testHelper.testDir}/assets/cube.glb");
 
         var light = await viewer.addDirectLight(
             DirectLight.point(intensity: 1000000, falloffRadius: 10));
