@@ -68,6 +68,7 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_destroy(TEngine *tEngine) {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
             Engine::destroy(engine);
+            TRACE("Engine destroyed");
         }
 
         EMSCRIPTEN_KEEPALIVE TRenderer *Engine_createRenderer(TEngine *tEngine)
