@@ -20,10 +20,18 @@ RenderThread::RenderThread()
 
 RenderThread::~RenderThread()
 {
-    TRACE("Destroying RenderThread");
+    Log("Destroying RenderThread (%d tasks remaining)", _tasks.size());
     _stop = true;
     _cv.notify_one();
     TRACE("Joining RenderThread thread..");    
+    
+    while (!_tasks.empty())
+    {
+        auto task = std::move(_tasks.front());
+        _tasks.pop_front();
+        task();
+    }
+    
     t->join();
     delete t;
 
@@ -78,6 +86,7 @@ void RenderThread::iter()
 
     _cv.wait_for(taskLock, std::chrono::microseconds(2000), [this]
                 { return !_tasks.empty() || _stop; });
+
 }
 
 
