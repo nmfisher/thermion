@@ -75,6 +75,7 @@ namespace thermion::windows::d3d
         if (_D3D11Device) {
             _D3D11Device->Release();
         }
+        std::cerr << "D3DContext destroyed" << std::endl;
     }
 
     std::unique_ptr<D3DTexture> D3DContext::CreateTexture(uint32_t width, uint32_t height)
@@ -128,24 +129,22 @@ namespace thermion::windows::d3d
         auto texture =  std::make_unique<D3DTexture>(_d3dTexture2D, _d3dTexture2DHandle, width, height);
 
         ID3D11RenderTargetView* rtv = nullptr;
-D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-rtvDesc.Texture2D.MipSlice = 0;
+        D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+        rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+        rtvDesc.Texture2D.MipSlice = 0;
 
-hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
-if (FAILED(hr)) {
-    std::cout << "Failed to create render target view" << std::endl;
-    // return;
-}
+        hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
+        if (FAILED(hr)) {
+            std::cout << "Failed to create render target view" << std::endl;
+            // return;
+        }
 
-std::cout << "Created render target view" << std::endl;
+        // Clear the texture to blue
+        float blueColor[4] = { 1.0f, 0.0f, 1.0f, 1.0f }; // RGBA
+        _D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
 
-// Clear the texture to blue
-float blueColor[4] = { 1.0f, 0.0f, 1.0f, 1.0f }; // RGBA
-_D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
-std::cout << "FLUSH RENDER TARGET" << std::endl;
-Flush();
+        Flush();
         return texture;
     }
 

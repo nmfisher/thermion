@@ -25,15 +25,18 @@ add_library(${PROJECT_NAME} SHARED
   "utils.cpp"
   "d3d_texture.cpp"
   "vulkan_texture.cpp"
+  "vulkan_platform.cpp"
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 include_directories(${PROJECT_NAME} INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/../../include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../../include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../../include/windows/vulkan"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../../include/filament/"
   "${CMAKE_CURRENT_SOURCE_DIR}/"
 )
 target_link_directories(${PROJECT_NAME} PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../../.dart_tool/thermion_dart/lib/v1.51.2/windows/debug
+    "C:\\Users\\nickh\\Documents\\thermion\\thermion_dart\\.dart_tool\\thermion_dart\\lib\\v1.58.0\\windows\\debug"
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
@@ -44,24 +47,18 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
  vulkan-1
 )
 
-#add_executable(${PROJECT_NAME}_test
-#  "main.cpp"
-#)
+add_executable(${PROJECT_NAME}_test
+  "main.cpp"
+)
 
-#target_compile_features(${PROJECT_NAME}_test PUBLIC cxx_std_20)
+target_compile_features(${PROJECT_NAME}_test PUBLIC cxx_std_20)
 
-#target_include_directories(${PROJECT_NAME}_test PRIVATE 
-#  E:\\thermion\\thermion_dart\\native\\include\\vulkan
-##  E:\\thermion\\thermion_dart\\native\\include
-#  E:\\thermion\\thermion_dart\\native\\include\\filament
-#)
-#target_link_directories(${PROJECT_NAME}_test PRIVATE
-#    E:\\thermion\\thermion_dart\\.dart_tool\\thermion_dart\\lib\\v1.51.2\\windows\\debug
-#    E:\\VulkanSDK\\1.3.296.0\\Lib
-#)
+target_link_directories(${PROJECT_NAME}_test PRIVATE
+    "C:\\Users\\nickh\\Documents\\thermion\\thermion_dart\\.dart_tool\\thermion_dart\\lib\\v1.58.0\\windows\\debug"
+)
 
-#target_link_libraries(${PROJECT_NAME}_test PRIVATE
-#  ${PROJECT_NAME}
-#)
+target_link_libraries(${PROJECT_NAME}_test PRIVATE
+  ${PROJECT_NAME}
+)
 
-#add_dependencies(${PROJECT_NAME}_test ${PROJECT_NAME})
+add_dependencies(${PROJECT_NAME}_test ${PROJECT_NAME})
