@@ -30,6 +30,12 @@ static void Log(const char *fmt, ...) {
     
     va_end(args);
 }
+
+
+#if defined(_WIN32) || defined(_WIN64)
+#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#endif 
+
 #define ERROR(fmt, ...) Log("Error: %s:%d " fmt, __FILENAME__, __LINE__, ##__VA_ARGS__)
 #ifdef ENABLE_TRACING
     #ifdef __ANDROID__
