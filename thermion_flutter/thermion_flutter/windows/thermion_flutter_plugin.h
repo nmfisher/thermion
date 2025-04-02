@@ -1,5 +1,7 @@
 #pragma once
 
+#define THERMION_WIN32_KHR_BUILD
+
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 
@@ -9,8 +11,6 @@
 
 #include <Windows.h>
 #include <wrl.h>
-
-#include "ResourceBuffer.h"
 #include "vulkan_context.h"
 
 namespace thermion::tflutter::windows {
@@ -36,7 +36,6 @@ public:
   flutter::PluginRegistrarWindows *_pluginRegistrar;
   flutter::TextureRegistrar *_textureRegistrar;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> _channel;
-  std::map<int32_t, ResourceBuffer> _resources;
  
   void CreateTexture(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
@@ -46,11 +45,8 @@ public:
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   void RenderCallback();
 
-  ResourceBuffer loadResource(const char *path);
-  void freeResource(ResourceBuffer rbuf);
-
   private:
-    std::unique_ptr<thermion::windows::vulkan::ThermionVulkanContext> _context = nullptr;
+    thermion::windows::vulkan::ThermionVulkanContext *_context = nullptr;
     bool OnTextureUnregistered(int64_t flutterTextureId);
 
 };

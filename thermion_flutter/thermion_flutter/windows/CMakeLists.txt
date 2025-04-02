@@ -20,8 +20,6 @@ add_library(${PLUGIN_NAME} SHARED
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-apply_standard_settings(${PLUGIN_NAME})
-
 set_target_properties(${PLUGIN_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
 target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20)
@@ -58,4 +56,7 @@ set(thermion_flutter_bundled_libraries
   ${runner_BINARY_DIR}/../../../native_assets/windows/thermion_dart.lib
   PARENT_SCOPE
 )
+
+add_definitions(-DTHERMION_WIN32_KHR_BUILD=1)
+
 

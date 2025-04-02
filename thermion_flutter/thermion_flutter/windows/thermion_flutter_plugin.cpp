@@ -63,80 +63,6 @@ namespace thermion::tflutter::windows
 
   ThermionFlutterPlugin::~ThermionFlutterPlugin() {}
 
-  ResourceBuffer ThermionFlutterPlugin::loadResource(const char *name)
-  {
-
-    std::string name_str(name);
-    std::filesystem::path targetFilePath;
-
-    if (name_str.rfind("file://", 0) == 0)
-    {
-      targetFilePath = name_str.substr(7);
-    }
-    else
-    {
-
-      if (name_str.rfind("asset://", 0) == 0)
-      {
-        name_str = name_str.substr(8);
-      }
-
-      int size_needed = MultiByteToWideChar(CP_UTF8, 0, name_str.c_str(), -1, nullptr, 0);
-      std::wstring assetPath(size_needed, 0);
-      MultiByteToWideChar(CP_UTF8, 0, name_str.c_str(), -1, &assetPath[0], size_needed);
-
-      TCHAR pBuf[512];
-      size_t len = sizeof(pBuf);
-      GetModuleFileName(NULL, pBuf, static_cast<DWORD>(len));
-
-      std::wstring exePathBuf(pBuf);
-      std::filesystem::path exePath(exePathBuf);
-      auto exeDir = exePath.remove_filename();
-      targetFilePath = exeDir.wstring() + L"data/flutter_assets/" + assetPath;
-    }
-    std::streampos length;
-
-    std::ifstream is(targetFilePath.c_str(), std::ios::binary);
-    if (!is)
-    {
-      std::cout << "Failed to find resource at file path " << targetFilePath
-                << std::endl;
-      return ResourceBuffer(nullptr, 0, -1);
-    }
-    is.seekg(0, std::ios::end);
-    length = is.tellg();
-
-    char *buffer;
-    buffer = new char[length];
-    is.seekg(0, std::ios::beg);
-    is.read(buffer, length);
-    is.close();
-    int32_t id = static_cast<int32_t>(_resources.size());
-    auto rb = ResourceBuffer(buffer, static_cast<int32_t>(length), id);
-    _resources.emplace(id, rb);
-
-    std::wcout << "Loaded resource of length " << length << " from path "
-               << targetFilePath << std::endl;
-
-    return rb;
-  }
-
-  void ThermionFlutterPlugin::freeResource(ResourceBuffer rbuf)
-  {
-    free((void *)rbuf.data);
-  }
-
-  static ResourceBuffer _loadResource(const char *path, void *const plugin)
-  {
-    std::wcout << "Loading resource from path " << path << std::endl;
-    return ((ThermionFlutterPlugin *)plugin)->loadResource(path);
-  }
-
-  static void _freeResource(ResourceBuffer rbf, void *const plugin)
-  {
-    ((ThermionFlutterPlugin *)plugin)->freeResource(rbf);
-  }
-
   // this is only for storing Flutter surface descriptors
   // (as opposed to the D3D/Vulkan handles, which are stored in the ThermionVulkanContext)
   static std::vector<std::unique_ptr<FlutterD3DTexture>> _flutterTextures;
@@ -145,10 +71,12 @@ namespace thermion::tflutter::windows
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
+    
+    std::wcerr << "CreateTexture " << std::endl;
 
     if (!_context)
     {
-      _context = std::make_unique<thermion::windows::vulkan::ThermionVulkanContext>();
+      _context = new thermion::windows::vulkan::ThermionVulkanContext();
     }
 
     const auto *args =
@@ -189,24 +117,29 @@ namespace thermion::tflutter::windows
 
   bool ThermionFlutterPlugin::OnTextureUnregistered(int64_t flutterTextureId)
   {
+    std::cerr << "ThermionFlutterPlugin::OnTextureUnregistered" << std::endl;
+
+    if (!_context) {
+      std::cerr << "No rendering context is active, cannot destroy Flutter texture ID" << flutterTextureId << std::endl;
+      return false;    
+    }
 
     auto it = std::find_if(_flutterTextures.begin(), _flutterTextures.end(), [=](auto &&ft)
                            { return ft->GetFlutterTextureId() == flutterTextureId; });
-    HANDLE d3dTextureHandle;
-    if (it != _flutterTextures.end())
-    {
-      auto flutterTexture = std::move(*it);
-
-      d3dTextureHandle = flutterTexture->GetD3DTextureHandle();
-      _flutterTextures.erase(it);
+    
+    if (it == _flutterTextures.end()) {
+      std::cerr << "Failed to find Flutter texture associated with Flutter texture ID " << flutterTextureId << std::endl;
+      return false;
     }
+    
+    auto flutterTexture = std::move(*it);
+    HANDLE d3dTextureHandle = flutterTexture->GetD3DTextureHandle();
+    _flutterTextures.erase(it);
+    std::cerr << "Erased flutter texture" << std::endl;
+    _context->DestroyRenderingSurface(d3dTextureHandle);
 
-    if (_context && d3dTextureHandle)
-    {
-      _context->DestroyRenderingSurface(d3dTextureHandle);
-      return true;
-    }
-    return false;
+    return true;
+    
   }
 
   void ThermionFlutterPlugin::DestroyTexture(
@@ -217,40 +150,37 @@ namespace thermion::tflutter::windows
 
     auto shared_result = std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>(result.release());
 
-    _textureRegistrar->UnregisterTexture(flutterTextureId, ([shared_result, flutterTextureId, this]()
-                                                            {
-                                                              if (this->OnTextureUnregistered(flutterTextureId))
-                                                              {
-                                                                shared_result->Success(flutter::EncodableValue((int64_t) nullptr));
-                                                              }
-                                                              else
-                                                              {
-                                                                shared_result->Error("NO_CONTEXT", "No rendering context is active");
-                                                              }
-                                                            }));
+    std::cerr << "Unregistering Flutter texture ID " << flutterTextureId << std::endl;
+
+    _textureRegistrar->UnregisterTexture(
+      flutterTextureId,
+      ([shared_result, flutterTextureId, this]() {
+          std::cerr << "TextureRegistrar unregister callback for Flutter texture ID " << flutterTextureId << std::endl;
+          if (this->OnTextureUnregistered(flutterTextureId))
+          {
+            shared_result->Success(flutter::EncodableValue((int64_t) nullptr));
+          }
+          else
+          {
+            shared_result->Error("NO_CONTEXT", "Failed to unregister Flutter texture");
+          }
+      }));
   }
 
   void ThermionFlutterPlugin::HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
-    // std::cout << methodCall.method_name().c_str() << std::endl;
+    std::cout << methodCall.method_name().c_str() << std::endl;
     if (methodCall.method_name() == "getResourceLoaderWrapper")
     {
-      auto wrapper = (ResourceLoaderWrapper *)malloc(sizeof(ResourceLoaderWrapper));
-      wrapper->loadFromOwner = _loadResource;
-      wrapper->freeFromOwner = _freeResource,
-      wrapper->owner = this;
-      wrapper->loadResource = nullptr;
-      wrapper->loadToOut = nullptr;
-      wrapper->freeResource = nullptr;
-      result->Success(flutter::EncodableValue((int64_t)wrapper));
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
     }
     else if (methodCall.method_name() == "getSharedContext")
     {
       if (!_context)
       {
-        _context = std::make_unique<thermion::windows::vulkan::ThermionVulkanContext>();
+        _context = new thermion::windows::vulkan::ThermionVulkanContext();
       }
       // result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
       result->Success(flutter::EncodableValue((int64_t) nullptr));
@@ -293,7 +223,6 @@ namespace thermion::tflutter::windows
     {
       if (_context)
       {
-
         _context->Flush();
         _context->BlitFromSwapchain();
         const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
@@ -308,12 +237,19 @@ namespace thermion::tflutter::windows
       }
       result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
+    else if (methodCall.method_name() == "destroyContext") {
+      if(_context) {
+        delete _context;
+      }
+      _context = std::nullptr_t();
+      std::cerr << "Destroyed context" << std::endl;
+      result->Success(flutter::EncodableValue((int64_t)nullptr));
+    }
     else if (methodCall.method_name() == "getDriverPlatform")
     {
-      if (!_context)
-      {
-        _context = std::make_unique<thermion::windows::vulkan::ThermionVulkanContext>();
-      }
+      if (!_context) {
+        _context = new thermion::windows::vulkan::ThermionVulkanContext();
+       }
       result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));
     }
     else
