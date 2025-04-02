@@ -56,10 +56,12 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
   @override
   void dispose() {
+    final texture = _texture;
+    _texture = null;
     super.dispose();
     _views.remove(widget.viewer.view);
-    if (_texture != null) {
-      ThermionFlutterPlatform.instance.destroyTextureDescriptor(_texture!);
+    if (texture != null) {
+      ThermionFlutterPlatform.instance.destroyTextureDescriptor(texture!);
     }
     _fpsUpdateTimer?.cancel();
     _states.remove(this);
@@ -131,6 +133,7 @@ class _ThermionTextureWidgetState extends State<ThermionTextureWidget> {
 
       widget.viewer.onDispose(() async {
         var texture = _texture;
+        _texture = null;
         if (mounted) {
           setState(() {});
         }
