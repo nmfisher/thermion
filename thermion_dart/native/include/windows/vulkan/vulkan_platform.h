@@ -38,7 +38,7 @@ class TVulkanPlatform : public filament::backend::VulkanPlatform {
  
        VkResult present(SwapChainPtr handle, uint32_t index, VkSemaphore finishedDrawing) override;
        
-       SwapChainPtr current;
+       SwapChainPtr current = std::nullptr_t();
        std::mutex mutex;
        uint32_t currentColorIndex = 0;
      
