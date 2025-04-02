@@ -138,12 +138,12 @@ void ThermionVulkanContext::Flush() {
 
 // Function to perform the blit operation
 void ThermionVulkanContext::BlitFromSwapchain() {
+    
     std::lock_guard lock(_platform->mutex);
-    if(!_platform->_current || _d3dTextures.size() == 0) {
+    if(!_platform->current || _d3dTextures.size() == 0) {
         return;
     }
 
-    
     auto&& vkTexture = _vulkanTextures.back();
     auto image = vkTexture->GetImage();
 
@@ -152,8 +152,8 @@ void ThermionVulkanContext::BlitFromSwapchain() {
     auto height = texture->GetHeight();
     auto width = texture->GetWidth();
 
-    auto bundle = _platform->getSwapChainBundle(_platform->_current);
-    VkImage swapchainImage = bundle.colors[_platform->_currentColorIndex];
+    auto bundle = _platform->getSwapChainBundle(_platform->current);
+    VkImage swapchainImage = bundle.colors[_platform->currentColorIndex];
     // Command buffer allocation
     VkCommandBufferAllocateInfo cmdBufInfo{};
     cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;

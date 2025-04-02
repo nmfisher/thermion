@@ -121,9 +121,32 @@ namespace thermion::windows::d3d
         }
 
         _d3dTexture2D->AddRef();
+
+        Flush();
         
         std::cout << "Created external D3D texture " << width << "x" << height << std::endl;
-        return std::make_unique<D3DTexture>(_d3dTexture2D, _d3dTexture2DHandle, width, height);
+        auto texture =  std::make_unique<D3DTexture>(_d3dTexture2D, _d3dTexture2DHandle, width, height);
+
+        ID3D11RenderTargetView* rtv = nullptr;
+D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+rtvDesc.Texture2D.MipSlice = 0;
+
+hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
+if (FAILED(hr)) {
+    std::cout << "Failed to create render target view" << std::endl;
+    // return;
+}
+
+std::cout << "Created render target view" << std::endl;
+
+// Clear the texture to blue
+float blueColor[4] = { 1.0f, 0.0f, 1.0f, 1.0f }; // RGBA
+_D3D11DeviceContext->ClearRenderTargetView(rtv, blueColor);
+std::cout << "FLUSH RENDER TARGET" << std::endl;
+Flush();
+        return texture;
     }
 
     void D3DContext::Flush()

@@ -17,6 +17,7 @@
 #ifndef TNT_FILAMENT_ENGINE_H
 #define TNT_FILAMENT_ENGINE_H
 
+
 #include <filament/FilamentAPI.h>
 
 #include <backend/DriverEnums.h>
@@ -24,9 +25,14 @@
 
 #include <utils/compiler.h>
 #include <utils/Invocable.h>
+#include <utils/Slice.h>
+
+#include <initializer_list>
+#include <optional>
 
 #include <stdint.h>
 #include <stddef.h>
+
 
 namespace utils {
 class Entity;
@@ -35,6 +41,10 @@ class JobSystem;
 } // namespace utils
 
 namespace filament {
+
+namespace backend {
+class Driver;
+} // backend
 
 class BufferObject;
 class Camera;
@@ -179,6 +189,7 @@ public:
     using DriverConfig = backend::Platform::DriverConfig;
     using FeatureLevel = backend::FeatureLevel;
     using StereoscopicType = backend::StereoscopicType;
+    using Driver = backend::Driver;
 
     /**
      * Config is used to define the memory footprint used by the engine, such as the
@@ -288,19 +299,28 @@ public:
          */
         uint32_t jobSystemThreadCount = 0;
 
-        /*
-         * Number of most-recently destroyed textures to track for use-after-free.
+        /**
+         * When uploading vertex or index data, the Filament Metal backend copies data
+         * into a shared staging area before transferring it to the GPU. This setting controls
+         * the total size of the buffer used to perform these allocations.
          *
-         * This will cause the backend to throw an exception when a texture is freed but still bound
-         * to a SamplerGroup and used in a draw call. 0 disables completely.
+         * Higher values can improve performance when performing many uploads across a small
+         * number of frames.
          *
-         * Currently only respected by the Metal backend.
+         * This buffer remains alive throughout the lifetime of the Engine, so this size adds to the
+         * memory footprint of the app and should be set as conservative as possible.
+         *
+         * A value of 0 disables the shared staging buffer entirely; uploads will acquire an
+         * individual buffer from a pool of shared buffers.
+         *
+         * Only respected by the Metal backend.
          */
-        size_t textureUseAfterFreePoolSize = 0;
+        size_t metalUploadBufferSizeBytes = 512 * 1024;
 
         /**
          * Set to `true` to forcibly disable parallel shader compilation in the backend.
          * Currently only honored by the GL and Metal backends.
+         * @deprecated use "backend.disable_parallel_shader_compile" feature flag instead
          */
         bool disableParallelShaderCompile = false;
 
@@ -315,7 +335,7 @@ public:
          *
          * @see View::setStereoscopicOptions
          */
-        StereoscopicType stereoscopicType = StereoscopicType::INSTANCED;
+        StereoscopicType stereoscopicType = StereoscopicType::NONE;
 
         /*
          * The number of eyes to render when stereoscopic rendering is enabled. Supported values are
@@ -332,16 +352,77 @@ public:
         uint32_t resourceAllocatorCacheSizeMB = 64;
 
         /*
-         * This value determines for how many frames are texture entries kept in the cache.
+         * This value determines how many frames texture entries are kept for in the cache. This
+         * is a soft limit, meaning some texture older than this are allowed to stay in the cache.
+         * Typically only one texture is evicted per frame.
+         * The default is 1.
          */
-        uint32_t resourceAllocatorCacheMaxAge = 2;
+        uint32_t resourceAllocatorCacheMaxAge = 1;
 
         /*
          * Disable backend handles use-after-free checks.
+         * @deprecated use "backend.disable_handle_use_after_free_check" feature flag instead
          */
         bool disableHandleUseAfterFreeCheck = false;
+
+        /*
+         * Sets a preferred shader language for Filament to use.
+         *
+         * The Metal backend supports two shader languages: MSL (Metal Shading Language) and
+         * METAL_LIBRARY (precompiled .metallib). This option controls which shader language is
+         * used when materials contain both.
+         *
+         * By default, when preferredShaderLanguage is unset, Filament will prefer METAL_LIBRARY
+         * shaders if present within a material, falling back to MSL. Setting
+         * preferredShaderLanguage to ShaderLanguage::MSL will instead instruct Filament to check
+         * for the presence of MSL in a material first, falling back to METAL_LIBRARY if MSL is not
+         * present.
+         *
+         * When using a non-Metal backend, setting this has no effect.
+         */
+        enum class ShaderLanguage {
+            DEFAULT = 0,
+            MSL = 1,
+            METAL_LIBRARY = 2,
+        };
+        ShaderLanguage preferredShaderLanguage = ShaderLanguage::DEFAULT;
+
+        /*
+         * When the OpenGL ES backend is used, setting this value to true will force a GLES2.0
+         * context if supported by the Platform, or if not, will have the backend pretend
+         * it's a GLES2 context. Ignored on other backends.
+         */
+        bool forceGLES2Context = false;
+
+        /**
+         * Assert the native window associated to a SwapChain is valid when calling makeCurrent().
+         * This is only supported for:
+         *      - PlatformEGLAndroid
+         * @deprecated use "backend.opengl.assert_native_window_is_valid" feature flag instead
+         */
+        bool assertNativeWindowIsValid = false;
     };
 
+
+    /**
+     * Feature flags can be enabled or disabled when the Engine is built. Some Feature flags can
+     * also be toggled at any time. Feature flags should alawys use their default value unless
+     * the feature enabled by the flag is faulty. Feature flags provide a last resort way to
+     * disable problematic features.
+     * Feature flags are intended to have a short life-time and are regularly removed as features
+     * mature.
+     */
+    struct FeatureFlag {
+        char const* UTILS_NONNULL name;         //!< name of the feature flag
+        char const* UTILS_NONNULL description;  //!< short description
+        bool const* UTILS_NONNULL value;        //!< pointer to the value of the flag
+        bool constant;                          //!< whether the flag is constant after construction
+    };
+
+    /**
+     * Returns the list of available feature flags
+     */
+    utils::Slice<const FeatureFlag> getFeatureFlags() const noexcept;
 
 #if UTILS_HAS_THREADING
     using CreateCallback = void(void* UTILS_NULLABLE user, void* UTILS_NONNULL token);
@@ -415,6 +496,21 @@ public:
          */
         Builder& paused(bool paused) noexcept;
 
+        /**
+         * Set a feature flag value. This is the only way to set constant feature flags.
+         * @param name feature name
+         * @param value true to enable, false to disable
+         * @return A reference to this Builder for chaining calls.
+         */
+        Builder& feature(char const* UTILS_NONNULL name, bool value) noexcept;
+
+        /**
+         * Enables a list of features.
+         * @param list list of feature names to enable.
+         * @return A reference to this Builder for chaining calls.
+         */
+        Builder& features(std::initializer_list<char const *> list) noexcept;
+
 #if UTILS_HAS_THREADING
         /**
          * Creates the filament Engine asynchronously.
@@ -448,7 +544,7 @@ public:
             Platform* UTILS_NULLABLE platform = nullptr,
             void* UTILS_NULLABLE sharedContext = nullptr,
             const Config* UTILS_NULLABLE config = nullptr) {
-        return Engine::Builder()
+        return Builder()
                 .backend(backend)
                 .platform(platform)
                 .sharedContext(sharedContext)
@@ -468,7 +564,7 @@ public:
             Platform* UTILS_NULLABLE platform = nullptr,
             void* UTILS_NULLABLE sharedContext = nullptr,
             const Config* UTILS_NULLABLE config = nullptr) {
-        Engine::Builder()
+        Builder()
                 .backend(backend)
                 .platform(platform)
                 .sharedContext(sharedContext)
@@ -493,6 +589,11 @@ public:
     static Engine* UTILS_NULLABLE getEngine(void* UTILS_NONNULL token);
 #endif
 
+    /**
+     * @return the Driver instance used by this Engine.
+     * @see OpenGLPlatform
+     */
+    backend::Driver const* UTILS_NONNULL getDriver() const noexcept;
 
     /**
      * Destroy the Engine instance and all associated resources.
@@ -800,24 +901,74 @@ public:
     bool destroy(const InstanceBuffer* UTILS_NULLABLE p);   //!< Destroys an InstanceBuffer object.
     void destroy(utils::Entity e);    //!< Destroys all filament-known components from this entity
 
-    bool isValid(const BufferObject* UTILS_NULLABLE p);        //!< Tells whether a BufferObject object is valid
-    bool isValid(const VertexBuffer* UTILS_NULLABLE p);        //!< Tells whether an VertexBuffer object is valid
-    bool isValid(const Fence* UTILS_NULLABLE p);               //!< Tells whether a Fence object is valid
-    bool isValid(const IndexBuffer* UTILS_NULLABLE p);         //!< Tells whether an IndexBuffer object is valid
-    bool isValid(const SkinningBuffer* UTILS_NULLABLE p);      //!< Tells whether a SkinningBuffer object is valid
-    bool isValid(const MorphTargetBuffer* UTILS_NULLABLE p);   //!< Tells whether a MorphTargetBuffer object is valid
-    bool isValid(const IndirectLight* UTILS_NULLABLE p);       //!< Tells whether an IndirectLight object is valid
-    bool isValid(const Material* UTILS_NULLABLE p);            //!< Tells whether an IndirectLight object is valid
-    bool isValid(const Renderer* UTILS_NULLABLE p);            //!< Tells whether a Renderer object is valid
-    bool isValid(const Scene* UTILS_NULLABLE p);               //!< Tells whether a Scene object is valid
-    bool isValid(const Skybox* UTILS_NULLABLE p);              //!< Tells whether a SkyBox object is valid
-    bool isValid(const ColorGrading* UTILS_NULLABLE p);        //!< Tells whether a ColorGrading object is valid
-    bool isValid(const SwapChain* UTILS_NULLABLE p);           //!< Tells whether a SwapChain object is valid
-    bool isValid(const Stream* UTILS_NULLABLE p);              //!< Tells whether a Stream object is valid
-    bool isValid(const Texture* UTILS_NULLABLE p);             //!< Tells whether a Texture object is valid
-    bool isValid(const RenderTarget* UTILS_NULLABLE p);        //!< Tells whether a RenderTarget object is valid
-    bool isValid(const View* UTILS_NULLABLE p);                //!< Tells whether a View object is valid
-    bool isValid(const InstanceBuffer* UTILS_NULLABLE p);      //!< Tells whether an InstanceBuffer object is valid
+    /** Tells whether a BufferObject object is valid */
+    bool isValid(const BufferObject* UTILS_NULLABLE p) const;
+    /** Tells whether an VertexBuffer object is valid */
+    bool isValid(const VertexBuffer* UTILS_NULLABLE p) const;
+    /** Tells whether a Fence object is valid */
+    bool isValid(const Fence* UTILS_NULLABLE p) const;
+    /** Tells whether an IndexBuffer object is valid */
+    bool isValid(const IndexBuffer* UTILS_NULLABLE p) const;
+    /** Tells whether a SkinningBuffer object is valid */
+    bool isValid(const SkinningBuffer* UTILS_NULLABLE p) const;
+    /** Tells whether a MorphTargetBuffer object is valid */
+    bool isValid(const MorphTargetBuffer* UTILS_NULLABLE p) const;
+    /** Tells whether an IndirectLight object is valid */
+    bool isValid(const IndirectLight* UTILS_NULLABLE p) const;
+    /** Tells whether an Material object is valid */
+    bool isValid(const Material* UTILS_NULLABLE p) const;
+    /** Tells whether an MaterialInstance object is valid. Use this if you already know
+     * which Material this MaterialInstance belongs to. DO NOT USE getMaterial(), this would
+     * defeat the purpose of validating the MaterialInstance.
+     */
+    bool isValid(const Material* UTILS_NONNULL m, const MaterialInstance* UTILS_NULLABLE p) const;
+    /** Tells whether an MaterialInstance object is valid. Use this if the Material the
+     * MaterialInstance belongs to is not known. This method can be expensive.
+     */
+    bool isValidExpensive(const MaterialInstance* UTILS_NULLABLE p) const;
+    /** Tells whether a Renderer object is valid */
+    bool isValid(const Renderer* UTILS_NULLABLE p) const;
+    /** Tells whether a Scene object is valid */
+    bool isValid(const Scene* UTILS_NULLABLE p) const;
+    /** Tells whether a SkyBox object is valid */
+    bool isValid(const Skybox* UTILS_NULLABLE p) const;
+    /** Tells whether a ColorGrading object is valid */
+    bool isValid(const ColorGrading* UTILS_NULLABLE p) const;
+    /** Tells whether a SwapChain object is valid */
+    bool isValid(const SwapChain* UTILS_NULLABLE p) const;
+    /** Tells whether a Stream object is valid */
+    bool isValid(const Stream* UTILS_NULLABLE p) const;
+    /** Tells whether a Texture object is valid */
+    bool isValid(const Texture* UTILS_NULLABLE p) const;
+    /** Tells whether a RenderTarget object is valid */
+    bool isValid(const RenderTarget* UTILS_NULLABLE p) const;
+    /** Tells whether a View object is valid */
+    bool isValid(const View* UTILS_NULLABLE p) const;
+    /** Tells whether an InstanceBuffer object is valid */
+    bool isValid(const InstanceBuffer* UTILS_NULLABLE p) const;
+
+    /**
+     * Retrieve the count of each resource tracked by Engine.
+     * This is intended for debugging.
+     * @{
+     */
+    size_t getBufferObjectCount() const noexcept;
+    size_t getViewCount() const noexcept;
+    size_t getSceneCount() const noexcept;
+    size_t getSwapChainCount() const noexcept;
+    size_t getStreamCount() const noexcept;
+    size_t getIndexBufferCount() const noexcept;
+    size_t getSkinningBufferCount() const noexcept;
+    size_t getMorphTargetBufferCount() const noexcept;
+    size_t getInstanceBufferCount() const noexcept;
+    size_t getVertexBufferCount() const noexcept;
+    size_t getIndirectLightCount() const noexcept;
+    size_t getMaterialCount() const noexcept;
+    size_t getTextureCount() const noexcept;
+    size_t getSkyboxeCount() const noexcept;
+    size_t getColorGradingCount() const noexcept;
+    size_t getRenderTargetCount() const noexcept;
+    /**  @} */
 
     /**
      * Kicks the hardware thread (e.g. the OpenGL, Vulkan or Metal thread) and blocks until
@@ -832,6 +983,25 @@ public:
     void flushAndWait();
 
     /**
+     * Kicks the hardware thread (e.g. the OpenGL, Vulkan or Metal thread) and blocks until
+     * all commands to this point are executed. Note that does guarantee that the
+     * hardware is actually finished.
+     *
+     * A timeout can be specified, if for some reason this flushAndWait doesn't complete before the timeout, it will
+     * return false, true otherwise.
+     *
+     * <p>This is typically used right after destroying the <code>SwapChain</code>,
+     * in cases where a guarantee about the <code>SwapChain</code> destruction is needed in a
+     * timely fashion, such as when responding to Android's
+     * <code>android.view.SurfaceHolder.Callback.surfaceDestroyed</code></p>
+     *
+     * @param timeout A timeout in nanoseconds
+     * @return true if successful, false if flushAndWait timed out, in which case it wasn't successful and commands
+     * might still be executing on both the CPU and GPU sides.
+     */
+    bool flushAndWait(uint64_t timeout);
+
+    /**
      * Kicks the hardware thread (e.g. the OpenGL, Vulkan or Metal thread) but does not wait
      * for commands to be either executed or the hardware finished.
      *
@@ -839,6 +1009,15 @@ public:
      * queue which has a limited size.</p>
       */
     void flush();
+
+    /**
+     * Get paused state of rendering thread.
+     *
+     * <p>Warning: This is an experimental API.
+     *
+     * @see setPaused
+     */
+    bool isPaused() const noexcept;
 
     /**
      * Pause or resume rendering thread.
@@ -864,6 +1043,14 @@ public:
      * which may increase latency in certain applications.</p>
      */
     void pumpMessageQueues();
+
+    /**
+     * Switch the command queue to unprotected mode. Protected mode can be activated via
+     * Renderer::beginFrame() using a protected SwapChain.
+     * @see Renderer
+     * @see SwapChain
+     */
+    void unprotected() noexcept;
 
     /**
      * Returns the default Material.
@@ -948,7 +1135,53 @@ public:
     void resetBackendState() noexcept;
 #endif
 
+    /**
+     * Get the current time. This is a convenience function that simply returns the
+     * time in nanosecond since epoch of std::chrono::steady_clock.
+     * A possible implementation is:
+     *
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     *     return std::chrono::steady_clock::now().time_since_epoch().count();
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     *
+     * @return current time in nanosecond since epoch of std::chrono::steady_clock.
+     * @see Renderer::beginFrame()
+     */
+    static uint64_t getSteadyClockTimeNano() noexcept;
+
+
     DebugRegistry& getDebugRegistry() noexcept;
+
+    /**
+     * Check if a feature flag exists
+     * @param name name of the feature flag to check
+     * @return true if the feature flag exists, false otherwise
+     */
+    inline bool hasFeatureFlag(char const* UTILS_NONNULL name) noexcept {
+        return getFeatureFlag(name).has_value();
+    }
+
+    /**
+     * Set the value of a non-constant feature flag.
+     * @param name name of the feature flag to set
+     * @param value value to set
+     * @return true if the value was set, false if the feature flag is constant or doesn't exist.
+     */
+    bool setFeatureFlag(char const* UTILS_NONNULL name, bool value) noexcept;
+
+    /**
+     * Retrieves the value of any feature flag.
+     * @param name name of the feature flag
+     * @return the value of the flag if it exists
+     */
+    std::optional<bool> getFeatureFlag(char const* UTILS_NONNULL name) const noexcept;
+
+    /**
+     * Returns a pointer to a non-constant feature flag value.
+     * @param name name of the feature flag
+     * @return a pointer to the feature flag value, or nullptr if the feature flag is constant or doesn't exist
+     */
+    bool* UTILS_NULLABLE getFeatureFlagPtr(char const* UTILS_NONNULL name) const noexcept;
 
 protected:
     //! \privatesection

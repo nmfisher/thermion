@@ -24,6 +24,8 @@
 
 #include <utils/compiler.h>
 
+#include <math/mat3.h>
+
 #include <stdint.h>
 
 namespace filament {
@@ -94,7 +96,7 @@ public:
      *
      * To create a NATIVE stream, call the <pre>stream</pre> method on the builder.
      */
-    class Builder : public BuilderBase<BuilderDetails> {
+    class Builder : public BuilderBase<BuilderDetails>, public BuilderNameMixin<Builder> {
         friend struct BuilderDetails;
     public:
         Builder() noexcept;
@@ -137,6 +139,21 @@ public:
         Builder& height(uint32_t height) noexcept;
 
         /**
+         * Associate an optional name with this Stream for debugging purposes.
+         *
+         * name will show in error messages and should be kept as short as possible. The name is
+         * truncated to a maximum of 128 characters.
+         *
+         * The name string is copied during this method so clients may free its memory after
+         * the function returns.
+         *
+         * @param name A string to identify this Stream
+         * @param len Length of name, should be less than or equal to 128
+         * @return This Builder, for chaining calls.
+         */
+        Builder& name(const char* UTILS_NONNULL name, size_t len) noexcept;
+
+        /**
          * Creates the Stream object and returns a pointer to it.
          *
          * @param engine Reference to the filament::Engine to associate this Stream with.
@@ -174,9 +191,10 @@ public:
      *                   The callback tales two arguments: the AHardwareBuffer and the userdata.
      * @param userdata   Optional closure data. Filament will pass this into the callback when it
      *                   releases the image.
+     * @param transform  Optional transform matrix to apply to the image.
      */
     void setAcquiredImage(void* UTILS_NONNULL image,
-            Callback UTILS_NONNULL callback, void* UTILS_NULLABLE userdata) noexcept;
+            Callback UTILS_NONNULL callback, void* UTILS_NULLABLE userdata, math::mat3f const& transform = math::mat3f()) noexcept;
 
     /**
      * @see setAcquiredImage(void*, Callback, void*)
@@ -187,10 +205,11 @@ public:
      *                   It callback tales two arguments: the AHardwareBuffer and the userdata.
      * @param userdata   Optional closure data. Filament will pass this into the callback when it
      *                   releases the image.
+     * @param transform  Optional transform matrix to apply to the image.
      */
     void setAcquiredImage(void* UTILS_NONNULL image,
             backend::CallbackHandler* UTILS_NULLABLE handler,
-            Callback UTILS_NONNULL callback, void* UTILS_NULLABLE userdata) noexcept;
+            Callback UTILS_NONNULL callback, void* UTILS_NULLABLE userdata, math::mat3f const& transform = math::mat3f()) noexcept;
 
     /**
      * Updates the size of the incoming stream. Whether this value is used is

@@ -25,6 +25,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <atomic>
+
 namespace filament::backend {
 
 class Driver;
@@ -41,6 +43,70 @@ public:
     struct Fence {};
     struct Stream {};
 
+    class ExternalImageHandle;
+
+    class ExternalImage {
+        friend class ExternalImageHandle;
+        std::atomic_uint32_t mRefCount{0};
+    protected:
+        virtual ~ExternalImage() noexcept;
+    };
+
+    class ExternalImageHandle {
+        ExternalImage* UTILS_NULLABLE mTarget = nullptr;
+        static void incref(ExternalImage* UTILS_NULLABLE p) noexcept;
+        static void decref(ExternalImage* UTILS_NULLABLE p) noexcept;
+
+    public:
+        ExternalImageHandle() noexcept;
+        ~ExternalImageHandle() noexcept;
+        explicit ExternalImageHandle(ExternalImage* UTILS_NULLABLE p) noexcept;
+        ExternalImageHandle(ExternalImageHandle const& rhs) noexcept;
+        ExternalImageHandle(ExternalImageHandle&& rhs) noexcept;
+        ExternalImageHandle& operator=(ExternalImageHandle const& rhs) noexcept;
+        ExternalImageHandle& operator=(ExternalImageHandle&& rhs) noexcept;
+
+        explicit operator bool() const noexcept { return mTarget != nullptr; }
+
+        ExternalImage* UTILS_NULLABLE get() noexcept { return mTarget; }
+        ExternalImage const* UTILS_NULLABLE get() const noexcept { return mTarget; }
+
+        ExternalImage* UTILS_NULLABLE operator->() noexcept { return mTarget; }
+        ExternalImage const* UTILS_NULLABLE operator->() const noexcept { return mTarget; }
+
+        ExternalImage& operator*() noexcept { return *mTarget; }
+        ExternalImage const& operator*() const noexcept { return *mTarget; }
+
+        void clear() noexcept;
+        void reset(ExternalImage* UTILS_NULLABLE p) noexcept;
+
+    private:
+        friend utils::io::ostream& operator<<(utils::io::ostream& out,
+                ExternalImageHandle const& handle);
+    };
+
+    using ExternalImageHandleRef = ExternalImageHandle const&;
+
+    /**
+     * The type of technique for stereoscopic rendering. (Note that the materials used will need to
+     * be compatible with the chosen technique.)
+     */
+    enum class StereoscopicType : uint8_t {
+        /**
+         * No stereoscopic rendering
+         */
+        NONE,
+        /**
+         * Stereoscopic rendering is performed using instanced rendering technique.
+         */
+        INSTANCED,
+        /**
+         * Stereoscopic rendering is performed using the multiview feature from the graphics
+         * backend.
+         */
+        MULTIVIEW,
+    };
+
     struct DriverConfig {
         /**
          * Size of handle arena in bytes. Setting to 0 indicates default value is to be used.
@@ -48,12 +114,7 @@ public:
          */
         size_t handleArenaSize = 0;
 
-        /**
-         * This number of most-recently destroyed textures will be tracked for use-after-free.
-         * Throws an exception when a texture is freed but still bound to a SamplerGroup and used in
-         * a draw call. 0 disables completely. Currently only respected by the Metal backend.
-         */
-        size_t textureUseAfterFreePoolSize = 0;
+        size_t metalUploadBufferSizeBytes = 512 * 1024;
 
         /**
          * Set to `true` to forcibly disable parallel shader compilation in the backend.
@@ -65,6 +126,29 @@ public:
          * Disable backend handles use-after-free checks.
          */
         bool disableHandleUseAfterFreeCheck = false;
+
+        /**
+         * Disable backend handles tags for heap allocated (fallback) handles
+         */
+        bool disableHeapHandleTags = false;
+
+        /**
+         * Force GLES2 context if supported, or pretend the context is ES2. Only meaningful on
+         * GLES 3.x backends.
+         */
+        bool forceGLES2Context = false;
+
+        /**
+         * Sets the technique for stereoscopic rendering.
+         */
+        StereoscopicType stereoscopicType = StereoscopicType::NONE;
+
+        /**
+         * Assert the native window associated to a SwapChain is valid when calling makeCurrent().
+         * This is only supported for:
+         *      - PlatformEGLAndroid
+         */
+        bool assertNativeWindowIsValid = false;
     };
 
     Platform() noexcept;
@@ -90,7 +174,7 @@ public:
      *
      * @return nullptr on failure, or a pointer to the newly created driver.
      */
-    virtual backend::Driver* UTILS_NULLABLE createDriver(void* UTILS_NULLABLE sharedContext,
+    virtual Driver* UTILS_NULLABLE createDriver(void* UTILS_NULLABLE sharedContext,
             const DriverConfig& driverConfig) noexcept = 0;
 
     /**

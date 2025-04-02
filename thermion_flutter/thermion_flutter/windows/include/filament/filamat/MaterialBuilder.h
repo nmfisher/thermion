@@ -80,7 +80,8 @@ public:
         OPENGL      = 0x01u,
         VULKAN      = 0x02u,
         METAL       = 0x04u,
-        ALL         = OPENGL | VULKAN | METAL
+        WEBGPU        = 0x08u,
+        ALL         = OPENGL | VULKAN | METAL | WEBGPU
     };
 
     /*
@@ -134,6 +135,7 @@ protected:
     TargetApi mTargetApi = (TargetApi) 0;
     Optimization mOptimization = Optimization::PERFORMANCE;
     bool mPrintShaders = false;
+    bool mSaveRawVariants = false;
     bool mGenerateDebugInfo = false;
     bool mIncludeEssl1 = true;
     utils::bitset32 mShaderModels;
@@ -162,6 +164,7 @@ inline constexpr MaterialBuilderBase::TargetApi targetApiFromBackend(
         case Backend::OPENGL:  return TargetApi::OPENGL;
         case Backend::VULKAN:  return TargetApi::VULKAN;
         case Backend::METAL:   return TargetApi::METAL;
+        case Backend::WEBGPU:    return TargetApi::WEBGPU;
         case Backend::NOOP:    return TargetApi::OPENGL;
     }
 }
@@ -227,6 +230,7 @@ public:
 
     using ShaderQuality = filament::ShaderQuality;
     using BlendingMode = filament::BlendingMode;
+    using BlendFunction = filament::backend::BlendFunction;
     using Shading = filament::Shading;
     using Interpolation = filament::Interpolation;
     using VertexDomain = filament::VertexDomain;
@@ -244,6 +248,7 @@ public:
     using CullingMode = filament::backend::CullingMode;
     using FeatureLevel = filament::backend::FeatureLevel;
     using StereoscopicType = filament::backend::StereoscopicType;
+    using ShaderStage = filament::backend::ShaderStage;
 
     enum class VariableQualifier : uint8_t {
         OUT
@@ -313,12 +318,16 @@ public:
     MaterialBuilder& parameter(const char* name, SamplerType samplerType,
             SamplerFormat format = SamplerFormat::FLOAT,
             ParameterPrecision precision = ParameterPrecision::DEFAULT,
-            bool multisample = false) noexcept;
+            bool multisample = false,
+            const char* transformName = "") noexcept;
 
     MaterialBuilder& buffer(filament::BufferInterfaceBlock bib) noexcept;
 
     //! Custom variables (all float4).
     MaterialBuilder& variable(Variable v, const char* name) noexcept;
+
+    MaterialBuilder& variable(Variable v, const char* name,
+            ParameterPrecision precision) noexcept;
 
     /**
      * Require a specified attribute.
@@ -406,6 +415,15 @@ public:
      * You can override this behavior using alphaToCoverage(false).
      */
     MaterialBuilder& blending(BlendingMode blending) noexcept;
+
+    /**
+     * Set the blend function  for this material. blending must be et to CUSTOM.
+     */
+    MaterialBuilder& customBlendFunctions(
+            BlendFunction srcRGB,
+            BlendFunction srcA,
+            BlendFunction dstRGB,
+            BlendFunction dstA) noexcept;
 
     /**
      * Set the blending mode of the post-lighting color for this material.
@@ -570,10 +588,17 @@ public:
      */
     MaterialBuilder& optimization(Optimization optimization) noexcept;
 
-    // TODO: this is present here for matc's "--print" flag, but ideally does not belong inside
-    // MaterialBuilder.
+    // TODO: this is present here for matc's "--print" flag, but ideally does not belong inside MaterialBuilder.
     //! If true, will output the generated GLSL shader code to stdout.
     MaterialBuilder& printShaders(bool printShaders) noexcept;
+
+    /**
+     * If true, this will write the raw generated GLSL for each variant to a text file in the
+     * current directory. The file will be named after the material name and the variant name. Its
+     * extension will be derived from the shader stage. For example, mymaterial_0x0e.frag,
+     * mymaterial_0x18.vert, etc.
+     */
+    MaterialBuilder& saveRawVariants(bool saveVariants) noexcept;
 
     //! If true, will include debugging information in generated SPIRV.
     MaterialBuilder& generateDebugInfo(bool generateDebugInfo) noexcept;
@@ -626,8 +651,8 @@ public:
         Parameter() noexcept: parameterType(INVALID) {}
 
         // Sampler
-        Parameter(const char* paramName, SamplerType t, SamplerFormat f, ParameterPrecision p, bool ms)
-                : name(paramName), size(1), precision(p), samplerType(t), format(f), parameterType(SAMPLER), multisample(ms) { }
+        Parameter(const char* paramName, SamplerType t, SamplerFormat f, ParameterPrecision p, bool ms, const char* tn)
+                : name(paramName), size(1), precision(p), samplerType(t), format(f), parameterType(SAMPLER), multisample(ms), transformName(tn) { }
 
         // Uniform
         Parameter(const char* paramName, UniformType t, size_t typeSize, ParameterPrecision p)
@@ -645,6 +670,7 @@ public:
         SubpassType subpassType;
         SamplerFormat format;
         bool multisample;
+        utils::CString transformName;
         enum {
             INVALID,
             UNIFORM,
@@ -682,18 +708,30 @@ public:
         } defaultValue;
     };
 
+    struct PushConstant {
+        utils::CString name;
+        ConstantType type;
+        ShaderStage stage;
+    };
+
+    struct CustomVariable {
+        utils::CString name;
+        Precision precision = Precision::DEFAULT;
+        bool hasPrecision = false;
+    };
+
     static constexpr size_t MATERIAL_PROPERTIES_COUNT = filament::MATERIAL_PROPERTIES_COUNT;
     using Property = filament::Property;
 
     using PropertyList = bool[MATERIAL_PROPERTIES_COUNT];
-    using VariableList = utils::CString[MATERIAL_VARIABLES_COUNT];
+    using VariableList = CustomVariable[MATERIAL_VARIABLES_COUNT];
     using OutputList = std::vector<Output>;
 
     static constexpr size_t MAX_COLOR_OUTPUT = filament::backend::MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT;
     static constexpr size_t MAX_DEPTH_OUTPUT = 1;
     static_assert(MAX_COLOR_OUTPUT == 8,
             "When updating MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT, manually update post_process_inputs.fs"
-            " and post_process.fs");
+            " and post_process_main.fs");
 
     // Preview the first shader generated by the given CodeGenParams.
     // This is used to run Static Code Analysis before generating a package.
@@ -710,6 +748,7 @@ public:
     using SubpassList = Parameter[MAX_SUBPASS_COUNT];
     using BufferList = std::vector<std::unique_ptr<filament::BufferInterfaceBlock>>;
     using ConstantList = std::vector<Constant>;
+    using PushConstantList = std::vector<PushConstant>;
 
     // returns the number of parameters declared in this material
     uint8_t getParameterCount() const noexcept { return mParameterCount; }
@@ -752,6 +791,10 @@ private:
     static const AttributeDatabase sAttributeDatabase;
 
     void prepareToBuild(MaterialInfo& info) noexcept;
+
+    // Initialize internal push constants that will both be written to the shaders and material
+    // chunks (like user-defined spec constants).
+    void initPushConstants() noexcept;
 
     // Return true if the shader is syntactically and semantically valid.
     // This method finds all the properties defined in the fragment and
@@ -819,6 +862,7 @@ private:
     PropertyList mProperties;
     ParameterList mParameters;
     ConstantList mConstants;
+    PushConstantList mPushConstants;
     SubpassList mSubpasses;
     VariableList mVariables;
     OutputList mOutputs;
@@ -828,6 +872,7 @@ private:
     FeatureLevel mFeatureLevel = FeatureLevel::FEATURE_LEVEL_1;
     BlendingMode mBlendingMode = BlendingMode::OPAQUE;
     BlendingMode mPostLightingBlendingMode = BlendingMode::TRANSPARENT;
+    std::array<BlendFunction, 4> mCustomBlendFunctions = {};
     CullingMode mCullingMode = CullingMode::BACK;
     Shading mShading = Shading::LIT;
     MaterialDomain mMaterialDomain = MaterialDomain::SURFACE;
