@@ -9,9 +9,7 @@
 
 #include "Globals.hpp"
 #include "Log.hpp"
-#include "material/gizmo.h"
 #include "scene/Gizmo.hpp"
-#include "scene/SceneManager.hpp"
 
 namespace thermion
 {
