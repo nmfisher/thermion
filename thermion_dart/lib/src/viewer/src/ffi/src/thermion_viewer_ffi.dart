@@ -155,6 +155,10 @@ class ThermionViewerFFI extends ThermionViewer {
   Future dispose() async {
     _disposed = true;
     await setRendering(false);
+
+    await _backgroundImage?.destroy();
+    _backgroundImage = null;
+
     await destroyAssets();
     await destroyLights();
 
@@ -162,6 +166,7 @@ class ThermionViewerFFI extends ThermionViewer {
       await callback.call();
     }
     View_setScene(view.view, nullptr);
+    
     await FilamentApp.instance!.destroyScene(scene);
     await FilamentApp.instance!.destroyView(view);
 
