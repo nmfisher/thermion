@@ -15,6 +15,12 @@ namespace thermion {
 using namespace filament;
 using namespace utils;
 
+enum SceneLayer {
+    DefaultAsset = 0,
+    Background = 6,
+    Overlay = 7,
+};
+
 class SceneAsset {
 
     public:
