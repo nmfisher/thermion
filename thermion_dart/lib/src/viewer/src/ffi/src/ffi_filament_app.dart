@@ -817,6 +817,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     await withVoidCallback(
         (cb) => Engine_destroyViewRenderThread(engine, view.view, cb));
+    for(final swapchain in _swapChains.keys) {
+      if(_swapChains[swapchain]!.contains(view)) {
+        _swapChains[swapchain]!.remove(view);
+        continue;
+      }
+    }
   }
 
   Future destroyScene(covariant FFIScene scene) async {
