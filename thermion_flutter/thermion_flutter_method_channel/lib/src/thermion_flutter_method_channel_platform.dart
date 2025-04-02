@@ -44,16 +44,10 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
   }
 
   Future<ThermionViewer> createViewer({ThermionFlutterOptions? options}) async {
-    var resourceLoader = Pointer<Void>.fromAddress(
-        await channel.invokeMethod("getResourceLoaderWrapper"));
-
-    if (resourceLoader == nullptr) {
-      throw Exception("Failed to get resource loader");
-    }
 
     var driverPlatform = await channel.invokeMethod("getDriverPlatform");
 
-    var driverPtr = driverPlatform == null
+    var platformPtr = driverPlatform == null
         ? nullptr
         : Pointer<Void>.fromAddress(driverPlatform);
 
@@ -97,20 +91,23 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     final config = FFIFilamentConfig(
         backend: backend,
         resourceLoader: loadAsset,
-        driver: driverPtr,
-        platform: nullptr,
+        platform: platformPtr,
         sharedContext: sharedContextPtr,
         uberArchivePath: options?.uberarchivePath);
 
-    await FFIFilamentApp.create(config: config);
+    if (FilamentApp.instance == null) {
+      await FFIFilamentApp.create(config: config);
+      FilamentApp.instance!.onDestroy(() async {
+        await channel.invokeMethod("destroyContext");
+        _swapChain = null;
+      });
+    }
 
     final viewer = ThermionViewerFFI(
       loadAssetFromUri: loadAsset,
     );
 
     await viewer.initialized;
-
-    viewer.onDispose(() async {});
 
     // this implementation renders directly into a texture/render target
     // for some reason we still need to create a (headless) swapchain, but the
@@ -213,6 +210,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       View view,
       int width,
       int height) async {
+
     var newTexture = await createTextureAndBindToView(view, width, height);
     if (newTexture == null) {
       throw Exception();
