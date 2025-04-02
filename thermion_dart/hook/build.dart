@@ -1,15 +1,25 @@
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:logging/logging.dart';
+import 'package:native_assets_cli/code_assets_builder.dart';
 import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:path/path.dart' as path;
 
 void main(List<String> args) async {
-  await build(args, (config, output) async {
-    var pkgRootFilePath =
-        config.packageRoot.toFilePath(windows: Platform.isWindows);
-
+  await build(args, (BuildInput input, BuildOutputBuilder output) async {
+    final packageRoot = input.packageRoot;
+    var pkgRootFilePath = packageRoot
+        .toFilePath(windows: Platform.isWindows);
+        
+    final config = input.config;
+    final buildMode = BuildMode.debug;
+    
+    final dryRun = false;
+    final packageName = input.packageName;
+    final outputDirectory = input.outputDirectory;
+    final targetOS = config.code.targetOS;
+    final targetArchitecture = config.code.targetArchitecture;
     var logPath = path.join(
         pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
     var logFile = File(logPath);
@@ -24,37 +34,22 @@ void main(List<String> args) async {
           mode: FileMode.append,
           flush: true));
 
-    var platform = config.targetOS.toString().toLowerCase();
+    var platform = targetOS.toString().toLowerCase();
 
-    if (!config.dryRun) {
+    if (!dryRun) {
       logger.info(
-          "Building Thermion for ${config.targetOS} in mode ${config.buildMode.name}");
+          "Building Thermion for ${targetOS} in mode ${buildMode.name}");
     }
 
     // We don't support Linux (yet), so the native/Filament libraries won't be
     // compiled/available. However, we still want to be able to run the Dart
-    // package itself on a Linux host(e.g. for dart_services backed), so if
-    // we detect that we're running on Linux, add some dummy native code
-    // assets and exit early.
+    // package itself on a Linux host (e.g. for a wasm/dartdev backend compiler).
+    //  TODO
     if (platform == "linux") {
-      final linkMode = DynamicLoadingBundled();
-      final name = "thermion_dart.dart";
-      final libUri = config.outputDirectory
-          .resolve(config.targetOS.libraryFileName(name, linkMode));
-      output.addAsset(NativeCodeAsset(
-        package: config.packageName,
-        name: name,
-        file: libUri,
-        linkMode: linkMode,
-        os: config.targetOS,
-        architecture: config.dryRun ? null : config.targetArchitecture,
-      ));
-      return;
+      throw Exception("TODO");
     }
 
-    var libDir = config.dryRun ? "" : (await getLibDir(config, logger)).path;
-
-    final packageName = config.packageName;
+    var libDir = (await getLibDir(packageRoot, targetOS, targetArchitecture, logger)).path;
 
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
@@ -62,8 +57,8 @@ void main(List<String> args) async {
         .map((f) => f.path)
         .where((f) => !(f.contains("CMakeLists") || f.contains("main.cpp")))
         .toList();
-
-    if (config.targetOS != OS.windows) {
+    
+    if (targetOS != OS.windows) {
       sources = sources.where((p) => !p.contains("windows")).toList();
     }
 
@@ -72,8 +67,6 @@ void main(List<String> args) async {
           "unlit_fixed_size.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "image.c"),
       path.join(pkgRootFilePath, "native", "include", "material", "grid.c"),
-      path.join(pkgRootFilePath, "native", "include", "material", "unlit.c"),
-      path.join(pkgRootFilePath, "native", "include", "material", "gizmo.c"),
       path.join(pkgRootFilePath, "native", "include", "resources",
           "translation_gizmo_glb.c"),
       path.join(pkgRootFilePath, "native", "include", "resources",
@@ -109,15 +102,15 @@ void main(List<String> args) async {
       "uberarchive",
       "zstd",
       "basis_transcoder",
-      if (config.targetOS == OS.macOS) ...["matdbg", "fgviewer"]
+      if (targetOS == OS.macOS) ...["matdbg", "fgviewer"]
     ];
 
-    if (platform == "windows") {
+   if (platform == "windows") {
       // we just need the libDir and don't need to explicitly link the actual libs
       // (these are linked via ThermionWin32.h)
       libDir = Directory(libDir)
           .uri
-          .toFilePath(windows: config.targetOS == OS.windows);
+          .toFilePath(windows: targetOS == OS.windows);
     } else {
       libs.add("stdc++");
     }
@@ -131,10 +124,10 @@ void main(List<String> args) async {
 
     if (platform != "windows") {
       flags.addAll(['-std=c++17']);
-    } else if (!config.dryRun) {
+    } else if (!dryRun) {
       defines["WIN32"] = "1";
       defines["_DLL"] = "1";
-      if (config.buildMode == BuildMode.debug) {
+      if (buildMode == BuildMode.debug) {
         defines["_DEBUG"] = "1";
       } else {
         defines["RELEASE"] = "1";
@@ -142,8 +135,8 @@ void main(List<String> args) async {
       }
       flags.addAll([
         "/std:c++20",
-        if (config.buildMode == BuildMode.debug) ...["/MDd", "/Zi"],
-        if (config.buildMode == BuildMode.release) "/MD",
+        if (buildMode == BuildMode.debug) ...["/MDd", "/Zi"],
+        if (buildMode == BuildMode.release) "/MD",
         "/VERBOSE",
         ...defines.keys.map((k) => "/D$k=${defines[k]}").toList()
       ]);
@@ -167,7 +160,7 @@ void main(List<String> args) async {
         "Metal",
       ]);
 
-      if (!config.dryRun && config.buildMode == BuildMode.debug) {
+      if (!dryRun && buildMode == BuildMode.debug) {
         flags.addAll([
           "-g",
           "-O0",
@@ -180,6 +173,8 @@ void main(List<String> args) async {
     }
 
     frameworks = frameworks.expand((f) => ["-framework", f]).toList();
+
+    File("C:\\Users\\nickh\\thermion_sources.rsp").writeAsStringSync(sources.join("\n"));
 
     final cbuilder = CBuilder.library(
       name: packageName,
@@ -203,7 +198,8 @@ void main(List<String> args) async {
           "/I${path.join(pkgRootFilePath, "native", "include")}",
           "/I${path.join(pkgRootFilePath, "native", "include", "filament")}",
           "/I${path.join(pkgRootFilePath, "native", "include", "windows", "vulkan")}",
-          ...sources,
+          "@C:\\Users\\nickh\\thermion_sources.rsp",
+          // ...sources,
           '/link',
           "/LIBPATH:$libDir",
           '/DLL',
@@ -213,13 +209,13 @@ void main(List<String> args) async {
     );
 
     await cbuilder.run(
-      buildConfig: config,
-      buildOutput: output,
+      input: input,
+      output: output,
       logger: logger,
     );
-    if (config.targetOS == OS.android) {
-      if (!config.dryRun) {
-        final archExtension = switch (config.targetArchitecture) {
+    if (targetOS == OS.android) {
+      if (!dryRun) {
+        final archExtension = switch (targetArchitecture) {
           Architecture.arm => "arm-linux-androideabi",
           Architecture.arm64 => "aarch64-linux-android",
           Architecture.x64 => "x86_64-linux-android",
@@ -227,7 +223,7 @@ void main(List<String> args) async {
           _ => throw FormatException('Invalid')
         };
 
-        var compilerPath = config.cCompiler.compiler!.path;
+        var compilerPath = config.code.cCompiler!.compiler.path;
 
         if (Platform.isWindows && compilerPath.startsWith("/")) {
           compilerPath = compilerPath.substring(1);
@@ -247,33 +243,37 @@ void main(List<String> args) async {
           archExtension,
           "libc++_shared.so"
         ].join(Platform.pathSeparator));
-        output.addAsset(NativeCodeAsset(
+        final libcpp = CodeAsset(
             package: "thermion_dart",
             name: "libc++_shared.so",
             linkMode: DynamicLoadingBundled(),
-            os: config.targetOS,
+            os: targetOS,
             file: stlPath.uri,
-            architecture: config.targetArchitecture));
+            architecture: targetArchitecture);
+            
+        output.assets.addEncodedAsset(libcpp.encode());
       }
     }
 
-    if (config.targetOS == OS.windows) {
-      var importLib = File(path.join(
-          config.outputDirectory.path.substring(1).replaceAll("/", "\\"),
-          "thermion_dart.lib"));
+    if (targetOS == OS.windows) {
 
-      output.addAsset(NativeCodeAsset(
-          package: config.packageName,
+      var importLib = File(path.join(
+        
+          outputDirectory.path.substring(1).replaceAll("/", "\\"),
+          "thermion_dart.lib"));
+      final libthermion = CodeAsset(
+          package: packageName,
           name: "thermion_dart.lib",
           linkMode: DynamicLoadingBundled(),
-          os: config.targetOS,
+          os: targetOS,
           file: importLib.uri,
-          architecture: config.targetArchitecture));
+          architecture: targetArchitecture);
+      output.assets.addEncodedAsset(libthermion.encode());
 
       for (final dir in ["windows/vulkan"]) {
         // , "filament/bluevk", "filament/vulkan"
         final targetSubdir =
-            path.join(config.outputDirectory.path, "include", dir).substring(1);
+            path.join(outputDirectory.path, "include", dir).substring(1);
         if (!Directory(targetSubdir).existsSync()) {
           Directory(targetSubdir).createSync(recursive: true);
         }
@@ -285,13 +285,14 @@ void main(List<String> args) async {
             final targetPath =
                 path.join(targetSubdir, path.basename(file.path));
             file.copySync(targetPath);
-            output.addAsset(NativeCodeAsset(
-                package: config.packageName,
+            final include = CodeAsset(
+                package: packageName,
                 name: "include/$dir/${path.basename(file.path)}",
                 linkMode: DynamicLoadingBundled(),
-                os: config.targetOS,
+                os: targetOS,
                 file: file.uri,
-                architecture: config.targetArchitecture));
+                architecture: targetArchitecture);
+            output.assets.addEncodedAsset(include.encode());
           }
         }
       }
@@ -307,8 +308,8 @@ String _getLibraryUrl(String platform, String mode) {
 //
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
-Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
-  var platform = config.targetOS.toString().toLowerCase();
+Future<Directory> getLibDir(Uri packageRoot, OS targetOS, Architecture targetArchitecture, Logger logger) async {
+  var platform = targetOS.toString().toLowerCase();
 
   // Except on Windows, most users will only need release builds of Filament.
   // Debug builds are probably only relevant if you're a package developer debugging an internal Filament issue
@@ -318,13 +319,15 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
   // (these aren't present in Filament release builds).
   // However, if you know what you're doing, you can change "release" to "debug" below.
   // TODO - check if we can pass this as a CLI compiler flag
-  var mode = "release";
-  if ({OS.windows, OS.macOS}.contains(config.targetOS)) {
-    mode = config.buildMode == BuildMode.debug ? "debug" : "release";
-  }
+  var mode = "debug";
+  // var mode = "release";
+  // if ({OS.windows, OS.macOS}.contains(targetOS)) {
+  //   mode = buildMode == BuildMode.debug ? "debug" : "release";
+  // }
+
 
   var libDir = Directory(path.join(
-      config.packageRoot.toFilePath(windows: Platform.isWindows),
+      packageRoot.toFilePath(windows: Platform.isWindows),
       ".dart_tool",
       "thermion_dart",
       "lib",
@@ -333,7 +336,7 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
       mode));
 
   if (platform == "android") {
-    final archExtension = switch (config.targetArchitecture) {
+    final archExtension = switch (targetArchitecture) {
       Architecture.arm => "armeabi-v7a",
       Architecture.arm64 => "arm64-v8a",
       Architecture.x64 => "x86_64",
@@ -342,9 +345,9 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
     };
     libDir = Directory(path.join(libDir.path, archExtension));
   } else if (platform == "windows") {
-    if (config.targetArchitecture != Architecture.x64) {
+    if (targetArchitecture != Architecture.x64) {
       throw Exception(
-          "Unsupported architecture : ${config.targetArchitecture}");
+          "Unsupported architecture : ${targetArchitecture}");
     }
   }
 
@@ -352,7 +355,7 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
 
   var url = _getLibraryUrl(platform, mode);
 
-  if (config.targetOS == OS.windows) {
+  if (targetOS == OS.windows) {
     url = url.replaceAll(".zip", "-vulkan.zip");
   }
 
@@ -362,7 +365,7 @@ Future<Directory> getLibDir(BuildConfig config, Logger logger) async {
   // If this file already exists, we assume everything has been successfully extracted and skip
   final unzipDir = platform == "android" ? libDir.parent.path : libDir.path;
   final successToken = File(path.join(
-      unzipDir, config.targetOS == OS.windows ? "success-vulkan" : "success"));
+      unzipDir, targetOS == OS.windows ? "success-vulkan" : "success"));
   final libraryZip = File(path.join(unzipDir, filename));
 
   if (!successToken.existsSync()) {
