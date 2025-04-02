@@ -11,7 +11,6 @@ class FilamentConfig<T, U> {
   final U? renderCallbackOwner;
   final Future<Uint8List> Function(String) resourceLoader;
   final U? platform;
-  final U? driver;
   final U? sharedContext;
   final String? uberArchivePath;
   final int stereoscopicEyeCount;
@@ -24,7 +23,6 @@ class FilamentConfig<T, U> {
       this.renderCallback,
       this.renderCallbackOwner,
       this.platform,
-      this.driver,
       this.sharedContext,
       this.stereoscopicEyeCount = 1,
       this.disableHandleUseAfterFreeCheck = false});
@@ -306,4 +304,9 @@ abstract class FilamentApp<T> {
   ///
   ///
   Future flush();
+
+  ///
+  ///
+  ///
+  void onDestroy(Future Function() callback);
 }

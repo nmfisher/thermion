@@ -146,12 +146,14 @@ class ThermionViewerFFI extends ThermionViewer {
   }
 
   final _onDispose = <Future Function()>[];
+  bool _disposed = false;
 
   ///
   ///
   ///
   @override
   Future dispose() async {
+    _disposed = true;
     await setRendering(false);
     await destroyAssets();
     await destroyLights();
@@ -268,6 +270,10 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeSkybox() async {
+    if(_disposed) {
+      throw ViewerDisposedException();
+    }
+
     if (skybox != null) {
       await withVoidCallback(
           (cb) => Engine_destroySkyboxRenderThread(app.engine, skybox!, cb));
@@ -713,3 +719,5 @@ class ThermionViewerFFI extends ThermionViewer {
     await scene.remove(asset);
   }
 }
+
+class ViewerDisposedException implements Exception {}

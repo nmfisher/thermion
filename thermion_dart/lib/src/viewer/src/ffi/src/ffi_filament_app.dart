@@ -15,6 +15,7 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:logging/logging.dart';
 
 typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
@@ -22,7 +23,6 @@ class FFIFilamentConfig extends FilamentConfig<RenderCallback, Pointer<Void>> {
   FFIFilamentConfig(
       {required super.resourceLoader,
       super.backend = Backend.DEFAULT,
-      super.driver = null,
       super.platform = null,
       super.sharedContext = null,
       super.uberArchivePath = null});
@@ -40,6 +40,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   final Pointer<TNameComponentManager> nameComponentManager;
 
   final Future<Uint8List> Function(String uri) resourceLoader;
+
+  late final _logger = Logger(this.runtimeType.toString());
 
   FFIFilamentApp(
       this.engine,
@@ -195,11 +197,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future destroySwapChain(SwapChain swapChain) async {
+    _logger.info("Destroying swapchain");
     await withVoidCallback((callback) {
       Engine_destroySwapChainRenderThread(
           engine, (swapChain as FFISwapChain).swapChain, callback);
     });
     _swapChains.remove(swapChain);
+    _logger.info("Destroyed swapchain");
   }
 
   ///
@@ -227,6 +231,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
     calloc.free(viewsPtr);
     FilamentApp.instance = null;
+    for (final callback in _onDestroy) {
+      await callback.call();
+    }
+
+    _onDestroy.clear();
   }
 
   ///
@@ -913,6 +922,15 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future flush() async {
     await withVoidCallback((cb) => Engine_flushAndWaitRenderThead(engine, cb));
+  }
+
+  final _onDestroy = <Future Function()>[];
+  
+  ///
+  ///
+  ///
+  void onDestroy(Future Function() callback) {
+    _onDestroy.add(callback);
   }
 }
 
