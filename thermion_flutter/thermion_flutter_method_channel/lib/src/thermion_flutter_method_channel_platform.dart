@@ -98,7 +98,9 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
     if (FilamentApp.instance == null) {
       await FFIFilamentApp.create(config: config);
       FilamentApp.instance!.onDestroy(() async {
-        await channel.invokeMethod("destroyContext");
+        if(Platform.isWindows) {
+          await channel.invokeMethod("destroyContext");
+        }
         _swapChain = null;
       });
     }
