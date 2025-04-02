@@ -1,5 +1,4 @@
 #include "scene/GridOverlay.hpp"
-#include "scene/SceneManager.hpp"
 #include "Log.hpp"
 
 namespace thermion
@@ -105,7 +104,7 @@ namespace thermion
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0, indices->size())
             .material(0, _materialInstance)
             .priority(0x7)
-            .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
+            .layerMask(0xFF, 1u << SceneLayer::Overlay)
             /*  
                 We disable culling here because we calculate the quad's world-space coordinates
                 manually in the shader (see grid.mat). Without this, the quad would be culled before
@@ -200,7 +199,7 @@ namespace thermion
                           {sphereRadius, sphereRadius, sphereRadius}})
             .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, sphereVb, sphereIb, 0, indexCount)
             .priority(7)
-            .layerMask(0xFF, 1u << SceneManager::LAYERS::OVERLAY)
+            .layerMask(0xFF, 1u << SceneLayer::Overlay)
             .culling(true)
             .receiveShadows(false)
             .castShadows(false)
