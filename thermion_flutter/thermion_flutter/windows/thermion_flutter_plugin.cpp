@@ -238,9 +238,6 @@ namespace thermion::tflutter::windows
       result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
     else if (methodCall.method_name() == "destroyContext") {
-      if(_context) {
-        delete _context;
-      }
       _context = std::nullptr_t();
       std::cerr << "Destroyed context" << std::endl;
       result->Success(flutter::EncodableValue((int64_t)nullptr));
@@ -248,7 +245,10 @@ namespace thermion::tflutter::windows
     else if (methodCall.method_name() == "getDriverPlatform")
     {
       if (!_context) {
+        std::cerr << "No context, creating new one" << std::endl;
         _context = new thermion::windows::vulkan::ThermionVulkanContext();
+       } else { 
+        std::cerr << "Context already exists, returning existing" << std::endl;
        }
       result->Success(flutter::EncodableValue((int64_t)_context->GetPlatform()));
     }
