@@ -10,11 +10,9 @@
 #include <Windows.h>
 #include <wrl.h>
 
-
-
 namespace thermion::windows::d3d { 
 
-    class EMSCRIPTEN_KEEPALIVE D3DContext {
+    class DLL_EXPORT D3DContext {
         public:
             D3DContext();
             ~D3DContext();

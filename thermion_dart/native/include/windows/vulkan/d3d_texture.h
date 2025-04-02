@@ -15,7 +15,7 @@
 
 namespace thermion::windows::d3d {
 
-class EMSCRIPTEN_KEEPALIVE D3DTexture {
+class DLL_EXPORT D3DTexture {
   public:
     D3DTexture(
         Microsoft::WRL::ComPtr<ID3D11Texture2D> d3dTexture2D,

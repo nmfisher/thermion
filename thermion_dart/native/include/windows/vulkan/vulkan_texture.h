@@ -1,3 +1,5 @@
+#pragma once 
+
 #include <cstdint>
 #include <memory>
 #include "bluevk/BlueVK.h"
@@ -8,7 +10,7 @@ namespace thermion::windows::vulkan {
 
 typedef void *HANDLE;
 
-class EMSCRIPTEN_KEEPALIVE VulkanTexture {
+class DLL_EXPORT VulkanTexture {
     public:
         VulkanTexture(VkImage image, VkDevice device, VkDeviceMemory imageMemory, uint32_t width, uint32_t height, HANDLE d3dTextureHandle);
         ~VulkanTexture();

@@ -1,5 +1,5 @@
 #ifdef THERMION_WIN32_KHR_BUILD
-#define EMSCRIPTEN_KEEPALIVE __declspec(dllimport)
+#define DLL_EXPORT __declspec(dllimport)
 #else
-#define EMSCRIPTEN_KEEPALIVE __declspec(dllexport)
+#define DLL_EXPORT __declspec(dllexport)
 #endif
