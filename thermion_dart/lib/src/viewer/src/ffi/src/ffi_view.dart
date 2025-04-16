@@ -1,13 +1,18 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
-import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'callbacks.dart';
 import 'ffi_camera.dart';
 
 class FFIView extends View {
+
+  late final _logger = Logger(this.runtimeType.toString());
   int _renderOrder = 0;
   int get renderOrder => _renderOrder;
 
@@ -24,6 +29,9 @@ class FFIView extends View {
     if (renderTargetPtr != nullptr) {
       renderTarget = FFIRenderTarget(renderTargetPtr, app);
     }
+    
+    _onPickResultCallable =
+        NativeCallable<PickCallbackFunction>.listener(_onPickResult);
   }
 
   ///
@@ -43,13 +51,6 @@ class FFIView extends View {
 
   @override
   Future setViewport(int width, int height) async {
-    // var width_logbase2 = log(width) / ln2;
-    // var height_logbase2 = log(height) / ln2;
-    // var newWidth = pow(2.0, width_logbase2.ceil());
-    // var newHeight = pow(2.0, height_logbase2.ceil());
-    // print("old: ${width}x${height} new: ${height}x${newHeight}");
-    // width = newWidth.toInt();
-    // height = newHeight.toInt();
     View_setViewport(view, width, height);
   }
 
@@ -160,4 +161,54 @@ class FFIView extends View {
     final ptr = View_getScene(view);
     return FFIScene(ptr);
   }
+
+  int _pickRequestId = -1;
+  
+  static int kMaxPickRequests = 1024;
+  final _pickRequests = List<({void Function(PickResult) handler, int x, int y})?>.generate(kMaxPickRequests, (idx) => null);
+  
+  late NativeCallable<PickCallbackFunction> _onPickResultCallable;
+  
+  ///
+  ///
+  ///
+  @override
+  Future pick(int x, int y, void Function(PickResult) resultHandler) async {
+    _pickRequestId = max(_pickRequestId + 1, kMaxPickRequests);
+    
+    _pickRequests[_pickRequestId % kMaxPickRequests] =
+        (handler: resultHandler, x: x, y: y);
+    var pickRequestId = _pickRequestId;
+    var viewport = await getViewport();
+    y = viewport.height - y;
+
+    View_pick(
+        view, pickRequestId, x, y, _onPickResultCallable.nativeFunction);
+
+  }
+
+  void _onPickResult(int requestId, ThermionEntity entityId, double depth,
+      double fragX, double fragY, double fragZ) async {
+    final modRequestId = requestId % kMaxPickRequests;
+    if (_pickRequests[modRequestId] == null) {
+      _logger.severe(
+          "Warning : pick result received with no matching request ID. This indicates you're clearing the pick cache too quickly");
+      return;
+    }
+    final (:handler, :x, :y) = _pickRequests[modRequestId]!;
+    _pickRequests[modRequestId] = null;
+
+    final viewport = await getViewport();
+
+    handler.call((
+      entity: entityId,
+      x: x,
+      y: y,
+      depth: depth,
+      fragX: fragX,
+      fragY: viewport.height - fragY,
+      fragZ: fragZ,
+    ));
+  }
+
 }
