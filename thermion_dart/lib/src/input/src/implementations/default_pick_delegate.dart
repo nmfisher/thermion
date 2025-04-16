@@ -17,7 +17,7 @@ class DefaultPickDelegate extends PickDelegate {
 
   @override
   void pick(Vector2 location) {
-    viewer.pick(location.x.toInt(), location.y.toInt(), (result) {
+    viewer.view.pick(location.x.toInt(), location.y.toInt(), (result) {
       _picked.sink.add(result.entity);
     });
   }
