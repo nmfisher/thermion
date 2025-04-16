@@ -160,6 +160,9 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
 
       _swapChain = await FilamentApp.instance!
           .createHeadlessSwapChain(descriptor.width, descriptor.height);
+      
+      _logger.info("Created headless swapchain ${descriptor.width}x${descriptor.height}");
+
       await FilamentApp.instance!.register(_swapChain!, view);
     } else if (Platform.isAndroid) {
       if (_swapChain != null) {
@@ -211,8 +214,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       PlatformTextureDescriptor texture,
       View view,
       int width,
-      int height) async {
-
+      int height) async { 
     var newTexture = await createTextureAndBindToView(view, width, height);
     if (newTexture == null) {
       throw Exception();
