@@ -95,38 +95,38 @@ namespace thermion::windows::d3d
         d3d11_texture2D_desc.CPUAccessFlags = 0;
         d3d11_texture2D_desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
 
-        Microsoft::WRL::ComPtr<ID3D11Texture2D> _d3dTexture2D;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> d3dTexture2D;
         
+        auto hr = _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr, &d3dTexture2D);
 
-        auto hr = _D3D11Device->CreateTexture2D(&d3d11_texture2D_desc, nullptr, &_d3dTexture2D);
         if FAILED (hr)
         {
             std::cout << "Failed to create D3D texture (" << hr << ")" << std::endl;
             return nullptr;
         }
         auto resource = Microsoft::WRL::ComPtr<IDXGIResource1>{};
-        hr = _d3dTexture2D.As(&resource);
+        hr = d3dTexture2D.As(&resource);
 
         if FAILED (hr)
         {
             std::cout << "Failed to create D3D texture" << std::endl;
             return nullptr;
         }
-        HANDLE _d3dTexture2DHandle = nullptr;
-        // hr = resource->GetSharedHandle(&_d3dTexture2DHandle);
-        hr = resource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &_d3dTexture2DHandle);
+        HANDLE d3dTexture2DHandle = nullptr;
+        //hr = resource->GetSharedHandle(&d3dTexture2DHandle);
+        hr = resource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &d3dTexture2DHandle);
         if FAILED (hr)
         {
             std::cout << "Failed to get shared handle to external D3D texture" << std::endl;
             return nullptr;
         }
 
-        _d3dTexture2D->AddRef();
+        d3dTexture2D->AddRef();
 
         Flush();
         
         std::cout << "Created external D3D texture " << width << "x" << height << std::endl;
-        auto texture =  std::make_unique<D3DTexture>(_d3dTexture2D, _d3dTexture2DHandle, width, height);
+        auto texture =  std::make_unique<D3DTexture>(d3dTexture2D, d3dTexture2DHandle, width, height);
 
         ID3D11RenderTargetView* rtv = nullptr;
         D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -134,10 +134,10 @@ namespace thermion::windows::d3d
         rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
         rtvDesc.Texture2D.MipSlice = 0;
 
-        hr = _D3D11Device->CreateRenderTargetView(_d3dTexture2D.Get(), &rtvDesc, &rtv);
+        hr = _D3D11Device->CreateRenderTargetView(d3dTexture2D.Get(), &rtvDesc, &rtv);
         if (FAILED(hr)) {
             std::cout << "Failed to create render target view" << std::endl;
-            // return;
+            return std::nullptr_t();
         }
 
         // Clear the texture to blue
