@@ -259,7 +259,7 @@ abstract class FilamentApp<T> {
   ///
   /// Pixel buffers will be returned in RGBA float32 format.
   ///
-  Future<List<(View, Uint8List)>> capture(covariant SwapChain swapChain,
+  Future<List<(View, Uint8List)>> capture(covariant SwapChain? swapChain,
       {covariant View? view,
       bool captureRenderTarget = false,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
