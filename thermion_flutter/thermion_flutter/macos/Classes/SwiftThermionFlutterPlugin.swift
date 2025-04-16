@@ -83,11 +83,6 @@ public class SwiftThermionFlutterPlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let methodName = call.method;
         switch methodName {
-            case "getResourceLoaderWrapper":
-                if(resourceLoaderWrapper == nil) {
-                    resourceLoaderWrapper = make_resource_loader(loadResource, freeResource, Unmanaged.passUnretained(self).toOpaque())
-                }
-                result(Int64(Int(bitPattern: resourceLoaderWrapper!)))
             case "markTextureFrameAvailable":
                 let flutterTextureId = call.arguments as! Int64
                 registry.textureFrameAvailable(flutterTextureId)

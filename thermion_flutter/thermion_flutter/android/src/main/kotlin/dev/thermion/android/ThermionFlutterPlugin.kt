@@ -209,10 +209,6 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
                     result.error("TEXTURE_NOT_FOUND", "Texture with id $textureId not found", null)
                 }
             }
-        "getResourceLoaderWrapper" -> { 
-          val resourceLoader = _lib.make_resource_loader_wrapper_android(loadResourceWrapper, freeResourceWrapper, Pointer(0))
-          result.success(Pointer.nativeValue(resourceLoader))
-        }
         "getDriverPlatform" -> { 
           result.success(null)
         }
