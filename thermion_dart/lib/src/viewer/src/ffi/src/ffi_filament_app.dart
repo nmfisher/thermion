@@ -794,7 +794,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               cb));
     }
     if (loadResourcesAsync) {
-      if(!GltfResourceLoader_asyncBeginLoad(gltfResourceLoader, filamentAsset)) {
+      final result = await withBoolCallback((cb) => GltfResourceLoader_asyncBeginLoadRenderThread(gltfResourceLoader, filamentAsset, cb));
+      if(!result) {
         throw Exception("Failed to begin async loading");
       }
       GltfResourceLoader_asyncUpdateLoad(gltfResourceLoader);
