@@ -105,7 +105,7 @@ class ThermionVulkanContext::Impl {
         }
 
         HANDLE CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
-
+            
             Log("Creating Vulkan texture %dx%d", width, height);
 
             // creates the D3D texture
@@ -113,6 +113,9 @@ class ThermionVulkanContext::Impl {
             auto d3dTextureHandle = d3dTexture->GetTextureHandle();
             auto vkTexture = VulkanTexture::create(device, physicalDevice, width, height, d3dTextureHandle);
 
+            if(!vkTexture) {
+                return NULL;
+            }
 
             // fillImageWithColor(device, commandPool, queue, image, VK_FORMAT_B8G8R8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,  // Current image layout
             //     { width, height, 1 }, // Image extent
@@ -121,10 +124,6 @@ class ThermionVulkanContext::Impl {
             _d3dTextures.push_back(std::move(d3dTexture));
             _vulkanTextures.push_back(std::move(vkTexture));
             return d3dTextureHandle;
-        }
-
-        void ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
-            
         }
     
         void DestroyRenderingSurface(HANDLE handle) {
@@ -159,9 +158,17 @@ class ThermionVulkanContext::Impl {
         void BlitFromSwapchain() {
             
             std::lock_guard lock(_platform->mutex);
-            if(!_platform->current || _d3dTextures.size() == 0) {
+            if(!_platform->current) {
+                ERROR("No platform");
                 return;
             }
+
+            if(_d3dTextures.size() == 0) {
+                ERROR("No D3D textures");
+                return;
+            }
+
+            
 
             auto&& vkTexture = _vulkanTextures.back();
             auto image = vkTexture->GetImage();
@@ -550,10 +557,6 @@ HANDLE ThermionVulkanContext::CreateRenderingSurface(uint32_t width, uint32_t he
   
 void ThermionVulkanContext::DestroyRenderingSurface(HANDLE handle) {
     pImpl->DestroyRenderingSurface(handle);
-}
-
-void ThermionVulkanContext::ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top) {
-    pImpl->ResizeRenderingSurface(width, height, left, top);
 }
 
 void ThermionVulkanContext::Flush() {
