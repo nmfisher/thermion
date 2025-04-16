@@ -69,6 +69,23 @@ EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_loadResources(TGltfResourceLoader *
     return gltfResourceLoader->loadResources(filamentAsset);
 }
 
+EMSCRIPTEN_KEEPALIVE bool GltfResourceLoader_asyncBeginLoad(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset) {
+    auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
+    auto *filamentAsset = reinterpret_cast<gltfio::FilamentAsset *>(tFilamentAsset);
+    return gltfResourceLoader->asyncBeginLoad(filamentAsset);
+}
+
+EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoad(TGltfResourceLoader *tGltfResourceLoader) {
+    auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
+    gltfResourceLoader->asyncUpdateLoad();
+}
+
+EMSCRIPTEN_KEEPALIVE float GltfResourceLoader_asyncGetLoadProgress(TGltfResourceLoader *tGltfResourceLoader) {
+    auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
+    return gltfResourceLoader->asyncGetLoadProgress();
+}
+
+
 #ifdef __cplusplus
     }
 }

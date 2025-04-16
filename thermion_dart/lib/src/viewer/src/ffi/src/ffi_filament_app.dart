@@ -787,9 +787,16 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               cb));
     }
     if (loadResourcesAsync) {
-      // GltfResourceLoader_asyncBeginLoad(gltfResourceLoader)
-      throw UnimplementedError(
-          "TODO"); // need to use a NativeFinalizer to ensure the pointer is still valid until resource loader has finished
+      if(!GltfResourceLoader_asyncBeginLoad(gltfResourceLoader, filamentAsset)) {
+        throw Exception("Failed to begin async loading");
+      }
+      GltfResourceLoader_asyncUpdateLoad(gltfResourceLoader);
+
+      var progress = GltfResourceLoader_asyncGetLoadProgress(gltfResourceLoader);
+      while(progress < 1.0) {
+        GltfResourceLoader_asyncUpdateLoad(gltfResourceLoader);
+        progress = GltfResourceLoader_asyncGetLoadProgress(gltfResourceLoader);
+      }
     } else {
       final result = await withBoolCallback((cb) =>
           GltfResourceLoader_loadResourcesRenderThread(

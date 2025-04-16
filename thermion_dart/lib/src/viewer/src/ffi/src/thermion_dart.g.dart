@@ -2847,11 +2847,23 @@ external void GltfResourceLoader_destroy(
 );
 
 @ffi.Native<
-    ffi.Void Function(ffi.Pointer<TGltfResourceLoader>,
+    ffi.Bool Function(ffi.Pointer<TGltfResourceLoader>,
         ffi.Pointer<TFilamentAsset>)>(isLeaf: true)
-external void GltfResourceLoader_asyncBeginLoad(
+external bool GltfResourceLoader_asyncBeginLoad(
   ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+external void GltfResourceLoader_asyncUpdateLoad(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader
+);
+
+@ffi.Native<
+    ffi.Double Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+external double GltfResourceLoader_asyncGetLoadProgress(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader
 );
 
 @ffi.Native<
