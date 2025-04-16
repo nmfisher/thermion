@@ -68,6 +68,20 @@ Future<bool> withBoolCallback(
   return completer.future;
 }
 
+Future<double> withFloatCallback(
+    Function(Pointer<NativeFunction<Void Function(Float)>>) func) async {
+  final completer = Completer<double>();
+  // ignore: prefer_function_declarations_over_variables
+  void Function(double) callback = (double result) {
+    completer.complete(result);
+  };
+  final nativeCallable = NativeCallable<Void Function(Float)>.listener(callback);
+  func.call(nativeCallable.nativeFunction);
+  await completer.future;
+  nativeCallable.close();
+  return completer.future;
+}
+
 Future<int> withIntCallback(
     Function(Pointer<NativeFunction<Void Function(Int32)>>) func) async {
   final completer = Completer<int>();
