@@ -3,7 +3,7 @@
 #include "d3d_context.h"
 #include "vulkan_texture.h"
 #include "vulkan_platform.h"
-#include "utils.h"
+#include "vulkan_utils.h"
 
 #include <chrono>
 #include <fstream>
@@ -15,10 +15,10 @@
 #include <thread>
 #include <vector>
 
-#include <Windows.h>
-
 #include "filament/backend/Platform.h"
 #include "filament/backend/platforms/VulkanPlatform.h"
+
+#include <Windows.h>
 
 #include "import.h"
 
@@ -32,9 +32,7 @@ namespace thermion::windows::vulkan {
         HANDLE CreateRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top);        
         
         void DestroyRenderingSurface(HANDLE handle);
-        
-        void ResizeRenderingSurface(uint32_t width, uint32_t height, uint32_t left, uint32_t top);
-        
+                
         void Flush();
       
         filament::backend::VulkanPlatform *GetPlatform();
