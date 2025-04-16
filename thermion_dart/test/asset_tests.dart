@@ -1,4 +1,6 @@
 @Timeout(const Duration(seconds: 600))
+import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
@@ -49,6 +51,20 @@ void main() async {
         await testHelper.capture(viewer.view, "gltf_loaded");
         await viewer.removeFromScene(asset);
         await testHelper.capture(viewer.view, "gltf_removed");
+      }, cameraPosition: Vector3(0, 0, 5));
+    });
+
+    test('load/remove gltf (async)', () async {
+      await testHelper.withViewer((viewer) async {
+        var assetData =
+            File("${testHelper.testDir}/assets/cube.gltf").readAsBytesSync();
+        var asset = await viewer.loadGltfFromBuffer(assetData,
+            relativeResourcePath: "${testHelper.testDir}/assets", loadResourcesAsync: true);
+        await viewer
+            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+        await testHelper.capture(viewer.view, "gltf_async_loaded");
+        await viewer.removeFromScene(asset);
+        await testHelper.capture(viewer.view, "gltf_async_removed");
       }, cameraPosition: Vector3(0, 0, 5));
     });
 
