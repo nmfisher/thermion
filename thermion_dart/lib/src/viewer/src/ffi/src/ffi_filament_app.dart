@@ -148,7 +148,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     if (hasStencilBuffer) {
       flags |= TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
     }
-    print("swapchain flags $flags");
     final swapChain = await withPointerCallback<TSwapChain>((cb) =>
         Engine_createHeadlessSwapChainRenderThread(
             this.engine, width, height, flags, cb));

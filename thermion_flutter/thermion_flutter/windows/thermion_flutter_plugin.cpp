@@ -71,9 +71,6 @@ namespace thermion::tflutter::windows
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
-    
-    std::wcerr << "CreateTexture " << std::endl;
-
     if (!_context)
     {
       _context = new thermion::windows::vulkan::ThermionVulkanContext();
@@ -171,12 +168,8 @@ namespace thermion::tflutter::windows
       const flutter::MethodCall<flutter::EncodableValue> &methodCall,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
-    std::cout << methodCall.method_name().c_str() << std::endl;
-    if (methodCall.method_name() == "getResourceLoaderWrapper")
-    {
-      result->Success(flutter::EncodableValue((int64_t)nullptr));
-    }
-    else if (methodCall.method_name() == "getSharedContext")
+    // std::cout << methodCall.method_name().c_str() << std::endl;
+    if (methodCall.method_name() == "getSharedContext")
     {
       if (!_context)
       {
@@ -185,45 +178,19 @@ namespace thermion::tflutter::windows
       // result->Success(flutter::EncodableValue((int64_t)_context->GetSharedContext()));
       result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
-    else if (methodCall.method_name() == "resizeWindow")
-    {
-
-      const auto *args =
-          std::get_if<flutter::EncodableList>(methodCall.arguments());
-
-      int dWidth = *(std::get_if<int>(&(args->at(0))));
-      int dHeight = *(std::get_if<int>(&(args->at(1))));
-      int dLeft = *(std::get_if<int>(&(args->at(2))));
-      int dTop = *(std::get_if<int>(&(args->at(3))));
-      auto width = static_cast<uint32_t>(dWidth);
-      auto height = static_cast<uint32_t>(dHeight);
-      auto left = static_cast<uint32_t>(dLeft);
-      auto top = static_cast<uint32_t>(dTop);
-
-      _context->ResizeRenderingSurface(width, height, left, top);
-      result->Success();
-    }
     else if (methodCall.method_name() == "createTexture")
-    {
-      CreateTexture(methodCall, std::move(result));
-    }
-    else if (methodCall.method_name() == "createWindow")
     {
       CreateTexture(methodCall, std::move(result));
     }
     else if (methodCall.method_name() == "destroyTexture")
     {
-      DestroyTexture(methodCall, std::move(result));
-    }
-    else if (methodCall.method_name() == "destroyWindow")
-    {
+      // result->Success(flutter::EncodableValue((int64_t) nullptr));
       DestroyTexture(methodCall, std::move(result));
     }
     else if (methodCall.method_name() == "markTextureFrameAvailable")
     {
       if (_context)
       {
-        _context->Flush();
         _context->BlitFromSwapchain();
         const auto *flutterTextureId = std::get_if<int64_t>(methodCall.arguments());
 
@@ -234,6 +201,8 @@ namespace thermion::tflutter::windows
         }
         // std::cout << "Marking texture" << (*flutterTextureId) << "available" << std::endl;
         _textureRegistrar->MarkTextureFrameAvailable(*flutterTextureId);
+      } else { 
+        std::cout << "No context" << std::endl;
       }
       result->Success(flutter::EncodableValue((int64_t) nullptr));
     }
