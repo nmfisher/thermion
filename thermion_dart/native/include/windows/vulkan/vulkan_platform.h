@@ -2,20 +2,13 @@
 
 #include "d3d_context.h"
 #include "vulkan_texture.h"
-#include "utils.h"
+#include "vulkan_utils.h"
 
-#include <chrono>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <memory>
 #include <mutex>
-#include <string>
-#include <thread>
-#include <vector>
 
 #include <Windows.h>
 
+#include "utils/ostream.h"
 #include "filament/backend/Platform.h"
 #include "filament/backend/platforms/VulkanPlatform.h"
 
