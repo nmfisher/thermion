@@ -1,3 +1,4 @@
+import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/filament/src/light_options.dart';
 
 import '../../filament/src/shared_types.dart';
@@ -17,6 +18,10 @@ import 'dart:async';
 /// using the methods directly via FilamentApp.instance;
 ///
 abstract class ThermionViewer {
+  
+  ///
+  ///
+  ///
   Future<bool> get initialized;
 
   ///
@@ -184,6 +189,11 @@ abstract class ThermionViewer {
   Future setViewport(int width, int height);
 
   ///
+  ///
+  ///
+   Future setLayerVisibility(VisibilityLayers layer, bool visible);
+
+  ///
   /// Set the world space position for [lightEntity] to the given coordinates.
   ///
   Future setLightPosition(
@@ -218,14 +228,6 @@ abstract class ThermionViewer {
   /// Set antialiasing options.
   ///
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa);
-
-  ///
-  /// Hit test the viewport at the given coordinates. If the coordinates intersect
-  /// with a renderable entity, [resultHandler] will be called.
-  /// This is asynchronous and will require 2-3 frames to complete (so ensure you are calling render())
-  /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the ThermionWidget).
-  ///
-  Future pick(int x, int y, void Function(PickResult) resultHandler);
 
   ///
   /// Sets the draw priority for the given entity. See RenderableManager.h for more details.
