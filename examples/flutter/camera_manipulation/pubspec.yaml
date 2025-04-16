@@ -31,6 +31,8 @@ dependency_overrides:
     path: ../../../thermion_flutter/thermion_flutter_method_channel
   thermion_flutter_platform_interface:
     path: ../../../thermion_flutter/thermion_flutter_platform_interface
+  thermion_flutter_web:
+    path: ../../../thermion_flutter/thermion_flutter_web
 
 flutter:
   uses-material-design: true
