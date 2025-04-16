@@ -4,8 +4,6 @@ project(${PROJECT_NAME} LANGUAGES C CXX)
 
 cmake_policy(VERSION 3.14...3.25)
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
-
 set(PLUGIN_NAME "thermion_flutter_plugin")
 
 list(APPEND PLUGIN_SOURCES

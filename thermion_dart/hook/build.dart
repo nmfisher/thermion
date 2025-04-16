@@ -13,7 +13,14 @@ void main(List<String> args) async {
         .toFilePath(windows: Platform.isWindows);
         
     final config = input.config;
-    final buildMode = BuildMode.debug;
+  
+    // Most users will only need release builds of Filament.
+    // Debug builds are probably only relevant if you're a package developer debugging an internal Filament issue.
+    // Also note that there are known driver issues with Android debug builds, e.g.:
+    // https://github.com/google/filament/issues/7162
+    // (these aren't present in Filament release builds).
+    // However, if you know what you're doing, you can change "release" to "debug" .
+    final buildMode = BuildMode.release;
     
     final dryRun = false;
     final packageName = input.packageName;
@@ -49,8 +56,8 @@ void main(List<String> args) async {
       throw Exception("TODO");
     }
 
-    var libDir = (await getLibDir(packageRoot, targetOS, targetArchitecture, logger)).path;
-
+    var libDir = (await getLibDir(packageRoot, targetOS, targetArchitecture, logger, buildMode)).path;
+    
     var sources = Directory(path.join(pkgRootFilePath, "native", "src"))
         .listSync(recursive: true)
         .whereType<File>()
@@ -114,14 +121,15 @@ void main(List<String> args) async {
     } else {
       libs.add("stdc++");
     }
+
     final flags = []; //"-fsanitize=address"];
 
     final defines = <String, String?>{
       // uncomment this to enable (very verbose) trace logging
       // "ENABLE_TRACING": "1" 
     };
+    
     var frameworks = [];
-
     if (platform != "windows") {
       flags.addAll(['-std=c++17']);
     } else if (!dryRun) {
@@ -207,6 +215,8 @@ void main(List<String> args) async {
       ],
       dartBuildFiles: ['hook/build.dart'],
     );
+
+    
 
     await cbuilder.run(
       input: input,
@@ -308,23 +318,10 @@ String _getLibraryUrl(String platform, String mode) {
 //
 // Download precompiled Filament libraries for the target platform from Cloudflare.
 //
-Future<Directory> getLibDir(Uri packageRoot, OS targetOS, Architecture targetArchitecture, Logger logger) async {
+Future<Directory> getLibDir(Uri packageRoot, OS targetOS, Architecture targetArchitecture, Logger logger, BuildMode buildMode) async {
   var platform = targetOS.toString().toLowerCase();
 
-  // Except on Windows, most users will only need release builds of Filament.
-  // Debug builds are probably only relevant if you're a package developer debugging an internal Filament issue
-  // or if you're working on Flutter+Windows (which requires the CRT debug DLLs).
-  // Also note that there are known driver issues with Android debug builds, e.g.:
-  // https://github.com/google/filament/issues/7162
-  // (these aren't present in Filament release builds).
-  // However, if you know what you're doing, you can change "release" to "debug" below.
-  // TODO - check if we can pass this as a CLI compiler flag
-  var mode = "debug";
-  // var mode = "release";
-  // if ({OS.windows, OS.macOS}.contains(targetOS)) {
-  //   mode = buildMode == BuildMode.debug ? "debug" : "release";
-  // }
-
+  var mode = buildMode == BuildMode.debug ? "debug" : "release";
 
   var libDir = Directory(path.join(
       packageRoot.toFilePath(windows: Platform.isWindows),
