@@ -299,6 +299,7 @@ typedef unsigned int swift_uint4  __attribute__((__ext_vector_type__(4)));
 #if defined(__OBJC__)
 @protocol MTLDevice;
 @protocol MTLTexture;
+@class NSURL;
 @class NSData;
 
 SWIFT_CLASS("_TtC12swift_module20ThermionTextureSwift")
@@ -311,6 +312,7 @@ SWIFT_CLASS("_TtC12swift_module20ThermionTextureSwift")
 - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
 - (nonnull instancetype)initWithWidth:(int64_t)width height:(int64_t)height isDepth:(BOOL)isDepth OBJC_DESIGNATED_INITIALIZER;
 - (void)destroyTexture;
+- (BOOL)fillWithPNGImageWithImageURL:(NSURL * _Nonnull)imageURL SWIFT_WARN_UNUSED_RESULT;
 - (void)fillColor;
 - (NSData * _Nullable)getTextureBytes SWIFT_WARN_UNUSED_RESULT;
 @end

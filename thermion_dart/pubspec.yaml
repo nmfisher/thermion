@@ -21,11 +21,9 @@ dependencies:
   path: ^1.9.0
   image: ^4.3.0
 
-
 dev_dependencies:
-  ffigen: ^13.0.0
-  # objective_c: ^1.1.0
+  ffigen: ^18.1.0
+  objective_c: ^7.1.0
   test:  
-  path:
   mockito: ^5.0.0
   build_runner: ^2.0.0

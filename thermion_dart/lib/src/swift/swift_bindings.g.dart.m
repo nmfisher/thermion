@@ -1,111 +1,63 @@
 #include <stdint.h>
-
+#import <Foundation/Foundation.h>
+#import <objc/message.h>
 #import "../../../native/include/generated/ThermionTextureSwiftObjCAPI.h"
 
-typedef void  (^ListenerBlock)(NSDictionary* , struct _NSRange , BOOL * );
-ListenerBlock wrapListenerBlock_ObjCBlock_ffiVoid_NSDictionary_NSRange_bool(ListenerBlock block) {
-  ListenerBlock wrapper = [^void(NSDictionary* arg0, struct _NSRange arg1, BOOL * arg2) {
-    block([arg0 retain], arg1, arg2);
-  } copy];
-  [block release];
-  return wrapper;
-}
+#if !__has_feature(objc_arc)
+#error "This file must be compiled with ARC enabled"
+#endif
 
-typedef void  (^ListenerBlock1)(id , struct _NSRange , BOOL * );
-ListenerBlock1 wrapListenerBlock_ObjCBlock_ffiVoid_objcObjCObject_NSRange_bool(ListenerBlock1 block) {
-  ListenerBlock1 wrapper = [^void(id arg0, struct _NSRange arg1, BOOL * arg2) {
-    block([arg0 retain], arg1, arg2);
-  } copy];
-  [block release];
-  return wrapper;
-}
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
 
-typedef void  (^ListenerBlock2)(NSTimer* );
-ListenerBlock2 wrapListenerBlock_ObjCBlock_ffiVoid_NSTimer(ListenerBlock2 block) {
-  ListenerBlock2 wrapper = [^void(NSTimer* arg0) {
-    block([arg0 retain]);
-  } copy];
-  [block release];
-  return wrapper;
-}
+typedef struct {
+  int64_t version;
+  void* (*newWaiter)(void);
+  void (*awaitWaiter)(void*);
+  void* (*currentIsolate)(void);
+  void (*enterIsolate)(void*);
+  void (*exitIsolate)(void);
+  int64_t (*getMainPortId)(void);
+  bool (*getCurrentThreadOwnsIsolate)(int64_t);
+} DOBJC_Context;
 
-typedef void  (^ListenerBlock3)(NSFileHandle* );
-ListenerBlock3 wrapListenerBlock_ObjCBlock_ffiVoid_NSFileHandle(ListenerBlock3 block) {
-  ListenerBlock3 wrapper = [^void(NSFileHandle* arg0) {
-    block([arg0 retain]);
-  } copy];
-  [block release];
-  return wrapper;
-}
+id objc_retainBlock(id);
 
-typedef void  (^ListenerBlock4)(NSError* );
-ListenerBlock4 wrapListenerBlock_ObjCBlock_ffiVoid_NSError(ListenerBlock4 block) {
-  ListenerBlock4 wrapper = [^void(NSError* arg0) {
-    block([arg0 retain]);
-  } copy];
-  [block release];
-  return wrapper;
-}
+#define BLOCKING_BLOCK_IMPL(ctx, BLOCK_SIG, INVOKE_DIRECT, INVOKE_LISTENER)    \
+  assert(ctx->version >= 1);                                                   \
+  void* targetIsolate = ctx->currentIsolate();                                 \
+  int64_t targetPort = ctx->getMainPortId == NULL ? 0 : ctx->getMainPortId();  \
+  return BLOCK_SIG {                                                           \
+    void* currentIsolate = ctx->currentIsolate();                              \
+    bool mayEnterIsolate =                                                     \
+        currentIsolate == NULL &&                                              \
+        ctx->getCurrentThreadOwnsIsolate != NULL &&                            \
+        ctx->getCurrentThreadOwnsIsolate(targetPort);                          \
+    if (currentIsolate == targetIsolate || mayEnterIsolate) {                  \
+      if (mayEnterIsolate) {                                                   \
+        ctx->enterIsolate(targetIsolate);                                      \
+      }                                                                        \
+      INVOKE_DIRECT;                                                           \
+      if (mayEnterIsolate) {                                                   \
+        ctx->exitIsolate();                                                    \
+      }                                                                        \
+    } else {                                                                   \
+      void* waiter = ctx->newWaiter();                                         \
+      INVOKE_LISTENER;                                                         \
+      ctx->awaitWaiter(waiter);                                                \
+    }                                                                          \
+  };
 
-typedef void  (^ListenerBlock5)(NSDictionary* , NSError* );
-ListenerBlock5 wrapListenerBlock_ObjCBlock_ffiVoid_NSDictionary_NSError(ListenerBlock5 block) {
-  ListenerBlock5 wrapper = [^void(NSDictionary* arg0, NSError* arg1) {
-    block([arg0 retain], [arg1 retain]);
-  } copy];
-  [block release];
-  return wrapper;
-}
 
-typedef void  (^ListenerBlock6)(NSArray* );
-ListenerBlock6 wrapListenerBlock_ObjCBlock_ffiVoid_NSArray(ListenerBlock6 block) {
-  ListenerBlock6 wrapper = [^void(NSArray* arg0) {
-    block([arg0 retain]);
-  } copy];
-  [block release];
-  return wrapper;
-}
+Protocol* _ThermionTextureSwift_MTLDevice(void) { return @protocol(MTLDevice); }
 
-typedef void  (^ListenerBlock7)(NSTextCheckingResult* , NSMatchingFlags , BOOL * );
-ListenerBlock7 wrapListenerBlock_ObjCBlock_ffiVoid_NSTextCheckingResult_NSMatchingFlags_bool(ListenerBlock7 block) {
-  ListenerBlock7 wrapper = [^void(NSTextCheckingResult* arg0, NSMatchingFlags arg1, BOOL * arg2) {
-    block([arg0 retain], arg1, arg2);
-  } copy];
-  [block release];
-  return wrapper;
-}
+Protocol* _ThermionTextureSwift_MTLTexture(void) { return @protocol(MTLTexture); }
 
-typedef void  (^ListenerBlock8)(NSCachedURLResponse* );
-ListenerBlock8 wrapListenerBlock_ObjCBlock_ffiVoid_NSCachedURLResponse(ListenerBlock8 block) {
-  ListenerBlock8 wrapper = [^void(NSCachedURLResponse* arg0) {
-    block([arg0 retain]);
-  } copy];
-  [block release];
-  return wrapper;
+typedef id  (^ProtocolTrampoline)(void * sel);
+__attribute__((visibility("default"))) __attribute__((used))
+id  _ThermionTextureSwift_protocolTrampoline_1mbt9g9(id target, void * sel) {
+  return ((ProtocolTrampoline)((id (*)(id, SEL, SEL))objc_msgSend)(target, @selector(getDOBJCDartProtocolMethodForSelector:), sel))(sel);
 }
+#undef BLOCKING_BLOCK_IMPL
 
-typedef void  (^ListenerBlock9)(NSURLResponse* , NSData* , NSError* );
-ListenerBlock9 wrapListenerBlock_ObjCBlock_ffiVoid_NSURLResponse_NSData_NSError(ListenerBlock9 block) {
-  ListenerBlock9 wrapper = [^void(NSURLResponse* arg0, NSData* arg1, NSError* arg2) {
-    block([arg0 retain], [arg1 retain], [arg2 retain]);
-  } copy];
-  [block release];
-  return wrapper;
-}
-
-typedef void  (^ListenerBlock10)(NSDictionary* );
-ListenerBlock10 wrapListenerBlock_ObjCBlock_ffiVoid_NSDictionary(ListenerBlock10 block) {
-  ListenerBlock10 wrapper = [^void(NSDictionary* arg0) {
-    block([arg0 retain]);
-  } copy];
-  [block release];
-  return wrapper;
-}
-
-typedef void  (^ListenerBlock11)(NSURLCredential* );
-ListenerBlock11 wrapListenerBlock_ObjCBlock_ffiVoid_NSURLCredential(ListenerBlock11 block) {
-  ListenerBlock11 wrapper = [^void(NSURLCredential* arg0) {
-    block([arg0 retain]);
-  } copy];
-  [block release];
-  return wrapper;
-}
+#pragma clang diagnostic pop
