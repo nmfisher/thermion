@@ -2755,6 +2755,18 @@ external void GltfResourceLoader_addResourceDataRenderThread(
 );
 
 @ffi.Native<
+        ffi.Void Function(
+            ffi.Pointer<TGltfResourceLoader>,
+            ffi.Pointer<TFilamentAsset>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>>)>(
+    isLeaf: true)
+external void GltfResourceLoader_asyncBeginLoadRenderThread(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<TFilamentAsset> tFilamentAsset,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
+);
+
+@ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TEngine>,
         ffi.Pointer<TGltfAssetLoader>,
@@ -2854,16 +2866,14 @@ external bool GltfResourceLoader_asyncBeginLoad(
   ffi.Pointer<TFilamentAsset> tFilamentAsset,
 );
 
-@ffi.Native<
-    ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
 external void GltfResourceLoader_asyncUpdateLoad(
-  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
 );
 
-@ffi.Native<
-    ffi.Double Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+@ffi.Native<ffi.Float Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
 external double GltfResourceLoader_asyncGetLoadProgress(
-  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
 );
 
 @ffi.Native<
