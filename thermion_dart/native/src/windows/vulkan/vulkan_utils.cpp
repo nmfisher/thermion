@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "vulkan_utils.h"
 
 #include <fstream>
 
@@ -219,6 +219,8 @@ VkResult createVulkanInstance(VkInstance *instance)
         VK_KHR_SURFACE_EXTENSION_NAME,
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
         VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+        // VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+        // VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
 
     VkApplicationInfo appInfo = {};
