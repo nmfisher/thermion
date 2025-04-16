@@ -31,14 +31,18 @@ This is only for developers extending the Thermion package itself; if you are si
 - Install Visual Studio 2022
 - Open Developer Command Prompt 
 
-> where cmake
+```
+where cmake
+```
 
 (If multiple entries appear, you'll need to refer to the VS2022 version explicitly)
 
-> mkdir out; 
-> cd out
-> cmake -DUSE_STATIC_CRT=OFF ..
-> cmake --build . --config Release
-> cmake --build . --target tinyexr --config Release
-> cmake --build . --target imageio --config Release
-> cmake --build . --config Debug
+```
+mkdir out; 
+cd out
+cmake -DUSE_STATIC_CRT=OFF -DFILAMENT_SUPPORTS_VULKAN=ON -DFILAMENT_SKIP_SAMPLES=ON -DCMAKE_BUILD_TYPE=Release ..\..
+cmake --build . --config Release
+cmake --build . --target tinyexr --config Release
+cmake --build . --target imageio --config Release
+cmake --build . --config Debug
+```
