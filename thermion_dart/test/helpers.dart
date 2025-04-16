@@ -201,7 +201,7 @@ class TestHelper {
   ///
   Future<ThermionTextureSwift> createTexture(int width, int height,
       {bool depth = false}) async {
-    final object = ThermionTextureSwift.new1();
+    final object = ThermionTextureSwift.new$();
     object.initWithWidth_height_isDepth_(width, height, depth);
     return object;
   }
