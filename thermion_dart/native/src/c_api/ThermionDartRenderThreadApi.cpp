@@ -1008,6 +1008,28 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       });
     auto fut = _renderThread->add_task(lambda);
   }
+
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoadRenderThread(
+    TGltfResourceLoader *tGltfResourceLoader) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        GltfResourceLoader_asyncUpdateLoad(tGltfResourceLoader);
+      });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncGetLoadProgressRenderThread(
+    TGltfResourceLoader *tGltfResourceLoader,
+    void (*callback)(float)) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        auto result = GltfResourceLoader_asyncGetLoadProgress(tGltfResourceLoader);
+        callback(result);
+      });
+    auto fut = _renderThread->add_task(lambda);
+  }
   
   EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
       TEngine *tEngine,
