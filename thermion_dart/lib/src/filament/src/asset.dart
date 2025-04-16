@@ -76,7 +76,7 @@ abstract class ThermionAsset {
   ///
   /// Create a new instance of [entity].
   /// Instances are not automatically added to the scene; you must
-  /// call [addToScene].
+  /// call [Scene.add].
   ///
   Future<ThermionAsset> createInstance(
       {covariant List<MaterialInstance>? materialInstances = null});
