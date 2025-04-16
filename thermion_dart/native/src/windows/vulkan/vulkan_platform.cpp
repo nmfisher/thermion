@@ -25,10 +25,11 @@ namespace thermion::windows::vulkan {
  
 TVulkanPlatform::TVulkanPlatform() {
   _customization.gpu.index = 0;
+  TRACE("Set GPU index to 1");
 }
        
 TVulkanPlatform::~TVulkanPlatform() {
-  std::cerr << "Destroyed Vulkan platform" << std::endl;
+  TRACE("Destroyed Vulkan platform");
 }
  
 filament::backend::VulkanPlatform::Customization TVulkanPlatform::getCustomization() const noexcept {
@@ -39,14 +40,17 @@ filament::backend::VulkanPlatform::SwapChainPtr TVulkanPlatform::createSwapChain
       VkExtent2D extent) {
     std::lock_guard lock(mutex);
     current = filament::backend::VulkanPlatform::createSwapChain(nativeWindow, flags, extent);
-    std::cerr << "Created swap chain with flags " << flags << std::endl;
+    TRACE("Created swap chain with flags %d", flags);
     return current;
 }
        
 void TVulkanPlatform::destroy(filament::backend::VulkanPlatform::SwapChainPtr handle) {
   std::lock_guard lock(mutex);
-  current = nullptr;
-  std::cerr << "Destroyed swap chain" << std::endl;
+  filament::backend::VulkanPlatform::destroy(handle);
+  if(handle == current) {
+    current = nullptr;
+  }
+  TRACE("Destroyed swap chain");
 }
  
 VkResult TVulkanPlatform::present(SwapChainPtr handle, uint32_t index, VkSemaphore finishedDrawing) {
