@@ -66,6 +66,11 @@ namespace thermion
             return camera->getFocusDistance();
         }
 
+        EMSCRIPTEN_KEEPALIVE float Camera_getFov(TCamera *tCamera, bool horizontal) {
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            return camera->getFieldOfViewInDegrees(horizontal ? Camera::Fov::HORIZONTAL : Camera::Fov::VERTICAL);
+        }
+
         EMSCRIPTEN_KEEPALIVE double4x4 Camera_getProjectionMatrix(TCamera *const tCamera) { 
             auto *camera = reinterpret_cast<Camera *>(tCamera);
             return convert_mat4_to_double4x4(camera->getProjectionMatrix());
