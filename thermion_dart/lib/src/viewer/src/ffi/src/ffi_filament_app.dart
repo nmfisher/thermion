@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:thermion_dart/src/filament/src/engine.dart';
 import 'package:thermion_dart/src/filament/src/scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
@@ -504,8 +503,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   @override
   Future render() async {
-    // await withVoidCallback(
-    //     (cb) => RenderTicker_renderRenderThread(renderTicker, 0, cb));
     final swapchain = _swapChains.keys.first;
     final view = _swapChains[swapchain]!.first;
     await withBoolCallback((cb) {
@@ -666,16 +663,26 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   ///
-  Future<List<(View, Uint8List)>> capture(covariant FFISwapChain swapChain,
+  Future<List<(View, Uint8List)>> capture(covariant FFISwapChain? swapChain,
       {covariant FFIView? view,
       bool captureRenderTarget = false,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.FLOAT,
       Future Function(View)? beforeRender}) async {
+    if (swapChain == null) {
+      if (_swapChains.isEmpty) {
+        throw Exception("No swapchains registered");
+      }
+      if (_swapChains.length > 1) {
+        throw Exception(
+            "When multiple swapchains have been registered, you must pass the swapchain you wish to capture.");
+      }
+      swapChain = _swapChains.keys.first;
+    }
     await updateRenderOrder();
 
     await withBoolCallback((cb) {
-      Renderer_beginFrameRenderThread(renderer, swapChain.swapChain, 0, cb);
+      Renderer_beginFrameRenderThread(renderer, swapChain!.swapChain, 0, cb);
     });
     final views = <FFIView>[];
     if (view != null) {
