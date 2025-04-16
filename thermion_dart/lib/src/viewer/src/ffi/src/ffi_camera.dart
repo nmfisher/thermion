@@ -158,4 +158,14 @@ class FFICamera extends Camera {
 
   Future<double> getFocusDistance() async => Camera_getFocusDistance(camera);
   Future setFocusDistance(double focusDistance) async => Camera_setFocusDistance(camera, focusDistance);
+  
+  @override
+  Future<double> getHorizontalFieldOfView() async {
+    return Camera_getFov(camera, true);
+  }
+  
+  @override
+  Future<double> getVerticalFieldOfView() async {
+    return Camera_getFov(camera, false);
+  }
 }

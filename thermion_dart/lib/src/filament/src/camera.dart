@@ -50,6 +50,7 @@ abstract class Camera {
   Future<double> getFocalLength();
   Future<double> getFocusDistance();
   Future setFocusDistance(double focusDistance);
-
+  Future<double> getHorizontalFieldOfView();
+  Future<double> getVerticalFieldOfView();
   Future destroy();
 }
