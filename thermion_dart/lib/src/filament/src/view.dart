@@ -44,4 +44,20 @@ abstract class View {
   Future setBlendMode(BlendMode blendMode);
   Future setRenderQuality(QualityLevel quality);
   Future setLayerVisibility(VisibilityLayers layer, bool visible);
+  
+  
+  ///
+  /// Call [pick] to hit-test renderable entities at given viewport coordinates 
+  /// (or use one of the provided [InputHandler] classes which does this for you under the hood) 
+  /// 
+  /// Picking is an asynchronous operation that will usually take 2-3 frames to complete (so ensure you are calling render).
+  ///
+  /// [x] and [y] must be in local logical coordinates (i.e. where 0,0 is at top-left of the viewport).
+  ///
+  Future pick(int x, int y, void Function(PickResult) resultHandler);
+
+  
+  
+
+  
 }
