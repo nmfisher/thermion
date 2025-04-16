@@ -798,12 +798,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       if(!result) {
         throw Exception("Failed to begin async loading");
       }
-      GltfResourceLoader_asyncUpdateLoad(gltfResourceLoader);
 
-      var progress = GltfResourceLoader_asyncGetLoadProgress(gltfResourceLoader);
+      GltfResourceLoader_asyncUpdateLoadRenderThread(gltfResourceLoader);
+
+      var progress = await withFloatCallback((cb) => GltfResourceLoader_asyncGetLoadProgressRenderThread(gltfResourceLoader, cb));
       while(progress < 1.0) {
-        GltfResourceLoader_asyncUpdateLoad(gltfResourceLoader);
-        progress = GltfResourceLoader_asyncGetLoadProgress(gltfResourceLoader);
+        GltfResourceLoader_asyncUpdateLoadRenderThread(gltfResourceLoader);
+        progress = await withFloatCallback((cb) => GltfResourceLoader_asyncGetLoadProgressRenderThread(gltfResourceLoader, cb));
       }
     } else {
       final result = await withBoolCallback((cb) =>

@@ -60,7 +60,7 @@ external void MaterialInstance_setStencilWrite(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(
-    symbol: "MaterialInstance_setCullingMode", isLeaf: true)
+    symbol: 'MaterialInstance_setCullingMode', isLeaf: true)
 external void _MaterialInstance_setCullingMode(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int culling,
@@ -179,7 +179,7 @@ external void MaterialInstance_setParameterTexture(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(
-    symbol: "MaterialInstance_setDepthFunc", isLeaf: true)
+    symbol: 'MaterialInstance_setDepthFunc', isLeaf: true)
 external void _MaterialInstance_setDepthFunc(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int depthFunc,
@@ -197,7 +197,7 @@ void MaterialInstance_setDepthFunc(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>(
-    symbol: "MaterialInstance_setStencilOpStencilFail", isLeaf: true)
+    symbol: 'MaterialInstance_setStencilOpStencilFail', isLeaf: true)
 external void _MaterialInstance_setStencilOpStencilFail(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int op,
@@ -218,7 +218,7 @@ void MaterialInstance_setStencilOpStencilFail(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>(
-    symbol: "MaterialInstance_setStencilOpDepthFail", isLeaf: true)
+    symbol: 'MaterialInstance_setStencilOpDepthFail', isLeaf: true)
 external void _MaterialInstance_setStencilOpDepthFail(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int op,
@@ -239,7 +239,7 @@ void MaterialInstance_setStencilOpDepthFail(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>(
-    symbol: "MaterialInstance_setStencilOpDepthStencilPass", isLeaf: true)
+    symbol: 'MaterialInstance_setStencilOpDepthStencilPass', isLeaf: true)
 external void _MaterialInstance_setStencilOpDepthStencilPass(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int op,
@@ -260,7 +260,7 @@ void MaterialInstance_setStencilOpDepthStencilPass(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt, ffi.UnsignedInt)>(
-    symbol: "MaterialInstance_setStencilCompareFunction", isLeaf: true)
+    symbol: 'MaterialInstance_setStencilCompareFunction', isLeaf: true)
 external void _MaterialInstance_setStencilCompareFunction(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int func,
@@ -281,7 +281,7 @@ void MaterialInstance_setStencilCompareFunction(
 @ffi.Native<
         ffi.Void Function(
             ffi.Pointer<TMaterialInstance>, ffi.Uint8, ffi.UnsignedInt)>(
-    symbol: "MaterialInstance_setStencilReferenceValue", isLeaf: true)
+    symbol: 'MaterialInstance_setStencilReferenceValue', isLeaf: true)
 external void _MaterialInstance_setStencilReferenceValue(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int value,
@@ -314,7 +314,7 @@ external void MaterialInstance_setStencilWriteMask(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TMaterialInstance>, ffi.UnsignedInt)>(
-    symbol: "MaterialInstance_setTransparencyMode", isLeaf: true)
+    symbol: 'MaterialInstance_setTransparencyMode', isLeaf: true)
 external void _MaterialInstance_setTransparencyMode(
   ffi.Pointer<TMaterialInstance> materialInstance,
   int transparencyMode,
@@ -353,7 +353,7 @@ external void LightManager_setDirection(
 
 @ffi.Native<
     ffi.Int Function(ffi.Pointer<TEngine>, ffi.Pointer<TLightManager>,
-        ffi.UnsignedInt)>(symbol: "LightManager_createLight", isLeaf: true)
+        ffi.UnsignedInt)>(symbol: 'LightManager_createLight', isLeaf: true)
 external int _LightManager_createLight(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TLightManager> tLightManager,
@@ -492,7 +492,7 @@ external TViewport View_getViewport(
 
 @ffi.Native<
     ffi.Pointer<TColorGrading> Function(ffi.Pointer<TEngine>,
-        ffi.UnsignedInt)>(symbol: "ColorGrading_create", isLeaf: true)
+        ffi.UnsignedInt)>(symbol: 'ColorGrading_create', isLeaf: true)
 external ffi.Pointer<TColorGrading> _ColorGrading_create(
   ffi.Pointer<TEngine> tEngine,
   int toneMapping,
@@ -515,7 +515,7 @@ external void View_setColorGrading(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(
-    symbol: "View_setBlendMode", isLeaf: true)
+    symbol: 'View_setBlendMode', isLeaf: true)
 external void _View_setBlendMode(
   ffi.Pointer<TView> view,
   int blendMode,
@@ -592,7 +592,7 @@ external void View_setBloom(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TView>, ffi.UnsignedInt)>(
-    symbol: "View_setRenderQuality", isLeaf: true)
+    symbol: 'View_setRenderQuality', isLeaf: true)
 external void _View_setRenderQuality(
   ffi.Pointer<TView> tView,
   int qualityLevel,
@@ -717,7 +717,7 @@ external void IndirectLight_setRotation(
         ffi.Uint16,
         ffi.IntPtr,
         ffi.UnsignedInt,
-        ffi.UnsignedInt)>(symbol: "Texture_build", isLeaf: true)
+        ffi.UnsignedInt)>(symbol: 'Texture_build', isLeaf: true)
 external ffi.Pointer<TTexture> _Texture_build(
   ffi.Pointer<TEngine> engine,
   int width,
@@ -725,7 +725,7 @@ external ffi.Pointer<TTexture> _Texture_build(
   int depth,
   int levels,
   int tUsage,
-  int import1,
+  int import$,
   int sampler,
   int format,
 );
@@ -737,7 +737,7 @@ ffi.Pointer<TTexture> Texture_build(
   int depth,
   int levels,
   int tUsage,
-  int import1,
+  int import$,
   TTextureSamplerType sampler,
   TTextureFormat format,
 ) =>
@@ -748,7 +748,7 @@ ffi.Pointer<TTexture> Texture_build(
       depth,
       levels,
       tUsage,
-      import1,
+      import$,
       sampler.value,
       format.value,
     );
@@ -848,7 +848,7 @@ external int Texture_getDepth(
 );
 
 @ffi.Native<ffi.UnsignedInt Function(ffi.Pointer<TTexture>, ffi.Uint32)>(
-    symbol: "Texture_getUsage", isLeaf: true)
+    symbol: 'Texture_getUsage', isLeaf: true)
 external int _Texture_getUsage(
   ffi.Pointer<TTexture> tTexture,
   int level,
@@ -925,7 +925,7 @@ external ffi.Pointer<TTextureSampler> TextureSampler_create();
 @ffi.Native<
         ffi.Pointer<TTextureSampler> Function(ffi.UnsignedInt, ffi.UnsignedInt,
             ffi.UnsignedInt, ffi.UnsignedInt, ffi.UnsignedInt)>(
-    symbol: "TextureSampler_createWithFiltering", isLeaf: true)
+    symbol: 'TextureSampler_createWithFiltering', isLeaf: true)
 external ffi.Pointer<TTextureSampler> _TextureSampler_createWithFiltering(
   int minFilter,
   int magFilter,
@@ -952,7 +952,7 @@ ffi.Pointer<TTextureSampler> TextureSampler_createWithFiltering(
 @ffi.Native<
         ffi.Pointer<TTextureSampler> Function(
             ffi.UnsignedInt, ffi.UnsignedInt)>(
-    symbol: "TextureSampler_createWithComparison", isLeaf: true)
+    symbol: 'TextureSampler_createWithComparison', isLeaf: true)
 external ffi.Pointer<TTextureSampler> _TextureSampler_createWithComparison(
   int compareMode,
   int compareFunc,
@@ -968,7 +968,7 @@ ffi.Pointer<TTextureSampler> TextureSampler_createWithComparison(
     );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
-    symbol: "TextureSampler_setMinFilter", isLeaf: true)
+    symbol: 'TextureSampler_setMinFilter', isLeaf: true)
 external void _TextureSampler_setMinFilter(
   ffi.Pointer<TTextureSampler> sampler,
   int filter,
@@ -984,7 +984,7 @@ void TextureSampler_setMinFilter(
     );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
-    symbol: "TextureSampler_setMagFilter", isLeaf: true)
+    symbol: 'TextureSampler_setMagFilter', isLeaf: true)
 external void _TextureSampler_setMagFilter(
   ffi.Pointer<TTextureSampler> sampler,
   int filter,
@@ -1000,7 +1000,7 @@ void TextureSampler_setMagFilter(
     );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
-    symbol: "TextureSampler_setWrapModeS", isLeaf: true)
+    symbol: 'TextureSampler_setWrapModeS', isLeaf: true)
 external void _TextureSampler_setWrapModeS(
   ffi.Pointer<TTextureSampler> sampler,
   int mode,
@@ -1016,7 +1016,7 @@ void TextureSampler_setWrapModeS(
     );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
-    symbol: "TextureSampler_setWrapModeT", isLeaf: true)
+    symbol: 'TextureSampler_setWrapModeT', isLeaf: true)
 external void _TextureSampler_setWrapModeT(
   ffi.Pointer<TTextureSampler> sampler,
   int mode,
@@ -1032,7 +1032,7 @@ void TextureSampler_setWrapModeT(
     );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt)>(
-    symbol: "TextureSampler_setWrapModeR", isLeaf: true)
+    symbol: 'TextureSampler_setWrapModeR', isLeaf: true)
 external void _TextureSampler_setWrapModeR(
   ffi.Pointer<TTextureSampler> sampler,
   int mode,
@@ -1056,7 +1056,7 @@ external void TextureSampler_setAnisotropy(
 
 @ffi.Native<
     ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
-        ffi.UnsignedInt)>(symbol: "TextureSampler_setCompareMode", isLeaf: true)
+        ffi.UnsignedInt)>(symbol: 'TextureSampler_setCompareMode', isLeaf: true)
 external void _TextureSampler_setCompareMode(
   ffi.Pointer<TTextureSampler> sampler,
   int mode,
@@ -1087,7 +1087,7 @@ external void TextureSampler_destroy(
         ffi.Pointer<TNameComponentManager>,
         ffi.Pointer<TView>,
         ffi.Pointer<TMaterial>,
-        ffi.UnsignedInt)>(symbol: "Gizmo_create", isLeaf: true)
+        ffi.UnsignedInt)>(symbol: 'Gizmo_create', isLeaf: true)
 external ffi.Pointer<TGizmo> _Gizmo_create(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> assetLoader,
@@ -1128,7 +1128,7 @@ external void Gizmo_pick(
 );
 
 @ffi.Native<ffi.Void Function(ffi.Pointer<TGizmo>, ffi.UnsignedInt)>(
-    symbol: "Gizmo_highlight", isLeaf: true)
+    symbol: 'Gizmo_highlight', isLeaf: true)
 external void _Gizmo_highlight(
   ffi.Pointer<TGizmo> tGizmo,
   int axis,
@@ -1352,7 +1352,7 @@ external int Camera_getEntity(
         ffi.Double,
         ffi.Double,
         ffi.Double,
-        ffi.Double)>(symbol: "Camera_setProjection", isLeaf: true)
+        ffi.Double)>(symbol: 'Camera_setProjection', isLeaf: true)
 external void _Camera_setProjection(
   ffi.Pointer<TCamera> tCamera,
   int projection,
@@ -1809,7 +1809,7 @@ external void Engine_destroyIndirectLightRenderThread(
             ffi.UnsignedInt,
             ffi.Pointer<
                 ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>)>(
-    symbol: "Texture_buildRenderThread", isLeaf: true)
+    symbol: 'Texture_buildRenderThread', isLeaf: true)
 external void _Texture_buildRenderThread(
   ffi.Pointer<TEngine> engine,
   int width,
@@ -1817,7 +1817,7 @@ external void _Texture_buildRenderThread(
   int depth,
   int levels,
   int tUsage,
-  int import1,
+  int import$,
   int sampler,
   int format,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>
@@ -1831,7 +1831,7 @@ void Texture_buildRenderThread(
   int depth,
   int levels,
   int tUsage,
-  int import1,
+  int import$,
   TTextureSamplerType sampler,
   TTextureFormat format,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TTexture>)>>
@@ -1844,7 +1844,7 @@ void Texture_buildRenderThread(
       depth,
       levels,
       tUsage,
-      import1,
+      import$,
       sampler.value,
       format.value,
       onComplete,
@@ -2056,7 +2056,7 @@ external void Material_createGizmoMaterialRenderThread(
             ffi.Pointer<
                 ffi.NativeFunction<
                     ffi.Void Function(ffi.Pointer<TColorGrading>)>>)>(
-    symbol: "ColorGrading_createRenderThread", isLeaf: true)
+    symbol: 'ColorGrading_createRenderThread', isLeaf: true)
 external void _ColorGrading_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
   int toneMapping,
@@ -2449,7 +2449,7 @@ external void TextureSampler_createRenderThread(
             ffi.Pointer<
                 ffi.NativeFunction<
                     ffi.Void Function(ffi.Pointer<TTextureSampler>)>>)>(
-    symbol: "TextureSampler_createWithFilteringRenderThread", isLeaf: true)
+    symbol: 'TextureSampler_createWithFilteringRenderThread', isLeaf: true)
 external void _TextureSampler_createWithFilteringRenderThread(
   int minFilter,
   int magFilter,
@@ -2487,7 +2487,7 @@ void TextureSampler_createWithFilteringRenderThread(
             ffi.Pointer<
                 ffi.NativeFunction<
                     ffi.Void Function(ffi.Pointer<TTextureSampler>)>>)>(
-    symbol: "TextureSampler_createWithComparisonRenderThread", isLeaf: true)
+    symbol: 'TextureSampler_createWithComparisonRenderThread', isLeaf: true)
 external void _TextureSampler_createWithComparisonRenderThread(
   int compareMode,
   int compareFunc,
@@ -2512,7 +2512,7 @@ void TextureSampler_createWithComparisonRenderThread(
 @ffi.Native<
         ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
-    symbol: "TextureSampler_setMinFilterRenderThread", isLeaf: true)
+    symbol: 'TextureSampler_setMinFilterRenderThread', isLeaf: true)
 external void _TextureSampler_setMinFilterRenderThread(
   ffi.Pointer<TTextureSampler> sampler,
   int filter,
@@ -2533,7 +2533,7 @@ void TextureSampler_setMinFilterRenderThread(
 @ffi.Native<
         ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
-    symbol: "TextureSampler_setMagFilterRenderThread", isLeaf: true)
+    symbol: 'TextureSampler_setMagFilterRenderThread', isLeaf: true)
 external void _TextureSampler_setMagFilterRenderThread(
   ffi.Pointer<TTextureSampler> sampler,
   int filter,
@@ -2554,7 +2554,7 @@ void TextureSampler_setMagFilterRenderThread(
 @ffi.Native<
         ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
-    symbol: "TextureSampler_setWrapModeSRenderThread", isLeaf: true)
+    symbol: 'TextureSampler_setWrapModeSRenderThread', isLeaf: true)
 external void _TextureSampler_setWrapModeSRenderThread(
   ffi.Pointer<TTextureSampler> sampler,
   int mode,
@@ -2575,7 +2575,7 @@ void TextureSampler_setWrapModeSRenderThread(
 @ffi.Native<
         ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
-    symbol: "TextureSampler_setWrapModeTRenderThread", isLeaf: true)
+    symbol: 'TextureSampler_setWrapModeTRenderThread', isLeaf: true)
 external void _TextureSampler_setWrapModeTRenderThread(
   ffi.Pointer<TTextureSampler> sampler,
   int mode,
@@ -2596,7 +2596,7 @@ void TextureSampler_setWrapModeTRenderThread(
 @ffi.Native<
         ffi.Void Function(ffi.Pointer<TTextureSampler>, ffi.UnsignedInt,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
-    symbol: "TextureSampler_setWrapModeRRenderThread", isLeaf: true)
+    symbol: 'TextureSampler_setWrapModeRRenderThread', isLeaf: true)
 external void _TextureSampler_setWrapModeRRenderThread(
   ffi.Pointer<TTextureSampler> sampler,
   int mode,
@@ -2629,7 +2629,7 @@ external void TextureSampler_setAnisotropyRenderThread(
             ffi.UnsignedInt,
             ffi.UnsignedInt,
             ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(
-    symbol: "TextureSampler_setCompareModeRenderThread", isLeaf: true)
+    symbol: 'TextureSampler_setCompareModeRenderThread', isLeaf: true)
 external void _TextureSampler_setCompareModeRenderThread(
   ffi.Pointer<TTextureSampler> sampler,
   int mode,
@@ -2766,6 +2766,20 @@ external void GltfResourceLoader_asyncBeginLoadRenderThread(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Bool)>> callback,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>(isLeaf: true)
+external void GltfResourceLoader_asyncUpdateLoadRenderThread(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+);
+
+@ffi.Native<
+        ffi.Void Function(ffi.Pointer<TGltfResourceLoader>,
+            ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Float)>>)>(
+    isLeaf: true)
+external void GltfResourceLoader_asyncGetLoadProgressRenderThread(
+  ffi.Pointer<TGltfResourceLoader> tGltfResourceLoader,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Float)>> callback,
+);
+
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TEngine>,
@@ -2807,7 +2821,7 @@ external void Scene_addFilamentAssetRenderThread(
             ffi.UnsignedInt,
             ffi.Pointer<
                 ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TGizmo>)>>)>(
-    symbol: "Gizmo_createRenderThread", isLeaf: true)
+    symbol: 'Gizmo_createRenderThread', isLeaf: true)
 external void _Gizmo_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
   ffi.Pointer<TGltfAssetLoader> tAssetLoader,
@@ -3011,7 +3025,7 @@ external void RenderableManager_setPriority(
         ffi.Pointer<ffi.Void>,
         ffi.Pointer<ffi.Void>,
         ffi.Uint8,
-        ffi.Bool)>(symbol: "Engine_create", isLeaf: true)
+        ffi.Bool)>(symbol: 'Engine_create', isLeaf: true)
 external ffi.Pointer<TEngine> _Engine_create(
   int backend,
   ffi.Pointer<ffi.Void> platform,
@@ -3624,6 +3638,9 @@ external ffi.Pointer<ffi.Void> make_resource_loader(
   ffi.Pointer<ffi.Void> owner,
 );
 
+typedef EntityId = ffi.Int32;
+typedef DartEntityId = int;
+
 final class TCamera extends ffi.Opaque {}
 
 final class TEngine extends ffi.Opaque {}
@@ -3689,6 +3706,28 @@ final class TGltfResourceLoader extends ffi.Opaque {}
 final class TFilamentAsset extends ffi.Opaque {}
 
 final class TColorGrading extends ffi.Opaque {}
+
+final class UnnamedStruct1 extends ffi.Struct {
+  @ffi.Bool()
+  external bool hasMetallicRoughnessTexture;
+
+  @ffi.Uint8()
+  external int metallicRoughnessUV;
+}
+
+final class UnnamedStruct2 extends ffi.Struct {
+  @ffi.Bool()
+  external bool hasSpecularGlossinessTexture;
+
+  @ffi.Uint8()
+  external int specularGlossinessUV;
+}
+
+final class UnnamedUnion1 extends ffi.Union {
+  external UnnamedStruct1 unnamed;
+
+  external UnnamedStruct2 unnamed$1;
+}
 
 final class TMaterialKey extends ffi.Struct {
   @ffi.Bool()
@@ -3796,28 +3835,6 @@ final class TMaterialKey extends ffi.Struct {
   external bool hasVolume;
 }
 
-final class UnnamedUnion1 extends ffi.Union {
-  external UnnamedStruct1 unnamed;
-
-  external UnnamedStruct2 unnamed1;
-}
-
-final class UnnamedStruct1 extends ffi.Struct {
-  @ffi.Bool()
-  external bool hasMetallicRoughnessTexture;
-
-  @ffi.Uint8()
-  external int metallicRoughnessUV;
-}
-
-final class UnnamedStruct2 extends ffi.Struct {
-  @ffi.Bool()
-  external bool hasSpecularGlossinessTexture;
-
-  @ffi.Uint8()
-  external int specularGlossinessUV;
-}
-
 final class double3 extends ffi.Struct {
   @ffi.Double()
   external double x;
@@ -3909,11 +3926,11 @@ enum TGizmoType {
   static TGizmoType fromValue(int value) => switch (value) {
         0 => GIZMO_TYPE_TRANSLATION,
         1 => GIZMO_TYPE_ROTATION,
-        _ => throw ArgumentError("Unknown value for TGizmoType: $value"),
+        _ => throw ArgumentError('Unknown value for TGizmoType: $value'),
       };
 }
 
-abstract class TPrimitiveType {
+sealed class TPrimitiveType {
   /// !< points
   static const PRIMITIVETYPE_POINTS = 0;
 
@@ -3968,7 +3985,7 @@ enum TSamplerCompareFunc {
         6 => A,
         7 => N,
         _ =>
-          throw ArgumentError("Unknown value for TSamplerCompareFunc: $value"),
+          throw ArgumentError('Unknown value for TSamplerCompareFunc: $value'),
       };
 }
 
@@ -3994,7 +4011,7 @@ enum TStencilOperation {
         5 => DECR,
         6 => DECR_WRAP,
         7 => INVERT,
-        _ => throw ArgumentError("Unknown value for TStencilOperation: $value"),
+        _ => throw ArgumentError('Unknown value for TStencilOperation: $value'),
       };
 }
 
@@ -4010,7 +4027,7 @@ enum TStencilFace {
         1 => STENCIL_FACE_FRONT,
         2 => STENCIL_FACE_BACK,
         3 => STENCIL_FACE_FRONT_AND_BACK,
-        _ => throw ArgumentError("Unknown value for TStencilFace: $value"),
+        _ => throw ArgumentError('Unknown value for TStencilFace: $value'),
       };
 }
 
@@ -4028,7 +4045,7 @@ enum TCullingMode {
         1 => CULLING_MODE_FRONT,
         2 => CULLING_MODE_BACK,
         3 => CULLING_MODE_FRONT_AND_BACK,
-        _ => throw ArgumentError("Unknown value for TCullingMode: $value"),
+        _ => throw ArgumentError('Unknown value for TCullingMode: $value'),
       };
 }
 
@@ -4052,7 +4069,7 @@ enum TTransparencyMode {
         0 => DEFAULT,
         1 => TWO_PASSES_ONE_SIDE,
         2 => TWO_PASSES_TWO_SIDES,
-        _ => throw ArgumentError("Unknown value for TTransparencyMode: $value"),
+        _ => throw ArgumentError('Unknown value for TTransparencyMode: $value'),
       };
 }
 
@@ -4072,12 +4089,9 @@ enum TLightType {
         2 => LIGHT_TYPE_POINT,
         3 => LIGHT_TYPE_FOCUSED_SPOT,
         4 => LIGHT_TYPE_SPOT,
-        _ => throw ArgumentError("Unknown value for TLightType: $value"),
+        _ => throw ArgumentError('Unknown value for TLightType: $value'),
       };
 }
-
-typedef EntityId = ffi.Int32;
-typedef DartEntityId = int;
 
 final class TViewport extends ffi.Struct {
   @ffi.Int32()
@@ -4105,7 +4119,7 @@ enum TToneMapping {
         0 => ACES,
         1 => FILMIC,
         2 => LINEAR,
-        _ => throw ArgumentError("Unknown value for TToneMapping: $value"),
+        _ => throw ArgumentError('Unknown value for TToneMapping: $value'),
       };
 }
 
@@ -4123,7 +4137,7 @@ enum TQualityLevel {
         1 => MEDIUM,
         2 => HIGH,
         3 => ULTRA,
-        _ => throw ArgumentError("Unknown value for TQualityLevel: $value"),
+        _ => throw ArgumentError('Unknown value for TQualityLevel: $value'),
       };
 }
 
@@ -4137,11 +4151,10 @@ enum TBlendMode {
   static TBlendMode fromValue(int value) => switch (value) {
         0 => OPAQUE,
         1 => TRANSLUCENT,
-        _ => throw ArgumentError("Unknown value for TBlendMode: $value"),
+        _ => throw ArgumentError('Unknown value for TBlendMode: $value'),
       };
 }
 
-typedef PickCallback = ffi.Pointer<ffi.NativeFunction<PickCallbackFunction>>;
 typedef PickCallbackFunction = ffi.Void Function(
     ffi.Uint32 requestId,
     EntityId entityId,
@@ -4156,6 +4169,7 @@ typedef DartPickCallbackFunction = void Function(
     double fragX,
     double fragY,
     double fragZ);
+typedef PickCallback = ffi.Pointer<ffi.NativeFunction<PickCallbackFunction>>;
 
 enum TTextureSamplerType {
   SAMPLER_2D(0),
@@ -4176,7 +4190,7 @@ enum TTextureSamplerType {
         4 => SAMPLER_3D,
         5 => SAMPLER_CUBEMAP_ARRAY,
         _ =>
-          throw ArgumentError("Unknown value for TTextureSamplerType: $value"),
+          throw ArgumentError('Unknown value for TTextureSamplerType: $value'),
       };
 }
 
@@ -4404,12 +4418,12 @@ enum TTextureFormat {
         106 => TEXTUREFORMAT_RGB_BPTC_UNSIGNED_FLOAT,
         107 => TEXTUREFORMAT_RGBA_BPTC_UNORM,
         108 => TEXTUREFORMAT_SRGB_ALPHA_BPTC_UNORM,
-        _ => throw ArgumentError("Unknown value for TTextureFormat: $value"),
+        _ => throw ArgumentError('Unknown value for TTextureFormat: $value'),
       };
 }
 
 /// ! Pixel Data Format
-abstract class TPixelDataFormat {
+sealed class TPixelDataFormat {
   /// !< One Red channel, float
   static const PIXELDATAFORMAT_R = 0;
 
@@ -4443,7 +4457,7 @@ abstract class TPixelDataFormat {
   static const PIXELDATAFORMAT_ALPHA = 11;
 }
 
-abstract class TPixelDataType {
+sealed class TPixelDataType {
   /// !< unsigned byte
   static const PIXELDATATYPE_UBYTE = 0;
 
@@ -4529,7 +4543,7 @@ enum TTextureUsage {
         128 => TEXTURE_USAGE_BLIT_DST,
         256 => TEXTURE_USAGE_PROTECTED,
         24 => TEXTURE_USAGE_DEFAULT,
-        _ => throw ArgumentError("Unknown value for TTextureUsage: $value"),
+        _ => throw ArgumentError('Unknown value for TTextureUsage: $value'),
       };
 }
 
@@ -4545,7 +4559,7 @@ enum TSamplerWrapMode {
         0 => WRAP_CLAMP_TO_EDGE,
         1 => WRAP_REPEAT,
         2 => WRAP_MIRRORED_REPEAT,
-        _ => throw ArgumentError("Unknown value for TSamplerWrapMode: $value"),
+        _ => throw ArgumentError('Unknown value for TSamplerWrapMode: $value'),
       };
 }
 
@@ -4567,7 +4581,7 @@ enum TSamplerMinFilter {
         3 => FILTER_LINEAR_MIPMAP_NEAREST,
         4 => FILTER_NEAREST_MIPMAP_LINEAR,
         5 => FILTER_LINEAR_MIPMAP_LINEAR,
-        _ => throw ArgumentError("Unknown value for TSamplerMinFilter: $value"),
+        _ => throw ArgumentError('Unknown value for TSamplerMinFilter: $value'),
       };
 }
 
@@ -4581,7 +4595,7 @@ enum TSamplerMagFilter {
   static TSamplerMagFilter fromValue(int value) => switch (value) {
         0 => MAG_FILTER_NEAREST,
         1 => MAG_FILTER_LINEAR,
-        _ => throw ArgumentError("Unknown value for TSamplerMagFilter: $value"),
+        _ => throw ArgumentError('Unknown value for TSamplerMagFilter: $value'),
       };
 }
 
@@ -4596,7 +4610,7 @@ enum TSamplerCompareMode {
         0 => COMPARE_MODE_NONE,
         1 => COMPARE_MODE_COMPARE_TO_TEXTURE,
         _ =>
-          throw ArgumentError("Unknown value for TSamplerCompareMode: $value"),
+          throw ArgumentError('Unknown value for TSamplerCompareMode: $value'),
       };
 }
 
@@ -4612,7 +4626,7 @@ enum TGizmoAxis {
         0 => X,
         1 => Y,
         2 => Z,
-        _ => throw ArgumentError("Unknown value for TGizmoAxis: $value"),
+        _ => throw ArgumentError('Unknown value for TGizmoAxis: $value'),
       };
 }
 
@@ -4633,16 +4647,16 @@ enum TGizmoPickResultType {
         3 => Parent,
         4 => None,
         _ =>
-          throw ArgumentError("Unknown value for TGizmoPickResultType: $value"),
+          throw ArgumentError('Unknown value for TGizmoPickResultType: $value'),
       };
 }
 
-typedef GizmoPickCallback
-    = ffi.Pointer<ffi.NativeFunction<GizmoPickCallbackFunction>>;
 typedef GizmoPickCallbackFunction = ffi.Void Function(
     ffi.UnsignedInt resultType, ffi.Float x, ffi.Float y, ffi.Float z);
 typedef DartGizmoPickCallbackFunction = void Function(
     TGizmoPickResultType resultType, double x, double y, double z);
+typedef GizmoPickCallback
+    = ffi.Pointer<ffi.NativeFunction<GizmoPickCallbackFunction>>;
 
 enum TProjection {
   Perspective(0),
@@ -4654,16 +4668,16 @@ enum TProjection {
   static TProjection fromValue(int value) => switch (value) {
         0 => Perspective,
         1 => Orthographic,
-        _ => throw ArgumentError("Unknown value for TProjection: $value"),
+        _ => throw ArgumentError('Unknown value for TProjection: $value'),
       };
 }
 
-typedef FilamentRenderCallback
-    = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
 typedef FilamentRenderCallbackFunction = ffi.Void Function(
     ffi.Pointer<ffi.Void> owner);
 typedef DartFilamentRenderCallbackFunction = void Function(
     ffi.Pointer<ffi.Void> owner);
+typedef FilamentRenderCallback
+    = ffi.Pointer<ffi.NativeFunction<FilamentRenderCallbackFunction>>;
 
 enum TBackend {
   /// !< Automatically selects an appropriate driver for the platform.
@@ -4690,7 +4704,7 @@ enum TBackend {
         2 => BACKEND_VULKAN,
         3 => BACKEND_METAL,
         4 => BACKEND_NOOP,
-        _ => throw ArgumentError("Unknown value for TBackend: $value"),
+        _ => throw ArgumentError('Unknown value for TBackend: $value'),
       };
 }
 
@@ -4703,6 +4717,31 @@ final class ResourceBuffer extends ffi.Struct {
   @ffi.Int32()
   external int id;
 }
+
+typedef LoadFilamentResourceIntoOutPointerFunction = ffi.Void Function(
+    ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
+typedef DartLoadFilamentResourceIntoOutPointerFunction = void Function(
+    ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
+typedef LoadFilamentResourceIntoOutPointer = ffi
+    .Pointer<ffi.NativeFunction<LoadFilamentResourceIntoOutPointerFunction>>;
+typedef LoadFilamentResourceFunction = ResourceBuffer Function(
+    ffi.Pointer<ffi.Char> uri);
+typedef LoadFilamentResource
+    = ffi.Pointer<ffi.NativeFunction<LoadFilamentResourceFunction>>;
+typedef LoadFilamentResourceFromOwnerFunction = ResourceBuffer Function(
+    ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Void>);
+typedef LoadFilamentResourceFromOwner
+    = ffi.Pointer<ffi.NativeFunction<LoadFilamentResourceFromOwnerFunction>>;
+typedef FreeFilamentResourceFunction = ffi.Void Function(ResourceBuffer);
+typedef DartFreeFilamentResourceFunction = void Function(ResourceBuffer);
+typedef FreeFilamentResource
+    = ffi.Pointer<ffi.NativeFunction<FreeFilamentResourceFunction>>;
+typedef FreeFilamentResourceFromOwnerFunction = ffi.Void Function(
+    ResourceBuffer, ffi.Pointer<ffi.Void>);
+typedef DartFreeFilamentResourceFromOwnerFunction = void Function(
+    ResourceBuffer, ffi.Pointer<ffi.Void>);
+typedef FreeFilamentResourceFromOwner
+    = ffi.Pointer<ffi.NativeFunction<FreeFilamentResourceFromOwnerFunction>>;
 
 final class ResourceLoaderWrapper extends ffi.Struct {
   external LoadFilamentResource loadResource;
@@ -4718,33 +4757,8 @@ final class ResourceLoaderWrapper extends ffi.Struct {
   external LoadFilamentResourceIntoOutPointer loadToOut;
 }
 
-typedef LoadFilamentResource
-    = ffi.Pointer<ffi.NativeFunction<LoadFilamentResourceFunction>>;
-typedef LoadFilamentResourceFunction = ResourceBuffer Function(
-    ffi.Pointer<ffi.Char> uri);
-typedef FreeFilamentResource
-    = ffi.Pointer<ffi.NativeFunction<FreeFilamentResourceFunction>>;
-typedef FreeFilamentResourceFunction = ffi.Void Function(ResourceBuffer);
-typedef DartFreeFilamentResourceFunction = void Function(ResourceBuffer);
-typedef LoadFilamentResourceFromOwner
-    = ffi.Pointer<ffi.NativeFunction<LoadFilamentResourceFromOwnerFunction>>;
-typedef LoadFilamentResourceFromOwnerFunction = ResourceBuffer Function(
-    ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Void>);
-typedef FreeFilamentResourceFromOwner
-    = ffi.Pointer<ffi.NativeFunction<FreeFilamentResourceFromOwnerFunction>>;
-typedef FreeFilamentResourceFromOwnerFunction = ffi.Void Function(
-    ResourceBuffer, ffi.Pointer<ffi.Void>);
-typedef DartFreeFilamentResourceFromOwnerFunction = void Function(
-    ResourceBuffer, ffi.Pointer<ffi.Void>);
-typedef LoadFilamentResourceIntoOutPointer = ffi
-    .Pointer<ffi.NativeFunction<LoadFilamentResourceIntoOutPointerFunction>>;
-typedef LoadFilamentResourceIntoOutPointerFunction = ffi.Void Function(
-    ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
-typedef DartLoadFilamentResourceIntoOutPointerFunction = void Function(
-    ffi.Pointer<ffi.Char> uri, ffi.Pointer<ResourceBuffer> out);
-
 const int __bool_true_false_are_defined = 1;
 
-const int true1 = 1;
+const int true$ = 1;
 
-const int false1 = 0;
+const int false$ = 0;
