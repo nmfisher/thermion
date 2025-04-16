@@ -1,7 +1,5 @@
-import 'dart:async';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 
 void main() async {
@@ -23,7 +21,8 @@ void main() async {
 
     test('add/remove rotation gizmo', () async {
       await testHelper.withViewer((viewer) async {
-                final gizmo = await viewer.getGizmo(GizmoType.rotation);
+        
+        final gizmo = await viewer.getGizmo(GizmoType.rotation);
         await viewer.addToScene(gizmo);
         await testHelper.capture(viewer.view, "rotation_gizmo");
         await viewer.removeFromScene(gizmo);
