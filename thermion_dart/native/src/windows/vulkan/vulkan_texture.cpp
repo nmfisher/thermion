@@ -1,7 +1,7 @@
 #include "vulkan_texture.h"
 #include "bluevk/BlueVK.h"
-#include "utils.h"
-
+#include "vulkan_utils.h"
+#include "Log.hpp"
 #include <iostream>
 
 namespace thermion::windows::vulkan
@@ -23,7 +23,12 @@ namespace thermion::windows::vulkan
     }         
     
 
-    std::unique_ptr<VulkanTexture> VulkanTexture::create(VkDevice device, VkPhysicalDevice physicalDevice, uint32_t width, uint32_t height, HANDLE d3dTextureHandle)
+    std::unique_ptr<VulkanTexture> VulkanTexture::create(
+        VkDevice device,
+        VkPhysicalDevice physicalDevice,
+        uint32_t width,
+        uint32_t height,
+        HANDLE d3dTextureHandle)
     {
         // Create image with external memory support
         VkExternalMemoryImageCreateInfo extImageInfo = {
@@ -67,9 +72,8 @@ namespace thermion::windows::vulkan
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,
             .pNext = nullptr,
             .image = image};
-        // WARN: Memory access violation unless validation instance layer is enabled, otherwise success but...
-        bluevk::vkGetImageMemoryRequirements2(device, &ImageMemoryRequirementsInfo2, &MemoryRequirements2);
-        //       ... if we happen to be here, MemoryRequirements2 is empty
+
+            bluevk::vkGetImageMemoryRequirements2(device, &ImageMemoryRequirementsInfo2, &MemoryRequirements2);
         VkMemoryRequirements &MemoryRequirements = MemoryRequirements2.memoryRequirements;
 
         const VkMemoryDedicatedAllocateInfo MemoryDedicatedAllocateInfo{
@@ -102,6 +106,9 @@ namespace thermion::windows::vulkan
         VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 
         VkResult allocResult = bluevk::vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory);
+        if(imageMemory == VK_NULL_HANDLE) {
+            ERROR("imageMemory == VK_NULL_HANDLE");
+        }
         if (allocResult != VK_SUCCESS || imageMemory == VK_NULL_HANDLE)
         {
             std::cout << "IMAGE MEMORY ALLOCATION FAILED:" << std::endl;
