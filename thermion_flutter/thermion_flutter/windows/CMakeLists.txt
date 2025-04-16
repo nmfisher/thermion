@@ -4,6 +4,8 @@ project(${PROJECT_NAME} LANGUAGES C CXX)
 
 cmake_policy(VERSION 3.14...3.25)
 
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+
 set(PLUGIN_NAME "thermion_flutter_plugin")
 
 list(APPEND PLUGIN_SOURCES
@@ -39,7 +41,7 @@ include_directories(
 get_cmake_property(_variableNames VARIABLES)
 list (SORT _variableNames)
 foreach (_variableName ${_variableNames})
-    message(STATUS "FOO${_variableName}=${${_variableName}}")
+    message(STATUS "${_variableName}=${${_variableName}}")
 endforeach()
 
 target_link_directories(${PLUGIN_NAME} PRIVATE ${runner_BINARY_DIR}/../../../native_assets/windows/)
