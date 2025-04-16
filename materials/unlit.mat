@@ -1,10 +1,11 @@
 material {
-    name : unlit,
-    requires : [ uv0 ],
+    name : Unlit,
+    requires : [ position, uv0 ],
     parameters : [
         {
             type : sampler2d,
-            name : baseColorMap
+            name : baseColorMap,
+            precision: medium
         },
         { 
             type : float4, 
@@ -36,17 +37,9 @@ fragment {
         
         if (materialParams.baseColorIndex > -1) {
             highp float2 uv = getUV0();
-            uv.y = 1.0 - uv.y;
             uv *= materialParams.uvScale;
             material.baseColor *= texture(materialParams_baseColorMap, uv);
         }
-    }
-}
-
-vertex { 
-    void materialVertex(inout MaterialVertexInputs material) {
-        float4 position = getPosition();
-        material.worldPosition = getWorldFromModelMatrix() * position;
     }
 }
 
