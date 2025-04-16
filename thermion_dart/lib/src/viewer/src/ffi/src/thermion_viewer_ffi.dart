@@ -27,8 +27,6 @@ class ThermionViewerFFI extends ThermionViewer {
   final _initialized = Completer<bool>();
   Future<bool> get initialized => _initialized.future;
 
-  late NativeCallable<PickCallbackFunction> _onPickResultCallable;
-
   late final FFIFilamentApp app;
 
   late final FFIView view;
@@ -44,8 +42,7 @@ class ThermionViewerFFI extends ThermionViewer {
       throw Exception("FilamentApp has not been created");
     }
     app = FilamentApp.instance as FFIFilamentApp;
-    _onPickResultCallable =
-        NativeCallable<PickCallbackFunction>.listener(_onPickResult);
+
     _initialize();
   }
 
@@ -521,54 +518,6 @@ class ThermionViewerFFI extends ThermionViewer {
         app.lightManager, lightEntity, direction.x, direction.y, direction.z);
   }
 
-  void _onPickResult(int requestId, ThermionEntity entityId, double depth,
-      double fragX, double fragY, double fragZ) async {
-    if (!_pickRequests.containsKey(requestId)) {
-      _logger.severe(
-          "Warning : pick result received with no matching request ID. This indicates you're clearing the pick cache too quickly");
-      return;
-    }
-    final (:handler, :x, :y, :view) = _pickRequests[requestId]!;
-    _pickRequests.remove(requestId);
-
-    final viewport = await view.getViewport();
-
-    handler.call((
-      entity: entityId,
-      x: x,
-      y: y,
-      depth: depth,
-      fragX: fragX,
-      fragY: viewport.height - fragY,
-      fragZ: fragZ,
-    ));
-  }
-
-  int _pickRequestId = -1;
-  final _pickRequests = <int,
-      ({void Function(PickResult) handler, int x, int y, FFIView view})>{};
-
-  ///
-  ///
-  ///
-  @override
-  Future pick(int x, int y, void Function(PickResult) resultHandler) async {
-    _pickRequestId++;
-    var pickRequestId = _pickRequestId;
-    _pickRequests[pickRequestId] =
-        (handler: resultHandler, x: x, y: y, view: view);
-
-    var viewport = await view.getViewport();
-    y = viewport.height - y;
-
-    View_pick(
-        view.view, pickRequestId, x, y, _onPickResultCallable.nativeFunction);
-
-    Future.delayed(Duration(seconds: 1)).then((_) {
-      _pickRequests.remove(pickRequestId);
-    });
-  }
-
   ///
   ///
   ///
@@ -611,6 +560,13 @@ class ThermionViewerFFI extends ThermionViewer {
       await view.setLayerVisibility(VisibilityLayers.OVERLAY, true);
     }
   }
+
+  ///
+  ///
+  ///
+   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
+    await view.setLayerVisibility(layer, visible);
+   }
 
   ///
   ///
