@@ -45,7 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _thermionViewer = await ThermionFlutterPlugin.createViewer();
       var entity =
-          await _thermionViewer!.loadGlb("assets/cube.glb", keepData: true);
+          await _thermionViewer!.loadGltf("assets/cube.glb", keepData: true);
       await _thermionViewer!.loadSkybox("assets/default_env_skybox.ktx");
       await _thermionViewer!.loadIbl("assets/default_env_ibl.ktx");
       await _thermionViewer!.setPostProcessing(true);
