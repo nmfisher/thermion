@@ -29,9 +29,6 @@ namespace thermion::tflutter::windows
             kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle,
             [&](size_t width, size_t height)
             {
-              if(width != this->_width || height != this->_height) {
-                return (FlutterDesktopGpuSurfaceDescriptor*)nullptr;
-              }
               return _textureDescriptor.get();
             }));
   }
