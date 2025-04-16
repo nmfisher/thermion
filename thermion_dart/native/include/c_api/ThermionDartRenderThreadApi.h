@@ -259,6 +259,8 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));
         EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataRenderThread(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length, void (*callback)());
         EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncBeginLoadRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));
+        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoadRenderThread(TGltfResourceLoader *tGltfResourceLoader);
+        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncGetLoadProgressRenderThread(TGltfResourceLoader *tGltfResourceLoader, void (*callback)(float));
 
         EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
             TEngine *tEngine,
