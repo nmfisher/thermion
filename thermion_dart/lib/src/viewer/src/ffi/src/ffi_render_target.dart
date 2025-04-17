@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
@@ -25,6 +23,6 @@ class FFIRenderTarget extends RenderTarget {
   
   @override
   Future destroy() async {
-    await withVoidCallback((cb) => RenderTarget_destroy(app.engine, renderTarget));
+    await withVoidCallback((cb) => RenderTarget_destroyRenderThread(app.engine, renderTarget, cb));
   }
 }

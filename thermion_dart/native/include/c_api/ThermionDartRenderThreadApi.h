@@ -186,6 +186,12 @@ namespace thermion
             TTexture *depth,
             void (*onComplete)(TRenderTarget *)
         );
+        EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyRenderThread(
+            TEngine *tEngine,
+            TRenderTarget *tRenderTarget,
+            void (*onComplete)()
+        );
+
 
         // TextureSampler methods
         EMSCRIPTEN_KEEPALIVE void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler*));

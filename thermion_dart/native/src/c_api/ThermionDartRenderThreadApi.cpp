@@ -784,7 +784,19 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
-  
+  EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyRenderThread(
+    TEngine *tEngine,
+    TRenderTarget *tRenderTarget,
+    void (*onComplete)()
+  ) {
+    std::packaged_task<void()> lambda(
+        [=]() mutable
+        {
+          RenderTarget_destroy(tEngine, tRenderTarget);
+          onComplete();
+        });
+    auto fut = _renderThread->add_task(lambda);
+  }
 
   
   EMSCRIPTEN_KEEPALIVE void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler *))
