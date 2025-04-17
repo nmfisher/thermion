@@ -587,7 +587,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       completer.complete(true);
     });
 
-    RenderThread_requestAnimationFrame(callback.nativeFunction.cast());
+    RenderThread_requestFrame(callback.nativeFunction.cast());
 
     try {
       await completer.future.timeout(Duration(seconds: 1));
@@ -669,6 +669,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
       PixelDataType pixelDataType = PixelDataType.FLOAT,
       Future Function(View)? beforeRender}) async {
+
     if (swapChain == null) {
       if (_swapChains.isEmpty) {
         throw Exception("No swapchains registered");

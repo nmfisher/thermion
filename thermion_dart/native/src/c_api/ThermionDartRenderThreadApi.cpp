@@ -63,7 +63,7 @@ extern "C"
     _renderThread->setRenderTicker(renderTicker);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderThread_requestAnimationFrame(void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void RenderThread_requestFrame(void (*onComplete)()) {
     _renderThread->requestFrame(onComplete);
   }
 

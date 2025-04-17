@@ -16,7 +16,7 @@ namespace thermion
 
         EMSCRIPTEN_KEEPALIVE void RenderThread_create();
         EMSCRIPTEN_KEEPALIVE void RenderThread_destroy();
-        EMSCRIPTEN_KEEPALIVE void RenderThread_requestAnimationFrame(void (*onComplete)());
+        EMSCRIPTEN_KEEPALIVE void RenderThread_requestFrame(void (*onComplete)());
         EMSCRIPTEN_KEEPALIVE void RenderThread_setRenderTicker(TRenderTicker *tRenderTicker);
         EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
         
