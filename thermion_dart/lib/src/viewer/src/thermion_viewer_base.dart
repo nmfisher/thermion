@@ -149,12 +149,14 @@ abstract class ThermionViewer {
   ///
   ///
   Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
-      {int numInstances = 1,
-      bool keepData = false,
-      int priority = 4,
-      int layer = 0,
-      bool loadResourcesAsync = false,
-      String relativeResourcePath});
+      {
+        String? relativeResourcePath,
+        int numInstances = 1,
+        bool keepData = false,
+        int priority = 4,
+        int layer = 0,
+        bool loadResourcesAsync = false,
+      });
 
   ///
   /// Destroys [asset] and all underlying resources
