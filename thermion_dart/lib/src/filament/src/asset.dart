@@ -64,9 +64,9 @@ abstract class ThermionAsset {
   Future removeStencilHighlight();
 
   ///
-  /// When visible is [true], renders the bounding box.
+  /// Creates/returns a wireframe asset representing the bounding box for this asset.
   ///
-  Future setBoundingBoxVisibility(bool visible);
+  Future<ThermionAsset> getBoundingBoxAsset();
 
   ///
   ///
