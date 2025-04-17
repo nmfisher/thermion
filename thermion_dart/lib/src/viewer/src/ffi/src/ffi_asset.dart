@@ -273,7 +273,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   @override
-  Future<void> setBoundingBoxVisibility(bool visible) async {
+  Future<ThermionAsset> getBoundingBoxAsset() async {
     if (boundingBoxAsset == null) {
       final boundingBox = await SceneAsset_getBoundingBox(asset);
 
@@ -349,13 +349,12 @@ class FFIAsset extends ThermionAsset {
         primitiveType: PrimitiveType.LINES,
       );
 
-      throw UnimplementedError();
-
-      // boundingBoxAsset = await viewer.createGeometry(
-      //   geometry,
-      //   materialInstances: [material],
-      //   keepData: false,
-      // ) as FFIAsset;
+      boundingBoxAsset = await FilamentApp.instance!.createGeometry(
+        geometry,
+        animationManager,
+        materialInstances: [material],
+        keepData: false,
+      ) as FFIAsset;
 
       await boundingBoxAsset!.setCastShadows(false);
       await boundingBoxAsset!.setReceiveShadows(false);
@@ -363,11 +362,7 @@ class FFIAsset extends ThermionAsset {
       TransformManager_setParent(Engine_getTransformManager(app.engine),
           boundingBoxAsset!.entity, entity, false);
     }
-    // if (visible) {
-    //   await boundingBoxAsset!.addToScene();
-    // } else {
-    //   await boundingBoxAsset!.removeFromScene();
-    // }
+    return boundingBoxAsset!;
   }
 
   Future<MaterialInstance> getMaterialInstanceAt(
