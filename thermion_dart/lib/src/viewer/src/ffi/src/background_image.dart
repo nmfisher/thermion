@@ -126,12 +126,6 @@ class BackgroundImage extends ThermionAsset {
   }
 
   @override
-  Future setBoundingBoxVisibility(bool visible) {
-    // TODO: implement setBoundingBoxVisibility
-    throw UnimplementedError();
-  }
-
-  @override
   Future setCastShadows(bool castShadows) {
     // TODO: implement setCastShadows
     throw UnimplementedError();
@@ -346,6 +340,12 @@ class BackgroundImage extends ThermionAsset {
   @override
   Future<MaterialInstance> getMaterialInstanceAt({ThermionEntity? entity, int index = 0}) {
     // TODO: implement getMaterialInstanceAt
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ThermionAsset> getBoundingBoxAsset() {
+    // TODO: implement getBoundingBoxAsset
     throw UnimplementedError();
   }
 }
