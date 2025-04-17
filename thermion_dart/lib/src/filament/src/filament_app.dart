@@ -263,7 +263,7 @@ abstract class FilamentApp<T> {
       {covariant View? view,
       bool captureRenderTarget = false,
       PixelDataFormat pixelDataFormat = PixelDataFormat.RGBA,
-      PixelDataType pixelDataType = PixelDataType.UBYTE,
+      PixelDataType pixelDataType = PixelDataType.FLOAT,
       Future Function(View)? beforeRender});
 
   ///
