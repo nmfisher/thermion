@@ -47,6 +47,7 @@ class FFIView extends View {
   ///
   Future setRenderable(bool renderable) async {
     this._renderable = renderable;
+    await FilamentApp.instance!.updateRenderOrder();
   }
 
   @override
