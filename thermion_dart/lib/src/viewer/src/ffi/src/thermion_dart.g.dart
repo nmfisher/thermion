@@ -1565,7 +1565,7 @@ external void RenderThread_destroy();
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
-external void RenderThread_requestAnimationFrame(
+external void RenderThread_requestFrame(
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
@@ -2425,6 +2425,15 @@ external void RenderTarget_createRenderThread(
   ffi.Pointer<TTexture> depth,
   ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TRenderTarget>)>>
       onComplete,
+);
+
+@ffi.Native<
+    ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TRenderTarget>,
+        ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>>)>(isLeaf: true)
+external void RenderTarget_destroyRenderThread(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TRenderTarget> tRenderTarget,
+  ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> onComplete,
 );
 
 @ffi.Native<

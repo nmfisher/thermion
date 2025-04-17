@@ -28,7 +28,10 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future<ThermionAsset> createGeometry(Geometry geometry, {List<MaterialInstance>? materialInstances, bool keepData = false, bool addToScene = true}) {
+  Future<ThermionAsset> createGeometry(Geometry geometry,
+      {List<MaterialInstance>? materialInstances,
+      bool keepData = false,
+      bool addToScene = true}) {
     // TODO: implement createGeometry
     throw UnimplementedError();
   }
@@ -98,14 +101,12 @@ class ThermionViewerStub extends ThermionViewer {
   Future<bool> get initialized => throw UnimplementedError();
 
   @override
-  Future<ThermionAsset> loadGltf(String path, {bool addToScene = true, int numInstances = 1, bool keepData = false, String? relativeResourcePath}) {
+  Future<ThermionAsset> loadGltf(String path,
+      {bool addToScene = true,
+      int numInstances = 1,
+      bool keepData = false,
+      String? relativeResourcePath}) {
     // TODO: implement loadGltf
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data, {int numInstances = 1, bool keepData = false, int priority = 4, int layer = 0, bool loadResourcesAsync = false, String relativeResourcePath}) {
-    // TODO: implement loadGltfFromBuffer
     throw UnimplementedError();
   }
 
@@ -231,7 +232,8 @@ class ThermionViewerStub extends ThermionViewer {
   }
 
   @override
-  Future setLightPosition(ThermionEntity lightEntity, double x, double y, double z) {
+  Future setLightPosition(
+      ThermionEntity lightEntity, double x, double y, double z) {
     // TODO: implement setLightPosition
     throw UnimplementedError();
   }
@@ -293,5 +295,23 @@ class ThermionViewerStub extends ThermionViewer {
   @override
   // TODO: implement view
   View get view => throw UnimplementedError();
-  
+
+  @override
+  Future setLayerVisibility(VisibilityLayers layer, bool visible) {
+    // TODO: implement setLayerVisibility
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ThermionAsset> loadGltfFromBuffer(Uint8List data,
+      {
+        String? relativeResourcePath,
+        int numInstances = 1,
+        bool keepData = false,
+        int priority = 4,
+        int layer = 0,
+        bool loadResourcesAsync = false,
+      }) {
+    throw UnimplementedError();
+  }
 }
