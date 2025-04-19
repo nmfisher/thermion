@@ -163,7 +163,7 @@ class ThermionViewerFFI extends ThermionViewer {
       await callback.call();
     }
     View_setScene(view.view, nullptr);
-    
+
     await FilamentApp.instance!.destroyScene(scene);
     await FilamentApp.instance!.destroyView(view);
 
@@ -272,7 +272,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future removeSkybox() async {
-    if(_disposed) {
+    if (_disposed) {
       throw ViewerDisposedException();
     }
 
@@ -407,16 +407,12 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future destroyAsset(covariant FFIAsset asset) async {
     await scene.remove(asset);
+    if (asset.boundingBoxAsset != null) {
+      await scene.remove(asset.boundingBoxAsset! as FFIAsset);
+      await FilamentApp.instance!.destroyAsset(asset.boundingBoxAsset!);
+    }
     await FilamentApp.instance!.destroyAsset(asset);
-
-    // if (asset.boundingBoxAsset != null) {
-    //   await asset.setBoundingBoxVisibility(false);
-    //   await withVoidCallback((callback) =>
-    //       SceneManager_destroyAssetRenderThread(
-    //           _sceneManager!, asset.boundingBoxAsset!.pointer, callback));
-    // }
-    // await withVoidCallback((callback) => SceneManager_destroyAssetRenderThread(
-    //     _sceneManager!, asset.asset, callback));
+    _assets.remove(asset);
   }
 
   ///
@@ -424,9 +420,16 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future destroyAssets() async {
+    _logger.info("Destroying ${_assets.length} assets");
     for (final asset in _assets) {
-      await destroyAsset(asset);
+      await scene.remove(asset);
+      if (asset.boundingBoxAsset != null) {
+        await scene.remove(asset.boundingBoxAsset! as FFIAsset);
+        await FilamentApp.instance!.destroyAsset(asset.boundingBoxAsset!);
+      }
+      await FilamentApp.instance!.destroyAsset(asset);
     }
+    _assets.clear();
   }
 
   ///
@@ -564,9 +567,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   ///
-   Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
+  Future setLayerVisibility(VisibilityLayers layer, bool visible) async {
     await view.setLayerVisibility(layer, visible);
-   }
+  }
 
   ///
   ///
