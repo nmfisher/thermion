@@ -3121,6 +3121,13 @@ external ffi.Pointer<TCamera> Engine_createCamera(
   ffi.Pointer<TEngine> tEngine,
 );
 
+@ffi.Native<ffi.Void Function(ffi.Pointer<TEngine>, ffi.Pointer<TCamera>)>(
+    isLeaf: true)
+external void Engine_destroyCamera(
+  ffi.Pointer<TEngine> tEngine,
+  ffi.Pointer<TCamera> tCamera,
+);
+
 @ffi.Native<ffi.Pointer<TView> Function(ffi.Pointer<TEngine>)>(isLeaf: true)
 external ffi.Pointer<TView> Engine_createView(
   ffi.Pointer<TEngine> tEngine,
