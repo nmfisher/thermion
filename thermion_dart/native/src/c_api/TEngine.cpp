@@ -1,5 +1,6 @@
 #include "c_api/TEngine.h"
 
+#include <filament/Camera.h>
 #include <filament/Engine.h>
 #include <filament/Fence.h>
 #include <filament/IndirectLight.h>
@@ -177,6 +178,13 @@ namespace thermion
             utils::Entity entity = utils::EntityManager::get().create();
             auto *camera = engine->createCamera(entity);
             return reinterpret_cast<TCamera *>(camera);
+        }
+
+        EMSCRIPTEN_KEEPALIVE void Engine_destroyCamera(TEngine *tEngine, TCamera *tCamera) {
+            auto *engine = reinterpret_cast<Engine *>(tEngine);
+            auto *camera = reinterpret_cast<Camera *>(tCamera);
+            engine->destroyCameraComponent(camera->getEntity());
+            utils::EntityManager::get().destroy(camera->getEntity());
         }
 
         EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine *tEngine, EntityId entityId)

@@ -37,6 +37,7 @@ EMSCRIPTEN_KEEPALIVE void Engine_destroyScene(TEngine *tEngine, TScene *tScene);
 EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGrading(TEngine *tEngine, TColorGrading *tColorGrading);
 
 EMSCRIPTEN_KEEPALIVE TCamera *Engine_createCamera(TEngine* tEngine);
+EMSCRIPTEN_KEEPALIVE void Engine_destroyCamera(TEngine *tEngine, TCamera *tCamera);
 EMSCRIPTEN_KEEPALIVE TView *Engine_createView(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE TCamera *Engine_getCameraComponent(TEngine* tEngine, EntityId entityId);
 EMSCRIPTEN_KEEPALIVE TTransformManager *Engine_getTransformManager(TEngine *engine);
