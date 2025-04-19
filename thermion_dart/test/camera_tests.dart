@@ -9,19 +9,25 @@ void main() async {
   final testHelper = TestHelper("camera");
   await testHelper.setup();
   group('camera', () {
+    test('create/destroy camera', () async {
+      await testHelper.withViewer((viewer) async {
+        final camera = await viewer.createCamera();
+        await camera.destroy();
+      });
+    });
+
     test('model matrix', () async {
       await testHelper.withViewer((viewer) async {
         final camera = await viewer.getActiveCamera();
         await camera.setModelMatrix(Matrix4.translation(Vector3.all(4.0)));
         var matrix = await camera.getModelMatrix();
-        
+
         await camera.lookAt(Vector3(2.0, 2.0, 2.0));
         matrix = await camera.getModelMatrix();
         var position = await camera.getPosition();
         expect(position.x, 2.0);
         expect(position.y, 2.0);
         expect(position.z, 2.0);
-
       });
     });
 
