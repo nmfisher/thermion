@@ -78,4 +78,5 @@ Thank you to the following people:
 - @daverin for MacOS library contributions
 - @LukasPoque for CI/refactoring work
 - @alexmercerind for his work on integrating ANGLE textures on Flutter Windows
+- @BrutalCoding for documentation fixes
 
