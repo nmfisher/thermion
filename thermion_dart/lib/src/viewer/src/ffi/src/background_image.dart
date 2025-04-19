@@ -343,8 +343,10 @@ class BackgroundImage extends ThermionAsset {
     throw UnimplementedError();
   }
   
+  ThermionAsset? get boundingBoxAsset => throw UnimplementedError();
+  
   @override
-  Future<ThermionAsset> getBoundingBoxAsset() {
+  Future<ThermionAsset> createBoundingBoxAsset() {
     // TODO: implement getBoundingBoxAsset
     throw UnimplementedError();
   }

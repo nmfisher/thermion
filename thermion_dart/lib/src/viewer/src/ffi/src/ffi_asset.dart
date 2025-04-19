@@ -246,7 +246,7 @@ class FFIAsset extends ThermionAsset {
     throw UnimplementedError();
   }
 
-  FFIAsset? boundingBoxAsset;
+  ThermionAsset? boundingBoxAsset;
 
   Future<v64.Aabb3> getBoundingBox() async {
     final entities = <ThermionEntity>[];
@@ -272,8 +272,7 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
-  @override
-  Future<ThermionAsset> getBoundingBoxAsset() async {
+  Future<ThermionAsset> createBoundingBoxAsset() async {
     if (boundingBoxAsset == null) {
       final boundingBox = await SceneAsset_getBoundingBox(asset);
 
@@ -365,6 +364,10 @@ class FFIAsset extends ThermionAsset {
     return boundingBoxAsset!;
   }
 
+  ///
+  ///
+  ///
+  @override
   Future<MaterialInstance> getMaterialInstanceAt(
       {ThermionEntity? entity, int index = 0}) async {
     entity ??= this.entity;

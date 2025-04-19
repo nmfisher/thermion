@@ -45,7 +45,8 @@ abstract class ThermionAsset {
   ///
   ///
   ///
-  Future<MaterialInstance> getMaterialInstanceAt({ThermionEntity? entity, int index = 0});
+  Future<MaterialInstance> getMaterialInstanceAt(
+      {ThermionEntity? entity, int index = 0});
 
   ///
   ///
@@ -64,9 +65,19 @@ abstract class ThermionAsset {
   Future removeStencilHighlight();
 
   ///
-  /// Creates/returns a wireframe asset representing the bounding box for this asset.
+  /// The bounding box for this asset, as an actual renderable asset.
+  /// Null by default; call [createBoundingBoxAsset] first to create.
   ///
-  Future<ThermionAsset> getBoundingBoxAsset();
+  ThermionAsset? get boundingBoxAsset;
+
+  ///
+  /// Creates the renderable bounding box for this asset.
+  /// This is safe to call multiple times; if [boundingBoxAsset] is non-null, 
+  /// this will simply return the existing bounding box asset.
+  /// 
+  /// You will still need to call [Scene.add] to add this to the scene.
+  ///
+  Future<ThermionAsset> createBoundingBoxAsset();
 
   ///
   ///
