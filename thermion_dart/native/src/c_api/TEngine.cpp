@@ -1,3 +1,8 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
 #include "c_api/TEngine.h"
 
 #include <filament/Camera.h>
