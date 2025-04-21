@@ -246,8 +246,14 @@ class FFIAsset extends ThermionAsset {
     throw UnimplementedError();
   }
 
+  ///
+  ///
+  ///
   ThermionAsset? boundingBoxAsset;
 
+  ///
+  ///
+  ///
   Future<v64.Aabb3> getBoundingBox() async {
     final entities = <ThermionEntity>[];
     if (RenderableManager_isRenderable(app.renderableManager, entity)) {
