@@ -4,8 +4,9 @@
 #include <gltfio/math.h>
 
 #include "c_api/APIExport.h"
-#include "MathUtils.hpp"
+
 #include "Log.hpp"
+#include "MathUtils.hpp"
 
 using namespace thermion;
 
