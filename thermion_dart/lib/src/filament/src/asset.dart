@@ -65,6 +65,13 @@ abstract class ThermionAsset {
   Future removeStencilHighlight();
 
   ///
+  /// The dimensions of the bounding box for this asset.
+  /// This is independent of the boundingBoxAsset (which is used to visualize 
+  /// the bounding box in the scene); you do not need to call 
+  /// [createBoundingBoxAsset] before this method.
+  Future<Aabb3> getBoundingBox();
+
+  ///
   /// The bounding box for this asset, as an actual renderable asset.
   /// Null by default; call [createBoundingBoxAsset] first to create.
   ///
@@ -72,9 +79,9 @@ abstract class ThermionAsset {
 
   ///
   /// Creates the renderable bounding box for this asset.
-  /// This is safe to call multiple times; if [boundingBoxAsset] is non-null, 
+  /// This is safe to call multiple times; if [boundingBoxAsset] is non-null,
   /// this will simply return the existing bounding box asset.
-  /// 
+  ///
   /// You will still need to call [Scene.add] to add this to the scene.
   ///
   Future<ThermionAsset> createBoundingBoxAsset();

@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-
+import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:animation_tools_dart/src/bone_animation_data.dart';
 import 'package:animation_tools_dart/src/morph_animation_data.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
@@ -63,7 +63,7 @@ class BackgroundImage extends ThermionAsset {
     await mi.setParameterFloat4("backgroundColor", r, g, b, a);
   }
 
-  Future hideImage() async { 
+  Future hideImage() async {
     await mi.setParameterInt("showImage", 0);
   }
 
@@ -336,18 +336,21 @@ class BackgroundImage extends ThermionAsset {
     // TODO: implement transformToUnitCube
     throw UnimplementedError();
   }
-  
+
   @override
-  Future<MaterialInstance> getMaterialInstanceAt({ThermionEntity? entity, int index = 0}) {
-    // TODO: implement getMaterialInstanceAt
+  Future<MaterialInstance> getMaterialInstanceAt(
+      {ThermionEntity? entity, int index = 0}) {
     throw UnimplementedError();
   }
-  
+
   ThermionAsset? get boundingBoxAsset => throw UnimplementedError();
-  
+
   @override
   Future<ThermionAsset> createBoundingBoxAsset() {
-    // TODO: implement getBoundingBoxAsset
+    throw UnimplementedError();
+  }
+
+  Future<v64.Aabb3> getBoundingBox() {
     throw UnimplementedError();
   }
 }
