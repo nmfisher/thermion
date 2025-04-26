@@ -23,9 +23,15 @@
 #include "rendering/RenderThread.hpp"
 #include "Log.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/proxying.h>
+#include <emscripten/eventloop.h>
+#endif
+
 using namespace thermion;
 using namespace std::chrono_literals;
 #include <time.h>
+
 
 extern "C"
 {
@@ -85,11 +91,19 @@ extern "C"
     uint8_t stereoscopicEyeCount,
     bool disableHandleUseAfterFreeCheck,
     void (*onComplete)(TEngine *)) {
+      
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
         auto engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
-        onComplete(engine);
+        
+        #ifdef __EMSCRIPTEN__        
+        _renderThread->queue.proxyAsync(_renderThread->outer, [&]() {
+        #endif
+          onComplete(engine);
+        #ifdef __EMSCRIPTEN__        
+        });
+        #endif
       });
     auto fut = _renderThread->add_task(lambda);
   }
