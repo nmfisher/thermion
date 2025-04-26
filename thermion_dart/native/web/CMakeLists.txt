@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.27)
 set(PROJECT_NAME "thermion_dart")
 project(${PROJECT_NAME})
 
-if(NOT CMAKE_BUILD_TYPE)
+# if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
-endif(NOT CMAKE_BUILD_TYPE)
+# endif(NOT CMAKE_BUILD_TYPE)
 
 set(MODULE_NAME "thermion_dart")
 
@@ -17,6 +17,7 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sLINKABLE=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSIDE_MODULE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sINITIAL_MEMORY=512mb)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sENVIRONMENT=shell,node,web)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,allocate,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory)
@@ -32,43 +33,35 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASYNCIFY=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMIN_WEBGL_VERSION=2)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAX_WEBGL_VERSION=2)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=1)
-# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_WORKER=1)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=0)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -lidbfs.js)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFORCE_FILESYSTEM=1)
-
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -matomics -mbulk-memory)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -pie)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -O0 --no-entry")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -pie")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -O3 --no-entry ")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -pie")
-
-add_link_options(${EMCC_CFLAGS})
+add_link_options(${EMCC_CFLAGS} -pthread)
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib") 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build/out)
 
-add_executable(${MODULE_NAME} 
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/SceneManager.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/FilamentViewer.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/ThermionDartApi.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/ThermionDartFFIApi.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/Gizmo.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/GridOverlay.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/StreamBufferAdapter.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/TimeIt.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Manipulator.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/camutils/Bookmark.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/image.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/unlit_fixed_size.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionDartWebApi.cpp"
-)
+file(GLOB SOURCES 
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/**/*.cpp" 
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/resources/*.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/*.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp")
+
+add_executable(${MODULE_NAME} ${SOURCES})
+
 set_target_properties(${MODULE_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${MODULE_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
-
+target_compile_options(${MODULE_NAME} PRIVATE -matomics -mbulk-memory)
 target_compile_features(${MODULE_NAME} PRIVATE cxx_std_17)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -225,11 +218,4 @@ target_link_libraries(${MODULE_NAME}
  png
  tinyexr
 )
-
-# add_custom_command(TARGET ${MODULE_NAME} POST_BUILD
-#     COMMAND dart --enable-experiment=native-assets run ffigen --config ffigen/web.yaml WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../
-#     COMMAND ${CMAKE_COMMAND} -DINPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/../../lib/thermion_dart/compatibility/web/thermion_dart.g.dart -DOUTPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/../../lib/thermion_dart/compatibility/web/thermion_dart.g.dart "-DTO_REPLACE=symbol: '" "-DREPLACEMENT=symbol: '_" -P ${CMAKE_CURRENT_SOURCE_DIR}/replace_in_file.cmake 
-#     # COMMAND ${CMAKE_COMMAND} -DINPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/build/build/out/thermion_dart.js -DOUTPUTFILE=${CMAKE_CURRENT_SOURCE_DIR}/build/build/out/thermion_dart.js "-DTO_REPLACE=var moduleRtn" "-DREPLACEMENT=var moduleRtn\;GLctx=moduleArg.ctx" -P ${CMAKE_CURRENT_SOURCE_DIR}/replace_in_file.cmake 
-#     VERBATIM
-# )
 
