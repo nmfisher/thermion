@@ -1,0 +1,17 @@
+name: example_web
+description: A sample command-line application.
+version: 1.0.0
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ^3.3.0
+
+dependencies:
+  thermion_dart: ^0.1.1+4
+
+dependency_overrides:
+  thermion_dart: 
+    path: /Users/nickfisher/Documents/thermion/thermion_dart
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0
