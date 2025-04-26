@@ -8,15 +8,43 @@
 
 namespace thermion {
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#include <emscripten/threading.h>
+#include <emscripten/proxying.h>
+#include <emscripten/eventloop.h>
+
+static void mainLoop(void* arg) {
+    auto *rt = static_cast<RenderThread *>(arg);
+    while (!rt->_stop) {
+        rt->iter();
+    }
+}
+
+static void *startHelper(void * parm) {
+    emscripten_set_main_loop_arg(&mainLoop, parm, 0, true);
+    return nullptr;
+}
+#endif
+
 RenderThread::RenderThread()
 {
     srand(time(NULL));
+    #ifdef __EMSCRIPTEN__
+    outer = pthread_self();
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_create(&t, &attr, startHelper, this);
+    #else
     t = new std::thread([this]() { 
         while (!_stop) {
             iter();
         }
     });
+    #endif
 }
+
+
 
 RenderThread::~RenderThread()
 {
@@ -31,9 +59,12 @@ RenderThread::~RenderThread()
         _tasks.pop_front();
         task();
     }
-    
+    #ifdef __EMSCRIPTEN__
+    pthread_join(t, NULL);
+    #else
     t->join();
     delete t;
+    #endif
 
     TRACE("RenderThread destructor complete");    
 }
@@ -49,6 +80,9 @@ void RenderThread::requestFrame(void (*callback)())
 void RenderThread::iter()
 {
     {
+        #ifdef __EMSCRIPTEN__
+        queue.execute();
+        #endif
         std::unique_lock<std::mutex> lock(_mutex);
         if (_requestFrameRenderCallback)
         {

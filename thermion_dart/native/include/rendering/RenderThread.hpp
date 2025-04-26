@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -8,6 +9,13 @@
 #include <thread>
 
 #include "RenderTicker.hpp"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#include <emscripten/threading.h>
+#include <emscripten/proxying.h>
+#include <emscripten/eventloop.h>
+#endif
 
 namespace thermion {
 
@@ -52,14 +60,26 @@ public:
     template <class Rt>
     auto add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt>;
 
-private:
     /**
      * @brief Main iteration of the render loop.
      */
     void iter();
 
-    void (*_requestFrameRenderCallback)() = nullptr;
+    /**
+     * 
+     */
     bool _stop = false;
+
+    
+    #ifdef __EMSCRIPTEN__
+    emscripten::ProxyingQueue queue;
+    pthread_t outer;
+    #endif
+
+private:
+
+    void (*_requestFrameRenderCallback)() = nullptr;
+    
     std::mutex _mutex;
     std::mutex _taskMutex;
     std::condition_variable _cv;
@@ -68,7 +88,12 @@ private:
     int _frameCount = 0;
     float _accumulatedTime = 0.0f;
     float _fps = 0.0f;
+    
+#ifdef __EMSCRIPTEN__
+    pthread_t t;
+#else
     std::thread* t = nullptr;
+#endif
     RenderTicker* mRenderTicker = nullptr;
 };
 
