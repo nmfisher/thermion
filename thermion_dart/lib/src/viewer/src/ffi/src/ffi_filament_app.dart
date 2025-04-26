@@ -12,7 +12,6 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_swapchain.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
 

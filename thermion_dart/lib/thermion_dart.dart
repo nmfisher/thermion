@@ -5,3 +5,4 @@ export 'src/viewer/viewer.dart';
 export 'src/input/input.dart';
 export 'src/utils/utils.dart';
 export 'src/filament/filament.dart';
+export 'src/bindings/bindings.dart';

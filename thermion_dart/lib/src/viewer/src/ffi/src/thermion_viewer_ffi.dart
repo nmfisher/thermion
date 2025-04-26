@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:thermion_dart/src/filament/src/light_options.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/background_image.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
+import 'ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
-import 'package:thermion_dart/src/filament/src/layers.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/grid_overlay.dart';
+import 'ffi_scene.dart';
+import 'grid_overlay.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:logging/logging.dart';
