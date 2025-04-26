@@ -49,3 +49,55 @@ cmake --build . --target tinyexr --config Release
 cmake --build . --target imageio --config Release
 cmake --build . --config Debug
 ```
+
+# Web
+
+(if building on macOS)
+
+```
+./build.sh -p desktop release
+mkdir -p out/cmake-webgl-release
+cd out/cmake-webgl-release
+ln -s ../cmake-release/tools
+cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DWEBGL=1 \
+        -DWEBGL_PTHREADS=1 \
+        -DFILAMENT_SKIP_SAMPLES=1 \
+        -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
+        -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
+        -DCMAKE_C_FLAGS="-pthread" \
+        -DCMAKE_CXX_FLAGS="-pthread" \
+        -DIS_HOST_PLATFORM=1 -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
+        ../../ 
+ninja;
+mkdir imageio
+cmake -G Ninja \                                                         
+        -DCMAKE_BUILD_TYPE=Release \
+        -DWEBGL=1 \
+        -DWEBGL_PTHREADS=1 \
+        -DFILAMENT_SKIP_SAMPLES=1 \
+        -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
+        -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
+        -DCMAKE_C_FLAGS="-pthread" \
+        -DCMAKE_CXX_FLAGS="-pthread" \
+        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../libs/image/include -I../../../libs/utils/include -I../../../libs/math/include -I../../../third_party/tinyexr -I../../../third_party/libpng -I../../../third_party/basisu/encoder" \
+        ../../../libs/imageio
+
+find . -type f -exec file {} \; | grep "text" | cut -d: -f1 | xargs dos2unix
+mkdir out/
+for lib in tinyexr libpng libz; do 
+    mkdir -p $lib;
+    pushd $lib;
+    cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DWEBGL=1 \
+        -DWEBGL_PTHREADS=1 \
+        -DFILAMENT_SKIP_SAMPLES=1 \
+        -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
+        -DCMAKE_C_FLAGS="-pthread" \
+        -DCMAKE_CXX_FLAGS="-pthread" \
+        ../../../../third_party/$lib;
+    ninja;
+    popd; 
+done
