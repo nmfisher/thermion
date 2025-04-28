@@ -1,4 +1,4 @@
-output: '../lib/thermion_dart/compatibility/web/thermion_dart.g.dart'
+output: '../lib/src/bindings/src/thermion_dart_js_interop.g.dart'
 headers:
   entry-points:
     - '../native/web/include/ThermionWebApi.h'
