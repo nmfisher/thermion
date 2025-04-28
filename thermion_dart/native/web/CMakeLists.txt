@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.22)
 
 set(PROJECT_NAME "thermion_dart")
 project(${PROJECT_NAME})
