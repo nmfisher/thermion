@@ -3,7 +3,7 @@ import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:animation_tools_dart/src/bone_animation_data.dart';
 import 'package:animation_tools_dart/src/morph_animation_data.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';

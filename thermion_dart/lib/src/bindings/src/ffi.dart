@@ -8,26 +8,9 @@ export 'dart:ffi';
 
 final allocator = calloc;
 
-void using(Pointer ptr, Future Function(Pointer ptr) function) async {
-  await function.call(ptr);
-  allocator.free(ptr);
-}
-
-Pointer<T> makeFunction<T>(cb) {
-  return NativeCallable<T>.listener(cb);
-}
-
-Future<void> withVoidCallback2(Function() func) async {
-  final completer = Completer();
-  void Function() callback = () {
-    func.call();
-    completer.complete();
-  };
-  final nativeCallable = NativeCallable<Void Function()>.listener(callback);
-  RenderThread_addTask(nativeCallable.nativeFunction);
-  await completer.future;
-  nativeCallable.close();
-}
+// Pointer makeFunction<T>(Function cb) {
+//   return NativeCallable.listener(cb);
+// }
 
 Future<void> withVoidCallback(
     Function(Pointer<NativeFunction<Void Function()>>) func) async {

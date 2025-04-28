@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:thermion_dart/src/filament/src/scene.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_gizmo.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
@@ -14,6 +14,8 @@ import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:logging/logging.dart';
+
+import '../../../../../thermion_dart.dart';
 
 typedef RenderCallback = Pointer<NativeFunction<Void Function(Pointer<Void>)>>;
 
@@ -580,16 +582,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     for (final hook in _hooks) {
       await hook.call();
     }
-    final completer = Completer();
-
-    final callback = NativeCallable<Void Function()>.listener(() {
-      completer.complete(true);
-    });
-
-    RenderThread_requestFrame(callback.nativeFunction.cast());
 
     try {
-      await completer.future.timeout(Duration(seconds: 1));
+      await withVoidCallback((cb) => RenderThread_requestFrame(cb)).timeout(Duration(seconds: 1));
     } catch (err) {
       print("WARNING - render call timed out");
     }

@@ -4,7 +4,7 @@ import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';

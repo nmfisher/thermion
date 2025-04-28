@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:thermion_dart/src/filament/src/engine.dart';
 import 'package:thermion_dart/src/filament/src/scene.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 

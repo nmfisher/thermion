@@ -1,6 +1,6 @@
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/scene.dart';
-import 'callbacks.dart';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 
 class FFIScene extends Scene {
   final Pointer<TScene> scene;

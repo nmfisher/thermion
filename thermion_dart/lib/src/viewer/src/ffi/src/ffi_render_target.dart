@@ -1,4 +1,4 @@
-import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';

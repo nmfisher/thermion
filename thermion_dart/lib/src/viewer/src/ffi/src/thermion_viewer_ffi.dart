@@ -10,7 +10,7 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:logging/logging.dart';
 
-import 'callbacks.dart';
+
 import 'ffi_camera.dart';
 import 'ffi_view.dart';
 

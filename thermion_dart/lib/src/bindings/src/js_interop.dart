@@ -20,10 +20,10 @@ Future<void> withVoidCallback(
   void Function() callback = () {
     completer.complete();
   };
-  // final nativeCallable = NativeCallable<Void Function()>.listener(callback);
-  // func.call(nativeCallable.nativeFunction);
+  final ptr = callback.addFunction();
+  func.call(ptr.cast());
   await completer.future;
-  // nativeCallable.close();
+  ptr.dispose();
 }
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
