@@ -13,6 +13,10 @@ void using(Pointer ptr, Future Function(Pointer ptr) function) async {
   allocator.free(ptr);
 }
 
+Pointer<T> makeFunction<T>(cb) {
+  return NativeCallable<T>.listener(cb);
+}
+
 Future<void> withVoidCallback2(Function() func) async {
   final completer = Completer();
   void Function() callback = () {
