@@ -68,11 +68,12 @@ cmake -G Ninja \
         -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
         -DCMAKE_C_FLAGS="-pthread" \
         -DCMAKE_CXX_FLAGS="-pthread" \
-        -DIS_HOST_PLATFORM=1 -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
+        -DIS_HOST_PLATFORM=0 -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out \
         ../../ 
 ninja;
 mkdir imageio
-cmake -G Ninja \                                                         
+cd imageio
+cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DWEBGL=1 \
         -DWEBGL_PTHREADS=1 \
@@ -83,9 +84,11 @@ cmake -G Ninja \
         -DCMAKE_CXX_FLAGS="-pthread" \
         -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../libs/image/include -I../../../libs/utils/include -I../../../libs/math/include -I../../../third_party/tinyexr -I../../../third_party/libpng -I../../../third_party/basisu/encoder" \
         ../../../libs/imageio
-
-find . -type f -exec file {} \; | grep "text" | cut -d: -f1 | xargs dos2unix
-mkdir out/
+ninja
+cd ..
+mkdir thirdparty/
+cd thirdparty/
+#find . -type f -exec file {} \; | grep "text" | cut -d: -f1 | xargs dos2unix
 for lib in tinyexr libpng libz; do 
     mkdir -p $lib;
     pushd $lib;
@@ -95,8 +98,8 @@ for lib in tinyexr libpng libz; do
         -DWEBGL_PTHREADS=1 \
         -DFILAMENT_SKIP_SAMPLES=1 \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
-        -DCMAKE_C_FLAGS="-pthread" \
-        -DCMAKE_CXX_FLAGS="-pthread" \
+        -DCMAKE_C_FLAGS="-pthread -Wno-reserved-identifier" \
+        -DCMAKE_CXX_FLAGS="-pthread -Wno-reserved-identifier" \
         ../../../../third_party/$lib;
     ninja;
     popd; 
