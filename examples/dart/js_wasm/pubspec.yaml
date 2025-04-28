@@ -11,7 +11,7 @@ dependencies:
 
 dependency_overrides:
   thermion_dart: 
-    path: /Users/nickfisher/Documents/thermion/thermion_dart
+    path: ../../../thermion_dart
 dev_dependencies:
   lints: ^3.0.0
   test: ^1.24.0
