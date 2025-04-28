@@ -15,11 +15,10 @@
 #include <iostream>
 #endif
 
-
-static void Log(const char *fmt, ...) {    
 #ifdef __EMSCRIPTEN__
-    emscripten_console_log(fmt);
+#define Log(...) emscripten_console_logf(__VA_ARGS__);
 #else
+static void Log(const char *fmt, ...) {    
     va_list args;
     va_start(args, fmt);
     
@@ -33,9 +32,8 @@ static void Log(const char *fmt, ...) {
     std::cout << std::endl;
 #endif   
     va_end(args);
-#endif
 }
-
+#endif
 
 #if defined(_WIN32) || defined(_WIN64)
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
