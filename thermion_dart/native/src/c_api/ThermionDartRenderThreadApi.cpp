@@ -26,6 +26,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/proxying.h>
 #include <emscripten/eventloop.h>
+#include <emscripten/console.h>
 #endif
 
 using namespace thermion;
@@ -33,6 +34,16 @@ using namespace std::chrono_literals;
 #include <time.h>
 
 
+#if defined __EMSCRIPTEN__
+#define PROXY(call) \
+Log("PROXYING"); \
+_renderThread->queue.proxyAsync(_renderThread->outer, [=]() { \
+  call; \
+  Log("CALL COMPLETE"); \
+});
+#else      
+  #define PROXY(call) call
+#endif
 extern "C"
 {
 
@@ -45,6 +56,7 @@ extern "C"
       Log("WARNING - you are attempting to create a RenderThread when the previous one has not been disposed.");
     }
     _renderThread = std::make_unique<RenderThread>();
+    TRACE("RenderThread created");
   }
 
   EMSCRIPTEN_KEEPALIVE void RenderThread_destroy() {
@@ -79,7 +91,7 @@ extern "C"
       [=]() mutable
       {
         RenderTicker_render(tRenderTicker, frameTimeInNanos);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -90,30 +102,24 @@ extern "C"
     void* sharedContext,
     uint8_t stereoscopicEyeCount,
     bool disableHandleUseAfterFreeCheck,
-    void (*onComplete)(TEngine *)) {
-      
+    void (*onComplete)(TEngine *)) {      
+
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        auto engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);
-        
-        #ifdef __EMSCRIPTEN__        
-        _renderThread->queue.proxyAsync(_renderThread->outer, [&]() {
-        #endif
-          onComplete(engine);
-        #ifdef __EMSCRIPTEN__        
-        });
-        #endif
+        auto *engine = Engine_create(backend, platform, sharedContext, stereoscopicEyeCount, disableHandleUseAfterFreeCheck);        
+        PROXY(onComplete(engine));
       });
     auto fut = _renderThread->add_task(lambda);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_createRendererRenderThread(TEngine *tEngine, void (*onComplete)(TRenderer *)) {
+
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
-        auto renderer = Engine_createRenderer(tEngine);
-        onComplete(renderer);
+        auto *renderer = Engine_createRenderer(tEngine);
+        PROXY(onComplete(renderer));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -123,7 +129,7 @@ extern "C"
       [=]() mutable
       {
         auto swapChain = Engine_createSwapChain(tEngine, window, flags);
-        onComplete(swapChain);
+        PROXY(onComplete(swapChain));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -133,7 +139,7 @@ extern "C"
       [=]() mutable
       {
         auto swapChain = Engine_createHeadlessSwapChain(tEngine, width, height, flags);
-        onComplete(swapChain);
+        PROXY(onComplete(swapChain));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -143,7 +149,7 @@ extern "C"
       [=]() mutable
       {
         Engine_destroySwapChain(tEngine, tSwapChain);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -153,7 +159,7 @@ extern "C"
       [=]() mutable
       {
         Engine_destroyView(tEngine, tView);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -163,7 +169,7 @@ extern "C"
       [=]() mutable
       {
         Engine_destroyScene(tEngine, tScene);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -173,7 +179,7 @@ extern "C"
       [=]() mutable
       {
         auto camera = Engine_createCamera(tEngine);
-        onComplete(camera);
+        PROXY(onComplete(camera));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -183,7 +189,7 @@ extern "C"
       [=]() mutable
       {
         auto * view = Engine_createView(tEngine);
-        onComplete(view);
+        PROXY(onComplete(view));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -193,7 +199,7 @@ extern "C"
       [=]() mutable
       {
         Engine_destroy(tEngine);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -204,7 +210,7 @@ extern "C"
         [=]() mutable
         {
           Engine_destroyTexture(engine, tTexture);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -214,7 +220,7 @@ extern "C"
         [=]() mutable
         {
           Engine_destroySkybox(tEngine, tSkybox);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -224,7 +230,7 @@ extern "C"
       [=]() mutable
       {
         Engine_destroyIndirectLight(tEngine, tIndirectLight);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -235,7 +241,7 @@ extern "C"
         [=]() mutable
         {
           auto material = Engine_buildMaterial(tEngine, materialData, length);
-          onComplete(material);
+          PROXY(onComplete(material));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -247,7 +253,7 @@ extern "C"
         [=]() mutable
         {
           Engine_destroyMaterial(tEngine, tMaterial);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -257,7 +263,7 @@ extern "C"
       [=]() mutable
       {
         Engine_destroyMaterialInstance(tEngine, tMaterialInstance);
-        onComplete();
+        PROXY(onComplete());
       });
       auto fut = _renderThread->add_task(lambda);
   }
@@ -267,7 +273,7 @@ extern "C"
       [=]() mutable
       {
         auto *fence = Engine_createFence(tEngine);
-        onComplete(fence);
+        PROXY(onComplete(fence));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -277,7 +283,7 @@ extern "C"
       [=]() mutable
       {
         Engine_destroyFence(tEngine, tFence);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -287,7 +293,7 @@ extern "C"
       [=]() mutable
       {
         Engine_flushAndWait(tEngine);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -297,7 +303,7 @@ extern "C"
       [=]() mutable
       {
         auto *skybox = Engine_buildSkybox(tEngine, skyboxData, length, onTextureUploadComplete);
-        onComplete(skybox);
+        PROXY(onComplete(skybox));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -307,7 +313,7 @@ extern "C"
       [=]() mutable
       {
         auto *indirectLight = Engine_buildIndirectLight(tEngine, iblData, length, intensity, onTextureUploadComplete);
-        onComplete(indirectLight);
+        PROXY(onComplete(indirectLight));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -317,7 +323,7 @@ extern "C"
       [=]() mutable
       {
         auto result = Renderer_beginFrame(tRenderer, tSwapChain, frameTimeInNanos);
-        onComplete(result);
+        PROXY(onComplete(result));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -326,7 +332,7 @@ extern "C"
       [=]() mutable
       {
         Renderer_endFrame(tRenderer);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -336,7 +342,7 @@ extern "C"
       [=]() mutable
       {
         Renderer_render(tRenderer, tView);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -346,7 +352,7 @@ extern "C"
       [=]() mutable
       {
         Renderer_renderStandaloneView(tRenderer, tView);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -364,7 +370,7 @@ extern "C"
         [=]() mutable
         {
           Renderer_setClearOptions(tRenderer, clearR, clearG, clearB, clearA, clearStencil, clear, discard);
-          onComplete();
+          PROXY(onComplete());
         });
       auto fut = _renderThread->add_task(lambda);
   }
@@ -382,7 +388,7 @@ extern "C"
       [=]() mutable
       {
         Renderer_readPixels(tRenderer, tView, tRenderTarget, tPixelBufferFormat, tPixelDataType, out, outLength);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -392,7 +398,7 @@ extern "C"
       [=]() mutable
       {
         auto *instance = Material_createImageMaterial(tEngine);
-        onComplete(instance);
+        PROXY(onComplete(instance));
       });
       auto fut = _renderThread->add_task(lambda);
   }
@@ -402,7 +408,7 @@ extern "C"
       [=]() mutable
       {
         auto *instance = Material_createGizmoMaterial(tEngine);
-        onComplete(instance);
+        PROXY(onComplete(instance));
       });
       auto fut = _renderThread->add_task(lambda);
   }
@@ -414,7 +420,7 @@ extern "C"
         [=]() mutable
         {
           auto *instance = Material_createInstance(tMaterial);
-          onComplete(instance);
+          PROXY(onComplete(instance));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -424,7 +430,7 @@ extern "C"
       [=]() mutable
       {
         SceneAsset_destroy(tSceneAsset);
-        onComplete();
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -449,7 +455,7 @@ extern "C"
     [=]
     {
       auto sceneAsset = SceneAsset_createGeometry(tEngine, vertices, numVertices, normals, numNormals, uvs, numUvs, indices, numIndices, tPrimitiveType, materialInstances, materialInstanceCount);
-      callback(sceneAsset);
+      PROXY(callback(sceneAsset));
     });
   auto fut = _renderThread->add_task(lambda);
 }
@@ -465,7 +471,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     [=]
     {
       auto sceneAsset = SceneAsset_createFromFilamentAsset(tEngine, tAssetLoader, tNameComponentManager, tFilamentAsset);
-      onComplete(sceneAsset);
+      PROXY(onComplete(sceneAsset));
     });
   auto fut = _renderThread->add_task(lambda);
 }
@@ -479,7 +485,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           auto instanceAsset = SceneAsset_createInstance(asset, tMaterialInstances, materialInstanceCount);
-          callback(instanceAsset);
+          PROXY(callback(instanceAsset));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -490,7 +496,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           auto materialInstance = MaterialProvider_createMaterialInstance(tMaterialProvider, tKey);
-          callback(materialInstance);
+          PROXY(callback(materialInstance));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -501,7 +507,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           auto cg = ColorGrading_create(tEngine, toneMapping);
-          callback(cg);
+          PROXY(callback(cg));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -512,7 +518,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           Engine_destroyColorGrading(tEngine, tColorGrading);
-          callback();
+          PROXY(callback());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -523,7 +529,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           View_setColorGrading(tView, tColorGrading);
-          callback();
+          PROXY(callback());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -534,7 +540,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           View_setBloom(tView, enabled, strength);
-          callback();
+          PROXY(callback());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -545,7 +551,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           View_setCamera(tView, tCamera);
-          callback();
+          PROXY(callback());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -555,7 +561,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         auto *animationManager = AnimationManager_create(tEngine, tScene);
-        onComplete(animationManager);
+        PROXY(onComplete(animationManager));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -569,7 +575,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           bool result = AnimationManager_updateBoneMatrices(tAnimationManager, sceneAsset);
-          callback(result);
+          PROXY(callback(result));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -585,7 +591,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           bool result = AnimationManager_setMorphTargetWeights(tAnimationManager, entityId, morphData, numWeights);
-          callback(result);
+          PROXY(callback(result));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -599,7 +605,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto image = Image_createEmpty(width, height, channel);
-          onComplete(image);
+          PROXY(onComplete(image));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -610,7 +616,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto image = Image_decode(data, length, name);
-          onComplete(image);
+          PROXY(onComplete(image));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -621,7 +627,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto bytes = Image_getBytes(tLinearImage);
-          onComplete(bytes);
+          PROXY(onComplete(bytes));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -632,7 +638,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           Image_destroy(tLinearImage);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -643,7 +649,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto width = Image_getWidth(tLinearImage);
-          onComplete(width);
+          PROXY(onComplete(width));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -654,7 +660,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto height = Image_getHeight(tLinearImage);
-          onComplete(height);
+          PROXY(onComplete(height));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -665,7 +671,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto channels = Image_getChannels(tLinearImage);
-          onComplete(channels);
+          PROXY(onComplete(channels));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -684,7 +690,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto *texture = Texture_build(tEngine, width, height, depth, levels, tUsage, import, sampler, format);
-          onComplete(texture);
+          PROXY(onComplete(texture));
         });
     auto fut = _renderThread->add_task(lambda);  
     }
@@ -698,7 +704,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           bool result = Texture_loadImage(tEngine, tTexture, tImage, bufferFormat, pixelDataType);
-          onComplete(result);
+          PROXY(onComplete(result));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -721,7 +727,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         {
           bool result = Texture_setImage(tEngine, tTexture, level, data, size, width, height, channels,
                                          bufferFormat, pixelDataType);
-          onComplete(result);
+          PROXY(onComplete(result));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -762,7 +768,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
           bufferFormat,
           pixelDataType
         );
-        onComplete(result);
+        PROXY(onComplete(result));
       });
   auto fut = _renderThread->add_task(lambda);
 }
@@ -773,7 +779,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto texture = RenderTarget_getColorTexture(tRenderTarget);
-          onComplete(texture);
+          PROXY(onComplete(texture));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -793,7 +799,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto texture = RenderTarget_create(tEngine, width, height, tColor, tDepth);
-          onComplete(texture);
+          PROXY(onComplete(texture));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -807,7 +813,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           RenderTarget_destroy(tEngine, tRenderTarget);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -819,7 +825,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto sampler = TextureSampler_create();
-          onComplete(sampler);
+          PROXY(onComplete(sampler));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -836,7 +842,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto sampler = TextureSampler_createWithFiltering(minFilter, magFilter, wrapS, wrapT, wrapR);
-          onComplete(sampler);
+          PROXY(onComplete(sampler));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -850,7 +856,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           auto sampler = TextureSampler_createWithComparison(compareMode, compareFunc);
-          onComplete(sampler);
+          PROXY(onComplete(sampler));
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -864,7 +870,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           TextureSampler_setMinFilter(sampler, filter);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -878,7 +884,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           TextureSampler_setMagFilter(sampler, filter);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -892,7 +898,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           TextureSampler_setWrapModeS(sampler, mode);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -906,7 +912,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           TextureSampler_setWrapModeT(sampler, mode);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -920,7 +926,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           TextureSampler_setWrapModeR(sampler, mode);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -934,7 +940,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           TextureSampler_setAnisotropy(sampler, anisotropy);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -949,7 +955,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           TextureSampler_setCompareMode(sampler, mode, func);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -962,7 +968,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]() mutable
         {
           TextureSampler_destroy(sampler);
-          onComplete();
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -972,7 +978,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         auto loader = GltfAssetLoader_create(tEngine, tMaterialProvider);
-        callback(loader);
+        PROXY(callback(loader));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -982,7 +988,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         auto loader = GltfResourceLoader_create(tEngine, relativeResourcePath);
-        callback(loader);
+        PROXY(callback(loader));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -992,7 +998,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         GltfResourceLoader_destroy(tEngine, tResourceLoader);
-        callback();
+        PROXY(callback());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1002,7 +1008,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         auto result = GltfResourceLoader_loadResources(tGltfResourceLoader, tFilamentAsset);
-        callback(result);
+        PROXY(callback(result));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1017,7 +1023,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         GltfResourceLoader_addResourceData(tGltfResourceLoader, uri, data, length);
-        callback();
+        PROXY(callback());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1030,7 +1036,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         auto result = GltfResourceLoader_asyncBeginLoad(tGltfResourceLoader, tFilamentAsset);
-        callback(result);
+        PROXY(callback(result));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1052,7 +1058,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         auto result = GltfResourceLoader_asyncGetLoadProgress(tGltfResourceLoader);
-        callback(result);
+        PROXY(callback(result));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1069,7 +1075,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         auto loader = GltfAssetLoader_load(tEngine, tAssetLoader, data, length, numInstances);
-        callback(loader);
+        PROXY(callback(loader));
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1079,7 +1085,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         Scene_addFilamentAsset(tScene, tAsset);
-        callback();
+        PROXY(callback());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1098,7 +1104,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         auto *gizmo = Gizmo_create(tEngine, tAssetLoader,tGltfResourceLoader, tNameComponentManager, tView, tMaterial, tGizmoType);
-        callback(gizmo);
+        PROXY(callback(gizmo));
       });
     auto fut = _renderThread->add_task(lambda);
   }
