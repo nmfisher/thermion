@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:js_interop';
 
 import 'thermion_dart_js_interop.g.dart';
 export 'thermion_dart_js_interop.g.dart';
@@ -9,6 +8,10 @@ extension type Bool(int val) {}
 
 typedef Uint32 = Int32;
 typedef Utf8 = Char;
+
+Pointer<T> makeFunction<T extends NativeFunction>(cb) {
+  return cb.addFunction();
+}
 
 Future<void> withVoidCallback(
     Function(Pointer<NativeFunction<Void Function()>>) func) async {
@@ -25,19 +28,19 @@ Future<void> withVoidCallback(
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
     Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func) async {
-  var lib = getLib();
 
   final completer = Completer<Pointer<T>>();
   // ignore: prefer_function_declarations_over_variables
-  void Function(Pointer<NativeType>) callback = (Pointer<NativeType> ptr) {
+  void Function(Pointer<T>) callback = (Pointer<T> ptr) {
     completer.complete(ptr.cast<T>());
   };
 
-  final onComplete_interopFnPtr = lib.addFunction(callback.toJS, "vp");
+  final onComplete_interopFnPtr = callback.addFunction();
 
   func.call(onComplete_interopFnPtr.cast());
 
   var ptr = await completer.future;
+  onComplete_interopFnPtr.dispose();
   
   return ptr;
 }
