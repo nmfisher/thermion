@@ -13,9 +13,11 @@ extern "C"
 
 enum TGizmoAxis { X, Y, Z };
 enum TGizmoPickResultType { AxisX, AxisY, AxisZ, Parent, None };
+typedef enum TGizmoPickResultType TGizmoPickResultType;
+typedef enum TGizmoAxis TGizmoAxis;
 
 typedef void (*GizmoPickCallback)(TGizmoPickResultType resultType, float x, float y, float z);
-
+void Gizmo_dummy(TGizmoPickResultType t);
 EMSCRIPTEN_KEEPALIVE TGizmo *Gizmo_create(
     TEngine *tEngine,
     TGltfAssetLoader *assetLoader,

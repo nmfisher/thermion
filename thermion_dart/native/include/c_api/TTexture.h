@@ -20,6 +20,8 @@ enum TTextureSamplerType
     SAMPLER_CUBEMAP_ARRAY=5
 };
 
+typedef enum TTextureSamplerType TTextureSamplerType;
+
 enum TTextureFormat
 {
     // 8-bits per element
@@ -157,6 +159,7 @@ enum TTextureFormat
     TEXTUREFORMAT_RGBA_BPTC_UNORM,         // BC7
     TEXTUREFORMAT_SRGB_ALPHA_BPTC_UNORM    // BC7 sRGB
 };
+typedef enum TTextureFormat TTextureFormat;
 
 //! Pixel Data Format
 enum TPixelDataFormat {
@@ -173,6 +176,7 @@ enum TPixelDataFormat {
     PIXELDATAFORMAT_DEPTH_STENCIL,      //!< Two Depth (24-bits) + Stencil (8-bits) channels
     PIXELDATAFORMAT_ALPHA               //! One Alpha channel, float
 };
+typedef enum TPixelDataFormat TPixelDataFormat;
 
 enum TPixelDataType {
     PIXELDATATYPE_UBYTE,                //!< unsigned byte
@@ -188,6 +192,7 @@ enum TPixelDataType {
     PIXELDATATYPE_USHORT_565,           //!< unsigned int (16-bit), encodes 3 RGB channels
     PIXELDATATYPE_UINT_2_10_10_10_REV,  //!< unsigned normalized 10 bits RGB, 2 bits alpha
 };
+typedef enum TPixelDataType TPixelDataType;
 
 enum TTextureUsage {
     TEXTURE_USAGE_NONE                = 0x0000,
@@ -202,6 +207,7 @@ enum TTextureUsage {
     TEXTURE_USAGE_PROTECTED           = 0x0100,            //!< Texture can be used the destination of a blit()
     TEXTURE_USAGE_DEFAULT             = TEXTURE_USAGE_UPLOADABLE | TEXTURE_USAGE_SAMPLEABLE   //!< Default texture usage
 };
+typedef enum TTextureUsage TTextureUsage;
 
 EMSCRIPTEN_KEEPALIVE TTexture *Texture_build(TEngine *engine, 
     uint32_t width, 
@@ -268,6 +274,7 @@ enum TSamplerWrapMode {
     WRAP_REPEAT,              // Repeat wrapping mode
     WRAP_MIRRORED_REPEAT      // Mirrored repeat wrapping mode
 };
+typedef enum TSamplerWrapMode TSamplerWrapMode;
 
 enum TSamplerMinFilter {
     FILTER_NEAREST,                  // Nearest filtering
@@ -277,16 +284,19 @@ enum TSamplerMinFilter {
     FILTER_NEAREST_MIPMAP_LINEAR,    // Nearest mipmap linear filtering
     FILTER_LINEAR_MIPMAP_LINEAR      // Linear mipmap linear filtering
 };
+typedef enum TSamplerMinFilter TSamplerMinFilter;
 
 enum TSamplerMagFilter {
     MAG_FILTER_NEAREST,              // Nearest filtering
     MAG_FILTER_LINEAR                // Linear filtering
 };
+typedef enum TSamplerMagFilter TSamplerMagFilter;
 
 enum TSamplerCompareMode {
     COMPARE_MODE_NONE,               // No comparison
     COMPARE_MODE_COMPARE_TO_TEXTURE  // Compare to texture
 };
+typedef enum TSamplerCompareMode TSamplerCompareMode;
 
 typedef TSamplerCompareFunc TTextureSamplerCompareFunc ;
 

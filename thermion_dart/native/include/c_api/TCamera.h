@@ -13,6 +13,7 @@ enum TProjection {
     Perspective,
     Orthographic
 };
+typedef enum TProjection TProjection;
 
 // Camera methods
 EMSCRIPTEN_KEEPALIVE void Camera_setExposure(TCamera *camera, float aperture, float shutterSpeed, float sensitivity);

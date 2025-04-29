@@ -16,6 +16,7 @@ extern "C"
 		LIGHT_TYPE_FOCUSED_SPOT,
 		LIGHT_TYPE_SPOT
 	};
+	typedef enum TLightType TLightType;
 
 	EMSCRIPTEN_KEEPALIVE void LightManager_setPosition(TLightManager *tLightManager, EntityId light, double x, double y, double z);
 	EMSCRIPTEN_KEEPALIVE void LightManager_setDirection(TLightManager *tLightManager, EntityId light, double x, double y, double z);

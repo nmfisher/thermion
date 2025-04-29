@@ -3,6 +3,7 @@
 #include "APIExport.h"
 #include "APIBoundaryTypes.h"
 #include "TMaterialInstance.h"
+#include "TTexture.h"
 
 #ifdef __cplusplus
 extern "C"

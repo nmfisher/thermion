@@ -21,6 +21,7 @@ extern "C"
 		A,		//!< Always. Depth / stencil testing is deactivated.
 		N		//!< Never. The depth / stencil test always fails.
 	};
+	typedef enum TSamplerCompareFunc TSamplerCompareFunc;
 
 	// StencilOperation equivalent
 	enum TStencilOperation
@@ -34,6 +35,7 @@ extern "C"
 		DECR_WRAP, // Decrement the current value without saturation
 		INVERT	   // Invert the current value
 	};
+	typedef enum TStencilOperation TStencilOperation;
 
 	enum TStencilFace
 	{
@@ -41,6 +43,7 @@ extern "C"
 		STENCIL_FACE_BACK = 2,
 		STENCIL_FACE_FRONT_AND_BACK = 3
 	};
+	typedef enum TStencilFace TStencilFace;
 
 	enum TCullingMode
 	{
@@ -49,6 +52,7 @@ extern "C"
 		CULLING_MODE_BACK,
 		CULLING_MODE_FRONT_AND_BACK
 	};
+	typedef enum TCullingMode TCullingMode;
 
 	enum TTransparencyMode { 
 		//! the transparent object is drawn honoring the raster state
@@ -66,6 +70,7 @@ extern "C"
 		 */
 		TWO_PASSES_TWO_SIDES
 	};
+	typedef enum TTransparencyMode TTransparencyMode;
 
 	EMSCRIPTEN_KEEPALIVE TMaterialInstance *Material_createInstance(TMaterial *tMaterial);
 	EMSCRIPTEN_KEEPALIVE TMaterial *Material_createImageMaterial(TEngine *tEngine);

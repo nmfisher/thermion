@@ -1,5 +1,6 @@
 #pragma once
 
+#include "TEngine.h"
 #include "TView.h"
 #include "TTexture.h"
 #include "TMaterialProvider.h"

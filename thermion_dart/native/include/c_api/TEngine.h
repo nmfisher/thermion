@@ -18,6 +18,7 @@ enum TBackend {
     BACKEND_METAL = 3,    //!< Selects the Metal driver if the platform supports it (default on MacOS/iOS).
     BACKEND_NOOP = 4,     //!< Selects the no-op driver for testing purposes.
 };
+typedef enum TBackend TBackend;
 
 EMSCRIPTEN_KEEPALIVE TEngine *Engine_create(
     TBackend backend,
