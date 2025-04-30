@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/filament/src/scene.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 import 'ffi_camera.dart';
@@ -24,14 +24,24 @@ class FFIView extends View {
 
   FFIRenderTarget? renderTarget;
 
+  late CallbackHolder<PickCallbackFunction> _onPickResultHolder;
+
+
   FFIView(this.view, this.app) {
     final renderTargetPtr = View_getRenderTarget(view);
     if (renderTargetPtr != nullptr) {
       renderTarget = FFIRenderTarget(renderTargetPtr, app);
     }
     
-    _onPickResultCallable =
-        NativeCallable<PickCallbackFunction>.listener(_onPickResult);
+    _onPickResultHolder =
+        _onPickResult.asCallback();
+  }
+
+  ///
+  ///
+  ///
+  Future dispose() async {
+    _onPickResultHolder.dispose();
   }
 
   ///
@@ -76,7 +86,7 @@ class FFIView extends View {
 
   @override
   Future<Viewport> getViewport() async {
-    TViewport vp = View_getViewport(view);
+    final vp = View_getViewport(view);
     return Viewport(vp.left, vp.bottom, vp.width, vp.height);
   }
 
@@ -141,7 +151,7 @@ class FFIView extends View {
 
   @override
   Future setRenderQuality(QualityLevel quality) async {
-    View_setRenderQuality(view, TQualityLevel.values[quality.index]);
+    View_setRenderQuality(view, quality.index);
   }
 
   Future setScene(covariant FFIScene scene) async {
@@ -154,7 +164,7 @@ class FFIView extends View {
   }
 
   Future setBlendMode(BlendMode blendMode) async {
-    View_setBlendMode(view, TBlendMode.values[blendMode.index]);
+    View_setBlendMode(view, blendMode.index);
   }
 
   @override
@@ -168,7 +178,6 @@ class FFIView extends View {
   static int kMaxPickRequests = 1024;
   final _pickRequests = List<({void Function(PickResult) handler, int x, int y})?>.generate(kMaxPickRequests, (idx) => null);
   
-  late NativeCallable<PickCallbackFunction> _onPickResultCallable;
   
   ///
   ///
@@ -184,7 +193,7 @@ class FFIView extends View {
     y = viewport.height - y;
 
     View_pick(
-        view, pickRequestId, x, y, _onPickResultCallable.nativeFunction);
+        view, pickRequestId, x, y, _onPickResultHolder.pointer);
 
   }
 

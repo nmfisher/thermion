@@ -1,5 +1,5 @@
-import 'package:thermion_dart/src/filament/src/layers.dart';
-import 'package:thermion_dart/src/filament/src/scene.dart';
+import 'package:thermion_dart/src/filament/src/interface/layers.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 enum BlendMode { 
@@ -57,7 +57,10 @@ abstract class View {
   Future pick(int x, int y, void Function(PickResult) resultHandler);
 
   
-  
+  ///
+  ///
+  ///
+  Future dispose();
 
   
 }

@@ -1,16 +1,82 @@
 export 'thermion_dart_ffi.g.dart';
 
+export 'dart:typed_data';
 import 'dart:async';
-import 'dart:ffi';
-import 'package:ffi/ffi.dart';
+
+import 'package:thermion_dart/thermion_dart.dart';
 export 'package:ffi/ffi.dart';
 export 'dart:ffi';
 
-final allocator = calloc;
+class NativeLibrary {
+  static void initBindings(String name) {
+    throw Exception();
+  }
+}
 
-// Pointer makeFunction<T>(Function cb) {
-//   return NativeCallable.listener(cb);
+typedef IntPtrList = Int64List;
+typedef PointerClass<T extends NativeType> = Pointer<T>;
+typedef VoidPointerClass = Pointer<Void>;
+
+class CallbackHolder<T extends Function> {
+  
+  final NativeCallable<T> nativeCallable;
+
+  Pointer<NativeFunction<T>> get pointer => nativeCallable.nativeFunction;
+
+  CallbackHolder(this.nativeCallable);
+
+  void dispose() {
+    nativeCallable.close();
+  }
+}
+
+Pointer<T> allocate<T extends NativeType>(int count) {
+  return calloc.allocate<T>(count * sizeOf<Pointer>());
+}
+
+void free(Pointer ptr) {
+  calloc.free(ptr);
+}
+
+class FinalizableUint8List implements Finalizable {
+  final Pointer name;
+  final Uint8List data;
+
+  FinalizableUint8List(this.name, this.data);
+}
+
+// CallbackHolder<GizmoPickCallbackFunction> makeGizmoPickFunctionPointer(void Function(TGizmoPickResultType, double, double, double) fn) {
+//   final nc = NativeCallable<GizmoPickCallbackFunction>.listener(fn as DartGizmoPickCallbackFunction);
+//   final cbh = CallbackHolder(nc);
+//   return cbh;
 // }
+
+extension GPFBP on void Function(int, double, double, double) {
+  CallbackHolder<GizmoPickCallbackFunction> asCallback() {
+    var nativeCallable = NativeCallable<GizmoPickCallbackFunction>.listener(this);
+    return CallbackHolder(nativeCallable);
+  }
+}
+
+CallbackHolder<PickCallbackFunction> makePickCallbackFunctionPointer(DartPickCallbackFunction fn) {
+  final nc = NativeCallable<PickCallbackFunction>.listener(fn);
+  final cbh = CallbackHolder(nc);
+  return cbh;
+}
+
+extension VFB on void Function() {
+  CallbackHolder<Void Function()> asCallback() {
+    var nativeCallable = NativeCallable<Void Function()>.listener(this);
+    return CallbackHolder(nativeCallable);
+  }
+}
+
+extension PCBF on DartPickCallbackFunction {
+  CallbackHolder<PickCallbackFunction> asCallback() {
+    var nativeCallable = NativeCallable<PickCallbackFunction>.listener(this);
+    return CallbackHolder(nativeCallable);
+  }
+}
 
 Future<void> withVoidCallback(
     Function(Pointer<NativeFunction<Void Function()>>) func) async {
@@ -113,3 +179,19 @@ Future<String> withCharPtrCallback(
   nativeCallable.close();
   return completer.future;
 }
+
+extension FreeTypedData<T> on TypedData {
+  void free() {
+    // noop
+  }
+}
+
+T makeTypedData<T extends TypedData>(int length) {
+  TypedData typedData = switch(T) {
+    Uint8List => Uint8List(length),
+    Float32List => Float32List(length),
+    _ => throw UnimplementedError()
+  };
+  return typedData as T;
+}
+

@@ -1,5 +1,5 @@
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
-import 'package:thermion_dart/src/filament/src/scene.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/bindings/bindings.dart';
 
 class FFIScene extends Scene {

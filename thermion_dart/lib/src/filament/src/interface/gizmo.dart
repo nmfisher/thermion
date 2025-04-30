@@ -25,4 +25,7 @@ abstract class GizmoAsset extends ThermionAsset {
   Future unhighlight();
   bool isNonPickable(ThermionEntity entity);
   bool isGizmoEntity(ThermionEntity entity);
+    
+  Future dispose();
+    
 }

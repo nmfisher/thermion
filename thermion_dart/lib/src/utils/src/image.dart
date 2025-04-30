@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
+import 'package:thermion_dart/thermion_dart.dart';
 
 Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
     {bool hasAlpha = true, bool isFloat = false}) async {
@@ -8,7 +9,7 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
   final padding = rowSize - (width * 3);
   final fileSize = 54 + rowSize * height;
 
-  final data = Uint8List(fileSize);
+  final data = makeTypedData<Uint8List>(fileSize);
   final buffer = data.buffer;
   final bd = ByteData.view(buffer);
 

@@ -1,4 +1,4 @@
-import '../../viewer/viewer.dart';
+import '../../../viewer/viewer.dart';
 
 /// The result of a picking operation (see [ThermionViewer.pick] for more details).
 /// [x] and [y] refer to the original screen coordinates used to call [pick]; this should

@@ -1,7 +1,7 @@
 library;
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
-import 'package:thermion_dart/src/filament/src/layers.dart';
+import 'package:thermion_dart/src/filament/src/interface/layers.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 export 'geometry.dart';

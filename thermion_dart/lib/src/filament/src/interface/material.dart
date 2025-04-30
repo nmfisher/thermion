@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart';
 

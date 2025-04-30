@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import '../../viewer/viewer.dart';
+import '../../../viewer/viewer.dart';
 
 class Geometry {
   final Float32List vertices;

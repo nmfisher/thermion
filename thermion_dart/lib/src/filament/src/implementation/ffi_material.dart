@@ -1,9 +1,6 @@
 import 'dart:async';
-import 'dart:typed_data';
-
-import 'package:thermion_dart/src/bindings/bindings.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_texture.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_texture.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FFIMaterial extends Material {
@@ -73,8 +70,8 @@ class FFIMaterialInstance extends MaterialInstance {
 
   @override
   Future setParameterFloat3Array(String name, List<Vector3> array) async {
-    final ptr = name.toNativeUtf8(allocator: calloc).cast<Char>();
-    final data = Float64List(array.length * 3);
+    final ptr = name.toNativeUtf8().cast<Char>();
+    final data = makeTypedData<Float64List>(array.length * 3);
     int i = 0;
     for (final item in array) {
       data[i] = item.x;
@@ -84,7 +81,8 @@ class FFIMaterialInstance extends MaterialInstance {
     }
     MaterialInstance_setParameterFloat3Array(
         pointer, ptr, data.address, array.length * 3);
-    calloc.free(ptr);
+    free(ptr);
+    data.free();
   }
 
   @override
@@ -103,7 +101,7 @@ class FFIMaterialInstance extends MaterialInstance {
   @override
   Future setDepthFunc(SamplerCompareFunction depthFunc) async {
     MaterialInstance_setDepthFunc(
-        pointer, TSamplerCompareFunc.values[depthFunc.index]);
+        pointer, depthFunc.index);
   }
 
   @override
@@ -111,36 +109,36 @@ class FFIMaterialInstance extends MaterialInstance {
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
     MaterialInstance_setStencilCompareFunction(
         pointer,
-        TSamplerCompareFunc.values[func.index],
-        TStencilFace.values[face.index]);
+        func.index,
+        face.index);
   }
 
   @override
   Future setStencilOpDepthFail(StencilOperation op,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
     MaterialInstance_setStencilOpDepthFail(pointer,
-        TStencilOperation.values[op.index], TStencilFace.values[face.index]);
+        op.index, face.index);
   }
 
   @override
   Future setStencilOpDepthStencilPass(StencilOperation op,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
     MaterialInstance_setStencilOpDepthStencilPass(pointer,
-        TStencilOperation.values[op.index], TStencilFace.values[face.index]);
+        op.index, face.index);
   }
 
   @override
   Future setStencilOpStencilFail(StencilOperation op,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
     MaterialInstance_setStencilOpStencilFail(pointer,
-        TStencilOperation.values[op.index], TStencilFace.values[face.index]);
+        op.index, face.index);
   }
 
   @override
   Future setStencilReferenceValue(int value,
       [StencilFace face = StencilFace.FRONT_AND_BACK]) async {
     MaterialInstance_setStencilReferenceValue(
-        pointer, value, TStencilFace.values[face.index]);
+        pointer, value, face.index);
   }
 
   @override
@@ -151,7 +149,7 @@ class FFIMaterialInstance extends MaterialInstance {
   @override
   Future setCullingMode(CullingMode cullingMode) async {
     MaterialInstance_setCullingMode(
-        pointer, TCullingMode.values[cullingMode.index]);
+        pointer, cullingMode.index);;
   }
 
   @override
@@ -178,7 +176,7 @@ class FFIMaterialInstance extends MaterialInstance {
   @override
   Future setTransparencyMode(TransparencyMode mode) async {
     MaterialInstance_setTransparencyMode(
-        pointer, TTransparencyMode.values[mode.index]);
+        pointer, mode.index);
   }
 
   @override
@@ -201,8 +199,9 @@ class FFIMaterialInstance extends MaterialInstance {
       MaterialInstance_setParameterMat4(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
       completer.complete();
     };
-    final nativeCallable = NativeCallable<Void Function()>.listener(func);
-    RenderThread_addTask(nativeCallable.nativeFunction);
+    final callbackHolder = func.asCallback(); 
+
+    RenderThread_addTask(callbackHolder.pointer);
     await completer.future;
   }
 }

@@ -1,8 +1,7 @@
-import 'dart:typed_data';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-import '../../../../utils/src/matrix.dart';
+import '../../../utils/src/matrix.dart';
 
 class FFICamera extends Camera {
   final Pointer<TCamera> camera;
@@ -118,7 +117,7 @@ class FFICamera extends Camera {
   ///
   ///
   Future<Frustum> getFrustum() async {
-    var out = Float64List(24);
+    var out = makeTypedData<Float64List>(24);
     Camera_getFrustum(camera, out.address);
 
     var frustum = Frustum();
@@ -128,6 +127,7 @@ class FFICamera extends Camera {
     frustum.plane3.setFromComponents(out[12], out[13], out[14], out[15]);
     frustum.plane4.setFromComponents(out[16], out[17], out[18], out[19]);
     frustum.plane5.setFromComponents(out[20], out[21], out[22], out[23]);
+    out.free();
     return frustum;
   }
 
@@ -139,7 +139,7 @@ class FFICamera extends Camera {
   @override
   Future setProjection(Projection projection, double left, double right,
       double bottom, double top, double near, double far) async {
-    Camera_setProjection(camera, TProjection.values[projection.index], left,
+    Camera_setProjection(camera, projection.index, left,
         right, bottom, top, near, far);
   }
 

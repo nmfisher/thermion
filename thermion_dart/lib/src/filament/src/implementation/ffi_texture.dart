@@ -11,13 +11,15 @@ class FFITexture extends Texture {
 
   Future<void> setLinearImage(covariant FFILinearImage image,
       PixelDataFormat format, PixelDataType type) async {
+    final tPixelDataFormat = format.value;
+    final tPixelDataType = type.value;
     final result = await withBoolCallback((cb) {
       Texture_loadImageRenderThread(
           _engine,
           pointer,
           image.pointer,
-          format.index,
-          type.index,
+          tPixelDataFormat,
+          tPixelDataType,
           cb);
     });
 
@@ -114,28 +116,29 @@ class FFITexture extends Texture {
       Uint8List buffer,
       PixelDataFormat format,
       PixelDataType type) async {
-    final success = await withBoolCallback((cb) {
-      Texture_setImageWithDepthRenderThread(
-          _engine,
-          pointer,
-          level,
-          buffer.address,
-          buffer.lengthInBytes,
-          0,
-          0,
-          zOffset,
-          width,
-          height,
-          channels,
-          depth,
-          format.index,
-          type.index,
-          cb);
-    });
+        throw UnimplementedError();
+    // final success = await withBoolCallback((cb) {
+    //   Texture_setImageWithDepthRenderThread(
+    //       _engine,
+    //       pointer,
+    //       level,
+    //       buffer.address,
+    //       buffer.lengthInBytes,
+    //       0,
+    //       0,
+    //       zOffset,
+    //       width,
+    //       height,
+    //       channels,
+    //       depth,
+    //       format.index,
+    //       type.index,
+    //       cb);
+    // });
 
-    if (!success) {
-      throw Exception("Failed to set image");
-    }
+    // if (!success) {
+    //   throw Exception("Failed to set image");
+    // }
   }
 
   @override
@@ -171,16 +174,12 @@ class FFILinearImage extends LinearImage {
       [String name = "image"]) async {
     final namePtr = name.toNativeUtf8();
 
-    try {
-      final imagePtr = await withPointerCallback<TLinearImage>((cb) {
-        Image_decodeRenderThread(
-            data.address, data.lengthInBytes, namePtr.cast(), cb);
-      });
+    final imagePtr = await withPointerCallback<TLinearImage>((cb) {
+      Image_decodeRenderThread(
+          data.address, data.lengthInBytes, namePtr.cast(), cb);
+    });
 
-      return FFILinearImage(imagePtr);
-    } finally {
-      calloc.free(namePtr);
-    }
+    return FFILinearImage(imagePtr);
   }
 
   Future<void> destroy() async {

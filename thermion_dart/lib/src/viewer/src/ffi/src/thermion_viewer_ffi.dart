@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:thermion_dart/src/viewer/src/ffi/src/background_image.dart';
-import 'ffi_asset.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'ffi_scene.dart';
-import 'grid_overlay.dart';
+import 'package:thermion_dart/src/filament/src/implementation/background_image.dart';
+import '../../../../filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import '../../../../filament/src/implementation/ffi_scene.dart';
+import '../../../../filament/src/implementation/grid_overlay.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:logging/logging.dart';
 
 
-import 'ffi_camera.dart';
-import 'ffi_view.dart';
+import '../../../../filament/src/implementation/ffi_camera.dart';
+import '../../../../filament/src/implementation/ffi_view.dart';
 
 const FILAMENT_ASSET_ERROR = 0;
 
@@ -302,7 +302,7 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
     var entity = LightManager_createLight(app.engine, app.lightManager,
-        TLightType.values[directLight.type.index]);
+        directLight.type.index);
     if (entity == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to add light to scene");
     }

@@ -1,17 +1,13 @@
-import 'dart:typed_data';
-
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/filament/src/layers.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
-import 'package:thermion_dart/src/bindings/bindings.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 
 class FFIAsset extends ThermionAsset {
+  
   ///
   ///
   ///
@@ -52,15 +48,19 @@ class FFIAsset extends ThermionAsset {
     entity = SceneAsset_getEntity(asset);
   }
 
+  Int32List? _childEntities;
+
   ///
   ///
   ///
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
-    var count = SceneAsset_getChildEntityCount(asset);
-    var children = Int32List(count);
-    SceneAsset_getChildEntities(asset, children.address);
-    return children;
+    if(_childEntities == null) {
+      var count = SceneAsset_getChildEntityCount(asset);
+      _childEntities = makeTypedData<Int32List>(count);
+      SceneAsset_getChildEntities(asset, _childEntities!.address);
+    }
+    return _childEntities!;
   }
 
   ///
@@ -118,9 +118,8 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<FFIAsset> createInstance(
       {covariant List<MaterialInstance>? materialInstances = null}) async {
-    var created = await withPointerCallback<TSceneAsset>((cb) {
-      var ptrList = Int64List(materialInstances?.length ?? 0);
-      if (materialInstances != null && materialInstances.isNotEmpty) {
+    var ptrList = makeTypedData<IntPtrList>(materialInstances?.length ?? 0);
+    if (materialInstances != null && materialInstances.isNotEmpty) {
         ptrList.setRange(
             0,
             materialInstances.length,
@@ -130,12 +129,16 @@ class FFIAsset extends ThermionAsset {
                 .toList());
       }
 
+    var created = await withPointerCallback<TSceneAsset>((cb) {
+      
       SceneAsset_createInstanceRenderThread(
           asset,
-          ptrList.address.cast<Pointer<TMaterialInstance>>(),
+          ptrList.address.cast(),
           materialInstances?.length ?? 0,
           cb);
     });
+
+    ptrList.free();
     if (created == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create instance");
     }
@@ -254,6 +257,13 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   ///
+  Future dispose() async {
+    _childEntities?.free();
+  }
+
+  ///
+  ///
+  ///
   Future<v64.Aabb3> getBoundingBox() async {
     final entities = <ThermionEntity>[];
     if (RenderableManager_isRenderable(app.renderableManager, entity)) {
@@ -295,7 +305,7 @@ class FFIAsset extends ThermionAsset {
 
       // Create vertices for the bounding box wireframe
       // 8 vertices for a cube
-      final vertices = Float32List(8 * 3);
+      final vertices = makeTypedData<Float32List>(8 * 3);
 
       // Bottom vertices
       vertices[0] = min[0];
@@ -366,6 +376,8 @@ class FFIAsset extends ThermionAsset {
 
       TransformManager_setParent(Engine_getTransformManager(app.engine),
           boundingBoxAsset!.entity, entity, false);
+
+      geometry.vertices.free();
     }
     return boundingBoxAsset!;
   }
@@ -461,7 +473,7 @@ class FFIAsset extends ThermionAsset {
     if (weights.isEmpty) {
       throw Exception("Weights must not be empty");
     }
-    var weightsPtr = allocator<Float>(weights.length);
+    var weightsPtr = allocate<Float>(weights.length);
 
     for (int i = 0; i < weights.length; i++) {
       weightsPtr[i] = weights[i];
@@ -470,7 +482,7 @@ class FFIAsset extends ThermionAsset {
       AnimationManager_setMorphTargetWeightsRenderThread(
           animationManager, entity, weightsPtr, weights.length, cb);
     });
-    allocator.free(weightsPtr);
+    free(weightsPtr);
 
     if (!success) {
       throw Exception(
@@ -489,13 +501,13 @@ class FFIAsset extends ThermionAsset {
 
     var count = AnimationManager_getMorphTargetNameCount(
         animationManager, asset, entity);
-    var outPtr = allocator<Char>(255);
+    var outPtr = allocate<Char>(255);
     for (int i = 0; i < count; i++) {
       AnimationManager_getMorphTargetName(
           animationManager, asset, entity, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
-    allocator.free(outPtr);
+    free(outPtr);
     return names.cast<String>();
   }
 
@@ -505,9 +517,9 @@ class FFIAsset extends ThermionAsset {
   Future<List<String>> getBoneNames({int skinIndex = 0}) async {
     var count =
         AnimationManager_getBoneCount(animationManager, asset, skinIndex);
-    var out = allocator<Pointer<Char>>(count);
+    var out = allocate<PointerClass<Char>>(count);
     for (int i = 0; i < count; i++) {
-      out[i] = allocator<Char>(255);
+      out[i] = allocate<Char>(255);
     }
 
     AnimationManager_getBoneNames(animationManager, asset, out, skinIndex);
@@ -516,6 +528,10 @@ class FFIAsset extends ThermionAsset {
       var namePtr = out[i];
       names.add(namePtr.cast<Utf8>().toDartString());
     }
+    for (int i = 0; i < count; i++) {
+      free(out[i]);
+    }
+    free(out);
     return names;
   }
 
@@ -527,12 +543,12 @@ class FFIAsset extends ThermionAsset {
     var animationCount =
         AnimationManager_getAnimationCount(animationManager, asset);
     var names = <String>[];
-    var outPtr = allocator<Char>(255);
+    var outPtr = allocate<Char>(255);
     for (int i = 0; i < animationCount; i++) {
       AnimationManager_getAnimationName(animationManager, asset, outPtr, i);
       names.add(outPtr.cast<Utf8>().toDartString());
     }
-    allocator.free(outPtr);
+    free(outPtr);
 
     return names;
   }
@@ -659,7 +675,7 @@ class FFIAsset extends ThermionAsset {
       throw UnimplementedError("TODO - support skinIndex != 0 ");
     }
     var boneNames = await getBoneNames();
-    var restLocalTransformsRaw = allocator<Float>(boneNames.length * 16);
+    var restLocalTransformsRaw = allocate<Float>(boneNames.length * 16);
     AnimationManager_getRestLocalTransforms(animationManager, asset, skinIndex,
         restLocalTransformsRaw, boneNames.length);
 
@@ -671,11 +687,11 @@ class FFIAsset extends ThermionAsset {
       }
       restLocalTransforms.add(Matrix4.fromList(values));
     }
-    allocator.free(restLocalTransformsRaw);
+    free(restLocalTransformsRaw);
 
     var numFrames = animation.frameData.length;
 
-    var data = allocator<Float>(numFrames * 16);
+    var data = allocate<Float>(numFrames * 16);
 
     var bones = await Future.wait(List<Future<ThermionEntity>>.generate(
         boneNames.length, (i) => getBone(i)));
@@ -720,7 +736,7 @@ class FFIAsset extends ThermionAsset {
               baseTransform * (worldInverse * frameTransform * world);
         }
         for (int j = 0; j < 16; j++) {
-          data.elementAt((frameNum * 16) + j).value =
+          data[(frameNum * 16) + j] =
               newLocalTransform.storage[j];
         }
       }
@@ -737,7 +753,7 @@ class FFIAsset extends ThermionAsset {
           fadeInInSecs,
           maxDelta);
     }
-    allocator.free(data);
+    free(data);
   }
 
   ///
@@ -786,10 +802,12 @@ class FFIAsset extends ThermionAsset {
   ///
   Future<Matrix4> getInverseBindMatrix(int boneIndex,
       {int skinIndex = 0}) async {
-    var matrix = Float32List(16);
+    var matrixIn = makeTypedData<Float32List>(16);
     AnimationManager_getInverseBindMatrix(
-        animationManager, asset, skinIndex, boneIndex, matrix.address);
-    return Matrix4.fromList(matrix);
+        animationManager, asset, skinIndex, boneIndex, matrixIn.address);
+    var matrixOut = Matrix4.fromList(matrixIn);
+    matrixIn.free();
+    return matrixOut;
   }
 
   ///
@@ -813,7 +831,7 @@ class FFIAsset extends ThermionAsset {
     if (skinIndex != 0) {
       throw UnimplementedError("TOOD");
     }
-    final ptr = allocator<Float>(16);
+    final ptr = allocate<Float>(16);
     for (int i = 0; i < 16; i++) {
       ptr[i] = transform.storage[i];
     }
@@ -822,7 +840,7 @@ class FFIAsset extends ThermionAsset {
           animationManager, entity, skinIndex, boneIndex, ptr, cb);
     });
 
-    allocator.free(ptr);
+    free(ptr);
     if (!result) {
       throw Exception("Failed to set bone transform");
     }

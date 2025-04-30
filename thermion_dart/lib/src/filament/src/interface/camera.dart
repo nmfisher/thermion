@@ -1,4 +1,4 @@
-import 'package:thermion_dart/src/filament/src/layers.dart';
+import 'package:thermion_dart/src/filament/src/interface/layers.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 enum Projection { Perspective, Orthographic }

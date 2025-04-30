@@ -1,15 +1,11 @@
-import 'dart:typed_data';
-import 'package:thermion_dart/src/filament/src/engine.dart';
-import 'package:thermion_dart/src/filament/src/scene.dart';
-import 'package:thermion_dart/src/bindings/bindings.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_material.dart';
+import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class FilamentConfig<T, U> {
   final Backend backend;
   final T? renderCallback;
   final U? renderCallbackOwner;
-  final Future<Uint8List> Function(String) resourceLoader;
+  Future<Uint8List> Function(String)? resourceLoader;
   final U? platform;
   final U? sharedContext;
   final String? uberArchivePath;
