@@ -13,6 +13,8 @@
 #include <emscripten/threading.h>
 #include <emscripten/val.h>
 #include <emscripten/fetch.h>
+#include <emscripten/console.h>
+#include <emscripten/bind.h>
 
 using emscripten::val;
 
@@ -67,6 +69,28 @@ extern "C"
     return context;
   }
 
-  int _lastResourceId = 0;
+  emscripten::val emscripten_make_uint8_buffer(int ptr, int length) {
+    uint8_t *buffer = (uint8_t*)ptr;
+    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
+    emscripten_console_logf("offset %d", v["byteOffset"].as<int>());
+    return v;
+  }
+
+  emscripten::val emscripten_make_int32_buffer(int ptr, int length) {
+    int32_t *buffer = (int32_t*)ptr;
+    auto v = emscripten::val(emscripten::typed_memory_view(length, buffer));
+    emscripten_console_logf("offset %d", v["byteOffset"].as<int>());
+    return v;
+  }
+
+  intptr_t emscripten_get_byte_offset(emscripten::val v) {
+    return v["byteOffset"].as<int>();
+  }
+
+EMSCRIPTEN_BINDINGS(module) {
+  emscripten::function("_emscripten_make_uint8_buffer", &emscripten_make_uint8_buffer, emscripten::allow_raw_pointers());
+  emscripten::function("_emscripten_make_int32_buffer", &emscripten_make_int32_buffer, emscripten::allow_raw_pointers());
+  emscripten::function("_emscripten_get_byte_offset", &emscripten_get_byte_offset, emscripten::allow_raw_pointers());
+}
   
 }
