@@ -11,11 +11,8 @@
 #include <utils/Panic.h>
 #include <utils/Systrace.h>
 #ifdef __EMSCRIPTEN__
-#include <emscripten.h>
 #include <emscripten/html5.h>
 #include <emscripten/threading.h>
-#include <filament/webgl/WebEngine.h>
-#include <sys/types.h>
 #endif
 #include <filament/Box.h>
 #include <filament/Camera.h>
@@ -103,9 +100,6 @@ namespace thermion
     }
       #endif
     }
-#ifdef __EMSCRIPTEN__
-    _engine->execute();
-#endif
   }
 
   void RenderTicker::addAnimationManager(AnimationManager* animationManager) {
