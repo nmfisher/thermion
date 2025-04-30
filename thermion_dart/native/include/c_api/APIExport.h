@@ -1,5 +1,5 @@
-#ifndef _API_EXPORT_H
-#define _API_EXPORT_H
+#pragma once
+
 #ifdef _WIN32
 #ifdef IS_DLL
 #define EMSCRIPTEN_KEEPALIVE __declspec(dllimport)
@@ -43,5 +43,4 @@
 
 #if defined(__APPLE__) || defined(__EMSCRIPTEN__)
 #include <stddef.h>
-#endif
 #endif
