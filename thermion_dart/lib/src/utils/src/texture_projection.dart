@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_render_target.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_view.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_scene.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 class TextureProjection {
