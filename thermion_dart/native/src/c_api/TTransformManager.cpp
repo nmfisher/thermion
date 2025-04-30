@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif 
+
 #include <utils/Entity.h>
 #include <filament/TransformManager.h>
 #include <filament/math/mat4.h>

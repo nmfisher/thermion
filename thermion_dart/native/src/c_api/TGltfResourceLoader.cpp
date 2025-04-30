@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif 
+
 #include "c_api/TGltfResourceLoader.h"
 
 #include <filament/Engine.h>

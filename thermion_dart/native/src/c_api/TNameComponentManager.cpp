@@ -1,5 +1,10 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif 
+
 #include <utils/NameComponentManager.h>
 
+#include "Log.hpp"
 #include "c_api/APIExport.h"
 #include "c_api/APIBoundaryTypes.h"
 

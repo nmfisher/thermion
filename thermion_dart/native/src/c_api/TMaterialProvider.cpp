@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif 
+
 #include <filament/MaterialInstance.h>
 #include <gltfio/MaterialProvider.h>
 #include <math/mat4.h>
