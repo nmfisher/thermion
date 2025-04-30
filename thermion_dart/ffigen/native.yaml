@@ -1,4 +1,4 @@
-output: '../lib/src/viewer/src/ffi/src/thermion_dart.g.dart'
+output: '../lib/src/bindings/src/thermion_dart_ffi.g.dart'
 headers:
   entry-points:
     - '../native/include/c_api/*.h'
@@ -14,7 +14,4 @@ functions:
 enums:
   as-int:
     include:
-      - TPrimitiveType
-      - TPixelDataFormat
-      - TPixelDataType
-      
+      - .*

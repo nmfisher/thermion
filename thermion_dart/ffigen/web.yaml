@@ -16,9 +16,10 @@ unions:
   dependency-only: opaque
   exclude: 
     - '.*'
-globals:
-  exclude: 
-    - '.*'
 ffi-native:
   assetId: thermion_dart
 ignore-source-errors: true
+enums:
+  as-int:
+    include:
+      - .*
