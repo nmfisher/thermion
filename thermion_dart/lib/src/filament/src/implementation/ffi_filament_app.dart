@@ -504,7 +504,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final swapchain = _swapChains.keys.first;
     final view = _swapChains[swapchain]!.first;
     await withBoolCallback((cb) {
-      Renderer_beginFrameRenderThread(renderer, swapchain.swapChain, 0, cb);
+      Renderer_beginFrameRenderThread(renderer, swapchain.swapChain, 0.toBigInt, cb);
     });
     await withVoidCallback((cb) {
       Renderer_renderRenderThread(
@@ -674,7 +674,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await updateRenderOrder();
 
     await withBoolCallback((cb) {
-      Renderer_beginFrameRenderThread(renderer, swapChain!.swapChain, 0, cb);
+      Renderer_beginFrameRenderThread(renderer, swapChain!.swapChain, 0.toBigInt, cb);
     });
     final views = <FFIView>[];
     if (view != null) {
