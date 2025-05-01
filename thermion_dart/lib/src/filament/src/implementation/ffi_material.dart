@@ -194,14 +194,6 @@ class FFIMaterialInstance extends MaterialInstance {
 
   @override
   Future setParameterMat4(String name, Matrix4 matrix) async {
-    final completer = Completer();
-    final func = () {
       MaterialInstance_setParameterMat4(pointer, name.toNativeUtf8().cast<Char>(), matrix.storage.address);
-      completer.complete();
-    };
-    final callbackHolder = func.asCallback(); 
-
-    RenderThread_addTask(callbackHolder.pointer);
-    await completer.future;
   }
 }
