@@ -336,14 +336,14 @@ class FFIAsset extends ThermionAsset {
       vertices[23] = max[2]; // v7
 
       // Indices for lines (24 indices for 12 lines)
-      final indices = [
+      final indices = makeTypedDataFromIntList<Uint16List>([
         // Bottom face
         0, 1, 1, 2, 2, 3, 3, 0,
         // Top face
         4, 5, 5, 6, 6, 7, 7, 4,
         // Vertical edges
         0, 4, 1, 5, 2, 6, 3, 7
-      ];
+      ]);
 
       // Create unlit material instance for the wireframe
       final materialInstancePtr =
@@ -376,8 +376,10 @@ class FFIAsset extends ThermionAsset {
 
       TransformManager_setParent(Engine_getTransformManager(app.engine),
           boundingBoxAsset!.entity, entity, false);
-
+      geometry.uvs?.free()
+      geometry.normals?.free();
       geometry.vertices.free();
+      geometry.indices.free();
     }
     return boundingBoxAsset!;
   }
