@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
@@ -57,14 +58,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             lightManager: lightManager,
             renderableManager: renderableManager,
             ubershaderMaterialProvider: ubershaderMaterialProvider) {
-              
-        this.resourceLoader = resourceLoader ?? defaultResourceLoader;
-    }
+    this.resourceLoader = resourceLoader ?? defaultResourceLoader;
+  }
 
   static Future create({FFIFilamentConfig? config}) async {
-
     config ??= FFIFilamentConfig();
-    
+
     if (FilamentApp.instance != null) {
       await FilamentApp.instance!.destroy();
     }
@@ -114,15 +113,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   final _swapChains = <FFISwapChain, List<FFIView>>{};
-  late Pointer<PointerClass<TView>> viewsPtr = allocate<PointerClass<TView>>(255);
+  late Pointer<PointerClass<TView>> viewsPtr =
+      allocate<PointerClass>(255).cast();
 
   ///
   ///
   ///
   Future updateRenderOrder() async {
+    _logger.info("updateRenderOrder");
+    if (_swapChains.length == 0) {
+      _logger.warning("No swapchains, ignoring updateRenderOrder");
+    }
     for (final swapChain in _swapChains.keys) {
       final views = _swapChains[swapChain];
       if (views == null) {
+        _logger.info("No views found for swapchain $swapChain");
         continue;
       }
 
@@ -135,6 +140,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
       RenderTicker_setRenderable(
           renderTicker, swapChain.swapChain, viewsPtr, numRenderable);
+      _logger.info("Updated render order, $numRenderable renderable views");
     }
   }
 
@@ -323,24 +329,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       TextureCompareMode compareMode = TextureCompareMode.NONE,
       TextureCompareFunc compareFunc = TextureCompareFunc.LESS_EQUAL}) async {
     final samplerPtr = TextureSampler_create();
-    TextureSampler_setMinFilter(
-        samplerPtr, minFilter.index);
-    TextureSampler_setMagFilter(
-        samplerPtr, magFilter.index);
-    TextureSampler_setWrapModeS(
-        samplerPtr, wrapS.index);
-    TextureSampler_setWrapModeT(
-        samplerPtr, wrapT.index);
-    TextureSampler_setWrapModeR(
-        samplerPtr, wrapR.index);
+    TextureSampler_setMinFilter(samplerPtr, minFilter.index);
+    TextureSampler_setMagFilter(samplerPtr, magFilter.index);
+    TextureSampler_setWrapModeS(samplerPtr, wrapS.index);
+    TextureSampler_setWrapModeT(samplerPtr, wrapT.index);
+    TextureSampler_setWrapModeR(samplerPtr, wrapR.index);
     if (anisotropy > 0) {
       TextureSampler_setAnisotropy(samplerPtr, anisotropy);
     }
 
     TextureSampler_setCompareMode(
-        samplerPtr,
-        compareMode.index,
-        compareFunc.index);
+        samplerPtr, compareMode.index, compareFunc.index);
 
     return FFITextureSampler(samplerPtr);
   }
@@ -514,10 +513,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         cb,
       );
     });
-
     await withVoidCallback((cb) {
       Renderer_endFrameRenderThread(renderer, cb);
     });
+    await withVoidCallback((cb) => Engine_executeRenderThread(engine, cb));
   }
 
   ///
@@ -690,7 +689,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       beforeRender?.call(view);
 
       final viewport = await view.getViewport();
-      final pixelBuffer = makeTypedData<Uint8List>(viewport.width * viewport.height * 4 * sizeOf<Float>());
+      final pixelBuffer = makeTypedData<Uint8List>(
+          viewport.width * viewport.height * 4 * sizeOf<Float>());
       await withVoidCallback((cb) {
         Renderer_renderRenderThread(
           renderer,
@@ -727,7 +727,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     });
 
     await withVoidCallback((cb) {
-      Engine_flushAndWaitRenderThead(engine, cb);
+      Engine_flushAndWaitRenderThread(engine, cb);
     });
     return pixelBuffers;
   }
@@ -847,9 +847,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   Future<Pointer<TColorGrading>> createColorGrading(ToneMapper mapper) async {
-    return withPointerCallback<TColorGrading>((cb) =>
-        ColorGrading_createRenderThread(
-            engine, mapper.index, cb));
+    return withPointerCallback<TColorGrading>(
+        (cb) => ColorGrading_createRenderThread(engine, mapper.index, cb));
   }
 
   FFIMaterial? _gizmoMaterial;
@@ -919,22 +918,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               .toList());
     }
     var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
-      
-
-      return SceneAsset_createGeometryRenderThread(
+      var ptr = SceneAsset_createGeometryRenderThread(
           engine,
           geometry.vertices.address,
           geometry.vertices.length,
-          geometry.normals.address,
-          geometry.normals.length,
-          geometry.uvs.address,
-          geometry.uvs.length,
+          geometry.normals?.address ?? nullptr,
+          geometry.normals?.length ?? 0,
+          geometry.uvs?.address ?? nullptr,
+          geometry.uvs?.length ?? 0,
           geometry.indices.address,
           geometry.indices.length,
           geometry.primitiveType.index,
           ptrList.address.cast(),
           ptrList.length,
           callback);
+      return ptr;
     });
 
     ptrList.free();
@@ -949,7 +947,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future flush() async {
-    await withVoidCallback((cb) => Engine_flushAndWaitRenderThead(engine, cb));
+    await withVoidCallback((cb) => Engine_flushAndWaitRenderThread(engine, cb));
   }
 
   final _onDestroy = <Future Function()>[];

@@ -352,3 +352,9 @@ Future<String> withCharPtrCallback(
   // nativeCallable.close();
   return completer.future;
 }
+
+extension DartBigIntExtension on int {
+  BigInt get toBigInt {
+    return BigInt.from(this);
+  }
+}

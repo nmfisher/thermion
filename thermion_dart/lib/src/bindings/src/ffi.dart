@@ -216,3 +216,9 @@ T makeTypedDataFromDoubleList<T extends TypedData>(List<double> src) {
 
   return typedData as T;
 }
+
+extension DartBigIntExtension on int {
+  int get toBigInt {
+    return this;
+  }
+}
