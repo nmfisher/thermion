@@ -122,7 +122,7 @@ extension PointerPointerClass<T extends NativeType>
     on Pointer<PointerClass<T>> {
   operator [](int i) => this + i;
   operator []=(int i, Pointer<T> value) {
-    throw Exception();
+    _lib.setValue(this + (i * 4), value.addr.toJS, 'i64');
   }
 }
 
@@ -301,6 +301,8 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external Pointer<T> _malloc<T extends NativeType>(int numBytes);
   external void _free(Pointer ptr);
 
+  @JS('getValue')
+  external JSBigInt getValueBigInt(Pointer addr, String llvmType);
   external JSNumber getValue(Pointer addr, String llvmType);
   external void setValue(Pointer addr, JSNumber value, String llvmType);
 
@@ -321,7 +323,16 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void removeFunction<T>(Pointer<NativeFunction<T>> f);
   external JSUint8Array get HEAPU8;
 
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext();
+  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(
+    // bool alpha,
+    // bool depth,
+    // bool stencil,
+    // bool antiAlias,
+    // bool explicitSwapControl,
+    // bool preserveDrawingBuffer,
+    // int proxyMode,
+    // bool renderViaOffscreenBackBuffer
+  );
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
@@ -614,7 +625,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TEngine> tEngine,
     int width,
     int height,
-    int flags,
+    JSBigInt flags,
   );
   external void _Engine_destroySwapChain(
     Pointer<TEngine> tEngine,
@@ -834,7 +845,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _RenderTicker_renderRenderThread(
     Pointer<TRenderTicker> tRenderTicker,
-    int frameTimeInNanos,
+    JSBigInt frameTimeInNanos,
     Pointer<self.NativeFunction<void Function()>> onComplete,
   );
   external void _AnimationManager_createRenderThread(
@@ -868,7 +879,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TEngine> tEngine,
     int width,
     int height,
-    int flags,
+    JSBigInt flags,
     Pointer<self.NativeFunction<void Function(PointerClass<TSwapChain>)>>
         onComplete,
   );
@@ -960,7 +971,11 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TFence> tFence,
     Pointer<self.NativeFunction<void Function()>> onComplete,
   );
-  external void _Engine_flushAndWaitRenderThead(
+  external void _Engine_flushAndWaitRenderThread(
+    Pointer<TEngine> tEngine,
+    Pointer<self.NativeFunction<void Function()>> onComplete,
+  );
+  external void _Engine_executeRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<self.NativeFunction<void Function()>> onComplete,
   );
@@ -995,7 +1010,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _Renderer_beginFrameRenderThread(
     Pointer<TRenderer> tRenderer,
     Pointer<TSwapChain> tSwapChain,
-    int frameTimeInNanos,
+    JSBigInt frameTimeInNanos,
     Pointer<self.NativeFunction<void Function(bool)>> onComplete,
   );
   external void _Renderer_endFrameRenderThread(
@@ -1991,29 +2006,44 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext() {
-  final result = _lib._Thermion_createGLContext();
+DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(
+  // bool alpha,
+  //   bool depth,
+  //   bool stencil,
+  //   bool antiAlias,
+  //   bool explicitSwapControl,
+  //   bool preserveDrawingBuffer,
+  //   int proxyMode,
+  //   bool renderViaOffscreenBackBuffer
+    ) {
+  final result = _lib._Thermion_createGLContext(
+    // alpha, depth, stencil, antiAlias, explicitSwapControl, preserveDrawingBuffer, proxyMode, renderViaOffscreenBackBuffer
+    );
   return result;
 }
 
 int get TSWAP_CHAIN_CONFIG_TRANSPARENT {
-  return _lib.getValue(_lib._TSWAP_CHAIN_CONFIG_TRANSPARENT, "ui64").toDartInt;
+  final bi = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_TRANSPARENT, "i64");
+  final dartVal = int.parse(bi.toString());
+  return dartVal;
 }
 
 int get TSWAP_CHAIN_CONFIG_READABLE {
-  return _lib.getValue(_lib._TSWAP_CHAIN_CONFIG_READABLE, "ui64").toDartInt;
+  final bi = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_READABLE, "i64");
+  final dartVal = int.parse(bi.toString());
+  return dartVal;
 }
 
 int get TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER {
-  return _lib
-      .getValue(_lib._TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER, "ui64")
-      .toDartInt;
+  final bi = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER, "i64");
+  final dartVal = int.parse(bi.toString());
+  return dartVal;
 }
 
 int get TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER {
-  return _lib
-      .getValue(_lib._TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER, "ui64")
-      .toDartInt;
+  final bi = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER, "i64");
+  final dartVal = int.parse(bi.toString());
+  return dartVal;
 }
 
 self.Pointer<TMaterialInstance> Material_createInstance(
@@ -2589,7 +2619,7 @@ self.Pointer<TSwapChain> Engine_createHeadlessSwapChain(
   int flags,
 ) {
   final result =
-      _lib._Engine_createHeadlessSwapChain(tEngine, width, height, flags);
+      _lib._Engine_createHeadlessSwapChain(tEngine, width, height, bigInt(flags.toString()));
   return self.Pointer<TSwapChain>(result);
 }
 
@@ -3037,14 +3067,17 @@ void RenderThread_addTask(
   final result = _lib._RenderThread_addTask(task.cast());
   return result;
 }
+@JS('BigInt')
+external JSBigInt bigInt(String s);
 
 void RenderTicker_renderRenderThread(
   self.Pointer<TRenderTicker> tRenderTicker,
   int frameTimeInNanos,
   self.Pointer<self.NativeFunction<void Function()>> onComplete,
 ) {
+  final jbi = bigInt(frameTimeInNanos.toString());
   final result = _lib._RenderTicker_renderRenderThread(
-      tRenderTicker, frameTimeInNanos, onComplete.cast());
+      tRenderTicker, jbi, onComplete.cast());
   return result;
 }
 
@@ -3108,7 +3141,7 @@ void Engine_createHeadlessSwapChainRenderThread(
       onComplete,
 ) {
   final result = _lib._Engine_createHeadlessSwapChainRenderThread(
-      tEngine, width, height, flags, onComplete.cast());
+      tEngine, width, height, bigInt(flags.toString()), onComplete.cast());
   return result;
 }
 
@@ -3277,12 +3310,21 @@ void Engine_destroyFenceRenderThread(
   return result;
 }
 
-void Engine_flushAndWaitRenderThead(
+void Engine_flushAndWaitRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<self.NativeFunction<void Function()>> onComplete,
 ) {
   final result =
-      _lib._Engine_flushAndWaitRenderThead(tEngine, onComplete.cast());
+      _lib._Engine_flushAndWaitRenderThread(tEngine, onComplete.cast());
+  return result;
+}
+
+void Engine_executeRenderThread(
+  self.Pointer<TEngine> tEngine,
+  self.Pointer<self.NativeFunction<void Function()>> onComplete,
+) {
+  final result =
+      _lib._Engine_executeRenderThread(tEngine, onComplete.cast());
   return result;
 }
 
@@ -3335,7 +3377,7 @@ void Renderer_beginFrameRenderThread(
   self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = _lib._Renderer_beginFrameRenderThread(
-      tRenderer, tSwapChain, frameTimeInNanos, onComplete.cast());
+      tRenderer, tSwapChain, bigInt(frameTimeInNanos.toString()), onComplete.cast());
   return result;
 }
 
