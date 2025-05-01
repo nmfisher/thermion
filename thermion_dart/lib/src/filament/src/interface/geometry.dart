@@ -1,24 +1,27 @@
 import 'dart:typed_data';
 
+import 'package:thermion_dart/src/bindings/bindings.dart';
+import 'package:thermion_dart/src/bindings/src/js_interop.dart';
+
 import '../../../viewer/viewer.dart';
 
 class Geometry {
   final Float32List vertices;
   final Uint16List indices;
-  final Float32List normals;
-  final Float32List uvs;
+  final Float32List? normals;
+  final Float32List? uvs;
   final PrimitiveType primitiveType;
 
   Geometry(
     this.vertices,
-    List<int> indices, {
-    Float32List? normals,
-    Float32List? uvs,
+    this.indices, {
+    this.normals,
+    this.uvs,
     this.primitiveType = PrimitiveType.TRIANGLES,
-  })  : indices = Uint16List.fromList(indices),
-        normals = normals ?? Float32List(0),
-        uvs = uvs ?? Float32List(0) {
-    assert(this.uvs.length == 0 || this.uvs.length == (vertices.length ~/ 3 * 2), "Expected either zero or ${indices.length * 2} UVs, got ${this.uvs.length}");
+  }) {
+    if(this.uvs != null && this.uvs!.length != (vertices.length ~/ 3 * 2)) {
+      throw Exception("Expected either ${indices.length * 2} UVs, got ${this.uvs!.length}");
+    }   
   }
 
   void scale(double factor) {
@@ -27,6 +30,6 @@ class Geometry {
     }
   }
 
-  bool get hasNormals => normals.isNotEmpty;
-  bool get hasUVs => uvs.isNotEmpty;
+  bool get hasNormals => normals?.isNotEmpty == true;
+  bool get hasUVs => uvs?.isNotEmpty == true;
 }
