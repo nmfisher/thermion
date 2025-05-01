@@ -23,7 +23,16 @@ typedef uintptr_t EMSCRIPTEN_WEBGL_CONTEXT_HANDLE;
 extern "C" {
 #endif
 
-EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext();
+EMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(
+    // bool alpha,
+    // bool depth,
+    // bool stencil,
+    // bool antiAlias,
+    // bool explicitSwapControl,
+    // bool preserveDrawingBuffer,
+    // int proxyMode,
+    // bool renderViaOffscreenBackBuffer
+);
 
 #ifdef __cplusplus
 }
