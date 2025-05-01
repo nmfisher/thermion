@@ -58,6 +58,7 @@ namespace thermion
     } else {
       mRenderable.emplace_back(swapChain, swapChainViews);
     }
+    TRACE("Set %d views as renderable", numViews);
   }
 
   void RenderTicker::render(uint64_t frameTimeInNanos)
