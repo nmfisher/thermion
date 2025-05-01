@@ -9,15 +9,23 @@
 namespace thermion {
 
 #ifdef __EMSCRIPTEN__
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
 #include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 #include <emscripten/threading.h>
 #include <emscripten/proxying.h>
 #include <emscripten/eventloop.h>
+#include "ThermionWebApi.h"
 
 static void mainLoop(void* arg) {
     auto *rt = static_cast<RenderThread *>(arg);
-    while (!rt->_stop) {
+
+    if (!rt->_stop) {
         rt->iter();
+    } else { 
+        Log("RenderThread stopped")
     }
 }
 
@@ -25,6 +33,7 @@ static void *startHelper(void * parm) {
     emscripten_set_main_loop_arg(&mainLoop, parm, 0, true);
     return nullptr;
 }
+
 #endif
 
 RenderThread::RenderThread()
@@ -34,6 +43,7 @@ RenderThread::RenderThread()
     outer = pthread_self();
     pthread_attr_t attr;
     pthread_attr_init(&attr);
+    emscripten_pthread_attr_settransferredcanvases(&attr, "#thermion_canvas");
     pthread_create(&t, &attr, startHelper, this);
     #else
     t = new std::thread([this]() { 
@@ -88,7 +98,15 @@ void RenderThread::iter()
         {
             mRenderTicker->render(0);
             lock.unlock();
+            #ifdef __EMSCRIPTEN__
+            queue.proxyAsync(outer, [=]() {
+            #endif
             this->_requestFrameRenderCallback();
+            #ifdef __EMSCRIPTEN__
+            });
+            queue.execute();
+            #endif
+
             this->_requestFrameRenderCallback = nullptr;
 
             // Calculate and print FPS
