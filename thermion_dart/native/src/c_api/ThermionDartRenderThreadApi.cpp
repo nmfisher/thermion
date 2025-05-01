@@ -40,10 +40,9 @@ using namespace std::chrono_literals;
 
 #if defined __EMSCRIPTEN__
 #define PROXY(call) \
-Log("PROXYING"); \
+TRACE("PROXYING"); \
 _renderThread->queue.proxyAsync(_renderThread->outer, [=]() { \
   call; \
-  Log("CALL COMPLETE"); \
 });
 #else      
   #define PROXY(call) call
@@ -292,11 +291,21 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThead(TEngine *tEngine, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThread(TEngine *tEngine, void (*onComplete)()) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
         Engine_flushAndWait(tEngine);
+        PROXY(onComplete());
+      });
+    auto fut = _renderThread->add_task(lambda);
+  }
+
+  EMSCRIPTEN_KEEPALIVE void Engine_executeRenderThread(TEngine *tEngine, void (*onComplete)()) {
+    std::packaged_task<void()> lambda(
+      [=]() mutable
+      {
+        Engine_execute(tEngine);
         PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
