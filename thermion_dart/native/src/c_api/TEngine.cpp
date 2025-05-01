@@ -1,6 +1,9 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
+#include "ThermionWebApi.h"
+#include <backend/platforms/PlatformWebGL.h>
+
 #endif
 
 #include "c_api/TEngine.h"
@@ -58,6 +61,11 @@ namespace thermion
             uint8_t stereoscopicEyeCount,
             bool disableHandleUseAfterFreeCheck)
         {
+            #ifdef __EMSCRIPTEN__
+            auto handle = Thermion_createGLContext();
+            tSharedContext = (void*)handle;
+            tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            #endif
             filament::Engine::Config config;
             config.stereoscopicEyeCount = stereoscopicEyeCount;
             config.disableHandleUseAfterFreeCheck = disableHandleUseAfterFreeCheck;
@@ -263,12 +271,17 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_flushAndWait(TEngine *tEngine)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-#ifdef __EMSCRIPTEN__
-            engine->execute();
-            emscripten_webgl_commit_frame();
-#else
-    engine->flushAndWait();
-#endif
+            engine->flushAndWait();
+        }
+        
+        EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine) {
+            #ifdef __EMSCRIPTEN__
+                auto *engine = reinterpret_cast<Engine *>(tEngine);
+                engine->execute();
+                emscripten_webgl_commit_frame();
+            #else
+                Log("WARNING - ignored on non-WASM");
+            #endif
         }
 
         EMSCRIPTEN_KEEPALIVE TScene *Engine_createScene(TEngine *tEngine)
