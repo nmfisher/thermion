@@ -195,3 +195,24 @@ T makeTypedData<T extends TypedData>(int length) {
   return typedData as T;
 }
 
+T makeTypedDataFromIntList<T extends TypedData>(List<int> src) {
+  TypedDataList typedData = switch(T) {
+    Uint8List => Uint8List.fromList(src),
+    Int16List => Int16List.fromList(src),
+    Int32List => Int32List.fromList(src),
+    _ => throw UnimplementedError()
+  };
+  return typedData as T;
+}
+
+
+T makeTypedDataFromDoubleList<T extends TypedData>(List<double> src) {
+  TypedDataList typedData = switch(T) {
+    Float32List => Float32List.fromList(src),
+    Float64List => Float64List.fromList(src),
+    _ => throw UnimplementedError()
+  };
+  typedData.setRange(0, src.length, src);
+
+  return typedData as T;
+}
