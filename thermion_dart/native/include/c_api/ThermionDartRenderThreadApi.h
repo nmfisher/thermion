@@ -15,16 +15,16 @@ namespace thermion
         typedef int32_t EntityId;
         typedef void (*FilamentRenderCallback)(void *const owner);
 
-        EMSCRIPTEN_KEEPALIVE void RenderThread_create();
-        EMSCRIPTEN_KEEPALIVE void RenderThread_destroy();
-        EMSCRIPTEN_KEEPALIVE void RenderThread_requestFrame(void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void RenderThread_setRenderTicker(TRenderTicker *tRenderTicker);
-        EMSCRIPTEN_KEEPALIVE void RenderThread_addTask(void (*task)());
+        void RenderThread_create();
+        void RenderThread_destroy();
+        void RenderThread_requestFrame(void (*onComplete)());
+        void RenderThread_setRenderTicker(TRenderTicker *tRenderTicker);
+        void RenderThread_addTask(void (*task)());
         
-        EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *));
+        void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, void (*onComplete)());
+        void AnimationManager_createRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)(TAnimationManager *));
 
-        EMSCRIPTEN_KEEPALIVE void Engine_createRenderThread(
+        void Engine_createRenderThread(
             TBackend backend,
             void* platform,
             void* sharedContext,
@@ -32,22 +32,22 @@ namespace thermion
             bool disableHandleUseAfterFreeCheck,
             void (*onComplete)(TEngine *)
         );
-        EMSCRIPTEN_KEEPALIVE void Engine_createRendererRenderThread(TEngine *tEngine, void (*onComplete)(TRenderer *));
-        EMSCRIPTEN_KEEPALIVE void Engine_createSwapChainRenderThread(TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *));
-        EMSCRIPTEN_KEEPALIVE void Engine_createHeadlessSwapChainRenderThread(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *));
-        EMSCRIPTEN_KEEPALIVE void Engine_createCameraRenderThread(TEngine* tEngine, void (*onComplete)(TCamera *));
-        EMSCRIPTEN_KEEPALIVE void Engine_createViewRenderThread(TEngine *tEngine, void (*onComplete)(TView *));
-        EMSCRIPTEN_KEEPALIVE void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *));
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyRenderThread(TEngine *tEngine, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyViewRenderThread(TEngine *tEngine, TView *tView, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_destroySceneRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingRenderThread(TEngine *tEngine, TColorGrading *tColorGrading, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Texture_buildRenderThread(TEngine *engine, 
+        void Engine_createRendererRenderThread(TEngine *tEngine, void (*onComplete)(TRenderer *));
+        void Engine_createSwapChainRenderThread(TEngine *tEngine, void *window, uint64_t flags, void (*onComplete)(TSwapChain *));
+        void Engine_createHeadlessSwapChainRenderThread(TEngine *tEngine, uint32_t width, uint32_t height, uint64_t flags, void (*onComplete)(TSwapChain *));
+        void Engine_createCameraRenderThread(TEngine* tEngine, void (*onComplete)(TCamera *));
+        void Engine_createViewRenderThread(TEngine *tEngine, void (*onComplete)(TView *));
+        void Engine_buildMaterialRenderThread(TEngine *tEngine, const uint8_t *materialData, size_t length, void (*onComplete)(TMaterial *));
+        void Engine_destroyRenderThread(TEngine *tEngine, void (*onComplete)());
+        void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, void (*onComplete)());
+        void Engine_destroyViewRenderThread(TEngine *tEngine, TView *tView, void (*onComplete)());
+        void Engine_destroySceneRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)());
+        void Engine_destroyColorGradingRenderThread(TEngine *tEngine, TColorGrading *tColorGrading, void (*onComplete)());
+        void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)());
+        void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, void (*onComplete)());
+        void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, void (*onComplete)());
+        void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, void (*onComplete)());
+        void Texture_buildRenderThread(TEngine *engine, 
             uint32_t width, 
             uint32_t height, 
             uint32_t depth, 
@@ -59,19 +59,20 @@ namespace thermion
             void (*onComplete)(TTexture*)
         );
 
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture* tTexture, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence*));
-        EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThead(TEngine *tEngine, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, uint8_t *skyboxData, size_t length, void (*onComplete)(TSkybox *), void (*onTextureUploadComplete)());
-        EMSCRIPTEN_KEEPALIVE void Engine_buildIndirectLightRenderThread(TEngine *tEngine, uint8_t *iblData, size_t length, float intensity, void (*onComplete)(TIndirectLight *), void (*onTextureUploadComplete)());
+        void Engine_destroyTextureRenderThread(TEngine *engine, TTexture* tTexture, void (*onComplete)());
+        void Engine_createFenceRenderThread(TEngine *tEngine, void (*onComplete)(TFence*));
+        void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, void (*onComplete)());
+        void Engine_flushAndWaitRenderThread(TEngine *tEngine, void (*onComplete)());
+        void Engine_executeRenderThread(TEngine *tEngine, void (*onComplete)());
+        void Engine_buildSkyboxRenderThread(TEngine *tEngine, uint8_t *skyboxData, size_t length, void (*onComplete)(TSkybox *), void (*onTextureUploadComplete)());
+        void Engine_buildIndirectLightRenderThread(TEngine *tEngine, uint8_t *iblData, size_t length, float intensity, void (*onComplete)(TIndirectLight *), void (*onTextureUploadComplete)());
 
-        EMSCRIPTEN_KEEPALIVE void Renderer_setClearOptionsRenderThread(TRenderer *tRenderer, double clearR, double clearG, double clearB, double clearA, uint8_t clearStencil, bool clear, bool discard, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Renderer_beginFrameRenderThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool));
-        EMSCRIPTEN_KEEPALIVE void Renderer_endFrameRenderThread(TRenderer *tRenderer, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Renderer_renderRenderThread(TRenderer *tRenderer, TView *tView, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Renderer_readPixelsRenderThread(
+        void Renderer_setClearOptionsRenderThread(TRenderer *tRenderer, double clearR, double clearG, double clearB, double clearA, uint8_t clearStencil, bool clear, bool discard, void (*onComplete)());
+        void Renderer_beginFrameRenderThread(TRenderer *tRenderer, TSwapChain *tSwapChain, uint64_t frameTimeInNanos, void (*onComplete)(bool));
+        void Renderer_endFrameRenderThread(TRenderer *tRenderer, void (*onComplete)());
+        void Renderer_renderRenderThread(TRenderer *tRenderer, TView *tView, void (*onComplete)());
+        void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, void (*onComplete)());
+        void Renderer_readPixelsRenderThread(
             TRenderer *tRenderer,
             TView *tView,
             TRenderTarget *tRenderTarget,
@@ -81,27 +82,27 @@ namespace thermion
             size_t outLength,
             void (*onComplete)());
 
-        EMSCRIPTEN_KEEPALIVE void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
-        EMSCRIPTEN_KEEPALIVE void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
-        EMSCRIPTEN_KEEPALIVE void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
+        void Material_createInstanceRenderThread(TMaterial *tMaterial, void (*onComplete)(TMaterialInstance *));
+        void Material_createImageMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
+        void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
 
-        EMSCRIPTEN_KEEPALIVE void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapping toneMapping, void (*callback)(TColorGrading *));  
-        EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)());
+        void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapping toneMapping, void (*callback)(TColorGrading *));  
+        void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, void (*callback)());
+        void View_setBloomRenderThread(TView *tView, bool enabled, double strength, void (*callback)());
+        void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)());
 
         FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
 
-        EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
+        void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, void (*onComplete)());
+        void SceneAsset_createFromFilamentAssetRenderThread(
             TEngine *tEngine,
             TGltfAssetLoader *tAssetLoader,
             TNameComponentManager *tNameComponentManager,
             TFilamentAsset *tFilamentAsset,
             void (*onComplete)(TSceneAsset *)
         );
-        EMSCRIPTEN_KEEPALIVE void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
-        EMSCRIPTEN_KEEPALIVE void SceneAsset_createGeometryRenderThread(
+        void SceneAsset_createInstanceRenderThread(TSceneAsset *asset, TMaterialInstance **tMaterialInstances, int materialInstanceCount, void (*callback)(TSceneAsset *));
+        void SceneAsset_createGeometryRenderThread(
             TEngine *tEngine, 
             float *vertices,
             uint32_t numVertices,
@@ -116,14 +117,14 @@ namespace thermion
             int materialInstanceCount,
             void (*callback)(TSceneAsset *)
         );
-        EMSCRIPTEN_KEEPALIVE void MaterialProvider_createMaterialInstanceRenderThread(TMaterialProvider *tMaterialProvider, TMaterialKey *tKey, void (*callback)(TMaterialInstance *));
+        void MaterialProvider_createMaterialInstanceRenderThread(TMaterialProvider *tMaterialProvider, TMaterialKey *tKey, void (*callback)(TMaterialInstance *));
 
-        EMSCRIPTEN_KEEPALIVE void AnimationManager_updateBoneMatricesRenderThread(
+        void AnimationManager_updateBoneMatricesRenderThread(
             TAnimationManager *tAnimationManager,
             TSceneAsset *sceneAsset,
             void (*callback)(bool));
 
-        EMSCRIPTEN_KEEPALIVE void AnimationManager_setMorphTargetWeightsRenderThread(
+        void AnimationManager_setMorphTargetWeightsRenderThread(
             TAnimationManager *tAnimationManager,
             EntityId entityId,
             const float *const morphData,
@@ -131,16 +132,16 @@ namespace thermion
             void (*callback)(bool));
 
         // Image methods
-        EMSCRIPTEN_KEEPALIVE void Image_createEmptyRenderThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *));
-        EMSCRIPTEN_KEEPALIVE void Image_decodeRenderThread(uint8_t* data, size_t length, const char* name, void (*onComplete)(TLinearImage *));
-        EMSCRIPTEN_KEEPALIVE void Image_getBytesRenderThread(TLinearImage *tLinearImage, void (*onComplete)(float *));
-        EMSCRIPTEN_KEEPALIVE void Image_destroyRenderThread(TLinearImage *tLinearImage, void (*onComplete)());
-        EMSCRIPTEN_KEEPALIVE void Image_getWidthRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
-        EMSCRIPTEN_KEEPALIVE void Image_getHeightRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
-        EMSCRIPTEN_KEEPALIVE void Image_getChannelsRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
+        void Image_createEmptyRenderThread(uint32_t width, uint32_t height, uint32_t channel, void (*onComplete)(TLinearImage *));
+        void Image_decodeRenderThread(uint8_t* data, size_t length, const char* name, void (*onComplete)(TLinearImage *));
+        void Image_getBytesRenderThread(TLinearImage *tLinearImage, void (*onComplete)(float *));
+        void Image_destroyRenderThread(TLinearImage *tLinearImage, void (*onComplete)());
+        void Image_getWidthRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
+        void Image_getHeightRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
+        void Image_getChannelsRenderThread(TLinearImage *tLinearImage, void (*onComplete)(uint32_t));
 
 
-        EMSCRIPTEN_KEEPALIVE void Texture_loadImageRenderThread(
+        void Texture_loadImageRenderThread(
             TEngine *tEngine,
             TTexture *tTexture,
             TLinearImage *tImage,
@@ -148,7 +149,7 @@ namespace thermion
             TPixelDataType pixelDataType,
             void (*onComplete)(bool)
         );
-        EMSCRIPTEN_KEEPALIVE void Texture_setImageRenderThread(
+        void Texture_setImageRenderThread(
             TEngine *tEngine,
             TTexture *tTexture,
             uint32_t level,
@@ -161,7 +162,7 @@ namespace thermion
             uint32_t pixelDataType,
             void (*onComplete)(bool)
         );
-        EMSCRIPTEN_KEEPALIVE void Texture_setImageWithDepthRenderThread(
+        void Texture_setImageWithDepthRenderThread(
             TEngine *tEngine,
             TTexture *tTexture,
             uint32_t level,
@@ -178,8 +179,8 @@ namespace thermion
             uint32_t pixelDataType,
             void (*onComplete)(bool)
         );
-        EMSCRIPTEN_KEEPALIVE void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *));
-        EMSCRIPTEN_KEEPALIVE void RenderTarget_createRenderThread(
+        void RenderTarget_getColorTextureRenderThread(TRenderTarget *tRenderTarget, void (*onComplete)(TTexture *));
+        void RenderTarget_createRenderThread(
             TEngine *tEngine,
             uint32_t width,
             uint32_t height,
@@ -187,7 +188,7 @@ namespace thermion
             TTexture *depth,
             void (*onComplete)(TRenderTarget *)
         );
-        EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyRenderThread(
+        void RenderTarget_destroyRenderThread(
             TEngine *tEngine,
             TRenderTarget *tRenderTarget,
             void (*onComplete)()
@@ -195,8 +196,8 @@ namespace thermion
 
 
         // TextureSampler methods
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler*));
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithFilteringRenderThread(
+        void TextureSampler_createRenderThread(void (*onComplete)(TTextureSampler*));
+        void TextureSampler_createWithFilteringRenderThread(
             TSamplerMinFilter minFilter, 
             TSamplerMagFilter magFilter, 
             TSamplerWrapMode wrapS, 
@@ -204,53 +205,53 @@ namespace thermion
             TSamplerWrapMode wrapR,
             void (*onComplete)(TTextureSampler*)
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_createWithComparisonRenderThread(
+        void TextureSampler_createWithComparisonRenderThread(
             TSamplerCompareMode compareMode, 
             TSamplerCompareFunc compareFunc,
             void (*onComplete)(TTextureSampler*)
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterRenderThread(
+        void TextureSampler_setMinFilterRenderThread(
             TTextureSampler* sampler, 
             TSamplerMinFilter filter,
             void (*onComplete)()
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterRenderThread(
+        void TextureSampler_setMagFilterRenderThread(
             TTextureSampler* sampler, 
             TSamplerMagFilter filter,
             void (*onComplete)()
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSRenderThread(
+        void TextureSampler_setWrapModeSRenderThread(
             TTextureSampler* sampler, 
             TSamplerWrapMode mode,
             void (*onComplete)()
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTRenderThread(
+        void TextureSampler_setWrapModeTRenderThread(
             TTextureSampler* sampler, 
             TSamplerWrapMode mode,
             void (*onComplete)()
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRRenderThread(
+        void TextureSampler_setWrapModeRRenderThread(
             TTextureSampler* sampler, 
             TSamplerWrapMode mode,
             void (*onComplete)()
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyRenderThread(
+        void TextureSampler_setAnisotropyRenderThread(
             TTextureSampler* sampler, 
             double anisotropy,
             void (*onComplete)()
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_setCompareModeRenderThread(
+        void TextureSampler_setCompareModeRenderThread(
             TTextureSampler* sampler, 
             TSamplerCompareMode mode, 
             TTextureSamplerCompareFunc func,
             void (*onComplete)()
         );
-        EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyRenderThread(
+        void TextureSampler_destroyRenderThread(
             TTextureSampler* sampler,
             void (*onComplete)()
         );
 
-        EMSCRIPTEN_KEEPALIVE void AnimationManager_setBoneTransformRenderThread(
+        void AnimationManager_setBoneTransformRenderThread(
             TAnimationManager *tAnimationManager,
             EntityId asset,
             int skinIndex,
@@ -258,18 +259,18 @@ namespace thermion
             const float *const transform,
             void (*callback)(bool));
 
-        EMSCRIPTEN_KEEPALIVE void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, EntityId entityId, void (*callback)());
+        void AnimationManager_resetToRestPoseRenderThread(TAnimationManager *tAnimationManager, EntityId entityId, void (*callback)());
 
-        EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *));
-        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_createRenderThread(TEngine *tEngine, const char* relativeResourcePath, void (*callback)(TGltfResourceLoader *));
-        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));
-        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceDataRenderThread(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncBeginLoadRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));
-        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncUpdateLoadRenderThread(TGltfResourceLoader *tGltfResourceLoader);
-        EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_asyncGetLoadProgressRenderThread(TGltfResourceLoader *tGltfResourceLoader, void (*callback)(float));
+        void GltfAssetLoader_createRenderThread(TEngine *tEngine, TMaterialProvider *tMaterialProvider, void (*callback)(TGltfAssetLoader *));
+        void GltfResourceLoader_createRenderThread(TEngine *tEngine, const char* relativeResourcePath, void (*callback)(TGltfResourceLoader *));
+        void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, void (*callback)());
+        void GltfResourceLoader_loadResourcesRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));
+        void GltfResourceLoader_addResourceDataRenderThread(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length, void (*callback)());
+        void GltfResourceLoader_asyncBeginLoadRenderThread(TGltfResourceLoader *tGltfResourceLoader, TFilamentAsset *tFilamentAsset, void (*callback)(bool));
+        void GltfResourceLoader_asyncUpdateLoadRenderThread(TGltfResourceLoader *tGltfResourceLoader);
+        void GltfResourceLoader_asyncGetLoadProgressRenderThread(TGltfResourceLoader *tGltfResourceLoader, void (*callback)(float));
 
-        EMSCRIPTEN_KEEPALIVE void GltfAssetLoader_loadRenderThread(
+        void GltfAssetLoader_loadRenderThread(
             TEngine *tEngine,
             TGltfAssetLoader *tAssetLoader,
             uint8_t *data,
@@ -277,8 +278,8 @@ namespace thermion
             uint8_t numInstances,
             void (*callback)(TFilamentAsset *)
         );
-        EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, void (*callback)());
-        EMSCRIPTEN_KEEPALIVE void Gizmo_createRenderThread(
+        void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, void (*callback)());
+        void Gizmo_createRenderThread(
             TEngine *tEngine,
             TGltfAssetLoader *tAssetLoader,
             TGltfResourceLoader *tGltfResourceLoader,
