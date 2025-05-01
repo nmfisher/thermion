@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.22)
 set(PROJECT_NAME "thermion_dart")
 project(${PROJECT_NAME})
 
-# if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release")
-# endif(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Debug")
+endif(NOT CMAKE_BUILD_TYPE)
 
 set(MODULE_NAME "thermion_dart")
 
@@ -16,35 +16,49 @@ set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORT_NAME=${MODULE_NAME})
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sLINKABLE=1)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSIDE_MODULE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sINITIAL_MEMORY=512mb)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sENVIRONMENT=shell,node,web)
+#set(EMCC_CFLAGS ${EMCC_CFLAGS} -sENVIRONMENT=shell,node,web)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sENVIRONMENT=worker)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMODULARIZE)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sERROR_ON_UNDEFINED_SYMBOLS=0 )
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,allocate,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_RUNTIME_METHODS=wasmExports,wasmTable,addFunction,removeFunction,ccall,cwrap,allocate,intArrayFromString,intArrayToString,getValue,setValue,UTF8ToString,stringToUTF8,writeArrayToMemory,lengthBytesUTF8)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sEXPORTED_FUNCTIONS=_malloc,stackAlloc,_free)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFULL_ES3)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASSERTIONS=2)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=4)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_definitions(ENABLE_TRACING=1)
+  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASSERTIONS=2)
+endif()
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPTHREAD_POOL_SIZE=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sALLOW_BLOCKING_ON_MAIN_THREAD=0)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREEN_FRAMEBUFFER=1)
-# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREENCANVAS_SUPPORT=1)
+#set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREEN_FRAMEBUFFER=1)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sOFFSCREENCANVAS_SUPPORT=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sNO_DISABLE_EXCEPTION_CATCHING)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSAFE_HEAP=1)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASYNCIFY=1)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sASYNCIFY=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMIN_WEBGL_VERSION=2)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sMAX_WEBGL_VERSION=2)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=1)
+set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFETCH=0)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sUSE_PTHREADS)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_ASSERTIONS=1)
+  set(EMCC_CFLAGS ${EMCC_CFLAGS} -sGL_DEBUG=1)
+endif()
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_PTHREAD)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -sPROXY_TO_WORKER=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sSHARED_MEMORY=1)
-set(EMCC_CFLAGS ${EMCC_CFLAGS} -lidbfs.js)
+# set(EMCC_CFLAGS ${EMCC_CFLAGS} -lidbfs.js)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -sFORCE_FILESYSTEM=1)
 set(EMCC_CFLAGS ${EMCC_CFLAGS} -matomics -mbulk-memory)
 # set(EMCC_CFLAGS ${EMCC_CFLAGS} -pie)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC -O0 --no-entry")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -pie")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated-literal-operator -stdlib=libc++ -std=c++17 -fPIC --no-entry")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie")
 
-add_link_options(${EMCC_CFLAGS} -pthread)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O1") #-fsanitize=undefined
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O1")
+endif()
+
+add_link_options(${EMCC_CFLAGS} -pthread -lGL)
 
 link_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib") 
 
@@ -55,7 +69,9 @@ file(GLOB SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/../src/**/*.cpp" 
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/resources/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/../include/material/*.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/ThermionWebApi.cpp"
+   # "${CMAKE_CURRENT_SOURCE_DIR}/../src/rendering/EmscriptenTest.cpp" 
+  )
 
 add_executable(${MODULE_NAME} ${SOURCES})
 
