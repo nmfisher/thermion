@@ -51,6 +51,7 @@ EMSCRIPTEN_KEEPALIVE void Engine_destroyTexture(TEngine *tEngine, TTexture *tTex
 EMSCRIPTEN_KEEPALIVE TFence *Engine_createFence(TEngine *tEngine);
 EMSCRIPTEN_KEEPALIVE void Engine_destroyFence(TEngine *tEngine, TFence *tFence);
 EMSCRIPTEN_KEEPALIVE void Engine_flushAndWait(TEngine *tEngine);
+EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine);
     
 EMSCRIPTEN_KEEPALIVE TMaterial *Engine_buildMaterial(TEngine *tEngine, const uint8_t* materialData, size_t length);
 EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterial(TEngine *tEngine, TMaterial *tMaterial);
