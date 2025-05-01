@@ -376,7 +376,7 @@ class FFIAsset extends ThermionAsset {
 
       TransformManager_setParent(Engine_getTransformManager(app.engine),
           boundingBoxAsset!.entity, entity, false);
-      geometry.uvs?.free()
+      geometry.uvs?.free();
       geometry.normals?.free();
       geometry.vertices.free();
       geometry.indices.free();
