@@ -76,19 +76,25 @@ extension type const Uint32._(NativeType nt) implements NativeType {
 
 extension type const Uint8._(NativeType nt) implements NativeType {
   static Pointer<Uint8> stackAlloc(int count) {
-    return _lib._stackAlloc<Uint8>(4 * count);
+    return _lib._stackAlloc<Uint8>(count);
+  }
+}
+
+extension type const Int8._(NativeType nt) implements NativeType {
+  static Pointer<Int8> stackAlloc(int count) {
+    return _lib._stackAlloc<Int8>(count);
   }
 }
 
 extension type const Uint16._(NativeType nt) implements NativeType {
   static Pointer<Uint16> stackAlloc(int count) {
-    return _lib._stackAlloc<Uint16>(4 * count);
+    return _lib._stackAlloc<Uint16>(2 * count);
   }
 }
 
 extension type const Int16._(NativeType nt) implements NativeType {
   static Pointer<Int16> stackAlloc(int count) {
-    return _lib._stackAlloc<Int16>(4 * count);
+    return _lib._stackAlloc<Int16>(2 * count);
   }
 }
 
@@ -121,7 +127,7 @@ Pointer<Never> nullptr = Pointer<Never>(0);
 extension PointerPointerClass<T extends NativeType>
     on Pointer<PointerClass<T>> {
   operator [](int i) => this + i;
-  operator []=(int i, Pointer<T> value) {
+  void operator []=(int i, Pointer<T> value) {
     _lib.setValue(this + (i * 4), value.addr.toJS, 'i64');
   }
 }
@@ -143,7 +149,6 @@ extension Int32PointerClass on Pointer<Int32> {
   String get llvmType => 'i32';
 
   void setValue(int value) {
-    
     _lib.setValue(this, value.toJS, llvmType);
   }
 
@@ -217,7 +222,7 @@ extension Float64Pointer on Pointer<Float64> {
 }
 
 extension StringUtils on String {
-  self.Pointer<Char> toNativeUtf8() {
+  Pointer<Char> toNativeUtf8() {
     var len = _lib._lengthBytesUTF8(this) + 1;
     var ptr = Char.stackAlloc(len);
     _lib._stringToUTF8(this, ptr, len);
@@ -276,6 +281,13 @@ extension type const Array<T extends NativeType>._(
   void setValue(Uint8List data) {
     _lib.writeArrayToMemory(data.toJS, _.addr);
   }
+
+}
+
+extension ArrayFloat64Ext on Array<Float64> {
+  double operator [](int i) {
+    return _lib.getValue(_.addr + (_.numElements * 4), 'double').toDartDouble;
+  }
 }
 
 late NativeLibrary _lib;
@@ -284,9 +296,39 @@ Pointer<T> malloc<T extends NativeType>(int numBytes) {
   return _lib._malloc<T>(numBytes);
 }
 
+Pointer<T> stackAlloc<T extends NativeType>(int numBytes) {
+  final ptr = _lib._stackAlloc<T>(numBytes);
+  return ptr;
+}
+
 void free(Pointer ptr) {
   _lib._free(ptr);
 }
+
+@JS('BigInt')
+external JSBigInt bigInt(String s);
+
+@JS('BigInt.asUintN')
+external JSBigInt bigIntasUintN(int numBits, JSBigInt bi);
+
+extension JSBigIntExtension on JSBigInt {
+  BigInt get toDart {
+    return BigInt.parse(this.toString());
+  }
+}
+
+extension BigIntExtension on int {
+  JSBigInt get toJSBigInt {
+    return bigInt(this.toString());
+  }
+}
+
+extension DartBigIntExtension on BigInt {
+  JSBigInt get toJSBigInt {
+    return bigInt(this.toString());
+  }
+}
+
 
 extension type NativeLibrary(JSObject _) implements JSObject {
   static NativeLibrary get instance => _lib;
@@ -297,6 +339,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
 
   @JS('stackAlloc')
   external Pointer<T> _stackAlloc<T extends NativeType>(int numBytes);
+  
 
   external Pointer<T> _malloc<T extends NativeType>(int numBytes);
   external void _free(Pointer ptr);
@@ -323,16 +366,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void removeFunction<T>(Pointer<NativeFunction<T>> f);
   external JSUint8Array get HEAPU8;
 
-  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext(
-    // bool alpha,
-    // bool depth,
-    // bool stencil,
-    // bool antiAlias,
-    // bool explicitSwapControl,
-    // bool preserveDrawingBuffer,
-    // int proxyMode,
-    // bool renderViaOffscreenBackBuffer
-  );
+  external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext();
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
@@ -619,7 +653,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external Pointer<TSwapChain> _Engine_createSwapChain(
     Pointer<TEngine> tEngine,
     Pointer<Void> window,
-    int flags,
+    JSBigInt flags,
   );
   external Pointer<TSwapChain> _Engine_createHeadlessSwapChain(
     Pointer<TEngine> tEngine,
@@ -681,6 +715,9 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TFence> tFence,
   );
   external void _Engine_flushAndWait(
+    Pointer<TEngine> tEngine,
+  );
+  external void _Engine_execute(
     Pointer<TEngine> tEngine,
   );
   external Pointer<TMaterial> _Engine_buildMaterial(
@@ -871,7 +908,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external void _Engine_createSwapChainRenderThread(
     Pointer<TEngine> tEngine,
     Pointer<Void> window,
-    int flags,
+    JSBigInt flags,
     Pointer<self.NativeFunction<void Function(PointerClass<TSwapChain>)>>
         onComplete,
   );
@@ -1597,7 +1634,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _AnimationManager_update(
     Pointer<TAnimationManager> tAnimationManager,
-    int frameTimeInNanos,
+    JSBigInt frameTimeInNanos,
   );
   external void _AnimationManager_addAnimationComponent(
     Pointer<TAnimationManager> tAnimationManager,
@@ -1906,7 +1943,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _RenderTicker_render(
     Pointer<TRenderTicker> tRenderTicker,
-    int frameTimeInNanos,
+    JSBigInt frameTimeInNanos,
   );
   external void _RenderTicker_setRenderable(
     Pointer<TRenderTicker> tRenderTicker,
@@ -1927,7 +1964,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   external bool _Renderer_beginFrame(
     Pointer<TRenderer> tRenderer,
     Pointer<TSwapChain> tSwapChain,
-    int frameTimeInNanos,
+    JSBigInt frameTimeInNanos,
   );
   external void _Renderer_endFrame(
     Pointer<TRenderer> tRenderer,
@@ -2006,44 +2043,32 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
 }
 
-DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext(
-  // bool alpha,
-  //   bool depth,
-  //   bool stencil,
-  //   bool antiAlias,
-  //   bool explicitSwapControl,
-  //   bool preserveDrawingBuffer,
-  //   int proxyMode,
-  //   bool renderViaOffscreenBackBuffer
-    ) {
-  final result = _lib._Thermion_createGLContext(
-    // alpha, depth, stencil, antiAlias, explicitSwapControl, preserveDrawingBuffer, proxyMode, renderViaOffscreenBackBuffer
-    );
+DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext() {
+  final result = _lib._Thermion_createGLContext();
   return result;
 }
 
-int get TSWAP_CHAIN_CONFIG_TRANSPARENT {
-  final bi = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_TRANSPARENT, "i64");
-  final dartVal = int.parse(bi.toString());
-  return dartVal;
+BigInt get TSWAP_CHAIN_CONFIG_TRANSPARENT {
+  final value =
+      _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_TRANSPARENT, "i64");
+  return bigIntasUintN(64, value).toDart;
 }
 
-int get TSWAP_CHAIN_CONFIG_READABLE {
-  final bi = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_READABLE, "i64");
-  final dartVal = int.parse(bi.toString());
-  return dartVal;
+BigInt get TSWAP_CHAIN_CONFIG_READABLE {
+  final value = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_READABLE, "i64");
+  return bigIntasUintN(64, value).toDart;
 }
 
-int get TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER {
-  final bi = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER, "i64");
-  final dartVal = int.parse(bi.toString());
-  return dartVal;
+BigInt get TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER {
+  final value =
+      _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER, "i64");
+  return bigIntasUintN(64, value).toDart;
 }
 
-int get TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER {
-  final bi = _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER, "i64");
-  final dartVal = int.parse(bi.toString());
-  return dartVal;
+BigInt get TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER {
+  final value =
+      _lib.getValueBigInt(_lib._TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER, "i64");
+  return bigIntasUintN(64, value).toDart;
 }
 
 self.Pointer<TMaterialInstance> Material_createInstance(
@@ -2606,9 +2631,10 @@ self.Pointer<TRenderer> Engine_createRenderer(
 self.Pointer<TSwapChain> Engine_createSwapChain(
   self.Pointer<TEngine> tEngine,
   self.Pointer<Void> window,
-  int flags,
+  BigInt flags,
 ) {
-  final result = _lib._Engine_createSwapChain(tEngine, window, flags);
+  final result =
+      _lib._Engine_createSwapChain(tEngine, window, flags.toJSBigInt);
   return self.Pointer<TSwapChain>(result);
 }
 
@@ -2616,10 +2642,10 @@ self.Pointer<TSwapChain> Engine_createHeadlessSwapChain(
   self.Pointer<TEngine> tEngine,
   int width,
   int height,
-  int flags,
+  BigInt flags,
 ) {
-  final result =
-      _lib._Engine_createHeadlessSwapChain(tEngine, width, height, bigInt(flags.toString()));
+  final result = _lib._Engine_createHeadlessSwapChain(
+      tEngine, width, height, flags.toJSBigInt);
   return self.Pointer<TSwapChain>(result);
 }
 
@@ -2740,6 +2766,13 @@ void Engine_flushAndWait(
   self.Pointer<TEngine> tEngine,
 ) {
   final result = _lib._Engine_flushAndWait(tEngine);
+  return result;
+}
+
+void Engine_execute(
+  self.Pointer<TEngine> tEngine,
+) {
+  final result = _lib._Engine_execute(tEngine);
   return result;
 }
 
@@ -3067,17 +3100,14 @@ void RenderThread_addTask(
   final result = _lib._RenderThread_addTask(task.cast());
   return result;
 }
-@JS('BigInt')
-external JSBigInt bigInt(String s);
 
 void RenderTicker_renderRenderThread(
   self.Pointer<TRenderTicker> tRenderTicker,
-  int frameTimeInNanos,
+  BigInt frameTimeInNanos,
   self.Pointer<self.NativeFunction<void Function()>> onComplete,
 ) {
-  final jbi = bigInt(frameTimeInNanos.toString());
   final result = _lib._RenderTicker_renderRenderThread(
-      tRenderTicker, jbi, onComplete.cast());
+      tRenderTicker, frameTimeInNanos.toJSBigInt, onComplete.cast());
   return result;
 }
 
@@ -3123,12 +3153,12 @@ void Engine_createRendererRenderThread(
 void Engine_createSwapChainRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<Void> window,
-  int flags,
+  BigInt flags,
   self.Pointer<self.NativeFunction<void Function(Pointer<TSwapChain>)>>
       onComplete,
 ) {
   final result = _lib._Engine_createSwapChainRenderThread(
-      tEngine, window, flags, onComplete.cast());
+      tEngine, window, flags.toJSBigInt, onComplete.cast());
   return result;
 }
 
@@ -3136,12 +3166,12 @@ void Engine_createHeadlessSwapChainRenderThread(
   self.Pointer<TEngine> tEngine,
   int width,
   int height,
-  int flags,
+  BigInt flags,
   self.Pointer<self.NativeFunction<void Function(Pointer<TSwapChain>)>>
       onComplete,
 ) {
   final result = _lib._Engine_createHeadlessSwapChainRenderThread(
-      tEngine, width, height, bigInt(flags.toString()), onComplete.cast());
+      tEngine, width, height, flags.toJSBigInt, onComplete.cast());
   return result;
 }
 
@@ -3323,8 +3353,7 @@ void Engine_executeRenderThread(
   self.Pointer<TEngine> tEngine,
   self.Pointer<self.NativeFunction<void Function()>> onComplete,
 ) {
-  final result =
-      _lib._Engine_executeRenderThread(tEngine, onComplete.cast());
+  final result = _lib._Engine_executeRenderThread(tEngine, onComplete.cast());
   return result;
 }
 
@@ -3373,11 +3402,11 @@ void Renderer_setClearOptionsRenderThread(
 void Renderer_beginFrameRenderThread(
   self.Pointer<TRenderer> tRenderer,
   self.Pointer<TSwapChain> tSwapChain,
-  int frameTimeInNanos,
+  BigInt frameTimeInNanos,
   self.Pointer<self.NativeFunction<void Function(bool)>> onComplete,
 ) {
   final result = _lib._Renderer_beginFrameRenderThread(
-      tRenderer, tSwapChain, bigInt(frameTimeInNanos.toString()), onComplete.cast());
+      tRenderer, tSwapChain, frameTimeInNanos.toJSBigInt, onComplete.cast());
   return result;
 }
 
@@ -4558,10 +4587,10 @@ self.Pointer<TAnimationManager> AnimationManager_create(
 
 void AnimationManager_update(
   self.Pointer<TAnimationManager> tAnimationManager,
-  int frameTimeInNanos,
+  BigInt frameTimeInNanos,
 ) {
-  final result =
-      _lib._AnimationManager_update(tAnimationManager, frameTimeInNanos);
+  final result = _lib._AnimationManager_update(
+      tAnimationManager, frameTimeInNanos.toJSBigInt);
   return result;
 }
 
@@ -5192,9 +5221,10 @@ void RenderTicker_removeAnimationManager(
 
 void RenderTicker_render(
   self.Pointer<TRenderTicker> tRenderTicker,
-  int frameTimeInNanos,
+  BigInt frameTimeInNanos,
 ) {
-  final result = _lib._RenderTicker_render(tRenderTicker, frameTimeInNanos);
+  final result =
+      _lib._RenderTicker_render(tRenderTicker, frameTimeInNanos.toJSBigInt);
   return result;
 }
 
@@ -5227,10 +5257,10 @@ void Renderer_setClearOptions(
 bool Renderer_beginFrame(
   self.Pointer<TRenderer> tRenderer,
   self.Pointer<TSwapChain> tSwapChain,
-  int frameTimeInNanos,
+  BigInt frameTimeInNanos,
 ) {
-  final result =
-      _lib._Renderer_beginFrame(tRenderer, tSwapChain, frameTimeInNanos);
+  final result = _lib._Renderer_beginFrame(
+      tRenderer, tSwapChain, frameTimeInNanos.toJSBigInt);
   return result;
 }
 
@@ -6048,16 +6078,16 @@ extension TViewportExt on Pointer<TViewport> {
   TViewport toDart() {
     var left = _lib.getValue(this + 0, "i32").toDartInt;
     var bottom = _lib.getValue(this + 4, "i32").toDartInt;
-    var width = _lib.getValue(this + 8, "ui32").toDartInt;
-    var height = _lib.getValue(this + 12, "ui32").toDartInt;
+    var width = _lib.getValue(this + 8, "i32").toDartInt;
+    var height = _lib.getValue(this + 12, "i32").toDartInt;
     return TViewport(left, bottom, width, height, this);
   }
 
   void setFrom(TViewport dartType) {
     _lib.setValue(this + 0, dartType.left.toJS, "i32");
     _lib.setValue(this + 4, dartType.bottom.toJS, "i32");
-    _lib.setValue(this + 8, dartType.width.toJS, "ui32");
-    _lib.setValue(this + 12, dartType.height.toJS, "ui32");
+    _lib.setValue(this + 8, dartType.width.toJS, "i32");
+    _lib.setValue(this + 12, dartType.height.toJS, "i32");
   }
 }
 
@@ -6562,7 +6592,7 @@ extension NativeFunctionPointer24<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer27<T extends NativeType> on void Function(
+extension NativeFunctionPointer28<T extends NativeType> on void Function(
     self.Pointer<TSkybox>) {
   // orignal type void Function(self.Pointer<TSkybox> ) void Function(Pointer<TSkybox> ) dart type void Function(self.Pointer<TSkybox> )
 
@@ -6573,7 +6603,7 @@ extension NativeFunctionPointer27<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer29<T extends NativeType> on void Function(
+extension NativeFunctionPointer30<T extends NativeType> on void Function(
     self.Pointer<TIndirectLight>) {
   // orignal type void Function(self.Pointer<TIndirectLight> ) void Function(Pointer<TIndirectLight> ) dart type void Function(self.Pointer<TIndirectLight> )
 
@@ -6586,7 +6616,7 @@ extension NativeFunctionPointer29<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer32<T extends NativeType> on void Function(bool) {
+extension NativeFunctionPointer33<T extends NativeType> on void Function(bool) {
   // orignal type void Function(bool ) void Function(bool ) dart type void Function(bool )
 
   Pointer<NativeFunction<void Function(bool)>> addFunction() {
@@ -6596,7 +6626,7 @@ extension NativeFunctionPointer32<T extends NativeType> on void Function(bool) {
   }
 }
 
-extension NativeFunctionPointer37<T extends NativeType> on void Function(
+extension NativeFunctionPointer38<T extends NativeType> on void Function(
     self.Pointer<TMaterialInstance>) {
   // orignal type void Function(self.Pointer<TMaterialInstance> ) void Function(Pointer<TMaterialInstance> ) dart type void Function(self.Pointer<TMaterialInstance> )
 
@@ -6610,7 +6640,7 @@ extension NativeFunctionPointer37<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer40<T extends NativeType> on void Function(
+extension NativeFunctionPointer41<T extends NativeType> on void Function(
     self.Pointer<TColorGrading>) {
   // orignal type void Function(self.Pointer<TColorGrading> ) void Function(Pointer<TColorGrading> ) dart type void Function(self.Pointer<TColorGrading> )
 
@@ -6623,7 +6653,7 @@ extension NativeFunctionPointer40<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer45<T extends NativeType> on void Function(
+extension NativeFunctionPointer46<T extends NativeType> on void Function(
     self.Pointer<TSceneAsset>) {
   // orignal type void Function(self.Pointer<TSceneAsset> ) void Function(Pointer<TSceneAsset> ) dart type void Function(self.Pointer<TSceneAsset> )
 
@@ -6636,7 +6666,7 @@ extension NativeFunctionPointer45<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer51<T extends NativeType> on void Function(
+extension NativeFunctionPointer52<T extends NativeType> on void Function(
     self.Pointer<TLinearImage>) {
   // orignal type void Function(self.Pointer<TLinearImage> ) void Function(Pointer<TLinearImage> ) dart type void Function(self.Pointer<TLinearImage> )
 
@@ -6649,7 +6679,7 @@ extension NativeFunctionPointer51<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer53<T extends NativeType> on void Function(
+extension NativeFunctionPointer54<T extends NativeType> on void Function(
     self.Pointer<Float32>) {
   // orignal type void Function(self.Pointer<Float32> ) void Function(Pointer<Float32> ) dart type void Function(self.Pointer<Float32> )
 
@@ -6660,7 +6690,7 @@ extension NativeFunctionPointer53<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer55<T extends NativeType> on void Function(int) {
+extension NativeFunctionPointer56<T extends NativeType> on void Function(int) {
   // orignal type void Function(int ) void Function(int ) dart type void Function(int )
 
   Pointer<NativeFunction<void Function(int)>> addFunction() {
@@ -6670,7 +6700,7 @@ extension NativeFunctionPointer55<T extends NativeType> on void Function(int) {
   }
 }
 
-extension NativeFunctionPointer62<T extends NativeType> on void Function(
+extension NativeFunctionPointer63<T extends NativeType> on void Function(
     self.Pointer<TRenderTarget>) {
   // orignal type void Function(self.Pointer<TRenderTarget> ) void Function(Pointer<TRenderTarget> ) dart type void Function(self.Pointer<TRenderTarget> )
 
@@ -6683,7 +6713,7 @@ extension NativeFunctionPointer62<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer64<T extends NativeType> on void Function(
+extension NativeFunctionPointer65<T extends NativeType> on void Function(
     self.Pointer<TTextureSampler>) {
   // orignal type void Function(self.Pointer<TTextureSampler> ) void Function(Pointer<TTextureSampler> ) dart type void Function(self.Pointer<TTextureSampler> )
 
@@ -6697,7 +6727,7 @@ extension NativeFunctionPointer64<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer77<T extends NativeType> on void Function(
+extension NativeFunctionPointer78<T extends NativeType> on void Function(
     self.Pointer<TGltfAssetLoader>) {
   // orignal type void Function(self.Pointer<TGltfAssetLoader> ) void Function(Pointer<TGltfAssetLoader> ) dart type void Function(self.Pointer<TGltfAssetLoader> )
 
@@ -6711,7 +6741,7 @@ extension NativeFunctionPointer77<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer78<T extends NativeType> on void Function(
+extension NativeFunctionPointer79<T extends NativeType> on void Function(
     self.Pointer<TGltfResourceLoader>) {
   // orignal type void Function(self.Pointer<TGltfResourceLoader> ) void Function(Pointer<TGltfResourceLoader> ) dart type void Function(self.Pointer<TGltfResourceLoader> )
 
@@ -6726,7 +6756,7 @@ extension NativeFunctionPointer78<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer83<T extends NativeType> on void Function(
+extension NativeFunctionPointer84<T extends NativeType> on void Function(
     double) {
   // orignal type void Function(double ) void Function(double ) dart type void Function(double )
 
@@ -6737,7 +6767,7 @@ extension NativeFunctionPointer83<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer84<T extends NativeType> on void Function(
+extension NativeFunctionPointer85<T extends NativeType> on void Function(
     self.Pointer<TFilamentAsset>) {
   // orignal type void Function(self.Pointer<TFilamentAsset> ) void Function(Pointer<TFilamentAsset> ) dart type void Function(self.Pointer<TFilamentAsset> )
 
@@ -6750,7 +6780,7 @@ extension NativeFunctionPointer84<T extends NativeType> on void Function(
   }
 }
 
-extension NativeFunctionPointer86<T extends NativeType> on void Function(
+extension NativeFunctionPointer87<T extends NativeType> on void Function(
     self.Pointer<TGizmo>) {
   // orignal type void Function(self.Pointer<TGizmo> ) void Function(Pointer<TGizmo> ) dart type void Function(self.Pointer<TGizmo> )
 
