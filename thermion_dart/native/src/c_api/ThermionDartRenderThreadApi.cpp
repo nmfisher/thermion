@@ -557,7 +557,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           Engine_destroyColorGrading(tEngine, tColorGrading);
-          PROXY(callback());
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -568,7 +568,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           View_setColorGrading(tView, tColorGrading);
-          PROXY(callback());
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -579,7 +579,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           View_setBloom(tView, enabled, strength);
-          PROXY(callback());
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -590,7 +590,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
         [=]
         {
           View_setCamera(tView, tCamera);
-          PROXY(callback());
+          PROXY(onComplete());
         });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1037,7 +1037,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         GltfResourceLoader_destroy(tEngine, tResourceLoader);
-        PROXY(callback());
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1062,7 +1062,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         GltfResourceLoader_addResourceData(tGltfResourceLoader, uri, data, length);
-        PROXY(callback());
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
@@ -1124,7 +1124,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       [=]() mutable
       {
         Scene_addFilamentAsset(tScene, tAsset);
-        PROXY(callback());
+        PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
   }
