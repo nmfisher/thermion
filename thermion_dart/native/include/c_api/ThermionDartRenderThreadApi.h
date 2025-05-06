@@ -8,7 +8,7 @@
 #ifdef __cplusplus
 namespace thermion
 {
-    typedef void (*VoidCallback)(int32_t requestId);
+    typedef void (*VoidCallback)();
     extern "C"
     {
 #endif
