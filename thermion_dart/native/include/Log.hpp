@@ -1,7 +1,6 @@
 #pragma once 
 
 #ifdef __EMSCRIPTEN__
-#include <emscripten.h>
 #include <emscripten/console.h>
 #endif 
 #ifdef __OBJC__
