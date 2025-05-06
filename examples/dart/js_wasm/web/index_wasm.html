@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <script src="thermion_dart.js"></script>
+        <style>
+            html, body { 
+                margin:0;
+                padding:0;
+            }
+            canvas {
+                position:absolute;
+                left:0;
+                right:0;
+                top:0;
+                bottom:0;
+                width:100%;
+                height:100%;
+            }
+        </style>
+    </head>
+<script type="module"> 
+    try {
+        window.thermion_dart = await thermion_dart();      
+    } catch(err) {
+        console.error(err);
+    }
+    const dartModulePromise = WebAssembly.compileStreaming(fetch('example.wasm'));
+    const imports = {};
+    const dart2wasm_runtime = await import('./example.mjs');
+    const moduleInstance = await dart2wasm_runtime.instantiate(dartModulePromise, imports);
+    await dart2wasm_runtime.invoke(moduleInstance);
+  </script>
+  <body>
+    <canvas id="canvas"></canvas>
+</body>
+</html>
