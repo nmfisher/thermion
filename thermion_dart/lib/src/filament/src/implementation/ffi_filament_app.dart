@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
@@ -585,7 +584,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await hook.call();
     }
 
-    RenderThread_requestFrame(nullptr);
+    RenderThread_requestFrameAsync();
   }
 
   ///
