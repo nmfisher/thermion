@@ -1,6 +1,5 @@
 #pragma once
 
-#include <emscripten/emscripten.h>
 #include <emscripten/html5_webgl.h>
 
 #ifdef __cplusplus
