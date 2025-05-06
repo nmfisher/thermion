@@ -1,24 +1,13 @@
 // ignore_for_file: unused_local_variable
-import 'dart:ffi';
 import 'dart:io';
-import 'dart:math';
 import 'package:image/image.dart' as img;
-import 'dart:typed_data';
-import 'package:ffi/ffi.dart';
 import 'package:image/image.dart';
-import 'package:thermion_dart/src/filament/src/interface/layers.dart';
 import 'package:thermion_dart/src/swift/swift_bindings.g.dart';
-import 'package:thermion_dart/src/utils/src/dart_resources.dart';
-import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_swapchain.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_view.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_dart.g.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/thermion_viewer_ffi.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'package:vector_math/vector_math_64.dart';
 import 'package:path/path.dart' as p;
 
 Color kWhite = ColorFloat32(4)..setRgba(1.0, 1.0, 1.0, 1.0);
