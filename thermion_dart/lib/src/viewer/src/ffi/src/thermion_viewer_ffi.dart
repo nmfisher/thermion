@@ -485,7 +485,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    if(!FILAMENT_SINGLE_THREADED && Platform.isWindows && msaa) {
+    if(!FILAMENT_SINGLE_THREADED && IS_WINDOWS && msaa) {
       throw Exception("MSAA is not currently supported on Windows");
     }
     View_setAntiAliasing(view.view, msaa, fxaa, taa);

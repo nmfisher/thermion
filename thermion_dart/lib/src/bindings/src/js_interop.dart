@@ -7,9 +7,10 @@ export 'dart:js_interop_unsafe';
 import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 
 const FILAMENT_SINGLE_THREADED = true;
+const IS_WINDOWS = false;
 
 T makeTypedData<T extends TypedData>(int length) {
-  TypedData typedData = switch(T) {
+  TypedData typedData = switch (T) {
     Uint8List => Uint8List(length),
     Int8List => Int8List(length),
     Uint16List => Uint16List(length),
@@ -24,7 +25,7 @@ T makeTypedData<T extends TypedData>(int length) {
 }
 
 T makeTypedDataFromIntList<T extends TypedData>(List<int> src) {
-  TypedDataList typedData = switch(T) {
+  TypedDataList typedData = switch (T) {
     Uint8List => Uint8List.fromList(src),
     Uint16List => Uint16List.fromList(src),
     Int16List => Int16List.fromList(src),
@@ -34,9 +35,8 @@ T makeTypedDataFromIntList<T extends TypedData>(List<int> src) {
   return typedData as T;
 }
 
-
 T makeTypedDataFromDoubleList<T extends TypedData>(List<double> src) {
-  TypedDataList typedData = switch(T) {
+  TypedDataList typedData = switch (T) {
     Float32List => Float32List.fromList(src),
     Float64List => Float64List.fromList(src),
     _ => throw UnimplementedError()
@@ -47,19 +47,24 @@ T makeTypedDataFromDoubleList<T extends TypedData>(List<double> src) {
 }
 
 extension type _NativeLibrary(JSObject _) implements JSObject {
+  static _NativeLibrary get instance =>
+      NativeLibrary.instance as _NativeLibrary;
 
-  static _NativeLibrary get instance => NativeLibrary.instance as _NativeLibrary;
-
-  external JSUint8Array _emscripten_make_uint8_buffer(Pointer<Uint8> ptr, int length);
-  external JSUint16Array _emscripten_make_uint16_buffer(Pointer<Uint16> ptr, int length);
-  external JSInt16Array _emscripten_make_int16_buffer(Pointer<Int16> ptr, int length);
-  external JSInt32Array _emscripten_make_int32_buffer(Pointer<Int32> ptr, int length);
-  external JSFloat32Array _emscripten_make_f32_buffer(Pointer<Float32> ptr, int length);
-  external JSFloat64Array _emscripten_make_f64_buffer(Pointer<Float64> ptr, int length);
+  external JSUint8Array _emscripten_make_uint8_buffer(
+      Pointer<Uint8> ptr, int length);
+  external JSUint16Array _emscripten_make_uint16_buffer(
+      Pointer<Uint16> ptr, int length);
+  external JSInt16Array _emscripten_make_int16_buffer(
+      Pointer<Int16> ptr, int length);
+  external JSInt32Array _emscripten_make_int32_buffer(
+      Pointer<Int32> ptr, int length);
+  external JSFloat32Array _emscripten_make_f32_buffer(
+      Pointer<Float32> ptr, int length);
+  external JSFloat64Array _emscripten_make_f64_buffer(
+      Pointer<Float64> ptr, int length);
   external Pointer _emscripten_get_byte_offset(JSObject obj);
   external void _execute_queue();
 
-  
   @JS('stackSave')
   external Pointer<Void> stackSave();
 
@@ -85,7 +90,7 @@ extension FreeTypedData<T> on TypedData {
 }
 
 void stackRestore() {
-  if(_stackPtr.isNotEmpty) {
+  if (_stackPtr.isNotEmpty) {
     _NativeLibrary.instance.stackRestore(_stackPtr.first);
     // print("restored stack to ${_stackPtr.first}");
     _stackPtr.clear();
@@ -95,34 +100,35 @@ void stackRestore() {
 List<Pointer<Void>> _stackPtr = [];
 
 Pointer<T> getPointer<T extends NativeType>(TypedData data, JSObject obj) {
-  if(_allocated.contains(data)) {
-      var offset =  _NativeLibrary.instance._emscripten_get_byte_offset(obj);
-      if(offset == 0) {
-        throw Exception("This Uint8List was not allocated directly via emscripten");
-      }
-      return Pointer<T>(offset);
+  if (_allocated.contains(data)) {
+    var offset = _NativeLibrary.instance._emscripten_get_byte_offset(obj);
+    if (offset == 0) {
+      throw Exception(
+          "This Uint8List was not allocated directly via emscripten");
+    }
+    return Pointer<T>(offset);
   }
 
   late Pointer<T> ptr;
 
-  if(data.lengthInBytes < 32 * 1024) {
+  if (data.lengthInBytes < 32 * 1024) {
     var stackPtr = _NativeLibrary.instance.stackSave();
     _stackPtr.add(stackPtr);
     ptr = stackAlloc(data.lengthInBytes).cast<T>();
   } else {
-    if(_arena == null) {
+    if (_arena == null) {
       _arena = malloc<Void>(ARENA_SIZE_IN_BYTES);
     }
-    if(_arenaAllocations > 0 && _arenaOffset + data.lengthInBytes > ARENA_SIZE_IN_BYTES) {
+    if (_arenaAllocations > 0 &&
+        _arenaOffset + data.lengthInBytes > ARENA_SIZE_IN_BYTES) {
       throw Exception("Arena exhausted");
     }
     ptr = Pointer<T>(_arena! + _arenaOffset);
     _arenaOffset += data.lengthInBytes;
     _arenaAllocations++;
   }
-  
-  return ptr;
 
+  return ptr;
 }
 
 extension JSBackingBuffer on JSUint8Array {
@@ -169,12 +175,12 @@ extension type Float64ArrayWrapper._(JSObject _) implements JSObject {
   external Float64ArrayWrapper(JSObject buffer, int offset, int length);
 }
 
-
 extension Uint8ListExtension on Uint8List {
-  
   Pointer<Uint8> get address {
     final ptr = getPointer<Uint8>(this, this.toJS);
-    final bar = Uint8ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length) as JSUint8Array;
+    final bar =
+        Uint8ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
+            as JSUint8Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
@@ -185,15 +191,14 @@ extension Uint8ListExtension on Uint8List {
   //   _allocated.add(buffer);
   //   return buffer;
   // }
-
 }
 
 extension Float32ListExtension on Float32List {
-
-
   Pointer<Float32> get address {
     final ptr = getPointer<Float32>(this, this.toJS);
-    final bar = Float32ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length) as JSFloat32Array;
+    final bar =
+        Float32ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
+            as JSFloat32Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
@@ -204,13 +209,13 @@ extension Float32ListExtension on Float32List {
   //   _allocated.add(buffer);
   //   return buffer;
   // }
-
 }
 
 extension Int16ListExtension on Int16List {
   Pointer<Int16> get address {
     final ptr = getPointer<Int16>(this, this.toJS);
-    final bar = Int16ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length) as JSInt16Array;
+    final bar = Int16ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length)
+        as JSInt16Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
@@ -224,10 +229,11 @@ extension Int16ListExtension on Int16List {
 }
 
 extension Uint16ListExtension on Uint16List {
-  
   Pointer<Uint16> get address {
     final ptr = getPointer<Uint16>(this, this.toJS);
-    final bar = Uint16ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length) as JSUint16Array;
+    final bar =
+        Uint16ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
+            as JSUint16Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
@@ -243,16 +249,18 @@ extension Uint16ListExtension on Uint16List {
 extension UInt32ListExtension on Uint32List {
   Pointer<Uint32> get address {
     final ptr = getPointer<Uint32>(this, this.toJS);
-    final bar = Uint32ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length) as JSUint32Array;
+    final bar = Uint32ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length)
+        as JSUint32Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
 }
 
 extension Int32ListExtension on Int32List {
-    Pointer<Int32> get address {
+  Pointer<Int32> get address {
     final ptr = getPointer<Int32>(this, this.toJS);
-    final bar = Int32ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length) as JSInt32Array;
+    final bar = Int32ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length)
+        as JSInt32Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
@@ -275,12 +283,12 @@ extension Int64ListExtension on Int64List {
   }
 }
 
-
 extension Float64ListExtension on Float64List {
-  
   Pointer<Float64> get address {
     final ptr = getPointer<Float64>(this, this.toJS);
-    final bar = Float64ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length) as JSFloat64Array;
+    final bar =
+        Float64ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
+            as JSFloat64Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
@@ -294,20 +302,21 @@ extension Float64ListExtension on Float64List {
 }
 
 int sizeOf<T extends NativeType>() {
-  switch(T) {
+  switch (T) {
     case Float:
       return 4;
     default:
       throw Exception();
   }
 }
+
 typedef IntPtrList = Int32List;
 typedef Utf8 = Char;
 typedef Float = Float32;
 typedef Double = Float64;
 typedef Bool = bool;
 
-class FinalizableUint8List  {
+class FinalizableUint8List {
   final Pointer name;
   final Uint8List data;
 
@@ -315,7 +324,6 @@ class FinalizableUint8List  {
 }
 
 class CallbackHolder<T extends Function> {
-
   final Pointer<NativeFunction<T>> pointer;
 
   CallbackHolder(this.pointer);
@@ -325,14 +333,12 @@ class CallbackHolder<T extends Function> {
   }
 }
 
-
 extension DPCF on DartPickCallbackFunction {
   CallbackHolder<DartPickCallbackFunction> asCallback() {
     final ptr = addFunction<DartPickCallbackFunction>(this.toJS, "viidddd");
     final cbh = CallbackHolder(ptr);
     return cbh;
   }
-
 }
 
 extension GPFBP on void Function(int, double, double, double) {
@@ -349,7 +355,7 @@ extension VFCB on void Function() {
   }
 }
 
-final _completers = <int,Completer>{};
+final _completers = <int, Completer>{};
 void Function(int) _voidCallback = (int requestId) {
   _completers[requestId]!.complete();
   _completers.remove(requestId);
@@ -358,13 +364,14 @@ void Function(int) _voidCallback = (int requestId) {
 final _voidCallbackPtr = _voidCallback.addFunction();
 
 Future<void> withVoidCallback(
-    Function(int requestId, Pointer<NativeFunction<Void Function()>>) func) async {
+    Function(int requestId, Pointer<NativeFunction<Void Function()>>)
+        func) async {
   final completer = Completer();
   final requestId = _completers.length;
   _completers[requestId] = completer;
 
   func.call(requestId, _voidCallbackPtr.cast());
-  while(!completer.isCompleted) {
+  while (!completer.isCompleted) {
     _NativeLibrary.instance._execute_queue();
     await Future.delayed(Duration(milliseconds: 1));
   }
@@ -373,7 +380,6 @@ Future<void> withVoidCallback(
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(
     Function(Pointer<NativeFunction<Void Function(Pointer<T>)>>) func) async {
-
   final completer = Completer<Pointer<T>>();
   // ignore: prefer_function_declarations_over_variables
   void Function(Pointer<T>) callback = (Pointer<T> ptr) {
@@ -386,7 +392,7 @@ Future<Pointer<T>> withPointerCallback<T extends NativeType>(
 
   var ptr = await completer.future;
   onComplete_interopFnPtr.dispose();
-  
+
   return ptr;
 }
 
@@ -406,7 +412,8 @@ Future<bool> withBoolCallback(
   return completer.future;
 }
 
-Future<double> withFloatCallback(void Function(Pointer<NativeFunction<void Function(double)>>) func) async {
+Future<double> withFloatCallback(
+    void Function(Pointer<NativeFunction<void Function(double)>>) func) async {
   final completer = Completer<double>();
   // ignore: prefer_function_declarations_over_variables
   void Function(double) callback = (double result) {
@@ -434,14 +441,13 @@ Future<int> withIntCallback(
 }
 
 Pointer<T> allocate<T extends NativeType>(int count) {
-  switch(T) {
+  switch (T) {
     case PointerClass:
       return malloc(count * 4);
     default:
       throw Exception(T.toString());
   }
 }
-
 
 Future<int> withUInt32Callback(
     Function(Pointer<NativeFunction<Void Function(int)>>) func) async {

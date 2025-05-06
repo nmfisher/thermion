@@ -2,11 +2,13 @@ export 'thermion_dart_ffi.g.dart';
 
 export 'dart:typed_data';
 import 'dart:async';
+import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
 export 'package:ffi/ffi.dart';
 export 'dart:ffi';
 
 const FILAMENT_SINGLE_THREADED = false;
+bool get IS_WINDOWS => Platform.isWindows;
 
 class NativeLibrary {
   static void initBindings(String name) {
@@ -15,11 +17,11 @@ class NativeLibrary {
 }
 
 typedef IntPtrList = Int64List;
+typedef Float64 = Double;
 typedef PointerClass<T extends NativeType> = Pointer<T>;
 typedef VoidPointerClass = Pointer<Void>;
 
 class CallbackHolder<T extends Function> {
-  
   final NativeCallable<T> nativeCallable;
 
   Pointer<NativeFunction<T>> get pointer => nativeCallable.nativeFunction;
@@ -39,6 +41,14 @@ void free(Pointer ptr) {
   calloc.free(ptr);
 }
 
+Pointer stackSave() {
+  throw Exception();
+}
+
+void stackRestore(Pointer ptr) {
+  throw Exception();
+}
+
 class FinalizableUint8List implements Finalizable {
   final Pointer name;
   final Uint8List data;
@@ -48,12 +58,14 @@ class FinalizableUint8List implements Finalizable {
 
 extension GPFBP on void Function(int, double, double, double) {
   CallbackHolder<GizmoPickCallbackFunction> asCallback() {
-    var nativeCallable = NativeCallable<GizmoPickCallbackFunction>.listener(this);
+    var nativeCallable =
+        NativeCallable<GizmoPickCallbackFunction>.listener(this);
     return CallbackHolder(nativeCallable);
   }
 }
 
-CallbackHolder<PickCallbackFunction> makePickCallbackFunctionPointer(DartPickCallbackFunction fn) {
+CallbackHolder<PickCallbackFunction> makePickCallbackFunctionPointer(
+    DartPickCallbackFunction fn) {
   final nc = NativeCallable<PickCallbackFunction>.listener(fn);
   final cbh = CallbackHolder(nc);
   return cbh;
@@ -122,7 +134,8 @@ Future<double> withFloatCallback(
   void Function(double) callback = (double result) {
     completer.complete(result);
   };
-  final nativeCallable = NativeCallable<Void Function(Float)>.listener(callback);
+  final nativeCallable =
+      NativeCallable<Void Function(Float)>.listener(callback);
   func.call(nativeCallable.nativeFunction);
   await completer.future;
   nativeCallable.close();
@@ -182,7 +195,7 @@ extension FreeTypedData<T> on TypedData {
 }
 
 T makeTypedData<T extends TypedData>(int length) {
-  TypedData typedData = switch(T) {
+  TypedData typedData = switch (T) {
     Uint8List => Uint8List(length),
     Float32List => Float32List(length),
     _ => throw UnimplementedError()
@@ -191,7 +204,7 @@ T makeTypedData<T extends TypedData>(int length) {
 }
 
 T makeTypedDataFromIntList<T extends TypedData>(List<int> src) {
-  TypedDataList typedData = switch(T) {
+  TypedDataList typedData = switch (T) {
     Uint8List => Uint8List.fromList(src),
     Int16List => Int16List.fromList(src),
     Int32List => Int32List.fromList(src),
@@ -200,9 +213,8 @@ T makeTypedDataFromIntList<T extends TypedData>(List<int> src) {
   return typedData as T;
 }
 
-
 T makeTypedDataFromDoubleList<T extends TypedData>(List<double> src) {
-  TypedDataList typedData = switch(T) {
+  TypedDataList typedData = switch (T) {
     Float32List => Float32List.fromList(src),
     Float64List => Float64List.fromList(src),
     _ => throw UnimplementedError()
