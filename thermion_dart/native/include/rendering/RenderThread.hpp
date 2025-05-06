@@ -10,7 +10,6 @@
 #include "RenderTicker.hpp"
 
 #ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
 #include <emscripten/threading.h>
 #include <emscripten/proxying.h>
 #include <emscripten/eventloop.h>
@@ -41,7 +40,7 @@ public:
      * 
      * @param callback Callback function to be called after rendering completes
      */
-    void requestFrame(void (*callback)());
+    void requestFrame();
 
     /**
      * @brief Sets the render ticker used.
@@ -75,11 +74,11 @@ public:
     pthread_t outer;
     #endif
 
+    bool mRendered = false;
+
 private:
 
-    void (*_requestFrameRenderCallback)() = nullptr;
-    
-    std::mutex _mutex;
+    bool mRender = false;
     std::mutex _taskMutex;
     std::condition_variable _cv;
     std::deque<std::function<void()>> _tasks;
@@ -99,12 +98,18 @@ private:
 // Template implementation
 template <class Rt>
 auto RenderThread::add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
+    
+    
     std::unique_lock<std::mutex> lock(_taskMutex);
+    
     auto ret = pt.get_future();
     _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(
                          std::move(pt))]
                     { (*pt)(); });
+    
     _cv.notify_one();
+    
+    
     return ret;
 }
 

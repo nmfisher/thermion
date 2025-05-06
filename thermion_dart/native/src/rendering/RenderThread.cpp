@@ -3,6 +3,7 @@
 #include <functional>
 #include <stdlib.h>
 #include <time.h>
+#include <chrono>
 
 #include "Log.hpp"
 
@@ -12,24 +13,42 @@ namespace thermion {
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <emscripten/threading.h>
 #include <emscripten/proxying.h>
 #include <emscripten/eventloop.h>
 #include "ThermionWebApi.h"
 
+std::chrono::high_resolution_clock::time_point loopStart;
+
 static void mainLoop(void* arg) {
     auto *rt = static_cast<RenderThread *>(arg);
+  
+    auto startTime = std::chrono::high_resolution_clock::now();
 
-    if (!rt->_stop) {
+    auto timeSinceLastLoopStart = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - loopStart).count();
+    if(timeSinceLastLoopStart > 20) {
+        Log("%dms elapsed since last loop", timeSinceLastLoopStart);
+    }
+    loopStart = startTime;
+    rt->mRendered = false;
+    long long elapsed = 0;
+    int numIters = 0;
+    while (!rt->_stop && elapsed < 10) {
         rt->iter();
-    } else { 
+        numIters++;
+        auto now = std::chrono::high_resolution_clock::now();
+        elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+    } 
+    // Log("Spent %lldms processing, %d iters", elapsed, numIters);
+    if(rt->_stop) {
         Log("RenderThread stopped")
     }
+
 }
 
 static void *startHelper(void * parm) {
+    loopStart = std::chrono::high_resolution_clock::now();
     emscripten_set_main_loop_arg(&mainLoop, parm, 0, true);
     return nullptr;
 }
@@ -49,6 +68,7 @@ RenderThread::RenderThread()
     t = new std::thread([this]() { 
         while (!_stop) {
             iter();
+            mRendered = false;
         }
     });
     #endif
@@ -79,52 +99,39 @@ RenderThread::~RenderThread()
     TRACE("RenderThread destructor complete");    
 }
 
-void RenderThread::requestFrame(void (*callback)())
+void RenderThread::requestFrame()
 {
-    TRACE("Request frame");
-    std::unique_lock<std::mutex> lock(_mutex);
-    this->_requestFrameRenderCallback = callback;
+    if(mRender) {
+        Log("Warning - frame requested before previous frame has completed rendering");
+    }
+    mRender = true;
     _cv.notify_one();
 }
 
 void RenderThread::iter()
 {
+    if (mRender && !mRendered)
     {
-        #ifdef __EMSCRIPTEN__
-        queue.execute();
-        #endif
-        std::unique_lock<std::mutex> lock(_mutex);
-        if (_requestFrameRenderCallback)
+        mRenderTicker->render(0);
+        mRender = false;
+        mRendered = true;
+
+        // Calculate and print FPS
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _lastFrameTime).count();
+        _lastFrameTime = currentTime;
+
+        _frameCount++;
+        _accumulatedTime += deltaTime;
+
+        if (_accumulatedTime >= 1.0f) // Update FPS every second
         {
-            mRenderTicker->render(0);
-            lock.unlock();
-            #ifdef __EMSCRIPTEN__
-            queue.proxyAsync(outer, [=]() {
-            #endif
-            this->_requestFrameRenderCallback();
-            #ifdef __EMSCRIPTEN__
-            });
-            queue.execute();
-            #endif
-
-            this->_requestFrameRenderCallback = nullptr;
-
-            // Calculate and print FPS
-            auto currentTime = std::chrono::high_resolution_clock::now();
-            float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _lastFrameTime).count();
-            _lastFrameTime = currentTime;
-
-            _frameCount++;
-            _accumulatedTime += deltaTime;
-
-            if (_accumulatedTime >= 1.0f) // Update FPS every second
-            {
-                _fps = _frameCount / _accumulatedTime;
-                _frameCount = 0;
-                _accumulatedTime = 0.0f;
-            }
+            _fps = _frameCount / _accumulatedTime;
+            _frameCount = 0;
+            _accumulatedTime = 0.0f;
         }
     }
+    
     std::unique_lock<std::mutex> taskLock(_taskMutex);
 
     if (!_tasks.empty())
@@ -135,9 +142,10 @@ void RenderThread::iter()
         task();
         taskLock.lock();
     }
-
+    #ifndef __EMSCRIPTEN__
     _cv.wait_for(taskLock, std::chrono::microseconds(2000), [this]
                 { return !_tasks.empty() || _stop; });
+    #endif
 
 }
 
