@@ -101,6 +101,9 @@ RenderThread::~RenderThread()
 
 void RenderThread::requestFrame()
 {
+    if(mRendered) {
+        return;
+    }
     if(mRender) {
         Log("Warning - frame requested before previous frame has completed rendering");
     }
