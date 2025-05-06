@@ -8,6 +8,7 @@ export 'package:ffi/ffi.dart';
 export 'dart:ffi';
 
 const FILAMENT_SINGLE_THREADED = false;
+const FILAMENT_WASM = false;
 bool get IS_WINDOWS => Platform.isWindows;
 
 class NativeLibrary {

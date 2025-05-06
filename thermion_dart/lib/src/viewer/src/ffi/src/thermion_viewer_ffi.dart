@@ -127,9 +127,7 @@ class ThermionViewerFFI extends ThermionViewer {
           await withVoidCallback((cb) => Engine_executeRenderThread(app.engine, cb));
         } else {
           await withVoidCallback((cb) => Engine_flushAndWaitRenderThread(app.engine, cb));
-          
         }
-    
   }
 
   double _msPerFrame = 1000.0 / 60.0;

@@ -78,11 +78,11 @@ class FFICamera extends Camera {
   @override
   Future setModelMatrix(Matrix4 matrix) async {
     Pointer? stackPtr;
-    if(FILAMENT_SINGLE_THREADED) {
+    if(FILAMENT_WASM) {
       stackPtr = stackSave();
     }
     Camera_setModelMatrix(camera, matrix.storage.address);
-    if(FILAMENT_SINGLE_THREADED) {
+    if(FILAMENT_WASM) {
       stackRestore(stackPtr!);
     }
   }
@@ -126,7 +126,7 @@ class FFICamera extends Camera {
   ///
   Future<Frustum> getFrustum() async {
     Pointer? stackPtr;
-    if(FILAMENT_SINGLE_THREADED) {
+    if(FILAMENT_WASM) {
       stackPtr = stackSave();
     }
     var out = Float64List(24);
@@ -139,7 +139,7 @@ class FFICamera extends Camera {
     frustum.plane3.setFromComponents(out[12], out[13], out[14], out[15]);
     frustum.plane4.setFromComponents(out[16], out[17], out[18], out[19]);
     frustum.plane5.setFromComponents(out[20], out[21], out[22], out[23]);
-    if(FILAMENT_SINGLE_THREADED) {
+    if(FILAMENT_WASM) {
       stackRestore(stackPtr!);
     }
     return frustum;

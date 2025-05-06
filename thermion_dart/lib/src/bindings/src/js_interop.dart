@@ -7,6 +7,7 @@ export 'dart:js_interop_unsafe';
 import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 
 const FILAMENT_SINGLE_THREADED = true;
+const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
 T makeTypedData<T extends TypedData>(int length) {
