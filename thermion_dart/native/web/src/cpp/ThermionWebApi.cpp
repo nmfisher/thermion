@@ -20,6 +20,10 @@ using emscripten::val;
 
 extern "C"
 {
+
+  EMSCRIPTEN_KEEPALIVE void Thermion_resizeCanvas(int width, int height) {
+    emscripten_set_canvas_element_size("#thermion_canvas", width, height);
+  }
   
   EMSCRIPTEN_WEBGL_CONTEXT_HANDLE EMSCRIPTEN_KEEPALIVE Thermion_createGLContext() {
     

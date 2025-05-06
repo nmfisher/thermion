@@ -90,16 +90,6 @@ extension FreeTypedData<T> on TypedData {
   }
 }
 
-void stackRestore() {
-  if (_stackPtr.isNotEmpty) {
-    _NativeLibrary.instance.stackRestore(_stackPtr.first);
-    // print("restored stack to ${_stackPtr.first}");
-    _stackPtr.clear();
-  }
-}
-
-List<Pointer<Void>> _stackPtr = [];
-
 Pointer<T> getPointer<T extends NativeType>(TypedData data, JSObject obj) {
   if (_allocated.contains(data)) {
     var offset = _NativeLibrary.instance._emscripten_get_byte_offset(obj);
@@ -113,8 +103,6 @@ Pointer<T> getPointer<T extends NativeType>(TypedData data, JSObject obj) {
   late Pointer<T> ptr;
 
   if (data.lengthInBytes < 32 * 1024) {
-    var stackPtr = _NativeLibrary.instance.stackSave();
-    _stackPtr.add(stackPtr);
     ptr = stackAlloc(data.lengthInBytes).cast<T>();
   } else {
     if (_arena == null) {
@@ -365,13 +353,18 @@ void Function(int) _voidCallback = (int requestId) {
 final _voidCallbackPtr = _voidCallback.addFunction();
 
 Future<void> withVoidCallback(
-    Function(int requestId, Pointer<NativeFunction<Void Function()>>)
-        func) async {
+    Function(Pointer<NativeFunction<Void Function()>>) func) async {
   final completer = Completer();
   final requestId = _completers.length;
   _completers[requestId] = completer;
 
-  func.call(requestId, _voidCallbackPtr.cast());
+  final fn = () {
+    completer.complete();
+  };
+
+  final ptr = fn.addFunction();
+
+  func.call(ptr.cast());
   while (!completer.isCompleted) {
     _NativeLibrary.instance._execute_queue();
     await Future.delayed(Duration(milliseconds: 1));
@@ -487,8 +480,7 @@ extension DartBigIntExtension on int {
   }
 }
 
-T withStack<T>(T Function() func) {
-  var ptr = stackSave();
-  var result = func();
-  stackRestore(ptr);
-}
+Pointer stackSave() => _NativeLibrary.instance.stackSave();
+
+void stackRestore(Pointer ptr) =>
+    _NativeLibrary.instance.stackRestore(ptr.cast());
