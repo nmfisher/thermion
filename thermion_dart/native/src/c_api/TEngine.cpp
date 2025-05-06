@@ -1,5 +1,4 @@
 #ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include "ThermionWebApi.h"
 #include <backend/platforms/PlatformWebGL.h>
@@ -276,9 +275,14 @@ namespace thermion
         
         EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine) {
             #ifdef __EMSCRIPTEN__
+                // auto startTime = std::chrono::high_resolution_clock::now();
                 auto *engine = reinterpret_cast<Engine *>(tEngine);
                 engine->execute();
-                emscripten_webgl_commit_frame();
+                // auto endTime = std::chrono::high_resolution_clock::now();
+                // auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
+                // float durationMs = durationNs / 1e6f;
+
+                // Log("Total Engine_execute() time: %.3f ms", durationMs);
             #else
                 Log("WARNING - ignored on non-WASM");
             #endif
