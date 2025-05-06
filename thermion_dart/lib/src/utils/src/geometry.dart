@@ -1,13 +1,11 @@
 import 'dart:math' ;
 
-import 'package:thermion_dart/src/bindings/src/js_interop.dart' hide Aabb3;
-
 import '../../../thermion_dart.dart';
 
 class GeometryHelper {
   static Geometry fullscreenQuad() {
-    final vertices = makeTypedDataFromDoubleList<Float32List>([-1.0, -1.0, 1.0, 3.0, -1.0, 1.0, -1.0, 3.0, 1.0]);
-    final indices = makeTypedDataFromIntList<Uint16List>([0, 1, 2]);
+    final vertices = Float32List.fromList([-1.0, -1.0, 1.0, 3.0, -1.0, 1.0, -1.0, 3.0, 1.0]);
+    final indices = Uint16List.fromList([0, 1, 2]);
     return Geometry(vertices, indices);
   }
 
@@ -52,11 +50,11 @@ class GeometryHelper {
       }
     }
 
-    Float32List vertices = makeTypedDataFromDoubleList<Float32List>(verticesList);
+    Float32List vertices = Float32List.fromList(verticesList);
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, makeTypedDataFromIntList<Uint16List>(indices), normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 
   static Geometry cube(
@@ -236,7 +234,7 @@ class GeometryHelper {
       20, 21, 22, 20, 22, 23 // 4,0,3,4,3,7
     ];
 
-    return Geometry(vertices, makeTypedDataFromIntList<Uint16List>(indices), normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 
 // Helper function to flip the Y coordinate of UV coordinates (y = 1.0 - y)
@@ -316,7 +314,7 @@ class GeometryHelper {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, makeTypedDataFromIntList<Uint16List>(indices), normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 
   static Geometry conic(
@@ -440,7 +438,7 @@ class GeometryHelper {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, makeTypedDataFromIntList<Uint16List>(indices), normals: _normals, uvs: _uvs);
+    return Geometry(vertices, Uint16List.fromList(indices), normals: _normals, uvs: _uvs);
   }
 
   static Geometry plane(
@@ -493,7 +491,7 @@ class GeometryHelper {
           ])
         : null;
 
-    final indices = makeTypedDataFromIntList<Uint16List>([
+    final indices = Uint16List.fromList([
       0,
       1,
       2,
@@ -640,7 +638,7 @@ class GeometryHelper {
     Float32List? _normals = normals ? Float32List.fromList(normalsList) : null;
     Float32List? _uvs = uvs ? Float32List.fromList(uvsList) : null;
 
-    return Geometry(vertices, makeTypedDataFromIntList<Uint16List>(indices),
+    return Geometry(vertices, Uint16List.fromList(indices),
         normals: _normals, uvs: _uvs, primitiveType: PrimitiveType.LINES);
   }
 
@@ -794,7 +792,7 @@ class GeometryHelper {
           ])
         : null;
 
-    final indices = makeTypedDataFromIntList<Uint16List>([
+    final indices = Uint16List.fromList([
       // Front face
       0, 1, 2, 0, 2, 3,
       // Back face
@@ -865,7 +863,7 @@ class GeometryHelper {
         : null;
 
     // Define indices for triangular faces
-    Uint16List indices = makeTypedDataFromIntList<Uint16List>([
+    Uint16List indices = Uint16List.fromList([
       // Bottom face (rectangle)
       0, 1, 2,
       0, 2, 3,
