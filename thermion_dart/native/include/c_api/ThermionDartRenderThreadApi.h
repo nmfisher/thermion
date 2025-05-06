@@ -8,11 +8,10 @@
 #ifdef __cplusplus
 namespace thermion
 {
-    typedef void (*VoidCallback)();
     extern "C"
     {
 #endif
-
+        typedef void (*VoidCallback)();
         typedef int32_t EntityId;
         typedef void (*FilamentRenderCallback)(void *const owner);
 
