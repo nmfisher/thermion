@@ -1,7 +1,3 @@
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif 
-
 #include <functional>
 #include <mutex>
 #include <thread>
@@ -36,14 +32,31 @@
 using namespace thermion;
 using namespace std::chrono_literals;
 #include <time.h>
-
+#include <cinttypes>
+//auto innerStartTime = std::chrono::high_resolution_clock::now();\
+  //Log("inner proxy start time time: % " PRId64 "ms", std::chrono::duration_cast<std::chrono::milliseconds>(innerStartTime.time_since_epoch()).count());\
+//auto endTime = std::chrono::high_resolution_clock::now(); \
+//auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();\
+//float durationMs = durationNs / 1e6f;\
+//Log("proxySync time: %.3f ms", durationMs);\
+//startTime = std::chrono::high_resolution_clock::now(); \
+//_renderThread->queue.execute(); \
+//endTime = std::chrono::high_resolution_clock::now(); \
+//durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();\
+//durationMs = durationNs / 1e6f;\
+//TRACE("queue execute time: %.3f ms", durationMs);
+//auto innerEndTime = std::chrono::high_resolution_clock::now(); \
+  //auto innerDurationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(innerEndTime - innerStartTime).count();\
+  //float innerDurationMs = innerDurationNs / 1e6f;\
+  //Log("inner proxy fn time: %.3f ms", innerDurationMs);\
 
 #if defined __EMSCRIPTEN__
 #define PROXY(call) \
+auto startTime = std::chrono::high_resolution_clock::now(); \
 TRACE("PROXYING"); \
-_renderThread->queue.proxyAsync(_renderThread->outer, [=]() { \
+_renderThread->queue.proxySync(_renderThread->outer, [=]() { \
   call; \
-});
+}); 
 #else      
   #define PROXY(call) call
 #endif
@@ -84,12 +97,11 @@ extern "C"
     _renderThread->setRenderTicker(renderTicker);
   }
 
-  EMSCRIPTEN_KEEPALIVE void RenderThread_requestFrame(void (*onComplete)()) {
-    _renderThread->requestFrame(onComplete);
+  EMSCRIPTEN_KEEPALIVE void RenderThread_requestFrameAsync() {
+    _renderThread->requestFrame();
   }
 
-  
-  EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void RenderTicker_renderRenderThread(TRenderTicker *tRenderTicker, uint64_t frameTimeInNanos, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -147,7 +159,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
   
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySwapChainRenderThread(TEngine *tEngine, TSwapChain *tSwapChain, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -157,7 +169,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyViewRenderThread(TEngine *tEngine, TView *tView, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyViewRenderThread(TEngine *tEngine, TView *tView, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -167,7 +179,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
     
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySceneRenderThread(TEngine *tEngine, TScene *tScene, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySceneRenderThread(TEngine *tEngine, TScene *tScene, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -197,7 +209,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyRenderThread(TEngine *tEngine, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyRenderThread(TEngine *tEngine, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -207,7 +219,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture *tTexture, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyTextureRenderThread(TEngine *engine, TTexture *tTexture, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -218,7 +230,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_destroySkyboxRenderThread(TEngine *tEngine, TSkybox *tSkybox, VoidCallback onComplete) {
       std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -228,7 +240,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
     
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, void (*onComplete)()) { 
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyIndirectLightRenderThread(TEngine *tEngine, TIndirectLight *tIndirectLight, VoidCallback onComplete) { 
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -250,7 +262,7 @@ extern "C"
   }
 
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialRenderThread(TEngine *tEngine, TMaterial *tMaterial, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -261,7 +273,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyMaterialInstanceRenderThread(TEngine *tEngine, TMaterialInstance *tMaterialInstance, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -281,7 +293,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyFenceRenderThread(TEngine *tEngine, TFence *tFence, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -291,7 +303,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThread(TEngine *tEngine, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_flushAndWaitRenderThread(TEngine *tEngine, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -301,14 +313,28 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_executeRenderThread(TEngine *tEngine, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Engine_executeRenderThread(TEngine *tEngine, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
+        // auto executeStartTime = std::chrono::high_resolution_clock::now(); 
+        // Log("started Engine_execute at : % " PRId64 "ms", std::chrono::duration_cast<std::chrono::milliseconds>(executeStartTime.time_since_epoch()).count());
+    // /  _renderThread->queue.execute();
         Engine_execute(tEngine);
-        PROXY(onComplete());
+        // PROXY(onComplete());
       });
     auto fut = _renderThread->add_task(lambda);
+    onComplete();
+  }
+
+  EMSCRIPTEN_KEEPALIVE void execute_queue() {
+    // auto startTime = std::chrono::high_resolution_clock::now(); 
+    // Log("execute_queue start time: % " PRId64 "ms", std::chrono::duration_cast<std::chrono::milliseconds>(startTime.time_since_epoch()).count());
+      _renderThread->queue.execute();
+//       auto endTime = std::chrono::high_resolution_clock::now(); 
+// auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
+// auto durationMs = durationNs / 1e6f;\
+// Log("queue execute time: %.3f ms", durationMs);
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, uint8_t *skyboxData, size_t length,  void (*onComplete)(TSkybox *),  void (*onTextureUploadComplete)()) {
@@ -340,7 +366,7 @@ extern "C"
       });
     auto fut = _renderThread->add_task(lambda);
   }
-  EMSCRIPTEN_KEEPALIVE void Renderer_endFrameRenderThread(TRenderer *tRenderer, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Renderer_endFrameRenderThread(TRenderer *tRenderer, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -350,7 +376,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_renderRenderThread(TRenderer *tRenderer, TView *tView, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Renderer_renderRenderThread(TRenderer *tRenderer, TView *tView, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -360,7 +386,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void Renderer_renderStandaloneViewRenderThread(TRenderer *tRenderer, TView *tView, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -378,7 +404,7 @@ extern "C"
     double clearA,
     uint8_t clearStencil,
     bool clear,
-    bool discard, void (*onComplete)()) {
+    bool discard, VoidCallback onComplete) {
       std::packaged_task<void()> lambda(
         [=]() mutable
         {
@@ -396,7 +422,7 @@ extern "C"
     TPixelDataType tPixelDataType,
     uint8_t *out,
     size_t outLength,
-    void (*onComplete)()) {
+    VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -438,7 +464,7 @@ extern "C"
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, void (*onComplete)()) {
+  EMSCRIPTEN_KEEPALIVE void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -525,7 +551,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingRenderThread(TEngine *tEngine, TColorGrading *tColorGrading, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void Engine_destroyColorGradingRenderThread(TEngine *tEngine, TColorGrading *tColorGrading, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]
@@ -536,7 +562,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]
@@ -547,7 +573,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void View_setBloomRenderThread(TView *tView, bool enabled, double strength, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]
@@ -558,7 +584,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, void (*callback)())
+  EMSCRIPTEN_KEEPALIVE void View_setCameraRenderThread(TView *tView, TCamera *tCamera, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]
@@ -645,7 +671,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Image_destroyRenderThread(TLinearImage *tLinearImage, void (*onComplete)())
+  EMSCRIPTEN_KEEPALIVE void Image_destroyRenderThread(TLinearImage *tLinearImage, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -820,7 +846,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
   EMSCRIPTEN_KEEPALIVE void RenderTarget_destroyRenderThread(
     TEngine *tEngine,
     TRenderTarget *tRenderTarget,
-    void (*onComplete)()
+    VoidCallback onComplete
   ) {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -877,7 +903,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setMinFilterRenderThread(
       TTextureSampler *sampler,
       TSamplerMinFilter filter,
-      void (*onComplete)())
+      VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -891,7 +917,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setMagFilterRenderThread(
       TTextureSampler *sampler,
       TSamplerMagFilter filter,
-      void (*onComplete)())
+      VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -905,7 +931,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeSRenderThread(
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
-      void (*onComplete)())
+      VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -919,7 +945,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeTRenderThread(
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
-      void (*onComplete)())
+      VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -933,7 +959,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setWrapModeRRenderThread(
       TTextureSampler *sampler,
       TSamplerWrapMode mode,
-      void (*onComplete)())
+      VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -947,7 +973,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
   EMSCRIPTEN_KEEPALIVE void TextureSampler_setAnisotropyRenderThread(
       TTextureSampler *sampler,
       double anisotropy,
-      void (*onComplete)())
+      VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -962,7 +988,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
       TTextureSampler *sampler,
       TSamplerCompareMode mode,
       TTextureSamplerCompareFunc func,
-      void (*onComplete)())
+      VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -975,7 +1001,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
 
   EMSCRIPTEN_KEEPALIVE void TextureSampler_destroyRenderThread(
       TTextureSampler *sampler,
-      void (*onComplete)())
+      VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(
         [=]() mutable
@@ -1006,7 +1032,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, void (*callback)()) {
+  EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroyRenderThread(TEngine *tEngine, TGltfResourceLoader *tResourceLoader, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -1031,7 +1057,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     const char *uri,
     uint8_t *data,
     size_t length,
-    void (*callback)()) {
+    VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
@@ -1093,7 +1119,7 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
-  EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, void (*callback)()) {
+  EMSCRIPTEN_KEEPALIVE void Scene_addFilamentAssetRenderThread(TScene* tScene, TFilamentAsset *tAsset, VoidCallback onComplete) {
     std::packaged_task<void()> lambda(
       [=]() mutable
       {
