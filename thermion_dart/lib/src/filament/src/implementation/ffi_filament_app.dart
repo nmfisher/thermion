@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
+
+import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_gizmo.dart';
@@ -71,7 +72,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     RenderThread_destroy();
     RenderThread_create();
 
-    print("getting engine");
     final engine = await withPointerCallback<TEngine>((cb) =>
         Engine_createRenderThread(
             config!.backend.value,
@@ -80,24 +80,24 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             config.stereoscopicEyeCount,
             config.disableHandleUseAfterFreeCheck,
             cb));
-    print("got engine");
+    
     final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
         (cb) => GltfAssetLoader_createRenderThread(engine, nullptr, cb));
     final renderer = await withPointerCallback<TRenderer>(
         (cb) => Engine_createRendererRenderThread(engine, cb));
     final ubershaderMaterialProvider =
         GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
-    print("ubershaderMaterialProvider $ubershaderMaterialProvider");
+    
     final transformManager = Engine_getTransformManager(engine);
     final lightManager = Engine_getLightManager(engine);
     final renderableManager = Engine_getRenderableManager(engine);
-    print("creating render ticker");
-    final renderTicker = RenderTicker_create(renderer);
-    print("created render ticker");
+    
+    final renderTicker = RenderTicker_create(engine, renderer);
+    
     RenderThread_setRenderTicker(renderTicker);
-    print("set render ticker");
+    
     final nameComponentManager = NameComponentManager_create();
-    print("creted NCM");
+    
     FilamentApp.instance = FFIFilamentApp(
         engine,
         gltfAssetLoader,
@@ -516,7 +516,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await withVoidCallback((cb) {
       Renderer_endFrameRenderThread(renderer, cb);
     });
-    await withVoidCallback((cb) => Engine_executeRenderThread(engine, cb));
+
+    if(FILAMENT_SINGLE_THREADED) {
+      await withVoidCallback((cb) => Engine_executeRenderThread(engine, cb));
+    } else {
+      await withVoidCallback((cb) => Engine_flushAndWaitRenderThread(engine, cb));
+    }
   }
 
   ///
@@ -580,12 +585,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       await hook.call();
     }
 
-    try {
-      await withVoidCallback((cb) => RenderThread_requestFrame(cb))
-          .timeout(Duration(seconds: 1));
-    } catch (err) {
-      print("WARNING - render call timed out");
-    }
+    RenderThread_requestFrame(nullptr);
   }
 
   ///
@@ -689,7 +689,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       beforeRender?.call(view);
 
       final viewport = await view.getViewport();
-      final pixelBuffer = makeTypedData<Uint8List>(
+      final pixelBuffer = Uint8List(
           viewport.width * viewport.height * 4 * sizeOf<Float>());
       await withVoidCallback((cb) {
         Renderer_renderRenderThread(
@@ -725,9 +725,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await withVoidCallback((cb) {
       Renderer_endFrameRenderThread(renderer, cb);
     });
-
+    
     await withVoidCallback((cb) {
-      Engine_flushAndWaitRenderThread(engine, cb);
+      if(FILAMENT_SINGLE_THREADED) {
+        Engine_executeRenderThread(engine, cb);
+      } else {
+        Engine_flushAndWaitRenderThread(engine, cb);
+      }
+      
     });
     return pixelBuffers;
   }
@@ -752,6 +757,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       int layer = 0,
       String? relativeResourcePath,
       bool loadResourcesAsync = false}) async {
+
+    loadResourcesAsync = FILAMENT_SINGLE_THREADED;
     if (relativeResourcePath != null && !relativeResourcePath.endsWith("/")) {
       relativeResourcePath = "$relativeResourcePath/";
     }
@@ -885,7 +892,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     }
     final gizmoEntityCount =
         SceneAsset_getChildEntityCount(gizmo.cast<TSceneAsset>());
-    final gizmoEntities = makeTypedData<Int32List>(gizmoEntityCount);
+    final gizmoEntities = Int32List(gizmoEntityCount);
     SceneAsset_getChildEntities(
         gizmo.cast<TSceneAsset>(), gizmoEntities.address);
 
@@ -907,8 +914,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       {List<MaterialInstance>? materialInstances,
       bool keepData = false,
       bool addToScene = true}) async {
-    var ptrList = makeTypedData<IntPtrList>(materialInstances?.length ?? 0);
+    IntPtrList? ptrList;
+    
     if (materialInstances != null && materialInstances.isNotEmpty) {
+      ptrList = IntPtrList(materialInstances!.length);
       ptrList.setRange(
           0,
           materialInstances.length,
@@ -929,13 +938,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           geometry.indices.address,
           geometry.indices.length,
           geometry.primitiveType.index,
-          ptrList.address.cast(),
-          ptrList.length,
+          ptrList?.address.cast() ?? nullptr,
+          ptrList?.length ?? 0,
           callback);
       return ptr;
     });
 
-    ptrList.free();
+    ptrList?.free();
     if (assetPtr == nullptr) {
       throw Exception("Failed to create geometry");
     }
@@ -947,7 +956,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future flush() async {
-    await withVoidCallback((cb) => Engine_flushAndWaitRenderThread(engine, cb));
+    if(FILAMENT_SINGLE_THREADED) {
+      await withVoidCallback((cb) => Engine_executeRenderThread(engine, cb));
+    } else {
+      await withVoidCallback((cb) => Engine_flushAndWaitRenderThread(engine, cb));
+    }
   }
 
   final _onDestroy = <Future Function()>[];
