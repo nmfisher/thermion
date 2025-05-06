@@ -58,7 +58,9 @@ class FFIAsset extends ThermionAsset {
     if(_childEntities == null) {
       var count = SceneAsset_getChildEntityCount(asset);
       _childEntities = makeTypedData<Int32List>(count);
-      SceneAsset_getChildEntities(asset, _childEntities!.address);
+      if(count > 0) {
+        SceneAsset_getChildEntities(asset, _childEntities!.address);
+      }
     }
     return _childEntities!;
   }
