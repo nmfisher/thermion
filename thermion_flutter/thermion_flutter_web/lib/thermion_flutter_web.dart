@@ -7,8 +7,6 @@ import 'package:web/web.dart';
 
 class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
   
-  ThermionViewerWasm? _viewer;
-
   static void registerWith(Registrar registrar) {
     ThermionFlutterPlatform.instance = ThermionFlutterWebPlugin();
   }
