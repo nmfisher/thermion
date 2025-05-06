@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:thermion_dart/src/filament/src/light_options.dart';
+import 'package:thermion_dart/src/filament/src/interface/light_options.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:test/test.dart';
 import 'package:vector_math/vector_math_64.dart';

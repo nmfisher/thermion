@@ -5,7 +5,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:thermion_dart/src/utils/src/texture_projection.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/callbacks.dart';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'helpers.dart';
 
