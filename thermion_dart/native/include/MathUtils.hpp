@@ -17,7 +17,7 @@ static filament::math::mat4f convert_double_to_mat4f(double* data)
 // Helper function to convert filament::math::mat4 to double4x4
 static double4x4 convert_mat4_to_double4x4(const filament::math::mat4 &mat)
 {
-    return double4x4{
+    return double4x4 {
         {mat[0][0], mat[0][1], mat[0][2], mat[0][3]},
         {mat[1][0], mat[1][1], mat[1][2], mat[1][3]},
         {mat[2][0], mat[2][1], mat[2][2], mat[2][3]},
