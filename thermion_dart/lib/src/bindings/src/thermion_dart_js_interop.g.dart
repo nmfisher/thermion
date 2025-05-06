@@ -255,7 +255,15 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static create<T extends Struct>() {
-    throw Exception();
+    switch(T) {
+      case double4x4:
+        final ptr = double4x4.stackAlloc();
+        final arr1 = Array<Float64>._((numElements:4, addr:ptr.cast<Float64>()));
+        final arr2 = Array<Float64>._((numElements:4, addr:ptr.cast<Float64>() + 32));
+        final arr3 = Array<Float64>._((numElements:4, addr:ptr.cast<Float64>() + 64));
+        final arr4 = Array<Float64>._((numElements:4, addr:ptr.cast<Float64>() + 96));
+        return double4x4(arr1, arr2, arr3, arr4, ptr) as T;
+    }
   }
 }
 
@@ -281,12 +289,27 @@ extension type const Array<T extends NativeType>._(
   void setValue(Uint8List data) {
     _lib.writeArrayToMemory(data.toJS, _.addr);
   }
+}
 
+extension ArrayInt32Ext on Array<Int32> {
+  double operator [](int i) {
+    return _lib.getValue(_.addr + (i * 4), 'double').toDartDouble;
+  }
+}
+
+extension ArrayFloat32Ext on Array<Float32> {
+  double operator [](int i) {
+    return _lib.getValue(_.addr + (i * 4), 'double').toDartDouble;
+  }
 }
 
 extension ArrayFloat64Ext on Array<Float64> {
   double operator [](int i) {
-    return _lib.getValue(_.addr + (_.numElements * 4), 'double').toDartDouble;
+    return _lib.getValue(_.addr + (i * 8), 'double').toDartDouble;
+  }
+
+  void operator []=(int i, double v) {
+    _lib.setValue(_.addr + (i*8), v.toJS, 'double');
   }
 }
 
@@ -329,7 +352,6 @@ extension DartBigIntExtension on BigInt {
   }
 }
 
-
 extension type NativeLibrary(JSObject _) implements JSObject {
   static NativeLibrary get instance => _lib;
 
@@ -339,10 +361,15 @@ extension type NativeLibrary(JSObject _) implements JSObject {
 
   @JS('stackAlloc')
   external Pointer<T> _stackAlloc<T extends NativeType>(int numBytes);
-  
 
   external Pointer<T> _malloc<T extends NativeType>(int numBytes);
   external void _free(Pointer ptr);
+
+  @JS('stackSave')
+  external Pointer<Void> stackSave();
+
+  @JS('stackRestore')
+  external void stackRestore(Pointer<Void> ptr);
 
   @JS('getValue')
   external JSBigInt getValueBigInt(Pointer addr, String llvmType);
@@ -871,9 +898,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _RenderThread_create();
   external void _RenderThread_destroy();
-  external void _RenderThread_requestFrame(
-    Pointer<self.NativeFunction<void Function()>> onComplete,
-  );
+  external void _RenderThread_requestFrameAsync();
   external void _RenderThread_setRenderTicker(
     Pointer<TRenderTicker> tRenderTicker,
   );
@@ -1928,6 +1953,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     EntityId entity,
   );
   external Pointer<TRenderTicker> _RenderTicker_create(
+    Pointer<TEngine> tEngine,
     Pointer<TRenderer> tRenderer,
   );
   external void _RenderTicker_destroy(
@@ -3080,10 +3106,8 @@ void RenderThread_destroy() {
   return result;
 }
 
-void RenderThread_requestFrame(
-  self.Pointer<self.NativeFunction<void Function()>> onComplete,
-) {
-  final result = _lib._RenderThread_requestFrame(onComplete.cast());
+void RenderThread_requestFrameAsync() {
+  final result = _lib._RenderThread_requestFrameAsync();
   return result;
 }
 
@@ -5188,9 +5212,10 @@ self.Pointer<Char> NameComponentManager_getName(
 }
 
 self.Pointer<TRenderTicker> RenderTicker_create(
+  self.Pointer<TEngine> tEngine,
   self.Pointer<TRenderer> tRenderer,
 ) {
-  final result = _lib._RenderTicker_create(tRenderer);
+  final result = _lib._RenderTicker_create(tEngine, tRenderer);
   return self.Pointer<TRenderTicker>(result);
 }
 
@@ -6375,10 +6400,14 @@ final class Aabb3 extends self.Struct {
 
 extension double4x4Ext on Pointer<double4x4> {
   double4x4 toDart() {
-    var col1 = Array<Float64>._((addr: Pointer<Float64>(addr), numElements: 4));
-    var col2 = Array<Float64>._((addr: Pointer<Float64>(addr), numElements: 4));
-    var col3 = Array<Float64>._((addr: Pointer<Float64>(addr), numElements: 4));
-    var col4 = Array<Float64>._((addr: Pointer<Float64>(addr), numElements: 4));
+    var col1 =
+        Array<Float64>._((addr: Pointer<Float64>(addr) + 0, numElements: 4));
+    var col2 =
+        Array<Float64>._((addr: Pointer<Float64>(addr) + 32, numElements: 4));
+    var col3 =
+        Array<Float64>._((addr: Pointer<Float64>(addr) + 64, numElements: 4));
+    var col4 =
+        Array<Float64>._((addr: Pointer<Float64>(addr) + 96, numElements: 4));
     return double4x4(col1.cast(), col2.cast(), col3.cast(), col4.cast(), this);
   }
 
