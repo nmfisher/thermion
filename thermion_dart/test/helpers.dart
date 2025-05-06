@@ -207,18 +207,6 @@ class TestHelper {
   }
 
   Future setup() async {
-    final resourceLoader = calloc<ResourceLoaderWrapper>(1);
-
-    var loadToOut = NativeCallable<
-        Void Function(Pointer<Char>,
-            Pointer<ResourceBuffer>)>.listener(DartResourceLoader.loadResource);
-
-    resourceLoader.ref.loadToOut = loadToOut.nativeFunction;
-
-    var freeResource = NativeCallable<Void Function(ResourceBuffer)>.listener(
-        DartResourceLoader.freeResource);
-
-    resourceLoader.ref.freeResource = freeResource.nativeFunction;
     await FFIFilamentApp.create();
   }
 
