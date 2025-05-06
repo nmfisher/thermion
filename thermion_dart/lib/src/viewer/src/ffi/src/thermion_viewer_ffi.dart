@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
+import 'package:thermion_dart/src/bindings/bindings.dart';
 import 'package:thermion_dart/src/filament/src/implementation/background_image.dart';
 import '../../../../filament/src/implementation/ffi_asset.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
@@ -10,11 +10,11 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:logging/logging.dart';
 
-
 import '../../../../filament/src/implementation/ffi_camera.dart';
 import '../../../../filament/src/implementation/ffi_view.dart';
 
 const FILAMENT_ASSET_ERROR = 0;
+
 
 ///
 ///
@@ -114,13 +114,22 @@ class ThermionViewerFFI extends ThermionViewer {
     await view.setRenderable(render);
   }
 
+
+
   ///
   ///
   ///
   @override
   Future render() async {
     await withVoidCallback(
-        (cb) => RenderTicker_renderRenderThread(app.renderTicker, 0, cb));
+        (cb) => RenderTicker_renderRenderThread(app.renderTicker, 0.toBigInt, cb));
+        if(FILAMENT_SINGLE_THREADED) {
+          await withVoidCallback((cb) => Engine_executeRenderThread(app.engine, cb));
+        } else {
+          await withVoidCallback((cb) => Engine_flushAndWaitRenderThread(app.engine, cb));
+          
+        }
+    
   }
 
   double _msPerFrame = 1000.0 / 60.0;
@@ -445,7 +454,7 @@ class ThermionViewerFFI extends ThermionViewer {
   Future setPostProcessing(bool enabled) async {
     View_setPostProcessing(view.view, enabled);
     await withVoidCallback(
-        (cb) => Engine_flushAndWaitRenderThead(app.engine, cb));
+        (cb) => Engine_flushAndWaitRenderThread(app.engine, cb));
   }
 
   ///
@@ -476,10 +485,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    if (Platform.isWindows && msaa) {
+    if(!FILAMENT_SINGLE_THREADED && Platform.isWindows && msaa) {
       throw Exception("MSAA is not currently supported on Windows");
     }
-
     View_setAntiAliasing(view.view, msaa, fxaa, taa);
   }
 
