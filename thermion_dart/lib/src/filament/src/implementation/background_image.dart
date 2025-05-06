@@ -47,12 +47,10 @@ class BackgroundImage extends ThermionAsset {
     var backgroundImage =
         await viewer.createGeometry(GeometryHelper.fullscreenQuad());
     await imageMaterialInstance.setParameterInt("showImage", 0);
-    final matStorage = makeTypedData<Float64List>(16);
-    var transform = Matrix4.fromFloat64List(matStorage);
-    transform.setIdentity();
+    var transform = Matrix4.identity();
+    
     await imageMaterialInstance.setParameterMat4(
         "transform", transform);
-    matStorage.free();
 
     await backgroundImage.setMaterialInstanceAt(imageMaterialInstance);
     await scene.add(backgroundImage as FFIAsset);
