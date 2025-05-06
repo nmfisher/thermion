@@ -2,10 +2,11 @@ export 'thermion_dart_ffi.g.dart';
 
 export 'dart:typed_data';
 import 'dart:async';
-
 import 'package:thermion_dart/thermion_dart.dart';
 export 'package:ffi/ffi.dart';
 export 'dart:ffi';
+
+const FILAMENT_SINGLE_THREADED = false;
 
 class NativeLibrary {
   static void initBindings(String name) {
@@ -44,12 +45,6 @@ class FinalizableUint8List implements Finalizable {
 
   FinalizableUint8List(this.name, this.data);
 }
-
-// CallbackHolder<GizmoPickCallbackFunction> makeGizmoPickFunctionPointer(void Function(TGizmoPickResultType, double, double, double) fn) {
-//   final nc = NativeCallable<GizmoPickCallbackFunction>.listener(fn as DartGizmoPickCallbackFunction);
-//   final cbh = CallbackHolder(nc);
-//   return cbh;
-// }
 
 extension GPFBP on void Function(int, double, double, double) {
   CallbackHolder<GizmoPickCallbackFunction> asCallback() {
