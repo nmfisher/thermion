@@ -33,6 +33,8 @@
 
 #include "RenderTicker.hpp"
 
+#include <chrono> 
+
 namespace thermion
 {
 
@@ -63,12 +65,13 @@ namespace thermion
 
   void RenderTicker::render(uint64_t frameTimeInNanos)
   {
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     std::lock_guard lock(mMutex);
 
     for (auto animationManager : mAnimationManagers) {
       animationManager->update(frameTimeInNanos);
       TRACE("Updated AnimationManager");
-
     }
     
     #ifdef ENABLE_TRACING
@@ -89,6 +92,8 @@ namespace thermion
           {
             mRenderer->render(view);
           }
+        } else {
+          Log("Skipping frame");
         }
         mRenderer->endFrame();
     #ifdef ENABLE_TRACING
@@ -101,6 +106,14 @@ namespace thermion
     }
       #endif
     }
+    #ifdef __EMSCRIPTEN__
+    mEngine->execute();
+    #endif
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
+    float durationMs = durationNs / 1e6f;
+
+    TRACE("Total render() time: %.3f ms", durationMs);
   }
 
   void RenderTicker::addAnimationManager(AnimationManager* animationManager) {
