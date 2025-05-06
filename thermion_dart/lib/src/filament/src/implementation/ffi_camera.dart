@@ -1,3 +1,4 @@
+import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
@@ -52,6 +53,7 @@ class FFICamera extends Camera {
     var entity = Camera_getEntity(camera);
     TransformManager_setTransform(
         app.transformManager, entity, matrix4ToDouble4x4(transform));
+
   }
 
   @override
@@ -76,7 +78,14 @@ class FFICamera extends Camera {
   ///
   @override
   Future setModelMatrix(Matrix4 matrix) async {
+    Pointer? stackPtr;
+    if(FILAMENT_SINGLE_THREADED) {
+      stackPtr = stackSave();
+    }
     Camera_setModelMatrix(camera, matrix.storage.address);
+    if(FILAMENT_SINGLE_THREADED) {
+      stackRestore(stackPtr);
+    }
   }
 
   @override
@@ -117,7 +126,11 @@ class FFICamera extends Camera {
   ///
   ///
   Future<Frustum> getFrustum() async {
-    var out = makeTypedData<Float64List>(24);
+    Pointer? stackPtr;
+    if(FILAMENT_SINGLE_THREADED) {
+      stackPtr = stackSave();
+    }
+    var out = Float64List(24);
     Camera_getFrustum(camera, out.address);
 
     var frustum = Frustum();
@@ -127,7 +140,9 @@ class FFICamera extends Camera {
     frustum.plane3.setFromComponents(out[12], out[13], out[14], out[15]);
     frustum.plane4.setFromComponents(out[16], out[17], out[18], out[19]);
     frustum.plane5.setFromComponents(out[20], out[21], out[22], out[23]);
-    out.free();
+    if(FILAMENT_SINGLE_THREADED) {
+      stackRestore(stackPtr!);
+    }
     return frustum;
   }
 
