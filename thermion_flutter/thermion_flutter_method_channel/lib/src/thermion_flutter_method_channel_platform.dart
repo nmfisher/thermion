@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:ffi';
+
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
-import 'package:thermion_dart/src/viewer/src/ffi/src/thermion_viewer_ffi.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
 import 'package:logging/logging.dart';
@@ -49,13 +48,13 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
 
     var platformPtr = driverPlatform == null
         ? nullptr
-        : Pointer<Void>.fromAddress(driverPlatform);
+        : VoidPointerClass.fromAddress(driverPlatform);
 
     var sharedContext = await channel.invokeMethod("getSharedContext");
 
     var sharedContextPtr = sharedContext == null
         ? nullptr
-        : Pointer<Void>.fromAddress(sharedContext);
+        : VoidPointerClass.fromAddress(sharedContext);
 
     late Backend backend;
     if (options?.backend != null) {
