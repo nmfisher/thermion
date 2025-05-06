@@ -52,8 +52,17 @@ cmake --build . --config Debug
 
 # Web
 
-(if building on macOS)
+By default, Filament WASM builds are single-threaded with no support for `-pthread` (`WEBGL_PTHREADS=0`).
 
+This won't work with our current implementation, since at least `-pthread` is needed to support running Filament on a dedicated (non-main) render thread.
+
+However, the multi-threaded Filament WASM build (`WEBGL_PTHREADS=1`, which sets `-pthread`) doesn't work with our current setup (which uses an OffscreenCanvas without proxying, effectively locking the context to a single thread).
+
+To work around, we need to adjust the Filament build configuration to build:
+1) a single-threaded library
+2) but with `-pthread` enabled
+
+ 
 ```
 ./build.sh -p desktop release
 mkdir -p out/cmake-webgl-release
