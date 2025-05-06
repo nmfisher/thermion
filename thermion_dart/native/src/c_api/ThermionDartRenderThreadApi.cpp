@@ -328,13 +328,9 @@ extern "C"
   }
 
   EMSCRIPTEN_KEEPALIVE void execute_queue() {
-    // auto startTime = std::chrono::high_resolution_clock::now(); 
-    // Log("execute_queue start time: % " PRId64 "ms", std::chrono::duration_cast<std::chrono::milliseconds>(startTime.time_since_epoch()).count());
+    #ifdef __EMSCRIPTEN__
       _renderThread->queue.execute();
-//       auto endTime = std::chrono::high_resolution_clock::now(); 
-// auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
-// auto durationMs = durationNs / 1e6f;\
-// Log("queue execute time: %.3f ms", durationMs);
+    #endif
   }
 
   EMSCRIPTEN_KEEPALIVE void Engine_buildSkyboxRenderThread(TEngine *tEngine, uint8_t *skyboxData, size_t length,  void (*onComplete)(TSkybox *),  void (*onTextureUploadComplete)()) {
