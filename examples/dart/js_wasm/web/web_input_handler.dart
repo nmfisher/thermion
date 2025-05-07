@@ -33,7 +33,6 @@ class WebInputHandler {
   }
 
   void _onMouseDown(web.MouseEvent event) {
-    print("MOUSEDOWN");
     final localPos = _getLocalPositionFromEvent(event);
     final isMiddle = event.button == 1;
     inputHandler.onPointerDown(localPos, isMiddle);

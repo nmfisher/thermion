@@ -85,6 +85,7 @@ void main(List<String> arguments) async {
   DateTime lastRender = DateTime.now();
 
   while (true) {
+    var stackPtr = stackSave();
     var now = DateTime.now();
     await FilamentApp.instance!.requestFrame();
     now = DateTime.now();
@@ -95,6 +96,7 @@ void main(List<String> arguments) async {
       var waitFor = 1667 - timeSinceLast;
       await Future.delayed(Duration(microseconds: waitFor));
     }
+    stackRestore(stackPtr);
     // inputHandler.keyDown(PhysicalKey.S);
     // await camera.lookAt(Vector3(0,0,zOffset));
     // zOffset +=0.1;
