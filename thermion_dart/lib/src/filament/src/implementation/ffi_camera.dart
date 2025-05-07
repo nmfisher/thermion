@@ -28,11 +28,11 @@ class FFICamera extends Camera {
   Future<Matrix4> getModelMatrix() async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
+      stackPtr = stackSave();
     }
     final modelMatrix = double4x4ToMatrix4(Camera_getModelMatrix(camera));
     if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
+      stackRestore(stackPtr);
     }
     return modelMatrix;
   }
@@ -103,11 +103,11 @@ class FFICamera extends Camera {
   Future setModelMatrix(Matrix4 matrix) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
+      stackPtr = stackSave();
     }
     Camera_setModelMatrix(camera, matrix.storage.address);
     if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
+      stackRestore(stackPtr);
       matrix.storage.free();
     }
   }
