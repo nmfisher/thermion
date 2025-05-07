@@ -104,6 +104,9 @@ extension type Float64ArrayWrapper._(JSObject _) implements JSObject {
 
 extension Uint8ListExtension on Uint8List {
   Pointer<Uint8> get address {
+    if (this.lengthInBytes == 0) {
+      return nullptr;
+    }
     final ptr = getPointer<Uint8>(this, this.toJS);
     final bar =
         Uint8ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
@@ -126,6 +129,9 @@ extension Float32ListExtension on Float32List {
 
 extension Int16ListExtension on Int16List {
   Pointer<Int16> get address {
+    if (this.lengthInBytes == 0) {
+      return nullptr;
+    }
     final ptr = getPointer<Int16>(this, this.toJS);
     final bar = Int16ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length)
         as JSInt16Array;
@@ -147,6 +153,9 @@ extension Uint16ListExtension on Uint16List {
 
 extension UInt32ListExtension on Uint32List {
   Pointer<Uint32> get address {
+    if (this.lengthInBytes == 0) {
+      return nullptr;
+    }
     final ptr = getPointer<Uint32>(this, this.toJS);
     final bar = Uint32ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length)
         as JSUint32Array;
@@ -157,6 +166,9 @@ extension UInt32ListExtension on Uint32List {
 
 extension Int32ListExtension on Int32List {
   Pointer<Int32> get address {
+    if (this.lengthInBytes == 0) {
+      return nullptr;
+    }
     final ptr = getPointer<Int32>(this, this.toJS);
     final bar = Int32ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length)
         as JSInt32Array;
@@ -177,6 +189,9 @@ extension Int64ListExtension on Int64List {
 
 extension Float64ListExtension on Float64List {
   Pointer<Float64> get address {
+    if (this.lengthInBytes == 0) {
+      return nullptr;
+    }
     final ptr = getPointer<Float64>(this, this.toJS);
     final bar =
         Float64ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
