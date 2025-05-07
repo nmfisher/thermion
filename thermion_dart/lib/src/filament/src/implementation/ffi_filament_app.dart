@@ -784,7 +784,6 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       int layer = 0,
       String? relativeResourcePath,
       bool loadResourcesAsync = false}) async {
-
     final resources = <FinalizableUint8List>[];
     try {
       late Pointer stackPtr;
@@ -798,12 +797,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         relativeResourcePath = "$relativeResourcePath/";
       }
       var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-          (cb) => GltfResourceLoader_createRenderThread(engine,
-              relativeResourcePath?.toNativeUtf8().cast<Char>() ?? nullptr, cb));
+          (cb) => GltfResourceLoader_createRenderThread(
+              engine,
+              relativeResourcePath?.toNativeUtf8().cast<Char>() ?? nullptr,
+              cb));
 
       var filamentAsset = await withPointerCallback<TFilamentAsset>((cb) =>
-          GltfAssetLoader_loadRenderThread(engine, gltfAssetLoader, data.address,
-              data.length, numInstances, cb));
+          GltfAssetLoader_loadRenderThread(engine, gltfAssetLoader,
+              data.address, data.length, numInstances, cb));
 
       if (filamentAsset == nullptr) {
         throw Exception("An error occurred loading the asset");
@@ -857,11 +858,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       }
 
       final asset = await withPointerCallback<TSceneAsset>((cb) =>
-          SceneAsset_createFromFilamentAssetRenderThread(
-              engine, gltfAssetLoader, nameComponentManager, filamentAsset, cb));
+          SceneAsset_createFromFilamentAssetRenderThread(engine,
+              gltfAssetLoader, nameComponentManager, filamentAsset, cb));
 
-      await withVoidCallback((cb) =>
-          GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, cb));
+      await withVoidCallback((cb) => GltfResourceLoader_destroyRenderThread(
+          engine, gltfResourceLoader, cb));
 
       return FFIAsset(asset, this, animationManager.cast<TAnimationManager>());
     } finally {
@@ -972,10 +973,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       //stackPtr = stackSave();
     }
 
-    IntPtrList? ptrList;
-
-    if (materialInstances != null && materialInstances.isNotEmpty) {
-      ptrList = IntPtrList(materialInstances!.length);
+    final ptrList = IntPtrList(materialInstances?.length ?? 0);
+    if (materialInstances != null) {
       ptrList.setRange(
           0,
           materialInstances.length,
@@ -984,20 +983,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
               .map((mi) => mi.pointer.address)
               .toList());
     }
+
     var assetPtr = await withPointerCallback<TSceneAsset>((callback) {
       var ptr = SceneAsset_createGeometryRenderThread(
           engine,
           geometry.vertices.address,
           geometry.vertices.length,
-          geometry.normals?.address ?? nullptr,
-          geometry.normals?.length ?? 0,
-          geometry.uvs?.address ?? nullptr,
-          geometry.uvs?.length ?? 0,
+          geometry.normals.address,
+          geometry.normals.length,
+          geometry.uvs.address,
+          geometry.uvs.length,
           geometry.indices.address,
           geometry.indices.length,
           geometry.primitiveType.index,
-          ptrList?.address.cast() ?? nullptr,
-          ptrList?.length ?? 0,
+          ptrList.address.cast(),
+          ptrList.length ?? 0,
           callback);
       return ptr;
     });
