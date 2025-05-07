@@ -255,13 +255,17 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static create<T extends Struct>() {
-    switch(T) {
+    switch (T) {
       case double4x4:
         final ptr = double4x4.stackAlloc();
-        final arr1 = Array<Float64>._((numElements:4, addr:ptr.cast<Float64>()));
-        final arr2 = Array<Float64>._((numElements:4, addr:ptr.cast<Float64>() + 32));
-        final arr3 = Array<Float64>._((numElements:4, addr:ptr.cast<Float64>() + 64));
-        final arr4 = Array<Float64>._((numElements:4, addr:ptr.cast<Float64>() + 96));
+        final arr1 =
+            Array<Float64>._((numElements: 4, addr: ptr.cast<Float64>()));
+        final arr2 =
+            Array<Float64>._((numElements: 4, addr: ptr.cast<Float64>() + 32));
+        final arr3 =
+            Array<Float64>._((numElements: 4, addr: ptr.cast<Float64>() + 64));
+        final arr4 =
+            Array<Float64>._((numElements: 4, addr: ptr.cast<Float64>() + 96));
         return double4x4(arr1, arr2, arr3, arr4, ptr) as T;
     }
   }
@@ -309,7 +313,7 @@ extension ArrayFloat64Ext on Array<Float64> {
   }
 
   void operator []=(int i, double v) {
-    _lib.setValue(_.addr + (i*8), v.toJS, 'double');
+    _lib.setValue(_.addr + (i * 8), v.toJS, 'double');
   }
 }
 
@@ -356,7 +360,12 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   static NativeLibrary get instance => _lib;
 
   static void initBindings(String moduleName) {
-    _lib = globalContext.getProperty(moduleName.toJS);
+    var lib = globalContext.getProperty(moduleName.toJS);
+    if (lib == null) {
+      throw Exception("Failed to find JS module ${moduleName}");
+    }
+    ;
+    _lib = lib as NativeLibrary;
   }
 
   @JS('stackAlloc')
