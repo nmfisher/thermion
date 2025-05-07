@@ -1,1 +1,1 @@
-../../../assets/thermion_dart.js
+../../../../thermion_dart/native/web/build/build/out/thermion_dart.js
