@@ -19,7 +19,6 @@ Future kDefaultResizeCallback(Size size, View view, double pixelRatio) async {
 }
 
 class ThermionWidget extends StatefulWidget {
-  
   ///
   /// The viewer whose content will be rendered into this widget.
   ///
@@ -43,7 +42,7 @@ class ThermionWidget extends StatefulWidget {
 
   ///
   /// If true, add an overlay showing the FPS on top of the rendered content.
-  /// 
+  ///
   final bool showFpsCounter;
 
   ///
@@ -67,12 +66,9 @@ class ThermionWidget extends StatefulWidget {
 class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   Widget build(BuildContext context) {
-    // Web doesn't support imported textures yet
     if (kIsWeb) {
-      throw Exception();
-      // return ThermionWidgetWeb(
-      //     viewer: widget.viewer,
-      //     options: ThermionFlutterPlugin.options as ThermionFlutterWebOptions?);
+      return ThermionWidgetWeb(
+          viewer: widget.viewer, options: const ThermionFlutterWebOptions(importCanvasAsWidget: true));
     }
 
     return ThermionTextureWidget(

@@ -1,82 +1,123 @@
+import 'dart:async';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+import 'package:logging/logging.dart';
+import 'package:flutter/services.dart';
 import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
-import 'package:thermion_flutter_platform_interface/thermion_flutter_texture.dart';
+
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:web/web.dart';
 
 class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {
-  
+  late final _logger = Logger(this.runtimeType.toString());
+
   static void registerWith(Registrar registrar) {
     ThermionFlutterPlatform.instance = ThermionFlutterWebPlugin();
   }
 
-  @override
-  Future<PlatformTextureDescriptor?> createTexture(double width, double height,
-      double offsetLeft, double offsetTop, double pixelRatio) async {
-    await _viewer!.destroySwapChain();
-    await _viewer!.createSwapChain(width.ceil(), height.ceil());
-
-    final canvas = document.getElementById("canvas") as HTMLCanvasElement;
-    canvas.width = (width * pixelRatio).ceil();
-    canvas.height = (height * pixelRatio).ceil();
-
-    (canvas as HTMLElement).style.position = "fixed";
-    (canvas as HTMLElement).style.zIndex = "-1";
-    (canvas as HTMLElement).style.left =
-        (offsetLeft * pixelRatio).ceil().toString();
-    (canvas as HTMLElement).style.top =
-        (offsetTop * pixelRatio).ceil().toString();
-
-    _viewer!
-        .setViewportAndCameraProjection(width.ceil(), height.ceil(), 1.0);
-
-    return PlatformTextureDescriptor(null, null, 0, 0, null);
+  ThermionFlutterWebOptions? _options;
+  void setOptions(ThermionFlutterWebOptions options) {
+    _options = options;
   }
 
-  @override
-  Future destroyTexture(PlatformTextureDescriptor texture) async {
-    // noop
+  ThermionFlutterWebOptions get options {
+    _options ??= const ThermionFlutterWebOptions();
+    return _options!;
   }
 
-  @override
-  Future<PlatformTextureDescriptor?> resizeTexture(PlatformTextureDescriptor texture,
-      int width, int height, int offsetLeft, int offsetTop, double pixelRatio) async {
-    final canvas = document.getElementById("canvas") as HTMLCanvasElement;
-    canvas.width = width;
-    canvas.height = height;
-        (canvas as HTMLElement).style.position = "fixed";
-    (canvas as HTMLElement).style.zIndex = "-1";
-    (canvas as HTMLElement).style.left =
-        (offsetLeft * pixelRatio).ceil().toString();
-    (canvas as HTMLElement).style.top =
-        (offsetTop * pixelRatio).ceil().toString();
-    _viewer!.setViewportAndCameraProjection(width, height, 1.0);
-    return PlatformTextureDescriptor(null, null, 0, 0, null);
-  }
+  static ThermionFlutterWebPlugin get instance =>
+      ThermionFlutterPlatform.instance as ThermionFlutterWebPlugin;
 
-  Future<ThermionViewer> createViewerWithOptions(
-      ThermionFlutterWebOptions options) async {
-    _viewer = ThermionViewerWasm(assetPathPrefix: "/assets/");
-
-    final canvas = options.createCanvas
-        ? document.createElement("canvas") as HTMLCanvasElement?
-        : document.getElementById("canvas") as HTMLCanvasElement?;
-    if (canvas == null) {
-      throw Exception("Could not locate or create canvas");
+  static Future<Uint8List> loadAsset(String path) async {
+    if (path.startsWith("file://")) {
+      throw UnsupportedError("file:// URIs not supported on web");
     }
-    canvas.id = "canvas";
-    document.body!.appendChild(canvas);
-    canvas.style.display = 'none';
-    final pixelRatio = window.devicePixelRatio;
-
-    await _viewer!
-        .initialize(1, 1, pixelRatio, uberArchivePath: options.uberarchivePath);
-    return _viewer!;
+    if (path.startsWith("asset://")) {
+      path = path.replaceAll("asset://", "");
+    }
+    var asset = await rootBundle.load(path);
+    return asset.buffer.asUint8List(asset.offsetInBytes);
   }
 
-  @override
-  Future<ThermionViewer> createViewer({String? uberarchivePath}) {
-    throw Exception("Use createViewerWithOptions instead");
+  Future<ThermionViewer> createViewer() async {
+    HTMLCanvasElement? canvas;
+    if (FilamentApp.instance == null) {
+      // first, try and initialize bindings to see if the user has included thermion_dart.js manually in index.html
+      try {
+        NativeLibrary.initBindings("thermion_dart");
+      } catch (err) {
+        _logger.info(
+            "Failed to find thermion_dart in window context, appending manually");
+        // if not, manually add the script to the DOM
+        var scriptElement =
+            document.createElement("script") as HTMLScriptElement;
+        scriptElement.src = "./thermion_dart.js";
+        document.head!.appendChild(scriptElement);
+        final completer = Completer<JSObject?>();
+        scriptElement.addEventListener(
+            "load",
+            () {
+              final constructor = globalContext
+                  .getProperty("thermion_dart".toJS) as JSFunction?;
+              if (constructor == null) {
+                _logger.severe("Failed to find JS library constructor");
+                completer.complete(null);
+              } else {
+                final lib = constructor.callAsFunction() as JSPromise;
+                lib.toDart.then((resolved) {
+                  completer.complete(resolved as JSObject);
+                });
+              }
+            }.toJS);
+        final lib = await completer.future;
+        globalContext.setProperty("thermion_dart".toJS, lib);
+        NativeLibrary.initBindings("thermion_dart");
+      }
+
+      canvas = options.createCanvas == true
+          ? document.createElement("canvas") as HTMLCanvasElement?
+          : document.getElementById("thermion_canvas") as HTMLCanvasElement?;
+
+      if (canvas == null) {
+        throw Exception("Could not locate or create canvas");
+      }
+      canvas.id = "thermion_canvas";
+      // canvas.style.display = "none";
+      document.body!.appendChild(canvas);
+
+      (canvas as HTMLElement).style.position = "fixed";
+      (canvas as HTMLElement).style.zIndex = "-1";
+
+      final config = FFIFilamentConfig(
+          backend: Backend.OPENGL,
+          resourceLoader: loadAsset,
+          platform: nullptr,
+          sharedContext: nullptr,
+          uberArchivePath: options.uberarchivePath);
+      await FFIFilamentApp.create(config: config);
+    }
+
+    final viewer = ThermionViewerFFI(loadAssetFromUri: loadAsset);
+    await viewer.initialized;
+    await viewer.setViewport(canvas!.width, canvas.height);
+
+    var swapChain = await FilamentApp.instance!
+        .createHeadlessSwapChain(canvas.width, canvas.height);
+
+    await FilamentApp.instance!.register(swapChain, viewer.view);
+
+    return viewer;
+  }
+
+  ///
+  ///
+  ///
+  void resizeCanvas(double width, double height) async {
+    _logger.info("Resizing canvas to ${width}x${height}");
+    Thermion_resizeCanvas((window.devicePixelRatio * width).ceil(),
+        (window.devicePixelRatio * height).ceil());
   }
 }

@@ -1,37 +1,121 @@
-import 'dart:js_util';
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:ui_web' as ui_web;
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
+import 'package:thermion_flutter_web/thermion_flutter_web.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
-import 'package:web/web.dart';
+import 'package:web/web.dart' as web;
 import 'package:flutter/widgets.dart';
 
-class ThermionWidgetWeb extends StatelessWidget {
+import 'resize_observer.dart';
+
+class ThermionWidgetWeb extends StatefulWidget {
   final ThermionFlutterWebOptions options;
   final ThermionViewer viewer;
 
   const ThermionWidgetWeb(
-      {super.key, this.options = const ThermionFlutterWebOptions.empty(), required this.viewer});
+      {super.key,
+      this.options = const ThermionFlutterWebOptions(),
+      required this.viewer});
+
+  @override
+  State<StatefulWidget> createState() => _ThermionWidgetWebState();
+}
+
+class _ThermionWidgetWebState extends State<ThermionWidgetWeb> {
+  void initState() {
+    super.initState();
+    _requestFrame();
+  }
+
+  DateTime lastRender = DateTime.now();
+
+  void _requestFrame() async {
+    Pointer? stackPtr;
+    WidgetsBinding.instance.scheduleFrameCallback((d) async {
+      if (stackPtr != null) {
+        stackRestore(stackPtr!);
+        stackPtr = null;
+      }
+
+      var elapsed = DateTime.now().microsecondsSinceEpoch -
+          lastRender.microsecondsSinceEpoch;
+      // if (elapsed > 1667) {
+      lastRender = DateTime.now();
+      if (widget.viewer.rendering) {
+        await FilamentApp.instance!.requestFrame();
+      }
+      // }
+      stackPtr = stackSave();
+      _requestFrame();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // if (_texture == null || _resizing) {
-    //   return widget.initial ?? Container(color: Colors.red);
-    // }
-    // return ResizeObserver(
-    //     onResized: _resizeTexture,
-    //     child: ThermionWidgetWeb(
-    //         options: widget.options as ThermionFlutterWebOptions?));
-
-    if (options?.importCanvasAsWidget == true) {
-      return _ImageCopyingWidget();
+    if (widget.options.importCanvasAsWidget) {
+      return _ImageCopyingWidget(viewer: widget.viewer);
+      // return _PlatformView(
+      //   viewer: widget.viewer,
+      // );
     }
     return Container(color: const Color(0x00000000));
   }
 }
 
+class _PlatformView extends StatefulWidget {
+  final ThermionViewer viewer;
+
+  const _PlatformView({super.key, required this.viewer});
+  @override
+  State<StatefulWidget> createState() => _PlatformViewState();
+}
+
+class _PlatformViewState extends State<_PlatformView> {
+  void initState() {
+    super.initState();
+    ui_web.platformViewRegistry.registerViewFactory(
+      'imported-canvas',
+      (int viewId, {Object? params}) {
+        var canvas = web.document.getElementById("thermion_canvas");
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          var renderBox = this.context.findRenderObject() as RenderBox?;
+
+          _resize(Size(0, 0), renderBox!.size);
+        });
+
+        return canvas! as Object;
+      },
+    );
+  }
+
+  void _resize(Size oldSize, Size newSize) {
+    var width = newSize.width.toInt();
+    var height = newSize.height.toInt();
+    ThermionFlutterWebPlugin.instance
+        .resizeCanvas(newSize.width, newSize.height);
+    widget.viewer.setViewport(width, height);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ResizeObserver(
+        onResized: _resize,
+        child: HtmlElementView(
+          viewType: 'imported-canvas',
+          onPlatformViewCreated: (i) {},
+          creationParams: <String, Object?>{
+            'key': 'someValue',
+          },
+        ));
+  }
+}
+
 class _ImageCopyingWidget extends StatefulWidget {
+  final ThermionViewer viewer;
+
+  const _ImageCopyingWidget({super.key, required this.viewer});
   @override
   State<StatefulWidget> createState() {
     return _ImageCopyingWidgetState();
@@ -39,34 +123,82 @@ class _ImageCopyingWidget extends StatefulWidget {
 }
 
 class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
-  final _logger = Logger("_ImageCopyingWidgetState");
+  late final _logger = Logger(this.runtimeType.toString());
+  late web.HTMLCanvasElement canvas;
   ui.Image? _img;
+  double width = 0;
+  double height = 0;
 
-  @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      capture();
+    canvas =
+        web.document.getElementById("thermion_canvas") as web.HTMLCanvasElement;
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      _refresh(Duration.zero);
     });
   }
 
-  Future capture() async {
+  void _refresh(Duration _) async {
     try {
-      final ImageBitmap newSource = await promiseToFuture<ImageBitmap>(
-          window.createImageBitmap(
-              document.getElementById("canvas") as HTMLCanvasElement));
-      _img = await ui_web.createImageFromImageBitmap(newSource);
-      setState(() {});
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        capture();
-      });
+      final rb = this.context.findRenderObject() as RenderBox?;
+
+      if (_resizing || rb == null || rb.size.isEmpty) {
+        setState(() {});
+        return;
+      }
+
+      if (canvas.width != rb.size.width || canvas.height != rb.size.height) {
+        ThermionFlutterWebPlugin.instance
+            .resizeCanvas(rb.size.width, rb.size.height);
+        await widget.viewer
+            .setViewport(rb.size.width.ceil(), rb.size.height.ceil())
+            .timeout(Duration(seconds: 1));
+      }
+
+      width = canvas.width * web.window.devicePixelRatio;
+      height = canvas.height * web.window.devicePixelRatio;
+      _img = await ui_web.createImageFromTextureSource(canvas,
+          width: width.ceil(), height: height.ceil(), transferOwnership: true);
+
+      _request++;
     } catch (err) {
       _logger.severe(err);
+    } finally {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {});
+      });
+      WidgetsBinding.instance.scheduleFrameCallback(_refresh);
     }
+  }
+
+  int _request = 0;
+
+  bool _resizing = false;
+  Timer? _resizeTimer;
+
+  void _resize(Size oldSize, Size newSize) {
+    _resizeTimer?.cancel();
+    _resizing = true;
+    _resizeTimer = Timer(Duration(milliseconds: 100), () {
+      _resizing = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return RawImage(image: _img!);
+    if (_img == null) {
+      return Container();
+    }
+
+    return ResizeObserver(
+        onResized: _resize,
+        child: RawImage(
+          key: Key(_request.toString()),
+          width: width,
+          height: height,
+          image: _img!,
+          filterQuality: FilterQuality.high,
+          isAntiAlias: false,
+        ));
   }
 }

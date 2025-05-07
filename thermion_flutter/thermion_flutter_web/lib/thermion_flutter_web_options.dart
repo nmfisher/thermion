@@ -5,7 +5,7 @@ class ThermionFlutterWebOptions extends ThermionFlutterOptions {
   final bool createCanvas;
   final bool importCanvasAsWidget;
 
-  ThermionFlutterWebOptions(
+  const ThermionFlutterWebOptions(
       {this.importCanvasAsWidget = false,
       this.createCanvas = true,
       String? uberarchivePath})
