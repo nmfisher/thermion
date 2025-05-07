@@ -670,6 +670,9 @@ class FFIAsset extends ThermionAsset {
           animation.numFrames,
           animation.frameLengthInMs);
 
+      frameData.data.free();
+      indices.free();
+
       if (!result) {
         throw Exception("Failed to set morph animation data for ${meshName}");
       }
@@ -787,7 +790,6 @@ class FFIAsset extends ThermionAsset {
     if (FILAMENT_WASM) {
       //stackRestore(stackPtr);
     }
-
     return transform;
   }
 
