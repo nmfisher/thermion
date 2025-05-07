@@ -470,8 +470,6 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setPostProcessing(bool enabled) async {
     View_setPostProcessing(view.view, enabled);
-    await withVoidCallback(
-        (cb) => Engine_flushAndWaitRenderThread(app.engine, cb));
   }
 
   ///
