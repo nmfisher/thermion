@@ -10,43 +10,6 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
-T makeTypedData<T extends TypedData>(int length) {
-  TypedData typedData = switch (T) {
-    Uint8List => Uint8List(length),
-    Int8List => Int8List(length),
-    Uint16List => Uint16List(length),
-    Int16List => Int16List(length),
-    Uint32List => Uint32List(length),
-    Int32List => Int32List(length),
-    Float32List => Float32List(length),
-    Float64List => Float64List(length),
-    _ => throw UnimplementedError()
-  };
-  return typedData as T;
-}
-
-T makeTypedDataFromIntList<T extends TypedData>(List<int> src) {
-  TypedDataList typedData = switch (T) {
-    Uint8List => Uint8List.fromList(src),
-    Uint16List => Uint16List.fromList(src),
-    Int16List => Int16List.fromList(src),
-    Int32List => Int32List.fromList(src),
-    _ => throw UnimplementedError()
-  };
-  return typedData as T;
-}
-
-T makeTypedDataFromDoubleList<T extends TypedData>(List<double> src) {
-  TypedDataList typedData = switch (T) {
-    Float32List => Float32List.fromList(src),
-    Float64List => Float64List.fromList(src),
-    _ => throw UnimplementedError()
-  };
-  typedData.setRange(0, src.length, src);
-
-  return typedData as T;
-}
-
 extension type _NativeLibrary(JSObject _) implements JSObject {
   static _NativeLibrary get instance =>
       NativeLibrary.instance as _NativeLibrary;
@@ -64,6 +27,9 @@ extension type _NativeLibrary(JSObject _) implements JSObject {
   external JSFloat64Array _emscripten_make_f64_buffer(
       Pointer<Float64> ptr, int length);
   external Pointer _emscripten_get_byte_offset(JSObject obj);
+
+  external int _emscripten_stack_get_free();
+
   external void _execute_queue();
 
   @JS('stackSave')
@@ -73,48 +39,20 @@ extension type _NativeLibrary(JSObject _) implements JSObject {
   external void stackRestore(Pointer<Void> ptr);
 }
 
-final _allocated = <TypedData>{};
-Pointer<Void>? _arena = null;
-int _arenaOffset = 0;
-int _arenaAllocations = 0;
-const int ARENA_SIZE_IN_BYTES = 64 * 1024 * 1024;
-
 extension FreeTypedData<T> on TypedData {
   void free() {
-    // if(!_allocated.contains(this)) {
-    //   throw Exception("This Uint8List was not allocated directly via emscripten");
-    // }
-    // final ptr = Pointer<Void>(this.offsetInBytes);
-    // ptr.free();
-    // _allocated.remove(this);
+    final ptr = Pointer<Void>(this.offsetInBytes);
+    ptr.free();
   }
 }
 
 Pointer<T> getPointer<T extends NativeType>(TypedData data, JSObject obj) {
-  if (_allocated.contains(data)) {
-    var offset = _NativeLibrary.instance._emscripten_get_byte_offset(obj);
-    if (offset == 0) {
-      throw Exception(
-          "This Uint8List was not allocated directly via emscripten");
-    }
-    return Pointer<T>(offset);
-  }
-
   late Pointer<T> ptr;
 
   if (data.lengthInBytes < 32 * 1024) {
     ptr = stackAlloc(data.lengthInBytes).cast<T>();
   } else {
-    if (_arena == null) {
-      _arena = malloc<Void>(ARENA_SIZE_IN_BYTES);
-    }
-    if (_arenaAllocations > 0 &&
-        _arenaOffset + data.lengthInBytes > ARENA_SIZE_IN_BYTES) {
-      throw Exception("Arena exhausted");
-    }
-    ptr = Pointer<T>(_arena! + _arenaOffset);
-    _arenaOffset += data.lengthInBytes;
-    _arenaAllocations++;
+    ptr = malloc<T>(data.lengthInBytes);
   }
 
   return ptr;
@@ -173,13 +111,6 @@ extension Uint8ListExtension on Uint8List {
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
-
-  // static Uint8List create(int length) {
-  //   final ptr = malloc(length);
-  //   final buffer = _NativeLibrary.instance._emscripten_make_uint8_buffer(ptr.cast(), length).toDart;
-  //   _allocated.add(buffer);
-  //   return buffer;
-  // }
 }
 
 extension Float32ListExtension on Float32List {
@@ -191,13 +122,6 @@ extension Float32ListExtension on Float32List {
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
-
-  // static Float32List create(int length) {
-  //   final ptr = malloc(length*4);
-  //   final buffer = _NativeLibrary.instance._emscripten_make_f32_buffer(ptr.cast(), length).toDart;
-  //   _allocated.add(buffer);
-  //   return buffer;
-  // }
 }
 
 extension Int16ListExtension on Int16List {
@@ -208,13 +132,6 @@ extension Int16ListExtension on Int16List {
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
-
-  // static Int16List create(int length) {
-  //   final ptr = malloc(length*2);
-  //   final buffer = _NativeLibrary.instance._emscripten_make_int16_buffer(ptr.cast(), length).toDart;
-  //   _allocated.add(buffer);
-  //   return buffer;
-  // }
 }
 
 extension Uint16ListExtension on Uint16List {
@@ -226,13 +143,6 @@ extension Uint16ListExtension on Uint16List {
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
-
-  // static Uint16List create(int length) {
-  //   final ptr = malloc(length*2);
-  //   final buffer = _NativeLibrary.instance._emscripten_make_uint16_buffer(ptr.cast(), length).toDart;
-  //   _allocated.add(buffer);
-  //   return buffer;
-  // }
 }
 
 extension UInt32ListExtension on Uint32List {
@@ -253,13 +163,6 @@ extension Int32ListExtension on Int32List {
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
-
-  // static Int32List create(int length) {
-  //   final ptr = malloc(length * 4);
-  //   final buffer = _NativeLibrary.instance._emscripten_make_int32_buffer(ptr.cast(), length).toDart;
-  //   _allocated.add(buffer);
-  //   return buffer;
-  // }
 }
 
 extension Int64ListExtension on Int64List {
@@ -484,3 +387,7 @@ Pointer stackSave() => _NativeLibrary.instance.stackSave();
 
 void stackRestore(Pointer ptr) =>
     _NativeLibrary.instance.stackRestore(ptr.cast());
+
+void getStackFree() {
+  print(_NativeLibrary.instance._emscripten_stack_get_free());
+}

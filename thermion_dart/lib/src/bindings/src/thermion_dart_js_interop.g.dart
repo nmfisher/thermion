@@ -392,7 +392,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
       JSFunction f, String signature);
   external void removeFunction<T>(Pointer<NativeFunction<T>> f);
   external JSUint8Array get HEAPU8;
-
+  external void _Thermion_resizeCanvas(int width, int height);
   external EMSCRIPTEN_WEBGL_CONTEXT_HANDLE _Thermion_createGLContext();
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_TRANSPARENT;
   external Pointer<Int32> _TSWAP_CHAIN_CONFIG_READABLE;
@@ -2067,6 +2067,10 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TScene> tScene,
     Pointer<TFilamentAsset> asset,
   );
+}
+
+void Thermion_resizeCanvas(int width, int height) {
+  _lib._Thermion_resizeCanvas(width, height);
 }
 
 DartEMSCRIPTEN_WEBGL_CONTEXT_HANDLE Thermion_createGLContext() {

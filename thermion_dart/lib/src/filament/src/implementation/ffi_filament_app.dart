@@ -79,24 +79,24 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             config.stereoscopicEyeCount,
             config.disableHandleUseAfterFreeCheck,
             cb));
-    
+
     final gltfAssetLoader = await withPointerCallback<TGltfAssetLoader>(
         (cb) => GltfAssetLoader_createRenderThread(engine, nullptr, cb));
     final renderer = await withPointerCallback<TRenderer>(
         (cb) => Engine_createRendererRenderThread(engine, cb));
     final ubershaderMaterialProvider =
         GltfAssetLoader_getMaterialProvider(gltfAssetLoader);
-    
+
     final transformManager = Engine_getTransformManager(engine);
     final lightManager = Engine_getLightManager(engine);
     final renderableManager = Engine_getRenderableManager(engine);
-    
+
     final renderTicker = RenderTicker_create(engine, renderer);
-    
+
     RenderThread_setRenderTicker(renderTicker);
-    
+
     final nameComponentManager = NameComponentManager_create();
-    
+
     FilamentApp.instance = FFIFilamentApp(
         engine,
         gltfAssetLoader,
@@ -348,11 +348,20 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<LinearImage> decodeImage(Uint8List data) async {
     final name = "image";
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
     var ptr = Image_decode(
       data.address,
       data.length,
       name.toNativeUtf8().cast<Char>(),
     );
+
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      data.free();
+    }
     if (ptr == nullptr) {
       throw Exception("Failed to decode image");
     }
@@ -371,9 +380,17 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future<Material> createMaterial(Uint8List data) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
     var ptr = await withPointerCallback<TMaterial>((cb) {
       Engine_buildMaterialRenderThread(engine, data.address, data.length, cb);
     });
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      data.free();
+    }
     return FFIMaterial(ptr, this);
   }
 
@@ -417,6 +434,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       bool hasSheen = false,
       bool hasIOR = false,
       bool hasVolume = false}) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+
     final key = Struct.create<TMaterialKey>();
 
     key.doubleSided = doubleSided;
@@ -461,6 +483,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       MaterialProvider_createMaterialInstanceRenderThread(
           ubershaderMaterialProvider, key.address, cb);
     });
+
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+    }
     if (materialInstance == nullptr) {
       throw Exception("Failed to create material instance");
     }
@@ -503,7 +529,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     final swapchain = _swapChains.keys.first;
     final view = _swapChains[swapchain]!.first;
     await withBoolCallback((cb) {
-      Renderer_beginFrameRenderThread(renderer, swapchain.swapChain, 0.toBigInt, cb);
+      Renderer_beginFrameRenderThread(
+          renderer, swapchain.swapChain, 0.toBigInt, cb);
     });
     await withVoidCallback((cb) {
       Renderer_renderRenderThread(
@@ -516,10 +543,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       Renderer_endFrameRenderThread(renderer, cb);
     });
 
-    if(FILAMENT_SINGLE_THREADED) {
+    if (FILAMENT_SINGLE_THREADED) {
       await withVoidCallback((cb) => Engine_executeRenderThread(engine, cb));
     } else {
-      await withVoidCallback((cb) => Engine_flushAndWaitRenderThread(engine, cb));
+      await withVoidCallback(
+          (cb) => Engine_flushAndWaitRenderThread(engine, cb));
     }
   }
 
@@ -673,7 +701,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await updateRenderOrder();
 
     await withBoolCallback((cb) {
-      Renderer_beginFrameRenderThread(renderer, swapChain!.swapChain, 0.toBigInt, cb);
+      Renderer_beginFrameRenderThread(
+          renderer, swapChain!.swapChain, 0.toBigInt, cb);
     });
     final views = <FFIView>[];
     if (view != null) {
@@ -688,8 +717,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       beforeRender?.call(view);
 
       final viewport = await view.getViewport();
-      final pixelBuffer = Uint8List(
-          viewport.width * viewport.height * 4 * sizeOf<Float>());
+      final pixelBuffer =
+          Uint8List(viewport.width * viewport.height * 4 * sizeOf<Float>());
       await withVoidCallback((cb) {
         Renderer_renderRenderThread(
           renderer,
@@ -724,14 +753,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     await withVoidCallback((cb) {
       Renderer_endFrameRenderThread(renderer, cb);
     });
-    
+
     await withVoidCallback((cb) {
-      if(FILAMENT_SINGLE_THREADED) {
+      if (FILAMENT_SINGLE_THREADED) {
         Engine_executeRenderThread(engine, cb);
       } else {
         Engine_flushAndWaitRenderThread(engine, cb);
       }
-      
     });
     return pixelBuffers;
   }
@@ -757,77 +785,94 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       String? relativeResourcePath,
       bool loadResourcesAsync = false}) async {
 
-    loadResourcesAsync = FILAMENT_SINGLE_THREADED;
-    if (relativeResourcePath != null && !relativeResourcePath.endsWith("/")) {
-      relativeResourcePath = "$relativeResourcePath/";
-    }
-    var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
-        (cb) => GltfResourceLoader_createRenderThread(engine,
-            relativeResourcePath?.toNativeUtf8().cast<Char>() ?? nullptr, cb));
-
-    var filamentAsset = await withPointerCallback<TFilamentAsset>((cb) =>
-        GltfAssetLoader_loadRenderThread(engine, gltfAssetLoader, data.address,
-            data.length, numInstances, cb));
-
-    if (filamentAsset == nullptr) {
-      throw Exception("An error occurred loading the asset");
-    }
-
-    var resourceUris = FilamentAsset_getResourceUris(filamentAsset);
-    var resourceUriCount = FilamentAsset_getResourceUriCount(filamentAsset);
     final resources = <FinalizableUint8List>[];
-
-    for (int i = 0; i < resourceUriCount; i++) {
-      final resourceUriDart = resourceUris[i].cast<Utf8>().toDartString();
-      final resourceData = await resourceLoader(relativeResourcePath == null
-          ? resourceUriDart
-          : "$relativeResourcePath/$resourceUriDart");
-
-      resources.add(FinalizableUint8List(resourceUris[i], resourceData));
-
-      await withVoidCallback((cb) =>
-          GltfResourceLoader_addResourceDataRenderThread(
-              gltfResourceLoader,
-              resourceUris[i],
-              resourceData.address,
-              resourceData.lengthInBytes,
-              cb));
-    }
-    if (loadResourcesAsync) {
-      final result = await withBoolCallback((cb) =>
-          GltfResourceLoader_asyncBeginLoadRenderThread(
-              gltfResourceLoader, filamentAsset, cb));
-      if (!result) {
-        throw Exception("Failed to begin async loading");
+    try {
+      late Pointer stackPtr;
+      if (FILAMENT_WASM) {
+        //stackPtr = stackSave();
       }
 
-      GltfResourceLoader_asyncUpdateLoadRenderThread(gltfResourceLoader);
+      loadResourcesAsync = FILAMENT_SINGLE_THREADED;
 
-      var progress = await withFloatCallback((cb) =>
-          GltfResourceLoader_asyncGetLoadProgressRenderThread(
-              gltfResourceLoader, cb));
-      while (progress < 1.0) {
+      if (relativeResourcePath != null && !relativeResourcePath.endsWith("/")) {
+        relativeResourcePath = "$relativeResourcePath/";
+      }
+      var gltfResourceLoader = await withPointerCallback<TGltfResourceLoader>(
+          (cb) => GltfResourceLoader_createRenderThread(engine,
+              relativeResourcePath?.toNativeUtf8().cast<Char>() ?? nullptr, cb));
+
+      var filamentAsset = await withPointerCallback<TFilamentAsset>((cb) =>
+          GltfAssetLoader_loadRenderThread(engine, gltfAssetLoader, data.address,
+              data.length, numInstances, cb));
+
+      if (filamentAsset == nullptr) {
+        throw Exception("An error occurred loading the asset");
+      }
+
+      var resourceUris = FilamentAsset_getResourceUris(filamentAsset);
+      var resourceUriCount = FilamentAsset_getResourceUriCount(filamentAsset);
+
+      for (int i = 0; i < resourceUriCount; i++) {
+        final resourceUriDart = resourceUris[i].cast<Utf8>().toDartString();
+        final resourceData = await resourceLoader(relativeResourcePath == null
+            ? resourceUriDart
+            : "$relativeResourcePath/$resourceUriDart");
+
+        resources.add(FinalizableUint8List(resourceUris[i], resourceData));
+
+        await withVoidCallback((cb) =>
+            GltfResourceLoader_addResourceDataRenderThread(
+                gltfResourceLoader,
+                resourceUris[i],
+                resourceData.address,
+                resourceData.lengthInBytes,
+                cb));
+      }
+      if (loadResourcesAsync) {
+        final result = await withBoolCallback((cb) =>
+            GltfResourceLoader_asyncBeginLoadRenderThread(
+                gltfResourceLoader, filamentAsset, cb));
+        if (!result) {
+          throw Exception("Failed to begin async loading");
+        }
+
         GltfResourceLoader_asyncUpdateLoadRenderThread(gltfResourceLoader);
-        progress = await withFloatCallback((cb) =>
+
+        var progress = await withFloatCallback((cb) =>
             GltfResourceLoader_asyncGetLoadProgressRenderThread(
                 gltfResourceLoader, cb));
+        while (progress < 1.0) {
+          GltfResourceLoader_asyncUpdateLoadRenderThread(gltfResourceLoader);
+          progress = await withFloatCallback((cb) =>
+              GltfResourceLoader_asyncGetLoadProgressRenderThread(
+                  gltfResourceLoader, cb));
+        }
+      } else {
+        final result = await withBoolCallback((cb) =>
+            GltfResourceLoader_loadResourcesRenderThread(
+                gltfResourceLoader, filamentAsset, cb));
+        if (!result) {
+          throw Exception("Failed to load resources");
+        }
       }
-    } else {
-      final result = await withBoolCallback((cb) =>
-          GltfResourceLoader_loadResourcesRenderThread(
-              gltfResourceLoader, filamentAsset, cb));
-      if (!result) {
-        throw Exception("Failed to load resources");
+
+      final asset = await withPointerCallback<TSceneAsset>((cb) =>
+          SceneAsset_createFromFilamentAssetRenderThread(
+              engine, gltfAssetLoader, nameComponentManager, filamentAsset, cb));
+
+      await withVoidCallback((cb) =>
+          GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, cb));
+
+      return FFIAsset(asset, this, animationManager.cast<TAnimationManager>());
+    } finally {
+      if (FILAMENT_WASM) {
+        //stackRestore(stackPtr);
+        data.free();
+        for (final resource in resources) {
+          resource.data.free();
+        }
       }
     }
-
-    final asset = await withPointerCallback<TSceneAsset>((cb) =>
-        SceneAsset_createFromFilamentAssetRenderThread(
-            engine, gltfAssetLoader, nameComponentManager, filamentAsset, cb));
-
-    await withVoidCallback((cb) =>
-        GltfResourceLoader_destroyRenderThread(engine, gltfResourceLoader, cb));
-    return FFIAsset(asset, this, animationManager.cast<TAnimationManager>());
   }
 
   Future destroyView(covariant FFIView view) async {
@@ -864,6 +909,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future<GizmoAsset> createGizmo(covariant FFIView view,
       Pointer animationManager, GizmoType gizmoType) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+
     if (_gizmoMaterial == null) {
       final materialPtr = await withPointerCallback<TMaterial>((cb) {
         Material_createGizmoMaterialRenderThread(engine, cb);
@@ -900,7 +950,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
         view: view,
         entities: gizmoEntities.toSet()
           ..add(SceneAsset_getEntity(gizmo.cast<TSceneAsset>())));
-    gizmoEntities.free();
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      gizmoEntities.free();
+    }
+
     return gizmoAsset;
   }
 
@@ -913,8 +967,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       {List<MaterialInstance>? materialInstances,
       bool keepData = false,
       bool addToScene = true}) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+
     IntPtrList? ptrList;
-    
+
     if (materialInstances != null && materialInstances.isNotEmpty) {
       ptrList = IntPtrList(materialInstances!.length);
       ptrList.setRange(
@@ -943,7 +1002,14 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       return ptr;
     });
 
-    ptrList?.free();
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      ptrList?.free();
+      geometry.vertices.free();
+      geometry.normals?.free();
+      geometry.uvs?.free();
+    }
+
     if (assetPtr == nullptr) {
       throw Exception("Failed to create geometry");
     }
@@ -955,10 +1021,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future flush() async {
-    if(FILAMENT_SINGLE_THREADED) {
+    if (FILAMENT_SINGLE_THREADED) {
       await withVoidCallback((cb) => Engine_executeRenderThread(engine, cb));
     } else {
-      await withVoidCallback((cb) => Engine_flushAndWaitRenderThread(engine, cb));
+      await withVoidCallback(
+          (cb) => Engine_flushAndWaitRenderThread(engine, cb));
     }
   }
 

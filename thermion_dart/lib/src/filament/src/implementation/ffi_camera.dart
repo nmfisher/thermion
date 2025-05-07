@@ -26,7 +26,15 @@ class FFICamera extends Camera {
   ///
   ///
   Future<Matrix4> getModelMatrix() async {
-    return double4x4ToMatrix4(Camera_getModelMatrix(camera));
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+    final modelMatrix = double4x4ToMatrix4(Camera_getModelMatrix(camera));
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+    }
+    return modelMatrix;
   }
 
   ///
@@ -34,8 +42,16 @@ class FFICamera extends Camera {
   ///
   @override
   Future<Matrix4> getProjectionMatrix() async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
     var matrixStruct = Camera_getProjectionMatrix(camera);
-    return double4x4ToMatrix4(matrixStruct);
+    final pMat = double4x4ToMatrix4(matrixStruct);
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+    }
+    return pMat;
   }
 
   ///
@@ -43,8 +59,17 @@ class FFICamera extends Camera {
   ///
   @override
   Future<Matrix4> getCullingProjectionMatrix() async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
     var matrixStruct = Camera_getCullingProjectionMatrix(camera);
-    return double4x4ToMatrix4(matrixStruct);
+    final cpMat = double4x4ToMatrix4(matrixStruct);
+
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+    }
+    return cpMat;
   }
 
   @override
@@ -52,7 +77,6 @@ class FFICamera extends Camera {
     var entity = Camera_getEntity(camera);
     TransformManager_setTransform(
         app.transformManager, entity, matrix4ToDouble4x4(transform));
-
   }
 
   @override
@@ -77,13 +101,14 @@ class FFICamera extends Camera {
   ///
   @override
   Future setModelMatrix(Matrix4 matrix) async {
-    Pointer? stackPtr;
-    if(FILAMENT_WASM) {
-      stackPtr = stackSave();
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
     }
     Camera_setModelMatrix(camera, matrix.storage.address);
-    if(FILAMENT_WASM) {
-      stackRestore(stackPtr!);
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      matrix.storage.free();
     }
   }
 
@@ -125,9 +150,9 @@ class FFICamera extends Camera {
   ///
   ///
   Future<Frustum> getFrustum() async {
-    Pointer? stackPtr;
-    if(FILAMENT_WASM) {
-      stackPtr = stackSave();
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
     }
     var out = Float64List(24);
     Camera_getFrustum(camera, out.address);
@@ -139,22 +164,31 @@ class FFICamera extends Camera {
     frustum.plane3.setFromComponents(out[12], out[13], out[14], out[15]);
     frustum.plane4.setFromComponents(out[16], out[17], out[18], out[19]);
     frustum.plane5.setFromComponents(out[20], out[21], out[22], out[23]);
-    if(FILAMENT_WASM) {
-      stackRestore(stackPtr!);
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      out.free();
     }
     return frustum;
   }
 
   @override
   Future<Matrix4> getViewMatrix() async {
-    return double4x4ToMatrix4(Camera_getViewMatrix(camera));
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+    final matrix = double4x4ToMatrix4(Camera_getViewMatrix(camera));
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+    }
+    return matrix;
   }
 
   @override
   Future setProjection(Projection projection, double left, double right,
       double bottom, double top, double near, double far) async {
-    Camera_setProjection(camera, projection.index, left,
-        right, bottom, top, near, far);
+    Camera_setProjection(
+        camera, projection.index, left, right, bottom, top, near, far);
   }
 
   Future destroy() async {

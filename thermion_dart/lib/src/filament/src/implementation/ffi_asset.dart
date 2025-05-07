@@ -7,7 +7,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 
 class FFIAsset extends ThermionAsset {
-  
   ///
   ///
   ///
@@ -55,13 +54,23 @@ class FFIAsset extends ThermionAsset {
   ///
   @override
   Future<List<ThermionEntity>> getChildEntities() async {
-    if(_childEntities == null) {
+    if (_childEntities == null) {
       var count = SceneAsset_getChildEntityCount(asset);
-      _childEntities = makeTypedData<Int32List>(count);
-      if(count > 0) {
-        SceneAsset_getChildEntities(asset, _childEntities!.address);
+      var childEntities = Int32List(count);
+      late Pointer stackPtr;
+      if (FILAMENT_WASM) {
+        //stackPtr = stackSave();
+      }
+      if (count > 0) {
+        SceneAsset_getChildEntities(asset, childEntities.address);
+      }
+      _childEntities = Int32List.fromList(childEntities);
+      childEntities.free();
+      if (FILAMENT_WASM) {
+        //stackRestore(stackPtr);
       }
     }
+
     return _childEntities!;
   }
 
@@ -120,27 +129,32 @@ class FFIAsset extends ThermionAsset {
   @override
   Future<FFIAsset> createInstance(
       {covariant List<MaterialInstance>? materialInstances = null}) async {
-    var ptrList = makeTypedData<IntPtrList>(materialInstances?.length ?? 0);
+    var ptrList = IntPtrList(materialInstances?.length ?? 0);
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+
     if (materialInstances != null && materialInstances.isNotEmpty) {
-        ptrList.setRange(
-            0,
-            materialInstances.length,
-            materialInstances
-                .cast<FFIMaterialInstance>()
-                .map((mi) => mi.pointer.address)
-                .toList());
-      }
+      ptrList.setRange(
+          0,
+          materialInstances.length,
+          materialInstances
+              .cast<FFIMaterialInstance>()
+              .map((mi) => mi.pointer.address)
+              .toList());
+    }
 
     var created = await withPointerCallback<TSceneAsset>((cb) {
-      
       SceneAsset_createInstanceRenderThread(
-          asset,
-          ptrList.address.cast(),
-          materialInstances?.length ?? 0,
-          cb);
+          asset, ptrList.address.cast(), materialInstances?.length ?? 0, cb);
     });
 
-    ptrList.free();
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      ptrList.free();
+    }
+
     if (created == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to create instance");
     }
@@ -307,7 +321,7 @@ class FFIAsset extends ThermionAsset {
 
       // Create vertices for the bounding box wireframe
       // 8 vertices for a cube
-      final vertices = makeTypedData<Float32List>(8 * 3);
+      final vertices = Float32List(8 * 3);
 
       // Bottom vertices
       vertices[0] = min[0];
@@ -338,7 +352,7 @@ class FFIAsset extends ThermionAsset {
       vertices[23] = max[2]; // v7
 
       // Indices for lines (24 indices for 12 lines)
-      final indices = makeTypedDataFromIntList<Uint16List>([
+      final indices = Uint16List.fromList([
         // Bottom face
         0, 1, 1, 2, 2, 3, 3, 0,
         // Top face
@@ -740,8 +754,7 @@ class FFIAsset extends ThermionAsset {
               baseTransform * (worldInverse * frameTransform * world);
         }
         for (int j = 0; j < 16; j++) {
-          data[(frameNum * 16) + j] =
-              newLocalTransform.storage[j];
+          data[(frameNum * 16) + j] = newLocalTransform.storage[j];
         }
       }
 
@@ -764,18 +777,35 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
     entity ??= this.entity;
-    return double4x4ToMatrix4(
+    final transform = double4x4ToMatrix4(
         TransformManager_getLocalTransform(app.transformManager, entity));
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+    }
+
+    return transform;
   }
 
   ///
   ///
   ///
   Future<Matrix4> getWorldTransform({ThermionEntity? entity}) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
     entity ??= this.entity;
-    return double4x4ToMatrix4(
+    var transform = double4x4ToMatrix4(
         TransformManager_getWorldTransform(app.transformManager, entity));
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+    }
+    return transform;
   }
 
   ///
@@ -806,11 +836,18 @@ class FFIAsset extends ThermionAsset {
   ///
   Future<Matrix4> getInverseBindMatrix(int boneIndex,
       {int skinIndex = 0}) async {
-    var matrixIn = makeTypedData<Float32List>(16);
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+    var matrixIn = Float32List(16);
     AnimationManager_getInverseBindMatrix(
         animationManager, asset, skinIndex, boneIndex, matrixIn.address);
     var matrixOut = Matrix4.fromList(matrixIn);
-    matrixIn.free();
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      matrixIn.free();
+    }
     return matrixOut;
   }
 

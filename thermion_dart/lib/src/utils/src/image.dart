@@ -9,7 +9,7 @@ Future<Uint8List> pixelBufferToBmp(Uint8List pixelBuffer, int width, int height,
   final padding = rowSize - (width * 3);
   final fileSize = 54 + rowSize * height;
 
-  final data = makeTypedData<Uint8List>(fileSize);
+  final data = Uint8List(fileSize);
   final buffer = data.buffer;
   final bd = ByteData.view(buffer);
 
