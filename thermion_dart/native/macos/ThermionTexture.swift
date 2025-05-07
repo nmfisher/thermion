@@ -46,8 +46,8 @@ import GLKit
         print("Creating color texture")
 
 
-        let pixelFormat: MTLPixelFormat = isDepth ? .depth32Float : .bgra8Unorm
-        let cvPixelFormat = isDepth ? kCVPixelFormatType_DepthFloat32 : kCVPixelFormatType_32BGRA
+        // let pixelFormat: MTLPixelFormat = isDepth ? .depth32Float : .bgra8Unorm
+        // let cvPixelFormat = isDepth ? kCVPixelFormatType_DepthFloat32 : kCVPixelFormatType_32BGRA
     
         if(CVPixelBufferCreate(kCFAllocatorDefault, Int(width), Int(height),
                            kCVPixelFormatType_32BGRA, pixelBufferAttrs, &pixelBuffer) != kCVReturnSuccess) {
