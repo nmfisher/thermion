@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:archive/archive.dart';
+import 'package:code_assets/code_assets.dart';
+import 'package:hooks/hooks.dart';
 import 'package:logging/logging.dart';
-import 'package:native_assets_cli/code_assets_builder.dart';
-import 'package:native_assets_cli/native_assets_cli.dart';
+
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:path/path.dart' as path;
 
@@ -25,6 +26,7 @@ void main(List<String> args) async {
     final packageName = input.packageName;
     final outputDirectory = input.outputDirectory;
     final targetOS = config.code.targetOS;
+   
     final targetArchitecture = config.code.targetArchitecture;
     var logPath = path.join(
         pkgRootFilePath, ".dart_tool", "thermion_dart", "log", "build.log");
@@ -258,9 +260,8 @@ void main(List<String> args) async {
             package: "thermion_dart",
             name: "libc++_shared.so",
             linkMode: DynamicLoadingBundled(),
-            os: targetOS,
             file: stlPath.uri,
-            architecture: targetArchitecture);
+            );
 
         output.assets.addEncodedAsset(libcpp.encode());
       }
@@ -274,9 +275,8 @@ void main(List<String> args) async {
           package: packageName,
           name: "thermion_dart.lib",
           linkMode: DynamicLoadingBundled(),
-          os: targetOS,
           file: importLib.uri,
-          architecture: targetArchitecture);
+          );
       output.assets.addEncodedAsset(libthermion.encode());
 
       for (final dir in ["windows/vulkan"]) {
@@ -298,9 +298,8 @@ void main(List<String> args) async {
                 package: packageName,
                 name: "include/$dir/${path.basename(file.path)}",
                 linkMode: DynamicLoadingBundled(),
-                os: targetOS,
                 file: file.uri,
-                architecture: targetArchitecture);
+                );
             output.assets.addEncodedAsset(include.encode());
           }
         }
