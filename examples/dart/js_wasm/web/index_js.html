@@ -1,6 +1,17 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <script src="thermion_dart.js"></script>
+        <script type="text/javascript" src="./thermion_dart.js"></script>
+        <script type="module"> 
+            try {
+                window.thermion_dart = await thermion_dart();      
+            } catch(err) {
+                console.error(err);
+            }
+            const script = document.createElement('script')
+            script.src = 'example.dart.js'
+            document.head.append(script);
+        </script>
         <style>
             html, body { 
                 margin:0;
@@ -17,16 +28,7 @@
             }
         </style>
     </head>
-<script type="module"> 
-    try {
-        window.thermion_dart = await thermion_dart();      
-    } catch(err) {
-        console.error(err);
-    }
-    const script = document.createElement('script')
-    script.src = 'example.dart.js'
-    document.head.append(script);
-  </script>
+
   <body>
     <canvas id="thermion_canvas"></canvas>
 </body>
