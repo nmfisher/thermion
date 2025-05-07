@@ -7,20 +7,23 @@ import '../../../viewer/viewer.dart';
 class Geometry {
   final Float32List vertices;
   final Uint16List indices;
-  final Float32List? normals;
-  final Float32List? uvs;
+  late final Float32List normals;
+  late final Float32List uvs;
   final PrimitiveType primitiveType;
 
   Geometry(
     this.vertices,
     this.indices, {
-    this.normals,
-    this.uvs,
+    Float32List? normals,
+    Float32List? uvs,
     this.primitiveType = PrimitiveType.TRIANGLES,
   }) {
-    if(this.uvs != null && this.uvs!.length != (vertices.length ~/ 3 * 2)) {
-      throw Exception("Expected either ${indices.length * 2} UVs, got ${this.uvs!.length}");
-    }   
+    this.uvs = uvs ?? Float32List(0);
+    this.normals = normals ?? Float32List(0);
+    if (this.uvs.length != 0 && this.uvs.length != (vertices.length ~/ 3 * 2)) {
+      throw Exception(
+          "Expected either ${indices.length * 2} UVs, got ${this.uvs!.length}");
+    }
   }
 
   void scale(double factor) {
