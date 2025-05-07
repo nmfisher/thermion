@@ -1,4 +1,4 @@
-export 'src/filament_app.dart';
-export 'src/engine.dart';
-export 'src/layers.dart';
-export 'src/light_options.dart';
+export 'src/interface/filament_app.dart';
+export 'src/interface/engine.dart';
+export 'src/interface/layers.dart';
+export 'src/interface/light_options.dart';

@@ -1,6 +1,7 @@
 #ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
+#include "ThermionWebApi.h"
+#include <backend/platforms/PlatformWebGL.h>
 #endif
 
 #include "c_api/TEngine.h"
@@ -58,6 +59,11 @@ namespace thermion
             uint8_t stereoscopicEyeCount,
             bool disableHandleUseAfterFreeCheck)
         {
+            #ifdef __EMSCRIPTEN__
+            auto handle = Thermion_createGLContext();
+            tSharedContext = (void*)handle;
+            tPlatform = (backend::Platform *)new filament::backend::PlatformWebGL();
+            #endif
             filament::Engine::Config config;
             config.stereoscopicEyeCount = stereoscopicEyeCount;
             config.disableHandleUseAfterFreeCheck = disableHandleUseAfterFreeCheck;
@@ -263,12 +269,22 @@ namespace thermion
         EMSCRIPTEN_KEEPALIVE void Engine_flushAndWait(TEngine *tEngine)
         {
             auto *engine = reinterpret_cast<Engine *>(tEngine);
-#ifdef __EMSCRIPTEN__
-            engine->execute();
-            emscripten_webgl_commit_frame();
-#else
-    engine->flushAndWait();
-#endif
+            engine->flushAndWait();
+        }
+        
+        EMSCRIPTEN_KEEPALIVE void Engine_execute(TEngine *tEngine) {
+            #ifdef __EMSCRIPTEN__
+                // auto startTime = std::chrono::high_resolution_clock::now();
+                auto *engine = reinterpret_cast<Engine *>(tEngine);
+                engine->execute();
+                // auto endTime = std::chrono::high_resolution_clock::now();
+                // auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
+                // float durationMs = durationNs / 1e6f;
+
+                // Log("Total Engine_execute() time: %.3f ms", durationMs);
+            #else
+                Log("WARNING - ignored on non-WASM");
+            #endif
         }
 
         EMSCRIPTEN_KEEPALIVE TScene *Engine_createScene(TEngine *tEngine)

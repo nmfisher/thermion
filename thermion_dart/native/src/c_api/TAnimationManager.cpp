@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif 
+
 #include "Log.hpp"
 
 #include "c_api/APIExport.h"

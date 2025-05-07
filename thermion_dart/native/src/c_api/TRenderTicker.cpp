@@ -2,7 +2,7 @@
 #include "ThermionWin32.h"
 #endif
 #ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
+#include <emscripten.h>
 #endif
 
 #include <thread>
@@ -19,9 +19,10 @@ extern "C"
 {
 #include "c_api/TRenderTicker.h"
 
-EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TRenderer *tRenderer) {
+EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TEngine *tEngine, TRenderer *tRenderer) {
+    auto engine = reinterpret_cast<filament::Engine *>(tEngine);
     auto *renderer = reinterpret_cast<filament::Renderer *>(tRenderer);
-    auto *renderTicker = new RenderTicker(renderer);
+    auto *renderTicker = new RenderTicker(engine, renderer);
     return reinterpret_cast<TRenderTicker *>(renderTicker);
 }
 

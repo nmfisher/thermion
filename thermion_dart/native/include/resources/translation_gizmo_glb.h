@@ -3,11 +3,15 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
     extern const uint8_t TRANSLATION_GIZMO_GLB_PACKAGE[];
     extern int TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_OFFSET;
     extern int TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_SIZE;
+#ifdef __cplusplus
 }
+#endif
 #define TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_DATA (TRANSLATION_GIZMO_GLB_PACKAGE + TRANSLATION_GIZMO_GLB_TRANSLATION_GIZMO_OFFSET)
 
 #endif

@@ -1,6 +1,6 @@
 @Timeout(const Duration(seconds: 600))
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/filament/src/light_options.dart';
+import 'package:thermion_dart/src/filament/src/interface/light_options.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 
 import 'helpers.dart';

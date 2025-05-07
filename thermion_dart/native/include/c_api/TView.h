@@ -23,6 +23,7 @@ enum TToneMapping
     FILMIC,
     LINEAR
 };
+typedef enum TToneMapping TToneMapping;
 
 // copied from Options.h
 enum TQualityLevel { 
@@ -31,11 +32,13 @@ enum TQualityLevel {
     HIGH,
     ULTRA
 };
+typedef enum TQualityLevel TQualityLevel;
 
 enum TBlendMode {
     OPAQUE,
     TRANSLUCENT
 };
+typedef enum TBlendMode TBlendMode;
 
 // View
 EMSCRIPTEN_KEEPALIVE TViewport View_getViewport(TView *view);

@@ -1,8 +1,8 @@
 #pragma once 
 
-#ifndef FLUTTER_FILAMENT_LOG_H
-#define FLUTTER_FILAMENT_LOG_H
-
+#ifdef __EMSCRIPTEN__
+#include <emscripten/console.h>
+#endif 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 #elif defined __ANDROID__
@@ -14,6 +14,9 @@
 #include <iostream>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#define Log(...) emscripten_console_logf(__VA_ARGS__);
+#else
 static void Log(const char *fmt, ...) {    
     va_list args;
     va_start(args, fmt);
@@ -26,11 +29,10 @@ static void Log(const char *fmt, ...) {
 #else
     vprintf(fmt, args);
     std::cout << std::endl;
-#endif
-    
+#endif   
     va_end(args);
 }
-
+#endif
 
 #if defined(_WIN32) || defined(_WIN64)
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
@@ -61,5 +63,3 @@ static void Log(const char *fmt, ...) {
 #endif
 
 #define ERROR(fmt, ...) Log("Error: %s:%d " fmt, __FILENAME__, __LINE__, ##__VA_ARGS__)
-
-#endif

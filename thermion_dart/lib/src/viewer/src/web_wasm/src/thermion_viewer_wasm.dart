@@ -19,29 +19,29 @@
 // import 'camera.dart';
 // import 'material_instance.dart';
 
-// extension type _EmscriptenModule(JSObject _) implements JSObject {
-//   external JSAny? ccall(String name, String returnType,
-//       JSArray<JSString> argTypes, JSArray<JSAny?> args, JSAny? opts);
+extension type _EmscriptenModule(JSObject _) implements JSObject {
+  external JSAny? ccall(String name, String returnType,
+      JSArray<JSString> argTypes, JSArray<JSAny?> args, JSAny? opts);
 
-//   external JSNumber _malloc(int numBytes);
-//   external void _free(JSNumber addr);
-//   external JSNumber stackAlloc(int numBytes);
+  external JSNumber _malloc(int numBytes);
+  external void _free(JSNumber addr);
+  external JSNumber stackAlloc(int numBytes);
 
-//   external JSAny getValue(JSNumber addr, String llvmType);
-//   external void setValue(JSNumber addr, JSNumber value, String llvmType);
+  external JSAny getValue(JSNumber addr, String llvmType);
+  external void setValue(JSNumber addr, JSNumber value, String llvmType);
 
-//   external JSString intArrayToString(JSAny ptr);
-//   external JSString UTF8ToString(JSAny ptr);
-//   external void stringToUTF8(
-//       JSString str, JSNumber ptr, JSNumber maxBytesToWrite);
-//   external void writeArrayToMemory(JSUint8Array data, JSNumber ptr);
+  external JSString intArrayToString(JSAny ptr);
+  external JSString UTF8ToString(JSAny ptr);
+  external void stringToUTF8(
+      JSString str, JSNumber ptr, JSNumber maxBytesToWrite);
+  external void writeArrayToMemory(JSUint8Array data, JSNumber ptr);
 
-//   external JSNumber addFunction(JSFunction f, String signature);
-//   external void removeFunction(JSNumber f);
-//   external JSAny get ALLOC_STACK;
-//   external JSAny get HEAPU32;
-//   external JSAny get HEAP32;
-// }
+  external JSNumber addFunction(JSFunction f, String signature);
+  external void removeFunction(JSNumber f);
+  external JSAny get ALLOC_STACK;
+  external JSAny get HEAPU32;
+  external JSAny get HEAP32;
+}
 
 // typedef ThermionViewerImpl = ThermionViewerWasm;
 
@@ -80,7 +80,6 @@
 //       _module = module as _EmscriptenModule;
 //     }
 //   }
-
 //   void _setAssetPathPrefix(String assetPathPrefix) {
 //     _module!.ccall(
 //         "thermion_dart_web_set_asset_path_prefix",

@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif 
+
 #include <vector>
 
 #include <filament/MaterialInstance.h>

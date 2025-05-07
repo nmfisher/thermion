@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/viewer/viewer.dart';
 import 'helpers.dart';
 

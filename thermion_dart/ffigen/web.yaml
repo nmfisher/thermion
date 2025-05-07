@@ -1,15 +1,11 @@
-output: '../lib/thermion_dart/compatibility/web/thermion_dart.g.dart'
+output: '../lib/src/bindings/src/thermion_dart_js_interop.g.dart'
 headers:
   entry-points:
-    - '../native/web/include/ThermionFlutterWebApi.h'
-    - '../native/include/ThermionDartFFIApi.h'
-    - '../native/include/ThermionDartApi.h'
-    - '../native/include/ResourceBuffer.h'
+    - '../native/web/include/ThermionWebApi.h'
+    - '../native/include/c_api/*.h'
   include-directives:
-    - '../native/web/include/ThermionFlutterWebApi.h'
-    - '../native/include/ThermionDartFFIApi.h'
-    - '../native/include/ThermionDartApi.h'
-    - '../native/include/ResourceBuffer.h'
+    - '../native/web/include/ThermionWebApi.h'
+    - '../native/include/c_api/*.h'
 compiler-opts:
   - "-D__EMSCRIPTEN__"
 structs:
@@ -20,9 +16,8 @@ unions:
   dependency-only: opaque
   exclude: 
     - '.*'
-globals:
-  exclude: 
-    - '.*'
-ffi-native:
-  assetId: thermion_dart
 ignore-source-errors: true
+enums:
+  as-int:
+    include:
+      - .*

@@ -5,6 +5,7 @@ extern "C"
 {
 #endif
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "APIExport.h"
@@ -156,6 +157,7 @@ extern "C"
 		GIZMO_TYPE_TRANSLATION,
 		GIZMO_TYPE_ROTATION
 	};
+	typedef enum TGizmoType TGizmoType;
 
 	enum TPrimitiveType {
 		// don't change the enums values (made to match GL)
@@ -165,11 +167,12 @@ extern "C"
 		PRIMITIVETYPE_TRIANGLES      = 4,    //!< triangles
 		PRIMITIVETYPE_TRIANGLE_STRIP = 5     //!< triangle strip
 	};
+	typedef enum TPrimitiveType TPrimitiveType;
 
-	EMSCRIPTEN_KEEPALIVE extern uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT;
-	EMSCRIPTEN_KEEPALIVE extern uint64_t TSWAP_CHAIN_CONFIG_READABLE;
-	EMSCRIPTEN_KEEPALIVE extern uint64_t TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
-	EMSCRIPTEN_KEEPALIVE extern uint64_t TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
+	extern uint64_t TSWAP_CHAIN_CONFIG_TRANSPARENT;
+	extern uint64_t TSWAP_CHAIN_CONFIG_READABLE;
+	extern uint64_t TSWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER;
+	extern uint64_t TSWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER;
 
 #ifdef __cplusplus
 }

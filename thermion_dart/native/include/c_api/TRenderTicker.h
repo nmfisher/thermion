@@ -8,7 +8,7 @@ extern "C"
 {
 #endif
 
-	EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TRenderer *tRenderer);
+	EMSCRIPTEN_KEEPALIVE TRenderTicker *RenderTicker_create(TEngine *tEngine, TRenderer *tRenderer);
 	EMSCRIPTEN_KEEPALIVE void RenderTicker_destroy(TRenderTicker *tRenderTicker);
 	EMSCRIPTEN_KEEPALIVE void RenderTicker_addAnimationManager(TRenderTicker *tRenderTicker, TAnimationManager *tAnimationManager);
 	EMSCRIPTEN_KEEPALIVE void RenderTicker_removeAnimationManager(TRenderTicker *tRenderTicker, TAnimationManager *tAnimationManager);

@@ -29,7 +29,9 @@ namespace thermion
     {
 
     public:
-        RenderTicker(filament::Renderer *renderer) : mRenderer(renderer) { }
+        RenderTicker(
+            filament::Engine *engine,
+            filament::Renderer *renderer) : mEngine(engine), mRenderer(renderer) { }
         ~RenderTicker();
         
         /// @brief 
@@ -55,6 +57,7 @@ namespace thermion
 
     private:
         std::mutex mMutex;
+        filament::Engine *mEngine = nullptr;
         filament::Renderer *mRenderer = nullptr;
         std::vector<AnimationManager*> mAnimationManagers;
         std::vector<std::pair<filament::SwapChain*, std::vector<filament::View*>>> mRenderable;

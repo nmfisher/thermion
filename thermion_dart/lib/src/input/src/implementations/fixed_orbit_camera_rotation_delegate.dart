@@ -78,12 +78,8 @@ class FixedOrbitRotateInputHandlerDelegate implements InputHandlerDelegate {
 
     final camera = await view.getCamera();
 
-    final viewport = await view.getViewport();
-
-    var viewMatrix = await camera.getViewMatrix();
     var modelMatrix = await camera.getModelMatrix();
-    var projectionMatrix = await camera.getProjectionMatrix();
-    var inverseProjectionMatrix = projectionMatrix.clone()..invert();
+    
     Vector3 currentPosition = modelMatrix.getTranslation();
 
     Vector3 forward = modelMatrix.forward;

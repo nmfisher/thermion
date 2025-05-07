@@ -11,14 +11,8 @@ import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_in
 class ThermionFlutterPlugin {
   ThermionFlutterPlugin._();
 
-  static Future<ThermionViewer> createViewer(
-      {ThermionFlutterOptions options =
-          const ThermionFlutterOptions()}) async {
-
-    final viewer =
-        await ThermionFlutterPlatform.instance.createViewer(options: options);
-
-    return viewer;
+  static Future<ThermionViewer> createViewer() {
+    return ThermionFlutterPlatform.instance.createViewer();
   }
 
 }

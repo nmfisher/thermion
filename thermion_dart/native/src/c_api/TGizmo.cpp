@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif 
+
 #include <filament/View.h>
 #include <filament/Engine.h>
 #include <filament/Scene.h>

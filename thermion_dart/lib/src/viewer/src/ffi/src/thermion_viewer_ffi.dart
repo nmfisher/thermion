@@ -1,20 +1,15 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:thermion_dart/src/filament/src/light_options.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/background_image.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_asset.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_filament_app.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/ffi_scene.dart';
-import 'package:thermion_dart/src/filament/src/layers.dart';
-import 'package:thermion_dart/src/viewer/src/ffi/src/grid_overlay.dart';
+import 'package:thermion_dart/src/filament/src/implementation/background_image.dart';
+import '../../../../filament/src/implementation/ffi_asset.dart';
+import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
+import '../../../../filament/src/implementation/ffi_scene.dart';
+import '../../../../filament/src/implementation/grid_overlay.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:vector_math/vector_math_64.dart' as v64;
 import 'package:logging/logging.dart';
 
-import 'callbacks.dart';
-import 'ffi_camera.dart';
-import 'ffi_view.dart';
+import '../../../../filament/src/implementation/ffi_camera.dart';
+import '../../../../filament/src/implementation/ffi_view.dart';
 
 const FILAMENT_ASSET_ERROR = 0;
 
@@ -50,6 +45,7 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   ///
   Future setViewport(int width, int height) async {
+    print("Setting viewport to ${width}x${height}");
     await view.setViewport(width.toInt(), height.toInt());
 
     for (final camera in _cameras) {
@@ -121,8 +117,15 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future render() async {
-    await withVoidCallback(
-        (cb) => RenderTicker_renderRenderThread(app.renderTicker, 0, cb));
+    await withVoidCallback((cb) =>
+        RenderTicker_renderRenderThread(app.renderTicker, 0.toBigInt, cb));
+    if (FILAMENT_SINGLE_THREADED) {
+      await withVoidCallback(
+          (cb) => Engine_executeRenderThread(app.engine, cb));
+    } else {
+      await withVoidCallback(
+          (cb) => Engine_flushAndWaitRenderThread(app.engine, cb));
+    }
   }
 
   double _msPerFrame = 1000.0 / 60.0;
@@ -248,11 +251,21 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future loadIbl(String lightingPath, {double intensity = 30000}) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
     var data = await loadAssetFromUri(lightingPath);
+
     indirectLight = await withPointerCallback<TIndirectLight>((cb) {
       Engine_buildIndirectLightRenderThread(
           app.engine, data.address, data.length, intensity, cb, nullptr);
     });
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      data.free();
+    }
+    data.free();
     Scene_setIndirectLight(scene.scene, indirectLight!);
   }
 
@@ -264,7 +277,18 @@ class ThermionViewerFFI extends ThermionViewer {
     if (indirectLight == null) {
       throw Exception("No IBL loaded");
     }
+
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      //stackPtr = stackSave();
+    }
+
     IndirectLight_setRotation(indirectLight!, rotationMatrix.storage.address);
+
+    if (FILAMENT_WASM) {
+      //stackRestore(stackPtr);
+      rotationMatrix.storage.free();
+    }
   }
 
   ///
@@ -303,8 +327,8 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future<ThermionEntity> addDirectLight(DirectLight directLight) async {
-    var entity = LightManager_createLight(app.engine, app.lightManager,
-        TLightType.values[directLight.type.index]);
+    var entity = LightManager_createLight(
+        app.engine, app.lightManager, directLight.type.index);
     if (entity == FILAMENT_ASSET_ERROR) {
       throw Exception("Failed to add light to scene");
     }
@@ -446,8 +470,6 @@ class ThermionViewerFFI extends ThermionViewer {
   @override
   Future setPostProcessing(bool enabled) async {
     View_setPostProcessing(view.view, enabled);
-    await withVoidCallback(
-        (cb) => Engine_flushAndWaitRenderThead(app.engine, cb));
   }
 
   ///
@@ -478,10 +500,9 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future setAntiAliasing(bool msaa, bool fxaa, bool taa) async {
-    if (Platform.isWindows && msaa) {
+    if (!FILAMENT_SINGLE_THREADED && IS_WINDOWS && msaa) {
       throw Exception("MSAA is not currently supported on Windows");
     }
-
     View_setAntiAliasing(view.view, msaa, fxaa, taa);
   }
 

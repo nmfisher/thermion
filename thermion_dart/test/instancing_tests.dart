@@ -2,8 +2,8 @@
 import 'dart:math';
 
 import 'package:test/test.dart';
-import 'package:thermion_dart/src/filament/src/asset.dart';
-import 'package:thermion_dart/src/filament/src/filament_app.dart';
+import 'package:thermion_dart/src/filament/src/interface/asset.dart';
+import 'package:thermion_dart/src/filament/src/interface/filament_app.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'helpers.dart';
 

@@ -113,6 +113,7 @@ class _ViewerWidgetState extends State<ViewerWidget> {
   }
 
   void didUpdateWidget(ViewerWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
     if (oldWidget.manipulatorType != widget.manipulatorType) {
       _setViewportWidget();
       setState(() {});

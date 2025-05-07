@@ -9,6 +9,12 @@
 
 #include "RenderTicker.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/threading.h>
+#include <emscripten/proxying.h>
+#include <emscripten/eventloop.h>
+#endif
+
 namespace thermion {
 
 /**
@@ -34,7 +40,7 @@ public:
      * 
      * @param callback Callback function to be called after rendering completes
      */
-    void requestFrame(void (*callback)());
+    void requestFrame();
 
     /**
      * @brief Sets the render ticker used.
@@ -52,15 +58,27 @@ public:
     template <class Rt>
     auto add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt>;
 
-private:
     /**
      * @brief Main iteration of the render loop.
      */
     void iter();
 
-    void (*_requestFrameRenderCallback)() = nullptr;
+    /**
+     * 
+     */
     bool _stop = false;
-    std::mutex _mutex;
+
+    
+    #ifdef __EMSCRIPTEN__
+    emscripten::ProxyingQueue queue;
+    pthread_t outer;
+    #endif
+
+    bool mRendered = false;
+
+private:
+
+    bool mRender = false;
     std::mutex _taskMutex;
     std::condition_variable _cv;
     std::deque<std::function<void()>> _tasks;
@@ -68,19 +86,30 @@ private:
     int _frameCount = 0;
     float _accumulatedTime = 0.0f;
     float _fps = 0.0f;
+    
+#ifdef __EMSCRIPTEN__
+    pthread_t t;
+#else
     std::thread* t = nullptr;
+#endif
     RenderTicker* mRenderTicker = nullptr;
 };
 
 // Template implementation
 template <class Rt>
 auto RenderThread::add_task(std::packaged_task<Rt()>& pt) -> std::future<Rt> {
+    
+    
     std::unique_lock<std::mutex> lock(_taskMutex);
+    
     auto ret = pt.get_future();
     _tasks.push_back([pt = std::make_shared<std::packaged_task<Rt()>>(
                          std::move(pt))]
                     { (*pt)(); });
+    
     _cv.notify_one();
+    
+    
     return ret;
 }
 
