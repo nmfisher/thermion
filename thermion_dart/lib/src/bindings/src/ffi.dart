@@ -5,7 +5,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:thermion_dart/thermion_dart.dart';
 export 'package:ffi/ffi.dart';
-export 'dart:ffi';
+export 'dart:ffi' hide Size;
 
 const FILAMENT_SINGLE_THREADED = false;
 const FILAMENT_WASM = false;
