@@ -3,11 +3,9 @@ import 'dart:js_interop';
 import 'dart:math';
 import 'package:web/web.dart';
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/bindings/bindings.dart';
-import 'package:thermion_dart/thermion_dart.dart';
+import 'package:thermion_dart/thermion_dart.dart' hide NativeLibrary;
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/resource_loader.dart';
-import 'package:thermion_dart/src/utils/src/matrix.dart';
 import 'web_input_handler.dart';
 import 'package:thermion_dart/src/bindings/src/thermion_dart_js_interop.g.dart';
 
@@ -28,7 +26,7 @@ void main(List<String> arguments) async {
   }
 
   final config =
-      FFIFilamentConfig(sharedContext: nullptr, backend: Backend.OPENGL);
+      FFIFilamentConfig(sharedContext: nullptr.cast(), backend: Backend.OPENGL);
 
   await FFIFilamentApp.create(config: config);
 
