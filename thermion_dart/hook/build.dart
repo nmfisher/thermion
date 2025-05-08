@@ -95,6 +95,7 @@ void main(List<String> args) async {
       "utils",
       "filabridge",
       "gltfio_core",
+      if(targetOS != OS.android)
       "gltfio",
       "filament-iblprefilter",
       "image",
