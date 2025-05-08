@@ -1,7 +1,5 @@
 package dev.thermion.android
 
-
-import HotReloadPathHelper
 import android.app.Activity
 import android.content.res.AssetManager
 import android.graphics.*
@@ -12,7 +10,6 @@ import android.view.Surface
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Lifecycle
-import com.sun.jna.*
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterJNI
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -26,34 +23,16 @@ import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import java.io.File
 import java.util.*
 
-
-class LoadFilamentResourceFromOwnerImpl(plugin:ThermionFlutterPlugin) : LoadFilamentResourceFromOwner {
-  var plugin = plugin
-  override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
-    return plugin.loadResourceFromOwner(path, owner)
-  }
-} 
-
-class FreeFilamentResourceFromOwnerImpl(plugin:ThermionFlutterPlugin) : FreeFilamentResourceFromOwner {
-  var plugin = plugin
-  override fun freeResourceFromOwner(rb: ResourceBuffer, owner: Pointer?) {
-    plugin.freeResourceFromOwner(rb, owner)
-  }
-} 
-
-class RenderCallbackImpl(plugin:ThermionFlutterPlugin) : RenderCallback {
-  var plugin = plugin
-  override fun renderCallback(owner:Pointer?) {
-    plugin.renderCallback();
-
-    if(!plugin._surface!!.isValid) {
-      Log.e("thermion_flutter", "Error: surface is no longer valid")
+class NativeWindowHelper {
+    companion object {
+      init {
+        System.loadLibrary("thermion_flutter_android")
+      }
+        external fun getNativeWindowFromSurface(surface: Surface): Long
     }
-  }
 }
 
-/** ThermionFlutterPlugin */
-class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LoadFilamentResourceFromOwner, FreeFilamentResourceFromOwner {
+class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
   companion object {
       const val CHANNEL_NAME = "dev.thermion.flutter/event"
@@ -66,8 +45,6 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
 
   private var lifecycle: Lifecycle? = null
 
-  private lateinit var _lib : FilamentInterop
-
   private data class TextureEntry(
       val surfaceTextureEntry: SurfaceTextureEntry,
       val surfaceTexture: SurfaceTexture,
@@ -79,17 +56,12 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
   var _surface: Surface? = null
   private val textures: MutableMap<Long, TextureEntry> = mutableMapOf()
 
-      
   private lateinit var activity:Activity
-
-  private var loadResourceWrapper:LoadFilamentResourceFromOwnerImpl = LoadFilamentResourceFromOwnerImpl(this)
-  private var freeResourceWrapper:FreeFilamentResourceFromOwnerImpl = FreeFilamentResourceFromOwnerImpl(this)
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     this.flutterPluginBinding = flutterPluginBinding
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
     channel.setMethodCallHandler(this)
-    _lib = Native.loadLibrary("thermion_flutter_android", FilamentInterop::class.java, Collections.singletonMap(Library.OPTION_ALLOW_OBJECTS, true))
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -97,68 +69,6 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
     activity = binding.activity
     activity.window.setFormat(PixelFormat.RGBA_8888)
   }
-
-  val _resources:MutableMap<ResourceBuffer,Memory> = mutableMapOf();
-  var _lastId = 1
-  
-  override fun loadResourceFromOwner(path: String?, owner: Pointer?): ResourceBuffer {
-      Log.i("thermion_flutter", "Loading resource from path $path")
-      var data:ByteArray? = null
-      if(path!!.startsWith("file://")) {
-          data = File(path!!.substring(6)).readBytes()
-      } else {
-          var assetPath = path
-          if(assetPath.startsWith("asset://")) {
-            assetPath = assetPath!!.substring(8)
-          }
-          val loader = FlutterInjector.instance().flutterLoader()
-          val key = loader.getLookupKeyForAsset(assetPath)
-          val hotReloadPath = HotReloadPathHelper.getAssetPath(key, activity.getPackageName())
-          if (hotReloadPath != null) {
-              data = File(hotReloadPath).readBytes()
-          } else {
-              Log.i("thermion_flutter", "Loading resource from main asset bundle at ${assetPath}")
-
-              val assetManager: AssetManager = activity.assets
-              try {
-                  data = assetManager.open(key).readBytes()
-                  Log.i("thermion_flutter", "Loaded ${data.size} bytes")
-              } catch (e:Exception) {
-                  Log.e("thermion_flutter", "Failed to open asset at ${assetPath}", null)
-              }
-          }
-      }
-      val rb = ResourceBuffer();
-      try {
-          if (data != null) {
-              val dataPtr = Memory(data.size.toLong())
-              dataPtr.write(0, data, 0, data.size)
-              rb.data = dataPtr
-              rb.size = data.size
-              rb.id = _lastId
-              _resources[rb] = dataPtr;
-              _lastId++
-          } else {
-              rb.id = 0
-              rb.size = 0
-              rb.data = Pointer(0)
-          }
-      } catch(e:Exception) {
-          Log.e("thermion_flutter", "Error setting resource buffer : $e", null);
-      }
-      rb.write();
-      return rb;
-
-  }
-
-  override fun freeResourceFromOwner(rb: ResourceBuffer, owner: Pointer?) {
-    _resources.remove(rb)
-  }
-
-  fun renderCallback() {
-    // noop, log or check surface.valid() is you want 
-  }
-
 
   @RequiresApi(Build.VERSION_CODES.M)
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -184,8 +94,10 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
                 } else {
                     val flutterTextureId = surfaceTextureEntry.id()   
                     textures[flutterTextureId] = TextureEntry(surfaceTextureEntry, surfaceTexture, surface)
-                    val nativeWindow = _lib.get_native_window_from_surface(surface as Object, JNIEnv.CURRENT)
-                    result.success(listOf(flutterTextureId, flutterTextureId, Pointer.nativeValue(nativeWindow)))
+                    //val surface = surfaceView.holder.surface
+                    val nativeWindowPtr = NativeWindowHelper.getNativeWindowFromSurface(surface)
+                    //val nativeWindow = _lib.get_native_window_from_surface(surface as Object, JNIEnv.CURRENT)
+                    result.success(listOf(flutterTextureId, flutterTextureId, nativeWindowPtr))
                 }
             }
             "destroyTexture" -> {
@@ -214,10 +126,6 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, Lo
         }
         "getSharedContext" -> { 
           result.success(null)
-        }
-        "getRenderCallback" -> {
-          val renderCallbackFnPointer = _lib.make_render_callback_fn_pointer(RenderCallbackImpl(this))
-          result.success(listOf(Pointer.nativeValue(renderCallbackFnPointer), 0))
         }
         else -> {
           result.notImplemented()
