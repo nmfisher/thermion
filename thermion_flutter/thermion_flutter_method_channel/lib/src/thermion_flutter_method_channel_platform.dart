@@ -168,8 +168,8 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
         await FilamentApp.instance!.unregister(_swapChain!, view);
         await FilamentApp.instance!.destroySwapChain(_swapChain!);
       }
-      _swapChain =
-          await FilamentApp.instance!.createSwapChain(descriptor.windowHandle!);
+      _swapChain = await FilamentApp.instance!
+          .createSwapChain(Pointer<Void>.fromAddress(descriptor.windowHandle!));
       await FilamentApp.instance!.register(_swapChain!, view);
     } else {
       final color = await FilamentApp.instance!
@@ -204,8 +204,10 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
 
   @override
   Future markTextureFrameAvailable(PlatformTextureDescriptor texture) async {
-    await channel.invokeMethod(
-        "markTextureFrameAvailable", texture.flutterTextureId);
+    if (!Platform.isAndroid) {
+      await channel.invokeMethod(
+          "markTextureFrameAvailable", texture.flutterTextureId);
+    }
   }
 
   @override
