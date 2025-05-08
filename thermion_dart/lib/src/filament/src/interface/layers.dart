@@ -1,5 +1,5 @@
-const double kNear = 0.05;
-const double kFar = 1000.0;
+const double kNear = 0.1;
+const double kFar = 100.0;
 const double kFocalLength = 28.0;
 
 enum VisibilityLayers {
