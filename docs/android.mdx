@@ -12,15 +12,3 @@ Thermion requires Android SDK version 22, so change your `app/android/build.grad
     }
 ```
 
-### Shrink/Minify Resources
-
-In release mode, you must add the following to your `app/build.gradle`:
-
-```
-    buildTypes {
-        release {
-            shrinkResources false
-            minifyEnabled false
-        }
-    }
-```
