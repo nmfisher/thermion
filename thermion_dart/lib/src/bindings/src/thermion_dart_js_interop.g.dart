@@ -1145,9 +1145,6 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     Pointer<TCamera> tCamera,
     Pointer<self.NativeFunction<void Function()>> callback,
   );
-  external FilamentRenderCallback _make_render_callback_fn_pointer(
-    FilamentRenderCallback arg0,
-  );
   external void _SceneAsset_destroyRenderThread(
     Pointer<TSceneAsset> tSceneAsset,
     Pointer<self.NativeFunction<void Function()>> onComplete,
@@ -3568,14 +3565,6 @@ void View_setCameraRenderThread(
   final result =
       _lib._View_setCameraRenderThread(tView, tCamera, callback.cast());
   return result;
-}
-
-DartFilamentRenderCallback make_render_callback_fn_pointer(
-  DartFilamentRenderCallback arg0,
-) {
-  final result = _lib._make_render_callback_fn_pointer(
-      arg0 as Pointer<self.NativeFunction<FilamentRenderCallbackFunction>>);
-  return DartFilamentRenderCallback(result);
 }
 
 void SceneAsset_destroyRenderThread(

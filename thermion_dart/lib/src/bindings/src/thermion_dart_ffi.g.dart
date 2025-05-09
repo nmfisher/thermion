@@ -1999,12 +1999,6 @@ external void View_setCameraRenderThread(
   VoidCallback onComplete,
 );
 
-@ffi.Native<FilamentRenderCallback Function(FilamentRenderCallback)>(
-    isLeaf: true)
-external FilamentRenderCallback make_render_callback_fn_pointer(
-  FilamentRenderCallback arg0,
-);
-
 @ffi.Native<ffi.Void Function(ffi.Pointer<TSceneAsset>, VoidCallback)>(
     isLeaf: true)
 external void SceneAsset_destroyRenderThread(
