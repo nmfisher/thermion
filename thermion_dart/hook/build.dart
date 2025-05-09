@@ -88,6 +88,7 @@ void main(List<String> args) async {
       "backend",
       "filameshio",
       "viewer",
+      if(targetOS != OS.iOS)
       "filamat",
       "meshoptimizer",
       "mikktspace",
@@ -95,7 +96,7 @@ void main(List<String> args) async {
       "utils",
       "filabridge",
       "gltfio_core",
-      if(targetOS != OS.android)
+      if(targetOS != OS.android && targetOS != OS.iOS)
       "gltfio",
       "filament-iblprefilter",
       "image",
