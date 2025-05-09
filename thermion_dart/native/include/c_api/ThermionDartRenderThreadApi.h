@@ -91,8 +91,6 @@ namespace thermion
         void View_setBloomRenderThread(TView *tView, bool enabled, double strength, VoidCallback onComplete);
         void View_setCameraRenderThread(TView *tView, TCamera *tCamera, VoidCallback onComplete);
 
-        FilamentRenderCallback make_render_callback_fn_pointer(FilamentRenderCallback);
-
         void SceneAsset_destroyRenderThread(TSceneAsset *tSceneAsset, VoidCallback onComplete);
         void SceneAsset_createFromFilamentAssetRenderThread(
             TEngine *tEngine,
