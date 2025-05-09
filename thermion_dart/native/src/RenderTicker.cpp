@@ -29,11 +29,10 @@
 #include <filament/TransformManager.h>
 #include <filament/VertexBuffer.h>
 
-#include "Log.hpp"
-
-#include "RenderTicker.hpp"
-
 #include <chrono> 
+
+#include "Log.hpp"
+#include "RenderTicker.hpp"
 
 namespace thermion
 {
@@ -63,10 +62,10 @@ namespace thermion
     TRACE("Set %d views as renderable", numViews);
   }
 
-  void RenderTicker::render(uint64_t frameTimeInNanos)
+  bool RenderTicker::render(uint64_t frameTimeInNanos)
   {
     auto startTime = std::chrono::high_resolution_clock::now();
-
+    bool rendered = false;
     std::lock_guard lock(mMutex);
 
     for (auto animationManager : mAnimationManagers) {
@@ -88,14 +87,20 @@ namespace thermion
         bool beginFrame = mRenderer->beginFrame(swapChain, frameTimeInNanos);
         if (beginFrame)
         {
+          rendered = true;
+          auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
+          TRACE("Beginning frame (%.3f ms since last endFrame())", durationNs);
           for (auto view : views)
           {
             mRenderer->render(view);
           }
+          mLastRender = std::chrono::high_resolution_clock::now();
         } else {
-          Log("Skipping frame");
+          auto durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - mLastRender).count() / 1e6f;
+          TRACE("Skipping frame (%.3f ms since last endFrame())", durationNs);
         }
         mRenderer->endFrame();
+        
     #ifdef ENABLE_TRACING
         numRendered++;
       } else {
@@ -114,6 +119,7 @@ namespace thermion
     float durationMs = durationNs / 1e6f;
 
     TRACE("Total render() time: %.3f ms", durationMs);
+    return rendered;
   }
 
   void RenderTicker::addAnimationManager(AnimationManager* animationManager) {
