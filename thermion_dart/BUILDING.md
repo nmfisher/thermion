@@ -15,6 +15,25 @@ This is only for developers extending the Thermion package itself; if you are si
 
 ```
 ./build.sh -l -i -f -p ios release
+cd out/cmake-ios-release-arm64/third_party
+mkdir -p libpng
+cd libpng
+cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Release  -DZLIB_INCLUDE_DIR=../../../../third_party/libz ../../../../third_party/libpng 
+cd ..
+mkdir -p libz && cd libz
+cmake -G Ninja -DIOS=1 -DIPHONEOS_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_BUILD_TYPE=Release  ../../../../third_party/libz
+mkdir imageio
+cd imageio
+cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DWEBGL=1 \
+        -DWEBGL_PTHREADS=1 \
+        -DFILAMENT_SKIP_SAMPLES=1 \
+        -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
+        -DZ_HAVE_UNISTD_H=1 -DUSE_ZLIB=1 -DIMPORT_EXECUTABLES_DIR=out -DCMAKE_CXX_FLAGS="-I../../../libs/image/include -I../../../libs/utils/include -I../../../libs/math/include -I../../../third_party/tinyexr -I../../../third_party/libpng -I../../../third_party/basisu/encoder" \
+        ../../../libs/imageio
+ninja
+
 ./build.sh -l -i -f -p desktop debug 
 ```
 
