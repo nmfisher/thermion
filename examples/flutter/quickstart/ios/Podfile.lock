@@ -14,7 +14,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/thermion_flutter/ios"
 
 SPEC CHECKSUMS:
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   thermion_flutter: c965e09831858465a1a8df59ff97e40a4d002773
 
 PODFILE CHECKSUM: a57f30d18f102dd3ce366b1d62a55ecbef2158e5
