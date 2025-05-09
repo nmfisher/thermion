@@ -36,7 +36,7 @@ namespace thermion
         
         /// @brief 
         /// @param frameTimeInNanos 
-        void render(
+        bool render(
             uint64_t frameTimeInNanos
         );
         
@@ -61,6 +61,7 @@ namespace thermion
         filament::Renderer *mRenderer = nullptr;
         std::vector<AnimationManager*> mAnimationManagers;
         std::vector<std::pair<filament::SwapChain*, std::vector<filament::View*>>> mRenderable;
+        std::chrono::high_resolution_clock::time_point mLastRender;
     };
 
 }
