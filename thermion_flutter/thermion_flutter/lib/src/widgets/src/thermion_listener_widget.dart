@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:thermion_dart/thermion_dart.dart';
+import 'package:flutter/services.dart' hide KeyEvent;
+import 'package:thermion_dart/thermion_dart.dart' hide KeyEvent;
+import 'package:thermion_dart/thermion_dart.dart' as t;
 import 'package:thermion_flutter/src/widgets/src/pixel_ratio_aware.dart';
-import 'package:vector_math/vector_math_64.dart';
 
 extension OffsetExtension on Offset {
   Vector2 toVector2() {
@@ -15,17 +15,18 @@ extension OffsetExtension on Offset {
 }
 
 ///
-/// Captures swipe/pointer events and forwards to the provided [InputHandler].
+/// Forwards cross-platform touch/mouse events to an
+/// [InputHandler].
 ///
 class ThermionListenerWidget extends StatefulWidget {
-  ///
   /// The content to display below the gesture detector/listener widget.
-  /// This will usually be a ThermionWidget (so you can navigate by directly interacting with the viewport), but this is not necessary.
-  /// It is equally possible to render the viewport/gesture controls elsewhere in the widget hierarchy. The only requirement is that they share the same [FilamentViewer].
-  ///
+  /// This will usually be a ThermionWidget (so you can navigate by directly
+  /// interacting with the viewport), but this is not necessary. It is equally
+  /// possible to render the viewport/gesture controls elsewhere in the widget
+  /// hierarchy.
   final Widget? child;
 
-  ///
+  /// A focus node for input events.
   ///
   ///
   final FocusNode? focusNode;
@@ -35,6 +36,9 @@ class ThermionListenerWidget extends StatefulWidget {
   ///
   final InputHandler inputHandler;
 
+  ///
+  ///
+  ///
   const ThermionListenerWidget({
     Key? key,
     required this.inputHandler,
@@ -71,9 +75,9 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     }
 
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
-      widget.inputHandler.keyDown(key!);
+      widget.inputHandler.handle(t.KeyEvent(KeyEventType.down, key));
     } else if (event is KeyUpEvent) {
-      widget.inputHandler.keyUp(key!);
+      widget.inputHandler.handle(t.KeyEvent(KeyEventType.up, key));
       return true;
     }
     return false;
@@ -85,38 +89,64 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
   }
 
+  t.MouseButton? _mouseButtonFromEvent(PointerEvent event) {
+    t.MouseButton? button;
+
+    if (event.buttons & kMiddleMouseButton != 0) {
+      button = MouseButton.middle;
+    } else if (event.buttons & kPrimaryMouseButton != 0) {
+      button = MouseButton.left;
+    } else if (event.buttons & kSecondaryMouseButton != 0) {
+      button = MouseButton.right;
+    }
+    return button;
+  }
+
   Widget _desktop(double pixelRatio) {
     return Focus(
         focusNode: widget.focusNode,
         child: Listener(
           onPointerHover: (event) {
-            widget.inputHandler.onPointerHover(
+            widget.inputHandler.handle(MouseEvent(
+                MouseEventType.hover,
+                _mouseButtonFromEvent(event),
                 event.localPosition.toVector2() * pixelRatio,
-                event.delta.toVector2() * pixelRatio);
+                event.delta.toVector2() * pixelRatio));
           },
           onPointerSignal: (PointerSignalEvent pointerSignal) {
             if (pointerSignal is PointerScrollEvent) {
-              widget.inputHandler.onPointerScroll(
-                  pointerSignal.localPosition.toVector2() * pixelRatio,
-                  pointerSignal.scrollDelta.dy * pixelRatio);
+              widget.inputHandler.handle(ScrollEvent(
+                  localPosition:
+                      pointerSignal.localPosition.toVector2() * pixelRatio,
+                  delta: pointerSignal.scrollDelta.dy * pixelRatio));
             }
           },
           onPointerPanZoomStart: (pzs) {
             throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
           },
-          onPointerDown: (d) {
+          onPointerDown: (event) {
             widget.focusNode?.requestFocus();
-            widget.inputHandler.onPointerDown(
-                d.localPosition.toVector2() * pixelRatio,
-                d.buttons & kMiddleMouseButton != 0);
+
+            widget.inputHandler.handle(MouseEvent(
+                MouseEventType.buttonDown,
+                _mouseButtonFromEvent(event),
+                event.localPosition.toVector2() * pixelRatio,
+                event.delta.toVector2() * pixelRatio));
           },
-          onPointerMove: (PointerMoveEvent d) => widget.inputHandler
-              .onPointerMove(
-                  d.localPosition.toVector2() * pixelRatio,
-                  d.delta.toVector2() * pixelRatio,
-                  d.buttons & kMiddleMouseButton != 0),
-          onPointerUp: (d) => widget.inputHandler
-              .onPointerUp(d.buttons & kMiddleMouseButton != 0),
+          onPointerMove: (PointerMoveEvent event) {
+            widget.inputHandler.handle(MouseEvent(
+                MouseEventType.move,
+                _mouseButtonFromEvent(event),
+                event.localPosition.toVector2() * pixelRatio,
+                event.delta.toVector2() * pixelRatio));
+          },
+          onPointerUp: (event) {
+            widget.inputHandler.handle(MouseEvent(
+                MouseEventType.buttonUp,
+                _mouseButtonFromEvent(event),
+                event.localPosition.toVector2() * pixelRatio,
+                event.delta.toVector2() * pixelRatio));
+          },
           child: widget.child,
         ));
   }
@@ -131,16 +161,8 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
   @override
   Widget build(BuildContext context) {
     return PixelRatioAware(builder: (ctx, pixelRatio) {
-      return FutureBuilder(
-          initialData: 1.0,
-          future: widget.inputHandler.initialized,
-          builder: (_, initialized) {
-            if (initialized.data != true) {
-              return Container();
-            }
-            return SizedBox.expand(
-                child: isDesktop ? _desktop(pixelRatio) : _mobile(pixelRatio));
-          });
+      return SizedBox.expand(
+          child: isDesktop ? _desktop(pixelRatio) : _mobile(pixelRatio));
     });
   }
 }
@@ -162,43 +184,52 @@ class _MobileListenerWidget extends StatefulWidget {
 }
 
 class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
-  bool isPan = true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTapDown: (details) => widget.inputHandler.onPointerDown(
-            details.localPosition.toVector2() * widget.pixelRatio, false),
+        // onPanDown: (event) {
+        //   print("PAN DOWN");
+        // },
+        // onTapMove: (event) {
+        //   print("TAP MOVE");
+        // },
+        onTapDown: (details) {
+          widget.inputHandler.handle(TouchEvent(TouchEventType.tap,
+              details.localPosition.toVector2() * widget.pixelRatio, null));
+        },
         onDoubleTap: () {
-          widget.inputHandler.setActionForType(InputType.SCALE1,
-              isPan ? InputAction.TRANSLATE : InputAction.ROTATE);
+          widget.inputHandler
+              .handle(TouchEvent(TouchEventType.doubleTap, null, null));
         },
-        onScaleStart: (details) async {
-          await widget.inputHandler.onScaleStart(
-              details.localFocalPoint.toVector2() * widget.pixelRatio,
-              details.pointerCount,
-              details.sourceTimeStamp);
+        onScaleStart: (event) async {
+          widget.inputHandler.handle(ScaleStartEvent(
+              numPointers: event.pointerCount,
+              localFocalPoint: (
+                event.focalPoint.dx * widget.pixelRatio,
+                event.focalPoint.dy * widget.pixelRatio
+              )));
         },
-        onScaleUpdate: (ScaleUpdateDetails details) async {
-          await widget.inputHandler.onScaleUpdate(
-              details.localFocalPoint.toVector2() * widget.pixelRatio,
-              details.focalPointDelta.toVector2() * widget.pixelRatio,
-              details.horizontalScale,
-              details.verticalScale,
-              details.scale,
-              details.pointerCount,
-              details.rotation,
-              details.sourceTimeStamp);
+        onScaleUpdate: (ScaleUpdateDetails event) async {
+          widget.inputHandler.handle(ScaleUpdateEvent(
+            numPointers: event.pointerCount,
+            localFocalPoint: (
+              event.focalPoint.dx * widget.pixelRatio,
+              event.focalPoint.dy * widget.pixelRatio
+            ),
+            localFocalPointDelta: (
+              event.focalPointDelta.dx * widget.pixelRatio,
+              event.focalPointDelta.dy * widget.pixelRatio
+            ),
+            rotation: event.rotation,
+            horizontalScale: event.horizontalScale,
+            verticalScale: event.verticalScale,
+            scale: event.scale,
+          ));
         },
         onScaleEnd: (details) async {
-          await widget.inputHandler
-              .onScaleEnd(details.pointerCount, details.scaleVelocity);
+          widget.inputHandler
+              .handle(ScaleEndEvent(numPointers: details.pointerCount));
         },
         child: widget.child);
   }
