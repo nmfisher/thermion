@@ -60,10 +60,6 @@ EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_destroy(TEngine *tEngine, TGltfReso
 EMSCRIPTEN_KEEPALIVE void GltfResourceLoader_addResourceData(TGltfResourceLoader *tGltfResourceLoader, const char *uri, uint8_t *data, size_t length) {
     TRACE("Adding data (length %d) for glTF resource URI %s", length, uri);
     auto *gltfResourceLoader = reinterpret_cast<gltfio::ResourceLoader *>(tGltfResourceLoader);
-    for(int i = 0; i < 8; i++) {
-        std::cout << static_cast<uint32_t>(data[i]) << " "; 
-    }
-    std::cout << std::endl;
     gltfResourceLoader->addResourceData(uri, { data, length});
 }
 
