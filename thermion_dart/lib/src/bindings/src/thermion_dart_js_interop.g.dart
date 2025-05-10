@@ -1508,7 +1508,7 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     EntityId entityId,
     Pointer<double4x4> transform_structPtr,
   );
-  external void _TransformManager_transformToUnitCube(
+  external bool _TransformManager_transformToUnitCube(
     Pointer<TTransformManager> tTransformManager,
     EntityId entityId,
     Pointer<Aabb3> boundingBox_structPtr,
@@ -4287,7 +4287,7 @@ void TransformManager_setTransform(
   return result;
 }
 
-void TransformManager_transformToUnitCube(
+bool TransformManager_transformToUnitCube(
   self.Pointer<TTransformManager> tTransformManager,
   DartEntityId entityId,
   Aabb3 boundingBox,
