@@ -469,8 +469,10 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future transformToUnitCube() async {
-    TransformManager_transformToUnitCube(
-        app.transformManager, entity, SceneAsset_getBoundingBox(asset));
+    if (!TransformManager_transformToUnitCube(
+        app.transformManager, entity, SceneAsset_getBoundingBox(asset))) {
+      throw Exception("Failed to set transform. See logs for details");
+    }
   }
 
   ///

@@ -1125,9 +1125,9 @@ external void TransformManager_setTransform(
   double4x4 transform,
 );
 
-@ffi.Native<ffi.Void Function(ffi.Pointer<TTransformManager>, EntityId, Aabb3)>(
+@ffi.Native<ffi.Bool Function(ffi.Pointer<TTransformManager>, EntityId, Aabb3)>(
     isLeaf: true)
-external void TransformManager_transformToUnitCube(
+external bool TransformManager_transformToUnitCube(
   ffi.Pointer<TTransformManager> tTransformManager,
   int entityId,
   Aabb3 boundingBox,
