@@ -28,10 +28,16 @@ class DelegateInputHandler implements InputHandler {
   final List<InputHandlerDelegate> delegates;
 
   final bool batch;
+  
+  bool _ready = false;
+  bool _processing = false;
 
   DelegateInputHandler(
       {required this.viewer, required this.delegates, this.batch = true}) {
     FilamentApp.instance!.registerRequestFrameHook(process);
+    viewer.initialized.then((_) {
+      this._ready = true;
+    });
   }
 
   factory DelegateInputHandler.fixedOrbit(ThermionViewer viewer,
@@ -54,8 +60,6 @@ class DelegateInputHandler implements InputHandler {
       DelegateInputHandler(viewer: viewer, delegates: [
         FreeFlightInputHandlerDelegateV2(viewer.view, sensitivity: sensitivity)
       ]);
-
-  bool _processing = false;
 
   Future<void> process() async {
     _processing = true;
@@ -93,7 +97,8 @@ class DelegateInputHandler implements InputHandler {
 
   @override
   Future handle(InputEvent event) async {
-    if (_processing) {
+
+    if (!_ready || _processing) {
       return;
     }
 
