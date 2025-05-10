@@ -62,14 +62,15 @@ extern "C"
         transformManager->setTransform(transformInstance, convert_double4x4_to_mat4(transform));
     }
 
-    EMSCRIPTEN_KEEPALIVE void TransformManager_transformToUnitCube(TTransformManager *tTransformManager, EntityId entityId, Aabb3 boundingBox) {
+    EMSCRIPTEN_KEEPALIVE bool TransformManager_transformToUnitCube(TTransformManager *tTransformManager, EntityId entityId, Aabb3 boundingBox) {
         
         auto *transformManager = reinterpret_cast<filament::TransformManager*>(tTransformManager);
         const auto &entity = utils::Entity::import(entityId);
         auto transformInstance = transformManager->getInstance(entity);
         if (!transformInstance || !transformInstance.isValid())
         {
-            return;
+            Log("Failed to find valid transform for instance");
+            return false;
         }
 
         auto center = filament::math::float3 { boundingBox.centerX, boundingBox.centerY, boundingBox.centerZ };
@@ -78,6 +79,7 @@ extern "C"
         auto scaleFactor = 2.0f / maxExtent;
         auto transform = math::mat4f::scaling(scaleFactor) * math::mat4f::translation(-center);
         transformManager->setTransform(transformInstance, transform);
+        return true;
     }
 
     EMSCRIPTEN_KEEPALIVE void TransformManager_setParent(TTransformManager *tTransformManager, EntityId childId, EntityId parentId, bool preserveScaling)
