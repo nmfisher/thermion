@@ -202,7 +202,7 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
           widget.inputHandler
               .handle(TouchEvent(TouchEventType.doubleTap, null, null));
         },
-        onScaleStart: (event) async {
+        onScaleStart: (ScaleStartDetails event) async {
           widget.inputHandler.handle(ScaleStartEvent(
               numPointers: event.pointerCount,
               localFocalPoint: (
