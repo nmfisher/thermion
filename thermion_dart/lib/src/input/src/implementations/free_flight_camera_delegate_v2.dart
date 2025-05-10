@@ -12,8 +12,9 @@ class FreeFlightInputHandlerDelegateV2 implements InputHandlerDelegate {
       {this.sensitivity = const InputSensitivityOptions()});
 
   double? _scaleDelta;
+  
   @override
-  Future<void> handle(Set<InputEvent> events) async {
+  Future<void> handle(List<InputEvent> events) async {
     Vector2 rotation = Vector2.zero();
     Vector3 translation = Vector3.zero();
 
@@ -102,8 +103,6 @@ class FreeFlightInputHandlerDelegateV2 implements InputHandlerDelegate {
     if (rotation.length2 + translation.length2 == 0.0) {
       return;
     }
-
-
 
     var updated = current *
         Matrix4.compose(

@@ -89,7 +89,7 @@ class OrbitInputHandlerDelegate implements InputHandlerDelegate {
   }
 
   @override
-  Future<void> handle(Set<InputEvent> events) async {
+  Future<void> handle(List<InputEvent> events) async {
     final activeCamera = await view.getCamera();
     if (!_isInitialized) {
       await _initializeFromCamera(activeCamera);
