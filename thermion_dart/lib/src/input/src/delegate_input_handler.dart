@@ -9,7 +9,7 @@ import 'implementations/free_flight_camera_delegate.dart';
 typedef PointerEventDetails = (Vector2 localPosition, Vector2 delta);
 
 abstract class InputHandlerDelegate {
-  Future handle(Set<InputEvent> events);
+  Future handle(List<InputEvent> events);
 }
 
 ///
@@ -24,10 +24,13 @@ class DelegateInputHandler implements InputHandler {
   Stream<List<InputEvent>> get events => _gesturesController.stream;
 
   final _gesturesController = StreamController<List<InputEvent>>.broadcast();
-  final _events = <InputEvent>{};
+  final _events = <InputEvent>[];
   final List<InputHandlerDelegate> delegates;
 
-  DelegateInputHandler({required this.viewer, required this.delegates}) {
+  final bool batch;
+
+  DelegateInputHandler(
+      {required this.viewer, required this.delegates, this.batch = true}) {
     FilamentApp.instance!.registerRequestFrameHook(process);
   }
 
@@ -69,7 +72,7 @@ class DelegateInputHandler implements InputHandler {
           case KeyEventType.down:
             keyDown[event.key] = event;
         }
-      } 
+      }
     }
     for (final key in keyUp.keys) {
       _events.remove(keyDown[key]);
@@ -95,5 +98,8 @@ class DelegateInputHandler implements InputHandler {
     }
 
     _events.add(event);
+    if (!this.batch) {
+      await process();
+    }
   }
 }
