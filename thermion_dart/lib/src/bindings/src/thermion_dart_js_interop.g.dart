@@ -4273,17 +4273,8 @@ void TransformManager_setTransform(
   DartEntityId entityId,
   double4x4 transform,
 ) {
-  final transform_structPtr = double4x4.stackAlloc();
-  _lib.writeArrayToMemory(
-      transform.col1.asUint8List().toJS, transform_structPtr + 0);
-  _lib.writeArrayToMemory(
-      transform.col2.asUint8List().toJS, transform_structPtr + 32);
-  _lib.writeArrayToMemory(
-      transform.col3.asUint8List().toJS, transform_structPtr + 64);
-  _lib.writeArrayToMemory(
-      transform.col4.asUint8List().toJS, transform_structPtr + 96);
   final result = _lib._TransformManager_setTransform(
-      tTransformManager, entityId, transform_structPtr);
+      tTransformManager, entityId, transform._address.cast());
   return result;
 }
 
