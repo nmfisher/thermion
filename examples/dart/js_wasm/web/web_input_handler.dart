@@ -4,7 +4,7 @@ import 'package:web/web.dart' as web;
 import 'package:thermion_dart/thermion_dart.dart';
 
 class WebInputHandler {
-  final DelegateInputHandler inputHandler;
+  final InputHandler inputHandler;
   final web.HTMLCanvasElement canvas;
   late double pixelRatio;
 
@@ -34,75 +34,76 @@ class WebInputHandler {
 
   void _onMouseDown(web.MouseEvent event) {
     final localPos = _getLocalPositionFromEvent(event);
-    final isMiddle = event.button == 1;
-    inputHandler.onPointerDown(localPos, isMiddle);
+    final button = _getMouseButtonFromEvent(event);
+    
+    inputHandler.handle(MouseEvent(
+      MouseEventType.buttonDown,
+      button,
+      localPos,
+      Vector2.zero(),
+    ));
+    
     event.preventDefault();
   }
 
   void _onMouseMove(web.MouseEvent event) {
     final localPos = _getLocalPositionFromEvent(event);
-    
     final delta = Vector2(event.movementX ?? 0, event.movementY ?? 0);
-    final isMiddle = event.buttons & 4 != 0;
-    inputHandler.onPointerMove(localPos, delta, isMiddle);
+    final button = _getMouseButtonFromEvent(event);
+    
+    inputHandler.handle(MouseEvent(
+      MouseEventType.move,
+      button,
+      localPos,
+      delta,
+    ));
+    
     event.preventDefault();
   }
 
   void _onMouseUp(web.MouseEvent event) {
-    final isMiddle = event.button == 1;
-    inputHandler.onPointerUp(isMiddle);
+    final localPos = _getLocalPositionFromEvent(event);
+    final button = _getMouseButtonFromEvent(event);
+    
+    inputHandler.handle(MouseEvent(
+      MouseEventType.buttonUp,
+      button,
+      localPos,
+      Vector2.zero(),
+    ));
+    
     event.preventDefault();
   }
 
   void _onMouseWheel(web.WheelEvent event) {
     final localPos = _getLocalPositionFromEvent(event);
     final delta = event.deltaY;
-    inputHandler.onPointerScroll(localPos, delta);
+    
+    inputHandler.handle(ScrollEvent(
+      localPosition: localPos,
+      delta: delta,
+    ));
+    
     event.preventDefault();
   }
 
   void _onKeyDown(web.KeyboardEvent event) {
-    PhysicalKey? key;
-    switch (event.code) {
-      case 'KeyW':
-        key = PhysicalKey.W;
-        break;
-      case 'KeyA':
-        key = PhysicalKey.A;
-        break;
-      case 'KeyS':
-        key = PhysicalKey.S;
-        break;
-      case 'KeyD':
-        key = PhysicalKey.D;
-        break;
+    PhysicalKey? key = _getPhysicalKeyFromEvent(event);
+    if (key != null) {
+      inputHandler.handle(KeyEvent(KeyEventType.down, key));
     }
-    if (key != null) inputHandler.keyDown(key);
     event.preventDefault();
   }
 
   void _onKeyUp(web.KeyboardEvent event) {
-    PhysicalKey? key;
-    switch (event.code) {
-      case 'KeyW':
-        key = PhysicalKey.W;
-        break;
-      case 'KeyA':
-        key = PhysicalKey.A;
-        break;
-      case 'KeyS':
-        key = PhysicalKey.S;
-        break;
-      case 'KeyD':
-        key = PhysicalKey.D;
-        break;
+    PhysicalKey? key = _getPhysicalKeyFromEvent(event);
+    if (key != null) {
+      inputHandler.handle(KeyEvent(KeyEventType.up, key));
     }
-    if (key != null) inputHandler.keyUp(key);
     event.preventDefault();
   }
 
   void _onTouchStart(web.TouchEvent event) {
-    
     for (var touch in event.changedTouches.toList()) {
       final pos = _getLocalPositionFromTouch(touch);
       _touchPositions[touch.identifier] = pos;
@@ -112,10 +113,21 @@ class WebInputHandler {
     if (touchCount == 1) {
       final touch = event.touches.toList().first;
       final pos = _getLocalPositionFromTouch(touch);
-      inputHandler.onPointerDown(pos, false);
+      inputHandler.handle(TouchEvent(
+        TouchEventType.tap,
+        pos,
+        null,
+      ));
     }
 
-    _handleScaleStart(touchCount, null);
+    if (touchCount >= 2) {
+      final focalPoint = _calculateFocalPoint(event.touches.toList());
+      inputHandler.handle(ScaleStartEvent(
+        numPointers: touchCount,
+        localFocalPoint: (focalPoint.x, focalPoint.y),
+      ));
+    }
+    
     event.preventDefault();
   }
 
@@ -126,42 +138,38 @@ class WebInputHandler {
       final prevPos = _touchPositions[id];
 
       if (prevPos != null) {
-        final delta = currPos - prevPos;
-        inputHandler.onPointerMove(currPos, delta, false);
+        _touchPositions[id] = currPos;
       }
-
-      _touchPositions[id] = currPos;
     }
 
     final touchCount = event.touches.toList().length;
     if (touchCount >= 2) {
-      final touches = event.touches.toList().toList();
-      final touch0 = touches[0];
-      final touch1 = touches[1];
-      final pos0 = _getLocalPositionFromTouch(touch0);
-      final pos1 = _getLocalPositionFromTouch(touch1);
-      final prevPos0 = _touchPositions[touch0.identifier];
-      final prevPos1 = _touchPositions[touch1.identifier];
-
-      if (prevPos0 != null && prevPos1 != null) {
-        final prevDist = (prevPos0 - prevPos1).length;
-        final currDist = (pos0 - pos1).length;
-        final scale = currDist / prevDist;
-        final focalPoint = (pos0 + pos1) * 0.5;
-
-        inputHandler.onScaleUpdate(
-          focalPoint,
-          Vector2(0, 0),
-          0.0,
-          0.0,
-          scale,
-          touchCount,
-          0.0,
-          null,
-        );
-      }
+      final touches = event.touches.toList();
+      final focalPoint = _calculateFocalPoint(touches);
+      
+      // Calculate scale
+      final currPositions = touches.map((t) => _getLocalPositionFromTouch(t)).toList();
+      final prevPositions = touches.map((t) => _touchPositions[t.identifier] ?? _getLocalPositionFromTouch(t)).toList();
+      
+      final currDist = (currPositions[0] - currPositions[1]).length;
+      final prevDist = (prevPositions[0] - prevPositions[1]).length;
+      final scale = prevDist > 0 ? currDist / prevDist : 1.0;
+      
+      // Calculate focal point delta
+      final prevFocalPoint = _calculateFocalPoint(touches, prevPositions);
+      final focalPointDelta = focalPoint - prevFocalPoint;
+      
+      inputHandler.handle(ScaleUpdateEvent(
+        numPointers: touchCount,
+        localFocalPoint: (focalPoint.x, focalPoint.y),
+        localFocalPointDelta: (focalPointDelta.x, focalPointDelta.y),
+        rotation: 0.0, // We don't track rotation in the web implementation
+        scale: scale,
+        horizontalScale: scale,
+        verticalScale: scale,
+      ));
     }
-
+    
     event.preventDefault();
   }
 
@@ -171,7 +179,10 @@ class WebInputHandler {
     }
 
     final touchCount = event.touches.toList().length;
-    inputHandler.onScaleEnd(touchCount, 0.0);
+    inputHandler.handle(ScaleEndEvent(
+      numPointers: touchCount,
+    ));
+    
     event.preventDefault();
   }
 
@@ -181,12 +192,37 @@ class WebInputHandler {
     }
 
     final touchCount = event.touches.toList().length;
-    inputHandler.onScaleEnd(touchCount, 0.0);
+    inputHandler.handle(ScaleEndEvent(
+      numPointers: touchCount,
+    ));
+    
     event.preventDefault();
   }
 
-  void _handleScaleStart(int pointerCount, Duration? sourceTimestamp) {
-    inputHandler.onScaleStart(Vector2.zero(), pointerCount, sourceTimestamp);
+  MouseButton? _getMouseButtonFromEvent(web.MouseEvent event) {
+    if (event.button == 1 || (event.buttons & 4 != 0)) {
+      return MouseButton.middle;
+    } else if (event.button == 0 || (event.buttons & 1 != 0)) {
+      return MouseButton.left;
+    } else if (event.button == 2 || (event.buttons & 2 != 0)) {
+      return MouseButton.right;
+    }
+    return null;
+  }
+
+  PhysicalKey? _getPhysicalKeyFromEvent(web.KeyboardEvent event) {
+    switch (event.code) {
+      case 'KeyW':
+        return PhysicalKey.W;
+      case 'KeyA':
+        return PhysicalKey.A;
+      case 'KeyS':
+        return PhysicalKey.S;
+      case 'KeyD':
+        return PhysicalKey.D;
+      default:
+        return null;
+    }
   }
 
   Vector2 _getLocalPositionFromEvent(web.Event event) {
@@ -216,6 +252,19 @@ class WebInputHandler {
       (touch.clientX - rect.left) * pixelRatio,
       (touch.clientY - rect.top) * pixelRatio,
     );
+  }
+
+  Vector2 _calculateFocalPoint(List<web.Touch> touches, [List<Vector2>? positions]) {
+    if (touches.isEmpty) return Vector2.zero();
+    
+    final points = positions ?? touches.map((t) => _getLocalPositionFromTouch(t)).toList();
+    
+    Vector2 sum = Vector2.zero();
+    for (var point in points) {
+      sum += point;
+    }
+    
+    return sum.scaled(1.0 / points.length);
   }
 
   void dispose() {
