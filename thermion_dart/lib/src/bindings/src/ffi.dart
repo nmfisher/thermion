@@ -86,17 +86,28 @@ extension PCBF on DartPickCallbackFunction {
   }
 }
 
+int _requestId = 0;
+final _requests = <int, Completer>{};
+
+void _voidCallbackHandler(int requestId) {
+  _requests[requestId]!.complete();
+}
+
+late NativeCallable<Void Function(Int32)>
+    _voidCallbackNativeCallable = NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
+
 Future<void> withVoidCallback(
-    Function(Pointer<NativeFunction<Void Function()>>) func) async {
+    Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
+  var requestId = _requestId;
+  _requestId++;
   final completer = Completer();
-  // ignore: prefer_function_declarations_over_variables
-  void Function() callback = () {
-    completer.complete();
-  };
-  final nativeCallable = NativeCallable<Void Function()>.listener(callback);
-  func.call(nativeCallable.nativeFunction);
+  _requests[requestId] = completer;
+  
+  _voidCallbackNativeCallable = NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
+  func.call(requestId, _voidCallbackNativeCallable.nativeFunction.cast());
+
   await completer.future;
-  nativeCallable.close();
+  // nativeCallable.close();
 }
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(

@@ -203,9 +203,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future destroySwapChain(SwapChain swapChain) async {
     _logger.info("Destroying swapchain");
-    await withVoidCallback((callback) {
+    await withVoidCallback((requestId, callback) {
       Engine_destroySwapChainRenderThread(
-          engine, (swapChain as FFISwapChain).swapChain, callback);
+          engine, (swapChain as FFISwapChain).swapChain, requestId, callback);
     });
     _swapChains.remove(swapChain);
     _logger.info("Destroyed swapchain");

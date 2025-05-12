@@ -789,13 +789,13 @@ class FFIAsset extends ThermionAsset {
   Future<Matrix4> getLocalTransform({ThermionEntity? entity}) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
+      stackPtr = stackSave();
     }
     entity ??= this.entity;
     final transform = double4x4ToMatrix4(
         TransformManager_getLocalTransform(app.transformManager, entity));
     if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
+      stackRestore(stackPtr);
     }
     return transform;
   }
@@ -806,13 +806,13 @@ class FFIAsset extends ThermionAsset {
   Future<Matrix4> getWorldTransform({ThermionEntity? entity}) async {
     late Pointer stackPtr;
     if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
+      stackPtr = stackSave();
     }
     entity ??= this.entity;
     var transform = double4x4ToMatrix4(
         TransformManager_getWorldTransform(app.transformManager, entity));
     if (FILAMENT_WASM) {
-      //stackRestore(stackPtr);
+      stackRestore(stackPtr);
     }
     return transform;
   }
@@ -821,9 +821,16 @@ class FFIAsset extends ThermionAsset {
   ///
   ///
   Future setTransform(Matrix4 transform, {ThermionEntity? entity}) async {
+    late Pointer stackPtr;
+    if (FILAMENT_WASM) {
+      stackPtr = stackSave();
+    }
     entity ??= this.entity;
     TransformManager_setTransform(
         app.transformManager, entity, matrix4ToDouble4x4(transform));
+    if (FILAMENT_WASM) {
+      stackRestore(stackPtr);
+    }
   }
 
   ///
