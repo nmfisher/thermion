@@ -33,7 +33,7 @@ class OrbitInputHandlerDelegate implements InputHandlerDelegate {
         _radius =
             (minZoomDistance + maxZoomDistance) / 2, // Initial default radius
         _azimuth = 0.0,
-        _elevation = math.pi / 4; // Initial default elevation (45 degrees)
+        _elevation = math.pi / 4;
 
   Future<void> _initializeFromCamera(Camera activeCamera) async {
     final currentModelMatrix = await activeCamera.getModelMatrix();
