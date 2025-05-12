@@ -1,12 +1,16 @@
-dart-web:
-	cd thermion_dart/native/web; mkdir -p build && cd build && emcmake cmake .. && emmake make
-dart-web-clean:
+wasm:
+	cd thermion_dart/native/web;
+	mkdir -p build
+	cd build 
+	emcmake cmake .. 
+	emmake make
+wasm-clean:
 	cd thermion_dart/native/web && rm -rf build
-dart-wasm-cli-example: dart-web-clean dart-web
-	cd thermion_dart/examples/cli_wasm/bin && dart compile wasm example_cli.dart && node main.js
-dart-web-example: dart-web
-	cp thermion_dart/native/web/build/build/out/thermion_dart* examples/web_wasm/bin
-	cd thermion_dart/examples/web_wasm/bin && dart compile wasm example_web.dart
+wasm-example-web: 
+	cd examples/dart/js_wasm
+	mkdir -p build
+	dart compile js web/example.dart -o build/example.dart.js
+
 flutter-example-web: dart-web-clean dart-web
 	cd thermion_flutter_federated/thermion_flutter/example/web && dart compile wasm main.dart && cd .. && flutter build web --wasm --profile
 flutter-example-macos:
