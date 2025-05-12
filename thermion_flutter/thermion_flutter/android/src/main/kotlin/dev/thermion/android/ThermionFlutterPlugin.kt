@@ -25,10 +25,7 @@ import java.util.*
 
 class NativeWindowHelper {
     companion object {
-      init {
-        System.loadLibrary("thermion_flutter_android")
-      }
-        external fun getNativeWindowFromSurface(surface: Surface): Long
+      external fun getNativeWindowFromSurface(surface: Surface): Long
     }
 }
 
@@ -62,6 +59,9 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
     this.flutterPluginBinding = flutterPluginBinding
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
     channel.setMethodCallHandler(this)
+    Log.d("thermion_flutter", "Loading library")
+    System.loadLibrary("thermion_flutter_android")
+    Log.d("thermion_flutter", "Loaded")
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -81,7 +81,7 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                     result.error("DIMENSION_MISMATCH", "Both dimensions must be greater than zero (you provided $width x $height)", null)
                     return
                 }
-                Log.i("thermion_flutter", "Creating SurfaceTexture ${width}x${height}")
+                Log.d("thermion_flutter", "Creating SurfaceTexture ${width}x${height}")
                 
                 val surfaceTextureEntry = flutterPluginBinding.textureRegistry.createSurfaceTexture()
                 val surfaceTexture = surfaceTextureEntry.surfaceTexture()
@@ -95,6 +95,8 @@ class ThermionFlutterPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
                     val flutterTextureId = surfaceTextureEntry.id()   
                     textures[flutterTextureId] = TextureEntry(surfaceTextureEntry, surfaceTexture, surface)
                     //val surface = surfaceView.holder.surface
+                    Log.d("thermion_flutter", "Loading library")
+                    System.loadLibrary("thermion_flutter_android")
                     val nativeWindowPtr = NativeWindowHelper.getNativeWindowFromSurface(surface)
                     //val nativeWindow = _lib.get_native_window_from_surface(surface as Object, JNIEnv.CURRENT)
                     result.success(listOf(flutterTextureId, flutterTextureId, nativeWindowPtr))
