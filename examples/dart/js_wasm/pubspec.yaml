@@ -9,8 +9,6 @@ environment:
 dependencies:
   thermion_dart: 
     path: ../../../thermion_dart
-  native_toolchain_c: ^0.9.0
-  native_assets_cli: ^0.12.0
   logging: ^1.3.0
 
 dev_dependencies:
