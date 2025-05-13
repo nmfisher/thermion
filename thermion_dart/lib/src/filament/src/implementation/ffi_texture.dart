@@ -30,8 +30,8 @@ class FFITexture extends Texture {
 
   @override
   Future<void> dispose() async {
-    await withVoidCallback((cb) {
-      Engine_destroyTextureRenderThread(_engine, pointer, cb);
+    await withVoidCallback((requestId, cb) {
+      Engine_destroyTextureRenderThread(_engine, pointer, requestId,cb);
     });
   }
 
@@ -183,8 +183,8 @@ class FFILinearImage extends LinearImage {
   }
 
   Future<void> destroy() async {
-    await withVoidCallback((cb) {
-      Image_destroyRenderThread(this.pointer, cb);
+    await withVoidCallback((requestId, cb) {
+      Image_destroyRenderThread(this.pointer, requestId, cb);
     });
   }
 
@@ -316,8 +316,8 @@ class FFITextureSampler extends TextureSampler {
   // }
 
   Future<void> setAnisotropy(double anisotropy) async {
-    await withVoidCallback((cb) {
-      TextureSampler_setAnisotropyRenderThread(pointer, anisotropy, cb);
+    await withVoidCallback((requestId,cb) {
+      TextureSampler_setAnisotropyRenderThread(pointer, anisotropy, requestId,cb);
     });
   }
 
@@ -334,8 +334,8 @@ class FFITextureSampler extends TextureSampler {
 
   @override
   Future dispose() async {
-    await withVoidCallback((cb) {
-      TextureSampler_destroyRenderThread(pointer, cb);
+    await withVoidCallback((requestId,cb) {
+      TextureSampler_destroyRenderThread(pointer, requestId,cb);
     });
   }
 }

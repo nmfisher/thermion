@@ -116,14 +116,14 @@ class ThermionViewerFFI extends ThermionViewer {
   ///
   @override
   Future render() async {
-    await withVoidCallback((cb) =>
-        RenderTicker_renderRenderThread(app.renderTicker, 0.toBigInt, cb));
+    await withVoidCallback((requestId,cb) =>
+        RenderTicker_renderRenderThread(app.renderTicker, 0.toBigInt, requestId,cb));
     if (FILAMENT_SINGLE_THREADED) {
       await withVoidCallback(
-          (cb) => Engine_executeRenderThread(app.engine, cb));
+          (requestId,cb) => Engine_executeRenderThread(app.engine, requestId,cb));
     } else {
       await withVoidCallback(
-          (cb) => Engine_flushAndWaitRenderThread(app.engine, cb));
+          (requestId,cb) => Engine_flushAndWaitRenderThread(app.engine, requestId,cb));
     }
   }
 
@@ -301,7 +301,7 @@ class ThermionViewerFFI extends ThermionViewer {
 
     if (skybox != null) {
       await withVoidCallback(
-          (cb) => Engine_destroySkyboxRenderThread(app.engine, skybox!, cb));
+          (requestId,cb) => Engine_destroySkyboxRenderThread(app.engine, skybox!, requestId,cb));
       skybox = null;
     }
   }
@@ -313,8 +313,8 @@ class ThermionViewerFFI extends ThermionViewer {
   Future removeIbl() async {
     if (indirectLight != null) {
       Scene_setIndirectLight(scene.scene, nullptr);
-      await withVoidCallback((cb) => Engine_destroyIndirectLightRenderThread(
-          app.engine, indirectLight!, cb));
+      await withVoidCallback((requestId,cb) => Engine_destroyIndirectLightRenderThread(
+          app.engine, indirectLight!, requestId,cb));
       indirectLight = null;
     }
   }

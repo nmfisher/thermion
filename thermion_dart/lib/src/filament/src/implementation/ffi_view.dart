@@ -113,8 +113,8 @@ class FFIView extends View {
 
   @override
   Future setBloom(bool enabled, double strength) async {
-    await withVoidCallback((cb) {
-      View_setBloomRenderThread(view, enabled, strength, cb);
+    await withVoidCallback((requestId,cb) {
+      View_setBloomRenderThread(view, enabled, strength, requestId,cb);
     });
   }
 

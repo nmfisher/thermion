@@ -227,8 +227,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     for (final swapChain in _swapChains.keys.toList()) {
       await destroySwapChain(swapChain);
     }
-    await withVoidCallback((cb) async {
-      Engine_destroyRenderThread(engine, cb);
+    await withVoidCallback((requestId, cb) async {
+      Engine_destroyRenderThread(engine, requestId, cb);
     });
 
     RenderThread_destroy();
@@ -248,7 +248,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future destroyAsset(covariant FFIAsset asset) async {
     await withVoidCallback(
-        (cb) => SceneAsset_destroyRenderThread(asset.asset, cb));
+        (requestId, cb) => SceneAsset_destroyRenderThread(asset.asset, requestId, cb));
     await asset.dispose();
   }
 
@@ -536,22 +536,23 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       Renderer_beginFrameRenderThread(
           renderer, swapchain.swapChain, 0.toBigInt, cb);
     });
-    await withVoidCallback((cb) {
+    await withVoidCallback((requestId, cb) {
       Renderer_renderRenderThread(
         renderer,
         view.view,
+        requestId,
         cb,
       );
     });
-    await withVoidCallback((cb) {
-      Renderer_endFrameRenderThread(renderer, cb);
+    await withVoidCallback((requestId, cb) {
+      Renderer_endFrameRenderThread(renderer, requestId, cb);
     });
 
     if (FILAMENT_SINGLE_THREADED) {
-      await withVoidCallback((cb) => Engine_executeRenderThread(engine, cb));
+      await withVoidCallback((requestId, cb) => Engine_executeRenderThread(engine, requestId, cb));
     } else {
       await withVoidCallback(
-          (cb) => Engine_flushAndWaitRenderThread(engine, cb));
+          (requestId, cb) => Engine_flushAndWaitRenderThread(engine, requestId, cb));
     }
   }
 
@@ -723,10 +724,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       final viewport = await view.getViewport();
       final pixelBuffer =
           Uint8List(viewport.width * viewport.height * 4 * sizeOf<Float>());
-      await withVoidCallback((cb) {
+      await withVoidCallback((requestId, cb) {
         Renderer_renderRenderThread(
           renderer,
           view.view,
+          requestId,
           cb,
         );
       });
@@ -734,7 +736,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       if (captureRenderTarget && view.renderTarget == null) {
         throw Exception();
       }
-      await withVoidCallback((cb) {
+      await withVoidCallback((requestId, cb) {
         Renderer_readPixelsRenderThread(
             renderer,
             view.view,
@@ -749,20 +751,21 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
             pixelDataType.value,
             pixelBuffer.address,
             pixelBuffer.length,
+            requestId,
             cb);
       });
       pixelBuffers.add((view, pixelBuffer));
     }
 
-    await withVoidCallback((cb) {
-      Renderer_endFrameRenderThread(renderer, cb);
+    await withVoidCallback((requestId, cb) {
+      Renderer_endFrameRenderThread(renderer, requestId, cb);
     });
 
-    await withVoidCallback((cb) {
+    await withVoidCallback((requestId, cb) {
       if (FILAMENT_SINGLE_THREADED) {
-        Engine_executeRenderThread(engine, cb);
+        Engine_executeRenderThread(engine, requestId, cb);
       } else {
-        Engine_flushAndWaitRenderThread(engine, cb);
+        Engine_flushAndWaitRenderThread(engine, requestId, cb);
       }
     });
     return pixelBuffers;
@@ -823,12 +826,13 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
         resources.add(FinalizableUint8List(resourceUris[i], resourceData));
 
-        await withVoidCallback((cb) =>
+        await withVoidCallback((requestId, cb) =>
             GltfResourceLoader_addResourceDataRenderThread(
                 gltfResourceLoader,
                 resourceUris[i],
                 resourceData.address,
                 resourceData.lengthInBytes,
+                requestId,
                 cb));
       }
 
@@ -864,8 +868,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           SceneAsset_createFromFilamentAssetRenderThread(engine,
               gltfAssetLoader, nameComponentManager, filamentAsset, cb));
 
-      await withVoidCallback((cb) => GltfResourceLoader_destroyRenderThread(
-          engine, gltfResourceLoader, cb));
+      await withVoidCallback((requestId, cb) => GltfResourceLoader_destroyRenderThread(
+          engine, gltfResourceLoader, requestId, cb));
 
       return FFIAsset(asset, this, animationManager.cast<TAnimationManager>());
     } finally {
@@ -883,10 +887,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     View_setColorGrading(view.view, nullptr);
     for (final cg in view.colorGrading.entries) {
       await withVoidCallback(
-          (cb) => Engine_destroyColorGradingRenderThread(engine, cg.value, cb));
+          (requestId, cb) => Engine_destroyColorGradingRenderThread(engine, cg.value, requestId, cb));
     }
     await withVoidCallback(
-        (cb) => Engine_destroyViewRenderThread(engine, view.view, cb));
+        (requestId, cb) => Engine_destroyViewRenderThread(engine, view.view, requestId, cb));
     for (final swapchain in _swapChains.keys) {
       if (_swapChains[swapchain]!.contains(view)) {
         _swapChains[swapchain]!.remove(view);
@@ -898,7 +902,7 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
 
   Future destroyScene(covariant FFIScene scene) async {
     await withVoidCallback(
-        (cb) => Engine_destroySceneRenderThread(engine, scene.scene, cb));
+        (requestId, cb) => Engine_destroySceneRenderThread(engine, scene.scene, requestId, cb));
   }
 
   Future<Pointer<TColorGrading>> createColorGrading(ToneMapper mapper) async {
@@ -1024,10 +1028,10 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future flush() async {
     if (FILAMENT_SINGLE_THREADED) {
-      await withVoidCallback((cb) => Engine_executeRenderThread(engine, cb));
+      await withVoidCallback((requestId, cb) => Engine_executeRenderThread(engine, requestId, cb));
     } else {
       await withVoidCallback(
-          (cb) => Engine_flushAndWaitRenderThread(engine, cb));
+          (requestId, cb) => Engine_flushAndWaitRenderThread(engine, requestId, cb));
     }
   }
 

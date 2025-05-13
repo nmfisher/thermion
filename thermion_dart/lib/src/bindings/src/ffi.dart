@@ -97,7 +97,7 @@ late NativeCallable<Void Function(Int32)>
     _voidCallbackNativeCallable = NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
 
 Future<void> withVoidCallback(
-    Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
+    Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func) async {
   var requestId = _requestId;
   _requestId++;
   final completer = Completer();
@@ -107,7 +107,6 @@ Future<void> withVoidCallback(
   func.call(requestId, _voidCallbackNativeCallable.nativeFunction.cast());
 
   await completer.future;
-  // nativeCallable.close();
 }
 
 Future<Pointer<T>> withPointerCallback<T extends NativeType>(

@@ -18,8 +18,8 @@ class FFIMaterial extends Material {
   }
 
   Future destroy() async {
-    await withVoidCallback((cb) {
-      Engine_destroyMaterialRenderThread(app.engine, pointer, cb);
+    await withVoidCallback((requestId, cb) {
+      Engine_destroyMaterialRenderThread(app.engine, pointer, requestId, cb);
     });
   }
 
@@ -168,8 +168,8 @@ class FFIMaterialInstance extends MaterialInstance {
   }
 
   Future destroy() async {
-    await withVoidCallback((cb) {
-      Engine_destroyMaterialInstanceRenderThread(app.engine, this.pointer, cb);
+    await withVoidCallback((requestId, cb) {
+      Engine_destroyMaterialInstanceRenderThread(app.engine, this.pointer, requestId, cb);
     });
   }
 
