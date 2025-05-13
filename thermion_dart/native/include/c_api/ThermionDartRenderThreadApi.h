@@ -87,6 +87,7 @@ namespace thermion
         void Material_createGizmoMaterialRenderThread(TEngine *tEngine, void (*onComplete)(TMaterial *));
 
         void ColorGrading_createRenderThread(TEngine *tEngine, TToneMapping toneMapping, void (*callback)(TColorGrading *));  
+        void View_pickRenderThread(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback);
         void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, uint32_t requestId,  VoidCallback onComplete);
         void View_setBloomRenderThread(TView *tView, bool enabled, double strength, uint32_t requestId,  VoidCallback onComplete);
         void View_setCameraRenderThread(TView *tView, TCamera *tCamera, uint32_t requestId,  VoidCallback onComplete);

@@ -554,6 +554,13 @@ EMSCRIPTEN_KEEPALIVE void SceneAsset_createFromFilamentAssetRenderThread(
     auto fut = _renderThread->add_task(lambda);
   }
 
+  EMSCRIPTEN_KEEPALIVE void View_pickRenderThread(TView *tView, uint32_t requestId, uint32_t x, uint32_t y, PickCallback callback) {
+    auto *view = reinterpret_cast<View *>(tView);
+    view->pick(x, y, [=](filament::View::PickingQueryResult const &result) {       
+      PROXY(callback(requestId, utils::Entity::smuggle(result.renderable), result.depth, result.fragCoords.x, result.fragCoords.y, result.fragCoords.z));
+    });
+  }
+
   EMSCRIPTEN_KEEPALIVE void View_setColorGradingRenderThread(TView *tView, TColorGrading *tColorGrading, uint32_t requestId, VoidCallback onComplete)
   {
     std::packaged_task<void()> lambda(

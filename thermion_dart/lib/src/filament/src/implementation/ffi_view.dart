@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'dart:math';
-
 import 'package:logging/logging.dart';
+import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';
@@ -11,7 +10,6 @@ import 'package:thermion_dart/thermion_dart.dart';
 import 'ffi_camera.dart';
 
 class FFIView extends View {
-
   late final _logger = Logger(this.runtimeType.toString());
   int _renderOrder = 0;
   int get renderOrder => _renderOrder;
@@ -26,15 +24,13 @@ class FFIView extends View {
 
   late CallbackHolder<PickCallbackFunction> _onPickResultHolder;
 
-
   FFIView(this.view, this.app) {
     final renderTargetPtr = View_getRenderTarget(view);
     if (renderTargetPtr != nullptr) {
       renderTarget = FFIRenderTarget(renderTargetPtr, app);
     }
-    
-    _onPickResultHolder =
-        _onPickResult.asCallback();
+
+    _onPickResultHolder = _onPickResult.asCallback();
   }
 
   ///
@@ -113,8 +109,8 @@ class FFIView extends View {
 
   @override
   Future setBloom(bool enabled, double strength) async {
-    await withVoidCallback((requestId,cb) {
-      View_setBloomRenderThread(view, enabled, strength, requestId,cb);
+    await withVoidCallback((requestId, cb) {
+      View_setBloomRenderThread(view, enabled, strength, requestId, cb);
     });
   }
 
@@ -174,27 +170,30 @@ class FFIView extends View {
   }
 
   int _pickRequestId = -1;
-  
+
   static int kMaxPickRequests = 1024;
-  final _pickRequests = List<({void Function(PickResult) handler, int x, int y})?>.generate(kMaxPickRequests, (idx) => null);
-  
-  
+  final _pickRequests =
+      List<({void Function(PickResult) handler, int x, int y})?>.generate(
+          kMaxPickRequests, (idx) => null);
+
   ///
   ///
   ///
   @override
   Future pick(int x, int y, void Function(PickResult) resultHandler) async {
-    _pickRequestId = max(_pickRequestId + 1, kMaxPickRequests);
-    
+    _pickRequestId++;
+    var pickRequestId = _pickRequestId;
+
     _pickRequests[_pickRequestId % kMaxPickRequests] =
         (handler: resultHandler, x: x, y: y);
-    var pickRequestId = _pickRequestId;
+
     var viewport = await getViewport();
     y = viewport.height - y;
-
-    View_pick(
-        view, pickRequestId, x, y, _onPickResultHolder.pointer);
-
+    if (FILAMENT_WASM) {
+      View_pickRenderThread(view, pickRequestId, x, y, _onPickResultHolder.pointer);
+    } else {
+      View_pick(view, pickRequestId, x, y, _onPickResultHolder.pointer);
+    }
   }
 
   void _onPickResult(int requestId, ThermionEntity entityId, double depth,
@@ -220,5 +219,4 @@ class FFIView extends View {
       fragZ: fragZ,
     ));
   }
-
 }
