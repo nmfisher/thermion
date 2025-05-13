@@ -1,8 +1,8 @@
 wasm:
-	cd thermion_dart/native/web;
-	mkdir -p build
-	cd build 
-	emcmake cmake .. 
+	cd thermion_dart/native/web &&\
+    mkdir -p build &&\
+	cd build &&\
+	emcmake cmake .. &&\
 	emmake make
 wasm-clean:
 	cd thermion_dart/native/web && rm -rf build
