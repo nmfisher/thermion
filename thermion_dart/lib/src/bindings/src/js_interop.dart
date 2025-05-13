@@ -270,19 +270,14 @@ void Function(int) _voidCallback = (int requestId) {
 
 final _voidCallbackPtr = _voidCallback.addFunction();
 
-Future<void> withVoidCallback(
-    Function(Pointer<NativeFunction<Void Function()>>) func) async {
+
+  Future<void> withVoidCallback(
+    Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
   final completer = Completer();
   final requestId = _completers.length;
   _completers[requestId] = completer;
 
-  final fn = () {
-    completer.complete();
-  };
-
-  final ptr = fn.addFunction();
-
-  func.call(ptr.cast());
+  func.call(requestId, _voidCallbackPtr.cast());
   while (!completer.isCompleted) {
     _NativeLibrary.instance._execute_queue();
     await Future.delayed(Duration(milliseconds: 1));
