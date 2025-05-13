@@ -228,7 +228,7 @@ class _MobileListenerWidgetState extends State<_MobileListenerWidget> {
           ));
         },
         onScaleEnd: (details) async {
-          widget.inputHandler
+          await widget.inputHandler
               .handle(ScaleEndEvent(numPointers: details.pointerCount));
         },
         child: widget.child);
