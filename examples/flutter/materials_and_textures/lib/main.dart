@@ -54,8 +54,10 @@ class _MyHomePageState extends State<MyHomePage> {
       _viewer = viewer;
       await _viewer!.setPostProcessing(true);
 
-      _unlitMaterial = await _viewer!.createUnlitMaterialInstance();
-      _litMaterial = await _viewer!.createUbershaderMaterialInstance();
+      _unlitMaterial =
+          await FilamentApp.instance!.createUnlitMaterialInstance();
+      _litMaterial =
+          await FilamentApp.instance!.createUbershaderMaterialInstance();
       await _viewer!.addDirectLight(
         DirectLight.sun(
           intensity: 50000,
@@ -81,7 +83,9 @@ class _MyHomePageState extends State<MyHomePage> {
         materialInstances: [_unlitMaterial],
       );
 
-      await _viewer!.setCameraPosition(0, 0, 5);
+      final view = await viewer.getActiveCamera();
+      await view.lookAt(Vector3(0, 0, 5));
+
       await _viewer!.setRendering(true);
       setState(() {});
     });
@@ -95,18 +99,18 @@ class _MyHomePageState extends State<MyHomePage> {
     await materialInstance.setParameterInt("baseColorIndex", 0);
     var imageBuffer = await rootBundle.load("assets/background.png");
     var imageData = imageBuffer.buffer.asUint8List(imageBuffer.offsetInBytes);
-    _image = await _viewer!.decodeImage(imageData);
+    _image = await FilamentApp.instance!.decodeImage(imageData);
     var width = await _image!.getWidth();
     var height = await _image!.getHeight();
 
-    _texture = await _viewer!.createTexture(width, height);
+    _texture = await FilamentApp.instance!.createTexture(width, height);
     await _texture!.setLinearImage(
       _image!,
       PixelDataFormat.RGBA,
       PixelDataType.FLOAT,
     );
 
-    final textureSampler = await _viewer!.createTextureSampler();
+    final textureSampler = await FilamentApp.instance!.createTextureSampler();
     await materialInstance.setParameterTexture(
       "baseColorMap",
       _texture!,
@@ -134,7 +138,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_viewer != null) ...[
             Positioned.fill(
               child: ThermionListenerWidget(
-                inputHandler: DelegateInputHandler.fixedOrbit(_viewer!),
+                inputHandler: DelegateInputHandler.fixedOrbit(_viewer!, sensitivity: InputSensitivityOptions(mouseSensitivity: 0.01)),
                 child: ThermionWidget(viewer: _viewer!),
               ),
             ),
@@ -156,9 +160,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ElevatedButton(
                       onPressed: () async {
                         unlit = !unlit;
-                        setState(() {
-                          
-                        });
+                        setState(() {});
                         await _asset.setMaterialInstanceAt(
                           unlit ? _unlitMaterial : _litMaterial,
                         );
@@ -168,8 +170,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     ElevatedButton(
                       onPressed: () async {
-                        var materialInstance = await _viewer!
-                            .getMaterialInstanceAt(_asset.entity, 0);
+                        var materialInstance =
+                            await _asset.getMaterialInstanceAt();
                         await _setMaterialTexture(materialInstance);
                       },
                       child: Text("Apply texture"),
