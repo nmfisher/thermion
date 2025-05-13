@@ -11,6 +11,10 @@ const FILAMENT_SINGLE_THREADED = false;
 const FILAMENT_WASM = false;
 bool get IS_WINDOWS => Platform.isWindows;
 
+Int32List makeInt32List(int length) {
+  return Int32List(length);
+}
+
 class NativeLibrary {
   static void initBindings(String name) {
     throw Exception();
@@ -93,8 +97,8 @@ void _voidCallbackHandler(int requestId) {
   _requests[requestId]!.complete();
 }
 
-late NativeCallable<Void Function(Int32)>
-    _voidCallbackNativeCallable = NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
+late NativeCallable<Void Function(Int32)> _voidCallbackNativeCallable =
+    NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
 
 Future<void> withVoidCallback(
     Function(int, Pointer<NativeFunction<Void Function(Int32)>>) func) async {
@@ -102,8 +106,9 @@ Future<void> withVoidCallback(
   _requestId++;
   final completer = Completer();
   _requests[requestId] = completer;
-  
-  _voidCallbackNativeCallable = NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
+
+  _voidCallbackNativeCallable =
+      NativeCallable<Void Function(Int32)>.listener(_voidCallbackHandler);
   func.call(requestId, _voidCallbackNativeCallable.nativeFunction.cast());
 
   await completer.future;

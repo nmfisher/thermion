@@ -10,6 +10,12 @@ const FILAMENT_SINGLE_THREADED = true;
 const FILAMENT_WASM = true;
 const IS_WINDOWS = false;
 
+Int32List makeInt32List(int length) {
+  var ptr = malloc<Int32>(length * 4);
+  var buf = _NativeLibrary.instance._emscripten_make_int32_buffer(ptr, length);
+  return buf.toDart;
+}
+
 extension type _NativeLibrary(JSObject _) implements JSObject {
   static _NativeLibrary get instance =>
       NativeLibrary.instance as _NativeLibrary;
@@ -157,8 +163,9 @@ extension UInt32ListExtension on Uint32List {
       return nullptr;
     }
     final ptr = getPointer<Uint32>(this, this.toJS);
-    final bar = Uint32ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length)
-        as JSUint32Array;
+    final bar =
+        Uint32ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
+            as JSUint32Array;
     bar.toDart.setRange(0, length, this);
     return ptr;
   }
@@ -169,11 +176,17 @@ extension Int32ListExtension on Int32List {
     if (this.lengthInBytes == 0) {
       return nullptr;
     }
-    final ptr = getPointer<Int32>(this, this.toJS);
-    final bar = Int32ArrayWrapper(NativeLibrary.instance.HEAPU8, ptr, length)
-        as JSInt32Array;
-    bar.toDart.setRange(0, length, this);
-    return ptr;
+    try {
+      this.buffer.asUint8List(this.offsetInBytes);
+      final ptr = getPointer<Int32>(this, this.toJS);
+      final bar =
+          Int32ArrayWrapper(NativeLibrary.instance.HEAPU8.buffer, ptr, length)
+              as JSInt32Array;
+      bar.toDart.setRange(0, length, this);
+      return ptr;
+    } catch (_) {
+      return Pointer<Int32>(this.offsetInBytes);
+    }
   }
 }
 
@@ -242,7 +255,7 @@ class CallbackHolder<T extends Function> {
 
 extension DPCF on DartPickCallbackFunction {
   CallbackHolder<DartPickCallbackFunction> asCallback() {
-    final ptr = addFunction<DartPickCallbackFunction>(this.toJS, "viidddd");
+    final ptr = addFunction<DartPickCallbackFunction>(this.toJS, "viiffff");
     final cbh = CallbackHolder(ptr);
     return cbh;
   }
@@ -270,8 +283,7 @@ void Function(int) _voidCallback = (int requestId) {
 
 final _voidCallbackPtr = _voidCallback.addFunction();
 
-
-  Future<void> withVoidCallback(
+Future<void> withVoidCallback(
     Function(int, Pointer<NativeFunction<Void Function(int)>>) func) async {
   final completer = Completer();
   final requestId = _completers.length;

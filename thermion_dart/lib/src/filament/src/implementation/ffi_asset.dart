@@ -1,5 +1,6 @@
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
+import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
@@ -56,10 +57,10 @@ class FFIAsset extends ThermionAsset {
   Future<List<ThermionEntity>> getChildEntities() async {
     if (_childEntities == null) {
       var count = SceneAsset_getChildEntityCount(asset);
-      var childEntities = Int32List(count);
+      var childEntities = makeInt32List(count);
       late Pointer stackPtr;
       if (FILAMENT_WASM) {
-        //stackPtr = stackSave();
+        stackPtr = stackSave();
       }
       if (count > 0) {
         SceneAsset_getChildEntities(asset, childEntities.address);
@@ -67,7 +68,7 @@ class FFIAsset extends ThermionAsset {
       _childEntities = Int32List.fromList(childEntities);
       childEntities.free();
       if (FILAMENT_WASM) {
-        //stackRestore(stackPtr);
+        stackRestore(stackPtr);
       }
     }
 
