@@ -1997,6 +1997,17 @@ external void ColorGrading_createRenderThread(
 );
 
 @ffi.Native<
+    ffi.Void Function(ffi.Pointer<TView>, ffi.Uint32, ffi.Uint32, ffi.Uint32,
+        PickCallback)>(isLeaf: true)
+external void View_pickRenderThread(
+  ffi.Pointer<TView> tView,
+  int requestId,
+  int x,
+  int y,
+  PickCallback callback,
+);
+
+@ffi.Native<
     ffi.Void Function(ffi.Pointer<TView>, ffi.Pointer<TColorGrading>,
         ffi.Uint32, VoidCallback)>(isLeaf: true)
 external void View_setColorGradingRenderThread(

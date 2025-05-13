@@ -255,7 +255,7 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static create<T extends Struct>() {
-        switch (T) {
+    switch (T) {
       case double4x4:
         final ptr = double4x4.stackAlloc();
         final arr1 =
@@ -1493,6 +1493,13 @@ extension type NativeLibrary(JSObject _) implements JSObject {
     int toneMapping,
     Pointer<self.NativeFunction<void Function(PointerClass<TColorGrading>)>>
         callback,
+  );
+  external void _View_pickRenderThread(
+    Pointer<TView> tView,
+    int requestId,
+    int x,
+    int y,
+    PickCallback callback,
   );
   external void _View_setColorGradingRenderThread(
     Pointer<TView> tView,
@@ -4351,6 +4358,18 @@ void ColorGrading_createRenderThread(
 ) {
   final result = _lib._ColorGrading_createRenderThread(
       tEngine.cast(), toneMapping, callback.cast());
+  return result;
+}
+
+void View_pickRenderThread(
+  self.Pointer<TView> tView,
+  int requestId,
+  int x,
+  int y,
+  DartPickCallback callback,
+) {
+  final result = _lib._View_pickRenderThread(tView.cast(), requestId, x, y,
+      callback as Pointer<self.NativeFunction<PickCallbackFunction>>);
   return result;
 }
 
