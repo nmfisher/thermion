@@ -1,0 +1,27 @@
+## Web
+
+First, you must manually compile the wasm+javascript module. This requires:
+
+1) GNU Make
+2) CMake
+3) Emscripten 
+
+```
+make wasm
+```
+
+### Flutter
+
+Thermion requires Android SDK version 22, so change your `app/android/build.gradle` to match this version or higher：
+
+```groovy
+ defaultConfig {
+    ...
+        minSdk = 22
+    ...
+    }
+```
+
+```
+flutter run -d chrome --web-header Cross-Origin-Embedder-Policy=require-corp --web-header Cross-Origin-Opener-Policy=same-origin
+```
