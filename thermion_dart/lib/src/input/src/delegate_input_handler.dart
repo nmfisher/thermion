@@ -98,7 +98,7 @@ class DelegateInputHandler implements InputHandler {
   @override
   Future handle(InputEvent event) async {
 
-    if (!_ready || _processing) {
+    if (!_ready) {
       return;
     }
 
