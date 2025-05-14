@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 import 'package:thermion_dart/src/filament/src/interface/scene.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_render_target.dart';

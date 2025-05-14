@@ -887,11 +887,86 @@ external void Gizmo_unhighlight(
 );
 
 @ffi.Native<
-    ffi.Pointer<TMaterialInstance> Function(ffi.Pointer<TMaterialProvider>,
-        ffi.Pointer<TMaterialKey>)>(isLeaf: true)
+    ffi.Pointer<TMaterialInstance> Function(
+        ffi.Pointer<TMaterialProvider>,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Int,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Uint8,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool)>(isLeaf: true)
 external ffi.Pointer<TMaterialInstance> MaterialProvider_createMaterialInstance(
   ffi.Pointer<TMaterialProvider> provider,
-  ffi.Pointer<TMaterialKey> key,
+  bool doubleSided,
+  bool unlit,
+  bool hasVertexColors,
+  bool hasBaseColorTexture,
+  bool hasNormalTexture,
+  bool hasOcclusionTexture,
+  bool hasEmissiveTexture,
+  bool useSpecularGlossiness,
+  int alphaMode,
+  bool enableDiagnostics,
+  bool hasMetallicRoughnessTexture,
+  int metallicRoughnessUV,
+  bool hasSpecularGlossinessTexture,
+  int specularGlossinessUV,
+  int baseColorUV,
+  bool hasClearCoatTexture,
+  int clearCoatUV,
+  bool hasClearCoatRoughnessTexture,
+  int clearCoatRoughnessUV,
+  bool hasClearCoatNormalTexture,
+  int clearCoatNormalUV,
+  bool hasClearCoat,
+  bool hasTransmission,
+  bool hasTextureTransforms,
+  int emissiveUV,
+  int aoUV,
+  int normalUV,
+  bool hasTransmissionTexture,
+  int transmissionUV,
+  bool hasSheenColorTexture,
+  int sheenColorUV,
+  bool hasSheenRoughnessTexture,
+  int sheenRoughnessUV,
+  bool hasVolumeThicknessTexture,
+  int volumeThicknessUV,
+  bool hasSheen,
+  bool hasIOR,
+  bool hasVolume,
 );
 
 @ffi.Native<
@@ -2121,14 +2196,88 @@ external void SceneAsset_createGeometryRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TMaterialProvider>,
-        ffi.Pointer<TMaterialKey>,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Int,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Uint8,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Uint8,
+        ffi.Bool,
+        ffi.Bool,
+        ffi.Bool,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(
                     ffi.Pointer<TMaterialInstance>)>>)>(isLeaf: true)
 external void MaterialProvider_createMaterialInstanceRenderThread(
   ffi.Pointer<TMaterialProvider> tMaterialProvider,
-  ffi.Pointer<TMaterialKey> tKey,
+  bool doubleSided,
+  bool unlit,
+  bool hasVertexColors,
+  bool hasBaseColorTexture,
+  bool hasNormalTexture,
+  bool hasOcclusionTexture,
+  bool hasEmissiveTexture,
+  bool useSpecularGlossiness,
+  int alphaMode,
+  bool enableDiagnostics,
+  bool hasMetallicRoughnessTexture,
+  int metallicRoughnessUV,
+  bool hasSpecularGlossinessTexture,
+  int specularGlossinessUV,
+  int baseColorUV,
+  bool hasClearCoatTexture,
+  int clearCoatUV,
+  bool hasClearCoatRoughnessTexture,
+  int clearCoatRoughnessUV,
+  bool hasClearCoatNormalTexture,
+  int clearCoatNormalUV,
+  bool hasClearCoat,
+  bool hasTransmission,
+  bool hasTextureTransforms,
+  int emissiveUV,
+  int aoUV,
+  int normalUV,
+  bool hasTransmissionTexture,
+  int transmissionUV,
+  bool hasSheenColorTexture,
+  int sheenColorUV,
+  bool hasSheenRoughnessTexture,
+  int sheenRoughnessUV,
+  bool hasVolumeThicknessTexture,
+  int volumeThicknessUV,
+  bool hasSheen,
+  bool hasIOR,
+  bool hasVolume,
   ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<TMaterialInstance>)>>
       callback,
@@ -3322,134 +3471,6 @@ final class TGltfResourceLoader extends ffi.Opaque {}
 final class TFilamentAsset extends ffi.Opaque {}
 
 final class TColorGrading extends ffi.Opaque {}
-
-final class UnnamedStruct1 extends ffi.Struct {
-  @ffi.Bool()
-  external bool hasMetallicRoughnessTexture;
-
-  @ffi.Uint8()
-  external int metallicRoughnessUV;
-}
-
-final class UnnamedStruct2 extends ffi.Struct {
-  @ffi.Bool()
-  external bool hasSpecularGlossinessTexture;
-
-  @ffi.Uint8()
-  external int specularGlossinessUV;
-}
-
-final class UnnamedUnion1 extends ffi.Union {
-  external UnnamedStruct1 unnamed;
-
-  external UnnamedStruct2 unnamed$1;
-}
-
-final class TMaterialKey extends ffi.Struct {
-  @ffi.Bool()
-  external bool doubleSided;
-
-  @ffi.Bool()
-  external bool unlit;
-
-  @ffi.Bool()
-  external bool hasVertexColors;
-
-  @ffi.Bool()
-  external bool hasBaseColorTexture;
-
-  @ffi.Bool()
-  external bool hasNormalTexture;
-
-  @ffi.Bool()
-  external bool hasOcclusionTexture;
-
-  @ffi.Bool()
-  external bool hasEmissiveTexture;
-
-  @ffi.Bool()
-  external bool useSpecularGlossiness;
-
-  @ffi.Int()
-  external int alphaMode;
-
-  @ffi.Bool()
-  external bool enableDiagnostics;
-
-  external UnnamedUnion1 unnamed;
-
-  @ffi.Uint8()
-  external int baseColorUV;
-
-  @ffi.Bool()
-  external bool hasClearCoatTexture;
-
-  @ffi.Uint8()
-  external int clearCoatUV;
-
-  @ffi.Bool()
-  external bool hasClearCoatRoughnessTexture;
-
-  @ffi.Uint8()
-  external int clearCoatRoughnessUV;
-
-  @ffi.Bool()
-  external bool hasClearCoatNormalTexture;
-
-  @ffi.Uint8()
-  external int clearCoatNormalUV;
-
-  @ffi.Bool()
-  external bool hasClearCoat;
-
-  @ffi.Bool()
-  external bool hasTransmission;
-
-  @ffi.Bool()
-  external bool hasTextureTransforms;
-
-  @ffi.Uint8()
-  external int emissiveUV;
-
-  @ffi.Uint8()
-  external int aoUV;
-
-  @ffi.Uint8()
-  external int normalUV;
-
-  @ffi.Bool()
-  external bool hasTransmissionTexture;
-
-  @ffi.Uint8()
-  external int transmissionUV;
-
-  @ffi.Bool()
-  external bool hasSheenColorTexture;
-
-  @ffi.Uint8()
-  external int sheenColorUV;
-
-  @ffi.Bool()
-  external bool hasSheenRoughnessTexture;
-
-  @ffi.Uint8()
-  external int sheenRoughnessUV;
-
-  @ffi.Bool()
-  external bool hasVolumeThicknessTexture;
-
-  @ffi.Uint8()
-  external int volumeThicknessUV;
-
-  @ffi.Bool()
-  external bool hasSheen;
-
-  @ffi.Bool()
-  external bool hasIOR;
-
-  @ffi.Bool()
-  external bool hasVolume;
-}
 
 final class double3 extends ffi.Struct {
   @ffi.Double()

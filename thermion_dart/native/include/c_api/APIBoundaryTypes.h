@@ -45,68 +45,6 @@ extern "C"
 	typedef struct TFilamentAsset TFilamentAsset;
 	typedef struct TColorGrading TColorGrading;
 
-	struct TMaterialKey {
-		bool doubleSided;
-		bool unlit;
-		bool hasVertexColors;
-		bool hasBaseColorTexture;
-		bool hasNormalTexture;
-		bool hasOcclusionTexture;
-		bool hasEmissiveTexture;
-		bool useSpecularGlossiness;
-		int alphaMode;
-		bool enableDiagnostics;
-		union {
-			#ifdef __cplusplus
-			struct {
-				bool hasMetallicRoughnessTexture;
-				uint8_t metallicRoughnessUV;
-			};
-			struct {
-				bool hasSpecularGlossinessTexture;
-				uint8_t specularGlossinessUV;
-			};
-			#else
-			struct {
-				bool hasMetallicRoughnessTexture;
-				uint8_t metallicRoughnessUV;
-			};
-			struct {
-				bool hasSpecularGlossinessTexture;
-				uint8_t specularGlossinessUV;
-			};
-			#endif
-		};
-		uint8_t baseColorUV;
-		// -- 32 bit boundary --
-		bool hasClearCoatTexture;
-		uint8_t clearCoatUV;
-		bool hasClearCoatRoughnessTexture;
-		uint8_t clearCoatRoughnessUV;
-		bool hasClearCoatNormalTexture;
-		uint8_t clearCoatNormalUV;
-		bool hasClearCoat;
-		bool hasTransmission;
-		bool hasTextureTransforms;
-		// -- 32 bit boundary --
-		uint8_t emissiveUV;
-		uint8_t aoUV;
-		uint8_t normalUV;
-		bool hasTransmissionTexture;
-		uint8_t transmissionUV;
-		// -- 32 bit boundary --
-		bool hasSheenColorTexture;
-		uint8_t sheenColorUV;
-		bool hasSheenRoughnessTexture;
-		uint8_t sheenRoughnessUV;
-		bool hasVolumeThicknessTexture;
-		uint8_t volumeThicknessUV ;
-		bool hasSheen;
-		bool hasIOR;
-		bool hasVolume;
-	} ;
-	typedef struct TMaterialKey TMaterialKey; 
-
 	typedef struct { 
 		double x;
 		double y; 

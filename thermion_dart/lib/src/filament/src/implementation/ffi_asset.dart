@@ -1,6 +1,5 @@
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:logging/logging.dart';
-import 'package:thermion_dart/src/bindings/src/js_interop.dart';
 import 'package:thermion_dart/src/utils/src/matrix.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_material.dart';
@@ -224,33 +223,33 @@ class FFIAsset extends ThermionAsset {
           .setStencilOpDepthStencilPass(StencilOperation.REPLACE);
 
       await sourceMaterialInstance.setStencilReferenceValue(1);
+      throw Exception("TODO");
+      // final materialInstancePtr =
+      //     await withPointerCallback<TMaterialInstance>((cb) {
 
-      final materialInstancePtr =
-          await withPointerCallback<TMaterialInstance>((cb) {
-        final key = Struct.create<TMaterialKey>();
-        MaterialProvider_createMaterialInstanceRenderThread(
-            app.ubershaderMaterialProvider, key.address, cb);
-      });
-      final highlightMaterialInstance =
-          FFIMaterialInstance(materialInstancePtr, app);
-      await highlightMaterialInstance
-          .setStencilCompareFunction(SamplerCompareFunction.NE);
-      await highlightMaterialInstance.setStencilReferenceValue(1);
+      //   MaterialProvider_createMaterialInstanceRenderThread(
+      //       app.ubershaderMaterialProvider, , cb);
+      // });
+      // final highlightMaterialInstance =
+      //     FFIMaterialInstance(materialInstancePtr, app);
+      // await highlightMaterialInstance
+      //     .setStencilCompareFunction(SamplerCompareFunction.NE);
+      // await highlightMaterialInstance.setStencilReferenceValue(1);
 
-      await highlightMaterialInstance.setDepthCullingEnabled(false);
+      // await highlightMaterialInstance.setDepthCullingEnabled(false);
 
-      await highlightMaterialInstance.setParameterFloat4(
-          "baseColorFactor", r, g, b, 1.0);
+      // await highlightMaterialInstance.setParameterFloat4(
+      //     "baseColorFactor", r, g, b, 1.0);
 
-      var highlightInstance = await this
-          .createInstance(materialInstances: [highlightMaterialInstance]);
-      _highlight = highlightInstance;
+      // var highlightInstance = await this
+      //     .createInstance(materialInstances: [highlightMaterialInstance]);
+      // _highlight = highlightInstance;
 
-      await highlightMaterialInstance.setStencilReferenceValue(1);
-      RenderableManager_setPriority(app.renderableManager, targetEntity, 0);
+      // await highlightMaterialInstance.setStencilReferenceValue(1);
+      // RenderableManager_setPriority(app.renderableManager, targetEntity, 0);
 
-      TransformManager_setParent(
-          app.transformManager, _highlight!.entity, entity, false);
+      // TransformManager_setParent(
+      //     app.transformManager, _highlight!.entity, entity, false);
     }
 
     var targetHighlightEntity = _highlight!.entity;
@@ -365,9 +364,47 @@ class FFIAsset extends ThermionAsset {
       // Create unlit material instance for the wireframe
       final materialInstancePtr =
           await withPointerCallback<TMaterialInstance>((cb) {
-        final key = Struct.create<TMaterialKey>();
         MaterialProvider_createMaterialInstanceRenderThread(
-            app.ubershaderMaterialProvider, key.address, cb);
+            app.ubershaderMaterialProvider,
+            false,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            0,
+            false,
+            false,
+            0,
+            false,
+            0,
+            0,
+            false,
+            0,
+            false,
+            0,
+            false,
+            0,
+            false,
+            false,
+            false,
+            0,
+            0,
+            0,
+            false,
+            0,
+            false,
+            0,
+            false,
+            0,
+            false,
+            0,
+            false,
+            false,
+            false,
+            cb);
       });
 
       final material = FFIMaterialInstance(materialInstancePtr, app);

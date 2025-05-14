@@ -255,7 +255,7 @@ sealed class Struct extends NativeType {
   Struct(this._address);
 
   static create<T extends Struct>() {
-    switch (T) {
+        switch (T) {
       case double4x4:
         final ptr = double4x4.stackAlloc();
         final arr1 =
@@ -901,7 +901,44 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external Pointer<TMaterialInstance> _MaterialProvider_createMaterialInstance(
     Pointer<TMaterialProvider> provider,
-    Pointer<TMaterialKey> key,
+    bool doubleSided,
+    bool unlit,
+    bool hasVertexColors,
+    bool hasBaseColorTexture,
+    bool hasNormalTexture,
+    bool hasOcclusionTexture,
+    bool hasEmissiveTexture,
+    bool useSpecularGlossiness,
+    int alphaMode,
+    bool enableDiagnostics,
+    bool hasMetallicRoughnessTexture,
+    int metallicRoughnessUV,
+    bool hasSpecularGlossinessTexture,
+    int specularGlossinessUV,
+    int baseColorUV,
+    bool hasClearCoatTexture,
+    int clearCoatUV,
+    bool hasClearCoatRoughnessTexture,
+    int clearCoatRoughnessUV,
+    bool hasClearCoatNormalTexture,
+    int clearCoatNormalUV,
+    bool hasClearCoat,
+    bool hasTransmission,
+    bool hasTextureTransforms,
+    int emissiveUV,
+    int aoUV,
+    int normalUV,
+    bool hasTransmissionTexture,
+    int transmissionUV,
+    bool hasSheenColorTexture,
+    int sheenColorUV,
+    bool hasSheenRoughnessTexture,
+    int sheenRoughnessUV,
+    bool hasVolumeThicknessTexture,
+    int volumeThicknessUV,
+    bool hasSheen,
+    bool hasIOR,
+    bool hasVolume,
   );
   external Pointer<TRenderTarget> _RenderTarget_create(
     Pointer<TEngine> tEngine,
@@ -1558,7 +1595,44 @@ extension type NativeLibrary(JSObject _) implements JSObject {
   );
   external void _MaterialProvider_createMaterialInstanceRenderThread(
     Pointer<TMaterialProvider> tMaterialProvider,
-    Pointer<TMaterialKey> tKey,
+    bool doubleSided,
+    bool unlit,
+    bool hasVertexColors,
+    bool hasBaseColorTexture,
+    bool hasNormalTexture,
+    bool hasOcclusionTexture,
+    bool hasEmissiveTexture,
+    bool useSpecularGlossiness,
+    int alphaMode,
+    bool enableDiagnostics,
+    bool hasMetallicRoughnessTexture,
+    int metallicRoughnessUV,
+    bool hasSpecularGlossinessTexture,
+    int specularGlossinessUV,
+    int baseColorUV,
+    bool hasClearCoatTexture,
+    int clearCoatUV,
+    bool hasClearCoatRoughnessTexture,
+    int clearCoatRoughnessUV,
+    bool hasClearCoatNormalTexture,
+    int clearCoatNormalUV,
+    bool hasClearCoat,
+    bool hasTransmission,
+    bool hasTextureTransforms,
+    int emissiveUV,
+    int aoUV,
+    int normalUV,
+    bool hasTransmissionTexture,
+    int transmissionUV,
+    bool hasSheenColorTexture,
+    int sheenColorUV,
+    bool hasSheenRoughnessTexture,
+    int sheenRoughnessUV,
+    bool hasVolumeThicknessTexture,
+    int volumeThicknessUV,
+    bool hasSheen,
+    bool hasIOR,
+    bool hasVolume,
     Pointer<self.NativeFunction<void Function(PointerClass<TMaterialInstance>)>>
         callback,
   );
@@ -3143,10 +3217,85 @@ void Gizmo_unhighlight(
 
 self.Pointer<TMaterialInstance> MaterialProvider_createMaterialInstance(
   self.Pointer<TMaterialProvider> provider,
-  self.Pointer<TMaterialKey> key,
+  bool doubleSided,
+  bool unlit,
+  bool hasVertexColors,
+  bool hasBaseColorTexture,
+  bool hasNormalTexture,
+  bool hasOcclusionTexture,
+  bool hasEmissiveTexture,
+  bool useSpecularGlossiness,
+  int alphaMode,
+  bool enableDiagnostics,
+  bool hasMetallicRoughnessTexture,
+  int metallicRoughnessUV,
+  bool hasSpecularGlossinessTexture,
+  int specularGlossinessUV,
+  int baseColorUV,
+  bool hasClearCoatTexture,
+  int clearCoatUV,
+  bool hasClearCoatRoughnessTexture,
+  int clearCoatRoughnessUV,
+  bool hasClearCoatNormalTexture,
+  int clearCoatNormalUV,
+  bool hasClearCoat,
+  bool hasTransmission,
+  bool hasTextureTransforms,
+  int emissiveUV,
+  int aoUV,
+  int normalUV,
+  bool hasTransmissionTexture,
+  int transmissionUV,
+  bool hasSheenColorTexture,
+  int sheenColorUV,
+  bool hasSheenRoughnessTexture,
+  int sheenRoughnessUV,
+  bool hasVolumeThicknessTexture,
+  int volumeThicknessUV,
+  bool hasSheen,
+  bool hasIOR,
+  bool hasVolume,
 ) {
   final result = _lib._MaterialProvider_createMaterialInstance(
-      provider.cast(), key.cast());
+      provider.cast(),
+      doubleSided,
+      unlit,
+      hasVertexColors,
+      hasBaseColorTexture,
+      hasNormalTexture,
+      hasOcclusionTexture,
+      hasEmissiveTexture,
+      useSpecularGlossiness,
+      alphaMode,
+      enableDiagnostics,
+      hasMetallicRoughnessTexture,
+      metallicRoughnessUV,
+      hasSpecularGlossinessTexture,
+      specularGlossinessUV,
+      baseColorUV,
+      hasClearCoatTexture,
+      clearCoatUV,
+      hasClearCoatRoughnessTexture,
+      clearCoatRoughnessUV,
+      hasClearCoatNormalTexture,
+      clearCoatNormalUV,
+      hasClearCoat,
+      hasTransmission,
+      hasTextureTransforms,
+      emissiveUV,
+      aoUV,
+      normalUV,
+      hasTransmissionTexture,
+      transmissionUV,
+      hasSheenColorTexture,
+      sheenColorUV,
+      hasSheenRoughnessTexture,
+      sheenRoughnessUV,
+      hasVolumeThicknessTexture,
+      volumeThicknessUV,
+      hasSheen,
+      hasIOR,
+      hasVolume);
   return self.Pointer<TMaterialInstance>(result);
 }
 
@@ -4493,12 +4642,88 @@ void SceneAsset_createGeometryRenderThread(
 
 void MaterialProvider_createMaterialInstanceRenderThread(
   self.Pointer<TMaterialProvider> tMaterialProvider,
-  self.Pointer<TMaterialKey> tKey,
+  bool doubleSided,
+  bool unlit,
+  bool hasVertexColors,
+  bool hasBaseColorTexture,
+  bool hasNormalTexture,
+  bool hasOcclusionTexture,
+  bool hasEmissiveTexture,
+  bool useSpecularGlossiness,
+  int alphaMode,
+  bool enableDiagnostics,
+  bool hasMetallicRoughnessTexture,
+  int metallicRoughnessUV,
+  bool hasSpecularGlossinessTexture,
+  int specularGlossinessUV,
+  int baseColorUV,
+  bool hasClearCoatTexture,
+  int clearCoatUV,
+  bool hasClearCoatRoughnessTexture,
+  int clearCoatRoughnessUV,
+  bool hasClearCoatNormalTexture,
+  int clearCoatNormalUV,
+  bool hasClearCoat,
+  bool hasTransmission,
+  bool hasTextureTransforms,
+  int emissiveUV,
+  int aoUV,
+  int normalUV,
+  bool hasTransmissionTexture,
+  int transmissionUV,
+  bool hasSheenColorTexture,
+  int sheenColorUV,
+  bool hasSheenRoughnessTexture,
+  int sheenRoughnessUV,
+  bool hasVolumeThicknessTexture,
+  int volumeThicknessUV,
+  bool hasSheen,
+  bool hasIOR,
+  bool hasVolume,
   self.Pointer<self.NativeFunction<void Function(Pointer<TMaterialInstance>)>>
       callback,
 ) {
   final result = _lib._MaterialProvider_createMaterialInstanceRenderThread(
-      tMaterialProvider.cast(), tKey.cast(), callback.cast());
+      tMaterialProvider.cast(),
+      doubleSided,
+      unlit,
+      hasVertexColors,
+      hasBaseColorTexture,
+      hasNormalTexture,
+      hasOcclusionTexture,
+      hasEmissiveTexture,
+      useSpecularGlossiness,
+      alphaMode,
+      enableDiagnostics,
+      hasMetallicRoughnessTexture,
+      metallicRoughnessUV,
+      hasSpecularGlossinessTexture,
+      specularGlossinessUV,
+      baseColorUV,
+      hasClearCoatTexture,
+      clearCoatUV,
+      hasClearCoatRoughnessTexture,
+      clearCoatRoughnessUV,
+      hasClearCoatNormalTexture,
+      clearCoatNormalUV,
+      hasClearCoat,
+      hasTransmission,
+      hasTextureTransforms,
+      emissiveUV,
+      aoUV,
+      normalUV,
+      hasTransmissionTexture,
+      transmissionUV,
+      hasSheenColorTexture,
+      sheenColorUV,
+      hasSheenRoughnessTexture,
+      sheenRoughnessUV,
+      hasVolumeThicknessTexture,
+      volumeThicknessUV,
+      hasSheen,
+      hasIOR,
+      hasVolume,
+      callback.cast());
   return result;
 }
 
@@ -6413,22 +6638,6 @@ sealed class TGizmoAxis {
   static const X = 0;
   static const Y = 1;
   static const Z = 2;
-}
-
-extension TMaterialKeyExt on Pointer<TMaterialKey> {
-  TMaterialKey toDart() {
-    return TMaterialKey(this);
-  }
-
-  void setFrom(TMaterialKey dartType) {}
-}
-
-final class TMaterialKey extends self.Struct {
-  TMaterialKey(super._address);
-
-  static Pointer<TMaterialKey> stackAlloc() {
-    return Pointer<TMaterialKey>(_lib._stackAlloc<TMaterialKey>(0));
-  }
 }
 
 extension TSkyboxExt on Pointer<TSkybox> {

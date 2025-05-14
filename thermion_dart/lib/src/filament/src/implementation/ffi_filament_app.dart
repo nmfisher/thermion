@@ -247,8 +247,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   ///
   Future destroyAsset(covariant FFIAsset asset) async {
-    await withVoidCallback(
-        (requestId, cb) => SceneAsset_destroyRenderThread(asset.asset, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        SceneAsset_destroyRenderThread(asset.asset, requestId, cb));
     await asset.dispose();
   }
 
@@ -414,6 +414,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       bool enableDiagnostics = false,
       bool hasMetallicRoughnessTexture = false,
       int metallicRoughnessUV = 0,
+      bool hasSpecularGlossiness = false,
+      int specularGlossinessUV = 0,
       int baseColorUV = 0,
       bool hasClearCoatTexture = false,
       int clearCoatUV = 0,
@@ -438,54 +440,48 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
       bool hasSheen = false,
       bool hasIOR = false,
       bool hasVolume = false}) async {
-    late Pointer stackPtr;
-    if (FILAMENT_WASM) {
-      //stackPtr = stackSave();
-    }
-
-    final key = Struct.create<TMaterialKey>();
-
-    key.doubleSided = doubleSided;
-    key.unlit = unlit;
-    key.hasVertexColors = hasVertexColors;
-    key.hasBaseColorTexture = hasBaseColorTexture;
-    key.hasNormalTexture = hasNormalTexture;
-    key.hasOcclusionTexture = hasOcclusionTexture;
-    key.hasEmissiveTexture = hasEmissiveTexture;
-    key.useSpecularGlossiness = useSpecularGlossiness;
-    key.alphaMode = alphaMode.index;
-    key.enableDiagnostics = enableDiagnostics;
-    key.unnamed.unnamed.hasMetallicRoughnessTexture =
-        hasMetallicRoughnessTexture;
-    key.unnamed.unnamed.metallicRoughnessUV = 0;
-    key.baseColorUV = baseColorUV;
-    key.hasClearCoatTexture = hasClearCoatTexture;
-    key.clearCoatUV = clearCoatUV;
-    key.hasClearCoatRoughnessTexture = hasClearCoatRoughnessTexture;
-    key.clearCoatRoughnessUV = clearCoatRoughnessUV;
-    key.hasClearCoatNormalTexture = hasClearCoatNormalTexture;
-    key.clearCoatNormalUV = clearCoatNormalUV;
-    key.hasClearCoat = hasClearCoat;
-    key.hasTransmission = hasTransmission;
-    key.hasTextureTransforms = hasTextureTransforms;
-    key.emissiveUV = emissiveUV;
-    key.aoUV = aoUV;
-    key.normalUV = normalUV;
-    key.hasTransmissionTexture = hasTransmissionTexture;
-    key.transmissionUV = transmissionUV;
-    key.hasSheenColorTexture = hasSheenColorTexture;
-    key.sheenColorUV = sheenColorUV;
-    key.hasSheenRoughnessTexture = hasSheenRoughnessTexture;
-    key.sheenRoughnessUV = sheenRoughnessUV;
-    key.hasVolumeThicknessTexture = hasVolumeThicknessTexture;
-    key.volumeThicknessUV = volumeThicknessUV;
-    key.hasSheen = hasSheen;
-    key.hasIOR = hasIOR;
-    key.hasVolume = hasVolume;
-
     final materialInstance = await withPointerCallback<TMaterialInstance>((cb) {
       MaterialProvider_createMaterialInstanceRenderThread(
-          ubershaderMaterialProvider, key.address, cb);
+          ubershaderMaterialProvider,
+          doubleSided,
+          unlit,
+          hasVertexColors,
+          hasBaseColorTexture,
+          hasNormalTexture,
+          hasOcclusionTexture,
+          hasEmissiveTexture,
+          useSpecularGlossiness,
+          alphaMode.index,
+          enableDiagnostics,
+          hasMetallicRoughnessTexture,
+          metallicRoughnessUV,
+          hasSpecularGlossiness,
+          specularGlossinessUV,
+          baseColorUV,
+          hasClearCoatTexture,
+          clearCoatUV,
+          hasClearCoatRoughnessTexture,
+          clearCoatRoughnessUV,
+          hasClearCoatNormalTexture,
+          clearCoatNormalUV,
+          hasClearCoat,
+          hasTransmission,
+          hasTextureTransforms,
+          emissiveUV,
+          aoUV,
+          normalUV,
+          hasTransmissionTexture,
+          transmissionUV,
+          hasSheenColorTexture,
+          sheenColorUV,
+          hasSheenRoughnessTexture,
+          sheenRoughnessUV,
+          hasVolumeThicknessTexture,
+          volumeThicknessUV,
+          hasSheen,
+          hasIOR,
+          hasVolume,
+          cb);
     });
 
     if (FILAMENT_WASM) {
@@ -549,10 +545,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
     });
 
     if (FILAMENT_SINGLE_THREADED) {
-      await withVoidCallback((requestId, cb) => Engine_executeRenderThread(engine, requestId, cb));
-    } else {
       await withVoidCallback(
-          (requestId, cb) => Engine_flushAndWaitRenderThread(engine, requestId, cb));
+          (requestId, cb) => Engine_executeRenderThread(engine, requestId, cb));
+    } else {
+      await withVoidCallback((requestId, cb) =>
+          Engine_flushAndWaitRenderThread(engine, requestId, cb));
     }
   }
 
@@ -868,8 +865,9 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
           SceneAsset_createFromFilamentAssetRenderThread(engine,
               gltfAssetLoader, nameComponentManager, filamentAsset, cb));
 
-      await withVoidCallback((requestId, cb) => GltfResourceLoader_destroyRenderThread(
-          engine, gltfResourceLoader, requestId, cb));
+      await withVoidCallback((requestId, cb) =>
+          GltfResourceLoader_destroyRenderThread(
+              engine, gltfResourceLoader, requestId, cb));
 
       return FFIAsset(asset, this, animationManager.cast<TAnimationManager>());
     } finally {
@@ -886,11 +884,12 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   Future destroyView(covariant FFIView view) async {
     View_setColorGrading(view.view, nullptr);
     for (final cg in view.colorGrading.entries) {
-      await withVoidCallback(
-          (requestId, cb) => Engine_destroyColorGradingRenderThread(engine, cg.value, requestId, cb));
+      await withVoidCallback((requestId, cb) =>
+          Engine_destroyColorGradingRenderThread(
+              engine, cg.value, requestId, cb));
     }
-    await withVoidCallback(
-        (requestId, cb) => Engine_destroyViewRenderThread(engine, view.view, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        Engine_destroyViewRenderThread(engine, view.view, requestId, cb));
     for (final swapchain in _swapChains.keys) {
       if (_swapChains[swapchain]!.contains(view)) {
         _swapChains[swapchain]!.remove(view);
@@ -901,8 +900,8 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   }
 
   Future destroyScene(covariant FFIScene scene) async {
-    await withVoidCallback(
-        (requestId, cb) => Engine_destroySceneRenderThread(engine, scene.scene, requestId, cb));
+    await withVoidCallback((requestId, cb) =>
+        Engine_destroySceneRenderThread(engine, scene.scene, requestId, cb));
   }
 
   Future<Pointer<TColorGrading>> createColorGrading(ToneMapper mapper) async {
@@ -1028,10 +1027,11 @@ class FFIFilamentApp extends FilamentApp<Pointer> {
   ///
   Future flush() async {
     if (FILAMENT_SINGLE_THREADED) {
-      await withVoidCallback((requestId, cb) => Engine_executeRenderThread(engine, requestId, cb));
-    } else {
       await withVoidCallback(
-          (requestId, cb) => Engine_flushAndWaitRenderThread(engine, requestId, cb));
+          (requestId, cb) => Engine_executeRenderThread(engine, requestId, cb));
+    } else {
+      await withVoidCallback((requestId, cb) =>
+          Engine_flushAndWaitRenderThread(engine, requestId, cb));
     }
   }
 
