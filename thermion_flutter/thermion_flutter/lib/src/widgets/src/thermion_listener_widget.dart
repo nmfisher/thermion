@@ -19,6 +19,7 @@ extension OffsetExtension on Offset {
 /// [InputHandler].
 ///
 class ThermionListenerWidget extends StatefulWidget {
+  
   /// The content to display below the gesture detector/listener widget.
   /// This will usually be a ThermionWidget (so you can navigate by directly
   /// interacting with the viewport), but this is not necessary. It is equally
@@ -106,16 +107,16 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
     return Focus(
         focusNode: widget.focusNode,
         child: Listener(
-          onPointerHover: (event) {
-            widget.inputHandler.handle(MouseEvent(
+          onPointerHover: (event) async {
+            await widget.inputHandler.handle(MouseEvent(
                 MouseEventType.hover,
                 _mouseButtonFromEvent(event),
                 event.localPosition.toVector2() * pixelRatio,
                 event.delta.toVector2() * pixelRatio));
           },
-          onPointerSignal: (PointerSignalEvent pointerSignal) {
+          onPointerSignal: (PointerSignalEvent pointerSignal) async {
             if (pointerSignal is PointerScrollEvent) {
-              widget.inputHandler.handle(ScrollEvent(
+              await widget.inputHandler.handle(ScrollEvent(
                   localPosition:
                       pointerSignal.localPosition.toVector2() * pixelRatio,
                   delta: pointerSignal.scrollDelta.dy * pixelRatio));
@@ -124,10 +125,10 @@ class _ThermionListenerWidgetState extends State<ThermionListenerWidget> {
           onPointerPanZoomStart: (pzs) {
             throw Exception("TODO - is this a pinch zoom on laptop trackpad?");
           },
-          onPointerDown: (event) {
+          onPointerDown: (event) async {
             widget.focusNode?.requestFocus();
 
-            widget.inputHandler.handle(MouseEvent(
+            await widget.inputHandler.handle(MouseEvent(
                 MouseEventType.buttonDown,
                 _mouseButtonFromEvent(event),
                 event.localPosition.toVector2() * pixelRatio,
