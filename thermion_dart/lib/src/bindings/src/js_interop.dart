@@ -375,11 +375,9 @@ Future<int> withUInt32Callback(
   void Function(int) callback = (int result) {
     completer.complete(result);
   };
-  // final nativeCallable =
-  //     NativeCallable<Void Function(Uint32)>.listener(callback);
-  // func.call(nativeCallable.nativeFunction);
+  final ptr = callback.addFunction();
+  func.call(ptr.cast());
   await completer.future;
-  // nativeCallable.close();
   return completer.future;
 }
 
