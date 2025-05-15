@@ -43,6 +43,7 @@ static void mainLoop(void* arg) {
     // Log("Spent %lldms processing, %d iters", elapsed, numIters);
     if(rt->_stop) {
         Log("RenderThread stopped")
+        emscripten_set_main_loop_arg(nullptr, nullptr, 0, true);
     }
 
 }
