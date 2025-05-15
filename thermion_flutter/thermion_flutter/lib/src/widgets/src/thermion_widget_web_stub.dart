@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
-import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 
 class ThermionWidgetWeb extends StatelessWidget {
   final ThermionFlutterWebOptions? options;

@@ -12,6 +12,20 @@ class ThermionFlutterOptions {
       {this.uberarchivePath = null, this.backend = null});
 }
 
+class ThermionFlutterWebOptions extends ThermionFlutterOptions {
+  
+  final bool createCanvas;
+  final bool importCanvasAsWidget;
+
+  const ThermionFlutterWebOptions(
+      {this.importCanvasAsWidget = false,
+      this.createCanvas = true,
+      String? uberarchivePath})
+      : super(uberarchivePath: uberarchivePath);
+
+
+}
+
 abstract class ThermionFlutterPlatform extends PlatformInterface {
   ThermionFlutterPlatform() : super(token: _token);
 

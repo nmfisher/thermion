@@ -6,9 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:thermion_dart/thermion_dart.dart';
 import 'package:thermion_dart/src/filament/src/implementation/ffi_filament_app.dart';
 import 'package:thermion_flutter_platform_interface/thermion_flutter_platform_interface.dart';
-
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:web/web.dart';
 
 class ThermionFlutterWebPlugin extends ThermionFlutterPlatform {

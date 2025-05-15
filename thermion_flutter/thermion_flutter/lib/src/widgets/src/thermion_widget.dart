@@ -3,7 +3,6 @@ import 'package:flutter/material.dart' hide View;
 import 'package:thermion_flutter/src/widgets/src/thermion_texture_widget.dart';
 import 'package:thermion_flutter/src/widgets/src/thermion_widget_web.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
-import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 
 Future kDefaultResizeCallback(Size size, View view, double pixelRatio) async {
   var camera = await view.getCamera();
@@ -67,8 +66,10 @@ class _ThermionWidgetState extends State<ThermionWidget> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
+      var options = ThermionFlutterPlatform.instance.options as ThermionFlutterWebOptions;
       return ThermionWidgetWeb(
-          viewer: widget.viewer, options: const ThermionFlutterWebOptions(importCanvasAsWidget: true));
+          viewer: widget.viewer,
+          options: options);
     }
 
     return ThermionTextureWidget(

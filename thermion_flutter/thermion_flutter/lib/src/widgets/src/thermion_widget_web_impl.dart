@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:ui_web' as ui_web;
+import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter_web/thermion_flutter_web.dart';
-import 'package:thermion_flutter_web/thermion_flutter_web_options.dart';
 import 'package:web/web.dart' as web;
-import 'package:flutter/widgets.dart';
-
 import 'resize_observer.dart';
 
 class ThermionWidgetWeb extends StatefulWidget {
@@ -52,15 +50,22 @@ class _ThermionWidgetWebState extends State<ThermionWidgetWeb> {
     });
   }
 
+  void _resize(Size oldSize, Size newSize) async {
+    var width = newSize.width.toInt();
+    var height = newSize.height.toInt();
+    ThermionFlutterWebPlugin.instance
+        .resizeCanvas(newSize.width, newSize.height);
+    await widget.viewer.setViewport(width, height);
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.options.importCanvasAsWidget) {
-      return _ImageCopyingWidget(viewer: widget.viewer);
-      // return _PlatformView(
-      //   viewer: widget.viewer,
-      // );
-    }
-    return Container(color: const Color(0x00000000));
+    return ResizeObserver(
+        onResized: _resize,
+        child: widget.options.importCanvasAsWidget
+            ? _ImageCopyingWidget(viewer: widget.viewer)
+            : SizedBox.expand(
+                child: Container(color: const Color(0x00000000))));
   }
 }
 
@@ -73,42 +78,27 @@ class _PlatformView extends StatefulWidget {
 }
 
 class _PlatformViewState extends State<_PlatformView> {
+  
   void initState() {
     super.initState();
     ui_web.platformViewRegistry.registerViewFactory(
       'imported-canvas',
       (int viewId, {Object? params}) {
         var canvas = web.document.getElementById("thermion_canvas");
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          var renderBox = this.context.findRenderObject() as RenderBox?;
-
-          _resize(Size(0, 0), renderBox!.size);
-        });
-
         return canvas! as Object;
       },
     );
   }
 
-  void _resize(Size oldSize, Size newSize) {
-    var width = newSize.width.toInt();
-    var height = newSize.height.toInt();
-    ThermionFlutterWebPlugin.instance
-        .resizeCanvas(newSize.width, newSize.height);
-    widget.viewer.setViewport(width, height);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return ResizeObserver(
-        onResized: _resize,
-        child: HtmlElementView(
+    return HtmlElementView(
           viewType: 'imported-canvas',
           onPlatformViewCreated: (i) {},
           creationParams: <String, Object?>{
             'key': 'someValue',
           },
-        ));
+        );
   }
 }
 
@@ -142,17 +132,27 @@ class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
     try {
       final rb = this.context.findRenderObject() as RenderBox?;
 
-      if (_resizing || rb == null || rb.size.isEmpty) {
+      if (rb == null) {
         setState(() {});
         return;
       }
 
+      if (rb.size.isEmpty) {
+        setState(() {});
+        return;
+      }
+
+      // if (_resizing) {
+      //   setState(() {});
+      //   return;
+      // }
+
       if (canvas.width != rb.size.width || canvas.height != rb.size.height) {
-        ThermionFlutterWebPlugin.instance
-            .resizeCanvas(rb.size.width, rb.size.height);
-        await widget.viewer
-            .setViewport(rb.size.width.ceil(), rb.size.height.ceil())
-            .timeout(Duration(seconds: 1));
+        // ThermionFlutterWebPlugin.instance
+        //     .resizeCanvas(rb.size.width, rb.size.height);
+        // await widget.viewer
+        //     .setViewport(rb.size.width.ceil(), rb.size.height.ceil())
+        //     .timeout(Duration(seconds: 1));
       }
 
       width = canvas.width * web.window.devicePixelRatio;
@@ -173,16 +173,16 @@ class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
 
   int _request = 0;
 
-  bool _resizing = false;
-  Timer? _resizeTimer;
+  // bool _resizing = false;
+  // Timer? _resizeTimer;
 
-  void _resize(Size oldSize, Size newSize) {
-    _resizeTimer?.cancel();
-    _resizing = true;
-    _resizeTimer = Timer(Duration(milliseconds: 100), () {
-      _resizing = false;
-    });
-  }
+  // void _resize(Size oldSize, Size newSize) {
+  //   _resizeTimer?.cancel();
+  //   _resizing = true;
+  //   _resizeTimer = Timer(Duration(milliseconds: 100), () {
+  //     _resizing = false;
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -190,15 +190,13 @@ class _ImageCopyingWidgetState extends State<_ImageCopyingWidget> {
       return Container();
     }
 
-    return ResizeObserver(
-        onResized: _resize,
-        child: RawImage(
-          key: Key(_request.toString()),
-          width: width,
-          height: height,
-          image: _img!,
-          filterQuality: FilterQuality.high,
-          isAntiAlias: false,
-        ));
+    return RawImage(
+      key: Key(_request.toString()),
+      width: width,
+      height: height,
+      image: _img!,
+      filterQuality: FilterQuality.high,
+      isAntiAlias: false,
+    );
   }
 }
