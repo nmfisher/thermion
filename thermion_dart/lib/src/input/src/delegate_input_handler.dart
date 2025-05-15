@@ -3,8 +3,6 @@ import 'package:logging/logging.dart';
 import 'package:thermion_dart/src/input/src/implementations/fixed_orbit_camera_delegate_v2.dart';
 import 'package:thermion_dart/src/input/src/implementations/free_flight_camera_delegate_v2.dart';
 import 'package:thermion_dart/thermion_dart.dart';
-import 'implementations/fixed_orbit_camera_rotation_delegate.dart';
-import 'implementations/free_flight_camera_delegate.dart';
 
 typedef PointerEventDetails = (Vector2 localPosition, Vector2 delta);
 
@@ -28,7 +26,7 @@ class DelegateInputHandler implements InputHandler {
   final List<InputHandlerDelegate> delegates;
 
   final bool batch;
-  
+
   bool _ready = false;
   bool _processing = false;
 
@@ -62,6 +60,7 @@ class DelegateInputHandler implements InputHandler {
       ]);
 
   Future<void> process() async {
+    
     _processing = true;
 
     final delegate = delegates.first;
@@ -83,7 +82,7 @@ class DelegateInputHandler implements InputHandler {
       _events.remove(keyUp[key]);
     }
 
-    await delegate.handle(_events);
+    await delegate.handle(_events.sublist(0));
 
     _events.clear();
     _events.addAll(keyDown.values);
@@ -97,8 +96,7 @@ class DelegateInputHandler implements InputHandler {
 
   @override
   Future handle(InputEvent event) async {
-
-    if (!_ready) {
+    if (!_ready || _processing) {
       return;
     }
 
