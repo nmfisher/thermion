@@ -1,12 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
 import 'package:thermion_flutter/thermion_flutter.dart' as t;
 import 'package:vector_math/vector_math_64.dart' hide Colors;
+import 'package:logging/logging.dart';
+import 'package:flutter/foundation.dart';
 
 void main() {
+  Logger.root.onRecord.listen((record) {
+    print(record);
+  });
   runApp(const MyApp());
 }
 
@@ -17,6 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      color: Colors.transparent,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -47,11 +51,25 @@ class _MyHomePageState extends State<MyHomePage> {
   late MaterialInstance _unlitMaterial;
   late MaterialInstance _litMaterial;
 
+  late InputHandler _inputHandler;
+
   @override
   void initState() {
     super.initState();
+    ThermionFlutterOptions? options;
+    if (kIsWeb) {
+      // ThermionFlutterPlatform.instance.setOptions(ThermionFlutterWebOptions(createCanvas:true, importCanvasAsWidget:false));
+    }
     ThermionFlutterPlugin.createViewer().then((viewer) async {
+
       _viewer = viewer;
+      
+      _inputHandler = DelegateInputHandler.fixedOrbit(
+        _viewer!,
+        sensitivity: InputSensitivityOptions(mouseSensitivity: 0.01),
+      );
+
+
       await _viewer!.setPostProcessing(true);
 
       _unlitMaterial =
@@ -97,13 +115,18 @@ class _MyHomePageState extends State<MyHomePage> {
     await _image?.destroy();
 
     await materialInstance.setParameterInt("baseColorIndex", 0);
+
     var imageBuffer = await rootBundle.load("assets/background.png");
+
     var imageData = imageBuffer.buffer.asUint8List(imageBuffer.offsetInBytes);
+
     _image = await FilamentApp.instance!.decodeImage(imageData);
+
     var width = await _image!.getWidth();
     var height = await _image!.getHeight();
 
     _texture = await FilamentApp.instance!.createTexture(width, height);
+
     await _texture!.setLinearImage(
       _image!,
       PixelDataFormat.RGBA,
@@ -111,6 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
 
     final textureSampler = await FilamentApp.instance!.createTextureSampler();
+
     await materialInstance.setParameterTexture(
       "baseColorMap",
       _texture!,
@@ -120,6 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future _setActiveMaterialColor() async {
     var active = unlit ? _unlitMaterial : _litMaterial;
+
     await active.setParameterFloat4(
       "baseColorFactor",
       green ? 0.0 : 1.0,
@@ -132,13 +157,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           if (_viewer == null) CircularProgressIndicator(),
           if (_viewer != null) ...[
             Positioned.fill(
               child: ThermionListenerWidget(
-                inputHandler: DelegateInputHandler.fixedOrbit(_viewer!, sensitivity: InputSensitivityOptions(mouseSensitivity: 0.01)),
+                inputHandler: _inputHandler,
                 child: ThermionWidget(viewer: _viewer!),
               ),
             ),
@@ -151,10 +177,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     ElevatedButton(
                       onPressed: () async {
                         green = !green;
+                        setState(() {});
                         _setActiveMaterialColor();
                       },
                       child: Text(
-                        "Set baseColorFactor to ${green ? "red" : "green"}",
+                        "Toggle baseColorFactor (currently ${green ? "green" : "red"}",
                       ),
                     ),
                     ElevatedButton(
