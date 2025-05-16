@@ -90,7 +90,9 @@ class OrbitInputHandlerDelegate implements InputHandlerDelegate {
 
   @override
   Future<void> handle(List<InputEvent> events) async {
+
     final activeCamera = await view.getCamera();
+    
     if (!_isInitialized) {
       await _initializeFromCamera(activeCamera);
     }
@@ -163,8 +165,10 @@ class OrbitInputHandlerDelegate implements InputHandlerDelegate {
             localFocalPointDelta: final localFocalPointDelta
           ):
           if (numPointers == 1) {
-              deltaAzimuth -= localFocalPointDelta!.$1 * sensitivity.touchSensitivity;
-              deltaElevation -= localFocalPointDelta.$2 * sensitivity.touchSensitivity;
+            deltaAzimuth -=
+                localFocalPointDelta!.$1 * sensitivity.touchSensitivity;
+            deltaElevation -=
+                localFocalPointDelta.$2 * sensitivity.touchSensitivity;
           } else {
             _radiusScaleFactor = scaleFactor;
           }
@@ -221,15 +225,3 @@ class OrbitInputHandlerDelegate implements InputHandlerDelegate {
     await activeCamera.setModelMatrix(modelMatrix);
   }
 }
-
-
-  // _lastPointerPosition =
-                //     localFocalPoint; 
-              // } else if (_isPointerDown && _lastPointerPosition != null) {
-              //   final currentDragDelta = localPosition! - _lastPointerPosition!;
-              //   deltaAzimuth -=
-              //       currentDragDelta.x * sensitivity.touchSensitivity;
-              //   deltaElevation -=
-              //       currentDragDelta.y * sensitivity.touchSensitivity;
-              //   _lastPointerPosition = localPosition;
-              // }
