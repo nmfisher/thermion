@@ -128,14 +128,29 @@ cmake -G Ninja \
         ../../../libs/imageio
 ninja
 cd ..
-mkdir thirdparty/
-cd thirdparty/
+mkdir third_party/
+cd third_party/
 #find . -type f -exec file {} \; | grep "text" | cut -d: -f1 | xargs dos2unix
 # for zlib, replace this:
 #-   set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)
 # with this:
 #+   set_target_properties(zlib PROPERTIES OUTPUT_NAME z)
+# libz 
+#sed -i 's/set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)/set_target_properties(zlib PROPERTIES OUTPUT_NAME z)\n set_target_properties(zlibstatic PROPERTIES OUTPUT_NAME zstatic)/#g' ../../../../third_party/libz/CMakeLists.txt
 for lib in tinyexr libpng libz; do 
+mkdir -p libz;
+pushd libz;
+cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DWEBGL=1 \
+        -DWEBGL_PTHREADS=1 \
+        -DFILAMENT_SKIP_SAMPLES=1 \
+        -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
+        -DCMAKE_C_FLAGS="-pthread -Wno-reserved-identifier" \
+        -DCMAKE_CXX_FLAGS="-pthread -Wno-reserved-identifier" \
+        ../../../../third_party/$lib;
+popd
+for lib in tinyexr libpng; do 
     mkdir -p $lib;
     pushd $lib;
     cmake -G Ninja \
@@ -143,9 +158,13 @@ for lib in tinyexr libpng libz; do
         -DWEBGL=1 \
         -DWEBGL_PTHREADS=1 \
         -DFILAMENT_SKIP_SAMPLES=1 \
+        -DCMAKE_TOOLCHAIN_FILE="${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
+        -DCMAKE_C_FLAGS="-pthread -Wno-reserved-identifier -I../libz" \
+        -DCMAKE_CXX_FLAGS="-pthread -Wno-reserved-identifier -I../libz -Wno-reserved-identifier -I../libz -Wno-switch-default -Wno-unsafe-buffer-usage -Wno-sign-conversion -Wno-tautological-type-limit-compar" \
+        -DPNG_SHARED=OFF \
+        -DZLIB_ROOT=../../../../third_party/libz \
+        -DZLIB_LIBRARY=../../../../third_party/libz/libz.a \
         -DZLIB_INCLUDE_DIR=../../../../third_party/libz \
-        -DCMAKE_C_FLAGS="-pthread -Wno-reserved-identifier" \
-        -DCMAKE_CXX_FLAGS="-pthread -Wno-reserved-identifier" \
         ../../../../third_party/$lib;
     ninja;
     popd; 
