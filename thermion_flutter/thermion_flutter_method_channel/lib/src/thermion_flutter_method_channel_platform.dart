@@ -88,7 +88,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
 
     final config = FFIFilamentConfig(
         backend: backend,
-        resourceLoader: loadAsset,
+        loadResource: loadAsset,
         platform: platformPtr,
         sharedContext: sharedContextPtr,
         uberArchivePath: options.uberarchivePath);
@@ -103,9 +103,7 @@ class ThermionFlutterMethodChannelPlatform extends ThermionFlutterPlatform {
       });
     }
 
-    final viewer = ThermionViewerFFI(
-      loadAssetFromUri: loadAsset,
-    );
+    final viewer = ThermionViewerFFI();
 
     await viewer.initialized;
 
