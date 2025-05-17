@@ -195,8 +195,13 @@ class TestHelper {
     return object;
   }
 
+  Future<Uint8List> _loadResource(String uri) async {
+    uri = uri.replaceAll("file://", "");
+    return File(uri).readAsBytesSync();
+  }
+
   Future setup() async {
-    await FFIFilamentApp.create();
+    await FFIFilamentApp.create(config: FFIFilamentConfig(loadResource: _loadResource));
   }
 
   Future createViewer(
@@ -244,9 +249,7 @@ class TestHelper {
           color: color, depth: depth) as FFIRenderTarget;
     }
 
-    var viewer = ThermionViewerFFI(
-        loadAssetFromUri: (path) async =>
-            File(path.replaceAll("file://", "")).readAsBytesSync());
+    var viewer = ThermionViewerFFI();
 
     await viewer.initialized;
     await FilamentApp.instance!.register(swapChain, viewer.view);

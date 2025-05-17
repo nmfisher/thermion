@@ -41,11 +41,10 @@ void main() async {
       }, cameraPosition: Vector3(0, 0, 5));
     });
 
-    test('load/remove gltf', () async {
+    test('sync load/remove gltf from uri', () async {
       await testHelper.withViewer((viewer) async {
         var asset = await viewer.loadGltf(
-            "file://${testHelper.testDir}/assets/cube.gltf",
-            relativeResourcePath: "${testHelper.testDir}/assets");
+            "file://${testHelper.testDir}/assets/cube.gltf");
         await viewer
             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
         await testHelper.capture(viewer.view, "gltf_loaded");
@@ -54,12 +53,9 @@ void main() async {
       }, cameraPosition: Vector3(0, 0, 5));
     });
 
-    test('load/remove gltf (async)', () async {
+    test('async load/remove gltf from uri', () async {
       await testHelper.withViewer((viewer) async {
-        var assetData =
-            File("${testHelper.testDir}/assets/cube.gltf").readAsBytesSync();
-        var asset = await viewer.loadGltfFromBuffer(assetData,
-            relativeResourcePath: "${testHelper.testDir}/assets", loadResourcesAsync: true);
+        var asset = await viewer.loadGltf("file://${testHelper.testDir}/assets/cube.gltf", loadAsync: true);
         await viewer
             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
         await testHelper.capture(viewer.view, "gltf_async_loaded");
@@ -68,11 +64,22 @@ void main() async {
       }, cameraPosition: Vector3(0, 0, 5));
     });
 
+    test('sync load/remove gltf from buffer', () async {
+      await testHelper.withViewer((viewer) async {
+        var assetData =
+            File("${testHelper.testDir}/assets/cube.gltf").readAsBytesSync();
+        var asset = await viewer.loadGltfFromBuffer(assetData,
+            resourceUri: "${testHelper.testDir}/assets", loadResourcesAsync: false);
+        await viewer
+            .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");
+        await testHelper.capture(viewer.view, "gltf_load_from_buffer");
+      }, cameraPosition: Vector3(0, 0, 5));
+    });
+
     test('transform gltf to unit cube', () async {
       await testHelper.withViewer((viewer) async {
         var asset = await viewer.loadGltf(
-            "file://${testHelper.testDir}/assets/cube.gltf",
-            relativeResourcePath: "${testHelper.testDir}/assets");
+            "file://${testHelper.testDir}/assets/cube.gltf");
 
         await viewer
             .loadIbl("file://${testHelper.testDir}/assets/default_env_ibl.ktx");

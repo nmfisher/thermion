@@ -2490,14 +2490,12 @@ external void GltfAssetLoader_createRenderThread(
 @ffi.Native<
     ffi.Void Function(
         ffi.Pointer<TEngine>,
-        ffi.Pointer<ffi.Char>,
         ffi.Pointer<
             ffi.NativeFunction<
                 ffi.Void Function(
                     ffi.Pointer<TGltfResourceLoader>)>>)>(isLeaf: true)
 external void GltfResourceLoader_createRenderThread(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Char> relativeResourcePath,
   ffi.Pointer<
           ffi
           .NativeFunction<ffi.Void Function(ffi.Pointer<TGltfResourceLoader>)>>
@@ -2616,12 +2614,10 @@ external void Gizmo_createRenderThread(
       callback,
 );
 
-@ffi.Native<
-    ffi.Pointer<TGltfResourceLoader> Function(
-        ffi.Pointer<TEngine>, ffi.Pointer<ffi.Char>)>(isLeaf: true)
+@ffi.Native<ffi.Pointer<TGltfResourceLoader> Function(ffi.Pointer<TEngine>)>(
+    isLeaf: true)
 external ffi.Pointer<TGltfResourceLoader> GltfResourceLoader_create(
   ffi.Pointer<TEngine> tEngine,
-  ffi.Pointer<ffi.Char> relativeResourcePath,
 );
 
 @ffi.Native<
